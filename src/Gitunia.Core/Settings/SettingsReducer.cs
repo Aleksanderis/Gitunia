@@ -306,9 +306,12 @@ public static class SettingsReducer
         var definition = row.Definition;
         var next = state.ValueOf(definition).Number + (direction * definition.Step);
 
-        return IsInRange(definition, next)
-            ? Commit(state, definition, SettingValue.OfNumber(next))
-            : Refuse(state, RangeMessage(definition));
+        if (!IsInRange(definition, next))
+        {
+            return Refuse(state, RangeMessage(definition));
+        }
+
+        return Commit(state, definition, SettingValue.OfNumber(next));
     }
 
     private static SettingsOutcome FilterOpen(SettingsState state)
@@ -341,9 +344,12 @@ public static class SettingsReducer
             return new SettingsOutcome(state);
         }
 
-        return input.Kind == SettingsInputKind.Number
-            ? AcceptNumber(state, definition, input)
-            : AcceptPath(state, definition, input, environment);
+        if (input.Kind == SettingsInputKind.Number)
+        {
+            return AcceptNumber(state, definition, input);
+        }
+
+        return AcceptPath(state, definition, input, environment);
     }
 
     private static SettingsOutcome AcceptNumber(SettingsState state, SettingDefinition definition, SettingsInput input)
@@ -415,10 +421,15 @@ public static class SettingsReducer
         return string.Empty;
     }
 
-    private static string Normalize(string text, SettingsEnvironment environment) =>
-        text.Length == 0
-            ? text
-            : Path.TrimEndingDirectorySeparator(OptionsConfigurator.ExpandHome(text, environment.HomeDirectory));
+    private static string Normalize(string text, SettingsEnvironment environment)
+    {
+        if (text.Length == 0)
+        {
+            return text;
+        }
+
+        return Path.TrimEndingDirectorySeparator(OptionsConfigurator.ExpandHome(text, environment.HomeDirectory));
+    }
 
     private static SettingsOutcome Commit(SettingsState state, SettingDefinition definition, SettingValue value) =>
         new(state, new SettingsCommit(definition, value));
@@ -430,9 +441,12 @@ public static class SettingsReducer
         var selected = state.Selected;
         var cleared = state with { Filter = string.Empty, IsEditingFilter = false };
 
-        return selected is null
-            ? cleared.Clamped()
-            : cleared.Reveal(selected.Definition, selected.Kind, selected.Index);
+        if (selected is null)
+        {
+            return cleared.Clamped();
+        }
+
+        return cleared.Reveal(selected.Definition, selected.Kind, selected.Index);
     }
 
     private static SettingDefinition? FindDefinition(SettingsState state, string id) =>

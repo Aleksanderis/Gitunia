@@ -7,6 +7,7 @@ using Gitunia.Core.Search.Models;
 using Gitunia.Git;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Panes;
+using Gitunia.Tui.Rendering.Styling;
 using Gitunia.Tui.Rendering.Screen;
 using Gitunia.Tui.Views.Theme;
 using Terminal.Gui.Views;
@@ -132,11 +133,7 @@ public sealed class GraphListSource(CommitGraph graph, GraphGlyphSet glyphs) : I
         var options = OptionsFor(PanePadding.GraphTextWidth(width, columns));
         var commitIndex = CommitIndexOf(item);
         selected |= Range?.Contains(item) == true;
-        var line = commitIndex >= 0 && commitIndex < graph.Count
-            ? GraphRowRenderer.Render(graph[commitIndex], options, selected, JumpLabelOf(listView, commitIndex))
-            : ShowsCutMarker && commitIndex == graph.Count
-                ? GraphRowRenderer.RenderCutMarker(options, selected)
-                : GraphRowRenderer.RenderEmpty(options, selected);
+        var line = LineAt(listView, commitIndex, options, selected);
         LinePainter.Paint(
             listView,
             PanePadding.WrapGraph(line, columns),
@@ -147,6 +144,21 @@ public sealed class GraphListSource(CommitGraph graph, GraphGlyphSet glyphs) : I
 
     public void Dispose()
     {
+    }
+
+    private StyledLine LineAt(ListView listView, int commitIndex, GraphRowOptions options, bool selected)
+    {
+        if (commitIndex >= 0 && commitIndex < graph.Count)
+        {
+            return GraphRowRenderer.Render(graph[commitIndex], options, selected, JumpLabelOf(listView, commitIndex));
+        }
+
+        if (ShowsCutMarker && commitIndex == graph.Count)
+        {
+            return GraphRowRenderer.RenderCutMarker(options, selected);
+        }
+
+        return GraphRowRenderer.RenderEmpty(options, selected);
     }
 
     // The labels are worked out once per frame (the first row asks), not once per row.

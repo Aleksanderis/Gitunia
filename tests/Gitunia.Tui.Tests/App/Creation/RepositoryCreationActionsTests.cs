@@ -397,9 +397,13 @@ public class RepositoryCreationActionsTests
 
         public static Harness For(TestRepository repository, FakeGitExecutable? fake = null)
         {
-            var runner = fake is null
-                ? repository.CreateIsolatedRunner()
-                : new GitRunner(new GitRunnerOptions(fake.ExecutablePath));
+            var runner = repository.CreateIsolatedRunner();
+
+            if (fake is not null)
+            {
+                runner = new GitRunner(new GitRunnerOptions(fake.ExecutablePath));
+            }
+
             var remote = new RemoteRunner(runner, name => fake is not null && name == "GIT_SSH_COMMAND" ? "ssh" : null);
             var discovery = new RepositoryDiscovery(repository.CreateIsolatedRunner());
             return new Harness(new RepositoryCreator(remote, runner, discovery));

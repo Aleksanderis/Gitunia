@@ -49,6 +49,18 @@ public static class SshCommandPolicy
         return $"{command.Trim()} {BatchModeOption}";
     }
 
-    private static string? FirstNonEmpty(string? first, string? second) =>
-        !string.IsNullOrWhiteSpace(first) ? first : string.IsNullOrWhiteSpace(second) ? null : second;
+    private static string? FirstNonEmpty(string? first, string? second)
+    {
+        if (!string.IsNullOrWhiteSpace(first))
+        {
+            return first;
+        }
+
+        if (string.IsNullOrWhiteSpace(second))
+        {
+            return null;
+        }
+
+        return second;
+    }
 }

@@ -47,9 +47,12 @@ public sealed class PatchStager(IDiffReader reader, IIndexWriter writer)
             return await StageUntrackedAsync(location, entry, chosen, allowWholeFile, isHeadUnborn, cancellationToken).ConfigureAwait(false);
         }
 
-        var file = chosen.Count > 0
-            ? await _pickable.ReadAsync(location, side, entry, false, cancellationToken).ConfigureAwait(false)
-            : null;
+        DiffFile? file = null;
+        if (chosen.Count > 0)
+        {
+            file = await _pickable.ReadAsync(location, side, entry, false, cancellationToken).ConfigureAwait(false);
+        }
+
         return await StageFromAsync(location, side, entry, file, chosen, allowWholeFile, isHeadUnborn, cancellationToken).ConfigureAwait(false);
     }
 
@@ -164,8 +167,11 @@ public sealed class PatchStager(IDiffReader reader, IIndexWriter writer)
         CancellationToken cancellationToken)
     {
         var paths = StagingPaths.Of(entry, side);
-        return side == WorkingDiffSide.Unstaged
-            ? writer.StageAsync(location, paths, cancellationToken)
-            : writer.UnstageAsync(location, paths, isHeadUnborn, cancellationToken);
+        if (side == WorkingDiffSide.Unstaged)
+        {
+            return writer.StageAsync(location, paths, cancellationToken);
+        }
+
+        return writer.UnstageAsync(location, paths, isHeadUnborn, cancellationToken);
     }
 }

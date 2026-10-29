@@ -51,9 +51,15 @@ public static class DetailContentBuilder
         };
 
     /// <summary>Mark and path of a file as plain text, for example <c>R old.txt -&gt; new.txt</c>.</summary>
-    public static string DescribeFile(CommitFileChange file) => file.OldPath is { } oldPath
-        ? $"{Mark(file)} {oldPath} -> {file.Path}"
-        : $"{Mark(file)} {file.Path}";
+    public static string DescribeFile(CommitFileChange file)
+    {
+        if (file.OldPath is { } oldPath)
+        {
+            return $"{Mark(file)} {oldPath} -> {file.Path}";
+        }
+
+        return $"{Mark(file)} {file.Path}";
+    }
 
     private static DetailContent BuildRows(
         GraphEntry? entry,
@@ -162,9 +168,12 @@ public static class DetailContentBuilder
             return [Status(entry, state, stashName)];
         }
 
-        var heading = stashName is null
-            ? FilesHeading(details.Files.Count) + MergeNote(details) + CompareNote(details)
-            : StashHeading(stashName, details);
+        var heading = $"{FilesHeading(details.Files.Count)}{MergeNote(details)}{CompareNote(details)}";
+        if (stashName is not null)
+        {
+            heading = StashHeading(stashName, details);
+        }
+
         var rows = new List<DetailRow> { new([new StyledSegment(heading, SegmentRole.Faint)]) };
         var untrackedFrom = details.Files.Count - details.UntrackedFileCount;
         if (pathStyle == FilePathStyle.Tree)
@@ -289,9 +298,11 @@ public static class DetailContentBuilder
     private static DetailRow Status(GraphEntry entry, CommitDetailsState state, string? stashName)
     {
         var what = stashName is null ? "commit" : "stash";
-        var text = state.Commit == entry.Id && state.Status == CommitDetailsStatus.Failed
-            ? $"Could not load the {what} (r retries): {state.Error}"
-            : "Loading...";
+        var text = "Loading...";
+        if (state.Commit == entry.Id && state.Status == CommitDetailsStatus.Failed)
+        {
+            text = $"Could not load the {what} (r retries): {state.Error}";
+        }
 
         return new DetailRow([new StyledSegment(text, SegmentRole.Faint)]);
     }
@@ -312,9 +323,13 @@ public static class DetailContentBuilder
 
     private static void AddParents(List<DetailRow> rows, CommitDetails details)
     {
-        rows.Add(details.Parents.Count == 0
-            ? Labelled("parents", new StyledSegment("none (root commit)", SegmentRole.Faint))
-            : Labelled("parents", new StyledSegment(string.Join(' ', details.Parents.Select(ShortHash)), SegmentRole.Hash)));
+        var parents = new StyledSegment(string.Join(' ', details.Parents.Select(ShortHash)), SegmentRole.Hash);
+        if (details.Parents.Count == 0)
+        {
+            parents = new StyledSegment("none (root commit)", SegmentRole.Faint);
+        }
+
+        rows.Add(Labelled("parents", parents));
     }
 
     private static void AddRefs(List<DetailRow> rows, IReadOnlyList<CommitDecoration> decorations)
@@ -423,9 +438,11 @@ public static class DetailContentBuilder
 
     private static string StashHeading(string stashName, CommitDetails details)
     {
-        var untracked = details.UntrackedFileCount > 0
-            ? $", {details.UntrackedFileCount.ToString(CultureInfo.InvariantCulture)} untracked"
-            : string.Empty;
+        var untracked = string.Empty;
+        if (details.UntrackedFileCount > 0)
+        {
+            untracked = $", {details.UntrackedFileCount.ToString(CultureInfo.InvariantCulture)} untracked";
+        }
 
         return $"Stash {stashName}: {FilesHeading(details.Files.Count)}{untracked}";
     }

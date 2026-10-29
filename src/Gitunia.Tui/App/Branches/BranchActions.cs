@@ -73,32 +73,41 @@ public sealed class BranchActions(
 
     public string StatusLine => string.Empty;
 
-    public PromptPopup? Popup => _kind == BranchPromptKind.None || host.Workspace.ActiveTabId != _tabId
-        ? null
-        : _kind switch
+    public PromptPopup? Popup
+    {
+        get
         {
-            BranchPromptKind.Create => PromptPopup.ForText(
-                "New branch",
-                $"At {_label}{(_checkout ? string.Empty : " (not checked out)")}",
-                _text,
-                "create"),
-            BranchPromptKind.Rename => PromptPopup.ForText("Rename branch", _label, _text, "rename"),
-            BranchPromptKind.Delete => DeletePopup(),
-            BranchPromptKind.Upstream => _picker.ToPopup(
-                "Set upstream",
-                $"Upstream of {_label}",
-                _text,
-                "set",
-                candidate => candidate.Label,
-                "No matching remote branch"),
-            _ => _picker.ToPopup(
-                "Switch branch",
-                "Branch to check out",
-                _text,
-                "switch",
-                SwitchRow,
-                "No matching branch"),
-        };
+            if (_kind == BranchPromptKind.None || host.Workspace.ActiveTabId != _tabId)
+            {
+                return null;
+            }
+
+            return _kind switch
+            {
+                BranchPromptKind.Create => PromptPopup.ForText(
+                    "New branch",
+                    $"At {_label}{(_checkout ? string.Empty : " (not checked out)")}",
+                    _text,
+                    "create"),
+                BranchPromptKind.Rename => PromptPopup.ForText("Rename branch", _label, _text, "rename"),
+                BranchPromptKind.Delete => DeletePopup(),
+                BranchPromptKind.Upstream => _picker.ToPopup(
+                    "Set upstream",
+                    $"Upstream of {_label}",
+                    _text,
+                    "set",
+                    candidate => candidate.Label,
+                    "No matching remote branch"),
+                _ => _picker.ToPopup(
+                    "Switch branch",
+                    "Branch to check out",
+                    _text,
+                    "switch",
+                    SwitchRow,
+                    "No matching branch"),
+            };
+        }
+    }
 
     public bool TryExecute(ActionId action, int? count)
     {
@@ -332,9 +341,12 @@ public sealed class BranchActions(
         if (chosen.RowKind is SidebarRowKind.LocalBranch or SidebarRowKind.RemoteBranch && chosen.Name is { } name)
         {
             // The full ref name, so a tag called like the branch cannot be picked instead.
-            _startPoint = chosen.RowKind == SidebarRowKind.LocalBranch
-                ? $"{GitRefPrefixes.Heads}{name}"
-                : $"{GitRefPrefixes.Remotes}{name}";
+            _startPoint = $"{GitRefPrefixes.Remotes}{name}";
+            if (chosen.RowKind == SidebarRowKind.LocalBranch)
+            {
+                _startPoint = $"{GitRefPrefixes.Heads}{name}";
+            }
+
             _label = name;
         }
         else if (chosen.CommitHash is { } hash)
@@ -439,11 +451,7 @@ public sealed class BranchActions(
         }
 
         var name = branch.Name;
-        var shown = upstream.StartsWith(GitRefPrefixes.Remotes, StringComparison.Ordinal)
-            ? upstream[GitRefPrefixes.Remotes.Length..]
-            : upstream.StartsWith(GitRefPrefixes.Heads, StringComparison.Ordinal)
-                ? upstream[GitRefPrefixes.Heads.Length..]
-                : upstream;
+        var shown = ShownUpstream(upstream);
         Start(tab, "Could not unset the upstream", async token =>
         {
             await writer.UnsetUpstreamAsync(tab.Location, name, token).ConfigureAwait(false);
@@ -523,15 +531,25 @@ public sealed class BranchActions(
     private void RefreshCandidates()
     {
         var refs = host.Workspace.FindTab(_tabId)?.Refs ?? [];
-        _picker.Reset(_kind == BranchPromptKind.Upstream
-            ? SwitchCandidates.BuildRemote(refs, _text)
-            : SwitchCandidates.Build(refs, _commitHash, _text, _onlyBranches));
+        if (_kind == BranchPromptKind.Upstream)
+        {
+            _picker.Reset(SwitchCandidates.BuildRemote(refs, _text));
+            return;
+        }
+
+        _picker.Reset(SwitchCandidates.Build(refs, _commitHash, _text, _onlyBranches));
     }
 
     // A remote branch is checked out as a local branch of the same name without the remote prefix: say so up front.
-    private static string SwitchRow(SwitchCandidate candidate) => candidate.Kind == SwitchTargetKind.RemoteBranch
-        ? $"{candidate.Label} -> local {SwitchCandidates.LocalNameOf(candidate.Target)}"
-        : candidate.Label;
+    private static string SwitchRow(SwitchCandidate candidate)
+    {
+        if (candidate.Kind == SwitchTargetKind.RemoteBranch)
+        {
+            return $"{candidate.Label} -> local {SwitchCandidates.LocalNameOf(candidate.Target)}";
+        }
+
+        return candidate.Label;
+    }
 
     // Finds the local branch a rename or a delete acts on, or returns why there is none.
     private string? ResolveLocalBranch(RepositoryState tab, out GitRef? branch)
@@ -541,15 +559,20 @@ public sealed class BranchActions(
         var locals = tab.Refs.Where(reference => reference.Kind == RefKind.LocalBranch).ToList();
         if (chosen.RowKind is not null)
         {
-            branch = chosen.RowKind == SidebarRowKind.LocalBranch
-                ? locals.FirstOrDefault(reference => reference.Name == chosen.Name)
-                : null;
+            if (chosen.RowKind == SidebarRowKind.LocalBranch)
+            {
+                branch = locals.FirstOrDefault(reference => reference.Name == chosen.Name);
+            }
+
             return branch is null ? "Select a local branch first" : null;
         }
 
-        var here = chosen.CommitHash is null
-            ? []
-            : locals.Where(reference => reference.CommitHash == chosen.CommitHash).ToList();
+        var here = new List<GitRef>();
+        if (chosen.CommitHash is not null)
+        {
+            here = [.. locals.Where(reference => reference.CommitHash == chosen.CommitHash)];
+        }
+
         if (here.Count > 1)
         {
             return $"{here.Count} branches point here: pick one in the sidebar";
@@ -632,9 +655,12 @@ public sealed class BranchActions(
 
     private string AcceptSwitch(RepositoryState tab)
     {
-        return _picker.TryGetSelected(out var candidate)
-            ? CheckoutCandidate(tab, candidate)
-            : "No matching branch";
+        if (_picker.TryGetSelected(out var candidate))
+        {
+            return CheckoutCandidate(tab, candidate);
+        }
+
+        return "No matching branch";
     }
 
     private string CheckoutCandidate(RepositoryState tab, SwitchCandidate candidate)
@@ -686,6 +712,22 @@ public sealed class BranchActions(
         }
     }
 
+    // The upstream as shown to the user: without its refs/remotes/ or refs/heads/ prefix.
+    private static string ShownUpstream(string upstream)
+    {
+        if (upstream.StartsWith(GitRefPrefixes.Remotes, StringComparison.Ordinal))
+        {
+            return upstream[GitRefPrefixes.Remotes.Length..];
+        }
+
+        if (upstream.StartsWith(GitRefPrefixes.Heads, StringComparison.Ordinal))
+        {
+            return upstream[GitRefPrefixes.Heads.Length..];
+        }
+
+        return upstream;
+    }
+
     private static bool HasLocalBranch(RepositoryState tab, string name) =>
         tab.Refs.Any(reference => reference.Kind == RefKind.LocalBranch && reference.Name == name);
 
@@ -699,18 +741,24 @@ public sealed class BranchActions(
         {
             _deleteNames = names;
             _deleteIndex = 0;
-            _label = chosen.RowKind == SidebarRowKind.Folder
-                ? $"{chosen.Name}/"
-                : ShortHash(chosen.CommitHash ?? string.Empty);
+            _label = ShortHash(chosen.CommitHash ?? string.Empty);
+            if (chosen.RowKind == SidebarRowKind.Folder)
+            {
+                _label = $"{chosen.Name}/";
+            }
+
             Open(BranchPromptKind.Delete, tab, string.Empty);
             return string.Empty;
         }
 
         if (chosen.RowKind == SidebarRowKind.Folder)
         {
-            return names.Count == 0
-                ? $"No local branch in {chosen.Name}/"
-                : AskDelete(tab, tab.Refs.First(reference => IsLocal(reference, names[0])));
+            if (names.Count == 0)
+            {
+                return $"No local branch in {chosen.Name}/";
+            }
+
+            return AskDelete(tab, tab.Refs.First(reference => IsLocal(reference, names[0])));
         }
 
         return ResolveLocalBranch(tab, out var branch) is { } refusal ? refusal : AskDelete(tab, branch!);
@@ -730,9 +778,12 @@ public sealed class BranchActions(
                 .Select(reference => reference.Name)];
         }
 
-        return chosen.RowKind is null && chosen.CommitHash is { } hash
-            ? [.. locals.Where(reference => reference.CommitHash == hash).Select(reference => reference.Name)]
-            : [];
+        if (chosen.RowKind is null && chosen.CommitHash is { } hash)
+        {
+            return [.. locals.Where(reference => reference.CommitHash == hash).Select(reference => reference.Name)];
+        }
+
+        return [];
     }
 
     private PromptPopup DeletePopup()
@@ -883,12 +934,17 @@ public sealed class BranchActions(
     }
 
     // The commit HEAD is on now (the branch checked out, read from the tab's refs).
-    private ObjectId? HeadCommit(TabId tabId) =>
-        host.Workspace.FindTab(tabId) is { } tab
-        && tab.Refs.FirstOrDefault(item => item is { Kind: RefKind.LocalBranch, IsCurrent: true }) is { } current
-        && ObjectId.TryParse(current.CommitHash, out var id)
-            ? id
-            : null;
+    private ObjectId? HeadCommit(TabId tabId)
+    {
+        if (host.Workspace.FindTab(tabId) is { } tab
+            && tab.Refs.FirstOrDefault(item => item is { Kind: RefKind.LocalBranch, IsCurrent: true }) is { } current
+            && ObjectId.TryParse(current.CommitHash, out var id))
+        {
+            return id;
+        }
+
+        return null;
+    }
 
     private async Task RunAsync(
         TabId tabId,

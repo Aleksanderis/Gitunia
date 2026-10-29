@@ -176,11 +176,7 @@ public class InteractiveRebaseWriterTests
         using var repository = Linear();
         var (writer, location) = await CreateAsync(repository);
         var range = await writer.ReadRangeAsync(location, RebaseBase.Root, Token);
-        var entries = range
-            .Select(commit => commit == range[0]
-                ? Entry(commit, RebaseTodoAction.Reword, "Initial import")
-                : Entry(commit, RebaseTodoAction.Pick))
-            .ToList();
+        var entries = RewordFirst(range);
 
         var result = await writer.RebaseAsync(location, RebaseBase.Root, entries, Token);
 
@@ -699,6 +695,25 @@ public class InteractiveRebaseWriterTests
 
     private static List<RebaseTodoEntry> Entries(IReadOnlyList<RebaseTodoCommit> range) =>
         [.. range.Select(line => new RebaseTodoEntry(line.Hash, line.Action, Argument: line.Argument))];
+
+    private static List<RebaseTodoEntry> RewordFirst(IReadOnlyList<RebaseTodoCommit> range)
+    {
+        var entries = new List<RebaseTodoEntry>();
+
+        foreach (var commit in range)
+        {
+            if (commit == range[0])
+            {
+                entries.Add(Entry(commit, RebaseTodoAction.Reword, "Initial import"));
+            }
+            else
+            {
+                entries.Add(Entry(commit, RebaseTodoAction.Pick));
+            }
+        }
+
+        return entries;
+    }
 
     // Swaps the two commits of the branch that is merged (SideA and SideB).
     private static List<RebaseTodoEntry> Swapped(IReadOnlyList<RebaseTodoCommit> range)

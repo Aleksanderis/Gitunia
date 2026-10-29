@@ -292,9 +292,7 @@ public class DiffTitleButtonsTests
     public void GivenARebinding_WhenLayingOutAWideRow_ThenTheButtonShowsTheNewKey()
     {
         var bindings = DefaultKeymap.CreateBindings()
-            .Select(binding => binding.Action == ActionIds.DiffToggleWrap && binding.View == DefaultKeymap.DiffView
-                ? binding with { Sequence = KeySequenceParser.Parse("Ctrl-w") }
-                : binding);
+            .Select(Rebound);
         var keys = new ChipKeys(DefaultKeymap.Create().WithBindings(bindings));
 
         var wrap = DiffTitleButtons.Layout(300, keys, isFileContent: true)
@@ -333,5 +331,15 @@ public class DiffTitleButtonsTests
         Assert.Contains(
             title.Segments,
             segment => segment.Text == "<space>vv" && segment.Role == SegmentRole.RepositoryTabKey);
+    }
+
+    private static KeyBinding Rebound(KeyBinding binding)
+    {
+        if (binding.Action == ActionIds.DiffToggleWrap && binding.View == DefaultKeymap.DiffView)
+        {
+            return binding with { Sequence = KeySequenceParser.Parse("Ctrl-w") };
+        }
+
+        return binding;
     }
 }

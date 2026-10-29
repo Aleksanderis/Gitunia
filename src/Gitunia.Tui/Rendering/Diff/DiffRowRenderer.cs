@@ -86,9 +86,23 @@ public static class DiffRowRenderer
     /// <summary>A file content line: one number column, no marker.</summary>
     private static bool IsContent(DiffRow row) => row.Kind == DiffRowKind.Content;
 
-    private static string Gutter(DiffRow row, int gutterDigits) => IsContent(row)
-        ? $"{Number(row.NewLineNumber, gutterDigits)}  "
-        : $"{Number(row.OldLineNumber, gutterDigits)} {Number(row.NewLineNumber, gutterDigits)} ";
+    private static string Gutter(DiffRow row, int gutterDigits)
+    {
+        if (IsContent(row))
+        {
+            return $"{Number(row.NewLineNumber, gutterDigits)}  ";
+        }
+
+        return $"{Number(row.OldLineNumber, gutterDigits)} {Number(row.NewLineNumber, gutterDigits)} ";
+    }
+
+    /// <summary>The change marker of a row: <c>+</c> added, <c>-</c> removed, a space otherwise.</summary>
+    public static string MarkerOf(DiffRowKind kind) => kind switch
+    {
+        DiffRowKind.Added => "+",
+        DiffRowKind.Removed => "-",
+        _ => " ",
+    };
 
     /// <summary>How many screen lines <paramref name="row"/> takes when its text wraps at <paramref name="width"/> columns.</summary>
     public static int SegmentCount(DiffRow row, int width, int gutterDigits)
@@ -178,7 +192,7 @@ public static class DiffRowRenderer
                     builder.Append(Gutter(row, gutterDigits), SegmentRole.Faint);
                     if (!IsContent(row))
                     {
-                        var marker = row.Kind == DiffRowKind.Added ? "+" : row.Kind == DiffRowKind.Removed ? "-" : " ";
+                        var marker = MarkerOf(row.Kind);
                         builder.Append(marker, textRole == SegmentRole.Plain ? SegmentRole.Faint : textRole);
                     }
 
@@ -360,9 +374,12 @@ public static class DiffRowRenderer
         var builder = new LineBuilder(width, glyphs.Ellipsis);
         var rule = glyphs.Horizontal.ToString();
         var columns = width - HunkRuleWidth - 1;
-        var chunks = wrap && columns > 0
-            ? Chunks(ExpandTabs(row.Text), columns)
-            : [ExpandTabs(CutToWidth(row.Text, width))];
+        List<string> chunks = [ExpandTabs(CutToWidth(row.Text, width))];
+        if (wrap && columns > 0)
+        {
+            chunks = Chunks(ExpandTabs(row.Text), columns);
+        }
+
         var shown = segment < chunks.Count ? chunks[segment] : string.Empty;
         builder.Append(segment == 0 ? $"{rule}{rule} " : new string(' ', HunkRuleWidth + 1), SegmentRole.Faint);
         if (segment == 0 && jump is { } target)

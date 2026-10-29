@@ -70,20 +70,29 @@ public sealed class RemoteManagementActions(
 
     public string StatusLine => string.Empty;
 
-    public PromptPopup? Popup => _kind == RemotePromptKind.None || host.Workspace.ActiveTabId != _tabId
-        ? null
-        : _kind switch
+    public PromptPopup? Popup
+    {
+        get
         {
-            RemotePromptKind.AddName => PromptPopup.ForText("Add remote", "Name of the new remote", _text, "next"),
-            RemotePromptKind.AddUrl => PromptPopup.ForText("Add remote", $"URL of {_newName}", _text, "add"),
-            RemotePromptKind.RenameName => PromptPopup.ForText(
-                "Rename remote", $"New name for {_target.Name}", _text, "rename"),
-            RemotePromptKind.UrlText => PromptPopup.ForText(
-                "Set remote URL", $"New URL of {_target.Name}", _text, "set"),
-            RemotePromptKind.RemovePick => PickerPopup("Remove remote", "Remote to remove"),
-            RemotePromptKind.RenamePick => PickerPopup("Rename remote", "Remote to rename"),
-            _ => PickerPopup("Set remote URL", "Remote to change"),
-        };
+            if (_kind == RemotePromptKind.None || host.Workspace.ActiveTabId != _tabId)
+            {
+                return null;
+            }
+
+            return _kind switch
+            {
+                RemotePromptKind.AddName => PromptPopup.ForText("Add remote", "Name of the new remote", _text, "next"),
+                RemotePromptKind.AddUrl => PromptPopup.ForText("Add remote", $"URL of {_newName}", _text, "add"),
+                RemotePromptKind.RenameName => PromptPopup.ForText(
+                    "Rename remote", $"New name for {_target.Name}", _text, "rename"),
+                RemotePromptKind.UrlText => PromptPopup.ForText(
+                    "Set remote URL", $"New URL of {_target.Name}", _text, "set"),
+                RemotePromptKind.RemovePick => PickerPopup("Remove remote", "Remote to remove"),
+                RemotePromptKind.RenamePick => PickerPopup("Rename remote", "Remote to rename"),
+                _ => PickerPopup("Set remote URL", "Remote to change"),
+            };
+        }
+    }
 
     public bool TryExecute(ActionId action, int? count)
     {
@@ -163,13 +172,18 @@ public sealed class RemoteManagementActions(
     }
 
     // The remote a selected remote branch row belongs to; the longest name wins when one remote name prefixes another.
-    private static RemoteInfo? RemoteOfBranch(IReadOnlyList<RemoteInfo> remotes, BranchSelection chosen) =>
-        chosen.RowKind == SidebarRowKind.RemoteBranch && chosen.Name is { } name
-            ? remotes
-                .Where(remote => name.StartsWith($"{remote.Name}{RemoteSeparator}", StringComparison.Ordinal))
-                .OrderByDescending(remote => remote.Name.Length)
-                .FirstOrDefault()
-            : null;
+    private static RemoteInfo? RemoteOfBranch(IReadOnlyList<RemoteInfo> remotes, BranchSelection chosen)
+    {
+        if (chosen.RowKind != SidebarRowKind.RemoteBranch || chosen.Name is not { } name)
+        {
+            return null;
+        }
+
+        return remotes
+            .Where(remote => name.StartsWith($"{remote.Name}{RemoteSeparator}", StringComparison.Ordinal))
+            .OrderByDescending(remote => remote.Name.Length)
+            .FirstOrDefault();
+    }
 
     // The remote-tracking branches of a remote, not those of a remote whose name extends it (a and a/b).
     private static List<string> TrackingBranches(
@@ -219,8 +233,20 @@ public sealed class RemoteManagementActions(
         return true;
     }
 
-    private string? BeginOperation(RepositoryState tab) =>
-        _busy.Contains(tab.Id) ? BusyNotice : remoteOperationRuns(tab.Id) ? FetchRunsNotice : null;
+    private string? BeginOperation(RepositoryState tab)
+    {
+        if (_busy.Contains(tab.Id))
+        {
+            return BusyNotice;
+        }
+
+        if (remoteOperationRuns(tab.Id))
+        {
+            return FetchRunsNotice;
+        }
+
+        return null;
+    }
 
     private string Begin(RepositoryState tab, ActionId action)
     {
@@ -230,11 +256,22 @@ public sealed class RemoteManagementActions(
             return LoadRemotes(tab, RemotePromptKind.AddName);
         }
 
-        return LoadRemotes(
-            tab,
-            action == ActionIds.RemoteRemove ? RemotePromptKind.RemovePick
-            : action == ActionIds.RemoteRename ? RemotePromptKind.RenamePick
-            : RemotePromptKind.UrlPick);
+        return LoadRemotes(tab, PickKindOf(action));
+    }
+
+    private static RemotePromptKind PickKindOf(ActionId action)
+    {
+        if (action == ActionIds.RemoteRemove)
+        {
+            return RemotePromptKind.RemovePick;
+        }
+
+        if (action == ActionIds.RemoteRename)
+        {
+            return RemotePromptKind.RenamePick;
+        }
+
+        return RemotePromptKind.UrlPick;
     }
 
     private void Close()
@@ -464,12 +501,21 @@ public sealed class RemoteManagementActions(
     {
         var branches = TrackingBranches(tab, _remotes, remote);
         var lines = new List<string> { $"Remove the remote {remote.Name} ({remote.Url})?" };
-        var gone = branches.Count == 1
-            ? "1 remote-tracking branch disappears"
-            : $"{branches.Count} remote-tracking branches disappear";
-        lines.Add(branches.Count == 0
-            ? "It has no remote-tracking branches."
-            : $"{gone}: {BranchList(branches)}.");
+        if (branches.Count == 0)
+        {
+            lines.Add("It has no remote-tracking branches.");
+        }
+        else
+        {
+            var gone = $"{branches.Count} remote-tracking branches disappear";
+            if (branches.Count == 1)
+            {
+                gone = "1 remote-tracking branch disappears";
+            }
+
+            lines.Add($"{gone}: {BranchList(branches)}.");
+        }
+
         lines.Add("Branches that track it lose their upstream. The remote itself is not touched.");
         var prompt = new ConfirmPrompt(
             "Remove remote",

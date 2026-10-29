@@ -24,19 +24,24 @@ public sealed class PickCommitReader(GitRunner runner) : IPickCommitReader
             .SelectMany(commit => commit.Parents)
             .Distinct()
             .ToList();
-        var subjects = parentHashes.Count == 0
-            ? []
-            : (await ReadRecordsAsync(location, parentHashes, cancellationToken).ConfigureAwait(false))
-                .ToDictionary(record => record.Hash, record => record.Subject);
+        var subjects = new Dictionary<string, string>();
+        if (parentHashes.Count > 0)
+        {
+            var parentRecords = await ReadRecordsAsync(location, parentHashes, cancellationToken).ConfigureAwait(false);
+            subjects = parentRecords.ToDictionary(record => record.Hash, record => record.Subject);
+        }
 
         return commits.Select(commit => ToCommit(commit, subjects)).ToList();
     }
 
     private static PickCommit ToCommit(Record record, Dictionary<string, string> subjects)
     {
-        List<PickParent> parents = record.Parents.Length > 1
-            ? [.. record.Parents.Select(parent => ParentOf(parent, subjects))]
-            : [];
+        List<PickParent> parents = [];
+        if (record.Parents.Length > 1)
+        {
+            parents = [.. record.Parents.Select(parent => ParentOf(parent, subjects))];
+        }
+
         return new PickCommit(record.Hash, record.Subject, parents);
     }
 

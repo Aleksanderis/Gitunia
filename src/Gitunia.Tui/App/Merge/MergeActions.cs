@@ -87,9 +87,12 @@ public sealed class MergeActions(
 
         if (tab.Head is not { Kind: HeadKind.Branch, BranchName: not null })
         {
-            return tab.Head?.Kind == HeadKind.Unborn
-                ? "The branch has no commits yet: nothing to merge into"
-                : "HEAD is detached: switch to a branch first";
+            if (tab.Head?.Kind == HeadKind.Unborn)
+            {
+                return "The branch has no commits yet: nothing to merge into";
+            }
+
+            return "HEAD is detached: switch to a branch first";
         }
 
         return null;

@@ -82,11 +82,25 @@ public sealed class DetailTabController(WorkspaceHost host)
         _ => "File paths: name first",
     };
 
-    private static FilePathStyle? StyleOf(ActionId action) =>
-        action == ActionIds.FilesPathNameFirst ? FilePathStyle.NameFirst
-        : action == ActionIds.FilesPathFullPath ? FilePathStyle.FullPath
-        : action == ActionIds.FilesPathTree ? FilePathStyle.Tree
-        : null;
+    private static FilePathStyle? StyleOf(ActionId action)
+    {
+        if (action == ActionIds.FilesPathNameFirst)
+        {
+            return FilePathStyle.NameFirst;
+        }
+
+        if (action == ActionIds.FilesPathFullPath)
+        {
+            return FilePathStyle.FullPath;
+        }
+
+        if (action == ActionIds.FilesPathTree)
+        {
+            return FilePathStyle.Tree;
+        }
+
+        return null;
+    }
 
     private static bool IsTabAction(ActionId action) =>
         action == ActionIds.DetailNextTab

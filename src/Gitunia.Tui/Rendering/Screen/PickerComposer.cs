@@ -83,7 +83,7 @@ public static class PickerComposer
 
         if (picker.Rows.IsEmpty)
         {
-            var empty = picker.IsListing ? (picker.IsScanningShown ? " scanning..." : string.Empty) : picker.IsPathMode ? " no matching directories" : picker.Query.Length > 0 ? " no matching repositories" : " no repositories yet: type a path to open one";
+            var empty = EmptyText(picker);
             lines.Add(new LineBuilder(width, glyphs.Ellipsis).Append(empty, SegmentRole.Faint).Build());
             return lines;
         }
@@ -104,6 +104,26 @@ public static class PickerComposer
         }
 
         return lines;
+    }
+
+    private static string EmptyText(PickerState picker)
+    {
+        if (picker.IsListing)
+        {
+            return picker.IsScanningShown ? " scanning..." : string.Empty;
+        }
+
+        if (picker.IsPathMode)
+        {
+            return " no matching directories";
+        }
+
+        if (picker.Query.Length > 0)
+        {
+            return " no matching repositories";
+        }
+
+        return " no repositories yet: type a path to open one";
     }
 
     private static StyledLine WithButtons(StyledLine line, IReadOnlyList<TitleButton> buttons, GraphGlyphSet glyphs)

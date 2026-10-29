@@ -39,8 +39,12 @@ public sealed class FakeOperationWriter : IOperationWriter
     private Task<OperationResult> Answer(string call)
     {
         Calls.Add(call);
-        return Failure is null
-            ? Task.FromResult(new OperationResult(Outcome, "0123456789abcdef"))
-            : Task.FromException<OperationResult>(Failure);
+
+        if (Failure is null)
+        {
+            return Task.FromResult(new OperationResult(Outcome, "0123456789abcdef"));
+        }
+
+        return Task.FromException<OperationResult>(Failure);
     }
 }

@@ -31,9 +31,12 @@ public readonly record struct GitVersion(int Major, int Minor, int Patch)
             return false;
         }
 
-        var patch = parts.Length > 2 && int.TryParse(parts[2], NumberStyles.None, CultureInfo.InvariantCulture, out var parsed)
-            ? parsed
-            : 0;
+        var patch = 0;
+        if (parts.Length > 2 && int.TryParse(parts[2], NumberStyles.None, CultureInfo.InvariantCulture, out var parsed))
+        {
+            patch = parsed;
+        }
+
         version = new GitVersion(major, minor, patch);
         return true;
     }

@@ -13,9 +13,15 @@ public static class KeyedChip
     /// <param name="view">The mouse view of the chip.</param>
     /// <param name="label">The label, padded or not.</param>
     /// <param name="key">The key text, or null for none.</param>
-    public static TitleButton Keyed(string view, string label, string? key) => key is null
-        ? Plain(view, label)
-        : new TitleButton(view, $" {key} {label.Trim()} ", 0, key.Length);
+    public static TitleButton Keyed(string view, string label, string? key)
+    {
+        if (key is null)
+        {
+            return Plain(view, label);
+        }
+
+        return new TitleButton(view, $" {key} {label.Trim()} ", 0, key.Length);
+    }
 
     /// <summary>The chip with its label only, padded.</summary>
     public static TitleButton Plain(string view, string label) => new(view, $" {label.Trim()} ", 0);

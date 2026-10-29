@@ -90,7 +90,7 @@ public sealed class StagingActions(
             return AskResolved(tab, conflicted);
         }
 
-        var plan = isAll ? PlanAll(tree, section) : range is { } rows ? PlanRange(tree, section, rows) : PlanOne(tree, section);
+        var plan = PlanFor(tree, section, isAll, range);
         if (plan.Notice.Length > 0)
         {
             return plan.Notice;
@@ -162,10 +162,31 @@ public sealed class StagingActions(
         return entry is null ? string.Empty : AskResolved(tab, entry);
     }
 
-    private static StatusEntry? ConflictedUnderCursor(WorkingTreeState tree) =>
-        tree.Selection is { Section: WorkingTreeSection.Unstaged } selection
-            ? tree.Unstaged.FirstOrDefault(entry => entry.Path == selection.Path && entry.Kind == StatusEntryKind.Unmerged)
-            : null;
+    private static StatusEntry? ConflictedUnderCursor(WorkingTreeState tree)
+    {
+        if (tree.Selection is not { Section: WorkingTreeSection.Unstaged } selection)
+        {
+            return null;
+        }
+
+        return tree.Unstaged.FirstOrDefault(entry =>
+            entry.Path == selection.Path && entry.Kind == StatusEntryKind.Unmerged);
+    }
+
+    private static StagingPlan PlanFor(WorkingTreeState tree, WorkingTreeSection section, bool isAll, RowRange? range)
+    {
+        if (isAll)
+        {
+            return PlanAll(tree, section);
+        }
+
+        if (range is { } rows)
+        {
+            return PlanRange(tree, section, rows);
+        }
+
+        return PlanOne(tree, section);
+    }
 
     // Marking a conflicted file resolved is an `add`: the markers stay in the file, so the user confirms first (ux.md, workflow 2).
     private string AskResolved(RepositoryState tab, StatusEntry entry)
@@ -181,9 +202,12 @@ public sealed class StagingActions(
             "Mark resolved");
         if (confirm is null || !confirm(prompt, () => StartResolved(tab, entry)))
         {
-            return confirm is null
-                ? $"{name} is conflicted: resolve it first"
-                : "The screen is too small to ask: nothing was marked resolved";
+            if (confirm is null)
+            {
+                return $"{name} is conflicted: resolve it first";
+            }
+
+            return "The screen is too small to ask: nothing was marked resolved";
         }
 
         return string.Empty;
@@ -273,9 +297,16 @@ public sealed class StagingActions(
             return StagingPlan.Refused($"Only conflicted files are selected ({skipped} skipped; mark one resolved on its own)");
         }
 
-        var name = folderName is not null
-            ? $"{folderName} ({OperationText.Plural(usable.Count, "file")})"
-            : usable.Count == 1 ? WorkingTreeRowRenderer.Printable(usable[0].Path) : string.Empty;
+        var name = string.Empty;
+        if (folderName is not null)
+        {
+            name = $"{folderName} ({OperationText.Plural(usable.Count, "file")})";
+        }
+        else if (usable.Count == 1)
+        {
+            name = WorkingTreeRowRenderer.Printable(usable[0].Path);
+        }
+
         return StagingPlan.For([.. usable.SelectMany(entry => PathsOf(entry, section))], name, usable.Count, skipped);
     }
 
@@ -389,10 +420,15 @@ public sealed class StagingActions(
         };
     }
 
-    private static StatusSeverity SeverityOf(PatchStagingResult result) =>
-        result.Outcome is PatchStagingOutcome.FileChanged or PatchStagingOutcome.NotSplittable
-            ? StatusSeverity.Warning
-            : StatusSeverity.Info;
+    private static StatusSeverity SeverityOf(PatchStagingResult result)
+    {
+        if (result.Outcome is PatchStagingOutcome.FileChanged or PatchStagingOutcome.NotSplittable)
+        {
+            return StatusSeverity.Warning;
+        }
+
+        return StatusSeverity.Info;
+    }
 
     private void Finish(TabId tabId, string message, StatusSeverity severity, Action? afterStaged = null)
     {
@@ -421,7 +457,16 @@ public sealed class StagingActions(
         }
 
         var verb = isStage ? "Staged" : "Unstaged";
-        var what = plan.Name.Length > 0 ? plan.Name : plan.Count == 1 ? "1 file" : $"{plan.Count} files";
+        var what = $"{plan.Count} files";
+        if (plan.Name.Length > 0)
+        {
+            what = plan.Name;
+        }
+        else if (plan.Count == 1)
+        {
+            what = "1 file";
+        }
+
         return plan.Skipped > 0 ? $"{verb} {what} ({plan.Skipped} conflicted skipped)" : $"{verb} {what}";
     }
 }

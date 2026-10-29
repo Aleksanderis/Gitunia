@@ -46,8 +46,12 @@ public sealed class FakeStashWriter : IStashWriter
     private Task<StashResult> Answer(string call, string hash)
     {
         Calls.Add(call);
-        return Failure is null
-            ? Task.FromResult(new StashResult(Outcome, hash))
-            : Task.FromException<StashResult>(Failure);
+
+        if (Failure is null)
+        {
+            return Task.FromResult(new StashResult(Outcome, hash));
+        }
+
+        return Task.FromException<StashResult>(Failure);
     }
 }

@@ -33,16 +33,22 @@ public static class WorktreeTexts
             return $"{worktree.Path} is locked: unlock it first (<space>wu)";
         }
 
-        return worktree.IsPrunable
-            ? $"{worktree.Path} is missing on disk: prune it instead (<space>wp)"
-            : string.Empty;
+        if (worktree.IsPrunable)
+        {
+            return $"{worktree.Path} is missing on disk: prune it instead (<space>wp)";
+        }
+
+        return string.Empty;
     }
 
     public static ConfirmPrompt RemovePrompt(WorktreeInfo worktree)
     {
-        var branch = worktree.BranchFullName is { } name
-            ? $"Its branch {ShortName(name)} is kept."
-            : "It has a detached HEAD: commits that no branch reaches are lost.";
+        var branch = "It has a detached HEAD: commits that no branch reaches are lost.";
+        if (worktree.BranchFullName is { } name)
+        {
+            branch = $"Its branch {ShortName(name)} is kept.";
+        }
+
         return new ConfirmPrompt(
             "Remove worktree",
             [$"Remove the worktree {worktree.Path}?", branch],
@@ -88,10 +94,15 @@ public static class WorktreeTexts
         return Path.Combine(parent, directory);
     }
 
-    public static string ShortName(string fullName) =>
-        fullName.StartsWith(GitRefPrefixes.Heads, StringComparison.Ordinal)
-            ? fullName[GitRefPrefixes.Heads.Length..]
-            : fullName;
+    public static string ShortName(string fullName)
+    {
+        if (fullName.StartsWith(GitRefPrefixes.Heads, StringComparison.Ordinal))
+        {
+            return fullName[GitRefPrefixes.Heads.Length..];
+        }
+
+        return fullName;
+    }
 
     private static string RemoveUndoHint(WorktreeInfo worktree)
     {

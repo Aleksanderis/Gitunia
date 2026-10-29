@@ -16,7 +16,14 @@ public static class PaneNavigator
         }
 
         var index = ordered.IndexOf(current);
-        return index < 0 ? ordered[0] : ordered[(index + (forward ? 1 : ordered.Count - 1)) % ordered.Count];
+        if (index < 0)
+        {
+            return ordered[0];
+        }
+
+        var offset = forward ? 1 : ordered.Count - 1;
+
+        return ordered[(index + offset) % ordered.Count];
     }
 
     /// <summary>The open pane to the left (or right) of <paramref name="current"/> in the layout, or <paramref name="current"/> at the edge.</summary>

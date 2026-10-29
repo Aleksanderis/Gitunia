@@ -45,9 +45,16 @@ public static class PaneResizer
 
         var steps = Math.Max(1, count ?? 1);
         var grows = action == ActionIds.PaneWider || action == ActionIds.PaneTaller;
-        var changed = action == ActionIds.PaneWider || action == ActionIds.PaneNarrower
-            ? ChangeWidth(current, grows, steps * ColumnStep, focused, screenWidth, isDiffOpen)
-            : ChangeHeight(current, grows, steps * RowStep, focused, screenHeight);
+        PaneSizes? changed;
+        if (action == ActionIds.PaneWider || action == ActionIds.PaneNarrower)
+        {
+            changed = ChangeWidth(current, grows, steps * ColumnStep, focused, screenWidth, isDiffOpen);
+        }
+        else
+        {
+            changed = ChangeHeight(current, grows, steps * RowStep, focused, screenHeight);
+        }
+
         return changed is not null && changed != current ? changed : null;
     }
 

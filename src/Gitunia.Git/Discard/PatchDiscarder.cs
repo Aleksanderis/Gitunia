@@ -39,11 +39,14 @@ public sealed class PatchDiscarder(IDiffReader reader, IWorkingTreeDiscarder dis
         bool allowWholeFile,
         CancellationToken cancellationToken)
     {
-        var file = chosen.Count > 0
-            ? await _pickable
+        DiffFile? file = null;
+        if (chosen.Count > 0)
+        {
+            file = await _pickable
                 .ReadAsync(location, WorkingDiffSide.Unstaged, entry, false, cancellationToken)
-                .ConfigureAwait(false)
-            : null;
+                .ConfigureAwait(false);
+        }
+
         if (file is null)
         {
             if (chosen.Count > 0 && !allowWholeFile)
@@ -104,8 +107,13 @@ public sealed class PatchDiscarder(IDiffReader reader, IWorkingTreeDiscarder dis
         }
     }
 
-    private Task WholeFileAsync(RepositoryLocation location, StatusEntry entry, CancellationToken cancellationToken) =>
-        entry.Kind == StatusEntryKind.Untracked
-            ? discarder.DeleteUntrackedAsync(location, [entry.Path], cancellationToken)
-            : discarder.RestoreAsync(location, [entry.Path], cancellationToken);
+    private Task WholeFileAsync(RepositoryLocation location, StatusEntry entry, CancellationToken cancellationToken)
+    {
+        if (entry.Kind == StatusEntryKind.Untracked)
+        {
+            return discarder.DeleteUntrackedAsync(location, [entry.Path], cancellationToken);
+        }
+
+        return discarder.RestoreAsync(location, [entry.Path], cancellationToken);
+    }
 }

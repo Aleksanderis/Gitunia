@@ -83,9 +83,24 @@ public class CommitCheckTests
 
     private static WorkingTreeState Tree(bool staged, HeadKind head = HeadKind.Branch, string? upstream = null, int? ahead = null)
     {
-        StatusEntry[] entries = staged
-            ? [new(StatusEntryKind.Ordinary, "a.txt", null, FileChangeKind.Modified, FileChangeKind.Unmodified, null, ConflictKind.None, null)]
-            : [];
+        StatusEntry[] entries = [];
+
+        if (staged)
+        {
+            entries =
+            [
+                new(
+                    StatusEntryKind.Ordinary,
+                    "a.txt",
+                    null,
+                    FileChangeKind.Modified,
+                    FileChangeKind.Unmodified,
+                    null,
+                    ConflictKind.None,
+                    null),
+            ];
+        }
+
         var branch = new StatusBranch(new HeadState(head, "main", null), upstream, ahead, null);
         return WorkingTreeState.Reconcile(null, new StatusSnapshot(branch, entries, []));
     }

@@ -55,15 +55,27 @@ public static class WhichKeyBuilder
             .OrderBy(item => item.Continuation.Action is null)
             .ThenBy(item => item.Label, StringComparer.OrdinalIgnoreCase)
             .ThenByDescending(item => item.Label, StringComparer.Ordinal)
-            .Select(item => new WhichKeyRow(
-                item.Label,
-                item.Continuation is { Action: { } action }
-                    ? ActionCatalog.Describe(action) + (item.Continuation.HasMore ? " (+more)" : string.Empty)
-                    : MoreText(pending, item.Continuation.Key)))];
+            .Select(item => new WhichKeyRow(item.Label, DescriptionOf(item.Continuation, pending)))];
     }
 
     /// <summary>The formatted prefixes that carry a group name.</summary>
     public static IReadOnlyCollection<string> GroupPrefixes => GroupNames.Keys;
+
+    private static string DescriptionOf(Continuation continuation, KeySequence pending)
+    {
+        if (continuation.Action is not { } action)
+        {
+            return MoreText(pending, continuation.Key);
+        }
+
+        var description = ActionCatalog.Describe(action);
+        if (continuation.HasMore)
+        {
+            return $"{description} (+more)";
+        }
+
+        return description;
+    }
 
     private static string MoreText(KeySequence pending, KeyEvent next)
     {

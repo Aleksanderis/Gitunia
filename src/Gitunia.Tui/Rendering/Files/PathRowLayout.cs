@@ -52,9 +52,12 @@ public static class PathRowLayout
         {
             var room = remaining - DirectoryGap.Length;
             var fitsWhole = TextWidth.Of(directory) <= room;
-            var shown = fitsWhole || room >= MinimumDirectoryColumns
-                ? TextWidth.FitStart(directory, room, ellipsis)
-                : string.Empty;
+            var shown = string.Empty;
+            if (fitsWhole || room >= MinimumDirectoryColumns)
+            {
+                shown = TextWidth.FitStart(directory, room, ellipsis);
+            }
+
             if (shown == ellipsis)
             {
                 shown = string.Empty;

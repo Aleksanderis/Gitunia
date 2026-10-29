@@ -103,9 +103,11 @@ public sealed class StashDetailsReader : IStashDetailsReader
         }
 
         var extra = (options ?? DiffOptions.Default).ToArguments();
-        IReadOnlyList<string> command = parent is { } baseCommit
-            ? ["diff", .. extra, RenamesOnlyOption, baseCommit.ToString(), target.ToString()]
-            : ["show", "--format=", .. extra, target.ToString()];
+        IReadOnlyList<string> command = ["show", "--format=", .. extra, target.ToString()];
+        if (parent is { } baseCommit)
+        {
+            command = ["diff", .. extra, RenamesOnlyOption, baseCommit.ToString(), target.ToString()];
+        }
 
         await foreach (var file in _diffs
             .ReadAsync(location, command, warnings, maximumLinesPerFile, cancellationToken)

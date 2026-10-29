@@ -59,11 +59,14 @@ public static class TestGitSpeed
             }
 
             var installation = Path.GetDirectoryName(directory.TrimEnd(Path.DirectorySeparatorChar));
-            var real = installation is null
-                ? null
-                : Path.Combine(installation, WindowsRealDirectory, "bin", WindowsExecutable);
+            if (installation is null)
+            {
+                return fallback;
+            }
 
-            return real is not null && File.Exists(real) ? real : fallback;
+            var real = Path.Combine(installation, WindowsRealDirectory, "bin", WindowsExecutable);
+
+            return File.Exists(real) ? real : fallback;
         }
 
         return fallback;

@@ -22,16 +22,7 @@ public static class DetailPaneRenderer
         {
             var row = pane.TopRow + offset;
             var textWidth = PanePadding.TextWidth(width, paddingColumns);
-            lines.Add(PanePadding.Wrap(
-                row >= 0 && row < pane.Content.Rows.Count
-                    ? RenderRow(
-                        pane.Content.Rows[row],
-                        pane.IsFocused && row == pane.SelectedRow,
-                        textWidth,
-                        glyphs,
-                        pane.Content.PathStyle)
-                    : RenderEmpty(textWidth, glyphs),
-                paddingColumns));
+            lines.Add(PanePadding.Wrap(RenderLine(pane, row, textWidth, glyphs), paddingColumns));
         }
 
         return lines;
@@ -111,7 +102,7 @@ public static class DetailPaneRenderer
         {
             builder.Append(new string(glyphs.Horizontal, button.Start - column), SegmentRole.Rule);
             var isSelected = DetailTabStrip.TabOf(button) == content.Tab;
-            builder.Append(ButtonLabel.For(button.Label, glyphs.IsAscii), isSelected ? (isFocused ? SegmentRole.ActiveTab : SegmentRole.SelectedTab) : SegmentRole.RepositoryTab);
+            builder.Append(ButtonLabel.For(button.Label, glyphs.IsAscii), TabRole(isSelected, isFocused));
             column = button.Start + button.Width;
         }
 
@@ -214,6 +205,31 @@ public static class DetailPaneRenderer
     /// <summary>A row past the last one: blank.</summary>
     public static StyledLine RenderEmpty(int width, GraphGlyphSet glyphs) =>
         new LineBuilder(width, glyphs.Ellipsis).Build();
+
+    private static StyledLine RenderLine(DetailPaneModel pane, int row, int textWidth, GraphGlyphSet glyphs)
+    {
+        if (row < 0 || row >= pane.Content.Rows.Count)
+        {
+            return RenderEmpty(textWidth, glyphs);
+        }
+
+        return RenderRow(
+            pane.Content.Rows[row],
+            pane.IsFocused && row == pane.SelectedRow,
+            textWidth,
+            glyphs,
+            pane.Content.PathStyle);
+    }
+
+    private static SegmentRole TabRole(bool isSelected, bool isFocused)
+    {
+        if (!isSelected)
+        {
+            return SegmentRole.RepositoryTab;
+        }
+
+        return isFocused ? SegmentRole.ActiveTab : SegmentRole.SelectedTab;
+    }
 
     // ".. files" until the count is known, so the title does not show 0 and then jump to the real number.
     private static string FileCountText(int? count) => count switch

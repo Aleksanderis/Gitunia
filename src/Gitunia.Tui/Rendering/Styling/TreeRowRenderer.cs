@@ -67,9 +67,12 @@ public static class TreeRowRenderer
         for (var index = 0; index < extras.Count; index++)
         {
             var extra = extras[index];
-            var text = index == extras.Count - 1
-                ? TextWidth.FitMiddle(extra.Text, remaining - 1, ellipsis)
-                : extra.Text;
+            var text = extra.Text;
+            if (index == extras.Count - 1)
+            {
+                text = TextWidth.FitMiddle(extra.Text, remaining - 1, ellipsis);
+            }
+
             if (text.Length == 0 || text == ellipsis)
             {
                 break;

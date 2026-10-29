@@ -68,16 +68,25 @@ public sealed class ResetActions(
 
     public string StatusLine => string.Empty;
 
-    public PromptPopup? Popup => !_isOpen || host.Workspace.ActiveTabId != _tabId
-        ? null
-        : PromptPopup.ForChoice(
-            "Reset",
-            $"Move {_branchName} to {ShortHash(_targetHash)}",
-            [
-                "s  soft: keep the index and the files",
-                "m  mixed: keep the files, clear the index",
-                "h  hard: discard the changes",
-            ]);
+    public PromptPopup? Popup
+    {
+        get
+        {
+            if (!_isOpen || host.Workspace.ActiveTabId != _tabId)
+            {
+                return null;
+            }
+
+            return PromptPopup.ForChoice(
+                "Reset",
+                $"Move {_branchName} to {ShortHash(_targetHash)}",
+                [
+                    "s  soft: keep the index and the files",
+                    "m  mixed: keep the files, clear the index",
+                    "h  hard: discard the changes",
+                ]);
+        }
+    }
 
     public bool TryExecute(ActionId action, int? count)
     {
@@ -191,9 +200,15 @@ public sealed class ResetActions(
         entry.Kind is StatusEntryKind.Ordinary or StatusEntryKind.Renamed or StatusEntryKind.Copied
             or StatusEntryKind.Unmerged;
 
-    private static string UndoCommand(ResetMode mode, string oldHash) => mode == ResetMode.Hard
-        ? $"git reset --hard {oldHash}"
-        : $"git reset {OptionOf(mode)} {oldHash}";
+    private static string UndoCommand(ResetMode mode, string oldHash)
+    {
+        if (mode == ResetMode.Hard)
+        {
+            return $"git reset --hard {oldHash}";
+        }
+
+        return $"git reset {OptionOf(mode)} {oldHash}";
+    }
 
     private bool TryHandleOpenPrompt(ActionId action)
     {
@@ -221,15 +236,21 @@ public sealed class ResetActions(
     {
         if (tab.Head is not { Kind: HeadKind.Branch, BranchName: not null })
         {
-            return tab.Head?.Kind == HeadKind.Unborn
-                ? "The branch has no commits yet: nothing to reset"
-                : "HEAD is detached: switch to a branch first";
+            if (tab.Head?.Kind == HeadKind.Unborn)
+            {
+                return "The branch has no commits yet: nothing to reset";
+            }
+
+            return "HEAD is detached: switch to a branch first";
         }
 
         var operation = operations.Detect(tab.Location);
-        return operation == RepositoryOperation.None
-            ? null
-            : $"A {OperationName(operation)} is in progress: finish or abort the {OperationName(operation)} first";
+        if (operation == RepositoryOperation.None)
+        {
+            return null;
+        }
+
+        return $"A {OperationName(operation)} is in progress: finish or abort the {OperationName(operation)} first";
     }
 
     private void Choose(ResetMode mode)

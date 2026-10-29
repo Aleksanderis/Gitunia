@@ -68,11 +68,14 @@ public static class DiffSplitRenderer
         if (line.IsFull)
         {
             var row = document.Rows[line.LeftRow];
-            return isWrapped
-                ? DiffRowRenderer.RenderSegment(
-                    row, segment, width, gutterDigits, highlight, isSelected, glyphs, leftJump, showWhitespace)
-                : DiffRowRenderer.Render(
-                    row, width, gutterDigits, highlight, isSelected, glyphs, leftJump, showWhitespace);
+            if (isWrapped)
+            {
+                return DiffRowRenderer.RenderSegment(
+                    row, segment, width, gutterDigits, highlight, isSelected, glyphs, leftJump, showWhitespace);
+            }
+
+            return DiffRowRenderer.Render(
+                row, width, gutterDigits, highlight, isSelected, glyphs, leftJump, showWhitespace);
         }
 
         var leftWidth = LeftWidth(width);
@@ -143,7 +146,7 @@ public static class DiffSplitRenderer
         if (segment == 0)
         {
             var number = isOldSide ? row.OldLineNumber : row.NewLineNumber;
-            var marker = row.Kind == DiffRowKind.Added ? "+" : row.Kind == DiffRowKind.Removed ? "-" : " ";
+            var marker = DiffRowRenderer.MarkerOf(row.Kind);
             builder.Append($"{DiffRowRenderer.Number(number, gutterDigits)} ", SegmentRole.Faint);
             builder.Append(marker, role == SegmentRole.Plain ? SegmentRole.Faint : role);
         }

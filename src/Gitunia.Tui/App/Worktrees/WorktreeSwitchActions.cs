@@ -187,9 +187,12 @@ public sealed class WorktreeSwitchActions(
             _ => null,
         };
 
-        return path is null
-            ? null
-            : tab.Worktrees.FirstOrDefault(worktree => RepositoryPathComparer.Instance.Equals(worktree.Path, path));
+        if (path is null)
+        {
+            return null;
+        }
+
+        return tab.Worktrees.FirstOrDefault(worktree => RepositoryPathComparer.Instance.Equals(worktree.Path, path));
     }
 
     // The path of the worktree that has the selected local branch checked out, null when none has.

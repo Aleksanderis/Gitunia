@@ -630,10 +630,14 @@ public class RebaseEditorControllerTests
             var location = await discovery.DiscoverAsync(repository.WorkingTreePath, token);
             var harness = new Harness(repository, location, environment ?? (_ => null));
             await harness.ReloadAsync();
-            harness._selection = new BranchSelection(
-                null,
-                null,
-                target is null ? null : target == "main" ? repository.Git("rev-parse", "main").Trim() : target);
+            var targetCommit = target;
+
+            if (target == "main")
+            {
+                targetCommit = repository.Git("rev-parse", "main").Trim();
+            }
+
+            harness._selection = new BranchSelection(null, null, targetCommit);
             return harness;
         }
 

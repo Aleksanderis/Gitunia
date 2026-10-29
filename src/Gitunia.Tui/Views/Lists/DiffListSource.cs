@@ -207,22 +207,7 @@ public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource, IRan
         width = PanePadding.TextWidth(width, columns);
         selected |= Range?.Contains(item) == true;
         var jump = ShowsSideBySide ? null : JumpLabelAt(listView, current, item);
-        var line = ShowsSideBySide
-            ? SplitLine(listView, item, width, selected)
-            : current is not null && item >= 0 && item < current.Count
-            ? WrappedLine(current, item, width, selected, jump)
-            : current is null && item >= 0 && item < Document.Rows.Count
-                ? DiffRowRenderer.Render(
-                    Document.Rows[item],
-                    width,
-                    _gutterDigits,
-                    Highlight,
-                    selected,
-                    glyphs,
-                    jump,
-                    ShowsWhitespace,
-                    DiffWordHighlights.ChangesOf(Document, item))
-                : new LineBuilder(width, glyphs.Ellipsis).Build();
+        var line = LineAt(listView, current, item, width, selected, jump);
         var padded = PanePadding.Wrap(line, columns);
         if (IsInCursorGroup(listView, item))
         {
@@ -252,9 +237,12 @@ public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource, IRan
         var columns = ScreenPadding.Columns(listView);
         var width = PanePadding.TextWidth(listView.Viewport.Width, columns);
 
-        return IsInCursorGroup(listView, item) && GroupButtonsAt(item, columns, width) is { } buttons
-            ? TitleButton.ViewAt(buttons, column)
-            : null;
+        if (IsInCursorGroup(listView, item) && GroupButtonsAt(item, columns, width) is { } buttons)
+        {
+            return TitleButton.ViewAt(buttons, column);
+        }
+
+        return null;
     }
 
     /// <summary>
@@ -323,6 +311,41 @@ public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource, IRan
         }
 
         return _splitMap;
+    }
+
+    private StyledLine LineAt(
+        ListView listView,
+        DiffWrapMap? current,
+        int item,
+        int width,
+        bool selected,
+        JumpLabel? jump)
+    {
+        if (ShowsSideBySide)
+        {
+            return SplitLine(listView, item, width, selected);
+        }
+
+        if (current is not null && item >= 0 && item < current.Count)
+        {
+            return WrappedLine(current, item, width, selected, jump);
+        }
+
+        if (current is null && item >= 0 && item < Document.Rows.Count)
+        {
+            return DiffRowRenderer.Render(
+                Document.Rows[item],
+                width,
+                _gutterDigits,
+                Highlight,
+                selected,
+                glyphs,
+                jump,
+                ShowsWhitespace,
+                DiffWordHighlights.ChangesOf(Document, item));
+        }
+
+        return new LineBuilder(width, glyphs.Ellipsis).Build();
     }
 
     private StyledLine SplitLine(ListView listView, int item, int width, bool isSelected)

@@ -74,9 +74,18 @@ public sealed record WorkingTreeState(StatusSnapshot Snapshot, WorkingTreeSelect
     }
 
     /// <summary>The file the selection stands on, null when a folder or nothing is selected.</summary>
-    public StatusEntry? SelectedEntry => Selection is { IsFolder: false } selection
-        ? EntriesOf(selection.Section).FirstOrDefault(entry => entry.Path == selection.Path)
-        : null;
+    public StatusEntry? SelectedEntry
+    {
+        get
+        {
+            if (Selection is not { IsFolder: false } selection)
+            {
+                return null;
+            }
+
+            return EntriesOf(selection.Section).FirstOrDefault(entry => entry.Path == selection.Path);
+        }
+    }
 
     /// <summary>The files under the selected folder, in list order; empty when a file or nothing is selected.</summary>
     public IReadOnlyList<StatusEntry> SelectedFolderEntries
@@ -107,9 +116,12 @@ public sealed record WorkingTreeState(StatusSnapshot Snapshot, WorkingTreeSelect
 
         var found = rows[row];
 
-        return found.IsFolder
-            ? new WorkingTreeSelection(section, found.FolderPath, row, true)
-            : new WorkingTreeSelection(section, EntriesOf(section)[found.EntryIndex].Path, row);
+        if (found.IsFolder)
+        {
+            return new WorkingTreeSelection(section, found.FolderPath, row, true);
+        }
+
+        return new WorkingTreeSelection(section, EntriesOf(section)[found.EntryIndex].Path, row);
     }
 
     /// <summary>
@@ -165,14 +177,8 @@ public sealed record WorkingTreeState(StatusSnapshot Snapshot, WorkingTreeSelect
             CollapsedStaged = previous?.CollapsedStaged ?? [],
         };
         var old = previous?.Selection;
-        var other = old?.Section == WorkingTreeSection.Unstaged
-            ? WorkingTreeSection.Staged
-            : WorkingTreeSection.Unstaged;
-        var selection = old is null
-            ? next.SelectionAt(WorkingTreeSection.Unstaged, 0) ?? next.SelectionAt(WorkingTreeSection.Staged, 0)
-            : next.SelectionAt(old.Section, next.Locate(old)) ?? next.SelectionNear(old) ?? next.SelectionAt(other, 0);
 
-        return next with { Selection = selection };
+        return next with { Selection = next.SelectionAfterSnapshot(old) };
     }
 
     /// <summary>Whether two snapshots hold the same content (the record's list members compare by reference).</summary>
@@ -187,6 +193,22 @@ public sealed record WorkingTreeState(StatusSnapshot Snapshot, WorkingTreeSelect
         StatusEntryKind.Untracked or StatusEntryKind.Unmerged => true,
         _ => entry.IsUnstaged,
     };
+
+    private WorkingTreeSelection? SelectionAfterSnapshot(WorkingTreeSelection? old)
+    {
+        if (old is null)
+        {
+            return SelectionAt(WorkingTreeSection.Unstaged, 0) ?? SelectionAt(WorkingTreeSection.Staged, 0);
+        }
+
+        var other = WorkingTreeSection.Unstaged;
+        if (old.Section == WorkingTreeSection.Unstaged)
+        {
+            other = WorkingTreeSection.Staged;
+        }
+
+        return SelectionAt(old.Section, Locate(old)) ?? SelectionNear(old) ?? SelectionAt(other, 0);
+    }
 
     // The row now at the old index (clamped) of the same list, null when the list is empty.
     private WorkingTreeSelection? SelectionNear(WorkingTreeSelection old)

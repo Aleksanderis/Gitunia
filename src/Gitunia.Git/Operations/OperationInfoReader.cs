@@ -50,15 +50,28 @@ public sealed class OperationInfoReader : IOperationInfoReader
         var isMerge = Directory.Exists(Path.Combine(gitDirectory, RebaseMerge));
         var directory = Path.Combine(gitDirectory, isMerge ? RebaseMerge : RebaseApply);
         var headName = ReadFirstLine(Path.Combine(directory, "head-name"));
-        var target = headName is null or DetachedHeadName
-            ? null
-            : headName.StartsWith(HeadsPrefix, StringComparison.Ordinal) ? headName[HeadsPrefix.Length..] : headName;
+        var target = RebaseTarget(headName);
         var step = ReadNumber(Path.Combine(directory, isMerge ? "msgnum" : "next"));
         var total = ReadNumber(Path.Combine(directory, isMerge ? "end" : "last"));
         var commit = ReadFirstLine(Path.Combine(directory, "stopped-sha"));
         var subject = ReadFirstLine(Path.Combine(directory, "message"));
         var original = ReadFirstLine(Path.Combine(directory, "orig-head"));
         return new OperationInfo(RepositoryOperation.Rebase, target, step, total, null, commit, subject, original);
+    }
+
+    private static string? RebaseTarget(string? headName)
+    {
+        if (headName is null or DetachedHeadName)
+        {
+            return null;
+        }
+
+        if (headName.StartsWith(HeadsPrefix, StringComparison.Ordinal))
+        {
+            return headName[HeadsPrefix.Length..];
+        }
+
+        return headName;
     }
 
     private static OperationInfo ReadSequenced(string gitDirectory, RepositoryOperation kind, string headFile)

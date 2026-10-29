@@ -147,9 +147,13 @@ public sealed class WorkingTreeActionHandler(
         if (action == ActionIds.PaneNext || action == ActionIds.PanePrevious)
         {
             // The diff in the cycle is the one of the selected file's side; the message box comes last.
-            PaneKind[] cycle = selection is null
-                ? [.. WorkingPanes.Lists, PaneKind.WorkingMessage]
-                : [.. WorkingPanes.Lists, WorkingPanes.DiffOf(selection.Section), PaneKind.WorkingMessage];
+            List<PaneKind> cycle = [.. WorkingPanes.Lists];
+            if (selection is not null)
+            {
+                cycle.Add(WorkingPanes.DiffOf(selection.Section));
+            }
+
+            cycle.Add(PaneKind.WorkingMessage);
             target = PaneNavigator.Cycle(focused, action == ActionIds.PaneNext, cycle);
         }
         else if (action == ActionIds.PaneFocusUp || action == ActionIds.PaneFocusDown)
@@ -159,7 +163,11 @@ public sealed class WorkingTreeActionHandler(
         else if (action == ActionIds.PaneFocusRight)
         {
             // The diff is the right column: from a list, the diff of the file under the cursor (the message box when there is none).
-            target = WorkingPanes.IsList(focused) ? selection is null ? PaneKind.WorkingMessage : WorkingPanes.DiffOf(selection.Section) : focused;
+            target = focused;
+            if (WorkingPanes.IsList(focused))
+            {
+                target = selection is null ? PaneKind.WorkingMessage : WorkingPanes.DiffOf(selection.Section);
+            }
         }
         else if (action == ActionIds.PaneFocusLeft)
         {
@@ -281,9 +289,12 @@ public sealed class WorkingTreeActionHandler(
             return false;
         }
 
-        var section = tab.View.FocusedPane == PaneKind.WorkingStaged
-            ? WorkingTreeSection.Staged
-            : WorkingTreeSection.Unstaged;
+        var section = WorkingTreeSection.Unstaged;
+        if (tab.View.FocusedPane == PaneKind.WorkingStaged)
+        {
+            section = WorkingTreeSection.Staged;
+        }
+
         if (tab.WorkingTree is { Selection: { } selection } tree
             && selection.Section == section
             && tree.PathStyle == FilePathStyle.Tree)
@@ -445,9 +456,16 @@ public sealed class WorkingTreeActionHandler(
             return false;
         }
 
-        Message = Discard is null
-            ? "Discard is not available"
-            : WorkingPanes.IsDiff(tab.View.FocusedPane) ? DiscardFromDiff(tab, Discard) : DiscardFromList(tab, Discard);
+        Message = "Discard is not available";
+        if (Discard is not null && WorkingPanes.IsDiff(tab.View.FocusedPane))
+        {
+            Message = DiscardFromDiff(tab, Discard);
+        }
+        else if (Discard is not null)
+        {
+            Message = DiscardFromList(tab, Discard);
+        }
+
         return true;
     }
 

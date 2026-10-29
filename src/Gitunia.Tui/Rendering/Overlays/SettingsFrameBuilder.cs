@@ -292,9 +292,11 @@ public static class SettingsFrameBuilder
         var text = SettingsRowText.Of(state, row, glyphs);
         var isCurrent = entry.RowIndex == Math.Clamp(state.Cursor, 0, Math.Max(0, state.Rows.Count - 1));
         var showsCursor = state.Column == SettingsColumn.Settings || state.ListsAllCategories;
-        var selection = isCurrent && showsCursor
-            ? ColumnSelection(state, SettingsColumn.Settings)
-            : SegmentSelection.None;
+        var selection = SegmentSelection.None;
+        if (isCurrent && showsCursor)
+        {
+            selection = ColumnSelection(state, SettingsColumn.Settings);
+        }
 
         return Cell(text.Marker, text.Left, text.Right, width, selection, glyphs, SegmentRole.Plain);
     }
@@ -395,13 +397,18 @@ public static class SettingsFrameBuilder
             return [lines.FirstOrDefault() ?? string.Empty, lines.ElementAtOrDefault(1) ?? string.Empty];
         }
 
-        var warning = state.Warnings.TryGetValue(definition.Id, out var reason)
-            ? $"! {reason}. Changing it writes a valid value. "
-            : string.Empty;
+        var warning = string.Empty;
+        if (state.Warnings.TryGetValue(definition.Id, out var reason))
+        {
+            warning = $"! {reason}. Changing it writes a valid value. ";
+        }
+
         var wrapped = HelpFrameBuilder.WrapText($"{warning}{definition.Help} {definition.Detail}".Trim(), width);
-        var second = wrapped.Count > MaximumHelpLines
-            ? string.Join(' ', wrapped.Skip(1))
-            : wrapped.ElementAtOrDefault(1) ?? string.Empty;
+        var second = wrapped.ElementAtOrDefault(1) ?? string.Empty;
+        if (wrapped.Count > MaximumHelpLines)
+        {
+            second = string.Join(' ', wrapped.Skip(1));
+        }
 
         return [wrapped.FirstOrDefault() ?? string.Empty, second];
     }

@@ -58,13 +58,22 @@ public sealed class StashController(
 
     public string StatusLine => string.Empty;
 
-    public PromptPopup? Popup => _pushing is null
-        ? null
-        : PromptPopup.ForText(
-            "Stash changes",
-            $"{(_includeUntracked ? "Tracked and untracked files" : "Tracked changes")}, message optional",
-            _text,
-            "stash");
+    public PromptPopup? Popup
+    {
+        get
+        {
+            if (_pushing is null)
+            {
+                return null;
+            }
+
+            return PromptPopup.ForText(
+                "Stash changes",
+                $"{(_includeUntracked ? "Tracked and untracked files" : "Tracked changes")}, message optional",
+                _text,
+                "stash");
+        }
+    }
 
     public bool TryExecute(ActionId action, int? count)
     {
@@ -292,17 +301,25 @@ public sealed class StashController(
                 StatusSeverity.Warning);
         }
 
-        return pop
-            ? new StashReport($"Popped {entry.Name}; undo the drop: {RestoreCommand(entry)}", StatusSeverity.Info)
-            : new StashReport($"Applied {entry.Name}; the stash is kept", StatusSeverity.Info);
+        if (pop)
+        {
+            return new StashReport($"Popped {entry.Name}; undo the drop: {RestoreCommand(entry)}", StatusSeverity.Info);
+        }
+
+        return new StashReport($"Applied {entry.Name}; the stash is kept", StatusSeverity.Info);
     }
 
-    private static StashReport DropReport(StashResult result, StashEntry entry) =>
-        result.Outcome == StashOutcome.Missing
-            ? Gone(entry)
-            : new StashReport(
-                $"Dropped {entry.Name} ({entry.CommitHash}); undo: {RestoreCommand(entry)}",
-                StatusSeverity.Info);
+    private static StashReport DropReport(StashResult result, StashEntry entry)
+    {
+        if (result.Outcome == StashOutcome.Missing)
+        {
+            return Gone(entry);
+        }
+
+        return new StashReport(
+            $"Dropped {entry.Name} ({entry.CommitHash}); undo: {RestoreCommand(entry)}",
+            StatusSeverity.Info);
+    }
 
     private static StashReport Gone(StashEntry entry) =>
         new($"{entry.Name} is no longer in the stash list: nothing was changed", StatusSeverity.Warning);

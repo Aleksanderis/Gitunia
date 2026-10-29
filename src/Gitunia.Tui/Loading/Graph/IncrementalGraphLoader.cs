@@ -76,9 +76,12 @@ public sealed class IncrementalGraphLoader
         var spliced = splicer.Splice(rows, joinIndex, decorations);
 
         // A reused tip that lost its last ref may be a commit that is gone (the count can still match when new commits arrived).
-        return spliced is null
-            ? await ReadAllAsync(location, false, cancellationToken).ConfigureAwait(false)
-            : new GraphReload(spliced, previous.Count - joinIndex - 1);
+        if (spliced is null)
+        {
+            return await ReadAllAsync(location, false, cancellationToken).ConfigureAwait(false);
+        }
+
+        return new GraphReload(spliced, previous.Count - joinIndex - 1);
     }
 
     private async Task<GraphReload> ReadAllAsync(
@@ -88,9 +91,12 @@ public sealed class IncrementalGraphLoader
     {
         var entries = new List<GraphEntry>();
         var cut = new GraphCut();
-        var stream = isCapped
-            ? _graphLoader.StreamCappedAsync(location, cut, cancellationToken)
-            : _graphLoader.StreamAsync(location, CommitOrder.ByDate, null, cancellationToken);
+        var stream = _graphLoader.StreamAsync(location, CommitOrder.ByDate, null, cancellationToken);
+        if (isCapped)
+        {
+            stream = _graphLoader.StreamCappedAsync(location, cut, cancellationToken);
+        }
+
         await foreach (var batch in stream.ConfigureAwait(false))
         {
             entries.AddRange(batch);

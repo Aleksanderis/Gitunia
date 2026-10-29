@@ -169,8 +169,20 @@ public static class PathCompleter
     }
 
     // A separator the user already typed wins; otherwise the platform's own.
-    private static string Separator(string text, bool windows) =>
-        text.Contains('\\') ? "\\" : text.Contains('/') ? "/" : NativeSeparator(windows);
+    private static string Separator(string text, bool windows)
+    {
+        if (text.Contains('\\'))
+        {
+            return "\\";
+        }
+
+        if (text.Contains('/'))
+        {
+            return "/";
+        }
+
+        return NativeSeparator(windows);
+    }
 
     private static string NativeSeparator(bool windows) => windows ? "\\" : "/";
 

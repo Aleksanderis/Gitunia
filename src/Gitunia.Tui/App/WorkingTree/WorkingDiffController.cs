@@ -79,23 +79,38 @@ public sealed class WorkingDiffController : IPromptHandler
     public string TitleText()
     {
         var tab = _host.Workspace.ActiveTab;
-        var model = _activeSession()?.WorkingDiff is { } diff
-            ? ModelOf(diff, WorkingPanes.IsDiff(tab?.View.FocusedPane ?? PaneKind.Graph))
-            : null;
+        var model = default(DiffPaneModel);
+        if (_activeSession()?.WorkingDiff is { } diff)
+        {
+            model = ModelOf(diff, WorkingPanes.IsDiff(tab?.View.FocusedPane ?? PaneKind.Graph));
+        }
+
         return WorkingTreePaneRenderer.DiffTitle(tab?.WorkingTree, model);
     }
 
     /// <summary>The diff box as the frame composer draws it, null while the tab has no diff.</summary>
-    public DiffPaneModel? Model() =>
-        _activeSession()?.WorkingDiff is { } diff
-            ? ModelOf(diff, WorkingPanes.IsDiff(_host.Workspace.ActiveTab?.View.FocusedPane ?? PaneKind.Graph))
-            : null;
+    public DiffPaneModel? Model()
+    {
+        if (_activeSession()?.WorkingDiff is not { } diff)
+        {
+            return null;
+        }
+
+        return ModelOf(diff, WorkingPanes.IsDiff(_host.Workspace.ActiveTab?.View.FocusedPane ?? PaneKind.Graph));
+    }
 
     /// <summary>The quick-jump target of the diff box of the shown tab, null while it has none.</summary>
-    public IJumpTarget? JumpTarget() =>
-        _activeSession()?.WorkingDiff is { } diff && _host.Workspace.ActiveTab?.View.FocusedPane is { } pane && WorkingPanes.IsDiff(pane)
-            ? _actions.JumpTarget(pane, diff)
-            : null;
+    public IJumpTarget? JumpTarget()
+    {
+        if (_activeSession()?.WorkingDiff is { } diff
+            && _host.Workspace.ActiveTab?.View.FocusedPane is { } pane
+            && WorkingPanes.IsDiff(pane))
+        {
+            return _actions.JumpTarget(pane, diff);
+        }
+
+        return null;
+    }
 
     public bool TryExecute(ActionId action, int? count)
     {
@@ -117,9 +132,16 @@ public sealed class WorkingDiffController : IPromptHandler
 
         _actions.SyncWidth();
         Sync();
-        var isHandled = diff.Search.Phase == DiffSearchPhase.Editing
-            ? _actions.ExecuteInSearchBox(diff, action)
-            : ExecuteInDiff(tab, diff, action, count);
+        bool isHandled;
+        if (diff.Search.Phase == DiffSearchPhase.Editing)
+        {
+            isHandled = _actions.ExecuteInSearchBox(diff, action);
+        }
+        else
+        {
+            isHandled = ExecuteInDiff(tab, diff, action, count);
+        }
+
         if (isHandled)
         {
             // Any other key of the diff is the user moving on: the cursor no longer waits to jump to a hunk.
@@ -174,15 +196,21 @@ public sealed class WorkingDiffController : IPromptHandler
         if (range is { } selected)
         {
             var lines = DiffSelection.OfRows(document, diff.Source.RowOf(selected.First), diff.Source.LastRowOf(selected.Last));
-            return lines.Count == 0
-                ? DiffStagingCapture.Refused("No added or removed line is selected")
-                : new DiffStagingCapture(new DiffStagingRequest(target, lines, true), hunkIndex, string.Empty);
+            if (lines.Count == 0)
+            {
+                return DiffStagingCapture.Refused("No added or removed line is selected");
+            }
+
+            return new DiffStagingCapture(new DiffStagingRequest(target, lines, true), hunkIndex, string.Empty);
         }
 
         var hunkLines = DiffSelection.OfHunk(document, row);
-        return hunkIndex >= 0 && hunkLines.Count == 0
-            ? DiffStagingCapture.Refused("The change has no added or removed line")
-            : new DiffStagingCapture(new DiffStagingRequest(target, hunkLines, false), hunkIndex, string.Empty);
+        if (hunkIndex >= 0 && hunkLines.Count == 0)
+        {
+            return DiffStagingCapture.Refused("The change has no added or removed line");
+        }
+
+        return new DiffStagingCapture(new DiffStagingRequest(target, hunkLines, false), hunkIndex, string.Empty);
     }
 
     /// <summary>After the next reload of the same file the cursor goes to the hunk at <paramref name="hunkIndex"/> (the next one when that hunk was staged).</summary>
@@ -279,9 +307,12 @@ public sealed class WorkingDiffController : IPromptHandler
 
         var entries = tree.SelectedFolderEntries;
 
-        return entries.Count == 0
-            ? null
-            : new WorkingDiffRequest(side, entries[0], new WorkingDiffFolder(selection.Path, entries));
+        if (entries.Count == 0)
+        {
+            return null;
+        }
+
+        return new WorkingDiffRequest(side, entries[0], new WorkingDiffFolder(selection.Path, entries));
     }
 
     private void OnWorkspaceChanged()

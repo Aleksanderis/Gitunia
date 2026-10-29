@@ -19,13 +19,18 @@ public sealed class TerminalPlatform(Func<string, string?>? getEnvironmentVariab
         return new ConsoleCapabilities(interactive, DetectColor(interactive), DetectUnicode(), DetectLightBackground());
     }
 
-    public bool? QueryLightBackground(ConsoleCapabilities capabilities) =>
-        capabilities.Color == ColorDepth.None
-            ? null
-            : TerminalBackgroundQuery.Query(
-                capabilities.IsInteractive,
-                ReadEnvironment("TERM"),
-                TerminalBackgroundQuery.DefaultTimeout);
+    public bool? QueryLightBackground(ConsoleCapabilities capabilities)
+    {
+        if (capabilities.Color == ColorDepth.None)
+        {
+            return null;
+        }
+
+        return TerminalBackgroundQuery.Query(
+            capabilities.IsInteractive,
+            ReadEnvironment("TERM"),
+            TerminalBackgroundQuery.DefaultTimeout);
+    }
 
     /// <summary>User home; falls back to the temp directory so paths never become cwd-relative.</summary>
     private static string Home

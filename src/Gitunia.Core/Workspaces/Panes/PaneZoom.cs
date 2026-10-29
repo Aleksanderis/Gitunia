@@ -11,6 +11,18 @@ public static class PaneZoom
         first is PaneKind.Detail or PaneKind.Diff && second is PaneKind.Detail or PaneKind.Diff;
 
     /// <summary>The zoomed pane after <c>&lt;space&gt;z</c> on <paramref name="focused"/>: unzoomed when it was zoomed already, null when it cannot be zoomed.</summary>
-    public static PaneKind? Toggle(PaneKind? zoomed, PaneKind focused) =>
-        zoomed == focused ? null : CanZoom(focused) ? focused : zoomed;
+    public static PaneKind? Toggle(PaneKind? zoomed, PaneKind focused)
+    {
+        if (zoomed == focused)
+        {
+            return null;
+        }
+
+        if (CanZoom(focused))
+        {
+            return focused;
+        }
+
+        return zoomed;
+    }
 }

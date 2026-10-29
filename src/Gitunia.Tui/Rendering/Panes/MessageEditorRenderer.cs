@@ -105,7 +105,16 @@ public static class MessageEditorRenderer
             }
 
             var isOverlong = isSubject && skipped + used >= MessageEditor.SubjectSoftLimit;
-            var role = isCursor ? SegmentRole.Cursor : isOverlong ? SegmentRole.Error : SegmentRole.Plain;
+            var role = SegmentRole.Plain;
+            if (isCursor)
+            {
+                role = SegmentRole.Cursor;
+            }
+            else if (isOverlong)
+            {
+                role = SegmentRole.Error;
+            }
+
             Append(segments, Displayable(element), role);
             used += elementWidth;
         }

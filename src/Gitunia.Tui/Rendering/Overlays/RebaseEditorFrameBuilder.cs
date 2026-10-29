@@ -58,9 +58,12 @@ public static class RebaseEditorFrameBuilder
             return null;
         }
 
-        return state.Edit is not null
-            ? BuildMessage(state, screenWidth, screenHeight, width, glyphs)
-            : BuildList(state, screenWidth, screenHeight, width, glyphs, keys);
+        if (state.Edit is not null)
+        {
+            return BuildMessage(state, screenWidth, screenHeight, width, glyphs);
+        }
+
+        return BuildList(state, screenWidth, screenHeight, width, glyphs, keys);
     }
 
     /// <summary>The entry index of the row on <paramref name="frameLine"/>, or null for none.</summary>
@@ -73,9 +76,12 @@ public static class RebaseEditorFrameBuilder
     {
         var window = Window(state, screenWidth, screenHeight, keys);
         var offset = frameLine - ListStartLine;
-        return state.Edit is null && offset >= 0 && offset < window.RowCount && window.Top + offset < state.Rows.Count
-            ? window.Top + offset
-            : null;
+        if (state.Edit is null && offset >= 0 && offset < window.RowCount && window.Top + offset < state.Rows.Count)
+        {
+            return window.Top + offset;
+        }
+
+        return null;
     }
 
     /// <summary>The mouse view of the chip drawn at a frame line and column; null when none.</summary>
@@ -167,9 +173,15 @@ public static class RebaseEditorFrameBuilder
             lines.Add(OverlayBox.Wrap(padded, glyphs));
         }
 
-        lines.Add(edit.Editor.IsBlank
-            ? OverlayBox.Text(BlankMessageHint, width, glyphs, SegmentRole.Error)
-            : OverlayBox.Hints(MessageHint, width, glyphs, gap: PromptGap));
+        if (edit.Editor.IsBlank)
+        {
+            lines.Add(OverlayBox.Text(BlankMessageHint, width, glyphs, SegmentRole.Error));
+        }
+        else
+        {
+            lines.Add(OverlayBox.Hints(MessageHint, width, glyphs, gap: PromptGap));
+        }
+
         lines.Add(OverlayBox.Bottom(width, glyphs));
         return new OverlayFrame((screenWidth - width) / 2, 1, lines);
     }

@@ -384,9 +384,13 @@ public class QuickRebaseActionsTests
         {
             foreach (var character in text)
             {
-                var key = character == '\u0015'
-                    ? new KeyEvent("u", KeyModifiers.Ctrl)
-                    : new KeyEvent(character.ToString());
+                var key = new KeyEvent(character.ToString());
+
+                if (character == '\u0015')
+                {
+                    key = new KeyEvent("u", KeyModifiers.Ctrl);
+                }
+
                 Assert.True(Actions.HandleTextKey(key));
             }
         }

@@ -106,9 +106,12 @@ public static class ReflogFrameBuilder
             picker.Index,
             Math.Min(MaximumRows, screenHeight - ScreenMargin - ChromeRows));
         var offset = frameLine - 1;
-        return offset >= 0 && offset < window.RowCount && window.Top + offset < picker.Candidates.Count
-            ? window.Top + offset
-            : null;
+        if (offset >= 0 && offset < window.RowCount && window.Top + offset < picker.Candidates.Count)
+        {
+            return window.Top + offset;
+        }
+
+        return null;
     }
 
     private static OverlayFrame BuildPicker(
@@ -168,9 +171,12 @@ public static class ReflogFrameBuilder
 
         var matches = state.MatchIndexes;
         var current = matches.ToList().IndexOf(state.SelectedIndex) + 1;
-        var count = matches.Count == 0
-            ? "no match"
-            : string.Create(CultureInfo.InvariantCulture, $"{current}/{matches.Count} matches");
+        var count = "no match";
+        if (matches.Count > 0)
+        {
+            count = string.Create(CultureInfo.InvariantCulture, $"{current}/{matches.Count} matches");
+        }
+
         var cursor = state.IsEditingSearch ? "_" : string.Empty;
 
         return $"/{state.SearchText}{cursor}  {count}";
@@ -184,9 +190,12 @@ public static class ReflogFrameBuilder
             state.SelectedIndex,
             Math.Min(MaximumRows, screenHeight - ScreenMargin - ChromeRows));
         var offset = frameLine - 1;
-        return offset >= 0 && offset < window.RowCount && window.Top + offset < state.Entries.Count
-            ? window.Top + offset
-            : null;
+        if (offset >= 0 && offset < window.RowCount && window.Top + offset < state.Entries.Count)
+        {
+            return window.Top + offset;
+        }
+
+        return null;
     }
 
     /// <summary>Rows the list shows at a screen height (the page size of the half-page motions).</summary>

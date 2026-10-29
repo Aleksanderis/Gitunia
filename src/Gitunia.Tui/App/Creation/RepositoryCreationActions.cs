@@ -66,20 +66,29 @@ public sealed class RepositoryCreationActions(
     /// <summary>Whether a clone runs (the status bar shows its progress and a cancel chip).</summary>
     public bool IsCloning => _running is not null;
 
-    public PromptPopup? Popup => _kind == CreationPromptKind.None || !picker.IsOpen
-        ? null
-        : _kind switch
+    public PromptPopup? Popup
+    {
+        get
         {
-            CreationPromptKind.CloneSource => PromptPopup.ForText(
-                "Clone repository", "URL or path of the repository to clone", _text, "next"),
-            CreationPromptKind.CloneTarget => PromptPopup.ForText(
-                "Clone repository", $"Clone {_source} into", _text, "clone"),
-            _ => PromptPopup.ForText(
-                "Initialise repository",
-                "Directory for git init (created when missing, files are kept)",
-                _text,
-                "init"),
-        };
+            if (_kind == CreationPromptKind.None || !picker.IsOpen)
+            {
+                return null;
+            }
+
+            return _kind switch
+            {
+                CreationPromptKind.CloneSource => PromptPopup.ForText(
+                    "Clone repository", "URL or path of the repository to clone", _text, "next"),
+                CreationPromptKind.CloneTarget => PromptPopup.ForText(
+                    "Clone repository", $"Clone {_source} into", _text, "clone"),
+                _ => PromptPopup.ForText(
+                    "Initialise repository",
+                    "Directory for git init (created when missing, files are kept)",
+                    _text,
+                    "init"),
+            };
+        }
+    }
 
     /// <summary>
     /// The status bar line of the running clone (<c>Cloning: Receiving objects 45%</c>), empty when none.
@@ -123,9 +132,7 @@ public sealed class RepositoryCreationActions(
             return false;
         }
 
-        Warn(state.LocatingTabId is not null ? LocatingNotice
-            : _running is not null || _isInitRunning ? BusyNotice
-            : Begin(action, state));
+        Warn(NoticeFor(action, state));
         redraw();
         return true;
     }
@@ -195,6 +202,21 @@ public sealed class RepositoryCreationActions(
 
         redraw();
         return true;
+    }
+
+    private string NoticeFor(ActionId action, PickerState state)
+    {
+        if (state.LocatingTabId is not null)
+        {
+            return LocatingNotice;
+        }
+
+        if (_running is not null || _isInitRunning)
+        {
+            return BusyNotice;
+        }
+
+        return Begin(action, state);
     }
 
     private string Begin(ActionId action, PickerState state)

@@ -651,9 +651,12 @@ public sealed class CommitActions(
         }
 
         var old = Short(previous);
-        var warning = forcePushUpstream is null
-            ? string.Empty
-            : $"; it was on {forcePushUpstream}: pushing needs a force push";
+        var warning = string.Empty;
+        if (forcePushUpstream is not null)
+        {
+            warning = $"; it was on {forcePushUpstream}: pushing needs a force push";
+        }
+
         return $"Amended to {hash}; previous commit {old}, `git reset --soft {old}` restores it{warning}";
     }
 
@@ -704,10 +707,15 @@ public sealed class CommitActions(
         LeaveInsertWhenFocusMoved();
     }
 
-    private static PaneKind ListPaneOf(RepositoryState tab) =>
-        tab.WorkingTree?.Selection?.Section == WorkingTreeSection.Staged
-            ? PaneKind.WorkingStaged
-            : PaneKind.WorkingUnstaged;
+    private static PaneKind ListPaneOf(RepositoryState tab)
+    {
+        if (tab.WorkingTree?.Selection?.Section == WorkingTreeSection.Staged)
+        {
+            return PaneKind.WorkingStaged;
+        }
+
+        return PaneKind.WorkingUnstaged;
+    }
 
     private static string OnOff(bool isOn) => isOn ? "on" : "off";
 

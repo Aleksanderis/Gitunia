@@ -49,14 +49,21 @@ public static class LaneCellBuilder
         var cells = new GraphCell[laneColumns * 2];
         for (var column = 0; column < cells.Length; column++)
         {
-            cells[column] = directions[column] == LineDirections.None
-                ? new GraphCell(' ', -1)
-                : new GraphCell(glyphs.For(directions[column]), colors[column]);
+            cells[column] = new GraphCell(glyphs.For(directions[column]), colors[column]);
+            if (directions[column] == LineDirections.None)
+            {
+                cells[column] = new GraphCell(' ', -1);
+            }
         }
 
         // An unlabelled commit with exactly one child and one parent, both on its lane, is part of a straight line, not a node.
         var isLineCommit = !isDecorated && isOnLane && incomingCount == 1 && outgoingCount == 1;
-        var nodeGlyph = isLineCommit ? glyphs.LineNode : outgoingCount > 1 ? glyphs.MergeNode : glyphs.Node;
+        var nodeGlyph = outgoingCount > 1 ? glyphs.MergeNode : glyphs.Node;
+        if (isLineCommit)
+        {
+            nodeGlyph = glyphs.LineNode;
+        }
+
         cells[nodeLane * 2] = new GraphCell(nodeGlyph, row.NodeColor);
         return cells;
     }

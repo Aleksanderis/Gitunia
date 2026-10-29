@@ -93,11 +93,7 @@ public static class SidebarBuilder
 
     private static SidebarRow WorktreeRow(RepositoryState tab, WorktreeInfo worktree)
     {
-        var branch = worktree.IsBare
-            ? "bare"
-            : worktree.BranchFullName is { } fullName
-                ? fullName.StartsWith(GitRefPrefixes.Heads, StringComparison.Ordinal) ? fullName[GitRefPrefixes.Heads.Length..] : fullName
-                : DetachedText;
+        var branch = WorktreeBranchText(worktree);
         var annotation = branch
             + (worktree.IsLocked ? " locked" : string.Empty)
             + (worktree.IsPrunable ? " prunable" : string.Empty);
@@ -126,9 +122,32 @@ public static class SidebarBuilder
             return tab.WorkingTree is { } tree ? WorktreeStatus.From(tree.Snapshot) : null;
         }
 
-        return tab.WorktreeStatuses is { } statuses && statuses.TryGetValue(worktree.Path, out var status)
-            ? status
-            : null;
+        if (tab.WorktreeStatuses is { } statuses && statuses.TryGetValue(worktree.Path, out var status))
+        {
+            return status;
+        }
+
+        return null;
+    }
+
+    private static string WorktreeBranchText(WorktreeInfo worktree)
+    {
+        if (worktree.IsBare)
+        {
+            return "bare";
+        }
+
+        if (worktree.BranchFullName is not { } fullName)
+        {
+            return DetachedText;
+        }
+
+        if (fullName.StartsWith(GitRefPrefixes.Heads, StringComparison.Ordinal))
+        {
+            return fullName[GitRefPrefixes.Heads.Length..];
+        }
+
+        return fullName;
     }
 
     private static SidebarRow StashRow(StashEntry stash) =>

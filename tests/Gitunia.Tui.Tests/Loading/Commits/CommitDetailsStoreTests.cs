@@ -349,9 +349,14 @@ public class CommitDetailsStoreTests
         reader.SetFiles(merge, side, "from-side.txt");
         var failNext = new StrongBox<bool>(true);
         var blocking = new BlockingFilesReader(reader, (parent, token) =>
-            failNext.Value
-                ? throw new InvalidOperationException("boom")
-                : reader.ReadFilesAsync(FakeCommitDetailsReader.Location, merge, parent, null, token));
+        {
+            if (failNext.Value)
+            {
+                throw new InvalidOperationException("boom");
+            }
+
+            return reader.ReadFilesAsync(FakeCommitDetailsReader.Location, merge, parent, null, token);
+        });
         var pump = new UiPump(Token);
         using var store = new CommitDetailsStore(
             blocking,

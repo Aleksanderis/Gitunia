@@ -43,9 +43,7 @@ public class MessageBoxRendererTests
     public void GivenARebinding_WhenRenderingTheOptionRow_ThenTheCommitChipShowsTheNewKeyAndClicksStillHitIt()
     {
         var bindings = DefaultKeymap.CreateBindings()
-            .Select(binding => binding.Action == ActionIds.WorkingTreeCommit && binding.Mode == KeyMode.Insert
-                ? binding with { Sequence = KeySequenceParser.Parse("Ctrl-k") }
-                : binding);
+            .Select(Rebound);
         var keys = new ChipKeys(DefaultKeymap.Create().WithBindings(bindings));
         var textWidth = PanePadding.TextWidth(60);
 
@@ -176,5 +174,15 @@ public class MessageBoxRendererTests
         var rows = MessageBoxRenderer.EditorLines(draft, new PaneRect(0, 0, 30, 3), Padding, true, GraphGlyphSet.Unicode);
 
         Assert.DoesNotContain(rows.SelectMany(row => row.Segments), segment => segment.Role == SegmentRole.Cursor);
+    }
+
+    private static KeyBinding Rebound(KeyBinding binding)
+    {
+        if (binding.Action == ActionIds.WorkingTreeCommit && binding.Mode == KeyMode.Insert)
+        {
+            return binding with { Sequence = KeySequenceParser.Parse("Ctrl-k") };
+        }
+
+        return binding;
     }
 }

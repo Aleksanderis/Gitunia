@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Mechanical checks on the current branch against main that the build cannot do and reviewers keep finding:
-# added C# lines over 120 columns, added doc lines over 600 characters, fully qualified System.* names, over-long, rewritten or misdated docs/decisions.md entries, test hygiene (home dir, wall-clock), commits
+# added C# lines over 120 columns, nested or wrapped ?: (one per line), added doc lines over 600 characters, fully qualified System.* names, over-long, rewritten or misdated docs/decisions.md entries, test hygiene (home dir, wall-clock), commits
 # without the agent author name or Agent: trailer. Run it before asking for review; exit code 1 when anything is found.
 # Usage: check-diff.sh [base-ref]   (default: main)
 set -euo pipefail
@@ -22,6 +22,22 @@ while IFS=$'\t' read -r file line text; do
     fi
     if [[ "$text" =~ (^|[^A-Za-z0-9_.\"])System\.[A-Z][A-Za-z]+\.[A-Z] && ! "$text" =~ ^[[:space:]]*(using|namespace|//|\*) ]]; then
         report "$file:$line: fully qualified name, use a using import"
+    fi
+done < <(git diff -U0 "$base"...HEAD --diff-filter=AM -- '*.cs' | awk '
+    /^\+\+\+ b\// { file = substr($0, 7); next }
+    /^@@/ { match($0, /\+[0-9]+/); line = substr($0, RSTART + 1, RLENGTH - 1) - 1; next }
+    /^\+/ { line++; print file "\t" line "\t" substr($0, 2) }')
+
+# Ternaries: no nested ?: and no ?: wrapped over several lines (rule in .claude/rules/csharp-style.md).
+while IFS=$'\t' read -r file line text; do
+    trimmed="${text#"${text%%[![:space:]]*}"}"
+    if [[ "$trimmed" == //* || "$trimmed" == \** || "$trimmed" == /\** ]]; then
+        continue
+    fi
+    if [[ "$trimmed" == '? '* || "$trimmed" == *' ?' ]]; then
+        report "$file:$line: multi-line ?:, use if/return, a switch expression or a helper"
+    elif [[ "$trimmed" =~ \ \?\ .*\ \?\ .*\ :\  ]]; then
+        report "$file:$line: nested ?:, use if/return, a switch expression or a helper"
     fi
 done < <(git diff -U0 "$base"...HEAD --diff-filter=AM -- '*.cs' | awk '
     /^\+\+\+ b\// { file = substr($0, 7); next }

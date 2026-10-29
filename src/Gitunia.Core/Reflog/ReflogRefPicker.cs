@@ -10,10 +10,18 @@ namespace Gitunia.Core.Reflog;
 public sealed record ReflogRefPicker(IReadOnlyList<string> Names, string Text = "", int Index = 0)
 {
     /// <summary>The choices that match the typed text, in their original order.</summary>
-    public IReadOnlyList<string> Candidates =>
-        Text.Length == 0
-            ? Names
-            : [.. Names.Where(name => name.Contains(Text, StringComparison.OrdinalIgnoreCase))];
+    public IReadOnlyList<string> Candidates
+    {
+        get
+        {
+            if (Text.Length == 0)
+            {
+                return Names;
+            }
+
+            return [.. Names.Where(name => name.Contains(Text, StringComparison.OrdinalIgnoreCase))];
+        }
+    }
 
     /// <summary>The highlighted choice, null when nothing matches.</summary>
     public string? Selected =>

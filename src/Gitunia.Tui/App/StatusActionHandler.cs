@@ -40,9 +40,12 @@ public sealed class StatusActionHandler(StatusChannel statuses, Func<TabSession?
         {
             var details = activeSession()?.Details;
             var parents = details?.Current.Details?.Parents.Count ?? 0;
-            Message = details?.CycleParent() is { } index
-                ? $"Switching to parent {index + 1} of {parents}..."
-                : "Not a merge commit (or still loading)";
+            Message = "Not a merge commit (or still loading)";
+            if (details?.CycleParent() is { } index)
+            {
+                Message = $"Switching to parent {index + 1} of {parents}...";
+            }
+
             return true;
         }
 

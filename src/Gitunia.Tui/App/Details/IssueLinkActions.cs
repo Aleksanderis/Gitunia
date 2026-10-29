@@ -67,9 +67,12 @@ public sealed class IssueLinkActions(
     {
         var rows = source()?.Content.Rows;
 
-        return selectedRow() is { } row && rows is not null && row >= 0 && row < rows.Count
-            ? rows[row].References ?? []
-            : [];
+        if (selectedRow() is { } row && rows is not null && row >= 0 && row < rows.Count)
+        {
+            return rows[row].References ?? [];
+        }
+
+        return [];
     }
 
     // Starting the opener can stall (ShellExecute on a cold start), so it never runs on the UI thread.

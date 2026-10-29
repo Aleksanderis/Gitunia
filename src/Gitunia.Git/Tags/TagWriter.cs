@@ -62,13 +62,28 @@ public sealed class TagWriter(GitRunner runner, RemoteRunner remoteRunner) : ITa
         string name,
         string target,
         string? message,
-        CancellationToken cancellationToken) =>
-        RunWriteAsync(
-            location,
-            string.IsNullOrEmpty(message)
-                ? [Tag, EndOfOptions, name, target]
-                : [ConfigOption, NoEditor, Tag, AnnotateOption, MessageOption, message, EndOfOptions, name, target],
-            cancellationToken);
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrEmpty(message))
+        {
+            return RunWriteAsync(location, [Tag, EndOfOptions, name, target], cancellationToken);
+        }
+
+        string[] annotated =
+        [
+            ConfigOption,
+            NoEditor,
+            Tag,
+            AnnotateOption,
+            MessageOption,
+            message,
+            EndOfOptions,
+            name,
+            target,
+        ];
+
+        return RunWriteAsync(location, annotated, cancellationToken);
+    }
 
     public Task DeleteAsync(RepositoryLocation location, string name, CancellationToken cancellationToken) =>
         RunWriteAsync(location, [Tag, DeleteOption, EndOfOptions, name], cancellationToken);

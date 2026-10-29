@@ -25,13 +25,34 @@ public static class PickerReducer
         MoveHighlightCommand move => state with { Highlight = Math.Clamp(state.Highlight + move.Delta, 0, Math.Max(0, state.Rows.Length - 1)) },
         CompletePathCommand => Complete(state, context),
         SetMessageCommand message => state with { Message = message.Message },
-        ListingCompletedCommand listing => listing.Query == state.Query && state.IsPathMode
-            ? state with { Rows = listing.Rows, Highlight = 0, Message = listing.Message.Length > 0 ? listing.Message : state.Message, IsListing = false, IsScanningShown = false }
-            : state,
+        ListingCompletedCommand listing => CompleteListing(state, listing),
         ShowScanningCommand scanning => scanning.Query == state.Query && state.IsListing ? state with { IsScanningShown = true } : state,
         RefreshRowsCommand => Refresh(state, context),
         _ => state,
     };
+
+    private static PickerState CompleteListing(PickerState state, ListingCompletedCommand listing)
+    {
+        if (listing.Query != state.Query || !state.IsPathMode)
+        {
+            return state;
+        }
+
+        var message = state.Message;
+        if (listing.Message.Length > 0)
+        {
+            message = listing.Message;
+        }
+
+        return state with
+        {
+            Rows = listing.Rows,
+            Highlight = 0,
+            Message = message,
+            IsListing = false,
+            IsScanningShown = false,
+        };
+    }
 
     // A path is listed in the background (the controller starts it when IsListing turns on), so the reducer never touches the file system.
     private static PickerState WithQuery(PickerState state, string query, PickerContext context)

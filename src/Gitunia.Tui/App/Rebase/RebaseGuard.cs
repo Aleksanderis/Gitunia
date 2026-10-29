@@ -52,9 +52,13 @@ public static class RebaseGuard
         }
 
         var changed = ChangedCount(tab);
-        return changed == 0
-            ? null
-            : $"{OperationText.Plural(changed, "file")} with uncommitted changes: commit or stash them before a rebase";
+        if (changed == 0)
+        {
+            return null;
+        }
+
+        var files = OperationText.Plural(changed, "file");
+        return $"{files} with uncommitted changes: commit or stash them before a rebase";
     }
 
     /// <summary>
@@ -64,10 +68,14 @@ public static class RebaseGuard
     public static string? AutoStashNote(RepositoryState? tab)
     {
         var changed = tab is { RebaseAutoStash: true } ? ChangedCount(tab) : 0;
-        return changed == 0
-            ? null
-            : $"{OperationText.Plural(changed, "file")} with uncommitted changes: git stashes them (rebase.autoStash) " +
-                "and restores them afterwards; if that conflicts, the stash is kept.";
+        if (changed == 0)
+        {
+            return null;
+        }
+
+        var files = OperationText.Plural(changed, "file");
+        return $"{files} with uncommitted changes: git stashes them (rebase.autoStash) " +
+            "and restores them afterwards; if that conflicts, the stash is kept.";
     }
 
     /// <summary>The force-push warning for a branch that tracks an upstream, or null.</summary>
@@ -88,10 +96,18 @@ public static class RebaseGuard
     private static bool IsTrackedChange(StatusEntry entry) =>
         entry.Kind is not (StatusEntryKind.Untracked or StatusEntryKind.Ignored);
 
-    private static string ShortRef(string fullName) =>
-        fullName.StartsWith(GitRefPrefixes.Remotes, StringComparison.Ordinal)
-            ? fullName[GitRefPrefixes.Remotes.Length..]
-            : fullName.StartsWith(GitRefPrefixes.Heads, StringComparison.Ordinal)
-                ? fullName[GitRefPrefixes.Heads.Length..]
-                : fullName;
+    private static string ShortRef(string fullName)
+    {
+        if (fullName.StartsWith(GitRefPrefixes.Remotes, StringComparison.Ordinal))
+        {
+            return fullName[GitRefPrefixes.Remotes.Length..];
+        }
+
+        if (fullName.StartsWith(GitRefPrefixes.Heads, StringComparison.Ordinal))
+        {
+            return fullName[GitRefPrefixes.Heads.Length..];
+        }
+
+        return fullName;
+    }
 }

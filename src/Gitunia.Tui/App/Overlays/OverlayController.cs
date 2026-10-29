@@ -94,9 +94,8 @@ public sealed class OverlayController
         var width = size.Width;
         var height = size.Height;
         var pending = _keys.State.PendingSequence;
-        var rows = State.WhichKeyVisible
-            ? WhichKeyBuilder.Build(_engine.Continuations(_keys.State, ViewName), pending, OperationInProgress())
-            : [];
+        var rows = WhichKeyRowsFor(pending);
+
         return OverlayFrameFactory.Create(State, _helpTabs, _keys.PendingText, rows, width, height, _glyphs);
     }
 
@@ -191,10 +190,15 @@ public sealed class OverlayController
     }
 
     /// <summary>The answer drawn on a frame line of the open confirm dialog (a mouse click); null when the line is none or no dialog is open.</summary>
-    public ConfirmAnswer? ConfirmAnswerAt(int frameLine) =>
-        State.Kind == OverlayKind.Confirm && CurrentFrame() is { } frame
-            ? ConfirmFrameBuilder.AnswerAt(frameLine, frame.Height)
-            : null;
+    public ConfirmAnswer? ConfirmAnswerAt(int frameLine)
+    {
+        if (State.Kind == OverlayKind.Confirm && CurrentFrame() is { } frame)
+        {
+            return ConfirmFrameBuilder.AnswerAt(frameLine, frame.Height);
+        }
+
+        return null;
+    }
 
     /// <summary>Highlights the palette entry drawn on a line of the overlay frame (a mouse click); false when the line is not an entry.</summary>
     public bool SelectPaletteEntryAt(int frameLine)
@@ -365,12 +369,27 @@ public sealed class OverlayController
     /// The help tab under a click on the overlay line <paramref name="frameLine"/> at <paramref name="frameColumn"/>
     /// (both inside the frame), as the number the click action takes (from 1), or null when it is not on a tab label.
     /// </summary>
-    public int? HelpTabNumberAt(int frameLine, int frameColumn) =>
-        State.Kind == OverlayKind.Help
+    public int? HelpTabNumberAt(int frameLine, int frameColumn)
+    {
+        if (State.Kind == OverlayKind.Help
             && HelpFrameBuilder.TabAt(_helpTabs, State.HelpTab, _screenSize().Width, frameLine, frameColumn)
-                is { } index
-            ? index + 1
-            : null;
+                is { } index)
+        {
+            return index + 1;
+        }
+
+        return null;
+    }
+
+    private IReadOnlyList<WhichKeyRow> WhichKeyRowsFor(KeySequence pending)
+    {
+        if (!State.WhichKeyVisible)
+        {
+            return [];
+        }
+
+        return WhichKeyBuilder.Build(_engine.Continuations(_keys.State, ViewName), pending, OperationInProgress());
+    }
 
     private bool TrySwitchHelpTab(ActionId action, int? count)
     {

@@ -144,7 +144,8 @@ public static class PaneLayout
         var showDiff = isDiffOpen && paneHeight > 0;
         var detailWidth = showDiff ? DetailWidth(screenWidth, true, sizes) : inner;
         var diffLeft = detailWidth > 0 ? detailWidth + 2 : 1;
-        var diffWidth = showDiff ? Math.Max(0, detailWidth > 0 ? inner - detailWidth - 1 : inner) : 0;
+        var diffRoom = detailWidth > 0 ? inner - detailWidth - 1 : inner;
+        var diffWidth = showDiff ? Math.Max(0, diffRoom) : 0;
         var none = new PaneRect(0, 0, 0, 0);
         return new PaneRects(
             new PaneRect(1, top, sidebarWidth, listHeight),

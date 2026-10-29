@@ -5,6 +5,10 @@ namespace Gitunia.Tui.Tests.Rendering.Graph;
 
 public class GraphColumnLayoutTests
 {
+    private const int AuthorShown = 1;
+    private const int DateShown = 2;
+    private const int HashShown = 4;
+
     [Theory]
     [InlineData(80, 2, 16, 33)]
     [InlineData(120, 2, 16, 65)]
@@ -54,7 +58,7 @@ public class GraphColumnLayoutTests
     {
         var all = Enumerable.Range(10, 391).Select(width => GraphColumnLayout.Compute(width, 1)).ToArray();
         var shown = all
-            .Select(columns => (columns.AuthorWidth > 0 ? 1 : 0) + (columns.DateWidth > 0 ? 2 : 0) + (columns.HashWidth > 0 ? 4 : 0))
+            .Select(ShownMask)
             .ToArray();
 
         Assert.Equal(shown.Order(), shown);
@@ -113,5 +117,27 @@ public class GraphColumnLayoutTests
 
         Assert.Equal(gap, columns.ColumnGap);
         Assert.Equal(margin, columns.RightMargin);
+    }
+
+    private static int ShownMask(GraphColumns columns)
+    {
+        var mask = 0;
+
+        if (columns.AuthorWidth > 0)
+        {
+            mask |= AuthorShown;
+        }
+
+        if (columns.DateWidth > 0)
+        {
+            mask |= DateShown;
+        }
+
+        if (columns.HashWidth > 0)
+        {
+            mask |= HashShown;
+        }
+
+        return mask;
     }
 }

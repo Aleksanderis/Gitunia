@@ -33,17 +33,22 @@ public sealed class StashAwareDiffReader(IDiffReader diffs, IStashDetailsReader 
         ICollection<string>? warnings = null,
         int maximumLinesPerFile = int.MaxValue,
         DiffOptions? options = null,
-        CancellationToken cancellationToken = default) =>
-        registry.TryGet(commit, out var entry)
-            ? ReadStashAsync(location, entry, warnings, maximumLinesPerFile, options, cancellationToken)
-            : diffs.ReadCommitAsync(
-                location,
-                commit,
-                firstParent,
-                warnings,
-                maximumLinesPerFile,
-                options,
-                cancellationToken);
+        CancellationToken cancellationToken = default)
+    {
+        if (registry.TryGet(commit, out var entry))
+        {
+            return ReadStashAsync(location, entry, warnings, maximumLinesPerFile, options, cancellationToken);
+        }
+
+        return diffs.ReadCommitAsync(
+            location,
+            commit,
+            firstParent,
+            warnings,
+            maximumLinesPerFile,
+            options,
+            cancellationToken);
+    }
 
     public IAsyncEnumerable<DiffFile> ReadWorkingFileAsync(
         RepositoryLocation location,

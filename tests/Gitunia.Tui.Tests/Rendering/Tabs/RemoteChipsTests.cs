@@ -1,3 +1,4 @@
+using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Mouse;
 using Gitunia.Core.Picker;
@@ -122,9 +123,7 @@ public class RemoteChipsTests
     public void GivenARebinding_WhenRenderingAKeyedRow_ThenTheChipShowsTheNewKey()
     {
         var bindings = DefaultKeymap.CreateBindings()
-            .Select(binding => binding.Action == ActionIds.RemoteFetch
-                ? binding with { Sequence = KeySequenceParser.Parse("<space>X") }
-                : binding);
+            .Select(Rebound);
         var keys = new ChipKeys(DefaultKeymap.Create().WithBindings(bindings));
 
         var text = ChromeBuilder.Tabs(Model(false) with { Keys = keys }, Keyed, GraphGlyphSet.Unicode).Text;
@@ -218,5 +217,15 @@ public class RemoteChipsTests
         Assert.DoesNotContain("pull", text, StringComparison.Ordinal);
         Assert.DoesNotContain("push", text, StringComparison.Ordinal);
         Assert.Contains(TabBarLayout.CommandsLabel, text, StringComparison.Ordinal);
+    }
+
+    private static KeyBinding Rebound(KeyBinding binding)
+    {
+        if (binding.Action == ActionIds.RemoteFetch)
+        {
+            return binding with { Sequence = KeySequenceParser.Parse("<space>X") };
+        }
+
+        return binding;
     }
 }

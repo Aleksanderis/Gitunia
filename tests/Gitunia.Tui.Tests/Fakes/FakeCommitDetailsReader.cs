@@ -85,9 +85,13 @@ public sealed class FakeCommitDetailsReader : ICommitDetailsReader
     {
         cancellationToken.ThrowIfCancellationRequested();
         ReadCount++;
-        return _commits.TryGetValue(id, out var details)
-            ? Task.FromResult<CommitDetails?>(details)
-            : throw new GitException($"unknown commit {id}");
+
+        if (_commits.TryGetValue(id, out var details))
+        {
+            return Task.FromResult<CommitDetails?>(details);
+        }
+
+        throw new GitException($"unknown commit {id}");
     }
 
     public Task<IReadOnlyList<CommitFileChange>> ReadFilesAsync(
