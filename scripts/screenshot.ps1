@@ -118,6 +118,11 @@ function New-DirtyRepo([string]$source, [string]$dir) { # a copy with a merge co
     }
 }
 
+function New-UnstagedRepo([string]$source, [string]$dir) { # one unstaged modification and nothing staged
+    Copy-Item -Recurse $source $dir
+    Write-File "$dir/README.md" "Edited, not staged.`n" -Append
+}
+
 function New-CommitRepo([string]$source, [string]$dir, [bool]$hook) { # staged, unstaged and untracked changes; $hook adds a failing pre-commit hook
     Copy-Item -Recurse $source $dir
     Use-GitIdentity {
@@ -202,6 +207,7 @@ function Get-Scenario([string]$name) {
         'working-lines' { $s.Keys = 'Space s j Enter'; $s.After = 'j j j j j v' }
         'working-discard' { $s.Keys = 'Space s j'; $s.After = 'Space d' }
         'working-resolve' { $s.Keys = 'Space s'; $s.After = 'Space a' }
+        'working-empty-staged' { $s.Keys = 'Space s Tab' }
         'settings' { $s.Keys = 'Space ,' }
         'settings-choice' { $s.Keys = 'Space , Enter Enter j' }
         'settings-narrow' { $s.Columns = 64; $s.Rows = 24; $s.Keys = 'Space ,' }
@@ -288,6 +294,10 @@ function Invoke-Render {
                 elseif ($scenario -like 'rebase-*') {
                     $scenarioRepo = Join-Path $work 'repo-rebase'
                     if (-not (Test-Path $scenarioRepo)) { New-RebaseRepo $sourceRepo $scenarioRepo }
+                }
+                elseif ($scenario -eq 'working-empty-staged') {
+                    $scenarioRepo = Join-Path $work 'repo-unstaged'
+                    if (-not (Test-Path $scenarioRepo)) { New-UnstagedRepo $sourceRepo $scenarioRepo }
                 }
                 elseif ($scenario -like 'working*') {
                     $scenarioRepo = Join-Path $work 'repo-dirty'
