@@ -255,6 +255,101 @@ public class MessageEditorTests
         Assert.False(Editor(" \nx").IsBlank);
     }
 
+    [Fact]
+    public void GivenNormalModeMotions_WhenMovingByLettersAndLines_ThenTheCursorStaysInsideTheText()
+    {
+        var editor = Editor("ab\ncdef");
+        editor.PlaceCursor(0, 0);
+
+        editor.MoveLeftInLine();
+        editor.MoveRightInLine();
+        editor.MoveRightInLine();
+        editor.MoveRightInLine();
+        var afterRight = (editor.CursorRow, editor.CursorColumn);
+        editor.MoveLines(1);
+        editor.MoveToLineEnd();
+        editor.MoveLines(1);
+
+        Assert.Equal((0, 2), afterRight);
+        Assert.Equal((1, 4), (editor.CursorRow, editor.CursorColumn));
+    }
+
+    [Fact]
+    public void GivenWords_WhenMovingForwardAndBackward_ThenTheCursorCrossesLines()
+    {
+        var editor = Editor("one two\n  three");
+        editor.PlaceCursor(0, 0);
+
+        editor.MoveWordForward();
+        var second = (editor.CursorRow, editor.CursorColumn);
+        editor.MoveWordForward();
+        var third = (editor.CursorRow, editor.CursorColumn);
+        editor.MoveWordBackward();
+        editor.MoveWordBackward();
+        editor.MoveWordBackward();
+
+        Assert.Equal((0, 4), second);
+        Assert.Equal((1, 2), third);
+        Assert.Equal((0, 0), (editor.CursorRow, editor.CursorColumn));
+    }
+
+    [Fact]
+    public void GivenDeleteKeys_WhenDeletingACharacterAndALine_ThenTheTextShrinksAndTheLastLineIsEmptied()
+    {
+        var editor = Editor("abc\ndef");
+        editor.PlaceCursor(0, 1);
+
+        editor.DeleteUnderCursor();
+        editor.DeleteLine();
+        editor.DeleteLine();
+
+        Assert.Equal(string.Empty, editor.Text);
+        Assert.Equal((0, 0), (editor.CursorRow, editor.CursorColumn));
+    }
+
+    [Fact]
+    public void GivenOpenLineBelow_WhenUndoing_ThenTheTextAndCursorComeBack()
+    {
+        var editor = Editor("abc");
+        editor.PlaceCursor(0, 1);
+        editor.MarkUndoPoint();
+        editor.OpenLineBelow();
+        editor.Insert("x");
+
+        var undone = editor.Undo();
+        var nothingLeft = editor.Undo();
+
+        Assert.True(undone);
+        Assert.False(nothingLeft);
+        Assert.Equal("abc", editor.Text);
+        Assert.Equal((0, 1), (editor.CursorRow, editor.CursorColumn));
+    }
+
+    [Fact]
+    public void GivenAWideCharacter_WhenMovingRightAndDeleting_ThenItIsNeverSplit()
+    {
+        var editor = Editor($"{Wide}b");
+        editor.PlaceCursor(0, 0);
+
+        editor.MoveRightInLine();
+        editor.MoveLeftInLine();
+        editor.DeleteUnderCursor();
+
+        Assert.Equal("b", editor.Text);
+    }
+
+    [Fact]
+    public void GivenUndoPoints_WhenTheTextIsReplaced_ThenNothingCanBeUndone()
+    {
+        var editor = Editor("old");
+        editor.MarkUndoPoint();
+
+        editor.SetText("new");
+
+        Assert.False(editor.Undo());
+        Assert.Equal("new", editor.Text);
+    }
+
     private static MessageEditor Editor(string text)
     {
         var editor = new MessageEditor();

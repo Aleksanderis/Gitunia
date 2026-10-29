@@ -14,6 +14,12 @@ public static class PaneHints
         new("q", "quit", [ActionIds.AppQuit]),
     ];
 
+    // Ctrl-h/j/k/l move between panes in every view; bare h/j/k/l act inside the pane (ux.md, "Moving focus").
+    private static readonly KeyHint PaneMove = new(
+        "Ctrl-h/j/k/l",
+        "pane",
+        [ActionIds.PaneFocusLeft, ActionIds.PaneFocusDown, ActionIds.PaneFocusUp, ActionIds.PaneFocusRight]);
+
     // A hint without actions names a chord group (the which-key popup lists its continuations): the test checks the
     // keymap binds something below the prefix instead of one action per key.
     private static readonly KeyHint ViewOptions = new("<space>v", "view options", []);
@@ -27,6 +33,7 @@ public static class PaneHints
         new("Ctrl-d/u", "page", [ActionIds.ListHalfPageDown, ActionIds.ListHalfPageUp]),
         new("<space>h", "HEAD", [ActionIds.GraphJumpToHead]),
         new("<space>j", "quick jump", [ActionIds.QuickJump]),
+        PaneMove,
     ];
 
     private static readonly ImmutableArray<KeyHint> GraphComparing =
@@ -45,6 +52,7 @@ public static class PaneHints
         new("l/Enter", "expand", [ActionIds.SidebarExpand, ActionIds.SidebarActivate]),
         new("h", "collapse", [ActionIds.SidebarCollapse]),
         new("/", "filter", [ActionIds.SidebarFilter]),
+        PaneMove,
     ];
 
     private static readonly ImmutableArray<KeyHint> Detail =
@@ -56,6 +64,7 @@ public static class PaneHints
         new("l", "open", [ActionIds.DetailOpenDiff]),
         new("<space>j", "quick jump", [ActionIds.QuickJump]),
         new("h", "back", [ActionIds.DetailCollapse]),
+        PaneMove,
     ];
 
     private static readonly ImmutableArray<KeyHint> DetailChanges =
@@ -75,6 +84,7 @@ public static class PaneHints
         ViewOptions,
         new("h", "back", [ActionIds.NavigateBack]),
         new("<space>j", "quick jump", [ActionIds.QuickJump]),
+        PaneMove,
     ];
 
     private static readonly ImmutableArray<KeyHint> FileContent =
@@ -87,6 +97,7 @@ public static class PaneHints
         new("y", "copy line", [ActionIds.DiffCopyLine]),
         new("Y", "copy file", [ActionIds.DiffCopyFile]),
         new("h", "back", [ActionIds.NavigateBack]),
+        PaneMove,
     ];
 
     private static readonly KeyHint PaneJumps = new(
@@ -117,6 +128,7 @@ public static class PaneHints
         new("<space>d", "discard", [ActionIds.WorkingTreeDiscard]),
         new("v", "select lines", [ActionIds.VisualToggle]),
         .. WorkingDiffCommon,
+        PaneMove,
     ];
 
     private static readonly ImmutableArray<KeyHint> WorkingStagedDiff =
@@ -126,6 +138,7 @@ public static class PaneHints
         new("<space>u", "unstage change", [ActionIds.WorkingTreeUnstage]),
         new("v", "select lines", [ActionIds.VisualToggle]),
         .. WorkingDiffCommon,
+        PaneMove,
     ];
 
     private static readonly ImmutableArray<KeyHint> WorkingUnstaged =
@@ -139,6 +152,7 @@ public static class PaneHints
         new("<space>j", "quick jump", [ActionIds.QuickJump]),
         new("<space>c", "message", [ActionIds.WorkingTreeWriteMessage]),
         PaneJumps,
+        PaneMove,
     ];
 
     private static readonly ImmutableArray<KeyHint> WorkingStaged =
@@ -151,12 +165,14 @@ public static class PaneHints
         new("<space>j", "quick jump", [ActionIds.QuickJump]),
         new("<space>c", "message", [ActionIds.WorkingTreeWriteMessage]),
         PaneJumps,
+        PaneMove,
     ];
 
     private static readonly ImmutableArray<KeyHint> WorkingMessage =
     [
         .. Pinned,
         new("i", "write", [ActionIds.WorkingTreeEditMessage]),
+        PaneMove,
         PaneJumps,
         new("<space>c", "commit", [ActionIds.WorkingTreeCommit]),
         new("Alt-s/Alt-n/Alt-a", "options", [ActionIds.WorkingTreeToggleSignOff, ActionIds.WorkingTreeToggleNoVerify, ActionIds.WorkingTreeToggleAmend]),

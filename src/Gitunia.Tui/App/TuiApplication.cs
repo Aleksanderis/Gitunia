@@ -229,7 +229,7 @@ public sealed class TuiApplication(
         _branches = CreateBranches();
         _tags = CreateTags();
         _view.ActiveDraft = () => _host.Workspace.ActiveTabId is { } tabId ? _commits.DraftOf(tabId) : null;
-        _view.IsEditingMessage = () => _commits.IsEditing;
+        _view.IsEditingMessage = () => _commits.ShowsCursor;
         _router = new ActionRouter(
             _host,
             _view.Graph,
