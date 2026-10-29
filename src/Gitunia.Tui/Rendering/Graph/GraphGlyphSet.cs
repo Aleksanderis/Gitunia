@@ -13,7 +13,7 @@ namespace Gitunia.Tui.Rendering.Graph;
 /// Empty in the ASCII set, where an unmarked name is the local one.
 /// </param>
 /// <param name="Remote">After the name, inside the label box (the box has one space of padding on each side, so a wide icon does not touch its edge, #827), of a branch that also stands for its remote-tracking branch.</param>
-/// <param name="UpstreamGone">After the label box (whose trailing padding is the gap) of a local branch whose upstream no longer exists.</param>
+/// <param name="UpstreamGone">After the label box, separated by a space, of a local branch whose upstream no longer exists.</param>
 public sealed record GraphGlyphSet(
     char Node,
     char MergeNode,
@@ -26,10 +26,10 @@ public sealed record GraphGlyphSet(
     string UpstreamGone)
 {
     // Index: Up=1, Down=2, Left=4, Right=8. Lone strokes borrow the straight line of their axis.
-    public static GraphGlyphSet Unicode { get; } = new('●', '○', '├', " │││─╯╮┤─╰╭├─┴┬┼", "…", "◆ ⎇ ", "⎇ ", " ", "✗");
+    public static GraphGlyphSet Unicode { get; } = new('●', '○', '├', " │││─╯╮┤─╰╭├─┴┬┼", "…", "◆ ⎇ ", "⎇ ", " ", " ✗");
 
     public static GraphGlyphSet Ascii { get; } =
-        new('*', 'o', '|', " |||-/\\|-\\/|---+", "~", "HEAD -> ", "", " (r)", "(x)");
+        new('*', 'o', '|', " |||-/\\|-\\/|---+", "~", "HEAD -> ", "", " (r)", " (x)");
 
     /// <summary>This is the ASCII fallback set.</summary>
     public bool IsAscii => Lines == Ascii.Lines;

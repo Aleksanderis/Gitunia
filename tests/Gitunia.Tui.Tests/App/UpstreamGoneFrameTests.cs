@@ -17,7 +17,8 @@ public class UpstreamGoneFrameTests
 
         var text = await PrintAsync(repository, GraphGlyphSet.Unicode);
 
-        Assert.Equal(2, CountOf(text, "topic ✗"));
+        Assert.Equal(1, CountOf(text, "topic ✗"));
+        Assert.Equal(1, CountOf(text, "topic  ✗"));
         Assert.Equal(2, CountOf(text, "✗"));
     }
 
@@ -28,7 +29,8 @@ public class UpstreamGoneFrameTests
 
         var text = await PrintAsync(repository, GraphGlyphSet.Ascii);
 
-        Assert.Equal(2, CountOf(text, "topic (x)"));
+        Assert.Equal(1, CountOf(text, "topic (x)"));
+        Assert.Equal(1, CountOf(text, "topic  (x)"));
         Assert.Equal(2, CountOf(text, "(x)"));
         Assert.DoesNotContain("✗", text, StringComparison.Ordinal);
     }

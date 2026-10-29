@@ -189,6 +189,27 @@ public class GraphRowRendererTests
     }
 
     [Fact]
+    public void GivenUpstreamGoneBranch_WhenRendering_ThenTheMarkFollowsTheBoxAfterASpace()
+    {
+        var commit = CommitFactory.Commit(
+            1,
+            "release",
+            [],
+            new CommitDecoration("refs/heads/topic", "topic", RefKind.LocalBranch, false));
+        var graph = CommitFactory.Graph(commit);
+
+        foreach (var glyphs in new[] { GraphGlyphSet.Unicode, GraphGlyphSet.Ascii })
+        {
+            var options = new GraphRowOptions(120, 1, glyphs, UpstreamGoneBranches: new HashSet<string> { "topic" });
+
+            var line = GraphRowRenderer.Render(graph[0], options, false);
+
+            Assert.Contains($" {glyphs.LocalBranch}topic {glyphs.UpstreamGone}", line.Text, StringComparison.Ordinal);
+            Assert.StartsWith(" ", glyphs.UpstreamGone, StringComparison.Ordinal);
+        }
+    }
+
+    [Fact]
     public void GivenAllRefKinds_WhenRendering_ThenDecorationsListedLikeGit()
     {
         var commit = CommitFactory.Commit(
