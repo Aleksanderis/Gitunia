@@ -75,7 +75,7 @@ public class FilterPickerTests
         var popup = Picker(string.Empty, "origin", "second")
             .ToPopup("Pick", "Remote", "q", "choose", name => name, "none");
 
-        Assert.Equal("Type filters   Ctrl-n/p select   Enter choose   Esc cancel", popup.Hint);
+        Assert.Equal("Type filters   Ctrl-j/k select   Enter choose   Esc cancel", popup.Hint);
         Assert.Equal("q", popup.Input);
     }
 

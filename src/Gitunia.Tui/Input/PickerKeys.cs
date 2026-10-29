@@ -4,8 +4,8 @@ using Gitunia.Core.Keymap.Models;
 namespace Gitunia.Tui.Input;
 
 /// <summary>
-/// The keys that move the highlight of a type-to-filter picker. Letters filter, so the vim-style moves are the
-/// readline ones (<c>Ctrl-n</c>/<c>Ctrl-p</c>, also <c>Ctrl-j</c>/<c>Ctrl-k</c>) next to <c>Up</c>, <c>Down</c> and <c>Tab</c>.
+/// The keys that move the highlight of a type-to-filter picker. Letters filter, so the vim-style moves are
+/// <c>Ctrl-j</c>/<c>Ctrl-k</c> (<c>Ctrl-p</c> opens the palette, so the readline pair is not used) next to <c>Up</c>, <c>Down</c> and <c>Tab</c>.
 /// </summary>
 public static class PickerKeys
 {
@@ -26,8 +26,8 @@ public static class PickerKeys
         {
             step = key.Name switch
             {
-                "p" or "k" => -1,
-                "n" or "j" => 1,
+                "k" => -1,
+                "j" => 1,
                 _ => 0,
             };
         }

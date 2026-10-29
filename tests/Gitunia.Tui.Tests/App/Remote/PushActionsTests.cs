@@ -52,7 +52,7 @@ public class PushActionsTests
         var text = PopupText.Of(harness.Push);
         Assert.Contains("Remote to push lonely to", text, StringComparison.Ordinal);
         Assert.Contains("> origin\n  second\n(1/2)", text, StringComparison.Ordinal);
-        Assert.Contains("Ctrl-n/p select", harness.Push.Popup!.Hint, StringComparison.Ordinal);
+        Assert.Contains("Ctrl-j/k select", harness.Push.Popup!.Hint, StringComparison.Ordinal);
         Assert.Equal(KeyMode.Insert, harness.Mode);
         harness.Run(ActionIds.InputAccept);
         await harness.FinishAsync();

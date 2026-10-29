@@ -44,7 +44,7 @@ public sealed record PromptPopup(
             input,
             rows,
             canSelect
-                ? $"Type filters{HintGap}Ctrl-n/p select{HintGap}Enter {acceptLabel}{HintGap}{CancelHint}"
+                ? $"Type filters{HintGap}Ctrl-j/k select{HintGap}Enter {acceptLabel}{HintGap}{CancelHint}"
                 : $"Type filters{HintGap}Enter {acceptLabel}{HintGap}{CancelHint}");
 
     /// <summary>A prompt answered by one key; each option is written as <c>key  label</c>.</summary>
