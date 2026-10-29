@@ -28,6 +28,11 @@ public sealed class GraphLayoutBuilder
     // The slot each branch name got: a branch keeps one colour for the whole graph, local and remote alike.
     private readonly Dictionary<string, int> _namedSlots = new(StringComparer.Ordinal);
     private readonly IReadOnlyDictionary<ObjectId, string> _branchTips;
+
+    // The branch tips laid out within the last NearRowCount rows (row and slot), so a new branch does not take a
+    // colour a branch seen on the same screen already has, even when that branch's lane is closed or it has no lane
+    // of its own (#807). Oldest first.
+    private readonly Queue<RecentTip> _recentTips = new();
     private readonly int _colorCount;
 
     /// <param name="branchTips">
@@ -45,6 +50,11 @@ public sealed class GraphLayoutBuilder
         _colorCount = Math.Clamp(colorCount, 1, BranchColors.SlotCount);
         _branchTips = branchTips ?? FrozenDictionary<ObjectId, string>.Empty;
     }
+
+    /// <summary>
+    /// Rows within which two different branch tips avoid sharing a colour while a free one remains: about one screen.
+    /// </summary>
+    public const int NearRowCount = 50;
 
     /// <summary>All rows laid out so far, in feed order.</summary>
     public IReadOnlyList<GraphRow> Rows => _rows.AsReadOnly();
@@ -108,6 +118,11 @@ public sealed class GraphLayoutBuilder
             }
 
             edges.Add(new GraphEdge(GraphEdgeKind.Outgoing, nodeLane, parentLane, _laneSlots[parentLane]));
+        }
+
+        if (isColorChosenByName && _branchTips.ContainsKey(commitId))
+        {
+            _recentTips.Enqueue(new RecentTip(_rows.Count, nodeColor));
         }
 
         var laneCount = nodeLane + 1;
@@ -216,6 +231,19 @@ public sealed class GraphLayoutBuilder
 
     private bool IsSlotInUse(int slot)
     {
+        while (_recentTips.Count > 0 && _rows.Count - _recentTips.Peek().Row > NearRowCount)
+        {
+            _recentTips.Dequeue();
+        }
+
+        foreach (var tip in _recentTips)
+        {
+            if (tip.Slot == slot)
+            {
+                return true;
+            }
+        }
+
         for (var lane = 0; lane < _lanes.Count; lane++)
         {
             if (_lanes[lane].IsValid && _laneSlots[lane] == slot)
