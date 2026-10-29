@@ -295,7 +295,9 @@ public sealed class DiffStore(
     {
         try
         {
-            var read = await ReadAsync(commit, firstParent, limited ? rowLimit : int.MaxValue, limited ? fileLineLimit : int.MaxValue, token).ConfigureAwait(false);
+            var rows = limited ? rowLimit : int.MaxValue;
+            var fileLines = limited ? fileLineLimit : int.MaxValue;
+            var read = await ReadAsync(commit, firstParent, rows, fileLines, token).ConfigureAwait(false);
             postToUi(() => Complete(commit, read.Document, string.Empty, read.IsCut, token));
         }
         catch (OperationCanceledException)

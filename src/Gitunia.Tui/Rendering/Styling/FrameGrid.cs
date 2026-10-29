@@ -81,9 +81,13 @@ public sealed class FrameGrid
         }
 
         var directions = _connections[index];
-        return directions == LineDirections.None
-            ? new StyledSegment(" ", SegmentRole.Plain, Selection: SegmentSelection.None)
-            : new StyledSegment(Glyph(directions).ToString(), _focusedCells[index] ? SegmentRole.FocusedBorder : SegmentRole.Border, Selection: SegmentSelection.None);
+        if (directions == LineDirections.None)
+        {
+            return new StyledSegment(" ", SegmentRole.Plain, Selection: SegmentSelection.None);
+        }
+
+        var role = _focusedCells[index] ? SegmentRole.FocusedBorder : SegmentRole.Border;
+        return new StyledSegment(Glyph(directions).ToString(), role, Selection: SegmentSelection.None);
     }
 
     /// <summary>The cells of one row from <paramref name="column"/>, <paramref name="count"/> of them, as a line.</summary>
@@ -174,7 +178,9 @@ public sealed class FrameGrid
     {
         for (var column = from; column <= to; column++)
         {
-            Connect(column, row, (column > from ? LineDirections.Left : 0) | (column < to ? LineDirections.Right : 0), isFocused);
+            var toLeft = column > from ? LineDirections.Left : LineDirections.None;
+            var toRight = column < to ? LineDirections.Right : LineDirections.None;
+            Connect(column, row, toLeft | toRight, isFocused);
         }
     }
 
@@ -182,7 +188,9 @@ public sealed class FrameGrid
     {
         for (var row = from; row <= to; row++)
         {
-            Connect(column, row, (row > from ? LineDirections.Up : 0) | (row < to ? LineDirections.Down : 0), isFocused);
+            var toUp = row > from ? LineDirections.Up : LineDirections.None;
+            var toDown = row < to ? LineDirections.Down : LineDirections.None;
+            Connect(column, row, toUp | toDown, isFocused);
         }
     }
 

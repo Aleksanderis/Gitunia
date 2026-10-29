@@ -30,9 +30,12 @@ public sealed class WorkingTreeJumpRows(
         {
             var found = rows[row];
 
-            return found.IsFolder
-                ? WorkingTreeRowRenderer.FolderText(found)
-                : WorkingTreeRowRenderer.TreeName(EntryOf(row), found, section);
+            if (found.IsFolder)
+            {
+                return WorkingTreeRowRenderer.FolderText(found);
+            }
+
+            return WorkingTreeRowRenderer.TreeName(EntryOf(row), found, section);
         }
 
         return WorkingTreeRowRenderer.PathLayoutText(EntryOf(row), section, pathStyle, ColumnsOf(row), ellipsis);
@@ -47,12 +50,13 @@ public sealed class WorkingTreeJumpRows(
             var found = rows[row];
             var indent = TextWidth.Of(TreeRowText.Indent(found.Depth));
 
-            return found.IsFolder
-                ? Math.Max(0, width - indent)
-                : Math.Max(
-                    0,
-                        width - indent - WorkingTreeRowRenderer.MarkColumns
-                        - WorkingTreeRowRenderer.ConflictColumns(EntryOf(row)));
+            if (found.IsFolder)
+            {
+                return Math.Max(0, width - indent);
+            }
+
+            var conflict = WorkingTreeRowRenderer.ConflictColumns(EntryOf(row));
+            return Math.Max(0, width - indent - WorkingTreeRowRenderer.MarkColumns - conflict);
         }
 
         return Math.Max(

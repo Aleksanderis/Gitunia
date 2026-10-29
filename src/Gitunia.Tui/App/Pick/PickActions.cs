@@ -61,9 +61,18 @@ public sealed class PickActions(
 
     public string Notice { get; private set; } = string.Empty;
 
-    public string StatusLine => !_isOpen || host.Workspace.ActiveTabId != _tabId
-        ? string.Empty
-        : PickTexts.MainlinePrompt(_kind, _commits.First(commit => commit.IsMerge));
+    public string StatusLine
+    {
+        get
+        {
+            if (!_isOpen || host.Workspace.ActiveTabId != _tabId)
+            {
+                return string.Empty;
+            }
+
+            return PickTexts.MainlinePrompt(_kind, _commits.First(commit => commit.IsMerge));
+        }
+    }
 
     /// <summary>The mainline prompt as an overlay (title, a row per parent); null while none is open here.</summary>
     public MainlinePrompt? Prompt
@@ -141,9 +150,14 @@ public sealed class PickActions(
         else
         {
             Close();
-            Notice = host.Workspace.FindTab(_tabId) is { } tab && Refusal(tab) is { } refusal
-                ? refusal
-                : Start(_tabId, _kind, _commits, parent);
+            if (host.Workspace.FindTab(_tabId) is { } tab && Refusal(tab) is { } refusal)
+            {
+                Notice = refusal;
+            }
+            else
+            {
+                Notice = Start(_tabId, _kind, _commits, parent);
+            }
         }
     }
 

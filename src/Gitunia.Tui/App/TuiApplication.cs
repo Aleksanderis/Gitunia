@@ -168,9 +168,12 @@ public sealed class TuiApplication(
         _homeDirectory = HomeDirectory ?? Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         _startupConfig = new ConfigStartup(platform.ConfigDirectory, _homeDirectory).Load();
         _chipKeys = new ChipKeys(_startupConfig.Keymap.Table);
-        var queriedLight = _startupConfig.Theme == ThemeChoice.Auto
-            ? platform.QueryLightBackground(_capabilities)
-            : null;
+        var queriedLight = default(bool?);
+        if (_startupConfig.Theme == ThemeChoice.Auto)
+        {
+            queriedLight = platform.QueryLightBackground(_capabilities);
+        }
+
         if (queriedLight is { } isLight)
         {
             _capabilities = _capabilities with { IsLightBackground = isLight };
@@ -1060,12 +1063,15 @@ public sealed class TuiApplication(
     {
         if (view == DefaultKeymap.DiffView)
         {
-            return _view.Diff.Source is DiffListSource { Document.IsFileContent: true }
-                ? null
-                : new RowMenuTarget(
-                    RowActions.ViewOptions,
-                    _view.ViewMenuAnchor(isWorking: false),
-                    RowActions.ViewOptionsTitle);
+            if (_view.Diff.Source is DiffListSource { Document.IsFileContent: true })
+            {
+                return null;
+            }
+
+            return new RowMenuTarget(
+                RowActions.ViewOptions,
+                _view.ViewMenuAnchor(isWorking: false),
+                RowActions.ViewOptionsTitle);
         }
 
         if (view == DefaultKeymap.WorkingUnstagedDiffView || view == DefaultKeymap.WorkingStagedDiffView)
@@ -1096,18 +1102,24 @@ public sealed class TuiApplication(
 
         if (view == DefaultKeymap.SidebarView)
         {
-            return SelectedSidebarRow(sidebarSource) is { IsFolder: false } row
-                ? new RowMenuTarget(RowActions.OfSidebarRow(row), AnchorOf(_view.Sidebar))
-                : null;
+            if (SelectedSidebarRow(sidebarSource) is { IsFolder: false } row)
+            {
+                return new RowMenuTarget(RowActions.OfSidebarRow(row), AnchorOf(_view.Sidebar));
+            }
+
+            return null;
         }
 
-        return view == DefaultKeymap.GraphView && GraphCommitHash() is not null
-            ? new RowMenuTarget(
+        if (view == DefaultKeymap.GraphView && GraphCommitHash() is not null)
+        {
+            return new RowMenuTarget(
                 RowActions.OfGraphRowFor(
                     DetailLayout.PaneHeight(_view.ScreenSize.Height) > 0,
                     IsSelectedCommitRoot()),
-                AnchorOf(_view.Graph))
-            : null;
+                AnchorOf(_view.Graph));
+        }
+
+        return null;
     }
 
     private static MenuAnchor AnchorOf(PaneListView list)
@@ -1222,31 +1234,9 @@ public sealed class TuiApplication(
                 RemoteBusy = RemoteIsBusy(),
                 Keys = _chipKeys,
                 SelectedName = FocusedSidebarName(),
-                MessageSeverity = _workspaceActions.Message.Length + _router.Message.Length > 0 || RemoteIsBusy()
-                    ? null
-                    : _statuses.Current?.Severity,
+                MessageSeverity = CurrentMessageSeverity(),
                 MessageIsFresh = _statuses.IsFresh,
-                Hints = _overlays.State.Kind == OverlayKind.Confirm
-                    ? PaneHints.ForConfirm()
-                    : _settings.IsOpen
-                        ? PaneHints.ForSettings()
-                        : _conflictEditor.IsOpen
-                            ? (_conflictEditor.IsEditing ? PaneHints.ForConflictEdit() : PaneHints.ForConflictEditor())
-                            : _rebaseEditor.IsOpen
-                                ? (_rebaseEditor.IsEditingMessage
-                                    ? PaneHints.ForRebaseMessage()
-                                    : PaneHints.ForRebaseEditor())
-                                : _reflog.IsOpen
-                                    ? PaneHints.ForReflog()
-                                    : _commits.IsEditing
-                                        ? PaneHints.ForMessageEditing()
-                                        : DetailChangesFocused()
-                                            ? PaneHints.ForDetailChanges()
-                                            : GraphComparing()
-                                                ? PaneHints.ForGraphComparing()
-                                                : PaneHints.For(
-                                                    _host.Workspace.ActiveTab?.View.FocusedPane ?? PaneKind.Graph,
-                                                    _diffPane.IsShowingContent),
+                Hints = CurrentHints(),
                 SearchLine = _prompts.Select(prompt => prompt.StatusLine).FirstOrDefault(line => line.Length > 0) ??
                              PopupFallbackLine(),
             };
@@ -1254,12 +1244,74 @@ public sealed class TuiApplication(
         return newScreenModel;
     }
 
+    private StatusSeverity? CurrentMessageSeverity()
+    {
+        if (_workspaceActions.Message.Length + _router.Message.Length > 0 || RemoteIsBusy())
+        {
+            return null;
+        }
+
+        return _statuses.Current?.Severity;
+    }
+
+    private IReadOnlyList<KeyHint> CurrentHints()
+    {
+        if (_overlays.State.Kind == OverlayKind.Confirm)
+        {
+            return PaneHints.ForConfirm();
+        }
+
+        if (_settings.IsOpen)
+        {
+            return PaneHints.ForSettings();
+        }
+
+        if (_conflictEditor.IsOpen)
+        {
+            return _conflictEditor.IsEditing ? PaneHints.ForConflictEdit() : PaneHints.ForConflictEditor();
+        }
+
+        if (_rebaseEditor.IsOpen)
+        {
+            return _rebaseEditor.IsEditingMessage ? PaneHints.ForRebaseMessage() : PaneHints.ForRebaseEditor();
+        }
+
+        if (_reflog.IsOpen)
+        {
+            return PaneHints.ForReflog();
+        }
+
+        if (_commits.IsEditing)
+        {
+            return PaneHints.ForMessageEditing();
+        }
+
+        if (DetailChangesFocused())
+        {
+            return PaneHints.ForDetailChanges();
+        }
+
+        if (GraphComparing())
+        {
+            return PaneHints.ForGraphComparing();
+        }
+
+        return PaneHints.For(
+            _host.Workspace.ActiveTab?.View.FocusedPane ?? PaneKind.Graph,
+            _diffPane.IsShowingContent);
+    }
+
     // The full name of the sidebar row under the cursor while the sidebar has focus (rows show short names).
-    private string FocusedSidebarName() =>
-        _host.Workspace.ActiveTab is { View.FocusedPane: PaneKind.Sidebar } tab
-            && _view.Sidebar.Source is SidebarListSource { Rows.IsEmpty: false } source
-            ? SidebarCursorRow(source, tab)?.FullName ?? string.Empty
-            : string.Empty;
+    private string FocusedSidebarName()
+    {
+        if (_host.Workspace.ActiveTab is { View.FocusedPane: PaneKind.Sidebar } tab
+            && _view.Sidebar.Source is SidebarListSource { Rows.IsEmpty: false } source)
+        {
+            return SidebarCursorRow(source, tab)?.FullName ?? string.Empty;
+        }
+
+        return string.Empty;
+    }
 
     private bool GraphComparing() =>
         _host.Workspace.ActiveTab?.View is { FocusedPane: PaneKind.Graph, CompareMark: not null };
@@ -1386,13 +1438,25 @@ public sealed class TuiApplication(
     // The conflict editor is covered by these (its Confirm above all) and must not take their keys.
     private bool IsOtherThanConflictEditorOpen() => _rebaseEditor.IsOpen || IsOtherThanRebaseEditorOpen();
 
-    private string OverlayViewName() => _settings.IsOpen
-        ? DefaultKeymap.SettingsView
-        : _conflictEditor.IsOpen && !_overlays.State.IsOpen
-        ? DefaultKeymap.ConflictEditorView
-        : _rebaseEditor.IsOpen && !_overlays.State.IsOpen
-            ? DefaultKeymap.RebaseEditorView
-            : _reflog.IsOpen ? DefaultKeymap.ReflogView : _overlays.ViewName;
+    private string OverlayViewName()
+    {
+        if (_settings.IsOpen)
+        {
+            return DefaultKeymap.SettingsView;
+        }
+
+        if (_conflictEditor.IsOpen && !_overlays.State.IsOpen)
+        {
+            return DefaultKeymap.ConflictEditorView;
+        }
+
+        if (_rebaseEditor.IsOpen && !_overlays.State.IsOpen)
+        {
+            return DefaultKeymap.RebaseEditorView;
+        }
+
+        return _reflog.IsOpen ? DefaultKeymap.ReflogView : _overlays.ViewName;
+    }
 
     private SettingsController CreateSettings(GraphGlyphSet glyphs) => new(
         new ConfigWriter(platform.ConfigDirectory),
@@ -1414,10 +1478,15 @@ public sealed class TuiApplication(
         () => KeyReferenceBuilder.Build(_startupConfig.Keymap.Table),
         SettingsRegistry.WithThemes(_startupConfig.Themes.Names));
 
-    private static bool SameRoots(ImmutableArray<string>? current, ImmutableArray<string>? other) =>
-        current is null || other is null
-            ? current is null && other is null
-            : current.Value.SequenceEqual(other.Value);
+    private static bool SameRoots(ImmutableArray<string>? current, ImmutableArray<string>? other)
+    {
+        if (current is null || other is null)
+        {
+            return current is null && other is null;
+        }
+
+        return current.Value.SequenceEqual(other.Value);
+    }
 
     // Polling is the default; watching is opt-in and capped by the inotify instance limit (read at startup only).
     private static RepositoryWatcherOptions WatcherOptionsFor(ConfigOptions options)
@@ -1529,9 +1598,12 @@ public sealed class TuiApplication(
         if (index < 0)
         {
             var shortHash = hash[..Math.Min(ShortHashLength, hash.Length)];
-            return _effects.SessionOf(tabId)?.IsLoading == true
-                ? $"{shortHash} is not loaded yet"
-                : $"{shortHash} is not in the graph (it may be on no branch)";
+            if (_effects.SessionOf(tabId)?.IsLoading == true)
+            {
+                return $"{shortHash} is not loaded yet";
+            }
+
+            return $"{shortHash} is not in the graph (it may be on no branch)";
         }
 
         SelectGraphItem(index + ScreenLayout.ReservedLeadingRows);
@@ -1615,9 +1687,12 @@ public sealed class TuiApplication(
 
     private ClipboardCopier CreateClipboard()
     {
-        var clipboardWriter = _capabilities.IsInteractive
-            ? new ClipboardWriter(Console.Out, Osc52Environment.Detect(Environment.GetEnvironmentVariable))
-            : null;
+        var clipboardWriter = default(ClipboardWriter);
+        if (_capabilities.IsInteractive)
+        {
+            var environment = Osc52Environment.Detect(Environment.GetEnvironmentVariable);
+            clipboardWriter = new ClipboardWriter(Console.Out, environment);
+        }
 
         return new ClipboardCopier(clipboardWriter, _statuses);
     }

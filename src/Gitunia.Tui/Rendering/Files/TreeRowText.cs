@@ -25,10 +25,11 @@ public static class TreeRowText
         }
 
         var directory = path[..(path.Length - name.Length)];
-        var old = oldPath.StartsWith(directory, StringComparison.Ordinal)
-            && oldPath.IndexOf(Separator, directory.Length) < 0
-            ? oldPath[directory.Length..]
-            : oldPath;
+        var old = oldPath;
+        if (oldPath.StartsWith(directory, StringComparison.Ordinal) && oldPath.IndexOf(Separator, directory.Length) < 0)
+        {
+            old = oldPath[directory.Length..];
+        }
 
         return $"{old}{RenameArrow}{name}";
     }

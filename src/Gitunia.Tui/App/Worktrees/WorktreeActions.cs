@@ -541,10 +541,15 @@ public sealed class WorktreeActions(
         refresh(tabId);
     }
 
-    private WorktreeInfo? TargetOf(RepositoryState tab) =>
-        selectedRow() is { Kind: SidebarRowKind.Worktree, Path: { } path }
-            ? tab.Worktrees.FirstOrDefault(worktree => SamePath(worktree.Path, path))
-            : null;
+    private WorktreeInfo? TargetOf(RepositoryState tab)
+    {
+        if (selectedRow() is { Kind: SidebarRowKind.Worktree, Path: { } path })
+        {
+            return tab.Worktrees.FirstOrDefault(worktree => SamePath(worktree.Path, path));
+        }
+
+        return null;
+    }
 
     private static bool SamePath(string left, string right) =>
         string.Equals(

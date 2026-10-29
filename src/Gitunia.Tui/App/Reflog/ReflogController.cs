@@ -10,6 +10,7 @@ using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Refs;
 using Gitunia.Git.Refs.Models;
 using Gitunia.Git.Reflog;
+using Gitunia.Git.Reflog.Models;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Tui.App.Branches;
 using Gitunia.Tui.App.Reset;
@@ -383,9 +384,7 @@ public sealed class ReflogController(
         try
         {
             var result = await reader.ReadAsync(location, reference, EntryLimit, token).ConfigureAwait(false);
-            postToUi(() => Show(generation, current is null
-                ? new ReflogState(tabId, reference, title, result.Items)
-                : (State ?? current).WithEntries(result.Items)));
+            postToUi(() => Show(generation, LoadedState(tabId, reference, title, current, result.Items)));
         }
         catch (OperationCanceledException)
         {
@@ -450,11 +449,7 @@ public sealed class ReflogController(
             return;
         }
 
-        var refusal = action == ActionIds.ResetBranch
-            ? reset.Begin(state.TabId, entry.Hash)
-            : action == ActionIds.BranchCreate
-                ? branches.BeginCreate(state.TabId, entry.Hash, checkout: true)
-                : branches.CheckoutDetached(state.TabId, entry.Hash);
+        var refusal = BeginEntryAction(state, entry, action);
         if (refusal.Length > 0)
         {
             // A refusal keeps the list, so the user does not lose the position.
@@ -464,5 +459,35 @@ public sealed class ReflogController(
         }
 
         Close();
+    }
+
+    private string BeginEntryAction(ReflogState state, ReflogEntry entry, ActionId action)
+    {
+        if (action == ActionIds.ResetBranch)
+        {
+            return reset.Begin(state.TabId, entry.Hash);
+        }
+
+        if (action == ActionIds.BranchCreate)
+        {
+            return branches.BeginCreate(state.TabId, entry.Hash, checkout: true);
+        }
+
+        return branches.CheckoutDetached(state.TabId, entry.Hash);
+    }
+
+    private ReflogState LoadedState(
+        TabId tabId,
+        string reference,
+        string title,
+        ReflogState? current,
+        IReadOnlyList<ReflogEntry> items)
+    {
+        if (current is null)
+        {
+            return new ReflogState(tabId, reference, title, items);
+        }
+
+        return (State ?? current).WithEntries(items);
     }
 }

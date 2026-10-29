@@ -239,9 +239,12 @@ public sealed class TabRefresher : IDisposable
             var refsMoved = kinds.HasFlag(RepositoryChangeKinds.Head) || kinds.HasFlag(RepositoryChangeKinds.Refs) || previous is null;
             var stashes = refsMoved ? (await _stashes.ReadStashesAsync(_location, token).ConfigureAwait(false)).Items : null;
             // A change of the repository config reads as a refs change; a manual refresh also picks up a global one.
-            var autoStash = (refsMoved || isManual) && _config is not null
-                ? await _config.ReadRebaseAutoStashAsync(_location, token).ConfigureAwait(false)
-                : (bool?)null;
+            var autoStash = default(bool?);
+            if ((refsMoved || isManual) && _config is not null)
+            {
+                autoStash = await _config.ReadRebaseAutoStashAsync(_location, token).ConfigureAwait(false);
+            }
+
             var operation = await _operations
                 .ReadAsync(_location, result.Snapshot.Operation, token)
                 .ConfigureAwait(false);
@@ -249,9 +252,14 @@ public sealed class TabRefresher : IDisposable
 
             // The first pass is the baseline: it re-applies every section (the tab may have changed since the initial load read it) and reloads the graph
             // when a change was seen meanwhile or when the loaded graph no longer matches the baseline refs (a change between the load and this read leaves no event to diff).
-            var graphChanged = previous is null
-                ? reloadGraph || (!isCapped && GraphRefCheck.Differs(previousRows, result.Snapshot))
-                : result.Changed.HasFlag(RepositorySections.Head) || result.Changed.HasFlag(RepositorySections.Refs) || reloadGraph;
+            var graphChanged = result.Changed.HasFlag(RepositorySections.Head)
+                || result.Changed.HasFlag(RepositorySections.Refs)
+                || reloadGraph;
+            if (previous is null)
+            {
+                graphChanged = reloadGraph || (!isCapped && GraphRefCheck.Differs(previousRows, result.Snapshot));
+            }
+
             if (graphChanged)
             {
                 reload = await _graphLoader.ReloadAsync(_location, previousRows, isCapped, token).ConfigureAwait(false);

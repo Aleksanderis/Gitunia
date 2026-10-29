@@ -64,9 +64,11 @@ public sealed record SettingsRowText(string Marker, string Left, string Right)
         GraphGlyphSet glyphs)
     {
         var marker = state.Warnings.ContainsKey(definition.Id) ? Warning : NoMarker;
-        var name = state.IsFiltering
-            ? $"{SettingsRegistry.TitleOf(definition.Category)}: {definition.Name}"
-            : definition.Name;
+        var name = definition.Name;
+        if (state.IsFiltering)
+        {
+            name = $"{SettingsRegistry.TitleOf(definition.Category)}: {definition.Name}";
+        }
 
         return new SettingsRowText(marker, name, ControlText(state, definition, value, glyphs));
     }
@@ -84,9 +86,12 @@ public sealed record SettingsRowText(string Marker, string Left, string Right)
             case SettingControl.Choice:
                 return $"[{value.Choice} {(glyphs.IsAscii ? AsciiChoiceArrow : ChoiceArrow)}]";
             case SettingControl.Number:
-                return state.Input is { Kind: SettingsInputKind.Number } input && input.SettingId == definition.Id
-                    ? $"[{input.Text}{Cursor}]"
-                    : $"[{value.Number}]";
+                if (state.Input is { Kind: SettingsInputKind.Number } input && input.SettingId == definition.Id)
+                {
+                    return $"[{input.Text}{Cursor}]";
+                }
+
+                return $"[{value.Number}]";
             case SettingControl.PathList:
                 return $"{PathSummary(value)} {AddMarker}";
             case SettingControl.KeyReference:
@@ -120,7 +125,11 @@ public sealed record SettingsRowText(string Marker, string Left, string Right)
     {
         var option = row.Definition.Choices[row.Index];
         var isCurrent = string.Equals(option, value.Choice, StringComparison.OrdinalIgnoreCase);
-        var radio = glyphs.IsAscii ? (isCurrent ? "(*)" : "( )") : (isCurrent ? "●" : "○");
+        var radio = isCurrent ? "●" : "○";
+        if (glyphs.IsAscii)
+        {
+            radio = isCurrent ? "(*)" : "( )";
+        }
 
         return $"{ItemIndent}{radio} {option}";
     }

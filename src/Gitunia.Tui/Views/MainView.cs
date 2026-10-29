@@ -609,9 +609,7 @@ public sealed class MainView : IDisposable
     // no width when the title leaves no room for it.
     private LineView CreateListButton(WorkingTreeSection section, PaneListView list, ListButtonKind kind)
     {
-        var view = new LineView(_ => ListButton(section, kind) is { } button
-            ? ViewChip.Line(button, _glyphs)
-            : new StyledLine([]))
+        var view = new LineView(_ => ListButtonLine(section, kind))
         {
             X = Pos.Func(_ => ListButtonRect(section, kind).X),
             Y = Pos.Func(_ => ListButtonRect(section, kind).Y),
@@ -650,14 +648,40 @@ public sealed class MainView : IDisposable
         {
             ListButtonKind.View => WorkingListTitleButtons.ViewButton(
                 section, title, rect.Width, _model().Keys, hasDiffButton),
-            ListButtonKind.Resolve => IsConflictedUnderCursor()
-                ? WorkingListTitleButtons.ResolveButton(title, rect.Width, _model().Keys, hasDiffButton)
-                : null,
-            ListButtonKind.Diff => hasDiffButton
-                ? WorkingListTitleButtons.DiffButton(section, title, rect.Width, _model().Keys)
-                : null,
+            ListButtonKind.Resolve => ResolveButton(title, rect, hasDiffButton),
+            ListButtonKind.Diff => DiffButton(section, title, rect, hasDiffButton),
             _ => WorkingListTitleButtons.Layout(section, title, rect.Width, _model().Keys),
         };
+    }
+
+    private StyledLine ListButtonLine(WorkingTreeSection section, ListButtonKind kind)
+    {
+        if (ListButton(section, kind) is { } button)
+        {
+            return ViewChip.Line(button, _glyphs);
+        }
+
+        return new StyledLine([]);
+    }
+
+    private TitleButton? ResolveButton(string title, PaneRect rect, bool hasDiffButton)
+    {
+        if (IsConflictedUnderCursor())
+        {
+            return WorkingListTitleButtons.ResolveButton(title, rect.Width, _model().Keys, hasDiffButton);
+        }
+
+        return null;
+    }
+
+    private TitleButton? DiffButton(WorkingTreeSection section, string title, PaneRect rect, bool hasDiffButton)
+    {
+        if (hasDiffButton)
+        {
+            return WorkingListTitleButtons.DiffButton(section, title, rect.Width, _model().Keys);
+        }
+
+        return null;
     }
 
     // The resolve chip shows while the Unstaged list's cursor is on a conflicted file (the row <space>to opens).
@@ -669,9 +693,12 @@ public sealed class MainView : IDisposable
     private PaneRect ListButtonRect(WorkingTreeSection section, ListButtonKind kind)
     {
         var rect = ListRect(section);
-        return ListButton(section, kind) is { } button
-            ? new PaneRect(rect.X + button.Start, rect.Y - 1, button.Width, 1)
-            : Empty;
+        if (ListButton(section, kind) is { } button)
+        {
+            return new PaneRect(rect.X + button.Start, rect.Y - 1, button.Width, 1);
+        }
+
+        return Empty;
     }
 
     private FrameStripView CreateWorkingEdge(Func<PaneRect> rect) => new(CurrentGrid)
@@ -700,8 +727,15 @@ public sealed class MainView : IDisposable
     }
 
     // The row where two stacked boxes meet (the lower box's top edge, which carries its title): from the screen's left edge or the divider.
-    private static PaneRect WorkingEdgeRect(PaneRect upper, PaneRect lower, bool isLeft) =>
-        upper.IsEmpty || lower.IsEmpty ? Empty : new PaneRect(isLeft ? 1 : lower.X, lower.Y - 1, lower.Width, 1);
+    private static PaneRect WorkingEdgeRect(PaneRect upper, PaneRect lower, bool isLeft)
+    {
+        if (upper.IsEmpty || lower.IsEmpty)
+        {
+            return Empty;
+        }
+
+        return new PaneRect(isLeft ? 1 : lower.X, lower.Y - 1, lower.Width, 1);
+    }
 
     private int ScreenHeight() => Window.Viewport.Height;
 
@@ -749,9 +783,12 @@ public sealed class MainView : IDisposable
     {
         var rect = isWorking ? WorkingRects().Diff : Rects().DiffTitle;
         var row = isWorking ? rect.Y - 1 : rect.Y;
-        var buttons = isWorking
-            ? DiffTitleButtons.Layout(rect.Width, WorkingDiffButtons(), _model().Keys)
-            : DiffTitleButtons.Layout(rect.Width, _model().Keys);
+        var buttons = DiffTitleButtons.Layout(rect.Width, _model().Keys);
+        if (isWorking)
+        {
+            buttons = DiffTitleButtons.Layout(rect.Width, WorkingDiffButtons(), _model().Keys);
+        }
+
         var button = buttons.FirstOrDefault(candidate => candidate.View == DefaultMouseMap.DiffViewButton);
         var column = button is null ? rect.X + Math.Max(0, rect.Width - 1) : rect.X + button.Start;
 
@@ -767,9 +804,12 @@ public sealed class MainView : IDisposable
     {
         if (view == DefaultKeymap.WorkingUnstagedView || view == DefaultKeymap.WorkingStagedView)
         {
-            var section = view == DefaultKeymap.WorkingStagedView
-                ? WorkingTreeSection.Staged
-                : WorkingTreeSection.Unstaged;
+            var section = WorkingTreeSection.Unstaged;
+            if (view == DefaultKeymap.WorkingStagedView)
+            {
+                section = WorkingTreeSection.Staged;
+            }
+
             var rect = ListRect(section);
             var chip = ListButton(section, kind: ListButtonKind.View);
 
@@ -779,9 +819,11 @@ public sealed class MainView : IDisposable
         }
 
         var title = Rects().DetailTitle;
-        var button = (Detail.Source as DetailListSource)?.Content is { } content
-            ? DetailPaneRenderer.ViewButton(content, title.Width, _glyphs, _model().Keys)
-            : null;
+        var button = default(TitleButton);
+        if ((Detail.Source as DetailListSource)?.Content is { } content)
+        {
+            button = DetailPaneRenderer.ViewButton(content, title.Width, _glyphs, _model().Keys);
+        }
 
         return new MenuAnchor(title.X + (button?.Start ?? Math.Max(0, title.Width - 1)) - 2, title.Y);
     }
@@ -893,10 +935,8 @@ public sealed class MainView : IDisposable
     private FrameGrid CurrentHistoryGrid()
     {
         var isPicker = _picker.Visible;
-        var rects = isPicker
-            ? new PaneRects(Empty, Empty, Empty, new PaneRect(1, ScreenLayout.GraphTop, ScreenLayout.InnerWidth(ScreenWidth), ScreenLayout.GraphHeight(ScreenHeight())), Empty, Empty, Empty, Empty, Empty)
-            : Rects();
-        PaneKind? focused = isPicker ? PaneKind.Graph : Sidebar.HasFocus ? PaneKind.Sidebar : Detail.HasFocus ? PaneKind.Detail : Diff.HasFocus ? PaneKind.Diff : PaneKind.Graph;
+        var rects = isPicker ? PickerRects() : Rects();
+        var focused = FocusedHistoryPane(isPicker);
         var title = _model().RepositoryName.Length > 0 ? _model().RepositoryName : "Repository";
         var key = new GridKey(
             ScreenWidth,
@@ -908,11 +948,44 @@ public sealed class MainView : IDisposable
             _glyphs.IsAscii);
         if (_grid is null || _gridKey != key)
         {
-            _grid = FrameGrid.Build(ScreenWidth, ScreenHeight(), rects, focused, _glyphs, isPicker ? string.Empty : title, isPicker ? string.Empty : "History");
+            var sidebarTitle = isPicker ? string.Empty : title;
+            var graphTitle = isPicker ? string.Empty : "History";
+            _grid = FrameGrid.Build(ScreenWidth, ScreenHeight(), rects, focused, _glyphs, sidebarTitle, graphTitle);
             _gridKey = key;
         }
 
         return _grid;
+    }
+
+    private PaneRects PickerRects()
+    {
+        var graph = new PaneRect(
+            1,
+            ScreenLayout.GraphTop,
+            ScreenLayout.InnerWidth(ScreenWidth),
+            ScreenLayout.GraphHeight(ScreenHeight()));
+
+        return new PaneRects(Empty, Empty, Empty, graph, Empty, Empty, Empty, Empty, Empty);
+    }
+
+    private PaneKind FocusedHistoryPane(bool isPicker)
+    {
+        if (isPicker)
+        {
+            return PaneKind.Graph;
+        }
+
+        if (Sidebar.HasFocus)
+        {
+            return PaneKind.Sidebar;
+        }
+
+        if (Detail.HasFocus)
+        {
+            return PaneKind.Detail;
+        }
+
+        return Diff.HasFocus ? PaneKind.Diff : PaneKind.Graph;
     }
 
     private readonly record struct WorkingGridKey(

@@ -178,9 +178,15 @@ public static class WorkingTreeRowRenderer
         WorkingTreeSection section,
         FilePathStyle style,
         int columns,
-        string ellipsis) => style == FilePathStyle.FullPath
-            ? PathText(entry, section)
-            : string.Concat(PathSegments(entry, section, style, columns, ellipsis).Select(segment => segment.Text));
+        string ellipsis)
+    {
+        if (style == FilePathStyle.FullPath)
+        {
+            return PathText(entry, section);
+        }
+
+        return string.Concat(PathSegments(entry, section, style, columns, ellipsis).Select(segment => segment.Text));
+    }
 
     /// <summary>The status letter of an entry in a list: <c>!</c> for a conflict, <c>?</c> for an untracked path, else the change's letter.</summary>
     public static string MarkOf(StatusEntry entry, WorkingTreeSection section)
@@ -203,10 +209,15 @@ public static class WorkingTreeRowRenderer
     /// of the renamed file in the working tree is listed under its new path only). Lone surrogates (bytes that are not UTF-8) show as
     /// replacement characters.
     /// </summary>
-    public static string PathText(StatusEntry entry, WorkingTreeSection section) =>
-        section == WorkingTreeSection.Staged && entry.OriginalPath is { } original
-            ? $"{Printable(original)}{RenameArrow}{Printable(entry.Path)}"
-            : Printable(entry.Path);
+    public static string PathText(StatusEntry entry, WorkingTreeSection section)
+    {
+        if (section == WorkingTreeSection.Staged && entry.OriginalPath is { } original)
+        {
+            return $"{Printable(original)}{RenameArrow}{Printable(entry.Path)}";
+        }
+
+        return Printable(entry.Path);
+    }
 
     private static IReadOnlyList<StyledSegment> PathSegments(
         StatusEntry entry,

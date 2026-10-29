@@ -62,17 +62,27 @@ public static class BannerRenderer
         StyledLine edge,
         int width,
         int height,
-        GraphGlyphSet glyphs) =>
-        model.Banner is { } banner && height >= ScreenLayout.MinimumHeightWithBanner
-            ? Build(banner, width, glyphs).Line
-            : edge;
+        GraphGlyphSet glyphs)
+    {
+        if (model.Banner is { } banner && height >= ScreenLayout.MinimumHeightWithBanner)
+        {
+            return Build(banner, width, glyphs).Line;
+        }
+
+        return edge;
+    }
 
     /// <summary>The model for the status bar: on a terminal too short for the banner row its text stands in for an
     /// empty message.</summary>
-    public static ScreenModel ForStatusBar(ScreenModel model, int height) =>
-        model.Banner is { } banner && height < ScreenLayout.MinimumHeightWithBanner && model.Message.Length == 0
-            ? model with { Message = banner.PlainText }
-            : model;
+    public static ScreenModel ForStatusBar(ScreenModel model, int height)
+    {
+        if (model.Banner is { } banner && height < ScreenLayout.MinimumHeightWithBanner && model.Message.Length == 0)
+        {
+            return model with { Message = banner.PlainText };
+        }
+
+        return model;
+    }
 
     /// <summary>The mouse view of the chip that runs <paramref name="action"/>.</summary>
     public static string ViewOf(ActionId action)
@@ -82,8 +92,11 @@ public static class BannerRenderer
             return DefaultMouseMap.BannerContinueButton;
         }
 
-        return action == ActionIds.OperationAbort
-            ? DefaultMouseMap.BannerAbortButton
-            : DefaultMouseMap.BannerSkipButton;
+        if (action == ActionIds.OperationAbort)
+        {
+            return DefaultMouseMap.BannerAbortButton;
+        }
+
+        return DefaultMouseMap.BannerSkipButton;
     }
 }

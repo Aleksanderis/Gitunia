@@ -10,12 +10,30 @@ namespace Gitunia.Tui.Rendering.WorkingTree;
 public sealed record WorkingTreeRects(PaneRect Unstaged, PaneRect Staged, PaneRect Diff, PaneRect Message)
 {
     /// <summary>The rows of the message box that hold the text; the last row is the option row.</summary>
-    public PaneRect MessageEditor => Message.IsEmpty
-        ? Message
-        : new PaneRect(Message.X, Message.Y, Message.Width, Math.Max(0, Message.Height - 1));
+    public PaneRect MessageEditor
+    {
+        get
+        {
+            if (Message.IsEmpty)
+            {
+                return Message;
+            }
+
+            return new PaneRect(Message.X, Message.Y, Message.Width, Math.Max(0, Message.Height - 1));
+        }
+    }
 
     /// <summary>The last row of the message box: the options and the Commit button.</summary>
-    public PaneRect MessageOptions => Message.IsEmpty
-        ? Message
-        : new PaneRect(Message.X, Message.Y + Message.Height - 1, Message.Width, 1);
+    public PaneRect MessageOptions
+    {
+        get
+        {
+            if (Message.IsEmpty)
+            {
+                return Message;
+            }
+
+            return new PaneRect(Message.X, Message.Y + Message.Height - 1, Message.Width, 1);
+        }
+    }
 }

@@ -184,9 +184,15 @@ public static class WorkingTreePaneRenderer
             parts.Add(diff.OptionsLabel);
         }
 
-        parts.Add(selection.IsFolder
-            ? $"{WorkingTreeRowRenderer.Printable(selection.Path)}/"
-            : diff.Document.FilePaths[0][0]);
+        if (selection.IsFolder)
+        {
+            parts.Add($"{WorkingTreeRowRenderer.Printable(selection.Path)}/");
+        }
+        else
+        {
+            parts.Add(diff.Document.FilePaths[0][0]);
+        }
+
         return string.Join("  ", parts);
     }
 
@@ -199,10 +205,19 @@ public static class WorkingTreePaneRenderer
     };
 
     /// <summary>The rows of the diff box, starting at the model's top row; blank rows when the tab has no diff.</summary>
-    public static IReadOnlyList<StyledLine> DiffLines(DiffPaneModel? diff, PaneRect rect, int padding, GraphGlyphSet glyphs) =>
-        diff is null
-            ? PlaceholderLines(string.Empty, rect, padding, glyphs)
-            : DiffPaneRenderer.RenderRows(diff, rect.Width, rect.Height, glyphs, padding);
+    public static IReadOnlyList<StyledLine> DiffLines(
+        DiffPaneModel? diff,
+        PaneRect rect,
+        int padding,
+        GraphGlyphSet glyphs)
+    {
+        if (diff is null)
+        {
+            return PlaceholderLines(string.Empty, rect, padding, glyphs);
+        }
+
+        return DiffPaneRenderer.RenderRows(diff, rect.Width, rect.Height, glyphs, padding);
+    }
 
     /// <summary>The rows of the message box until the editor exists.</summary>
     public static IReadOnlyList<StyledLine> MessagePlaceholderLines(PaneRect rect, int padding, GraphGlyphSet glyphs) =>

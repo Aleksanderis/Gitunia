@@ -22,9 +22,18 @@ public sealed class TabRenameController(WorkspaceHost host, Action<KeyMode> setM
 
     public string StatusLine => string.Empty;
 
-    public PromptPopup? Popup => _renaming is null
-        ? null
-        : PromptPopup.ForText("Rename tab", "Empty restores the repository name", _text, "save");
+    public PromptPopup? Popup
+    {
+        get
+        {
+            if (_renaming is null)
+            {
+                return null;
+            }
+
+            return PromptPopup.ForText("Rename tab", "Empty restores the repository name", _text, "save");
+        }
+    }
 
     public bool TryExecute(ActionId action, int? count)
     {

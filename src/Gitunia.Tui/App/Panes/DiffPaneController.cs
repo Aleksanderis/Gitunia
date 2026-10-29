@@ -377,17 +377,54 @@ public sealed class DiffPaneController : IPromptHandler
         }
     }
 
-    private DiffPaneModel ModelOf(DiffSession? diff, bool isFocused) =>
-        diff is null
-            ? new DiffPaneModel(DiffDocument.Empty, 0, 0, isFocused)
-            : _actions.ModelOf(diff, diff.Store.Options, isFocused) with
-            {
-                IsFolder = diff.BuiltFolderPath is not null,
-                FileNumber = diff.BuiltFolderPath is null ? diff.ShownFile + 1 : 0,
-                FileCount = diff.BuiltFolderPath is null
-                    ? diff.ShownFull?.FilePaths.Count ?? 0
-                    : diff.ShownDocument.FilePaths.Count,
-            };
+    private DiffPaneModel ModelOf(DiffSession? diff, bool isFocused)
+    {
+        if (diff is null)
+        {
+            return new DiffPaneModel(DiffDocument.Empty, 0, 0, isFocused);
+        }
+
+        var isFolder = diff.BuiltFolderPath is not null;
+        var fileNumber = isFolder ? 0 : diff.ShownFile + 1;
+        var fileCount = diff.ShownFull?.FilePaths.Count ?? 0;
+        if (isFolder)
+        {
+            fileCount = diff.ShownDocument.FilePaths.Count;
+        }
+
+        return _actions.ModelOf(diff, diff.Store.Options, isFocused) with
+        {
+            IsFolder = isFolder,
+            FileNumber = fileNumber,
+            FileCount = fileCount,
+        };
+    }
+
+    // The index of the file the pane shows: the first of a folder's files, else the wanted one (-1 when none).
+    private static int FileToShow(DiffDocument full, IReadOnlyList<int> folderFiles, string? wanted)
+    {
+        if (folderFiles.Count > 0)
+        {
+            return folderFiles[0];
+        }
+
+        if (full.FilePaths.Count == 0)
+        {
+            return -1;
+        }
+
+        return Math.Max(0, wanted is null ? 0 : full.FileIndexOf(wanted));
+    }
+
+    private static DiffDocument DocumentToShow(DiffDocument full, IReadOnlyList<int> folderFiles, int file)
+    {
+        if (folderFiles.Count > 0)
+        {
+            return full.ForFiles(folderFiles);
+        }
+
+        return file >= 0 ? full.ForFile(file) : full;
+    }
 
     private bool ExecuteInDiff(RepositoryState tab, DiffSession diff, ActionId action, int? count)
     {
@@ -453,9 +490,20 @@ public sealed class DiffPaneController : IPromptHandler
         zoomed is { } z && focused is { } f && PaneZoom.IsZoomPair(z, f) && ShowsWithChanges();
 
     // Opening a file keeps a zoom of the pair; on a screen too short for the strip the diff opens zoomed.
-    private PaneKind? ZoomAfterOpening(DiffSession diff) =>
-        !PaneLayout.CanOpenDiff(_screenSize().Height) ? PaneKind.Diff
-        : KeepsZoomTogether(diff.ZoomedPane, PaneKind.Diff) ? diff.ZoomedPane : null;
+    private PaneKind? ZoomAfterOpening(DiffSession diff)
+    {
+        if (!PaneLayout.CanOpenDiff(_screenSize().Height))
+        {
+            return PaneKind.Diff;
+        }
+
+        if (KeepsZoomTogether(diff.ZoomedPane, PaneKind.Diff))
+        {
+            return diff.ZoomedPane;
+        }
+
+        return null;
+    }
 
     /// <summary>The diff pane is on screen: opened on demand, or shown by the Changes tab.</summary>
     private bool IsShown(DiffSession diff) => diff.IsOpen || ShowsWithChanges();
@@ -485,10 +533,15 @@ public sealed class DiffPaneController : IPromptHandler
 
     /// <summary>The path of the folder under the cursor of the Changes list (tree style), null on any other
     /// row.</summary>
-    private string? SelectedFolderPath() =>
-        _activeSession()?.DetailSource is { Content: { Tab: BottomTab.Changes } content }
-            ? content.FolderAt(_detailList.SelectedItem ?? -1)
-            : null;
+    private string? SelectedFolderPath()
+    {
+        if (_activeSession()?.DetailSource is { Content: { Tab: BottomTab.Changes } content })
+        {
+            return content.FolderAt(_detailList.SelectedItem ?? -1);
+        }
+
+        return null;
+    }
 
     // Asks for the file or folder under the file list's cursor; false when the cursor is on neither.
     private bool SetPendingFromCursor(DiffSession diff)
@@ -638,9 +691,12 @@ public sealed class DiffPaneController : IPromptHandler
         }
 
         var full = diff.ShownFull;
-        var target = full is null || diff.ShownFile < 0
-            ? -1
-            : Math.Clamp(diff.ShownFile + (forward ? count : -count), 0, full.FilePaths.Count - 1);
+        var target = -1;
+        if (full is not null && diff.ShownFile >= 0)
+        {
+            target = Math.Clamp(diff.ShownFile + (forward ? count : -count), 0, full.FilePaths.Count - 1);
+        }
+
         if (full is null || target < 0 || target == diff.ShownFile)
         {
             Notice = forward ? "No next file" : "No previous file";
@@ -905,9 +961,7 @@ public sealed class DiffPaneController : IPromptHandler
         }
 
         var wanted = path ?? diff.ShownPath;
-        var file = folderFiles.Count > 0
-            ? folderFiles[0]
-            : full.FilePaths.Count == 0 ? -1 : Math.Max(0, wanted is null ? 0 : full.FileIndexOf(wanted));
+        var file = FileToShow(full, folderFiles, wanted);
         var builtFolder = folderFiles.Count > 0 ? diff.ShownFolderPath : null;
         if (!ReferenceEquals(diff.ShownFull, full) || diff.ShownFile != file || diff.BuiltFolderPath != builtFolder)
         {
@@ -916,9 +970,7 @@ public sealed class DiffPaneController : IPromptHandler
             diff.ShownFile = file;
             diff.BuiltFolderPath = builtFolder;
             diff.ShownPath = file >= 0 ? full.FilePaths[file][0] : null;
-            diff.ShownDocument = folderFiles.Count > 0
-                ? full.ForFiles(folderFiles)
-                : file >= 0 ? full.ForFile(file) : full;
+            diff.ShownDocument = DocumentToShow(full, folderFiles, file);
         }
 
         if (!ReferenceEquals(diff.Source.Document, diff.ShownDocument))

@@ -84,7 +84,8 @@ public static class AnsiFrameWriter
             {
                 if (new Color(AnsiOrder[index]) == color)
                 {
-                    var code = (index < 8 ? 30 : 90 - 8) + index + (isBackground ? 10 : 0);
+                    var baseCode = index < 8 ? 30 : 90 - 8;
+                    var code = baseCode + index + (isBackground ? 10 : 0);
                     builder.Append(';').Append(code.ToString(CultureInfo.InvariantCulture));
                     return;
                 }

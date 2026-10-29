@@ -53,10 +53,15 @@ public static class RemoteChips
         width >= MinimumWidth + ReservedWidth(true, keys) - ReservedWidth(false, keys);
 
     /// <summary>The first column of the chips in a row of <paramref name="width"/> columns, null if none.</summary>
-    public static int? Start(int width, ChipKeys? keys = null) =>
-        width >= MinimumWidth && TabBarLayout.CommandsStart(width) is { } commands
-            ? commands - GapColumns - ReservedWidth(IsKeyed(width, keys), keys)
-            : null;
+    public static int? Start(int width, ChipKeys? keys = null)
+    {
+        if (width >= MinimumWidth && TabBarLayout.CommandsStart(width) is { } commands)
+        {
+            return commands - GapColumns - ReservedWidth(IsKeyed(width, keys), keys);
+        }
+
+        return null;
+    }
 
     /// <summary>The chips shown now in a row of <paramref name="width"/> columns, left to right.</summary>
     public static IReadOnlyList<TitleButton> Shown(int width, bool isBusy, ChipKeys? keys = null)

@@ -208,12 +208,7 @@ public static class ConflictEditorFrameBuilder
 
         var isStacked = width < StackedBelowWidth;
         var isThreePane = !isStacked && width >= ThreePaneFromWidth;
-        var chipSet = state.IsEditing
-            ? HintChipRows.WithKeys(EditingChipLabels, keys, DefaultKeymap.ConflictEditorView, KeyMode.Insert)
-            : HintChipRows.WithKeys(
-                isThreePane ? ThreePaneChipLabels : ChipLabels,
-                keys,
-                DefaultKeymap.ConflictEditorView);
+        var chipSet = ChipSetFor(state, isThreePane, keys);
         var chipRows = HintChipRows.Flow(chipSet, width);
         var sideHeaders = isStacked ? StackedSides : SideBySideHeaders;
         var sideCount = isStacked ? StackedSides : 1;
@@ -243,9 +238,12 @@ public static class ConflictEditorFrameBuilder
         var sideLines = Math.Max(
             ConflictEditorState.Lines(state.Selected!.Ours).Count,
             ConflictEditorState.Lines(state.Selected.Theirs).Count);
-        var baseLines = baseRows > 0 || isThreePane
-            ? ConflictEditorState.Lines(state.Selected.Base ?? string.Empty).Count
-            : 0;
+        var baseLines = 0;
+        if (baseRows > 0 || isThreePane)
+        {
+            baseLines = ConflictEditorState.Lines(state.Selected.Base ?? string.Empty).Count;
+        }
+
         var maxScroll = Math.Max(
             Math.Max(0, sideLines - sideRows),
             Math.Max(0, baseLines - (isThreePane ? sideRows : baseRows)));
@@ -473,9 +471,15 @@ public static class ConflictEditorFrameBuilder
     }
 
     // The line number, then a mark for a line the other side does not have in the same row (so colour is not alone).
-    private static string GutterText(int? number, int width, char mark = ' ') => number is { } value
-        ? $"{value.ToString(CultureInfo.InvariantCulture).PadLeft(width)}{mark}"
-        : new string(' ', width + 1);
+    private static string GutterText(int? number, int width, char mark = ' ')
+    {
+        if (number is { } value)
+        {
+            return $"{value.ToString(CultureInfo.InvariantCulture).PadLeft(width)}{mark}";
+        }
+
+        return new string(' ', width + 1);
+    }
 
     private static StyledLine NumberedText(
         int? number,
@@ -642,9 +646,14 @@ public static class ConflictEditorFrameBuilder
         return OverlayBox.Wrap(inner, glyphs);
     }
 
-    private static string ResultHeader(ConflictEditorState state) => state.IsEditing
-        ? "result  editing"
-        : state.SelectedPick switch
+    private static string ResultHeader(ConflictEditorState state)
+    {
+        if (state.IsEditing)
+        {
+            return "result  editing";
+        }
+
+        return state.SelectedPick switch
         {
             ConflictPick.Edited => "result  edited by you",
             ConflictPick.Ours => "result  our side",
@@ -652,6 +661,18 @@ public static class ConflictEditorFrameBuilder
             ConflictPick.Both => "result  both sides, ours first",
             _ => "result  unresolved: the conflict markers stay in the file",
         };
+    }
+
+    private static HintChip[] ChipSetFor(ConflictEditorState state, bool isThreePane, ChipKeys? keys)
+    {
+        if (state.IsEditing)
+        {
+            return HintChipRows.WithKeys(EditingChipLabels, keys, DefaultKeymap.ConflictEditorView, KeyMode.Insert);
+        }
+
+        var labels = isThreePane ? ThreePaneChipLabels : ChipLabels;
+        return HintChipRows.WithKeys(labels, keys, DefaultKeymap.ConflictEditorView);
+    }
 
     // One token per hunk, the one under the cursor in brackets: `1 ours  [2 -]  3 both`.
     private static StyledLine StripLine(ConflictEditorState state, int width, GraphGlyphSet glyphs)
@@ -746,9 +767,12 @@ public static class ConflictEditorFrameBuilder
         {
             var lines = ConflictEditorState.Lines(text).Select(Printable).ToList();
 
-            return lines.Count == 0
-                ? new SideText([EmptySide], true)
-                : new SideText(lines, false, mark, differingRole);
+            if (lines.Count == 0)
+            {
+                return new SideText([EmptySide], true);
+            }
+
+            return new SideText(lines, false, mark, differingRole);
         }
 
         public string TextAt(int line) => line < Lines.Count ? Lines[line] : string.Empty;
@@ -783,11 +807,12 @@ public static class ConflictEditorFrameBuilder
                 return [];
             }
 
-            var result = isOurs
-                ? WordDiff.Compare(Lines[line], other.Lines[line])
-                : WordDiff.Compare(other.Lines[line], Lines[line]);
+            if (isOurs)
+            {
+                return WordDiff.Compare(Lines[line], other.Lines[line]).Old;
+            }
 
-            return isOurs ? result.Old : result.New;
+            return WordDiff.Compare(other.Lines[line], Lines[line]).New;
         }
 
         // On the base side: the words of this line that ours or theirs changed.
@@ -798,14 +823,18 @@ public static class ConflictEditorFrameBuilder
                 return [];
             }
 
-            var fromOurs = line < ours.Lines.Count && !ours.IsEmpty
-                ? WordDiff.Compare(Lines[line], ours.Lines[line]).Old
-                : [];
-            var fromTheirs = line < theirs.Lines.Count && !theirs.IsEmpty
-                ? WordDiff.Compare(Lines[line], theirs.Lines[line]).Old
-                : [];
+            return ChangedSpan.Union(ChangesAgainst(line, ours), ChangesAgainst(line, theirs));
+        }
 
-            return ChangedSpan.Union(fromOurs, fromTheirs);
+        // The words of this line that the other side changed; none when the other side has no such line.
+        private IReadOnlyList<ChangedSpan> ChangesAgainst(int line, SideText side)
+        {
+            if (line < side.Lines.Count && !side.IsEmpty)
+            {
+                return WordDiff.Compare(Lines[line], side.Lines[line]).Old;
+            }
+
+            return [];
         }
 
         private bool IsDifferent(int line, Plan plan) =>

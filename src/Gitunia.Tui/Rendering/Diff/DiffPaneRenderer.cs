@@ -32,19 +32,7 @@ public static class DiffPaneRenderer
         {
             var row = pane.TopRow + offset;
             var textWidth = PanePadding.TextWidth(width, paddingColumns);
-            lines.Add(PanePadding.Wrap(
-                row >= 0 && row < pane.Document.Rows.Count
-                    ? DiffRowRenderer.Render(
-                        pane.Document.Rows[row],
-                        textWidth,
-                        gutter,
-                        pane.Highlight,
-                        pane.IsFocused && row == pane.SelectedRow,
-                        glyphs,
-                        showWhitespace: pane.ShowWhitespace,
-                        changes: DiffWordHighlights.ChangesOf(pane.Document, row))
-                    : new LineBuilder(textWidth, glyphs.Ellipsis).Build(),
-                paddingColumns));
+            lines.Add(PanePadding.Wrap(RenderLine(pane, row, textWidth, gutter, glyphs), paddingColumns));
         }
 
         return lines;
@@ -92,6 +80,24 @@ public static class DiffPaneRenderer
         return buttons.Count == 0 ? text : WithButtons(text, buttons, glyphs);
     }
 
+    private static StyledLine RenderLine(DiffPaneModel pane, int row, int textWidth, int gutter, GraphGlyphSet glyphs)
+    {
+        if (row < 0 || row >= pane.Document.Rows.Count)
+        {
+            return new LineBuilder(textWidth, glyphs.Ellipsis).Build();
+        }
+
+        return DiffRowRenderer.Render(
+            pane.Document.Rows[row],
+            textWidth,
+            gutter,
+            pane.Highlight,
+            pane.IsFocused && row == pane.SelectedRow,
+            glyphs,
+            showWhitespace: pane.ShowWhitespace,
+            changes: DiffWordHighlights.ChangesOf(pane.Document, row));
+    }
+
     private static StyledLine WithButtons(StyledLine text, IReadOnlyList<TitleButton> buttons, GraphGlyphSet glyphs)
     {
         var segments = new List<StyledSegment>(text.Segments) { new(glyphs.Horizontal.ToString(), SegmentRole.Rule) };
@@ -137,9 +143,16 @@ public static class DiffPaneRenderer
             var total = pane.Document.HunkRows.Count.ToString(CultureInfo.InvariantCulture);
             var fileNumber = pane.FileNumber.ToString(CultureInfo.InvariantCulture);
             var fileCount = pane.FileCount.ToString(CultureInfo.InvariantCulture);
-            var files = pane.IsFolder && pane.FileCount > 0
-                ? $"  folder, {fileCount} {(pane.FileCount == 1 ? "file" : "files")}"
-                : pane.FileCount > 0 ? $"  file {fileNumber}/{fileCount}" : string.Empty;
+            var files = string.Empty;
+            if (pane.IsFolder && pane.FileCount > 0)
+            {
+                files = $"  folder, {fileCount} {(pane.FileCount == 1 ? "file" : "files")}";
+            }
+            else if (pane.FileCount > 0)
+            {
+                files = $"  file {fileNumber}/{fileCount}";
+            }
+
             builder.Append($"{files}  hunk {position}/{total}", SegmentRole.Faint);
             AppendWrapMarker(builder, pane);
             builder.Append($"  {pane.Document.FilePaths[fileIndex][0]} ", SegmentRole.Plain);

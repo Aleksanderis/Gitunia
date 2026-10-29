@@ -11,9 +11,12 @@ public static class DiffOptionsLabel
     /// <summary>A sentence for the status bar after the options changed, for example <c>Diff: 6 context lines, whitespace ignored</c>.</summary>
     public static string Describe(DiffOptions options)
     {
-        var context = options.WholeFile
-            ? "whole files"
-            : $"{options.ContextLines.ToString(CultureInfo.InvariantCulture)} context lines";
+        var context = $"{options.ContextLines.ToString(CultureInfo.InvariantCulture)} context lines";
+        if (options.WholeFile)
+        {
+            context = "whole files";
+        }
+
         return options.IgnoreWhitespace ? $"Diff: {context}, whitespace ignored" : $"Diff: {context}";
     }
 

@@ -50,14 +50,33 @@ public sealed class SidebarActionHandler(
     public bool IsEditingFilter => _isEditingFilter;
 
     /// <summary>The row under the sidebar cursor, null when the list is empty or no tab is active.</summary>
-    public SidebarRow? CursorRow => host.Workspace.ActiveTab is { } tab && !source.Rows.IsEmpty
-        ? source.Rows[SidebarBuilder.ClampCursor(tab.Sidebar.Cursor, source.Rows.Length)]
-        : null;
+    public SidebarRow? CursorRow
+    {
+        get
+        {
+            if (host.Workspace.ActiveTab is { } tab && !source.Rows.IsEmpty)
+            {
+                return source.Rows[SidebarBuilder.ClampCursor(tab.Sidebar.Cursor, source.Rows.Length)];
+            }
+
+            return null;
+        }
+    }
 
     /// <summary>The sidebar state the surrounding views draw: the filter line and the focus highlight.</summary>
-    public SidebarChrome Chrome => host.Workspace.ActiveTab is { } tab
-        ? new SidebarChrome(tab.Sidebar.FilterText, _isEditingFilter, tab.View.FocusedPane == PaneKind.Sidebar)
-        : SidebarChrome.Idle;
+    public SidebarChrome Chrome
+    {
+        get
+        {
+            if (host.Workspace.ActiveTab is not { } tab)
+            {
+                return SidebarChrome.Idle;
+            }
+
+            var isFocused = tab.View.FocusedPane == PaneKind.Sidebar;
+            return new SidebarChrome(tab.Sidebar.FilterText, _isEditingFilter, isFocused);
+        }
+    }
 
     /// <summary>Returns true when the action was handled here and the graph view must not act on it.</summary>
     public bool TryHandle(ActionId action, int? count)
@@ -339,9 +358,11 @@ public sealed class SidebarActionHandler(
             {
                 // Past the soft row limit the commit may still come: the rest loads now, and the next try finds it.
                 session?.RequestExpand(true);
-                Message = session is { IsGraphComplete: false }
-                    ? $"{row.Label} is not loaded yet"
-                    : $"{row.Label} is not in the graph";
+                Message = $"{row.Label} is not in the graph";
+                if (session is { IsGraphComplete: false })
+                {
+                    Message = $"{row.Label} is not loaded yet";
+                }
             }
             else
             {

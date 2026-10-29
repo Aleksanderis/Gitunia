@@ -51,18 +51,13 @@ public static class ScreenComposer
 
         var layout = arrangement ?? PaneArrangement.Normal;
         var isPicker = model.Picker is not null;
-        var rects = isPicker
-            ? PickerRects(width, height)
-            : PaneLayout.Compute(
-                width,
-                height,
-                layout.IsDiffOpen && diff is not null,
-                layout.Zoomed,
-                layout.Sizes,
-                layout.ZoomBoth);
+        var rects = RectsFor(isPicker, width, height, layout, diff);
         var focused = FocusedPane(sidebar, detail, diff);
         var sidebarTitle = model.RepositoryName.Length > 0 ? model.RepositoryName : "Repository";
-        var grid = FrameGrid.Build(width, height, rects, isPicker ? PaneKind.Graph : focused, glyphs, isPicker ? string.Empty : sidebarTitle, isPicker ? string.Empty : "History");
+        var gridFocus = isPicker ? PaneKind.Graph : focused;
+        var gridSidebarTitle = isPicker ? string.Empty : sidebarTitle;
+        var gridGraphTitle = isPicker ? string.Empty : "History";
+        var grid = FrameGrid.Build(width, height, rects, gridFocus, glyphs, gridSidebarTitle, gridGraphTitle);
         var overlays = new List<PaneLines>();
         if (isPicker)
         {
@@ -98,9 +93,7 @@ public static class ScreenComposer
         for (var row = ScreenLayout.FrameTop; row < height - 1; row++)
         {
             var edge = BuildRow(grid, row, width, overlays);
-            lines.Add(row == ScreenLayout.FrameBottom(height)
-                ? BannerRenderer.EdgeLine(model, edge, width, height, glyphs)
-                : edge);
+            lines.Add(EdgeOrBanner(model, edge, row, width, height, glyphs));
         }
 
         if (height > ScreenLayout.TabRow + 1)
@@ -183,9 +176,7 @@ public static class ScreenComposer
         for (var row = ScreenLayout.FrameTop; row < height - 1; row++)
         {
             var edge = BuildRow(grid, row, width, overlays);
-            lines.Add(row == ScreenLayout.FrameBottom(height)
-                ? BannerRenderer.EdgeLine(model, edge, width, height, glyphs)
-                : edge);
+            lines.Add(EdgeOrBanner(model, edge, row, width, height, glyphs));
         }
 
         if (height > ScreenLayout.TabRow + 1)
@@ -255,11 +246,7 @@ public static class ScreenComposer
             {
                 var item = topItem + offset;
                 var commitIndex = item - ScreenLayout.ReservedLeadingRows;
-                var graphRow = commitIndex >= 0 && commitIndex < graph.Count
-                    ? GraphRowRenderer.Render(graph[commitIndex], options, item == selectedItem)
-                    : showsCutMarker && commitIndex == graph.Count
-                        ? GraphRowRenderer.RenderCutMarker(options, item == selectedItem)
-                        : GraphRowRenderer.RenderEmpty(options, item == selectedItem && graph.Count > 0);
+                var graphRow = GraphRowAt(graph, commitIndex, options, item == selectedItem, showsCutMarker);
                 graphLines.Add(PanePadding.WrapGraph(graphRow, paddingColumns));
             }
 
@@ -300,8 +287,77 @@ public static class ScreenComposer
         return new PaneRects(none, none, none, new PaneRect(1, ScreenLayout.GraphTop, ScreenLayout.InnerWidth(width), ScreenLayout.GraphHeight(height)), none, none, none, none, none);
     }
 
-    private static PaneKind FocusedPane(SidebarModel? sidebar, DetailPaneModel? detail, DiffPaneModel? diff) =>
-        sidebar is { IsFocused: true } ? PaneKind.Sidebar : detail is { IsFocused: true } ? PaneKind.Detail : diff is { IsFocused: true } ? PaneKind.Diff : PaneKind.Graph;
+    private static PaneRects RectsFor(
+        bool isPicker,
+        int width,
+        int height,
+        PaneArrangement layout,
+        DiffPaneModel? diff)
+    {
+        if (isPicker)
+        {
+            return PickerRects(width, height);
+        }
+
+        return PaneLayout.Compute(
+            width,
+            height,
+            layout.IsDiffOpen && diff is not null,
+            layout.Zoomed,
+            layout.Sizes,
+            layout.ZoomBoth);
+    }
+
+    private static StyledLine EdgeOrBanner(
+        ScreenModel model,
+        StyledLine edge,
+        int row,
+        int width,
+        int height,
+        GraphGlyphSet glyphs)
+    {
+        if (row == ScreenLayout.FrameBottom(height))
+        {
+            return BannerRenderer.EdgeLine(model, edge, width, height, glyphs);
+        }
+
+        return edge;
+    }
+
+    private static StyledLine GraphRowAt(
+        CommitGraph graph,
+        int commitIndex,
+        GraphRowOptions options,
+        bool isSelected,
+        bool showsCutMarker)
+    {
+        if (commitIndex >= 0 && commitIndex < graph.Count)
+        {
+            return GraphRowRenderer.Render(graph[commitIndex], options, isSelected);
+        }
+
+        if (showsCutMarker && commitIndex == graph.Count)
+        {
+            return GraphRowRenderer.RenderCutMarker(options, isSelected);
+        }
+
+        return GraphRowRenderer.RenderEmpty(options, isSelected && graph.Count > 0);
+    }
+
+    private static PaneKind FocusedPane(SidebarModel? sidebar, DetailPaneModel? detail, DiffPaneModel? diff)
+    {
+        if (sidebar is { IsFocused: true })
+        {
+            return PaneKind.Sidebar;
+        }
+
+        if (detail is { IsFocused: true })
+        {
+            return PaneKind.Detail;
+        }
+
+        return diff is { IsFocused: true } ? PaneKind.Diff : PaneKind.Graph;
+    }
 
     // One screen row: the frame's cells with the panes' lines laid over them where they sit.
     private static StyledLine BuildRow(FrameGrid grid, int row, int width, List<PaneLines> overlays)

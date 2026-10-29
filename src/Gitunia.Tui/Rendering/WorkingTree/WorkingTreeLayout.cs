@@ -51,14 +51,16 @@ public static class WorkingTreeLayout
         // on a narrow screen, of the whole view, like the focused list does.
         var none = new PaneRect(0, 0, 0, 0);
         var whole = new PaneRect(1, ScreenLayout.GraphTop, ScreenLayout.InnerWidth(screenWidth), ScreenLayout.GraphHeight(screenHeight));
-        var place = screenWidth < MinimumWidthForSideBySide ? whole : rects.Diff;
-        return place.IsEmpty
-            ? rects
-            : new WorkingTreeRects(
-                screenWidth < MinimumWidthForSideBySide ? none : rects.Unstaged,
-                screenWidth < MinimumWidthForSideBySide ? none : rects.Staged,
-                none,
-                place);
+        var isNarrow = screenWidth < MinimumWidthForSideBySide;
+        var place = isNarrow ? whole : rects.Diff;
+        if (place.IsEmpty)
+        {
+            return rects;
+        }
+
+        var unstaged = isNarrow ? none : rects.Unstaged;
+        var staged = isNarrow ? none : rects.Staged;
+        return new WorkingTreeRects(unstaged, staged, none, place);
     }
 
     private static WorkingTreeRects ZoomedDiff(int screenWidth, int screenHeight)
@@ -85,9 +87,14 @@ public static class WorkingTreeLayout
         if (screenWidth < MinimumWidthForSideBySide)
         {
             // One pane at a time: the diff once it was asked for (Enter), else the focused list.
-            return WorkingPanes.IsDiff(focused)
-                ? new WorkingTreeRects(none, none, whole, none)
-                : new WorkingTreeRects(onlyStaged ? none : whole, onlyStaged ? whole : none, none, none);
+            if (WorkingPanes.IsDiff(focused))
+            {
+                return new WorkingTreeRects(none, none, whole, none);
+            }
+
+            var unstagedList = onlyStaged ? none : whole;
+            var stagedList = onlyStaged ? whole : none;
+            return new WorkingTreeRects(unstagedList, stagedList, none, none);
         }
 
         var listWidth = Math.Clamp(inner / ListWidthDivisor, MinimumListWidth, MaximumListWidth);
@@ -100,7 +107,9 @@ public static class WorkingTreeLayout
         if (area < MinimumStackedHeight)
         {
             var single = new PaneRect(1, top, listWidth, area);
-            return new WorkingTreeRects(onlyStaged ? none : single, onlyStaged ? single : none, diff, message);
+            var unstagedSingle = onlyStaged ? none : single;
+            var stagedSingle = onlyStaged ? single : none;
+            return new WorkingTreeRects(unstagedSingle, stagedSingle, diff, message);
         }
 
         var unstagedHeight = (area - Divider + 1) / 2;
