@@ -471,6 +471,8 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 ## 2026-10-29
 
+**Issue links** (#213, reopened by the owner; supersedes the source of the earlier #213 entry): the `[issuetracker "name"]` sections are read from the effective git config (repository, global, system) as well as from `.issuetracker`; a section of the same name in the file wins. Why: the owner's Jira section was not detected and other clients read it from the git config; the file as quoted in the issue already parsed. Cost: one more `git config --list -z` per load.
+
 **UI:** Graph colours (#761, owner): one colour per branch name (remote prefix ignored), a hash of the name moved to a free slot. Why: colours that follow the name, not the position; local and remote of one branch match. Detail: `git-layer.md`.
 
 **UI:** Graph lanes (#759, owner): a branch keeps one lane and colour from tip to fork and joins at the fork commit; names on a line are labels; where lanes meet the leftmost (the newest tip's) goes on to the bottom and the others, main included, bend into it. Why: the owner's reference image and review of #793. Detail: `ux.md`, `git-layer.md`.

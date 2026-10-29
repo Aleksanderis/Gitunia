@@ -234,7 +234,7 @@ public sealed class EffectRunner : IDisposable
         }
     }
 
-    // The tracker file is read on load and on a manual refresh; a missing or bad file just means no links.
+    // The tracker file and git config are read on load and on a manual refresh; a missing or bad one means no links.
     private async Task LoadIssueLinksAsync(TabSession session, RepositoryLocation location, CancellationToken token)
     {
         try

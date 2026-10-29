@@ -2,7 +2,7 @@ using Gitunia.Git.IssueTracker.Models;
 
 namespace Gitunia.Git.IssueTracker;
 
-/// <summary>Turns the output of <c>git config --file .issuetracker --list -z</c> into rules.</summary>
+/// <summary>Turns the output of <c>git config --list -z</c> (with or without <c>--file .issuetracker</c>) into rules.</summary>
 public static class IssueTrackerParser
 {
     private const string SectionPrefix = "issuetracker.";

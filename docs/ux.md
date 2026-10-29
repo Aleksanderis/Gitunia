@@ -207,15 +207,15 @@ Outside Insert and Command mode a paste does nothing.
    The pane follows the graph selection while the graph is focused.
    It sits below the graph (hidden on screens under 14 rows, where `Enter` only shows a notice) and has three tabs, shown as buttons on its title row:
    - **Details:** hash, author, committer (only when different), parents, refs and the full message.
-   - **Issue links (#213).** A `.issuetracker` file in the repository (or worktree) root turns references in the message into links.
-     It is git-config syntax, read with `git config --file` (VS Code's proposal): one `[issuetracker "name"]` section per tracker with `regex` (group 1 is the reference; without a group the whole match) and `url` (`$1` is the reference, percent-encoded where a URL needs it).
+   - **Issue links (#213).** The `[issuetracker "name"]` sections of the git config (repository, global or system, so what other clients read) and of a `.issuetracker` file in the repository (or worktree) root turn references in the message into links.
+     The file is git-config syntax, read with `git config --file` (VS Code's proposal); a section of the same name in the file wins over the config. One `[issuetracker "name"]` section per tracker with `regex` (group 1 is the reference; without a group the whole match) and `url` (`$1` is the reference, percent-encoded where a URL needs it).
      Quote values that contain `#` or `;`, which start a comment in git config: `regex = "#(\\d+)"`.
      Only `http` and `https` addresses become links.
      Matches in the message show underlined in the accent colour; where two matches overlap the earlier one (then the earlier section) wins.
      `gx` (`Enter`, `l` or a double-click on such a line does the same) opens the first link on the line under the cursor in the default browser, `2gx` the second.
      Opening uses `xdg-open` (Linux), `open` (macOS) or the shell (Windows); when no opener starts, the address is copied through OSC 52 and the status line says so.
-     A missing, empty or malformed file, or a bad regex, means no links and no error.
-     The file is read when the tab loads and again on a manual refresh (`r`), so an edit shows after `r`; the browser is started in the background and the status line reports the outcome; no network access is involved.
+     A missing, empty or malformed file or config section, or a bad regex, means no links and no error.
+     The file and the git config are read when the tab loads and again on a manual refresh (`r`), so an edit shows after `r`; the browser is started in the background and the status line reports the outcome; no network access is involved.
    - **Changes:** the changed files with status `A` `M` `D` `T`, `R old -> new`, `C old -> new` (the similarity score is not shown); merges show changes against the first parent by default, and the heading names the parent (`(merge: against first parent <hash>)`).
      `<space>vp` (detail and diff panes) switches a merge commit to its next parent, wrapping from the last back to the first (`(merge: against parent 2 <hash>)`, status line `Switching to parent 2 of 2...`): the file list is read again against that parent (`diff-tree` with it) and the diff viewer shows the files of that list against it.
      The choice belongs to the selected commit and is not remembered: selecting another commit, or coming back to this one, starts at the first parent.
