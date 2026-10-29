@@ -437,6 +437,21 @@ public class PaletteTests
     }
 
     [Fact]
+    public void GivenNoColours_WhenSelectingTheRowOfABranchLabel_ThenTheLabelStaysBoldInsideTheReversedRow()
+    {
+        var colors = PaletteTable.For(new PaletteSettings(ColorDepth.None, false));
+        var segment = new StyledSegment("x", SegmentRole.LaneLabel, 3);
+
+        var focused = Palette.For(segment, true, true, colors);
+        var unfocused = Palette.For(segment, true, false, colors);
+
+        Assert.True(focused.Style.HasFlag(TextStyle.Bold));
+        Assert.True(focused.Style.HasFlag(TextStyle.Reverse));
+        Assert.True(unfocused.Style.HasFlag(TextStyle.Bold));
+        Assert.True(unfocused.Style.HasFlag(TextStyle.Reverse));
+    }
+
+    [Fact]
     public void GivenABranchLabel_WhenSelectingItsRow_ThenTheChipKeepsItsColours()
     {
         var colors = PaletteTable.For(PaletteSettings.Default);

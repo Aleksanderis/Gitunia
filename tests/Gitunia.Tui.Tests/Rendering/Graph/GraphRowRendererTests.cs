@@ -222,8 +222,29 @@ public class GraphRowRendererTests
     }
 
     [Fact]
-    public void GivenABranchForkedFromTheMiddleOfAnother_WhenRendering_ThenItsCommitSitsOnItsOwnLaneJoinedByACurve()
+    public void GivenABranchForkedFromTheTipOfAnotherThatIsNewer_WhenRendering_ThenItsTipSitsOnANewLaneJoinedByACurve()
     {
+        var main = CommitFactory.Commit(
+            1, "main tip", [3], new CommitDecoration("refs/heads/main", "main", RefKind.LocalBranch, true));
+        var feature = CommitFactory.Commit(
+            2, "feature work", [3], new CommitDecoration("refs/heads/feature", "feature", RefKind.LocalBranch, false));
+        var middle = CommitFactory.Commit(3, "main middle", [4]);
+        var root = CommitFactory.Commit(4, "root", []);
+
+        var rows = Rows(GraphGlyphSet.Unicode, 60, main, feature, middle, root);
+
+        Assert.StartsWith("●  (◆ main) main tip", rows[0].Replace("⎇ ", "◆ ", StringComparison.Ordinal));
+        Assert.StartsWith("├─●  (feature) feature work", rows[1]);
+        Assert.StartsWith("├  main middle", rows[2]);
+        var graph = CommitFactory.Graph(main, feature, middle, root);
+        Assert.Equal(graph[0].Row.NodeColor, graph[2].Row.NodeColor);
+        Assert.NotEqual(graph[0].Row.NodeColor, graph[1].Row.NodeColor);
+    }
+
+    [Fact]
+    public void GivenAMainTipOlderThanTheFeatureTip_WhenRendering_ThenTheSharedHistoryStaysOnTheFeatureLane()
+    {
+        // The limit registered as #792: the shared commit's lane was chosen when the newer tip was laid out.
         var feature = CommitFactory.Commit(
             1, "feature work", [3], new CommitDecoration("refs/heads/feature", "feature", RefKind.LocalBranch, false));
         var main = CommitFactory.Commit(
@@ -236,6 +257,9 @@ public class GraphRowRendererTests
         Assert.StartsWith("●  (feature) feature work", rows[0]);
         Assert.StartsWith("├─●  (", rows[1]);
         Assert.StartsWith("├  main middle", rows[2]);
+        var graph = CommitFactory.Graph(feature, main, middle, root);
+        Assert.Equal(graph[0].Row.NodeColor, graph[2].Row.NodeColor);
+        Assert.NotEqual(graph[1].Row.NodeColor, graph[2].Row.NodeColor);
     }
 
     [Fact]

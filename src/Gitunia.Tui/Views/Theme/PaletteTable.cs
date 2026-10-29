@@ -121,6 +121,7 @@ public sealed class PaletteTable
 
     private const double ReadableContrast = 4.5;
 
+    // Shared by every table and never changed.
     private static readonly Color[] DarkLanes = Rgbs(
         0x89b4fa, 0xa6e3a1, 0xf9e2af, 0xcba6f7, 0xf38ba8, 0x94e2d5,
         0xfab387, 0xf5c2e7, 0x74c7ec, 0xb4befe, 0xeba0ac, 0xf2cdcd);
@@ -355,10 +356,11 @@ public sealed class PaletteTable
         BaseForeground = Role(definition, ThemeRoles.BaseForeground),
         BaseBackground = Role(definition, ThemeRoles.BaseBackground),
         Lanes = [.. definition.Lanes.Select(Rgb)],
-        LaneLabelForegrounds = ReadableOn(
-            [.. definition.Lanes.Select(Rgb)],
-            Role(definition, ThemeRoles.ChipForeground)),
+        LaneLabelForegrounds = LabelForegrounds(definition),
     };
+
+    private static Color[] LabelForegrounds(ThemeDefinition definition) =>
+        ReadableOn([.. definition.Lanes.Select(Rgb)], Role(definition, ThemeRoles.ChipForeground));
 
     private static Color Role(ThemeDefinition definition, string role) =>
         definition.Colors.TryGetValue(role, out var value) ? Rgb(value) : Color.None;
