@@ -143,7 +143,7 @@ public sealed class TagActions(
 
         var normalized = key.Normalize();
         var isPicker = _kind is TagPromptKind.PushRemote or TagPromptKind.DeleteRemote;
-        if (isPicker && IsMove(normalized, out var step))
+        if (isPicker && PickerKeys.IsMove(normalized, out var step))
         {
             _picker.Move(step);
         }
@@ -162,21 +162,6 @@ public sealed class TagActions(
 
     public void OnGraphChanged()
     {
-    }
-
-    private static bool IsMove(KeyEvent key, out int step)
-    {
-        step = 0;
-        if (key is { Name: KeyNames.Up, Modifiers: KeyModifiers.None })
-        {
-            step = -1;
-        }
-        else if (key is { Name: KeyNames.Down or KeyNames.Tab, Modifiers: KeyModifiers.None })
-        {
-            step = 1;
-        }
-
-        return step != 0;
     }
 
     private static string ShortHash(string hash) => hash[..Math.Min(ShortHashLength, hash.Length)];

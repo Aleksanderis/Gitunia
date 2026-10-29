@@ -88,8 +88,8 @@ public class PromptPopupFrameBuilderTests
         var text = string.Join('\n', frame.Lines.Select(line => line.Text));
         Assert.Contains("> release", text, StringComparison.Ordinal);
         Assert.Contains("  relay", text, StringComparison.Ordinal);
-        Assert.Contains("Type filters   Up/Down select   Enter switch   Esc cancel", text, StringComparison.Ordinal);
-        Assert.Contains("Up/Down select", text, StringComparison.Ordinal);
+        Assert.Contains("Type filters   Ctrl-n/p select   Enter switch   Esc cancel", text, StringComparison.Ordinal);
+        Assert.Contains("Ctrl-n/p select", text, StringComparison.Ordinal);
     }
 
     [Theory]

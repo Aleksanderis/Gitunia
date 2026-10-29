@@ -64,6 +64,9 @@ public sealed class RemoteActions(
     /// </summary>
     public Action<TabId, string>? PushRejected { get; set; }
 
+    /// <summary>The same for the first push of a branch (set upstream); the last argument is the remote pushed to.</summary>
+    public Action<TabId, string, string>? FirstPushRejected { get; set; }
+
     /// <summary>The notice for the status bar after the last <see cref="TryExecute"/>, empty when none.</summary>
     public string Notice { get; private set; } = string.Empty;
 
@@ -219,8 +222,8 @@ public sealed class RemoteActions(
             severity = StatusSeverity.Error;
             needsTerminal = exception is GitCommandFailedException failed
                 && RemoteAuthFailure.Matches(failed.StandardError);
-            rejected = action == ActionIds.RemotePush && running.Plan is null
-                && RemoteFailureText.IsNonFastForward(exception);
+            rejected = action == ActionIds.RemotePush && RemoteFailureText.IsNonFastForward(exception)
+                && (running.Plan is null || running.Plan.Request is { SetUpstream: true, Lease: null });
         }
 
         postToUi(() => Finish(tabId, running, action, text, severity, needsTerminal, rejected));
@@ -290,7 +293,14 @@ public sealed class RemoteActions(
             }
             else if (rejected && host.Workspace.ActiveTabId == tabId && !isOverlayOpen())
             {
-                PushRejected?.Invoke(tabId, running.Branch);
+                if (running.Plan?.Request is { Remote: { } remoteName })
+                {
+                    FirstPushRejected?.Invoke(tabId, running.Branch, remoteName);
+                }
+                else
+                {
+                    PushRejected?.Invoke(tabId, running.Branch);
+                }
             }
         }
 

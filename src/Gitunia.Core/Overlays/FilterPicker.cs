@@ -73,7 +73,7 @@ public sealed class FilterPicker<T>
         string acceptLabel,
         Func<T, string> row,
         string none) =>
-        PromptPopup.ForFilter(title, context, input, Rows(row, none), acceptLabel);
+        PromptPopup.ForFilter(title, context, input, Rows(row, none), acceptLabel, _candidates.Count > 1);
 
     /// <summary>
     /// The visible rows: a window of the candidates with <c>&gt; </c> on the highlighted one, then the position

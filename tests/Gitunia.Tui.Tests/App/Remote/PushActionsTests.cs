@@ -25,22 +25,39 @@ namespace Gitunia.Tui.Tests.App.Remote;
 public class PushActionsTests
 {
     [Fact]
-    public async Task GivenABranchWithoutUpstream_WhenPushing_ThenTheRemoteIsAskedAndTheUpstreamIsSet()
+    public async Task GivenABranchWithoutUpstreamAndOneRemote_WhenPushing_ThenItIsPushedWithoutAskingForTheRemote()
     {
         using var repository = TestRepositories.WithoutUpstreamBranch();
         using var harness = await Harness.LoadAsync(repository);
 
         harness.Run(ActionIds.RemotePush);
+        await harness.FinishAsync();
+
+        Assert.Null(harness.Push.Popup);
+        Assert.Equal(KeyMode.Normal, harness.Mode);
+        Assert.Equal("origin/lonely", repository.Git("rev-parse", "--abbrev-ref", "lonely@{upstream}").Trim());
+        Assert.Equal(repository.Head, repository.GitIn(repository.OriginPath, ["rev-parse", "lonely"]).Trim());
+        Assert.Contains("set it as its upstream", harness.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task GivenTwoRemotes_WhenPushingAFirstTime_ThenTheRemoteIsAskedAndTheUpstreamIsSet()
+    {
+        using var repository = TestRepositories.WithoutUpstreamBranch();
+        repository.Git("remote", "add", "second", repository.OriginPath);
+        using var harness = await Harness.LoadAsync(repository);
+
+        harness.Run(ActionIds.RemotePush);
         await harness.PumpUntilAsync(() => PopupText.Of(harness.Push).Length > 0);
-        Assert.Contains("Remote to push lonely to", PopupText.Of(harness.Push), StringComparison.Ordinal);
-        Assert.Contains("> origin\n(1/1)", PopupText.Of(harness.Push), StringComparison.Ordinal);
+        var text = PopupText.Of(harness.Push);
+        Assert.Contains("Remote to push lonely to", text, StringComparison.Ordinal);
+        Assert.Contains("> origin\n  second\n(1/2)", text, StringComparison.Ordinal);
+        Assert.Contains("Ctrl-n/p select", harness.Push.Popup!.Hint, StringComparison.Ordinal);
         Assert.Equal(KeyMode.Insert, harness.Mode);
         harness.Run(ActionIds.InputAccept);
         await harness.FinishAsync();
 
         Assert.Equal("origin/lonely", repository.Git("rev-parse", "--abbrev-ref", "lonely@{upstream}").Trim());
-        Assert.Equal(repository.Head, repository.GitIn(repository.OriginPath, ["rev-parse", "lonely"]).Trim());
-        Assert.Contains("set it as its upstream", harness.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
         Assert.Equal(KeyMode.Normal, harness.Mode);
     }
 
@@ -48,6 +65,7 @@ public class PushActionsTests
     public async Task GivenTheFirstPushPrompt_WhenCancelling_ThenNothingIsPushed()
     {
         using var repository = TestRepositories.WithoutUpstreamBranch();
+        repository.Git("remote", "add", "second", repository.OriginPath);
         using var harness = await Harness.LoadAsync(repository);
 
         harness.Run(ActionIds.RemotePush);
@@ -57,6 +75,30 @@ public class PushActionsTests
         Assert.Null(harness.Push.Popup);
         Assert.Equal(KeyMode.Normal, harness.Mode);
         Assert.DoesNotContain("lonely", repository.GitIn(repository.OriginPath, ["branch"]), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task GivenTheRemoteHasADivergedBranchOfTheSameName_WhenPushingAFirstTime_ThenTheRejectionOffersTheForcePush()
+    {
+        using var repository = TestRepositories.WithoutUpstreamBranch();
+        var theirs = PushFromAnotherClone(repository, "lonely", createBranch: true);
+        repository.Git("fetch", "-q", "origin");
+        using var harness = await Harness.LoadAsync(repository);
+
+        harness.Run(ActionIds.RemotePush);
+        await harness.PumpUntilAsync(() => harness.Prompts.Count > 0);
+
+        Assert.StartsWith("Push failed", harness.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
+        var prompt = Assert.Single(harness.Prompts);
+        Assert.Equal("Force push", prompt.Title);
+        Assert.Contains("origin/lonely", prompt.Lines[0], StringComparison.Ordinal);
+        Assert.Equal(theirs, repository.GitIn(repository.OriginPath, ["rev-parse", "lonely"]).Trim());
+
+        harness.Answer();
+        await harness.FinishAsync();
+
+        Assert.Equal(repository.Head, repository.GitIn(repository.OriginPath, ["rev-parse", "lonely"]).Trim());
+        Assert.Equal("origin/lonely", repository.Git("rev-parse", "--abbrev-ref", "lonely@{upstream}").Trim());
     }
 
     [Fact]
@@ -341,11 +383,20 @@ public class PushActionsTests
         Assert.Null(RemoteBranchName.Split("stranger/main", ["origin"]));
     }
 
-    private static string PushFromAnotherClone(TestRepository repository, string branch)
+    private static string PushFromAnotherClone(TestRepository repository, string branch, bool createBranch = false)
     {
         var root = Path.GetDirectoryName(repository.OriginPath)!;
         var clone = Path.Combine(root, "other-clone");
-        repository.GitIn(root, ["clone", "-q", "--branch", branch, repository.OriginPath, clone]);
+        if (createBranch)
+        {
+            repository.GitIn(root, ["clone", "-q", repository.OriginPath, clone]);
+            repository.GitIn(clone, ["checkout", "-q", "-b", branch]);
+        }
+        else
+        {
+            repository.GitIn(root, ["clone", "-q", "--branch", branch, repository.OriginPath, clone]);
+        }
+
         File.WriteAllText(Path.Combine(clone, "theirs.txt"), "t\n");
         repository.GitIn(clone, ["add", "-A"]);
         repository.GitIn(clone, ["commit", "-q", "-m", "Theirs"]);
@@ -388,6 +439,7 @@ public class PushActionsTests
                 () => { },
                 () => Selection);
             Remote.PushRejected = Push.OfferForce;
+            Remote.FirstPushRejected = Push.OfferForceFirstPush;
         }
 
         public BranchSelection Selection { get; set; } = new(null, null, null);

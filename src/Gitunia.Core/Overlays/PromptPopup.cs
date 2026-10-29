@@ -36,13 +36,16 @@ public sealed record PromptPopup(
         string context,
         string input,
         IReadOnlyList<string> rows,
-        string acceptLabel) =>
+        string acceptLabel,
+        bool canSelect = true) =>
         new(
             title,
             [context],
             input,
             rows,
-            $"Type filters{HintGap}Up/Down select{HintGap}Enter {acceptLabel}{HintGap}{CancelHint}");
+            canSelect
+                ? $"Type filters{HintGap}Ctrl-n/p select{HintGap}Enter {acceptLabel}{HintGap}{CancelHint}"
+                : $"Type filters{HintGap}Enter {acceptLabel}{HintGap}{CancelHint}");
 
     /// <summary>A prompt answered by one key; each option is written as <c>key  label</c>.</summary>
     public static PromptPopup ForChoice(string title, string context, IReadOnlyList<string> options) =>

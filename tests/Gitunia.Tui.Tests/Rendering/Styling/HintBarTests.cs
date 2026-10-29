@@ -28,9 +28,9 @@ public class HintBarTests
     [Fact]
     public void GivenAnEntryThatStartsWithAWord_WhenParsing_ThenItIsAPlainNote()
     {
-        var items = HintBar.Parse("Type filters   Up/Down select");
+        var items = HintBar.Parse("Type filters   Ctrl-n/p select");
 
-        Assert.Equal([new HintItem(string.Empty, "Type filters"), new HintItem("Up/Down", "select")], items);
+        Assert.Equal([new HintItem(string.Empty, "Type filters"), new HintItem("Ctrl-n/p", "select")], items);
     }
 
     [Theory]
@@ -55,12 +55,12 @@ public class HintBarTests
     [Fact]
     public void GivenAPromptPopup_WhenBuilding_ThenItsHintKeysAreDrawnAsKeys()
     {
-        var prompt = PromptPopup.ForFilter("Pick", "Context", "ab", ["one"], "choose");
+        var prompt = PromptPopup.ForFilter("Pick", "Context", "ab", ["one", "two"], "choose");
 
         var frame = PromptPopupFrameBuilder.Build(prompt, 90, 24, GraphGlyphSet.Unicode)!;
 
         var keys = frame.Lines[^2].Segments.Where(segment => segment.Role == SegmentRole.StatusKey);
-        Assert.Equal(["Up/Down", "Enter", "Esc"], keys.Select(segment => segment.Text));
+        Assert.Equal(["Ctrl-n/p", "Enter", "Esc"], keys.Select(segment => segment.Text));
     }
 
     [Fact]
