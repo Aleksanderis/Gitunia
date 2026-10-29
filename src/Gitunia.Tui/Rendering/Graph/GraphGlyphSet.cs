@@ -8,7 +8,7 @@ namespace Gitunia.Tui.Rendering.Graph;
 /// <param name="Lines">Line characters indexed by <see cref="LineDirections"/> flags (16 entries).</param>
 /// <param name="Ellipsis">Shown where text was cut.</param>
 /// <param name="CurrentBranch">Before the name of the branch HEAD is on, inside its label box.</param>
-/// <param name="Remote">After the name, inside the label box, of a branch that also stands for its remote-tracking branch.</param>
+/// <param name="Remote">After the name, inside the label box (the Unicode glyph keeps a trailing space as padding so the wide icon does not touch the box edge), of a branch that also stands for its remote-tracking branch.</param>
 /// <param name="UpstreamGone">After the label of a local branch whose upstream no longer exists.</param>
 public sealed record GraphGlyphSet(
     char Node,

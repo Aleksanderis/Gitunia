@@ -18,8 +18,10 @@ public static class GraphRowRenderer
     // Blank columns between a row's own lines and its message.
     private const int MinimumLaneGap = 2;
 
-    /// <summary>Before the labels of the commit marked for a comparison.</summary>
+    // Between two labels and after the last one.
     private const string LabelSeparator = " ";
+
+    /// <summary>Before the labels of the commit marked for a comparison.</summary>
     private const string MarkText = "[mark] ";
 
     private static readonly string CompactGapText = new(' ', GraphColumnLayout.CompactColumnGap);
