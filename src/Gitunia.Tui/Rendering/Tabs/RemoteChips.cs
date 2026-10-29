@@ -31,13 +31,13 @@ public static class RemoteChips
     /// <summary>The idle chips, in order.</summary>
     /// <param name="keyed">Whether each chip shows its key before its label.</param>
     /// <param name="keys">Where the key text comes from; null uses the default keymap.</param>
-    public static IReadOnlyList<RemoteChip> Idle(bool keyed, ChipKeys? keys = null) =>
+    public static IReadOnlyList<TitleButton> Idle(bool keyed, ChipKeys? keys = null) =>
         [.. IdleChips.Select(chip => Build(chip, keyed, keys))];
 
     /// <summary>The one chip shown while a fetch, pull or push of the active tab runs.</summary>
     /// <param name="keyed">Whether the chip shows its key before its label.</param>
     /// <param name="keys">Where the key text comes from; null uses the default keymap.</param>
-    public static RemoteChip Cancel(bool keyed, ChipKeys? keys = null) => Build(CancelChip, keyed, keys);
+    public static TitleButton Cancel(bool keyed, ChipKeys? keys = null) => Build(CancelChip, keyed, keys);
 
     /// <summary>The columns the idle chips take with the gaps between them, the most any state needs.</summary>
     /// <param name="keyed">Whether the chips show their keys.</param>
@@ -59,7 +59,7 @@ public static class RemoteChips
             : null;
 
     /// <summary>The chips shown now in a row of <paramref name="width"/> columns, left to right.</summary>
-    public static IReadOnlyList<RemoteChip> Shown(int width, bool isBusy, ChipKeys? keys = null)
+    public static IReadOnlyList<TitleButton> Shown(int width, bool isBusy, ChipKeys? keys = null)
     {
         var keyed = IsKeyed(width, keys);
 
@@ -89,12 +89,10 @@ public static class RemoteChips
         return null;
     }
 
-    private static RemoteChip Build(ButtonSpecification chip, bool keyed, ChipKeys? keys)
+    private static TitleButton Build(ButtonSpecification chip, bool keyed, ChipKeys? keys)
     {
         var key = keyed ? (keys ?? ChipKeys.Default).For(chip.View, KeyBindingTable.GlobalView) : null;
 
-        return key is null
-            ? new RemoteChip($" {chip.Label} ", chip.View)
-            : new RemoteChip($" {key} {chip.Label} ", chip.View, key.Length);
+        return KeyedChip.Keyed(chip.View, chip.Label, key);
     }
 }

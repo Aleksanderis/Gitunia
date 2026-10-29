@@ -272,7 +272,7 @@ The which-key popup of `<space>g` lists the everyday keys only: `m` `M` `p` `r` 
 - **Reword** (`r`) opens the message editor in the same box with the commit's full message (read from git, not only the subject), the multi-line editor of the commit box (workflow 2): `Enter` new line, `Ctrl-g` keeps the message and makes the commit a `reword` (the row then shows the new subject), `Esc` cancels the edit. A blank message is refused. Choosing `p`, `s`, `f` or `d` afterwards keeps the text, so `r` brings it back.
 - **Start** (`Enter`): a Confirm names the branch, the target, how many commits are kept, reworded, squashed, fixed up and dropped, lists the dropped commits (hash and subject, five at most), warns about a branch with an upstream (history rewrite, force push needed) and shows the undo (`git reset --keep <old tip>`, also `ORIG_HEAD` and the reflog). The Confirm opens over the editor, so `n` keeps the todo. On `y` the editor closes and the rebase runs in the background under the tab's operation gate; the state is checked again first (tab, HEAD and refusals), because it can change while the todo is open. A stop on conflicts is the in-progress rebase of workflow 4 (banner, `<space>gc`, `<space>ga`, `<space>gk`). If git refuses before anything ran (the range changed, `GIT_SEQUENCE_EDITOR` is set), the status says why and the todo comes back.
 - **Closing.** `Esc`, `h` or `q` closes; with an edited todo the first press says "Esc again discards the changes to the todo" and the next closes. Nothing was changed in the repository until `y`.
-- **Mouse.** The wheel scrolls, a click highlights a commit, and chips under the list (`[p pick] [r reword] [s squash] [f fixup] [d drop] [K move up] [J move down] [Enter start] [Esc cancel]`, flowing onto more rows on a narrow terminal so none is cut off) run the same actions. The actions menu of a graph or sidebar row lists "Interactive rebase" next to "Rebase". When the box does not fit (under about 9 rows, fewer with a wide terminal) it is not drawn and the keys still answer, blind.
+- **Mouse.** The wheel scrolls, a click highlights a commit, and chips under the list (`p pick  r reword  s squash  f fixup  d drop  K move up  J move down  Enter start  Esc cancel`, drawn as key hints like the conflict editor's, flowing onto more rows on a narrow terminal so none is cut off) run the same actions. The actions menu of a graph or sidebar row lists "Interactive rebase" next to "Rebase". When the box does not fit (under about 9 rows, fewer with a wide terminal) it is not drawn and the keys still answer, blind.
 
 **Reset** (`<space>gx`, not a single letter, so it cannot clash with vim motions or `g` chords): the current branch moves to the selected commit. A small dialog offers `s` soft (keeps index and files), `m` mixed (keeps files, clears the index), `h` hard. Soft runs at once and shows the old tip in the status ("Reset to abc1234, was def5678"). Mixed runs at once when the index equals HEAD; otherwise it opens a Confirm saying the staged state (including partially staged hunks) is dropped and cannot be recovered from the reflog. Hard opens a Confirm that lists the tracked files and the count of changes that will be lost (untracked files stay unless the target commit tracks a file at the same path, and it says so) and the old tip for the undo (the reflog restores commits, never uncommitted changes, and the Confirm says so). Refused during an in-progress operation and on a detached or unborn HEAD. The status after a reset names the old tip and the undo (`reset [--hard] <old hash>`, also `ORIG_HEAD` and the reflog). Implemented in #392 (`ResetActions.Begin(tab, commit)` is the entry the reflog view calls). The reflog view offers the same key on an entry. Mouse: the actions menu of a graph or sidebar row.
 
@@ -881,15 +881,15 @@ Mouse input is optional and goes through the same action path as keys: the mouse
 | ReflogPicker | Click | `input.accept` | A row of the reflog ref picker: highlights it and opens that ref's reflog, like `Enter` |
 | RebaseEditor | Wheel up | `list.up` | Scroll the todo up 3 commits |
 | RebaseEditor | Wheel down | `list.down` | Scroll the todo down 3 commits |
-| RebaseButton.Pick | Click | `rebase-editor.pick` | Chip `[p pick]` under the todo: sets the highlighted commit; a click on a commit itself only highlights it |
-| RebaseButton.Reword | Click | `rebase-editor.reword` | Chip `[r reword]`: opens the message editor |
-| RebaseButton.Squash | Click | `rebase-editor.squash` | Chip `[s squash]` |
-| RebaseButton.Fixup | Click | `rebase-editor.fixup` | Chip `[f fixup]` |
-| RebaseButton.Drop | Click | `rebase-editor.drop` | Chip `[d drop]` |
-| RebaseButton.Up | Click | `rebase-editor.move-up` | Chip `[K move up]` |
-| RebaseButton.Down | Click | `rebase-editor.move-down` | Chip `[J move down]` |
-| RebaseButton.Start | Click | `rebase-editor.start` | Chip `[Enter start]`: asks the Confirm (its `y` and `n` rows are the `ConfirmButton.Yes` and `ConfirmButton.No` views) |
-| RebaseButton.Cancel | Click | `navigate.back` | Chip `[Esc cancel]`: closes the editor like `Esc` |
+| RebaseButton.Pick | Click | `rebase-editor.pick` | Chip `p pick` under the todo: sets the highlighted commit; a click on a commit itself only highlights it |
+| RebaseButton.Reword | Click | `rebase-editor.reword` | Chip `r reword`: opens the message editor |
+| RebaseButton.Squash | Click | `rebase-editor.squash` | Chip `s squash` |
+| RebaseButton.Fixup | Click | `rebase-editor.fixup` | Chip `f fixup` |
+| RebaseButton.Drop | Click | `rebase-editor.drop` | Chip `d drop` |
+| RebaseButton.Up | Click | `rebase-editor.move-up` | Chip `K move up` |
+| RebaseButton.Down | Click | `rebase-editor.move-down` | Chip `J move down` |
+| RebaseButton.Start | Click | `rebase-editor.start` | Chip `Enter start`: asks the Confirm (its `y` and `n` rows are the `ConfirmButton.Yes` and `ConfirmButton.No` views) |
+| RebaseButton.Cancel | Click | `navigate.back` | Chip `Esc cancel`: closes the editor like `Esc` |
 | ConflictEditor | Wheel up | `conflict-editor.previous` | Previous conflict hunk |
 | ConflictEditor | Wheel down | `conflict-editor.next` | Next conflict hunk |
 | ConflictButton.Ours | Click | `conflict-editor.ours` | Chip `o ours` under the result: takes our side for the hunk under the cursor |

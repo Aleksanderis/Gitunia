@@ -92,7 +92,7 @@ public static class ChromeBuilder
 
     private static void AppendHints(LineBuilder builder, IReadOnlyList<KeyHint> hints)
     {
-        HintRenderer.Append(builder, hints, HintGap);
+        HintBar.Append(builder, hints.Select(hint => hint.Item), HintGap);
     }
 
     private static StyledLine TabRow(
@@ -128,7 +128,13 @@ public static class ChromeBuilder
         if (TabBarLayout.CommandsStart(width) is { } commandsStart)
         {
             builder.Append(new string(' ', Math.Max(0, commandsStart - (width - builder.Remaining))), SegmentRole.Status);
-            builder.Append(TabBarLayout.CommandsLabel, SegmentRole.BarButton);
+            foreach (var piece in KeyedChip.Segments(
+                TabBarLayout.CommandsChip(),
+                glyphs,
+                ChipStyle.Bar(glyphs.IsAscii)))
+            {
+                builder.Append(piece.Text, piece.Role);
+            }
         }
 
         return builder.Build(SegmentRole.Status);
@@ -149,13 +155,7 @@ public static class ChromeBuilder
             builder.Append(first ? string.Empty : " ", SegmentRole.Status);
 
             // The key is styled like a status bar hint: bold accent key, plain description.
-            var pieces = ChipSegments.Split(
-                ButtonLabel.For(chip.Label, glyphs.IsAscii),
-                chip.KeyLength,
-                SegmentRole.BarButton,
-                glyphs.IsAscii ? SegmentRole.BarButton : SegmentRole.Status,
-                SegmentRole.StatusKey,
-                SegmentRole.Status);
+            var pieces = KeyedChip.Segments(chip, glyphs, ChipStyle.Bar(glyphs.IsAscii));
             foreach (var piece in pieces)
             {
                 builder.Append(piece.Text, piece.Role);

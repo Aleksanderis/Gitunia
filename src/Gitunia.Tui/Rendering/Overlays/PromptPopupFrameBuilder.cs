@@ -16,6 +16,7 @@ public static class PromptPopupFrameBuilder
     private const int MinimumPopupWidth = 64;
     private const int ScreenMargin = 2;
     private const int FooterLines = 3;
+    private const string PromptHintGap = "   ";
     private const string Marker = "> ";
     private const string Cursor = "_";
 
@@ -51,7 +52,7 @@ public static class PromptPopupFrameBuilder
         var rowRoom = screenHeight - ScreenMargin - fixedLines;
         lines.AddRange(FitRows(prompt.Details, rowRoom).Select(detail => OverlayBox.Text(detail, width, glyphs)));
         lines.Add(OverlayBox.Text(string.Empty, width, glyphs));
-        lines.Add(OverlayBox.Text(prompt.Hint, width, glyphs, SegmentRole.Faint));
+        lines.Add(OverlayBox.Hints(prompt.Hint, width, glyphs, gap: PromptHintGap));
         lines.Add(OverlayBox.Bottom(width, glyphs));
         if (lines.Count > screenHeight - ScreenMargin)
         {

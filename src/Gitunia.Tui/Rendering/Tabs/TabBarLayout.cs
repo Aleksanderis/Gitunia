@@ -1,4 +1,5 @@
 using System.Globalization;
+using Gitunia.Core.Mouse;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Styling;
 
@@ -25,8 +26,13 @@ public static class TabBarLayout
     /// <summary>Blank columns before the first tab.</summary>
     public const int LeftMargin = 1;
 
+    private const int CommandsKeyLength = 1;
     private const int GapColumns = 1;
     private const int Padding = 2;
+
+    /// <summary>The commands button as a chip: its key (<c>:</c>, one column in) is drawn in the key style.</summary>
+    public static TitleButton CommandsChip() =>
+        new(DefaultMouseMap.CommandsButton, CommandsLabel, 0, CommandsKeyLength);
 
     /// <summary>The first column of the commands button in a row of <paramref name="width"/> columns, or null when the row has none.</summary>
     public static int? CommandsStart(int width) => width >= MinimumWidthForCommands ? width - CommandsLabel.Length - 1 : null;
