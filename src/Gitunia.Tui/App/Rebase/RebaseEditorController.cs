@@ -16,6 +16,7 @@ using Gitunia.Git.Repositories.Models;
 using Gitunia.Tui.App.WorkingTree;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Overlays;
+using Gitunia.Tui.Rendering.Styling;
 using Gitunia.Tui.Views;
 
 namespace Gitunia.Tui.App.Rebase;
@@ -43,6 +44,7 @@ namespace Gitunia.Tui.App.Rebase;
 /// <param name="setMode">Switches the keymap mode (Insert while a message is edited).</param>
 /// <param name="redraw">Redraws the overlay layer and the status bar.</param>
 /// <param name="gate">The one-operation-per-tab gate, shared with staging, discard, reset and stash.</param>
+/// <param name="keys">Where the chips take their key text from; null uses the default keymap.</param>
 public sealed class RebaseEditorController(
     WorkspaceHost host,
     IInteractiveRebaseWriter writer,
@@ -58,7 +60,8 @@ public sealed class RebaseEditorController(
     GraphGlyphSet glyphs,
     Action<KeyMode> setMode,
     Action redraw,
-    TabOperationGate gate)
+    TabOperationGate gate,
+    ChipKeys? keys = null)
 {
     private const int ShortHashLength = 7;
     private const string BusyNotice = "Busy: another operation of this tab is still running";
@@ -88,7 +91,7 @@ public sealed class RebaseEditorController(
         }
 
         var size = screenSize();
-        return RebaseEditorFrameBuilder.Build(state, size.Width, size.Height, glyphs);
+        return RebaseEditorFrameBuilder.Build(state, size.Width, size.Height, glyphs, keys);
     }
 
     /// <summary>
@@ -144,7 +147,7 @@ public sealed class RebaseEditorController(
         }
 
         var size = screenSize();
-        if (RebaseEditorFrameBuilder.EntryIndexAt(state, frameLine, size.Width, size.Height) is { } index)
+        if (RebaseEditorFrameBuilder.EntryIndexAt(state, frameLine, size.Width, size.Height, keys) is { } index)
         {
             State = state.MoveTo(index);
             handled = true;
@@ -152,7 +155,7 @@ public sealed class RebaseEditorController(
             return null;
         }
 
-        var view = RebaseEditorFrameBuilder.ChipAt(state, frameLine, frameColumn, size.Width, size.Height);
+        var view = RebaseEditorFrameBuilder.ChipAt(state, frameLine, frameColumn, size.Width, size.Height, keys);
         handled = view is not null;
         return view;
     }
@@ -388,7 +391,7 @@ public sealed class RebaseEditorController(
     private void Move(RebaseEditorState state, ActionId action, int? count)
     {
         var size = screenSize();
-        var rows = RebaseEditorFrameBuilder.VisibleRows(state, size.Width, size.Height);
+        var rows = RebaseEditorFrameBuilder.VisibleRows(state, size.Width, size.Height, keys);
         if (ListMotion.TryMove(action, count, state.SelectedIndex, state.Rows.Count, rows, out var target))
         {
             Update(state.MoveTo(target));

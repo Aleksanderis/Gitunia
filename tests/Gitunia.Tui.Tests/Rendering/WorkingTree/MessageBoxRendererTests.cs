@@ -25,8 +25,10 @@ public class MessageBoxRendererTests
         var line = MessageBoxRenderer.OptionsLine(draft, 60, Padding, GraphGlyphSet.Unicode);
 
         Assert.Equal(60, TextWidth.Of(Text(line)));
-        Assert.Equal($" [x] SignOff  [ ] No-Verify  [x] Amend{new string(' ', 14)}Commit  ", Text(line));
-        Assert.Contains(line.Segments, segment => segment.Role == SegmentRole.Button && segment.Text == " Commit ");
+        Assert.Equal($" [x] SignOff  [ ] No-Verify  [x] Amend{new string(' ', 7)}Ctrl-g Commit  ", Text(line));
+        Assert.Contains(
+            line.Segments,
+            segment => segment.Role == SegmentRole.RepositoryTabKey && segment.Text == "Ctrl-g");
     }
 
     [Fact]
@@ -34,7 +36,40 @@ public class MessageBoxRendererTests
     {
         var line = MessageBoxRenderer.OptionsLine(new CommitDraft(), 60, Padding, GraphGlyphSet.Ascii);
 
-        Assert.Contains("[Commit]", Text(line), StringComparison.Ordinal);
+        Assert.Contains("[Ctrl-g Commit]", Text(line), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GivenARebinding_WhenRenderingTheOptionRow_ThenTheCommitChipShowsTheNewKeyAndClicksStillHitIt()
+    {
+        var bindings = DefaultKeymap.CreateBindings()
+            .Select(binding => binding.Action == ActionIds.WorkingTreeCommit && binding.Mode == KeyMode.Insert
+                ? binding with { Sequence = KeySequenceParser.Parse("Ctrl-k") }
+                : binding);
+        var keys = new ChipKeys(DefaultKeymap.Create().WithBindings(bindings));
+        var textWidth = PanePadding.TextWidth(60);
+
+        var line = Text(MessageBoxRenderer.OptionsLine(new CommitDraft(), 60, Padding, GraphGlyphSet.Unicode, keys));
+        var commit = MessageBoxRenderer.Buttons(textWidth, Padding, keys).Single(button =>
+            button.View == DefaultMouseMap.MessageCommitButton);
+
+        Assert.Contains(" Ctrl-k Commit ", line, StringComparison.Ordinal);
+        Assert.DoesNotContain("Ctrl-g", line, StringComparison.Ordinal);
+        Assert.Equal(commit.Label, line.Substring(commit.Start, commit.Width));
+    }
+
+    [Fact]
+    public void GivenARowTooNarrowForTheKey_WhenRenderingTheOptionRow_ThenTheCommitChipDropsItsKey()
+    {
+        var width = 52;
+
+        var line = Text(MessageBoxRenderer.OptionsLine(new CommitDraft(), width, Padding, GraphGlyphSet.Unicode));
+        var buttons = MessageBoxRenderer.Buttons(PanePadding.TextWidth(width), Padding);
+
+        Assert.Equal(width, TextWidth.Of(line));
+        Assert.EndsWith(" Commit  ", line, StringComparison.Ordinal);
+        Assert.DoesNotContain("Ctrl-g", line, StringComparison.Ordinal);
+        Assert.Equal(" Commit ", buttons[^1].Label);
     }
 
     [Fact]

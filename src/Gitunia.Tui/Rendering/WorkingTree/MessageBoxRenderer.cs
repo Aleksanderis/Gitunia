@@ -1,4 +1,6 @@
 using Gitunia.Core.Editing;
+using Gitunia.Core.Keymap;
+using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Mouse;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Panes;
@@ -9,7 +11,10 @@ namespace Gitunia.Tui.Rendering.WorkingTree;
 /// <summary>
 /// Draws the commit message box of the working-tree view: the editor rows and the option row below them with the SignOff,
 /// No-Verify and Amend checkboxes and the Commit button (ux.md, workflow 2). The checkboxes and the button are the mouse path of
-/// <c>Alt-s</c>, <c>Alt-n</c>, <c>Alt-a</c> and <c>Ctrl-g</c>; <see cref="Buttons"/> says where they are for clicks.
+/// <c>Alt-s</c>, <c>Alt-n</c>, <c>Alt-a</c> and the commit key; <see cref="Buttons"/> says where they are for clicks.
+/// The Commit button is a <see cref="KeyedChip"/> showing the key the keymap gives it in Insert mode (where the box is
+/// typed in), and drops the key when the row is too narrow; the checkboxes are state, not chips, and keep their
+/// brackets.
 /// </summary>
 public static class MessageBoxRenderer
 {
@@ -18,7 +23,7 @@ public static class MessageBoxRenderer
     private const string SignOffLabel = "SignOff";
     private const string NoVerifyLabel = "No-Verify";
     private const string AmendLabel = "Amend";
-    private const string CommitLabel = " Commit ";
+    private const string CommitLabel = "Commit";
     private const string Gap = "  ";
     private const string RunningText = "committing...";
 
@@ -42,7 +47,8 @@ public static class MessageBoxRenderer
     /// Where the checkboxes and the Commit button sit in an option row whose text has <paramref name="textWidth"/> columns
     /// (the row has <paramref name="padding"/> blank columns on each side).
     /// </summary>
-    public static IReadOnlyList<TitleButton> Buttons(int textWidth, int padding)
+    /// <param name="keys">Where the Commit key comes from; null uses the default keymap.</param>
+    public static IReadOnlyList<TitleButton> Buttons(int textWidth, int padding, ChipKeys? keys = null)
     {
         var buttons = new List<TitleButton>();
         var column = padding;
@@ -53,10 +59,9 @@ public static class MessageBoxRenderer
             column += TextWidth.Of(label) + Gap.Length;
         }
 
-        var commitStart = padding + textWidth - TextWidth.Of(CommitLabel);
-        if (commitStart >= column)
+        if (CommitChip(textWidth, keys) is { } commit)
         {
-            buttons.Add(new TitleButton(DefaultMouseMap.MessageCommitButton, CommitLabel, commitStart));
+            buttons.Add(commit with { Start = padding + commit.Start });
         }
 
         return buttons;
@@ -67,7 +72,13 @@ public static class MessageBoxRenderer
     /// <param name="width">Columns of the row including the padding.</param>
     /// <param name="padding">Blank columns on each side.</param>
     /// <param name="glyphs">The character set.</param>
-    public static StyledLine OptionsLine(CommitDraft? draft, int width, int padding, GraphGlyphSet glyphs)
+    /// <param name="keys">Where the Commit key comes from; null uses the default keymap.</param>
+    public static StyledLine OptionsLine(
+        CommitDraft? draft,
+        int width,
+        int padding,
+        GraphGlyphSet glyphs,
+        ChipKeys? keys = null)
     {
         var textWidth = PanePadding.TextWidth(width, padding);
         var builder = new LineBuilder(textWidth, glyphs.Ellipsis);
@@ -77,20 +88,42 @@ public static class MessageBoxRenderer
             builder.Append($"{(states[index] ? Checked : Unchecked)} {Options[index].Name}{Gap}", SegmentRole.Plain);
         }
 
-        var commitStart = textWidth - TextWidth.Of(CommitLabel);
         if (draft?.IsCommitting == true)
         {
             var running = TextWidth.Fit(RunningText, Math.Max(0, builder.Remaining), glyphs.Ellipsis);
             builder.Append(new string(' ', Math.Max(0, builder.Remaining - TextWidth.Of(running))), SegmentRole.Plain);
             builder.Append(running, SegmentRole.Faint);
         }
-        else if (commitStart >= TextWidth.Of(AllOptionsText))
+        else if (CommitChip(textWidth, keys) is { } commit)
         {
-            builder.Append(new string(' ', builder.Remaining - TextWidth.Of(CommitLabel)), SegmentRole.Plain);
-            builder.Append(ButtonLabel.For(CommitLabel, glyphs.IsAscii), SegmentRole.Button);
+            builder.Append(new string(' ', commit.Start - TextWidth.Of(AllOptionsText)), SegmentRole.Plain);
+            foreach (var segment in KeyedChip.Segments(commit, glyphs))
+            {
+                builder.Append(segment.Text, segment.Role);
+            }
         }
 
         return PanePadding.Wrap(builder.Build(), padding);
+    }
+
+    // The Commit chip flush right in a text of textWidth columns (Start relative to the text), keyed when the row has
+    // room for the key, plain when only the label fits, null when not even that.
+    private static TitleButton? CommitChip(int textWidth, ChipKeys? keys)
+    {
+        var key = (keys ?? ChipKeys.Default)
+            .For(DefaultMouseMap.MessageCommitButton, DefaultKeymap.WorkingMessageView, KeyMode.Insert);
+        var room = textWidth - TextWidth.Of(AllOptionsText);
+        var view = DefaultMouseMap.MessageCommitButton;
+        TitleButton[] candidates = [KeyedChip.Keyed(view, CommitLabel, key), KeyedChip.Plain(view, CommitLabel)];
+        foreach (var chip in candidates)
+        {
+            if (chip.Width <= room)
+            {
+                return chip with { Start = textWidth - chip.Width };
+            }
+        }
+
+        return null;
     }
 
     /// <summary>The rows of the editor part of the box (without the option row).</summary>

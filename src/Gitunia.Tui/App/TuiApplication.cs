@@ -1476,7 +1476,8 @@ public sealed class TuiApplication(
         glyphs,
         SetMode,
         RefreshOverlay,
-        gate);
+        gate,
+        _chipKeys);
 
     private ConflictEditorController CreateConflictEditor(
         GraphGlyphSet glyphs,
@@ -1497,7 +1498,8 @@ public sealed class TuiApplication(
         glyphs,
         SetMode,
         RefreshOverlay,
-        gate);
+        gate,
+        _chipKeys);
 
     private ReflogController CreateReflog(GraphGlyphSet glyphs) => new(
         _host,

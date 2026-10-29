@@ -1,4 +1,5 @@
 using Gitunia.Core.Conflicts;
+using Gitunia.Core.Keymap;
 using Gitunia.Core.Mouse;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Conflicts;
@@ -664,6 +665,24 @@ public class ConflictEditorFrameBuilderTests
         Assert.True(line >= 0, chip);
         var column = frame.Lines[line].Text.IndexOf(chip, StringComparison.Ordinal) + 1;
         Assert.Equal(view, ConflictEditorFrameBuilder.ChipAt(state, line, column, screenWidth, 30));
+    }
+
+    [Fact]
+    public void GivenARebinding_WhenRendering_ThenTheChipsShowTheNewKeysInBothModes()
+    {
+        var bindings = DefaultKeymap.CreateBindings()
+            .Select(binding => binding.Action == ActionIds.ConflictEditorOurs
+                || binding.Action == ActionIds.ConflictEditorEditDone
+                    ? binding with { Sequence = KeySequenceParser.Parse("Ctrl-o") }
+                    : binding);
+        var keys = new ChipKeys(DefaultKeymap.Create().WithBindings(bindings));
+        var state = State(Text);
+
+        var normal = ConflictEditorFrameBuilder.Build(state, 120, 30, GraphGlyphSet.Unicode, keys)!;
+        var editing = ConflictEditorFrameBuilder.Build(state.BeginEdit(), 120, 30, GraphGlyphSet.Unicode, keys)!;
+
+        Assert.Contains(normal.Lines, line => line.Text.Contains("Ctrl-o ours", StringComparison.Ordinal));
+        Assert.Contains(editing.Lines, line => line.Text.Contains("Ctrl-o keep", StringComparison.Ordinal));
     }
 
     private static ConflictEditorState State(string text) =>

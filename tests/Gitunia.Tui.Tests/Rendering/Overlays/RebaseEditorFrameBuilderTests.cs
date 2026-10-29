@@ -1,3 +1,4 @@
+using Gitunia.Core.Keymap;
 using Gitunia.Core.Mouse;
 using Gitunia.Core.Rebase;
 using Gitunia.Core.Workspaces.Tabs;
@@ -188,6 +189,40 @@ public class RebaseEditorFrameBuilderTests
         var frame = RebaseEditorFrameBuilder.Build(state, 80, 24, GraphGlyphSet.Unicode);
 
         Assert.Contains("A reword needs a message", frame!.Lines[^2].Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GivenARebinding_WhenRendering_ThenTheChipShowsTheNewKeyAndTheClickColumnsFollowItsWidth()
+    {
+        var bindings = DefaultKeymap.CreateBindings()
+            .Select(binding => binding.Action == ActionIds.RebaseEditorDrop
+                ? binding with { Sequence = KeySequenceParser.Parse("Ctrl-x") }
+                : binding);
+        var keys = new ChipKeys(DefaultKeymap.Create().WithBindings(bindings));
+        var state = State(2);
+
+        var frame = RebaseEditorFrameBuilder.Build(state, 80, 24, GraphGlyphSet.Unicode, keys)!;
+
+        var line = frame.Lines.ToList().FindIndex(row => row.Text.Contains("Ctrl-x drop", StringComparison.Ordinal));
+        Assert.True(line > 0);
+        var column = frame.Lines[line].Text.IndexOf("Ctrl-x drop", StringComparison.Ordinal);
+        Assert.Equal(
+            DefaultMouseMap.RebaseDropButton,
+            RebaseEditorFrameBuilder.ChipAt(state, line, column, 80, 24, keys));
+        Assert.DoesNotContain(frame.Lines, row => row.Text.Contains("d drop", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void GivenAnUnboundAction_WhenRendering_ThenTheChipShowsItsDescriptionOnly()
+    {
+        var bindings = DefaultKeymap.CreateBindings().Where(binding => binding.Action != ActionIds.RebaseEditorFixup);
+        var keys = new ChipKeys(DefaultKeymap.Create().WithBindings(bindings));
+
+        var frame = RebaseEditorFrameBuilder.Build(State(2), 80, 24, GraphGlyphSet.Unicode, keys)!;
+        var text = string.Join('\n', frame.Lines.Select(row => row.Text));
+
+        Assert.Contains("fixup", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("f fixup", text, StringComparison.Ordinal);
     }
 
     private static string? ChipAt(RebaseEditorState state, int line, string text, string chip, int offset) =>
