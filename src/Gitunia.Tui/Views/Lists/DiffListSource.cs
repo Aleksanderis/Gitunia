@@ -91,12 +91,20 @@ public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource, IRan
 
     public event Action? RangeInvalidated;
 
-    /// <summary>Shows another document and tells the list.</summary>
+    /// <summary>
+    /// Shows another document and tells the list. A Visual range survives a document with the same rows (a refresh
+    /// that found nothing new, #806); any other document ends it.
+    /// </summary>
     public void Update(DiffDocument document)
     {
+        var isSame = Range is not null && HasSameRows(Document, document);
         Document = document;
         _jump.Invalidate();
-        RangeInvalidated?.Invoke();
+        if (Range is null || !isSame)
+        {
+            RangeInvalidated?.Invoke();
+        }
+
         _map = null;
         _split = null;
         _splitMap = null;
@@ -285,6 +293,15 @@ public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource, IRan
             GroupKeys(),
             ChangeGroupButtons.ContentWidth(line));
     }
+
+    // The rows, hunk and file markers and file paths are equal: every row index means what it meant before.
+    private static bool HasSameRows(DiffDocument previous, DiffDocument next) =>
+        previous.ContentPath == next.ContentPath
+        && previous.Rows.SequenceEqual(next.Rows)
+        && previous.HunkRows.SequenceEqual(next.HunkRows)
+        && previous.FileRows.SequenceEqual(next.FileRows)
+        && previous.FilePaths.Count == next.FilePaths.Count
+        && previous.FilePaths.Zip(next.FilePaths).All(pair => pair.First.SequenceEqual(pair.Second));
 
     private DiffWrapMap? Map()
     {
