@@ -208,4 +208,19 @@ public class FrameGridTests
         Assert.Equal(3 + 2 * expected, PanePadding.Wrap(new StyledLine([new StyledSegment("abc", SegmentRole.Plain)]), expected).Text.Length);
         Assert.Equal(10 - 2 * expected, PanePadding.TextWidth(10, expected));
     }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    public void GivenGraphRow_WhenWrapping_ThenOnlyTheRightSideIsPadded(int columns)
+    {
+        var line = new StyledLine([new StyledSegment("abc", SegmentRole.Plain)], IsSelected: true);
+
+        var padded = PanePadding.WrapGraph(line, columns);
+
+        Assert.Equal("abc" + new string(' ', columns), padded.Text);
+        Assert.True(padded.IsSelected);
+        Assert.Equal(10 - columns, PanePadding.GraphTextWidth(10, columns));
+        Assert.Equal(0, PanePadding.GraphTextWidth(1, columns));
+    }
 }

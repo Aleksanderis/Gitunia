@@ -112,7 +112,7 @@ public sealed class GraphListSource(CommitGraph graph, GraphGlyphSet glyphs) : I
         var cursor = CommitIndexOf(listView.SelectedItem ?? 0);
         var firstHash = first >= 0 && first < graph.Count ? graph[first].Id.GetHashCode() : 0;
         var columns = ScreenPadding.Columns(listView);
-        var width = PanePadding.TextWidth(listView.Viewport.Width, columns);
+        var width = PanePadding.GraphTextWidth(listView.Viewport.Width, columns);
         var window = new JumpWindow(first, listView.Viewport.Height, cursor);
 
         return _jump.Labels(text, window, HashCode.Combine(graph.Count, firstHash, width), () => new GraphJumpRows(graph, OptionsFor(width)));
@@ -129,7 +129,7 @@ public sealed class GraphListSource(CommitGraph graph, GraphGlyphSet glyphs) : I
     public void Render(ListView listView, bool selected, int item, int col, int row, int width, int viewportX = 0)
     {
         var columns = ScreenPadding.Columns(listView);
-        var options = OptionsFor(PanePadding.TextWidth(width, columns));
+        var options = OptionsFor(PanePadding.GraphTextWidth(width, columns));
         var commitIndex = CommitIndexOf(item);
         selected |= Range?.Contains(item) == true;
         var line = commitIndex >= 0 && commitIndex < graph.Count
@@ -139,7 +139,7 @@ public sealed class GraphListSource(CommitGraph graph, GraphGlyphSet glyphs) : I
                 : GraphRowRenderer.RenderEmpty(options, selected);
         LinePainter.Paint(
             listView,
-            PanePadding.Wrap(line, columns),
+            PanePadding.WrapGraph(line, columns),
             col,
             row,
             listView.HasFocus);

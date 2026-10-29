@@ -20,6 +20,17 @@ public static class PanePadding
     /// <summary>Columns left for text in a pane of <paramref name="paneWidth"/> columns.</summary>
     public static int TextWidth(int paneWidth, int columns = Columns) => Math.Max(0, paneWidth - 2 * columns);
 
+    /// <summary>Columns left for graph rows in a pane of <paramref name="paneWidth"/> columns (no left pad).</summary>
+    public static int GraphTextWidth(int paneWidth, int columns = Columns) =>
+        Math.Max(0, paneWidth - columns);
+
+    /// <summary>A graph row with the right padding only: the first lane starts at the pane edge (#752).</summary>
+    public static StyledLine WrapGraph(StyledLine line, int columns = Columns)
+    {
+        var padding = new StyledSegment(new string(' ', columns), SegmentRole.Plain);
+        return new StyledLine([.. line.Segments, padding], line.IsSelected);
+    }
+
     /// <summary>The line with the padding on both sides; the padding is selected with the line.</summary>
     public static StyledLine Wrap(StyledLine line, int columns = Columns)
     {
