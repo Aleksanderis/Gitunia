@@ -511,7 +511,13 @@ There is no key for discarding staged changes (unstage first) and no "discard al
 **Message and commit.**
 1. **Writing.** `<space>c` (from a list or the diff) focuses the message box and enters Insert mode.
    The built-in editor: the first line is the subject, a blank line then the body; the title counts the subject width as `12/72` and the part past column 72 is an error-coloured hint, never enforced.
-   `Esc` leaves Insert mode but stays in the box (its Normal mode: `i`/`Enter` back to Insert, `h`/`Esc` back to the lists).
+   `Esc` leaves Insert mode but stays in the box (#748): the box has its own Normal mode, the status bar says NORMAL and the cursor stays visible.
+   Normal-mode keys, a vim subset (counts are ignored here):
+   `h` `j` `k` `l` move the cursor inside the text (`h`/`l` stop at the line ends, `j`/`k` keep the display column), `w`/`b` go to the next or previous word, `0`/`$` to the line start or end;
+   `i` and `Enter` insert at the cursor, `a` after it, `I` at the line start, `A` at the line end, `o` opens a line below;
+   `x` deletes the character under the cursor, `dd` the line, `u` undoes the last change (an Insert session counts as one change; the history is kept while the tab lives, not in the session file).
+   Leaving the box is `Ctrl-h`/`Ctrl-j`/`Ctrl-k`/`Ctrl-l`, `Ctrl-w` plus a direction, `Tab`, `<space>1`..`<space>3`, or `Esc` in Normal mode (back to the lists); bare `h`/`j`/`k`/`l` never leave it.
+   The status bar names the pane-move keys on every pane (`Ctrl-h/j/k/l pane`; second in the message box, last elsewhere so a narrow bar cuts it first).
    A click in the box places the cursor at the pointer before it starts Insert mode.
    - Editor keys (Insert mode;
      not rebindable rows in the Keymap table): typed text and pastes insert at the cursor (line endings become new lines);
@@ -1269,7 +1275,22 @@ Modes: rows apply to Normal, except those whose view says `(Visual)` (Visual mod
 | WorkingMessage | `<space>c` | Commit the staged changes with the message and options |
 | WorkingMessage | `<space>te` | Commit with `$EDITOR` (the draft is kept: git uses its own template) |
 | WorkingMessage | `<space>r` | Refresh the status |
-| WorkingMessage | `h` / `Esc` | Back to the file lists |
+| WorkingMessage | `Esc` | Back to the file lists |
+| WorkingMessage | `h` | Message box: Cursor left (Normal mode, stops at the line start) |
+| WorkingMessage | `j` | Message box: Cursor down a line |
+| WorkingMessage | `k` | Message box: Cursor up a line |
+| WorkingMessage | `l` | Message box: Cursor right (stops at the line end) |
+| WorkingMessage | `w` | Message box: Next word |
+| WorkingMessage | `b` | Message box: Previous word |
+| WorkingMessage | `0` | Message box: Line start |
+| WorkingMessage | `$` | Message box: Line end |
+| WorkingMessage | `a` | Message box: Insert after the cursor (Insert mode) |
+| WorkingMessage | `A` | Message box: Insert at the line end (Insert mode) |
+| WorkingMessage | `I` | Message box: Insert at the line start (Insert mode) |
+| WorkingMessage | `o` | Message box: Open a line below and insert (Insert mode) |
+| WorkingMessage | `x` | Message box: Delete the character under the cursor |
+| WorkingMessage | `dd` | Message box: Delete the line |
+| WorkingMessage | `u` | Message box: Undo the last change |
 | WorkingMessage | `Alt-s` `Alt-n` `Alt-a` | Toggle the commit options SignOff, No-Verify, Amend (also in Insert mode) |
 | WorkingMessage | `<space>1` `<space>2` `<space>3` `<space>4` | Jump to the Unstaged list / Staged list / diff of the file under the cursor / message box (Normal mode) |
 | WorkingMessage (Insert) | `Enter` | Start a new line (the other editing keys are in workflow 2 and are not rebindable rows) |

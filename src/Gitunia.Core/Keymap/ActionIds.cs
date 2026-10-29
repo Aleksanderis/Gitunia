@@ -450,6 +450,36 @@ public static class ActionIds
 
     public static ActionId WorkingTreeMessageNewLine { get; } = new("working-tree.message-new-line");
 
+    public static ActionId WorkingTreeMessageLeft { get; } = new("working-tree.message-left");
+
+    public static ActionId WorkingTreeMessageDown { get; } = new("working-tree.message-down");
+
+    public static ActionId WorkingTreeMessageUp { get; } = new("working-tree.message-up");
+
+    public static ActionId WorkingTreeMessageRight { get; } = new("working-tree.message-right");
+
+    public static ActionId WorkingTreeMessageWordNext { get; } = new("working-tree.message-word-next");
+
+    public static ActionId WorkingTreeMessageWordPrevious { get; } = new("working-tree.message-word-previous");
+
+    public static ActionId WorkingTreeMessageLineStart { get; } = new("working-tree.message-line-start");
+
+    public static ActionId WorkingTreeMessageLineEnd { get; } = new("working-tree.message-line-end");
+
+    public static ActionId WorkingTreeMessageAppend { get; } = new("working-tree.message-append");
+
+    public static ActionId WorkingTreeMessageAppendAtEnd { get; } = new("working-tree.message-append-at-end");
+
+    public static ActionId WorkingTreeMessageInsertAtStart { get; } = new("working-tree.message-insert-at-start");
+
+    public static ActionId WorkingTreeMessageOpenLine { get; } = new("working-tree.message-open-line");
+
+    public static ActionId WorkingTreeMessageDeleteChar { get; } = new("working-tree.message-delete-char");
+
+    public static ActionId WorkingTreeMessageDeleteLine { get; } = new("working-tree.message-delete-line");
+
+    public static ActionId WorkingTreeMessageUndo { get; } = new("working-tree.message-undo");
+
     public static ActionId WorkingTreeCommit { get; } = new("working-tree.commit");
 
     public static ActionId WorkingTreeToggleSignOff { get; } = new("working-tree.toggle-sign-off");

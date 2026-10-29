@@ -255,6 +255,72 @@ public class CommitActionsTests
     }
 
     [Fact]
+    public void GivenTheBoxInNormalMode_WhenUsingMotionsAndDeletes_ThenTheTextChangesAndTheBoxKeepsFocus()
+    {
+        using var harness = new Harness(StagedModified("a.txt"));
+        harness.Run(ActionIds.WorkingTreeWriteMessage);
+        harness.Type("one two");
+        harness.Run(ActionIds.Cancel);
+
+        harness.Run(ActionIds.WorkingTreeMessageLineStart);
+        harness.Run(ActionIds.WorkingTreeMessageRight);
+        harness.Run(ActionIds.WorkingTreeMessageDeleteChar);
+        harness.Run(ActionIds.WorkingTreeMessageWordNext);
+        harness.Run(ActionIds.WorkingTreeMessageLeft);
+
+        Assert.Equal("oe two", harness.Draft.Editor.Text);
+        Assert.Equal(KeyMode.Normal, harness.Mode);
+        Assert.Equal(PaneKind.WorkingMessage, harness.Tab.View.FocusedPane);
+        Assert.True(harness.Commits.ShowsCursor);
+    }
+
+    [Fact]
+    public void GivenTheBoxInNormalMode_WhenAppendingAndOpeningALine_ThenInsertModeStartsAtThePlaceVimWould()
+    {
+        using var harness = new Harness(StagedModified("a.txt"));
+        harness.Run(ActionIds.WorkingTreeWriteMessage);
+        harness.Type("ab");
+        harness.Run(ActionIds.Cancel);
+        harness.Run(ActionIds.WorkingTreeMessageLineStart);
+
+        harness.Run(ActionIds.WorkingTreeMessageAppend);
+        harness.Type("X");
+        harness.Mode = KeyMode.Normal;
+        harness.Run(ActionIds.WorkingTreeMessageOpenLine);
+        harness.Type("Y");
+
+        Assert.Equal("aXb\nY", harness.Draft.Editor.Text);
+        Assert.Equal(KeyMode.Insert, harness.Mode);
+    }
+
+    [Fact]
+    public void GivenAnInsertSession_WhenUndoingInNormalMode_ThenTheWholeSessionIsUndone()
+    {
+        using var harness = new Harness(StagedModified("a.txt"));
+        harness.Run(ActionIds.WorkingTreeWriteMessage);
+        harness.Type("first");
+        harness.Run(ActionIds.Cancel);
+        harness.Run(ActionIds.WorkingTreeEditMessage);
+        harness.Type(" more");
+        harness.Run(ActionIds.Cancel);
+
+        harness.Run(ActionIds.WorkingTreeMessageUndo);
+
+        Assert.Equal("first", harness.Draft.Editor.Text);
+    }
+
+    [Fact]
+    public void GivenNormalKeysRunWithTheFocusElsewhere_WhenTheBoxIsNotFocused_ThenTheTextIsUntouched()
+    {
+        using var harness = new Harness(Modified("a.txt"), StagedModified("b.txt"));
+        harness.Draft.Editor.SetText("keep");
+
+        harness.Run(ActionIds.WorkingTreeMessageDeleteLine);
+
+        Assert.Equal("keep", harness.Draft.Editor.Text);
+    }
+
+    [Fact]
     public void GivenTheBoxInNormalMode_WhenGoingBack_ThenTheListWithTheSelectionHasFocus()
     {
         using var harness = new Harness(Modified("a.txt"), StagedModified("b.txt"));

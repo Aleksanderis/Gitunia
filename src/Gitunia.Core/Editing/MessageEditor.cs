@@ -24,7 +24,10 @@ public sealed class MessageEditor
     private const int TabWidth = 4;
     private const string WindowsLineEnding = "\r\n";
 
+    private const int MaximumUndo = 100;
+
     private readonly List<string> _lines = [string.Empty];
+    private readonly List<EditorSnapshot> _undo = [];
     private int _desiredWidth;
 
     /// <summary>
@@ -105,6 +108,164 @@ public sealed class MessageEditor
         CursorColumn = _lines[CursorRow].Length;
         _lines[CursorRow] += tail;
         RememberColumn();
+    }
+
+    /// <summary>Remembers the text and cursor so <see cref="Undo"/> can return to them (the start of a change).</summary>
+    public void MarkUndoPoint()
+    {
+        _undo.Add(new EditorSnapshot([.. _lines], CursorRow, CursorColumn));
+        if (_undo.Count > MaximumUndo)
+        {
+            _undo.RemoveAt(0);
+        }
+    }
+
+    /// <summary>Returns to the last undo point; false when there is none.</summary>
+    public bool Undo()
+    {
+        if (_undo.Count == 0)
+        {
+            return false;
+        }
+
+        var snapshot = _undo[^1];
+        _undo.RemoveAt(_undo.Count - 1);
+        _lines.Clear();
+        _lines.AddRange(snapshot.Lines);
+        MoveTo(snapshot.Row, snapshot.Column);
+        return true;
+    }
+
+    /// <summary>Normal mode <c>h</c>: one element left, stopping at the line start.</summary>
+    public void MoveLeftInLine()
+    {
+        if (CursorColumn > 0)
+        {
+            MoveTo(CursorRow, PreviousBoundary(_lines[CursorRow], CursorColumn));
+        }
+    }
+
+    /// <summary>Normal mode <c>l</c>: one element right, stopping at the line end.</summary>
+    public void MoveRightInLine()
+    {
+        var line = _lines[CursorRow];
+        if (CursorColumn < line.Length)
+        {
+            MoveTo(CursorRow, NextBoundary(line, CursorColumn));
+        }
+    }
+
+    /// <summary>Normal mode <c>j</c> and <c>k</c>: a line down (1) or up (-1), keeping the display column.</summary>
+    /// <param name="direction">1 for down, -1 for up.</param>
+    public void MoveLines(int direction) => MoveVertically(direction);
+
+    /// <summary>Normal mode <c>0</c>.</summary>
+    public void MoveToLineStart() => MoveTo(CursorRow, 0);
+
+    /// <summary>Normal mode <c>$</c>.</summary>
+    public void MoveToLineEnd() => MoveTo(CursorRow, _lines[CursorRow].Length);
+
+    /// <summary>Normal mode <c>w</c>: the start of the next word, across lines; the end of the text when there is none.</summary>
+    public void MoveWordForward()
+    {
+        var row = CursorRow;
+        var column = CursorColumn;
+        var line = _lines[row];
+        while (column < line.Length && !char.IsWhiteSpace(line[column]))
+        {
+            column++;
+        }
+
+        while (true)
+        {
+            while (column < line.Length && char.IsWhiteSpace(line[column]))
+            {
+                column++;
+            }
+
+            if (column < line.Length)
+            {
+                MoveTo(row, column);
+                return;
+            }
+
+            if (row == _lines.Count - 1)
+            {
+                MoveTo(row, line.Length);
+                return;
+            }
+
+            row++;
+            column = 0;
+            line = _lines[row];
+        }
+    }
+
+    /// <summary>Normal mode <c>b</c>: the start of the word before the cursor, across lines.</summary>
+    public void MoveWordBackward()
+    {
+        var row = CursorRow;
+        var column = CursorColumn;
+        while (true)
+        {
+            var line = _lines[row];
+            while (column > 0 && char.IsWhiteSpace(line[column - 1]))
+            {
+                column--;
+            }
+
+            if (column > 0)
+            {
+                while (column > 0 && !char.IsWhiteSpace(line[column - 1]))
+                {
+                    column--;
+                }
+
+                MoveTo(row, column);
+                return;
+            }
+
+            if (row == 0)
+            {
+                MoveTo(0, 0);
+                return;
+            }
+
+            row--;
+            column = _lines[row].Length;
+        }
+    }
+
+    /// <summary>Normal mode <c>x</c>: deletes the element under the cursor (not the line break).</summary>
+    public void DeleteUnderCursor()
+    {
+        var line = _lines[CursorRow];
+        if (CursorColumn < line.Length)
+        {
+            DeleteTo(NextBoundary(line, CursorColumn));
+        }
+    }
+
+    /// <summary>Normal mode <c>dd</c>: deletes the cursor's line; the last remaining line is emptied.</summary>
+    public void DeleteLine()
+    {
+        if (_lines.Count == 1)
+        {
+            _lines[0] = string.Empty;
+            MoveTo(0, 0);
+            return;
+        }
+
+        _lines.RemoveAt(CursorRow);
+        var row = Math.Min(CursorRow, _lines.Count - 1);
+        MoveTo(row, Math.Min(ColumnAtWidth(_lines[row], _desiredWidth), _lines[row].Length));
+    }
+
+    /// <summary>Normal mode <c>o</c>: opens an empty line below the cursor's and puts the cursor on it.</summary>
+    public void OpenLineBelow()
+    {
+        _lines.Insert(CursorRow + 1, string.Empty);
+        MoveTo(CursorRow + 1, 0);
     }
 
     /// <summary>Applies a key; returns false when it is not an editing key (the caller handles it).</summary>

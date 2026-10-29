@@ -496,7 +496,21 @@ public static class DefaultKeymap
         Add(bindings, NormalOnly, message, "<space>te", ActionIds.ToolCommitEditor);
         Add(bindings, NormalOnly, message, "<space>r", ActionIds.RepositoryRefresh);
         Add(bindings, NormalOnly, message, "Esc", ActionIds.NavigateBack);
-        Add(bindings, NormalOnly, message, "h", ActionIds.NavigateBack);
+        Add(bindings, NormalOnly, message, "h", ActionIds.WorkingTreeMessageLeft);
+        Add(bindings, NormalOnly, message, "j", ActionIds.WorkingTreeMessageDown);
+        Add(bindings, NormalOnly, message, "k", ActionIds.WorkingTreeMessageUp);
+        Add(bindings, NormalOnly, message, "l", ActionIds.WorkingTreeMessageRight);
+        Add(bindings, NormalOnly, message, "w", ActionIds.WorkingTreeMessageWordNext);
+        Add(bindings, NormalOnly, message, "b", ActionIds.WorkingTreeMessageWordPrevious);
+        Add(bindings, NormalOnly, message, "0", ActionIds.WorkingTreeMessageLineStart);
+        Add(bindings, NormalOnly, message, "$", ActionIds.WorkingTreeMessageLineEnd);
+        Add(bindings, NormalOnly, message, "a", ActionIds.WorkingTreeMessageAppend);
+        Add(bindings, NormalOnly, message, "A", ActionIds.WorkingTreeMessageAppendAtEnd);
+        Add(bindings, NormalOnly, message, "I", ActionIds.WorkingTreeMessageInsertAtStart);
+        Add(bindings, NormalOnly, message, "o", ActionIds.WorkingTreeMessageOpenLine);
+        Add(bindings, NormalOnly, message, "x", ActionIds.WorkingTreeMessageDeleteChar);
+        Add(bindings, NormalOnly, message, "dd", ActionIds.WorkingTreeMessageDeleteLine);
+        Add(bindings, NormalOnly, message, "u", ActionIds.WorkingTreeMessageUndo);
         Add(bindings, [KeyMode.Insert], message, "Enter", ActionIds.WorkingTreeMessageNewLine);
         Add(bindings, [KeyMode.Insert], message, "Ctrl-g", ActionIds.WorkingTreeCommit);
         foreach (var view in (string[])[WorkingUnstagedView, WorkingStagedView, WorkingUnstagedDiffView, WorkingStagedDiffView, message])

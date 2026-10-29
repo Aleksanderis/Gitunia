@@ -1,3 +1,4 @@
+using System.Collections.Frozen;
 using Gitunia.Core.Editing;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
@@ -59,6 +60,25 @@ public sealed class CommitActions(
     private const int ShortHashLength = 7;
     private const string CancelledNotice = "Commit cancelled: check the history, git may have finished first";
 
+    private static readonly FrozenSet<ActionId> NormalKeys = FrozenSet.ToFrozenSet(
+    [
+        ActionIds.WorkingTreeMessageLeft,
+        ActionIds.WorkingTreeMessageDown,
+        ActionIds.WorkingTreeMessageUp,
+        ActionIds.WorkingTreeMessageRight,
+        ActionIds.WorkingTreeMessageWordNext,
+        ActionIds.WorkingTreeMessageWordPrevious,
+        ActionIds.WorkingTreeMessageLineStart,
+        ActionIds.WorkingTreeMessageLineEnd,
+        ActionIds.WorkingTreeMessageAppend,
+        ActionIds.WorkingTreeMessageAppendAtEnd,
+        ActionIds.WorkingTreeMessageInsertAtStart,
+        ActionIds.WorkingTreeMessageOpenLine,
+        ActionIds.WorkingTreeMessageDeleteChar,
+        ActionIds.WorkingTreeMessageDeleteLine,
+        ActionIds.WorkingTreeMessageUndo,
+    ]);
+
     private readonly Dictionary<TabId, CommitDraft> _drafts = [];
     private readonly Dictionary<TabId, CancellationTokenSource> _running = [];
     private readonly Dictionary<TabId, IReadOnlyList<string>> _pendingFailures = [];
@@ -79,6 +99,7 @@ public sealed class CommitActions(
         action == ActionIds.WorkingTreeWriteMessage
         || action == ActionIds.WorkingTreeEditMessage
         || action == ActionIds.WorkingTreeMessageNewLine
+        || NormalKeys.Contains(action)
         || action == ActionIds.WorkingTreeCommit
         || action == ActionIds.WorkingTreeToggleSignOff
         || action == ActionIds.WorkingTreeToggleNoVerify
@@ -104,6 +125,11 @@ public sealed class CommitActions(
         _ownsInsert
         && keyMode() == KeyMode.Insert
         && host.Workspace.ActiveTab?.View.FocusedPane == PaneKind.WorkingMessage;
+
+    /// <summary>True while the focused message box shows its cursor: Insert mode, and the box's Normal mode.</summary>
+    public bool ShowsCursor =>
+        host.Workspace.ActiveTab is { View: { Mode: TabViewMode.WorkingTree, FocusedPane: PaneKind.WorkingMessage } }
+        && keyMode() is KeyMode.Insert or KeyMode.Normal;
 
     /// <summary>Raised on the UI thread after the message, an option or the draft's existence changed (the session saves it).</summary>
     public event Action? DraftChanged;
@@ -334,6 +360,11 @@ public sealed class CommitActions(
             return NewLine(draft);
         }
 
+        if (NormalKeys.Contains(action))
+        {
+            return RunNormalKey(tab, draft, action);
+        }
+
         if (action == ActionIds.WorkingTreeCommit)
         {
             return Commit(tab, draft);
@@ -354,8 +385,104 @@ public sealed class CommitActions(
         return ToggleAmend(tab, draft);
     }
 
-    private string StartEditing(RepositoryState tab, CommitDraft draft)
+    // The box's Normal mode (vim subset); the keys only act while the box has focus (the palette can run them from elsewhere).
+    private string RunNormalKey(RepositoryState tab, CommitDraft draft, ActionId action)
     {
+        var editor = draft.Editor;
+        if (tab.View.FocusedPane != PaneKind.WorkingMessage || keyMode() != KeyMode.Normal)
+        {
+            return string.Empty;
+        }
+
+        if (action == ActionIds.WorkingTreeMessageLeft)
+        {
+            editor.MoveLeftInLine();
+        }
+        else if (action == ActionIds.WorkingTreeMessageRight)
+        {
+            editor.MoveRightInLine();
+        }
+        else if (action == ActionIds.WorkingTreeMessageDown || action == ActionIds.WorkingTreeMessageUp)
+        {
+            editor.MoveLines(action == ActionIds.WorkingTreeMessageDown ? 1 : -1);
+        }
+        else if (action == ActionIds.WorkingTreeMessageWordNext)
+        {
+            editor.MoveWordForward();
+        }
+        else if (action == ActionIds.WorkingTreeMessageWordPrevious)
+        {
+            editor.MoveWordBackward();
+        }
+        else if (action == ActionIds.WorkingTreeMessageLineStart)
+        {
+            editor.MoveToLineStart();
+        }
+        else if (action == ActionIds.WorkingTreeMessageLineEnd)
+        {
+            editor.MoveToLineEnd();
+        }
+        else
+        {
+            return RunNormalChange(tab, draft, action);
+        }
+
+        return string.Empty;
+    }
+
+    // Keys that change the text or start Insert mode; one undo point per change (an Insert session is one change).
+    private string RunNormalChange(RepositoryState tab, CommitDraft draft, ActionId action)
+    {
+        var editor = draft.Editor;
+        if (action == ActionIds.WorkingTreeMessageUndo)
+        {
+            return editor.Undo() ? string.Empty : "Nothing to undo";
+        }
+
+        if (action == ActionIds.WorkingTreeMessageDeleteChar)
+        {
+            editor.MarkUndoPoint();
+            editor.DeleteUnderCursor();
+            return string.Empty;
+        }
+
+        if (action == ActionIds.WorkingTreeMessageDeleteLine)
+        {
+            editor.MarkUndoPoint();
+            editor.DeleteLine();
+            return string.Empty;
+        }
+
+        if (action == ActionIds.WorkingTreeMessageOpenLine)
+        {
+            editor.MarkUndoPoint();
+            editor.OpenLineBelow();
+            return StartEditing(tab, draft, marksUndo: false);
+        }
+
+        if (action == ActionIds.WorkingTreeMessageAppend)
+        {
+            editor.MoveRightInLine();
+        }
+        else if (action == ActionIds.WorkingTreeMessageAppendAtEnd)
+        {
+            editor.MoveToLineEnd();
+        }
+        else
+        {
+            editor.MoveToLineStart();
+        }
+
+        return StartEditing(tab, draft);
+    }
+
+    private string StartEditing(RepositoryState tab, CommitDraft draft, bool marksUndo = true)
+    {
+        if (marksUndo)
+        {
+            draft.Editor.MarkUndoPoint();
+        }
+
         if (tab.View.FocusedPane != PaneKind.WorkingMessage)
         {
             Send(tab, new FocusPaneCommand(PaneKind.WorkingMessage));
