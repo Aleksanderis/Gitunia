@@ -26,9 +26,9 @@ Applies to every new and touched C# file, tests included. The build enforces `_f
 ## Readability
 
 - No local functions (named or lambda-valued, least of all with function parameters): make them private methods, with the shared state in fields or parameters.
-- Lines stay within 120 columns (`max_line_length`): wrap long signatures, calls, initializers and conditions, one argument per line once they don't fit. Wrap every line you add or change; leave untouched lines alone (`scripts/check-diff.sh` checks added lines only).
+- Lines stay within 120 columns (`max_line_length`): wrap long signatures, calls, initializers and conditions, one argument per line once they don't fit. Wrap every line you add or change; leave untouched lines alone.
 - Blank lines separate steps: before `while`/`foreach`/`if` after a setup block, before `return`, and between groups of wiring statements. Write them as you write the code, in one pass: a statement that spans several lines (a collection or object initializer, a lambda, a chained call) has a blank line before and after it, and a run of declarations is separated from the calls or loop that use them (`var x = ...;` lines, blank, `x.Add(...)`, blank, `var y = ...;`). Long wiring methods (`Run`, composition) are split into private methods named for the step instead of one wall of inlined lambdas.
-- Conditional `?:` is allowed only as one short line `a ? b : c`. No nested `?:`, no two on one line and no `?:` wrapped over several lines (a leading `?` or `:` line): use `if`/`return`, a `switch` expression, a named local or a small private method. `scripts/check-diff.sh` checks added lines.
+- Conditional `?:` is allowed only as one short line `a ? b : c`. No nested `?:`, no two on one line and no `?:` wrapped over several lines (a leading `?` or `:` line): use `if`/`return`, a `switch` expression, a named local or a small private method.
 - Prefer `while (await ReadLineAsync() is { } line)` over declaring the variable and assigning in the condition.
 
 ## Disposal and lambdas

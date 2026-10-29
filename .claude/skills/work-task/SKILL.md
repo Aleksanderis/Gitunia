@@ -37,7 +37,7 @@ effort: medium
 ## 4. Deliver
 
 - Build, test and (if relevant) AOT-publish; report real output, including failures.
-- Before the reviewer runs, run `scripts/check-diff.sh` (added lines over 120 columns, doc lines over 600 characters, fully qualified `System.*`, over-long `docs/decisions.md` entries, agent author name and `Agent:` trailer on every commit) and fix what it prints, then walk the self-review list below. These are the findings reviewers raised again and again; every one you fix here is one round of review saved.
+- Before the reviewer runs, run `scripts/check-diff.sh` (`docs/decisions.md` append-only and dated, test hygiene, agent author name and `Agent:` trailer on every commit) and fix what it prints, then walk the self-review list below. These are the findings reviewers raised again and again; every one you fix here is one round of review saved.
 - Self-review list (each item answered before review, not after):
   - **`docs/decisions.md`.** Entry only under the rule in section 3 (non-obvious choice or an override; mark the superseded entry).
   - **Sweep after a rename, key move or behaviour change.** Grep the old term, key and wording across `src/`, `tests/`, `docs/` (`ux.md`, `git-layer.md`, `architecture.md`), status hints, `ActionCatalog` titles, XML docs, test names and the bodies of related open issues. Stale text in docs, hints and comments was the most common should-fix.
