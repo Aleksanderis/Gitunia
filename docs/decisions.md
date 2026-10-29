@@ -473,4 +473,4 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 **UI:** Graph colours (#761, owner): one colour per branch name (remote prefix ignored), a hash of the name moved to a free slot. Why: colours that follow the name, not the position; local and remote of one branch match. Detail: `git-layer.md`.
 
-**UI:** Graph lanes per branch (#759): a branch tip reached only by other branches' lanes starts its own leftmost free lane. Why: commits of different branches never share a column and the graph stays compact (the owner may prefer a staircase). Detail: `ux.md`, `git-layer.md`.
+**UI:** Graph lanes (#759, owner): a branch keeps one lane and colour from tip to fork and joins at the fork commit; names on a line are labels; the trunk (`main`, `master`, `trunk`, else the checked-out branch) keeps shared commits, so main is one straight lane. Why: the owner's reference image (no zigzag). Detail: `ux.md`, `git-layer.md`.

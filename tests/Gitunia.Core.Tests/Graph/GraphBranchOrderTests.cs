@@ -39,13 +39,13 @@ public class GraphBranchOrderTests
     }
 
     [Fact]
-    public void GivenTipsThatMergeAtOnce_WhenLayingOut_ThenFreedLanesAreReusedFromTheLeft()
+    public void GivenTipsOfOneParent_WhenLayingOut_ThenEachTipHasItsOwnLaneDownToTheParent()
     {
         var commits = new[] { Commit(1, 4), Commit(2, 4), Commit(3, 4), Commit(4, 5), Commit(5) };
 
         var rows = GraphLayout.Compute(commits);
 
-        Assert.Equal([0, 1, 1, 0, 0], rows.Select(row => row.Lane));
+        Assert.Equal([0, 1, 2, 0, 0], rows.Select(row => row.Lane));
     }
 
     [Theory]

@@ -89,6 +89,38 @@ public class BranchColorsTests
         Assert.Equal("topic", tips[GraphTestData.Id(3)]);
     }
 
+    [Fact]
+    public void GivenBranchesNamedMainAndOthers_WhenChoosingTheTrunk_ThenMainWinsOverTheCheckedOutBranch()
+    {
+        var tips = new Dictionary<ObjectId, string>
+        {
+            [GraphTestData.Id(1)] = "feature",
+            [GraphTestData.Id(2)] = "master",
+            [GraphTestData.Id(3)] = "main",
+        };
+
+        Assert.Equal("main", BranchColors.TrunkOf(tips, "feature"));
+        tips.Remove(GraphTestData.Id(3));
+        Assert.Equal("master", BranchColors.TrunkOf(tips, "feature"));
+        tips.Remove(GraphTestData.Id(2));
+        Assert.Equal("feature", BranchColors.TrunkOf(tips, "feature"));
+        Assert.Null(BranchColors.TrunkOf(tips, null));
+    }
+
+    [Fact]
+    public void GivenARefList_WhenFindingTheCheckedOutBranch_ThenOnlyACurrentLocalBranchCounts()
+    {
+        var decorations = new Dictionary<ObjectId, IReadOnlyList<CommitDecoration>>
+        {
+            [GraphTestData.Id(1)] = [Branch("other")],
+            [GraphTestData.Id(2)] = [new CommitDecoration("HEAD", "HEAD", RefKind.Head, true)],
+        };
+
+        Assert.Null(BranchColors.CheckedOutBranchOf(decorations));
+        decorations[GraphTestData.Id(3)] = [new CommitDecoration("refs/heads/work", "work", RefKind.LocalBranch, true)];
+        Assert.Equal("work", BranchColors.CheckedOutBranchOf(decorations));
+    }
+
     private static CommitDecoration Branch(string name) =>
         new($"refs/heads/{name}", name, RefKind.LocalBranch, false);
 
