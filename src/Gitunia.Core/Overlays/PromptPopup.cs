@@ -19,7 +19,8 @@ public sealed record PromptPopup(
     string Hint)
 {
     private const string CancelHint = "Esc cancel";
-    private const string HintGap = "   ";
+    /// <summary>The text between two hints of a prompt footer, also the gap the footer is drawn with.</summary>
+    public const string HintGap = "   ";
 
     /// <summary>A prompt with a text field; <paramref name="acceptLabel"/> names what <c>Enter</c> does.</summary>
     public static PromptPopup ForText(string title, string context, string input, string acceptLabel) =>

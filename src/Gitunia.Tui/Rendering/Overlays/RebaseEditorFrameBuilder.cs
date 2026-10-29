@@ -1,4 +1,5 @@
 using System.Globalization;
+using Gitunia.Core.Overlays;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Mouse;
 using Gitunia.Core.Rebase;
@@ -26,7 +27,6 @@ public static class RebaseEditorFrameBuilder
     private const int ActionColumnWidth = 6;
     private const int ListStartLine = 2;
     private const string Note = "oldest first: the top commit is replayed first; squash and fixup meld upwards";
-    private const string PromptGap = "   ";
     private const string MessageHint = "Ctrl-g keeps the message   Enter new line   Esc cancel";
     private const string DiscardHint = "Esc again discards the changes to the todo";
     private const string BlankMessageHint = "A reword needs a message: type one, or Esc to cancel";
@@ -179,7 +179,7 @@ public static class RebaseEditorFrameBuilder
         }
         else
         {
-            lines.Add(OverlayBox.Hints(MessageHint, width, glyphs, gap: PromptGap));
+            lines.Add(OverlayBox.Hints(MessageHint, width, glyphs, gap: PromptPopup.HintGap));
         }
 
         lines.Add(OverlayBox.Bottom(width, glyphs));

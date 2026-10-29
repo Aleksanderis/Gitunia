@@ -38,7 +38,7 @@ public class RemoteChipsTests
         var fetch = text.IndexOf(" fetch ", StringComparison.Ordinal);
         var pull = text.IndexOf(" pull ", StringComparison.Ordinal);
         var push = text.IndexOf(" push ", StringComparison.Ordinal);
-        var commands = text.IndexOf(TabBarLayout.CommandsLabel, StringComparison.Ordinal);
+        var commands = text.IndexOf(TabBarLayout.CommandsChip().Label, StringComparison.Ordinal);
         Assert.True(fetch > 0 && fetch < pull && pull < push && push < commands);
         Assert.Equal(Wide, text.Length);
     }
@@ -216,7 +216,7 @@ public class RemoteChipsTests
         Assert.DoesNotContain("fetch", text, StringComparison.Ordinal);
         Assert.DoesNotContain("pull", text, StringComparison.Ordinal);
         Assert.DoesNotContain("push", text, StringComparison.Ordinal);
-        Assert.Contains(TabBarLayout.CommandsLabel, text, StringComparison.Ordinal);
+        Assert.Contains(TabBarLayout.CommandsChip().Label, text, StringComparison.Ordinal);
     }
 
     private static KeyBinding Rebound(KeyBinding binding)

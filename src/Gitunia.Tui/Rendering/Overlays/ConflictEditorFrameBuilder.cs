@@ -56,10 +56,21 @@ public static class ConflictEditorFrameBuilder
     private const string ChipGapText = "  ";
     private const string TabText = "    ";
     private const string DiscardHint = "Esc again discards your picks";
-    private const string CompleteHint = "every hunk is resolved: Enter saves the file";
     private const string EmptySide = "(nothing)";
     private const string Unresolved = "-";
-    private const string EditingHint = "Esc or Ctrl-g keeps the text, Enter adds a line; undo takes it back";
+
+    private static readonly HintItem[] EditingHints =
+    [
+        new("Esc/Ctrl-g", "keeps the text"),
+        new("Enter", "adds a line"),
+        new(string.Empty, "undo takes it back"),
+    ];
+
+    private static readonly HintItem[] CompleteHints =
+    [
+        new(string.Empty, "every hunk is resolved"),
+        new("Enter", "saves the file"),
+    ];
     private const string NoBasePaneText = "(no base: set diff3, then R)";
     private const string NoBaseText = "(no base for this hunk: set merge.conflictStyle=diff3, then R)";
 
@@ -707,7 +718,7 @@ public static class ConflictEditorFrameBuilder
     {
         if (state.IsEditing)
         {
-            return OverlayBox.Text(EditingHint, width, glyphs, SegmentRole.Faint);
+            return OverlayBox.Hints(EditingHints, width, glyphs);
         }
 
         if (state.IsDiscardPending)
@@ -717,7 +728,7 @@ public static class ConflictEditorFrameBuilder
 
         if (state.IsComplete)
         {
-            return OverlayBox.Text(CompleteHint, width, glyphs, SegmentRole.Faint);
+            return OverlayBox.Hints(CompleteHints, width, glyphs);
         }
 
         var text = string.Create(

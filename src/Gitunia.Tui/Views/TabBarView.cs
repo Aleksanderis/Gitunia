@@ -45,7 +45,7 @@ public sealed class TabBarView(Func<ScreenModel> model, GraphGlyphSet glyphs) : 
             return base.OnMouseEvent(mouse);
         }
 
-        if (TabBarLayout.IsOnCommands(Viewport.Width, position.X))
+        if (TabBarLayout.IsOnCommands(Viewport.Width, position.X, model().Keys))
         {
             CommandsClicked?.Invoke();
             return true;

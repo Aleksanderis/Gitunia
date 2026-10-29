@@ -16,6 +16,11 @@ public static class SettingsFrameBuilder
     private const string Title = "Settings";
     private const string ReadOnlyTitle = "Settings (read-only)";
     private const string FilterPlaceholder = "/ filter";
+
+    private static readonly HintItem Move = new("j/k", "move");
+    private static readonly HintItem Back = new("h", "back");
+    private static readonly HintItem Filter = new("/", "filter");
+    private static readonly HintItem Close = new("Esc", "close");
     private const string Cursor = "_";
     private const string TooSmallText = "Terminal too small for the settings";
     private const string TooSmallHint = "Needs 40x12. Esc closes.";
@@ -413,48 +418,48 @@ public static class SettingsFrameBuilder
         return [wrapped.FirstOrDefault() ?? string.Empty, second];
     }
 
-    private static string HintText(SettingsState state)
+    private static HintItem[] HintText(SettingsState state)
     {
         if (state.Removal is not null)
         {
-            return "y remove  n keep  Esc keep";
+            return [new("y", "remove"), new("n", "keep"), new("Esc", "keep")];
         }
 
         if (state.Input is not null)
         {
-            return "Enter save  Esc cancel";
+            return [new("Enter", "save"), new("Esc", "cancel")];
         }
 
         if (state.IsEditingFilter)
         {
-            return "type to filter  Enter keep  Esc clear";
+            return [new(string.Empty, "type to filter"), new("Enter", "keep"), new("Esc", "clear")];
         }
 
         if (state.Choice is not null)
         {
-            return "j/k choose  Enter keep  Esc restore";
+            return [new("j/k", "choose"), new("Enter", "keep"), new("Esc", "restore")];
         }
 
         if (state.IsFiltering)
         {
-            return "j/k move  Enter jump to it  / new filter  Esc clear";
+            return [new("j/k", "move"), new("Enter", "jump to it"), new("/", "new filter"), new("Esc", "clear")];
         }
 
         if (state.Column == SettingsColumn.Categories && !state.ListsAllCategories)
         {
-            return "j/k move  l/Enter open  / filter  Esc close";
+            return [new("j/k", "move"), new("l/Enter", "open"), new("/", "filter"), Close];
         }
 
         return state.Selected switch
         {
-            { Kind: SettingRowKind.Item } => "Enter edit  d remove  J/K reorder  a add  h back  Esc close",
-            { Definition.Control: SettingControl.PathList } => "Enter/a add  j/k move  h back  / filter  Esc close",
-            { Definition.Control: SettingControl.Toggle } => "Enter/x flip  j/k move  h back  / filter  Esc close",
-            { Definition.Control: SettingControl.Number } => "Enter type  +/- step  j/k move  h back  Esc close",
-            { Kind: SettingRowKind.Binding } => "Enter show config entry  j/k move  h back  / filter  Esc close",
-            { Definition.Control: SettingControl.KeyReference } => "j/k move  h back  / filter  Esc close",
-            { Definition.Control: SettingControl.Action } => "Enter open  j/k move  h back  / filter  Esc close",
-            _ => "j/k move  l/Enter edit  h back  / filter  Esc close",
+            { Kind: SettingRowKind.Item } => [new("Enter", "edit"), new("d", "remove"), new("J/K", "reorder"), new("a", "add"), Back, Close],
+            { Definition.Control: SettingControl.PathList } => [new("Enter/a", "add"), Move, Back, Filter, Close],
+            { Definition.Control: SettingControl.Toggle } => [new("Enter/x", "flip"), Move, Back, Filter, Close],
+            { Definition.Control: SettingControl.Number } => [new("Enter", "type"), new("+/-", "step"), Move, Back, Close],
+            { Kind: SettingRowKind.Binding } => [new("Enter", "show config entry"), Move, Back, Filter, Close],
+            { Definition.Control: SettingControl.KeyReference } => [Move, Back, Filter, Close],
+            { Definition.Control: SettingControl.Action } => [new("Enter", "open"), Move, Back, Filter, Close],
+            _ => [Move, new("l/Enter", "edit"), Back, Filter, Close],
         };
     }
 

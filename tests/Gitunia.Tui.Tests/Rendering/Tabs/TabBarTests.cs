@@ -1,3 +1,5 @@
+using Gitunia.Core.Keymap;
+using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Screen;
@@ -102,16 +104,37 @@ public class TabBarTests
     }
 
     [Fact]
+    public void GivenPaletteOpenRebound_WhenRendering_ThenTheCommandsChipShowsTheNewKeyAndTheHitZoneFollows()
+    {
+        var bindings = DefaultKeymap.CreateBindings()
+            .Select(binding => binding.Action == ActionIds.PaletteOpen && binding.View == KeyBindingTable.GlobalView && binding.Mode == KeyMode.Normal
+                ? binding with { Sequence = KeySequenceParser.Parse("<space>p") }
+                : binding);
+        var keys = new ChipKeys(DefaultKeymap.Create().WithBindings(bindings));
+        var model = Model(Label(1, "alpha", isActive: true, branch: null)) with { Keys = keys };
+
+        var row = ChromeBuilder.Tabs(model, 80, GraphGlyphSet.Unicode);
+
+        Assert.EndsWith(" <space>p commands  ", row.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain(row.Segments, segment => segment.Role == SegmentRole.StatusKey && segment.Text == ":");
+        Assert.Equal(80, row.Text.Length);
+        var start = TabBarLayout.CommandsStart(80, keys)!.Value;
+        Assert.True(TabBarLayout.IsOnCommands(80, start, keys));
+        Assert.False(TabBarLayout.IsOnCommands(80, start - 1, keys));
+        Assert.Equal(" <space>p commands ", row.Text[start..^1]);
+    }
+
+    [Fact]
     public void GivenAWideRow_WhenRendering_ThenTheCommandsButtonEndsTheRowAndNarrowRowsHaveNone()
     {
         var wide = ChromeBuilder.Tabs(Model(Label(1, "alpha", isActive: true, branch: null)), 80, GraphGlyphSet.Unicode);
         var narrow = ChromeBuilder.Tabs(Model(Label(1, "alpha", isActive: true, branch: null)), 40, GraphGlyphSet.Unicode);
 
         Assert.Contains(wide.Segments, segment => segment.Role == SegmentRole.StatusKey && segment.Text == ":");
-        Assert.EndsWith($"{TabBarLayout.CommandsLabel} ", wide.Text, StringComparison.Ordinal);
+        Assert.EndsWith($"{TabBarLayout.CommandsChip().Label} ", wide.Text, StringComparison.Ordinal);
         Assert.True(TabBarLayout.IsOnCommands(80, 70));
         Assert.False(TabBarLayout.IsOnCommands(80, 10));
-        Assert.DoesNotContain(narrow.Segments, segment => segment.Role == SegmentRole.BarButton && segment.Text == TabBarLayout.CommandsLabel);
+        Assert.DoesNotContain(narrow.Segments, segment => segment.Role == SegmentRole.BarButton && segment.Text == TabBarLayout.CommandsChip().Label);
         Assert.False(TabBarLayout.IsOnCommands(40, 35));
     }
 

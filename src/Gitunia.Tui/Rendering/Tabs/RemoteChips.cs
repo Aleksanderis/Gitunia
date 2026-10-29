@@ -55,7 +55,7 @@ public static class RemoteChips
     /// <summary>The first column of the chips in a row of <paramref name="width"/> columns, null if none.</summary>
     public static int? Start(int width, ChipKeys? keys = null)
     {
-        if (width >= MinimumWidth && TabBarLayout.CommandsStart(width) is { } commands)
+        if (width >= MinimumWidth && TabBarLayout.CommandsStart(width, keys) is { } commands)
         {
             return commands - GapColumns - ReservedWidth(IsKeyed(width, keys), keys);
         }
