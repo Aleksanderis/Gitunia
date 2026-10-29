@@ -780,7 +780,7 @@ public sealed class BranchActions(
             [$"Branch to delete at {_label} {position}"],
             null,
             rows,
-            "Enter choose   j/k/h/l select   Esc cancel");
+            [new("Enter", "choose"), new("j/k/h/l", "select"), new("Esc", "cancel")]);
     }
 
     private string AcceptDelete(RepositoryState tab)

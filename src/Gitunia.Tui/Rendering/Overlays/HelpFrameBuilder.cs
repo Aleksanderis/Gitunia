@@ -105,18 +105,18 @@ public static class HelpFrameBuilder
 
         lines.AddRange(content.Skip(first).Take(rowCount));
         var lead = content.Count > rowCount ? $"{first + 1}-{first + rowCount}/{content.Count}" : string.Empty;
-        var hints = new List<string> { "Esc close" };
+        var hints = new List<HintItem> { new("Esc", "close") };
         if (tabs.Count > 1)
         {
-            hints.Add("Tab next tab");
+            hints.Add(new("Tab", "next tab"));
         }
 
         if (content.Count > rowCount)
         {
-            hints.Add("list keys scroll");
+            hints.Add(new(string.Empty, "list keys scroll"));
         }
 
-        lines.Add(OverlayBox.Hints(string.Join("  ", hints), width, glyphs, lead));
+        lines.Add(OverlayBox.Hints(hints, width, glyphs, lead));
         lines.Add(OverlayBox.Bottom(width, glyphs));
         return new OverlayFrame((screenWidth - width) / 2, 1, lines);
     }
