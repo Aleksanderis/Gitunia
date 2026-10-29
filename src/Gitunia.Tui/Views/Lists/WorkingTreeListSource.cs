@@ -116,7 +116,8 @@ public sealed class WorkingTreeListSource(WorkingTreeSection section, GraphGlyph
     {
         var padding = ScreenPadding.Columns(listView);
         var textWidth = PanePadding.TextWidth(width, padding);
-        var isSelected = selected || Range?.Contains(item) == true;
+        var isRange = Range?.Contains(item) == true;
+        var isSelected = selected || isRange;
         var line = WorkingTreePaneRenderer.RenderRow(
             _tree,
             section,
@@ -126,7 +127,7 @@ public sealed class WorkingTreeListSource(WorkingTreeSection section, GraphGlyph
             glyphs,
             JumpLabelOf(listView, item),
             _pathStyle);
-        LinePainter.Paint(listView, PanePadding.Wrap(line, padding), col, row, listView.HasFocus);
+        LinePainter.Paint(listView, PanePadding.Wrap(line, padding), col, row, listView.HasFocus, isRange);
     }
 
     public void Dispose()

@@ -61,6 +61,18 @@ public sealed class PaletteTable
     /// <summary>The selected row of a pane without focus: visible but quieter.</summary>
     public required Color SelectionDim { get; init; }
 
+    /// <summary>
+    /// The background of the rows of a Visual range (#814): visibly stronger than <see cref="SelectionFocused"/>, a blue-tinted step
+    /// away from it. <see cref="Color.None"/> where a style carries the range (16 colours, styles only).
+    /// </summary>
+    public Color RangeBackground { get; init; } = Color.None;
+
+    /// <summary>The colour muted text gets in a Visual range, where <see cref="MutedOnSelection"/> would be too dim.</summary>
+    public Color MutedOnRange { get; init; } = Color.None;
+
+    /// <summary>The colour whitespace marks get in a Visual range.</summary>
+    public Color SubtleOnRange { get; init; } = Color.None;
+
     /// <summary>The tint behind the change group under the cursor of the working-tree diff, quieter than the selection; <see cref="Color.None"/> where the bar beside the group is the only mark.</summary>
     public required Color GroupBackground { get; init; }
 
@@ -101,6 +113,12 @@ public sealed class PaletteTable
     /// <summary>Added to selected text of a pane without focus.</summary>
     public TextStyle SelectionDimStyle { get; init; } = TextStyle.None;
 
+    /// <summary>
+    /// Added to the text of a Visual range, so a range never relies on its tint alone: bold and reverse where there is no tint
+    /// to tell the range from the selected row.
+    /// </summary>
+    public TextStyle RangeStyle { get; init; } = TextStyle.Bold;
+
     /// <summary>Added to muted text (faint where there is no colour to mute it with).</summary>
     public TextStyle MutedStyle { get; init; } = TextStyle.None;
 
@@ -120,6 +138,9 @@ public sealed class PaletteTable
     public TextStyle ChipStyle { get; init; } = TextStyle.Bold;
 
     private const double ReadableContrast = 4.5;
+
+    // How far the range tint of a theme file moves from its selection tint towards its accent.
+    private const double RangeAccentShare = 0.25;
 
     // Shared by every table and never changed.
     private static readonly Color[] DarkLanes = Rgbs(
@@ -188,6 +209,9 @@ public sealed class PaletteTable
         BarBackground = Rgb(0x181825),
         SelectionFocused = Rgb(0x313244),
         SelectionDim = Rgb(0x262637),
+        RangeBackground = Rgb(0x364066),
+        MutedOnRange = Rgb(0xb9c0dc),
+        SubtleOnRange = Rgb(0x9aa0bb),
         GroupBackground = Rgb(0x222232),
         TabButtonBackground = Rgb(0x313244),
         ChipForeground = Rgb(0x11111b),
@@ -218,6 +242,9 @@ public sealed class PaletteTable
         BarBackground = Rgb(0xe6e9ef),
         SelectionFocused = Rgb(0xdce0e8),
         SelectionDim = Rgb(0xe9ecf1),
+        RangeBackground = Rgb(0xc9d7f5),
+        MutedOnRange = Rgb(0x4f5166),
+        SubtleOnRange = Rgb(0x6e7186),
         GroupBackground = Rgb(0xebedf2),
         TabButtonBackground = Rgb(0xccd0da),
         ChipForeground = Rgb(0xeff1f5),
@@ -264,6 +291,7 @@ public sealed class PaletteTable
         Lanes = Named(ColorName16.BrightBlue, ColorName16.BrightGreen, ColorName16.BrightYellow, ColorName16.BrightMagenta, ColorName16.BrightRed, ColorName16.BrightCyan),
         SelectionFocusedStyle = TextStyle.Bold,
         SelectionDimStyle = TextStyle.Underline,
+        RangeStyle = TextStyle.Bold | TextStyle.Reverse,
     };
 
     private static PaletteTable Ansi16Light(bool paintsBase, IReadOnlyDictionary<string, string>? ansi) => new()
@@ -297,6 +325,7 @@ public sealed class PaletteTable
         Lanes = Named(ColorName16.Blue, ColorName16.Green, ColorName16.Magenta, ColorName16.Red, ColorName16.Cyan, ColorName16.DarkGray),
         SelectionFocusedStyle = TextStyle.Bold,
         SelectionDimStyle = TextStyle.Underline,
+        RangeStyle = TextStyle.Bold | TextStyle.Reverse,
     };
 
     // NO_COLOR or a dumb terminal: styles only.
@@ -328,6 +357,7 @@ public sealed class PaletteTable
         Lanes = [Color.None],
         SelectionFocusedStyle = TextStyle.Reverse,
         SelectionDimStyle = TextStyle.Underline,
+        RangeStyle = TextStyle.Bold | TextStyle.Reverse | TextStyle.Underline,
         MutedStyle = TextStyle.Faint,
         SubtleStyle = TextStyle.Faint,
         ChipStyle = TextStyle.Bold | TextStyle.Reverse,
@@ -365,7 +395,24 @@ public sealed class PaletteTable
         BaseBackground = Role(definition, ThemeRoles.BaseBackground),
         Lanes = [.. definition.Lanes.Select(Rgb)],
         LaneLabelForegrounds = LabelForegrounds(definition),
+        RangeBackground = Blend(Role(definition, ThemeRoles.SelectionFocused), Role(definition, ThemeRoles.Accent), RangeAccentShare),
+        MutedOnRange = Role(definition, ThemeRoles.BaseForeground),
+        SubtleOnRange = Role(definition, ThemeRoles.MutedOnSelection),
     };
+
+    // A step from one colour towards another; the second one missing leaves the first.
+    private static Color Blend(Color from, Color to, double share)
+    {
+        if (from == Color.None || to == Color.None)
+        {
+            return from;
+        }
+
+        return new Color(
+            (int)Math.Round(from.R + ((to.R - from.R) * share)),
+            (int)Math.Round(from.G + ((to.G - from.G) * share)),
+            (int)Math.Round(from.B + ((to.B - from.B) * share)));
+    }
 
     private static Color[] LabelForegrounds(ThemeDefinition definition) =>
         ReadableOn([.. definition.Lanes.Select(Rgb)], Role(definition, ThemeRoles.ChipForeground));

@@ -33,11 +33,22 @@ public static class Palette
 
     public static Attribute For(StyledSegment segment, bool isSelected, bool isFocused) => For(segment, isSelected, isFocused, table);
 
+    public static Attribute For(StyledSegment segment, SegmentHighlight highlight) => For(segment, highlight, table);
+
+    public static Attribute For(StyledSegment segment, SegmentHighlight highlight, PaletteTable colors) =>
+        For(segment, highlight.IsSelected, highlight.IsFocused, colors, highlight.IsRange);
+
     /// <param name="segment">The text to draw.</param>
     /// <param name="isSelected">The segment is on the selected row (or in a selected range).</param>
     /// <param name="isFocused">The pane holding the row has focus: the selection is the full tint, otherwise the quieter one.</param>
     /// <param name="colors">The colours of the scheme.</param>
-    public static Attribute For(StyledSegment segment, bool isSelected, bool isFocused, PaletteTable colors)
+    /// <param name="isRange">The row is in a Visual range (#814): the stronger range tint and style instead of the selection ones.</param>
+    public static Attribute For(
+        StyledSegment segment,
+        bool isSelected,
+        bool isFocused,
+        PaletteTable colors,
+        bool isRange = false)
     {
         var role = Role(segment, colors);
         var foreground = role.Foreground == Color.None ? colors.BaseForeground : role.Foreground;
@@ -47,6 +58,11 @@ public static class Palette
         {
             var plain = BackgroundOf(segment, background, colors);
             return new Attribute(foreground, plain == Color.None ? colors.BaseBackground : plain, style);
+        }
+
+        if (isRange)
+        {
+            return RangeAttribute(segment, role, foreground, background, style, colors);
         }
 
         if (!role.KeepsBackground)
@@ -63,6 +79,31 @@ public static class Palette
         }
 
         return new Attribute(foreground, background, style | (isFocused ? colors.SelectionFocusedStyle : colors.SelectionDimStyle));
+    }
+
+    // A row of a Visual range: the range tint (or the style alone where the scheme has none) and the range style, whatever the focus.
+    private static Attribute RangeAttribute(
+        StyledSegment segment,
+        RoleAppearance role,
+        Color foreground,
+        Color background,
+        TextStyle style,
+        PaletteTable colors)
+    {
+        if (!role.KeepsBackground)
+        {
+            background = colors.RangeBackground;
+            if (segment.Role == SegmentRole.WhitespaceMark)
+            {
+                foreground = colors.SubtleOnRange;
+            }
+            else if (foreground == colors.Muted)
+            {
+                foreground = colors.MutedOnRange;
+            }
+        }
+
+        return new Attribute(foreground, background, style | colors.RangeStyle);
     }
 
     // A branch label of the graph: a chip in the colour of its lane (inverse video where there are no colours).

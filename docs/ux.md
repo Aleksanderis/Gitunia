@@ -466,7 +466,7 @@ Paths are always passed literally.
    `<space>A` stages all (conflicted files skipped, the count reported), `<space>U` unstages all.
    Neither needs a confirm, since nothing is lost.
    A double-click on a row does the same as the key.
-2. **Ranges of files.** `v` or a mouse drag in a list starts a Visual range (rows drawn like the selected row); the motions move its far end, `<space>a`/`<space>u` act on every file of the range in one git call (conflicted files skipped and counted, as in stage all), and `y` copies the paths one per line.
+2. **Ranges of files.** `v` or a mouse drag in a list starts a Visual range (rows drawn stronger than the selected row); the motions move its far end, `<space>a`/`<space>u` act on every file of the range in one git call (conflicted files skipped and counted, as in stage all), and `y` copies the paths one per line.
    The range ends when the operation starts, or on a click, `Esc`, `q`, `v`, a change of focus, or a refresh that changes the list (the status bar then says "Selection ended: the rows changed").
    The title rows have `stage all` / `unstage all` buttons at the right end, showing their key (`<space>A stage all`, `<space>U unstage all`) when the row is wide enough, label-only when narrower and left out when there is no room; the `stage all` key goes before the `path` chip does (#578).
 3. **Hunks and lines.** In the diff of an Unstaged file `<space>a` stages the change group under the cursor (the cursor on unchanged lines belongs to the group above); in the diff of a Staged file `<space>u` unstages it.
@@ -892,7 +892,8 @@ The settings screen no longer offers them and shows them as those two themes; ke
 
 **Selection and focus.** The selected row is a background tint, never inverse video, so the row keeps its own colours (branch, hash, diff colours stay readable).
 The focused pane's selection uses the full tint (blue), a pane without focus keeps a quieter grey tint, so the cursor stays findable.
-This holds for the graph, sidebar, detail, diff, picker rows, overlay rows and the Visual range.
+This holds for the graph, sidebar, detail, diff, picker rows and overlay rows.
+The rows of a Visual range are drawn stronger than the selected row (#814): a bluer, brighter tint at 24-bit colour, and in every tier bold text, plus reverse video at 16 colours and `NO_COLOR` (where no tint can tell the range from the cursor row), so a range never relies on colour alone. Muted text and whitespace marks get their own readable colours on the range tint.
 Focus is also shown by the frame (above): the focused pane's box is accent, its title is a filled accent chip and the other titles are dim chips.
 The active tab, the status mode (`NORMAL`, `INSERT`...) and an overlay's title bar are the same accent chip; the tab row and the status bar sit on a slightly lighter bar.
 An overlay's frame is drawn in the accent colour.
@@ -1633,7 +1634,7 @@ A mouse action does not touch a pending count or chord typed before it.
 While the help, palette or status history is open, panes and the picker ignore every mouse gesture (no focus change, no selection), except that the wheel scrolls the help or history (or moves the palette highlight) when the pointer is over a pane or the overlay, and a click on a pane or the tab row closes it, like `Esc`; the which-key popup does not block the mouse.
 
 Drag to select: press a row of the graph, detail, diff or file-list pane and move the pointer; the pane takes focus, the pressed row becomes the anchor, Visual mode starts (status bar `VISUAL`) and the cursor follows the pointer, also above or below the pane while the button is held: while the pointer rests outside the pane the cursor keeps moving every 80 ms, 1 row just outside, 1 more per 2 rows of distance, at most 6, until the pointer is back inside, the list ends or the button is released.
-The range is drawn like the selected row.
+The range is drawn stronger than the selected row (bolder and a brighter tint, reverse video where there are no colours).
 The release leaves the range active; a click on a row, `Esc`, `q`, `v` or moving focus to another pane or tab ends it.
 `y` copies the range (the drag plus `y`, or `visual.copy` from the palette) and ends it; staging acts on it too (lines in the working-tree diff, files in its lists).
 The sidebar and the message box have no ranges (a drag there only moves the selection); a drag also does not start a range while a prompt (search, filter, ref jump) or the picker is open.
