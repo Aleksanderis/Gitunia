@@ -123,6 +123,29 @@ public class GraphRowRendererTests
     }
 
     [Fact]
+    public void GivenBranchesWithHeadAndRemoteMarks_WhenRendering_ThenTheMarksSitInsideTheBoxAndNoParenthesesAreDrawn()
+    {
+        var commit = CommitFactory.Commit(
+            1,
+            "release",
+            [],
+            new CommitDecoration("refs/heads/main", "main", RefKind.LocalBranch, true),
+            new CommitDecoration("refs/remotes/origin/main", "origin/main", RefKind.RemoteBranch, false));
+        var graph = CommitFactory.Graph(commit);
+
+        foreach (var glyphs in new[] { GraphGlyphSet.Unicode, GraphGlyphSet.Ascii })
+        {
+            var line = GraphRowRenderer.Render(graph[0], new GraphRowOptions(80, 1, glyphs), false);
+
+            var box = line.Segments.Single(segment => segment.Role == SegmentRole.LaneLabel);
+            Assert.StartsWith($"{glyphs.CurrentBranch}main", box.Text, StringComparison.Ordinal);
+            Assert.EndsWith(glyphs.Remote, box.Text, StringComparison.Ordinal);
+            Assert.DoesNotContain("(", line.Text.Replace("(r)", ""), StringComparison.Ordinal);
+            Assert.DoesNotContain(")", line.Text.Replace("(r)", ""), StringComparison.Ordinal);
+        }
+    }
+
+    [Fact]
     public void GivenAllRefKinds_WhenRendering_ThenDecorationsListedLikeGit()
     {
         var commit = CommitFactory.Commit(
@@ -136,7 +159,7 @@ public class GraphRowRendererTests
 
         var row = Rows(GraphGlyphSet.Unicode, 120, commit)[0];
 
-        Assert.StartsWith("●  (⎇ main , topic, tag: v1) release", row);
+        Assert.StartsWith("●  ⎇ main   topic tag: v1 release", row);
     }
 
     [Fact]
@@ -162,10 +185,9 @@ public class GraphRowRendererTests
         Assert.NotEqual(0, slot);
         Assert.Equal(slot, graph[0].Row.NodeColor);
         var labels = line.Segments.Where(segment => segment.Role == SegmentRole.LaneLabel).ToArray();
-        Assert.Equal([current, "topic", "origin/other"], labels.Select(segment => segment.Text));
+        Assert.Equal([$"{GraphGlyphSet.Unicode.CurrentBranch}{current}", "topic", "origin/other"], labels.Select(segment => segment.Text));
         Assert.All(labels, segment => Assert.Equal(slot, segment.ColorIndex));
         Assert.Contains(line.Segments, segment => segment.Role == SegmentRole.Tag);
-        Assert.Contains(line.Segments, segment => segment.Role == SegmentRole.CurrentBranch);
     }
 
     [Fact]
@@ -198,8 +220,8 @@ public class GraphRowRendererTests
 
         var rows = Rows(GraphGlyphSet.Unicode, 60, feature, main, root);
 
-        Assert.StartsWith("●  (feature) feature work", rows[0]);
-        Assert.StartsWith("●  (", rows[1]);
+        Assert.StartsWith("●  feature feature work", rows[0]);
+        Assert.StartsWith("●  ⎇ main", rows[1]);
         Assert.StartsWith("●  root", rows[2]);
     }
 
@@ -216,8 +238,8 @@ public class GraphRowRendererTests
 
         var rows = Rows(GraphGlyphSet.Unicode, 60, main, tip, first, fork, root);
 
-        Assert.StartsWith("●  (⎇ main) main tip", rows[0]);
-        Assert.StartsWith("│ ●  (feature) feature tip", rows[1]);
+        Assert.StartsWith("●  ⎇ main main tip", rows[0]);
+        Assert.StartsWith("│ ●  feature feature tip", rows[1]);
         Assert.StartsWith("│ ├  feature first", rows[2]);
         Assert.StartsWith("●─╯  fork point", rows[3]);
         Assert.StartsWith("●  root", rows[4]);
@@ -254,9 +276,9 @@ public class GraphRowRendererTests
 
         var rows = Rows(GraphGlyphSet.Unicode, 60, tip, first, main, fork, root);
 
-        Assert.StartsWith("●  (feature) feature tip", rows[0]);
+        Assert.StartsWith("●  feature feature tip", rows[0]);
         Assert.StartsWith("├  feature first", rows[1]);
-        Assert.StartsWith("│ ●  (", rows[2]);
+        Assert.StartsWith("│ ●  ⎇ main", rows[2]);
         Assert.StartsWith("●─╯  fork point", rows[3]);
         Assert.StartsWith("●  root", rows[4]);
         var graph = CommitFactory.Graph(tip, first, main, fork, root);
@@ -277,7 +299,7 @@ public class GraphRowRendererTests
 
         var row = Rows(GraphGlyphSet.Ascii, 120, commit)[0];
 
-        Assert.StartsWith("*  (HEAD -> main (r)) release", row);
+        Assert.StartsWith("*  HEAD -> main (r) release", row);
     }
 
     [Fact]
@@ -285,7 +307,7 @@ public class GraphRowRendererTests
     {
         var commit = CommitFactory.Commit(1, "x", [], new CommitDecoration("HEAD", "HEAD", RefKind.Head, true));
 
-        Assert.StartsWith("●  (HEAD) x", Rows(GraphGlyphSet.Unicode, 40, commit)[0]);
+        Assert.StartsWith("●  HEAD x", Rows(GraphGlyphSet.Unicode, 40, commit)[0]);
     }
 
     [Fact]
