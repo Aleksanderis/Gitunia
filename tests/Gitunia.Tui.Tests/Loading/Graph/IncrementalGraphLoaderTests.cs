@@ -262,7 +262,7 @@ public class IncrementalGraphLoaderTests
     }
 
     [Fact]
-    public async Task GivenTheDemoRepository_WhenReading_ThenTheLeftmostLaneIsStraightAndEveryBranchHasOneLaneFromTipToFork()
+    public async Task GivenTheDemoRepository_WhenReading_ThenTheLeftmostLaneIsStraightAndBranchesKeepOneLane()
     {
         using var testRepository = DemoRepository();
 
