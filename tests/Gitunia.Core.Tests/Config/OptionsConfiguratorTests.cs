@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Gitunia.Core.Config;
 using Gitunia.Core.Config.Models;
+using Gitunia.Core.Keymap.Models;
 using Xunit;
 
 namespace Gitunia.Core.Tests.Config;
@@ -168,6 +169,40 @@ public sealed class OptionsConfiguratorTests
 
         Assert.Equal(StatusBarHintMode.Full, OptionsConfigurator.ParseStatusBar(Json(json), problems));
         Assert.Equal("hints.statusBar", Assert.Single(problems).Path);
+    }
+
+    [Theory]
+    [InlineData("\"everyday\"", CommandLevel.Everyday)]
+    [InlineData("\"Advanced\"", CommandLevel.Advanced)]
+    [InlineData("\"advanced+\"", CommandLevel.AdvancedPlus)]
+    [InlineData("null", CommandLevel.Everyday)]
+    public void GivenAValidCommandLevel_WhenParsing_ThenItFollowsWithoutProblems(string json, CommandLevel expected)
+    {
+        var problems = new List<ConfigProblem>();
+
+        Assert.Equal(expected, OptionsConfigurator.ParseCommandLevel(Json(json), problems));
+        Assert.Empty(problems);
+    }
+
+    [Theory]
+    [InlineData("\"expert\"")]
+    [InlineData("2")]
+    [InlineData("true")]
+    public void GivenAnInvalidCommandLevel_WhenParsing_ThenEverydayAppliesWithAProblemOnTheKey(string json)
+    {
+        var problems = new List<ConfigProblem>();
+
+        Assert.Equal(CommandLevel.Everyday, OptionsConfigurator.ParseCommandLevel(Json(json), problems));
+        Assert.Equal("commandLevel", Assert.Single(problems).Path);
+    }
+
+    [Fact]
+    public void GivenNoCommandLevel_WhenReadingTheOptions_ThenEverydayIsTheDefault()
+    {
+        var options = OptionsConfigurator.Read(new ConfigDocument(), Home, Exists, []);
+
+        Assert.Equal(CommandLevel.Everyday, options.CommandLevel);
+        Assert.Equal(CommandLevel.Everyday, ConfigOptions.Default.CommandLevel);
     }
 
     [Fact]

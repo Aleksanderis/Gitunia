@@ -30,7 +30,7 @@ History view: sidebar on the left (branches, remotes, tags, stashes, worktrees),
 
 ## Keys
 
-Gitunia is modal and vim-style; `<space>` is the leader key. `?` shows the keys of the focused view, `:` or `Ctrl-p` opens the command palette, `<space>,` opens the settings screen whose Key reference category lists every binding (rebinds included), `q` closes an overlay or quits. Once you know the keys, the Keys category of the settings turns the which-key popup and the status bar hints down (`hints.whichKey`, `hints.statusBar`); `?` and `:` always work. The complete table is `docs/keymap.md`.
+Gitunia is modal and vim-style; `<space>` is the leader key. `?` shows the keys of the focused view, `:` or `Ctrl-p` opens the command palette, `<space>,` opens the settings screen whose Key reference category lists every binding (rebinds included), `q` closes an overlay or quits. Once you know the keys, the Keys category of the settings turns the which-key popup and the status bar hints down (`hints.whichKey`, `hints.statusBar`); `?` and `:` always work. The command level (`commandLevel`: `everyday` by default, `advanced`, `advanced+`; Settings, Keys, or `<space>*` to cycle) hides the less frequent commands from help, the palette, the which-key popup, the actions menus and the status bar hints; hidden commands keep their keys and still run, and the end of the help says how many are hidden. The complete table is `docs/keymap.md`.
 
 ## Everyday tasks
 

@@ -1,4 +1,5 @@
 using Gitunia.Core.Config.Models;
+using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Settings;
 using Gitunia.Core.Themes;
 using Gitunia.Core.Settings.Models;
@@ -70,6 +71,30 @@ public class SettingsValueReaderTests
 
         Assert.Equal("full", load.Values[SettingsRegistry.StatusBarHintsId].Choice);
         Assert.Contains(SettingsRegistry.StatusBarHintsId, load.Warnings.Keys);
+    }
+
+    [Theory]
+    [InlineData("{ \"commandLevel\": \"advanced+\" }", "advanced+", CommandLevel.AdvancedPlus)]
+    [InlineData("{ \"commandLevel\": \"Advanced\" }", "advanced", CommandLevel.Advanced)]
+    [InlineData("{ }", "everyday", CommandLevel.Everyday)]
+    public void GivenACommandLevel_WhenReading_ThenTheChoiceAndTheOptionHoldIt(
+        string text,
+        string choice,
+        CommandLevel level)
+    {
+        var load = Read(new ConfigSnapshot(true, text, string.Empty));
+
+        Assert.Equal(choice, load.Values[SettingsRegistry.CommandLevelId].Choice);
+        Assert.Equal(level, load.Options.CommandLevel);
+    }
+
+    [Fact]
+    public void GivenABadCommandLevel_WhenReading_ThenEverydayAppliesAndTheSettingCarriesTheWarning()
+    {
+        var load = Read(new ConfigSnapshot(true, "{ \"commandLevel\": \"expert\" }", string.Empty));
+
+        Assert.Equal(CommandLevel.Everyday, load.Options.CommandLevel);
+        Assert.Contains(SettingsRegistry.CommandLevelId, load.Warnings.Keys);
     }
 
     [Fact]

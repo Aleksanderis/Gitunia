@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using Gitunia.Core.Config.Models;
 using Gitunia.Core.Keymap;
+using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Keymap.Repeat;
 using Gitunia.Core.Workspaces.Panes;
 
@@ -430,12 +431,25 @@ public static class PaneHints
     /// </summary>
     /// <param name="hints">The hints of the focused pane.</param>
     /// <param name="mode">The option.</param>
-    public static IReadOnlyList<KeyHint> Limit(IReadOnlyList<KeyHint> hints, StatusBarHintMode mode) => mode switch
+    /// <param name="level">
+    /// The command level (#839): a hint whose actions are all above it is left out (the keys keep working). Defaults
+    /// to every command.
+    /// </param>
+    public static IReadOnlyList<KeyHint> Limit(
+        IReadOnlyList<KeyHint> hints,
+        StatusBarHintMode mode,
+        CommandLevel level = CommandLevel.AdvancedPlus) => mode switch
     {
         StatusBarHintMode.Minimal => Pinned,
         StatusBarHintMode.Off => [],
-        _ => hints,
+        _ => Listed(hints, level),
     };
+
+    /// <summary>True when the hint names a chord group (no actions) or at least one of its actions is listed at <paramref name="level"/>.</summary>
+    /// <param name="hint">The hint.</param>
+    /// <param name="level">The command level.</param>
+    public static bool IsListedAt(KeyHint hint, CommandLevel level) =>
+        hint.Actions.IsDefaultOrEmpty || hint.Actions.Any(action => ActionCatalog.IsListedAt(action, level));
 
     /// <summary>The hints of the detail pane while its Changes tab is selected.</summary>
     public static IReadOnlyList<KeyHint> ForDetailChanges() => DetailChanges;
@@ -491,4 +505,7 @@ public static class PaneHints
 
     /// <summary>The hints in the footer of the commands popup.</summary>
     public static IReadOnlyList<KeyHint> ForPalette() => Palette;
+
+    private static IReadOnlyList<KeyHint> Listed(IReadOnlyList<KeyHint> hints, CommandLevel level) =>
+        hints.All(hint => IsListedAt(hint, level)) ? hints : [.. hints.Where(hint => IsListedAt(hint, level))];
 }

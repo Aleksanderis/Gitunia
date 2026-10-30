@@ -36,4 +36,10 @@ public sealed record ConfigDocument
 
     /// <summary>The <c>hints</c> object (<c>whichKey</c>, <c>statusBar</c>), read by <c>OptionsConfigurator</c>.</summary>
     public JsonElement? Hints { get; init; }
+
+    /// <summary>
+    /// <c>everyday</c> (default), <c>advanced</c> or <c>advanced+</c>: the command level (#839), read by
+    /// <c>OptionsConfigurator</c>.
+    /// </summary>
+    public JsonElement? CommandLevel { get; init; }
 }

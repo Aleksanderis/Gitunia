@@ -153,6 +153,7 @@ Normal|Diff|]f|diff.next-file
 Normal|Diff|n|diff.search-next
 Normal|Diff|y|diff.copy-line
 Normal|Global|:|palette.open
+Normal|Global|<space>*|view.cycle-command-level
 Normal|Global|<space>,|settings.open
 Normal|Global|<space><Tab>|tab.last-active
 Normal|Global|<space>C|remote.cancel

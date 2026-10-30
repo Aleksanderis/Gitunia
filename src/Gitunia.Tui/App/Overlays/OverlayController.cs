@@ -43,6 +43,12 @@ public sealed class OverlayController
         }
     } = true;
 
+    /// <summary>
+    /// The command level (#839): what the help, the palette, the which-key popup and the actions menus list. Read
+    /// each time one opens or redraws, so a change shows at once.
+    /// </summary>
+    public Func<CommandLevel> Level { get; set; } = static () => CommandLevel.AdvancedPlus;
+
     private readonly KeymapEngine _engine;
     private readonly KeyController _keys;
     private readonly WhichKeyTimer _whichKeyTimer;
@@ -254,7 +260,7 @@ public sealed class OverlayController
     {
         if (action == ActionIds.HelpShow)
         {
-            _helpTabs = HelpBuilder.Build(_engine.Table, _baseView());
+            _helpTabs = HelpBuilder.Build(_engine.Table, _baseView(), Level());
             Open(OverlayState.OpenHelp(_baseView(), _keys.Mode), KeyMode.Normal);
             return true;
         }
@@ -268,7 +274,7 @@ public sealed class OverlayController
 
         if (action == ActionIds.PaletteOpen)
         {
-            var palette = new PaletteState(PaletteEntryBuilder.Build(_engine.Table, _baseView()));
+            var palette = new PaletteState(PaletteEntryBuilder.Build(_engine.Table, _baseView(), Level()));
             Open(OverlayState.OpenPalette(palette, _keys.Mode), KeyMode.Command);
             return true;
         }
@@ -310,7 +316,12 @@ public sealed class OverlayController
             return;
         }
 
-        var entries = ContextMenuBuilder.Build(_engine.Table, view, target.Actions, grouped: target.Title is null);
+        var entries = ContextMenuBuilder.Build(
+            _engine.Table,
+            view,
+            target.Actions,
+            grouped: target.Title is null,
+            Level());
         if (entries.Count == 0)
         {
             _statuses.Post("No actions for this row");
@@ -420,7 +431,10 @@ public sealed class OverlayController
             return [];
         }
 
-        return WhichKeyBuilder.Build(_engine.Continuations(_keys.State, ViewName), pending, OperationInProgress());
+        return WhichKeyBuilder.Build(
+            _engine.Continuations(_keys.State, ViewName, Level()),
+            pending,
+            OperationInProgress());
     }
 
     private bool TrySwitchHelpTab(ActionId action, int? count)
@@ -480,13 +494,31 @@ public sealed class OverlayController
         }
         else if (action == ActionIds.CommandExecute)
         {
-            var chosen = palette.Selected;
+            var chosen = ExactActionOf(palette.Query) ?? palette.Selected?.Action;
             Close();
-            if (chosen is not null)
+            if (chosen is { } command)
             {
-                _run(chosen.Action, null);
+                _run(command, null);
             }
         }
+    }
+
+    // A command hidden by the level still runs when its exact id is typed (#839): hidden, never disabled.
+    private ActionId? ExactActionOf(string query)
+    {
+        var identifier = query.Trim();
+        if (identifier.Length == 0 || ActionCatalog.IsModalOnly(new ActionId(identifier)))
+        {
+            return null;
+        }
+
+        var bound = _engine.Table.Bindings.FirstOrDefault(binding => binding.Action.Value == identifier);
+        if (bound is not null)
+        {
+            return bound.Action;
+        }
+
+        return ActionCatalog.PaletteOnly.Contains(new ActionId(identifier)) ? new ActionId(identifier) : null;
     }
 
     private void OnStatusChanged()

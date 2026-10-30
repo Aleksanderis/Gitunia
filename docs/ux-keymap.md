@@ -67,7 +67,7 @@ Mouse paths are listed in the next section.
 
 ## Keymap rework (design #833; proposal, built by #839 and #840)
 
-Status: **proposal for the owner to edit in this PR.** After #840 lands the tables below are folded into the JSON file (and so into the generated reference) and this section is cut down to the rules and the level list, so the Old column does not go stale. The JSON file stays the truth until #840 changes it; nothing here is implemented, and no test reads this section.
+Status: **proposal for the owner to edit in this PR.** After #840 lands the tables below are folded into the JSON file (and so into the generated reference) and this section is cut down to the rules and the level list, so the Old column does not go stale. The JSON file stays the truth until #840 changes it; the key moves here are not implemented. #839 built the levels, the setting and the toggle, and no test reads this section.
 Source: the owner's feedback on #833 (too many keys, `<space>b` / `<space>r` confusing, tabs on `Ctrl-w` but repositories on `<space>o`, rare commands mixed with everyday ones).
 Counts, read from `DefaultKeymap` and `ActionIds` at this commit: 245 action ids (the issue said 244), 240 bound, 5 without a key (`help.tab-select` is mouse-only, `pick.mainline` modal, `remote.fetch-all`, `settings.open-theme` and `working-tree.open` palette-only), plus the nine `tab.go-to.N` ids (`Alt-1`..`Alt-9`, Everyday, unchanged). The design adds one action, `view.cycle-command-level`, and a key for `detail.retry`. 50 actions change their main key (the rows of the tables below with a key in "New"); the rest keep theirs.
 
@@ -130,7 +130,8 @@ It cycles Everyday, Advanced, Advanced+ and back to Everyday. It changes the sam
 - **Where the level lives.** One level per action in `ActionCatalog` (metadata like the group; a test fails when an action has none), so every surface reads the same list. A which-key group whose actions are all above the current level is hidden with them (`<space>e` and `<space>br` disappear at Everyday; `<space>t` stays visible because it holds two Everyday actions).
 - **Modal screens.** The keys of a screen follow the level of the way into it: the rebase todo keys are Advanced because rebasing is; the conflict editor keys are Everyday except base, re-create, redo, the diff jumps and the side scroll. While a screen is open its footer and help show all its keys, whatever the level, since a screen hiding its own keys is unusable.
 - **How the proposal was made.** It starts from the issue (Everyday: move and search, details and diff, tabs and opening repositories, stage/unstage/discard, commit/amend, branch create/switch/delete, merge, fetch/pull/push, stash push/pop, worktree add/switch, copy; Advanced: reflog, reset, interactive and quick rebase, cherry-pick/revert, upstream, fast-forward, remote management, tag push and remote delete, force push, difftool/mergetool/`$EDITOR` commit, squash and no-ff merge, extra view options, status history) and fills the rest with one test: would someone who just wants to commit and push see this daily? Judgement calls have a note. `conflict.open` is plain Everyday (the `g` group is shown even with no operation running; the row only acts in a conflict). Counts of the first proposal: 165 Everyday, 81 Advanced (246 ids with the new action; the nine `tab.go-to.N` are Everyday and not counted).
-- **The Level column is the approved list** (owner-edited, #847): 188 Everyday, 47 Advanced, 9 Advanced+ rows; #839 implements it as it stands.
+- **The Level column is the approved list** (owner-edited, #847): 188 Everyday, 47 Advanced, 9 Advanced+ rows. #839 implements it (`ActionLevels`, read through `ActionCatalog.LevelOf`) with these corrections to the ids, since the code is the truth: the rows `conflict-editor.reset`, `next-diff`, `previous-diff`, `scroll-down` and `scroll-up` named actions that do not exist (the Ctrl-d/Ctrl-u scroll and the `]c` jump are the list and diff actions) and are dropped; `conflict-editor.take`, `untake`, `scroll-left` and `scroll-right` (#862) were missing and are added (take and untake Everyday, the side scroll Advanced, per the rule above). The counts of the table are now 191 Everyday, 45 Advanced, 9 Advanced+ (245 ids, plus the nine `tab.go-to.N`).
+- **What the setting and the toggle do (#839).** `commandLevel` in `config.json` (`everyday`, `advanced`, `advanced+`; Settings, Keys, row "Command level") and `<space>*` change the level at once, without a restart. The hidden surfaces are the help tabs (the all-commands tabs and the contextual ones; the `Commands` tab ends with "N advanced commands hidden" and the toggle key), the palette list, the which-key popup (a chord group disappears with its last listed action), the row and view-options menus and the status bar hints (a hint whose actions are all above the level is left out). Not filtered: the `Custom` help tab (the user's own bindings), messages and confirm texts, the keys of the screen that is open (see "Modal screens"), and a command typed by its exact id in the palette, which still runs.
 
 ### Old key and new key, level per action
 
@@ -160,17 +161,16 @@ Grouped as the palette groups them (`ActionCatalog.GroupOf`). "Old" lists every 
 | `conflict-editor.edit-done` | Conflict editor: keep the edited text | `Ctrl-g` | same | Everyday |  |
 | `conflict-editor.edit-newline` | Conflict editor: insert a new line in the edited text | `Enter` | same | Everyday |  |
 | `conflict-editor.next` | Conflict editor: go to the next conflict hunk | `n` | same | Everyday |  |
-| `conflict-editor.next-diff` | Conflict editor: scroll the sides to the next line where they differ | `]c` | same | Advanced |  |
 | `conflict-editor.ours` | Conflict editor: take our side for the hunk | `o` | same | Everyday |  |
 | `conflict-editor.previous` | Conflict editor: go to the previous conflict hunk | `N` | same | Everyday |  |
-| `conflict-editor.previous-diff` | Conflict editor: scroll the sides to the previous line where they differ | `[c` | same | Advanced |  |
 | `conflict-editor.recreate` | Conflict editor: re-create the conflict of the file (asks first) | `R` | `Ctrl-x` | Advanced |  |
 | `conflict-editor.redo` | Conflict editor: redo the undone pick or edit | `Ctrl-r` | same | Advanced |  |
-| `conflict-editor.reset` | Conflict editor: make the hunk unresolved again (it keeps its conflict markers) | `r` | same | Everyday |  |
 | `conflict-editor.save` | Conflict editor: save the file (asks first) | `Enter` | same | Everyday |  |
-| `conflict-editor.scroll-down` | Conflict editor: scroll our side, their side and the base down together | `Ctrl-d` | same | Advanced |  |
-| `conflict-editor.scroll-up` | Conflict editor: scroll our side, their side and the base up together | `Ctrl-u` | same | Advanced |  |
+| `conflict-editor.scroll-left` | Conflict editor: scroll the base, ours and theirs panes sideways to the left | `zh` | same | Advanced | not in the approved list (#862 came after it) |
+| `conflict-editor.scroll-right` | Conflict editor: scroll the base, ours and theirs panes sideways to the right | `zl` | same | Advanced | not in the approved list (#862 came after it) |
+| `conflict-editor.take` | Conflict editor: take this pane's version for the conflict (a Visual selection: only its lines) | `<space>a` | same | Everyday | not in the approved list (#862 came after it) |
 | `conflict-editor.theirs` | Conflict editor: take their side for the hunk | `t` | same | Everyday |  |
+| `conflict-editor.untake` | Conflict editor: untake, make the conflict unresolved again (a Visual selection: remove only its lines) | `<space>u` | same | Everyday | not in the approved list (#862 came after it) |
 | `conflict-editor.undo` | Conflict editor: undo the last pick or edit | `u` | same | Everyday |  |
 | `merge.branch` | Merge the selection (fast-forward if possible) | `<space>gm` | `<space>bm` | Everyday |  |
 | `merge.branch-no-ff` | Merge the selection with a merge commit | `<space>gM` | `<space>bM` | Advanced |  |
@@ -459,7 +459,7 @@ Grouped as the palette groups them (`ActionCatalog.GroupOf`). "Old" lists every 
 
 | Action | What | Old | New | Level | Note |
 |---|---|---|---|---|---|
-| `view.cycle-command-level` | Cycle the command level | none | `<space>*` | Everyday | built by #839 |
+| `view.cycle-command-level` | Cycle the command level | none | `<space>*` | Everyday | built by #839, in the Global view |
 
 The nine `tab.go-to.N` ids (`Alt-1`..`Alt-9`) are Everyday and unchanged.
 

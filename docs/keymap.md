@@ -45,6 +45,7 @@ Every default key binding, one table per view. The design rules, notation and mo
 | `<space>z` | Normal | `pane.zoom` | Zoom the focused pane |
 | `<space>x` | Normal | `status.dismiss` | Dismiss the status message |
 | `<space>m` | Normal | `status.history` | Show the status message history |
+| `<space>*` | Normal | `view.cycle-command-level` | Cycle the command level (Everyday, Advanced, Advanced+) |
 | `<space>,` | Normal | `settings.open` | Open the settings |
 | `<space>s` | Normal | `working-tree.toggle` | Open or leave the working tree |
 | `<space>F` | Normal | `remote.fetch` | Fetch the remote of the current branch (prunes) |
