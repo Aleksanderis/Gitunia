@@ -25,7 +25,7 @@ public class ConflictEditorFrameBuilderTests
 
         Assert.NotNull(frame);
         var lines = frame.Lines.Select(line => line.Text).ToList();
-        Assert.Contains("Conflict: file.txt  hunk 1/2", lines[0], StringComparison.Ordinal);
+        Assert.Contains("Conflict: file.txt  1/2", lines[0], StringComparison.Ordinal);
         Assert.Contains("conflict 1 of 2", lines[1], StringComparison.Ordinal);
         Assert.Contains("[1 ?]", lines[1], StringComparison.Ordinal);
         Assert.Contains("2 ?", lines[1], StringComparison.Ordinal);
@@ -151,7 +151,7 @@ public class ConflictEditorFrameBuilderTests
         var frame = ConflictEditorFrameBuilder.Build(State(Text), 120, 30, GraphGlyphSet.Unicode)!;
 
         var lines = frame.Lines.Select(line => line.Text).ToList();
-        Assert.StartsWith("╭─ Conflict: file.txt  hunk 1/2 ", lines[0], StringComparison.Ordinal);
+        Assert.StartsWith("╭─ Conflict: file.txt  1/2 ", lines[0], StringComparison.Ordinal);
         Assert.EndsWith("─╮", lines[0], StringComparison.Ordinal);
         Assert.StartsWith("╰", lines[^1], StringComparison.Ordinal);
         Assert.EndsWith("╯", lines[^1], StringComparison.Ordinal);

@@ -128,7 +128,7 @@ public static class ConflictEditorFrameBuilder
             return null;
         }
 
-        var title = $"Conflict: {state.Path}  hunk {state.Index + 1}/{state.Hunks.Count}";
+        var title = $"Conflict: {state.Path}  {state.Index + 1}/{state.Hunks.Count}";
         var lines = new List<StyledLine>
         {
             TopBorder(title, plan.Width, glyphs),
@@ -677,7 +677,7 @@ public static class ConflictEditorFrameBuilder
 
         return state.SelectedPick switch
         {
-            ConflictPick.Edited => "result  edited by you  (e edits it again)",
+            ConflictPick.Edited => "result  edited by you  (e to change it by hand)",
             ConflictPick.Ours => "result  our side  (e to change it by hand)",
             ConflictPick.Theirs => "result  their side  (e to change it by hand)",
             ConflictPick.Both => "result  both sides, ours first  (e to change it by hand)",
