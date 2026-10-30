@@ -34,7 +34,7 @@ public sealed class EffectRunner : IDisposable
     private readonly WorkspaceHost _host;
     private readonly Action<Action> _postToUi;
     private readonly StatusChannel _statuses;
-    private readonly GraphGlyphSet _glyphs;
+    private GraphGlyphSet _glyphs;
     private readonly TimeSpan _detailDebounce;
     private readonly Dictionary<TabId, TabSession> _sessions = [];
     private readonly Dictionary<TabId, Action> _pendingLoads = [];
@@ -78,6 +78,17 @@ public sealed class EffectRunner : IDisposable
     public Func<TabId, bool> IsTabBusy { get; set; } = static _ => false;
 
     /// <summary>The runtime session of an open tab, or null.</summary>
+    /// <summary>Draws every tab's graph with a new glyph set (the label caps setting changed); later tabs take it too.</summary>
+    /// <param name="glyphs">The new set.</param>
+    public void ReplaceGlyphs(GraphGlyphSet glyphs)
+    {
+        _glyphs = glyphs;
+        foreach (var session in _sessions.Values)
+        {
+            session.Source.Glyphs = glyphs;
+        }
+    }
+
     public TabSession? SessionOf(TabId tabId) => _sessions.GetValueOrDefault(tabId);
 
     /// <summary>Manual refresh of a tab: reads everything again and reloads its graph. False when the tab has no watcher yet (not loaded).</summary>

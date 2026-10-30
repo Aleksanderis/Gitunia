@@ -1018,9 +1018,9 @@ The file is read once at startup and never modified by the loader; the settings 
   "tabs": { "showBranch": false },
   // Folders the repository picker scans for repositories (default: Projects, src, code, dev, ... below the home folder).
   "scanRoots": ["~/Projects", "/srv/git"],
-  // Ends of the branch labels in the graph: none (default, a plain box), rounded or angled Powerline caps.
-  // Needs a Nerd Font or Powerline-patched font; read at startup.
-  "labelCaps": "none",
+  // Ends of the branch labels in the graph: rounded (default) or angled Powerline caps, or none for a plain box.
+  // Needs a Nerd Font or Powerline-patched font; a change in the Settings screen applies at once.
+  "labelCaps": "rounded",
   // Live file watching instead of polling (default false: each watcher takes a scarce inotify instance; read at startup).
   "watchFiles": false,
   "keys": [
@@ -1049,11 +1049,11 @@ The file is read once at startup and never modified by the loader; the settings 
   `tabs.showBranch`: a boolean; a `tabs` that is not an object or a non-boolean value is reported and false applies.
   `scanRoots`: a list of absolute paths, a leading `~` stands for the home folder; it replaces the conventional folders, an empty list turns discovery off, and the picker scans these folders only (depth and count limits unchanged).
   An entry that is not a string, is relative (never resolved against the process working directory) or is not an existing folder is reported by index (`scanRoots[2]`) and skipped; if no entry of a non-empty list is usable, or the value is not a list, the conventional folders apply.
-  `labelCaps` (#851): `none` (default), `rounded` or `angled` (any case); another value is reported and `none` applies.
-  Rounded draws U+E0B6 before and U+E0B4 after each branch label box, angled U+E0B2 and U+E0B0; each cap is one cell, in the lane colour of the box over the row background (so it meets the box on a selected row too), outside the box's own space of padding.
+  `labelCaps` (#851): `rounded` (default), `angled` or `none` (any case); another value is reported and `rounded` applies (#854). With caps the text sits tight against them, without caps the box keeps a space of padding on each side.
+  Rounded draws U+E0B6 before and U+E0B4 after each branch label box, angled U+E0B2 and U+E0B0; each cap is one cell, in the lane colour of the box over the row background (so it meets the box on a selected row too), and the box then has no padding of its own (the cap closes it, #854).
   Only the Unicode tier takes them, and only with colours: the ASCII tier and a no-colour terminal (where the box is inverse video, which would flip a cap on the selected row) keep the plain box; so does `none`.
   The 16-colour tier draws caps and box in the same quantised colour.
-  The setting is read at startup (the glyph set is built once), the settings screen says so.
+  A change in the settings screen redraws every tab's graph at once.
   `watchFiles` (#543): a boolean, false by default (tabs poll, see `git-layer.md`); another value is reported and false applies; it has no row in the settings screen and takes effect after a restart.
   Options are read at startup; the settings screen applies a change at once (and reads the file again when it opens and when the editor row returns).
 - Problems appear as warnings at startup (the first in the status bar with a count of the others; `<space>m` keeps the first five).

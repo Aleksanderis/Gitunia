@@ -59,6 +59,9 @@ public sealed record GraphGlyphSet(
         };
     }
 
+    /// <summary>Branch label boxes are closed by caps (no padding inside the box then, #854).</summary>
+    public bool HasLabelCaps => LabelCapLeft.Length > 0;
+
     /// <summary>This is the ASCII fallback set.</summary>
     public bool IsAscii => Lines == Ascii.Lines;
 

@@ -192,7 +192,7 @@ public class GraphRowRendererTests
     [Theory]
     [InlineData(LabelCapStyle.Rounded, "\uE0B6", "\uE0B4")]
     [InlineData(LabelCapStyle.Angled, "\uE0B2", "\uE0B0")]
-    public void GivenCaps_WhenRendering_ThenEachBoxIsWrappedInLaneColouredCapsAndThePaddingStays(
+    public void GivenCaps_WhenRendering_ThenEachBoxIsWrappedInLaneColouredCapsWithNoPaddingInside(
         LabelCapStyle style,
         string left,
         string right)
@@ -216,10 +216,10 @@ public class GraphRowRendererTests
             var at = segments.IndexOf(box);
             Assert.Equal(new StyledSegment(left, SegmentRole.Lane, box.ColorIndex), segments[at - 1]);
             Assert.Equal(new StyledSegment(right, SegmentRole.Lane, box.ColorIndex), segments[at + 1]);
-            Assert.Matches(@"^ \S.*\S $", box.Text);
+            Assert.Matches(@"^\S.*\S$", box.Text);
         }
 
-        Assert.Contains($"{left} {glyphs.CurrentBranch}main", line.Text, StringComparison.Ordinal);
+        Assert.Contains($"{left}{glyphs.CurrentBranch}main", line.Text, StringComparison.Ordinal);
         Assert.Equal(1, TextWidth.Of(left));
         Assert.Equal(1, TextWidth.Of(right));
     }

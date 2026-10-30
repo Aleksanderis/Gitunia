@@ -1545,12 +1545,27 @@ public sealed class TuiApplication(
     private void ApplyOptions(ConfigOptions options)
     {
         _startupConfig = _startupConfig with { Options = options };
+        ApplyLabelCaps(options.LabelCaps);
         if (!SameRoots(_picker.ScanRoots, options.ScanRoots))
         {
             _picker.ScanRoots = options.ScanRoots;
         }
 
         Relayout();
+    }
+
+    // The caps change the graph labels only: every tab's graph is redrawn with the set that has (or lacks) them.
+    private void ApplyLabelCaps(LabelCapStyle style)
+    {
+        var glyphs = GraphGlyphSet.For(_capabilities.Unicode).WithLabelCaps(style, _capabilities.Color != ColorDepth.None);
+        if (glyphs == _glyphs)
+        {
+            return;
+        }
+
+        _glyphs = glyphs;
+        _effects.ReplaceGlyphs(glyphs);
+        _view.Graph.SetNeedsDraw();
     }
 
     // The theme on screen changed (previewed, kept or restored by the settings screen): the palette is rebuilt and

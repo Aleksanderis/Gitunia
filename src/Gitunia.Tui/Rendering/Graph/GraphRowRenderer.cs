@@ -235,7 +235,7 @@ public static class GraphRowRenderer
     }
 
     // A branch is one box: the HEAD mark and the remote glyph sit inside it, next to the name (#804), with a space of
-    // padding on each side so the text never touches the box edge (#827).
+    // padding on each side so the text never touches the box edge (#827), unless caps close the box (#854).
     private static void AppendLabel(List<StyledSegment> builder, RefLabel label, int colorIndex, GraphGlyphSet glyphs)
     {
         switch (label.Kind)
@@ -246,7 +246,10 @@ public static class GraphRowRenderer
                 // The caps are lane-coloured text on the row background (the Lane role), so they meet the box on a
                 // selected row too.
                 AppendCap(builder, glyphs.LabelCapLeft, colorIndex);
-                builder.Add(new StyledSegment($" {prefix}{label.Name}{suffix} ", SegmentRole.LaneLabel, colorIndex));
+                // The caps already round the box off, so with them the text sits tight against them (#854).
+                var padding = glyphs.HasLabelCaps ? "" : " ";
+                builder.Add(
+                    new StyledSegment($"{padding}{prefix}{label.Name}{suffix}{padding}", SegmentRole.LaneLabel, colorIndex));
                 AppendCap(builder, glyphs.LabelCapRight, colorIndex);
                 break;
             case RefKind.Tag:
