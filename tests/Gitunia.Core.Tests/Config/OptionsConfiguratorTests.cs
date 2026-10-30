@@ -74,6 +74,40 @@ public sealed class OptionsConfiguratorTests
         Assert.Equal("watchFiles", Assert.Single(problems).Path);
     }
 
+    [Theory]
+    [InlineData("\"none\"", LabelCapStyle.None)]
+    [InlineData("\"rounded\"", LabelCapStyle.Rounded)]
+    [InlineData("\"Angled\"", LabelCapStyle.Angled)]
+    [InlineData("null", LabelCapStyle.Rounded)]
+    public void GivenAValidLabelCapsValue_WhenParsing_ThenItFollowsWithoutProblems(string json, LabelCapStyle expected)
+    {
+        var problems = new List<ConfigProblem>();
+
+        Assert.Equal(expected, OptionsConfigurator.ParseLabelCaps(Json(json), problems));
+        Assert.Empty(problems);
+    }
+
+    [Theory]
+    [InlineData("\"round\"")]
+    [InlineData("true")]
+    [InlineData("3")]
+    public void GivenAnInvalidLabelCapsValue_WhenParsing_ThenRoundedWithAProblemOnTheKey(string json)
+    {
+        var problems = new List<ConfigProblem>();
+
+        Assert.Equal(LabelCapStyle.Rounded, OptionsConfigurator.ParseLabelCaps(Json(json), problems));
+        Assert.Equal("labelCaps", Assert.Single(problems).Path);
+    }
+
+    [Fact]
+    public void GivenNoLabelCapsValue_WhenParsing_ThenRoundedCapsApply()
+    {
+        var problems = new List<ConfigProblem>();
+
+        Assert.Equal(LabelCapStyle.Rounded, OptionsConfigurator.ParseLabelCaps(null, problems));
+        Assert.Empty(problems);
+    }
+
     [Fact]
     public void GivenNoScanRoots_WhenParsing_ThenNullMeansTheConventionalFolders()
     {

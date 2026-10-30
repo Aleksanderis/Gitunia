@@ -102,6 +102,23 @@ public class PushActionsTests
     }
 
     [Fact]
+    public async Task GivenTheRemoteBranchOfTheSameNameIsAheadOfTheLocalOne_WhenPushingAFirstTime_ThenNoForcePushIsOffered()
+    {
+        using var repository = TestRepositories.WithOrigin().CheckoutNewBranch("older");
+        var theirs = PushFromAnotherClone(repository, "older", createBranch: true);
+        repository.Git("fetch", "-q", "origin");
+        using var harness = await Harness.LoadAsync(repository);
+
+        harness.Run(ActionIds.RemotePush);
+        await harness.PumpUntilAsync(
+            () => harness.Statuses.Log.Latest?.Text.Contains("pull or rebase", StringComparison.Ordinal) == true);
+
+        Assert.Empty(harness.Prompts);
+        Assert.Contains("pull or rebase", harness.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
+        Assert.Equal(theirs, repository.GitIn(repository.OriginPath, ["rev-parse", "older"]).Trim());
+    }
+
+    [Fact]
     public async Task GivenABranchWithAnUpstream_WhenPushing_ThenThePlainPushIsLeftToTheRemoteActions()
     {
         using var repository = TestRepositories.WithTrackingBranch(1, 0);
@@ -430,6 +447,7 @@ public class PushActionsTests
                 Remote,
                 writer,
                 TestGit.Services.Tags.ListRemotesAsync,
+                TestGit.Services.Ancestry.IsAncestorAsync,
                 Statuses,
                 Pump.Post,
                 _ => TestContext.Current.CancellationToken,

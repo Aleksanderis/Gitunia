@@ -204,7 +204,7 @@ public static class GraphRowRenderer
                 builder.Add(new StyledSegment(LabelSeparator, SegmentRole.Punctuation));
             }
 
-            AppendLabel(builder, labels[index], entry.Row.NodeColor, glyphs);
+            AppendLabel(builder, labels[index], ChipColorOf(entry.Row, labels[index]), glyphs);
         }
 
         builder.Add(new StyledSegment(LabelSeparator, SegmentRole.Punctuation));
@@ -212,8 +212,30 @@ public static class GraphRowRenderer
         return builder;
     }
 
+    // A chip is coloured by its branch, not by its lane (#849). A branch the layout did not see on this commit (added
+    // by an incremental reload since) takes the colour of its name, which is stable but may equal a neighbour's until
+    // the next full read.
+    private static int ChipColorOf(GraphRow row, RefLabel label)
+    {
+        if (label.Kind is not (RefKind.LocalBranch or RefKind.RemoteBranch))
+        {
+            return row.NodeColor;
+        }
+
+        var name = BranchColors.ShortName(label.Kind, label.Name);
+        foreach (var slot in row.LabelSlots ?? [])
+        {
+            if (slot.Name == name)
+            {
+                return slot.Slot;
+            }
+        }
+
+        return BranchColors.PreferredSlot(name);
+    }
+
     // A branch is one box: the HEAD mark and the remote glyph sit inside it, next to the name (#804), with a space of
-    // padding on each side so the text never touches the box edge (#827).
+    // padding on each side so the text never touches the box edge (#827), unless caps close the box (#854).
     private static void AppendLabel(List<StyledSegment> builder, RefLabel label, int colorIndex, GraphGlyphSet glyphs)
     {
         switch (label.Kind)
@@ -221,7 +243,14 @@ public static class GraphRowRenderer
             case RefKind.LocalBranch or RefKind.RemoteBranch:
                 var prefix = BranchPrefix(label, glyphs);
                 var suffix = label.HasRemote ? glyphs.Remote : "";
-                builder.Add(new StyledSegment($" {prefix}{label.Name}{suffix} ", SegmentRole.LaneLabel, colorIndex));
+                // The caps are lane-coloured text on the row background (the Lane role), so they meet the box on a
+                // selected row too.
+                AppendCap(builder, glyphs.LabelCapLeft, colorIndex);
+                // The caps already round the box off, so with them the text sits tight against them (#854).
+                var padding = glyphs.HasLabelCaps ? "" : " ";
+                builder.Add(
+                    new StyledSegment($"{padding}{prefix}{label.Name}{suffix}{padding}", SegmentRole.LaneLabel, colorIndex));
+                AppendCap(builder, glyphs.LabelCapRight, colorIndex);
                 break;
             case RefKind.Tag:
                 builder.Add(new StyledSegment($"tag: {label.Name}", SegmentRole.Tag));
@@ -237,6 +266,14 @@ public static class GraphRowRenderer
         if (label.IsUpstreamGone)
         {
             builder.Add(new StyledSegment(glyphs.UpstreamGone, SegmentRole.Faint));
+        }
+    }
+
+    private static void AppendCap(List<StyledSegment> builder, string cap, int colorIndex)
+    {
+        if (cap.Length > 0)
+        {
+            builder.Add(new StyledSegment(cap, SegmentRole.Lane, colorIndex));
         }
     }
 

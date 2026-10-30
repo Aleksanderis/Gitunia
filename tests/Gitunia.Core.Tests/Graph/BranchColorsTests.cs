@@ -89,6 +89,27 @@ public class BranchColorsTests
         Assert.Equal("topic", tips[GraphTestData.Id(3)]);
     }
 
+    [Fact]
+    public void GivenSeveralBranchesAndRemotesOnACommit_WhenListingNames_ThenPrimaryComesFirstAndNamesAreDistinct()
+    {
+        var decorations = new[]
+        {
+            Remote("origin/main"), Remote("upstream/main"), Remote("origin/HEAD"), Branch("zed"), Branch("main"),
+        };
+        var byCommit = new Dictionary<ObjectId, IReadOnlyList<CommitDecoration>> { [GraphTestData.Id(1)] = decorations };
+
+        var names = BranchColors.NamesOf(decorations);
+
+        Assert.Equal(["main", "zed"], names);
+        Assert.Equal(["zed"], BranchColors.ExtraNamesOf(byCommit)[GraphTestData.Id(1)]);
+    }
+
+    [Fact]
+    public void GivenOnlyATag_WhenListingNames_ThenThereAreNone()
+    {
+        Assert.Empty(BranchColors.NamesOf([new CommitDecoration("refs/tags/v1", "v1", RefKind.Tag, false)]));
+    }
+
     private static CommitDecoration Branch(string name) =>
         new($"refs/heads/{name}", name, RefKind.LocalBranch, false);
 

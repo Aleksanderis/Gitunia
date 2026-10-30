@@ -14,6 +14,7 @@ public static class OptionsConfigurator
     private const string ShowBranchKey = "tabs.showBranch";
     private const string ScanRootsKey = "scanRoots";
     private const string WatchFilesKey = "watchFiles";
+    private const string LabelCapsKey = "labelCaps";
     private const string ShowBranchProperty = "showBranch";
     private const char HomeMarker = '~';
 
@@ -30,7 +31,37 @@ public static class OptionsConfigurator
         new(
             ParseShowBranch(document.Tabs, problems),
             ParseScanRoots(document.ScanRoots, homeDirectory, directoryExists, problems),
-            ParseWatchFiles(document.WatchFiles, problems));
+            ParseWatchFiles(document.WatchFiles, problems),
+            ParseLabelCaps(document.LabelCaps, problems));
+
+    /// <summary>The <c>labelCaps</c> option: none, rounded or angled (any case); no value or anything else gives rounded.</summary>
+    public static LabelCapStyle ParseLabelCaps(JsonElement? value, ICollection<ConfigProblem> problems)
+    {
+        if (value is null or { ValueKind: JsonValueKind.Null })
+        {
+            return LabelCapStyle.Rounded;
+        }
+
+        var text = value.Value.ValueKind == JsonValueKind.String ? value.Value.GetString() : null;
+        if (string.Equals(text, "none", StringComparison.OrdinalIgnoreCase))
+        {
+            return LabelCapStyle.None;
+        }
+
+        if (string.Equals(text, "rounded", StringComparison.OrdinalIgnoreCase))
+        {
+            return LabelCapStyle.Rounded;
+        }
+
+        if (string.Equals(text, "angled", StringComparison.OrdinalIgnoreCase))
+        {
+            return LabelCapStyle.Angled;
+        }
+
+        problems.Add(new ConfigProblem(LabelCapsKey, "labelCaps must be none, rounded or angled, using rounded"));
+
+        return LabelCapStyle.Rounded;
+    }
 
     /// <summary>The <c>watchFiles</c> flag; anything but true or false gives false.</summary>
     public static bool ParseWatchFiles(JsonElement? value, ICollection<ConfigProblem> problems)

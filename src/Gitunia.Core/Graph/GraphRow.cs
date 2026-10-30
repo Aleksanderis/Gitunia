@@ -11,8 +11,14 @@ namespace Gitunia.Core.Graph;
 /// <param name="LaneFingerprint">Hash of the commits the open lanes wait for below this row; equal fingerprints (with equal following commits) mean equal layout from here on (0 means unknown and never joins), which lets a refresh reuse the old rows.</param>
 /// <param name="ColorChosenByName">
 /// Whether the colour of the lane that waited for this commit was chosen by its branch name (a branch tip, or the
-/// second parent that started the lane). Only then can a changed branch name change the layout below, so an incremental
-/// reload keeps the old rows when it is false.
+/// second parent that started the lane). Only then can a changed branch name change the lane colours below, so an
+/// incremental reload keeps the old rows when it is false. The chip colours of other branch names (<see cref="LabelSlots"/>)
+/// also steer lanes that start within the next rows, which a reload does not redo (a cosmetic limit, see git-layer.md).
+/// </param>
+/// <param name="LabelSlots">
+/// The colour slot of every branch chip of the commit, one per branch name (#849): a chip is coloured by its branch,
+/// not by its lane, so a branch stacked on another one gets a colour of its own while the line and node keep the lane
+/// colour. Null when the commit carries no branch name (or the names were not known when it was laid out).
 /// </param>
 public sealed record GraphRow(
     ObjectId Id,
@@ -21,4 +27,5 @@ public sealed record GraphRow(
     IReadOnlyList<GraphEdge> Edges,
     ulong LaneFingerprint = 0,
     int NodeColor = 0,
-    bool ColorChosenByName = false);
+    bool ColorChosenByName = false,
+    IReadOnlyList<BranchSlot>? LabelSlots = null);

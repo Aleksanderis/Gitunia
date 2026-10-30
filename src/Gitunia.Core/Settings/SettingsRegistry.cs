@@ -13,6 +13,9 @@ public static class SettingsRegistry
     /// <summary>The id of the theme setting.</summary>
     public const string ThemeId = "theme";
 
+    /// <summary>The id of the label caps setting.</summary>
+    public const string LabelCapsId = "label-caps";
+
     /// <summary>The id of the tab branch setting.</summary>
     public const string ShowBranchId = "tabs-show-branch";
 
@@ -38,6 +41,16 @@ public static class SettingsRegistry
                 + "the rest are theme files. The cursor previews, Enter keeps, Esc restores.",
             ThemeChoice.AutoName,
             [ThemeChoice.AutoName, .. BuiltInThemes.Names]),
+        new SettingDefinition(
+            LabelCapsId,
+            SettingCategory.Appearance,
+            "Branch label caps",
+            SettingControl.Choice,
+            ["labelCaps"],
+            "The ends of the branch labels in the graph: none is a plain box, rounded and angled draw Powerline "
+                + "caps and need a Nerd Font or Powerline-patched font.",
+            "rounded",
+            ["none", "rounded", "angled"]),
         new SettingDefinition(
             ScanRootsId,
             SettingCategory.Repositories,

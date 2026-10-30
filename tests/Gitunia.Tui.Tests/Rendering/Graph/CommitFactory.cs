@@ -35,7 +35,9 @@ public static class CommitFactory
         var tips = commits
             .Where(commit => BranchColors.PrimaryName(commit.Decorations) is not null)
             .ToDictionary(commit => commit.Id, commit => BranchColors.PrimaryName(commit.Decorations)!);
-        var rows = new GraphLayoutBuilder(tips).AppendRange(commits);
+        var extraNames = BranchColors.ExtraNamesOf(
+            commits.ToDictionary(commit => commit.Id, commit => commit.Decorations));
+        var rows = new GraphLayoutBuilder(tips, BranchColors.SlotCount, extraNames).AppendRange(commits);
         var graph = new CommitGraph();
         graph.AddRange(commits.Select((commit, index) =>
             new GraphEntry(commit.Id, commit.Subject, commit.AuthorName, commit.AuthorTime, commit.Decorations, rows[index])).ToArray());

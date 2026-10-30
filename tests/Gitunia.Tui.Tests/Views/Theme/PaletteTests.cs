@@ -628,6 +628,28 @@ public class PaletteTests
     }
 
     [Theory]
+    [InlineData(ColorDepth.TrueColor, false)]
+    [InlineData(ColorDepth.TrueColor, true)]
+    [InlineData(ColorDepth.Ansi16, false)]
+    [InlineData(ColorDepth.Ansi16, true)]
+    [InlineData(ColorDepth.None, false)]
+    public void GivenAnyColourTier_WhenDrawingTheMovingEndOfARange_ThenItDiffersFromTheOtherRangeRowsByStyle(
+        ColorDepth depth,
+        bool isLight)
+    {
+        var colors = PaletteTable.For(new PaletteSettings(depth, isLight));
+        var segment = new StyledSegment("x", SegmentRole.Plain);
+
+        var other = Palette.For(segment, RangeHighlight, colors);
+        var cursor = Palette.For(segment, new SegmentHighlight(true, true, true, true), colors);
+
+        Assert.NotEqual(other.Style, cursor.Style);
+        Assert.True(cursor.Style.HasFlag(TextStyle.Underline), "The moving end must not rely on colour alone.");
+        Assert.True(cursor.Style.HasFlag(TextStyle.Bold));
+        Assert.Equal(other.Background, cursor.Background);
+    }
+
+    [Theory]
     [InlineData(ColorDepth.Ansi16)]
     [InlineData(ColorDepth.None)]
     public void GivenAColourlessOrSixteenColourTier_WhenDrawingARangeRow_ThenItIsReversed(ColorDepth depth)

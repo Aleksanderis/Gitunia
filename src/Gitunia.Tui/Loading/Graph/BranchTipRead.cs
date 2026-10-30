@@ -47,7 +47,7 @@ public sealed class BranchTipRead : IDisposable
 
         var tips = BranchColors.TipsOf(decorations);
 
-        return new GraphLayoutBuilder(tips, _colorCount);
+        return new GraphLayoutBuilder(tips, _colorCount, BranchColors.ExtraNamesOf(decorations));
     }
 
     public void Dispose()

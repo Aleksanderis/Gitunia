@@ -32,6 +32,28 @@ public class SettingsValueReaderTests
     }
 
     [Theory]
+    [InlineData("{}", "rounded", LabelCapStyle.Rounded)]
+    [InlineData("{ \"labelCaps\": \"none\" }", "none", LabelCapStyle.None)]
+    [InlineData("{ \"labelCaps\": \"rounded\" }", "rounded", LabelCapStyle.Rounded)]
+    [InlineData("{ \"labelCaps\": \"angled\" }", "angled", LabelCapStyle.Angled)]
+    public void GivenLabelCaps_WhenReading_ThenTheChoiceAndTheOptionHoldThem(string text, string choice, LabelCapStyle style)
+    {
+        var load = Read(new ConfigSnapshot(true, text, string.Empty));
+
+        Assert.Equal(choice, load.Values[SettingsRegistry.LabelCapsId].Choice);
+        Assert.Equal(style, load.Options.LabelCaps);
+    }
+
+    [Fact]
+    public void GivenABadLabelCapsValue_WhenReading_ThenTheSettingCarriesTheWarning()
+    {
+        var load = Read(new ConfigSnapshot(true, "{ \"labelCaps\": \"square\" }", string.Empty));
+
+        Assert.Equal("rounded", load.Values[SettingsRegistry.LabelCapsId].Choice);
+        Assert.Contains(SettingsRegistry.LabelCapsId, load.Warnings.Keys);
+    }
+
+    [Theory]
     [InlineData("{}", "auto", "auto")]
     [InlineData("{ \"theme\": \"dark\" }", "catppuccin-mocha", "dark")]
     [InlineData("{ \"theme\": \"Light\" }", "catppuccin-latte", "light")]

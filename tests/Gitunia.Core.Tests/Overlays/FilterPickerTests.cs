@@ -77,6 +77,9 @@ public class FilterPickerTests
 
         Assert.Equal("Type filters   Ctrl-j/k select   Enter choose   Esc cancel", popup.Hint);
         Assert.Equal("q", popup.Input);
+        Assert.Equal(
+            [string.Empty, "Ctrl-j/k", "Enter", "Esc"],
+            popup.Hints.Select(hint => hint.Keys));
     }
 
     [Fact]
