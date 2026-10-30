@@ -15,7 +15,7 @@ public class PickerComposerTests
     private static readonly string[] Kinds = ["open", "pinned", "recent", "found"];
 
     private const int TitleLine = 0;
-    private const int QueryLine = 1;
+    private const int QueryRow = 1;
     private const int HintLine = 2;
     private const int FirstListLine = 3;
 
@@ -39,8 +39,8 @@ public class PickerComposerTests
 
         Assert.Equal(SegmentRole.OverlayTitle, lines[TitleLine].Segments[0].Role);
         Assert.Contains("Open repository", lines[TitleLine].Text, StringComparison.Ordinal);
-        Assert.Contains("al", lines[QueryLine].Text, StringComparison.Ordinal);
-        Assert.Contains(lines[QueryLine].Segments, segment => segment.Role == SegmentRole.Cursor);
+        Assert.Contains("al", lines[QueryRow].Text, StringComparison.Ordinal);
+        Assert.Contains(lines[QueryRow].Segments, segment => segment.Role == SegmentRole.Cursor);
         Assert.Contains(lines[HintLine].Segments, segment => segment.Role == SegmentRole.OverlayKey && segment.Text == "Tab");
         Assert.All(lines.Skip(1).Take(lines.Count - 2), line => Assert.Equal(SegmentRole.FocusedBorder, line.Segments[0].Role));
         Assert.All(lines, line => Assert.Equal(lines[0].Text.Length, line.Text.Length));
@@ -225,7 +225,7 @@ public class PickerComposerTests
 
         var lines = PickerComposer.Compose(picker, Home, 100, 30, GraphGlyphSet.Ascii);
 
-        Assert.StartsWith("|", lines[QueryLine].Text, StringComparison.Ordinal);
+        Assert.StartsWith("|", lines[QueryRow].Text, StringComparison.Ordinal);
         Assert.StartsWith("+", lines[^1].Text, StringComparison.Ordinal);
         Assert.Contains("[", lines[^2].Text, StringComparison.Ordinal);
     }
@@ -312,5 +312,18 @@ public class PickerComposerTests
         Assert.Equal(0, layout.RowIndexAt(layout.ListFirstLine + 1));
         Assert.Null(layout.RowIndexAt(layout.ListFirstLine + 2));
         Assert.Equal(1, layout.RowIndexAt(layout.ListFirstLine + 3));
+    }
+
+    [Fact]
+    public void GivenAScrolledList_WhenAskingForTheRowAtALine_ThenLinesMapToTheShownRows()
+    {
+        var rows = Enumerable.Range(1, 40).Select(number => Row($"repo{number}", PickerTags.Recent)).ToImmutableArray();
+        var picker = new PickerState(string.Empty, 30, rows, string.Empty, null);
+
+        var layout = PickerLayout.Compute(picker, 100, 30);
+
+        Assert.Equal(30, layout.RowIndexAt(layout.ListFirstLine + layout.ListHeight - 1));
+        Assert.Equal(30 - layout.ListHeight + 1, layout.RowIndexAt(layout.ListFirstLine));
+        Assert.Null(layout.RowIndexAt(layout.ListFirstLine + layout.ListHeight));
     }
 }

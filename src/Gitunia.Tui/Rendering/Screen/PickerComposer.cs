@@ -78,7 +78,8 @@ public static class PickerComposer
         lines.AddRange(ListLines(picker, homeDirectory, layout, glyphs, isFramed: false));
         if (layout.MessageLine >= 0)
         {
-            lines.Add(new LineBuilder(layout.BoxWidth, glyphs.Ellipsis).Append($" {picker.Message}", SegmentRole.Error).Build());
+            var message = new LineBuilder(layout.BoxWidth, glyphs.Ellipsis).Append($" {picker.Message}", SegmentRole.Error);
+            lines.Add(message.Build());
         }
 
         return [.. lines.Take(layout.BoxHeight)];
@@ -140,9 +141,10 @@ public static class PickerComposer
             lines.Add(Wrap(empty, glyphs, isFramed, false));
         }
 
-        var nameWidth = Math.Min(MaximumNameColumns, picker.Rows.Select(row => TextWidth.Of(row.Name)).DefaultIfEmpty(0).Max());
-        nameWidth = Math.Min(nameWidth, Math.Max(6, width / 3));
-        var tagWidth = Math.Min(MaximumTagColumns, picker.Rows.Select(row => TagsWidth(Kinds(row))).DefaultIfEmpty(0).Max());
+        var longestName = picker.Rows.Select(row => TextWidth.Of(row.Name)).DefaultIfEmpty(0).Max();
+        var nameWidth = Math.Min(Math.Min(MaximumNameColumns, longestName), Math.Max(6, width / 3));
+        var longestTags = picker.Rows.Select(row => TagsWidth(Kinds(row))).DefaultIfEmpty(0).Max();
+        var tagWidth = Math.Min(MaximumTagColumns, longestTags);
         foreach (var entry in layout.Visible)
         {
             var line = entry.RowIndex < 0
@@ -170,8 +172,8 @@ public static class PickerComposer
     {
         var row = picker.Rows[index];
         var name = TextWidth.Fit(row.Name, nameWidth, glyphs.Ellipsis);
-        var builder = new LineBuilder(width, glyphs.Ellipsis)
-            .Append($" {name}{new string(' ', Math.Max(0, nameWidth - TextWidth.Of(name)))}{new string(' ', ColumnGap)}", SegmentRole.Plain);
+        var padding = new string(' ', Math.Max(0, nameWidth - TextWidth.Of(name)) + ColumnGap);
+        var builder = new LineBuilder(width, glyphs.Ellipsis).Append($" {name}{padding}", SegmentRole.Plain);
         var used = 1 + nameWidth + ColumnGap;
         var kinds = Kinds(row);
         for (var position = 0; position < kinds.Count; position++)
@@ -234,11 +236,12 @@ public static class PickerComposer
 
         if (row.Tags.HasFlag(PickerTags.Directory))
         {
-            kinds.Add(new PickerKind(row.Tags.HasFlag(PickerTags.Repository) ? "repository" : "dir", SegmentRole.Faint));
+            var directory = row.Tags.HasFlag(PickerTags.Repository) ? "repository" : "dir";
+            kinds.Add(new PickerKind(directory, SegmentRole.Faint));
         }
         else if (!row.IsOpen && !row.IsPinned)
         {
-            kinds.Add(row.IsRecent ? new PickerKind("recent", SegmentRole.RemoteBranch) : new PickerKind("found", SegmentRole.Faint));
+            kinds.Add(RecentOrFound(row));
         }
 
         if (row.IsMissing)
@@ -247,6 +250,16 @@ public static class PickerComposer
         }
 
         return kinds;
+    }
+
+    private static PickerKind RecentOrFound(PickerRow row)
+    {
+        if (row.IsRecent)
+        {
+            return new PickerKind("recent", SegmentRole.RemoteBranch);
+        }
+
+        return new PickerKind("found", SegmentRole.Faint);
     }
 
     private sealed record PickerKind(string Text, SegmentRole Role);
