@@ -1,3 +1,4 @@
+using Gitunia.Core.Config.Models;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Keymap.Repeat;
@@ -12,6 +13,30 @@ namespace Gitunia.Tui.Tests.Rendering.Panes;
 public class PaneHintsTests
 {
     public static TheoryData<PaneKind> Panes() => [.. Enum.GetValues<PaneKind>()];
+
+    [Theory]
+    [MemberData(nameof(Panes))]
+    public void GivenMinimalMode_WhenLimitingAPanesHints_ThenOnlyHelpCommandsAndQuitRemain(PaneKind pane)
+    {
+        var limited = PaneHints.Limit(PaneHints.For(pane), StatusBarHintMode.Minimal);
+
+        Assert.Equal(["?", ":", "q"], limited.Select(hint => hint.Keys));
+        Assert.All(limited, hint => Assert.Contains(PaneHints.For(pane), other => other == hint));
+    }
+
+    [Fact]
+    public void GivenOffMode_WhenLimitingHints_ThenNoneRemain()
+    {
+        Assert.Empty(PaneHints.Limit(PaneHints.For(PaneKind.Graph), StatusBarHintMode.Off));
+    }
+
+    [Fact]
+    public void GivenFullMode_WhenLimitingHints_ThenTheyAreUnchanged()
+    {
+        var hints = PaneHints.For(PaneKind.Graph);
+
+        Assert.Same(hints, PaneHints.Limit(hints, StatusBarHintMode.Full));
+    }
 
     [Theory]
     [InlineData(PaneKind.Graph, "gg/G")]

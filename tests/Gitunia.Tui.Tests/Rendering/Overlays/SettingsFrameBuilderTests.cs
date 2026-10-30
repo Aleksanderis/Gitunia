@@ -368,7 +368,7 @@ public class SettingsFrameBuilderTests
 
         var entries = SettingsFrameBuilder.BodyEntries(state);
 
-        Assert.Equal([0, -1, 1, -1, 2, 3], entries.Select(entry => entry.RowIndex));
+        Assert.Equal([0, 1, 2, -1, 3, -1, 4, 5], entries.Select(entry => entry.RowIndex));
         Assert.Equal(["Global", "Graph"], entries.Where(entry => entry.RowIndex < 0).Select(entry => entry.Heading));
     }
 

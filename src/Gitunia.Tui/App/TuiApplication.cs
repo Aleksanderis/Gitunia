@@ -396,6 +396,7 @@ public sealed class TuiApplication(
             glyphs,
             () => _router.ViewName,
             _statuses);
+        _overlays.WhichKeyEnabled = _startupConfig.Options.WhichKeyPopup;
         _overlays.Changed += RefreshOverlay;
         _overlays.OperationInProgress = () => _host.Workspace.ActiveTab?.Operation is not null;
         _overlays.MenuTarget = view => MenuTargetOf(view, sidebarSource);
@@ -1397,6 +1398,12 @@ public sealed class TuiApplication(
             return PaneHints.ForRepeat(repeating.Kind);
         }
 
+        // Dialogs, editors and the repeat mode above keep their hints: they say which keys act right now.
+        return PaneHints.Limit(PaneAndConflictHints(), _startupConfig.Options.StatusBarHints);
+    }
+
+    private IReadOnlyList<KeyHint> PaneAndConflictHints()
+    {
         var hints = PaneHintsOfFocus();
 
         if (!ConflictPending())
@@ -1655,6 +1662,7 @@ public sealed class TuiApplication(
     {
         _startupConfig = _startupConfig with { Options = options };
         ApplyLabelCaps(options.LabelCaps);
+        _overlays.WhichKeyEnabled = options.WhichKeyPopup;
         if (!SameRoots(_picker.ScanRoots, options.ScanRoots))
         {
             _picker.ScanRoots = options.ScanRoots;

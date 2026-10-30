@@ -38,6 +38,8 @@ The set of categories and settings is the table below; the screen is generated f
 | Appearance | Branch label caps | choice (none, rounded, angled) | `labelCaps` | #851 |
 | Tabs | Show branch in tab name | toggle | `tabs.showBranch` | #453 |
 | Repositories | Scan roots | path list | `scanRoots` | #453 |
+| Keys | Which-key popup | choice (on, off) | `hints.whichKey` | #837 |
+| Keys | Status bar hints | choice (full, minimal, off) | `hints.statusBar` | #837 |
 | Keys | Key reference | read-only list from the keymap | none | #50 |
 | Config file | Open config.json in $EDITOR | action | none | #523 |
 
