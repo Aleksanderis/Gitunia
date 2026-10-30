@@ -20,7 +20,7 @@ using RemoteMatcher = Gitunia.Core.Search.FuzzyMatcher;
 namespace Gitunia.Tui.App.Tags;
 
 /// <summary>
-/// Create, delete and push tags, and delete one on a remote (ux.md, workflow 3, "Tags"). A name and an optional
+/// Create, delete and push tags, and delete one on a remote (ux-workflows.md, workflow 3, "Tags"). A name and an optional
 /// message are typed in prompt popups (an empty message makes a lightweight tag), a remote is chosen in a
 /// type-to-filter prompt, and both deletes go through the Confirm dialog. A push is one ref with no progress and no
 /// prompts; git's first error line is the failure text. Refusals that need no git are decided from the tab refs.

@@ -13,7 +13,7 @@ using Gitunia.Tui.App.WorkingTree;
 namespace Gitunia.Tui.App.Operations;
 
 /// <summary>
-/// Continue, abort and skip for the merge, rebase, cherry-pick or revert that is stopped in the active tab (ux.md,
+/// Continue, abort and skip for the merge, rebase, cherry-pick or revert that is stopped in the active tab (ux-workflows.md,
 /// workflow 4).
 /// Continue is refused while conflicted files remain; abort and skip ask first and name what is undone or dropped.
 /// What is acted

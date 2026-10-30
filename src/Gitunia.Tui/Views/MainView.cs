@@ -886,7 +886,7 @@ public sealed class MainView : IDisposable
         return CurrentGrid().ResolveRules(line, rect.Y - 1, rect.X);
     }
 
-    // The frame's bottom edge, or the in-progress operation banner over it (ux.md, workflow 4).
+    // The frame's bottom edge, or the in-progress operation banner over it (ux-workflows.md, workflow 4).
     private StyledLine BottomEdgeLine(int width)
     {
         var edge = CurrentGrid().Row(ScreenLayout.FrameBottom(ScreenHeight()), 0, width);

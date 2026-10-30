@@ -15,7 +15,7 @@ using Gitunia.Tui.Input;
 namespace Gitunia.Tui.App.Creation;
 
 /// <summary>
-/// Clone and init from the repository picker (ux.md, workflow 0). <c>Alt-c</c> asks for a source, then for the
+/// Clone and init from the repository picker (ux-workflows.md, workflow 0). <c>Alt-c</c> asks for a source, then for the
 /// directory (default: the folder typed in the picker, else the first scan root, plus the repository name) and clones
 /// with the progress as the status bar line; <c>Alt-i</c> asks for a directory and runs <c>git init</c> there. Both
 /// open the result in a new tab. One creation runs at a time and belongs to no tab, so any tab (or none) stays usable.

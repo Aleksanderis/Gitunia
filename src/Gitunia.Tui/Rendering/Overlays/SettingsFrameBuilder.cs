@@ -7,7 +7,7 @@ using Gitunia.Tui.Rendering.Styling;
 namespace Gitunia.Tui.Rendering.Overlays;
 
 /// <summary>
-/// Lays out the settings overlay (ux.md, "Settings screen"): the categories on the left, the settings of the selected
+/// Lays out the settings overlay (ux-settings.md, "Settings screen"): the categories on the left, the settings of the selected
 /// category on the right, a help line under the lists and a hint row. Under 80 columns the categories collapse into
 /// one list with headings; under 40x12 only a "terminal too small" line is shown. Also finds what a click landed on.
 /// </summary>

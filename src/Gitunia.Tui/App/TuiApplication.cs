@@ -1541,7 +1541,7 @@ public sealed class TuiApplication(
         return defaults with { UseFileWatchers = true, MaximumWorkingTreeDirectories = cap };
     }
 
-    // The settings screen changed the file: the running app takes the new options at once (ux.md, "Settings screen").
+    // The settings screen changed the file: the running app takes the new options at once (ux-settings.md, "Settings screen").
     private void ApplyOptions(ConfigOptions options)
     {
         _startupConfig = _startupConfig with { Options = options };

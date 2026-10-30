@@ -44,7 +44,7 @@ Read the doc before working in its area; don't rely on memory of it.
 | Solution layout, layering, rendering, cross-platform | `docs/architecture.md` |
 | Performance targets and measured numbers | `docs/performance.md` (and the `performance` skill) |
 | Running git, parsers, graph model, worktrees, refresh/watching | `docs/git-layer.md` |
-| Screens, modes, tabs/repo picker, key bindings, workflows, mouse | `docs/ux.md` |
+| Screens, modes, tabs/repo picker, key bindings, workflows, mouse | `docs/ux.md` (index; links the parts: workflows, keymap, mouse, settings, look) |
 | Any test, fixtures, snapshot tests | `docs/testing.md` and the `testing` skill |
 | Milestone goals and open questions | `docs/roadmap.md` |
 | Anything you are about to ask the owner | `docs/decisions.md` first |

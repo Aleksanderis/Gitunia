@@ -11,7 +11,7 @@ using Gitunia.Tui.Rendering.Styling;
 namespace Gitunia.Tui.Rendering.Overlays;
 
 /// <summary>
-/// Lays out the rebase todo editor (ux.md, workflow 3, "Interactive rebase"): the commits in replay order with their
+/// Lays out the rebase todo editor (ux-workflows.md, workflow 3, "Interactive rebase"): the commits in replay order with their
 /// action, two rows of clickable chips (the mouse path of every key) and a footer; while a reword's message is edited
 /// the same box shows the multi-line message editor instead.
 /// </summary>

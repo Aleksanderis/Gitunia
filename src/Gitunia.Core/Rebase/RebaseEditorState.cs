@@ -5,7 +5,7 @@ using Gitunia.Git.Rebase;
 namespace Gitunia.Core.Rebase;
 
 /// <summary>
-/// The open todo editor of an interactive rebase (ux.md, workflow 3, "Interactive rebase"): the commits of the range in
+/// The open todo editor of an interactive rebase (ux-workflows.md, workflow 3, "Interactive rebase"): the commits of the range in
 /// replay order (the first row is replayed first, as in git's own todo), the action of each, the highlighted row and
 /// the message editor of a reword. Pure: it never starts git; <see cref="ToEntries"/> is what the engine takes.
 /// </summary>

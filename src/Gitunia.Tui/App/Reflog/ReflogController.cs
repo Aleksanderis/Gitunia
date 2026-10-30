@@ -22,7 +22,7 @@ using Gitunia.Tui.Views;
 namespace Gitunia.Tui.App.Reflog;
 
 /// <summary>
-/// The reflog list (ux.md, workflow 3, "Reflog"): a modal list of the reflog of HEAD, or of the local branch under the
+/// The reflog list (ux-workflows.md, workflow 3, "Reflog"): a modal list of the reflog of HEAD, or of the local branch under the
 /// sidebar cursor, read from git when it opens and on refresh. It owns the keys while it is open. An entry can be
 /// selected in the graph, reset to (the reset flow of #392), branched from or checked out detached; those three close
 /// the list first because their prompts and dialogs live in the status bar and the confirm overlay.

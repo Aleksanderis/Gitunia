@@ -20,7 +20,7 @@ using Gitunia.Tui.Rendering.Panes;
 namespace Gitunia.Tui.App.WorkingTree;
 
 /// <summary>
-/// The commit part of the working-tree view (ux.md, workflow 2, "Message and commit"): the draft of each tab (message, options,
+/// The commit part of the working-tree view (ux-workflows.md, workflow 2, "Message and commit"): the draft of each tab (message, options,
 /// amend), the message box's Normal and Insert behaviour, and the commit itself. <c>git commit</c> runs off the UI thread and is
 /// cancellable (<c>Esc</c> while it runs); the box is read-only meanwhile. A refused commit says why without running git, a
 /// failed one keeps the draft and shows git's and the hooks' output in the output overlay, a successful one clears the draft,

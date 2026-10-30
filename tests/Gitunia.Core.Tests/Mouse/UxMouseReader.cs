@@ -4,14 +4,14 @@ using Gitunia.Core.Tests.Keymap;
 
 namespace Gitunia.Core.Tests.Mouse;
 
-/// <summary>Reads the mouse table in <c>docs/ux.md</c> (columns <c>View | Gesture | Action | Effect</c>) into bindings.</summary>
+/// <summary>Reads the mouse table in <c>docs/ux-mouse.md</c> (columns <c>View | Gesture | Action | Effect</c>) into bindings.</summary>
 public static class UxMouseReader
 {
     public static IReadOnlyList<UxMouseRow> ReadRows()
     {
         var rows = new List<UxMouseRow>();
         var inMouse = false;
-        foreach (var line in File.ReadAllLines(UxKeymapReader.FindUxDocument()))
+        foreach (var line in File.ReadAllLines(UxKeymapReader.FindUxDocument("ux-mouse.md")))
         {
             if (line.StartsWith("## ", StringComparison.Ordinal))
             {
@@ -45,6 +45,6 @@ public static class UxMouseReader
         "Drag start" => MouseGesture.DragStart,
         "Drag up" => MouseGesture.DragUp,
         "Drag down" => MouseGesture.DragDown,
-        _ => throw new InvalidDataException($"Unknown mouse gesture in docs/ux.md: {text}"),
+        _ => throw new InvalidDataException($"Unknown mouse gesture in docs/ux-mouse.md: {text}"),
     };
 }

@@ -27,7 +27,7 @@ namespace Gitunia.Tui.Rendering.Screen;
 /// message that is not a posted status message (a key's own notice, progress), drawn in the plain bar style.</param>
 /// <param name="MessageIsFresh">Whether <paramref name="Message"/> is new and drawn as a filled chip.</param>
 /// <param name="SearchLine">The open search or prompt (<c>/foo_  3/17</c>), shown instead of the position; empty when none.</param>
-/// <param name="Banner">The in-progress operation of the tab (ux.md, workflow 4), null when none. Drawn on the
+/// <param name="Banner">The in-progress operation of the tab (ux-workflows.md, workflow 4), null when none. Drawn on the
 /// frame's bottom edge; a terminal under <see cref="ScreenLayout.MinimumHeightWithBanner"/> rows shows its text in
 /// the status bar instead.</param>
 /// <param name="RemoteBusy">A fetch, pull or push of the active tab runs; the tab row shows a cancel chip instead of

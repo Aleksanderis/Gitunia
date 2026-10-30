@@ -2,7 +2,7 @@ using Gitunia.Core.Keymap;
 
 namespace Gitunia.Core.Mouse;
 
-/// <summary>The default mouse map, written as data. It mirrors the mouse table in <c>docs/ux.md</c> (a test checks that).</summary>
+/// <summary>The default mouse map, written as data. It mirrors the mouse table in <c>docs/ux-mouse.md</c> (a test checks that).</summary>
 public static class DefaultMouseMap
 {
     /// <summary>The view of the tab row.</summary>

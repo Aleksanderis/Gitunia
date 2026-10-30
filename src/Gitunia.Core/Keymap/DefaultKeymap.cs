@@ -4,7 +4,7 @@ using Gitunia.Core.Keymap.Repeat;
 namespace Gitunia.Core.Keymap;
 
 /// <summary>
-/// The default bindings, written as data. They mirror the keymap table in <c>docs/ux.md</c> (a test checks
+/// The default bindings, written as data. They mirror the keymap table in <c>docs/ux-keymap.md</c> (a test checks
 /// that); user config in M4 builds a <see cref="KeyBindingTable"/> from these plus overrides.
 /// </summary>
 public static class DefaultKeymap

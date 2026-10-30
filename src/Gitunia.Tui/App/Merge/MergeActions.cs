@@ -16,7 +16,7 @@ namespace Gitunia.Tui.App.Merge;
 
 /// <summary>
 /// Merges the selected commit, branch or tag into the current branch: <c>gm</c> fast-forwards when possible, <c>gM</c>
-/// always makes a merge commit and <c>gs</c> squashes (ux.md, workflow 3, "Integrating"). Nothing is lost by a merge,
+/// always makes a merge commit and <c>gs</c> squashes (ux-workflows.md, workflow 3, "Integrating"). Nothing is lost by a merge,
 /// so there is no Confirm; the status line names the old tip for the undo. A stop on conflicts is not a failure: the
 /// in-progress operation takes over (banner, <c>gc</c>, <c>ga</c>). Refused on a detached or unborn HEAD and while
 /// another operation is in progress. The git call runs off the UI thread, one operation per tab.
