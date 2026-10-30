@@ -564,6 +564,14 @@ public sealed class TuiApplication(
             return;
         }
 
+        // <space>tm is global (#742): it must not start git mergetool under an open overlay or editor.
+        if (action == ActionIds.ToolMergetool
+            && (_overlays.State.IsOpen || _reflog.IsOpen || _rebaseEditor.IsOpen || _conflictEditor.IsOpen
+                || _settings.IsOpen))
+        {
+            return;
+        }
+
         if (_settings.TryExecute(action, count)
             || _conflictEditor.TryExecute(action, count)
             || _rebaseEditor.TryExecute(action, count)

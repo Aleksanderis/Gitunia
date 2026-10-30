@@ -759,7 +759,7 @@ One flow serves merge, rebase, cherry-pick and revert, and the interactive rebas
    `<space>gc`, `<space>ga` and `<space>gk` work in the graph, the sidebar and the working-tree view (where conflicts are resolved).
    On a terminal under 10 rows the banner is dropped and an empty status message shows the same text.
    It is read from the repository's state files (`MERGE_MSG`, `rebase-merge/`, `sequencer/`), so it survives a restart of the app, and the tab bar shows a `!` marker.
-2. **Conflicts.** The working-tree view lists conflicted files with `!`. `<space>a` marks one resolved (workflow 2, item 4); `<space>tm` (graph) opens the configured mergetool; `Enter` on a conflicted file opens the conflict editor (next item); `<space>to` opens it from any pane.
+2. **Conflicts.** The working-tree view lists conflicted files with `!`. `<space>a` marks one resolved (workflow 2, item 4); `<space>tm` (from any pane) opens the configured mergetool; `Enter` on a conflicted file opens the conflict editor (next item); `<space>to` opens it from any pane.
 2a.
 **Conflict editor** (#689; `Enter` on a `!` row of the Unstaged list, or `<space>to` from any pane while a file is conflicted: the file under the Unstaged cursor if it is conflicted, else the first conflicted file, so the editor opens from the graph, the sidebar, the diff and the Staged list too, in a rebase, cherry-pick or revert as in a merge; with no conflicted file the status bar says so (#742)). The editor leaves the operation banner row uncovered.
 A modal view of one conflict hunk at a time in one continuous box-drawing frame (the title set into the top border;
