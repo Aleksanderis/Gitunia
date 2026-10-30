@@ -20,6 +20,7 @@ using Gitunia.Tui.App;
 using Gitunia.Tui.App.Conflicts;
 using Gitunia.Tui.App.WorkingTree;
 using Gitunia.Tui.Rendering.Graph;
+using Gitunia.Tui.Rendering.Overlays;
 using Gitunia.Tui.Views;
 using Xunit;
 
@@ -511,18 +512,204 @@ public class ConflictEditorControllerTests
     }
 
     [Fact]
-    public async Task GivenAPick_WhenResetting_ThenTheHunkIsUnresolvedAndUndoRestoresThePick()
+    public async Task GivenAPick_WhenUntaking_ThenTheHunkIsUnresolvedAndUndoRestoresThePick()
     {
         using var repository = TestRepositories.Conflicted();
         using var harness = await Harness.CreateAsync(repository);
         await harness.OpenAsync();
         harness.Run(ActionIds.ConflictEditorBoth);
 
-        harness.Run(ActionIds.ConflictEditorReset);
+        harness.Run(ActionIds.ConflictEditorUntake);
         Assert.Equal(ConflictPick.None, harness.Controller.State!.SelectedPick);
         harness.Run(ActionIds.ConflictEditorUndo);
 
         Assert.Equal(ConflictPick.Both, harness.Controller.State!.SelectedPick);
+    }
+
+    [Fact]
+    public async Task GivenAnUnresolvedConflict_WhenUntaking_ThenTheStatusSaysThereIsNothingToUntake()
+    {
+        using var repository = TestRepositories.Conflicted();
+        using var harness = await Harness.CreateAsync(repository);
+        await harness.OpenAsync();
+
+        harness.Run(ActionIds.ConflictEditorUntake);
+
+        Assert.Contains("nothing to untake", harness.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
+        Assert.False(harness.Controller.State!.IsModified);
+    }
+
+    [Fact]
+    public async Task GivenSelectedLines_WhenUntakingThem_ThenOnlyThoseLinesLeaveTheResultAndNoneSaysSo()
+    {
+        using var repository = TestRepositories.Conflicted();
+        using var harness = await Harness.CreateAsync(repository);
+        await harness.OpenAsync();
+        harness.Run(ActionIds.VisualToggle);
+        harness.Run(ActionIds.ConflictEditorTake);
+        Assert.Equal(ConflictPick.Lines, harness.Controller.State!.SelectedPick);
+
+        harness.Run(ActionIds.VisualToggle);
+        harness.Run(ActionIds.ConflictEditorUntake);
+
+        Assert.Equal(ConflictPick.None, harness.Controller.State!.SelectedPick);
+        Assert.False(harness.Controller.IsVisual);
+        Assert.Equal(KeyMode.Normal, harness.Mode);
+        harness.Run(ActionIds.VisualToggle);
+        harness.Run(ActionIds.ConflictEditorUntake);
+        Assert.Contains("nothing was untaken", harness.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task GivenTheEditKey_WhenPressedInAVersionPane_ThenFocusMovesIntoTheResultInInsertModeAndTheStatusSaysSo()
+    {
+        using var repository = TestRepositories.Conflicted();
+        using var harness = await Harness.CreateAsync(repository);
+        await harness.OpenAsync();
+
+        harness.Run(ActionIds.ConflictEditorEdit);
+
+        Assert.True(harness.Controller.IsEditing);
+        Assert.True(harness.Controller.IsResultActive);
+        Assert.Equal(KeyMode.Insert, harness.Mode);
+        Assert.Contains("Typing in the result at conflict 1", harness.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task GivenAClickOnAVersionRow_WhenClicking_ThenThePaneGetsTheCursorAndNothingIsTaken()
+    {
+        using var repository = TestRepositories.ConflictedManyHunks();
+        using var harness = await Harness.CreateAsync(repository);
+        await harness.OpenAsync();
+        harness.Run(ActionIds.ConflictEditorNext);
+        harness.Run(ActionIds.ConflictEditorNext);
+        var row = harness.Controller.State!.Alignment.FirstRowOf(2) + 1;
+        Assert.NotEqual(row, harness.Controller.State.Row);
+
+        var view = harness.ClickVersionRow(ConflictPane.Theirs, row);
+
+        Assert.Null(view);
+        Assert.True(harness.LastClickHandled);
+        var state = harness.Controller.State!;
+        Assert.Equal(ConflictPane.Theirs, state.ActivePane);
+        Assert.Equal(row, state.Row);
+        Assert.Equal(2, state.Index);
+        Assert.Equal(ConflictPick.None, state.SelectedPick);
+        Assert.False(state.IsModified);
+    }
+
+    [Fact]
+    public async Task GivenADoubleClickOnAConflictRow_WhenClicking_ThenThatPanesVersionIsTaken()
+    {
+        using var repository = TestRepositories.ConflictedManyHunks();
+        using var harness = await Harness.CreateAsync(repository);
+        await harness.OpenAsync();
+        harness.Run(ActionIds.ConflictEditorNext);
+        var row = harness.Controller.State!.Alignment.FirstRowOf(1);
+
+        harness.ClickVersionRow(ConflictPane.Theirs, row, isDoubleClick: true);
+
+        var state = harness.Controller.State!;
+        Assert.Equal(ConflictPick.Theirs, state.Result.Regions[1].Pick);
+        Assert.Equal(1, state.ResolvedCount);
+        Assert.Equal(ConflictPane.Theirs, state.ActivePane);
+    }
+
+    [Fact]
+    public async Task GivenADoubleClickOnCommonText_WhenClicking_ThenTheCursorMovesAndNothingIsTaken()
+    {
+        using var repository = TestRepositories.ConflictedManyHunks();
+        using var harness = await Harness.CreateAsync(repository);
+        await harness.OpenAsync();
+        var shown = harness.Controller.State!;
+        var commonRow = Enumerable.Range(shown.TopScroll, 8).First(row => shown.Alignment.HunkAt(row) < 0);
+
+        harness.ClickVersionRow(ConflictPane.Ours, commonRow, isDoubleClick: true);
+
+        Assert.Equal(commonRow, harness.Controller.State!.Row);
+        Assert.False(harness.Controller.State.IsModified);
+    }
+
+    [Fact]
+    public async Task GivenADoubleClickOnTheBasePane_WhenClicking_ThenTheCommonAncestorIsTaken()
+    {
+        using var repository = TestRepositories.Conflicted();
+        using var harness = await Harness.CreateAsync(repository);
+        await harness.OpenAsync();
+
+        harness.ClickVersionRow(ConflictPane.Base, 0, isDoubleClick: true);
+
+        Assert.Equal(ConflictPick.Base, harness.Controller.State!.SelectedPick);
+        Assert.Equal(ConflictPane.Base, harness.Controller.State.ActivePane);
+    }
+
+    [Fact]
+    public async Task GivenAClickOnTheResultAndOnAHeader_WhenClicking_ThenTheClickedPaneIsActive()
+    {
+        using var repository = TestRepositories.ConflictedManyHunks();
+        using var harness = await Harness.CreateAsync(repository);
+        await harness.OpenAsync();
+
+        var line = harness.Controller.State!.ResultScroll + 2;
+        harness.ClickResultLine(line);
+        Assert.True(harness.Controller.IsResultActive);
+        Assert.Equal(line, harness.Controller.State!.Result.Editor.CursorRow);
+        Assert.Equal(KeyMode.Normal, harness.Mode);
+
+        harness.ClickHeader(ConflictPane.Theirs);
+        Assert.Equal(ConflictPane.Theirs, harness.Controller.State!.ActivePane);
+        harness.ClickHeader(ConflictPane.Result);
+        Assert.True(harness.Controller.IsResultActive);
+    }
+
+    [Fact]
+    public async Task GivenAVisualSelection_WhenClickingARow_ThenTheSelectionEndsAndTheModeIsNormal()
+    {
+        using var repository = TestRepositories.ConflictedManyHunks();
+        using var harness = await Harness.CreateAsync(repository);
+        await harness.OpenAsync();
+        harness.Run(ActionIds.VisualToggle);
+        Assert.Equal(KeyMode.Visual, harness.Mode);
+
+        harness.ClickVersionRow(ConflictPane.Ours, harness.Controller.State!.Row + 1);
+
+        Assert.False(harness.Controller.IsVisual);
+        Assert.Equal(KeyMode.Normal, harness.Mode);
+    }
+
+    [Fact]
+    public async Task GivenTypingInTheResult_WhenClickingAPaneOrRow_ThenTheTypingContinuesUndisturbed()
+    {
+        using var repository = TestRepositories.ConflictedManyHunks();
+        using var harness = await Harness.CreateAsync(repository);
+        await harness.OpenAsync();
+        harness.Run(ActionIds.ConflictEditorEdit);
+        var before = harness.Controller.State!;
+
+        harness.ClickVersionRow(ConflictPane.Theirs, 0);
+        harness.ClickResultLine(3);
+        harness.ClickHeader(ConflictPane.Ours);
+
+        Assert.True(harness.Controller.IsEditing);
+        Assert.Equal(before.Result.Editor.CursorRow, harness.Controller.State!.Result.Editor.CursorRow);
+        Assert.Equal(ConflictPane.Result, harness.Controller.State.ActivePane);
+    }
+
+    [Fact]
+    public async Task GivenAClickOnTheBorderOrAnOtherOverlay_WhenClicking_ThenNothingHappens()
+    {
+        using var repository = TestRepositories.ConflictedManyHunks();
+        using var harness = await Harness.CreateAsync(repository);
+        await harness.OpenAsync();
+        var before = harness.Controller.State!;
+
+        harness.Click(0, 10);
+        Assert.False(harness.LastClickHandled);
+        harness.IsOtherOverlayOpen = true;
+        harness.ClickVersionRow(ConflictPane.Theirs, 0);
+
+        Assert.False(harness.LastClickHandled);
+        Assert.Same(before, harness.Controller.State);
     }
 
     [Fact]
@@ -1075,6 +1262,51 @@ public class ConflictEditorControllerTests
         }
 
         public void Run(ActionId action) => Assert.True(Controller.TryExecute(action, null));
+
+        public bool LastClickHandled { get; private set; }
+
+        public string? Click(int line, int column, bool isDoubleClick = false)
+        {
+            var view = Controller.OnLineClicked(line, column, out var handled, isDoubleClick);
+            LastClickHandled = handled;
+
+            return view;
+        }
+
+        // A click in the middle of a pane, found through the same layout the screen uses.
+        public string? ClickVersionRow(ConflictPane pane, int row, bool isDoubleClick = false)
+        {
+            var state = Controller.State!;
+            var width = Screen.Width;
+            var column = 1 + (((int)pane - (int)ConflictPane.Base) * (width / 3)) + 4;
+
+            return Click(
+                ConflictEditorLayout.VersionStartLine + row - state.TopScroll,
+                column,
+                isDoubleClick);
+        }
+
+        public void ClickResultLine(int line)
+        {
+            var state = Controller.State!;
+            var layout = ConflictEditorFrameBuilder.LayoutFor(state, Screen.Width, Screen.Height - 1)!;
+
+            Click(layout.ResultStartLine + line - state.ResultScroll, 10);
+        }
+
+        public void ClickHeader(ConflictPane pane)
+        {
+            var state = Controller.State!;
+            var layout = ConflictEditorFrameBuilder.LayoutFor(state, Screen.Width, Screen.Height - 1)!;
+            if (pane == ConflictPane.Result)
+            {
+                Click(layout.ResultStartLine - 1, 10);
+
+                return;
+            }
+
+            Click(1, 1 + (((int)pane - (int)ConflictPane.Base) * (Screen.Width / 3)) + 4);
+        }
 
         public void Answer()
         {

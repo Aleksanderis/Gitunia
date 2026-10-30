@@ -36,13 +36,13 @@ public static class ConflictEditorFrameBuilder
     private const int VersionShareOf = 20;
     private const int VersionShare = 9;
     private const string DiscardHint = "Esc again discards your changes";
-    private const string TakenMark = "[taken]";
 
     private static readonly HintChip[] VersionChips =
     [
         new("next conflict", DefaultMouseMap.ConflictNextButton),
         new("previous conflict", DefaultMouseMap.ConflictPreviousButton),
         new("take", DefaultMouseMap.ConflictTakeButton),
+        new("untake", DefaultMouseMap.ConflictUntakeButton),
         new("ours", DefaultMouseMap.ConflictOursButton),
         new("theirs", DefaultMouseMap.ConflictTheirsButton),
         new("base", DefaultMouseMap.ConflictBaseButton),
@@ -50,8 +50,7 @@ public static class ConflictEditorFrameBuilder
         new("save", DefaultMouseMap.ConflictSaveButton),
         new("close", DefaultMouseMap.ConflictCancelButton),
         new("select lines", DefaultMouseMap.ConflictSelectButton),
-        new("edit result", DefaultMouseMap.ConflictEditButton),
-        new("reset", DefaultMouseMap.ConflictResetButton),
+        new("edit in result", DefaultMouseMap.ConflictEditButton),
         new("undo", DefaultMouseMap.ConflictUndoButton),
         new("redo", DefaultMouseMap.ConflictRedoButton),
         new("next pane", DefaultMouseMap.ConflictPaneButton),
@@ -64,10 +63,10 @@ public static class ConflictEditorFrameBuilder
     [
         new("next conflict", DefaultMouseMap.ConflictNextButton),
         new("previous conflict", DefaultMouseMap.ConflictPreviousButton),
-        new("edit", DefaultMouseMap.ConflictEditButton),
+        new("untake", DefaultMouseMap.ConflictUntakeButton),
+        new("type", DefaultMouseMap.ConflictEditButton),
         new("save", DefaultMouseMap.ConflictSaveButton),
         new("close", DefaultMouseMap.ConflictCancelButton),
-        new("reset", DefaultMouseMap.ConflictResetButton),
         new("undo", DefaultMouseMap.ConflictUndoButton),
         new("redo", DefaultMouseMap.ConflictRedoButton),
         new("next pane", DefaultMouseMap.ConflictPaneButton),
@@ -77,6 +76,7 @@ public static class ConflictEditorFrameBuilder
     private static readonly HintChip[] VisualChips =
     [
         new("take lines", DefaultMouseMap.ConflictTakeButton),
+        new("untake lines", DefaultMouseMap.ConflictUntakeButton),
         new("end selection", DefaultMouseMap.ConflictSelectButton),
     ];
 
@@ -161,6 +161,81 @@ public static class ConflictEditorFrameBuilder
         lines.Add(OverlayBox.Bottom(layout.Width, glyphs));
 
         return new OverlayFrame(0, 0, lines);
+    }
+
+    /// <summary>What a click at a frame line and column hit; null when nothing clickable.</summary>
+    public static ConflictTarget? TargetAt(
+        ConflictEditorState state,
+        int frameLine,
+        int frameColumn,
+        int screenWidth,
+        int frameHeight,
+        ChipKeys? keys = null)
+    {
+        if (LayoutFor(state, screenWidth, frameHeight, keys) is not { } layout)
+        {
+            return null;
+        }
+
+        if (ChipAt(state, frameLine, frameColumn, screenWidth, frameHeight, keys) is { } view)
+        {
+            return ConflictTarget.OfChip(view);
+        }
+
+        var inner = frameColumn - 1;
+        if (inner < 0 || inner >= OverlayBox.InnerWidth(layout.Width))
+        {
+            return null;
+        }
+
+        var resultHeader = ConflictEditorLayout.VersionStartLine + layout.VersionRows + 1;
+        if (frameLine == ConflictEditorLayout.VersionStartLine - 1)
+        {
+            return PaneAt(layout, inner) is { } pane ? ConflictTarget.OfHeader(pane) : null;
+        }
+
+        if (frameLine >= ConflictEditorLayout.VersionStartLine
+            && frameLine < ConflictEditorLayout.VersionStartLine + layout.VersionRows)
+        {
+            var row = state.TopScroll + frameLine - ConflictEditorLayout.VersionStartLine;
+
+            return PaneAt(layout, inner) is { } pane ? ConflictTarget.OfVersionRow(pane, row) : null;
+        }
+
+        if (frameLine == resultHeader)
+        {
+            return ConflictTarget.OfHeader(ConflictPane.Result);
+        }
+
+        if (frameLine >= layout.ResultStartLine && frameLine < layout.ResultStartLine + layout.ResultRows)
+        {
+            return ConflictTarget.OfResultLine(state.ResultScroll + frameLine - layout.ResultStartLine);
+        }
+
+        return null;
+    }
+
+    // The version pane under a column inside the borders; the dividers between the panes belong to none.
+    private static ConflictPane? PaneAt(ConflictEditorLayout layout, int innerColumn)
+    {
+        var widths = PaneWidths(layout);
+        var start = 0;
+        for (var index = 0; index < widths.Count; index++)
+        {
+            if (innerColumn < start)
+            {
+                return null;
+            }
+
+            if (innerColumn < start + widths[index])
+            {
+                return layout.Panes[index];
+            }
+
+            start += widths[index] + 1;
+        }
+
+        return null;
     }
 
     /// <summary>The mouse view of the chip drawn at a frame line and column; null when none.</summary>
@@ -275,7 +350,7 @@ public static class ConflictEditorFrameBuilder
     {
         var position = string.Create(
             CultureInfo.InvariantCulture,
-            $"conflict {state.Index + 1} of {state.Hunks.Count}");
+            $"conflict {state.Index + 1} of {state.Hunks.Count}: {ConflictState(state)}");
         if (state.IsDiscardPending)
         {
             return $"Conflict: {state.Path}  {position}  {DiscardHint}";
@@ -324,11 +399,6 @@ public static class ConflictEditorFrameBuilder
             builder.Append($"  {label}", role);
         }
 
-        if (IsTaken(pane, state.SelectedPick))
-        {
-            builder.Append($"  {TakenMark}", SegmentRole.DiffAdded);
-        }
-
         if (state.ActivePane == pane && state.IsVisual)
         {
             var count = state.SelectionEnd - state.SelectionStart + 1;
@@ -337,14 +407,6 @@ public static class ConflictEditorFrameBuilder
 
         return builder.Build();
     }
-
-    private static bool IsTaken(ConflictPane pane, ConflictPick pick) => pane switch
-    {
-        ConflictPane.Ours => pick is ConflictPick.Ours or ConflictPick.Both,
-        ConflictPane.Theirs => pick is ConflictPick.Theirs or ConflictPick.Both,
-        ConflictPane.Base => pick == ConflictPick.Base,
-        _ => false,
-    };
 
     private static StyledLine VersionLine(
         ConflictEditorState state,
@@ -373,10 +435,6 @@ public static class ConflictEditorFrameBuilder
         var isActive = state.ActivePane == ConflictPane.Result;
         var builder = new LineBuilder(OverlayBox.InnerWidth(width), glyphs.Ellipsis).Append(" ", SegmentRole.Plain);
         builder.Append("result", isActive ? SegmentRole.ActiveTab : SegmentRole.SectionTitle);
-        var role = state.SelectedPick == ConflictPick.None || state.Result.IsUnresolved(state.Index)
-            ? SegmentRole.Error
-            : SegmentRole.DiffAdded;
-        builder.Append($"  conflict {state.Index + 1}: {ResultState(state)}", role);
         var line = state.ActivePane == ConflictPane.Result
             ? state.Result.Editor.CursorRow + 1
             : state.ResultLineOfRow(state.Row) + 1;
@@ -385,7 +443,7 @@ public static class ConflictEditorFrameBuilder
             SegmentRole.Faint);
         if (state.IsEditing)
         {
-            builder.Append("  INSERT  Esc keeps the text", SegmentRole.StatusOperation);
+            builder.Append("  INSERT  typing in the result, Esc keeps the text", SegmentRole.StatusOperation);
         }
         else if (isActive)
         {
@@ -395,7 +453,7 @@ public static class ConflictEditorFrameBuilder
         return OverlayBox.Wrap(builder.Build(), glyphs);
     }
 
-    private static string ResultState(ConflictEditorState state)
+    private static string ConflictState(ConflictEditorState state)
     {
         if (state.Result.IsUnresolved(state.Index))
         {

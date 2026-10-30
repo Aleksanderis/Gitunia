@@ -360,7 +360,8 @@ public static class DefaultKeymap
     // The conflict editor is a modal like the rebase todo editor (#742). ConflictEditor holds the keys of every pane;
     // ConflictSide (the base, ours and theirs panes, read-only) adds the picks, ConflictResult (the text editor over
     // the whole file) the commit box's Normal mode keys. n/N step through the conflicts (the editor has no search),
-    // so they shadow Lists' search keys; r resets a conflict (the result has no replace-character command). In
+    // so they shadow Lists' search keys; <space>u untakes a conflict as <space>a takes it (it shadows the Lists' unstage
+    // key; the old reset key r is gone). In
     // Insert mode the result's text editor takes text; only Enter, Esc and Ctrl-g act.
     private static void AddConflictEditorKeys(List<KeyBinding> bindings)
     {
@@ -371,7 +372,7 @@ public static class DefaultKeymap
         Add(bindings, NormalOnly, editor, "[c", ActionIds.ConflictEditorPrevious);
         Add(bindings, NormalOnly, editor, "u", ActionIds.ConflictEditorUndo);
         Add(bindings, NormalOnly, editor, "Ctrl-r", ActionIds.ConflictEditorRedo);
-        Add(bindings, NormalOnly, editor, "r", ActionIds.ConflictEditorReset);
+        Add(bindings, Navigation, editor, "<space>u", ActionIds.ConflictEditorUntake);
         Add(bindings, NormalOnly, editor, "R", ActionIds.ConflictEditorRecreate);
         Add(bindings, NormalOnly, editor, "Enter", ActionIds.ConflictEditorSave);
         Add(bindings, NormalOnly, editor, "Esc", ActionIds.NavigateBack);

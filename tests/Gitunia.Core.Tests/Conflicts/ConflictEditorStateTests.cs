@@ -91,16 +91,142 @@ public class ConflictEditorStateTests
     }
 
     [Fact]
-    public void GivenAPick_WhenResetting_ThenTheMarkersComeBackAndUndoRestoresThePick()
+    public void GivenAPick_WhenUntaking_ThenTheMarkersComeBackAndUndoRestoresThePick()
     {
         var picked = State(Text).Take(ConflictPick.Theirs);
         var pickedText = picked.ToText();
 
-        var reset = picked.Reset();
+        var reset = picked.Untake();
 
         Assert.Equal(Text, reset.ToText());
         Assert.Equal(ConflictPick.None, reset.SelectedPick);
         Assert.Equal(pickedText, reset.Undo().ToText());
+    }
+
+    [Fact]
+    public void GivenAnUnresolvedConflict_WhenUntaking_ThenNothingChangesAndItCannotBeUntaken()
+    {
+        var state = State(Text);
+
+        Assert.False(state.CanUntake);
+        Assert.Same(state, state.Untake());
+        Assert.True(state.Take(ConflictPick.Ours).CanUntake);
+    }
+
+    [Fact]
+    public void GivenTypedText_WhenUntaking_ThenTheConflictIsUnresolvedAgainWithoutTheTypedText()
+    {
+        var typed = State(Text).Take(ConflictPick.Ours).BeginEdit();
+        typed = typed.TypeKey(new KeyEvent("Z")).EndEdit();
+        Assert.Equal(ConflictPick.Edited, typed.SelectedPick);
+
+        var untaken = typed.Untake();
+
+        Assert.Equal(Text, untaken.ToText());
+        Assert.Equal(ConflictPick.None, untaken.SelectedPick);
+    }
+
+    [Fact]
+    public void GivenAPickOnAnotherConflict_WhenUntakingTheCurrentOne_ThenTheOtherPickStays()
+    {
+        var state = State(Text).Take(ConflictPick.Ours).NextConflict().Take(ConflictPick.Theirs);
+
+        var untaken = state.Untake();
+
+        Assert.Equal("top\nA1\nmid\n<<<<<<< HEAD\nA2\n=======\nB2\n>>>>>>> other\nend\n", untaken.ToText());
+        Assert.Equal(ConflictPick.Ours, untaken.Result.Regions[0].Pick);
+    }
+
+    [Fact]
+    public void GivenTakenLines_WhenUntakingSomeOfThem_ThenOnlyThoseLeaveTheResult()
+    {
+        var taken = State(LongHunk).ToggleVisual().MoveCursor(2).TakeSelectedLines();
+        Assert.Equal("top\na\nb\nc\nend\n", taken.ToText());
+
+        var untaken = taken.ClickVersionRow(ConflictPane.Ours, 1).ToggleVisual().UntakeSelectedLines();
+
+        Assert.Equal("top\nb\nc\nend\n", untaken.ToText());
+        Assert.Equal(new ConflictRegion(1, 2, ConflictPick.Lines), untaken.Result.Regions[0]);
+        Assert.False(untaken.IsVisual);
+        Assert.Equal("top\na\nb\nc\nend\n", untaken.Undo().ToText());
+    }
+
+    [Fact]
+    public void GivenTakenLines_WhenUntakingAllOfThem_ThenTheMarkersComeBack()
+    {
+        var taken = State(LongHunk).ToggleVisual().MoveCursor(1).TakeSelectedLines();
+
+        var untaken = taken.ClickVersionRow(ConflictPane.Ours, 1).ToggleVisual().MoveCursor(1).UntakeSelectedLines();
+
+        Assert.Equal(LongHunk, untaken.ToText());
+        Assert.Equal(ConflictPick.None, untaken.SelectedPick);
+    }
+
+    [Fact]
+    public void GivenAWholeSideTaken_WhenUntakingOneSelectedLine_ThenThatLineLeavesAndThePickBecomesLines()
+    {
+        var ours = State(LongHunk).Take(ConflictPick.Ours);
+
+        var untaken = ours.ToggleVisual().UntakeSelectedLines();
+
+        Assert.Equal("top\nb\nc\nend\n", untaken.ToText());
+        Assert.Equal(ConflictPick.Lines, untaken.SelectedPick);
+    }
+
+    [Fact]
+    public void GivenLinesThatAreNotInTheResult_WhenUntakingThem_ThenNothingChangesAndTheSelectionEnds()
+    {
+        var ours = State(LongHunk).Take(ConflictPick.Ours);
+
+        var untaken = ours.FocusPane(ConflictPane.Theirs).ToggleVisual().UntakeSelectedLines();
+
+        Assert.Equal(ours.ToText(), untaken.ToText());
+        Assert.Equal(ours.UndoStack!.Count, untaken.UndoStack!.Count);
+        Assert.False(untaken.IsVisual);
+        var unresolved = State(LongHunk).ToggleVisual().UntakeSelectedLines();
+        Assert.Equal(LongHunk, unresolved.ToText());
+        Assert.False(unresolved.IsModified);
+    }
+
+    [Fact]
+    public void GivenARowInATheirsPane_WhenClickingIt_ThenThePaneIsActiveTheCursorIsThereAndVisualEnds()
+    {
+        var state = State(Text).ToggleVisual();
+
+        var clicked = state.ClickVersionRow(ConflictPane.Theirs, 3);
+
+        Assert.Equal(ConflictPane.Theirs, clicked.ActivePane);
+        Assert.Equal(3, clicked.Row);
+        Assert.Equal(1, clicked.Index);
+        Assert.False(clicked.IsVisual);
+    }
+
+    [Fact]
+    public void GivenARowPastTheEndOrWhileTyping_WhenClickingIt_ThenNothingChanges()
+    {
+        var state = State(Text);
+
+        Assert.Same(state, state.ClickVersionRow(ConflictPane.Ours, 99));
+        Assert.Same(state, state.ClickVersionRow(ConflictPane.Ours, -1));
+        Assert.Same(state, state.ClickVersionRow(ConflictPane.Result, 2));
+        var typing = state.BeginEdit();
+        Assert.Same(typing, typing.ClickVersionRow(ConflictPane.Theirs, 2));
+        Assert.Same(typing, typing.ClickResultLine(0));
+    }
+
+    [Fact]
+    public void GivenALineOfTheResult_WhenClickingIt_ThenTheResultIsActiveAndTheCursorIsOnThatLine()
+    {
+        var state = State(Text);
+
+        var clicked = state.ClickResultLine(8);
+
+        Assert.Equal(ConflictPane.Result, clicked.ActivePane);
+        Assert.Equal(8, clicked.Result.Editor.CursorRow);
+        Assert.Equal(1, clicked.Index);
+        Assert.False(clicked.IsEditing);
+        Assert.Equal(ConflictPane.Ours, clicked.TopPane);
+        Assert.Same(clicked, clicked.ClickResultLine(99));
     }
 
     [Fact]
@@ -378,7 +504,7 @@ public class ConflictEditorStateTests
         Assert.Same(state, state.MoveCursor(1));
         Assert.Same(state, state.Take(ConflictPick.Theirs));
         Assert.Same(state, state.Undo());
-        Assert.Same(state, state.Reset());
+        Assert.Same(state, state.Untake());
         Assert.Same(state, state.BeginEdit());
         Assert.Same(state, state.FocusPane(ConflictPane.Ours));
     }

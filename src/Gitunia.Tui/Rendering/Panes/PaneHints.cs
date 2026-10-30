@@ -285,15 +285,16 @@ public static class PaneHints
     [
         new("n/N", "conflict", [ActionIds.ConflictEditorNext, ActionIds.ConflictEditorPrevious]),
         new("<space>a", "take pane", [ActionIds.ConflictEditorTake]),
+        new("<space>u", "untake", [ActionIds.ConflictEditorUntake]),
         new("o/t/b", "ours/theirs/base", [
             ActionIds.ConflictEditorOurs,
             ActionIds.ConflictEditorTheirs,
             ActionIds.ConflictEditorBase,
         ]),
         new("v", "select lines", [ActionIds.VisualToggle]),
-        new("Tab", "pane", [ActionIds.PaneNext]),
-        new("e", "edit result", [ActionIds.ConflictEditorEdit]),
+        new("e", "edit in result", [ActionIds.ConflictEditorEdit]),
         new("u", "undo", [ActionIds.ConflictEditorUndo]),
+        new("Tab", "pane", [ActionIds.PaneNext]),
         new("Enter", "save", [ActionIds.ConflictEditorSave]),
         new("Esc", "close", [ActionIds.NavigateBack]),
     ];
@@ -301,6 +302,7 @@ public static class PaneHints
     private static readonly ImmutableArray<KeyHint> ConflictVisual =
     [
         new("<space>a", "take lines", [ActionIds.ConflictEditorTake]),
+        new("<space>u", "untake lines", [ActionIds.ConflictEditorUntake]),
         new("j/k", "extend", [ActionIds.ListDown, ActionIds.ListUp]),
         new("v", "end selection", [ActionIds.VisualToggle]),
     ];
@@ -308,10 +310,10 @@ public static class PaneHints
     private static readonly ImmutableArray<KeyHint> ConflictResult =
     [
         new("n/N", "conflict", [ActionIds.ConflictEditorNext, ActionIds.ConflictEditorPrevious]),
+        new("<space>u", "untake", [ActionIds.ConflictEditorUntake]),
         new("i", "type", [ActionIds.ConflictEditorEdit]),
-        new("Tab", "pane", [ActionIds.PaneNext]),
-        new("r", "reset", [ActionIds.ConflictEditorReset]),
         new("u", "undo", [ActionIds.ConflictEditorUndo]),
+        new("Tab", "pane", [ActionIds.PaneNext]),
         new("Enter", "save", [ActionIds.ConflictEditorSave]),
         new("Esc", "close", [ActionIds.NavigateBack]),
     ];

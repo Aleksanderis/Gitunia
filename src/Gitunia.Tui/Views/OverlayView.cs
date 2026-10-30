@@ -24,6 +24,9 @@ public sealed class OverlayView : View
     /// <summary>Raised with the frame line (0 is the top border) when the overlay is clicked.</summary>
     public event Action<int>? LineClicked;
 
+    /// <summary>Raised with the frame line when the overlay is double-clicked (the first click was raised as a click).</summary>
+    public event Action<int>? LineDoubleClicked;
+
     /// <summary>Raised for the wheel over the overlay.</summary>
     public event Action<MouseGesture>? GestureRaised;
 
@@ -60,6 +63,10 @@ public sealed class OverlayView : View
         if (gesture == MouseGesture.Click && mouse.Position is { } position)
         {
             LineClicked?.Invoke(position.Y);
+        }
+        else if (gesture == MouseGesture.DoubleClick && mouse.Position is { } doublePosition)
+        {
+            LineDoubleClicked?.Invoke(doublePosition.Y);
         }
         else if (gesture is MouseGesture.WheelUp or MouseGesture.WheelDown)
         {

@@ -280,7 +280,7 @@ public static class ActionIds
 
     public static ActionId ConflictEditorSave { get; } = new("conflict-editor.save");
 
-    public static ActionId ConflictEditorReset { get; } = new("conflict-editor.reset");
+    public static ActionId ConflictEditorUntake { get; } = new("conflict-editor.untake");
 
     public static ActionId ConflictEditorRedo { get; } = new("conflict-editor.redo");
 

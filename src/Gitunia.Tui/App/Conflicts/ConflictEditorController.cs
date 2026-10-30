@@ -77,6 +77,9 @@ public sealed class ConflictEditorController(
     private const string NoBaseNotice = "This conflict has no common ancestor: set merge.conflictStyle=diff3, then R";
     private const string NotInVersionNotice = "Move to the base, ours or theirs pane to take a version (Tab)";
     private const string NoLinesNotice = "The selection holds no line of the current conflict: nothing was taken";
+    private const string NothingToUntakeNotice = "This conflict is unresolved: nothing to untake";
+    private const string NoLinesToUntakeNotice =
+        "None of the selected lines is in this conflict's result: nothing was untaken";
     private const string SelectInVersionNotice = "Lines are selected in the base, ours or theirs pane (Tab)";
     private const string NoConflictsNotice = "No conflicts to resolve: no file is conflicted";
     private const string NotLoadedNotice = "The working tree is not loaded yet: try again in a moment";
@@ -170,22 +173,56 @@ public sealed class ConflictEditorController(
     }
 
     /// <summary>
-    /// A click on a frame line and column: a chip returns its mouse view for the caller to send through the mouse
-    /// map. Returns null when the click hit no chip.
+    /// A click on a frame line and column. A chip returns its mouse view for the caller to send through the mouse
+    /// map; a header or a row moves the cursor there (the pane becomes the active one), and a double-click on a row of
+    /// a version pane that lies in a conflict also takes that pane's version for the conflict, like a double-click on
+    /// a change group in the diff stages it. Returns null when no chip was hit; <paramref name="handled"/> says
+    /// whether anything was.
     /// </summary>
-    public string? OnLineClicked(int frameLine, int frameColumn, out bool handled)
+    public string? OnLineClicked(int frameLine, int frameColumn, out bool handled, bool isDoubleClick = false)
     {
         handled = false;
-        if (State is null || isOtherOverlayOpen())
+        if (State is not { } state || isOtherOverlayOpen())
         {
             return null;
         }
 
         var size = EditorArea();
-        var view = ConflictEditorFrameBuilder.ChipAt(State, frameLine, frameColumn, size.Width, size.Height, keys);
-        handled = view is not null;
+        if (ConflictEditorFrameBuilder.TargetAt(state, frameLine, frameColumn, size.Width, size.Height, keys)
+            is not { } target)
+        {
+            return null;
+        }
 
-        return view;
+        handled = true;
+        if (target.Kind == ConflictTargetKind.Chip)
+        {
+            return target.View;
+        }
+
+        if (!state.IsEditing)
+        {
+            ClickTarget(state, target, isDoubleClick);
+        }
+
+        return null;
+    }
+
+    private void ClickTarget(ConflictEditorState state, ConflictTarget target, bool isDoubleClick)
+    {
+        var moved = target.Kind switch
+        {
+            ConflictTargetKind.Header => state.FocusPane(target.Pane),
+            ConflictTargetKind.VersionRow => state.ClickVersionRow(target.Pane, target.Index),
+            _ => state.ClickResultLine(target.Index),
+        };
+        Update(moved);
+        if (isDoubleClick
+            && target.Kind == ConflictTargetKind.VersionRow
+            && moved.Alignment.HunkAt(target.Index) >= 0)
+        {
+            Take(moved, PickOf(target.Pane));
+        }
     }
 
     /// <summary>Handles a key typed while the result is in Insert mode; false when it is not.</summary>
@@ -490,9 +527,9 @@ public sealed class ConflictEditorController(
         {
             Update(state.PickAllUnresolved(ConflictPick.Theirs));
         }
-        else if (action == ActionIds.ConflictEditorReset)
+        else if (action == ActionIds.ConflictEditorUntake)
         {
-            Update(state.Reset());
+            Untake(state);
         }
         else if (action == ActionIds.ConflictEditorUndo)
         {
@@ -525,6 +562,30 @@ public sealed class ConflictEditorController(
         else
         {
             Take(state, PickOf(state.ActivePane));
+        }
+    }
+
+    // The inverse of the take key: the whole conflict goes back to unresolved, in a Visual selection only the selected
+    // lines leave the result.
+    private void Untake(ConflictEditorState state)
+    {
+        if (state.IsVisual)
+        {
+            var untaken = state.UntakeSelectedLines();
+            if (untaken.UndoStack?.Count == state.UndoStack?.Count)
+            {
+                statuses.Warning(NoLinesToUntakeNotice);
+            }
+
+            Update(untaken);
+        }
+        else if (!state.CanUntake)
+        {
+            statuses.Warning(NothingToUntakeNotice);
+        }
+        else
+        {
+            Update(state.Untake());
         }
     }
 
@@ -629,6 +690,10 @@ public sealed class ConflictEditorController(
         if (edited.IsEditing)
         {
             Update(edited);
+            statuses.Post(
+                edited.Hunks.Count == 0
+                    ? "Typing in the result: Esc or Ctrl-g keeps the text"
+                    : $"Typing in the result at conflict {edited.Index + 1}: Esc or Ctrl-g keeps the text");
         }
     }
 

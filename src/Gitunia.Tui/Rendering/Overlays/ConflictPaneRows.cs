@@ -19,6 +19,9 @@ internal static class ConflictPaneRows
     private const string EmptyBase = "(empty base)";
     private const string NoBase = "(no base: set diff3, then R)";
     private const char UnresolvedMark = '?';
+    private const char MixedMark = '~';
+    private const string NotTakenMark = "·";
+    private const string NotTakenMarkAscii = ".";
     private const string ResolvedMark = "✓";
     private const string ResolvedMarkAscii = "v";
     private const int MinimumGutter = 2;
@@ -49,7 +52,7 @@ internal static class ConflictPaneRows
             return builder.Build();
         }
 
-        AppendMargin(builder, state, hunk, glyphs);
+        AppendMargin(builder, state, hunk, glyphs, pane);
         var number = alignment.NumberAt(row, pane);
         var gutter = GutterOf(state, pane);
         builder.Append(Gutter(number, gutter), SegmentRole.Faint);
@@ -92,7 +95,16 @@ internal static class ConflictPaneRows
     /// <summary>The text with tabs shown as four spaces, as the version panes draw it.</summary>
     public static string Printable(string line) => line.Replace("\t", TabText, StringComparison.Ordinal);
 
-    private static void AppendMargin(LineBuilder builder, ConflictEditorState state, int hunk, GraphGlyphSet glyphs)
+    // The second margin column is the state of the conflict: `?` unresolved, in a version pane a check mark on the
+    // version(s) the result took, a dot on the others and `~` on all of them for picked lines or typed text, in the
+    // result a check mark for any settled conflict (the one place that says what a conflict is, no marker on the
+    // pane headers).
+    private static void AppendMargin(
+        LineBuilder builder,
+        ConflictEditorState state,
+        int hunk,
+        GraphGlyphSet glyphs,
+        ConflictPane pane = ConflictPane.Result)
     {
         if (hunk < 0)
         {
@@ -106,12 +118,32 @@ internal static class ConflictPaneRows
         if (state.Result.IsUnresolved(hunk))
         {
             builder.Append(UnresolvedMark.ToString(), SegmentRole.Error);
+
+            return;
         }
-        else
+
+        var pick = state.Result.Regions[hunk].Pick;
+        if (pane == ConflictPane.Result || IsTaken(pane, pick))
         {
             builder.Append(ResolvedMarkFor(glyphs), SegmentRole.DiffAdded);
         }
+        else if (pick is ConflictPick.Lines or ConflictPick.Edited)
+        {
+            builder.Append(MixedMark.ToString(), SegmentRole.DiffAdded);
+        }
+        else
+        {
+            builder.Append(glyphs.IsAscii ? NotTakenMarkAscii : NotTakenMark, SegmentRole.Faint);
+        }
     }
+
+    private static bool IsTaken(ConflictPane pane, ConflictPick pick) => pane switch
+    {
+        ConflictPane.Ours => pick is ConflictPick.Ours or ConflictPick.Both,
+        ConflictPane.Theirs => pick is ConflictPick.Theirs or ConflictPick.Both,
+        ConflictPane.Base => pick == ConflictPick.Base,
+        _ => false,
+    };
 
     private static void AppendText(LineBuilder builder, ConflictEditorState state, ConflictPane pane, int row, int hunk)
     {

@@ -303,6 +303,7 @@ public sealed class MainView : IDisposable
         _diffTitle.Clicked += OnDiffTitleClicked;
         _workingDiffTitle.Clicked += OnWorkingDiffTitleClicked;
         Overlay.LineClicked += line => OverlayLineClicked?.Invoke(line);
+        Overlay.LineDoubleClicked += line => OverlayLineDoubleClicked?.Invoke(line);
         Overlay.GestureRaised += gesture => Gestured?.Invoke(OverlayGestureView, gesture, null);
 
         Window.Add(
@@ -360,6 +361,9 @@ public sealed class MainView : IDisposable
 
     /// <summary>Raised with the frame line when the overlay box is clicked.</summary>
     public event Action<int>? OverlayLineClicked;
+
+    /// <summary>Raised with the frame line when the overlay box is double-clicked.</summary>
+    public event Action<int>? OverlayLineDoubleClicked;
 
     /// <summary>Raised with the row index when a picker row is clicked (the highlight follows the pointer).</summary>
     public event Action<int>? PickerRowClicked

@@ -168,7 +168,7 @@ public static class DefaultMouseMap
 
     public const string ConflictRedoButton = "ConflictButton.Redo";
 
-    public const string ConflictResetButton = "ConflictButton.Reset";
+    public const string ConflictUntakeButton = "ConflictButton.Untake";
 
     public const string ConflictEditButton = "ConflictButton.Edit";
 
@@ -251,7 +251,7 @@ public static class DefaultMouseMap
         ConflictSaveButton,
         ConflictCancelButton,
         ConflictRedoButton,
-        ConflictResetButton,
+        ConflictUntakeButton,
         ConflictEditButton,
         ConflictBaseButton,
         ConflictRecreateButton,
@@ -348,7 +348,7 @@ public static class DefaultMouseMap
         new(ConflictSaveButton, MouseGesture.Click, ActionIds.ConflictEditorSave),
         new(ConflictCancelButton, MouseGesture.Click, ActionIds.NavigateBack),
         new(ConflictRedoButton, MouseGesture.Click, ActionIds.ConflictEditorRedo),
-        new(ConflictResetButton, MouseGesture.Click, ActionIds.ConflictEditorReset),
+        new(ConflictUntakeButton, MouseGesture.Click, ActionIds.ConflictEditorUntake),
         new(ConflictEditButton, MouseGesture.Click, ActionIds.ConflictEditorEdit),
         new(ConflictBaseButton, MouseGesture.Click, ActionIds.ConflictEditorBase),
         new(ConflictRecreateButton, MouseGesture.Click, ActionIds.ConflictEditorRecreate),

@@ -466,6 +466,7 @@ public sealed class TuiApplication(
         _view.Window.ViewportChanged += (_, _) => _popups.Sync();
         _view.EdgeDragged += OnEdgeDragged;
         _view.OverlayLineClicked += OnOverlayLineClicked;
+        _view.OverlayLineDoubleClicked += OnOverlayLineDoubleClicked;
         _view.Graph.ValueChanged += (_, _) => _visual.OnCursorMoved();
         _view.Detail.ValueChanged += (_, _) => _visual.OnCursorMoved();
         _view.Detail.ValueChanged += (_, _) => _diffPane.OnDetailCursorMoved();
@@ -694,6 +695,28 @@ public sealed class TuiApplication(
         {
             _host.Dispatch(new TabCommand(tabId, new SetPaneSizesCommand(sizes.SidebarWidth, sizes.BottomHeight, sizes.DetailWidth)));
             Relayout();
+        }
+    }
+
+    // Only the conflict editor uses the double-click of an overlay (a version row takes its version, a chip counts it
+    // as a click); the other overlays keep ignoring it.
+    private void OnOverlayLineDoubleClicked(int line)
+    {
+        if (!_conflictEditor.IsOpen)
+        {
+            return;
+        }
+
+        var view = _conflictEditor.OnLineClicked(line, _view.Overlay.PointerColumn, out var handled, isDoubleClick: true);
+        if (!handled)
+        {
+            return;
+        }
+
+        _overlayClickTicks = Environment.TickCount64;
+        if (view is not null)
+        {
+            _mouse.Handle(view, MouseGesture.Click);
         }
     }
 

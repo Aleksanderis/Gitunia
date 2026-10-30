@@ -348,10 +348,17 @@ public sealed record ConflictEditorState(
         });
     }
 
-    /// <summary>Makes the current conflict unresolved again: its markers come back. One step of undo.</summary>
-    public ConflictEditorState Reset()
+    /// <summary>True when the current conflict holds a pick (or typed text) that <see cref="Untake"/> can give up.</summary>
+    public bool CanUntake => Hunks.Count > 0 && !IsEditing && SelectedPick != ConflictPick.None;
+
+    /// <summary>
+    /// The inverse of a take: makes the current conflict unresolved again, its markers come back and whatever the
+    /// region held (a pick, picked lines, typed text) goes; undo brings it back. One step of undo; nothing changes
+    /// when the conflict is unresolved already.
+    /// </summary>
+    public ConflictEditorState Untake()
     {
-        if (Hunks.Count == 0 || IsEditing)
+        if (!CanUntake)
         {
             return this;
         }
@@ -359,7 +366,79 @@ public sealed record ConflictEditorState(
         var index = Index;
         var raw = ConflictAlignment.Lines(Hunks[index].Raw);
 
-        return Changed(result => result.ReplaceRegion(index, raw, ConflictPick.None));
+        return (Anchor is null ? this : this with { Anchor = null }).Changed(
+            result => result.ReplaceRegion(index, raw, ConflictPick.None));
+    }
+
+    /// <summary>
+    /// The inverse of <see cref="TakeSelectedLines"/>: removes the selected lines of the active version pane from
+    /// the current conflict's result (each one from its last matching line, as a take appends), and puts the markers
+    /// back when no line is left. Always ends the selection; nothing changes when the conflict is unresolved or none
+    /// of the lines is in its result. One step of undo.
+    /// </summary>
+    public ConflictEditorState UntakeSelectedLines()
+    {
+        var selected = SelectedLines();
+        if (selected.Count == 0 || IsEditing || Result.IsUnresolved(Index))
+        {
+            return EndVisual();
+        }
+
+        var remaining = Result.LinesOf(Index).ToList();
+        var removed = 0;
+        foreach (var line in selected.Reverse())
+        {
+            var at = remaining.FindLastIndex(candidate => string.Equals(candidate, line, StringComparison.Ordinal));
+            if (at >= 0)
+            {
+                remaining.RemoveAt(at);
+                removed++;
+            }
+        }
+
+        if (removed == 0)
+        {
+            return EndVisual();
+        }
+
+        var index = Index;
+        var raw = ConflictAlignment.Lines(Hunks[index].Raw);
+
+        return (this with { Anchor = null }).Changed(result => result.ReplaceRegion(
+            index,
+            remaining.Count == 0 ? raw : remaining,
+            remaining.Count == 0 ? ConflictPick.None : ConflictPick.Lines));
+    }
+
+    /// <summary>
+    /// A click on a row of a version pane: the cursor goes there, in that pane (which becomes the active one), and a
+    /// Visual selection ends. A row past the end of the file does nothing; neither does a click while typing.
+    /// </summary>
+    public ConflictEditorState ClickVersionRow(ConflictPane pane, int row)
+    {
+        if (IsEditing || pane == ConflictPane.Result || row < 0 || row >= Alignment.RowCount)
+        {
+            return this;
+        }
+
+        return (FocusPane(pane) with { Anchor = null }).OnVersionRow(row);
+    }
+
+    /// <summary>
+    /// A click on a line of the result: the cursor goes there (column 0), in the result, in Normal mode. A line past the
+    /// end does nothing; neither does a click while typing.
+    /// </summary>
+    public ConflictEditorState ClickResultLine(int line)
+    {
+        if (IsEditing || line < 0 || line >= ResultLineCount)
+        {
+            return this;
+        }
+
+        var focused = FocusPane(ConflictPane.Result);
+        focused.Result.Editor.SetCursor(line, 0);
+
+        return focused.SyncedFromResult();
     }
 
     /// <summary>
