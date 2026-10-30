@@ -381,6 +381,92 @@ public class WorkingDiffControllerTests
     }
 
     [Fact]
+    public async Task GivenARangeInTheMiddleOfAGroup_WhenStaging_ThenTheCursorIsOnTheNextRemainingChange()
+    {
+        using var harness = await OpenRangeAsync("a\nb\nc\n", "a\nB1\nB2\nB3\nB4\nc\n", "B1", 1);
+
+        await harness.StageAsync(ActionIds.WorkingTreeStage);
+
+        Assert.Equal("a\nb\nB1\nB2\nc\n", harness.Git("show", ":f.txt"));
+        Assert.Equal("B3", harness.Document().Rows[harness.CursorRow()].Text);
+    }
+
+    [Fact]
+    public async Task GivenARangeAtTheEndOfAHunk_WhenStaging_ThenTheCursorIsOnTheFirstChangeOfTheNextHunk()
+    {
+        var original = string.Concat(Enumerable.Range(1, 40).Select(number => $"line {number}\n"));
+        var changed = original.Replace("line 2\n", "two\nTWO\n", StringComparison.Ordinal)
+            .Replace("line 38\n", "thirty-eight\n", StringComparison.Ordinal);
+        using var harness = await OpenRangeAsync(original, changed, "line 2", 2);
+
+        await harness.StageAsync(ActionIds.WorkingTreeStage);
+
+        Assert.Equal("line 38", harness.Document().Rows[harness.CursorRow()].Text);
+    }
+
+    [Fact]
+    public async Task GivenARangeOverTheLastChanges_WhenStaging_ThenTheCursorIsOnTheLastRemainingChange()
+    {
+        using var harness = await OpenRangeAsync("a\nb\nc\n", "a\nB1\nB2\nB3\nB4\nc\n", "B3", 1);
+
+        await harness.StageAsync(ActionIds.WorkingTreeStage);
+
+        Assert.Equal("B2", harness.Document().Rows[harness.CursorRow()].Text);
+    }
+
+    [Fact]
+    public async Task GivenARangeOverEveryChange_WhenStaging_ThenTheFileIsFullyStagedAndNothingBreaks()
+    {
+        using var harness = await OpenRangeAsync("a\nb\nc\n", "a\nB1\nB2\nc\n", "b", 2);
+
+        await harness.StageAsync(ActionIds.WorkingTreeStage);
+
+        Assert.Equal("a\nB1\nB2\nc\n", harness.Git("show", ":f.txt"));
+        Assert.Equal(string.Empty, harness.Git("diff"));
+    }
+
+    [Fact]
+    public async Task GivenARangeInTheStagedDiff_WhenUnstaging_ThenTheCursorIsOnTheNextRemainingChange()
+    {
+        using var repository = TestRepository.Create().Commit("base", new TestFile("f.txt", "a\nb\nc\n"));
+        repository.WriteFile("f.txt", "a\nB1\nB2\nB3\nB4\nc\n");
+        repository.Git("add", "f.txt");
+        using var harness = await Harness.OpenAsync(repository);
+        await harness.ExecuteAsync(ActionIds.WorkingTreeOpenDiff);
+        var first = harness.Document().Rows.ToList().FindIndex(row => row is { Kind: DiffRowKind.Added, Text: "B1" });
+        await harness.ExecuteAsync(ActionIds.ListDown, first);
+        await harness.ExecuteAsync(ActionIds.VisualToggle);
+        await harness.ExecuteAsync(ActionIds.ListDown, 1);
+        harness.Visual.OnCursorMoved();
+
+        await harness.StageAsync(ActionIds.WorkingTreeUnstage);
+
+        Assert.Equal("B3", harness.Document().Rows[harness.CursorRow()].Text);
+    }
+
+    private static async Task<Harness> OpenRangeAsync(string original, string changed, string firstText, int extraRows)
+    {
+        var repository = TestRepository.Create().Commit("base", new TestFile("f.txt", original));
+        repository.WriteFile("f.txt", changed);
+        var harness = await Harness.OpenAsync(repository);
+        try
+        {
+            await harness.ExecuteAsync(ActionIds.WorkingTreeOpenDiff);
+            var first = harness.Document().Rows.ToList().FindIndex(row => row.Text == firstText && row.Kind != DiffRowKind.Context);
+            await harness.ExecuteAsync(ActionIds.ListDown, first);
+            await harness.ExecuteAsync(ActionIds.VisualToggle);
+            await harness.ExecuteAsync(ActionIds.ListDown, extraRows);
+            harness.Visual.OnCursorMoved();
+            return harness;
+        }
+        catch
+        {
+            harness.Dispose();
+            throw;
+        }
+    }
+
+    [Fact]
     public async Task GivenAVisualRangeOverContextOnly_WhenStaging_ThenItIsRefusedAndNothingChanges()
     {
         using var repository = TestRepository.Create().Commit("base", new TestFile("f.txt", "a\nb\nc\n"));
@@ -564,6 +650,17 @@ public class WorkingDiffControllerTests
         Assert.Equal("Discarded 1 line of f.txt", harness.Statuses.Log.Latest!.Text);
         Assert.False(harness.Visual.IsActive);
         Assert.Equal(KeyMode.Normal, harness.Mode);
+    }
+
+    [Fact]
+    public async Task GivenARangeInTheMiddleOfAGroup_WhenDiscardingAndConfirming_ThenTheCursorIsOnTheNextRemainingChange()
+    {
+        using var harness = await OpenRangeAsync("a\nb\nc\n", "a\nB1\nB2\nB3\nB4\nc\n", "B1", 1);
+
+        Handle(harness, ActionIds.WorkingTreeDiscard);
+        await harness.ConfirmAsync();
+
+        Assert.Equal("B3", harness.Document().Rows[harness.CursorRow()].Text);
     }
 
     [Fact]

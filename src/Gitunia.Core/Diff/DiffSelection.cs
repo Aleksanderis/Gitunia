@@ -65,6 +65,45 @@ public static class DiffSelection
         return lines;
     }
 
+    /// <summary>How many added or removed rows come before <paramref name="row"/>.</summary>
+    public static int ChangedRowsBefore(DiffDocument document, int row)
+    {
+        var count = 0;
+        for (var candidate = 0; candidate < row && candidate < document.Rows.Count; candidate++)
+        {
+            count += IsChange(document.Rows[candidate]) ? 1 : 0;
+        }
+
+        return count;
+    }
+
+    /// <summary>
+    /// The row of the added or removed row with zero-based number <paramref name="number"/>, the last one when there are fewer,
+    /// or -1 when the diff has no change.
+    /// </summary>
+    public static int ChangedRowNumbered(DiffDocument document, int number)
+    {
+        var seen = 0;
+        var last = -1;
+        for (var row = 0; row < document.Rows.Count; row++)
+        {
+            if (!IsChange(document.Rows[row]))
+            {
+                continue;
+            }
+
+            if (seen == number)
+            {
+                return row;
+            }
+
+            seen++;
+            last = row;
+        }
+
+        return last;
+    }
+
     /// <summary>The index in <see cref="DiffDocument.HunkRows"/> of the hunk the row is in, or -1 when the diff has none.</summary>
     public static int HunkIndexAt(DiffDocument document, int row)
     {
@@ -82,6 +121,8 @@ public static class DiffSelection
         // Anchors can sit on a change inside a hunk: a header or leading context of the next hunk belongs to its first group.
         return index + 1 < document.HunkRows.Count && HasHeaderBetween(document, document.HunkRows[index], row) ? index + 1 : index;
     }
+
+    private static bool IsChange(DiffRow row) => row.Kind is DiffRowKind.Added or DiffRowKind.Removed;
 
     private static bool HasHeaderBetween(DiffDocument document, int anchorRow, int row)
     {

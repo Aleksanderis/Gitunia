@@ -447,13 +447,26 @@ public sealed class WorkingTreeActionHandler(
         }
 
         var diff = Diff;
-        var notice = staging.ExecuteSelection(tab, request, () => diff.MoveToHunkAfterReload(capture.HunkIndex));
+        var notice = staging.ExecuteSelection(tab, request, () => MoveAfterReload(diff, capture));
         if (notice.Length == 0)
         {
             Visual?.End();
         }
 
         return notice;
+    }
+
+    // A staged or discarded Visual range keeps the cursor at the next change; a hunk goes to the next group.
+    private static void MoveAfterReload(WorkingDiffController diff, DiffStagingCapture capture)
+    {
+        if (capture.ChangesBefore >= 0)
+        {
+            diff.MoveToChangeAfterReload(capture.ChangesBefore);
+        }
+        else
+        {
+            diff.MoveToHunkAfterReload(capture.HunkIndex);
+        }
     }
 
     private bool TryDiscard(RepositoryState tab, ActionId action)
@@ -503,7 +516,7 @@ public sealed class WorkingTreeActionHandler(
             tab,
             request,
             () => Visual?.End(),
-            () => diff.MoveToHunkAfterReload(capture.HunkIndex));
+            () => MoveAfterReload(diff, capture));
     }
 
     private static bool IsInFocusedList(RepositoryState tab, WorkingTreeSelection selection) =>
