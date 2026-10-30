@@ -3,6 +3,7 @@
     <ProjectReference Include="..\Gitunia.Git\Gitunia.Git.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <EmbeddedResource Include="Keymap\keymap.default.json" LogicalName="keymap.default.json" />
     <EmbeddedResource Include="Themes\Files\*.json" LogicalName="themes/%(Filename)%(Extension)" />
   </ItemGroup>
 </Project>
