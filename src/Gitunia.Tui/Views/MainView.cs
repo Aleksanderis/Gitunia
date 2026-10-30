@@ -235,8 +235,6 @@ public sealed class MainView : IDisposable
             Visible = false,
         };
 
-        ApplyPaneSchemes();
-
         _messageOptions = new LineView(OptionsLine)
         {
             X = Pos.Func(_ => WorkingRects().MessageOptions.X),
@@ -263,6 +261,8 @@ public sealed class MainView : IDisposable
             Height = Dim.Func(_ => ScreenLayout.GraphHeight(ScreenHeight())),
             Visible = false,
         };
+
+        ApplyPaneSchemes();
 
         _status = new LineView(width => ChromeBuilder.Status( BannerRenderer.ForStatusBar(model(), ScreenHeight()), width, glyphs))
         {
@@ -611,7 +611,7 @@ public sealed class MainView : IDisposable
     // last row) with the scheme of the view, and without its own it falls back to the toolkit default (#805).
     private void ApplyPaneSchemes()
     {
-        foreach (var pane in new[] { Graph, Sidebar, Detail, Diff, WorkingUnstaged, WorkingStaged, WorkingDiff, WorkingMessage })
+        foreach (var pane in new View[] { _picker, Graph, Sidebar, Detail, Diff, WorkingUnstaged, WorkingStaged, WorkingDiff, WorkingMessage })
         {
             pane.SetScheme(Palette.BaseScheme());
         }

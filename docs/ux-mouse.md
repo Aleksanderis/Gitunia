@@ -133,9 +133,9 @@ Views inherit like in the keymap: `Lists` covers Graph, Detail, Sidebar, Diff an
 | Picker | Double-click | `picker.accept` | Open the repository of the row |
 | Picker | Wheel up | `picker.previous` | Move the highlight up one row |
 | Picker | Wheel down | `picker.next` | Move the highlight down one row |
-| PickerButton.Pin | Click | `picker.pin` | Chip `Alt-p pin` / `Alt-p unpin` on the highlighted row, same as `Alt-p` |
-| PickerButton.Remove | Click | `picker.remove-recent` | Chip `Alt-d remove` on a highlighted recent row, same as `Alt-d` |
-| PickerButton.Clone | Click | `picker.clone` | Chip `Alt-c clone` at the right end of the picker's hint line (94 columns or more, not while locating), same as `Alt-c` |
+| PickerButton.Pin | Click | `picker.pin` | Footer chip `Alt-p pin` / `Alt-p unpin` for the highlighted row, same as `Alt-p` |
+| PickerButton.Remove | Click | `picker.remove-recent` | Footer chip `Alt-d remove` for a highlighted recent row, same as `Alt-d` |
+| PickerButton.Clone | Click | `picker.clone` | Footer chip `Alt-c clone` in the picker box (when it fits, not while locating), same as `Alt-c` |
 | PickerButton.Init | Click | `picker.init` | Chip `Alt-i init` next to it, same as `Alt-i` |
 
 Pointer-position behaviour that has no action of its own: a click on a pane focuses it, a click on a list row selects it (graph, detail, sidebar, diff; the details pane follows the graph selection as with keys), a click on a picker row highlights it.
@@ -166,7 +166,7 @@ The change group under the cursor also carries the same chips on its first line,
 A row that would keep fewer than 30 columns of diff text drops `discard`, then `stage`/`unstage`; the keys and the title buttons stay.
 `<space>z` and the `zoom` entry of the `view ▾` dropdown give the diff the whole view (lists and message box hidden) until focus leaves the diff (`Esc`, `Ctrl-h`) or zoom is used again; in the history view with the Changes tab beside the diff they zoom the file list and the diff together and `Esc`/`Ctrl-h` only return focus to the list (#632).
 In the working-tree view a click on the diff box focuses it (the mouse path from a list to its diff on screens of 80 columns or more; narrow screens use the `diff ›` chip in the title row of the list).
-The highlighted picker row shows the chips `Alt-p pin`/`Alt-p unpin` and, for a recent repository, `Alt-d remove` at its right edge, the same key-first chips as the diff title (#744; rows of 72 columns or more).
+The picker's footer row shows the chips `Alt-c clone`, `Alt-i init` and, for the highlighted row, `Alt-p pin`/`Alt-p unpin` and (recent repository) `Alt-d remove`, the same key-first chips as the diff title (#744, #880); chips that do not fit are left out.
 The repository picker (the opener) hides the fetch, pull and push chips of the tab row, since they act on the active tab's repository; `: commands` stays.
 Clicking the commands button at the right end of the tab row opens the command palette, which lists the actions of the focused pane and the global ones, so every action without a button (for example `<space>vl` load anyway, the search keys, `<space>or` refresh) can be run with the mouse; typing a search or a filter text needs the keyboard, as nothing else can enter text.
 

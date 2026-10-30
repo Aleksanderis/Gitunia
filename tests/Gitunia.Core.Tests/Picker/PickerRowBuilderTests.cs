@@ -1,5 +1,6 @@
 using Gitunia.Core.Picker;
 using Gitunia.Core.Workspaces;
+using Gitunia.Core.Workspaces.Repositories;
 using Xunit;
 
 namespace Gitunia.Core.Tests.Picker;
@@ -48,5 +49,18 @@ public class PickerRowBuilderTests
         var rows = PickerRowBuilder.Build("client", context);
 
         Assert.Equal(["site"], rows.Select(row => row.Name));
+    }
+
+    [Fact]
+    public void GivenATabWhoseDirectoryIsMissing_WhenBuilding_ThenItsRowIsTaggedMissing()
+    {
+        var workspace = PickerFixtures.Open(Workspace.Empty, "gone", "here");
+        var gone = workspace.Tabs.Single(tab => tab.Location.RootPath == PickerFixtures.PathOf("code", "gone"));
+        workspace = WorkspaceReducer.Reduce(workspace, new TabCommand(gone.Id, new SetMissingCommand(true))).Workspace;
+
+        var rows = PickerRowBuilder.Build(string.Empty, PickerFixtures.Context(workspace));
+
+        Assert.True(rows.Single(row => row.Name == "gone").IsMissing);
+        Assert.False(rows.Single(row => row.Name == "here").IsMissing);
     }
 }

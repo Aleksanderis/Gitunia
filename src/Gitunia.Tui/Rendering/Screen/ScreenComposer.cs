@@ -73,7 +73,12 @@ public static class ScreenComposer
                 rects.Graph.Height,
                 glyphs,
                 model.Keys);
-            overlays.Add(new PaneLines(rects.Graph.X, rects.Graph.Y, pickerLines, SegmentSelection.Focused));
+            var pickerLayout = PickerLayout.Compute(model.Picker!, rects.Graph.Width, rects.Graph.Height);
+            overlays.Add(new PaneLines(
+                rects.Graph.X + pickerLayout.BoxX,
+                rects.Graph.Y + pickerLayout.BoxY,
+                pickerLines,
+                SegmentSelection.Focused));
         }
         else
         {

@@ -39,9 +39,10 @@ public sealed class PickerView(Func<ScreenModel> model, GraphGlyphSet glyphs) : 
             Viewport.Height,
             glyphs,
             model().Keys);
+        var layout = PickerLayout.Compute(picker, Viewport.Width, Viewport.Height);
         for (var row = 0; row < lines.Count; row++)
         {
-            LinePainter.Paint(this, lines[row], 0, row, isFocused: true);
+            LinePainter.Paint(this, lines[row], layout.BoxX, layout.BoxY + row, isFocused: true);
         }
 
         return true;
@@ -70,40 +71,53 @@ public sealed class PickerView(Func<ScreenModel> model, GraphGlyphSet glyphs) : 
             return base.OnMouseEvent(mouse);
         }
 
-        if (picker.LocatingTabId is null && position.Y == PickerHeaderButtons.Row
-            && gesture is MouseGesture.Click or MouseGesture.DoubleClick
-            && TitleButton.ViewAt(
-                PickerHeaderButtons.Layout(Viewport.Width, model().Keys),
-                position.X) is { } headerButton)
+        var layout = PickerLayout.Compute(picker, Viewport.Width, Viewport.Height);
+        var line = position.Y - layout.BoxY;
+        var column = position.X - layout.BoxX;
+        if (!layout.IsFramed || column < 0 || column >= layout.BoxWidth)
         {
-            ButtonClicked?.Invoke(headerButton);
+            return CompactClick(picker, layout, position.Y, gesture);
+        }
+
+        if (layout.IsFooterLine(line) && gesture is MouseGesture.Click or MouseGesture.DoubleClick)
+        {
+            var buttons = PickerFooterButtons.Layout(
+                picker.HighlightedRow,
+                layout.InnerWidth,
+                picker.LocatingTabId is not null,
+                model().Keys);
+            if (TitleButton.ViewAt(buttons, column - 1) is { } buttonView)
+            {
+                ButtonClicked?.Invoke(buttonView);
+            }
+
             return true;
         }
 
-        var listHeight = Viewport.Height - PickerComposer.HeaderRows - (picker.Message.Length > 0 ? 1 : 0);
-        var listRow = position.Y - PickerComposer.HeaderRows;
-        if (listRow >= 0 && listRow < listHeight)
+        if (layout.RowIndexAt(line) is { } index)
         {
-            var index = PickerComposer.TopRow(picker.Highlight, listHeight) + listRow;
-            if (index < picker.Rows.Length)
-            {
-                if (gesture is MouseGesture.Click or MouseGesture.DoubleClick && index == picker.Highlight && ButtonAt(picker.Rows[index], position.X) is { } buttonView)
-                {
-                    ButtonClicked?.Invoke(buttonView);
-                    return true;
-                }
-
-                RowClicked?.Invoke(index);
-                if (gesture == MouseGesture.DoubleClick)
-                {
-                    GestureRaised?.Invoke(MouseGesture.DoubleClick);
-                }
-            }
+            ClickRow(index, gesture);
         }
 
         return true;
     }
 
-    private string? ButtonAt(PickerRow row, int column) =>
-        TitleButton.ViewAt(PickerRowButtons.Layout(row, Viewport.Width, model().Keys), column);
+    private bool CompactClick(PickerState picker, PickerLayout layout, int line, MouseGesture gesture)
+    {
+        if (!layout.IsFramed && layout.RowIndexAt(line) is { } index && index < picker.Rows.Length)
+        {
+            ClickRow(index, gesture);
+        }
+
+        return true;
+    }
+
+    private void ClickRow(int index, MouseGesture gesture)
+    {
+        RowClicked?.Invoke(index);
+        if (gesture == MouseGesture.DoubleClick)
+        {
+            GestureRaised?.Invoke(MouseGesture.DoubleClick);
+        }
+    }
 }
