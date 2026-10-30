@@ -36,6 +36,7 @@ public sealed class WorkingDiffController : IPromptHandler
     private readonly DiffListActions _actions;
     private TabSession? _hooked;
     private int? _hunkAfterReload;
+    private int? _changeAfterReload;
 
     /// <param name="host">The workspace the focus commands go to.</param>
     /// <param name="activeSession">The active tab's runtime session.</param>
@@ -150,6 +151,7 @@ public sealed class WorkingDiffController : IPromptHandler
         {
             // Any other key of the diff is the user moving on: the cursor no longer waits to jump to a hunk.
             _hunkAfterReload = null;
+            _changeAfterReload = null;
         }
 
         return isHandled;
@@ -205,7 +207,9 @@ public sealed class WorkingDiffController : IPromptHandler
                 return DiffStagingCapture.Refused("No added or removed line is selected");
             }
 
-            return new DiffStagingCapture(new DiffStagingRequest(target, lines, true), hunkIndex, string.Empty);
+            var before = DiffSelection.ChangedRowsBefore(document, diff.Source.RowOf(selected.First));
+
+            return new DiffStagingCapture(new DiffStagingRequest(target, lines, true), hunkIndex, string.Empty, before);
         }
 
         var hunkLines = DiffSelection.OfHunk(document, row);
@@ -218,7 +222,21 @@ public sealed class WorkingDiffController : IPromptHandler
     }
 
     /// <summary>After the next reload of the same file the cursor goes to the hunk at <paramref name="hunkIndex"/> (the next one when that hunk was staged).</summary>
-    public void MoveToHunkAfterReload(int hunkIndex) => _hunkAfterReload = hunkIndex;
+    public void MoveToHunkAfterReload(int hunkIndex)
+    {
+        _hunkAfterReload = hunkIndex;
+        _changeAfterReload = null;
+    }
+
+    /// <summary>
+    /// After the next reload of the same file the cursor goes to the changed row with number <paramref name="changeNumber"/>
+    /// (the first change after a staged range, the last one when none follows), scrolling only when it is off screen.
+    /// </summary>
+    public void MoveToChangeAfterReload(int changeNumber)
+    {
+        _changeAfterReload = changeNumber;
+        _hunkAfterReload = null;
+    }
 
     public bool HandleTextKey(KeyEvent key)
     {
@@ -427,7 +445,13 @@ public sealed class WorkingDiffController : IPromptHandler
             }
             else
             {
-                if (diff.Source.Range is null)
+                var hasPendingMove = _hunkAfterReload is not null || _changeAfterReload is not null;
+                if (hasPendingMove && IsSamePath(diff.Store.Request, previous))
+                {
+                    // Staging reads as another request while it loads: the view stays where it was instead of going to the top.
+                    Restore(diff, cursor, top);
+                }
+                else if (diff.Source.Range is null)
                 {
                     // A Visual range that survived (same rows) keeps its cursor too (#806).
                     _actions.Select(diff, 0, atTop: true);
@@ -441,6 +465,7 @@ public sealed class WorkingDiffController : IPromptHandler
                 else
                 {
                     _hunkAfterReload = null;
+                    _changeAfterReload = null;
                 }
             }
         }
@@ -456,7 +481,24 @@ public sealed class WorkingDiffController : IPromptHandler
 
     private void MoveToPendingHunk(WorkingDiffSession diff)
     {
-        if (_hunkAfterReload is not { } index || diff.Store.Status != DiffStatus.Loaded)
+        if (diff.Store.Status != DiffStatus.Loaded)
+        {
+            return;
+        }
+
+        if (_changeAfterReload is { } number)
+        {
+            _changeAfterReload = null;
+            var row = DiffSelection.ChangedRowNumbered(diff.Source.Document, number);
+            if (row >= 0)
+            {
+                _actions.Select(diff, row, atTop: false);
+            }
+
+            return;
+        }
+
+        if (_hunkAfterReload is not { } index)
         {
             return;
         }
