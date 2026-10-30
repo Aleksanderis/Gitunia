@@ -8,7 +8,9 @@ public static class CommandLevels
     /// <summary>The level the product starts with.</summary>
     public const CommandLevel Default = CommandLevel.Everyday;
 
-    /// <summary>The names as written in <c>config.json</c> and listed by the settings row, lowest level first.</summary>
+    /// <summary>
+    /// The names as written in <c>config.json</c> and listed by the settings row, lowest level first.
+    /// </summary>
     public static IReadOnlyList<string> Names { get; } = ["everyday", "advanced", "advanced+"];
 
     /// <summary>The config name of <paramref name="level"/>.</summary>

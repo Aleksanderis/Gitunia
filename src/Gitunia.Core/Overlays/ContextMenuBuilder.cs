@@ -14,8 +14,8 @@ public static class ContextMenuBuilder
     /// action that works in <paramref name="view"/>; an action without one is left out, since the menu runs actions
     /// exactly like the keys do and would otherwise show a row nobody can repeat from the keyboard.
     /// A menu titled by its caller (the <c>view ▾</c> dropdowns) passes <paramref name="grouped"/> false: it is one
-    /// list of options, and sub-headers would only repeat its title (#758). Actions above <paramref name="level"/> (#839)
-    /// are left out.
+    /// list of options, and sub-headers would only repeat its title (#758).
+    /// Actions above <paramref name="level"/> (#839) are left out.
     /// </summary>
     public static IReadOnlyList<PaletteEntry> Build(
         KeyBindingTable table,

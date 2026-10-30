@@ -94,6 +94,13 @@ public static class HelpBuilder
         UnlistedViews.Contains(binding.View) || UnlistedActions.Contains(binding.Action);
 
     /// <summary>
+    /// True for the views of the screens that own the keyboard while open (reflog, rebase todo, conflict editor,
+    /// settings, repeat modes): all their keys are listed whatever the command level (#839).
+    /// </summary>
+    /// <param name="view">The keymap view.</param>
+    public static bool IsModalScreen(string view) => ModalScreenViews.Contains(view);
+
+    /// <summary>
     /// One tab per source in the view's inheritance chain (the view, then <c>Lists</c>, then <c>Global</c>), each split
     /// under the <see cref="ActionCatalog.GroupOf"/> subheaders, plus a <c>Markers</c> tab for the graph and the
     /// sidebar, then the all-commands tabs, <c>Commands</c> and, when bindings were changed, <c>Custom</c>.

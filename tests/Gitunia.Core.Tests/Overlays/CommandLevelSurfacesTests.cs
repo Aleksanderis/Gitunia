@@ -31,7 +31,8 @@ public class CommandLevelSurfacesTests
     public void GivenALevel_WhenBuildingTheHelp_ThenNoActionAboveItIsListedInAnyTab(CommandLevel level)
     {
         var tabs = HelpBuilder.Build(Table, DefaultKeymap.GraphView, level)
-            .Where(tab => tab.Title != HelpBuilder.CommandsTitle);
+            .Where(tab => tab.Title != HelpBuilder.CommandsTitle)
+            .ToList();
 
         var above = HelpActions(tabs).Where(action => !ActionCatalog.IsListedAt(action, level));
 
@@ -44,7 +45,7 @@ public class CommandLevelSurfacesTests
     {
         var everyday = HelpActions(HelpBuilder.Build(Table, DefaultKeymap.GraphView, CommandLevel.Everyday)).ToHashSet();
         var advanced = HelpActions(HelpBuilder.Build(Table, DefaultKeymap.GraphView, CommandLevel.Advanced)).ToHashSet();
-        var all = HelpActions(HelpBuilder.Build(Table, DefaultKeymap.GraphView, CommandLevel.AdvancedPlus)).ToHashSet();
+        var all = HelpActions(HelpBuilder.Build(Table, DefaultKeymap.GraphView)).ToHashSet();
 
         Assert.DoesNotContain(ActionIds.BranchFastForward, everyday);
         Assert.Contains(ActionIds.BranchFastForward, advanced);
@@ -58,7 +59,7 @@ public class CommandLevelSurfacesTests
     public void GivenALevel_WhenBuildingTheHelp_ThenTheClosingLineCountsExactlyTheHiddenCommands(CommandLevel level)
     {
         var tabs = HelpBuilder.Build(Table, DefaultKeymap.GraphView, level);
-        var allTabs = HelpBuilder.AllCommandsTabs(Table, CommandLevel.AdvancedPlus);
+        var allTabs = HelpBuilder.AllCommandsTabs(Table);
         var shown = HelpActions(HelpBuilder.AllCommandsTabs(Table, level)).ToHashSet();
         var hidden = HelpActions(allTabs).Distinct().Count(action => !shown.Contains(action));
 
@@ -82,7 +83,7 @@ public class CommandLevelSurfacesTests
     public void GivenEveryday_WhenBuildingTheHelp_ThenSomeCommandsAreHiddenAndAtAdvancedPlusNoneAre()
     {
         var everyday = HelpBuilder.Build(Table, DefaultKeymap.GraphView, CommandLevel.Everyday);
-        var all = HelpBuilder.Build(Table, DefaultKeymap.GraphView, CommandLevel.AdvancedPlus);
+        var all = HelpBuilder.Build(Table, DefaultKeymap.GraphView);
 
         Assert.Contains(HelpActions(everyday), action => action == ActionIds.ViewCycleCommandLevel);
         Assert.DoesNotContain(
@@ -120,7 +121,7 @@ public class CommandLevelSurfacesTests
     {
         var everyday = PaletteEntryBuilder.Build(Table, DefaultKeymap.GraphView, CommandLevel.Everyday);
         var advanced = PaletteEntryBuilder.Build(Table, DefaultKeymap.GraphView, CommandLevel.Advanced);
-        var all = PaletteEntryBuilder.Build(Table, DefaultKeymap.GraphView, CommandLevel.AdvancedPlus);
+        var all = PaletteEntryBuilder.Build(Table, DefaultKeymap.GraphView);
 
         Assert.True(everyday.Count < advanced.Count);
         Assert.True(advanced.Count < all.Count);
@@ -185,6 +186,14 @@ public class CommandLevelSurfacesTests
                 Assert.Equal(hasListed, shown.Contains(group));
             }
         }
+    }
+
+    [Fact]
+    public void GivenModalScreens_WhenAskingIfTheyAreModal_ThenTheirViewsAreAndTheGraphIsNot()
+    {
+        Assert.True(HelpBuilder.IsModalScreen(DefaultKeymap.ReflogView));
+        Assert.True(HelpBuilder.IsModalScreen(DefaultKeymap.ConflictEditorView));
+        Assert.False(HelpBuilder.IsModalScreen(DefaultKeymap.GraphView));
     }
 
     [Fact]

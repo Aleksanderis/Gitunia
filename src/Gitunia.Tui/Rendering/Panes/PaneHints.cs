@@ -7,7 +7,10 @@ using Gitunia.Core.Workspaces.Panes;
 
 namespace Gitunia.Tui.Rendering.Panes;
 
-/// <summary>The key hints the status bar shows for the focused pane and for the repository picker. Help, commands and back come first so a narrow terminal cuts the pane's own hints, not those.</summary>
+/// <summary>
+/// The key hints the status bar shows for the focused pane and for the repository picker. Help, commands and back
+/// come first so a narrow terminal cuts the pane's own hints, not those.
+/// </summary>
 public static class PaneHints
 {
     private static readonly ImmutableArray<KeyHint> Pinned =
@@ -445,7 +448,10 @@ public static class PaneHints
         _ => Listed(hints, level),
     };
 
-    /// <summary>True when the hint names a chord group (no actions) or at least one of its actions is listed at <paramref name="level"/>.</summary>
+    /// <summary>
+    /// True when the hint names a chord group (no actions) or at least one of its actions is listed at <paramref
+    /// name="level"/>.
+    /// </summary>
     /// <param name="hint">The hint.</param>
     /// <param name="level">The command level.</param>
     public static bool IsListedAt(KeyHint hint, CommandLevel level) =>
@@ -470,7 +476,9 @@ public static class PaneHints
         _ => Graph,
     };
 
-    /// <summary>The hints while the commit message box is in Insert mode (typed keys are text, so only these act).</summary>
+    /// <summary>
+    /// The hints while the commit message box is in Insert mode (typed keys are text, so only these act).
+    /// </summary>
     public static IReadOnlyList<KeyHint> ForMessageEditing() => MessageEditing;
 
     /// <summary>The hints while a confirm dialog is open (only its answers act).</summary>

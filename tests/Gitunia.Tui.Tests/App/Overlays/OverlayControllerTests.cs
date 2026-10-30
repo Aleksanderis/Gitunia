@@ -687,6 +687,41 @@ public sealed class OverlayControllerTests : IDisposable
     }
 
     [Fact]
+    public void GivenEveryday_WhenTypingAnIdThatIsOnlyAPrefixOfListedRows_ThenEnterRunsTheHighlightedRowNotAGuess()
+    {
+        _overlays.Level = () => CommandLevel.Everyday;
+        Press(new Key(':'));
+        foreach (var letter in "jump to head")
+        {
+            Press(new Key(letter));
+        }
+
+        Press(Key.Enter);
+
+        Assert.Equal([ActionIds.GraphJumpToHead], _routed);
+    }
+
+    [Theory]
+    [InlineData(DefaultKeymap.GraphView, false)]
+    [InlineData(DefaultKeymap.ReflogView, true)]
+    public void GivenEveryday_WhenTheLeaderIsPending_ThenAnAdvancedPlusKeyShowsOnlyInAModalScreen(
+        string view,
+        bool expectShown)
+    {
+        _overlays.Level = () => CommandLevel.Everyday;
+        _baseView = view;
+        Press(new Key(' '));
+        Assert.True(_postedSignal.Wait(TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken));
+        RunPosted();
+
+        var frame = string.Join('\n', _overlays.CurrentFrame()!.Lines.Select(line => line.Text));
+
+        Assert.Equal(
+            expectShown,
+            frame.Contains(ActionCatalog.Describe(ActionIds.ReflogOpen), StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void GivenTheLevelChangesWhileTheAppRuns_WhenOpeningThePaletteAgain_ThenItFollowsTheNewLevelAtOnce()
     {
         _level = CommandLevel.Everyday;

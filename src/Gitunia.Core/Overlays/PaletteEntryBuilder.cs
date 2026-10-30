@@ -3,7 +3,9 @@ using Gitunia.Core.Keymap.Models;
 
 namespace Gitunia.Core.Overlays;
 
-/// <summary>Builds the palette's entries from the key binding table: every action in it, never a hand-written list.</summary>
+/// <summary>
+/// Builds the palette's entries from the key binding table: every action in it, never a hand-written list.
+/// </summary>
 public static class PaletteEntryBuilder
 {
     private const int MaximumShownBindings = 3;
@@ -17,7 +19,10 @@ public static class PaletteEntryBuilder
         CommandLevel level = CommandLevel.AdvancedPlus) =>
         Build(table, view, ActionCatalog.Unimplemented, level);
 
-    /// <summary>Like <see cref="Build(KeyBindingTable, string, CommandLevel)"/> with an explicit set of actions that have no behaviour yet (shown greyed out); modal-only actions are left out.</summary>
+    /// <summary>
+    /// Like <see cref="Build(KeyBindingTable, string, CommandLevel)"/> with an explicit set of actions that have no
+    /// behaviour yet (shown greyed out); modal-only actions are left out.
+    /// </summary>
     /// <param name="table">The bindings.</param>
     /// <param name="view">The focused view.</param>
     /// <param name="unimplemented">The actions to mark as not implemented.</param>
@@ -38,7 +43,10 @@ public static class PaletteEntryBuilder
 
         var entries = new List<RankedPaletteEntry>();
         var order = 0;
-        foreach (var group in table.Bindings.GroupBy(binding => binding.Action).Where(group => !ActionCatalog.IsModalOnly(group.Key) && ActionCatalog.IsListedAt(group.Key, level)))
+        var listedGroups = table.Bindings
+            .GroupBy(binding => binding.Action)
+            .Where(group => !ActionCatalog.IsModalOnly(group.Key) && ActionCatalog.IsListedAt(group.Key, level));
+        foreach (var group in listedGroups)
         {
             var keys = group
                 .OrderBy(binding => binding.Mode == KeyMode.Normal ? 0 : 1)

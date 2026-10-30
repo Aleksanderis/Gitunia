@@ -10,7 +10,9 @@ public enum CommandLevel
     /// <summary>The daily commands only.</summary>
     Everyday,
 
-    /// <summary>Everyday plus the less frequent commands (reflog, reset, rebase, cherry-pick, remote management).</summary>
+    /// <summary>
+    /// Everyday plus the less frequent commands (reflog, reset, rebase, cherry-pick, remote management).
+    /// </summary>
     Advanced,
 
     /// <summary>Everything, including rare or risky commands.</summary>

@@ -432,7 +432,7 @@ public sealed class OverlayController
         }
 
         return WhichKeyBuilder.Build(
-            _engine.Continuations(_keys.State, ViewName, Level()),
+            _engine.Continuations(_keys.State, ViewName, HelpBuilder.IsModalScreen(ViewName) ? null : Level()),
             pending,
             OperationInProgress());
     }
