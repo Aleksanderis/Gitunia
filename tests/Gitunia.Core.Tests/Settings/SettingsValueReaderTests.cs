@@ -44,6 +44,34 @@ public class SettingsValueReaderTests
         Assert.Equal(style, load.Options.LabelCaps);
     }
 
+    [Theory]
+    [InlineData("{ \"hints\": { \"whichKey\": \"off\", \"statusBar\": \"minimal\" } }", "off", "minimal", false, StatusBarHintMode.Minimal)]
+    [InlineData("{ \"hints\": { \"statusBar\": \"off\" } }", "on", "off", true, StatusBarHintMode.Off)]
+    [InlineData("{ }", "on", "full", true, StatusBarHintMode.Full)]
+    public void GivenHints_WhenReading_ThenTheChoicesAndTheOptionsHoldThem(
+        string text,
+        string whichKey,
+        string statusBar,
+        bool popup,
+        StatusBarHintMode mode)
+    {
+        var load = Read(new ConfigSnapshot(true, text, string.Empty));
+
+        Assert.Equal(whichKey, load.Values[SettingsRegistry.WhichKeyId].Choice);
+        Assert.Equal(statusBar, load.Values[SettingsRegistry.StatusBarHintsId].Choice);
+        Assert.Equal(popup, load.Options.WhichKeyPopup);
+        Assert.Equal(mode, load.Options.StatusBarHints);
+    }
+
+    [Fact]
+    public void GivenABadStatusBarValue_WhenReading_ThenTheSettingCarriesTheWarning()
+    {
+        var load = Read(new ConfigSnapshot(true, "{ \"hints\": { \"statusBar\": \"some\" } }", string.Empty));
+
+        Assert.Equal("full", load.Values[SettingsRegistry.StatusBarHintsId].Choice);
+        Assert.Contains(SettingsRegistry.StatusBarHintsId, load.Warnings.Keys);
+    }
+
     [Fact]
     public void GivenABadLabelCapsValue_WhenReading_ThenTheSettingCarriesTheWarning()
     {

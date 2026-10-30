@@ -16,6 +16,12 @@ public static class SettingsRegistry
     /// <summary>The id of the label caps setting.</summary>
     public const string LabelCapsId = "label-caps";
 
+    /// <summary>The id of the which-key popup setting.</summary>
+    public const string WhichKeyId = "hints-which-key";
+
+    /// <summary>The id of the status bar hints setting.</summary>
+    public const string StatusBarHintsId = "hints-status-bar";
+
     /// <summary>The id of the tab branch setting.</summary>
     public const string ShowBranchId = "tabs-show-branch";
 
@@ -69,6 +75,26 @@ public static class SettingsRegistry
             "Tab chips show the checked-out branch after the name. It makes the tabs long.",
             "off",
             []),
+        new SettingDefinition(
+            WhichKeyId,
+            SettingCategory.Keys,
+            "Which-key popup",
+            SettingControl.Choice,
+            ["hints", "whichKey"],
+            "The popup that lists the continuations of a pending chord after a short wait. Off hides only the popup: "
+                + "every key still works, and ? and : stay.",
+            "on",
+            ["on", "off"]),
+        new SettingDefinition(
+            StatusBarHintsId,
+            SettingCategory.Keys,
+            "Status bar hints",
+            SettingControl.Choice,
+            ["hints", "statusBar"],
+            "The key hints in the status bar: full adds the focused pane's keys, minimal keeps only "
+                + "? help, : commands and q quit, off shows none.",
+            "full",
+            ["full", "minimal", "off"]),
         new SettingDefinition(
             KeyReferenceId,
             SettingCategory.Keys,

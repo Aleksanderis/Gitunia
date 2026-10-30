@@ -303,6 +303,8 @@ public sealed class MainView : IDisposable
         _diffTitle.Clicked += OnDiffTitleClicked;
         _workingDiffTitle.Clicked += OnWorkingDiffTitleClicked;
         Overlay.LineClicked += line => OverlayLineClicked?.Invoke(line);
+        Overlay.DragStarted += (line, column) => OverlayDragStarted?.Invoke(line, column);
+        Overlay.Dragged += line => OverlayDragged?.Invoke(line);
         Overlay.LineDoubleClicked += line => OverlayLineDoubleClicked?.Invoke(line);
         Overlay.GestureRaised += gesture => Gestured?.Invoke(OverlayGestureView, gesture, null);
 
@@ -361,6 +363,12 @@ public sealed class MainView : IDisposable
 
     /// <summary>Raised with the frame line when the overlay box is clicked.</summary>
     public event Action<int>? OverlayLineClicked;
+
+    /// <summary>Raised with the frame line and column when a drag begins on the overlay box.</summary>
+    public event Action<int, int>? OverlayDragStarted;
+
+    /// <summary>Raised with the frame line of the pointer while a drag goes on over the overlay box.</summary>
+    public event Action<int>? OverlayDragged;
 
     /// <summary>Raised with the frame line when the overlay box is double-clicked.</summary>
     public event Action<int>? OverlayLineDoubleClicked;

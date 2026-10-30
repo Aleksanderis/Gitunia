@@ -15,6 +15,11 @@ public static class OptionsConfigurator
     private const string ScanRootsKey = "scanRoots";
     private const string WatchFilesKey = "watchFiles";
     private const string LabelCapsKey = "labelCaps";
+    private const string HintsKey = "hints";
+    private const string WhichKeyKey = "hints.whichKey";
+    private const string StatusBarKey = "hints.statusBar";
+    private const string WhichKeyProperty = "whichKey";
+    private const string StatusBarProperty = "statusBar";
     private const string ShowBranchProperty = "showBranch";
     private const char HomeMarker = '~';
 
@@ -32,7 +37,91 @@ public static class OptionsConfigurator
             ParseShowBranch(document.Tabs, problems),
             ParseScanRoots(document.ScanRoots, homeDirectory, directoryExists, problems),
             ParseWatchFiles(document.WatchFiles, problems),
-            ParseLabelCaps(document.LabelCaps, problems));
+            ParseLabelCaps(document.LabelCaps, problems),
+            ParseWhichKey(document.Hints, problems),
+            ParseStatusBar(document.Hints, problems));
+
+    /// <summary>The <c>hints.whichKey</c> option: on (default) or off, any case; anything else is reported and gives on.</summary>
+    public static bool ParseWhichKey(JsonElement? hints, ICollection<ConfigProblem> problems)
+    {
+        var text = HintText(hints, WhichKeyProperty, problems, out var present);
+        if (!present || text == "on")
+        {
+            return true;
+        }
+
+        if (text == "off")
+        {
+            return false;
+        }
+
+        problems.Add(new ConfigProblem(WhichKeyKey, "hints.whichKey must be on or off, using on"));
+
+        return true;
+    }
+
+    /// <summary>The <c>hints.statusBar</c> option: full (default), minimal or off, any case; anything else is reported and gives full.</summary>
+    public static StatusBarHintMode ParseStatusBar(JsonElement? hints, ICollection<ConfigProblem> problems)
+    {
+        var text = HintText(hints, StatusBarProperty, problems, out var present);
+        if (!present || text == "full")
+        {
+            return StatusBarHintMode.Full;
+        }
+
+        if (text == "minimal")
+        {
+            return StatusBarHintMode.Minimal;
+        }
+
+        if (text == "off")
+        {
+            return StatusBarHintMode.Off;
+        }
+
+        problems.Add(new ConfigProblem(StatusBarKey, "hints.statusBar must be full, minimal or off, using full"));
+
+        return StatusBarHintMode.Full;
+    }
+
+    // The lower-case text of one member of the hints object; present is false when the member (or the object) is
+    // absent or null, and the text is empty when it is not a string. A hints value that is no object is reported once,
+    // by the which-key read.
+    private static string HintText(JsonElement? hints, string property, ICollection<ConfigProblem> problems, out bool present)
+    {
+        present = false;
+        if (hints is null or { ValueKind: JsonValueKind.Null })
+        {
+            return string.Empty;
+        }
+
+        if (hints.Value.ValueKind != JsonValueKind.Object)
+        {
+            if (property == WhichKeyProperty)
+            {
+                problems.Add(new ConfigProblem(HintsKey, "hints must be an object, using the defaults"));
+            }
+
+            return string.Empty;
+        }
+
+        var text = string.Empty;
+        foreach (var member in hints.Value.EnumerateObject())
+        {
+            if (!string.Equals(member.Name, property, StringComparison.OrdinalIgnoreCase)
+                || member.Value.ValueKind == JsonValueKind.Null)
+            {
+                continue;
+            }
+
+            present = true;
+            text = member.Value.ValueKind == JsonValueKind.String
+                ? member.Value.GetString()?.ToLowerInvariant() ?? string.Empty
+                : string.Empty;
+        }
+
+        return text;
+    }
 
     /// <summary>The <c>labelCaps</c> option: none, rounded or angled (any case); no value or anything else gives rounded.</summary>
     public static LabelCapStyle ParseLabelCaps(JsonElement? value, ICollection<ConfigProblem> problems)

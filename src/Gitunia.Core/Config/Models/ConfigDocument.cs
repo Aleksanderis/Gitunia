@@ -33,4 +33,7 @@ public sealed record ConfigDocument
     /// <c>OptionsConfigurator</c>.
     /// </summary>
     public JsonElement? LabelCaps { get; init; }
+
+    /// <summary>The <c>hints</c> object (<c>whichKey</c>, <c>statusBar</c>), read by <c>OptionsConfigurator</c>.</summary>
+    public JsonElement? Hints { get; init; }
 }

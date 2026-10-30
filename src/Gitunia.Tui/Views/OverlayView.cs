@@ -1,5 +1,6 @@
 using Gitunia.Core.Mouse;
 using Gitunia.Tui.Input;
+using Gitunia.Tui.Input.Drag;
 using Gitunia.Tui.Rendering.Overlays;
 using Gitunia.Tui.Views.Theme;
 using Terminal.Gui.Input;
@@ -10,6 +11,7 @@ namespace Gitunia.Tui.Views;
 /// <summary>A floating box (help, palette, which-key popup) that is moved and sized to an <see cref="OverlayFrame"/> and hidden when there is none.</summary>
 public sealed class OverlayView : View
 {
+    private readonly DragTracker _drag = new();
     private OverlayFrame? _frame;
 
     public OverlayView()
@@ -26,6 +28,12 @@ public sealed class OverlayView : View
 
     /// <summary>Raised with the frame line when the overlay is double-clicked (the first click was raised as a click).</summary>
     public event Action<int>? LineDoubleClicked;
+
+    /// <summary>Raised with the frame line and column where a drag with the left button began.</summary>
+    public event Action<int, int>? DragStarted;
+
+    /// <summary>Raised with the frame line of the pointer while a drag goes on (also for its first move).</summary>
+    public event Action<int>? Dragged;
 
     /// <summary>Raised for the wheel over the overlay.</summary>
     public event Action<MouseGesture>? GestureRaised;
@@ -50,6 +58,24 @@ public sealed class OverlayView : View
 
     protected override bool OnMouseEvent(Mouse mouse)
     {
+        // A drag never also counts as a click: the click the toolkit reports at its end is swallowed.
+        var phase = mouse.Position is { } at ? _drag.Feed(mouse.Flags, at.X, at.Y) : DragPhase.None;
+        DragGrab.Update(this, mouse.Flags, phase);
+        if (phase != DragPhase.None)
+        {
+            if (phase == DragPhase.Start)
+            {
+                DragStarted?.Invoke(_drag.Origin.Y, _drag.Origin.X);
+            }
+
+            if (phase is DragPhase.Start or DragPhase.Move && mouse.Position is { } pointerAt)
+            {
+                Dragged?.Invoke(pointerAt.Y);
+            }
+
+            return true;
+        }
+
         if (!MouseFlagTranslator.TryTranslate(mouse.Flags, out var gesture))
         {
             return base.OnMouseEvent(mouse);

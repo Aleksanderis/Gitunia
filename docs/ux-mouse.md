@@ -66,6 +66,7 @@ Views inherit like in the keymap: `Lists` covers Graph, Detail, Sidebar, Diff an
 | RebaseButton.Cancel | Click | `navigate.back` | Chip `Esc cancel`: closes the editor like `Esc` |
 | ConflictSide | Wheel up | `list.up` | Cursor up three lines in the pane (the other panes follow) |
 | ConflictSide | Wheel down | `list.down` | Cursor down three lines |
+| ConflictSide | Drag start | `visual.toggle` | Drag from a row of the base, ours or theirs pane: the cursor goes to the row and a Visual selection starts like `v`; the far end follows the pointer, `<space>a` / the `take lines` chip takes only those lines (#861). A click on a row or result line places the cursor from the frame position (no action; see workflow 4, "Mouse") |
 | ConflictResult | Wheel up | `list.up` | Result cursor up three lines |
 | ConflictResult | Wheel down | `list.down` | Result cursor down three lines |
 | ConflictButton.Ours | Click | `conflict-editor.ours` | Chip `o ours`: takes our side for the current conflict |

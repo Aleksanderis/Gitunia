@@ -7,7 +7,8 @@ namespace Gitunia.Tui.Rendering.Overlays;
 /// <param name="Pane">The pane of a header or a version row.</param>
 /// <param name="Index">The aligned row of a version row, the result line of a result line.</param>
 /// <param name="View">The mouse view of a chip.</param>
-public sealed record ConflictTarget(ConflictTargetKind Kind, ConflictPane Pane, int Index, string? View)
+/// <param name="Column">The display column in the text of a result line.</param>
+public sealed record ConflictTarget(ConflictTargetKind Kind, ConflictPane Pane, int Index, string? View, int Column = 0)
 {
     /// <summary>A hint chip with its mouse view.</summary>
     public static ConflictTarget OfChip(string view) => new(ConflictTargetKind.Chip, ConflictPane.Result, 0, view);
@@ -20,8 +21,8 @@ public sealed record ConflictTarget(ConflictTargetKind Kind, ConflictPane Pane, 
         new(ConflictTargetKind.VersionRow, pane, row, null);
 
     /// <summary>A line of the result.</summary>
-    public static ConflictTarget OfResultLine(int line) =>
-        new(ConflictTargetKind.ResultLine, ConflictPane.Result, line, null);
+    public static ConflictTarget OfResultLine(int line, int column = 0) =>
+        new(ConflictTargetKind.ResultLine, ConflictPane.Result, line, null, column);
 }
 
 /// <summary>The kinds of <see cref="ConflictTarget"/>.</summary>

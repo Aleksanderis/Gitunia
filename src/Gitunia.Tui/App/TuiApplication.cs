@@ -396,6 +396,7 @@ public sealed class TuiApplication(
             glyphs,
             () => _router.ViewName,
             _statuses);
+        _overlays.WhichKeyEnabled = _startupConfig.Options.WhichKeyPopup;
         _overlays.Changed += RefreshOverlay;
         _overlays.OperationInProgress = () => _host.Workspace.ActiveTab?.Operation is not null;
         _overlays.MenuTarget = view => MenuTargetOf(view, sidebarSource);
@@ -469,6 +470,8 @@ public sealed class TuiApplication(
         _view.EdgeDragged += OnEdgeDragged;
         _view.OverlayLineClicked += OnOverlayLineClicked;
         _view.OverlayLineDoubleClicked += OnOverlayLineDoubleClicked;
+        _view.OverlayDragStarted += OnOverlayDragStarted;
+        _view.OverlayDragged += _conflictEditor.OnDragged;
         _view.Graph.ValueChanged += (_, _) => _visual.OnCursorMoved();
         _view.Detail.ValueChanged += (_, _) => _visual.OnCursorMoved();
         _view.Detail.ValueChanged += (_, _) => _diffPane.OnDetailCursorMoved();
@@ -697,6 +700,15 @@ public sealed class TuiApplication(
         {
             _host.Dispatch(new TabCommand(tabId, new SetPaneSizesCommand(sizes.SidebarWidth, sizes.BottomHeight, sizes.DetailWidth)));
             Relayout();
+        }
+    }
+
+    // Only the conflict editor uses a drag over an overlay: from a version row it starts a Visual selection.
+    private void OnOverlayDragStarted(int line, int column)
+    {
+        if (_conflictEditor.OnDragStarted(line, column) is { } view)
+        {
+            _mouse.Handle(view, MouseGesture.DragStart);
         }
     }
 
@@ -1386,6 +1398,12 @@ public sealed class TuiApplication(
             return PaneHints.ForRepeat(repeating.Kind);
         }
 
+        // Dialogs, editors and the repeat mode above keep their hints: they say which keys act right now.
+        return PaneHints.Limit(PaneAndConflictHints(), _startupConfig.Options.StatusBarHints);
+    }
+
+    private IReadOnlyList<KeyHint> PaneAndConflictHints()
+    {
         var hints = PaneHintsOfFocus();
 
         if (!ConflictPending())
@@ -1644,6 +1662,7 @@ public sealed class TuiApplication(
     {
         _startupConfig = _startupConfig with { Options = options };
         ApplyLabelCaps(options.LabelCaps);
+        _overlays.WhichKeyEnabled = options.WhichKeyPopup;
         if (!SameRoots(_picker.ScanRoots, options.ScanRoots))
         {
             _picker.ScanRoots = options.ScanRoots;

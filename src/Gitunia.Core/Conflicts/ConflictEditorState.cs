@@ -434,21 +434,27 @@ public sealed record ConflictEditorState(
     }
 
     /// <summary>
-    /// A click on a line of the result: the cursor goes there (column 0), in the result, in Normal mode. A line past the
-    /// end does nothing; neither does a click while typing.
+    /// A click on a line of the result: the cursor goes there, at the display column of the click (the line end past
+    /// the text), in the result, in Normal mode. While typing it only moves the cursor within the result. A line past
+    /// the end does nothing.
     /// </summary>
-    public ConflictEditorState ClickResultLine(int line)
+    /// <param name="line">The result line.</param>
+    /// <param name="column">The display column in the line.</param>
+    public ConflictEditorState ClickResultLine(int line, int column = 0)
     {
-        if (IsEditing || line < 0 || line >= ResultLineCount)
+        if (line < 0 || line >= ResultLineCount)
         {
             return this;
         }
 
         var focused = FocusPane(ConflictPane.Result);
-        focused.Result.Editor.SetCursor(line, 0);
+        focused.Result.Editor.PlaceCursor(line, column);
 
         return focused.SyncedFromResult();
     }
+
+    /// <summary>The far end of a Visual selection follows a drag to an aligned row of the version panes.</summary>
+    public ConflictEditorState DragToVersionRow(int row) => IsVisual && IsVersionPane ? OnVersionRow(row) : this;
 
     /// <summary>
     /// Moves into the result at the current conflict and starts Insert mode there (from a version pane), or starts
