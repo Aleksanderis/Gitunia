@@ -18,7 +18,7 @@ The Windows CI leg runs `--filter "Os!=Independent"`; Linux runs everything. Put
 | A git output parser | Fixture test: captured real output in, model out | Capture from a fixture repo (below); include odd cases |
 | A git operation | Integration test on a temp repo, real `git` | Assert on repo state afterwards, not on the command string |
 | Graph layout | Invariant/property tests | Deterministic; incremental result equals full result |
-| State, commands, keymap | Pure test, no terminal | Includes the "no binding conflicts" test against `docs/ux-keymap.md` |
+| State, commands, keymap | Pure test, no terminal | Includes the "no binding conflicts" and "generated `docs/keymap.md` is current" tests |
 | Rendering | Snapshot of the frame as text | Several terminal sizes, wide chars, resize |
 | Dependencies or serialization | AOT publish + smoke run | No `IL*` warnings |
 

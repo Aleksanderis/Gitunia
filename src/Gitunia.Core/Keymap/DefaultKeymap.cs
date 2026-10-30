@@ -5,8 +5,8 @@ namespace Gitunia.Core.Keymap;
 
 /// <summary>
 /// The default bindings. They are read from the embedded <c>keymap.default.json</c> (one row per action, view and
-/// mode set; see <see cref="KeymapRowReader"/>) and mirror the keymap table in <c>docs/ux-keymap.md</c> (a test checks
-/// that); user config builds a <see cref="KeyBindingTable"/> from these plus overrides.
+/// mode set; see <see cref="KeymapRowReader"/>), and <c>docs/keymap.md</c> is generated from that file (a test checks it is current);
+/// user config builds a <see cref="KeyBindingTable"/> from these plus overrides.
 /// </summary>
 public static class DefaultKeymap
 {
