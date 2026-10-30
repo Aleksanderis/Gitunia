@@ -88,6 +88,15 @@ public sealed class EffectRunner : IDisposable
         }
     }
 
+    /// <summary>Cancels the running git work of every tab (a forced quit, #856).</summary>
+    public void CancelAll()
+    {
+        foreach (var session in _sessions.Values)
+        {
+            session.Cancellation.Cancel();
+        }
+    }
+
     /// <summary>The runtime session of an open tab, or null.</summary>
     public TabSession? SessionOf(TabId tabId) => _sessions.GetValueOrDefault(tabId);
 

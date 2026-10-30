@@ -884,6 +884,14 @@ public sealed class TuiApplication(
         RequestStop();
     }
 
+    // Ctrl-c (#856) works in every mode and modal. Running git work is cancelled; the quit guard of a normal quit still
+    // applies (a second Ctrl-c leaves), and Run's finally block saves the session and restores the terminal.
+    private void ForceQuit()
+    {
+        _effects.CancelAll();
+        RequestQuit();
+    }
+
     private CommitActions CreateCommits() => new(
         _host,
         services.CommitWriter,
@@ -2020,6 +2028,12 @@ public sealed class TuiApplication(
 
     private bool HandleKey(Key key)
     {
+        if (ForceQuitKey.IsMatch(key))
+        {
+            ForceQuit();
+            return true;
+        }
+
         var isPickerShowing = _picker.IsOpen && !IsAnyOverlayOpen();
         return _keys.Handle(key, FocusedViewName()) || isPickerShowing;
     }

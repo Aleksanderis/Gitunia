@@ -100,6 +100,7 @@ public static class DefaultKeymap
         Add(bindings, NormalOnly, global, ":", ActionIds.PaletteOpen);
         Add(bindings, TextEntry, global, "Ctrl-p", ActionIds.PaletteOpen);
         Add(bindings, Navigation, global, "q", ActionIds.AppQuit);
+        Add(bindings, TextEntry, global, "Ctrl-c", ActionIds.AppQuit);
         Add(bindings, NormalOnly, global, "Tab", ActionIds.PaneNext);
         Add(bindings, NormalOnly, global, "Shift-Tab", ActionIds.PanePrevious);
         Add(bindings, NormalOnly, global, "gt", ActionIds.TabNext);
