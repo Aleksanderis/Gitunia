@@ -281,18 +281,37 @@ public static class PaneHints
         new("Esc", "cancel", [ActionIds.NavigateBack]),
     ];
 
-    private static readonly ImmutableArray<KeyHint> ConflictEditor =
+    private static readonly ImmutableArray<KeyHint> ConflictVersions =
     [
         new("n/N", "conflict", [ActionIds.ConflictEditorNext, ActionIds.ConflictEditorPrevious]),
-        new("o/t/b", "ours/theirs/both", [
+        new("<space>a", "take pane", [ActionIds.ConflictEditorTake]),
+        new("o/t/b", "ours/theirs/base", [
             ActionIds.ConflictEditorOurs,
             ActionIds.ConflictEditorTheirs,
-            ActionIds.ConflictEditorBoth,
+            ActionIds.ConflictEditorBase,
         ]),
-        new("O/T", "all", [ActionIds.ConflictEditorAllOurs, ActionIds.ConflictEditorAllTheirs]),
+        new("v", "select lines", [ActionIds.VisualToggle]),
+        new("Tab", "pane", [ActionIds.PaneNext]),
         new("e", "edit result", [ActionIds.ConflictEditorEdit]),
         new("u", "undo", [ActionIds.ConflictEditorUndo]),
-        new("B", "base", [ActionIds.ConflictEditorBase]),
+        new("Enter", "save", [ActionIds.ConflictEditorSave]),
+        new("Esc", "close", [ActionIds.NavigateBack]),
+    ];
+
+    private static readonly ImmutableArray<KeyHint> ConflictVisual =
+    [
+        new("<space>a", "take lines", [ActionIds.ConflictEditorTake]),
+        new("j/k", "extend", [ActionIds.ListDown, ActionIds.ListUp]),
+        new("v", "end selection", [ActionIds.VisualToggle]),
+    ];
+
+    private static readonly ImmutableArray<KeyHint> ConflictResult =
+    [
+        new("n/N", "conflict", [ActionIds.ConflictEditorNext, ActionIds.ConflictEditorPrevious]),
+        new("i", "type", [ActionIds.ConflictEditorEdit]),
+        new("Tab", "pane", [ActionIds.PaneNext]),
+        new("r", "reset", [ActionIds.ConflictEditorReset]),
+        new("u", "undo", [ActionIds.ConflictEditorUndo]),
         new("Enter", "save", [ActionIds.ConflictEditorSave]),
         new("Esc", "close", [ActionIds.NavigateBack]),
     ];
@@ -433,10 +452,16 @@ public static class PaneHints
     /// <summary>The hints while the rebase todo editor is open.</summary>
     public static IReadOnlyList<KeyHint> ForRebaseEditor() => RebaseEditor;
 
-    /// <summary>The hints while the conflict editor is open.</summary>
-    public static IReadOnlyList<KeyHint> ForConflictEditor() => ConflictEditor;
+    /// <summary>The hints while the conflict editor's cursor is in a version pane (base, ours or theirs).</summary>
+    public static IReadOnlyList<KeyHint> ForConflictVersions() => ConflictVersions;
 
-    /// <summary>The hints while the result of a conflict hunk is edited as text.</summary>
+    /// <summary>The hints while lines are selected in a version pane of the conflict editor.</summary>
+    public static IReadOnlyList<KeyHint> ForConflictVisual() => ConflictVisual;
+
+    /// <summary>The hints while the conflict editor's cursor is in the result pane (Normal mode).</summary>
+    public static IReadOnlyList<KeyHint> ForConflictResult() => ConflictResult;
+
+    /// <summary>The hints while the conflict editor's result is typed in (Insert mode).</summary>
     public static IReadOnlyList<KeyHint> ForConflictEdit() => ConflictEdit;
 
     /// <summary>The hints while a reword's message is edited in the rebase todo editor.</summary>

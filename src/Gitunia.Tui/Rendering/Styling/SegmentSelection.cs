@@ -14,4 +14,7 @@ public enum SegmentSelection
 
     /// <summary>Selected in a pane without focus.</summary>
     Dim,
+
+    /// <summary>In a Visual range (the stronger range tint), whatever the focus.</summary>
+    Range,
 }

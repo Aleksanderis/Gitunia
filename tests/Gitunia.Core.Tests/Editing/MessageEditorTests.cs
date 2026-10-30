@@ -358,6 +358,69 @@ public class MessageEditorTests
         return editor;
     }
 
+    [Fact]
+    public void GivenLines_WhenLoadingThemAsTheyAre_ThenControlCharactersStayAndTheCursorIsAtTheStart()
+    {
+        var editor = new MessageEditor();
+
+        editor.LoadLines(["a\fb", "c"]);
+
+        Assert.Equal(["a\fb", "c"], editor.Lines);
+        Assert.Equal(0, editor.CursorRow);
+        Assert.Equal(0, editor.CursorColumn);
+        editor.LoadLines([]);
+        Assert.Equal([string.Empty], editor.Lines);
+    }
+
+    [Theory]
+    [InlineData(0, 1, 0, 1)]
+    [InlineData(2, 1, 2, 1)]
+    [InlineData(9, 99, 2, 2)]
+    [InlineData(-3, -3, 0, 0)]
+    public void GivenAPosition_WhenSettingTheCursor_ThenItIsClampedToTheText(int row, int column, int rowWanted, int columnWanted)
+    {
+        var editor = new MessageEditor();
+        editor.LoadLines(["ab", "cde", "fg"]);
+
+        editor.SetCursor(row, column);
+
+        Assert.Equal(rowWanted, editor.CursorRow);
+        Assert.Equal(columnWanted, editor.CursorColumn);
+    }
+
+    [Fact]
+    public void GivenAWideCharacter_WhenSettingTheCursorInsideASurrogatePair_ThenItStopsBeforeIt()
+    {
+        var editor = new MessageEditor();
+        editor.LoadLines(["a\U0001F600b"]);
+
+        editor.SetCursor(0, 2);
+
+        Assert.Equal(1, editor.CursorColumn);
+    }
+
+    [Fact]
+    public void GivenLinesReplaced_WhenTheCursorIsInsideAfterOrBeforeThem_ThenItFollowsTheText()
+    {
+        var editor = new MessageEditor();
+        editor.LoadLines(["a", "b", "c", "d", "e"]);
+
+        editor.SetCursor(4, 1);
+        editor.ReplaceLines(1, 2, ["x"]);
+        Assert.Equal(["a", "x", "d", "e"], editor.Lines);
+        Assert.Equal(3, editor.CursorRow);
+        editor.SetCursor(1, 1);
+        editor.ReplaceLines(1, 1, ["p", "q"]);
+        Assert.Equal(1, editor.CursorRow);
+        Assert.Equal(0, editor.CursorColumn);
+        editor.SetCursor(0, 1);
+        editor.ReplaceLines(3, 0, ["new"]);
+        Assert.Equal(["a", "p", "q", "new", "d", "e"], editor.Lines);
+        Assert.Equal(0, editor.CursorRow);
+        editor.ReplaceLines(0, 99, []);
+        Assert.Equal([string.Empty], editor.Lines);
+    }
+
     private static MessageEditor Type(params string[] keys)
     {
         var editor = new MessageEditor();

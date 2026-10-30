@@ -50,7 +50,7 @@ public class ConflictEditorControllerTests
         Assert.Equal("main\nother\n", File.ReadAllText(harness.FullPath));
         Assert.Equal([ConflictPath], harness.ResolvedAsked);
         Assert.Empty(harness.Prompts);
-        Assert.Contains("every hunk resolved", harness.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
+        Assert.Contains("every conflict resolved", harness.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
         Assert.Equal(1, harness.Refreshes);
         Assert.Contains(ConflictPath, repository.Git("ls-files", "-u"), StringComparison.Ordinal);
         Finish(repository, operation);
@@ -84,7 +84,7 @@ public class ConflictEditorControllerTests
         harness.Run(ActionIds.ConflictEditorSave);
 
         var prompt = Assert.Single(harness.Prompts);
-        Assert.Contains("1 unresolved hunk out of 2", prompt.Lines[0], StringComparison.Ordinal);
+        Assert.Contains("1 unresolved conflict out of 2", prompt.Lines[0], StringComparison.Ordinal);
         Assert.Contains("git checkout --merge", prompt.Consequence, StringComparison.Ordinal);
         Assert.Equal(harness.OriginalText, File.ReadAllText(harness.FullPath));
         harness.Answer();
@@ -96,7 +96,7 @@ public class ConflictEditorControllerTests
         Assert.Contains("<<<<<<<", saved, StringComparison.Ordinal);
         Assert.Contains("XI\n", saved, StringComparison.Ordinal);
         Assert.Empty(harness.ResolvedAsked);
-        Assert.Contains("1 hunk still unresolved", harness.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
+        Assert.Contains("1 conflict still unresolved", harness.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -134,7 +134,7 @@ public class ConflictEditorControllerTests
         Assert.Equal(1, state.Index);
         Assert.Equal(
             [ConflictPick.Ours, ConflictPick.None, ConflictPick.Theirs, ConflictPick.None, ConflictPick.None],
-            state.Picks);
+            state.Result.Regions.Select(region => region.Pick));
         Assert.Equal(2, state.ResolvedCount);
         Assert.Equal(3, state.UnresolvedCount);
     }
@@ -196,6 +196,7 @@ public class ConflictEditorControllerTests
         using var harness = await Harness.CreateAsync(repository);
         await harness.OpenAsync();
 
+        harness.Run(ActionIds.ConflictEditorTheirs);
         harness.Run(ActionIds.ConflictEditorEdit);
         harness.Type("!");
         harness.Run(ActionIds.ConflictEditorEditDone);
@@ -203,7 +204,7 @@ public class ConflictEditorControllerTests
         await harness.WaitForStatusAsync("Saved");
 
         Assert.DoesNotContain("<<<<<<<", File.ReadAllText(harness.FullPath), StringComparison.Ordinal);
-        Assert.Contains("!", File.ReadAllText(harness.FullPath), StringComparison.Ordinal);
+        Assert.Equal("!other\n", File.ReadAllText(harness.FullPath).Replace("\r", string.Empty));
     }
 
     [Fact]
@@ -434,14 +435,14 @@ public class ConflictEditorControllerTests
 
         harness.Run(ActionIds.ConflictEditorNext);
         Assert.Equal(1, harness.Controller.State!.Index);
-        harness.Run(ActionIds.ListDown);
+        harness.Run(ActionIds.ConflictEditorNext);
         Assert.Equal(0, harness.Controller.State!.Index);
         harness.Run(ActionIds.ConflictEditorPrevious);
         Assert.Equal(1, harness.Controller.State!.Index);
     }
 
     [Fact]
-    public async Task GivenAPickedHunk_WhenEditingTypingAndSaving_ThenTheTypedTextIsWrittenAndTheModeFollows()
+    public async Task GivenAPickedConflict_WhenTypingInTheResultAndSaving_ThenTheTypedTextIsWrittenAndTheModeFollows()
     {
         using var repository = TestRepositories.Conflicted();
         using var harness = await Harness.CreateAsync(repository);
@@ -451,6 +452,7 @@ public class ConflictEditorControllerTests
         harness.Run(ActionIds.ConflictEditorEdit);
         Assert.Equal(KeyMode.Insert, harness.Mode);
         Assert.True(harness.Controller.IsEditing);
+        Assert.True(harness.Controller.IsResultActive);
         harness.Type("hand");
         harness.Run(ActionIds.ConflictEditorEditNewLine);
         harness.Type("made");
@@ -462,7 +464,7 @@ public class ConflictEditorControllerTests
         harness.Run(ActionIds.ConflictEditorSave);
         await harness.WaitAsync();
 
-        Assert.Equal("main\nhand\nmade\n", File.ReadAllText(harness.FullPath).Replace("\r", string.Empty));
+        Assert.Equal("hand\nmademain\n", File.ReadAllText(harness.FullPath).Replace("\r", string.Empty));
         Assert.Equal([ConflictPath], harness.ResolvedAsked);
     }
 
@@ -498,14 +500,14 @@ public class ConflictEditorControllerTests
         harness.Run(ActionIds.ConflictEditorTheirs);
 
         harness.Run(ActionIds.ConflictEditorUndo);
-        Assert.Equal(ConflictPick.None, harness.Controller.State!.Picks[1]);
+        Assert.Equal(ConflictPick.None, harness.Controller.State!.Result.Regions[1].Pick);
         harness.Run(ActionIds.ConflictEditorUndo);
-        Assert.Equal(ConflictPick.None, harness.Controller.State!.Picks[0]);
+        Assert.Equal(ConflictPick.None, harness.Controller.State!.Result.Regions[0].Pick);
         Assert.False(harness.Controller.State.IsModified);
         harness.Run(ActionIds.ConflictEditorRedo);
 
-        Assert.Equal(ConflictPick.Ours, harness.Controller.State!.Picks[0]);
-        Assert.Equal(ConflictPick.None, harness.Controller.State.Picks[1]);
+        Assert.Equal(ConflictPick.Ours, harness.Controller.State!.Result.Regions[0].Pick);
+        Assert.Equal(ConflictPick.None, harness.Controller.State.Result.Regions[1].Pick);
     }
 
     [Fact]
@@ -538,41 +540,35 @@ public class ConflictEditorControllerTests
     }
 
     [Fact]
-    public async Task GivenThreePanes_WhenPressingTheBaseKey_ThenNothingChangesNotEvenAPendingDiscard()
+    public async Task GivenAMergeStyleFile_WhenTakingTheBase_ThenTheBaseIsFoundFromTheStagesAndTaken()
     {
         using var repository = TestRepositories.Conflicted();
         using var harness = await Harness.CreateAsync(repository);
         await harness.OpenAsync();
-        harness.Run(ActionIds.ConflictEditorOurs);
-        harness.Run(ActionIds.NavigateBack);
 
         harness.Run(ActionIds.ConflictEditorBase);
 
-        Assert.False(harness.Controller.State!.IsBaseShown);
-        Assert.True(harness.Controller.State.IsDiscardPending);
+        Assert.Equal(ConflictPick.Base, harness.Controller.State!.SelectedPick);
+        Assert.Contains("original", harness.Controller.State.ToText(), StringComparison.Ordinal);
+        Assert.DoesNotContain("<<<<<<<", harness.Controller.State.ToText(), StringComparison.Ordinal);
     }
 
     [Fact]
-    public async Task GivenTheBaseKey_WhenPressedOnAMergeStyleFile_ThenTheBasePaneToggles()
+    public async Task GivenBothSidesAddedTheFile_WhenTakingTheEmptyBase_ThenTheConflictResolvesToNothing()
     {
-        using var repository = TestRepositories.Conflicted();
+        using var repository = AddedOnBothSides();
         using var harness = await Harness.CreateAsync(repository);
-        harness.Screen = new ScreenSize(100, 36);
         await harness.OpenAsync();
 
         harness.Run(ActionIds.ConflictEditorBase);
 
-        Assert.True(harness.Controller.State!.IsBaseShown);
-        var lines = harness.Controller.CurrentFrame()!.Lines.Select(line => line.Text).ToList();
-        var header = lines.FindIndex(line => line.Contains("base  common ancestor", StringComparison.Ordinal));
-        Assert.Contains("original", lines[header + 1], StringComparison.Ordinal);
-        Assert.DoesNotContain(lines, line => line.Contains("merge.conflictStyle", StringComparison.Ordinal));
-        harness.Run(ActionIds.ConflictEditorBase);
-        Assert.False(harness.Controller.State!.IsBaseShown);
+        Assert.Equal(ConflictPick.Base, harness.Controller.State!.SelectedPick);
+        Assert.Equal(0, harness.Controller.State.Result.Regions[0].Length);
+        Assert.Equal(string.Empty, harness.Controller.State.ToText());
     }
 
     [Fact]
-    public async Task GivenARebaseStoppedOnTheConflict_WhenDrawingTheEditor_ThenTheBannerRowStaysFree()
+    public async Task GivenARebaseStoppedOnTheConflict_WhenDrawingTheEditor_ThenItCoversTheBannerAndStopsAtTheStatusBar()
     {
         using var repository = TestRepositories.RebaseConflicted();
         using var harness = await Harness.CreateAsync(repository);
@@ -583,12 +579,13 @@ public class ConflictEditorControllerTests
 
         var frame = harness.Controller.CurrentFrame()!;
 
-        // Rows: the status bar is the last one and the banner the one above it.
-        Assert.True(frame.Row + frame.Height <= harness.Screen.Height - 2);
+        Assert.Equal(0, frame.Row);
+        Assert.Equal(harness.Screen.Height - 1, frame.Height);
+        Assert.Equal(harness.Screen.Width, frame.Width);
     }
 
     [Fact]
-    public async Task GivenADiffThreeConflict_WhenOpeningOnAWideScreen_ThenTheAncestorShowsWithoutPressingB()
+    public async Task GivenADiffThreeConflict_WhenOpeningOnAWideScreen_ThenTheAncestorShowsInTheBasePane()
     {
         using var repository = TestRepositories.Conflicted();
         repository.Git("checkout", "--merge", "--conflict=diff3", "--", ConflictPath);
@@ -597,12 +594,9 @@ public class ConflictEditorControllerTests
 
         var frame = harness.Controller.CurrentFrame()!;
 
-        var lines = frame.Lines.Select(line => line.Text).ToList();
-        var header = lines.FindIndex(line => line.Contains("base  common ancestor", StringComparison.Ordinal));
-        Assert.True(header > 0);
         var ancestor = harness.Controller.State!.Hunks[0].Base!.TrimEnd('\n').Split('\n')[0];
-        Assert.Contains(ancestor, lines[header + 1], StringComparison.Ordinal);
-        Assert.False(harness.Controller.State.IsBaseShown);
+        Assert.Contains(frame.Lines, line => line.Text.Contains(ancestor, StringComparison.Ordinal));
+        Assert.Contains("base", frame.Lines[1].Text, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -613,7 +607,6 @@ public class ConflictEditorControllerTests
         harness.Screen = new ScreenSize(100, 36);
         await harness.OpenAsync();
         harness.Run(ActionIds.ConflictEditorOurs);
-        harness.Run(ActionIds.ConflictEditorBase);
         File.WriteAllText(harness.FullPath, "garbage\n");
 
         harness.Run(ActionIds.ConflictEditorRecreate);
@@ -628,7 +621,6 @@ public class ConflictEditorControllerTests
         var state = harness.Controller.State!;
         Assert.Equal(1, state.UnresolvedCount);
         Assert.False(state.CanUndo);
-        Assert.True(state.IsBaseShown);
         Assert.False(harness.Gate.IsBusy(harness.TabId));
         Assert.True(harness.Refreshes > 0);
     }
@@ -669,6 +661,180 @@ public class ConflictEditorControllerTests
         Assert.False(harness.Gate.IsBusy(harness.TabId));
     }
 
+    [Fact]
+    public async Task GivenTheOpenEditor_WhenMovingBetweenPanesWithTheKeys_ThenTheActivePaneAndViewFollow()
+    {
+        using var repository = TestRepositories.Conflicted();
+        using var harness = await Harness.CreateAsync(repository);
+        await harness.OpenAsync();
+        Assert.Equal(DefaultKeymap.ConflictSideView, harness.Controller.ViewName);
+
+        harness.Run(ActionIds.PaneFocusLeft);
+        Assert.Equal(ConflictPane.Base, harness.Controller.State!.ActivePane);
+        harness.Run(ActionIds.PaneNext);
+        harness.Run(ActionIds.PaneNext);
+        harness.Run(ActionIds.PaneNext);
+        Assert.Equal(ConflictPane.Result, harness.Controller.State!.ActivePane);
+        Assert.Equal(DefaultKeymap.ConflictResultView, harness.Controller.ViewName);
+        harness.Run(ActionIds.PaneFocusUp);
+        Assert.Equal(ConflictPane.Theirs, harness.Controller.State!.ActivePane);
+        harness.Run(ActionIds.PaneFocusDown);
+        harness.Run(ActionIds.PanePrevious);
+        Assert.Equal(ConflictPane.Theirs, harness.Controller.State!.ActivePane);
+    }
+
+    [Fact]
+    public async Task GivenTheTakeKeyInEachPane_WhenPressed_ThenThatPanesVersionIsTaken()
+    {
+        using var repository = TestRepositories.Conflicted();
+        using var harness = await Harness.CreateAsync(repository);
+        harness.Send(new FocusPaneCommand(PaneKind.WorkingUnstaged));
+        await harness.OpenAsync();
+
+        harness.Run(ActionIds.PaneFocusRight);
+        harness.Run(ActionIds.ConflictEditorTake);
+        Assert.Equal(ConflictPick.Theirs, harness.Controller.State!.SelectedPick);
+        harness.Run(ActionIds.PaneFocusLeft);
+        harness.Run(ActionIds.PaneFocusLeft);
+        harness.Run(ActionIds.ConflictEditorTake);
+        Assert.Equal(ConflictPick.Base, harness.Controller.State!.SelectedPick);
+        harness.Run(ActionIds.PaneFocusRight);
+        harness.Run(ActionIds.ConflictEditorTake);
+        Assert.Equal(ConflictPick.Ours, harness.Controller.State!.SelectedPick);
+        harness.Run(ActionIds.PaneFocusDown);
+        harness.Run(ActionIds.ConflictEditorTake);
+        Assert.Equal(StatusSeverity.Warning, harness.Statuses.Log.Latest!.Severity);
+        Assert.Contains("ours or theirs pane", harness.Statuses.Log.Latest.Text, StringComparison.Ordinal);
+        Assert.Equal(ConflictPick.Ours, harness.Controller.State!.SelectedPick);
+    }
+
+    [Fact]
+    public async Task GivenAVisualSelection_WhenTakingItAndLeavingIt_ThenTheModeFollowsAndOnlyTheLinesAreTaken()
+    {
+        using var repository = LongHunk();
+        using var harness = await Harness.CreateAsync(repository);
+        await harness.OpenAsync();
+
+        harness.Run(ActionIds.VisualToggle);
+        Assert.Equal(KeyMode.Visual, harness.Mode);
+        harness.Run(ActionIds.ListDown);
+        harness.Run(ActionIds.Cancel);
+        Assert.Equal(KeyMode.Normal, harness.Mode);
+        Assert.False(harness.Controller.IsVisual);
+        harness.Run(ActionIds.VisualToggle);
+        harness.Run(ActionIds.ListDown);
+        harness.Run(ActionIds.ListDown);
+        harness.Run(ActionIds.ConflictEditorTake);
+
+        Assert.Equal(KeyMode.Normal, harness.Mode);
+        var state = harness.Controller.State!;
+        Assert.Equal(ConflictPick.Lines, state.SelectedPick);
+        Assert.Equal(3, state.Result.Regions[0].Length);
+        harness.Run(ActionIds.ConflictEditorUndo);
+        Assert.Equal(ConflictPick.None, harness.Controller.State!.SelectedPick);
+    }
+
+    [Fact]
+    public async Task GivenASelectionWithNoLinesOfTheConflict_WhenTakingIt_ThenTheStatusSaysSoAndNothingChanges()
+    {
+        using var repository = LongHunk();
+        using var harness = await Harness.CreateAsync(repository);
+        await harness.OpenAsync();
+        harness.Run(ActionIds.ListTop);
+        harness.Run(ActionIds.VisualToggle);
+
+        harness.Run(ActionIds.ConflictEditorTake);
+
+        Assert.Equal(StatusSeverity.Warning, harness.Statuses.Log.Latest!.Severity);
+        Assert.Contains("no line of the current conflict", harness.Statuses.Log.Latest.Text, StringComparison.Ordinal);
+        Assert.False(harness.Controller.State!.IsModified);
+        Assert.Equal(KeyMode.Normal, harness.Mode);
+    }
+
+    [Fact]
+    public async Task GivenTheResultPaneInNormalMode_WhenDeletingALineWithTheEditorActions_ThenTheTextChangesAndUndoRestoresIt()
+    {
+        using var repository = TwoHunks();
+        using var harness = await Harness.CreateAsync(repository);
+        await harness.OpenAsync();
+        harness.Run(ActionIds.PaneFocusDown);
+
+        harness.Run(ActionIds.WorkingTreeMessageDeleteLine);
+        harness.Run(ActionIds.WorkingTreeMessageDeleteLine);
+
+        var state = harness.Controller.State!;
+        Assert.Equal(2, state.UndoStack!.Count);
+        Assert.DoesNotContain("<<<<<<<", state.Result.Editor.Lines[state.Result.Regions[0].Start]);
+        harness.Run(ActionIds.ConflictEditorUndo);
+        harness.Run(ActionIds.ConflictEditorUndo);
+        Assert.Equal(harness.OriginalText, harness.Controller.State!.ToText());
+    }
+
+    [Fact]
+    public async Task GivenTextTypedOutsideAConflict_WhenPickingAndSaving_ThenTheTypedTextIsInTheFile()
+    {
+        using var repository = TwoHunks();
+        using var harness = await Harness.CreateAsync(repository);
+        await harness.OpenAsync();
+        harness.Run(ActionIds.PaneFocusDown);
+        harness.Run(ActionIds.ListTop);
+        harness.Run(ActionIds.WorkingTreeMessageAppendAtEnd);
+        harness.Type("!");
+        harness.Run(ActionIds.Cancel);
+        harness.Run(ActionIds.PaneFocusUp);
+        harness.Run(ActionIds.ConflictEditorAllOurs);
+        harness.Run(ActionIds.ConflictEditorSave);
+        await harness.WaitAsync();
+
+        var saved = File.ReadAllText(harness.FullPath).Replace("\r", string.Empty);
+        Assert.StartsWith("l1!\n", saved, StringComparison.Ordinal);
+        Assert.DoesNotContain("<<<<<<<", saved, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task GivenTheWheelAndHalfPageActions_WhenRunning_ThenTheCursorMovesByTheCount()
+    {
+        using var repository = LongHunk();
+        using var harness = await Harness.CreateAsync(repository);
+        await harness.OpenAsync();
+        harness.Run(ActionIds.ListTop);
+
+        Assert.True(harness.Controller.TryExecute(ActionIds.ListDown, 3));
+
+        Assert.Equal(3, harness.Controller.State!.Row);
+    }
+
+    [Fact]
+    public async Task GivenInsertMode_WhenAnotherActionComes_ThenItIsIgnoredAndTheModeStays()
+    {
+        using var repository = TestRepositories.Conflicted();
+        using var harness = await Harness.CreateAsync(repository);
+        await harness.OpenAsync();
+        harness.Run(ActionIds.ConflictEditorEdit);
+
+        harness.Run(ActionIds.ConflictEditorOurs);
+        harness.Run(ActionIds.ConflictEditorSave);
+
+        Assert.Equal(KeyMode.Insert, harness.Mode);
+        Assert.True(harness.Controller.IsEditing);
+        Assert.Equal(ConflictPick.None, harness.Controller.State!.SelectedPick);
+        Assert.Empty(harness.Prompts);
+    }
+
+    [Fact]
+    public async Task GivenAFileMixingLineEndings_WhenOpening_ThenTheStatusWarns()
+    {
+        using var repository = TestRepositories.Conflicted();
+        var text = File.ReadAllText(Path.Combine(repository.WorkingTreePath, ConflictPath));
+        repository.WriteFile(ConflictPath, text.Replace("\n", "\r\n", StringComparison.Ordinal).Replace("main\r\n", "main\n", StringComparison.Ordinal));
+        using var harness = await Harness.CreateAsync(repository);
+
+        await harness.OpenAsync();
+
+        Assert.Equal(StatusSeverity.Warning, harness.Statuses.Log.Latest!.Severity);
+        Assert.Contains("mixes CRLF and LF", harness.Statuses.Log.Latest.Text, StringComparison.Ordinal);
+    }
+
     private static TestRepository Stopped(string operation) => operation switch
     {
         "merge" => TestRepositories.Conflicted(),
@@ -691,24 +857,25 @@ public class ConflictEditorControllerTests
     }
 
     [Fact]
-    public async Task GivenALongHunk_WhenScrollingAndJumping_ThenTheSidesScrollAndAnotherConflictResets()
+    public async Task GivenALongFile_WhenMovingTheCursor_ThenAllPanesScrollTogetherAndStayAligned()
     {
         using var repository = LongHunk();
         using var harness = await Harness.CreateAsync(repository);
+        harness.Screen = new ScreenSize(100, 20);
         await harness.OpenAsync();
 
-        harness.Run(ActionIds.ConflictEditorScrollDown);
-        var scrolled = harness.Controller.State!.SideScroll;
-        harness.Run(ActionIds.ConflictEditorScrollUp);
-        var back = harness.Controller.State!.SideScroll;
-        harness.Run(ActionIds.ConflictEditorNextDiff);
-        var jumped = harness.Controller.State!.SideScroll;
-        harness.Run(ActionIds.ConflictEditorNext);
+        harness.Run(ActionIds.ListBottom);
+        var bottom = harness.Controller.State!;
+        harness.Run(ActionIds.ListTop);
+        var top = harness.Controller.State!;
+        harness.Run(ActionIds.ListHalfPageDown);
+        var half = harness.Controller.State!;
 
-        Assert.True(scrolled > 0);
-        Assert.Equal(0, back);
-        Assert.Equal(2, jumped);
-        Assert.Equal(0, harness.Controller.State!.SideScroll);
+        Assert.True(bottom.TopScroll > 0);
+        Assert.True(bottom.ResultScroll > 0);
+        Assert.Equal(0, top.TopScroll);
+        Assert.Equal(0, top.ResultScroll);
+        Assert.True(half.Row > 0);
         Assert.NotNull(harness.Controller.CurrentFrame());
     }
 

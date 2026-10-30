@@ -13,7 +13,6 @@ using Gitunia.Git.Status.Models;
 using Gitunia.Tui.App.WorkingTree;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Overlays;
-using Gitunia.Tui.Rendering.Screen;
 using Gitunia.Tui.Rendering.Styling;
 using Gitunia.Tui.Rendering.WorkingTree;
 using Gitunia.Tui.Views;
@@ -23,15 +22,17 @@ namespace Gitunia.Tui.App.Conflicts;
 /// <summary>
 /// The conflict editor (ux.md, workflow 4, "Conflict editor"): <c>Enter</c> on a conflicted file of the Unstaged list,
 /// or <c>&lt;space&gt;to</c> from any pane (the file under the Unstaged cursor, else the first conflicted one), reads
-/// it off the UI thread and opens a modal view of one conflict hunk at a
-/// time. Each hunk gets a pick (ours, theirs, both), text typed by the user (<c>e</c>, in Insert mode) or none, and
-/// every change can be undone and redone; <c>B</c> shows the base of the hunk and <c>R</c> re-creates the conflict of
-/// the file after a Confirm. <c>Enter</c> saves the result to the working tree file,
-/// after a Confirm when hunks are unresolved (they keep their conflict markers), and then offers to mark the file
-/// resolved with the usual Confirm. The editor owns the keys while it is open; a Confirm opens on top of it.
+/// it off the UI thread and opens the full-screen editor: the whole file in the base, ours and theirs panes and in the
+/// result below, which is a text editor of its own (<see cref="ConflictEditorState"/>). A cursor moves in a pane;
+/// on a conflict the pick keys copy that pane's version into the result, in a Visual selection only the selected
+/// lines; the result can be typed in (Normal and Insert mode as in the commit box); every change can be undone and
+/// redone, and <c>R</c> re-creates the conflict of the file after a Confirm. <c>Enter</c> saves the result to the
+/// working tree file, after a Confirm when conflicts are unresolved (they keep their conflict markers), and then
+/// offers to mark the file resolved with the usual Confirm. The editor owns the keys while it is open; a Confirm
+/// opens on top of it.
 /// </summary>
 /// <param name="host">The workspace.</param>
-/// <param name="reader">Reads the conflicted file into hunks.</param>
+/// <param name="reader">Reads the conflicted file into conflicts.</param>
 /// <param name="writer">Writes the result into the working tree.</param>
 /// <param name="recreator">Re-creates the conflict of the file on request.</param>
 /// <param name="statuses">Where refusals, failures and the outcome are reported.</param>
@@ -45,7 +46,7 @@ namespace Gitunia.Tui.App.Conflicts;
 /// <param name="isOtherOverlayOpen">True while an overlay other than this editor is open.</param>
 /// <param name="screenSize">The current terminal size.</param>
 /// <param name="glyphs">The characters the editor is drawn with.</param>
-/// <param name="setMode">Switches the keymap mode (Insert while the text of a hunk is edited).</param>
+/// <param name="setMode">Switches the keymap mode (Insert while the result is typed in, Visual while lines are selected).</param>
 /// <param name="redraw">Redraws the overlay layer and the status bar.</param>
 /// <param name="gate">The one-operation-per-tab gate, shared with staging, discard, reset and stash.</param>
 /// <param name="keys">Where the chips take their key text from; null uses the default keymap.</param>
@@ -70,7 +71,11 @@ public sealed class ConflictEditorController(
 {
     private const string BusyNotice = "Busy: another operation of this tab is still running";
     private const string TooSmallNotice = "The screen is too small to ask: nothing was saved";
-    private const string NothingPickedNotice = "No hunk is picked yet: nothing to save";
+    private const string NothingPickedNotice = "Nothing is picked or edited yet: nothing to save";
+    private const string NoBaseNotice = "This conflict has no common ancestor: set merge.conflictStyle=diff3, then R";
+    private const string NotInVersionNotice = "Move to the base, ours or theirs pane to take a version (Tab)";
+    private const string NoLinesNotice = "The selection holds no line of the current conflict: nothing was taken";
+    private const string SelectInVersionNotice = "Lines are selected in the base, ours or theirs pane (Tab)";
     private const string NoConflictsNotice = "No conflicts to resolve: no file is conflicted";
     private const string NotLoadedNotice = "The working tree is not loaded yet: try again in a moment";
     private const string ChangedNotice = "The tab changed while the file was read: the conflict editor was not opened";
@@ -78,17 +83,45 @@ public sealed class ConflictEditorController(
         "Another view opened while the file was read: the conflict editor was not opened";
     private const string FileChangedNotice = "The file changed on disk since it was opened: nothing was saved";
     private const string MergetoolHint = "use <space>tm for the mergetool";
+    private const int StatusBarRows = 1;
+    private const int DefaultPaneRows = 10;
+
+private static readonly Dictionary<ActionId, ConflictResultCommand> ResultCommands = new()
+    {
+        [ActionIds.WorkingTreeMessageLeft] = ConflictResultCommand.Left,
+        [ActionIds.WorkingTreeMessageRight] = ConflictResultCommand.Right,
+        [ActionIds.WorkingTreeMessageWordNext] = ConflictResultCommand.WordNext,
+        [ActionIds.WorkingTreeMessageWordPrevious] = ConflictResultCommand.WordPrevious,
+        [ActionIds.WorkingTreeMessageLineStart] = ConflictResultCommand.LineStart,
+        [ActionIds.WorkingTreeMessageLineEnd] = ConflictResultCommand.LineEnd,
+        [ActionIds.WorkingTreeMessageDeleteChar] = ConflictResultCommand.DeleteChar,
+        [ActionIds.WorkingTreeMessageDeleteLine] = ConflictResultCommand.DeleteLine,
+        [ActionIds.WorkingTreeMessageOpenLine] = ConflictResultCommand.OpenLine,
+        [ActionIds.WorkingTreeMessageAppend] = ConflictResultCommand.Append,
+        [ActionIds.WorkingTreeMessageAppendAtEnd] = ConflictResultCommand.AppendAtEnd,
+        [ActionIds.WorkingTreeMessageInsertAtStart] = ConflictResultCommand.InsertAtStart,
+    };
 
     private int _generation;
     private bool _isWorking;
+    private KeyMode _mode = KeyMode.Normal;
 
     /// <summary>The open editor, null while it is closed.</summary>
     public ConflictEditorState? State { get; private set; }
 
     public bool IsOpen => State is not null;
 
-    /// <summary>True while the text of a hunk is edited (the keymap is in Insert mode).</summary>
+    /// <summary>True while the result is typed in (the keymap is in Insert mode).</summary>
     public bool IsEditing => State is { IsEditing: true };
+
+    /// <summary>True while the cursor is in the result pane.</summary>
+    public bool IsResultActive => State is { ActivePane: ConflictPane.Result };
+
+    /// <summary>True while lines are selected in a version pane.</summary>
+    public bool IsVisual => State is { IsVisual: true };
+
+    /// <summary>The keymap view of the pane the cursor is in (the result's editor keys, or the versions' pick keys).</summary>
+    public string ViewName => IsResultActive ? DefaultKeymap.ConflictResultView : DefaultKeymap.ConflictSideView;
 
     /// <summary>The frame to draw, or null when closed, covered by a dialog or the screen is too small.</summary>
     public OverlayFrame? CurrentFrame()
@@ -98,7 +131,7 @@ public sealed class ConflictEditorController(
             return null;
         }
 
-        var size = EditorArea(state);
+        var size = EditorArea();
 
         return ConflictEditorFrameBuilder.Build(state, size.Width, size.Height, glyphs, keys);
     }
@@ -127,7 +160,7 @@ public sealed class ConflictEditorController(
             return false;
         }
 
-        Execute(state, action);
+        Execute(state, action, count);
 
         return true;
     }
@@ -144,23 +177,22 @@ public sealed class ConflictEditorController(
             return null;
         }
 
-        var size = EditorArea(State);
+        var size = EditorArea();
         var view = ConflictEditorFrameBuilder.ChipAt(State, frameLine, frameColumn, size.Width, size.Height, keys);
         handled = view is not null;
 
         return view;
     }
 
-    /// <summary>Handles a key typed while a hunk's text is edited; false when none is.</summary>
+    /// <summary>Handles a key typed while the result is in Insert mode; false when it is not.</summary>
     public bool HandleTextKey(KeyEvent key)
     {
-        if (State is not { Edit: { } edit } state || host.Workspace.ActiveTabId != state.TabId)
+        if (State is not { IsEditing: true } state || host.Workspace.ActiveTabId != state.TabId)
         {
             return false;
         }
 
-        edit.Editor.Apply(key);
-        redraw();
+        Update(state.TypeKey(key));
 
         return true;
     }
@@ -168,12 +200,8 @@ public sealed class ConflictEditorController(
     public void Close()
     {
         _generation++;
-        if (IsEditing)
-        {
-            setMode(KeyMode.Normal);
-        }
-
         State = null;
+        SetMode(KeyMode.Normal);
         redraw();
     }
 
@@ -291,14 +319,19 @@ public sealed class ConflictEditorController(
             return;
         }
 
-        State = ConflictEditorState.Create(tabId, path, result.Parts);
-        if (entry.Conflict == ConflictKind.BothAdded)
+        var opened = ConflictEditorState.Create(tabId, path, result.Parts);
+        var name = WorkingTreeRowRenderer.Printable(path);
+        if (opened.Format.HadMixedLineEndings)
         {
-            var name = WorkingTreeRowRenderer.Printable(path);
-            statuses.Post($"{name}: both sides added it, so the base is empty; pick a side per hunk");
+            var ending = opened.Format.LineEnding == "\n" ? "LF" : "CRLF";
+            statuses.Warning($"{name} mixes CRLF and LF line endings: saving writes {ending} everywhere");
+        }
+        else if (entry.Conflict == ConflictKind.BothAdded)
+        {
+            statuses.Post($"{name}: both sides added it, so the base is empty; pick a side per conflict");
         }
 
-        redraw();
+        Update(opened);
     }
 
     private void Fail(string text)
@@ -308,7 +341,7 @@ public sealed class ConflictEditorController(
         redraw();
     }
 
-    private void Execute(ConflictEditorState state, ActionId action)
+    private void Execute(ConflictEditorState state, ActionId action, int? count)
     {
         if (state.IsEditing)
         {
@@ -316,43 +349,134 @@ public sealed class ConflictEditorController(
         }
         else if (action == ActionIds.Cancel || action == ActionIds.NavigateBack || action == ActionIds.AppQuit)
         {
-            RequestClose(state);
+            ExecuteEscape(state, action);
         }
-        else if (action == ActionIds.ConflictEditorNext || action == ActionIds.ListDown)
+        else if (!ExecuteMove(state, action, count) && !ExecutePick(state, action) && !ExecuteResult(state, action))
         {
-            Update(state.Next());
+            ExecuteFile(state, action);
         }
-        else if (action == ActionIds.ConflictEditorPrevious || action == ActionIds.ListUp)
+    }
+
+    // Esc ends a Visual selection first, then closes (a changed file asks for a second Esc).
+    private void ExecuteEscape(ConflictEditorState state, ActionId action)
+    {
+        if (state.IsVisual && action != ActionIds.AppQuit)
         {
-            Update(state.Previous());
+            Update(state.EndVisual());
         }
-        else if (action == ActionIds.ConflictEditorNextDiff)
+        else
         {
-            Update(state.NextDifference(ScrollLimit(state)));
+            RequestClose(state.EndVisual());
         }
-        else if (action == ActionIds.ConflictEditorPreviousDiff)
+    }
+
+    private bool ExecuteMove(ConflictEditorState state, ActionId action, int? count)
+    {
+        var steps = Math.Max(1, count ?? 1);
+        if (action == ActionIds.ListDown || action == ActionIds.ListUp)
         {
-            Update(state.PreviousDifference(ScrollLimit(state)));
+            Update(state.MoveCursor(action == ActionIds.ListDown ? steps : -steps));
         }
-        else if (action == ActionIds.ConflictEditorScrollDown || action == ActionIds.ConflictEditorScrollUp)
+        else if (action == ActionIds.ListHalfPageDown || action == ActionIds.ListHalfPageUp)
         {
-            ScrollSides(state, action == ActionIds.ConflictEditorScrollDown ? 1 : -1);
+            var half = Math.Max(1, PaneRows(state) / 2);
+            Update(state.MoveCursor(action == ActionIds.ListHalfPageDown ? half : -half));
+        }
+        else if (action == ActionIds.ListTop)
+        {
+            Update(state.MoveToTop());
+        }
+        else if (action == ActionIds.ListBottom)
+        {
+            Update(state.MoveToBottom());
+        }
+        else if (action == ActionIds.ConflictEditorNext)
+        {
+            Update(state.NextConflict());
+        }
+        else if (action == ActionIds.ConflictEditorPrevious)
+        {
+            Update(state.PreviousConflict());
+        }
+        else
+        {
+            return ExecutePane(state, action);
+        }
+
+        return true;
+    }
+
+    private bool ExecutePane(ConflictEditorState state, ActionId action)
+    {
+        if (action == ActionIds.PaneNext)
+        {
+            Update(state.NextPane());
+        }
+        else if (action == ActionIds.PanePrevious)
+        {
+            Update(state.PreviousPane());
+        }
+        else if (action == ActionIds.PaneFocusLeft)
+        {
+            Update(state.PaneLeft());
+        }
+        else if (action == ActionIds.PaneFocusRight)
+        {
+            Update(state.PaneRight());
+        }
+        else if (action == ActionIds.PaneFocusDown)
+        {
+            Update(state.PaneDown());
+        }
+        else if (action == ActionIds.PaneFocusUp)
+        {
+            Update(state.PaneUp());
+        }
+        else if (action == ActionIds.VisualToggle)
+        {
+            ToggleVisual(state);
+        }
+        else
+        {
+            return action == ActionIds.VisualCopy;
+        }
+
+        return true;
+    }
+
+    private void ToggleVisual(ConflictEditorState state)
+    {
+        if (!state.IsVersionPane)
+        {
+            statuses.Warning(SelectInVersionNotice);
+
+            return;
+        }
+
+        Update(state.ToggleVisual());
+    }
+
+    private bool ExecutePick(ConflictEditorState state, ActionId action)
+    {
+        if (action == ActionIds.ConflictEditorTake)
+        {
+            Take(state);
         }
         else if (action == ActionIds.ConflictEditorOurs)
         {
-            Update(state.Pick(ConflictPick.Ours));
+            Take(state, ConflictPick.Ours);
         }
         else if (action == ActionIds.ConflictEditorTheirs)
         {
-            Update(state.Pick(ConflictPick.Theirs));
+            Take(state, ConflictPick.Theirs);
+        }
+        else if (action == ActionIds.ConflictEditorBase)
+        {
+            Take(state, ConflictPick.Base);
         }
         else if (action == ActionIds.ConflictEditorBoth)
         {
-            Update(state.Pick(ConflictPick.Both));
-        }
-        else if (action == ActionIds.ConflictEditorReset)
-        {
-            Update(state.Pick(ConflictPick.None));
+            Take(state, ConflictPick.Both);
         }
         else if (action == ActionIds.ConflictEditorAllOurs)
         {
@@ -362,6 +486,10 @@ public sealed class ConflictEditorController(
         {
             Update(state.PickAllUnresolved(ConflictPick.Theirs));
         }
+        else if (action == ActionIds.ConflictEditorReset)
+        {
+            Update(state.Reset());
+        }
         else if (action == ActionIds.ConflictEditorUndo)
         {
             Update(state.Undo());
@@ -370,18 +498,82 @@ public sealed class ConflictEditorController(
         {
             Update(state.Redo());
         }
-        else if (action == ActionIds.ConflictEditorEdit)
+        else
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    // The pick key of a version pane copies that pane's version (or the Visual selection's lines); the named picks work
+    // from any pane.
+    private void Take(ConflictEditorState state)
+    {
+        if (state.IsVisual)
+        {
+            TakeSelection(state);
+        }
+        else if (!state.IsVersionPane)
+        {
+            statuses.Warning(NotInVersionNotice);
+        }
+        else
+        {
+            Take(state, PickOf(state.ActivePane));
+        }
+    }
+
+    private static ConflictPick PickOf(ConflictPane pane) => pane switch
+    {
+        ConflictPane.Base => ConflictPick.Base,
+        ConflictPane.Ours => ConflictPick.Ours,
+        _ => ConflictPick.Theirs,
+    };
+
+    private void Take(ConflictEditorState state, ConflictPick pick)
+    {
+        if (pick == ConflictPick.Base && !state.CanTake(pick))
+        {
+            statuses.Warning(NoBaseNotice);
+
+            return;
+        }
+
+        Update(state.Take(pick));
+    }
+
+    private void TakeSelection(ConflictEditorState state)
+    {
+        if (state.SelectedLines().Count == 0)
+        {
+            statuses.Warning(NoLinesNotice);
+        }
+
+        Update(state.TakeSelectedLines());
+    }
+
+    private bool ExecuteResult(ConflictEditorState state, ActionId action)
+    {
+        if (action == ActionIds.ConflictEditorEdit)
         {
             BeginEdit(state);
         }
-        else if (action == ActionIds.ConflictEditorBase)
+        else if (ResultCommands.TryGetValue(action, out var command))
         {
-            if (!ConflictEditorFrameBuilder.IsThreePaneWidth(screenSize().Width))
-            {
-                Update(state.ToggleBase());
-            }
+            Update(state.ApplyResultCommand(command));
         }
-        else if (action == ActionIds.ConflictEditorRecreate)
+        else
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    private void ExecuteFile(ConflictEditorState state, ActionId action)
+    {
+        if (action == ActionIds.ConflictEditorRecreate)
         {
             AskRecreate(state);
         }
@@ -391,66 +583,84 @@ public sealed class ConflictEditorController(
         }
     }
 
-    // Esc keeps the text like Ctrl-g does: the edit is one step of undo, so nothing is lost by leaving it.
+    // Esc keeps the text like Ctrl-g does: a typing session is one step of undo, so nothing is lost by leaving it.
     private void ExecuteInEdit(ConflictEditorState state, ActionId action)
     {
         if (action == ActionIds.ConflictEditorEditNewLine)
         {
-            state.Edit!.Editor.Apply(new KeyEvent(KeyNames.Enter));
-            redraw();
+            Update(state.TypeKey(new KeyEvent(KeyNames.Enter)));
         }
         else if (action == ActionIds.ConflictEditorEditDone
             || action == ActionIds.Cancel
             || action == ActionIds.NavigateBack)
         {
-            setMode(KeyMode.Normal);
-            Update(state.AcceptEdit());
+            Update(state.EndEdit());
         }
     }
 
-    // The screen minus the row of the operation banner, which the editor must not cover (a rebase or merge stopped on
-    // the conflict always has one).
-    private ScreenSize EditorArea(ConflictEditorState state)
+    // The whole screen but the status bar; the editor covers the tab row and the operation banner too.
+    private ScreenSize EditorArea()
     {
         var size = screenSize();
-        var hasBanner = host.Workspace.FindTab(state.TabId)?.Operation is not null
-            && size.Height >= ScreenLayout.MinimumHeightWithBanner;
 
-        return hasBanner ? size with { Height = size.Height - 1 } : size;
+        return size with { Height = Math.Max(0, size.Height - StatusBarRows) };
     }
 
-    private int ScrollLimit(ConflictEditorState state)
+    // Rows of the pane the cursor is in, for the half page keys.
+    private int PaneRows(ConflictEditorState state)
     {
-        var size = EditorArea(state);
+        var size = EditorArea();
+        var layout = ConflictEditorFrameBuilder.LayoutFor(state, size.Width, size.Height, keys);
+        if (layout is null)
+        {
+            return DefaultPaneRows;
+        }
 
-        return ConflictEditorFrameBuilder.MaxSideScroll(state, size.Width, size.Height, keys);
-    }
-
-    // A half page of the side panes, at least one line.
-    private void ScrollSides(ConflictEditorState state, int direction)
-    {
-        var size = EditorArea(state);
-        var rows = ConflictEditorFrameBuilder.SideRowCount(state, size.Width, size.Height, keys);
-        var maximum = ConflictEditorFrameBuilder.MaxSideScroll(state, size.Width, size.Height, keys);
-        Update(state.ScrollSides(direction * Math.Max(1, rows / 2), maximum));
+        return state.IsVersionPane ? layout.VersionRows : layout.ResultRows;
     }
 
     private void BeginEdit(ConflictEditorState state)
     {
         var edited = state.BeginEdit();
-        if (!edited.IsEditing)
+        if (edited.IsEditing)
         {
-            return;
+            Update(edited);
         }
-
-        setMode(KeyMode.Insert);
-        Update(edited);
     }
 
     private void Update(ConflictEditorState state)
     {
-        State = state;
+        State = Followed(state);
+        SetMode(DesiredMode(State));
         redraw();
+    }
+
+    // Scrolls the panes so the cursor shows at the current screen size.
+    private ConflictEditorState Followed(ConflictEditorState state)
+    {
+        var size = EditorArea();
+        var layout = ConflictEditorFrameBuilder.LayoutFor(state, size.Width, size.Height, keys);
+
+        return layout is null ? state : state.Follow(layout.VersionRows, layout.ResultRows);
+    }
+
+    private static KeyMode DesiredMode(ConflictEditorState state)
+    {
+        if (state.IsEditing)
+        {
+            return KeyMode.Insert;
+        }
+
+        return state.IsVisual ? KeyMode.Visual : KeyMode.Normal;
+    }
+
+    private void SetMode(KeyMode mode)
+    {
+        if (mode != _mode)
+        {
+            _mode = mode;
+            setMode(mode);
+        }
     }
 
     // Picks are not thrown away by one stray Esc: the first press warns, the second closes.
@@ -484,10 +694,10 @@ public sealed class ConflictEditorController(
 
         var name = WorkingTreeRowRenderer.Printable(state.Path);
         var prompt = new ConfirmPrompt(
-            "Save with unresolved hunks",
+            "Save with unresolved conflicts",
             [
-                $"Save {name} with {Plural(state.UnresolvedCount, "unresolved hunk")} out of {state.Hunks.Count}?",
-                "The unresolved hunks keep their conflict markers and the file stays conflicted.",
+                $"Save {name} with {Plural(state.UnresolvedCount, "unresolved conflict")} out of {state.Hunks.Count}?",
+                "The unresolved conflicts keep their conflict markers and the file stays conflicted.",
             ],
             "Undo: git checkout --merge -- <file> re-creates the whole conflict (it discards what you resolved).",
             "Save");
@@ -675,14 +885,8 @@ public sealed class ConflictEditorController(
             return;
         }
 
-        if (IsEditing)
-        {
-            setMode(KeyMode.Normal);
-        }
-
         statuses.Post($"Re-created the conflict of {name}");
-        State = ConflictEditorState.Create(tabId, old.Path, result.Parts) with { IsBaseShown = old.IsBaseShown };
-        redraw();
+        Update(ConflictEditorState.Create(tabId, old.Path, result.Parts));
     }
 
     private static StatusEntry? ConflictedToOpen(RepositoryState tab) =>
@@ -702,10 +906,10 @@ public sealed class ConflictEditorController(
     {
         if (state.IsComplete)
         {
-            return $"Saved {name}: every hunk resolved";
+            return $"Saved {name}: every conflict resolved";
         }
 
-        return $"Saved {name}: {Plural(state.UnresolvedCount, "hunk")} still unresolved";
+        return $"Saved {name}: {Plural(state.UnresolvedCount, "conflict")} still unresolved";
     }
 
     private static string Plural(int count, string noun) => count == 1 ? $"1 {noun}" : $"{count} {noun}s";

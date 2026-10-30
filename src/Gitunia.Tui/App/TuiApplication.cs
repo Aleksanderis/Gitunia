@@ -1294,6 +1294,21 @@ public sealed class TuiApplication(
         return _statuses.Current?.Severity;
     }
 
+    private IReadOnlyList<KeyHint> ConflictEditorHints()
+    {
+        if (_conflictEditor.IsEditing)
+        {
+            return PaneHints.ForConflictEdit();
+        }
+
+        if (_conflictEditor.IsResultActive)
+        {
+            return PaneHints.ForConflictResult();
+        }
+
+        return _conflictEditor.IsVisual ? PaneHints.ForConflictVisual() : PaneHints.ForConflictVersions();
+    }
+
     private IReadOnlyList<KeyHint> CurrentHints()
     {
         if (_overlays.State.Kind == OverlayKind.Confirm)
@@ -1308,7 +1323,7 @@ public sealed class TuiApplication(
 
         if (_conflictEditor.IsOpen)
         {
-            return _conflictEditor.IsEditing ? PaneHints.ForConflictEdit() : PaneHints.ForConflictEditor();
+            return ConflictEditorHints();
         }
 
         if (_rebaseEditor.IsOpen)
@@ -1528,7 +1543,7 @@ public sealed class TuiApplication(
 
         if (_conflictEditor.IsOpen && !_overlays.State.IsOpen)
         {
-            return DefaultKeymap.ConflictEditorView;
+            return _conflictEditor.ViewName;
         }
 
         if (_rebaseEditor.IsOpen && !_overlays.State.IsOpen)

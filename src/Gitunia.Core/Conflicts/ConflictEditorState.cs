@@ -1,34 +1,35 @@
-using System.Text;
-using Gitunia.Core.Editing;
+using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Conflicts.Models;
 
 namespace Gitunia.Core.Conflicts;
 
 /// <summary>
-/// The open conflict editor (ux.md, workflow 4, "Conflict editor"): a conflicted file as common text and hunks, the
-/// pick made for each hunk (or the text typed for it) and the hunk under the cursor. Pure: it never reads or writes a
-/// file; <see cref="ToText"/> is what the save writes. A hunk without a pick keeps its conflict markers in the result,
-/// so a partial save leaves the file conflicted exactly where the user did not decide. Every pick and every accepted
-/// edit is one step of <see cref="Undo"/> and <see cref="Redo"/>.
+/// The open conflict editor (ux.md, workflow 4, "Conflict editor"), modelled on KDiff3: the whole file in four panes,
+/// the base, ours and theirs side by side (read-only, rows aligned by <see cref="ConflictAlignment"/>) and the result
+/// below, a real text editor over the whole file (<see cref="ConflictResultBuffer"/>). A cursor moves in the active
+/// pane; on a conflict a pick copies that version into the result, in a Visual selection only the selected lines; the
+/// result accepts typing at any time. A conflict nobody decided keeps its conflict markers in the result, so a partial
+/// save leaves the file conflicted exactly there. Every pick, reset and typing session is one step of
+/// <see cref="Undo"/> and <see cref="Redo"/>. Pure apart from the result buffer's own text editor; it never reads or
+/// writes a file (<see cref="ToText"/> is what the save writes).
 /// </summary>
 /// <param name="TabId">The tab the editor was opened in; the save runs there.</param>
 /// <param name="Path">The conflicted path, relative to the working tree root.</param>
-/// <param name="Parts">The file in order: common text and hunks.</param>
-/// <param name="Hunks">The hunks of <paramref name="Parts"/> in order.</param>
-/// <param name="Picks">The pick of each hunk, parallel to <paramref name="Hunks"/>.</param>
-/// <param name="Texts">
-/// The text the user typed for each hunk, parallel to <paramref name="Hunks"/>; used where the pick is
-/// <see cref="ConflictPick.Edited"/>.
-/// </param>
-/// <param name="SelectedIndex">The hunk under the cursor.</param>
-/// <param name="IsDiscardPending">The first <c>Esc</c> on an edited file was pressed; the next one closes it.</param>
-/// <param name="Edit">The open free-text edit of the hunk under the cursor, null when none.</param>
-/// <param name="IsBaseShown">The base (common ancestor) of the hunk under the cursor is shown.</param>
-/// <param name="SideScroll">
-/// The first line of our side, their side and the base that is shown; the three scroll together. The frame clamps it
-/// to what fits.
-/// </param>
+/// <param name="Parts">The file in order: common text and conflicts.</param>
+/// <param name="Hunks">The conflicts of <paramref name="Parts"/> in order.</param>
+/// <param name="Alignment">The rows of the three version panes.</param>
+/// <param name="Result">The result pane's text and where each conflict sits in it.</param>
+/// <param name="Format">Line endings of the file, kept on save.</param>
+/// <param name="ActivePane">The pane the cursor is in.</param>
+/// <param name="TopPane">The version pane the cursor was last in (where <c>Ctrl-k</c> returns from the result).</param>
+/// <param name="Row">The cursor's aligned row in the version panes (follows the result cursor while that is active).</param>
+/// <param name="SelectedIndex">The current conflict: the one the cursor is in or was last in.</param>
+/// <param name="Anchor">The aligned row where a Visual selection started, null when none.</param>
+/// <param name="TopScroll">The first aligned row shown in the version panes.</param>
+/// <param name="ResultScroll">The first result line shown.</param>
+/// <param name="IsDiscardPending">The first <c>Esc</c> on a changed file was pressed; the next one closes it.</param>
+/// <param name="IsEditing">The result pane is in Insert mode.</param>
 /// <param name="UndoStack">What <see cref="Undo"/> restores, the latest change last.</param>
 /// <param name="RedoStack">What <see cref="Redo"/> restores, the latest undone change last.</param>
 public sealed record ConflictEditorState(
@@ -36,53 +37,59 @@ public sealed record ConflictEditorState(
     string Path,
     IReadOnlyList<ConflictPart> Parts,
     IReadOnlyList<ConflictHunk> Hunks,
-    IReadOnlyList<ConflictPick> Picks,
-    IReadOnlyList<string?> Texts,
+    ConflictAlignment Alignment,
+    ConflictResultBuffer Result,
+    ConflictFileFormat Format,
+    ConflictPane ActivePane = ConflictPane.Ours,
+    ConflictPane TopPane = ConflictPane.Ours,
+    int Row = 0,
     int SelectedIndex = 0,
+    int? Anchor = null,
+    int TopScroll = 0,
+    int ResultScroll = 0,
     bool IsDiscardPending = false,
-    ConflictTextEdit? Edit = null,
-    bool IsBaseShown = false,
-    int SideScroll = 0,
+    bool IsEditing = false,
     IReadOnlyList<ConflictSnapshot>? UndoStack = null,
     IReadOnlyList<ConflictSnapshot>? RedoStack = null)
 {
     /// <summary>The most changes one session remembers; older ones are forgotten.</summary>
-    public const int UndoLimit = 200;
+    public const int UndoLimit = 100;
 
-    private const string LineFeed = "\n";
-    private const string CarriageReturnLineFeed = "\r\n";
+    private static readonly ConflictPane[] PaneOrder =
+        [ConflictPane.Base, ConflictPane.Ours, ConflictPane.Theirs, ConflictPane.Result];
 
-    /// <summary>The state for a freshly read file: nothing is picked and the first hunk is selected.</summary>
+    /// <summary>The state for a freshly read file: nothing is picked and the cursor is on the first conflict.</summary>
     public static ConflictEditorState Create(TabId tabId, string path, IReadOnlyList<ConflictPart> parts)
     {
         var hunks = parts.Where(part => part.Hunk is not null).Select(part => part.Hunk!).ToList();
+        var alignment = ConflictAlignment.Create(parts);
+        var result = ConflictResultBuffer.Create(parts);
+        var format = ConflictFileFormat.Of(TextOf(parts));
+        var row = hunks.Count == 0 ? 0 : alignment.FirstRowOf(0);
 
-        var picks = Enumerable.Repeat(ConflictPick.None, hunks.Count).ToList();
-        var texts = Enumerable.Repeat<string?>(null, hunks.Count).ToList();
-
-        return new ConflictEditorState(tabId, path, parts, hunks, picks, texts);
+        return new ConflictEditorState(tabId, path, parts, hunks, alignment, result, format, Row: row);
     }
 
-    /// <summary>The hunk under the cursor, null for a file with none.</summary>
+    /// <summary>The conflict under the cursor (the current one), null for a file with none.</summary>
     public ConflictHunk? Selected => Hunks.Count == 0 ? null : Hunks[Index];
 
-    /// <summary>The pick of the hunk under the cursor.</summary>
-    public ConflictPick SelectedPick => Hunks.Count == 0 ? ConflictPick.None : Picks[Index];
+    /// <summary>The pick of the current conflict.</summary>
+    public ConflictPick SelectedPick => Hunks.Count == 0 ? ConflictPick.None : Result.Regions[Index].Pick;
 
-    /// <summary>Hunks with a pick.</summary>
-    public int ResolvedCount => Picks.Count(pick => pick != ConflictPick.None);
+    /// <summary>Conflicts that are settled.</summary>
+    public int ResolvedCount => Hunks.Count - UnresolvedCount;
 
-    /// <summary>Hunks still without a pick.</summary>
-    public int UnresolvedCount => Hunks.Count - ResolvedCount;
+    /// <summary>Conflicts still without a pick, or typed on but still holding markers.</summary>
+    public int UnresolvedCount => Enumerable.Range(0, Hunks.Count).Count(Result.IsUnresolved);
 
-    /// <summary>True when every hunk has a pick.</summary>
+    /// <summary>True when every conflict is settled.</summary>
     public bool IsComplete => UnresolvedCount == 0;
 
-    /// <summary>True when at least one pick was made, which closing would throw away.</summary>
-    public bool IsModified => ResolvedCount > 0;
+    /// <summary>True when at least one change was made, which closing would throw away.</summary>
+    public bool IsModified => UndoStack is { Count: > 0 };
 
-    /// <summary>True while the text of a hunk is being edited.</summary>
-    public bool IsEditing => Edit is not null;
+    /// <summary>True while a Visual selection of lines is open.</summary>
+    public bool IsVisual => Anchor is not null;
 
     /// <summary>True when <see cref="Undo"/> has a change to take back.</summary>
     public bool CanUndo => UndoStack is { Count: > 0 };
@@ -90,134 +97,229 @@ public sealed record ConflictEditorState(
     /// <summary>True when <see cref="Redo"/> has a change to bring back.</summary>
     public bool CanRedo => RedoStack is { Count: > 0 };
 
-    /// <summary>The cursor clamped to the hunks.</summary>
+    /// <summary>The current conflict clamped to the conflicts.</summary>
     public int Index => Hunks.Count == 0 ? 0 : Math.Clamp(SelectedIndex, 0, Hunks.Count - 1);
 
-    /// <summary>Moves to the next hunk, wrapping from the last to the first.</summary>
-    public ConflictEditorState Next() => MoveTo(Hunks.Count == 0 ? 0 : (Index + 1) % Hunks.Count);
+    /// <summary>First aligned row of the Visual selection, -1 when none.</summary>
+    public int SelectionStart => Anchor is { } anchor ? Math.Min(anchor, Row) : -1;
 
-    /// <summary>Moves to the previous hunk, wrapping from the first to the last.</summary>
-    public ConflictEditorState Previous() => MoveTo(Hunks.Count == 0 ? 0 : (Index + Hunks.Count - 1) % Hunks.Count);
+    /// <summary>Last aligned row of the Visual selection, -1 when none.</summary>
+    public int SelectionEnd => Anchor is { } anchor ? Math.Max(anchor, Row) : -1;
 
-    /// <summary>Moves to <paramref name="index"/>, clamped to the hunks.</summary>
-    public ConflictEditorState MoveTo(int index)
+    /// <summary>True when the active pane is one of the three versions.</summary>
+    public bool IsVersionPane => ActivePane != ConflictPane.Result;
+
+    /// <summary>Lines of the result.</summary>
+    public int ResultLineCount => Result.Editor.Lines.Count;
+
+    /// <summary>The file as it was read, every conflict with its markers.</summary>
+    public string OriginalText => TextOf(Parts);
+
+    /// <summary>The text of parts as they stand in the file: common text and each conflict with its markers.</summary>
+    public static string TextOf(IReadOnlyList<ConflictPart> parts) =>
+        string.Concat(parts.Select(part => part.Common ?? part.Hunk!.Raw));
+
+    /// <summary>The whole file as it would be saved.</summary>
+    public string ToText() => Result.ToText(Format.LineEnding, Format.HasFinalNewline);
+
+    /// <summary>The result line (zero-based) beside an aligned row.</summary>
+    public int ResultLineOfRow(int row) => Alignment.ResultLineOf(row, Result.Regions, ResultLineCount);
+
+    /// <summary>Whether a version can be copied into the current conflict (the base may be missing).</summary>
+    public bool CanTake(ConflictPick pick)
+    {
+        if (Hunks.Count == 0 || IsEditing)
+        {
+            return false;
+        }
+
+        return pick != ConflictPick.Base || Hunks[Index].Base is not null;
+    }
+
+    /// <summary>The lines a Visual selection would copy from the active version pane into the current conflict.</summary>
+    public IReadOnlyList<string> SelectedLines()
+    {
+        if (Anchor is null || !IsVersionPane || Hunks.Count == 0)
+        {
+            return [];
+        }
+
+        var first = Alignment.FirstRowOf(Index);
+        var last = first + Alignment.RowCountOf(Index) - 1;
+        var lines = new List<string>();
+        for (var row = Math.Max(SelectionStart, first); row <= Math.Min(SelectionEnd, last); row++)
+        {
+            if (Alignment.TextAt(row, ActivePane) is { } text)
+            {
+                lines.Add(text);
+            }
+        }
+
+        return lines;
+    }
+
+    /// <summary>Moves the cursor by <paramref name="delta"/> lines in the active pane, stopping at the ends.</summary>
+    public ConflictEditorState MoveCursor(int delta)
     {
         if (IsEditing)
         {
             return this;
         }
 
-        return this with
+        if (ActivePane != ConflictPane.Result)
         {
-            SelectedIndex = Hunks.Count == 0 ? 0 : Math.Clamp(index, 0, Hunks.Count - 1),
-            IsDiscardPending = false,
-            SideScroll = 0,
-        };
+            return OnVersionRow(Row + delta);
+        }
+
+        var direction = Math.Sign(delta);
+        for (var step = 0; step < Math.Abs(delta); step++)
+        {
+            Result.Editor.MoveLines(direction);
+        }
+
+        return SyncedFromResult();
     }
 
-    /// <summary>
-    /// Scrolls the side panes (ours, theirs and the base together) by <paramref name="delta"/> lines, from the
-    /// position that is drawn, never past <paramref name="maximum"/> (the largest scroll the screen allows).
-    /// </summary>
-    public ConflictEditorState ScrollSides(int delta, int maximum)
+    /// <summary>Moves the cursor to the first line of the active pane.</summary>
+    public ConflictEditorState MoveToTop() => MoveToLine(0);
+
+    /// <summary>Moves the cursor to the last line of the active pane.</summary>
+    public ConflictEditorState MoveToBottom() =>
+        MoveToLine(ActivePane == ConflictPane.Result ? ResultLineCount - 1 : Alignment.RowCount - 1);
+
+    /// <summary>Moves to the next conflict below the cursor, wrapping to the first.</summary>
+    public ConflictEditorState NextConflict()
     {
-        if (IsEditing || Hunks.Count == 0)
+        if (Hunks.Count == 0 || IsEditing)
         {
             return this;
         }
 
-        return this with { SideScroll = Math.Clamp(Math.Min(SideScroll, maximum) + delta, 0, Math.Max(0, maximum)) };
+        var target = Enumerable.Range(0, Hunks.Count).Where(hunk => Alignment.FirstRowOf(hunk) > Row)
+            .Cast<int?>().FirstOrDefault() ?? 0;
+
+        return GoToConflict(target);
     }
 
-    /// <summary>
-    /// Scrolls the side panes to the next line where our side and their side differ, below the first line shown; a
-    /// run of differing lines counts once; never past <paramref name="maximum"/>, the largest scroll the screen
-    /// allows. Lines are compared row by row, so a line inserted on one side makes the rows after it differ. Stays
-    /// put when there is none.
-    /// </summary>
-    public ConflictEditorState NextDifference(int maximum)
+    /// <summary>Moves to the conflict above the cursor, wrapping to the last.</summary>
+    public ConflictEditorState PreviousConflict()
     {
-        var starts = DifferenceStarts();
-        var next = starts.Where(start => start > Math.Min(SideScroll, maximum)).Cast<int?>().FirstOrDefault();
-
-        return next is { } row && !IsEditing ? this with { SideScroll = Math.Min(row, maximum) } : this;
-    }
-
-    /// <summary>
-    /// Scrolls the side panes to the previous line where the sides differ (see <see cref="NextDifference"/>).
-    /// </summary>
-    public ConflictEditorState PreviousDifference(int maximum)
-    {
-        var starts = DifferenceStarts();
-        var previous = starts.Where(start => start < Math.Min(SideScroll, maximum)).Cast<int?>().LastOrDefault();
-
-        return previous is { } row && !IsEditing ? this with { SideScroll = Math.Min(row, maximum) } : this;
-    }
-
-    /// <summary>
-    /// For each row of the hunk under the cursor, true where our side and their side differ (a row only one side has
-    /// counts); rows are compared by position.
-    /// </summary>
-    public IReadOnlyList<bool> DifferingRows()
-    {
-        if (Hunks.Count == 0)
-        {
-            return [];
-        }
-
-        var ours = Lines(Hunks[Index].Ours);
-        var theirs = Lines(Hunks[Index].Theirs);
-
-        return
-        [
-            .. Enumerable.Range(0, Math.Max(ours.Count, theirs.Count))
-                .Select(row => row >= ours.Count || row >= theirs.Count || ours[row] != theirs[row]),
-        ];
-    }
-
-    /// <summary>The line of the result file (counted from 1) where hunk <paramref name="index"/> starts.</summary>
-    public int ResultLineOf(int index)
-    {
-        var line = 1;
-        var hunk = 0;
-        foreach (var part in Parts)
-        {
-            if (part.Common is { } common)
-            {
-                line += Lines(common).Count;
-
-                continue;
-            }
-
-            if (hunk++ == index)
-            {
-                break;
-            }
-
-            line += Lines(ResultOf(hunk - 1)).Count;
-        }
-
-        return line;
-    }
-
-    /// <summary>
-    /// Takes <paramref name="pick"/> for the hunk under the cursor (<see cref="ConflictPick.None"/> makes it
-    /// unresolved again; <see cref="ConflictPick.Edited"/> comes from <see cref="AcceptEdit"/>, not from here). A
-    /// change is one step of <see cref="Undo"/>.
-    /// </summary>
-    public ConflictEditorState Pick(ConflictPick pick)
-    {
-        if (Hunks.Count == 0 || IsEditing || pick == ConflictPick.Edited || Picks[Index] == pick)
+        if (Hunks.Count == 0 || IsEditing)
         {
             return this;
         }
 
-        return Changed(pick, null);
+        var target = Enumerable.Range(0, Hunks.Count).Where(hunk => Alignment.FirstRowOf(hunk) < Row)
+            .Cast<int?>().LastOrDefault() ?? Hunks.Count - 1;
+
+        return GoToConflict(target);
+    }
+
+    /// <summary>Moves the cursor to a pane; into the result it lands beside the row it was on.</summary>
+    public ConflictEditorState FocusPane(ConflictPane pane)
+    {
+        if (pane == ActivePane || IsEditing)
+        {
+            return this;
+        }
+
+        var cleared = this with { Anchor = null, IsDiscardPending = false };
+        if (pane == ConflictPane.Result)
+        {
+            Result.Editor.SetCursor(ResultLineOfRow(Row), 0);
+
+            return cleared with { ActivePane = pane, TopPane = ActivePane };
+        }
+
+        var row = ActivePane == ConflictPane.Result ? Alignment.RowOf(Result.Editor.CursorRow, Result.Regions) : Row;
+
+        return (cleared with { ActivePane = pane, TopPane = pane }).OnVersionRow(row);
+    }
+
+    /// <summary>Moves to the next pane (base, ours, theirs, result), wrapping.</summary>
+    public ConflictEditorState NextPane() => FocusPane(PaneOrder[(Array.IndexOf(PaneOrder, ActivePane) + 1) % 4]);
+
+    /// <summary>Moves to the previous pane, wrapping.</summary>
+    public ConflictEditorState PreviousPane() => FocusPane(PaneOrder[(Array.IndexOf(PaneOrder, ActivePane) + 3) % 4]);
+
+    /// <summary>Moves one version pane to the left; from the result it does nothing.</summary>
+    public ConflictEditorState PaneLeft() => IsVersionPane ? FocusPane(PaneOrder[Math.Max(0, (int)ActivePane - 1)]) : this;
+
+    /// <summary>Moves one version pane to the right; from the result it does nothing.</summary>
+    public ConflictEditorState PaneRight() =>
+        IsVersionPane ? FocusPane(PaneOrder[Math.Min((int)ConflictPane.Theirs, (int)ActivePane + 1)]) : this;
+
+    /// <summary>Moves from a version pane down to the result.</summary>
+    public ConflictEditorState PaneDown() => IsVersionPane ? FocusPane(ConflictPane.Result) : this;
+
+    /// <summary>Moves from the result up to the version pane it came from.</summary>
+    public ConflictEditorState PaneUp() => IsVersionPane ? this : FocusPane(TopPane);
+
+    /// <summary>Starts a Visual selection at the cursor row of a version pane, or ends the open one.</summary>
+    public ConflictEditorState ToggleVisual()
+    {
+        if (!IsVersionPane || IsEditing)
+        {
+            return this;
+        }
+
+        return this with { Anchor = IsVisual ? null : Row };
+    }
+
+    /// <summary>Ends a Visual selection.</summary>
+    public ConflictEditorState EndVisual() => IsVisual ? this with { Anchor = null } : this;
+
+    /// <summary>
+    /// Copies a version of the current conflict into the result (<see cref="ConflictPick.Ours"/>,
+    /// <see cref="ConflictPick.Theirs"/>, <see cref="ConflictPick.Base"/> or <see cref="ConflictPick.Both"/>),
+    /// replacing whatever the region holds, typed text included (undo brings it back). One step of
+    /// <see cref="Undo"/>; nothing changes when the region already holds exactly those lines.
+    /// </summary>
+    public ConflictEditorState Take(ConflictPick pick)
+    {
+        if (!CanTake(pick) || pick is not (ConflictPick.Ours or ConflictPick.Theirs or ConflictPick.Base or ConflictPick.Both))
+        {
+            return this;
+        }
+
+        var lines = VersionLines(Hunks[Index], pick);
+        var index = Index;
+
+        return (Anchor is null ? this : this with { Anchor = null }).Changed(
+            result => result.ReplaceRegion(index, lines, pick));
     }
 
     /// <summary>
-    /// Takes <paramref name="pick"/> (ours or theirs) for every hunk that is still unresolved, leaving earlier picks
-    /// and edits alone. The whole change is one step of <see cref="Undo"/>; nothing changes when no hunk is open.
+    /// Copies the lines of the Visual selection (from the active version pane, inside the current conflict) into the
+    /// result: they replace an unresolved conflict's markers and are appended to a conflict that already has lines.
+    /// Always ends the selection; nothing is copied when it holds no line of the conflict.
+    /// </summary>
+    public ConflictEditorState TakeSelectedLines()
+    {
+        var lines = SelectedLines();
+        if (lines.Count == 0 || IsEditing)
+        {
+            return EndVisual();
+        }
+
+        var index = Index;
+
+        return (this with { Anchor = null }).Changed(result =>
+        {
+            var combined = new List<string>();
+            if (!result.IsUnresolved(index))
+            {
+                combined.AddRange(result.LinesOf(index));
+            }
+
+            combined.AddRange(lines);
+            result.ReplaceRegion(index, combined, ConflictPick.Lines);
+        });
+    }
+
+    /// <summary>
+    /// Takes <paramref name="pick"/> (ours or theirs) for every conflict that is still unresolved, leaving settled
+    /// ones alone. One step of <see cref="Undo"/>; nothing changes when none is open.
     /// </summary>
     public ConflictEditorState PickAllUnresolved(ConflictPick pick)
     {
@@ -226,66 +328,115 @@ public sealed record ConflictEditorState(
             return this;
         }
 
-        var picks = Picks.Select(existing => existing == ConflictPick.None ? pick : existing).ToList();
-        var undo = (UndoStack ?? []).Append(Snapshot()).TakeLast(UndoLimit).ToList();
-
-        return this with { Picks = picks, UndoStack = undo, RedoStack = [], IsDiscardPending = false };
+        return Changed(result =>
+        {
+            for (var hunk = 0; hunk < Hunks.Count; hunk++)
+            {
+                if (result.IsUnresolved(hunk))
+                {
+                    result.ReplaceRegion(hunk, VersionLines(Hunks[hunk], pick), pick);
+                }
+            }
+        });
     }
 
-    /// <summary>Toggles the base pane of the hunk under the cursor.</summary>
-    public ConflictEditorState ToggleBase() => this with { IsBaseShown = !IsBaseShown, IsDiscardPending = false };
-
-    /// <summary>
-    /// Opens the editor on the result of the hunk under the cursor (both sides, ours first, for an unresolved hunk).
-    /// Tab keys insert tab characters.
-    /// </summary>
-    public ConflictEditorState BeginEdit()
+    /// <summary>Makes the current conflict unresolved again: its markers come back. One step of undo.</summary>
+    public ConflictEditorState Reset()
     {
         if (Hunks.Count == 0 || IsEditing)
         {
             return this;
         }
 
-        var hunk = Hunks[Index];
-        var editor = new MessageEditor { UsesTabCharacters = true };
-        editor.SetText(Picks[Index] == ConflictPick.None ? $"{hunk.Ours}{hunk.Theirs}" : ResultOf(Index));
+        var index = Index;
+        var raw = ConflictAlignment.Lines(Hunks[index].Raw);
 
-        return this with { Edit = new ConflictTextEdit(editor, editor.Text), IsDiscardPending = false };
+        return Changed(result => result.ReplaceRegion(index, raw, ConflictPick.None));
     }
 
     /// <summary>
-    /// Closes the editor and keeps the text as the hunk's result (one step of <see cref="Undo"/>); text left as it
-    /// was when the edit began changes nothing. A result that does not end in a line break gets one, and a hunk of a
-    /// CRLF file gets CRLF line breaks.
+    /// Moves into the result at the current conflict and starts Insert mode there (from a version pane), or starts
+    /// Insert mode at the cursor (from the result). The typing session is one step of <see cref="Undo"/>.
     /// </summary>
-    public ConflictEditorState AcceptEdit()
+    public ConflictEditorState BeginEdit()
     {
-        if (Edit is not { } edit)
+        if (IsEditing)
         {
             return this;
         }
 
-        var closed = this with { Edit = null };
-        if (edit.Editor.Text == edit.Original)
+        var focused = this;
+        if (IsVersionPane)
         {
-            return closed;
+            focused = (this with { Anchor = null }).FocusPane(ConflictPane.Result);
+            if (Hunks.Count > 0)
+            {
+                Result.Editor.SetCursor(Result.Regions[Index].Start, 0);
+            }
         }
 
-        var text = edit.Editor.Text;
-        if (text.Length > 0 && !text.EndsWith(LineFeed, StringComparison.Ordinal))
-        {
-            text += LineFeed;
-        }
-
-        if (Hunks[Index].Raw.Contains(CarriageReturnLineFeed, StringComparison.Ordinal))
-        {
-            text = text.Replace(LineFeed, CarriageReturnLineFeed, StringComparison.Ordinal);
-        }
-
-        return closed.Changed(ConflictPick.Edited, text);
+        return focused.WithUndoPoint() with { IsEditing = true };
     }
 
-    /// <summary>Takes back the latest change (a pick or an edit) and puts the cursor on its hunk.</summary>
+    /// <summary>Leaves Insert mode, keeping the text; a session that changed nothing is not an undo step.</summary>
+    public ConflictEditorState EndEdit()
+    {
+        if (!IsEditing)
+        {
+            return this;
+        }
+
+        var undo = UndoStack ?? [];
+        if (undo.Count > 0 && Result.Matches(undo[^1].Buffer))
+        {
+            undo = [.. undo.Take(undo.Count - 1)];
+        }
+
+        return (this with { IsEditing = false, UndoStack = undo, IsDiscardPending = false }).SyncedFromResult();
+    }
+
+    /// <summary>Types a key into the result (Insert mode); false in any other mode.</summary>
+    public ConflictEditorState TypeKey(KeyEvent key)
+    {
+        if (!IsEditing)
+        {
+            return this;
+        }
+
+        Result.Editor.Apply(key);
+        Result.Reconcile();
+
+        return (this with { IsDiscardPending = false }).SyncedFromResult();
+    }
+
+    /// <summary>A Normal mode command of the result pane (motions, <c>x</c>, <c>dd</c>, <c>o</c>, <c>a</c> ...).</summary>
+    public ConflictEditorState ApplyResultCommand(ConflictResultCommand command)
+    {
+        if (IsEditing || IsVersionPane)
+        {
+            return this;
+        }
+
+        var editor = Result.Editor;
+
+        return command switch
+        {
+            ConflictResultCommand.Left => Moved(editor.MoveLeftInLine),
+            ConflictResultCommand.Right => Moved(editor.MoveRightInLine),
+            ConflictResultCommand.WordNext => Moved(editor.MoveWordForward),
+            ConflictResultCommand.WordPrevious => Moved(editor.MoveWordBackward),
+            ConflictResultCommand.LineStart => Moved(editor.MoveToLineStart),
+            ConflictResultCommand.LineEnd => Moved(editor.MoveToLineEnd),
+            ConflictResultCommand.DeleteChar => Changed(result => result.Editor.DeleteUnderCursor(), reconcile: true),
+            ConflictResultCommand.DeleteLine => Changed(result => result.Editor.DeleteLine(), reconcile: true),
+            ConflictResultCommand.OpenLine => StartInserting(MessageEditorStart.OpenLine),
+            ConflictResultCommand.Append => StartInserting(MessageEditorStart.Append),
+            ConflictResultCommand.AppendAtEnd => StartInserting(MessageEditorStart.AppendAtEnd),
+            _ => StartInserting(MessageEditorStart.InsertAtStart),
+        };
+    }
+
+    /// <summary>Takes back the latest change and puts the cursor on its conflict.</summary>
     public ConflictEditorState Undo()
     {
         if (UndoStack is not { Count: > 0 } undo || IsEditing)
@@ -293,10 +444,13 @@ public sealed record ConflictEditorState(
             return this;
         }
 
+        var redo = Snapshot();
+        Result.Restore(undo[^1].Buffer);
+
         return Restored(undo[^1]) with
         {
-            UndoStack = undo.Take(undo.Count - 1).ToList(),
-            RedoStack = [.. RedoStack ?? [], Snapshot() with { SelectedIndex = undo[^1].SelectedIndex }],
+            UndoStack = [.. undo.Take(undo.Count - 1)],
+            RedoStack = [.. RedoStack ?? [], redo],
         };
     }
 
@@ -308,135 +462,197 @@ public sealed record ConflictEditorState(
             return this;
         }
 
+        var undo = Snapshot();
+        Result.Restore(redo[^1].Buffer);
+
         return Restored(redo[^1]) with
         {
-            RedoStack = redo.Take(redo.Count - 1).ToList(),
-            UndoStack = [.. UndoStack ?? [], Snapshot() with { SelectedIndex = redo[^1].SelectedIndex }],
+            RedoStack = [.. redo.Take(redo.Count - 1)],
+            UndoStack = [.. UndoStack ?? [], undo],
         };
     }
 
-    /// <summary>Remembers that the user asked to close an edited file; the next close really closes.</summary>
+    /// <summary>Remembers that the user asked to close a changed file; the next close really closes.</summary>
     public ConflictEditorState AskDiscard() => this with { IsDiscardPending = true };
 
-    /// <summary>The text hunk <paramref name="index"/> gets in the result: the pick, or its conflict markers.</summary>
-    public string ResultOf(int index) => Picks[index] switch
-    {
-        ConflictPick.Ours => Hunks[index].Ours,
-        ConflictPick.Theirs => Hunks[index].Theirs,
-        ConflictPick.Both => $"{Hunks[index].Ours}{Hunks[index].Theirs}",
-        ConflictPick.Edited => Texts[index] ?? Hunks[index].Raw,
-        _ => Hunks[index].Raw,
-    };
-
-    /// <summary>The file as it was read, every hunk with its conflict markers.</summary>
-    public string OriginalText => TextOf(Parts);
-
-    /// <summary>The text of parts as they stand in the file: common text and each hunk with its markers.</summary>
-    public static string TextOf(IReadOnlyList<ConflictPart> parts) =>
-        string.Concat(parts.Select(part => part.Common ?? part.Hunk!.Raw));
-
-    /// <summary>The whole file as it would be saved.</summary>
-    public string ToText()
-    {
-        var builder = new StringBuilder();
-        var hunk = 0;
-        foreach (var part in Parts)
-        {
-            builder.Append(part.Common ?? ResultOf(hunk++));
-        }
-
-        return builder.ToString();
-    }
-
     /// <summary>
-    /// Up to <paramref name="count"/> lines of unconflicted text right before (<paramref name="before"/>) or after the
-    /// hunk <paramref name="index"/>; none when another hunk touches it on that side.
+    /// Scrolls the panes so the cursor shows: the active pane keeps its window while the cursor is inside it, the
+    /// others scroll to the aligned lines at the same height. Idempotent for the same heights.
     /// </summary>
-    public IReadOnlyList<string> ContextAround(int index, bool before, int count)
+    /// <param name="versionRows">Rows of the base, ours and theirs panes.</param>
+    /// <param name="resultRows">Rows of the result pane.</param>
+    public ConflictEditorState Follow(int versionRows, int resultRows)
     {
-        var position = PartIndexOf(index);
-        var neighbour = before ? position - 1 : position + 1;
-        if (count <= 0 || neighbour < 0 || neighbour >= Parts.Count || Parts[neighbour].Common is not { } common)
+        versionRows = Math.Max(1, versionRows);
+        resultRows = Math.Max(1, resultRows);
+        int top;
+        int result;
+        if (ActivePane == ConflictPane.Result)
         {
-            return [];
+            var line = Result.Editor.CursorRow;
+            result = ScrollTop(line, ResultScroll, resultRows);
+            top = Row - Math.Min(line - result, versionRows - 1);
+        }
+        else
+        {
+            top = ScrollTop(Row, TopScroll, versionRows);
+            result = ResultLineOfRow(Row) - Math.Min(Row - top, resultRows - 1);
         }
 
-        var lines = Lines(common);
+        top = Math.Clamp(top, 0, Math.Max(0, Alignment.RowCount - versionRows));
+        result = Math.Clamp(result, 0, Math.Max(0, ResultLineCount - resultRows));
 
-        return before ? [.. lines.Skip(Math.Max(0, lines.Count - count))] : [.. lines.Take(count)];
+        return top == TopScroll && result == ResultScroll ? this : this with { TopScroll = top, ResultScroll = result };
     }
 
-    /// <summary>Splits text into lines without their terminators; a trailing terminator adds no empty line.</summary>
-    public static IReadOnlyList<string> Lines(string text)
+    private static int ScrollTop(int cursor, int top, int height)
     {
-        if (text.Length == 0)
+        if (cursor < top)
         {
-            return [];
+            return cursor;
         }
 
-        var lines = text.Split('\n').Select(line => line.TrimEnd('\r')).ToList();
-        if (text[^1] == '\n')
-        {
-            lines.RemoveAt(lines.Count - 1);
-        }
-
-        return lines;
+        return cursor >= top + height ? cursor - height + 1 : Math.Max(0, top);
     }
 
-    private ConflictSnapshot Snapshot() => new(Picks, Texts, Index);
-
-    private ConflictEditorState Restored(ConflictSnapshot snapshot) => this with
+    private static IReadOnlyList<string> VersionLines(ConflictHunk hunk, ConflictPick pick) => pick switch
     {
-        Picks = snapshot.Picks,
-        Texts = snapshot.Texts,
-        SelectedIndex = snapshot.SelectedIndex,
-        IsDiscardPending = false,
-        SideScroll = 0,
+        ConflictPick.Ours => ConflictAlignment.Lines(hunk.Ours),
+        ConflictPick.Theirs => ConflictAlignment.Lines(hunk.Theirs),
+        ConflictPick.Base => ConflictAlignment.Lines(hunk.Base ?? string.Empty),
+        _ => [.. ConflictAlignment.Lines(hunk.Ours), .. ConflictAlignment.Lines(hunk.Theirs)],
     };
 
-    // Records the state before the change for Undo and forgets what Redo could bring back.
-    private ConflictEditorState Changed(ConflictPick pick, string? text)
+    private ConflictEditorState OnVersionRow(int row)
     {
-        var picks = Picks.ToList();
-        picks[Index] = pick;
-        var texts = Texts.ToList();
-        texts[Index] = text;
-        var undo = (UndoStack ?? []).Append(Snapshot()).TakeLast(UndoLimit).ToList();
+        var clamped = Math.Clamp(row, 0, Math.Max(0, Alignment.RowCount - 1));
+        var hunk = Alignment.HunkAt(clamped);
 
-        return this with { Picks = picks, Texts = texts, UndoStack = undo, RedoStack = [], IsDiscardPending = false };
+        return this with
+        {
+            Row = clamped,
+            SelectedIndex = hunk >= 0 ? hunk : SelectedIndex,
+            IsDiscardPending = false,
+        };
     }
 
-    // The first line of each run of lines where the two sides differ, counted from the top of the hunk.
-    private List<int> DifferenceStarts()
+    private ConflictEditorState SyncedFromResult()
     {
-        var rows = DifferingRows();
-        var starts = new List<int>();
-        var wasDifferent = false;
-        for (var row = 0; row < rows.Count; row++)
+        var line = Result.Editor.CursorRow;
+        var hunk = Result.RegionAt(line);
+
+        return this with
         {
-            var isDifferent = rows[row];
-            if (isDifferent && !wasDifferent)
-            {
-                starts.Add(row);
-            }
-
-            wasDifferent = isDifferent;
-        }
-
-        return starts;
+            Row = Alignment.RowOf(line, Result.Regions),
+            SelectedIndex = hunk >= 0 ? hunk : SelectedIndex,
+            IsDiscardPending = false,
+        };
     }
 
-    private int PartIndexOf(int hunkIndex)
+    private ConflictEditorState MoveToLine(int line)
     {
-        var seen = -1;
-        for (var position = 0; position < Parts.Count; position++)
+        if (IsEditing)
         {
-            if (Parts[position].Hunk is not null && ++seen == hunkIndex)
-            {
-                return position;
-            }
+            return this;
         }
 
-        return -1;
+        if (ActivePane != ConflictPane.Result)
+        {
+            return OnVersionRow(line);
+        }
+
+        Result.Editor.SetCursor(line, 0);
+
+        return SyncedFromResult();
+    }
+
+    private ConflictEditorState GoToConflict(int hunk)
+    {
+        if (ActivePane != ConflictPane.Result)
+        {
+            return OnVersionRow(Alignment.FirstRowOf(hunk));
+        }
+
+        Result.Editor.SetCursor(Result.Regions[hunk].Start, 0);
+
+        return SyncedFromResult() with { SelectedIndex = hunk };
+    }
+
+    private ConflictEditorState Moved(Action move)
+    {
+        move();
+
+        return SyncedFromResult();
+    }
+
+    private ConflictEditorState StartInserting(MessageEditorStart start)
+    {
+        var editing = WithUndoPoint();
+        var editor = Result.Editor;
+        switch (start)
+        {
+            case MessageEditorStart.OpenLine:
+                editor.OpenLineBelow();
+                Result.Reconcile();
+                break;
+            case MessageEditorStart.Append:
+                editor.MoveRightInLine();
+                break;
+            case MessageEditorStart.AppendAtEnd:
+                editor.MoveToLineEnd();
+                break;
+            default:
+                editor.MoveToLineStart();
+                break;
+        }
+
+        return (editing with { IsEditing = true }).SyncedFromResult();
+    }
+
+    private ConflictEditorState WithUndoPoint() =>
+        this with { UndoStack = Pushed(), RedoStack = [], IsDiscardPending = false };
+
+    private List<ConflictSnapshot> Pushed() => [.. (UndoStack ?? []).Append(Snapshot()).TakeLast(UndoLimit)];
+
+    private ConflictSnapshot Snapshot() => new(Result.Capture(), Index);
+
+    // Runs a change on the result as one undo step; a change that leaves the text and regions as they were is none.
+    private ConflictEditorState Changed(Action<ConflictResultBuffer> change, bool reconcile = false)
+    {
+        var before = Snapshot();
+        change(Result);
+        if (reconcile)
+        {
+            Result.Reconcile();
+        }
+
+        var after = ActivePane == ConflictPane.Result ? SyncedFromResult() : this;
+        if (Result.Matches(before.Buffer))
+        {
+            return after;
+        }
+
+        var undo = (UndoStack ?? []).Append(before).TakeLast(UndoLimit).ToList();
+
+        return after with { UndoStack = undo, RedoStack = [], IsDiscardPending = false };
+    }
+
+    private ConflictEditorState Restored(ConflictSnapshot snapshot)
+    {
+        var restored = this with { SelectedIndex = snapshot.SelectedIndex, Anchor = null, IsDiscardPending = false };
+        if (ActivePane == ConflictPane.Result)
+        {
+            return restored.SyncedFromResult();
+        }
+
+        return Hunks.Count == 0 ? restored : restored.OnVersionRow(Alignment.FirstRowOf(snapshot.SelectedIndex));
+    }
+
+    private enum MessageEditorStart
+    {
+        OpenLine,
+        Append,
+        AppendAtEnd,
+        InsertAtStart,
     }
 }

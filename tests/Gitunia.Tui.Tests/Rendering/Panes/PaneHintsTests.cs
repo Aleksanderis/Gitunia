@@ -286,7 +286,9 @@ public class PaneHintsTests
             "Confirm",
             "Reflog",
             "RebaseEditor",
-            "ConflictEditor",
+            "ConflictVersions",
+            "ConflictVisual",
+            "ConflictResult",
             "ConflictEdit",
             "RebaseMessage",
             "Settings",
@@ -310,17 +312,29 @@ public class PaneHintsTests
             case "Reflog":
                 AssertKeysTriggerActions(PaneHints.ForReflog(), KeyMode.Normal, DefaultKeymap.ReflogView);
                 break;
-            case "ConflictEditor":
+            case "ConflictVersions":
                 AssertKeysTriggerActions(
-                    PaneHints.ForConflictEditor(),
+                    PaneHints.ForConflictVersions(),
                     KeyMode.Normal,
-                    DefaultKeymap.ConflictEditorView);
+                    DefaultKeymap.ConflictSideView);
+                break;
+            case "ConflictVisual":
+                AssertKeysTriggerActions(
+                    PaneHints.ForConflictVisual(),
+                    KeyMode.Visual,
+                    DefaultKeymap.ConflictSideView);
+                break;
+            case "ConflictResult":
+                AssertKeysTriggerActions(
+                    PaneHints.ForConflictResult(),
+                    KeyMode.Normal,
+                    DefaultKeymap.ConflictResultView);
                 break;
             case "ConflictEdit":
                 AssertKeysTriggerActions(
                     PaneHints.ForConflictEdit(),
                     KeyMode.Insert,
-                    DefaultKeymap.ConflictEditorView);
+                    DefaultKeymap.ConflictResultView);
                 break;
             case "RebaseEditor":
                 AssertKeysTriggerActions(PaneHints.ForRebaseEditor(), KeyMode.Normal, DefaultKeymap.RebaseEditorView);

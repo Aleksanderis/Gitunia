@@ -69,6 +69,79 @@ public sealed class MessageEditor
     }
 
     /// <summary>
+    /// Replaces the whole text with <paramref name="lines"/> as they are (no control characters are dropped) and puts
+    /// the cursor at the start. The undo history is dropped. An empty list becomes one empty line.
+    /// </summary>
+    public void LoadLines(IReadOnlyList<string> lines)
+    {
+        _undo.Clear();
+        _lines.Clear();
+        _lines.AddRange(lines);
+        if (_lines.Count == 0)
+        {
+            _lines.Add(string.Empty);
+        }
+
+        MoveTo(0, 0);
+    }
+
+    /// <summary>Puts the cursor on a line and a UTF-16 column, both clamped (the column to a text element boundary).</summary>
+    /// <param name="row">Zero-based line.</param>
+    /// <param name="column">UTF-16 index in the line.</param>
+    public void SetCursor(int row, int column)
+    {
+        var line = Math.Clamp(row, 0, _lines.Count - 1);
+        var text = _lines[line];
+        var target = Math.Clamp(column, 0, text.Length);
+        var boundary = 0;
+        while (boundary < target)
+        {
+            var next = NextBoundary(text, boundary);
+            if (next > target)
+            {
+                break;
+            }
+
+            boundary = next;
+        }
+
+        MoveTo(line, boundary);
+    }
+
+    /// <summary>
+    /// Replaces <paramref name="count"/> lines from <paramref name="start"/> with <paramref name="replacement"/>. A
+    /// cursor inside the replaced lines goes to the start of the replacement, one after them moves with the text.
+    /// </summary>
+    /// <param name="start">Zero-based first line to replace.</param>
+    /// <param name="count">Lines to replace; zero inserts.</param>
+    /// <param name="replacement">The new lines; empty removes the old ones.</param>
+    public void ReplaceLines(int start, int count, IReadOnlyList<string> replacement)
+    {
+        start = Math.Clamp(start, 0, _lines.Count);
+        count = Math.Clamp(count, 0, _lines.Count - start);
+        var row = CursorRow;
+        var column = CursorColumn;
+        _lines.RemoveRange(start, count);
+        _lines.InsertRange(start, replacement);
+        if (_lines.Count == 0)
+        {
+            _lines.Add(string.Empty);
+        }
+
+        if (row >= start + count)
+        {
+            row += replacement.Count - count;
+        }
+        else if (row >= start)
+        {
+            row = start;
+            column = 0;
+        }
+
+        SetCursor(row, column);
+    }
+
+    /// <summary>
     /// Puts the cursor where a click landed: the line is clamped to the text and the column is a display column in
     /// that line; the cursor goes to the element boundary at or before it, or to the line end past the text.
     /// </summary>
