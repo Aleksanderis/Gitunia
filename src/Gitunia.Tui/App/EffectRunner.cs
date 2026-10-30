@@ -77,7 +77,6 @@ public sealed class EffectRunner : IDisposable
     /// </summary>
     public Func<TabId, bool> IsTabBusy { get; set; } = static _ => false;
 
-    /// <summary>The runtime session of an open tab, or null.</summary>
     /// <summary>Draws every tab's graph with a new glyph set (the label caps setting changed); later tabs take it too.</summary>
     /// <param name="glyphs">The new set.</param>
     public void ReplaceGlyphs(GraphGlyphSet glyphs)
@@ -89,6 +88,7 @@ public sealed class EffectRunner : IDisposable
         }
     }
 
+    /// <summary>The runtime session of an open tab, or null.</summary>
     public TabSession? SessionOf(TabId tabId) => _sessions.GetValueOrDefault(tabId);
 
     /// <summary>Manual refresh of a tab: reads everything again and reloads its graph. False when the tab has no watcher yet (not loaded).</summary>

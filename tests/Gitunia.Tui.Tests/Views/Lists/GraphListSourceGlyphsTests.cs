@@ -6,6 +6,7 @@ using Xunit;
 
 namespace Gitunia.Tui.Tests.Views.Lists;
 
+[Trait("Os", "Independent")]
 public sealed class GraphListSourceGlyphsTests
 {
     [Fact]
