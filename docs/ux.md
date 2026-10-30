@@ -1610,10 +1610,10 @@ Grouped as the palette groups them (`ActionCatalog.GroupOf`). "Old" lists every 
 | `branch.create-only` | Create a branch without checking out | `<space>bC` | same | Advanced |  |
 | `branch.delete` | Delete the branch (asks first) | `<space>bd` | same | Everyday |  |
 | `branch.fast-forward` | Fast-forward the branch to its upstream (no checkout) | `<space>bf` | same | Advanced |  |
-| `branch.rename` | Rename the branch | `<space>br` | `<space>bn` | Advanced | not on the issue's Everyday list |
-| `branch.set-upstream` | Set the branch upstream | `<space>bu` | same | Advanced |  |
+| `branch.rename` | Rename the branch | `<space>br` | `<space>bn` | Everyday | not on the issue's Everyday list |
+| `branch.set-upstream` | Set the branch upstream | `<space>bu` | same | Advanced+ |  |
 | `branch.switch` | Switch to a branch (check out) | `<space>bs` | same | Everyday |  |
-| `branch.unset-upstream` | Unset the branch upstream | `<space>bU` | same | Advanced |  |
+| `branch.unset-upstream` | Unset the branch upstream | `<space>bU` | same | Advanced+ |  |
 
 **Merge and rebase**
 
@@ -1645,7 +1645,7 @@ Grouped as the palette groups them (`ActionCatalog.GroupOf`). "Old" lists every 
 | `operation.abort` | Abort the merge, rebase, cherry-pick or revert in progress (asks first) | `<space>ga` | same | Everyday |  |
 | `operation.continue` | Continue the merge, rebase, cherry-pick or revert in progress | `<space>gc` | same | Everyday |  |
 | `operation.skip` | Skip the commit a rebase, cherry-pick or revert stopped on (asks first) | `<space>gk` | `<space>gs` | Everyday |  |
-| `pick.cherry-pick` | Cherry-pick the selection onto the current branch | `<space>gp` | `<space>bp` | Advanced |  |
+| `pick.cherry-pick` | Cherry-pick the selection onto the current branch | `<space>gp` | `<space>bp` | Everyday |  |
 | `pick.mainline` | Choose the mainline parent in the open cherry-pick or revert prompt | none | same | Advanced |  |
 | `pick.revert` | Revert the selection with new commits | `<space>gv` | `<space>bv` | Advanced |  |
 | `rebase-editor.drop` | Rebase todo: remove the commit | `d` | same | Advanced |  |
@@ -1661,10 +1661,10 @@ Grouped as the palette groups them (`ActionCatalog.GroupOf`). "Old" lists every 
 | `rebase.drop` | Drop the commit from the branch (asks first) | `<space>gd` | `<space>brd` | Advanced |  |
 | `rebase.fixup` | Fix up the commit into the one before it (asks first) | `<space>gf` | `<space>brf` | Advanced |  |
 | `rebase.interactive` | Interactive rebase onto the selection (edit the todo) | `<space>gi` | `<space>bri` | Advanced |  |
-| `rebase.interactive-root` | Interactive rebase from the root commit (selection ignored) | `<space>gI` | `<space>brI` | Advanced |  |
-| `rebase.onto` | Rebase the current branch onto the selection | `<space>gr` | `<space>brr` | Advanced | plain rebase is common; the issue list names only interactive and quick rebase as advanced |
+| `rebase.interactive-root` | Interactive rebase from the root commit (selection ignored) | `<space>gI` | `<space>brI` | Advanced+ |  |
+| `rebase.onto` | Rebase the current branch onto the selection | `<space>gr` | `<space>brr` | Everyday | plain rebase is common; the issue list names only interactive and quick rebase as advanced |
 | `rebase.reword` | Reword the commit subject (asks first) | `<space>gw` | `<space>brw` | Advanced |  |
-| `reset.branch` | Reset the current branch to the selection | `<space>gx` | `<space>bx` | Advanced |  |
+| `reset.branch` | Reset the current branch to the selection | `<space>gx` | `<space>bx` | Everyday |  |
 
 **Tag**
 
@@ -1672,8 +1672,8 @@ Grouped as the palette groups them (`ActionCatalog.GroupOf`). "Old" lists every 
 |---|---|---|---|---|---|
 | `tag.create` | Create a tag at the selected commit | `<space>Tc` | `<space>tc` | Everyday |  |
 | `tag.delete` | Delete the tag (asks first) | `<space>Td` | `<space>td` | Everyday |  |
-| `tag.delete-remote` | Delete the tag on a remote (asks first) | `<space>TD` | `<space>tD` | Advanced |  |
-| `tag.push` | Push the tag to a remote | `<space>Tp` | `<space>tp` | Advanced |  |
+| `tag.delete-remote` | Delete the tag on a remote (asks first) | `<space>TD` | `<space>tD` | Everyday |  |
+| `tag.push` | Push the tag to a remote | `<space>Tp` | `<space>tp` | Everyday |  |
 
 **Remote**
 
@@ -1681,37 +1681,37 @@ Grouped as the palette groups them (`ActionCatalog.GroupOf`). "Old" lists every 
 |---|---|---|---|---|---|
 | `remote.add` | Add a remote (name, then URL) | `<space>Ra` | `<space>ra` | Advanced |  |
 | `remote.cancel` | Cancel the running fetch, pull or push | `<space>C` | `<space>rc` | Everyday |  |
-| `remote.delete-branch` | Delete a branch on a remote (asks first) | `<space>RD` | `<space>bD` | Advanced |  |
+| `remote.delete-branch` | Delete a branch on a remote (asks first) | `<space>RD` | `<space>bD` | Everyday |  |
 | `remote.fetch` | Fetch the remote of the current branch (prunes) | `<space>F` | `<space>rf` | Everyday |  |
 | `remote.fetch-all` | Fetch all remotes (prunes) | none | none (palette) | Advanced | unbound today; `<space>rF` is reserved for it; bound in #840 only if the owner wants a key |
 | `remote.pull` | Pull the current branch (fast-forward only) | `<space>L` | `<space>rl` | Everyday |  |
 | `remote.push` | Push the current branch | `<space>P` | `<space>rp` | Everyday |  |
-| `remote.push-force` | Force push the current branch with a lease (asks first) | `<space>Rf` | `<space>rP` | Advanced |  |
+| `remote.push-force` | Force push the current branch with a lease (asks first) | `<space>Rf` | `<space>rP` | Everyday |  |
 | `remote.remove` | Remove a remote (asks first) | `<space>Rd` | `<space>rd` | Advanced |  |
 | `remote.rename` | Rename a remote | `<space>Rn` | `<space>rn` | Advanced |  |
-| `remote.set-url` | Change the URL of a remote | `<space>Ru` | `<space>ru` | Advanced |  |
+| `remote.set-url` | Change the URL of a remote | `<space>Ru` | `<space>ru` | Advanced+ |  |
 
 **Worktree**
 
 | Action | What | Old | New | Level | Note |
 |---|---|---|---|---|---|
 | `worktree.add` | Add a worktree (branch, then path) | `<space>wa` | same | Everyday |  |
-| `worktree.lock` | Lock the selected worktree (optional reason) | `<space>wl` | same | Advanced |  |
+| `worktree.lock` | Lock the selected worktree (optional reason) | `<space>wl` | same | Advanced+ |  |
 | `worktree.open` | Open the selected worktree (or the branch's, made if needed) in its own tab | `<space>wt` | same | Everyday |  |
-| `worktree.prune` | Prune worktrees whose directory is gone | `<space>wp` | same | Advanced |  |
-| `worktree.remove` | Remove the selected worktree (asks first) | `<space>wd` | same | Advanced | cleanup of what Add created; consider Everyday |
+| `worktree.prune` | Prune worktrees whose directory is gone | `<space>wp` | same | Everyday |  |
+| `worktree.remove` | Remove the selected worktree (asks first) | `<space>wd` | same | Everyday | cleanup of what Add created; consider Everyday |
 | `worktree.switch` | Switch this tab to the selected worktree | `<space>ws` | same | Everyday |  |
-| `worktree.unlock` | Unlock the selected worktree | `<space>wu` | same | Advanced |  |
+| `worktree.unlock` | Unlock the selected worktree | `<space>wu` | same | Advanced+ |  |
 
 **Stash**
 
 | Action | What | Old | New | Level | Note |
 |---|---|---|---|---|---|
-| `stash.apply` | Apply the selected stash and keep it | `<space>Sa` | `<space>ka` | Advanced |  |
-| `stash.drop` | Drop the selected stash (asks first) | `<space>Sd` | `<space>kd` | Advanced | consider Everyday (cleanup after Apply) |
+| `stash.apply` | Apply the selected stash and keep it | `<space>Sa` | `<space>ka` | Everyday |  |
+| `stash.drop` | Drop the selected stash (asks first) | `<space>Sd` | `<space>kd` | Everyday | consider Everyday (cleanup after Apply) |
 | `stash.pop` | Apply the selected stash and drop it | `<space>Sp` | `<space>kp` | Everyday |  |
 | `stash.push` | Stash the tracked changes (asks for a message) | `<space>Ss` | `<space>ks` | Everyday |  |
-| `stash.push-untracked` | Stash the tracked and untracked changes (asks for a message) | `<space>Su` | `<space>ku` | Advanced |  |
+| `stash.push-untracked` | Stash the tracked and untracked changes (asks for a message) | `<space>Su` | `<space>ku` | Advanced+ |  |
 
 **Working tree**
 
@@ -1787,15 +1787,15 @@ Grouped as the palette groups them (`ActionCatalog.GroupOf`). "Old" lists every 
 | `diff.search-next` | Next diff search match | `n` | same | Everyday |  |
 | `diff.search-open` | Search in the diff | `/` | same | Everyday |  |
 | `diff.search-previous` | Previous diff search match | `N` | same | Everyday |  |
-| `diff.toggle-ignore-whitespace` | Toggle ignoring whitespace changes in the diff | `<space>vi` | same | Advanced |  |
+| `diff.toggle-ignore-whitespace` | Toggle ignoring whitespace changes in the diff | `<space>vi` | same | Everyday |  |
 | `diff.toggle-side-by-side` | Toggle the side-by-side diff | `<space>vs` | same | Everyday |  |
-| `diff.toggle-whitespace` | Toggle whitespace marks in the diff | `<space>vc` | same | Advanced |  |
-| `diff.toggle-whole-file` | Toggle showing whole files in the diff | `<space>vf` | same | Advanced |  |
+| `diff.toggle-whitespace` | Toggle whitespace marks in the diff | `<space>vc` | same | Everyday |  |
+| `diff.toggle-whole-file` | Toggle showing whole files in the diff | `<space>vf` | same | Everyday |  |
 | `diff.toggle-wrap` | Toggle word wrap in the diff | `<space>vw` | same | Everyday |  |
 | `files.open-view-options` | Open the view options menu of the file list | `<space>vv` | same | Everyday |  |
-| `files.path-full-path` | Show file paths in full | `<space>v2` | same | Advanced |  |
-| `files.path-name-first` | Show file paths name first | `<space>v1` | same | Advanced |  |
-| `files.path-tree` | Show files as a tree | `<space>v3` | same | Advanced |  |
+| `files.path-full-path` | Show file paths in full | `<space>v2` | same | Everyday |  |
+| `files.path-name-first` | Show file paths name first | `<space>v1` | same | Everyday |  |
+| `files.path-tree` | Show files as a tree | `<space>v3` | same | Everyday |  |
 | `files.toggle-path-style` | Cycle the file paths: name first, full path, tree | `<space>vn` | same | Everyday |  |
 
 **Details**
@@ -1807,7 +1807,7 @@ Grouped as the palette groups them (`ActionCatalog.GroupOf`). "Old" lists every 
 | `detail.filter` | Filter the file tree by path (Files tab) | `/` | same | Everyday |  |
 | `detail.next-tab` | Next bottom pane tab | `]` | same | Everyday |  |
 | `detail.open-diff` | Go to the file diff | `Enter` | same | Everyday |  |
-| `detail.open-link` | Open the issue link in the message line (a count picks the nth link) | `gx` | same | Advanced |  |
+| `detail.open-link` | Open the issue link in the message line (a count picks the nth link) | `gx` | same | Everyday |  |
 | `detail.previous-tab` | Previous bottom pane tab | `[` | same | Everyday |  |
 | `detail.retry` | Retry loading the commit details | `<space>r` | `<space>od` | Advanced |  |
 | `detail.tab-changes` | Show the Changes tab | `gc` | same | Everyday |  |
@@ -1839,8 +1839,8 @@ Grouped as the palette groups them (`ActionCatalog.GroupOf`). "Old" lists every 
 | `list.top` | Go to the top | `gg` | same | Everyday |  |
 | `list.up` | Move up | `k` `Up` | same | Everyday |  |
 | `navigate.back` | Go back | `h` `Esc` | same | Everyday |  |
-| `reflog.open` | Open the reflog of HEAD (of the branch under the sidebar cursor) | `<space>l` | same | Advanced |  |
-| `reflog.select-commit` | Select the reflog entry's commit in the graph | `Enter` | same | Advanced |  |
+| `reflog.open` | Open the reflog of HEAD (of the branch under the sidebar cursor) | `<space>l` | same | Advanced+ |  |
+| `reflog.select-commit` | Select the reflog entry's commit in the graph | `Enter` | same | Advanced+ |  |
 | `search.next` | Next search match | `n` | same | Everyday |  |
 | `search.open` | Search | `/` | same | Everyday |  |
 | `search.previous` | Previous search match | `N` | same | Everyday |  |
@@ -1859,13 +1859,13 @@ Grouped as the palette groups them (`ActionCatalog.GroupOf`). "Old" lists every 
 | `pane.focus-left` | Focus the pane to the left | `Ctrl-w h` `Ctrl-h` `Ctrl-Backspace` | `Ctrl-h` also `Ctrl-w h`, `Ctrl-Backspace` | Everyday |  |
 | `pane.focus-right` | Focus the pane to the right | `Ctrl-w l` `Ctrl-l` | `Ctrl-l` also `Ctrl-w l` | Everyday |  |
 | `pane.focus-up` | Focus the pane above | `Ctrl-w k` `Ctrl-k` | `Ctrl-k` also `Ctrl-w k` | Everyday |  |
-| `pane.narrower` | Make the focused pane narrower | `Ctrl-w <` `<` | same | Advanced |  |
+| `pane.narrower` | Make the focused pane narrower | `Ctrl-w <` `<` | same | Everyday |  |
 | `pane.next` | Next pane | `Tab` `Ctrl-w w` | `Tab` also `Ctrl-w w` | Everyday |  |
 | `pane.previous` | Previous pane | `Shift-Tab` | same | Everyday |  |
-| `pane.reset-sizes` | Reset the pane sizes | `Ctrl-w =` `=` | same | Advanced |  |
-| `pane.shorter` | Make the focused pane shorter | `Ctrl-w -` `-` | same | Advanced |  |
-| `pane.taller` | Make the focused pane taller | `Ctrl-w +` `+` | same | Advanced |  |
-| `pane.wider` | Make the focused pane wider | `Ctrl-w >` `>` | same | Advanced |  |
+| `pane.reset-sizes` | Reset the pane sizes | `Ctrl-w =` `=` | same | Everyday |  |
+| `pane.shorter` | Make the focused pane shorter | `Ctrl-w -` `-` | same | Everyday |  |
+| `pane.taller` | Make the focused pane taller | `Ctrl-w +` `+` | same | Everyday  |  |
+| `pane.wider` | Make the focused pane wider | `Ctrl-w >` `>` | same | Everyday  |  |
 | `pane.zoom` | Zoom the focused pane | `<space>z` | same | Everyday |  |
 
 **Tabs**
@@ -1920,7 +1920,7 @@ Grouped as the palette groups them (`ActionCatalog.GroupOf`). "Old" lists every 
 | `settings.remove` | Settings: remove the folder under the cursor (asks first) | `d` | same | Everyday |  |
 | `settings.toggle` | Settings: flip the toggle under the cursor | `x` | same | Everyday |  |
 | `status.dismiss` | Dismiss the status message | `<space>x` | same | Everyday |  |
-| `status.history` | Show the status message history | `<space>m` | same | Advanced |  |
+| `status.history` | Show the status message history | `<space>m` | same | Everyday |  |
 
 **New action**
 
