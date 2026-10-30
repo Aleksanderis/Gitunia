@@ -57,6 +57,8 @@ public static class ConflictEditorFrameBuilder
         new("all ours", DefaultMouseMap.ConflictAllOursButton),
         new("all theirs", DefaultMouseMap.ConflictAllTheirsButton),
         new("re-create", DefaultMouseMap.ConflictRecreateButton),
+        new("scroll left", DefaultMouseMap.ConflictScrollLeftButton),
+        new("scroll right", DefaultMouseMap.ConflictScrollRightButton),
     ];
 
     private static readonly HintChip[] ResultChips =
@@ -442,6 +444,13 @@ public static class ConflictEditorFrameBuilder
         {
             var count = state.SelectionEnd - state.SelectionStart + 1;
             builder.Append(string.Create(CultureInfo.InvariantCulture, $"  VISUAL {count}"), SegmentRole.StatusMode);
+        }
+
+        if (state.HorizontalScroll > 0)
+        {
+            builder.Append(
+                string.Create(CultureInfo.InvariantCulture, $"  col {state.HorizontalScroll + 1}"),
+                SegmentRole.Faint);
         }
 
         return builder.Build();

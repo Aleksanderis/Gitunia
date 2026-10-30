@@ -303,6 +303,7 @@ Modes: rows apply to Normal, except those whose view says `(Visual)` (Visual mod
 | ConflictEditor | `u` | Undo the latest pick, untake or typing session (the cursor goes to its conflict) |
 | ConflictEditor | `Ctrl-r` | Redo the undone change |
 | ConflictEditor | `<space>u` | Untake, the inverse of `<space>a`: the current conflict is unresolved again and its markers come back (one step of undo); with a Visual selection only the selected lines leave the result |
+| ConflictEditor | `zh` `zl` | Scroll the text of the base, ours and theirs panes sideways together, 8 columns per press (a count multiplies it); vim's `zh`/`zl` meaning. Normal and Visual mode |
 | ConflictEditor | `R` | Re-create the conflict of the file (`git checkout --merge`) after a Confirm |
 | ConflictEditor | `Esc` | Close the editor; changes ask for a second `Esc` first (a Visual selection ends first; in Insert mode it stops typing and keeps the text) |
 | ConflictEditor | `Enter` | Save the result to the file (a Confirm first when conflicts are unresolved; then the "mark resolved" Confirm when none is) |
@@ -496,6 +497,8 @@ Grouped as the palette groups them (`ActionCatalog.GroupOf`). "Old" lists every 
 | `conflict-editor.reset` | Conflict editor: make the hunk unresolved again (it keeps its conflict markers) | `r` | same | Everyday |  |
 | `conflict-editor.save` | Conflict editor: save the file (asks first) | `Enter` | same | Everyday |  |
 | `conflict-editor.scroll-down` | Conflict editor: scroll our side, their side and the base down together | `Ctrl-d` | same | Advanced |  |
+| `conflict-editor.scroll-left` | Conflict editor: scroll the base, ours and theirs panes sideways to the left | `zh` | same | Advanced |  |
+| `conflict-editor.scroll-right` | Conflict editor: scroll the base, ours and theirs panes sideways to the right | `zl` | same | Advanced |  |
 | `conflict-editor.scroll-up` | Conflict editor: scroll our side, their side and the base up together | `Ctrl-u` | same | Advanced |  |
 | `conflict-editor.theirs` | Conflict editor: take their side for the hunk | `t` | same | Everyday |  |
 | `conflict-editor.undo` | Conflict editor: undo the last pick or edit | `u` | same | Everyday |  |

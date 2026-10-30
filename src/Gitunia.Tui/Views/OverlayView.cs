@@ -76,6 +76,13 @@ public sealed class OverlayView : View
             return true;
         }
 
+        if (MouseFlagTranslator.TryTranslateSideways(mouse.Flags, out var sideways))
+        {
+            GestureRaised?.Invoke(sideways);
+
+            return true;
+        }
+
         if (!MouseFlagTranslator.TryTranslate(mouse.Flags, out var gesture))
         {
             return base.OnMouseEvent(mouse);

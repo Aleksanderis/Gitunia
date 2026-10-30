@@ -1,6 +1,7 @@
 using Gitunia.Core.Conflicts;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
+using Gitunia.Core.Mouse;
 using Gitunia.Core.Overlays;
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
@@ -30,6 +31,11 @@ namespace Gitunia.Tui.Tests.App.Conflicts;
 public class ConflictEditorControllerTests
 {
     private const string ConflictPath = "conflict.txt";
+
+    private const string LongLines =
+        "<<<<<<< HEAD\nours line that is far longer than a third of the terminal width, with more words after it\n"
+        + "=======\ntheirs line that is far longer than a third of the terminal width, with more words after it\n"
+        + ">>>>>>> feature\n";
     private const string TwoHunkBase = "l1\nl2\nl3\nl4\nl5\nl6\nl7\nl8\nl9\nl10\nl11\nl12\n";
 
     public static TheoryData<string> Operations => ["merge", "rebase", "cherry-pick"];
@@ -1183,6 +1189,78 @@ public class ConflictEditorControllerTests
 
         Assert.Equal(StatusSeverity.Warning, harness.Statuses.Log.Latest!.Severity);
         Assert.Contains("mixes CRLF and LF", harness.Statuses.Log.Latest.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task GivenALongLine_WhenScrollingRightAndLeft_ThenTheVersionPanesMoveTogetherByAStepAndStopAtZero()
+    {
+        using var repository = TestRepositories.Conflicted();
+        repository.WriteFile(ConflictPath, LongLines);
+        using var harness = await Harness.CreateAsync(repository);
+        await harness.OpenAsync();
+
+        harness.Run(ActionIds.ConflictEditorScrollRight);
+        var once = harness.Controller.State!.HorizontalScroll;
+        Assert.True(harness.Controller.TryExecute(ActionIds.ConflictEditorScrollRight, 3));
+        var fourSteps = harness.Controller.State!.HorizontalScroll;
+        harness.Run(ActionIds.ConflictEditorScrollLeft);
+        harness.Run(ActionIds.ConflictEditorScrollLeft);
+        Assert.True(harness.Controller.TryExecute(ActionIds.ConflictEditorScrollLeft, 9));
+
+        Assert.Equal(ConflictEditorState.SidewaysStep, once);
+        Assert.Equal(4 * ConflictEditorState.SidewaysStep, fourSteps);
+        Assert.Equal(0, harness.Controller.State!.HorizontalScroll);
+    }
+
+    [Fact]
+    public async Task GivenTheCursorInTheResult_WhenScrollingSideways_ThenTheVersionPanesScrollAndTheModeStays()
+    {
+        using var repository = TestRepositories.Conflicted();
+        repository.WriteFile(ConflictPath, LongLines);
+        using var harness = await Harness.CreateAsync(repository);
+        await harness.OpenAsync();
+        harness.Run(ActionIds.PaneFocusDown);
+
+        harness.Run(ActionIds.ConflictEditorScrollRight);
+
+        Assert.True(harness.Controller.IsResultActive);
+        Assert.Equal(ConflictEditorState.SidewaysStep, harness.Controller.State!.HorizontalScroll);
+    }
+
+    [Fact]
+    public async Task GivenAVisualSelection_WhenScrollingSideways_ThenTheSelectionStaysAndTheTextMoves()
+    {
+        using var repository = TestRepositories.Conflicted();
+        repository.WriteFile(ConflictPath, LongLines);
+        using var harness = await Harness.CreateAsync(repository);
+        await harness.OpenAsync();
+        harness.Run(ActionIds.VisualToggle);
+
+        harness.Run(ActionIds.ConflictEditorScrollRight);
+
+        Assert.True(harness.Controller.IsVisual);
+        Assert.Equal(ConflictEditorState.SidewaysStep, harness.Controller.State!.HorizontalScroll);
+    }
+
+    [Fact]
+    public async Task GivenTheScrollRightChip_WhenClicking_ThenItsViewIsReturnedAndRunsTheScrollAction()
+    {
+        using var repository = TestRepositories.Conflicted();
+        repository.WriteFile(ConflictPath, LongLines);
+        using var harness = await Harness.CreateAsync(repository);
+        await harness.OpenAsync();
+        var state = harness.Controller.State!;
+        var layout = ConflictEditorFrameBuilder.LayoutFor(state, harness.Screen.Width, 35)!;
+        var chips = Enumerable.Range(0, layout.ChipRows.Count)
+            .SelectMany(row => Enumerable.Range(0, harness.Screen.Width).Select(column => (row, column)))
+            .Select(spot => ConflictEditorFrameBuilder.ChipAt(
+                state, layout.FirstChipLine + spot.row, spot.column, harness.Screen.Width, 35))
+            .Where(view => view == DefaultMouseMap.ConflictScrollRightButton)
+            .ToList();
+
+        Assert.NotEmpty(chips);
+        var binding = DefaultMouseMap.Create().Resolve(chips[0]!, MouseGesture.Click);
+        Assert.Equal(ActionIds.ConflictEditorScrollRight, binding?.Action);
     }
 
     private static TestRepository Stopped(string operation) => operation switch

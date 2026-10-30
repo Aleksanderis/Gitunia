@@ -156,7 +156,10 @@ internal static class ConflictPaneRows
             return;
         }
 
-        var printable = Printable(text);
+        var full = Printable(text);
+        var skip = TextWidth.SkipColumns(full, state.HorizontalScroll);
+        var printable = full[skip.Index..];
+        builder.Append(new string(' ', skip.Overshoot), SegmentRole.Plain);
         if (hunk < 0)
         {
             builder.Append(printable, SegmentRole.Plain);
@@ -168,7 +171,7 @@ internal static class ConflictPaneRows
         var theirs = alignment.TextAt(row, ConflictPane.Theirs);
         var differs = !string.Equals(ours, theirs, StringComparison.Ordinal);
         var role = RoleOfVersion(pane, differs);
-        var changes = differs ? WordChanges(alignment, pane, row) : [];
+        var changes = differs ? Shifted(WordChanges(alignment, pane, row), skip.Index) : [];
         if (pane == ConflictPane.Base)
         {
             ChangedText.Append(builder, printable, role, changes, SegmentRole.DiffRemovedWord);
@@ -177,6 +180,25 @@ internal static class ConflictPaneRows
         {
             ChangedText.Append(builder, printable, role, changes);
         }
+    }
+
+    // The word marks of a line whose first characters were scrolled out of view: spans move left, and the part of a
+    // span that lies in the hidden start goes with it.
+    private static IReadOnlyList<ChangedSpan> Shifted(IReadOnlyList<ChangedSpan> changes, int hidden)
+    {
+        if (hidden == 0 || changes.Count == 0)
+        {
+            return changes;
+        }
+
+        var shifted = new List<ChangedSpan>(changes.Count);
+        foreach (var span in changes.Where(span => span.End > hidden))
+        {
+            var start = Math.Max(span.Start, hidden);
+            shifted.Add(new ChangedSpan(start - hidden, span.End - start));
+        }
+
+        return shifted;
     }
 
     private static void AppendPlaceholder(

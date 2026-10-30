@@ -142,6 +142,8 @@
   { "action": "conflict-editor.undo", "view": "ConflictEditor", "modes": ["Normal"], "keys": ["u"] },
   { "action": "conflict-editor.redo", "view": "ConflictEditor", "modes": ["Normal"], "keys": ["Ctrl-r"] },
   { "action": "conflict-editor.untake", "view": "ConflictEditor", "modes": ["Normal", "Visual"], "keys": ["<space>u"] },
+  { "action": "conflict-editor.scroll-left", "view": "ConflictEditor", "modes": ["Normal", "Visual"], "keys": ["zh"] },
+  { "action": "conflict-editor.scroll-right", "view": "ConflictEditor", "modes": ["Normal", "Visual"], "keys": ["zl"] },
   { "action": "conflict-editor.recreate", "view": "ConflictEditor", "modes": ["Normal"], "keys": ["R"] },
   { "action": "conflict-editor.save", "view": "ConflictEditor", "modes": ["Normal"], "keys": ["Enter"] },
   { "action": "navigate.back", "view": "ConflictEditor", "modes": ["Normal"], "keys": ["Esc"] },
