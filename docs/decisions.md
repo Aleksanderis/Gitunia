@@ -479,4 +479,6 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 **UI:** Bare `h`/`j`/`k`/`l` stay inside a pane, `Ctrl-h`/`Ctrl-j`/`Ctrl-k`/`Ctrl-l` move between panes everywhere (#834, owner, agreed in #748; supersedes the `h`/`l` navigation exception of #338 and the `l`/`h` focus moves of #198, finishes the commit-box part of #818). Bare `h`/`l` keep their within-pane meanings (fold and unfold a tree, collapse and expand the sidebar, cursor in the message box); `Enter` goes into a pane and `Esc` back. Modal screens that replace the panes (reflog, rebase todo, conflict editor, settings, help) keep `h` as close or back, since they are not panes. Detail: `ux.md`, "Focus model and key style".
 
+## 2026-10-30
+
 **UI:** Branch chips are coloured per branch, not per lane (#849, owner; supersedes the "label takes its lane's colour" rule of #759/#760 for tips in the middle of another branch's lane). Different branches get different colours even when stacked on one lane (`test` on `main`); only a local branch and its remote-tracking branches of the same short name share one. Lane line and node keep the lane colour. Why: the owner read same-coloured chips as related branches. Detail: `ux.md`, `git-layer.md`.
