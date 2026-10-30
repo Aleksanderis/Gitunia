@@ -133,6 +133,19 @@ public sealed class OptionsConfiguratorTests
         Assert.Equal(path, Assert.Single(problems).Path);
     }
 
+    [Fact]
+    public void GivenHintsThatIsNoObject_WhenReadingTheOptions_ThenExactlyOneProblemIsReported()
+    {
+        var problems = new List<ConfigProblem>();
+        var document = new ConfigDocument { Hints = Json("5") };
+
+        var options = OptionsConfigurator.Read(document, Home, Exists, problems);
+
+        Assert.Equal("hints", Assert.Single(problems).Path);
+        Assert.True(options.WhichKeyPopup);
+        Assert.Equal(StatusBarHintMode.Full, options.StatusBarHints);
+    }
+
     [Theory]
     [InlineData("{ \"statusBar\": \"full\" }", StatusBarHintMode.Full)]
     [InlineData("{ \"statusBar\": \"Minimal\" }", StatusBarHintMode.Minimal)]
