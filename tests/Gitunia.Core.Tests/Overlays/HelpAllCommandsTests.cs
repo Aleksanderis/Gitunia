@@ -3,14 +3,17 @@ using Gitunia.Core.Config.Models;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Overlays;
+using Gitunia.Core.Tests.Keymap;
 using Xunit;
 
 namespace Gitunia.Core.Tests.Overlays;
 
+[Trait("Os", "Independent")]
 public class HelpAllCommandsTests
 {
     private static readonly KeyBindingTable Table = DefaultKeymap.Create();
 
+    private static readonly string[] HiddenVariantKeys = ["d", "f", "I", "s", "w"];
     private static readonly string[] ClusterActions = ["b.one", "a.one", "c.one", "b.two", "a.two"];
     private static readonly string[] ArrangedActions = ["b.one", "b.two", "a.one", "a.two", "c.one"];
     private static readonly string?[] ArrangedClusters = ["b", "b", "a", "a", null];
@@ -46,6 +49,37 @@ public class HelpAllCommandsTests
                 binding.View is "Picker" or "Palette" or "ContextMenu" or "Help"
                     || binding.Action.Value is "input.accept" or "confirm.yes" or "confirm.no",
                 $"{binding.View} {binding.Action.Value} is hidden from the help."));
+    }
+
+    [Fact]
+    public void GivenTheViewsOfTheKeymap_WhenListingThem_ThenEachIsOnAnAllCommandsTabOrAllowListed()
+    {
+        var onTabs = HelpBuilder.AllCommandsTabs(Table).SelectMany(tab => tab.Rows).Select(row => row.Action).ToHashSet();
+        var viewsWithoutTab = Table.Bindings
+            .Where(binding => !HelpBuilder.IsUnlisted(binding))
+            .GroupBy(binding => binding.View)
+            .Where(group => group.All(binding => !onTabs.Contains(binding.Action)))
+            .Select(group => group.Key)
+            .ToList();
+
+        Assert.Empty(viewsWithoutTab);
+    }
+
+    [Fact]
+    public void GivenTheGitPrefix_WhenBuildingWhichKeyRows_ThenTheRowsAfterTheMoreRowAreExactlyTheUnlistedActions()
+    {
+        var engine = new KeymapEngine(Table);
+        var feeder = new KeyFeeder(engine);
+        feeder.Feed("<space>");
+        feeder.Feed("g");
+
+        var rows = WhichKeyBuilder.Build(
+            engine.Continuations(feeder.State, DefaultKeymap.GraphView),
+            feeder.State.PendingSequence);
+        var more = rows.ToList().FindIndex(row => row.Key == "+");
+
+        Assert.Equal(rows.Count - 1, more + 5);
+        Assert.DoesNotContain(rows.Take(more), row => HiddenVariantKeys.Contains(row.Key));
     }
 
     [Fact]

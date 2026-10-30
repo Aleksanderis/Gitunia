@@ -19,7 +19,7 @@ public static class WhichKeyBuilder
         ["<space>v"] = ActionGroups.Diff.WhichKeyName!,
     };
 
-    private const string MoreKey = "…";
+    private const string MoreKey = "+";
     private const string VariantsText = "+more (variants and shortcuts)";
 
     private sealed record Item(Continuation Continuation, string Label);

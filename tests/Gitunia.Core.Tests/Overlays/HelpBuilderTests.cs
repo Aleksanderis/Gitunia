@@ -145,7 +145,7 @@ public class HelpBuilderTests
             engine.Continuations(feeder.State, DefaultKeymap.GraphView),
             feeder.State.PendingSequence,
             operationInProgress);
-        var more = keys.ToList().FindIndex(row => row.Key == "…");
+        var more = keys.ToList().FindIndex(row => row.Key == "+");
         var main = keys.Take(more < 0 ? keys.Count : more).Select(row => row.Key).ToList();
 
         Assert.All(listed, key => Assert.Contains(key, main));
@@ -240,7 +240,7 @@ public class HelpBuilderTests
         var rows = WhichKeyBuilder.Build(
             engine.Continuations(feeder.State, DefaultKeymap.GraphView),
             feeder.State.PendingSequence);
-        var more = rows.ToList().FindIndex(row => row.Key == "…");
+        var more = rows.ToList().FindIndex(row => row.Key == "+");
 
         Assert.True(more > 0);
         Assert.Equal("+more (variants and shortcuts)", rows[more].Description);
@@ -302,8 +302,11 @@ public class HelpBuilderTests
     {
         var groupStart = rows.ToList().FindIndex(row => row.Description.StartsWith("+more", StringComparison.Ordinal));
         groupStart = groupStart < 0 ? rows.Count : groupStart;
-        Assert.All(rows.Skip(groupStart), row => Assert.True(row.Description.StartsWith("+more", StringComparison.Ordinal)
-            || rows.Skip(groupStart).Any(other => other.Key == "…")));
+        var more = rows.ToList().FindIndex(row => row.Key == "+");
+        var groupsEnd = more < 0 ? rows.Count : more;
+        Assert.All(
+            rows.Skip(groupStart).Take(groupsEnd - groupStart),
+            row => Assert.StartsWith("+more", row.Description, StringComparison.Ordinal));
         var run = new List<WhichKeyRow>();
         foreach (var row in rows.Take(groupStart))
         {

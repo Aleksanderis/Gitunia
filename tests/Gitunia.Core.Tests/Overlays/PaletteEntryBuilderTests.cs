@@ -149,7 +149,7 @@ public class PaletteEntryBuilderTests
         foreach (var group in entries.GroupBy(entry => entry.Group))
         {
             var clusters = group.Select(entry => entry.Cluster).ToList();
-            var changes = clusters.Where((cluster, index) => index > 0 && cluster != clusters[index - 1]).Select(cluster => cluster).ToList();
+            var changes = clusters.Where((cluster, index) => index == 0 || cluster != clusters[index - 1]).ToList();
 
             Assert.Equal(changes.Distinct(), changes);
             Assert.All(group, entry => Assert.True(

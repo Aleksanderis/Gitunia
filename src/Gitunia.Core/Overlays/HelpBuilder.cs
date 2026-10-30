@@ -1,5 +1,6 @@
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
+using Gitunia.Core.Keymap.Repeat;
 
 namespace Gitunia.Core.Overlays;
 
@@ -67,7 +68,7 @@ public static class HelpBuilder
             "Conflicts",
             [DefaultKeymap.ConflictEditorView, DefaultKeymap.ConflictSideView, DefaultKeymap.ConflictResultView]),
         new("Settings", [DefaultKeymap.SettingsView]),
-        new("Repeat mode", ["ContextRepeat", "ResizeRepeat"]),
+        new("Repeat mode", [RepeatMode.ContextView, RepeatMode.ResizeView]),
     ];
 
     private static readonly Lazy<KeyBindingTable> Defaults = new(DefaultKeymap.Create);
