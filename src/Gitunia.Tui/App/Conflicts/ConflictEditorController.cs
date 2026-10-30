@@ -21,7 +21,7 @@ namespace Gitunia.Tui.App.Conflicts;
 
 /// <summary>
 /// The conflict editor (ux-workflows.md, workflow 4, "Conflict editor"): <c>Enter</c> on a conflicted file of the Unstaged list,
-/// or <c>&lt;space&gt;to</c> from any pane (the file under the Unstaged cursor, else the first conflicted one), reads
+/// or <c>&lt;space&gt;gr</c> from any pane (the file under the Unstaged cursor, else the first conflicted one), reads
 /// it off the UI thread and opens the full-screen editor: the whole file in the base, ours and theirs panes and in the
 /// result below, which is a text editor of its own (<see cref="ConflictEditorState"/>). A cursor moves in a pane;
 /// on a conflict the pick keys copy that pane's version into the result, in a Visual selection only the selected

@@ -66,7 +66,7 @@ public static class WorkingListTitleButtons
         return null;
     }
 
-    /// <summary>The <c>resolve</c> chip of the Unstaged list (the mouse path of <c>&lt;space&gt;to</c>, #701), left of
+    /// <summary>The <c>resolve</c> chip of the Unstaged list (the mouse path of <c>&lt;space&gt;gr</c>, #701), left of
     /// the view and stage all chips, or null when the title row has no room for it. The caller shows it only while
     /// the cursor is on a conflicted file.</summary>
     /// <param name="title">The title text of the list.</param>
