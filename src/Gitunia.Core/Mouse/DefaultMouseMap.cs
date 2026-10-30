@@ -184,6 +184,10 @@ public static class DefaultMouseMap
 
     public const string ConflictSelectButton = "ConflictButton.Select";
 
+    public const string ConflictScrollLeftButton = "ConflictButton.ScrollLeft";
+
+    public const string ConflictScrollRightButton = "ConflictButton.ScrollRight";
+
     /// <summary>The setting row, the <c>[+]</c> marker and the <c>[x]</c> marker of the settings screen (#523):
     /// each is a view of its own, a click runs the action its key runs on the row the click selected.</summary>
     public const string SettingsEditButton = "SettingsButton.Edit";
@@ -258,6 +262,8 @@ public static class DefaultMouseMap
         ConflictEditDoneButton,
         ConflictTakeButton,
         ConflictPaneButton,
+        ConflictScrollLeftButton,
+        ConflictScrollRightButton,
         ConflictSelectButton,
         DefaultKeymap.SettingsView,
         SettingsEditButton,
@@ -336,6 +342,12 @@ public static class DefaultMouseMap
         new(DefaultKeymap.ConflictSideView, MouseGesture.WheelUp, ActionIds.ListUp, WheelLines),
         new(DefaultKeymap.ConflictSideView, MouseGesture.WheelDown, ActionIds.ListDown, WheelLines),
         new(DefaultKeymap.ConflictSideView, MouseGesture.DragStart, ActionIds.VisualToggle),
+        new(DefaultKeymap.ConflictSideView, MouseGesture.WheelHorizontalBack, ActionIds.ConflictEditorScrollLeft),
+        new(DefaultKeymap.ConflictSideView, MouseGesture.WheelHorizontalForward, ActionIds.ConflictEditorScrollRight),
+        new(DefaultKeymap.ConflictResultView, MouseGesture.WheelHorizontalBack, ActionIds.ConflictEditorScrollLeft),
+        new(DefaultKeymap.ConflictResultView, MouseGesture.WheelHorizontalForward, ActionIds.ConflictEditorScrollRight),
+        new(ConflictScrollLeftButton, MouseGesture.Click, ActionIds.ConflictEditorScrollLeft),
+        new(ConflictScrollRightButton, MouseGesture.Click, ActionIds.ConflictEditorScrollRight),
         new(DefaultKeymap.ConflictResultView, MouseGesture.WheelUp, ActionIds.ListUp, WheelLines),
         new(DefaultKeymap.ConflictResultView, MouseGesture.WheelDown, ActionIds.ListDown, WheelLines),
         new(ConflictOursButton, MouseGesture.Click, ActionIds.ConflictEditorOurs),

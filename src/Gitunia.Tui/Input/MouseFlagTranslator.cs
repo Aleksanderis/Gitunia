@@ -13,6 +13,35 @@ public static class MouseFlagTranslator
     public static bool IsLeftClick(MouseFlags flags) =>
         flags.HasFlag(MouseFlags.LeftButtonClicked) || flags.HasFlag(MouseFlags.LeftButtonDoubleClicked) || flags.HasFlag(MouseFlags.LeftButtonTripleClicked);
 
+    /// <summary>
+    /// A sideways wheel notch (Ctrl or Shift with the wheel): up scrolls left, down scrolls right. False for
+    /// anything else. Only the views that scroll sideways ask for it; for the others <see cref="TryTranslate"/> still
+    /// ignores such a notch.
+    /// </summary>
+    public static bool TryTranslateSideways(MouseFlags flags, out MouseGesture gesture)
+    {
+        gesture = default;
+        if (!flags.HasFlag(MouseFlags.Ctrl) && !flags.HasFlag(MouseFlags.Shift))
+        {
+            return false;
+        }
+
+        if (flags.HasFlag(MouseFlags.WheeledUp))
+        {
+            gesture = MouseGesture.WheelHorizontalBack;
+        }
+        else if (flags.HasFlag(MouseFlags.WheeledDown))
+        {
+            gesture = MouseGesture.WheelHorizontalForward;
+        }
+        else
+        {
+            return false;
+        }
+
+        return true;
+    }
+
     /// <summary>Returns false for events the mouse map has no use for (moves, presses, releases, other buttons, a sideways wheel).</summary>
     /// <param name="flags">The toolkit's flags.</param>
     /// <param name="gesture">The gesture.</param>

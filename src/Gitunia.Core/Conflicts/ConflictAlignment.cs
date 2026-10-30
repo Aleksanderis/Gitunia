@@ -1,3 +1,4 @@
+using Gitunia.Core.Text;
 using Gitunia.Git.Conflicts.Models;
 
 namespace Gitunia.Core.Conflicts;
@@ -10,6 +11,9 @@ namespace Gitunia.Core.Conflicts;
 /// </summary>
 public sealed class ConflictAlignment
 {
+    /// <summary>Columns a tab is drawn as in the version panes.</summary>
+    public const int TabColumns = 4;
+
     private readonly IReadOnlyList<string>[] _ours;
     private readonly IReadOnlyList<string>[] _theirs;
     private readonly IReadOnlyList<string>[] _base;
@@ -21,6 +25,7 @@ public sealed class ConflictAlignment
     private readonly int[] _partRowCount;
     private readonly int[] _hunkPart;
     private readonly int[] _hunksBeforePart;
+    private int? _widest;
 
     private ConflictAlignment(IReadOnlyList<ConflictPart> parts)
     {
@@ -146,6 +151,12 @@ public sealed class ConflictAlignment
         return aligned.Offset < lines.Count ? lines[aligned.Offset] : null;
     }
 
+    /// <summary>
+    /// Columns of the widest line in the base, ours and theirs versions, tabs shown as <see cref="TabColumns"/>
+    /// spaces (what the version panes draw), at least 0. Worked out once, on first use.
+    /// </summary>
+    public int WidestLineColumns => _widest ??= MeasureWidest();
+
     /// <summary>The line number of a row in its version of the file, null for a filler row.</summary>
     public int? NumberAt(int row, ConflictPane pane)
     {
@@ -251,4 +262,19 @@ public sealed class ConflictAlignment
         ConflictPane.Theirs => _theirsStart[part],
         _ => _baseStart[part],
     };
+
+    private int MeasureWidest()
+    {
+        var widest = 0;
+        foreach (var lines in _ours.Concat(_theirs).Concat(_base))
+        {
+            foreach (var line in lines)
+            {
+                var tabs = line.Count(character => character == '\t');
+                widest = Math.Max(widest, DisplayWidth.Of(line) + (tabs * (TabColumns - 1)));
+            }
+        }
+
+        return widest;
+    }
 }

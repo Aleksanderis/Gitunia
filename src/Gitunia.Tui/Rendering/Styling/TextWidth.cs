@@ -50,6 +50,36 @@ public static class TextWidth
     }
 
     /// <summary>
+    /// Where <paramref name="text"/> continues after its first <paramref name="columns"/> columns: a wide character
+    /// that straddles the edge is skipped whole (its extra column comes back as <see cref="ColumnSkip.Overshoot"/>, for
+    /// the caller to pad), and combining marks that belong to the last skipped character go with it.
+    /// </summary>
+    public static ColumnSkip SkipColumns(string text, int columns)
+    {
+        if (columns <= 0)
+        {
+            return new ColumnSkip(0, 0);
+        }
+
+        var width = 0;
+        var index = 0;
+        var counter = new WidthCounter();
+        foreach (var rune in text.EnumerateRunes())
+        {
+            var runeWidth = counter.Next(rune);
+            if (width >= columns && runeWidth > 0)
+            {
+                break;
+            }
+
+            width += runeWidth;
+            index += rune.Utf16SequenceLength;
+        }
+
+        return new ColumnSkip(index, Math.Max(0, width - columns));
+    }
+
+    /// <summary>
     /// The end of <paramref name="text"/> that fits <paramref name="columns"/>, led by <paramref name="ellipsis"/>
     /// when something
     /// was cut off the start. A wide character is never split and the cut never leaves a lone combining mark at the

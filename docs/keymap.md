@@ -214,6 +214,8 @@ Every default key binding, one table per view. The design rules, notation and mo
 | `u` | Normal | `conflict-editor.undo` | Conflict editor: undo the last pick or edit |
 | `Ctrl-r` | Normal | `conflict-editor.redo` | Conflict editor: redo the undone pick or edit |
 | `<space>u` | Normal, Visual | `conflict-editor.untake` | Conflict editor: untake, make the conflict unresolved again (a Visual selection: remove only its lines) |
+| `zh` | Normal, Visual | `conflict-editor.scroll-left` | Conflict editor: scroll the base, ours and theirs panes sideways to the left |
+| `zl` | Normal, Visual | `conflict-editor.scroll-right` | Conflict editor: scroll the base, ours and theirs panes sideways to the right |
 | `R` | Normal | `conflict-editor.recreate` | Conflict editor: re-create the conflict of the file (asks first) |
 | `Enter` | Normal | `conflict-editor.save` | Conflict editor: save the file (asks first) |
 | `Esc` | Normal | `navigate.back` | Go back |

@@ -20,6 +20,16 @@ public class ConflictEditorFrameBuilderTests
         "top\ntwo\none\n<<<<<<< HEAD\nours 1\nours 2\n=======\ntheirs 1\n>>>>>>> feature\nafter\n"
         + "<<<<<<< HEAD\nA\n=======\nB\n>>>>>>> feature\n";
 
+    private const string LongPad = "long long long long long long long long long long long long long long long ";
+
+    private const string LongText =
+        "top\n<<<<<<< HEAD\n" + "ours 1 " + LongPad + "tail-end\n=======\n" + "theirs 1 " + LongPad + "tail-end\n>>>>>>> feature\n"
+        + "common " + LongPad + "tail-end\n";
+
+    private const string WordMarkText =
+        "top\n<<<<<<< HEAD\n" + LongPad + "the red fox\n||||||| base\n" + LongPad + "the fox\n=======\n"
+        + LongPad + "the blue fox\n>>>>>>> feature\nend\n";
+
     private const string Diff3Text =
         "top\n<<<<<<< HEAD\nthe red fox\n||||||| base\nthe fox\n=======\nthe blue fox\n>>>>>>> feature\nend\n";
 
@@ -513,6 +523,114 @@ public class ConflictEditorFrameBuilderTests
         Assert.Contains("conflict 100 of 100", frame.Lines[0].Text, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void GivenALongLine_WhenScrolledSideways_ThenAllThreePanesShowTheTextFromTheColumn()
+    {
+        var state = State(LongText);
+
+        var start = Build(state);
+        var scrolled = Build(state.ScrollSideways(ConflictEditorState.SidewaysStep * 8));
+
+        var startPanes = VersionLines(start);
+        var scrolledPanes = VersionLines(scrolled);
+        Assert.DoesNotContain(startPanes, line => line.Contains("tail-end", StringComparison.Ordinal));
+        Assert.Contains(scrolledPanes, line => CountOf(line, "tail-end") == 3);
+        Assert.Contains(startPanes, line => line.Contains("ours 1", StringComparison.Ordinal));
+        Assert.DoesNotContain(scrolledPanes, line => line.Contains("ours 1", StringComparison.Ordinal));
+        Assert.All(scrolled.Lines, line => Assert.Equal(120, TextWidth.Of(line.Text)));
+    }
+
+    [Fact]
+    public void GivenAScrolledPane_WhenRendering_ThenTheMarginAndTheLineNumberStay()
+    {
+        var scrolled = Build(State(LongText).ScrollSideways(ConflictEditorState.SidewaysStep * 8));
+
+        var row = VersionLines(scrolled).First(line => CountOf(line, "tail-end") == 3);
+
+        // After the frame's border: two margin columns, then the line number of the pane's own file.
+        Assert.Matches(@"^.{2}\s*\d+ ", row[1..]);
+    }
+
+    [Fact]
+    public void GivenAScrolledPane_WhenRendering_ThenTheHeadersSayWhichColumnTheTextStartsAt()
+    {
+        var state = State(LongText);
+
+        Assert.DoesNotContain("col ", Build(state).Lines[1].Text, StringComparison.Ordinal);
+        Assert.Contains("col 9", Build(state.ScrollSideways(ConflictEditorState.SidewaysStep)).Lines[1].Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GivenAWordMarkPartlyScrolledOut_WhenRendering_ThenTheMarkFollowsTheVisiblePart()
+    {
+        var state = State(WordMarkText).ScrollSideways(LongPad.Length + 5);
+
+        var frame = Build(state);
+
+        var marked = frame.Lines.SelectMany(line => line.Segments)
+            .Where(segment => segment.Role is SegmentRole.DiffRemovedWord or SegmentRole.DiffAddedWord)
+            .Select(segment => segment.Text)
+            .ToList();
+        Assert.Contains(marked, text => text.Contains("ed", StringComparison.Ordinal) && !text.Contains("red", StringComparison.Ordinal));
+        Assert.Contains(marked, text => text.Contains("lue", StringComparison.Ordinal) && !text.Contains("blue", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void GivenAWideCharacterAtTheCut_WhenScrolled_ThenItsHalfBecomesABlankAndRowsKeepTheirWidth()
+    {
+        var state = State("ab\u4f60\u597dcd tail\n<<<<<<< HEAD\nA\n=======\nB\n>>>>>>> feature\n");
+
+        var cutInside = Build(state.ScrollSideways(3));
+        var cutBefore = Build(state.ScrollSideways(2));
+
+        Assert.Contains(" \u597dcd tail", TextOfLineWith(cutInside, "cd tail"), StringComparison.Ordinal);
+        Assert.Contains("\u4f60\u597dcd tail", TextOfLineWith(cutBefore, "cd tail"), StringComparison.Ordinal);
+        Assert.All(cutInside.Lines, line => Assert.Equal(120, TextWidth.Of(line.Text)));
+        Assert.All(cutBefore.Lines, line => Assert.Equal(120, TextWidth.Of(line.Text)));
+    }
+
+    [Fact]
+    public void GivenAScrolledLineShorterThanTheScroll_WhenRendering_ThenItsTextIsBlankNotCrashing()
+    {
+        var state = State(LongText).ScrollSideways(ConflictEditorState.SidewaysStep * 8);
+
+        var frame = Build(state);
+
+        Assert.DoesNotContain(VersionLines(frame), line => line.Contains("top", StringComparison.Ordinal));
+        Assert.All(frame.Lines, line => Assert.Equal(120, TextWidth.Of(line.Text)));
+    }
+
+    [Fact]
+    public void GivenTheScrollLimits_WhenScrollingFarOrBackPastTheStart_ThenItStopsAtTheWidestLineAndAtZero()
+    {
+        var state = State(LongText);
+
+        var far = state.ScrollSideways(100000);
+        var back = far.ScrollSideways(-100000);
+
+        Assert.Equal(state.MaxHorizontalScroll, far.HorizontalScroll);
+        Assert.True(far.HorizontalScroll > 0);
+        Assert.Equal(0, back.HorizontalScroll);
+        Assert.Same(state, state.ScrollSideways(-5));
+    }
+
+    [Fact]
+    public void GivenTabsInTheWidestLine_WhenMeasuring_ThenEachTabCountsAsFourColumns()
+    {
+        var state = State("\t\tx\n<<<<<<< HEAD\nA\n=======\nB\n>>>>>>> feature\n");
+
+        Assert.Equal(9, state.Alignment.WidestLineColumns);
+    }
+
+    [Fact]
+    public void GivenTheVersionPanes_WhenListingChips_ThenScrollChipsAreOffered()
+    {
+        var text = ChipText(State(Text));
+
+        Assert.Contains("zh scroll left", text, StringComparison.Ordinal);
+        Assert.Contains("zl scroll right", text, StringComparison.Ordinal);
+    }
+
     private static OverlayFrame Build(ConflictEditorState state, int width = 120, int height = 35) =>
         ConflictEditorFrameBuilder.Build(state, width, height, GraphGlyphSet.Unicode)!;
 
@@ -530,6 +648,15 @@ public class ConflictEditorFrameBuilderTests
         frame.Lines.Select(line => line.Text).First(line => line.Contains(text, StringComparison.Ordinal));
 
     private static int CountOf(string row, string value) => row.Split(value).Length - 1;
+
+    // The lines of the version panes: everything between the pane headers and the result header.
+    private static List<string> VersionLines(OverlayFrame frame)
+    {
+        var lines = frame.Lines.Select(line => line.Text).ToList();
+        var header = lines.FindIndex(line => line.Contains(" result ", StringComparison.Ordinal));
+
+        return lines[2..header];
+    }
 
     // The lines of the result pane: everything after the line that carries the result header.
     private static List<string> ResultLines(OverlayFrame frame)

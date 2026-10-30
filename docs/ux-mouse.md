@@ -67,6 +67,10 @@ Views inherit like in the keymap: `Lists` covers Graph, Detail, Sidebar, Diff an
 | ConflictSide | Wheel up | `list.up` | Cursor up three lines in the pane (the other panes follow) |
 | ConflictSide | Wheel down | `list.down` | Cursor down three lines |
 | ConflictSide | Drag start | `visual.toggle` | Drag from a row of the base, ours or theirs pane: the cursor goes to the row and a Visual selection starts like `v`; the far end follows the pointer, `<space>a` / the `take lines` chip takes only those lines (#861). A click on a row or result line places the cursor from the frame position (no action; see workflow 4, "Mouse") |
+| ConflictSide | Sideways wheel back | `conflict-editor.scroll-left` | Shift or Ctrl with the wheel up: the base, ours and theirs panes scroll 8 columns to the left together (#862) |
+| ConflictSide | Sideways wheel forward | `conflict-editor.scroll-right` | Shift or Ctrl with the wheel down: 8 columns to the right |
+| ConflictResult | Sideways wheel back | `conflict-editor.scroll-left` | Same, with the cursor in the result: the version panes scroll, the result keeps scrolling its cursor line on its own |
+| ConflictResult | Sideways wheel forward | `conflict-editor.scroll-right` | Same, to the right |
 | ConflictResult | Wheel up | `list.up` | Result cursor up three lines |
 | ConflictResult | Wheel down | `list.down` | Result cursor down three lines |
 | ConflictButton.Ours | Click | `conflict-editor.ours` | Chip `o ours`: takes our side for the current conflict |
@@ -77,6 +81,8 @@ Views inherit like in the keymap: `Lists` covers Graph, Detail, Sidebar, Diff an
 | ConflictButton.AllOurs | Click | `conflict-editor.all-ours` | Chip `O all ours` |
 | ConflictButton.AllTheirs | Click | `conflict-editor.all-theirs` | Chip `T all theirs` |
 | ConflictButton.Select | Click | `visual.toggle` | Chip `v select lines` (`end selection` while one is open) |
+| ConflictButton.ScrollLeft | Click | `conflict-editor.scroll-left` | Chip `zh scroll left`: the version panes 8 columns to the left (#862) |
+| ConflictButton.ScrollRight | Click | `conflict-editor.scroll-right` | Chip `zl scroll right` |
 | ConflictButton.Pane | Click | `pane.next` | Chip `Tab next pane`: base, ours, theirs, result; on a narrow terminal it also changes the version panes shown |
 | ConflictButton.Undo | Click | `conflict-editor.undo` | Chip `u undo` |
 | ConflictButton.Redo | Click | `conflict-editor.redo` | Chip `Ctrl-r redo` |

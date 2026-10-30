@@ -92,4 +92,24 @@ public class TextWidthTests
         Assert.True(TextWidth.Of(fitted) <= columns);
         Assert.Equal(expected, fitted);
     }
+
+    [Theory]
+    [InlineData("hello", 0, 0, 0)]
+    [InlineData("hello", 2, 2, 0)]
+    [InlineData("hello", 9, 5, 0)]
+    [InlineData("ab\u4f60\u597dc", 2, 2, 0)]
+    [InlineData("ab\u4f60\u597dc", 3, 3, 1)]
+    [InlineData("ab\u4f60\u597dc", 4, 3, 0)]
+    [InlineData("ae\u0301b", 2, 3, 0)]
+    public void GivenColumnsToSkip_WhenSkipping_ThenTheWideCharacterIsNotSplitAndMarksStayWithTheirBase(
+        string text,
+        int columns,
+        int index,
+        int overshoot)
+    {
+        var skip = TextWidth.SkipColumns(text, columns);
+
+        Assert.Equal(index, skip.Index);
+        Assert.Equal(overshoot, skip.Overshoot);
+    }
 }

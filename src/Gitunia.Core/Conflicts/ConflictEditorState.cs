@@ -34,6 +34,9 @@ namespace Gitunia.Core.Conflicts;
 /// <param name="IsEditing">The result pane is in Insert mode.</param>
 /// <param name="UndoStack">What <see cref="Undo"/> restores, the latest change last.</param>
 /// <param name="RedoStack">What <see cref="Redo"/> restores, the latest undone change last.</param>
+/// <param name="HorizontalScroll">
+/// Columns the text of the base, ours and theirs panes is scrolled to the left, together (0 shows the line starts).
+/// </param>
 public sealed record ConflictEditorState(
     TabId TabId,
     string Path,
@@ -52,15 +55,22 @@ public sealed record ConflictEditorState(
     bool IsDiscardPending = false,
     bool IsEditing = false,
     IReadOnlyList<ConflictSnapshot>? UndoStack = null,
-    IReadOnlyList<ConflictSnapshot>? RedoStack = null)
+    IReadOnlyList<ConflictSnapshot>? RedoStack = null,
+    int HorizontalScroll = 0)
 {
     /// <summary>The most changes one session remembers; older ones are forgotten.</summary>
     public const int UndoLimit = 100;
+
+    /// <summary>Columns one sideways scroll key press or wheel notch moves the version panes.</summary>
+    public const int SidewaysStep = 8;
 
     private const int CenterDivisor = 3;
 
     private static readonly ConflictPane[] PaneOrder =
         [ConflictPane.Base, ConflictPane.Ours, ConflictPane.Theirs, ConflictPane.Result];
+
+    /// <summary>The columns the version panes can be scrolled sideways at most: the widest line, less one.</summary>
+    public int MaxHorizontalScroll => Math.Max(0, Alignment.WidestLineColumns - 1);
 
     /// <summary>The state for a freshly read file: nothing is picked and the cursor is on the first conflict.</summary>
     public static ConflictEditorState Create(TabId tabId, string path, IReadOnlyList<ConflictPart> parts)
@@ -455,6 +465,17 @@ public sealed record ConflictEditorState(
 
     /// <summary>The far end of a Visual selection follows a drag to an aligned row of the version panes.</summary>
     public ConflictEditorState DragToVersionRow(int row) => IsVisual && IsVersionPane ? OnVersionRow(row) : this;
+
+    /// <summary>
+    /// Scrolls the text of the base, ours and theirs panes sideways together by <paramref name="columns"/> (negative
+    /// to the left), kept between 0 and the widest line.
+    /// </summary>
+    public ConflictEditorState ScrollSideways(int columns)
+    {
+        var target = Math.Clamp(HorizontalScroll + columns, 0, MaxHorizontalScroll);
+
+        return target == HorizontalScroll ? this : this with { HorizontalScroll = target };
+    }
 
     /// <summary>
     /// Moves into the result at the current conflict and starts Insert mode there (from a version pane), or starts

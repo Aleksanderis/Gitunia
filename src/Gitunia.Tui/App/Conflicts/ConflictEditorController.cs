@@ -478,6 +478,11 @@ public sealed class ConflictEditorController(
         {
             Update(state.MoveToBottom());
         }
+        else if (action == ActionIds.ConflictEditorScrollLeft || action == ActionIds.ConflictEditorScrollRight)
+        {
+            var columns = steps * ConflictEditorState.SidewaysStep;
+            Update(state.ScrollSideways(action == ActionIds.ConflictEditorScrollRight ? columns : -columns));
+        }
         else if (action == ActionIds.ConflictEditorNext)
         {
             Update(state.NextConflict(), isCentered: true);

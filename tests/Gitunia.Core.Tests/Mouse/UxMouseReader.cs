@@ -41,6 +41,8 @@ public static class UxMouseReader
         "Click" => MouseGesture.Click,
         "Double-click" => MouseGesture.DoubleClick,
         "Wheel up" => MouseGesture.WheelUp,
+        "Sideways wheel back" => MouseGesture.WheelHorizontalBack,
+        "Sideways wheel forward" => MouseGesture.WheelHorizontalForward,
         "Wheel down" => MouseGesture.WheelDown,
         "Drag start" => MouseGesture.DragStart,
         "Drag up" => MouseGesture.DragUp,
