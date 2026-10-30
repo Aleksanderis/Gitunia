@@ -17,6 +17,10 @@ Key notes that the tables cannot carry:
 - `Ctrl-h` `Ctrl-j` `Ctrl-k` `Ctrl-l` and `Ctrl-Backspace` focus panes in Normal mode only. `Ctrl-j` arrives as `Ctrl+Enter`, distinct from `Enter`; `Ctrl-h` is `Backspace` (0x08) in many terminals, so `Ctrl-Backspace` (focus left) is bound too and plain `Backspace` stays unbound in Normal mode. Where a terminal or multiplexer swallows them, `Tab` and `Ctrl-w h/j/k/l` still work; remap in the config file.
 - `Ctrl-w >` `Ctrl-w <` move the divider beside the focused pane by 2 columns (a count multiplies; dragging a divider does the same); `Ctrl-w +` `Ctrl-w -` move the edge between the graph and the bottom panes by 1 row; `Ctrl-w =` resets the sizes. The `ResizeRepeat` and `ContextRepeat` views are the short-lived repeat modes after such a step: any other key ends the mode.
 - `Ctrl-^` has a second binding, `<space><Tab>`, for terminals that drop it.
+- `Esc` ladder in Normal mode: cancels a pending chord, then clears the search highlight, leaves Insert, cancels running remote work in the graph, else dismisses the status message.
+- Visual `y` copies the range without `+`/`-`/space markers or gutter, a wrapped row once, notes skipped; above about 75 KB it refuses, and a failed copy keeps the range.
+- `<space>bd` asks a second Confirm when the branch is unmerged; `<space>to` with no conflicted file says so in the status bar.
+- Working tree, `Enter` on a screen under 80 columns: the diff replaces the list until `Esc`.
 - Graph search prefixes: `author:`, `hash:`, `body:`.
 
 **Actions menu** (`<space>.` in the graph or sidebar, a double-click on a graph row, or a click on the `...` marker at the right edge of the selected sidebar row; #471, #479, #482).

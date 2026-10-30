@@ -569,8 +569,12 @@ Every default key binding, one table per view. The design rules, notation and mo
 
 ## Actions without a key
 
-Reachable from the command palette (`:`) only.
+No default key; reached from the command palette (`:`), the actions menu, the mouse or a prompt.
 
 | Action | What |
 |---|---|
+| `help.tab-select` | Show the clicked help tab |
+| `pick.mainline` | Choose the mainline parent in the open cherry-pick or revert prompt |
+| `remote.fetch-all` | Fetch all remotes (prunes) |
 | `settings.open-theme` | Open the settings at the theme |
+| `working-tree.open` | Open the working tree |

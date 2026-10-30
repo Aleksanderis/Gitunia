@@ -1,22 +1,14 @@
 using System.Reflection;
 using Gitunia.Core.Keymap;
-using Gitunia.KeymapDoc;
 using Gitunia.Core.Keymap.Models;
+using Gitunia.KeymapDoc;
 using Xunit;
 
 namespace Gitunia.Core.Tests.Keymap;
 
 public class KeymapDocumentationTests
 {
-    // Actions with no default key: reached by mouse, from the palette, or by a modal prompt that is not a keymap row.
-    private static readonly HashSet<string> UnboundActions =
-    [
-        "help.tab-select",
-        "pick.mainline",
-        "remote.fetch-all",
-        "settings.open-theme",
-        "working-tree.open",
-    ];
+    private static readonly HashSet<string> UnboundActions = [.. ActionCatalog.NoDefaultKey.Select(action => action.Value)];
 
     [Fact]
     public void GivenTheKeymapFile_WhenRenderingTheReference_ThenTheCommittedDocIsCurrent()

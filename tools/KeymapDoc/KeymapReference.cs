@@ -33,10 +33,10 @@ public static class KeymapReference
         }
 
         var bound = rows.Select(row => row.Action).ToHashSet();
-        var unbound = ActionCatalog.PaletteOnly.Where(action => !bound.Contains(action)).Select(action => action.Value).Order(StringComparer.Ordinal).ToList();
+        var unbound = ActionCatalog.NoDefaultKey.Where(action => !bound.Contains(action)).Select(action => action.Value).Order(StringComparer.Ordinal).ToList();
         if (unbound.Count > 0)
         {
-            text.Append("\n## Actions without a key\n\nReachable from the command palette (`:`) only.\n\n| Action | What |\n|---|---|\n");
+            text.Append("\n## Actions without a key\n\nNo default key; reached from the command palette (`:`), the actions menu, the mouse or a prompt.\n\n| Action | What |\n|---|---|\n");
             foreach (var id in unbound)
             {
                 text.Append($"| `{id}` | {Escape(ActionCatalog.Describe(new ActionId(id)))} |\n");
