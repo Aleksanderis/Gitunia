@@ -6,7 +6,7 @@ using Gitunia.Tui.Rendering.Styling;
 namespace Gitunia.Tui.Rendering.Overlays;
 
 /// <summary>
-/// Lays out the help overlay: the keys of the focused view in tabs (the view, its inherited lists, global), each split
+/// Lays out the help overlay: the keys of the focused view in pages (a left menu of sections or a tab row), each split
 /// under group subheaders, scrollable.
 /// </summary>
 public static class HelpFrameBuilder
@@ -19,6 +19,13 @@ public static class HelpFrameBuilder
     private const string KeysIndent = "  ";
     private const string ColumnPadding = " ";
     private const int ColumnSeparatorWidth = 2 * 1 + 1;
+    private const int MenuFromPages = 5;
+    private const int MaximumMenuWidth = 24;
+    private const string MenuMarker = "> ";
+    private const string MenuIndent = "  ";
+    private const int MenuTrailingSpace = 1;
+    private const int MenuShareDivisor = 3;
+    private const int MinimumMenuDescriptionWidth = 20;
 
     /// <summary>
     /// Lines the content of one tab needs at a screen width (section headings, rows with long descriptions wrapped, and
@@ -27,7 +34,7 @@ public static class HelpFrameBuilder
     public static int ContentHeight(IReadOnlyList<HelpTab> tabs, int tab, int screenWidth)
     {
         var sections = SectionsOf(tabs, tab);
-        var descriptionWidth = DescriptionWidth(tabs, WidthFor(screenWidth));
+        var descriptionWidth = DescriptionWidth(tabs, ContentWidth(tabs, screenWidth));
         var rows = sections.Sum(
             section => section.Rows.Sum(
                 row => WrapText(row.Text, descriptionWidth).Count + (row.GapBefore ? 1 : 0)) + 1);
@@ -42,13 +49,15 @@ public static class HelpFrameBuilder
     /// <summary>Content lines that fit the screen, 0 when the overlay cannot be shown.</summary>
     public static int VisibleRows(IReadOnlyList<HelpTab> tabs, int tab, int screenWidth, int screenHeight)
     {
-        var available = screenHeight - ScreenMargin - ChromeRows - (tabs.Count > 1 ? 1 : 0);
+        var available = screenHeight - ScreenMargin - ChromeRows - TabRowHeight(tabs, screenWidth);
         if (screenWidth - ScreenMargin < OverlayBox.MinimumWidth || available < 1)
         {
             return 0;
         }
 
-        return Math.Min(ContentHeight(tabs, tab, screenWidth), available);
+        // With the section menu the list of sections needs its lines too, so a short page does not cut the menu.
+        var needed = Math.Max(ContentHeight(tabs, tab, screenWidth), HasMenu(tabs, screenWidth) ? tabs.Count : 0);
+        return Math.Min(needed, available);
     }
 
     /// <summary>Content lines that fit the screen when there is a single page.</summary>
@@ -77,7 +86,7 @@ public static class HelpFrameBuilder
         string? title = null) =>
         Build(SinglePage(sections), 0, view, scroll, screenWidth, screenHeight, glyphs, title);
 
-    /// <summary>The help frame of one tab, with the tab row under the title when there are several tabs.</summary>
+    /// <summary>The help frame of one page, with the section menu on the left or a tab row under the title.</summary>
     public static OverlayFrame? Build(
         IReadOnlyList<HelpTab> tabs,
         int tab,
@@ -95,21 +104,31 @@ public static class HelpFrameBuilder
         }
 
         var width = WidthFor(screenWidth);
-        var content = Flatten(SectionsOf(tabs, tab), KeysWidth(tabs), width, DescriptionWidth(tabs, width), glyphs);
+        var contentWidth = ContentWidth(tabs, screenWidth);
+        var descriptionWidth = DescriptionWidth(tabs, contentWidth);
+        var content = Flatten(SectionsOf(tabs, tab), KeysWidth(tabs), contentWidth, descriptionWidth, glyphs);
         var first = Math.Clamp(scroll, 0, Math.Max(0, content.Count - rowCount));
 
         var lines = new List<StyledLine> { OverlayBox.Title(title ?? $"Keys: {view}", width, glyphs) };
-        if (tabs.Count > 1)
+        if (HasMenu(tabs, screenWidth))
         {
-            lines.Add(TabRow(tabs, tab, width, glyphs));
+            lines.AddRange(MenuRows(tabs, tab, [.. content.Skip(first).Take(rowCount)], rowCount, width, glyphs));
+        }
+        else
+        {
+            if (tabs.Count > 1)
+            {
+                lines.Add(TabRow(tabs, tab, width, glyphs));
+            }
+
+            lines.AddRange(content.Skip(first).Take(rowCount));
         }
 
-        lines.AddRange(content.Skip(first).Take(rowCount));
         var lead = content.Count > rowCount ? $"{first + 1}-{first + rowCount}/{content.Count}" : string.Empty;
         var hints = new List<HintItem> { new("Esc", "close") };
         if (tabs.Count > 1)
         {
-            hints.Add(new("Tab", "next tab"));
+            hints.Add(new("Tab", HasMenu(tabs, screenWidth) ? "next section" : "next tab"));
         }
 
         if (content.Count > rowCount)
@@ -124,11 +143,23 @@ public static class HelpFrameBuilder
 
     /// <summary>
     /// The tab under a click: <paramref name="frameLine"/> and <paramref name="frameColumn"/> are inside the frame
-    /// (0 is the top border and the left border); null when the click is not on a tab label. When the labels do not
+    /// (0 is the top border and the left border); null when the click is not on a menu entry or tab
+    /// label. When the labels do not
     /// fit, the one compact label stands for the next tab.
     /// </summary>
-    public static int? TabAt(IReadOnlyList<HelpTab> tabs, int tab, int screenWidth, int frameLine, int frameColumn)
+    public static int? TabAt(
+        IReadOnlyList<HelpTab> tabs,
+        int tab,
+        int screenWidth,
+        int screenHeight,
+        int frameLine,
+        int frameColumn)
     {
+        if (HasMenu(tabs, screenWidth))
+        {
+            return MenuEntryAt(tabs, tab, screenWidth, screenHeight, frameLine, frameColumn);
+        }
+
         if (tabs.Count < 2 || frameLine != TabRowLine)
         {
             return null;
@@ -186,6 +217,107 @@ public static class HelpFrameBuilder
         }
 
         return OverlayBox.Wrap(builder.Build(), glyphs);
+    }
+
+    // Many pages (the real help has 17): a menu of the sections on the left instead of a tab row nobody can read,
+    // unless the screen is so narrow that the descriptions beside it would get too few columns.
+    private static bool HasMenu(IReadOnlyList<HelpTab> tabs, int screenWidth)
+    {
+        if (tabs.Count < MenuFromPages)
+        {
+            return false;
+        }
+
+        var width = WidthFor(screenWidth);
+        return DescriptionWidth(tabs, width - MenuWidth(tabs, width) - 1) >= MinimumMenuDescriptionWidth;
+    }
+
+    private static int TabRowHeight(IReadOnlyList<HelpTab> tabs, int screenWidth) =>
+        tabs.Count > 1 && !HasMenu(tabs, screenWidth) ? 1 : 0;
+
+    private static int? MenuEntryAt(
+        IReadOnlyList<HelpTab> tabs,
+        int tab,
+        int screenWidth,
+        int screenHeight,
+        int frameLine,
+        int frameColumn)
+    {
+        var rows = VisibleRows(tabs, tab, screenWidth, screenHeight);
+        var entry = MenuStart(tabs.Count, tab, rows) + frameLine - 1;
+        var isInMenu = frameLine >= 1
+            && frameLine <= rows
+            && frameColumn >= 1
+            && frameColumn <= MenuWidth(tabs, WidthFor(screenWidth));
+        if (!isInMenu || entry >= tabs.Count)
+        {
+            return null;
+        }
+
+        return entry;
+    }
+
+    private static int MenuWidth(IReadOnlyList<HelpTab> tabs, int width)
+    {
+        var longest = tabs.Select(tab => TextWidth.Of(tab.Title)).DefaultIfEmpty(0).Max();
+        var wanted = Math.Min(MaximumMenuWidth, longest + MenuMarker.Length + MenuTrailingSpace);
+        return Math.Max(1, Math.Min(wanted, (width - OverlayBox.BorderWidth) / MenuShareDivisor));
+    }
+
+    // Outer width the page content is laid out at: the whole box, or what is left of it beside the menu.
+    private static int ContentWidth(IReadOnlyList<HelpTab> tabs, int screenWidth)
+    {
+        var width = WidthFor(screenWidth);
+        return HasMenu(tabs, screenWidth) ? width - MenuWidth(tabs, width) - 1 : width;
+    }
+
+    // First menu entry shown: the active one stays in view, roughly centred.
+    private static int MenuStart(int count, int active, int rows) =>
+        Math.Clamp(active - rows / 2, 0, Math.Max(0, count - rows));
+
+    private static List<StyledLine> MenuRows(
+        IReadOnlyList<HelpTab> tabs,
+        int active,
+        List<StyledLine> content,
+        int rows,
+        int width,
+        GraphGlyphSet glyphs)
+    {
+        var menuWidth = MenuWidth(tabs, width);
+        var start = MenuStart(tabs.Count, active, rows);
+        var rule = glyphs.For(LineDirections.Up | LineDirections.Down).ToString();
+        var separator = new StyledSegment(rule, SegmentRole.Faint);
+        var contentInner = OverlayBox.InnerWidth(width) - menuWidth - 1;
+        var lines = new List<StyledLine>();
+        for (var row = 0; row < rows; row++)
+        {
+            var entry = start + row;
+            var menu = new LineBuilder(menuWidth, glyphs.Ellipsis);
+            if (entry < tabs.Count)
+            {
+                var isActive = entry == active;
+                var marker = isActive ? MenuMarker : MenuIndent;
+                menu.Append($"{marker}{tabs[entry].Title}", isActive ? SegmentRole.SectionTitle : SegmentRole.Faint);
+            }
+
+            // A content line is [side, ...inner, side]: keep its inner part and put the menu before it.
+            var inner = InnerSegments(content, row, contentInner, glyphs);
+            lines.Add(OverlayBox.Wrap(new StyledLine([.. menu.Build().Segments, separator, .. inner]), glyphs));
+        }
+
+        return lines;
+    }
+
+    // The segments between the side rules of a content line, or blanks past the end of the page.
+    private static List<StyledSegment> InnerSegments(List<StyledLine> content, int row, int width, GraphGlyphSet glyphs)
+    {
+        if (row >= content.Count)
+        {
+            return [.. new LineBuilder(width, glyphs.Ellipsis).Build().Segments];
+        }
+
+        var segments = content[row].Segments;
+        return [.. segments.Skip(1).Take(segments.Count - OverlayBox.BorderWidth)];
     }
 
     private static IReadOnlyList<HelpTab> SinglePage(IReadOnlyList<HelpSection> sections) =>

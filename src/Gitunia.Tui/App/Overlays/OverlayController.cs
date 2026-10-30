@@ -415,7 +415,7 @@ public sealed class OverlayController
     public int? HelpTabNumberAt(int frameLine, int frameColumn)
     {
         if (State.Kind == OverlayKind.Help
-            && HelpFrameBuilder.TabAt(_helpTabs, State.HelpTab, _screenSize().Width, frameLine, frameColumn)
+            && HelpFrameBuilder.TabAt(_helpTabs, State.HelpTab, _screenSize().Width, _screenSize().Height, frameLine, frameColumn)
                 is { } index)
         {
             return index + 1;

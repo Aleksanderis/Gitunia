@@ -41,7 +41,7 @@ Views inherit like in the keymap: `Lists` covers Graph, Detail, Sidebar, Diff an
 | ContextMenu | Wheel down | `palette.next` | Move the highlight down one row |
 | ConfirmButton.Yes | Click | `confirm.yes` | The `y` row of a confirm dialog, same as `y` |
 | ConfirmButton.No | Click | `confirm.no` | The `n` row of a confirm dialog, same as `n` / `Esc` |
-| HelpTab | Click | `help.tab-select` | A tab label in the help overlay's tab row: shows that tab (the row number is the click target; when the labels do not fit, the one compact label `[Graph] 1/4` moves to the next tab) |
+| HelpTab | Click | `help.tab-select` | A section in the help overlay's left menu, or a tab label in its tab row (few pages): shows that page (the row number is the click target; when the labels do not fit, the one compact label `[Graph] 1/4` moves to the next tab) |
 | Help | Wheel up | `list.up` | Scroll the help up 3 lines (wherever the pointer is while the overlay is open) |
 | Help | Wheel down | `list.down` | Scroll the help down 3 lines |
 | Messages | Wheel up | `list.up` | Scroll the status history up 3 lines |
