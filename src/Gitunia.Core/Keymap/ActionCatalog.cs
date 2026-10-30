@@ -94,6 +94,16 @@ public static class ActionCatalog
         ActionIds.SettingsOpenTheme,
     ];
 
+    // Actions with no default key: reached from the command palette, the actions menu, the mouse or a modal prompt.
+    private static readonly HashSet<ActionId> NoDefaultKeyActions =
+    [
+        ActionIds.HelpTabSelect,
+        ActionIds.PickMainline,
+        ActionIds.RemoteFetchAll,
+        ActionIds.SettingsOpenTheme,
+        ActionIds.WorkingTreeOpen,
+    ];
+
     private static readonly HashSet<ActionId> CopyActions =
     [
         ActionIds.GraphCopyHash,
@@ -404,6 +414,9 @@ public static class ActionCatalog
 
     /// <summary>Actions with no key: the palette lists them without keys, the mouse reaches them there.</summary>
     public static IReadOnlySet<ActionId> PaletteOnly { get; } = PaletteOnlyActions.ToFrozenSet();
+
+    /// <summary>Actions without a default key; the generated keymap reference lists them and a test keeps the set honest.</summary>
+    public static IReadOnlySet<ActionId> NoDefaultKey { get; } = NoDefaultKeyActions.ToFrozenSet();
 
     /// <summary>True for actions that only make sense inside a modal prompt; the palette does not list them.</summary>
     public static bool IsModalOnly(ActionId action) => ModalOnly.Contains(action);

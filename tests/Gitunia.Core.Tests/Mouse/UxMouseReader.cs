@@ -11,7 +11,7 @@ public static class UxMouseReader
     {
         var rows = new List<UxMouseRow>();
         var inMouse = false;
-        foreach (var line in File.ReadAllLines(UxKeymapReader.FindUxDocument("ux-mouse.md")))
+        foreach (var line in File.ReadAllLines(RepoDocs.FindUxDocument("ux-mouse.md")))
         {
             if (line.StartsWith("## ", StringComparison.Ordinal))
             {

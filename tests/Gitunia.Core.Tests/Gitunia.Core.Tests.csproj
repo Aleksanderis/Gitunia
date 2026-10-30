@@ -18,6 +18,10 @@
     <Compile Include="..\Gitunia.Git.Tests\Fixtures\TestGitSpeed.cs" Link="Fixtures\TestGitSpeed.cs" />
   </ItemGroup>
   <ItemGroup>
+    <!-- The renderer of docs/keymap.md, linked from the generator so a test can check the committed file is current (#868). -->
+    <Compile Include="..\..\tools\KeymapDoc\KeymapReference.cs" Link="Keymap\KeymapReference.cs" />
+  </ItemGroup>
+  <ItemGroup>
     <!-- Snapshot of the default bindings (mode|view|keys|action), the parity test of #857. -->
     <EmbeddedResource Include="Keymap\Data\default-bindings.txt" LogicalName="default-bindings.txt" />
   </ItemGroup>
