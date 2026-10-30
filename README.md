@@ -17,7 +17,7 @@ A standalone client for all your repositories, not a tool you launch from inside
 In:
 - Standalone, multi-repository workspace: launch from any directory (or with `gitunia [path]`), repository tabs, open/recent/pinned repository picker with fuzzy search, session restore (open tabs, selection per tab), per-tab state that survives switching.
 - Commit graph (scrollable, searchable, handles 100k+ commits).
-- Working tree: status, stage/unstage files, hunks and lines, commit, amend; conflicted files resolved hunk by hunk in a built-in conflict editor (ours, theirs, both or text you type, with undo and a base view).
+- Working tree: status, stage/unstage files, hunks and lines, commit, amend; conflicted files resolved in a built-in full-screen conflict editor modelled on KDiff3 (base, ours and theirs side by side over the whole file, whole versions or single lines picked into an editable result, with undo).
 - Diff viewer (unified and side-by-side), also between any two commits (mark one, select the other).
 - Branches: list local/remote, checkout, create, rename, delete, reset (soft/mixed/hard), merge, rebase, upstream tracking, ahead/behind.
 - Tags: create (lightweight and annotated), delete, push and delete on a remote.

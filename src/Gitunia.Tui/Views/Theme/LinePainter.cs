@@ -24,6 +24,7 @@ public static class LinePainter
             SegmentSelection.None => new SegmentHighlight(false, isFocused),
             SegmentSelection.Focused => new SegmentHighlight(true, true),
             SegmentSelection.Dim => new SegmentHighlight(true, false),
+            SegmentSelection.Range => new SegmentHighlight(true, isFocused, true),
             _ => new SegmentHighlight(line.IsSelected, isFocused, isRange && line.IsSelected, isRangeCursor && line.IsSelected),
         };
 }

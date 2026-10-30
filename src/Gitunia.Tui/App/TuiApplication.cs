@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using Gitunia.Core.Clipboard;
+using Gitunia.Core.Conflicts;
 using Gitunia.Core.Config;
 using Gitunia.Core.Config.Models;
 using Gitunia.Core.Graph;
@@ -7,6 +8,7 @@ using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Keymap.Repeat;
 using Gitunia.Core.Mouse;
+using Gitunia.Core.Operations;
 using Gitunia.Core.Overlays;
 using Gitunia.Core.Persistence;
 using Gitunia.Core.Picker;
@@ -466,6 +468,7 @@ public sealed class TuiApplication(
         _view.Window.ViewportChanged += (_, _) => _popups.Sync();
         _view.EdgeDragged += OnEdgeDragged;
         _view.OverlayLineClicked += OnOverlayLineClicked;
+        _view.OverlayLineDoubleClicked += OnOverlayLineDoubleClicked;
         _view.Graph.ValueChanged += (_, _) => _visual.OnCursorMoved();
         _view.Detail.ValueChanged += (_, _) => _visual.OnCursorMoved();
         _view.Detail.ValueChanged += (_, _) => _diffPane.OnDetailCursorMoved();
@@ -560,6 +563,14 @@ public sealed class TuiApplication(
         // The settings do not open over another overlay (help, palette, a dialog, the reflog).
         if ((action == ActionIds.SettingsOpen || action == ActionIds.SettingsOpenTheme)
             && (_overlays.State.IsOpen || _reflog.IsOpen || _rebaseEditor.IsOpen || _conflictEditor.IsOpen))
+        {
+            return;
+        }
+
+        // <space>tm is global (#742): it must not start git mergetool under an open overlay or editor.
+        if (action == ActionIds.ToolMergetool
+            && (_overlays.State.IsOpen || _reflog.IsOpen || _rebaseEditor.IsOpen || _conflictEditor.IsOpen
+                || _settings.IsOpen))
         {
             return;
         }
@@ -686,6 +697,28 @@ public sealed class TuiApplication(
         {
             _host.Dispatch(new TabCommand(tabId, new SetPaneSizesCommand(sizes.SidebarWidth, sizes.BottomHeight, sizes.DetailWidth)));
             Relayout();
+        }
+    }
+
+    // Only the conflict editor uses the double-click of an overlay (a version row takes its version; a chip already ran
+    // on the first click and does nothing again); the other overlays keep ignoring it.
+    private void OnOverlayLineDoubleClicked(int line)
+    {
+        if (!_conflictEditor.IsOpen)
+        {
+            return;
+        }
+
+        var view = _conflictEditor.OnLineClicked(line, _view.Overlay.PointerColumn, out var handled, isDoubleClick: true);
+        if (!handled)
+        {
+            return;
+        }
+
+        _overlayClickTicks = Environment.TickCount64;
+        if (view is not null)
+        {
+            _mouse.Handle(view, MouseGesture.Click);
         }
     }
 
@@ -1287,6 +1320,21 @@ public sealed class TuiApplication(
         return _statuses.Current?.Severity;
     }
 
+    private IReadOnlyList<KeyHint> ConflictEditorHints()
+    {
+        if (_conflictEditor.IsEditing)
+        {
+            return PaneHints.ForConflictEdit();
+        }
+
+        if (_conflictEditor.IsResultActive)
+        {
+            return PaneHints.ForConflictResult();
+        }
+
+        return _conflictEditor.IsVisual ? PaneHints.ForConflictVisual() : PaneHints.ForConflictVersions();
+    }
+
     private IReadOnlyList<KeyHint> CurrentHints()
     {
         if (_overlays.State.Kind == OverlayKind.Confirm)
@@ -1301,7 +1349,7 @@ public sealed class TuiApplication(
 
         if (_conflictEditor.IsOpen)
         {
-            return _conflictEditor.IsEditing ? PaneHints.ForConflictEdit() : PaneHints.ForConflictEditor();
+            return ConflictEditorHints();
         }
 
         if (_rebaseEditor.IsOpen)
@@ -1324,6 +1372,23 @@ public sealed class TuiApplication(
             return PaneHints.ForRepeat(repeating.Kind);
         }
 
+        var hints = PaneHintsOfFocus();
+
+        if (!ConflictPending())
+        {
+            return hints;
+        }
+
+        if (ConflictEditorSupport.AnyCanOpen(_host.Workspace.ActiveTab?.WorkingTree))
+        {
+            return PaneHints.WithConflictEditor(hints);
+        }
+
+        return PaneHints.WithConflictMergetool(hints);
+    }
+
+    private IReadOnlyList<KeyHint> PaneHintsOfFocus()
+    {
         if (DetailChangesFocused())
         {
             return PaneHints.ForDetailChanges();
@@ -1336,8 +1401,15 @@ public sealed class TuiApplication(
 
         return PaneHints.For(
             _host.Workspace.ActiveTab?.View.FocusedPane ?? PaneKind.Graph,
-            _diffPane.IsShowingContent);
+            _diffPane.IsShowingContent,
+            OnConflictedFile(),
+            OnRefusedConflictedFile());
     }
+
+    // A merge, rebase, cherry-pick or revert is stopped on a conflict: <space>to opens the editor from every pane.
+    private bool ConflictPending() =>
+        _host.Workspace.ActiveTab is { Operation: not null } tab
+        && OperationBannerBuilder.HasConflicts(tab.WorkingTree);
 
     // The full name of the sidebar row under the cursor while the sidebar has focus (rows show short names).
     private string FocusedSidebarName()
@@ -1350,6 +1422,18 @@ public sealed class TuiApplication(
 
         return string.Empty;
     }
+
+    // Only the Unstaged list and its diff lead with the conflict editor, so no other pane pays for the lookup.
+    private bool OnConflictedFile() =>
+        _host.Workspace.ActiveTab is { View.FocusedPane: PaneKind.WorkingUnstaged or PaneKind.WorkingUnstagedDiff } tab
+        && ConflictedSelection.Find(tab.WorkingTree) is { } entry
+        && ConflictEditorSupport.CanOpen(entry.Conflict);
+
+    // The same panes, on a conflicted file the editor refuses: the hints name the mergetool.
+    private bool OnRefusedConflictedFile() =>
+        _host.Workspace.ActiveTab is { View.FocusedPane: PaneKind.WorkingUnstaged or PaneKind.WorkingUnstagedDiff } tab
+        && ConflictedSelection.Find(tab.WorkingTree) is { } entry
+        && !ConflictEditorSupport.CanOpen(entry.Conflict);
 
     private bool GraphComparing() =>
         _host.Workspace.ActiveTab?.View is { FocusedPane: PaneKind.Graph, CompareMark: not null };
@@ -1485,7 +1569,7 @@ public sealed class TuiApplication(
 
         if (_conflictEditor.IsOpen && !_overlays.State.IsOpen)
         {
-            return DefaultKeymap.ConflictEditorView;
+            return _conflictEditor.ViewName;
         }
 
         if (_rebaseEditor.IsOpen && !_overlays.State.IsOpen)

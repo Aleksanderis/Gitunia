@@ -34,6 +34,8 @@ public static class DefaultKeymap
     public const string ReflogView = "Reflog";
     public const string RebaseEditorView = "RebaseEditor";
     public const string ConflictEditorView = "ConflictEditor";
+    public const string ConflictSideView = "ConflictSide";
+    public const string ConflictResultView = "ConflictResult";
     public const string SettingsView = "Settings";
 
     private static readonly KeyMode[] Navigation = [KeyMode.Normal, KeyMode.Visual];
@@ -63,6 +65,8 @@ public static class DefaultKeymap
         [ReflogView] = ListsView,
         [RebaseEditorView] = ListsView,
         [ConflictEditorView] = ListsView,
+        [ConflictSideView] = ConflictEditorView,
+        [ConflictResultView] = ConflictEditorView,
         [SettingsView] = ListsView,
         [RepeatMode.ContextView] = KeyBindingTable.GlobalView,
         [RepeatMode.ResizeView] = KeyBindingTable.GlobalView,
@@ -147,6 +151,8 @@ public static class DefaultKeymap
         Add(bindings, NormalOnly, global, "<space>gc", ActionIds.OperationContinue);
         Add(bindings, NormalOnly, global, "<space>ga", ActionIds.OperationAbort);
         Add(bindings, NormalOnly, global, "<space>gk", ActionIds.OperationSkip);
+        Add(bindings, NormalOnly, global, "<space>to", ActionIds.ConflictOpen);
+        Add(bindings, NormalOnly, global, "<space>tm", ActionIds.ToolMergetool);
         Add(bindings, [.. Enum.GetValues<KeyMode>()], global, "Esc", ActionIds.Cancel);
     }
 
@@ -179,7 +185,6 @@ public static class DefaultKeymap
         Add(bindings, NormalOnly, GraphView, "<space>=", ActionIds.GraphCompare);
         Add(bindings, NormalOnly, GraphView, "<space>r", ActionIds.RepositoryRefresh);
         Add(bindings, NormalOnly, GraphView, "<space>td", ActionIds.ToolDifftool);
-        Add(bindings, NormalOnly, GraphView, "<space>tm", ActionIds.ToolMergetool);
         Add(bindings, NormalOnly, GraphView, "<space>te", ActionIds.ToolCommitEditor);
         AddBottomTabKeys(bindings, GraphView);
         AddBranchKeys(bindings, GraphView);
@@ -352,37 +357,61 @@ public static class DefaultKeymap
         Add(bindings, [KeyMode.Insert], editor, "Ctrl-g", ActionIds.RebaseEditorMessageSave);
     }
 
-    // The conflict editor is a modal like the rebase todo editor: its single letters (n/N step through the hunks, o, t
-    // and b pick a side, O and T pick a side for every open hunk, e edits the result, r makes the hunk unresolved
-    // again, u/Ctrl-r undo and redo, B shows the base, R re-creates the conflict) are keys of the modal, not buffer
-    // commands, and shadow Lists' search keys. In Insert mode the result's text editor takes text; only Enter, Esc
-    // and the Ctrl-g accept act.
+    // The conflict editor is a modal like the rebase todo editor (#742). ConflictEditor holds the keys of every pane;
+    // ConflictSide (the base, ours and theirs panes, read-only) adds the picks, ConflictResult (the text editor over
+    // the whole file) the commit box's Normal mode keys. n/N step through the conflicts (the editor has no search),
+    // so they shadow Lists' search keys; <space>u untakes a conflict as <space>a takes it (the same chord unstages in the
+    // Staged views, which the editor covers; the old reset key r is gone). In Insert mode the result's text editor
+    // takes text; only Enter, Esc and Ctrl-g act.
     private static void AddConflictEditorKeys(List<KeyBinding> bindings)
     {
         const string editor = ConflictEditorView;
         Add(bindings, NormalOnly, editor, "n", ActionIds.ConflictEditorNext);
         Add(bindings, NormalOnly, editor, "N", ActionIds.ConflictEditorPrevious);
-        Add(bindings, NormalOnly, editor, "o", ActionIds.ConflictEditorOurs);
-        Add(bindings, NormalOnly, editor, "t", ActionIds.ConflictEditorTheirs);
-        Add(bindings, NormalOnly, editor, "b", ActionIds.ConflictEditorBoth);
-        Add(bindings, NormalOnly, editor, "O", ActionIds.ConflictEditorAllOurs);
-        Add(bindings, NormalOnly, editor, "T", ActionIds.ConflictEditorAllTheirs);
+        Add(bindings, NormalOnly, editor, "]c", ActionIds.ConflictEditorNext);
+        Add(bindings, NormalOnly, editor, "[c", ActionIds.ConflictEditorPrevious);
         Add(bindings, NormalOnly, editor, "u", ActionIds.ConflictEditorUndo);
         Add(bindings, NormalOnly, editor, "Ctrl-r", ActionIds.ConflictEditorRedo);
-        Add(bindings, NormalOnly, editor, "r", ActionIds.ConflictEditorReset);
-        Add(bindings, NormalOnly, editor, "e", ActionIds.ConflictEditorEdit);
-        Add(bindings, NormalOnly, editor, "B", ActionIds.ConflictEditorBase);
+        Add(bindings, Navigation, editor, "<space>u", ActionIds.ConflictEditorUntake);
         Add(bindings, NormalOnly, editor, "R", ActionIds.ConflictEditorRecreate);
-        Add(bindings, NormalOnly, editor, "]c", ActionIds.ConflictEditorNextDiff);
-        Add(bindings, NormalOnly, editor, "[c", ActionIds.ConflictEditorPreviousDiff);
-        Add(bindings, NormalOnly, editor, "Ctrl-d", ActionIds.ConflictEditorScrollDown);
-        Add(bindings, NormalOnly, editor, "Ctrl-u", ActionIds.ConflictEditorScrollUp);
         Add(bindings, NormalOnly, editor, "Enter", ActionIds.ConflictEditorSave);
-        Add(bindings, [KeyMode.Insert], editor, "Enter", ActionIds.ConflictEditorEditNewLine);
-        Add(bindings, [KeyMode.Insert], editor, "Ctrl-g", ActionIds.ConflictEditorEditDone);
-        // Esc first: the chips show the first of equally short keys.
         Add(bindings, NormalOnly, editor, "Esc", ActionIds.NavigateBack);
-        Add(bindings, NormalOnly, editor, "h", ActionIds.NavigateBack);
+        AddConflictSideKeys(bindings);
+        AddConflictResultKeys(bindings);
+    }
+
+    private static void AddConflictSideKeys(List<KeyBinding> bindings)
+    {
+        const string side = ConflictSideView;
+        Add(bindings, Navigation, side, "<space>a", ActionIds.ConflictEditorTake);
+        Add(bindings, NormalOnly, side, "o", ActionIds.ConflictEditorOurs);
+        Add(bindings, NormalOnly, side, "t", ActionIds.ConflictEditorTheirs);
+        Add(bindings, NormalOnly, side, "b", ActionIds.ConflictEditorBase);
+        Add(bindings, NormalOnly, side, "B", ActionIds.ConflictEditorBoth);
+        Add(bindings, NormalOnly, side, "O", ActionIds.ConflictEditorAllOurs);
+        Add(bindings, NormalOnly, side, "T", ActionIds.ConflictEditorAllTheirs);
+        Add(bindings, NormalOnly, side, "e", ActionIds.ConflictEditorEdit);
+        Add(bindings, NormalOnly, side, "h", ActionIds.NavigateBack);
+    }
+
+    private static void AddConflictResultKeys(List<KeyBinding> bindings)
+    {
+        const string result = ConflictResultView;
+        Add(bindings, NormalOnly, result, "i", ActionIds.ConflictEditorEdit);
+        Add(bindings, NormalOnly, result, "h", ActionIds.WorkingTreeMessageLeft);
+        Add(bindings, NormalOnly, result, "l", ActionIds.WorkingTreeMessageRight);
+        Add(bindings, NormalOnly, result, "w", ActionIds.WorkingTreeMessageWordNext);
+        Add(bindings, NormalOnly, result, "b", ActionIds.WorkingTreeMessageWordPrevious);
+        Add(bindings, NormalOnly, result, "0", ActionIds.WorkingTreeMessageLineStart);
+        Add(bindings, NormalOnly, result, "$", ActionIds.WorkingTreeMessageLineEnd);
+        Add(bindings, NormalOnly, result, "a", ActionIds.WorkingTreeMessageAppend);
+        Add(bindings, NormalOnly, result, "A", ActionIds.WorkingTreeMessageAppendAtEnd);
+        Add(bindings, NormalOnly, result, "I", ActionIds.WorkingTreeMessageInsertAtStart);
+        Add(bindings, NormalOnly, result, "o", ActionIds.WorkingTreeMessageOpenLine);
+        Add(bindings, NormalOnly, result, "x", ActionIds.WorkingTreeMessageDeleteChar);
+        Add(bindings, NormalOnly, result, "dd", ActionIds.WorkingTreeMessageDeleteLine);
+        Add(bindings, [KeyMode.Insert], result, "Enter", ActionIds.ConflictEditorEditNewLine);
+        Add(bindings, [KeyMode.Insert], result, "Ctrl-g", ActionIds.ConflictEditorEditDone);
     }
 
     // The settings screen: the list motions come from Lists; these edit the setting under the cursor. They are keys
@@ -427,7 +456,6 @@ public static class DefaultKeymap
         // Stage, unstage and discard also act on a Visual range of files.
         Add(bindings, Navigation, WorkingUnstagedView, "<space>a", ActionIds.WorkingTreeStage);
         Add(bindings, NormalOnly, WorkingUnstagedView, "<space>A", ActionIds.WorkingTreeStageAll);
-        Add(bindings, NormalOnly, WorkingUnstagedView, "<space>to", ActionIds.ConflictOpen);
         Add(bindings, Navigation, WorkingUnstagedView, "<space>d", ActionIds.WorkingTreeDiscard);
         Add(bindings, Navigation, WorkingStagedView, "<space>u", ActionIds.WorkingTreeUnstage);
         Add(bindings, NormalOnly, WorkingStagedView, "<space>U", ActionIds.WorkingTreeUnstageAll);

@@ -85,6 +85,95 @@ public class PaneHintsTests
     }
 
     [Fact]
+    public void GivenAConflictedFileInTheUnstagedList_WhenAskingForHints_ThenTheEditorLeadsTheListsOwnHints()
+    {
+        var hints = PaneHints.For(PaneKind.WorkingUnstaged, showsFileContent: false, onConflict: true);
+
+        Assert.Equal("Enter", hints[3].Keys);
+        Assert.Equal("conflict editor", hints[3].Description);
+        Assert.DoesNotContain(hints, hint => hint.Description == "diff");
+        Assert.DoesNotContain(PaneHints.For(PaneKind.WorkingUnstaged), hint => hint.Description == "conflict editor");
+        AssertKeysTriggerActions(hints, KeyMode.Normal, DefaultKeymap.WorkingUnstagedView);
+    }
+
+    [Fact]
+    public void GivenAConflictedFileInItsDiff_WhenAskingForHints_ThenTheLeaderKeysOfTheEditorLeadAndAreBound()
+    {
+        var hints = PaneHints.For(PaneKind.WorkingUnstagedDiff, showsFileContent: false, onConflict: true);
+
+        Assert.Equal("<space>to", hints[3].Keys);
+        Assert.Equal("conflict editor", hints[3].Description);
+        AssertKeysTriggerActions(hints, KeyMode.Normal, DefaultKeymap.WorkingUnstagedDiffView);
+    }
+
+    [Theory]
+    [InlineData(PaneKind.Graph)]
+    [InlineData(PaneKind.Sidebar)]
+    [InlineData(PaneKind.Diff)]
+    [InlineData(PaneKind.WorkingStaged)]
+    public void GivenAConflictPending_WhenAddingTheEditorHint_ThenItFollowsHelpCommandsAndQuitAndIsBound(PaneKind pane)
+    {
+        var hints = PaneHints.WithConflictEditor(PaneHints.For(pane));
+
+        Assert.Equal("<space>to", hints[3].Keys);
+        Assert.Equal("conflict editor", hints[3].Description);
+        Assert.Equal(PaneHints.For(pane).Count + 1, hints.Count);
+        AssertKeysTriggerActions(hints, KeyMode.Normal, ViewFor(pane));
+    }
+
+    [Fact]
+    public void GivenARefusedConflictedFileInTheUnstagedList_WhenAskingForHints_ThenTheMergetoolLeadsAndTheEditorIsNotOffered()
+    {
+        var hints = PaneHints.For(PaneKind.WorkingUnstaged, showsFileContent: false, onRefusedConflict: true);
+
+        Assert.Equal("<space>tm", hints[3].Keys);
+        Assert.Equal("mergetool", hints[3].Description);
+        Assert.DoesNotContain(hints, hint => hint.Description is "conflict editor" or "diff");
+        AssertKeysTriggerActions(hints, KeyMode.Normal, DefaultKeymap.WorkingUnstagedView);
+    }
+
+    [Fact]
+    public void GivenARefusedConflictedFileInItsDiff_WhenAskingForHints_ThenTheMergetoolLeads()
+    {
+        var hints = PaneHints.For(PaneKind.WorkingUnstagedDiff, showsFileContent: false, onRefusedConflict: true);
+
+        Assert.Equal("<space>tm", hints[3].Keys);
+        Assert.DoesNotContain(hints, hint => hint.Description == "conflict editor");
+        AssertKeysTriggerActions(hints, KeyMode.Normal, DefaultKeymap.WorkingUnstagedDiffView);
+    }
+
+    [Theory]
+    [InlineData(PaneKind.Graph)]
+    [InlineData(PaneKind.Sidebar)]
+    [InlineData(PaneKind.WorkingStaged)]
+    public void GivenNoConflictedFileTheEditorTakes_WhenAddingTheMergetoolHint_ThenItFollowsHelpCommandsAndQuit(
+        PaneKind pane)
+    {
+        var hints = PaneHints.WithConflictMergetool(PaneHints.For(pane));
+
+        Assert.Equal("<space>tm", hints[3].Keys);
+        Assert.Equal("mergetool", hints[3].Description);
+        Assert.Equal(PaneHints.For(pane).Count + 1, hints.Count);
+        AssertKeysTriggerActions(hints, KeyMode.Normal, ViewFor(pane));
+    }
+
+    [Fact]
+    public void GivenHintsThatAlreadyLeadWithTheEditor_WhenAddingTheEditorHint_ThenTheyAreLeftAlone()
+    {
+        var hints = PaneHints.For(PaneKind.WorkingUnstaged, showsFileContent: false, onConflict: true);
+
+        Assert.Same(hints, PaneHints.WithConflictEditor(hints));
+    }
+
+    [Theory]
+    [InlineData(PaneKind.Graph)]
+    [InlineData(PaneKind.WorkingStaged)]
+    public void GivenAConflictedFileButAnotherPane_WhenAskingForHints_ThenTheyAreTheUsualOnes(PaneKind pane)
+    {
+        Assert.Equal(PaneHints.For(pane), PaneHints.For(pane, showsFileContent: false, onConflict: true));
+    }
+
+    [Fact]
     public void GivenThePickerHints_WhenListing_ThenEveryHintHasADescription()
     {
         foreach (var hint in PaneHints.ForPicker())
@@ -197,7 +286,9 @@ public class PaneHintsTests
             "Confirm",
             "Reflog",
             "RebaseEditor",
-            "ConflictEditor",
+            "ConflictVersions",
+            "ConflictVisual",
+            "ConflictResult",
             "ConflictEdit",
             "RebaseMessage",
             "Settings",
@@ -221,17 +312,29 @@ public class PaneHintsTests
             case "Reflog":
                 AssertKeysTriggerActions(PaneHints.ForReflog(), KeyMode.Normal, DefaultKeymap.ReflogView);
                 break;
-            case "ConflictEditor":
+            case "ConflictVersions":
                 AssertKeysTriggerActions(
-                    PaneHints.ForConflictEditor(),
+                    PaneHints.ForConflictVersions(),
                     KeyMode.Normal,
-                    DefaultKeymap.ConflictEditorView);
+                    DefaultKeymap.ConflictSideView);
+                break;
+            case "ConflictVisual":
+                AssertKeysTriggerActions(
+                    PaneHints.ForConflictVisual(),
+                    KeyMode.Visual,
+                    DefaultKeymap.ConflictSideView);
+                break;
+            case "ConflictResult":
+                AssertKeysTriggerActions(
+                    PaneHints.ForConflictResult(),
+                    KeyMode.Normal,
+                    DefaultKeymap.ConflictResultView);
                 break;
             case "ConflictEdit":
                 AssertKeysTriggerActions(
                     PaneHints.ForConflictEdit(),
                     KeyMode.Insert,
-                    DefaultKeymap.ConflictEditorView);
+                    DefaultKeymap.ConflictResultView);
                 break;
             case "RebaseEditor":
                 AssertKeysTriggerActions(PaneHints.ForRebaseEditor(), KeyMode.Normal, DefaultKeymap.RebaseEditorView);

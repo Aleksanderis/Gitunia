@@ -46,21 +46,36 @@ public class BannerRendererTests
     }
 
     [Fact]
-    public void GivenAHintAndNarrowWidth_WhenBuilding_ThenTheChipsKeepTheirRoomAndTheHintGoes()
+    public void GivenAHintAndNarrowWidth_WhenBuilding_ThenTheShortHintReplacesTheLongOneAndTheChipsStayWhole()
     {
         var banner = Rebase with
         {
             Detail = "3 conflicts",
             Chips = Rebase.Chips.RemoveAt(2),
-            Hint = "Unstaged: Enter, <space>to open conflict editor",
+            Hint = "<space>to open conflict editor",
+            ShortHint = "<space>to conflict editor",
         };
 
+        var tight = BannerRenderer.Build(banner, 100, GraphGlyphSet.Unicode);
         var narrow = BannerRenderer.Build(banner, 80, GraphGlyphSet.Unicode);
         var wide = BannerRenderer.Build(banner, 160, GraphGlyphSet.Unicode);
 
         Assert.Equal(2, narrow.Chips.Count);
-        Assert.DoesNotContain("Unstaged", narrow.Line.Text, StringComparison.Ordinal);
-        Assert.Contains("Enter, <space>to", wide.Line.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("conflict editor", narrow.Line.Text, StringComparison.Ordinal);
+        Assert.Contains("<space>ga abort", narrow.Line.Text, StringComparison.Ordinal);
+        Assert.Contains("<space>to conflict editor", tight.Line.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("<space>to open", tight.Line.Text, StringComparison.Ordinal);
+        Assert.Contains("<space>to open", wide.Line.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GivenThreeChipsAndTheCountsAt80Columns_WhenBuilding_ThenTheCountsGoSoNoChipIsCut()
+    {
+        var line = BannerRenderer.Build(Rebase, 80, GraphGlyphSet.Unicode);
+
+        Assert.Equal(3, line.Chips.Count);
+        Assert.Contains("<space>gk skip", line.Line.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("step 2/5", line.Line.Text, StringComparison.Ordinal);
     }
 
     [Fact]

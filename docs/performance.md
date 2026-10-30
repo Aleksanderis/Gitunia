@@ -53,3 +53,7 @@ A tab loads its newest 100,000 commits (`GraphLoader.DefaultSoftRowLimit`); the 
 ## Files tab (commit tree)
 
 Measured on Linux with the AOT binary (`--print-frame 120x36 --tab files`, one commit with 100 000 files in 20 x 50 x 100 directories): `ls-tree -r -z --long` alone 0.21 s, the whole frame (process start, read, parse, model, rows, render) 0.60 s. The tree is shown as "Loading..." meanwhile and the UI never waits. A filter walks every file once per keystroke: the worst case (a one-letter filter that matches all 100 000 files and their directories, 201 020 rows) took 72 ms in `Rows` plus 16 ms to build the pane rows in a Debug build (JIT), so a keystroke stays near 0.1 s; rows are not built lazily. Lazy per-directory loading was not needed at this size; revisit it if a 1M-file monorepo shows up.
+
+## Conflict editor (#742)
+
+The full-screen conflict editor (#742) works on the whole file. Measured with a throwaway xunit test (not committed; Release build of the Tui tests, JIT, this machine) on a 4,600-line file with 100 conflicts: opening it (alignment rows, result buffer, formats) 4 ms once; a frame of a 160 x 50 terminal 0.7 ms (only the visible rows are built and compared; mean of 500); a key typed into the result 0.05 ms (the line diff that keeps the conflict regions in step is linear in the file, 4,600 string comparisons plus a copy of the line list); a pick (with its undo snapshot, a copy of the line list too) 0.04 ms. The undo stack keeps at most 100 snapshots of the line list (references to shared strings), so about 4 MB at that size.

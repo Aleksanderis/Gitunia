@@ -1,3 +1,4 @@
+using Gitunia.Core.Conflicts;
 using Gitunia.Core.Editing;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Repeat;
@@ -302,6 +303,7 @@ public sealed class MainView : IDisposable
         _diffTitle.Clicked += OnDiffTitleClicked;
         _workingDiffTitle.Clicked += OnWorkingDiffTitleClicked;
         Overlay.LineClicked += line => OverlayLineClicked?.Invoke(line);
+        Overlay.LineDoubleClicked += line => OverlayLineDoubleClicked?.Invoke(line);
         Overlay.GestureRaised += gesture => Gestured?.Invoke(OverlayGestureView, gesture, null);
 
         Window.Add(
@@ -359,6 +361,9 @@ public sealed class MainView : IDisposable
 
     /// <summary>Raised with the frame line when the overlay box is clicked.</summary>
     public event Action<int>? OverlayLineClicked;
+
+    /// <summary>Raised with the frame line when the overlay box is double-clicked.</summary>
+    public event Action<int>? OverlayLineDoubleClicked;
 
     /// <summary>Raised with the row index when a picker row is clicked (the highlight follows the pointer).</summary>
     public event Action<int>? PickerRowClicked
@@ -696,7 +701,9 @@ public sealed class MainView : IDisposable
     }
 
     // The resolve chip shows while the Unstaged list's cursor is on a conflicted file (the row <space>to opens).
-    private bool IsConflictedUnderCursor() => ConflictedSelection.Find(UnstagedSource.Tree) is not null;
+    // A file the editor refuses (delete/modify) gets no chip: it would promise what the key then declines.
+    private bool IsConflictedUnderCursor() =>
+        ConflictedSelection.Find(UnstagedSource.Tree) is { } entry && ConflictEditorSupport.CanOpen(entry.Conflict);
 
     private PaneRect ListRect(WorkingTreeSection section) =>
         section == WorkingTreeSection.Staged ? WorkingRects().Staged : WorkingRects().Unstaged;

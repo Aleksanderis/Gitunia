@@ -1,6 +1,7 @@
+using System.Globalization;
+using System.Text;
 using Gitunia.Core.Conflicts;
 using Gitunia.Core.Keymap.Models;
-using Gitunia.Core.Keymap;
 using Gitunia.Core.Mouse;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Conflicts;
@@ -14,701 +15,542 @@ namespace Gitunia.Tui.Tests.Rendering.Overlays;
 [Trait("Os", "Independent")]
 public class ConflictEditorFrameBuilderTests
 {
+    // Rows: 0 top, 1 two, 2 one, 3-4 the first conflict (ours 2 lines, theirs 1), 5 after, 6 the second conflict.
     private const string Text =
         "top\ntwo\none\n<<<<<<< HEAD\nours 1\nours 2\n=======\ntheirs 1\n>>>>>>> feature\nafter\n"
         + "<<<<<<< HEAD\nA\n=======\nB\n>>>>>>> feature\n";
 
+    private const string Diff3Text =
+        "top\n<<<<<<< HEAD\nthe red fox\n||||||| base\nthe fox\n=======\nthe blue fox\n>>>>>>> feature\nend\n";
+
     [Fact]
-    public void GivenAWideScreen_WhenRendering_ThenTheSidesAreNextToEachOtherWithLabelsAndTheResultBelow()
+    public void GivenAWideScreen_WhenRendering_ThenTheFrameFillsTheScreenAboveTheStatusBar()
     {
-        var frame = ConflictEditorFrameBuilder.Build(State(Text), 120, 30, GraphGlyphSet.Unicode);
+        var frame = ConflictEditorFrameBuilder.Build(State(Text), 120, 35, GraphGlyphSet.Unicode);
 
         Assert.NotNull(frame);
-        var lines = frame.Lines.Select(line => line.Text).ToList();
-        Assert.Contains("Conflict: file.txt  hunk 1/2", lines[0], StringComparison.Ordinal);
-        Assert.Contains("[1 -]", lines[1], StringComparison.Ordinal);
-        Assert.Contains("2 -", lines[1], StringComparison.Ordinal);
-        Assert.Contains("ours  HEAD", lines[3], StringComparison.Ordinal);
-        Assert.Contains("theirs  feature", lines[3], StringComparison.Ordinal);
-        var firstRow = lines[4];
-        Assert.Contains("ours 1", firstRow, StringComparison.Ordinal);
-        Assert.Contains("theirs 1", firstRow, StringComparison.Ordinal);
-        var oursColumn = firstRow.IndexOf("ours 1", StringComparison.Ordinal);
-        Assert.True(oursColumn < firstRow.IndexOf("theirs 1", StringComparison.Ordinal));
-        Assert.Contains(lines, line => line.Contains("result  unresolved", StringComparison.Ordinal));
-        Assert.All(frame.Lines, line => Assert.Equal(frame.Width, TextWidth.Of(line.Text)));
+        Assert.Equal(0, frame.Column);
+        Assert.Equal(0, frame.Row);
+        Assert.Equal(35, frame.Height);
+        Assert.Equal(120, frame.Width);
+        Assert.All(frame.Lines, line => Assert.Equal(120, TextWidth.Of(line.Text)));
+        Assert.StartsWith("╭", frame.Lines[0].Text, StringComparison.Ordinal);
+        Assert.StartsWith("╰", frame.Lines[^1].Text, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void GivenAPick_WhenRendering_ThenTheResultShowsThePickedLinesBetweenItsContextAndTheStripMarksIt()
+    public void GivenTheFile_WhenRendering_ThenTheTopBorderNamesTheFileAndThePosition()
     {
-        var state = State(Text).Pick(ConflictPick.Both);
+        var frame = Build(State(Text));
 
-        var frame = ConflictEditorFrameBuilder.Build(state, 120, 30, GraphGlyphSet.Unicode);
-
-        var lines = frame!.Lines.Select(line => line.Text).ToList();
-        Assert.Contains("[1 both]", lines[1], StringComparison.Ordinal);
-        var header = lines.FindIndex(line => line.Contains("result  both sides", StringComparison.Ordinal));
-        Assert.True(header > 0);
-        Assert.Contains("two", lines[header + 1], StringComparison.Ordinal);
-        Assert.Contains("one", lines[header + 2], StringComparison.Ordinal);
-        Assert.Contains("ours 1", lines[header + 3], StringComparison.Ordinal);
-        Assert.Contains("ours 2", lines[header + 4], StringComparison.Ordinal);
-        Assert.Contains("theirs 1", lines[header + 5], StringComparison.Ordinal);
-        Assert.Contains("after", lines[header + 6], StringComparison.Ordinal);
-        Assert.DoesNotContain(lines, line => line.Contains("<<<<<<<", StringComparison.Ordinal));
+        var title = frame.Lines[0].Text;
+        Assert.Contains("Conflict: file.txt", title, StringComparison.Ordinal);
+        Assert.Contains("conflict 1 of 2", title, StringComparison.Ordinal);
+        Assert.Contains("0 resolved  2 unresolved", title, StringComparison.Ordinal);
+        var picked = Build(State(Text).Take(ConflictPick.Ours));
+        Assert.Contains("1 resolved  1 unresolved", picked.Lines[0].Text, StringComparison.Ordinal);
+        var asking = Build(State(Text).Take(ConflictPick.Ours).AskDiscard());
+        Assert.Contains("Esc again discards", asking.Lines[0].Text, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void GivenNoPick_WhenRendering_ThenTheResultShowsTheMarkersThatWillStayInTheFile()
+    public void GivenAWideScreen_WhenRendering_ThenBaseOursAndTheirsAreSideBySideWithTheirLabels()
     {
-        var frame = ConflictEditorFrameBuilder.Build(State(Text), 120, 30, GraphGlyphSet.Unicode);
+        var frame = Build(State(Text));
 
-        var lines = frame!.Lines.Select(line => line.Text).ToList();
-        var header = lines.FindIndex(line => line.Contains("result  unresolved", StringComparison.Ordinal));
-        Assert.Contains("<<<<<<< HEAD", lines[header + 3], StringComparison.Ordinal);
+        var header = frame.Lines[1].Text;
+        Assert.True(IsBefore(header, "base", "ours  HEAD"));
+        Assert.True(IsBefore(header, "ours", "theirs  feature"));
+        var row = RowsContaining(frame, "ours 1")[0];
+        Assert.Contains("theirs 1", row, StringComparison.Ordinal);
+        Assert.True(IsBefore(row, "ours 1", "theirs 1"));
     }
 
     [Fact]
-    public void GivenANarrowScreen_WhenRendering_ThenTheSidesAreStackedAboveTheResult()
+    public void GivenCommonText_WhenRendering_ThenTheSameLineSitsInEveryPaneOnTheSameRow()
     {
-        var frame = ConflictEditorFrameBuilder.Build(State(Text), 70, 30, GraphGlyphSet.Unicode);
+        var frame = Build(State(Text));
 
-        Assert.NotNull(frame);
-        var lines = frame.Lines.Select(line => line.Text).ToList();
-        var ours = lines.FindIndex(line => line.Contains("ours  HEAD", StringComparison.Ordinal));
-        var theirs = lines.FindIndex(line => line.Contains("theirs  feature", StringComparison.Ordinal));
-        var result = lines.FindIndex(line => line.Contains("result  ", StringComparison.Ordinal));
-        Assert.True(ours < theirs && theirs < result);
-        Assert.All(frame.Lines, line => Assert.Equal(frame.Width, TextWidth.Of(line.Text)));
+        var row = RowsContaining(frame, "top").First(line => line.Count(character => character == 't') >= 3);
+        Assert.Equal(3, CountOf(row, "top"));
+    }
+
+    [Fact]
+    public void GivenAShorterVersion_WhenRendering_ThenItsMissingRowIsBlank()
+    {
+        var frame = Build(State(Text));
+
+        var row = RowsContaining(frame, "ours 2").First();
+        Assert.DoesNotContain("theirs", row, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GivenTheWholeFile_WhenRendering_ThenTheResultHoldsEveryLineWithItsMarkers()
+    {
+        var frame = Build(State(Text), height: 40);
+
+        var result = ResultLines(frame);
+        Assert.Contains(result, line => line.Contains("top", StringComparison.Ordinal));
+        Assert.Contains(result, line => line.Contains("<<<<<<< HEAD", StringComparison.Ordinal));
+        Assert.Contains(result, line => line.Contains(">>>>>>> feature", StringComparison.Ordinal));
+        Assert.Contains(result, line => line.Contains("after", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void GivenAPick_WhenRendering_ThenTheResultShowsTheTakenLinesAndOnlyTheTitleSaysWhereTheyCameFrom()
+    {
+        var frame = Build(State(Text).Take(ConflictPick.Theirs), height: 40);
+
+        var result = ResultLines(frame);
+        Assert.DoesNotContain(result, line => line.Contains("ours 1", StringComparison.Ordinal));
+        Assert.Contains("taken from theirs", frame.Lines[0].Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("taken", frame.Lines[1].Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("taken", TextOfLineWith(frame, " result "), StringComparison.Ordinal);
     }
 
     [Theory]
-    [InlineData(21, 30)]
-    [InlineData(120, 8)]
-    [InlineData(70, 10)]
-    public void GivenAScreenTooSmall_WhenRendering_ThenNothingIsDrawn(int width, int height)
+    [InlineData(ConflictPick.Ours, "✓", "·", "·")]
+    [InlineData(ConflictPick.Theirs, "·", "✓", "·")]
+    [InlineData(ConflictPick.Both, "✓", "✓", "·")]
+    [InlineData(ConflictPick.Lines, "~", "~", "~")]
+    public void GivenAPick_WhenRendering_ThenTheMarksOfTheConflictRowsSayWhichVersionWasTaken(
+        ConflictPick pick,
+        string oursMark,
+        string theirsMark,
+        string baseMark)
+    {
+        var state = State(Diff3Text);
+        state = pick == ConflictPick.Lines ? state.ToggleVisual().TakeSelectedLines() : state.Take(pick);
+
+        var frame = Build(state, height: 40);
+
+        var row = LineWith(frame, "the red fox", "the blue fox");
+        var marks = row.Segments
+            .Where(segment => segment.Text is "✓" or "·" or "~" or "?")
+            .Select(segment => segment.Text)
+            .ToList();
+        Assert.Equal([baseMark, oursMark, theirsMark], marks);
+    }
+
+    [Fact]
+    public void GivenAnUnresolvedConflict_WhenRendering_ThenEveryVersionPaneMarksItsRowsUnresolved()
+    {
+        var frame = Build(State(Diff3Text), height: 40);
+
+        var row = LineWith(frame, "the red fox", "the blue fox");
+        Assert.Equal(3, row.Segments.Count(segment => segment.Text == "?" && segment.Role == SegmentRole.Error));
+        Assert.Contains("unresolved, still holds its markers", frame.Lines[0].Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GivenAnUnresolvedAndASettledConflict_WhenRendering_ThenTheirMarksAndColoursDiffer()
+    {
+        var frame = Build(State(Text).Take(ConflictPick.Ours).NextConflict(), height: 40);
+
+        var settledRow = LineWith(frame, "ours 1", "✓");
+        Assert.Contains(settledRow.Segments, segment => segment.Text == "✓" && segment.Role == SegmentRole.DiffAdded);
+        var unresolvedRow = frame.Lines.First(line => line.Text.Contains("<<<<<<< HEAD", StringComparison.Ordinal));
+        Assert.Contains(unresolvedRow.Segments, segment => segment.Text == "?" && segment.Role == SegmentRole.Error);
+        Assert.Contains(
+            unresolvedRow.Segments,
+            segment => segment.Text.Contains("<<<<<<<", StringComparison.Ordinal) && segment.Role == SegmentRole.Error);
+    }
+
+    [Fact]
+    public void GivenTheCurrentConflict_WhenRendering_ThenItsRowsCarryTheBarAndTheGroupTintAndOthersDoNot()
+    {
+        var frame = Build(State(Text).NextConflict());
+
+        var current = LineWith(frame, "│?", "A");
+        Assert.Contains(current.Segments, segment => segment.Role == SegmentRole.DiffGroupBar && segment.InGroup);
+        var first = frame.Lines.First(line => line.Text.Contains("ours 1", StringComparison.Ordinal));
+        Assert.DoesNotContain(first.Segments, segment => segment.InGroup);
+    }
+
+    [Fact]
+    public void GivenTheCursor_WhenRendering_ThenItsRowIsSelectedInTheActivePaneAndDimInTheOthers()
+    {
+        var frame = Build(State(Text).FocusPane(ConflictPane.Theirs));
+
+        var row = frame.Lines.First(line => line.Text.Contains("theirs 1", StringComparison.Ordinal));
+        Assert.Contains(row.Segments, segment => segment.Selection == SegmentSelection.Focused);
+        Assert.Contains(row.Segments, segment => segment.Selection == SegmentSelection.Dim);
+    }
+
+    [Fact]
+    public void GivenAVisualSelection_WhenRendering_ThenTheSelectedRowsHaveTheRangeTintAndTheHeaderCountsThem()
+    {
+        var frame = Build(State(Text).ToggleVisual().MoveCursor(1));
+
+        var rows = frame.Lines
+            .Where(line => line.Segments.Any(segment => segment.Selection == SegmentSelection.Range))
+            .ToList();
+        Assert.Equal(2, rows.Count);
+        Assert.Contains("VISUAL 2", frame.Lines[1].Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GivenADiff3Conflict_WhenRendering_ThenTheChangedWordsAreMarkedAgainstTheBase()
+    {
+        var frame = Build(State(Diff3Text));
+
+        var ours = frame.Lines.First(line => line.Text.Contains("the red fox", StringComparison.Ordinal));
+        Assert.Contains(
+            ours.Segments,
+            segment => segment.Role == SegmentRole.DiffRemovedWord && segment.Text.Contains("red", StringComparison.Ordinal));
+        var theirs = frame.Lines.First(line => line.Text.Contains("the blue fox", StringComparison.Ordinal));
+        Assert.Contains(
+            theirs.Segments,
+            segment => segment.Role == SegmentRole.DiffAddedWord && segment.Text.Contains("blue", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void GivenAConflictWithoutABase_WhenRendering_ThenTheBasePaneSaysHowToGetOne()
+    {
+        var frame = Build(State(Text));
+
+        Assert.Contains(frame.Lines, line => line.Text.Contains("no base: set diff3", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void GivenTheBaseCursor_WhenRenderingNarrow_ThenTheBasePaneReplacesTheirsOnTwoPanes()
+    {
+        var versions = State(Text);
+
+        var ours = ConflictEditorFrameBuilder.Build(versions, 80, 30, GraphGlyphSet.Unicode)!;
+        var baseState = versions.FocusPane(ConflictPane.Base);
+        var baseFirst = ConflictEditorFrameBuilder.Build(baseState, 80, 30, GraphGlyphSet.Unicode)!;
+
+        Assert.Contains("theirs", ours.Lines[1].Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("base", ours.Lines[1].Text, StringComparison.Ordinal);
+        Assert.Contains("base", baseFirst.Lines[1].Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("theirs", baseFirst.Lines[1].Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GivenAVeryNarrowScreen_WhenRendering_ThenOnePaneShowsAndTabChangesIt()
+    {
+        var versions = State(Text);
+
+        var ours = ConflictEditorFrameBuilder.Build(versions, 50, 30, GraphGlyphSet.Unicode)!;
+        var theirs = ConflictEditorFrameBuilder.Build(versions.NextPane(), 50, 30, GraphGlyphSet.Unicode)!;
+
+        Assert.Contains("ours", ours.Lines[1].Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("theirs", ours.Lines[1].Text, StringComparison.Ordinal);
+        Assert.Contains("theirs", theirs.Lines[1].Text, StringComparison.Ordinal);
+        Assert.All(ours.Lines, line => Assert.Equal(50, TextWidth.Of(line.Text)));
+    }
+
+    [Fact]
+    public void GivenTheResultPane_WhenRendering_ThenItsHeaderIsActiveAndNamesTheMode()
+    {
+        var normal = Build(State(Text).FocusPane(ConflictPane.Result));
+        var typing = Build(State(Text).BeginEdit());
+
+        var header = normal.Lines.First(line => line.Text.Contains("result", StringComparison.Ordinal));
+        Assert.Contains(header.Segments, segment => segment.Text == "result" && segment.Role == SegmentRole.ActiveTab);
+        Assert.Contains("NORMAL", header.Text, StringComparison.Ordinal);
+        Assert.Contains(
+            "INSERT",
+            typing.Lines.First(line => line.Text.Contains("result", StringComparison.Ordinal)).Text,
+            StringComparison.Ordinal);
+        Assert.Contains(typing.Lines, line => line.Segments.Any(segment => segment.Role == SegmentRole.Cursor));
+    }
+
+    [Fact]
+    public void GivenTypedText_WhenRendering_ThenTheResultShowsIt()
+    {
+        var typed = State(Text).BeginEdit().TypeKey(new KeyEvent("Q")).EndEdit();
+
+        var frame = Build(typed, height: 40);
+
+        Assert.Contains(ResultLines(frame), line => line.Contains("Q<<<<<<< HEAD", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void GivenAnAsciiGlyphSet_WhenRendering_ThenEveryCharacterIsAscii()
+    {
+        var state = State(Text).Take(ConflictPick.Ours);
+
+        var frame = ConflictEditorFrameBuilder.Build(state, 120, 35, GraphGlyphSet.Ascii)!;
+
+        Assert.All(frame.Lines, line => Assert.True(line.Text.All(character => character < 128), line.Text));
+        Assert.Contains(frame.Lines, line => line.Text.Contains('v', StringComparison.Ordinal));
+    }
+
+    [Theory]
+    [InlineData(39, 30)]
+    [InlineData(120, 10)]
+    [InlineData(0, 0)]
+    [InlineData(10, 3)]
+    public void GivenAScreenTooSmall_WhenRendering_ThenNothingIsDrawnAndNothingThrows(int width, int height)
     {
         Assert.Null(ConflictEditorFrameBuilder.Build(State(Text), width, height, GraphGlyphSet.Unicode));
-    }
-
-    [Theory]
-    [InlineData(120, 16)]
-    [InlineData(70, 20)]
-    [InlineData(40, 40)]
-    [InlineData(200, 60)]
-    public void GivenSeveralSizes_WhenRendering_ThenEveryRowHasTheFrameWidthAndTheFrameFitsTheScreen(
-        int width,
-        int height)
-    {
-        var frame = ConflictEditorFrameBuilder.Build(State(Text), width, height, GraphGlyphSet.Ascii);
-
-        Assert.NotNull(frame);
-        Assert.All(frame.Lines, line => Assert.Equal(frame.Width, TextWidth.Of(line.Text)));
-        Assert.True(frame.Height + frame.Row <= height);
-        Assert.True(frame.Width + frame.Column <= width);
+        Assert.Null(ConflictEditorFrameBuilder.ChipAt(State(Text), 1, 1, width, height));
     }
 
     [Fact]
-    public void GivenLongAndWideText_WhenRendering_ThenRowsAreCutWithoutSplittingACharacter()
+    public void GivenManySizesAndStates_WhenRendering_ThenEveryFrameHasTheScreensWidthAndHeight()
     {
-        var text = $"<<<<<<< a\n{new string('漢', 80)}\n=======\n{new string('x', 300)}\t\n>>>>>>> b\n";
-
-        var frame = ConflictEditorFrameBuilder.Build(State(text), 80, 30, GraphGlyphSet.Unicode);
-
-        Assert.All(frame!.Lines, line => Assert.Equal(frame.Width, TextWidth.Of(line.Text)));
-        Assert.DoesNotContain(frame.Lines, line => line.Text.Contains('\t', StringComparison.Ordinal));
-    }
-
-    [Fact]
-    public void GivenMoreLinesThanRows_WhenRendering_ThenTheLastRowCountsTheHiddenOnes()
-    {
-        var many = string.Concat(Enumerable.Range(1, 40).Select(number => $"line {number}\n"));
-        var text = $"<<<<<<< a\n{many}=======\nt\n>>>>>>> b\n";
-
-        var frame = ConflictEditorFrameBuilder.Build(State(text), 120, 20, GraphGlyphSet.Unicode);
-
-        Assert.Contains(frame!.Lines, line => line.Text.Contains("more lines", StringComparison.Ordinal));
-    }
-
-    [Fact]
-    public void GivenAWideScreen_WhenRendering_ThenARuleWithAJunctionSeparatesTheSidesFromTheResult()
-    {
-        var frame = ConflictEditorFrameBuilder.Build(State(Text), 120, 30, GraphGlyphSet.Unicode)!;
-
-        var lines = frame.Lines.Select(line => line.Text).ToList();
-        var header = lines.FindIndex(line => line.Contains("result  ", StringComparison.Ordinal));
-        var rule = lines[header - 1];
-        Assert.StartsWith("├─", rule, StringComparison.Ordinal);
-        Assert.EndsWith("─┤", rule, StringComparison.Ordinal);
-        Assert.Equal(lines[4].IndexOf('│', 1), rule.IndexOf('┴', StringComparison.Ordinal));
-    }
-
-    [Fact]
-    public void GivenAWideScreen_WhenRendering_ThenOneBorderRunsAroundTheFrameWithJunctionsAndTheTitleInTheTop()
-    {
-        var frame = ConflictEditorFrameBuilder.Build(State(Text), 120, 30, GraphGlyphSet.Unicode)!;
-
-        var lines = frame.Lines.Select(line => line.Text).ToList();
-        Assert.StartsWith("╭─ Conflict: file.txt  hunk 1/2 ", lines[0], StringComparison.Ordinal);
-        Assert.EndsWith("─╮", lines[0], StringComparison.Ordinal);
-        Assert.StartsWith("╰", lines[^1], StringComparison.Ordinal);
-        Assert.EndsWith("╯", lines[^1], StringComparison.Ordinal);
-        var divider = lines[4].IndexOf('│', 1);
-        Assert.Equal(divider, lines[2].IndexOf('┬', StringComparison.Ordinal));
-        Assert.StartsWith("├", lines[2], StringComparison.Ordinal);
-        Assert.EndsWith("┤", lines[2], StringComparison.Ordinal);
-        var closing = lines.FindIndex(line => line.Contains('┴', StringComparison.Ordinal));
-        Assert.Equal(divider, lines[closing].IndexOf('┴', StringComparison.Ordinal));
-        for (var row = 3; row < closing; row++)
+        ConflictEditorState[] states =
+        [
+            State(Text),
+            State(Text).ToggleVisual().MoveCursor(1),
+            State(Text).FocusPane(ConflictPane.Result),
+            State(Text).BeginEdit().TypeKey(new KeyEvent("é")),
+            State(Text).FocusPane(ConflictPane.Base).Take(ConflictPick.Both),
+        ];
+        foreach (var state in states)
         {
-            Assert.Equal('│', lines[row][divider]);
-        }
-
-        var hints = lines.FindIndex(line => line.Contains("o ours", StringComparison.Ordinal));
-        Assert.StartsWith("├─", lines[hints - 1], StringComparison.Ordinal);
-        Assert.DoesNotContain('┴', lines[hints - 1]);
-        Assert.All(lines[1..^1], line => Assert.True(line[0] is '│' or '├'));
-        Assert.All(lines[1..^1], line => Assert.True(line[^1] is '│' or '┤'));
-    }
-
-    [Fact]
-    public void GivenTheBaseIsShown_WhenRendering_ThenTheDividerEndsAboveTheBaseAndTheRuleBelowItIsPlain()
-    {
-        const string diffThree = "<<<<<<< HEAD\nmine\n||||||| base\nancestor\n=======\ntheirs\n>>>>>>> feature\n";
-        var frame = ConflictEditorFrameBuilder.Build(State(diffThree).ToggleBase(), 110, 40, GraphGlyphSet.Unicode)!;
-
-        var lines = frame.Lines.Select(line => line.Text).ToList();
-        var baseHeader = lines.FindIndex(line => line.Contains("base  common ancestor", StringComparison.Ordinal));
-        var resultHeader = lines.FindIndex(line => line.Contains("result  ", StringComparison.Ordinal));
-        Assert.Equal(lines[4].IndexOf('│', 1), lines[baseHeader - 1].IndexOf('┴', StringComparison.Ordinal));
-        Assert.DoesNotContain('┴', lines[resultHeader - 1]);
-    }
-
-    [Fact]
-    public void GivenALongWidePath_WhenRendering_ThenTheTopBorderKeepsTheFrameWidth()
-    {
-        var state = ConflictEditorState.Create(
-            new TabId(1),
-            new string('漢', 120),
-            ConflictParser.Parse(Text).Parts!);
-
-        var frame = ConflictEditorFrameBuilder.Build(state, 100, 30, GraphGlyphSet.Unicode)!;
-
-        Assert.Equal(frame.Width, TextWidth.Of(frame.Lines[0].Text));
-        Assert.EndsWith("╮", frame.Lines[0].Text, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void GivenANarrowScreen_WhenRendering_ThenTheRuleHasNoJunction()
-    {
-        var frame = ConflictEditorFrameBuilder.Build(State(Text), 70, 30, GraphGlyphSet.Ascii)!;
-
-        var lines = frame.Lines.Select(line => line.Text).ToList();
-        var header = lines.FindIndex(line => line.Contains("result  ", StringComparison.Ordinal));
-        Assert.Single(lines[header - 1][1..^1].Distinct());
-    }
-
-    [Fact]
-    public void GivenAHunk_WhenRendering_ThenEveryPaneHasLineNumbersOfTheResultFile()
-    {
-        var frame = ConflictEditorFrameBuilder.Build(State(Text), 120, 30, GraphGlyphSet.Unicode)!;
-
-        var lines = frame.Lines.Select(line => line.Text).ToList();
-        Assert.Contains(" 4-ours 1", lines[4], StringComparison.Ordinal);
-        Assert.Contains(" 4+theirs 1", lines[4], StringComparison.Ordinal);
-        Assert.Contains(" 5-ours 2", lines[5], StringComparison.Ordinal);
-        var header = lines.FindIndex(line => line.Contains("result  ", StringComparison.Ordinal));
-        Assert.Contains(" 2 two", lines[header + 1], StringComparison.Ordinal);
-        Assert.Contains(" 3 one", lines[header + 2], StringComparison.Ordinal);
-        Assert.Contains(" 4 <<<<<<< HEAD", lines[header + 3], StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void GivenAScrolledSide_WhenRendering_ThenBothSidesShowTheSameLinesAndTheHeadersSayWhichOnes()
-    {
-        var ours = string.Concat(Enumerable.Range(1, 30).Select(number => $"mine {number}\n"));
-        var theirs = string.Concat(Enumerable.Range(1, 30).Select(number => $"yours {number}\n"));
-        var state = State($"<<<<<<< a\n{ours}=======\n{theirs}>>>>>>> b\n");
-        var maximum = ConflictEditorFrameBuilder.MaxSideScroll(state, 120, 24);
-        var rows = ConflictEditorFrameBuilder.SideRowCount(state, 120, 24);
-
-        var frame = ConflictEditorFrameBuilder.Build(state.ScrollSides(5, maximum), 120, 24, GraphGlyphSet.Unicode)!;
-
-        Assert.True(maximum > 5);
-        var lines = frame.Lines.Select(line => line.Text).ToList();
-        Assert.Contains($"(lines 6-{5 + rows} of 30)", lines[3], StringComparison.Ordinal);
-        Assert.Contains(" 6-mine 6", lines[4], StringComparison.Ordinal);
-        Assert.Contains(" 6+yours 6", lines[4], StringComparison.Ordinal);
-        Assert.DoesNotContain(
-            lines.Skip(3).Take(rows),
-            line => line.Contains("mine 1 ", StringComparison.Ordinal));
-        Assert.All(frame.Lines, line => Assert.Equal(frame.Width, TextWidth.Of(line.Text)));
-    }
-
-    [Fact]
-    public void GivenAScrollBeyondTheEnd_WhenRendering_ThenTheLastLinesShowAndNoRowIsBlankAtTheTop()
-    {
-        var many = string.Concat(Enumerable.Range(1, 30).Select(number => $"mine {number}\n"));
-        var state = State($"<<<<<<< a\n{many}=======\nt\n>>>>>>> b\n").ScrollSides(1000, 1000);
-
-        var frame = ConflictEditorFrameBuilder.Build(state, 120, 24, GraphGlyphSet.Unicode)!;
-
-        Assert.Contains(frame.Lines, line => line.Text.Contains("mine 30", StringComparison.Ordinal));
-    }
-
-    [Fact]
-    public void GivenTheKeyHints_WhenRendering_ThenTheKeyIsBoldAndTheDescriptionFollowsWithoutBrackets()
-    {
-        var frame = ConflictEditorFrameBuilder.Build(State(Text), 120, 30, GraphGlyphSet.Unicode)!;
-
-        var line = frame.Lines[ChipLine(frame, "o ours")];
-        Assert.DoesNotContain("[o ours]", line.Text, StringComparison.Ordinal);
-        var keys = line.Segments.First(segment => segment.Text == "o");
-        Assert.Equal(SegmentRole.StatusKey, keys.Role);
-        Assert.Contains(line.Segments, segment => segment.Text == " ours" && segment.Role == SegmentRole.Status);
-    }
-
-    [Fact]
-    public void GivenTheNavigationHints_WhenHitTesting_ThenEachReturnsItsMouseView()
-    {
-        var state = State(Text);
-        var frame = ConflictEditorFrameBuilder.Build(state, 200, 30, GraphGlyphSet.Unicode)!;
-
-        AssertChip(state, frame, "]c next diff", DefaultMouseMap.ConflictNextDiffButton, 200);
-        AssertChip(state, frame, "[c previous diff", DefaultMouseMap.ConflictPreviousDiffButton, 200);
-        AssertChip(state, frame, "Ctrl-d scroll down", DefaultMouseMap.ConflictScrollDownButton, 200);
-        AssertChip(state, frame, "Ctrl-u scroll up", DefaultMouseMap.ConflictScrollUpButton, 200);
-        AssertChip(state, frame, "O all ours", DefaultMouseMap.ConflictAllOursButton, 200);
-        AssertChip(state, frame, "T all theirs", DefaultMouseMap.ConflictAllTheirsButton, 200);
-        AssertChip(state, frame, "n next conflict", DefaultMouseMap.ConflictNextButton, 200);
-        AssertChip(state, frame, "N previous conflict", DefaultMouseMap.ConflictPreviousButton, 200);
-    }
-
-    [Fact]
-    public void GivenLinesThatDifferAndLinesThatDoNot_WhenRendering_ThenOnlyTheDifferingOnesAreMarkedAndColoured()
-    {
-        const string text = "<<<<<<< a\nsame\nmine\n=======\nsame\nyours\n>>>>>>> b\n";
-
-        var frame = ConflictEditorFrameBuilder.Build(State(text), 120, 30, GraphGlyphSet.Unicode)!;
-
-        var lines = frame.Lines.Select(line => line.Text).ToList();
-        Assert.Contains(" 1 same", lines[4], StringComparison.Ordinal);
-        Assert.Contains(" 2-mine", lines[5], StringComparison.Ordinal);
-        Assert.Contains(" 2+yours", lines[5], StringComparison.Ordinal);
-        var segments = frame.Lines[5].Segments;
-        Assert.Contains(segments, segment => segment.Text == "mine" && segment.Role == SegmentRole.DiffRemoved);
-        Assert.Contains(segments, segment => segment.Text == "yours" && segment.Role == SegmentRole.DiffAdded);
-        Assert.DoesNotContain(
-            frame.Lines[4].Segments,
-            segment => segment.Role is SegmentRole.DiffRemoved or SegmentRole.DiffAdded);
-    }
-
-    [Fact]
-    public void GivenAnEmptySide_WhenRendering_ThenItSaysNothing()
-    {
-        var frame = ConflictEditorFrameBuilder.Build(
-            State("<<<<<<< a\n=======\nt\n>>>>>>> b\n"),
-            120,
-            30,
-            GraphGlyphSet.Unicode);
-
-        Assert.Contains(frame!.Lines, line => line.Text.Contains("(nothing)", StringComparison.Ordinal));
-    }
-
-    [Fact]
-    public void GivenAPendingDiscardOrACompleteFile_WhenRendering_ThenTheFooterSaysSo()
-    {
-        var pending = State(Text).Pick(ConflictPick.Ours).AskDiscard();
-        var complete = State(Text).Pick(ConflictPick.Ours).Next().Pick(ConflictPick.Theirs);
-
-        var pendingFrame = ConflictEditorFrameBuilder.Build(pending, 120, 30, GraphGlyphSet.Unicode);
-        var completeFrame = ConflictEditorFrameBuilder.Build(complete, 120, 30, GraphGlyphSet.Unicode);
-
-        Assert.Contains("Esc again discards", pendingFrame!.Lines[^2].Text, StringComparison.Ordinal);
-        Assert.Contains("every hunk is resolved", completeFrame!.Lines[^2].Text, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void GivenTheChipRow_WhenHitTesting_ThenEachChipReturnsItsMouseViewAndOtherCellsNone()
-    {
-        var state = State(Text);
-        var frame = ConflictEditorFrameBuilder.Build(state, 120, 30, GraphGlyphSet.Unicode)!;
-
-        AssertChip(state, frame, "o ours", DefaultMouseMap.ConflictOursButton);
-        AssertChip(state, frame, "Enter save", DefaultMouseMap.ConflictSaveButton);
-        AssertChip(state, frame, "e edit", DefaultMouseMap.ConflictEditButton);
-        AssertChip(state, frame, "r reset", DefaultMouseMap.ConflictResetButton);
-        AssertChip(state, frame, "Ctrl-r redo", DefaultMouseMap.ConflictRedoButton);
-        AssertChip(state, frame, "R re-create", DefaultMouseMap.ConflictRecreateButton);
-        var chipLine = ChipLine(frame, "o ours");
-        Assert.Null(ConflictEditorFrameBuilder.ChipAt(state, chipLine, 1, 120, 30));
-        Assert.Null(ConflictEditorFrameBuilder.ChipAt(state, chipLine - 1, 4, 120, 30));
-    }
-
-    [Fact]
-    public void GivenAnEdit_WhenRendering_ThenTheResultShowsTheTextWithACursorAndOnlyTheKeepChipIsLeft()
-    {
-        var state = State(Text).Pick(ConflictPick.Ours).BeginEdit();
-        state.Edit!.Editor.PlaceCursor(0, 0);
-        state.Edit.Editor.Insert("typed ");
-
-        var frame = ConflictEditorFrameBuilder.Build(state, 120, 30, GraphGlyphSet.Unicode)!;
-
-        var lines = frame.Lines.Select(line => line.Text).ToList();
-        Assert.Contains(lines, line => line.Contains("result  editing", StringComparison.Ordinal));
-        Assert.Contains(lines, line => line.Contains("typed ours 1", StringComparison.Ordinal));
-        Assert.Contains(lines, line => line.Contains("Esc/Ctrl-g keeps the text", StringComparison.Ordinal));
-        Assert.DoesNotContain(lines, line => line.Contains("o ours", StringComparison.Ordinal));
-        AssertChip(state, frame, "Ctrl-g keep", DefaultMouseMap.ConflictEditDoneButton);
-        Assert.Contains(
-            frame.Lines.SelectMany(line => line.Segments),
-            segment => segment.Role == SegmentRole.Cursor);
-    }
-
-    [Fact]
-    public void GivenAnEditedHunk_WhenRendering_ThenTheStripAndTheResultHeaderSayEdited()
-    {
-        var state = State(Text).BeginEdit();
-        state.Edit!.Editor.Insert("x");
-
-        var frame = ConflictEditorFrameBuilder.Build(state.AcceptEdit(), 120, 30, GraphGlyphSet.Unicode)!;
-
-        var lines = frame.Lines.Select(line => line.Text).ToList();
-        Assert.Contains("[1 edited]", lines[1], StringComparison.Ordinal);
-        Assert.Contains(lines, line => line.Contains("result  edited by you", StringComparison.Ordinal));
-        Assert.DoesNotContain(lines, line => line.Contains("<<<<<<<", StringComparison.Ordinal));
-    }
-
-    [Fact]
-    public void GivenTheBaseToggledOnADiffThreeFile_WhenRendering_ThenTheBaseLinesShowBetweenTheSidesAndTheResult()
-    {
-        const string diffThree = "<<<<<<< HEAD\nmine\n||||||| base\nancestor\n=======\ntheirs\n>>>>>>> feature\n";
-        var state = State(diffThree).ToggleBase();
-
-        var frame = ConflictEditorFrameBuilder.Build(state, 110, 30, GraphGlyphSet.Unicode)!;
-
-        var lines = frame.Lines.Select(line => line.Text).ToList();
-        var header = lines.FindIndex(line => line.Contains("base  common ancestor", StringComparison.Ordinal));
-        Assert.True(header > 0);
-        Assert.Contains("ancestor", lines[header + 1], StringComparison.Ordinal);
-        Assert.True(header < lines.FindIndex(line => line.Contains("result  ", StringComparison.Ordinal)));
-        Assert.All(frame.Lines, line => Assert.Equal(frame.Width, TextWidth.Of(line.Text)));
-    }
-
-    [Fact]
-    public void GivenTheBaseToggledOnAMergeStyleFile_WhenRendering_ThenItSaysHowToGetABase()
-    {
-        var frame = ConflictEditorFrameBuilder.Build(State(Text).ToggleBase(), 110, 30, GraphGlyphSet.Unicode)!;
-
-        Assert.Contains(
-            frame.Lines,
-            line => line.Text.Contains("merge.conflictStyle=diff3", StringComparison.Ordinal));
-    }
-
-    [Fact]
-    public void GivenNoRoomForTheBase_WhenRendering_ThenTheBaseIsLeftOutAndTheResultKeepsItsRow()
-    {
-        const string diffThree = "<<<<<<< HEAD\nmine\n||||||| base\nancestor\n=======\ntheirs\n>>>>>>> feature\n";
-        var state = State(diffThree).ToggleBase();
-
-        foreach (var height in new[] { 12, 13, 14, 16 })
-        {
-            var frame = ConflictEditorFrameBuilder.Build(state, 110, height, GraphGlyphSet.Unicode);
-
-            if (frame is not null)
+            for (var width = 40; width <= 200; width += 17)
             {
-                Assert.Contains(frame.Lines, line => line.Text.Contains("result  ", StringComparison.Ordinal));
-                Assert.True(frame.Height <= height);
+                for (var height = 11; height <= 50; height += 7)
+                {
+                    var frame = ConflictEditorFrameBuilder.Build(state, width, height, GraphGlyphSet.Unicode);
+
+                    Assert.NotNull(frame);
+                    Assert.Equal(height, frame.Height);
+                    Assert.All(frame.Lines, line => Assert.Equal(width, TextWidth.Of(line.Text)));
+                }
             }
         }
     }
 
-    private const string DiffThree =
-        "<<<<<<< HEAD\nmine\nmine 2\n||||||| base\nancestor\nancestor 2\n=======\ntheirs\n>>>>>>> feature\n";
-
     [Fact]
-    public void GivenAWideScreen_WhenRendering_ThenBaseOursAndTheirsAreThreePanesInThatOrder()
+    public void GivenWideCharacters_WhenRendering_ThenNoLineIsSplitOrOverlong()
     {
-        var frame = ConflictEditorFrameBuilder.Build(State(DiffThree), 120, 30, GraphGlyphSet.Unicode)!;
+        var wide = "日本語のテキスト\n<<<<<<< HEAD\n日本語日本語日本語日本語日本語日本語\n=======\n😀😀😀😀😀😀😀😀😀😀\n>>>>>>> other\nend\n";
 
-        var lines = frame.Lines.Select(line => line.Text).ToList();
-        Assert.Matches(@"base  common ancestor.*│.*ours  HEAD.*│.*theirs  feature", lines[3]);
-        Assert.Matches(@"ancestor.*│.*mine.*│.*theirs", lines[4]);
-        Assert.Matches(@"ancestor 2.*│.*mine 2.*│", lines[5]);
-        Assert.All(frame.Lines, line => Assert.Equal(frame.Width, TextWidth.Of(line.Text)));
+        var frame = ConflictEditorFrameBuilder.Build(State(wide), 60, 20, GraphGlyphSet.Unicode)!;
+
+        Assert.All(frame.Lines, line => Assert.Equal(60, TextWidth.Of(line.Text)));
     }
 
     [Fact]
-    public void GivenThreePanes_WhenRendering_ThenTheFrameJoinsBothDividersToTheRuleAndKeepsOneBorder()
+    public void GivenTheChips_WhenClickingThem_ThenTheirMouseViewIsReturned()
     {
-        var frame = ConflictEditorFrameBuilder.Build(State(DiffThree), 120, 30, GraphGlyphSet.Unicode)!;
+        var state = State(Text);
+        var layout = ConflictEditorFrameBuilder.LayoutFor(state, 120, 35)!;
+        var chipLine = layout.FirstChipLine;
 
-        var lines = frame.Lines.Select(line => line.Text).ToList();
-        var rule = lines[lines.FindIndex(line => line.Contains("result  ", StringComparison.Ordinal)) - 1];
-        var first = lines[4].IndexOf('│', 1);
-        var second = lines[4].IndexOf('│', first + 1);
-        Assert.Equal(first, rule.IndexOf('┴', StringComparison.Ordinal));
-        Assert.Equal(second, rule.LastIndexOf('┴'));
-        Assert.Equal(2, rule.Count(character => character == '┴'));
-        var strip = lines[2];
-        Assert.Equal(first, strip.IndexOf('┬', StringComparison.Ordinal));
-        Assert.Equal(second, strip.LastIndexOf('┬'));
-        Assert.StartsWith("├", rule, StringComparison.Ordinal);
-        Assert.EndsWith("┤", rule, StringComparison.Ordinal);
-        Assert.Equal(4, lines[4].Count(character => character == '│'));
+        var hits = Enumerable.Range(0, 120)
+            .Select(column => ConflictEditorFrameBuilder.ChipAt(state, chipLine, column, 120, 35))
+            .Where(view => view is not null)
+            .Distinct()
+            .ToList();
+
+        Assert.Contains(DefaultMouseMap.ConflictNextButton, hits);
+        Assert.Contains(DefaultMouseMap.ConflictOursButton, hits);
+        Assert.Contains(DefaultMouseMap.ConflictTakeButton, hits);
+        Assert.Null(ConflictEditorFrameBuilder.ChipAt(state, 1, 5, 120, 35));
     }
 
     [Fact]
-    public void GivenThreePanes_WhenRendering_ThenTheBaseToggleChipIsGoneAndAFrameUnderTheMinimumKeepsIt()
+    public void GivenAClickInTheVersionPanes_WhenLookingItUp_ThenThePaneAndAlignedRowAreReturned()
     {
-        var state = State(DiffThree);
-        var wide = ConflictEditorFrameBuilder.Build(state, 120, 30, GraphGlyphSet.Unicode)!;
-        var narrow = ConflictEditorFrameBuilder.Build(state, 110, 30, GraphGlyphSet.Unicode)!;
+        var state = State(Text);
+        var layout = ConflictEditorFrameBuilder.LayoutFor(state, 120, 35)!;
+        var line = ConflictEditorLayout.VersionStartLine + 4;
 
-        Assert.DoesNotContain(wide.Lines, line => line.Text.Contains("B base", StringComparison.Ordinal));
-        AssertChip(state, narrow, "B base", DefaultMouseMap.ConflictBaseButton, 110);
+        var ours = ConflictEditorFrameBuilder.TargetAt(state, line, 1 + 39 + 5, 120, 35)!;
+        var theirs = ConflictEditorFrameBuilder.TargetAt(state, line, 1 + 78 + 5, 120, 35)!;
+        var baseTarget = ConflictEditorFrameBuilder.TargetAt(state, line, 1 + 5, 120, 35)!;
+
+        Assert.Equal((ConflictTargetKind.VersionRow, ConflictPane.Ours, 4), (ours.Kind, ours.Pane, ours.Index));
+        Assert.Equal((ConflictTargetKind.VersionRow, ConflictPane.Theirs, 4), (theirs.Kind, theirs.Pane, theirs.Index));
+        Assert.Equal(ConflictPane.Base, baseTarget.Pane);
+        Assert.True(layout.VersionRows > 4);
     }
 
     [Fact]
-    public void GivenAScreenJustUnderTheMinimum_WhenRendering_ThenTheOldTwoPaneLayoutShowsAndBHidesTheBase()
+    public void GivenAScrolledPane_WhenLookingUpARow_ThenTheScrollIsAdded()
     {
-        var minimum = ConflictEditorFrameBuilder.ThreePaneFromWidth + 6;
+        var state = State(ManyLines()).ClickVersionRow(ConflictPane.Ours, 3) with { TopScroll = 3 };
 
-        var frame = ConflictEditorFrameBuilder.Build(State(DiffThree), minimum - 1, 30, GraphGlyphSet.Unicode)!;
-        var three = ConflictEditorFrameBuilder.Build(State(DiffThree), minimum, 30, GraphGlyphSet.Unicode)!;
-        var toggled = State(DiffThree).ToggleBase();
-        var shown = ConflictEditorFrameBuilder.Build(toggled, minimum - 1, 30, GraphGlyphSet.Unicode)!;
+        var target = ConflictEditorFrameBuilder.TargetAt(state, ConflictEditorLayout.VersionStartLine, 50, 120, 35)!;
 
-        Assert.DoesNotContain(frame.Lines, line => line.Text.Contains("base  common", StringComparison.Ordinal));
-        Assert.Contains(three.Lines, line => line.Text.Contains("base  common", StringComparison.Ordinal));
-        Assert.Contains(shown.Lines, line => line.Text.Contains("base  common", StringComparison.Ordinal));
+        Assert.Equal(3, target.Index);
     }
 
     [Fact]
-    public void GivenAHunkWithoutABaseInThreePanes_WhenRendering_ThenTheBasePaneSaysHowToGetOne()
+    public void GivenAStaleScrollAfterAResize_WhenLookingUpARow_ThenTheRowIsTheOneDrawnUnderThePointer()
     {
-        var frame = ConflictEditorFrameBuilder.Build(State(Text), 120, 30, GraphGlyphSet.Unicode)!;
+        var state = ConflictEditorState.Create(new TabId(1), "file.txt", ConflictParser.Parse(ManyLines()).Parts!)
+            .MoveToBottom();
+        var stale = state with { TopScroll = 0 };
+        var layout = ConflictEditorFrameBuilder.LayoutFor(stale, 120, 35)!;
+        var drawn = stale.Follow(layout.VersionRows, layout.ResultRows);
+        Assert.NotEqual(0, drawn.TopScroll);
 
-        Assert.Contains(frame.Lines, line => line.Text.Contains("(no base", StringComparison.Ordinal));
+        var target = ConflictEditorFrameBuilder.TargetAt(stale, ConflictEditorLayout.VersionStartLine, 50, 120, 35)!;
+
+        Assert.Equal(drawn.TopScroll, target.Index);
     }
 
     [Fact]
-    public void GivenLongBaseInThreePanes_WhenScrolled_ThenAllThreePanesMoveTogether()
+    public void GivenAStateAndAWidth_WhenRendering_ThenANarrowTitleCutsTheStateBeforeTheCounts()
     {
-        var lines = string.Join('\n', Enumerable.Range(1, 40).Select(number => $"line{number}"));
-        var baseLines = lines.Replace("line", "base", StringComparison.Ordinal);
-        var text = $"<<<<<<< HEAD\n{lines}\n||||||| base\n{baseLines}\n=======\n{lines}\n>>>>>>> f\n";
-        var state = State(text);
+        var title = Build(State(Text), width: 70).Lines[0].Text;
 
-        Assert.True(ConflictEditorFrameBuilder.MaxSideScroll(state, 120, 30) > 0);
-        var scrolled = ConflictEditorFrameBuilder.Build(
-            state with { SideScroll = 5 },
+        Assert.Contains("0 resolved", title, StringComparison.Ordinal);
+        var wide = Build(State(Text)).Lines[0].Text;
+        Assert.True(IsBefore(wide, "0 resolved  2 unresolved", "still holds its markers"));
+    }
+
+    [Fact]
+    public void GivenTheHeaders_WhenLookingThemUp_ThenEachNamesItsPane()
+    {
+        var state = State(Text);
+        var layout = ConflictEditorFrameBuilder.LayoutFor(state, 120, 35)!;
+
+        var oursHeader = ConflictEditorFrameBuilder.TargetAt(state, 1, 50, 120, 35)!;
+        var resultHeader = ConflictEditorFrameBuilder.TargetAt(
+            state,
+            layout.ResultStartLine - 1,
+            10,
             120,
-            30,
-            GraphGlyphSet.Unicode)!;
+            35)!;
 
-        Assert.Contains(scrolled.Lines, line => line.Text.Contains("line6", StringComparison.Ordinal)
-            && line.Text.Contains("base6", StringComparison.Ordinal));
+        Assert.Equal((ConflictTargetKind.Header, ConflictPane.Ours), (oursHeader.Kind, oursHeader.Pane));
+        Assert.Equal((ConflictTargetKind.Header, ConflictPane.Result), (resultHeader.Kind, resultHeader.Pane));
     }
 
     [Fact]
-    public void GivenAScrolledBaseWithALongLabelInThreePanes_WhenRendering_ThenTheRangeSurvivesInEveryHeader()
+    public void GivenTheResult_WhenLookingUpALine_ThenTheResultScrollIsAdded()
     {
-        var lines = string.Join('\n', Enumerable.Range(1, 40).Select(number => $"line{number}"));
-        var label = "feature/726-three-pane-editor";
-        var text = $"<<<<<<< {label}\n{lines}\n||||||| base\n{lines}\n=======\n{lines}\n>>>>>>> f\n";
-        var state = State(text);
+        var state = State(ManyLines()).ClickResultLine(2) with { ResultScroll = 2 };
+        var layout = ConflictEditorFrameBuilder.LayoutFor(state, 120, 35)!;
 
-        var frame = ConflictEditorFrameBuilder.Build(
-            state with { SideScroll = 5 },
-            120,
-            30,
-            GraphGlyphSet.Unicode)!;
+        var target = ConflictEditorFrameBuilder.TargetAt(state, layout.ResultStartLine + 1, 30, 120, 35)!;
 
-        var header = frame.Lines
-            .Select(line => line.Text)
-            .First(line => line.Contains("base  (lines", StringComparison.Ordinal));
-        Assert.Contains("ours  (lines 6-", header, StringComparison.Ordinal);
-        Assert.Contains("theirs  (lines 6-", header, StringComparison.Ordinal);
+        Assert.Equal((ConflictTargetKind.ResultLine, 3), (target.Kind, target.Index));
     }
 
     [Fact]
-    public void GivenAHunkWithoutABaseInThreePanes_WhenRendering_ThenTheShortHintIsNotCut()
+    public void GivenTheBordersDividersAndRules_WhenLookingThemUp_ThenNothingIsHit()
     {
-        var frame = ConflictEditorFrameBuilder.Build(State(Text), 120, 30, GraphGlyphSet.Unicode)!;
+        var state = State(Text);
+        var layout = ConflictEditorFrameBuilder.LayoutFor(state, 120, 35)!;
+        var line = ConflictEditorLayout.VersionStartLine + 1;
 
-        Assert.Contains(frame.Lines, line => line.Text.Contains("diff3, then R)", StringComparison.Ordinal));
+        Assert.Null(ConflictEditorFrameBuilder.TargetAt(state, 0, 10, 120, 35));
+        Assert.Null(ConflictEditorFrameBuilder.TargetAt(state, line, 0, 120, 35));
+        Assert.Null(ConflictEditorFrameBuilder.TargetAt(state, line, 119, 120, 35));
+        Assert.Null(ConflictEditorFrameBuilder.TargetAt(state, line, 1 + 38, 120, 35));
+        Assert.Null(ConflictEditorFrameBuilder.TargetAt(state, layout.ResultStartLine - 2, 10, 120, 35));
     }
 
     [Fact]
-    public void GivenOursAndTheirsDifferInAWord_WhenRenderingTwoPanes_ThenOnlyThatWordIsHighlightedOnEachSide()
+    public void GivenAChip_WhenLookingItUp_ThenTheTargetIsTheChipWithItsView()
     {
-        var state = State("<<<<<<< HEAD\nint total = count + 1;\n=======\nint total = amount + 1;\n>>>>>>> feature\n");
+        var state = State(Text);
+        var layout = ConflictEditorFrameBuilder.LayoutFor(state, 120, 35)!;
 
-        var frame = ConflictEditorFrameBuilder.Build(state, 120, 30, GraphGlyphSet.Unicode)!;
+        var hits = Enumerable.Range(0, 120)
+            .Select(column => ConflictEditorFrameBuilder.TargetAt(state, layout.FirstChipLine, column, 120, 35))
+            .Where(target => target is { Kind: ConflictTargetKind.Chip })
+            .Select(target => target!.View)
+            .ToList();
 
-        var segments = frame.Lines.SelectMany(line => line.Segments).ToList();
-        Assert.Contains(segments, segment => segment.Role == SegmentRole.DiffRemovedWord && segment.Text == "count");
-        Assert.Contains(segments, segment => segment.Role == SegmentRole.DiffAddedWord && segment.Text == "amount");
-        Assert.Contains(segments, segment => segment.Role == SegmentRole.DiffRemoved && segment.Text == "int total = ");
+        Assert.Contains(DefaultMouseMap.ConflictUntakeButton, hits);
     }
 
     [Fact]
-    public void GivenThreePanes_WhenSidesChangeTheBase_ThenEachPaneMarksItsWordsAgainstTheBase()
+    public void GivenTwoVersionPanes_WhenLookingUpTheRightOne_ThenItIsTheTheirsPane()
     {
-        var state = State(
-            "<<<<<<< HEAD\nint total = count + 1;\n||||||| base\nint total = 0 + 1;\n=======\n"
-            + "int total = amount + 1;\n>>>>>>> feature\n");
-
-        var frame = ConflictEditorFrameBuilder.Build(state, 120, 30, GraphGlyphSet.Unicode)!;
-
-        var segments = frame.Lines.SelectMany(line => line.Segments).ToList();
-        Assert.Contains(segments, segment => segment.Role == SegmentRole.DiffRemovedWord && segment.Text == "count");
-        Assert.Contains(segments, segment => segment.Role == SegmentRole.DiffAddedWord && segment.Text == "amount");
-        Assert.Contains(segments, segment => segment.Role == SegmentRole.DiffRemovedWord && segment.Text == "0");
-        Assert.All(
-            frame.Lines,
-            line => Assert.Equal(frame.Width, TextWidth.Of(line.Text)));
-    }
-
-    [Fact]
-    public void GivenTheBaseBelow_WhenBothSidesChangeDifferentWords_ThenTheBaseMarksTheUnionOfThem()
-    {
-        var state = State(
-            "<<<<<<< HEAD\nint total = first + 1;\n||||||| base\nint total = zero + one;\n=======\n"
-            + "int total = zero + 2;\n>>>>>>> feature\n").ToggleBase();
-
-        var frame = ConflictEditorFrameBuilder.Build(state, 100, 40, GraphGlyphSet.Unicode)!;
-
-        var segments = frame.Lines.SelectMany(line => line.Segments).ToList();
-        Assert.Contains(segments, segment => segment.Role == SegmentRole.DiffRemovedWord && segment.Text == "zero");
-        Assert.Contains(segments, segment => segment.Role == SegmentRole.DiffRemovedWord && segment.Text == "one");
-        Assert.Contains(segments, segment => segment.Role == SegmentRole.DiffAddedWord && segment.Text == "2");
-    }
-
-    [Fact]
-    public void GivenStackedSidesWithBase_WhenSidesChangeTheBase_ThenTheBaseWordsAreMarked()
-    {
-        var state = State(
-            "<<<<<<< HEAD\nint total = count + 1;\n||||||| base\nint total = 0 + 1;\n=======\n"
-            + "int total = amount + 1;\n>>>>>>> feature\n").ToggleBase();
-
-        var frame = ConflictEditorFrameBuilder.Build(state, 70, 40, GraphGlyphSet.Unicode)!;
-
-        var segments = frame.Lines.SelectMany(line => line.Segments).ToList();
-        Assert.Contains(frame.Lines, line => line.Text.Contains("base  common", StringComparison.Ordinal));
-        Assert.Contains(segments, segment => segment.Role == SegmentRole.DiffRemovedWord && segment.Text == "0");
-        Assert.Contains(segments, segment => segment.Role == SegmentRole.DiffAddedWord && segment.Text == "amount");
-    }
-
-    [Fact]
-    public void GivenBothSidesMakeTheSameEdit_WhenRendering_ThenNoPaneMarksWords()
-    {
-        var state = State(
-            "<<<<<<< HEAD\nint total = count + 1;\n||||||| base\nint total = 0 + 1;\n=======\n"
-            + "int total = count + 1;\n>>>>>>> feature\n");
-
-        var frame = ConflictEditorFrameBuilder.Build(state, 120, 30, GraphGlyphSet.Unicode)!;
-
-        var segments = frame.Lines.SelectMany(line => line.Segments).ToList();
-        Assert.DoesNotContain(
-            segments,
-            segment => segment.Role is SegmentRole.DiffRemovedWord or SegmentRole.DiffAddedWord);
-    }
-
-    [Fact]
-    public void GivenNoBaseShown_WhenSidesDiffer_ThenWordsAreComparedBetweenOursAndTheirs()
-    {
-        var state = State(
-            "<<<<<<< HEAD\nint total = count + 1;\n||||||| base\nint total = 0 + 1;\n=======\n"
-            + "int total = amount + 1;\n>>>>>>> feature\n");
-
-        var frame = ConflictEditorFrameBuilder.Build(state, 90, 30, GraphGlyphSet.Unicode)!;
-
-        var segments = frame.Lines.SelectMany(line => line.Segments).ToList();
-        Assert.Contains(segments, segment => segment.Role == SegmentRole.DiffRemovedWord && segment.Text == "count");
-        Assert.DoesNotContain(segments, segment => segment.Role == SegmentRole.DiffRemovedWord && segment.Text == "0");
-    }
-
-    [Fact]
-    public void GivenOursAndTheirsDifferInAWord_WhenRenderingStackedSides_ThenTheWordsAreHighlighted()
-    {
-        var state = State("<<<<<<< HEAD\nint total = count + 1;\n=======\nint total = amount + 1;\n>>>>>>> feature\n");
-
-        var frame = ConflictEditorFrameBuilder.Build(state, 70, 30, GraphGlyphSet.Unicode)!;
-
-        var segments = frame.Lines.SelectMany(line => line.Segments).ToList();
-        Assert.Contains(segments, segment => segment.Role == SegmentRole.DiffRemovedWord && segment.Text == "count");
-        Assert.Contains(segments, segment => segment.Role == SegmentRole.DiffAddedWord && segment.Text == "amount");
-    }
-
-    [Fact]
-    public void GivenOneSideHasMoreLines_WhenRendering_ThenTheExtraLineIsNotWordHighlighted()
-    {
-        var frame = ConflictEditorFrameBuilder.Build(State(Text), 120, 30, GraphGlyphSet.Unicode)!;
-
-        var segments = frame.Lines.SelectMany(line => line.Segments).ToList();
-        Assert.DoesNotContain(segments, segment => segment.Role == SegmentRole.DiffRemovedWord && segment.Text == "2");
-    }
-
-    private static int ChipLine(OverlayFrame frame, string chip) =>
-        frame.Lines.ToList().FindIndex(line => line.Text.Contains(chip, StringComparison.Ordinal));
-
-    private static void AssertChip(
-        ConflictEditorState state,
-        OverlayFrame frame,
-        string chip,
-        string view,
-        int screenWidth = 120)
-    {
-        var line = ChipLine(frame, chip);
-        Assert.True(line >= 0, chip);
-        var column = frame.Lines[line].Text.IndexOf(chip, StringComparison.Ordinal) + 1;
-        Assert.Equal(view, ConflictEditorFrameBuilder.ChipAt(state, line, column, screenWidth, 30));
-    }
-
-    [Fact]
-    public void GivenARebinding_WhenRendering_ThenTheChipsShowTheNewKeysInBothModes()
-    {
-        var bindings = DefaultKeymap.CreateBindings()
-            .Select(Rebound);
-        var keys = new ChipKeys(DefaultKeymap.Create().WithBindings(bindings));
         var state = State(Text);
 
-        var normal = ConflictEditorFrameBuilder.Build(state, 120, 30, GraphGlyphSet.Unicode, keys)!;
-        var editing = ConflictEditorFrameBuilder.Build(state.BeginEdit(), 120, 30, GraphGlyphSet.Unicode, keys)!;
+        var target = ConflictEditorFrameBuilder.TargetAt(state, ConflictEditorLayout.VersionStartLine, 75, 80, 35)!;
 
-        Assert.Contains(normal.Lines, line => line.Text.Contains("Ctrl-o ours", StringComparison.Ordinal));
-        Assert.Contains(editing.Lines, line => line.Text.Contains("Ctrl-o keep", StringComparison.Ordinal));
+        Assert.Equal(ConflictPane.Theirs, target.Pane);
     }
+
+    [Fact]
+    public void GivenEachMode_WhenRendering_ThenTheChipsMatchWhatTheKeysCanDo()
+    {
+        var versions = ChipText(State(Text));
+        var result = ChipText(State(Text).FocusPane(ConflictPane.Result));
+        var visual = ChipText(State(Text).ToggleVisual());
+        var typing = ChipText(State(Text).BeginEdit());
+
+        Assert.Contains("<space>a take", versions, StringComparison.Ordinal);
+        Assert.Contains("o ours", versions, StringComparison.Ordinal);
+        Assert.DoesNotContain("o ours", result, StringComparison.Ordinal);
+        Assert.Contains("i type", result, StringComparison.Ordinal);
+        Assert.Contains("<space>u untake", result, StringComparison.Ordinal);
+        Assert.Contains("<space>u untake", versions, StringComparison.Ordinal);
+        Assert.Contains("e edit in result", versions, StringComparison.Ordinal);
+        Assert.DoesNotContain("reset", versions + result, StringComparison.Ordinal);
+        Assert.Contains("take lines", visual, StringComparison.Ordinal);
+        Assert.Contains("<space>u untake lines", visual, StringComparison.Ordinal);
+        Assert.Contains("Ctrl-g keep", typing, StringComparison.Ordinal);
+        Assert.DoesNotContain("Enter save", typing, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GivenAFileOfFiveThousandLines_WhenRenderingTheEnd_ThenOnlyTheVisibleRowsAreDrawn()
+    {
+        var builder = new StringBuilder();
+        for (var index = 0; index < 100; index++)
+        {
+            for (var line = 0; line < 45; line++)
+            {
+                builder.Append(CultureInfo.InvariantCulture, $"common {index} line {line} with some text\n");
+            }
+
+            builder.Append(CultureInfo.InvariantCulture, $"<<<<<<< HEAD\nours {index} word\n");
+            builder.Append(CultureInfo.InvariantCulture, $"=======\ntheirs {index} word\n>>>>>>> feature\n");
+        }
+
+        var state = State(builder.ToString()).MoveToBottom().Follow(20, 15);
+
+        var frame = ConflictEditorFrameBuilder.Build(state, 160, 50, GraphGlyphSet.Unicode)!;
+
+        Assert.Equal(50, frame.Height);
+        Assert.Contains(frame.Lines, line => line.Text.Contains("ours 99 word", StringComparison.Ordinal));
+        Assert.DoesNotContain(frame.Lines, line => line.Text.Contains("common 0 line 0", StringComparison.Ordinal));
+        Assert.DoesNotContain(frame.Lines, line => line.Text.Contains("ours 50 word", StringComparison.Ordinal));
+        Assert.Contains("conflict 100 of 100", frame.Lines[0].Text, StringComparison.Ordinal);
+    }
+
+    private static OverlayFrame Build(ConflictEditorState state, int width = 120, int height = 35) =>
+        ConflictEditorFrameBuilder.Build(state, width, height, GraphGlyphSet.Unicode)!;
+
+    private static List<string> RowsContaining(OverlayFrame frame, string text) =>
+        [.. frame.Lines.Select(line => line.Text).Where(line => line.Contains(text, StringComparison.Ordinal))];
+
+    private static bool IsBefore(string text, string first, string second) =>
+        text.IndexOf(first, StringComparison.Ordinal) < text.IndexOf(second, StringComparison.Ordinal);
+
+    private static StyledLine LineWith(OverlayFrame frame, string first, string second) =>
+        frame.Lines.First(line =>
+            line.Text.Contains(first, StringComparison.Ordinal) && line.Text.Contains(second, StringComparison.Ordinal));
+
+    private static string TextOfLineWith(OverlayFrame frame, string text) =>
+        frame.Lines.Select(line => line.Text).First(line => line.Contains(text, StringComparison.Ordinal));
+
+    private static int CountOf(string row, string value) => row.Split(value).Length - 1;
+
+    // The lines of the result pane: everything after the line that carries the result header.
+    private static List<string> ResultLines(OverlayFrame frame)
+    {
+        var lines = frame.Lines.Select(line => line.Text).ToList();
+        var header = lines.FindIndex(line => line.Contains(" result ", StringComparison.Ordinal));
+
+        return lines[(header + 1)..];
+    }
+
+    private static string ChipText(ConflictEditorState state)
+    {
+        var layout = ConflictEditorFrameBuilder.LayoutFor(state, 200, 40)!;
+
+        return string.Join(" ", layout.ChipRows.SelectMany(row => row).Select(chip => chip.Text));
+    }
+
+    private static string ManyLines() =>
+        string.Concat(Enumerable.Range(0, 80).Select(line => $"line {line}\n"))
+        + "<<<<<<< HEAD\nA\n=======\nB\n>>>>>>> feature\n";
 
     private static ConflictEditorState State(string text) =>
         ConflictEditorState.Create(new TabId(1), "file.txt", ConflictParser.Parse(text).Parts!);
-
-    private static KeyBinding Rebound(KeyBinding binding)
-    {
-        if (binding.Action == ActionIds.ConflictEditorOurs
-            || binding.Action == ActionIds.ConflictEditorEditDone)
-        {
-            return binding with { Sequence = KeySequenceParser.Parse("Ctrl-o") };
-        }
-
-        return binding;
-    }
-
-    [Fact]
-    public void GivenAnEdit_WhenRendering_ThenTheFooterKeysAreDrawnAsKeys()
-    {
-        var state = State(Text).Pick(ConflictPick.Ours).BeginEdit();
-
-        var frame = ConflictEditorFrameBuilder.Build(state, 120, 30, GraphGlyphSet.Unicode)!;
-
-        var keys = frame.Lines.SelectMany(line => line.Segments)
-            .Where(segment => segment.Role == SegmentRole.StatusKey)
-            .Select(segment => segment.Text)
-            .ToList();
-        Assert.Contains("Esc/Ctrl-g", keys);
-        Assert.Contains("Enter", keys);
-    }
 }

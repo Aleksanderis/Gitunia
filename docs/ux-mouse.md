@@ -64,27 +64,28 @@ Views inherit like in the keymap: `Lists` covers Graph, Detail, Sidebar, Diff an
 | RebaseButton.Down | Click | `rebase-editor.move-down` | Chip `J move down` |
 | RebaseButton.Start | Click | `rebase-editor.start` | Chip `Enter start`: asks the Confirm (its `y` and `n` rows are the `ConfirmButton.Yes` and `ConfirmButton.No` views) |
 | RebaseButton.Cancel | Click | `navigate.back` | Chip `Esc cancel`: closes the editor like `Esc` |
-| ConflictEditor | Wheel up | `conflict-editor.previous` | Previous conflict hunk |
-| ConflictEditor | Wheel down | `conflict-editor.next` | Next conflict hunk |
-| ConflictButton.Ours | Click | `conflict-editor.ours` | Chip `o ours` under the result: takes our side for the hunk under the cursor |
+| ConflictSide | Wheel up | `list.up` | Cursor up three lines in the pane (the other panes follow) |
+| ConflictSide | Wheel down | `list.down` | Cursor down three lines |
+| ConflictResult | Wheel up | `list.up` | Result cursor up three lines |
+| ConflictResult | Wheel down | `list.down` | Result cursor down three lines |
+| ConflictButton.Ours | Click | `conflict-editor.ours` | Chip `o ours`: takes our side for the current conflict |
 | ConflictButton.Theirs | Click | `conflict-editor.theirs` | Chip `t theirs` |
-| ConflictButton.Both | Click | `conflict-editor.both` | Chip `b both` |
+| ConflictButton.Both | Click | `conflict-editor.both` | Chip `B both` |
+| ConflictButton.Base | Click | `conflict-editor.base` | Chip `b base`: takes the common ancestor |
+| ConflictButton.Take | Click | `conflict-editor.take` | Chip `<space>a take` (`take lines` during a Visual selection): takes the active pane's version |
 | ConflictButton.AllOurs | Click | `conflict-editor.all-ours` | Chip `O all ours` |
 | ConflictButton.AllTheirs | Click | `conflict-editor.all-theirs` | Chip `T all theirs` |
+| ConflictButton.Select | Click | `visual.toggle` | Chip `v select lines` (`end selection` while one is open) |
+| ConflictButton.Pane | Click | `pane.next` | Chip `Tab next pane`: base, ours, theirs, result; on a narrow terminal it also changes the version panes shown |
 | ConflictButton.Undo | Click | `conflict-editor.undo` | Chip `u undo` |
 | ConflictButton.Redo | Click | `conflict-editor.redo` | Chip `Ctrl-r redo` |
-| ConflictButton.Reset | Click | `conflict-editor.reset` | Chip `r reset` |
-| ConflictButton.Edit | Click | `conflict-editor.edit` | Chip `e edit` |
-| ConflictButton.Base | Click | `conflict-editor.base` | Chip `B base` (narrow layouts; not drawn with three panes) |
+| ConflictButton.Untake | Click | `conflict-editor.untake` | Chip `<space>u untake` (`untake lines` during a Visual selection) |
+| ConflictButton.Edit | Click | `conflict-editor.edit` | Chip `e edit in result` (`i type` in the result pane): moves into the result at the current conflict and starts typing |
 | ConflictButton.Recreate | Click | `conflict-editor.recreate` | Chip `R re-create`: asks first |
-| ConflictButton.EditDone | Click | `conflict-editor.edit-done` | Chip `Ctrl-g keep`, the only chip while a hunk's text is edited |
+| ConflictButton.EditDone | Click | `conflict-editor.edit-done` | Chip `Ctrl-g keep`, the only chip while the result is typed in |
 | ConflictButton.Next | Click | `conflict-editor.next` | Chip `n next conflict` |
 | ConflictButton.Previous | Click | `conflict-editor.previous` | Chip `N previous conflict` |
-| ConflictButton.NextDiff | Click | `conflict-editor.next-diff` | Chip `]c next diff` |
-| ConflictButton.PreviousDiff | Click | `conflict-editor.previous-diff` | Chip `[c previous diff` |
-| ConflictButton.ScrollDown | Click | `conflict-editor.scroll-down` | Chip `Ctrl-d scroll down` |
-| ConflictButton.ScrollUp | Click | `conflict-editor.scroll-up` | Chip `Ctrl-u scroll up` |
-| ConflictButton.Save | Click | `conflict-editor.save` | Chip `Enter save`: saves (asks first when hunks are unresolved) |
+| ConflictButton.Save | Click | `conflict-editor.save` | Chip `Enter save`: saves (asks first when conflicts are unresolved) |
 | ConflictButton.Cancel | Click | `navigate.back` | Chip `Esc close`: closes the editor like `Esc` |
 | Settings | Wheel up | `list.up` | Scroll the column under the pointer up 3 rows (the categories or the settings) |
 | Settings | Wheel down | `list.down` | Scroll the column under the pointer down 3 rows |

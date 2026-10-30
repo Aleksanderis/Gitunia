@@ -61,6 +61,7 @@ Modes: rows apply to Normal, except those whose view says `(Visual)` (Visual mod
 | Global | `<space>gc` | Continue the merge, rebase, cherry-pick or revert in progress (refused while conflicted files remain; workflow 4) |
 | Global | `<space>ga` | Abort the operation in progress (Confirm; the work of the operation is undone) |
 | Global | `<space>gk` | Skip the commit a rebase, cherry-pick or revert stopped on (Confirm; not for a merge) |
+| Global | `<space>to` | Open the conflict editor from any pane while a file is conflicted (a merge, rebase, cherry-pick or revert stopped): on the conflicted file under the Unstaged cursor, else on the first conflicted file; says so in the status bar when no file is conflicted (#742) |
 | Global | `Esc` | Cancel pending chord, clear search highlight, leave Insert mode; in the graph also cancel a running fetch, pull or push, else dismiss the status message |
 | Lists | `Ctrl-d` `Ctrl-u` | Half page down / up (mouse wheel scrolls) |
 | Lists | `Down` `Up` `PageDown` `PageUp` | Move / page (same as `j` `k` `Ctrl-d` `Ctrl-u`) |
@@ -74,7 +75,7 @@ Modes: rows apply to Normal, except those whose view says `(Visual)` (Visual mod
 | Graph | `<space>=` | Mark the selected commit; while marked, the commit under the cursor is compared with it (`git diff older newer`) in the Changes tab and the diff pane. On another commit move the mark there; on the marked commit clear it (`Esc` clears it too; "Comparing two commits", #535, #636) |
 | Graph | `<space>r` | Refresh repository |
 | Graph | `<space>td` | Open the selected commit (against its first parent) in the configured difftool |
-| Graph | `<space>tm` | Resolve conflicts in the configured mergetool |
+| Global | `<space>tm` | Resolve conflicts in the configured mergetool |
 | Graph | `<space>te` | Commit the staged changes with `$EDITOR` (git's own editor; the working-tree view's `<space>te` does the same) |
 | Graph | `<space>bc` | Create a branch at the selected commit and check it out (prompt popup) |
 | Graph | `<space>bC` | Create a branch at the selected commit without checking it out |
@@ -128,7 +129,6 @@ Modes: rows apply to Normal, except those whose view says `(Visual)` (Visual mod
 | WorkingUnstaged | `y` | Copy the path of the file or folder under the cursor |
 | WorkingUnstaged | `<space>a` | Stage the file under the cursor, or every file under the folder there (the cursor keeps its index; a conflicted file asks to mark it resolved) |
 | WorkingUnstaged | `<space>A` | Stage all files except conflicted ones |
-| WorkingUnstaged | `<space>to` | Open the conflict editor on the conflicted file under the cursor (`Enter` does the same on a `!` row) |
 | WorkingUnstaged | `<space>d` | Discard the changes of the file under the cursor, or of every file under the folder there, after a Confirm that names it (the folder dialog counts the files and names the untracked ones); an untracked file is deleted (no undo) |
 | WorkingUnstaged (Visual) | `<space>a` | Stage the files of the range (a folder row stands for all the files under it; the range ends; conflicted files are skipped) |
 | WorkingUnstaged (Visual) | `<space>d` | Discard the files of the range after one Confirm that counts them and names the untracked ones, which are deleted (the range ends when confirmed; no undo) |
@@ -297,26 +297,34 @@ Modes: rows apply to Normal, except those whose view says `(Visual)` (Visual mod
 | RebaseEditor | `J` `Alt-j` | Move the commit down (replayed later) |
 | RebaseEditor | `Enter` | Start the rebase: a Confirm names what is kept and dropped and the undo |
 | RebaseEditor | `h` `Esc` | Close the editor; an edited todo asks for a second `Esc` first |
-| ConflictEditor | `n` | Next conflict (hunk of the file) (wraps; `j` and the wheel do the same) |
-| ConflictEditor | `N` | Previous conflict (wraps; `k` does the same) |
-| ConflictEditor | `o` | Take our side for the hunk |
-| ConflictEditor | `t` | Take their side for the hunk |
-| ConflictEditor | `b` | Take both sides for the hunk, ours first |
-| ConflictEditor | `O` `T` | Take our (`O`) or their (`T`) side for every hunk still unresolved; earlier picks stay; one step of undo |
-| ConflictEditor | `]c` | Scroll the sides to the next line where ours and theirs differ (a run of differing lines counts once) |
-| ConflictEditor | `[c` | Scroll the sides to the previous line where they differ |
-| ConflictEditor | `Ctrl-d` | Scroll ours, theirs and the base down together by half the side panes |
-| ConflictEditor | `Ctrl-u` | Scroll them up together |
-| ConflictEditor | `u` | Undo the latest pick or edit of the session (the cursor goes to its hunk) |
-| ConflictEditor | `Ctrl-r` | Redo the undone pick or edit |
-| ConflictEditor | `r` | Reset the hunk: unresolved again, it keeps its conflict markers (one step of undo) |
-| ConflictEditor | `e` | Edit the hunk's result as text (Insert mode; starts from the pick, or from both sides for an unresolved hunk) |
-| ConflictEditor | `B` | Show or hide the base (common ancestor) below the sides; narrow layouts only, a no-op with three panes |
+| ConflictEditor | `n` `]c` | Next conflict (wraps; from the cursor row down) |
+| ConflictEditor | `N` `[c` | Previous conflict (wraps) |
+| ConflictEditor | `u` | Undo the latest pick, untake or typing session (the cursor goes to its conflict) |
+| ConflictEditor | `Ctrl-r` | Redo the undone change |
+| ConflictEditor | `<space>u` | Untake, the inverse of `<space>a`: the current conflict is unresolved again and its markers come back (one step of undo); with a Visual selection only the selected lines leave the result |
 | ConflictEditor | `R` | Re-create the conflict of the file (`git checkout --merge`) after a Confirm |
-| ConflictEditor | `Enter` | Save the result to the file (a Confirm first when hunks are unresolved; then the "mark resolved" Confirm when none is) |
-| ConflictEditor | `h` `Esc` | Close the editor; picks made ask for a second `Esc` first |
-| ConflictEditor (Insert) | `Enter` | New line in the hunk's text |
-| ConflictEditor (Insert) | `Ctrl-g` | Keep the text as the hunk's result (one step of undo; text left unchanged changes nothing); `Esc` keeps it too |
+| ConflictEditor | `Esc` | Close the editor; changes ask for a second `Esc` first (a Visual selection ends first; in Insert mode it stops typing and keeps the text) |
+| ConflictEditor | `Enter` | Save the result to the file (a Confirm first when conflicts are unresolved; then the "mark resolved" Confirm when none is) |
+| ConflictSide | `<space>a` | Take this pane's version (base, ours or theirs) for the current conflict |
+| ConflictSide (Visual) | `<space>a` | Take only the selected lines of this pane for the current conflict (the selection ends) |
+| ConflictSide | `o` | Take our side for the current conflict |
+| ConflictSide | `t` | Take their side for the current conflict |
+| ConflictSide | `b` | Take the common ancestor for the current conflict |
+| ConflictSide | `B` | Take both sides for the current conflict, ours first |
+| ConflictSide | `O` | Take our side for every conflict still unresolved (settled ones stay; one step of undo) |
+| ConflictSide | `T` | Take their side for every conflict still unresolved |
+| ConflictSide | `e` | Edit in the result: move into the result pane at the first line of the current conflict and start typing (Insert mode; `Esc` or `Ctrl-g` keeps the text) |
+| ConflictSide | `h` | Close the editor, as `Esc` does |
+| ConflictResult | `i` | Start typing at the cursor (Insert mode) |
+| ConflictResult | `h` `l` | Cursor left / right in the line |
+| ConflictResult | `w` `b` | Next / previous word |
+| ConflictResult | `0` `$` | Line start / end |
+| ConflictResult | `a` `A` `I` | Insert after the cursor / at the line end / at the line start |
+| ConflictResult | `o` | Open a line below and insert |
+| ConflictResult | `x` | Delete the character under the cursor |
+| ConflictResult | `dd` | Delete the line |
+| ConflictResult (Insert) | `Enter` | New line in the result |
+| ConflictResult (Insert) | `Ctrl-g` | Stop typing and keep the text (one step of undo; `Esc` does the same) |
 | RebaseEditor (Insert) | `Enter` | New line in the reword's message |
 | RebaseEditor (Insert) | `Ctrl-g` | Keep the message (the commit becomes a reword); `Esc` cancels the edit |
 | Settings | `Enter` `l` | Enter the category, edit the setting under the cursor (toggle flips, choice opens its options, number and path list start typing) or keep the option under the cursor; with a filter active, jump to the setting |

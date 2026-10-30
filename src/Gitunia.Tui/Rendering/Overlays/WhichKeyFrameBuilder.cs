@@ -15,9 +15,18 @@ public static class WhichKeyFrameBuilder
     private const int KeyGap = 2;
 
     /// <summary>The popup for <paramref name="pending"/>, or null when there is nothing to show or no room.</summary>
-    public static OverlayFrame? Build(string pending, IReadOnlyList<WhichKeyRow> rows, int screenWidth, int screenHeight, GraphGlyphSet glyphs)
+    /// <param name="bannerShown">Whether the operation banner occupies the row above the status bar: the popup then
+    /// docks above it instead of covering it (#742).</param>
+    public static OverlayFrame? Build(
+        string pending,
+        IReadOnlyList<WhichKeyRow> rows,
+        int screenWidth,
+        int screenHeight,
+        GraphGlyphSet glyphs,
+        bool bannerShown = false)
     {
-        var capacity = screenHeight - ChromeRows - ScreenMargin - 1;
+        var bannerRows = bannerShown ? 1 : 0;
+        var capacity = screenHeight - ChromeRows - ScreenMargin - 1 - bannerRows;
         if (capacity < 1 || screenWidth < OverlayBox.MinimumWidth)
         {
             return null;
@@ -55,7 +64,9 @@ public static class WhichKeyFrameBuilder
         }
 
         lines.Add(OverlayBox.Bottom(width, glyphs));
-        return new OverlayFrame(screenWidth - width, ScreenLayout.StatusRow(screenHeight) - lines.Count, lines);
+        var top = ScreenLayout.StatusRow(screenHeight) - bannerRows - lines.Count;
+
+        return new OverlayFrame(screenWidth - width, top, lines);
     }
 
     private static bool IsGroup(WhichKeyRow row) => row.Description.StartsWith("+more", StringComparison.Ordinal);

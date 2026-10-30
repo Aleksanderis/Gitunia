@@ -1,3 +1,4 @@
+using Gitunia.Core.Conflicts;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Operations;
 using Gitunia.Core.Picker;
@@ -62,7 +63,10 @@ public static class ScreenModelFactory
             Tabs: tabs,
             Picker: picker,
             HomeDirectory: homeDirectory,
-            Banner: OperationBannerBuilder.Build( tab?.Operation, OperationBannerBuilder.ConflictCount(tab?.WorkingTree)),
+            Banner: OperationBannerBuilder.Build(
+                tab?.Operation,
+                OperationBannerBuilder.ConflictCount(tab?.WorkingTree),
+                ConflictEditorSupport.AnyCanOpen(tab?.WorkingTree)),
             TruncatedTotal: session?.TruncatedTotal);
 
         return screenModel;

@@ -15,6 +15,21 @@ public static class PaneHints
         new("q", "quit", [ActionIds.AppQuit]),
     ];
 
+    private const string ConflictEditorLabel = "conflict editor";
+
+    private const string MergetoolLabel = "mergetool";
+
+    private static readonly KeyHint ConflictEditorHint = new(
+        "<space>to",
+        ConflictEditorLabel,
+        [ActionIds.ConflictOpen]);
+
+    // For a conflicted file the editor refuses (delete/modify and the like): the mergetool is the way (#742).
+    private static readonly KeyHint ConflictMergetoolHint = new(
+        "<space>tm",
+        MergetoolLabel,
+        [ActionIds.ToolMergetool]);
+
     // Ctrl-h/j/k/l move between panes in every view; bare h/j/k/l act inside the pane (ux.md, "Moving focus").
     private static readonly KeyHint PaneMove = new(
         "Ctrl-h/j/k/l",
@@ -156,6 +171,35 @@ public static class PaneHints
         PaneMove,
     ];
 
+    // The cursor is on a conflicted file: the editor is the first pane hint, so a narrow bar cuts the others (#742).
+    private static readonly ImmutableArray<KeyHint> WorkingUnstagedConflict =
+    [
+        .. Pinned,
+        new("Enter", ConflictEditorLabel, [ActionIds.WorkingTreeOpenDiff]),
+        .. WorkingUnstaged.Skip(Pinned.Length).Where(hint => hint.Description != "diff"),
+    ];
+
+    private static readonly ImmutableArray<KeyHint> WorkingUnstagedDiffConflict =
+    [
+        .. Pinned,
+        ConflictEditorHint,
+        .. WorkingUnstagedDiff.Skip(Pinned.Length),
+    ];
+
+    private static readonly ImmutableArray<KeyHint> WorkingUnstagedRefused =
+    [
+        .. Pinned,
+        ConflictMergetoolHint,
+        .. WorkingUnstaged.Skip(Pinned.Length).Where(hint => hint.Description != "diff"),
+    ];
+
+    private static readonly ImmutableArray<KeyHint> WorkingUnstagedDiffRefused =
+    [
+        .. Pinned,
+        ConflictMergetoolHint,
+        .. WorkingUnstagedDiff.Skip(Pinned.Length),
+    ];
+
     private static readonly ImmutableArray<KeyHint> WorkingStaged =
     [
         .. Pinned,
@@ -237,18 +281,39 @@ public static class PaneHints
         new("Esc", "cancel", [ActionIds.NavigateBack]),
     ];
 
-    private static readonly ImmutableArray<KeyHint> ConflictEditor =
+    private static readonly ImmutableArray<KeyHint> ConflictVersions =
     [
-        new("n/N", "hunk", [ActionIds.ConflictEditorNext, ActionIds.ConflictEditorPrevious]),
-        new("o/t/b", "ours/theirs/both", [
+        new("n/N", "conflict", [ActionIds.ConflictEditorNext, ActionIds.ConflictEditorPrevious]),
+        new("<space>a", "take pane", [ActionIds.ConflictEditorTake]),
+        new("<space>u", "untake", [ActionIds.ConflictEditorUntake]),
+        new("o/t/b", "ours/theirs/base", [
             ActionIds.ConflictEditorOurs,
             ActionIds.ConflictEditorTheirs,
-            ActionIds.ConflictEditorBoth,
+            ActionIds.ConflictEditorBase,
         ]),
-        new("O/T", "all", [ActionIds.ConflictEditorAllOurs, ActionIds.ConflictEditorAllTheirs]),
-        new("e", "edit", [ActionIds.ConflictEditorEdit]),
+        new("v", "select lines", [ActionIds.VisualToggle]),
+        new("e", "edit in result", [ActionIds.ConflictEditorEdit]),
         new("u", "undo", [ActionIds.ConflictEditorUndo]),
-        new("B", "base", [ActionIds.ConflictEditorBase]),
+        new("Tab", "pane", [ActionIds.PaneNext]),
+        new("Enter", "save", [ActionIds.ConflictEditorSave]),
+        new("Esc", "close", [ActionIds.NavigateBack]),
+    ];
+
+    private static readonly ImmutableArray<KeyHint> ConflictVisual =
+    [
+        new("<space>a", "take lines", [ActionIds.ConflictEditorTake]),
+        new("<space>u", "untake lines", [ActionIds.ConflictEditorUntake]),
+        new("j/k", "extend", [ActionIds.ListDown, ActionIds.ListUp]),
+        new("v", "end selection", [ActionIds.VisualToggle]),
+    ];
+
+    private static readonly ImmutableArray<KeyHint> ConflictResult =
+    [
+        new("n/N", "conflict", [ActionIds.ConflictEditorNext, ActionIds.ConflictEditorPrevious]),
+        new("<space>u", "untake", [ActionIds.ConflictEditorUntake]),
+        new("i", "type", [ActionIds.ConflictEditorEdit]),
+        new("u", "undo", [ActionIds.ConflictEditorUndo]),
+        new("Tab", "pane", [ActionIds.PaneNext]),
         new("Enter", "save", [ActionIds.ConflictEditorSave]),
         new("Esc", "close", [ActionIds.NavigateBack]),
     ];
@@ -296,8 +361,67 @@ public static class PaneHints
         kind == RepeatKind.Context ? RepeatContext : RepeatResize;
 
     /// <summary>The hints of the focused <paramref name="pane"/>; file content has its own.</summary>
-    public static IReadOnlyList<KeyHint> For(PaneKind pane, bool showsFileContent) =>
-        pane == PaneKind.Diff && showsFileContent ? FileContent : For(pane);
+    /// <param name="pane">The focused pane.</param>
+    /// <param name="showsFileContent">Whether the diff pane shows file content.</param>
+    /// <param name="onConflict">Whether the working-tree selection is a conflicted file: the Unstaged list and its
+    /// diff then lead with the conflict editor's keys (#742).</param>
+    /// <param name="onRefusedConflict">Whether the selection is a conflicted file the editor does not take
+    /// (delete/modify and the like): the same two panes then lead with the mergetool key instead.</param>
+    public static IReadOnlyList<KeyHint> For(
+        PaneKind pane,
+        bool showsFileContent,
+        bool onConflict = false,
+        bool onRefusedConflict = false)
+    {
+        if (onRefusedConflict && pane == PaneKind.WorkingUnstaged)
+        {
+            return WorkingUnstagedRefused;
+        }
+
+        if (onRefusedConflict && pane == PaneKind.WorkingUnstagedDiff)
+        {
+            return WorkingUnstagedDiffRefused;
+        }
+
+        if (onConflict && pane == PaneKind.WorkingUnstaged)
+        {
+            return WorkingUnstagedConflict;
+        }
+
+        if (onConflict && pane == PaneKind.WorkingUnstagedDiff)
+        {
+            return WorkingUnstagedDiffConflict;
+        }
+
+        return pane == PaneKind.Diff && showsFileContent ? FileContent : For(pane);
+    }
+
+    /// <summary>
+    /// <paramref name="hints"/> with <c>&lt;space&gt;to conflict editor</c> right after help, commands and quit: a
+    /// merge, rebase, cherry-pick or revert is stopped on a conflict, and the key works from every pane (#742). Hints
+    /// that already lead with the editor are returned as they are.
+    /// </summary>
+    /// <param name="hints">The hints of the focused pane.</param>
+    public static IReadOnlyList<KeyHint> WithConflictEditor(IReadOnlyList<KeyHint> hints) =>
+        WithConflictHint(hints, ConflictEditorHint, ConflictEditorLabel);
+
+    /// <summary>
+    /// <paramref name="hints"/> with <c>&lt;space&gt;tm mergetool</c> in the same place, for a stopped operation
+    /// whose conflicted files are all ones the editor does not take (#742).
+    /// </summary>
+    /// <param name="hints">The hints of the focused pane.</param>
+    public static IReadOnlyList<KeyHint> WithConflictMergetool(IReadOnlyList<KeyHint> hints) =>
+        WithConflictHint(hints, ConflictMergetoolHint, MergetoolLabel);
+
+    private static IReadOnlyList<KeyHint> WithConflictHint(IReadOnlyList<KeyHint> hints, KeyHint lead, string label)
+    {
+        if (hints.Any(hint => hint.Description == label))
+        {
+            return hints;
+        }
+
+        return [.. hints.Take(Pinned.Length), lead, .. hints.Skip(Pinned.Length)];
+    }
 
     /// <summary>The hints of the detail pane while its Changes tab is selected.</summary>
     public static IReadOnlyList<KeyHint> ForDetailChanges() => DetailChanges;
@@ -330,10 +454,16 @@ public static class PaneHints
     /// <summary>The hints while the rebase todo editor is open.</summary>
     public static IReadOnlyList<KeyHint> ForRebaseEditor() => RebaseEditor;
 
-    /// <summary>The hints while the conflict editor is open.</summary>
-    public static IReadOnlyList<KeyHint> ForConflictEditor() => ConflictEditor;
+    /// <summary>The hints while the conflict editor's cursor is in a version pane (base, ours or theirs).</summary>
+    public static IReadOnlyList<KeyHint> ForConflictVersions() => ConflictVersions;
 
-    /// <summary>The hints while the result of a conflict hunk is edited as text.</summary>
+    /// <summary>The hints while lines are selected in a version pane of the conflict editor.</summary>
+    public static IReadOnlyList<KeyHint> ForConflictVisual() => ConflictVisual;
+
+    /// <summary>The hints while the conflict editor's cursor is in the result pane (Normal mode).</summary>
+    public static IReadOnlyList<KeyHint> ForConflictResult() => ConflictResult;
+
+    /// <summary>The hints while the conflict editor's result is typed in (Insert mode).</summary>
     public static IReadOnlyList<KeyHint> ForConflictEdit() => ConflictEdit;
 
     /// <summary>The hints while a reword's message is edited in the rebase todo editor.</summary>
