@@ -705,10 +705,6 @@ public class OverlayFrameTests
         Assert.Null(HelpFrameBuilder.TabAt(tabs, 0, 80, 30, 1, 70));
     }
 
-    private static List<HelpTab> ManyPages() =>
-        [.. Enumerable.Range(1, 12).Select(
-            number => new HelpTab($"Page {number}", [new HelpSection($"Body {number}", [new HelpRow("k", $"does {number}")])]))];
-
     [Fact]
     public void GivenManyPages_WhenRendering_ThenALeftMenuListsTheSectionsAndMarksTheActiveOne()
     {
@@ -731,7 +727,20 @@ public class OverlayFrameTests
         var frame = HelpFrameBuilder.Build(ManyPages(), 11, "Graph", 0, 80, 10, GraphGlyphSet.Ascii)!;
 
         Assert.Contains(frame.Lines, line => line.Text.Contains("> Page 12", StringComparison.Ordinal));
-        Assert.DoesNotContain(frame.Lines, line => line.Text.Contains("Page 1 ", StringComparison.Ordinal));
+        Assert.Contains("Page 8", frame.Lines[1].Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GivenManyPagesOnANarrowScreen_WhenRendering_ThenTheTabRowReplacesTheMenu()
+    {
+        var tabs = ManyPages();
+
+        var frame = HelpFrameBuilder.Build(tabs, 3, "Graph", 0, 36, 20, GraphGlyphSet.Ascii)!;
+
+        Assert.Contains("[Page 4] 4/12", frame.Lines[1].Text, StringComparison.Ordinal);
+        Assert.DoesNotContain(frame.Lines, line => line.Text.Contains("> Page", StringComparison.Ordinal));
+        Assert.Contains("next tab", frame.Lines[^2].Text, StringComparison.Ordinal);
+        Assert.Equal(4, HelpFrameBuilder.TabAt(tabs, 3, 36, 20, 1, 3));
     }
 
     [Fact]
@@ -808,4 +817,8 @@ public class OverlayFrameTests
         Assert.Contains(frame.Lines, line => line.Text.Contains(description, StringComparison.Ordinal));
         Assert.True(frame.Width > 56);
     }
+
+    private static List<HelpTab> ManyPages() =>
+        [.. Enumerable.Range(1, 12).Select(
+            number => new HelpTab($"Page {number}", [new HelpSection($"Body {number}", [new HelpRow("k", $"does {number}")])]))];
 }

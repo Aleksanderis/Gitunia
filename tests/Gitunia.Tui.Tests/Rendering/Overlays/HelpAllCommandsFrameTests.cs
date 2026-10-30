@@ -70,7 +70,8 @@ public class HelpAllCommandsFrameTests
                 "│  All Repeat mode  │               │ (edit the todo)                        │",
                 "│  Commands         │  <space>brI   │ Interactive rebase from the root commit│",
                 "│                   │               │ (selection ignored)                    │",
-                "│ 1-18/71  Esc close  Tab next section  list keys scroll                     │",
+                "│                   │  <space>brf   │ Fix up the commit into the one before  │",
+                "│ 1-19/71  Esc close  Tab next section  list keys scroll                     │",
                 "╰────────────────────────────────────────────────────────────────────────────╯"),
             HelpText(Table, "All Graph", 80));
     }
@@ -100,7 +101,8 @@ public class HelpAllCommandsFrameTests
                 "│  All Repeat mode  │  <space>brf   │ Fix up the commit into the one before it (asks first)    │",
                 "│  Commands         │  <space>brw   │ Reword the commit subject (asks first)                   │",
                 "│                   │  <space>brd   │ Drop the commit from the branch (asks first)             │",
-                "│ 1-18/61  Esc close  Tab next section  list keys scroll                                       │",
+                "│                   │                                                                          │",
+                "│ 1-19/61  Esc close  Tab next section  list keys scroll                                       │",
                 "╰──────────────────────────────────────────────────────────────────────────────────────────────╯"),
             HelpText(Table, "All Graph", 120));
     }
