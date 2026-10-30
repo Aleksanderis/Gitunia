@@ -77,7 +77,7 @@ scripts/              bash and PowerShell helpers: big-repo generator, measureme
 
 `CommitTreeStore` (Tui, one per tab, like `CommitDetailsStore`) reads `ls-tree -r -z --long` off the UI thread when the Files tab is shown, with the same debounce, cancels on every selection change and keeps the last four trees. The worker also builds the `FileTreeModel` (Core: nested directories, folded single-child chains, ordinal order), so the UI thread only asks it for the visible rows, which `FileTreeSession` caches until the opened directories or the filter change. A closed directory costs nothing: the rows are produced by walking only the open ones.
 
-A closed directory costs nothing: rows are produced by walking only the open ones. A 100 000-file commit loads in 0.6 s with the AOT binary and a worst-case filter keystroke stays near 0.1 s (`docs/performance.md`); lazy per-directory loading is not needed at this size.
+A 100 000-file commit loads in 0.6 s with the AOT binary and a worst-case filter keystroke stays near 0.1 s (`docs/performance.md`); lazy per-directory loading is not needed at this size.
 
 ## Native AOT
 

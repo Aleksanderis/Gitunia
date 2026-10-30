@@ -13,7 +13,7 @@
 - One test per behaviour, one theory row per equivalence class or boundary (#676): a new case says which class or edge it adds, and prefers a row in the sibling theory over a new `[Fact]`. A row that repeats a class (another code point in the same range, the same input plus a trailing ASCII char) is deleted, not kept "to be safe".
 - No tests of constants, defaults or banner strings, and none that recompute the production expression (the `IsSupported` case): they restate the code and can only fail when the code is edited on purpose.
 - A timeout test injects a short timeout (tens of ms) instead of waiting seconds; the floor of ~1 s above is for tests that wait on real background events, not for timeout semantics.
-- Audit rule (#676): a theory row that adds no class or boundary is deleted; unrelated-action tests stay per handler; `CommitDetailsCache` and `DiffCache` keep separate tests. File watching is off by default, so tab tests poll: inject `PollOptions` with short intervals.
+- The #676 audit kept the "unrelated action is not handled" tests per handler and separate tests for `CommitDetailsCache` and `DiffCache`. File watching is off by default, so tab tests poll: inject `PollOptions` with short intervals.
 - A failing test blocks merge. No coverage percentage gate.
 
 ## Layers
@@ -25,10 +25,10 @@
 | Tui loading and effects | xUnit; fakes of the reader interfaces (`tests/Gitunia.Tui.Tests/Fakes`, `FakeGitServices`) where git is not the subject, real temp repos (`TestGit.Services`) where it is | Stores, pollers and loaders without a process per test; the wiring against real git |
 | Graph layout | xUnit, property tests | Lane assignment invariants, determinism, incremental == full |
 | State/keymap | xUnit | Command -> state transitions, modal behaviour, no binding conflicts (test reads the keymap table) |
-| Rendering | snapshot tests of frames as text (`ScreenComposer`); `gitunia <repo> --print-frame WxH` prints the same frame (flags in `--help`) | Layout at several terminal sizes, wide chars, ASCII fallback; `MainViewTests` checks view-level settings the text frames cannot show |
+| Rendering | snapshot tests of frames as text (`ScreenComposer`); `gitunia <repo> --print-frame WxH` prints the same frame (flags: `CommandLineParser.Usage`) | Layout at several terminal sizes, wide chars, ASCII fallback; `MainViewTests` checks view-level settings the text frames cannot show |
 | Startup smoke | `StartupSmokeTests` runs `TuiApplication.Run` on the headless `ansi` driver with temp config/state dirs, with a repository and with none | The whole shell is constructed as `Program.Main` does and its first frame is drawn, so a constructor-order crash fails `dotnet test`. It cannot see rendering or key handling: UI issues also get a tmux run of the real binary |
 | AOT smoke | CI script | AOT publish succeeds with no `IL*` warnings; binary starts and renders a frame against a fixture repo |
-| Manual | checklist | Real terminals (kitty, alacritty, Windows Terminal, tmux), credential prompts, huge repos; mouse in the Terminal.Gui views (`PaneListView`, `PickerView`) is checked in tmux by sending SGR sequences (see the `testing` skill) or a real mouse; the pure parts (`DragTracker`, `PaneResizer`, `VisualRangeController`) are unit-tested |
+| Manual | checklist | Real terminals (kitty, alacritty, Windows Terminal, tmux), credential prompts, huge repos; mouse in the Terminal.Gui views (`PaneListView`, `PickerView`) is checked in tmux by sending SGR sequences (`tmux send-keys -l $'\e[<0;X;YM\e[<0;X;Ym'`; wheel is button 64/65; a drag is the press `0;X;Y` + `M`, moves `32;X;Y` + `M`, then the release `0;X;Y` + `m`) or with a real mouse; the pure parts (`DragTracker`, `PaneResizer`, `VisualRangeController`) are unit-tested |
 
 Windows interactive runs: drive the real `gitunia.exe` with psmux (same `new-session`/`send-keys`/`capture-pane` commands; caveats in the `testing` skill, "Driving the real binary"). Snapshot and smoke tests stay the gate.
 
