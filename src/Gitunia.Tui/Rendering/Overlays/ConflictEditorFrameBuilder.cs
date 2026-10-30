@@ -435,6 +435,13 @@ public static class ConflictEditorFrameBuilder
         };
         var builder = new LineBuilder(width, glyphs.Ellipsis).Append(" ", SegmentRole.Plain);
         builder.Append(name, state.ActivePane == pane ? SegmentRole.ActiveTab : role);
+        if (state.HorizontalScroll > 0)
+        {
+            builder.Append(
+                string.Create(CultureInfo.InvariantCulture, $" col {state.HorizontalScroll + 1}"),
+                SegmentRole.Faint);
+        }
+
         if (label.Length > 0)
         {
             builder.Append($"  {label}", role);
@@ -444,13 +451,6 @@ public static class ConflictEditorFrameBuilder
         {
             var count = state.SelectionEnd - state.SelectionStart + 1;
             builder.Append(string.Create(CultureInfo.InvariantCulture, $"  VISUAL {count}"), SegmentRole.StatusMode);
-        }
-
-        if (state.HorizontalScroll > 0)
-        {
-            builder.Append(
-                string.Create(CultureInfo.InvariantCulture, $"  col {state.HorizontalScroll + 1}"),
-                SegmentRole.Faint);
         }
 
         return builder.Build();

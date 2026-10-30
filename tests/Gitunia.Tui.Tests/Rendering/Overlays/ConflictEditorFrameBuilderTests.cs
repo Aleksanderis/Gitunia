@@ -596,7 +596,7 @@ public class ConflictEditorFrameBuilderTests
 
         var frame = Build(state);
 
-        Assert.DoesNotContain(frame.Lines, line => line.Text.Contains("top", StringComparison.Ordinal) && line.Text.Contains("two", StringComparison.Ordinal));
+        Assert.DoesNotContain(VersionLines(frame), line => line.Contains("top", StringComparison.Ordinal));
         Assert.All(frame.Lines, line => Assert.Equal(120, TextWidth.Of(line.Text)));
     }
 
