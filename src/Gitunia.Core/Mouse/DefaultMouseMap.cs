@@ -335,6 +335,7 @@ public static class DefaultMouseMap
         new(RebaseCancelButton, MouseGesture.Click, ActionIds.NavigateBack),
         new(DefaultKeymap.ConflictSideView, MouseGesture.WheelUp, ActionIds.ListUp, WheelLines),
         new(DefaultKeymap.ConflictSideView, MouseGesture.WheelDown, ActionIds.ListDown, WheelLines),
+        new(DefaultKeymap.ConflictSideView, MouseGesture.DragStart, ActionIds.VisualToggle),
         new(DefaultKeymap.ConflictResultView, MouseGesture.WheelUp, ActionIds.ListUp, WheelLines),
         new(DefaultKeymap.ConflictResultView, MouseGesture.WheelDown, ActionIds.ListDown, WheelLines),
         new(ConflictOursButton, MouseGesture.Click, ActionIds.ConflictEditorOurs),

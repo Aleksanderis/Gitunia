@@ -678,7 +678,7 @@ public class ConflictEditorControllerTests
     }
 
     [Fact]
-    public async Task GivenTypingInTheResult_WhenClickingAPaneOrRow_ThenTheTypingContinuesUndisturbed()
+    public async Task GivenTypingInTheResult_WhenClickingAPaneOrHeader_ThenTheTypingContinuesUndisturbed()
     {
         using var repository = TestRepositories.ConflictedManyHunks();
         using var harness = await Harness.CreateAsync(repository);
@@ -687,12 +687,118 @@ public class ConflictEditorControllerTests
         var before = harness.Controller.State!;
 
         harness.ClickVersionRow(ConflictPane.Theirs, 0);
-        harness.ClickResultLine(3);
         harness.ClickHeader(ConflictPane.Ours);
 
         Assert.True(harness.Controller.IsEditing);
         Assert.Equal(before.Result.Editor.CursorRow, harness.Controller.State!.Result.Editor.CursorRow);
         Assert.Equal(ConflictPane.Result, harness.Controller.State.ActivePane);
+    }
+
+    [Fact]
+    public async Task GivenTypingInTheResult_WhenClickingAResultLine_ThenTheCursorMovesThereAndTypingContinues()
+    {
+        using var repository = TestRepositories.ConflictedManyHunks();
+        using var harness = await Harness.CreateAsync(repository);
+        await harness.OpenAsync();
+        harness.Run(ActionIds.ConflictEditorEdit);
+
+        harness.ClickResultLine(0, 3);
+        harness.Type("Z");
+
+        var state = harness.Controller.State!;
+        Assert.True(harness.Controller.IsEditing);
+        Assert.Equal(0, state.Result.Editor.CursorRow);
+        Assert.Equal(4, state.Result.Editor.CursorColumn);
+        Assert.Equal('Z', state.Result.Editor.Lines[0][3]);
+    }
+
+    [Fact]
+    public async Task GivenAClickInTheResultText_WhenClicking_ThenTheCursorIsAtThatColumn()
+    {
+        using var repository = TestRepositories.ConflictedManyHunks();
+        using var harness = await Harness.CreateAsync(repository);
+        await harness.OpenAsync();
+        var line = harness.Controller.State!.ResultScroll;
+        var length = harness.Controller.State.Result.Editor.Lines[line].Length;
+        Assert.True(length > 4);
+
+        harness.ClickResultLine(line, 4);
+        Assert.Equal(4, harness.Controller.State!.Result.Editor.CursorColumn);
+
+        harness.ClickResultLine(line, 30);
+        Assert.Equal(length, harness.Controller.State!.Result.Editor.CursorColumn);
+
+        harness.ClickResultLine(line);
+        Assert.Equal(0, harness.Controller.State!.Result.Editor.CursorColumn);
+    }
+
+    [Fact]
+    public async Task GivenADragOverVersionRows_WhenTakingTheSelection_ThenOnlyThoseLinesAreTaken()
+    {
+        using var repository = LongHunk();
+        using var harness = await Harness.CreateAsync(repository);
+        await harness.OpenAsync();
+        var first = harness.Controller.State!.Row;
+
+        Assert.True(harness.DragStart(ConflictPane.Ours, first));
+        harness.DragTo(first + 2);
+
+        Assert.True(harness.Controller.IsVisual);
+        Assert.Equal(KeyMode.Visual, harness.Mode);
+        Assert.Equal(ConflictPane.Ours, harness.Controller.State!.ActivePane);
+        Assert.Equal(first, harness.Controller.State.SelectionStart);
+        Assert.Equal(first + 2, harness.Controller.State.SelectionEnd);
+
+        harness.Run(ActionIds.ConflictEditorTake);
+
+        var state = harness.Controller.State!;
+        Assert.Equal(ConflictPick.Lines, state.SelectedPick);
+        Assert.Equal(3, state.Result.Regions[0].Length);
+    }
+
+    [Fact]
+    public async Task GivenADragPastThePanes_WhenDragging_ThenTheSelectionReachesTheEdgeRows()
+    {
+        using var repository = LongHunk();
+        using var harness = await Harness.CreateAsync(repository);
+        await harness.OpenAsync();
+        var first = harness.Controller.State!.Row;
+        Assert.True(harness.DragStart(ConflictPane.Ours, first + 1));
+
+        harness.Controller.OnDragged(0);
+        Assert.Equal(harness.Controller.State!.TopScroll, harness.Controller.State.Row);
+
+        harness.Controller.OnDragged(harness.Screen.Height);
+        Assert.True(harness.Controller.State!.Row > first + 1);
+        Assert.True(harness.Controller.IsVisual);
+    }
+
+    [Fact]
+    public async Task GivenADragOnTheResultOrAHeader_WhenDragging_ThenNoSelectionStarts()
+    {
+        using var repository = LongHunk();
+        using var harness = await Harness.CreateAsync(repository);
+        await harness.OpenAsync();
+        var state = harness.Controller.State!;
+        var layout = ConflictEditorFrameBuilder.LayoutFor(state, harness.Screen.Width, harness.Screen.Height - 1)!;
+
+        Assert.Null(harness.Controller.OnDragStarted(layout.ResultStartLine, 10));
+        Assert.Null(harness.Controller.OnDragStarted(1, 5));
+        harness.Controller.OnDragged(layout.ResultStartLine + 1);
+
+        Assert.False(harness.Controller.IsVisual);
+    }
+
+    [Fact]
+    public async Task GivenADragWhileTyping_WhenDragging_ThenNoSelectionStarts()
+    {
+        using var repository = LongHunk();
+        using var harness = await Harness.CreateAsync(repository);
+        await harness.OpenAsync();
+        harness.Run(ActionIds.ConflictEditorEdit);
+
+        Assert.False(harness.DragStart(ConflictPane.Ours, 0));
+        Assert.False(harness.Controller.IsVisual);
     }
 
     [Fact]
@@ -1323,13 +1429,44 @@ public class ConflictEditorControllerTests
                 isDoubleClick);
         }
 
-        public void ClickResultLine(int line)
+        public void ClickResultLine(int line, int textColumn = 0)
         {
             var state = Controller.State!;
             var layout = ConflictEditorFrameBuilder.LayoutFor(state, Screen.Width, Screen.Height - 1)!;
 
-            Click(layout.ResultStartLine + line - state.ResultScroll, 10);
+            var frameLine = layout.ResultStartLine + line - state.ResultScroll;
+
+            // The last column that still maps to text column 0 is the first cell of the text.
+            var origin = Enumerable.Range(1, Screen.Width - 2)
+                .Last(column => ConflictEditorFrameBuilder.TargetAt(state, frameLine, column, Screen.Width, Screen.Height - 1)
+                    is { Column: 0 } target && target.Kind == ConflictTargetKind.ResultLine
+                    && (column == 1 || ConflictEditorFrameBuilder.TargetAt(state, frameLine, column + 1, Screen.Width, Screen.Height - 1)
+                        is { Column: <= 1 }));
+
+            Click(frameLine, origin + textColumn);
         }
+
+        public int LineOfRow(int row) =>
+            ConflictEditorLayout.VersionStartLine + row - Controller.State!.TopScroll;
+
+        // The drag start goes through the mouse map to visual.toggle (checked against DefaultMouseMap by MouseMapTests).
+        public bool DragStart(ConflictPane pane, int row)
+        {
+            var view = Controller.OnDragStarted(
+                LineOfRow(row),
+                1 + (((int)pane - (int)ConflictPane.Base) * (Screen.Width / 3)) + 4);
+            if (view is null)
+            {
+                return false;
+            }
+
+            Assert.Equal("ConflictSide", view);
+            Run(ActionIds.VisualToggle);
+
+            return true;
+        }
+
+        public void DragTo(int row) => Controller.OnDragged(LineOfRow(row));
 
         public void ClickHeader(ConflictPane pane)
         {

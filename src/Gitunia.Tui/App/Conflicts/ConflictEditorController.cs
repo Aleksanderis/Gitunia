@@ -91,6 +91,9 @@ public sealed class ConflictEditorController(
     private const int StatusBarRows = 1;
     private const int DefaultPaneRows = 10;
 
+    // True from a drag that began a Visual selection on a version row until the next drag.
+    private bool _isDragging;
+
     private static readonly Dictionary<ActionId, ConflictResultCommand> ResultCommands = new()
     {
         [ActionIds.WorkingTreeMessageLeft] = ConflictResultCommand.Left,
@@ -201,12 +204,57 @@ public sealed class ConflictEditorController(
             return isDoubleClick ? null : target.View;
         }
 
-        if (!state.IsEditing)
+        // While typing only a click inside the result moves the cursor; the panes and headers wait until typing ends.
+        if (!state.IsEditing || target.Kind == ConflictTargetKind.ResultLine)
         {
             ClickTarget(state, target, isDoubleClick);
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// A drag began at a frame line and column. Over a row of a version pane the cursor goes there and the mouse view
+    /// of the pane is returned for the caller to send the drag through the mouse map, which starts the Visual
+    /// selection like <c>v</c> (taken by <c>&lt;space&gt;a</c> or the take chip). Null when the drag selects nothing.
+    /// </summary>
+    public string? OnDragStarted(int frameLine, int frameColumn)
+    {
+        _isDragging = false;
+        if (State is not { IsEditing: false } state || isOtherOverlayOpen())
+        {
+            return null;
+        }
+
+        var size = EditorArea();
+        if (ConflictEditorFrameBuilder.TargetAt(state, frameLine, frameColumn, size.Width, size.Height, keys)
+            is not { Kind: ConflictTargetKind.VersionRow } target)
+        {
+            return null;
+        }
+
+        Update(state.ClickVersionRow(target.Pane, target.Index));
+        _isDragging = true;
+
+        return DefaultKeymap.ConflictSideView;
+    }
+
+    /// <summary>
+    /// The pointer of a drag started by <see cref="OnDragStarted"/> is at a frame line: the selection reaches the row
+    /// under it (the first or last shown row above or below the panes).
+    /// </summary>
+    public void OnDragged(int frameLine)
+    {
+        if (!_isDragging || State is not { IsVisual: true } state || isOtherOverlayOpen())
+        {
+            return;
+        }
+
+        var size = EditorArea();
+        if (ConflictEditorFrameBuilder.VersionRowAtLine(state, frameLine, size.Width, size.Height, keys) is { } row)
+        {
+            Update(state.DragToVersionRow(row));
+        }
     }
 
     private void ClickTarget(ConflictEditorState state, ConflictTarget target, bool isDoubleClick)
@@ -215,7 +263,7 @@ public sealed class ConflictEditorController(
         {
             ConflictTargetKind.Header => state.FocusPane(target.Pane).EndVisual(),
             ConflictTargetKind.VersionRow => state.ClickVersionRow(target.Pane, target.Index),
-            _ => state.ClickResultLine(target.Index),
+            _ => state.ClickResultLine(target.Index, target.Column),
         };
         Update(moved);
         if (isDoubleClick

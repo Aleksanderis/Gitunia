@@ -229,7 +229,7 @@ public class ConflictEditorStateTests
         Assert.Same(state, state.ClickVersionRow(ConflictPane.Result, 2));
         var typing = state.BeginEdit();
         Assert.Same(typing, typing.ClickVersionRow(ConflictPane.Theirs, 2));
-        Assert.Same(typing, typing.ClickResultLine(0));
+        Assert.Same(typing, typing.ClickResultLine(99));
     }
 
     [Fact]

@@ -210,10 +210,45 @@ public static class ConflictEditorFrameBuilder
 
         if (frameLine >= layout.ResultStartLine && frameLine < layout.ResultStartLine + layout.ResultRows)
         {
-            return ConflictTarget.OfResultLine(followed.ResultScroll + frameLine - layout.ResultStartLine);
+            var line = followed.ResultScroll + frameLine - layout.ResultStartLine;
+            var prefix = ConflictPaneRows.ResultPrefixWidth(state);
+
+            // The cursor's own line is scrolled sideways while it is drawn with the cursor (the active result pane).
+            var offset = followed.ActivePane == ConflictPane.Result && line == followed.Result.Editor.CursorRow
+                ? MessageEditorRenderer.ScrollOffset(
+                    followed.Result.Editor,
+                    OverlayBox.InnerWidth(layout.Width) - prefix)
+                : 0;
+
+            return ConflictTarget.OfResultLine(line, Math.Max(0, inner - prefix) + offset);
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// The aligned row of a version pane under a frame line while a drag goes on: a line above or below the version
+    /// panes gives the first or last row shown, so the selection keeps growing; null when the screen shows no editor.
+    /// </summary>
+    public static int? VersionRowAtLine(
+        ConflictEditorState state,
+        int frameLine,
+        int screenWidth,
+        int frameHeight,
+        ChipKeys? keys = null)
+    {
+        if (LayoutFor(state, screenWidth, frameHeight, keys) is not { } layout)
+        {
+            return null;
+        }
+
+        var followed = state.Follow(layout.VersionRows, layout.ResultRows);
+        var shown = Math.Clamp(
+            frameLine - ConflictEditorLayout.VersionStartLine,
+            0,
+            layout.VersionRows - 1);
+
+        return Math.Clamp(followed.TopScroll + shown, 0, Math.Max(0, state.Alignment.RowCount - 1));
     }
 
     // The version pane under a column inside the borders; the dividers between the panes belong to none.
