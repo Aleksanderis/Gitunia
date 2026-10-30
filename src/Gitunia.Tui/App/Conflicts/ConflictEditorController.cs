@@ -197,7 +197,8 @@ public sealed class ConflictEditorController(
         handled = true;
         if (target.Kind == ConflictTargetKind.Chip)
         {
-            return target.View;
+            // The first click of a double-click already ran the chip: the second must not run it again.
+            return isDoubleClick ? null : target.View;
         }
 
         if (!state.IsEditing)
@@ -212,7 +213,7 @@ public sealed class ConflictEditorController(
     {
         var moved = target.Kind switch
         {
-            ConflictTargetKind.Header => state.FocusPane(target.Pane),
+            ConflictTargetKind.Header => state.FocusPane(target.Pane).EndVisual(),
             ConflictTargetKind.VersionRow => state.ClickVersionRow(target.Pane, target.Index),
             _ => state.ClickResultLine(target.Index),
         };
@@ -571,13 +572,12 @@ public sealed class ConflictEditorController(
     {
         if (state.IsVisual)
         {
-            var untaken = state.UntakeSelectedLines();
-            if (untaken.UndoStack?.Count == state.UndoStack?.Count)
+            if (state.UntakeableLineCount == 0)
             {
                 statuses.Warning(NoLinesToUntakeNotice);
             }
 
-            Update(untaken);
+            Update(state.UntakeSelectedLines());
         }
         else if (!state.CanUntake)
         {

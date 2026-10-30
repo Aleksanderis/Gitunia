@@ -360,9 +360,9 @@ public static class DefaultKeymap
     // The conflict editor is a modal like the rebase todo editor (#742). ConflictEditor holds the keys of every pane;
     // ConflictSide (the base, ours and theirs panes, read-only) adds the picks, ConflictResult (the text editor over
     // the whole file) the commit box's Normal mode keys. n/N step through the conflicts (the editor has no search),
-    // so they shadow Lists' search keys; <space>u untakes a conflict as <space>a takes it (it shadows the Lists' unstage
-    // key; the old reset key r is gone). In
-    // Insert mode the result's text editor takes text; only Enter, Esc and Ctrl-g act.
+    // so they shadow Lists' search keys; <space>u untakes a conflict as <space>a takes it (the same chord unstages in the
+    // Staged views, which the editor covers; the old reset key r is gone). In Insert mode the result's text editor
+    // takes text; only Enter, Esc and Ctrl-g act.
     private static void AddConflictEditorKeys(List<KeyBinding> bindings)
     {
         const string editor = ConflictEditorView;

@@ -189,6 +189,24 @@ public class ConflictEditorStateTests
     }
 
     [Fact]
+    public void GivenTakenLines_WhenCountingWhatUntakeRemoves_ThenOnlyLinesInTheResultCountEvenWithAFullUndoStack()
+    {
+        var state = State(LongHunk).ToggleVisual().MoveCursor(2).TakeSelectedLines();
+        for (var step = 0; step < ConflictEditorState.UndoLimit + 5; step++)
+        {
+            state = state.Take(ConflictPick.Ours).Take(ConflictPick.Theirs);
+        }
+
+        var selecting = state.Take(ConflictPick.Ours).ClickVersionRow(ConflictPane.Ours, 1).ToggleVisual();
+        Assert.Equal(1, selecting.UntakeableLineCount);
+        var untaken = selecting.UntakeSelectedLines();
+
+        Assert.Equal(ConflictEditorState.UndoLimit, untaken.UndoStack!.Count);
+        Assert.Equal("top\nb\nc\nend\n", untaken.ToText());
+        Assert.Equal(0, State(LongHunk).ToggleVisual().UntakeableLineCount);
+    }
+
+    [Fact]
     public void GivenARowInATheirsPane_WhenClickingIt_ThenThePaneIsActiveTheCursorIsThereAndVisualEnds()
     {
         var state = State(Text).ToggleVisual();

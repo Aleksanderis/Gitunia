@@ -378,10 +378,30 @@ public sealed record ConflictEditorState(
     /// </summary>
     public ConflictEditorState UntakeSelectedLines()
     {
+        var (remaining, removed) = LinesLeftAfterUntake();
+        if (removed == 0)
+        {
+            return EndVisual();
+        }
+
+        var index = Index;
+        var raw = ConflictAlignment.Lines(Hunks[index].Raw);
+
+        return (this with { Anchor = null }).Changed(result => result.ReplaceRegion(
+            index,
+            remaining.Count == 0 ? raw : remaining,
+            remaining.Count == 0 ? ConflictPick.None : ConflictPick.Lines));
+    }
+
+    /// <summary>How many of the selected lines <see cref="UntakeSelectedLines"/> would remove from the result.</summary>
+    public int UntakeableLineCount => LinesLeftAfterUntake().Removed;
+
+    private (List<string> Remaining, int Removed) LinesLeftAfterUntake()
+    {
         var selected = SelectedLines();
         if (selected.Count == 0 || IsEditing || Result.IsUnresolved(Index))
         {
-            return EndVisual();
+            return ([], 0);
         }
 
         var remaining = Result.LinesOf(Index).ToList();
@@ -396,18 +416,7 @@ public sealed record ConflictEditorState(
             }
         }
 
-        if (removed == 0)
-        {
-            return EndVisual();
-        }
-
-        var index = Index;
-        var raw = ConflictAlignment.Lines(Hunks[index].Raw);
-
-        return (this with { Anchor = null }).Changed(result => result.ReplaceRegion(
-            index,
-            remaining.Count == 0 ? raw : remaining,
-            remaining.Count == 0 ? ConflictPick.None : ConflictPick.Lines));
+        return (remaining, removed);
     }
 
     /// <summary>

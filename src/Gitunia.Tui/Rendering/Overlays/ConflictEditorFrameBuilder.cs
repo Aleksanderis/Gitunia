@@ -182,6 +182,7 @@ public static class ConflictEditorFrameBuilder
             return ConflictTarget.OfChip(view);
         }
 
+        var followed = state.Follow(layout.VersionRows, layout.ResultRows);
         var inner = frameColumn - 1;
         if (inner < 0 || inner >= OverlayBox.InnerWidth(layout.Width))
         {
@@ -197,7 +198,7 @@ public static class ConflictEditorFrameBuilder
         if (frameLine >= ConflictEditorLayout.VersionStartLine
             && frameLine < ConflictEditorLayout.VersionStartLine + layout.VersionRows)
         {
-            var row = state.TopScroll + frameLine - ConflictEditorLayout.VersionStartLine;
+            var row = followed.TopScroll + frameLine - ConflictEditorLayout.VersionStartLine;
 
             return PaneAt(layout, inner) is { } pane ? ConflictTarget.OfVersionRow(pane, row) : null;
         }
@@ -209,7 +210,7 @@ public static class ConflictEditorFrameBuilder
 
         if (frameLine >= layout.ResultStartLine && frameLine < layout.ResultStartLine + layout.ResultRows)
         {
-            return ConflictTarget.OfResultLine(state.ResultScroll + frameLine - layout.ResultStartLine);
+            return ConflictTarget.OfResultLine(followed.ResultScroll + frameLine - layout.ResultStartLine);
         }
 
         return null;
@@ -350,15 +351,16 @@ public static class ConflictEditorFrameBuilder
     {
         var position = string.Create(
             CultureInfo.InvariantCulture,
-            $"conflict {state.Index + 1} of {state.Hunks.Count}: {ConflictState(state)}");
+            $"conflict {state.Index + 1} of {state.Hunks.Count}");
         if (state.IsDiscardPending)
         {
             return $"Conflict: {state.Path}  {position}  {DiscardHint}";
         }
 
+        // The counts come before the state so that a narrow terminal cuts the state text first.
         return string.Create(
             CultureInfo.InvariantCulture,
-            $"Conflict: {state.Path}  {position}  {state.ResolvedCount} resolved  {state.UnresolvedCount} unresolved");
+            $"Conflict: {state.Path}  {position}  {state.ResolvedCount} resolved  {state.UnresolvedCount} unresolved  {ConflictState(state)}");
     }
 
     private static StyledLine HeaderLine(

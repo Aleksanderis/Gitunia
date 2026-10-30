@@ -696,6 +696,43 @@ public class ConflictEditorControllerTests
     }
 
     [Fact]
+    public async Task GivenADoubleClickOnAChip_WhenClicking_ThenItIsHandledButItsViewIsNotReturnedAgain()
+    {
+        using var repository = TestRepositories.Conflicted();
+        using var harness = await Harness.CreateAsync(repository);
+        await harness.OpenAsync();
+        var layout = ConflictEditorFrameBuilder.LayoutFor(harness.Controller.State!, harness.Screen.Width, 35)!;
+        var column = Enumerable.Range(0, harness.Screen.Width).First(candidate =>
+            ConflictEditorFrameBuilder.ChipAt(
+                harness.Controller.State!,
+                layout.FirstChipLine,
+                candidate,
+                harness.Screen.Width,
+                35) is not null);
+
+        var single = harness.Click(layout.FirstChipLine, column);
+        var doubled = harness.Click(layout.FirstChipLine, column, isDoubleClick: true);
+
+        Assert.NotNull(single);
+        Assert.Null(doubled);
+        Assert.True(harness.LastClickHandled);
+    }
+
+    [Fact]
+    public async Task GivenAVisualSelection_WhenClickingTheActivePaneHeader_ThenTheSelectionEnds()
+    {
+        using var repository = TestRepositories.ConflictedManyHunks();
+        using var harness = await Harness.CreateAsync(repository);
+        await harness.OpenAsync();
+        harness.Run(ActionIds.VisualToggle);
+
+        harness.ClickHeader(ConflictPane.Ours);
+
+        Assert.False(harness.Controller.IsVisual);
+        Assert.Equal(KeyMode.Normal, harness.Mode);
+    }
+
+    [Fact]
     public async Task GivenAClickOnTheBorderOrAnOtherOverlay_WhenClicking_ThenNothingHappens()
     {
         using var repository = TestRepositories.ConflictedManyHunks();

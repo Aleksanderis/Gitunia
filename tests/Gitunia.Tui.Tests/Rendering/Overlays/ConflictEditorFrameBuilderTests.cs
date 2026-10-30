@@ -103,7 +103,7 @@ public class ConflictEditorFrameBuilderTests
 
         var result = ResultLines(frame);
         Assert.DoesNotContain(result, line => line.Contains("ours 1", StringComparison.Ordinal));
-        Assert.Contains("conflict 1 of 2: taken from theirs", frame.Lines[0].Text, StringComparison.Ordinal);
+        Assert.Contains("taken from theirs", frame.Lines[0].Text, StringComparison.Ordinal);
         Assert.DoesNotContain("taken", frame.Lines[1].Text, StringComparison.Ordinal);
         Assert.DoesNotContain("taken", TextOfLineWith(frame, " result "), StringComparison.Ordinal);
     }
@@ -365,11 +365,36 @@ public class ConflictEditorFrameBuilderTests
     [Fact]
     public void GivenAScrolledPane_WhenLookingUpARow_ThenTheScrollIsAdded()
     {
-        var state = State(Text) with { TopScroll = 3 };
+        var state = State(ManyLines()).ClickVersionRow(ConflictPane.Ours, 3) with { TopScroll = 3 };
 
         var target = ConflictEditorFrameBuilder.TargetAt(state, ConflictEditorLayout.VersionStartLine, 50, 120, 35)!;
 
         Assert.Equal(3, target.Index);
+    }
+
+    [Fact]
+    public void GivenAStaleScrollAfterAResize_WhenLookingUpARow_ThenTheRowIsTheOneDrawnUnderThePointer()
+    {
+        var state = ConflictEditorState.Create(new TabId(1), "file.txt", ConflictParser.Parse(ManyLines()).Parts!)
+            .MoveToBottom();
+        var stale = state with { TopScroll = 0 };
+        var layout = ConflictEditorFrameBuilder.LayoutFor(stale, 120, 35)!;
+        var drawn = stale.Follow(layout.VersionRows, layout.ResultRows);
+        Assert.NotEqual(0, drawn.TopScroll);
+
+        var target = ConflictEditorFrameBuilder.TargetAt(stale, ConflictEditorLayout.VersionStartLine, 50, 120, 35)!;
+
+        Assert.Equal(drawn.TopScroll, target.Index);
+    }
+
+    [Fact]
+    public void GivenAStateAndAWidth_WhenRendering_ThenANarrowTitleCutsTheStateBeforeTheCounts()
+    {
+        var title = Build(State(Text), width: 70).Lines[0].Text;
+
+        Assert.Contains("0 resolved", title, StringComparison.Ordinal);
+        var wide = Build(State(Text)).Lines[0].Text;
+        Assert.True(IsBefore(wide, "0 resolved  2 unresolved", "still holds its markers"));
     }
 
     [Fact]
@@ -393,7 +418,7 @@ public class ConflictEditorFrameBuilderTests
     [Fact]
     public void GivenTheResult_WhenLookingUpALine_ThenTheResultScrollIsAdded()
     {
-        var state = State(Text) with { ResultScroll = 2 };
+        var state = State(ManyLines()).ClickResultLine(2) with { ResultScroll = 2 };
         var layout = ConflictEditorFrameBuilder.LayoutFor(state, 120, 35)!;
 
         var target = ConflictEditorFrameBuilder.TargetAt(state, layout.ResultStartLine + 1, 30, 120, 35)!;
@@ -521,6 +546,10 @@ public class ConflictEditorFrameBuilderTests
 
         return string.Join(" ", layout.ChipRows.SelectMany(row => row).Select(chip => chip.Text));
     }
+
+    private static string ManyLines() =>
+        string.Concat(Enumerable.Range(0, 80).Select(line => $"line {line}\n"))
+        + "<<<<<<< HEAD\nA\n=======\nB\n>>>>>>> feature\n";
 
     private static ConflictEditorState State(string text) =>
         ConflictEditorState.Create(new TabId(1), "file.txt", ConflictParser.Parse(text).Parts!);

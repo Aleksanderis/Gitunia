@@ -698,8 +698,8 @@ public sealed class TuiApplication(
         }
     }
 
-    // Only the conflict editor uses the double-click of an overlay (a version row takes its version, a chip counts it
-    // as a click); the other overlays keep ignoring it.
+    // Only the conflict editor uses the double-click of an overlay (a version row takes its version; a chip already ran
+    // on the first click and does nothing again); the other overlays keep ignoring it.
     private void OnOverlayLineDoubleClicked(int line)
     {
         if (!_conflictEditor.IsOpen)
