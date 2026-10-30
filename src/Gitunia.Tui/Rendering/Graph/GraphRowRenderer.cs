@@ -204,12 +204,34 @@ public static class GraphRowRenderer
                 builder.Add(new StyledSegment(LabelSeparator, SegmentRole.Punctuation));
             }
 
-            AppendLabel(builder, labels[index], entry.Row.NodeColor, glyphs);
+            AppendLabel(builder, labels[index], ChipColorOf(entry.Row, labels[index]), glyphs);
         }
 
         builder.Add(new StyledSegment(LabelSeparator, SegmentRole.Punctuation));
 
         return builder;
+    }
+
+    // A chip is coloured by its branch, not by its lane (#849). A branch the layout did not see on this commit (added
+    // by an incremental reload since) takes the colour of its name, which is stable but may equal a neighbour's until
+    // the next full read.
+    private static int ChipColorOf(GraphRow row, RefLabel label)
+    {
+        if (label.Kind is not (RefKind.LocalBranch or RefKind.RemoteBranch))
+        {
+            return row.NodeColor;
+        }
+
+        var name = BranchColors.ShortName(label.Kind, label.Name);
+        foreach (var slot in row.LabelSlots ?? [])
+        {
+            if (slot.Name == name)
+            {
+                return slot.Slot;
+            }
+        }
+
+        return BranchColors.PreferredSlot(name);
     }
 
     // A branch is one box: the HEAD mark and the remote glyph sit inside it, next to the name (#804), with a space of

@@ -36,6 +36,64 @@ public static class BranchColors
     }
 
     /// <summary>
+    /// The branch names of the commits that carry more than one (see <see cref="NamesOf"/>), without the first.
+    /// </summary>
+    /// <param name="decorationsByCommit">The refs of the commits that carry one.</param>
+    public static IReadOnlyDictionary<ObjectId, IReadOnlyList<string>> ExtraNamesOf(
+        IReadOnlyDictionary<ObjectId, IReadOnlyList<CommitDecoration>> decorationsByCommit)
+    {
+        var extras = new Dictionary<ObjectId, IReadOnlyList<string>>();
+        foreach (var (commit, decorations) in decorationsByCommit)
+        {
+            var names = NamesOf(decorations);
+            if (names.Count > 1)
+            {
+                extras[commit] = names.Skip(1).ToArray();
+            }
+        }
+
+        return extras;
+    }
+
+    /// <summary>
+    /// Every distinct branch name of a commit without remote prefix (a local branch and its remote-tracking branch are
+    /// one name; <c>origin/HEAD</c> excluded): <see cref="PrimaryName"/> first, then the others in ordinal order.
+    /// </summary>
+    /// <param name="decorations">The refs on the commit.</param>
+    public static IReadOnlyList<string> NamesOf(IReadOnlyList<CommitDecoration> decorations)
+    {
+        var primary = PrimaryName(decorations);
+        if (primary is null)
+        {
+            return [];
+        }
+
+        var others = new SortedSet<string>(StringComparer.Ordinal);
+        foreach (var decoration in decorations)
+        {
+            if (decoration.Kind is not (RefKind.LocalBranch or RefKind.RemoteBranch))
+            {
+                continue;
+            }
+
+            var name = ShortName(decoration.Kind, decoration.Name);
+            if (name != SymbolicRemoteHeadName || decoration.Kind == RefKind.LocalBranch)
+            {
+                others.Add(name);
+            }
+        }
+
+        others.Remove(primary);
+        return [primary, .. others];
+    }
+
+    /// <summary>The branch name without the remote name of a remote-tracking branch.</summary>
+    /// <param name="kind">Whether the ref is a local or a remote-tracking branch.</param>
+    /// <param name="name">The ref name as shown (<c>main</c>, <c>origin/main</c>).</param>
+    public static string ShortName(RefKind kind, string name) =>
+        kind == RefKind.RemoteBranch ? name[(name.IndexOf('/', StringComparison.Ordinal) + 1)..] : name;
+
+    /// <summary>
     /// The branch a commit stands for: its checked-out local branch, else its smallest local branch name (ordinal),
     /// else its smallest remote-tracking branch name without the remote name (the symbolic <c>origin/HEAD</c>
     /// excluded); null when it carries no branch ref (tags and a detached HEAD are not branches). Independent of the

@@ -96,7 +96,7 @@ public sealed class PaletteTable
     public required Color[] Lanes { get; init; }
 
     /// <summary>
-    /// Text on a branch label of the graph, which is a chip in the colour of its lane: one entry per entry of
+    /// Text on a branch label of the graph, which is a chip in the colour of its branch: one entry per entry of
     /// <see cref="Lanes"/>, readable on it. Null where it cannot be worked out from the colours (16 colours,
     /// styles only): the label then uses <see cref="ChipForeground"/>.
     /// </summary>
