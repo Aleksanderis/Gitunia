@@ -15,19 +15,21 @@ public static class ContextMenuBuilder
     /// exactly like the keys do and would otherwise show a row nobody can repeat from the keyboard.
     /// A menu titled by its caller (the <c>view ▾</c> dropdowns) passes <paramref name="grouped"/> false: it is one
     /// list of options, and sub-headers would only repeat its title (#758).
+    /// Actions above <paramref name="level"/> (#839) are left out.
     /// </summary>
     public static IReadOnlyList<PaletteEntry> Build(
         KeyBindingTable table,
         string view,
         IReadOnlyList<ActionId> actions,
-        bool grouped = true)
+        bool grouped = true,
+        CommandLevel level = CommandLevel.AdvancedPlus)
     {
         var bindings = table.EffectiveBindings(KeyMode.Normal, view);
         var entries = new List<PaletteEntry>(actions.Count);
         foreach (var action in actions)
         {
             var binding = bindings.FirstOrDefault(candidate => candidate.Action == action);
-            if (binding is null)
+            if (binding is null || !ActionCatalog.IsListedAt(action, level))
             {
                 continue;
             }

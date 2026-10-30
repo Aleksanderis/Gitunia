@@ -71,6 +71,19 @@ public static class HelpBuilder
         new("Repeat mode", [RepeatMode.ContextView, RepeatMode.ResizeView]),
     ];
 
+    // The screens that own the keyboard while open (#839): their keys are all listed, whatever the command level.
+    private static readonly HashSet<string> ModalScreenViews =
+    [
+        DefaultKeymap.ReflogView,
+        DefaultKeymap.RebaseEditorView,
+        DefaultKeymap.ConflictEditorView,
+        DefaultKeymap.ConflictSideView,
+        DefaultKeymap.ConflictResultView,
+        DefaultKeymap.SettingsView,
+        RepeatMode.ContextView,
+        RepeatMode.ResizeView,
+    ];
+
     private static readonly Lazy<KeyBindingTable> Defaults = new(DefaultKeymap.Create);
 
     /// <summary>
@@ -81,15 +94,32 @@ public static class HelpBuilder
         UnlistedViews.Contains(binding.View) || UnlistedActions.Contains(binding.Action);
 
     /// <summary>
+    /// True for the views of the screens that own the keyboard while open (reflog, rebase todo, conflict editor,
+    /// settings, repeat modes): all their keys are listed whatever the command level (#839).
+    /// </summary>
+    /// <param name="view">The keymap view.</param>
+    public static bool IsModalScreen(string view) => ModalScreenViews.Contains(view);
+
+    /// <summary>
     /// One tab per source in the view's inheritance chain (the view, then <c>Lists</c>, then <c>Global</c>), each split
     /// under the <see cref="ActionCatalog.GroupOf"/> subheaders, plus a <c>Markers</c> tab for the graph and the
     /// sidebar, then the all-commands tabs, <c>Commands</c> and, when bindings were changed, <c>Custom</c>.
     /// </summary>
-    public static IReadOnlyList<HelpTab> Build(KeyBindingTable table, string view)
+    /// <param name="table">The bindings.</param>
+    /// <param name="view">The focused view.</param>
+    /// <param name="level">
+    /// The command level (#839): actions above it are left out of the contextual and all-commands tabs, and the
+    /// <c>Commands</c> tab closes with the number hidden. Defaults to every command. While the focused view is a modal
+    /// screen its own keys are all listed.
+    /// </param>
+    public static IReadOnlyList<HelpTab> Build(
+        KeyBindingTable table,
+        string view,
+        CommandLevel level = CommandLevel.AdvancedPlus)
     {
-        var tabs = Contextual(table, view);
-        tabs.AddRange(AllCommandsTabs(table));
-        tabs.Add(new HelpTab(CommandsTitle, CommandsSections()));
+        var tabs = Contextual(table, view, level);
+        tabs.AddRange(AllCommandsTabs(table, level, view));
+        tabs.Add(new HelpTab(CommandsTitle, [.. CommandsSections(), .. HiddenSections(table, level, view)]));
         if (CustomSections(table) is { Count: > 0 } custom)
         {
             tabs.Add(new HelpTab(CustomTitle, custom));
@@ -99,13 +129,21 @@ public static class HelpBuilder
     }
 
     /// <summary>The all-commands tabs: every bound action of every screen once, whatever the focused view.</summary>
-    public static IReadOnlyList<HelpTab> AllCommandsTabs(KeyBindingTable table)
+    /// <param name="table">The bindings.</param>
+    /// <param name="level">The command level (#839); defaults to every command.</param>
+    /// <param name="view">The focused view: the tab of a modal screen it belongs to lists all its keys.</param>
+    public static IReadOnlyList<HelpTab> AllCommandsTabs(
+        KeyBindingTable table,
+        CommandLevel level = CommandLevel.AdvancedPlus,
+        string? view = null)
     {
         var tabs = new List<HelpTab>();
         foreach (var spec in AllTabSpecs)
         {
+            var shown = ShownLevel(spec, view, level);
             var bindings = table.Bindings
-                .Where(binding => spec.Views.Contains(binding.View) && !IsUnlisted(binding))
+                .Where(binding => spec.Views.Contains(binding.View) && !IsUnlisted(binding)
+                    && ActionCatalog.IsListedAt(binding.Action, shown))
                 .ToList();
             if (bindings.Count > 0)
             {
@@ -116,10 +154,18 @@ public static class HelpBuilder
         return tabs;
     }
 
-    public static List<HelpTab> Contextual(KeyBindingTable table, string view)
+    public static List<HelpTab> Contextual(
+        KeyBindingTable table,
+        string view,
+        CommandLevel level = CommandLevel.AdvancedPlus)
     {
-        var normal = table.EffectiveBindings(KeyMode.Normal, view);
-        var visual = table.EffectiveBindings(KeyMode.Visual, view);
+        var shown = ModalScreenViews.Contains(view) ? CommandLevel.AdvancedPlus : level;
+        var normal = table.EffectiveBindings(KeyMode.Normal, view)
+            .Where(binding => ActionCatalog.IsListedAt(binding.Action, shown))
+            .ToList();
+        var visual = table.EffectiveBindings(KeyMode.Visual, view)
+            .Where(binding => ActionCatalog.IsListedAt(binding.Action, shown))
+            .ToList();
         var normalActions = normal.Select(binding => binding.Action).ToHashSet();
         var tabs = new List<HelpTab>();
         foreach (var name in table.ViewChain(view))
@@ -143,6 +189,46 @@ public static class HelpBuilder
         }
 
         return tabs;
+    }
+
+    // A modal screen lists all its keys while it is the focused view (#839); every other tab follows the level.
+    private static CommandLevel ShownLevel(AllTabSpec spec, string? view, CommandLevel level) =>
+        view is not null && spec.Views.Contains(view) && ModalScreenViews.Contains(view)
+            ? CommandLevel.AdvancedPlus
+            : level;
+
+    // The closing line of the help (#839): how many commands the level keeps out of the all-commands tabs.
+    private static List<HelpSection> HiddenSections(KeyBindingTable table, CommandLevel level, string view)
+    {
+        var hidden = AllTabSpecs
+            .SelectMany(spec => table.Bindings
+                .Where(binding => spec.Views.Contains(binding.View) && !IsUnlisted(binding))
+                .Where(binding => !ActionCatalog.IsListedAt(binding.Action, ShownLevel(spec, view, level))))
+            .Select(binding => binding.Action)
+            .Distinct()
+            .Count();
+        if (hidden == 0)
+        {
+            return [];
+        }
+
+        var noun = hidden == 1 ? "advanced command" : "advanced commands";
+        var cycleKey = table.Bindings
+            .FirstOrDefault(binding => binding.Action == ActionIds.ViewCycleCommandLevel);
+        var keys = cycleKey is null ? string.Empty : KeyFormatter.Display(cycleKey.Sequence);
+
+        return
+        [
+            new HelpSection(
+                "Command level",
+                [
+                    new HelpRow(
+                        keys,
+                        $"{hidden} {noun} hidden (level: {CommandLevels.LabelOf(level)}); this key shows more",
+                        string.Empty,
+                        ActionIds.ViewCycleCommandLevel),
+                ]),
+        ];
     }
 
     // One row per action: the keys of its Normal mode (else of the first other mode, tagged), main key first.

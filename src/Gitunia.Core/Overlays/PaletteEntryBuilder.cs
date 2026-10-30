@@ -3,21 +3,35 @@ using Gitunia.Core.Keymap.Models;
 
 namespace Gitunia.Core.Overlays;
 
-/// <summary>Builds the palette's entries from the key binding table: every action in it, never a hand-written list.</summary>
+/// <summary>
+/// Builds the palette's entries from the key binding table: every action in it, never a hand-written list.
+/// </summary>
 public static class PaletteEntryBuilder
 {
     private const int MaximumShownBindings = 3;
 
     /// <param name="table">The bindings.</param>
     /// <param name="view">The focused view; its own actions come first, then those it inherits, then the rest.</param>
-    public static IReadOnlyList<PaletteEntry> Build(KeyBindingTable table, string view) =>
-        Build(table, view, ActionCatalog.Unimplemented);
+    /// <param name="level">The command level (#839): actions above it are left out. Defaults to every command.</param>
+    public static IReadOnlyList<PaletteEntry> Build(
+        KeyBindingTable table,
+        string view,
+        CommandLevel level = CommandLevel.AdvancedPlus) =>
+        Build(table, view, ActionCatalog.Unimplemented, level);
 
-    /// <summary>Like <see cref="Build(KeyBindingTable, string)"/> with an explicit set of actions that have no behaviour yet (shown greyed out); modal-only actions are left out.</summary>
+    /// <summary>
+    /// Like <see cref="Build(KeyBindingTable, string, CommandLevel)"/> with an explicit set of actions that have no
+    /// behaviour yet (shown greyed out); modal-only actions are left out.
+    /// </summary>
     /// <param name="table">The bindings.</param>
     /// <param name="view">The focused view.</param>
     /// <param name="unimplemented">The actions to mark as not implemented.</param>
-    public static IReadOnlyList<PaletteEntry> Build(KeyBindingTable table, string view, IReadOnlySet<ActionId> unimplemented)
+    /// <param name="level">The command level (#839): actions above it are left out. Defaults to every command.</param>
+    public static IReadOnlyList<PaletteEntry> Build(
+        KeyBindingTable table,
+        string view,
+        IReadOnlySet<ActionId> unimplemented,
+        CommandLevel level = CommandLevel.AdvancedPlus)
     {
         var chain = table.ViewChain(view).ToList();
         var rankByAction = new Dictionary<ActionId, int>();
@@ -29,7 +43,10 @@ public static class PaletteEntryBuilder
 
         var entries = new List<RankedPaletteEntry>();
         var order = 0;
-        foreach (var group in table.Bindings.GroupBy(binding => binding.Action).Where(group => !ActionCatalog.IsModalOnly(group.Key)))
+        var listedGroups = table.Bindings
+            .GroupBy(binding => binding.Action)
+            .Where(group => !ActionCatalog.IsModalOnly(group.Key) && ActionCatalog.IsListedAt(group.Key, level));
+        foreach (var group in listedGroups)
         {
             var keys = group
                 .OrderBy(binding => binding.Mode == KeyMode.Normal ? 0 : 1)
@@ -46,7 +63,8 @@ public static class PaletteEntryBuilder
         }
 
         var listed = entries.Select(item => item.Entry.Action).ToHashSet();
-        foreach (var action in ActionCatalog.PaletteOnly.Where(action => !listed.Contains(action)))
+        foreach (var action in ActionCatalog.PaletteOnly
+            .Where(action => !listed.Contains(action) && ActionCatalog.IsListedAt(action, level)))
         {
             var entry = new PaletteEntry(
                 action,

@@ -485,7 +485,7 @@ public class SettingsReducerTests
         var collapsed = state.WithLayout(collapsed: true);
         var expanded = collapsed.WithLayout(collapsed: false);
 
-        Assert.Equal(8, collapsed.Rows.Count);
+        Assert.Equal(9, collapsed.Rows.Count);
         Assert.Equal(SettingsRegistry.ShowBranchId, collapsed.Selected?.Definition.Id);
         Assert.Equal(SettingsRegistry.ShowBranchId, expanded.Selected?.Definition.Id);
         Assert.Equal(SettingCategory.Tabs, expanded.CurrentCategory);
@@ -630,7 +630,8 @@ public class SettingsReducerTests
 
         Assert.Equal(SettingsRegistry.KeyReferenceId, rows[^4].Definition.Id);
         Assert.DoesNotContain(rows.Take(rows.Count - 4), row => row.Definition.Id == SettingsRegistry.KeyReferenceId);
-        Assert.Equal(SettingsRegistry.StatusBarHintsId, rows[^5].Definition.Id);
+        Assert.Equal(SettingsRegistry.CommandLevelId, rows[^5].Definition.Id);
+        Assert.Equal(SettingsRegistry.StatusBarHintsId, rows[^6].Definition.Id);
     }
 
     private static SettingsState WithReference(string text) =>

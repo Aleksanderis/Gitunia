@@ -24,6 +24,47 @@ public class PaneHintsTests
         Assert.All(limited, hint => Assert.Contains(PaneHints.For(pane), other => other == hint));
     }
 
+    [Theory]
+    [MemberData(nameof(Panes))]
+    public void GivenFullMode_WhenLimitingAtEachLevel_ThenOnlyHintsWithAListedActionRemainAndEveryoneKeepsThePinnedOnes(
+        PaneKind pane)
+    {
+        var hints = PaneHints.For(pane);
+
+        foreach (var level in Enum.GetValues<CommandLevel>())
+        {
+            var limited = PaneHints.Limit(hints, StatusBarHintMode.Full, level);
+
+            Assert.Equal(["?", ":", "q"], limited.Take(3).Select(hint => hint.Keys));
+            Assert.All(limited, hint => Assert.True(PaneHints.IsListedAt(hint, level)));
+            Assert.Equal(hints.Count(hint => PaneHints.IsListedAt(hint, level)), limited.Count);
+        }
+    }
+
+    [Fact]
+    public void GivenTheMessageBoxHints_WhenLimitingByLevel_ThenTheEditorHintAppearsOnlyAtItsLevel()
+    {
+        var hints = PaneHints.For(PaneKind.WorkingMessage);
+        var editorLevel = ActionCatalog.LevelOf(ActionIds.ToolCommitEditor)!.Value;
+
+        Assert.NotEqual(CommandLevel.Everyday, editorLevel);
+        Assert.DoesNotContain(
+            PaneHints.Limit(hints, StatusBarHintMode.Full, CommandLevel.Everyday),
+            hint => hint.Actions.Contains(ActionIds.ToolCommitEditor));
+        Assert.Contains(
+            PaneHints.Limit(hints, StatusBarHintMode.Full, editorLevel),
+            hint => hint.Actions.Contains(ActionIds.ToolCommitEditor));
+    }
+
+    [Fact]
+    public void GivenAnAboveLevelHint_WhenLimitingToMinimalOrOff_ThenTheModeStillWins()
+    {
+        var hints = PaneHints.For(PaneKind.WorkingMessage);
+
+        Assert.Equal(3, PaneHints.Limit(hints, StatusBarHintMode.Minimal).Count);
+        Assert.Empty(PaneHints.Limit(hints, StatusBarHintMode.Off));
+    }
+
     [Fact]
     public void GivenOffMode_WhenLimitingHints_ThenNoneRemain()
     {

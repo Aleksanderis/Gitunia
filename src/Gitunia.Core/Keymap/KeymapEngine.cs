@@ -54,13 +54,24 @@ public sealed class KeymapEngine(KeyBindingTable table)
     /// The keys that can follow the pending prefix in <paramref name="state"/> (or the first keys when nothing
     /// is pending), for the which-key popup. The renderer decides when to show it (250 ms after the prefix).
     /// </summary>
-    public IReadOnlyList<Continuation> Continuations(KeymapState state, string view)
+    /// <param name="state">The pending keys and the mode.</param>
+    /// <param name="view">The focused view.</param>
+    /// <param name="level">
+    /// The command level (#839): bindings of actions above it are left out, so a group whose actions are all above it
+    /// disappears with them. Null lists every binding.
+    /// </param>
+    public IReadOnlyList<Continuation> Continuations(KeymapState state, string view, CommandLevel? level = null)
     {
         var prefix = state.PendingSequence;
         var continuations = new List<Continuation>();
         foreach (var binding in Table.EffectiveBindings(state.Mode, view))
         {
             if (binding.Sequence.Length <= prefix.Length || !binding.Sequence.StartsWith(prefix))
+            {
+                continue;
+            }
+
+            if (level is { } shown && !ActionCatalog.IsListedAt(binding.Action, shown))
             {
                 continue;
             }

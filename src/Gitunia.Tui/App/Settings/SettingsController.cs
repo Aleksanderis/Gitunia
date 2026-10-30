@@ -101,6 +101,13 @@ public sealed class SettingsController(
     {
         if (State is null)
         {
+            if (action == ActionIds.ViewCycleCommandLevel)
+            {
+                CycleCommandLevel();
+
+                return true;
+            }
+
             if (action != ActionIds.SettingsOpen && action != ActionIds.SettingsOpenTheme)
             {
                 return false;
@@ -339,6 +346,28 @@ public sealed class SettingsController(
         redraw();
     }
 
+    // The fast toggle (#839): reads the file, writes the next level and applies it like the settings row does.
+    private void CycleCommandLevel()
+    {
+        if (_isBusy)
+        {
+            statuses.Warning("Still saving config.json: repeat the change in a moment");
+
+            return;
+        }
+
+        ReadThen(WriteNextCommandLevel);
+    }
+
+    private void WriteNextCommandLevel(SettingsRead read)
+    {
+        _snapshot = read.Snapshot;
+        var next = CommandLevels.Next(read.Load.Options.CommandLevel);
+        var definition = _definitions.FirstOrDefault(candidate => candidate.Id == SettingsRegistry.CommandLevelId)
+            ?? SettingsRegistry.All.First(candidate => candidate.Id == SettingsRegistry.CommandLevelId);
+        Write(new SettingsCommit(definition, SettingValue.OfChoice(CommandLevels.NameOf(next))));
+    }
+
     private void Close()
     {
         State = null;
@@ -521,7 +550,7 @@ public sealed class SettingsController(
         {
             case ConfigWriteStatus.Written:
                 SelectWritten(commit);
-                statuses.Post($"Saved {commit.Definition.Name}");
+                statuses.Post(SavedMessage(commit));
                 if (result.Shadowed)
                 {
                     statuses.Warning(result.Message);
@@ -542,6 +571,17 @@ public sealed class SettingsController(
         SyncMode();
         SyncTheme();
         redraw();
+    }
+
+    private static string SavedMessage(SettingsCommit commit)
+    {
+        if (commit.Definition.Id == SettingsRegistry.CommandLevelId
+            && CommandLevels.TryParse(commit.Value.Choice, out var level))
+        {
+            return $"{commit.Definition.Name}: {CommandLevels.LabelOf(level)}";
+        }
+
+        return $"Saved {commit.Definition.Name}";
     }
 
     private void SelectWritten(SettingsCommit commit)

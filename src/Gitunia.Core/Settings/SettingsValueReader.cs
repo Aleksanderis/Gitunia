@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using System.Text.Json;
 using Gitunia.Core.Config;
 using Gitunia.Core.Config.Models;
+using Gitunia.Core.Keymap;
 using Gitunia.Core.Settings.Models;
 
 namespace Gitunia.Core.Settings;
@@ -45,6 +46,7 @@ public static class SettingsValueReader
         values[SettingsRegistry.LabelCapsId] = SettingValue.OfChoice(LabelCapName(options.LabelCaps));
         values[SettingsRegistry.WhichKeyId] = SettingValue.OfChoice(options.WhichKeyPopup ? "on" : "off");
         values[SettingsRegistry.StatusBarHintsId] = SettingValue.OfChoice(StatusBarHintName(options.StatusBarHints));
+        values[SettingsRegistry.CommandLevelId] = SettingValue.OfChoice(CommandLevels.NameOf(options.CommandLevel));
         values[SettingsRegistry.ShowBranchId] = SettingValue.OfFlag(options.ShowBranchInTab);
         values[SettingsRegistry.ScanRootsId] = ReadScanRoots(document.ScanRoots);
 

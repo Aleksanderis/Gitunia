@@ -25,6 +25,7 @@ public sealed class OverlayControllerTests : IDisposable
     private ScreenSize _screen = new(80, 24);
     private int _changes;
     private string _baseView = DefaultKeymap.GraphView;
+    private CommandLevel _level = CommandLevel.Everyday;
 
     public OverlayControllerTests()
     {
@@ -666,6 +667,109 @@ public sealed class OverlayControllerTests : IDisposable
         Assert.False(_overlays.State.IsOpen);
         Assert.Equal(KeyMode.Normal, _keys.Mode);
         Assert.Equal([ActionIds.GraphJumpToHead], _routed);
+    }
+
+    [Fact]
+    public void GivenEveryday_WhenOpeningThePalette_ThenAnAdvancedActionIsNotListedButItsExactIdStillRuns()
+    {
+        _overlays.Level = () => CommandLevel.Everyday;
+        Press(new Key(':'));
+
+        Assert.DoesNotContain(_overlays.State.Palette!.Entries, entry => entry.Action == ActionIds.ReflogOpen);
+        foreach (var letter in "reflog.open")
+        {
+            Press(new Key(letter));
+        }
+
+        Press(Key.Enter);
+
+        Assert.Equal([ActionIds.ReflogOpen], _routed);
+    }
+
+    [Fact]
+    public void GivenEveryday_WhenTypingAnIdThatIsOnlyAPrefixOfListedRows_ThenEnterRunsTheHighlightedRowNotAGuess()
+    {
+        _overlays.Level = () => CommandLevel.Everyday;
+        Press(new Key(':'));
+        foreach (var letter in "jump to head")
+        {
+            Press(new Key(letter));
+        }
+
+        Press(Key.Enter);
+
+        Assert.Equal([ActionIds.GraphJumpToHead], _routed);
+    }
+
+    [Theory]
+    [InlineData(DefaultKeymap.GraphView, false)]
+    [InlineData(DefaultKeymap.ReflogView, true)]
+    public void GivenEveryday_WhenTheLeaderIsPending_ThenAnAdvancedPlusKeyShowsOnlyInAModalScreen(
+        string view,
+        bool expectShown)
+    {
+        _overlays.Level = () => CommandLevel.Everyday;
+        _baseView = view;
+        Press(new Key(' '));
+        Assert.True(_postedSignal.Wait(TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken));
+        RunPosted();
+
+        var frame = string.Join('\n', _overlays.CurrentFrame()!.Lines.Select(line => line.Text));
+
+        Assert.Equal(
+            expectShown,
+            frame.Contains(ActionCatalog.Describe(ActionIds.ReflogOpen), StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void GivenTheLevelChangesWhileTheAppRuns_WhenOpeningThePaletteAgain_ThenItFollowsTheNewLevelAtOnce()
+    {
+        _level = CommandLevel.Everyday;
+        _overlays.Level = () => _level;
+        Press(new Key(':'));
+        var everyday = _overlays.State.Palette!.Entries.Count;
+        Press(Key.Esc);
+
+        _level = CommandLevel.AdvancedPlus;
+        Press(new Key(':'));
+
+        Assert.True(_overlays.State.Palette!.Entries.Count > everyday);
+        Assert.Contains(_overlays.State.Palette.Entries, entry => entry.Action == ActionIds.ReflogOpen);
+    }
+
+    [Fact]
+    public void GivenEachLevel_WhenOpeningTheHelpAtItsLastTab_ThenTheClosingLineNamesTheHiddenCommands()
+    {
+        foreach (var (level, hidden) in new[]
+        {
+            (CommandLevel.Everyday, true),
+            (CommandLevel.Advanced, true),
+            (CommandLevel.AdvancedPlus, false),
+        })
+        {
+            _overlays.Level = () => level;
+            Press(new Key('?'));
+            _overlays.Handle(ActionIds.HelpTabPrevious, null);
+
+            var frame = string.Join('\n', _overlays.CurrentFrame()!.Lines.Select(line => line.Text));
+
+            Assert.Equal(hidden, frame.Contains("advanced command", StringComparison.Ordinal));
+            Press(Key.Esc);
+        }
+    }
+
+    [Fact]
+    public void GivenEveryday_WhenOpeningTheActionsMenuOfAGraphRow_ThenAdvancedActionsAreLeftOut()
+    {
+        _overlays.Level = () => CommandLevel.Everyday;
+        _overlays.MenuTarget = _ => new RowMenuTarget(RowActions.OfGraphRow, new MenuAnchor(3, 5));
+
+        Press(new Key(' '));
+        Press(new Key('.'));
+
+        var entries = _overlays.State.Palette!.Entries;
+        Assert.DoesNotContain(entries, entry => entry.Action == ActionIds.BranchCreateOnly);
+        Assert.Contains(entries, entry => entry.Action == ActionIds.BranchSwitch);
     }
 
     [Fact]

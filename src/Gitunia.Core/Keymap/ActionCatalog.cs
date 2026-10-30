@@ -359,6 +359,7 @@ public static class ActionCatalog
         ["tool.difftool"] = "Open the commit in the difftool",
         ["tool.mergetool"] = "Resolve conflicts in the mergetool",
         ["view.quick-jump-to-row"] = "Quick jump to a visible row",
+        ["view.cycle-command-level"] = "Cycle the command level (Everyday, Advanced, Advanced+)",
         ["visual.copy"] = "Copy the selected range",
         ["visual.toggle"] = "Start or end range selection",
         ["working-tree.copy-path"] = "Copy the file or folder path",
@@ -454,6 +455,27 @@ public static class ActionCatalog
         var prefix = dot < 0 ? action.Value : action.Value[..dot];
         return GroupByPrefix.GetValueOrDefault(prefix);
     }
+
+    /// <summary>
+    /// The command level of <paramref name="action"/> (#839), or null when it has none (a test keeps every bound action
+    /// covered). The nine <c>tab.go-to.N</c> ids are Everyday.
+    /// </summary>
+    public static CommandLevel? LevelOf(ActionId action)
+    {
+        if (ActionLevels.ById.TryGetValue(action.Value, out var level))
+        {
+            return level;
+        }
+
+        return action.Value.StartsWith(TabGoToPrefix, StringComparison.Ordinal) ? CommandLevel.Everyday : null;
+    }
+
+    /// <summary>
+    /// True when <paramref name="action"/> is listed at <paramref name="level"/>: its own level is not above it. An
+    /// action with no level is listed (the coverage test fails for it, so it cannot disappear unnoticed).
+    /// </summary>
+    public static bool IsListedAt(ActionId action, CommandLevel level) =>
+        LevelOf(action) is not { } own || own <= level;
 
     /// <summary>True when <paramref name="action"/> has a real title.</summary>
     public static bool IsDescribed(ActionId action) => Describe(action) != action.Value;

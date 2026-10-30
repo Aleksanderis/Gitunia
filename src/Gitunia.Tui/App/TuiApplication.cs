@@ -397,6 +397,7 @@ public sealed class TuiApplication(
             () => _router.ViewName,
             _statuses);
         _overlays.WhichKeyEnabled = _startupConfig.Options.WhichKeyPopup;
+        _overlays.Level = () => _startupConfig.Options.CommandLevel;
         _overlays.Changed += RefreshOverlay;
         _overlays.OperationInProgress = () => _host.Workspace.ActiveTab?.Operation is not null;
         _overlays.MenuTarget = view => MenuTargetOf(view, sidebarSource);
@@ -1399,7 +1400,10 @@ public sealed class TuiApplication(
         }
 
         // Dialogs, editors and the repeat mode above keep their hints: they say which keys act right now.
-        return PaneHints.Limit(PaneAndConflictHints(), _startupConfig.Options.StatusBarHints);
+        return PaneHints.Limit(
+            PaneAndConflictHints(),
+            _startupConfig.Options.StatusBarHints,
+            _startupConfig.Options.CommandLevel);
     }
 
     private IReadOnlyList<KeyHint> PaneAndConflictHints()

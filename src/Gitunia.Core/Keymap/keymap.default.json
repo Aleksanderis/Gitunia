@@ -36,6 +36,7 @@
   { "action": "pane.zoom", "view": "Global", "modes": ["Normal"], "keys": ["<space>z"] },
   { "action": "status.dismiss", "view": "Global", "modes": ["Normal"], "keys": ["<space>x"] },
   { "action": "status.history", "view": "Global", "modes": ["Normal"], "keys": ["<space>m"] },
+  { "action": "view.cycle-command-level", "view": "Global", "modes": ["Normal"], "keys": ["<space>*"] },
   { "action": "settings.open", "view": "Global", "modes": ["Normal"], "keys": ["<space>,"] },
   { "action": "working-tree.toggle", "view": "Global", "modes": ["Normal"], "keys": ["<space>s"] },
   { "action": "remote.fetch", "view": "Global", "modes": ["Normal"], "keys": ["<space>F"] },

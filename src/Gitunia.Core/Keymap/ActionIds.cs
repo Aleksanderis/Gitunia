@@ -104,6 +104,8 @@ public static class ActionIds
 
     public static ActionId QuickJump { get; } = new("view.quick-jump-to-row");
 
+    public static ActionId ViewCycleCommandLevel { get; } = new("view.cycle-command-level");
+
     public static ActionId GraphOpenDetails { get; } = new("graph.open-details");
 
     public static ActionId HelpShow { get; } = new("help.show");

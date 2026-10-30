@@ -35,6 +35,44 @@ public sealed class SettingsControllerTests : IDisposable
     }
 
     [Fact]
+    public async Task GivenTheScreenIsClosed_WhenCyclingTheCommandLevel_ThenEachPressWritesTheNextLevelAppliesItAndSaysSo()
+    {
+        var expected = new[]
+        {
+            (CommandLevel.Advanced, "advanced", "Command level: Advanced"),
+            (CommandLevel.AdvancedPlus, "advanced+", "Command level: Advanced+"),
+            (CommandLevel.Everyday, "everyday", "Command level: Everyday"),
+        };
+
+        foreach (var (level, name, message) in expected)
+        {
+            _harness.Run(ActionIds.ViewCycleCommandLevel);
+            await _harness.PumpAsync();
+            await _harness.PumpAsync();
+
+            Assert.Contains($"\"commandLevel\": \"{name}\"", _harness.ReadConfig(), StringComparison.Ordinal);
+            Assert.Equal(level, _harness.Applied.Last().CommandLevel);
+            Assert.Equal(message, _harness.Statuses.Log.Latest!.Text);
+            Assert.False(_harness.Settings.IsOpen);
+        }
+    }
+
+    [Fact]
+    public async Task GivenTheLevelIsAdvanced_WhenCyclingWithoutTheScreen_ThenOtherKeysOfTheFileAreKept()
+    {
+        _harness.WriteConfig("{ \"commandLevel\": \"advanced\", \"labelCaps\": \"none\" }");
+
+        _harness.Run(ActionIds.ViewCycleCommandLevel);
+        await _harness.PumpAsync();
+        await _harness.PumpAsync();
+
+        var text = _harness.ReadConfig();
+        Assert.Contains("\"commandLevel\": \"advanced+\"", text, StringComparison.Ordinal);
+        Assert.Contains("\"labelCaps\": \"none\"", text, StringComparison.Ordinal);
+        Assert.Equal(CommandLevel.AdvancedPlus, _harness.Applied.Last().CommandLevel);
+    }
+
+    [Fact]
     public async Task GivenAFileWithComments_WhenFlippingAToggle_ThenOnlyThatKeyIsInsertedAndTheOptionsApply()
     {
         const string original = "{\n  // keep me\n  \"theme\": \"auto\"\n}\n";
@@ -705,8 +743,8 @@ public sealed class SettingsControllerTests : IDisposable
         _harness.Run(ActionIds.ListDown);
         _harness.Run(ActionIds.SettingsActivate);
 
-        var first = _harness.Settings.OnLineClicked(2 + 4, 30, out _);
-        var second = _harness.Settings.OnLineClicked(2 + 4, 30, out _);
+        var first = _harness.Settings.OnLineClicked(2 + 5, 30, out _);
+        var second = _harness.Settings.OnLineClicked(2 + 5, 30, out _);
 
         Assert.Equal(SettingRowKind.Binding, _harness.Settings.State!.Selected!.Kind);
         Assert.Null(first);

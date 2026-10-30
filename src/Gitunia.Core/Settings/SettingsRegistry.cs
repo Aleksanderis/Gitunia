@@ -1,4 +1,5 @@
 using Gitunia.Core.Config.Models;
+using Gitunia.Core.Keymap;
 using Gitunia.Core.Settings.Models;
 using Gitunia.Core.Themes;
 
@@ -21,6 +22,9 @@ public static class SettingsRegistry
 
     /// <summary>The id of the status bar hints setting.</summary>
     public const string StatusBarHintsId = "hints-status-bar";
+
+    /// <summary>The id of the command level setting (#839).</summary>
+    public const string CommandLevelId = "command-level";
 
     /// <summary>The id of the tab branch setting.</summary>
     public const string ShowBranchId = "tabs-show-branch";
@@ -95,6 +99,17 @@ public static class SettingsRegistry
                 + "? help, : commands and q quit, off shows none.",
             "full",
             ["full", "minimal", "off"]),
+        new SettingDefinition(
+            CommandLevelId,
+            SettingCategory.Keys,
+            "Command level",
+            SettingControl.Choice,
+            ["commandLevel"],
+            "Which commands help, the palette, which-key, the actions menus and the status bar hints list: "
+                + "everyday, advanced adds the less frequent ones, advanced+ lists all. Hidden commands still work. "
+                + "<space>* cycles the level.",
+            "everyday",
+            [.. CommandLevels.Names]),
         new SettingDefinition(
             KeyReferenceId,
             SettingCategory.Keys,

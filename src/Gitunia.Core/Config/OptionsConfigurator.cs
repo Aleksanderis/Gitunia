@@ -1,6 +1,8 @@
 using System.Collections.Immutable;
 using System.Text.Json;
 using Gitunia.Core.Config.Models;
+using Gitunia.Core.Keymap;
+using Gitunia.Core.Keymap.Models;
 
 namespace Gitunia.Core.Config;
 
@@ -15,6 +17,7 @@ public static class OptionsConfigurator
     private const string ScanRootsKey = "scanRoots";
     private const string WatchFilesKey = "watchFiles";
     private const string LabelCapsKey = "labelCaps";
+    private const string CommandLevelKey = "commandLevel";
     private const string HintsKey = "hints";
     private const string WhichKeyKey = "hints.whichKey";
     private const string StatusBarKey = "hints.statusBar";
@@ -39,7 +42,32 @@ public static class OptionsConfigurator
             ParseWatchFiles(document.WatchFiles, problems),
             ParseLabelCaps(document.LabelCaps, problems),
             ParseWhichKey(document.Hints, problems),
-            ParseStatusBar(document.Hints, problems));
+            ParseStatusBar(document.Hints, problems),
+            ParseCommandLevel(document.CommandLevel, problems));
+
+    /// <summary>
+    /// The <c>commandLevel</c> option (#839): everyday (default), advanced or advanced+, any case; anything else is
+    /// reported and gives everyday.
+    /// </summary>
+    public static CommandLevel ParseCommandLevel(JsonElement? value, ICollection<ConfigProblem> problems)
+    {
+        if (value is null or { ValueKind: JsonValueKind.Null })
+        {
+            return CommandLevels.Default;
+        }
+
+        var text = value.Value.ValueKind == JsonValueKind.String ? value.Value.GetString() : null;
+        if (CommandLevels.TryParse(text, out var level))
+        {
+            return level;
+        }
+
+        problems.Add(new ConfigProblem(
+            CommandLevelKey,
+            "commandLevel must be everyday, advanced or advanced+, using everyday"));
+
+        return CommandLevels.Default;
+    }
 
     /// <summary>The <c>hints.whichKey</c> option: on (default) or off, any case; anything else is reported and gives on.</summary>
     public static bool ParseWhichKey(JsonElement? hints, ICollection<ConfigProblem> problems)
