@@ -691,7 +691,7 @@ public class OverlayFrameTests
         var frame = HelpFrameBuilder.Build(Help(), 1, DefaultKeymap.GraphView, 0, 30, 20, GraphGlyphSet.Ascii)!;
 
         Assert.Contains("[Lists] 2/4", frame.Lines[1].Text, StringComparison.Ordinal);
-        Assert.Equal(2, HelpFrameBuilder.TabAt(Help(), 1, 30, 1, 3));
+        Assert.Equal(2, HelpFrameBuilder.TabAt(Help(), 1, 30, 20, 1, 3));
     }
 
     [Fact]
@@ -699,10 +699,50 @@ public class OverlayFrameTests
     {
         var tabs = Help();
 
-        Assert.Equal(0, HelpFrameBuilder.TabAt(tabs, 0, 80, 1, 3));
-        Assert.Equal(1, HelpFrameBuilder.TabAt(tabs, 0, 80, 1, 12));
-        Assert.Null(HelpFrameBuilder.TabAt(tabs, 0, 80, 2, 3));
-        Assert.Null(HelpFrameBuilder.TabAt(tabs, 0, 80, 1, 70));
+        Assert.Equal(0, HelpFrameBuilder.TabAt(tabs, 0, 80, 30, 1, 3));
+        Assert.Equal(1, HelpFrameBuilder.TabAt(tabs, 0, 80, 30, 1, 12));
+        Assert.Null(HelpFrameBuilder.TabAt(tabs, 0, 80, 30, 2, 3));
+        Assert.Null(HelpFrameBuilder.TabAt(tabs, 0, 80, 30, 1, 70));
+    }
+
+    private static List<HelpTab> ManyPages() =>
+        [.. Enumerable.Range(1, 12).Select(
+            number => new HelpTab($"Page {number}", [new HelpSection($"Body {number}", [new HelpRow("k", $"does {number}")])]))];
+
+    [Fact]
+    public void GivenManyPages_WhenRendering_ThenALeftMenuListsTheSectionsAndMarksTheActiveOne()
+    {
+        var tabs = ManyPages();
+
+        var frame = HelpFrameBuilder.Build(tabs, 3, "Graph", 0, 80, 30, GraphGlyphSet.Ascii)!;
+
+        Assert.Equal(12, frame.Lines.Count(line => line.Text.Contains("Page ", StringComparison.Ordinal)));
+        Assert.Contains(frame.Lines, line => line.Text.Contains("> Page 4", StringComparison.Ordinal));
+        Assert.Contains(frame.Lines, line => line.Text.Contains("Body 4", StringComparison.Ordinal));
+        Assert.DoesNotContain(frame.Lines, line => line.Text.Contains("Body 3", StringComparison.Ordinal));
+        Assert.DoesNotContain(frame.Lines, line => line.Text.Contains("[Page", StringComparison.Ordinal));
+        Assert.Contains("next section", frame.Lines[^2].Text, StringComparison.Ordinal);
+        Assert.All(frame.Lines, line => Assert.Equal(78, line.Text.Length));
+    }
+
+    [Fact]
+    public void GivenManyPagesOnAShortScreen_WhenRenderingTheLastOne_ThenTheMenuScrollsToKeepItInView()
+    {
+        var frame = HelpFrameBuilder.Build(ManyPages(), 11, "Graph", 0, 80, 10, GraphGlyphSet.Ascii)!;
+
+        Assert.Contains(frame.Lines, line => line.Text.Contains("> Page 12", StringComparison.Ordinal));
+        Assert.DoesNotContain(frame.Lines, line => line.Text.Contains("Page 1 ", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void GivenManyPages_WhenAskingWhatAMenuCellHits_ThenItIsThatSectionAndTheContentIsNothing()
+    {
+        var tabs = ManyPages();
+
+        Assert.Equal(0, HelpFrameBuilder.TabAt(tabs, 5, 80, 30, 1, 3));
+        Assert.Equal(7, HelpFrameBuilder.TabAt(tabs, 5, 80, 30, 8, 3));
+        Assert.Null(HelpFrameBuilder.TabAt(tabs, 5, 80, 30, 13, 3));
+        Assert.Null(HelpFrameBuilder.TabAt(tabs, 5, 80, 30, 2, 60));
     }
 
     [Fact]
@@ -721,7 +761,7 @@ public class OverlayFrameTests
         var frame = HelpFrameBuilder.Build(sections, string.Empty, 0, 60, 12, GraphGlyphSet.Ascii)!;
 
         Assert.DoesNotContain("[", frame.Lines[1].Text, StringComparison.Ordinal);
-        Assert.Null(HelpFrameBuilder.TabAt([new HelpTab("S", [])], 0, 60, 1, 3));
+        Assert.Null(HelpFrameBuilder.TabAt([new HelpTab("S", [])], 0, 60, 12, 1, 3));
     }
 
     [Fact]

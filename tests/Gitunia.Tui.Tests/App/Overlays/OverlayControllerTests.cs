@@ -329,16 +329,17 @@ public sealed class OverlayControllerTests : IDisposable
     }
 
     [Fact]
-    public void GivenOpenHelp_WhenClickingTheSecondTabLabel_ThenThatTabShows()
+    public void GivenOpenHelp_WhenClickingTheSecondMenuEntry_ThenThatSectionShows()
     {
         Press(new Key('?'));
 
-        var number = _overlays.HelpTabNumberAt(1, 5);
+        var number = _overlays.HelpTabNumberAt(2, 5);
         _overlays.Handle(ActionIds.HelpTabSelect, number);
 
         Assert.Equal(2, number);
         Assert.Equal(1, _overlays.State.HelpTab);
-        Assert.Null(_overlays.HelpTabNumberAt(2, 5));
+        Assert.Null(_overlays.HelpTabNumberAt(2, 60));
+        Assert.Null(_overlays.HelpTabNumberAt(1, 0));
     }
 
     [Fact]
@@ -750,6 +751,7 @@ public sealed class OverlayControllerTests : IDisposable
             _overlays.Level = () => level;
             Press(new Key('?'));
             _overlays.Handle(ActionIds.HelpTabPrevious, null);
+            _overlays.Handle(ActionIds.ListBottom, null);
 
             var frame = string.Join('\n', _overlays.CurrentFrame()!.Lines.Select(line => line.Text));
 
