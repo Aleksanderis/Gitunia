@@ -296,6 +296,10 @@ public static class ActionIds
 
     public static ActionId ConflictEditorEditNewLine { get; } = new("conflict-editor.edit-newline");
 
+    public static ActionId ConflictEditorScrollLeft { get; } = new("conflict-editor.scroll-left");
+
+    public static ActionId ConflictEditorScrollRight { get; } = new("conflict-editor.scroll-right");
+
     public static ActionId RebaseFixup { get; } = new("rebase.fixup");
 
     public static ActionId RebaseReword { get; } = new("rebase.reword");

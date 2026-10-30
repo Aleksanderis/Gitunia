@@ -15,6 +15,12 @@ public enum MouseGesture
     /// <summary>One wheel notch toward the user (the selection moves down).</summary>
     WheelDown,
 
+    /// <summary>One sideways wheel notch to the left (Shift or Ctrl with the wheel up).</summary>
+    WheelHorizontalBack,
+
+    /// <summary>One sideways wheel notch to the right (Shift or Ctrl with the wheel down).</summary>
+    WheelHorizontalForward,
+
     /// <summary>The pointer moved with the left button held and left the row it pressed: a range selection starts at that row.</summary>
     DragStart,
 

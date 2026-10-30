@@ -66,6 +66,8 @@ Normal|ConflictEditor|[c|conflict-editor.previous
 Normal|ConflictEditor|]c|conflict-editor.next
 Normal|ConflictEditor|n|conflict-editor.next
 Normal|ConflictEditor|u|conflict-editor.undo
+Normal|ConflictEditor|zh|conflict-editor.scroll-left
+Normal|ConflictEditor|zl|conflict-editor.scroll-right
 Normal|ConflictResult|$|working-tree.message-line-end
 Normal|ConflictResult|0|working-tree.message-line-start
 Normal|ConflictResult|A|working-tree.message-append-at-end
@@ -499,6 +501,8 @@ Normal|WorkingUnstaged|l|working-tree.expand
 Normal|WorkingUnstaged|y|working-tree.copy-path
 Normal|WorkingUnstaged|za|working-tree.toggle-folder
 Visual|ConflictEditor|<space>u|conflict-editor.untake
+Visual|ConflictEditor|zh|conflict-editor.scroll-left
+Visual|ConflictEditor|zl|conflict-editor.scroll-right
 Visual|ConflictSide|<space>a|conflict-editor.take
 Visual|Global|?|help.show
 Visual|Global|Alt-1|tab.go-to.1
