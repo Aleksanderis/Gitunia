@@ -93,7 +93,7 @@ public sealed class EffectRunner : IDisposable
     {
         foreach (var session in _sessions.Values)
         {
-            session.Cancellation.Cancel();
+            session.Cancellation.Cancel(throwOnFirstException: false);
         }
     }
 

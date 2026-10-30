@@ -47,6 +47,34 @@ public class EffectRunnerTests
     }
 
     [Fact]
+    public async Task GivenOpenTabs_WhenCancellingAll_ThenEveryLoadedSessionTokenIsCancelled()
+    {
+        var fakes = new FakeGitServices();
+        fakes.CommitLog.AddOnTop("root");
+        var pump = new UiPump(TestContext.Current.CancellationToken);
+        var scratch = Workspace.Empty;
+        foreach (var name in new[] { "first", "second" })
+        {
+            scratch = WorkspaceReducer.Reduce(scratch, new OpenRepositoryCommand(FakeStatusReader.LocationOf(name))).Workspace;
+        }
+
+        var firstId = scratch.Tabs[0].Id;
+        var secondId = scratch.Tabs[1].Id;
+        var host = new WorkspaceHost(Workspace.Empty);
+        using var effects = new EffectRunner(fakes.Services, host, pump.Post, GraphGlyphSet.Unicode, new StatusChannel(), watcherOptions: TestGit.QuietWatcherOptions);
+        host.Restore(new WorkspaceUpdate(
+            scratch with { ActiveTabId = firstId },
+            [new LoadRepositoryEffect(firstId, scratch.Tabs[0].CommandPath), new LoadRepositoryEffect(secondId, scratch.Tabs[1].CommandPath)]));
+        await pump.RunUntilAsync(() => !effects.SessionOf(firstId)!.IsLoading);
+        Assert.False(effects.SessionOf(firstId)!.Cancellation.IsCancellationRequested);
+
+        effects.CancelAll();
+
+        Assert.True(effects.SessionOf(firstId)!.Cancellation.IsCancellationRequested);
+        Assert.True(effects.SessionOf(secondId)!.Cancellation.IsCancellationRequested);
+    }
+
+    [Fact]
     public async Task GivenMoreVisitedTabsThanLimit_WhenSwitching_ThenColdestTabIsEvictedAndReloadsOnActivation()
     {
         var fakes = new FakeGitServices();

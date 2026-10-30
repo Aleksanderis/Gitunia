@@ -740,7 +740,7 @@ Grouped as the palette groups them (`ActionCatalog.GroupOf`). "Old" lists every 
 
 | Action | What | Old | New | Level | Note |
 |---|---|---|---|---|---|
-| `app.quit` | Quit | `q` | same | Everyday |  |
+| `app.quit` | Quit | `q` `Ctrl-c` | same | Everyday |  |
 | `cancel` | Cancel | `Esc` | same | Everyday |  |
 | `command.execute` | Run the command | `Ctrl-l` `Enter` | same | Everyday |  |
 | `confirm.no` | Answer no | `n` | same | Everyday |  |
