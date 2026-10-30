@@ -86,8 +86,13 @@ public static class KeymapRowReader
         }
 
         var values = new List<string>();
-        while (reader.Read() && reader.TokenType == JsonTokenType.String)
+        while (reader.Read() && reader.TokenType != JsonTokenType.EndArray)
         {
+            if (reader.TokenType != JsonTokenType.String)
+            {
+                throw new JsonException("Expected a list of strings.");
+            }
+
             values.Add(reader.GetString()!);
         }
 
@@ -96,7 +101,7 @@ public static class KeymapRowReader
 
     private static KeyMode ParseMode(string text)
     {
-        if (!Enum.TryParse<KeyMode>(text, out var mode))
+        if (text.Length == 0 || !char.IsLetter(text[0]) || !Enum.TryParse<KeyMode>(text, out var mode))
         {
             throw new JsonException($"Unknown mode '{text}'.");
         }
