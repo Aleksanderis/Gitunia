@@ -39,10 +39,17 @@ Done when: the owner can use Gitunia for all daily branch and worktree work.
 
 ## M4 - Remotes and polish
 
-Status: in progress. Remotes, credentials, interactive rebase, config, settings screen, packaging and Windows CI are merged; the open issues are the source of truth.
+Status: done.
 
 Fetch/pull/push with progress and cancel (keys and buttons, prune, force-with-lease, delete remote branch), interactive rebase editor (reorder/reword/squash/fixup/drop), remote management, clone/init, credential prompt handling, config file for keys/theme, packaging (AOT binaries per OS), docs for users.
-Done when: usable as a daily driver on Linux; Windows binaries build in CI (macOS CI and binary are M5).
+Done when: usable as a daily driver on Linux; Windows binaries build in CI (macOS CI and binary are in the backlog milestone `Mx`, #455).
+
+## M5 - Keymap and discoverability
+
+Status: in progress (tracking issue #867; the open issues are the source of truth).
+
+Goal (#833, owner feedback): fewer keys to learn and every command findable. New leader layout (one prefix per noun, no unrelated case pairs, tabs and repositories together), three command levels (Everyday, Advanced, Advanced+) with a fast toggle, help with all-commands tabs and a Custom tab, optional hints, the keymap as a data file with a generated reference, Ctrl-c always quits, key customisation in the user guide.
+Done when: the owner approved the new layout (#840), `?` lists every bound command once, hints and advanced commands can be turned off, and the keymap reference is generated from the data file.
 
 ## Post-MVP candidates
 
