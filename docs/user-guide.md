@@ -73,7 +73,8 @@ Key bindings are data: you change them with `keys` entries in `config.json`. The
     { "view": "Graph", "key": "J", "action": "list.down" },
     // Bind a leader chord: <space> then H jumps to HEAD (the default is <space>h).
     { "view": "Graph", "key": "<space>H", "action": "graph.jump-to-head" },
-    // Replace what a key does: q opens the command palette instead of quitting.
+    // Replace what a key does: q opens the command palette instead of quitting (Normal mode only;
+    // q no longer closes overlays then, use Esc).
     { "key": "q", "action": "palette.open" },
     // Unbind: gg no longer goes to the top of lists (it also stops in the graph, which inherits Lists).
     { "view": "Lists", "key": "gg", "action": "none" }
@@ -85,7 +86,7 @@ An entry on a key that already has a binding in that mode and view replaces it. 
 
 **Key notation.** The same as in the keymap reference: single keys (`j`, `J`, `Enter`, `Esc`, `Tab`, `Down`), modifiers (`Ctrl-d`, `Alt-1`, `Shift-Tab`), chords written one key after another (`gg`, `Ctrl-w c`), `<space>` for the leader (`<space>bc`) and `<lt>` for a literal `<` (a plain `<` also works). Letters are case sensitive: `J` is Shift-j.
 
-**Find the action id.** Open the settings (`<space>,`), category Keys, row Key reference: it lists every action per view with its keys, `/` filters by title, key or id, and `Enter` on a line shows its `keys` entry in the status bar, ready to copy (it writes nothing). The command palette (`:` or `Ctrl-p`) lists the actions by title, and the reference tables list the id of every binding. Actions without a default key (`Actions without a key` in the reference) can be bound the same way.
+**Find the action id.** Open the settings (`<space>,`), category Keys, row Key reference: it lists every action per view with its keys, `/` filters by title, key or id, and `Enter` on a line shows its `keys` entry in the status bar, ready to copy (it writes nothing). The command palette (`:` or `Ctrl-p`) lists the actions by title, and the reference tables list the id of every binding. Insert, Command and Confirm keys are not in the Key reference; take their ids from the palette or the reference tables. Actions without a default key (`Actions without a key` in the reference) can be bound the same way.
 
 **How views inherit.** A binding in a view also works in the views below it: `Global` applies everywhere, `Lists` applies to the graph, sidebar, detail panes, diffs, the help and the settings, and so on. A key set in a more specific view wins over the same key in its parent. Unbinding a key in a view uncovers the parent's binding of that key, if any. To change a key everywhere, bind it in `Global` or `Lists`, and bind it again in a more specific view that has its own binding for it.
 
@@ -95,7 +96,7 @@ An entry on a key that already has a binding in that mode and view replaces it. 
 
 **Bad entries.** Each entry is checked alone. One with an unknown action, view or mode, a key that does not parse, nothing to unbind (`none` on a key that has no binding) or a chord conflict is skipped, and the others still apply. The first problem appears in the status bar at startup with a count of the others, and `<space>m` keeps the first five messages. Each message starts with the entry (`keys[2]` is the third). A file that is not valid JSON is ignored as a whole and the defaults apply.
 
-**See the result.** `?` shows the keys of the focused view; its `Custom` tab lists your own bindings.
+**See the result.** `?` shows the keys of the focused view; its `Custom` section lists your own bindings (shown once at least one entry applied).
 
 ## Not in the MVP
 
