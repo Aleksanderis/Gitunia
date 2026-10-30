@@ -133,7 +133,7 @@ public class ConflictReaderTests
     }
 
     [Fact]
-    public async Task GivenBothSidesAddedTheFile_WhenReading_ThenItIsUnsupportedAsAddAdd()
+    public async Task GivenBothSidesAddedTheFile_WhenReading_ThenTheHunkHasBothSidesAndAnEmptyBase()
     {
         using var repository = TestRepository.Create().Commit("Initial", new TestFile("base.txt", "x\n"));
         repository.CheckoutNewBranch("other").Commit("Add", new TestFile("new.txt", "other\n"));
@@ -141,8 +141,43 @@ public class ConflictReaderTests
 
         var result = await ReadAsync(repository, "new.txt");
 
+        Assert.Equal(ConflictReadKind.Text, result.Kind);
+        var hunk = Assert.Single(result.Parts, part => part.Hunk is not null).Hunk!;
+        Assert.Equal("main\n", hunk.Ours);
+        Assert.Equal("other\n", hunk.Theirs);
+        Assert.Equal(string.Empty, hunk.Base);
+    }
+
+    [Fact]
+    public async Task GivenBothSidesAddedAFileWithSharedLines_WhenReading_ThenOnlyTheDifferingLinesAreHunks()
+    {
+        using var repository = TestRepository.Create().Commit("Initial", new TestFile("base.txt", "x\n"));
+        repository.CheckoutNewBranch("other")
+            .Commit("Add", new TestFile("new.json", "{\n  \"version\": \"2\",\n  \"name\": \"a\"\n}\n"));
+        repository.Checkout("main")
+            .Commit("Add", new TestFile("new.json", "{\n  \"version\": \"1\",\n  \"name\": \"a\"\n}\n"))
+            .MergeExpectingConflict("other");
+
+        var result = await ReadAsync(repository, "new.json");
+
+        Assert.Equal(ConflictReadKind.Text, result.Kind);
+        Assert.Equal(1, result.HunkCount);
+        Assert.Equal("{\n", result.Parts[0].Common);
+        var hunk = Assert.Single(result.Parts, part => part.Hunk is not null).Hunk!;
+        Assert.Equal(string.Empty, hunk.Base);
+    }
+
+    [Fact]
+    public async Task GivenBothSidesAddedABinaryFile_WhenReading_ThenItIsStillUnsupported()
+    {
+        using var repository = TestRepository.Create().Commit("Initial", new TestFile("base.txt", "x\n"));
+        repository.CheckoutNewBranch("other").Commit("Add", new TestFile("data.bin", "o\0ther"));
+        repository.Checkout("main").Commit("Add", new TestFile("data.bin", "m\0ain")).MergeExpectingConflict("other");
+
+        var result = await ReadAsync(repository, "data.bin");
+
         Assert.Equal(ConflictReadKind.Unsupported, result.Kind);
-        Assert.Contains("add/add", result.Reason, StringComparison.Ordinal);
+        Assert.Contains("binary", result.Reason, StringComparison.Ordinal);
     }
 
     [Fact]

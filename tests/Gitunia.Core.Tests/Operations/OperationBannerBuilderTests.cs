@@ -29,6 +29,25 @@ public class OperationBannerBuilderTests
     }
 
     [Fact]
+    public void GivenConflictsTheEditorDoesNotTake_WhenBuilding_ThenTheHintNamesTheMergetoolNotTheEditor()
+    {
+        var banner = OperationBannerBuilder.Build(Info(RepositoryOperation.Rebase, target: "x"), 1, editorOpens: false)!;
+
+        Assert.Equal("<space>tm open mergetool", banner.Hint);
+        Assert.Equal("<space>tm mergetool", banner.ShortHint);
+        Assert.DoesNotContain("<space>to", banner.PlainText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GivenNoConflictsLeft_WhenTheEditorDoesNotOpen_ThenThereIsNoHintAtAll()
+    {
+        var banner = OperationBannerBuilder.Build(Info(RepositoryOperation.Merge, target: "x"), 0, editorOpens: false)!;
+
+        Assert.Equal(string.Empty, banner.Hint);
+        Assert.Equal(string.Empty, banner.ShortHint);
+    }
+
+    [Fact]
     public void GivenAMerge_WhenBuilding_ThenTitleNamesTheBranchAndThereIsNoSkip()
     {
         var banner = OperationBannerBuilder.Build(Info(RepositoryOperation.Merge, target: "feature/x"), 3)!;

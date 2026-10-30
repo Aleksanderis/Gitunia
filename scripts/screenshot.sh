@@ -5,7 +5,7 @@
 # Windows is unsupported here (no tmux): the script says so and exits 2; use scripts/screenshot.ps1 (psmux, resvg). See the screenshots skill (.claude/skills/screenshots/SKILL.md).
 #
 # Usage:
-#   scripts/screenshot.sh render  --binary <gitunia> [--out <dir>] [--scenarios default,opener,diff,split,narrow,light,files,files-filter,file-content,palette,help,help-lists,whichkey,menu,menu-sidebar,sidebar-ref,prompt,prompt-narrow,picker,picker-narrow,jump,jump-narrow,jump-diff,jump-working,working,working-narrow,working-diff,working-diff-narrow,working-zoom,zoom-both,repeat,repeat-resize,view-menu,working-view-menu,list-view-menu,files-view-menu,working-list-menu,working-stage,working-hunk,working-lines,working-commit,working-hook,working-discard,working-resolve,working-empty-staged,status-fresh,status-settled,settings,settings-choice,settings-narrow,settings-keys,settings-keys-entry,theme-preview,theme-kept,theme-tokyo,theme-latte,rebase-editor,rebase-reword,rebase-confirm,rebase-narrow,conflict-editor,conflict-editor-narrow,conflict-editor-edit,conflict-editor-base,conflict-entry,conflict-entry-keys,stash,whitespace] [--repo <dir>]
+#   scripts/screenshot.sh render  --binary <gitunia> [--out <dir>] [--scenarios default,opener,diff,split,narrow,light,files,files-filter,file-content,palette,help,help-lists,whichkey,menu,menu-sidebar,sidebar-ref,prompt,prompt-narrow,picker,picker-narrow,jump,jump-narrow,jump-diff,jump-working,working,working-narrow,working-diff,working-diff-narrow,working-zoom,zoom-both,repeat,repeat-resize,view-menu,working-view-menu,list-view-menu,files-view-menu,working-list-menu,working-stage,working-hunk,working-lines,working-commit,working-hook,working-discard,working-resolve,working-empty-staged,status-fresh,status-settled,settings,settings-choice,settings-narrow,settings-keys,settings-keys-entry,theme-preview,theme-kept,theme-tokyo,theme-latte,rebase-editor,rebase-reword,rebase-confirm,rebase-narrow,conflict-editor,conflict-editor-narrow,conflict-editor-edit,conflict-editor-base,conflict-entry,conflict-entry-keys,conflict-add-add-entry,conflict-add-add,conflict-add-add-save,conflict-add-add-done,conflict-delete-modify-entry,stash,whitespace] [--repo <dir>]
 #   scripts/screenshot.sh publish --pr <number> [--out <dir>]     push the PNGs of `render` to the screenshots repository,
 #                                                                  print markdown for a PR comment
 #   scripts/screenshot.sh clean                                    remove images of merged/closed PRs from the screenshots repository
@@ -23,6 +23,7 @@
 # conflict-editor and conflict-editor-narrow (<space>s, Enter on a merge conflict with two hunks, then o and n: the conflict editor after one pick; a copy of the throwaway repository stopped on a merge; not for --repo).
 # conflict-editor-edit (o e then typed text: the result as a text edit) and conflict-editor-base (100 columns, under the three-pane width; o B: the base block below the two sides); not for --repo.
 # conflict-entry (100x24, <space>s: the Unstaged list on a conflicted file, its status hints leading with the conflict editor, the banner whole) and conflict-entry-keys (the same after <space>t: the which-key popup lists o and sits above the banner); a copy of the throwaway repository stopped on a merge; not for --repo.
+# conflict-add-add-entry (100x30, <space>s: a rebase stopped on a file both branches added; the hints and banner name the conflict editor), conflict-add-add (Enter, o, n: the editor with an empty base pane, one pick), conflict-add-add-save (Enter after O: the Mark resolved Confirm), conflict-add-add-done (y: the file resolved) and conflict-delete-modify-entry (a file one side deleted and the other changed: the hints name the mergetool, the editor key is not offered); not for --repo.
 # working-resolve (<space>a on the conflicted first file: the mark-resolved Confirm dialog); not for --repo.
 # working-empty-staged (<space>s Tab: the empty Staged list focused beside an Unstaged list with one modified file; a copy of the throwaway repository; not for --repo).
 # Without --repo a deterministic throwaway repo is generated under a temp dir (never a real repo).
@@ -173,6 +174,44 @@ make_conflict_repo() { # make_conflict_repo SOURCE DIR: a copy of the throwaway 
   )
 }
 
+make_add_add_repo() { # make_add_add_repo SOURCE DIR: a copy of the throwaway repository with a rebase stopped on a file both branches added
+  local source="$1" dir="$2"
+  cp -r "$source" "$dir"
+  ( # a subshell keeps the GIT_* variables out of the tmux server and the app under test
+  export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_SYSTEM=/dev/null
+  export GIT_AUTHOR_NAME="Ada Lovelace" GIT_AUTHOR_EMAIL=ada@example.com GIT_COMMITTER_NAME="Ada Lovelace" GIT_COMMITTER_EMAIL=ada@example.com
+  export GIT_AUTHOR_DATE="2026-04-01T12:00:00Z" GIT_COMMITTER_DATE="2026-04-01T12:00:00Z"
+  git -C "$dir" switch -q -c topic
+  printf '{\n  "name": "sample",\n  "version": "2.0.0",\n  "private": true,\n  "scripts": { "test": "run" }\n}\n' >"$dir/src/sample.json"
+  git -C "$dir" add src/sample.json
+  git -C "$dir" commit -q -m "feat: new changes"
+  git -C "$dir" switch -q main
+  printf '{\n  "name": "sample",\n  "version": "1.0.0",\n  "license": "MIT",\n  "scripts": { "test": "go" }\n}\n' >"$dir/src/sample.json"
+  git -C "$dir" add src/sample.json
+  git -C "$dir" commit -q -m "feat: add the sample"
+  git -C "$dir" switch -q topic
+  git -C "$dir" rebase main >/dev/null 2>&1 || true
+  )
+}
+
+make_delete_modify_repo() { # make_delete_modify_repo SOURCE DIR: a copy with a rebase stopped on a file one branch deleted and the other changed
+  local source="$1" dir="$2"
+  cp -r "$source" "$dir"
+  ( # a subshell keeps the GIT_* variables out of the tmux server and the app under test
+  export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_SYSTEM=/dev/null
+  export GIT_AUTHOR_NAME="Ada Lovelace" GIT_AUTHOR_EMAIL=ada@example.com GIT_COMMITTER_NAME="Ada Lovelace" GIT_COMMITTER_EMAIL=ada@example.com
+  export GIT_AUTHOR_DATE="2026-04-01T12:00:00Z" GIT_COMMITTER_DATE="2026-04-01T12:00:00Z"
+  git -C "$dir" switch -q -c topic
+  git -C "$dir" rm -q src/math.txt
+  git -C "$dir" commit -q -m "feat: drop math"
+  git -C "$dir" switch -q main
+  printf 'int Add(int left, int right) => checked(left + right);\n' >"$dir/src/math.txt"
+  git -C "$dir" commit -q -am "fix: check Add for overflow"
+  git -C "$dir" switch -q topic
+  git -C "$dir" rebase main >/dev/null 2>&1 || true
+  )
+}
+
 make_commit_repo() { # make_commit_repo SOURCE DIR HOOK: a copy with staged, unstaged and untracked changes (no merge); HOOK=hook adds a failing pre-commit hook
   local source="$1" dir="$2" hook="$3"
   cp -r "$source" "$dir"
@@ -319,6 +358,10 @@ render() {
       conflict-editor-base) columns=100 rows=36 keys="Space s Enter" keys_after="o B" ;;
       conflict-entry) columns=100 rows=24 keys="Space s" ;;
       conflict-entry-keys) columns=100 rows=24 keys="Space s Space t" ;;
+      conflict-add-add-entry | conflict-delete-modify-entry) columns=100 rows=30 keys="Space s" ;;
+      conflict-add-add) columns=100 rows=30 keys="Space s Enter" keys_after="o n" ;;
+      conflict-add-add-save) columns=100 rows=30 keys="Space s Enter" keys_after="O Enter" ;;
+      conflict-add-add-done) columns=100 rows=30 keys="Space s Enter" keys_after="O Enter y" ;;
       rebase-editor) keys="G Space g i" keys_after="j s j j d" ;;
       rebase-reword) keys="G Space g i" keys_after="j r" ;;
       rebase-confirm) keys="G Space g i" keys_after="j s j j d Enter" ;;
@@ -332,6 +375,12 @@ render() {
     elif [[ "$scenario" == working-hook && -z "$source_repo" ]]; then
       scenario_repo="$work/repo-hook"
       [ -d "$scenario_repo" ] || make_commit_repo "$repo" "$scenario_repo" hook
+    elif [[ "$scenario" == conflict-add-add* && -z "$source_repo" ]]; then
+      scenario_repo="$work/repo-add-add"
+      [ -d "$scenario_repo" ] || make_add_add_repo "$repo" "$scenario_repo"
+    elif [[ "$scenario" == conflict-delete-modify* && -z "$source_repo" ]]; then
+      scenario_repo="$work/repo-delete-modify"
+      [ -d "$scenario_repo" ] || make_delete_modify_repo "$repo" "$scenario_repo"
     elif [[ "$scenario" == conflict-* && -z "$source_repo" ]]; then
       scenario_repo="$work/repo-conflict"
       [ -d "$scenario_repo" ] || make_conflict_repo "$repo" "$scenario_repo"

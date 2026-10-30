@@ -1,10 +1,11 @@
+using Gitunia.Core.Conflicts;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Git.Status.Models;
 
 namespace Gitunia.Tui.App.Conflicts;
 
 /// <summary>Which file the conflict editor would open: the selected Unstaged row when it is a conflicted file, else the
-/// first conflicted file of the working tree (one the editor accepts, else any).</summary>
+/// first conflicted file of the working tree (one the editor takes, else any).</summary>
 public static class ConflictedSelection
 {
     /// <summary>The conflicted entry under the Unstaged cursor, or null for a folder, another list or a plain
@@ -27,7 +28,7 @@ public static class ConflictedSelection
     {
         var conflicted = tree?.Unstaged.Where(entry => entry.Kind == StatusEntryKind.Unmerged).ToList();
 
-        return conflicted?.FirstOrDefault(entry => entry.Conflict == ConflictKind.BothModified)
+        return conflicted?.FirstOrDefault(entry => ConflictEditorSupport.CanOpen(entry.Conflict))
             ?? conflicted?.FirstOrDefault();
     }
 }

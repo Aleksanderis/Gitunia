@@ -1,3 +1,4 @@
+using Gitunia.Core.Conflicts;
 using Gitunia.Core.Editing;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Repeat;
@@ -696,7 +697,9 @@ public sealed class MainView : IDisposable
     }
 
     // The resolve chip shows while the Unstaged list's cursor is on a conflicted file (the row <space>to opens).
-    private bool IsConflictedUnderCursor() => ConflictedSelection.Find(UnstagedSource.Tree) is not null;
+    // A file the editor refuses (delete/modify) gets no chip: it would promise what the key then declines.
+    private bool IsConflictedUnderCursor() =>
+        ConflictedSelection.Find(UnstagedSource.Tree) is { } entry && ConflictEditorSupport.CanOpen(entry.Conflict);
 
     private PaneRect ListRect(WorkingTreeSection section) =>
         section == WorkingTreeSection.Staged ? WorkingRects().Staged : WorkingRects().Unstaged;

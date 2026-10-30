@@ -17,10 +17,18 @@ public static class PaneHints
 
     private const string ConflictEditorLabel = "conflict editor";
 
+    private const string MergetoolLabel = "mergetool";
+
     private static readonly KeyHint ConflictEditorHint = new(
         "<space>to",
         ConflictEditorLabel,
         [ActionIds.ConflictOpen]);
+
+    // For a conflicted file the editor refuses (delete/modify and the like): the mergetool is the way (#742).
+    private static readonly KeyHint ConflictMergetoolHint = new(
+        "<space>tm",
+        MergetoolLabel,
+        [ActionIds.ToolMergetool]);
 
     // Ctrl-h/j/k/l move between panes in every view; bare h/j/k/l act inside the pane (ux.md, "Moving focus").
     private static readonly KeyHint PaneMove = new(
@@ -178,6 +186,20 @@ public static class PaneHints
         .. WorkingUnstagedDiff.Skip(Pinned.Length),
     ];
 
+    private static readonly ImmutableArray<KeyHint> WorkingUnstagedRefused =
+    [
+        .. Pinned,
+        ConflictMergetoolHint,
+        .. WorkingUnstaged.Skip(Pinned.Length).Where(hint => hint.Description != "diff"),
+    ];
+
+    private static readonly ImmutableArray<KeyHint> WorkingUnstagedDiffRefused =
+    [
+        .. Pinned,
+        ConflictMergetoolHint,
+        .. WorkingUnstagedDiff.Skip(Pinned.Length),
+    ];
+
     private static readonly ImmutableArray<KeyHint> WorkingStaged =
     [
         .. Pinned,
@@ -322,8 +344,24 @@ public static class PaneHints
     /// <param name="showsFileContent">Whether the diff pane shows file content.</param>
     /// <param name="onConflict">Whether the working-tree selection is a conflicted file: the Unstaged list and its
     /// diff then lead with the conflict editor's keys (#742).</param>
-    public static IReadOnlyList<KeyHint> For(PaneKind pane, bool showsFileContent, bool onConflict = false)
+    /// <param name="onRefusedConflict">Whether the selection is a conflicted file the editor does not take
+    /// (delete/modify and the like): the same two panes then lead with the mergetool key instead.</param>
+    public static IReadOnlyList<KeyHint> For(
+        PaneKind pane,
+        bool showsFileContent,
+        bool onConflict = false,
+        bool onRefusedConflict = false)
     {
+        if (onRefusedConflict && pane == PaneKind.WorkingUnstaged)
+        {
+            return WorkingUnstagedRefused;
+        }
+
+        if (onRefusedConflict && pane == PaneKind.WorkingUnstagedDiff)
+        {
+            return WorkingUnstagedDiffRefused;
+        }
+
         if (onConflict && pane == PaneKind.WorkingUnstaged)
         {
             return WorkingUnstagedConflict;
@@ -343,14 +381,25 @@ public static class PaneHints
     /// that already lead with the editor are returned as they are.
     /// </summary>
     /// <param name="hints">The hints of the focused pane.</param>
-    public static IReadOnlyList<KeyHint> WithConflictEditor(IReadOnlyList<KeyHint> hints)
+    public static IReadOnlyList<KeyHint> WithConflictEditor(IReadOnlyList<KeyHint> hints) =>
+        WithConflictHint(hints, ConflictEditorHint, ConflictEditorLabel);
+
+    /// <summary>
+    /// <paramref name="hints"/> with <c>&lt;space&gt;tm mergetool</c> in the same place, for a stopped operation
+    /// whose conflicted files are all ones the editor does not take (#742).
+    /// </summary>
+    /// <param name="hints">The hints of the focused pane.</param>
+    public static IReadOnlyList<KeyHint> WithConflictMergetool(IReadOnlyList<KeyHint> hints) =>
+        WithConflictHint(hints, ConflictMergetoolHint, MergetoolLabel);
+
+    private static IReadOnlyList<KeyHint> WithConflictHint(IReadOnlyList<KeyHint> hints, KeyHint lead, string label)
     {
-        if (hints.Any(hint => hint.Description == ConflictEditorLabel))
+        if (hints.Any(hint => hint.Description == label))
         {
             return hints;
         }
 
-        return [.. hints.Take(Pinned.Length), ConflictEditorHint, .. hints.Skip(Pinned.Length)];
+        return [.. hints.Take(Pinned.Length), lead, .. hints.Skip(Pinned.Length)];
     }
 
     /// <summary>The hints of the detail pane while its Changes tab is selected.</summary>

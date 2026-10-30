@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using Gitunia.Core.Clipboard;
+using Gitunia.Core.Conflicts;
 using Gitunia.Core.Config;
 using Gitunia.Core.Config.Models;
 using Gitunia.Core.Graph;
@@ -1324,7 +1325,17 @@ public sealed class TuiApplication(
 
         var hints = PaneHintsOfFocus();
 
-        return ConflictPending() ? PaneHints.WithConflictEditor(hints) : hints;
+        if (!ConflictPending())
+        {
+            return hints;
+        }
+
+        if (ConflictEditorSupport.AnyCanOpen(_host.Workspace.ActiveTab?.WorkingTree))
+        {
+            return PaneHints.WithConflictEditor(hints);
+        }
+
+        return PaneHints.WithConflictMergetool(hints);
     }
 
     private IReadOnlyList<KeyHint> PaneHintsOfFocus()
@@ -1342,7 +1353,8 @@ public sealed class TuiApplication(
         return PaneHints.For(
             _host.Workspace.ActiveTab?.View.FocusedPane ?? PaneKind.Graph,
             _diffPane.IsShowingContent,
-            OnConflictedFile());
+            OnConflictedFile(),
+            OnRefusedConflictedFile());
     }
 
     // A merge, rebase, cherry-pick or revert is stopped on a conflict: <space>to opens the editor from every pane.
@@ -1365,7 +1377,14 @@ public sealed class TuiApplication(
     // Only the Unstaged list and its diff lead with the conflict editor, so no other pane pays for the lookup.
     private bool OnConflictedFile() =>
         _host.Workspace.ActiveTab is { View.FocusedPane: PaneKind.WorkingUnstaged or PaneKind.WorkingUnstagedDiff } tab
-        && ConflictedSelection.Find(tab.WorkingTree) is not null;
+        && ConflictedSelection.Find(tab.WorkingTree) is { } entry
+        && ConflictEditorSupport.CanOpen(entry.Conflict);
+
+    // The same panes, on a conflicted file the editor refuses: the hints name the mergetool.
+    private bool OnRefusedConflictedFile() =>
+        _host.Workspace.ActiveTab is { View.FocusedPane: PaneKind.WorkingUnstaged or PaneKind.WorkingUnstagedDiff } tab
+        && ConflictedSelection.Find(tab.WorkingTree) is { } entry
+        && !ConflictEditorSupport.CanOpen(entry.Conflict);
 
     private bool GraphComparing() =>
         _host.Workspace.ActiveTab?.View is { FocusedPane: PaneKind.Graph, CompareMark: not null };

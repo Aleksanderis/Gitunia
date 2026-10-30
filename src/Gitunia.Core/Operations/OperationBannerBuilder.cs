@@ -20,6 +20,10 @@ public static class OperationBannerBuilder
     private const string EditorHint = "<space>to open conflict editor";
     private const string ShortEditorHint = "<space>to conflict editor";
 
+    // No conflicted file is one the editor takes (delete/modify and the like): the mergetool is the way (#742).
+    private const string MergetoolHint = "<space>tm open mergetool";
+    private const string ShortMergetoolHint = "<space>tm mergetool";
+
     private static readonly BannerChip Continue = new("<space>gc", "continue", ActionIds.OperationContinue);
     private static readonly BannerChip Abort = new("<space>ga", "abort", ActionIds.OperationAbort);
     private static readonly BannerChip Skip = new("<space>gk", "skip", ActionIds.OperationSkip);
@@ -30,7 +34,9 @@ public static class OperationBannerBuilder
     /// progress.</summary>
     /// <param name="info">The operation, null when none.</param>
     /// <param name="conflictCount">Conflicted files in the working tree.</param>
-    public static OperationBanner? Build(OperationInfo? info, int conflictCount)
+    /// <param name="editorOpens">Whether the conflict editor takes any of the conflicted files; when not, the hint
+    /// names the mergetool instead.</param>
+    public static OperationBanner? Build(OperationInfo? info, int conflictCount, bool editorOpens = true)
     {
         if (info is null || Verb(info.Kind) is not { } verb)
         {
@@ -53,8 +59,8 @@ public static class OperationBannerBuilder
         parts.Add(ConflictText(conflictCount));
         var chips = info.Kind == RepositoryOperation.Merge ? MergeChips : SkippableChips;
         var hasConflicts = conflictCount > 0;
-        var hint = hasConflicts ? EditorHint : string.Empty;
-        var shortHint = hasConflicts ? ShortEditorHint : string.Empty;
+        var hint = hasConflicts ? HintOf(editorOpens, isShort: false) : string.Empty;
+        var shortHint = hasConflicts ? HintOf(editorOpens, isShort: true) : string.Empty;
 
         return new OperationBanner(title, string.Join(Gap, parts), chips, hint, shortHint);
     }
@@ -77,6 +83,16 @@ public static class OperationBannerBuilder
         RepositoryOperation.Revert => "revert",
         _ => operation.ToString().ToLowerInvariant(),
     };
+
+    private static string HintOf(bool editorOpens, bool isShort)
+    {
+        if (editorOpens)
+        {
+            return isShort ? ShortEditorHint : EditorHint;
+        }
+
+        return isShort ? ShortMergetoolHint : MergetoolHint;
+    }
 
     private static string? Verb(RepositoryOperation operation) => operation switch
     {

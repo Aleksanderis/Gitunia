@@ -63,17 +63,29 @@ public class ConflictedSelectionTests
         Assert.Null(ConflictedSelection.Find(null));
     }
 
+    [Fact]
+    public void GivenDeleteModifyFirstAndAddAddSecond_WhenFindingTheFirst_ThenTheAddAddIsPreferred()
+    {
+        var tree = Tree(
+            Selection("z.txt"),
+            Entry(StatusEntryKind.Unmerged, "a.txt", ConflictKind.DeletedByThem),
+            Entry(StatusEntryKind.Unmerged, "b.txt", ConflictKind.BothAdded));
+
+        Assert.Equal("b.txt", ConflictedSelection.FindFirst(tree)?.Path);
+    }
+
+    [Fact]
+    public void GivenOnlyDeleteModify_WhenFindingTheFirst_ThenItIsStillReturnedSoTheRefusalCanSayWhy()
+    {
+        var tree = Tree(Selection("z.txt"), Entry(StatusEntryKind.Unmerged, "a.txt", ConflictKind.DeletedByUs));
+
+        Assert.Equal("a.txt", ConflictedSelection.FindFirst(tree)?.Path);
+    }
+
     private static WorkingTreeSelection Selection(string path) => new(WorkingTreeSection.Unstaged, path, 0);
 
-    private static StatusEntry Entry(StatusEntryKind kind, string path) => new(
-        kind,
-        path,
-        null,
-        FileChangeKind.Unmodified,
-        FileChangeKind.Modified,
-        null,
-        ConflictKind.None,
-        null);
+    private static StatusEntry Entry(StatusEntryKind kind, string path, ConflictKind conflict = ConflictKind.None) =>
+        new(kind, path, null, FileChangeKind.Unmodified, FileChangeKind.Modified, null, conflict, null);
 
     private static WorkingTreeState Tree(WorkingTreeSelection selection, params StatusEntry[] entries)
     {

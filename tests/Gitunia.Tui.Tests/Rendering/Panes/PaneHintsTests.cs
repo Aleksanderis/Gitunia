@@ -122,6 +122,42 @@ public class PaneHintsTests
     }
 
     [Fact]
+    public void GivenARefusedConflictedFileInTheUnstagedList_WhenAskingForHints_ThenTheMergetoolLeadsAndTheEditorIsNotOffered()
+    {
+        var hints = PaneHints.For(PaneKind.WorkingUnstaged, showsFileContent: false, onRefusedConflict: true);
+
+        Assert.Equal("<space>tm", hints[3].Keys);
+        Assert.Equal("mergetool", hints[3].Description);
+        Assert.DoesNotContain(hints, hint => hint.Description is "conflict editor" or "diff");
+        AssertKeysTriggerActions(hints, KeyMode.Normal, DefaultKeymap.WorkingUnstagedView);
+    }
+
+    [Fact]
+    public void GivenARefusedConflictedFileInItsDiff_WhenAskingForHints_ThenTheMergetoolLeads()
+    {
+        var hints = PaneHints.For(PaneKind.WorkingUnstagedDiff, showsFileContent: false, onRefusedConflict: true);
+
+        Assert.Equal("<space>tm", hints[3].Keys);
+        Assert.DoesNotContain(hints, hint => hint.Description == "conflict editor");
+        AssertKeysTriggerActions(hints, KeyMode.Normal, DefaultKeymap.WorkingUnstagedDiffView);
+    }
+
+    [Theory]
+    [InlineData(PaneKind.Graph)]
+    [InlineData(PaneKind.Sidebar)]
+    [InlineData(PaneKind.WorkingStaged)]
+    public void GivenNoConflictedFileTheEditorTakes_WhenAddingTheMergetoolHint_ThenItFollowsHelpCommandsAndQuit(
+        PaneKind pane)
+    {
+        var hints = PaneHints.WithConflictMergetool(PaneHints.For(pane));
+
+        Assert.Equal("<space>tm", hints[3].Keys);
+        Assert.Equal("mergetool", hints[3].Description);
+        Assert.Equal(PaneHints.For(pane).Count + 1, hints.Count);
+        AssertKeysTriggerActions(hints, KeyMode.Normal, ViewFor(pane));
+    }
+
+    [Fact]
     public void GivenHintsThatAlreadyLeadWithTheEditor_WhenAddingTheEditorHint_ThenTheyAreLeftAlone()
     {
         var hints = PaneHints.For(PaneKind.WorkingUnstaged, showsFileContent: false, onConflict: true);

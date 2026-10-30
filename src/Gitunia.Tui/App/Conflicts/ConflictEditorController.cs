@@ -223,9 +223,10 @@ public sealed class ConflictEditorController(
             return;
         }
 
-        if (entry.Conflict != ConflictKind.BothModified)
+        if (!ConflictEditorSupport.CanOpen(entry.Conflict))
         {
-            statuses.Warning($"{name}: {Describe(entry.Conflict)}; {MergetoolHint}");
+            statuses.Warning(
+                $"{name}: {ConflictEditorSupport.Refusal(entry.Conflict)}, not for the editor; {MergetoolHint}");
 
             return;
         }
@@ -233,20 +234,21 @@ public sealed class ConflictEditorController(
         var generation = ++_generation;
         var token = cancellationOf(tab.Id);
         _isWorking = true;
-        _ = Task.Run(() => ReadAsync(tab.Id, tab.Location, entry.Path, generation, token), CancellationToken.None);
+        _ = Task.Run(() => ReadAsync(tab.Id, tab.Location, entry, generation, token), CancellationToken.None);
     }
 
     private async Task ReadAsync(
         TabId tabId,
         RepositoryLocation location,
-        string path,
+        StatusEntry entry,
         int generation,
         CancellationToken token)
     {
+        var path = entry.Path;
         try
         {
             var result = await reader.ReadAsync(location, path, token).ConfigureAwait(false);
-            postToUi(() => Show(generation, tabId, path, result));
+            postToUi(() => Show(generation, tabId, entry, result));
         }
         catch (OperationCanceledException)
         {
@@ -259,8 +261,9 @@ public sealed class ConflictEditorController(
         }
     }
 
-    private void Show(int generation, TabId tabId, string path, ConflictReadResult result)
+    private void Show(int generation, TabId tabId, StatusEntry entry, ConflictReadResult result)
     {
+        var path = entry.Path;
         _isWorking = false;
         if (generation != _generation)
         {
@@ -289,6 +292,12 @@ public sealed class ConflictEditorController(
         }
 
         State = ConflictEditorState.Create(tabId, path, result.Parts);
+        if (entry.Conflict == ConflictKind.BothAdded)
+        {
+            var name = WorkingTreeRowRenderer.Printable(path);
+            statuses.Post($"{name}: both sides added it, so the base is empty; pick a side per hunk");
+        }
+
         redraw();
     }
 
@@ -698,17 +707,6 @@ public sealed class ConflictEditorController(
 
         return $"Saved {name}: {Plural(state.UnresolvedCount, "hunk")} still unresolved";
     }
-
-    private static string Describe(ConflictKind kind) => kind switch
-    {
-        ConflictKind.BothAdded => "both sides added it (add/add)",
-        ConflictKind.BothDeleted => "both sides deleted it",
-        ConflictKind.AddedByUs => "only we added it",
-        ConflictKind.AddedByThem => "only they added it",
-        ConflictKind.DeletedByUs => "we deleted it (delete/modify)",
-        ConflictKind.DeletedByThem => "they deleted it (delete/modify)",
-        _ => "this conflict cannot be resolved hunk by hunk",
-    };
 
     private static string Plural(int count, string noun) => count == 1 ? $"1 {noun}" : $"{count} {noun}s";
 }

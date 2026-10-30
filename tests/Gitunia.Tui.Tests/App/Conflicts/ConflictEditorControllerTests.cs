@@ -149,17 +149,55 @@ public class ConflictEditorControllerTests
     }
 
     [Fact]
-    public async Task GivenBothSidesAddedTheFile_WhenOpening_ThenTheEditorStaysClosedAndNamesTheMergetool()
+    public async Task GivenBothSidesAddedTheFile_WhenOpeningPickingAndSaving_ThenItIsResolvedAgainstAnEmptyBase()
     {
-        using var repository = TestRepository.Create().Commit("Initial", new TestFile("base.txt", "x\n"));
-        repository.CheckoutNewBranch("other").Commit("Add", new TestFile("new.txt", "other\n"));
-        repository.Checkout("main").Commit("Add", new TestFile("new.txt", "main\n")).MergeExpectingConflict("other");
+        using var repository = AddedOnBothSides();
+        using var harness = await Harness.CreateAsync(repository);
+
+        await harness.OpenAsync();
+
+        Assert.Equal(string.Empty, harness.Controller.State!.Selected!.Base);
+        Assert.Contains("both sides added it", harness.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
+        harness.Run(ActionIds.ConflictEditorTheirs);
+        harness.Run(ActionIds.ConflictEditorSave);
+        await harness.WaitForStatusAsync("Saved");
+        Assert.False(harness.Controller.IsOpen);
+        Assert.Equal("other\n", File.ReadAllText(harness.FullPath).Replace("\r", string.Empty));
+        Assert.Equal([ConflictPath], harness.ResolvedAsked);
+    }
+
+    [Fact]
+    public async Task GivenBothSidesAddedTheFile_WhenEditingTheHunk_ThenTheTypedTextIsSaved()
+    {
+        using var repository = AddedOnBothSides();
+        using var harness = await Harness.CreateAsync(repository);
+        await harness.OpenAsync();
+
+        harness.Run(ActionIds.ConflictEditorEdit);
+        harness.Type("!");
+        harness.Run(ActionIds.ConflictEditorEditDone);
+        harness.Run(ActionIds.ConflictEditorSave);
+        await harness.WaitForStatusAsync("Saved");
+
+        Assert.DoesNotContain("<<<<<<<", File.ReadAllText(harness.FullPath), StringComparison.Ordinal);
+        Assert.Contains("!", File.ReadAllText(harness.FullPath), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task GivenOneSideDeletedTheFile_WhenOpening_ThenTheEditorStaysClosedAndNamesTheMergetool()
+    {
+        using var repository = TestRepository.Create().Commit("Initial", new TestFile(ConflictPath, "x\n"));
+        repository.CheckoutNewBranch("other").Delete(ConflictPath);
+        repository.Git("commit", "-a", "-m", "Delete");
+        repository.Checkout("main").Commit("Change", new TestFile(ConflictPath, "main\n"))
+            .MergeExpectingConflict("other");
         using var harness = await Harness.CreateAsync(repository);
 
         Assert.True(harness.Controller.TryExecute(ActionIds.WorkingTreeOpenDiff, null));
 
         Assert.False(harness.Controller.IsOpen);
-        Assert.Contains("add/add", harness.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
+        Assert.Contains("delete/modify", harness.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
+        Assert.Contains("not for the editor", harness.Statuses.Log.Latest.Text, StringComparison.Ordinal);
         Assert.Contains("<space>tm", harness.Statuses.Log.Latest.Text, StringComparison.Ordinal);
     }
 
@@ -676,6 +714,16 @@ public class ConflictEditorControllerTests
             .Commit("Main", new TestFile(ConflictPath, main));
 
         return repository.MergeExpectingConflict("other");
+    }
+
+    // Both branches add the same new file with different contents (add/add: stages 2 and 3, no base).
+    private static TestRepository AddedOnBothSides()
+    {
+        var repository = TestRepository.Create().Commit("Initial", new TestFile("base.txt", "x\n"));
+        repository.CheckoutNewBranch("other").Commit("Add", new TestFile(ConflictPath, "other\n"));
+
+        return repository.Checkout("main").Commit("Add", new TestFile(ConflictPath, "main\n"))
+            .MergeExpectingConflict("other");
     }
 
     private static TestRepository TwoHunks()
