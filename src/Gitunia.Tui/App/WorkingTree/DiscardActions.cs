@@ -15,7 +15,7 @@ using Gitunia.Tui.Rendering.WorkingTree;
 namespace Gitunia.Tui.App.WorkingTree;
 
 /// <summary>
-/// Discards unstaged changes (ux.md, workflow 2, "Discard"): a file from the Unstaged list, or the hunk or Visual lines of its diff.
+/// Discards unstaged changes (ux-workflows.md, workflow 2, "Discard"): a file from the Unstaged list, or the hunk or Visual lines of its diff.
 /// Nothing is undoable, so nothing runs before the user answers <c>y</c> in a confirm dialog that names what is lost (and says that
 /// untracked files are deleted); there is no stash copy. What will be discarded is fixed when the dialog opens, from the cursor at
 /// that time, and the git call runs off the UI thread afterwards. When it is done the tab re-reads its status. One operation per

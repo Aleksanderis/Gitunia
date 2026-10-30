@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Mechanical checks on the current branch against main that the build cannot do: docs/decisions.md is append-only and dated,
-# test hygiene (home dir, wall-clock), commits without the agent author name or Agent: trailer.
+# test hygiene (home dir, wall-clock), broken relative doc links, commits without the agent author name or Agent: trailer.
 # Run it before asking for review; exit code 1 when anything is found.
 # Usage: check-diff.sh [base-ref]   (default: main)
 set -euo pipefail
@@ -54,6 +54,16 @@ while IFS=$'\t' read -r sha author; do
         report "$sha: no 'Agent: <role>' trailer"
     fi
 done < <(git log --no-merges --format=$'%h\t%an' "$base"..HEAD)
+
+# Relative markdown links in docs/ and the root docs must resolve to a file.
+while IFS= read -r md; do
+    dir="$(dirname "$md")"
+    while IFS= read -r target; do
+        target="${target%%#*}"
+        [[ -z "$target" || "$target" == *://* || "$target" == mailto:* ]] && continue
+        [[ -e "$dir/$target" ]] || report "$md: broken link '$target'"
+    done < <(grep -o '\]([^)]*)' "$md" | sed 's/^](//; s/)$//' || true)
+done < <(ls README.md CLAUDE.md docs/*.md docs/history/*.md 2>/dev/null)
 
 echo "$problems problem(s)"
 (( problems == 0 ))

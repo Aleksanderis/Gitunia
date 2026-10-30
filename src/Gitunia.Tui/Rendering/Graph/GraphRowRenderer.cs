@@ -188,7 +188,7 @@ public static class GraphRowRenderer
         var builder = new List<StyledSegment>();
         if (options.MarkedCommit == entry.Id)
         {
-            // The text says it too, so the mark does not depend on colour (ux.md, "Comparing two commits").
+            // The text says it too, so the mark does not depend on colour (ux-workflows.md, "Comparing two commits").
             builder.Add(new StyledSegment(MarkText, SegmentRole.Tag));
         }
 

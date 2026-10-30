@@ -26,7 +26,7 @@ public sealed record WorkingTreeState(StatusSnapshot Snapshot, WorkingTreeSelect
     public ImmutableHashSet<string> CollapsedStaged { get; init; } = [];
 
     /// <summary>
-    /// Entries of the Unstaged list in display order: conflicted paths first (their own group, ux.md workflow 2), then the worktree
+    /// Entries of the Unstaged list in display order: conflicted paths first (their own group, ux-workflows.md workflow 2), then the worktree
     /// changes and untracked paths, each group in git's order.
     /// </summary>
     public IReadOnlyList<StatusEntry> Unstaged => _unstaged ??= Snapshot.Entries
@@ -158,7 +158,7 @@ public sealed record WorkingTreeState(StatusSnapshot Snapshot, WorkingTreeSelect
     /// <remarks>
     /// Order of preference: the same file or folder in the same list; the row now at the old index (clamped),
     /// which is also what happens when
-    /// the file moved to the other list by stage or unstage, so the cursor stays put and the action can be repeated (ux.md, workflow 2);
+    /// the file moved to the other list by stage or unstage, so the cursor stays put and the action can be repeated (ux-workflows.md, workflow 2);
     /// the first row of the other list. Without a previous selection the first row is chosen.
     /// Never selects when both lists are empty.
     /// </remarks>

@@ -4,7 +4,7 @@ using Gitunia.Git.Repositories.Models;
 
 namespace Gitunia.Core.Editing;
 
-/// <summary>The refusals made before git runs (ux.md, workflow 2, "Message and commit"): a commit that cannot work says why at once.</summary>
+/// <summary>The refusals made before git runs (ux-workflows.md, workflow 2, "Message and commit"): a commit that cannot work says why at once.</summary>
 public static class CommitCheck
 {
     /// <summary>Shown when the message is empty or only whitespace.</summary>

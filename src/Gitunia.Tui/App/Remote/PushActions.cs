@@ -20,7 +20,7 @@ using PickerMatcher = Gitunia.Core.Search.FuzzyMatcher;
 namespace Gitunia.Tui.App.Remote;
 
 /// <summary>
-/// The push cases that need a question (ux.md, workflow 5): the first push of a branch without an upstream asks for
+/// The push cases that need a question (ux-workflows.md, workflow 5): the first push of a branch without an upstream asks for
 /// the remote (<c>origin</c> first) and sets the upstream; a force push is only ever a lease and goes through a
 /// Confirm that names the remote branch it overwrites; deleting a branch on a remote asks for the remote, then the
 /// branch, then confirms. The push itself runs through <see cref="RemoteActions"/> (progress, cancel, one remote

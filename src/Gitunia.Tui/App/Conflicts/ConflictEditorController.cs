@@ -20,7 +20,7 @@ using Gitunia.Tui.Views;
 namespace Gitunia.Tui.App.Conflicts;
 
 /// <summary>
-/// The conflict editor (ux.md, workflow 4, "Conflict editor"): <c>Enter</c> (or <c>&lt;space&gt;to</c>) on a
+/// The conflict editor (ux-workflows.md, workflow 4, "Conflict editor"): <c>Enter</c> (or <c>&lt;space&gt;to</c>) on a
 /// conflicted file of the Unstaged list reads it off the UI thread and opens a modal view of one conflict hunk at a
 /// time. Each hunk gets a pick (ours, theirs, both), text typed by the user (<c>e</c>, in Insert mode) or none, and
 /// every change can be undone and redone; <c>B</c> shows the base of the hunk and <c>R</c> re-creates the conflict of

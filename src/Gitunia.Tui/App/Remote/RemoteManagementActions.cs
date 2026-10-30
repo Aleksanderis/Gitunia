@@ -19,7 +19,7 @@ using RemoteMatcher = Gitunia.Core.Search.FuzzyMatcher;
 namespace Gitunia.Tui.App.Remote;
 
 /// <summary>
-/// Add, remove, rename and re-point remotes (ux.md, workflow 5, "Managing remotes"). Names and URLs are typed in
+/// Add, remove, rename and re-point remotes (ux-workflows.md, workflow 5, "Managing remotes"). Names and URLs are typed in
 /// prompt popups, the remote is chosen in a type-to-filter prompt (or taken from a selected remote branch row), and the
 /// removal goes through the Confirm dialog, which names the remote-tracking branches that disappear. Nothing is
 /// fetched. Everything runs off the UI thread, one operation per tab, and the tab is refreshed afterwards so the

@@ -54,7 +54,7 @@ gitunia                 # restore the last session, or show the repository picke
 gitunia ~/Projects/foo  # open a repository (any subfolder resolves to its root)
 ```
 
-In the picker type to filter repositories or type a path, `Enter` opens it in a tab. Press `?` for the keys of the current view, `:` for the command palette, `q` to quit. The user guide is `docs/user-guide.md`; every key is in the settings screen's Key reference (`<space>,`) and the Keymap in `docs/ux.md`.
+In the picker type to filter repositories or type a path, `Enter` opens it in a tab. Press `?` for the keys of the current view, `:` for the command palette, `q` to quit. The user guide is `docs/user-guide.md`; every key is in the settings screen's Key reference (`<space>,`) and the Keymap in `docs/ux-keymap.md`.
 
 ## Docs
 

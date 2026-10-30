@@ -15,7 +15,7 @@ using Gitunia.Tui.Views;
 namespace Gitunia.Tui.App.Settings;
 
 /// <summary>
-/// The settings screen (ux.md, "Settings screen"): a modal overlay over every tab that edits <c>config.json</c> through
+/// The settings screen (ux-settings.md, "Settings screen"): a modal overlay over every tab that edits <c>config.json</c> through
 /// the config writer and applies each change to the running app at once. It owns the keys while it is open. State
 /// changes are the pure <see cref="SettingsReducer"/>; this class reads and writes the file off the UI thread, carries
 /// out the effects and reports problems in the status bar.

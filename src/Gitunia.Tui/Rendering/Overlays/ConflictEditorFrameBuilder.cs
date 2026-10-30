@@ -13,7 +13,7 @@ using Gitunia.Tui.Rendering.Styling;
 namespace Gitunia.Tui.Rendering.Overlays;
 
 /// <summary>
-/// Lays out the conflict editor (ux.md, workflow 4, "Conflict editor"): the hunk under the cursor with our side and
+/// Lays out the conflict editor (ux-workflows.md, workflow 4, "Conflict editor"): the hunk under the cursor with our side and
 /// their side next to each other, the result below it, a strip that marks every hunk as resolved or not, clickable
 /// chips and a footer. A frame of <see cref="ThreePaneFromWidth"/> columns or more shows the base, ours and theirs
 /// side by side; a narrower one draws the two sides and the base below them on demand (<c>B</c>), and a frame narrower
