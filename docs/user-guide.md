@@ -30,7 +30,7 @@ History view: sidebar on the left (branches, remotes, tags, stashes, worktrees),
 
 ## Keys
 
-Gitunia is modal and vim-style; `<space>` is the leader key. `?` shows the keys of the focused view, `:` or `Ctrl-p` opens the command palette, `<space>,` opens the settings screen whose Key reference category lists every binding (rebinds included), `q` closes an overlay or quits. Once you know the keys, the Keys category of the settings turns the which-key popup and the status bar hints down (`hints.whichKey`, `hints.statusBar`); `?` and `:` always work. The command level (`commandLevel`: `everyday` by default, `advanced`, `advanced+`; Settings, Keys, or `<space>*` to cycle) hides the less frequent commands from help, the palette, the which-key popup, the actions menus and the status bar hints; hidden commands keep their keys and still run, and the end of the help says how many are hidden. The complete table is `docs/keymap.md`.
+Gitunia is modal and vim-style; `<space>` is the leader key. `?` shows the keys of the focused view, `:` or `Ctrl-p` opens the command palette, `<space>,` opens the settings screen whose Key reference category lists every binding (rebinds included), `q` closes an overlay or quits. Once you know the keys, the Keys category of the settings turns the which-key popup and the status bar hints down (`hints.whichKey`, `hints.statusBar`); `?` and `:` always work. The command level (`commandLevel`: `everyday` by default, `advanced`, `advanced+`; Settings, Keys, or `<space>*` to cycle) hides the less frequent commands from help, the palette, the which-key popup, the actions menus and the status bar hints; hidden commands keep their keys and still run, and the end of the help says how many are hidden. The complete table is `docs/keymap.md`. To change keys, see "Customise keys" below.
 
 ## Everyday tasks
 
@@ -49,13 +49,53 @@ Config is a hand-editable JSON file with comments, `config.json` in `~/.config/g
 
 **Key layout change (#840).** The leader chords were regrouped by noun: `<space>b` branches (merge `bm`, cherry-pick `bp`, revert `bv`, reset `bx`, rebase under `<space>br`), `t` tags, `r` remotes (`rf` fetch, `rl` pull, `rp` push), `k` stash, `w` worktrees, `e` external tools, `g` an operation in progress (`gc` continue, `ga` abort, `gs` skip, `gr` resolve conflicts), `o` repositories and tabs (`oo` open, `or` refresh). In the conflict editor `B` (take both) is now `m` and `R` (re-create) is `Ctrl-x`. Your `keys` entries keep working because they bind a key to an action id, which did not change. Two cases are reported by the config check, never fatal: an entry that binds a key of your choice to a prefix the defaults now use (for example a leaf `<space>r` or `<space>o`, which are now groups that wait for a second key; the message names both keys), and an entry `none` on an old default key that no longer exists ("nothing to unbind"). `docs/ux-keymap.md` lists every old and new key.
 
-Remap a key by adding an entry to `keys`:
+Gitunia uses your own git configuration, hooks, credential helpers and editor; it changes a repository's config only when you ask (upstream, remotes, clone).
+
+## Customise keys
+
+Key bindings are data: you change them with `keys` entries in `config.json`. The defaults are in the [keymap reference](keymap.md); the file format is the reference in "Config file" in [ux-look.md](ux-look.md).
+
+**Where the file is.** `~/.config/gitunia/config.json` (`$XDG_CONFIG_HOME/gitunia/config.json` when that variable is set). The settings screen (`<space>,`, category Config file, row "Open config.json in $EDITOR") opens it in your editor. The file is JSON with comments and trailing commas; create it with `{}` if it does not exist.
+
+**An entry.** `keys` is a list of objects with these fields:
+
+- `action`: the action id, or `none` to unbind.
+- `key`: the key or chord to press.
+- `view`: where it applies (default `Global`). Names are the headings of the [keymap reference](keymap.md): `Global`, `Lists`, `Graph`, `Sidebar`, `Detail`, `Diff` and so on.
+- `mode`: `Normal` (default), `Visual`, `Insert`, `Command` or `Confirm`. One entry binds one mode and one view; to bind a key in Normal and Visual mode, write two entries.
+
+**Bind, replace, unbind.**
 
 ```jsonc
-{ "keys": [ { "view": "Graph", "key": "J", "action": "list.down" } ] }
+{
+  "keys": [
+    // Bind a free key: J moves down in the commit graph.
+    { "view": "Graph", "key": "J", "action": "list.down" },
+    // Bind a leader chord: <space> then H jumps to HEAD (the default is <space>h).
+    { "view": "Graph", "key": "<space>H", "action": "graph.jump-to-head" },
+    // Replace what a key does: q opens the command palette instead of quitting.
+    { "key": "q", "action": "palette.open" },
+    // Unbind: gg no longer goes to the top of lists (it also stops in the graph, which inherits Lists).
+    { "view": "Lists", "key": "gg", "action": "none" }
+  ]
+}
 ```
 
-Gitunia uses your own git configuration, hooks, credential helpers and editor; it changes a repository's config only when you ask (upstream, remotes, clone).
+An entry on a key that already has a binding in that mode and view replaces it. `none` removes a binding. Moving an action to another key means two entries: bind the new key, then unbind the old one.
+
+**Key notation.** The same as in the keymap reference: single keys (`j`, `J`, `Enter`, `Esc`, `Tab`, `Down`), modifiers (`Ctrl-d`, `Alt-1`, `Shift-Tab`), chords written one key after another (`gg`, `Ctrl-w c`), `<space>` for the leader (`<space>bc`) and `<lt>` for a literal `<` (a plain `<` also works). Letters are case sensitive: `J` is Shift-j.
+
+**Find the action id.** Open the settings (`<space>,`), category Keys, row Key reference: it lists every action per view with its keys, `/` filters by title, key or id, and `Enter` on a line shows its `keys` entry in the status bar, ready to copy (it writes nothing). The command palette (`:` or `Ctrl-p`) lists the actions by title, and the reference tables list the id of every binding. Actions without a default key (`Actions without a key` in the reference) can be bound the same way.
+
+**How views inherit.** A binding in a view also works in the views below it: `Global` applies everywhere, `Lists` applies to the graph, sidebar, detail panes, diffs, the help and the settings, and so on. A key set in a more specific view wins over the same key in its parent. Unbinding a key in a view uncovers the parent's binding of that key, if any. To change a key everywhere, bind it in `Global` or `Lists`, and bind it again in a more specific view that has its own binding for it.
+
+**Conflicts.** A key cannot be both a complete binding and the start of a longer chord, because Gitunia waits for the rest of a chord without a timeout. Binding `g` while `gg` and `gt` exist is refused, and so is a leaf `<space>r` because `<space>rf` (fetch) exists. The message names both keys; unbind the longer ones first (earlier entry) if you want the short key. Two entries for the same mode, view and key: the first applies and the second is reported. `Ctrl-c` always quits and cannot be remapped.
+
+**Restart.** The keymap is read once at startup. Edit `config.json`, then restart Gitunia; the Key reference shows the keymap that is running.
+
+**Bad entries.** Each entry is checked alone. One with an unknown action, view or mode, a key that does not parse, nothing to unbind (`none` on a key that has no binding) or a chord conflict is skipped, and the others still apply. The first problem appears in the status bar at startup with a count of the others, and `<space>m` keeps the first five messages. Each message starts with the entry (`keys[2]` is the third). A file that is not valid JSON is ignored as a whole and the defaults apply.
+
+**See the result.** `?` shows the keys of the focused view; its `Custom` tab lists your own bindings.
 
 ## Not in the MVP
 
