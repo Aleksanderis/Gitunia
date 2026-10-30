@@ -7,7 +7,7 @@ Part of the UX spec; start at [ux.md](ux.md). Temporary home until the generated
 The single source of truth for bindings.
 A redesign of the layout is proposed in "Keymap rework" below (#833); this table stays the truth until it is implemented (#840).
 Add a row in the same change that adds a binding; no conflicts within a mode/view.
-A test parses this table (columns `Mode/View | Key | Action`; keys in backticks, `Picker` rows are Insert mode, `Palette` rows Command mode, the rest Normal) and checks every key is a registered default in `DefaultKeymap` with no conflicts.
+The defaults are data: `src/Gitunia.Core/Keymap/keymap.default.json` (one row per action, view and mode set: `action`, `view`, `modes`, `keys` with the main key first); change a default there, not in code. A test parses this table (columns `Mode/View | Key | Action`; keys in backticks, `Picker` rows are Insert mode, `Palette` rows Command mode, the rest Normal) and checks every key is a registered default in `DefaultKeymap` with no conflicts.
 Notation: `Ctrl-w c` is a chord, `<space>o` a leader chord, `<` is a literal `<` (config files also accept `<lt>`), `:name` is an ex command and not a key.
 Modes: rows apply to Normal, except those whose view says `(Visual)` (Visual mode only); Visual repeats the Lists motions; global `Ctrl-`/`Alt-` rows also work in Insert; `Esc` is bound in every mode; Insert/Command `Enter` accept the input; Confirm mode has only `y` (yes), `n` (no) and `Esc` (no), so a stray `Enter` never confirms a destructive action.
 
