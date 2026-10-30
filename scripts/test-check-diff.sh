@@ -64,4 +64,21 @@ git add -A
 git commit -q -m mismatch
 expect "removal not found in the archive is flagged" "append-only" 1
 
+fresh_branch
+printf '# History\n\n## 2026-10-10\n\n**Stack:** two\n' > docs/history-decisions.md
+git add -A
+git commit -q -m seed
+git checkout -q -b trimmed
+printf '# History\n' > docs/history-decisions.md
+git add -A
+git commit -q -m trim
+out="$(bash scripts/check-diff.sh work 2>&1 || true)"
+if [[ "$out" == *"archive is append-only"* ]]; then
+    echo "ok: removal from the archive is flagged"
+else
+    echo "FAIL: removal from the archive is flagged"
+    echo "$out"
+    fail=1
+fi
+
 exit "$fail"

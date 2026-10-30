@@ -21,6 +21,10 @@ archived="$(mktemp)"
 trap 'rm -f "$archived"' EXIT
 git diff -U0 "$base"...HEAD -- docs/history-decisions.md | grep '^+[^+]' | sed 's/^+//' > "$archived" || true
 removed="$(git diff -U0 "$base"...HEAD -- docs/decisions.md | grep '^-[^-]' | sed 's/^-//' | grep -cvxF -f "$archived" || true)"
+archive_removed="$(git diff -U0 "$base"...HEAD -- docs/history-decisions.md | grep -c '^-[^-]' || true)"
+if (( archive_removed > 0 )); then
+    report "docs/history-decisions.md: $archive_removed existing line(s) removed or changed, the archive is append-only"
+fi
 if (( removed > 0 )); then
     report "docs/decisions.md: $removed existing line(s) removed or changed, the file is append-only (archive moves go verbatim to docs/history-decisions.md in the same diff)"
 fi
