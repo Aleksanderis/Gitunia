@@ -19,7 +19,6 @@ public sealed record PickerLayout(
     int ListFirstLine,
     int ListHeight,
     int MessageLine,
-    int FooterLine,
     IReadOnlyList<PickerListLine> Visible)
 {
     private const int MaximumWidth = 100;
@@ -31,6 +30,9 @@ public sealed record PickerLayout(
 
     /// <summary>Columns between the box edges and the content.</summary>
     public int InnerWidth => IsFramed ? BoxWidth - 2 : BoxWidth;
+
+    /// <summary>Whether box line <paramref name="line"/> is the footer row of chips (the framed box only).</summary>
+    public bool IsFooterLine(int line) => IsFramed && line == BoxHeight - 2;
 
     /// <summary>The repository row index drawn on box line <paramref name="line"/>, or null.</summary>
     public int? RowIndexAt(int line)
@@ -82,7 +84,6 @@ public sealed record PickerLayout(
                 3,
                 listHeight,
                 messageLine,
-                boxHeight - 2,
                 Window(all, picker.Highlight, listHeight));
         }
 
@@ -96,7 +97,6 @@ public sealed record PickerLayout(
             1,
             compactList,
             hasMessage && height > 1 ? 1 + compactList : -1,
-            -1,
             Window(all, picker.Highlight, compactList));
     }
 

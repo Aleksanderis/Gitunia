@@ -79,7 +79,7 @@ public sealed class PickerView(Func<ScreenModel> model, GraphGlyphSet glyphs) : 
             return CompactClick(picker, layout, position.Y, gesture);
         }
 
-        if (line == layout.FooterLine && gesture is MouseGesture.Click or MouseGesture.DoubleClick)
+        if (layout.IsFooterLine(line) && gesture is MouseGesture.Click or MouseGesture.DoubleClick)
         {
             var buttons = PickerFooterButtons.Layout(
                 picker.HighlightedRow,
