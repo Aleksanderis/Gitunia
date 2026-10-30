@@ -88,7 +88,7 @@ public sealed class ConflictEditorController(
     private const int StatusBarRows = 1;
     private const int DefaultPaneRows = 10;
 
-private static readonly Dictionary<ActionId, ConflictResultCommand> ResultCommands = new()
+    private static readonly Dictionary<ActionId, ConflictResultCommand> ResultCommands = new()
     {
         [ActionIds.WorkingTreeMessageLeft] = ConflictResultCommand.Left,
         [ActionIds.WorkingTreeMessageRight] = ConflictResultCommand.Right,
@@ -510,8 +510,8 @@ private static readonly Dictionary<ActionId, ConflictResultCommand> ResultComman
         return true;
     }
 
-    // The pick key of a version pane copies that pane's version (or the Visual selection's lines); the named picks work
-    // from any pane.
+    // The pick key of a version pane copies that pane's version (or the Visual selection's lines); the named picks
+    // (o, t, b, B) are bound in the version panes too, the palette and the chips run them from any pane.
     private void Take(ConflictEditorState state)
     {
         if (state.IsVisual)
@@ -726,12 +726,18 @@ private static readonly Dictionary<ActionId, ConflictResultCommand> ResultComman
             return;
         }
 
+        // The result buffer keeps changing while the worker runs: what is written, and whether it counts as resolved,
+        // is fixed here, on the UI thread, at the moment the user confirmed.
+        var plan = new SavePlan(
+            state.ToText(),
+            SavedMessage(WorkingTreeRowRenderer.Printable(state.Path), state),
+            state.IsComplete);
         gate.Begin(tab.Id);
         var token = cancellationOf(tab.Id);
-        _ = Task.Run(() => WriteAsync(tab, state, token), CancellationToken.None);
+        _ = Task.Run(() => WriteAsync(tab, state, plan, token), CancellationToken.None);
     }
 
-    private async Task WriteAsync(RepositoryState tab, ConflictEditorState state, CancellationToken token)
+    private async Task WriteAsync(RepositoryState tab, ConflictEditorState state, SavePlan plan, CancellationToken token)
     {
         var name = WorkingTreeRowRenderer.Printable(state.Path);
         try
@@ -739,14 +745,13 @@ private static readonly Dictionary<ActionId, ConflictResultCommand> ResultComman
             var fresh = await reader.ReadAsync(tab.Location, state.Path, token).ConfigureAwait(false);
             if (fresh.Kind != ConflictReadKind.Text || ConflictEditorState.TextOf(fresh.Parts) != state.OriginalText)
             {
-                postToUi(() => Done(tab.Id, FileChangedNotice, StatusSeverity.Warning, state, false));
+                postToUi(() => Done(tab.Id, FileChangedNotice, StatusSeverity.Warning, state.Path, false));
 
                 return;
             }
 
-            await writer.WriteAsync(tab.Location, state.Path, state.ToText(), token).ConfigureAwait(false);
-            var message = SavedMessage(name, state);
-            postToUi(() => Done(tab.Id, message, StatusSeverity.Info, state, true));
+            await writer.WriteAsync(tab.Location, state.Path, plan.Text, token).ConfigureAwait(false);
+            postToUi(() => Done(tab.Id, plan.Message, StatusSeverity.Info, state.Path, true, plan.IsComplete));
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested)
         {
@@ -755,11 +760,17 @@ private static readonly Dictionary<ActionId, ConflictResultCommand> ResultComman
         catch (Exception exception)
         {
             var text = $"Could not save {name}: {OperationText.Reason(exception)}; your picks are kept";
-            postToUi(() => Done(tab.Id, text, StatusSeverity.Error, state, false));
+            postToUi(() => Done(tab.Id, text, StatusSeverity.Error, state.Path, false));
         }
     }
 
-    private void Done(TabId tabId, string message, StatusSeverity severity, ConflictEditorState state, bool isSaved)
+    private void Done(
+        TabId tabId,
+        string message,
+        StatusSeverity severity,
+        string path,
+        bool isSaved,
+        bool isComplete = false)
     {
         statuses.Post(message, severity);
         gate.End(tabId);
@@ -779,9 +790,9 @@ private static readonly Dictionary<ActionId, ConflictResultCommand> ResultComman
 
         Close();
         refresh(tabId);
-        if (state.IsComplete)
+        if (isComplete)
         {
-            var notice = askResolved(tab, state.Path);
+            var notice = askResolved(tab, path);
             if (notice.Length > 0)
             {
                 statuses.Warning(notice);
@@ -842,7 +853,7 @@ private static readonly Dictionary<ActionId, ConflictResultCommand> ResultComman
         catch (Exception exception)
         {
             var text = $"Could not re-create the conflict of {name}: {OperationText.Reason(exception)}";
-            postToUi(() => Done(tab.Id, text, StatusSeverity.Error, state, false));
+            postToUi(() => Done(tab.Id, text, StatusSeverity.Error, state.Path, false));
         }
     }
 

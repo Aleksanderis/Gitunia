@@ -377,7 +377,7 @@ public class MessageEditorTests
     [InlineData(2, 1, 2, 1)]
     [InlineData(9, 99, 2, 2)]
     [InlineData(-3, -3, 0, 0)]
-    public void GivenAPosition_WhenSettingTheCursor_ThenItIsClampedToTheText(int row, int column, int rowWanted, int columnWanted)
+    public void GivenAPosition_WhenSettingTheCursor_ThenItIsClamped(int row, int column, int rowWanted, int columnWanted)
     {
         var editor = new MessageEditor();
         editor.LoadLines(["ab", "cde", "fg"]);

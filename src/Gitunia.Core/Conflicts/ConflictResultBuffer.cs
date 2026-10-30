@@ -14,7 +14,6 @@ public sealed class ConflictResultBuffer
 {
     private const string OpeningMarker = "<<<<<<<";
     private const string ClosingMarker = ">>>>>>>";
-    private const string SeparatorMarker = "=======";
 
     private IReadOnlyList<ConflictRegion> _regions;
     private string[] _shadow;
@@ -128,14 +127,20 @@ public sealed class ConflictResultBuffer
     /// moves the regions after the changed lines and marks a region the change touched as edited. Insertions just
     /// before or just after a region stay outside it.
     /// </summary>
-    public void Reconcile()
+    /// <param name="firstChangedRow">
+    /// The first line the change can have touched (the cursor line before it, one past it for a line opened below).
+    /// A line identical to its neighbour could otherwise be taken for the changed one, so the diff never starts
+    /// later than this.
+    /// </param>
+    public void Reconcile(int firstChangedRow)
     {
         var lines = Editor.Lines;
         var oldCount = _shadow.Length;
         var newCount = lines.Count;
         var prefix = 0;
         var shortest = Math.Min(oldCount, newCount);
-        while (prefix < shortest && string.Equals(_shadow[prefix], lines[prefix], StringComparison.Ordinal))
+        var limit = Math.Min(shortest, Math.Max(0, firstChangedRow));
+        while (prefix < limit && string.Equals(_shadow[prefix], lines[prefix], StringComparison.Ordinal))
         {
             prefix++;
         }
@@ -214,6 +219,5 @@ public sealed class ConflictResultBuffer
 
     private static bool IsMarker(string line) =>
         line.StartsWith(OpeningMarker, StringComparison.Ordinal)
-        || line.StartsWith(ClosingMarker, StringComparison.Ordinal)
-        || line.TrimEnd() == SeparatorMarker;
+        || line.StartsWith(ClosingMarker, StringComparison.Ordinal);
 }

@@ -310,6 +310,28 @@ public class ConflictEditorStateTests
     }
 
     [Fact]
+    public void GivenACommonLineEqualToTheRegionsFirstLine_WhenDeletingIt_ThenTheRegionStillHoldsTheWholePick()
+    {
+        var state = State("a\n<<<<<<< HEAD\na\nx\n=======\ny\n>>>>>>> other\nend\n").Take(ConflictPick.Ours);
+        Assert.Equal("a\na\nx\nend\n", state.ToText());
+
+        state = state.FocusPane(ConflictPane.Result).MoveToTop().ApplyResultCommand(ConflictResultCommand.DeleteLine);
+
+        Assert.Equal(new ConflictRegion(0, 2, ConflictPick.Ours), state.Result.Regions[0]);
+        Assert.Equal("y\nend\n", state.Take(ConflictPick.Theirs).ToText());
+    }
+
+    [Fact]
+    public void GivenARegionWithASeparatorLineAlone_WhenEditedByHand_ThenItCountsAsResolved()
+    {
+        var state = State("t\n<<<<<<< HEAD\nTitle\n=======\nB\n>>>>>>> other\nend\n").Take(ConflictPick.Ours);
+
+        var edited = state.BeginEdit().TypeKey(new KeyEvent("Enter")).TypeKey(new KeyEvent("=")).EndEdit();
+
+        Assert.True(edited.IsComplete);
+    }
+
+    [Fact]
     public void GivenMotionsAndNoOpChanges_WhenRunningResultCommands_ThenNoUndoStepIsAdded()
     {
         var state = State(Text).FocusPane(ConflictPane.Result);

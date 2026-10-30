@@ -411,8 +411,9 @@ public sealed record ConflictEditorState(
             return this;
         }
 
+        var row = Result.Editor.CursorRow;
         Result.Editor.Apply(key);
-        Result.Reconcile();
+        Result.Reconcile(row);
 
         return (this with { IsDiscardPending = false }).SyncedFromResult();
     }
@@ -625,8 +626,9 @@ public sealed record ConflictEditorState(
         switch (start)
         {
             case MessageEditorStart.OpenLine:
+                var row = editor.CursorRow;
                 editor.OpenLineBelow();
-                Result.Reconcile();
+                Result.Reconcile(row + 1);
                 break;
             case MessageEditorStart.Append:
                 editor.MoveRightInLine();
@@ -653,10 +655,11 @@ public sealed record ConflictEditorState(
     private ConflictEditorState Changed(Action<ConflictResultBuffer> change, bool reconcile = false)
     {
         var before = Snapshot();
+        var row = Result.Editor.CursorRow;
         change(Result);
         if (reconcile)
         {
-            Result.Reconcile();
+            Result.Reconcile(row);
         }
 
         var after = ActivePane == ConflictPane.Result ? SyncedFromResult() : this;

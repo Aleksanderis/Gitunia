@@ -568,7 +568,7 @@ public class ConflictEditorControllerTests
     }
 
     [Fact]
-    public async Task GivenARebaseStoppedOnTheConflict_WhenDrawingTheEditor_ThenItCoversTheBannerAndStopsAtTheStatusBar()
+    public async Task GivenARebaseStopped_WhenDrawingTheEditor_ThenItCoversTheBannerAndStopsAtTheStatusBar()
     {
         using var repository = TestRepositories.RebaseConflicted();
         using var harness = await Harness.CreateAsync(repository);
@@ -752,7 +752,7 @@ public class ConflictEditorControllerTests
     }
 
     [Fact]
-    public async Task GivenTheResultPaneInNormalMode_WhenDeletingALineWithTheEditorActions_ThenTheTextChangesAndUndoRestoresIt()
+    public async Task GivenTheResultPaneInNormalMode_WhenDeletingLines_ThenTheTextChangesAndUndoRestoresIt()
     {
         using var repository = TwoHunks();
         using var harness = await Harness.CreateAsync(repository);
@@ -792,6 +792,25 @@ public class ConflictEditorControllerTests
     }
 
     [Fact]
+    public async Task GivenAConfirmedSave_WhenTheResultChangesBeforeTheWriteEnds_ThenTheConfirmedTextIsWritten()
+    {
+        using var repository = TwoHunks();
+        using var harness = await Harness.CreateAsync(repository);
+        await harness.OpenAsync();
+        harness.Run(ActionIds.ConflictEditorOurs);
+        harness.Run(ActionIds.ConflictEditorSave);
+
+        harness.Answer();
+        harness.Run(ActionIds.ConflictEditorTheirs);
+        await harness.WaitAsync();
+
+        var saved = File.ReadAllText(harness.FullPath).Replace("\r", string.Empty);
+        Assert.Contains("II\n", saved, StringComparison.Ordinal);
+        Assert.DoesNotContain("two\n", saved, StringComparison.Ordinal);
+        Assert.Empty(harness.ResolvedAsked);
+    }
+
+    [Fact]
     public async Task GivenTheWheelAndHalfPageActions_WhenRunning_ThenTheCursorMovesByTheCount()
     {
         using var repository = LongHunk();
@@ -826,7 +845,8 @@ public class ConflictEditorControllerTests
     {
         using var repository = TestRepositories.Conflicted();
         var text = File.ReadAllText(Path.Combine(repository.WorkingTreePath, ConflictPath));
-        repository.WriteFile(ConflictPath, text.Replace("\n", "\r\n", StringComparison.Ordinal).Replace("main\r\n", "main\n", StringComparison.Ordinal));
+        var crlf = text.Replace("\n", "\r\n", StringComparison.Ordinal);
+        repository.WriteFile(ConflictPath, crlf.Replace("main\r\n", "main\n", StringComparison.Ordinal));
         using var harness = await Harness.CreateAsync(repository);
 
         await harness.OpenAsync();
