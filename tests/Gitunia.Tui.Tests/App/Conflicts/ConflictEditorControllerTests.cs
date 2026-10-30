@@ -1449,7 +1449,7 @@ public class ConflictEditorControllerTests
         public int LineOfRow(int row) =>
             ConflictEditorLayout.VersionStartLine + row - Controller.State!.TopScroll;
 
-        // The drag start goes through the mouse map to visual.toggle (checked against DefaultMouseMap by MouseMapTests).
+        // The drag start goes through the mouse map to visual.toggle (MouseMapTests checks the map).
         public bool DragStart(ConflictPane pane, int row)
         {
             var view = Controller.OnDragStarted(

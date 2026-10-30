@@ -702,7 +702,7 @@ public sealed class TuiApplication(
         }
     }
 
-    // Only the conflict editor uses a drag over an overlay: from a version row it starts a Visual selection (the map's DragStart).
+    // Only the conflict editor uses a drag over an overlay: from a version row it starts a Visual selection.
     private void OnOverlayDragStarted(int line, int column)
     {
         if (_conflictEditor.OnDragStarted(line, column) is { } view)

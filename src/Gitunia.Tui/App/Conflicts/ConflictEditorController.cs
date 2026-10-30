@@ -91,9 +91,6 @@ public sealed class ConflictEditorController(
     private const int StatusBarRows = 1;
     private const int DefaultPaneRows = 10;
 
-    // True from a drag that began a Visual selection on a version row until the next drag.
-    private bool _isDragging;
-
     private static readonly Dictionary<ActionId, ConflictResultCommand> ResultCommands = new()
     {
         [ActionIds.WorkingTreeMessageLeft] = ConflictResultCommand.Left,
@@ -111,6 +108,7 @@ public sealed class ConflictEditorController(
     };
 
     private int _generation;
+    private bool _isDragging;
     private bool _isWorking;
     private KeyMode _mode = KeyMode.Normal;
 

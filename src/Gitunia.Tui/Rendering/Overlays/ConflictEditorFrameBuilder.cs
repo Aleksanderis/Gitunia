@@ -214,11 +214,13 @@ public static class ConflictEditorFrameBuilder
             var prefix = ConflictPaneRows.ResultPrefixWidth(state);
 
             // The cursor's own line is scrolled sideways while it is drawn with the cursor (the active result pane).
-            var offset = followed.ActivePane == ConflictPane.Result && line == followed.Result.Editor.CursorRow
-                ? MessageEditorRenderer.ScrollOffset(
+            var offset = 0;
+            if (followed.ActivePane == ConflictPane.Result && line == followed.Result.Editor.CursorRow)
+            {
+                offset = MessageEditorRenderer.ScrollOffset(
                     followed.Result.Editor,
-                    OverlayBox.InnerWidth(layout.Width) - prefix)
-                : 0;
+                    OverlayBox.InnerWidth(layout.Width) - prefix);
+            }
 
             return ConflictTarget.OfResultLine(line, Math.Max(0, inner - prefix) + offset);
         }
