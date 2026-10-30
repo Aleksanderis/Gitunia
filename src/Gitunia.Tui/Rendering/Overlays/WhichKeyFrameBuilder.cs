@@ -41,6 +41,10 @@ public static class WhichKeyFrameBuilder
             return null;
         }
 
+        // Blank lines between clusters of related keys (#838) only where every row still fits with them.
+        var gapRows = shown.Count(row => row.GapBefore && !IsGroup(row));
+        var withGaps = shown.Count == rows.Count && shown.Count + gapRows + (withRule ? 1 : 0) <= capacity;
+
         var keysWidth = shown.Max(row => TextWidth.Of(row.Key));
         var descriptionWidth = shown.Max(row => TextWidth.Of(row.Description));
         var wanted = OverlayBox.BorderWidth + 2 + keysWidth + KeyGap + descriptionWidth + 1;
@@ -56,6 +60,11 @@ public static class WhichKeyFrameBuilder
             }
 
             var row = shown[index];
+            if (withGaps && row.GapBefore && !(withRule && index == firstGroup))
+            {
+                lines.Add(OverlayBox.Text(string.Empty, width, glyphs));
+            }
+
             var keys = row.Key + new string(' ', keysWidth - TextWidth.Of(row.Key));
             var builder = new LineBuilder(OverlayBox.InnerWidth(width), glyphs.Ellipsis)
                 .Append($" {keys}", SegmentRole.OverlayKey)

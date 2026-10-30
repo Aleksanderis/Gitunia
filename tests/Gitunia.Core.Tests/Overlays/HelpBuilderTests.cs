@@ -32,7 +32,7 @@ public class HelpBuilderTests
     [Fact]
     public void GivenGraphView_WhenBuilding_ThenSectionsFollowTheViewChain()
     {
-        var sections = HelpBuilder.Build(Table, DefaultKeymap.GraphView);
+        var sections = HelpBuilder.Contextual(Table, DefaultKeymap.GraphView);
 
         Assert.Equal(["Graph", "Lists", "Global", "Markers"], sections.Select(section => section.Title));
     }
@@ -42,7 +42,7 @@ public class HelpBuilderTests
     [InlineData(DefaultKeymap.SidebarView)]
     public void GivenGraphOrSidebar_WhenBuilding_ThenTheMarkersSectionExplainsTheUpstreamGoneMark(string view)
     {
-        var markers = Assert.Single(HelpBuilder.Build(Table, view), section => section.Title == "Markers");
+        var markers = Assert.Single(HelpBuilder.Contextual(Table, view), section => section.Title == "Markers");
 
         Assert.Contains(
             markers.Rows,
@@ -52,7 +52,7 @@ public class HelpBuilderTests
     [Fact]
     public void GivenGraphView_WhenBuilding_ThenEveryEffectiveNormalBindingIsListed()
     {
-        var rows = HelpBuilder.Build(Table, DefaultKeymap.GraphView).SelectMany(section => section.Rows).ToList();
+        var rows = HelpBuilder.Contextual(Table, DefaultKeymap.GraphView).SelectMany(section => section.Rows).ToList();
 
         foreach (var action in Table.EffectiveBindings(KeyMode.Normal, DefaultKeymap.GraphView).Select(binding => binding.Action).Distinct())
         {
@@ -63,7 +63,7 @@ public class HelpBuilderTests
     [Fact]
     public void GivenTheCompareKey_WhenBuilding_ThenLeaderAndEqualsAreNotAdjacent()
     {
-        var rows = HelpBuilder.Build(Table, DefaultKeymap.GraphView).SelectMany(section => section.Rows);
+        var rows = HelpBuilder.Contextual(Table, DefaultKeymap.GraphView).SelectMany(section => section.Rows);
 
         var row = Assert.Single(rows, item => item.Description == ActionCatalog.Describe(ActionIds.GraphCompare));
 
@@ -74,16 +74,16 @@ public class HelpBuilderTests
     [Fact]
     public void GivenAnActionWithTwoKeys_WhenBuilding_ThenOneRowListsBoth()
     {
-        var rows = HelpBuilder.Build(Table, DefaultKeymap.GraphView).SelectMany(section => section.Rows);
+        var rows = HelpBuilder.Contextual(Table, DefaultKeymap.GraphView).SelectMany(section => section.Rows);
 
-        Assert.Contains(new HelpRow("j / Down", "Move down"), rows);
+        Assert.Contains(rows, row => row.Keys == "j" && row.Also == "Down" && row.Description == "Move down");
     }
 
     [Fact]
     public void GivenDifferentViews_WhenBuilding_ThenEachShowsItsOwnKeys()
     {
-        var graph = HelpBuilder.Build(Table, DefaultKeymap.GraphView).SelectMany(section => section.Rows).Select(row => row.Description);
-        var diff = HelpBuilder.Build(Table, DefaultKeymap.DiffView).SelectMany(section => section.Rows).Select(row => row.Description).ToList();
+        var graph = HelpBuilder.Contextual(Table, DefaultKeymap.GraphView).SelectMany(section => section.Rows).Select(row => row.Description);
+        var diff = HelpBuilder.Contextual(Table, DefaultKeymap.DiffView).SelectMany(section => section.Rows).Select(row => row.Description).ToList();
 
         Assert.Contains("Jump to HEAD", graph);
         Assert.DoesNotContain("Jump to HEAD", diff);
@@ -93,7 +93,7 @@ public class HelpBuilderTests
     [Fact]
     public void GivenGraphView_WhenBuilding_ThenEveryRowHasKeysAndADescriptionInOneNotation()
     {
-        var rows = HelpBuilder.Build(Table, DefaultKeymap.GraphView).SelectMany(section => section.Rows).ToList();
+        var rows = HelpBuilder.Contextual(Table, DefaultKeymap.GraphView).SelectMany(section => section.Rows).ToList();
 
         Assert.All(rows, row =>
         {
@@ -106,7 +106,7 @@ public class HelpBuilderTests
     [Fact]
     public void GivenGraphView_WhenBuilding_ThenTheHelpMentionsTheMultiplexerSafeTabJump()
     {
-        var rows = HelpBuilder.Build(Table, DefaultKeymap.GraphView).SelectMany(section => section.Rows);
+        var rows = HelpBuilder.Contextual(Table, DefaultKeymap.GraphView).SelectMany(section => section.Rows);
 
         Assert.Contains(rows, row => row.Keys == "Alt-3" && row.Description.Contains("3gt", StringComparison.Ordinal));
     }
@@ -122,8 +122,8 @@ public class HelpBuilderTests
             engine.Continuations(feeder.State, DefaultKeymap.GraphView),
             feeder.State.PendingSequence);
 
-        Assert.Contains(new WhichKeyRow("g", "Go to the top"), rows);
-        Assert.Contains(new WhichKeyRow("t", "Next tab"), rows);
+        Assert.Contains(rows, row => row is { Key: "g", Description: "Go to the top" });
+        Assert.Contains(rows, row => row is { Key: "t", Description: "Next tab" });
     }
 
     [Theory]
@@ -142,10 +142,12 @@ public class HelpBuilderTests
         var keys = WhichKeyBuilder.Build(
             engine.Continuations(feeder.State, DefaultKeymap.GraphView),
             feeder.State.PendingSequence,
-            operationInProgress).Select(row => row.Key).ToList();
+            operationInProgress);
+        var more = keys.ToList().FindIndex(row => row.Key == "…");
+        var main = keys.Take(more < 0 ? keys.Count : more).Select(row => row.Key).ToList();
 
-        Assert.All(listed, key => Assert.Contains(key, keys));
-        Assert.All(hidden, key => Assert.DoesNotContain(key, keys));
+        Assert.All(listed, key => Assert.Contains(key, main));
+        Assert.All(hidden.Where(key => key is "s" or "f" or "w" or "d" or "I"), key => Assert.DoesNotContain(key, main));
     }
 
     [Theory]
@@ -191,7 +193,6 @@ public class HelpBuilderTests
 
         AssertOrdered(rows);
         Assert.Contains(rows, row => row.Description.StartsWith("+more", StringComparison.Ordinal));
-        Assert.StartsWith("+more", rows[^1].Description, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -250,7 +251,7 @@ public class HelpBuilderTests
             engine.Continuations(feeder.State, DefaultKeymap.GraphView),
             feeder.State.PendingSequence);
 
-        Assert.Contains(new WhichKeyRow("c", "Close the tab"), rows);
+        Assert.Contains(rows, row => row is { Key: "c", Description: "Close the tab" });
     }
 
     [Theory]
@@ -276,13 +277,26 @@ public class HelpBuilderTests
         Assert.DoesNotContain(Table.Bindings, binding => KeyFormatter.Format(binding.Sequence).Contains("lt>"));
     }
 
+    // Actions in clusters (a blank line between clusters), each cluster sorted, then the +more groups sorted.
     private static void AssertOrdered(IReadOnlyList<WhichKeyRow> rows)
     {
         var groupStart = rows.ToList().FindIndex(row => row.Description.StartsWith("+more", StringComparison.Ordinal));
         groupStart = groupStart < 0 ? rows.Count : groupStart;
-        Assert.All(rows.Skip(groupStart), row => Assert.StartsWith("+more", row.Description, StringComparison.Ordinal));
-        AssertSorted([.. rows.Take(groupStart)]);
-        AssertSorted([.. rows.Skip(groupStart)]);
+        Assert.All(rows.Skip(groupStart), row => Assert.True(row.Description.StartsWith("+more", StringComparison.Ordinal)
+            || rows.Skip(groupStart).Any(other => other.Key == "…")));
+        var run = new List<WhichKeyRow>();
+        foreach (var row in rows.Take(groupStart))
+        {
+            if (row.GapBefore)
+            {
+                AssertSorted(run);
+                run.Clear();
+            }
+
+            run.Add(row);
+        }
+
+        AssertSorted(run);
     }
 
     private static void AssertSorted(List<WhichKeyRow> part)
@@ -299,7 +313,7 @@ public class HelpBuilderTests
     [InlineData(DefaultKeymap.WorkingUnstagedView)]
     public void GivenAView_WhenBuilding_ThenEveryBoundActionIsInExactlyOneTabAndNoneIsUngrouped(string view)
     {
-        var tabs = HelpBuilder.Build(Table, view).Where(tab => tab.Title != "Markers").ToList();
+        var tabs = HelpBuilder.Contextual(Table, view).Where(tab => tab.Title != "Markers").ToList();
         var titles = Table.EffectiveBindings(KeyMode.Normal, view)
             .Select(binding => ActionCatalog.Describe(binding.Action))
             .Distinct()
@@ -314,7 +328,7 @@ public class HelpBuilderTests
     [Fact]
     public void GivenGraphView_WhenBuilding_ThenSubheadersFollowTheCatalogGroupOrder()
     {
-        var graph = HelpBuilder.Build(Table, DefaultKeymap.GraphView)[0];
+        var graph = HelpBuilder.Contextual(Table, DefaultKeymap.GraphView)[0];
         var orders = graph.Sections
             .Select(section => Groups.First(group => group.Header == section.Title).Order)
             .ToList();

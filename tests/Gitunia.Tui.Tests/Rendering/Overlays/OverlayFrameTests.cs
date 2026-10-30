@@ -26,7 +26,7 @@ public class OverlayFrameTests
 
     private static IReadOnlyList<HelpTab> Page(List<HelpSection> sections) => [new HelpTab(string.Empty, sections)];
 
-    private static IReadOnlyList<HelpTab> Help() => HelpBuilder.Build(Table, DefaultKeymap.GraphView);
+    private static List<HelpTab> Help() => HelpBuilder.Contextual(Table, DefaultKeymap.GraphView);
 
     private static ConfirmPrompt DiscardPrompt() => new(
         "Discard changes",
@@ -222,7 +222,7 @@ public class OverlayFrameTests
                 "│ Fast-forward the branch to its upstream (no checkout)            <space>bf │",
                 "│                                                                            │",
                 "│ Merge and rebase                                                           │",
-                "│ Reset the current branch to the selection                        <space>gx │",
+                "│ Rebase the current branch onto the selection                     <space>gr │",
                 "│ 1/176 Ctrl-j/k move  Enter run  Esc close                                  │",
                 "╰────────────────────────────────────────────────────────────────────────────╯"),
             Text(frame));
@@ -443,24 +443,24 @@ public class OverlayFrameTests
                 " Keys: Graph                                                    ",
                 "│ [Graph]  Lists   Global   Markers                            │",
                 "│ Branch                                                       │",
-                "│  <space>bc            │ Create a branch and check it out     │",
-                "│  <space>bC            │ Create a branch without checking out │",
-                "│  <space>bs            │ Switch to a branch (check out)       │",
-                "│  <space>br            │ Rename the branch                    │",
-                "│  <space>bd            │ Delete the branch (asks first)       │",
-                "│  <space>bu            │ Set the branch upstream              │",
-                "│  <space>bU            │ Unset the branch upstream            │",
-                "│  <space>bf            │ Fast-forward the branch to its       │",
-                "│                       │ upstream (no checkout)               │",
+                "│  <space>bc │ Create a branch and check it out                │",
+                "│  <space>bC │ Create a branch without checking out            │",
+                "│  <space>bs │ Switch to a branch (check out)                  │",
+                "│  <space>br │ Rename the branch                               │",
+                "│  <space>bd │ Delete the branch (asks first)                  │",
+                "│  <space>bu │ Set the branch upstream                         │",
+                "│  <space>bU │ Unset the branch upstream                       │",
+                "│  <space>bf │ Fast-forward the branch to its upstream (no     │",
+                "│            │ checkout)                                       │",
                 "│                                                              │",
                 "│ Merge and rebase                                             │",
-                "│  <space>gx            │ Reset the current branch to the      │",
-                "│                       │ selection                            │",
-                "│  <space>gr            │ Rebase the current branch onto the   │",
-                "│                       │ selection                            │",
-                "│  <space>gi            │ Interactive rebase onto the selection│",
-                "│                       │ (edit the todo)                      │",
-                "│ 1-18/70  Esc close  Tab next tab  list keys scroll           │",
+                "│  <space>gr │ Rebase the current branch onto the selection    │",
+                "│  <space>gi │ Interactive rebase onto the selection (edit the │",
+                "│            │ todo)                                           │",
+                "│  <space>gI │ Interactive rebase from the root commit         │",
+                "│            │ (selection ignored)                             │",
+                "│  <space>gf │ Fix up the commit into the one before it (asks  │",
+                "│ 1-18/65  Esc close  Tab next tab  list keys scroll           │",
                 "╰──────────────────────────────────────────────────────────────╯"),
             Text(frame));
     }
@@ -500,9 +500,11 @@ public class OverlayFrameTests
                 "│ c  Show the Changes tab  │",
                 "│ d  Show the Details tab  │",
                 "│ f  Show the Files tab    │",
-                "│ g  Go to the top         │",
+                "│                          │",
                 "│ t  Next tab              │",
                 "│ T  Previous tab          │",
+                "│                          │",
+                "│ g  Go to the top         │",
                 "╰──────────────────────────╯"),
             Text(frame));
         Assert.Equal(60 - frame!.Width, frame.Column);
