@@ -26,28 +26,15 @@ How decisions came about and which issue built what: `docs/history/ux.md` and th
 
 Normal (navigate, act), Visual (select a range of lines, commits or files), Insert (text input: commit message, filters, prompts), Command (`:` palette), Confirm (y/n dialogs).
 
-**Repeat mode** (#758) is a sticky sub-mode of Normal for step actions, so a value can be nudged several times without the popup or the prefix each time.
+**Repeat mode** is a sticky sub-mode of Normal for step actions, so a value can be nudged several times without the popup or the prefix each time.
 
-- **Which actions.** Only steppers: the context lines `+`/`-` in the diffs (history diff and both working-tree diffs; not the file content, which has no diff options) and the pane resize keys `Ctrl-w >` `Ctrl-w <` `Ctrl-w +` `Ctrl-w -` in the sidebar, graph, detail and history diff panes.
-  Toggles (wrap, whole file, split, whitespace) are not repeatable and never enter the mode.
-- **Entering.** No extra key: running a step by key, chip or the `view ▾` dropdown (which closes as usual) starts the mode on the focused pane after that first step.
-  A resize that was refused (a pane that cannot be resized, a zoomed pane) does not start it; a context step that only hit its limit does, since more presses are the likely next thing.
-- **While on.** The step keys work bare: in the context mode `+` `-`; in the resize mode `>` `<` (wider / narrower), `+` `-` (taller / shorter) and `=` (reset the sizes); they have the meaning of the mode, also where the pane binds the key otherwise (`+` in the diff).
-  Each press runs the step again and keeps the mode.
-  Any other key ends the mode and then acts as usual (no key is swallowed); only `Esc` ends it and does nothing else.
-  The bare `>` and `<` exist only in this mode, so they are not in the vim-clash list.
-- **Feedback.** The status bar shows one hint line instead of the pane's own (`+/- more/fewer context   Esc done`; resize: `>/< wider/narrower   +/- taller/shorter   = reset   Esc done`) and the title of the pane gets the marker `[repeat]` (in front of the name in the sidebar and graph titles, so a narrow box cuts the name first; right after `Diff` in the diff titles and after the tab labels in the detail pane, where the option markers such as `[ctx 6]` and the path are cut first); nothing else is tinted.
-  The mode is not saved with the session.
-- **Scope.** It belongs to one tab and one pane: switching tab or moving focus ends it, as does opening any overlay, prompt or search.
-  Chip clicks and the dropdown keep working as before.
-  There is no click target to end it: `Esc`, any other key or a click on another pane do.
-  The state is a small pure value (`RepeatMode` in Core), the keys are the keymap views `ContextRepeat` and `ResizeRepeat` (Keymap table), so remapping and the key text follow the keymap.
+- **Which actions.** Only steppers: the context lines `+`/`-` in the diffs (not the file content) and the pane resize keys `Ctrl-w >` `Ctrl-w <` `Ctrl-w +` `Ctrl-w -`. Toggles (wrap, whole file, split, whitespace) never enter the mode.
+- **Entering.** No extra key: running a step by key, chip or the `view ▾` dropdown starts the mode on the focused pane after that first step. A refused resize (a pane that cannot be resized, a zoomed pane) does not start it.
+- **While on.** The step keys work bare (context: `+` `-`; resize: `>` `<` wider/narrower, `+` `-` taller/shorter, `=` reset) and have the meaning of the mode even where the pane binds them otherwise. Any other key ends the mode and then acts as usual; only `Esc` ends it and does nothing else. The bare `>` and `<` exist only here, so they are not in the vim-clash list.
+- **Feedback.** The status bar shows one hint line instead of the pane's own and the pane title gets the marker `[repeat]` (placed so a narrow box cuts the name or option markers first). The mode is not saved with the session.
+- **Scope.** One tab and one pane: switching tab or moving focus ends it, as does opening any overlay, prompt or search. The keys are the keymap views `ContextRepeat` and `ResizeRepeat`, so remapping follows the keymap.
 
-**Paste** (#575).
-A terminal paste works in every text input (prompt popups such as the clone URL, the picker and path filter, tree and search filters, the `:` palette, the message editors).
-A bracketed paste (`ESC[200~ ... ESC[201~`) is replayed as the keys typing it would have sent, so each input uses its normal typing path; a terminal without bracketed paste sends plain keys, a line break as `Enter`, which cannot be told from a typed one (so there a pasted `url` plus newline accepts the prompt; known limit).
-In a single-line input a run of line breaks becomes one space and breaks at either end are dropped (a pasted `url\n` never submits); the message editors keep line breaks as new lines; tabs become spaces and other control characters are dropped.
-Outside Insert and Command mode a paste does nothing.
+**Paste.** A terminal paste works in every text input. A bracketed paste is replayed as the keys typing it would have sent; a terminal without bracketed paste sends plain keys, a line break as `Enter` (known limit: a pasted `url` plus newline accepts a prompt there). In a single-line input line breaks become one space and breaks at either end are dropped; message editors keep line breaks; tabs become spaces and other control characters are dropped. Outside Insert and Command mode a paste does nothing.
 
 **Confirm mode** is used by every destructive action. A centred dialog holds a title, what will happen, what cannot be undone or how to undo it (in the warning colour) and the name of `y`.
 - Only `y` runs the action, after the dialog has closed. `n` and `Esc` drop it. Every other key is swallowed: never `Enter`, and nothing behind the dialog moves.
@@ -55,18 +42,11 @@ Outside Insert and Command mode a paste does nothing.
 - If the dialog does not fit the screen it is not shown and the action does not start (the status bar says so): an answer nobody can read is no confirmation. A dialog that stops fitting after a resize is closed unanswered, with a warning.
 - The input mode before the dialog (Normal, or Visual with a range) is restored when it closes. What the action does is fixed when the dialog opens, not when `y` is pressed.
 
-**Prompt popups** (#470) are used by every flow that asks for text or a choice: new, rename and switch branch, the branch to delete, set upstream, new tag and its message, the remote of a tag push or delete, the stash message, worktree branch, path and lock reason, the reset mode and the tab name.
+**Prompt popups** are used by every flow that asks for text or a choice (branch, tag, stash, worktree, reset mode, tab name, remotes).
 
-- A centred box holds a title, what the answer is for, the text field (`> text_`; the end of a long text stays in view), the candidate list of a filter prompt and the answering keys: `Enter` accepts, `Esc` cancels, `Ctrl-j`/`Ctrl-k` (also `Up`/`Down`, `Tab`) select in a filter.
-- **Filter pickers** (#766) are one component (`FilterPicker<T>` in Core, drawn by the prompt popup): the remote of a push, tag push or delete, remote management and remote-branch delete, the upstream of a branch and the branch checkout.
-  The candidates are always on screen under the field, best match first, at most 8 rows (the list scrolls with the highlight), the highlighted row marked `> `, then the position `(2/5)`; an empty list says what is missing ("No matching remote").
-  `Enter` runs the highlighted candidate without typing anything.
-  The hint is the same line in every picker: `Type filters   Ctrl-j/k select   Enter <verb>   Esc cancel` (`Up`/`Down` and `Tab` also select; letters always filter, so `j`/`k` are text here; with a single candidate the select hint is left out, #825).
-  A remote branch in the checkout list is written `origin/foo -> local foo`: it is checked out as a new local branch with the remote's name without the remote prefix, tracking it (#762).
-- The keys are the same whether the flow was started by key, palette or mouse; a click outside the popup cancels like `Esc`. A resize places the popup again.
-- One record (`PromptPopup` in Core) and one frame builder (`PromptPopupFrameBuilder`) draw them. A prompt handler exposes its popup as `IPromptHandler.Popup`, so a new prompt only describes its text.
-- The status bar keeps transient messages and the find-as-you-type bars (search `/`, ref jump `<space>f`, quick jump `<space>j`, the diff, reflog and sidebar filters), which narrow a list in place and would hide what they filter.
-- When the screen is too small for a popup, the prompt shows in the status bar and still answers to its keys. Confirm dialogs and the mainline choice are centred boxes as well.
+- A centred box holds a title, what the answer is for, the text field (`> text_`), the candidate list of a filter prompt and the answering keys: `Enter` accepts, `Esc` cancels, `Ctrl-j`/`Ctrl-k` (also `Up`/`Down`, `Tab`) select in a filter. The keys are the same whether the flow started by key, palette or mouse; a click outside cancels like `Esc`.
+- **Filter pickers** (remote of a push, tag push or delete, remote management, remote-branch delete, upstream, branch checkout; `FilterPicker<T>`): candidates are always on screen under the field, best match first, at most 8 rows, the highlighted row marked `> `, then the position `(2/5)`; an empty list says what is missing. `Enter` runs the highlighted candidate without typing. Letters always filter, so `j`/`k` are text here. A remote branch in the checkout list is written `origin/foo -> local foo`: it is checked out as a new local branch tracking it.
+- The status bar keeps transient messages and the find-as-you-type bars (search `/`, ref jump `<space>f`, quick jump `<space>j`, the diff, reflog and sidebar filters). When the screen is too small for a popup, the prompt shows in the status bar and still answers to its keys.
 
 ## Focus model and key style
 
@@ -77,47 +57,21 @@ Outside Insert and Command mode a paste does nothing.
   `Ctrl-w` + `h` `j` `k` `l` (or `Ctrl-h` `Ctrl-j` `Ctrl-k` `Ctrl-l`, no prefix, Normal mode only) moves by direction (sidebar and graph on top, detail and diff below; `j` from the sidebar or graph goes to the detail pane, or the diff when the detail pane is hidden; `k` from a bottom pane goes to the graph); `Ctrl-w w` cycles; `Ctrl-w c` closes the tab.
   The focused pane has a highlighted border and its own status hints.
 - **Keys.** Frequent actions are single keys per view (`Enter`, `y`, `/`). Global actions use the `<space>` leader (`<space>o` open repository, `<space>p` pin, `<space>z` zoom). `g`, `]`/`[` and `Ctrl-w` start chords; counts prefix motions (`5j`, `3gt`).
-- **Chords.** A pending prefix shows in the status bar and, after 250 ms, in a which-key popup listing the continuations, plain actions first and `+more` groups after, with a horizontal rule between the two parts (#573;
-  shown in every colour tier and the ASCII set, dropped when no row would be left for an action), each alphabetical by key label with lowercase before uppercase (#472);
-  a row that only opens a longer chord reads `+more` plus what the group holds where it is a named leader group (`<space>b` `+more (branch operations)`, also merge/rebase/reset/pick, tag, worktree, stash operations, external tools, diff view options; #443).
-  `Esc` cancels; there is no chord timeout.
+- **Chords.** A pending prefix shows in the status bar and, after 250 ms, in a which-key popup listing the continuations, plain actions first and `+more` groups after, each part alphabetical by key label with lowercase before uppercase; a group row reads `+more (branch operations)` and so on. `Esc` cancels; there is no chord timeout.
 - **Insert mode.** Printable keys are text; only `Esc`, `Enter` and `Ctrl-`/`Alt-` combinations act, so the leader and chords never fire while typing.
 - **`Esc` precedence:** cancel a pending chord, then leave Insert mode, then clear a filter or search highlight, then go back one pane level (diff to detail to graph).
   In the graph, when nothing else claims it, `Esc` clears the comparison mark (#535), and when there is none it dismisses the status message.
 - **`q` always quits,** from any pane, except that it first closes an open overlay or ends a Visual range. `Esc` is back in Detail and Diff; `h` and `l` collapse and expand in the Sidebar and in trees and never change the pane (the diff has no horizontal scroll).
 - **Notation:** keys are spelled out everywhere (`Ctrl-d`, `Alt-1`, `Shift-Tab`, `gg`, `<space>o`), never `^d` or `c-d`, in the help overlay, the palette, the which-key popup and the status bar.
-- **Help overlay (`?`):** the keys of the focused view, generated from the keymap table and the action titles, never hand-written, in two columns separated by a vertical line (`Ctrl-d │ Half page down`).
-  It has one tab per source (#652): the view's own bindings, then the inherited `Lists` and `Global` ones, and `Markers` on the graph and the sidebar; an overlay with a single page (the status history, a command's output) shows no tab row.
-  Inside a tab the rows sit under the `ActionCatalog.GroupOf` subheaders (`Branch`, `Merge and rebase`, `Navigate`, ...; the same vocabulary and order as the palette; an action without a group lands in `Other`, a test forbids it).
-  The tab row is under the title: the active tab in brackets (`[Graph]  Lists  Global`), so it works in every colour tier and the ASCII set; when the labels do not fit the width it collapses to the active label with its position (`[Graph] 1/4`).
-  `Tab`/`l` and `Shift-Tab`/`h` switch tabs (wrapping), a click on a label jumps to it; each tab scrolls from its top and the keys column has the same width on every tab.
-  `j`/`k`/`Ctrl-d`/`gg` scroll it; `Esc`, `q` or `?` close it; every other action is ignored while it is open.
-  The `Alt-1`..`Alt-9` entry also names the multiplexer-safe `3gt`.
-  Digits are not tab keys: they stay counts.
+- **Help overlay (`?`):** the keys of the focused view, generated from the keymap table and the action titles, never hand-written, in two columns. One tab per source: the view's own bindings, then the inherited `Lists` and `Global` ones, and `Markers` on the graph and the sidebar; the active tab is in brackets and collapses to `[Graph] 1/4` when the labels do not fit. Rows sit under the `ActionCatalog.GroupOf` subheaders (the palette's vocabulary and order; an action without a group lands in `Other`, a test forbids it). `Tab`/`l` and `Shift-Tab`/`h` switch tabs (or a click), `j`/`k`/`Ctrl-d`/`gg` scroll, `Esc`, `q` or `?` close it; every other action is ignored while it is open. Digits are not tab keys: they stay counts.
 - **Command palette (`:` or `Ctrl-p`):** typing filters every action fuzzily (title or action id), `Up`/`Down` (or `Ctrl-j`/`Ctrl-k`) move, `Enter` (or `Ctrl-l`) runs the highlighted action, `Esc` closes.
   Each row shows its bindings and actions are grouped under subheaders (see Actions menu), the focused view's own actions first inside a group.
   Modal-only actions (the Confirm answers, the picker's own keys, the palette's own keys, text-input accept and `Esc`) are not listed; actions bound ahead of their feature are listed greyed out.
-- **Status bar hints** are key plus short description pairs (`j/k move  gg/G top/end`), keys in the accent colour.
-  They start with `? help  : commands  q quit`, so a narrow terminal cuts the pane's own hints, never those.
-  Every hint names the action of each of its keys, and a test checks the default keymap binds that key to that action in that pane.
-  - **Few hints, view options grouped (#633).** The default line of a pane lists only what matters most there: move, the jumps of that pane, search, `h back`, `<space>j quick jump`.
-    The history diff and both working-tree diffs fold their view options (wrap, context, whole file, ignore space, side by side, load all, merge parent in the history diff) and the Changes tab its two (path style, merge parent) into one group hint, placed right after `/ search` so it is the last of the pane's own hints a narrow line cuts, `<space>v view options`; pressing `<space>v` opens the which-key popup that lists them (see Chords), and the individual keys keep working and stay in help and the command palette.
-    A group hint names no single action: its test checks the keymap binds something below the prefix.
-    Dropped as noise: `n/N` after a search and `y copy line` in the working-tree diffs (the keys stay; the box and status bar already show the match count), `y copy path` and `<space>r refresh` in the working-tree lists (the lists refresh by themselves), `<space>r retry` in the detail pane (palette).
-    The graph, sidebar, working-tree lists and message box were reviewed and kept: each shows only its own few actions.
-    The file content view keeps `<space>vw wrap` since wrap is its only option.
-- **Status messages.** Background work that fails (a tab's worktree, stash or status read, a failed session save, a reset session file, a failed graph load) reports to one channel; later features post to it the same way.
-  - The newest message shows in the status bar between the position and the key hints until it expires, is dismissed with `<space>x` (or `Esc` in the graph when nothing else claims it), or is replaced by a newer one.
-  - **Look per kind (#500).** Success or info notices use the good (green) colour, warnings the warning colour, errors the error colour, bold, on the bar's background.
-    For the first 1.5 s a message is a filled chip (dark text on the kind's colour; reverse video without colour) and then settles to coloured text.
-    Key notices and progress lines keep the plain bar style.
-    Colours come from `PaletteTable` and the contrast test covers all variants.
-  - **Expiry (#500).** Info disappears after 5 s, warnings after 15 s, errors after 30 s; the key hints take the room back.
-    Expiry is pure state (`StatusLifetime` with the channel's injected clock); the UI schedules a redraw at each change.
-    Expired messages stay in the `<space>m` history.
-    Posting the same text again after it expired shows it again; the same text while it still shows is not posted again and does not renew the timer.
-  - `<space>m` opens the history (last 50, newest first, long messages wrap) as an overlay that updates live.
-  - Tab-scoped messages start with the repository name; a message equal to the one showing is not posted again. A key action's own one-off notice (`HEAD is not loaded yet`) takes the place of the message while it lasts.
+- **Status bar hints** are key plus short description pairs, keys in the accent colour. They start with `? help  : commands  q quit`, so a narrow terminal cuts the pane's own hints, never those. Every hint names the action of each of its keys, and a test checks the default keymap binds that key to that action in that pane.
+  - **Few hints, view options grouped.** The default line of a pane lists only what matters most there. The diffs fold their view options into one group hint, `<space>v view options`, placed right after `/ search` so a narrow line cuts it last; it opens the which-key popup, and the individual keys keep working and stay in help and the palette. A group hint's test checks the keymap binds something below the prefix.
+- **Status messages.** Background work that fails reports to one channel. The newest message shows in the status bar between the position and the key hints until it expires, is dismissed with `<space>x` (or `Esc` in the graph when nothing else claims it) or is replaced.
+  - **Look and expiry.** Success or info use the good colour, warnings the warning colour, errors the error colour, bold; for the first 1.5 s a message is a filled chip. Info disappears after 5 s, warnings after 15 s, errors after 30 s (`StatusLifetime`); expired messages stay in the `<space>m` history (last 50, newest first, live). The same text while it still shows is not posted again and does not renew the timer.
+  - Tab-scoped messages start with the repository name. A key action's own one-off notice takes the place of the message while it lasts.
 
 ## Workflows
 
@@ -128,20 +82,8 @@ Outside Insert and Command mode a paste does nothing.
    - `Up`/`Down` and `Ctrl-j`/`Ctrl-k` move; `Enter` or `Ctrl-l` opens in a new tab (or focuses the existing one); `Backspace` deletes a character; `Esc` cancels (with no tab open it quits, since there is nothing to go back to).
    - `Tab` or `Right` accepts the suggestion: the highlighted repository's path is filled in and its subfolders are listed; in a typed path it completes the folder name.
    - Typing and matching ignore case: every segment of a typed path is resolved against the real folder names (`~/projects/x` lists `~/Projects/x` on Linux) and the inserted text keeps the real case.
-   - Discovered repositories come from a scan of the conventional source folders below the home directory (`Projects`, `src`, `code`, `dev`, `repos`, `git`, `work`, ... up to three levels deep, hidden and dependency folders skipped).
-     The `scanRoots` config option replaces these folders (see "Config file").
-   - A typed path is listed off the UI thread: the previous rows stay until the new listing arrives, `scanning...` appears after about 150 ms when there are none, a newer keystroke cancels the older listing, and a listing slower than 5 s ends with a "timed out" notice.
-   - A click highlights a row, a double-click opens it.
-   - **Clone and init** (#401).
-     `Alt-c` (or the `Alt-c clone` chip at the right end of the hint line, shown from 94 columns) asks for a URL or a path in a prompt popup, then for the directory in a second popup (default: the folder typed in the picker, else the first scan root, plus the repository name; `Esc` in either popup closes only the popup).
-     A local path is taken from the active repository or home, never from the process working directory.
-     The target must be missing or empty (a file or a folder with content is refused by the clone with a status bar message, nothing is touched; if a stopped clone's folder cannot be removed the message names it).
-     The clone runs off the UI thread, belongs to no tab, and shows `Cloning: Receiving objects 45%` in the status bar with the cancel chip; `Esc` (once no other holder of `Esc` claims it) or the chip stops it and git's half-made folder (and any parents it created) is removed.
-     When it ends the repository opens in a new tab and the picker closes; on failure the status bar says why and the picker stays.
-     A clone never prompts: a failure that needs credentials says to set up a credential helper or an ssh-agent key (prompting comes with #45).
-     `Alt-i` (or the `Alt-i init` chip) asks for a directory (default: the typed path, else the active repository's folder or home), creates it when missing, runs `git init` (files already in it are kept, nothing is staged) and opens it; a folder that already is a repository root is just opened.
-     One clone or init at a time.
-     Both are unavailable while locating a missing repository.
+   - Discovered repositories come from a scan of the conventional source folders below the home directory (`Projects`, `src`, `code`, ... up to three levels deep, hidden and dependency folders skipped); the `scanRoots` config option replaces them. A typed path is listed off the UI thread (the previous rows stay until the new listing arrives, a newer keystroke cancels the older one, a listing slower than 5 s ends with a "timed out" notice). A click highlights a row, a double-click opens it.
+   - **Clone and init.** `Alt-c` (or the `Alt-c clone` chip, shown from 94 columns) asks for a URL or path in a prompt popup, then for the target directory in a second one (default: the typed folder, else the first scan root, plus the repository name; `Esc` closes only the popup). A local path is taken from the active repository or home, never from the process working directory. The target must be missing or empty (otherwise a status bar message, nothing touched). The clone runs off the UI thread, belongs to no tab and shows `Cloning: Receiving objects 45%` with the cancel chip; `Esc` or the chip stops it and removes git's half-made folder. On success the repository opens in a new tab and the picker closes; on failure the status bar says why and the picker stays. A clone never prompts: a failure that needs credentials says to set up a credential helper or an ssh-agent key. `Alt-i` (or the `Alt-i init` chip) asks for a directory, creates it when missing, runs `git init` (existing files are kept, nothing staged) and opens it; a folder that already is a repository root is just opened. One clone or init at a time, and neither while locating a missing repository.
 3. **Typed paths.** Text starting with `/`, `~/`, `./`, `../` or a drive (`C:\` or `C:/`) is a path; anything else is a fuzzy query.
    For a path the list shows the matching directories (repositories marked), `Tab` completes to the common prefix and then to the highlighted directory, and `Enter` opens the resolved path.
    On Windows paths are shown native (`C:\Users\name\repos`, no `~` abbreviation, the hint names `C:\ .\ ..\`); typing `~` or `/` still works, and Tab after a bare `~` continues with `\`.
@@ -149,54 +91,29 @@ Outside Insert and Command mode a paste does nothing.
    A non-repository path shows an inline "not a git repository" message and the picker stays open.
 4. **Pin and remove.** In the picker `Alt-p` (or the `Alt-p pin`/`Alt-p unpin` chip on the highlighted row) pins or unpins the entry; `Alt-d` removes it from recents (never deletes anything on disk). `<space>p` pins the repository of the active tab.
 5. **Switch tabs** with `gt`/`gT` (or `3gt`), `Alt-1`..`Alt-9`, or `Ctrl-^` / `<space><Tab>` for the previously active tab. Mouse: click a tab; a click on a tab's `*` also opens its working-tree view. `Ctrl-w c` closes the tab; closing the last tab shows the picker.
-6. **Tab bar.** One row on the bar background (the status bar's, so the bars bracket the screen), a margin, then every tab as a chip with two columns of padding per side, ` N name markers `, one blank column between tabs, and a ` + ` button after the last tab that opens the picker.
-   - The active tab is the filled accent chip. The others are buttons: the same chip on a subtle tinted background so they read as clickable; underlined without background colours, bracketed (`[ 2 name ]`, same width) in ASCII. With `NO_COLOR` the active chip is reverse video.
-   - The name is the repository name, or the name given with `Ctrl-w r` (a prompt popup that starts with the current name: `Enter` saves it with the tab in the session file, an empty name restores the repository name, `Esc` cancels).
-     The branch is not part of the tab (the sidebar marks the current branch with `*`).
-   - Markers: `!` an operation (merge, rebase, cherry-pick, revert) is in progress (workflow 4), `*` dirty working tree, `↑n` ahead, `↓n` behind (`+n`/`-n` without Unicode), an ellipsis while the tab loads.
-     The active tab follows external git activity by polling (refs every 2 s, working tree every 5 s; `watchFiles` in the config turns on live file watching instead), background tabs update every 30 s and when shown; `<space>r` refreshes manually.
-   - Remote chips (#456, #536): right of the tabs, left of ` : commands `, the fetch, pull and push chips show their key from the keymap before the label, in the status bar hint style (bold accent key, plain muted label; the chips lose their button look when keyed): `<space>F fetch  <space>L pull  <space>P push` (`[<space>F fetch]` in ASCII).
-     Rows under about 127 columns drop the key text first (` fetch  pull  push `), rows under 100 columns drop the chips.
-     While one runs a single `<space>C cancel` chip replaces them.
-     The key text is generated from the keymap (a rebinding follows), never written by hand.
-   - Two tabs with the same name show their parent directory. Names are cut at 40 characters. When the tabs do not fit, the row scrolls to keep the active one visible and `<` marks hidden tabs on the left.
+6. **Tab bar.** One row on the status bar's background, then every tab as a chip ` N name markers `, and a ` + ` button after the last tab that opens the picker. The active tab is the filled accent chip; the others are buttons on a subtle tinted background (underlined without background colours, bracketed `[ 2 name ]` in ASCII; reverse video with `NO_COLOR`).
+   - The name is the repository name, or the one given with `Ctrl-w r` (a prompt popup starting with the current name: `Enter` saves it in the session file, an empty name restores the repository name). The branch is not part of the tab.
+   - Markers: `!` an operation is in progress (workflow 4), `*` dirty working tree, `↑n` ahead, `↓n` behind (`+n`/`-n` without Unicode), an ellipsis while the tab loads. The active tab follows external git activity by polling (refs every 2 s, working tree every 5 s; `watchFiles` turns on live file watching instead), background tabs update every 30 s and when shown; `<space>r` refreshes manually.
+   - Remote chips, right of the tabs: fetch, pull and push show their key from the keymap before the label (`<space>F fetch  <space>L pull  <space>P push`, generated, never hand-written). Rows under about 127 columns drop the key text, under 100 columns the chips. While one runs a single `<space>C cancel` chip replaces them.
+   - Two tabs with the same name show their parent directory; names are cut at 40 characters; when the tabs do not fit, the row scrolls to keep the active one visible and `<` marks hidden tabs on the left.
 7. **Missing repository.** A tab whose repository was moved or deleted stays in the bar as `! name (missing)`. `Enter` on it opens the picker (Locate repository, starting in the folder that held it) and the chosen repository replaces the tab; `Ctrl-w c` closes it.
 8. **Unsent message.** Closing a tab that holds an unsent commit message (typed or edited, not committed) does not close it at once: the status bar names the tab, and a second `Ctrl-w c` right after (nothing else pressed in between) closes it and drops the message.
-9. **Terminal key caveats** (Terminal.Gui 2.5.0 under tmux).
-   `Ctrl-j` (0x0A) arrives as `Ctrl+Enter`, distinct from `Enter`, so the translator maps it back to `Ctrl-j` and it works as a picker alias for `Down` (a terminal that sends one byte for both would break the alias; `Down` still works).
-   `Ctrl-^` (0x1E) arrives as `Ctrl+6` and is mapped back; `<space><Tab>` is the fallback for terminals that swallow it.
-   Some terminals send `Backspace` as `Ctrl-h`, which the picker treats as `Backspace`.
+9. **Terminal key caveats** (Terminal.Gui 2.5.0 under tmux). `Ctrl-j` arrives as `Ctrl+Enter` and is mapped back to `Ctrl-j` (a picker alias for `Down`); `Ctrl-^` arrives as `Ctrl+6` and is mapped back, with `<space><Tab>` as the fallback; some terminals send `Backspace` as `Ctrl-h`, which the picker treats as `Backspace`.
 
 ### 1. Browse the graph, jump, search
 
 1. **Open.** A repository tab opens with focus on the graph, the newest commit selected and HEAD marked. Commits stream in; the list is usable immediately and the status bar shows loading progress.
 2. **Graph row.** A table: branch lanes, message (ref decorations then subject), author, date and time (`yyyy-MM-dd HH:mm`, the author's local time) and short hash (dimmed).
-   - The message starts two columns after the last line of the row's own lanes, so with many branches open, rows that only use the first lanes keep their message close to the line. The message column is the flexible one and takes all width the other columns leave (no cap).
-   - Fixed columns: author 16 (ellipsis when longer; 20 when 140 or more columns are left after the lanes), date 16 (10, date only, when the time does not fit), hash 7. The columns after the message sit one blank column apart; from 100 columns left after the lanes (for example 160x45) the gaps are three columns and the row keeps a two-column right margin (the message column gives up 7 columns for that, intended).
-   - Narrow terminals drop columns instead of squeezing the message below 30 columns: hash first, then the time (the date stays), then the date, then author. They return when the terminal widens. `gitunia <repository> --print-frame WxH` shows any width.
-   - Example at 120 columns (without the sidebar):
-     ```
-     ●  Fix parser crash on empty input                Ada Lovelace       2026-10-13 09:00   7a21f84
-     ●  ⎇ main   Merge branch 'topic'              Alexander the G…   2026-10-12 23:30   ee3f455
-     ```
+   - The message starts two columns after the last line of the row's own lanes and is the flexible column; author, date (`yyyy-MM-dd HH:mm`, local time) and hash are fixed-width. Narrow terminals drop columns instead of squeezing the message below 30 columns: hash first, then the time, then the date, then author. `gitunia <repository> --print-frame WxH` shows any width.
 3. **Ref labels.** The symbolic `origin/HEAD` is hidden.
    A local branch and its remote-tracking branch of the same name on the same commit are one label, `main ` (ASCII: `main (r)`).
    Every local branch gets a `⎇` before its name, checked out or not: it says the branch exists locally (#826); a remote branch without a local twin has none. The branch HEAD is on has a `◆` in front of it (`◆ ⎇ main`; ASCII: `HEAD -> main`, other local names stay unmarked, so ASCII shows "local" only by the missing `origin/`).
    A remote branch with no local branch of that name, or on another commit, keeps its own `origin/x` label.
    A local branch whose upstream is gone carries the same dimmed mark after its label (`topic ✗`, ASCII `topic (x)`; see the sidebar, #570).
-4. **Lanes.** Branches are laid out by tip date (#757): the branch with the newest tip commit runs in the leftmost lane, the next newest to its right, and so on, so the graph stays as compact as possible; the checked-out branch gets no lane of its own (it keeps the `◆ ⎇` mark on its label).
-   The log is read newest first and a lane is only ever assigned from the rows above it, so columns never move while scrolling or loading; the order holds among branches whose lanes are open at the same row; a lane freed by a branch that ended is reused from the left by the next tip.
-   A detached HEAD is laid out the same way.
-   **Own lane per branch (#759):** every branch keeps one lane, and one colour, from its tip down to the commit it forked from: where a branch forks off another, its lane runs straight down beside the other branch and joins it at the fork commit (`●─┴─┴─╯`), it does not bend in earlier.
-   The leftmost lane, the one of the newest tip, goes on to the very bottom: where several lanes meet at a commit the leftmost keeps it and the others, `main` included, bend into it, so they look as if they went off from it.
-   In the usual case main's tip is the newest, main is the leftmost lane and one straight line from the root up, with `release`, `develop` and `hotfix` on consecutive commits of its line as labels only (a name on a commit of another branch's line never moves the line).
-   A merge opens a lane for the merged branch at the merge row and the branch keeps it down to its fork.
-   When the log lists the tips in another order (a feature tip newer than main's, or every commit with one timestamp and git's own order) the same rule gives the same picture with another branch leftmost.
-   With more lanes than fit (at most 40% of the pane), the lanes past the limit are drawn in the last column.
-   **Colours (#761):** every branch gets one colour, a hash of its name, so the same name starts from the same colour in every repository and session; when another lane that is open at the same row, or another branch tip within the last 50 rows (#807), already has that colour it moves on to the next free one, so the colour of a branch can change when a colliding branch appears (never while scrolling or loading: within one graph a name keeps its colour); a local branch and its remote-tracking branch (`main`, `origin/main`) are one branch and share it, wherever their tips are.
-   The lane line and the node use it, and so does the chip of the branch that starts the lane; a label is a box in the colour of its branch (below) (#760) with no parentheses around it (several labels on one commit are told apart by their boxes, a space between them): the local-branch glyph (`⎇ `; `◆ ⎇ ` on the checked-out branch, ASCII `HEAD -> `) and the remote glyph (cloud, ASCII ` (r)`) sit inside the box, a space between glyph and name (#804) and one space of padding inside the box on each side of the text (#827) unless the box has Powerline caps (the `labelCaps` setting, on by default, #851), which close it on each end with no padding (#854); a branch's label sits on its tip; the lane runs down to the fork commit in the lane's colour, where a curve in that colour joins the parent's lane, while the unlabelled commits of a run stay part of the plain line (tags are yellow everywhere); a lane that no branch name starts (a merged feature whose branch is gone) takes a colour derived from its first commit.
-   Colours are the theme's `lanes` list (at most 12, 6 at 16-colour depth, one without colour; the layout uses only as many as the palette has, so open lanes differ while a colour is free: the lines are told apart by position alone and the labels are bold inverse video boxes, which on a focused selected row merge into the reversed row and are bold only).
-   **Chip colour is per branch, not per lane (#849, supersedes the lane-colour rule of #759/#760):** a chip has the colour of its branch name, the same for a local branch and its remote-tracking branch (`main`, `origin/main`, `upstream/main`), and a different one for every other branch, so `test` stacked on `main` on one lane shows two differently coloured chips over one line. The chip of the branch that starts the lane has the lane's colour (line, node and chip match); any other chip takes its name's colour, which at the name's first appearance is moved on to one that no open lane and no chip of the last 50 rows uses while a colour is free (a later sighting of the same name, such as `origin/main` far below `main`, keeps it) (with fewer colours than visible branches, such as 6 at 16-colour depth, colours repeat only after all are in use). A commit with several branch names shows one chip per name, each in its own colour; the lane follows its checked-out branch, else the smallest local branch name, else the smallest remote one.
+4. **Lanes.** Branches are laid out by tip date: the branch with the newest tip runs in the leftmost lane, the next newest to its right; the checked-out branch gets no lane of its own (it keeps the `◆ ⎇` mark). Columns never move while scrolling or loading, and a lane freed by an ended branch is reused from the left by the next tip. A detached HEAD is laid out the same way.
+   **Own lane per branch:** every branch keeps one lane, and one colour, from its tip down to the commit it forked from, where its lane joins the parent's (`●─┴─┴─╯`); it does not bend in earlier. Where several lanes meet at a commit the leftmost keeps it and the others bend into it. Usually main is the leftmost lane and one straight line from the root, with `release`, `develop` and similar as labels on its commits. A merge opens a lane for the merged branch at the merge row. With more lanes than fit (at most 40% of the pane), the lanes past the limit are drawn in the last column.
+   **Colours:** every branch gets one colour, a hash of its name, moved on to the next free one when another open lane or a branch tip within the last 50 rows has it (so a branch's colour can change when a colliding branch appears, never while scrolling or loading); a local branch and its remote-tracking branch share it. A lane that no branch name starts takes a colour derived from its first commit. The colours are the theme's `lanes` list (at most 12, 6 at 16-colour depth, one without colour).
+   **Chips:** a label is a box in the colour of its branch name, without parentheses, the local glyph (`⎇ `; `◆ ⎇ ` on the checked-out branch, ASCII `HEAD -> `) or remote glyph (cloud, ASCII ` (r)`) inside it, one space of padding on each side unless the box has Powerline caps (`labelCaps`, on by default). The chip of the branch that starts the lane has the lane's colour (line, node and chip match); every other chip takes its name's colour, so `test` stacked on `main` on one lane shows two differently coloured chips over one line. A commit with several branch names shows one chip per name; the lane follows its checked-out branch, else the smallest local name, else the smallest remote one. Tags are yellow everywhere.
 5. **Straight lines.** A commit with one child and one parent on its own lane is drawn as part of the line (`│`, ASCII `|`), not as a node.
    Node dots (`●`, merge `○`; ASCII `*`, `o`) appear only where a lane starts, ends, forks or merges, and on every commit that carries a ref (branch, tag, remote, HEAD), so labels never hang on a bare line.
 6. **Move** with `j`/`k`, `Ctrl-d`/`Ctrl-u`, `gg`/`G`, counts and the mouse wheel.
@@ -209,15 +126,7 @@ Outside Insert and Command mode a paste does nothing.
    The pane follows the graph selection while the graph is focused.
    It sits below the graph (hidden on screens under 14 rows, where `Enter` only shows a notice) and has three tabs, shown as buttons on its title row:
    - **Details:** hash, author, committer (only when different), parents, refs and the full message.
-   - **Issue links (#213).** The `[issuetracker "name"]` sections of the git config (repository, global or system, so what other clients read) and of a `.issuetracker` file in the repository (or worktree) root turn references in the message into links.
-     The file is git-config syntax, read with `git config --file` (VS Code's proposal); a section of the same name in the file wins over the config. One `[issuetracker "name"]` section per tracker with `regex` (group 1 is the reference; without a group the whole match) and `url` (`$1` is the reference, percent-encoded where a URL needs it).
-     Quote values that contain `#` or `;`, which start a comment in git config: `regex = "#(\\d+)"`.
-     Only `http` and `https` addresses become links.
-     Matches in the message show underlined in the accent colour; where two matches overlap the earlier one (then the earlier section) wins.
-     `gx` (`Enter` or a double-click on such a line does the same) opens the first link on the line under the cursor in the default browser, `2gx` the second.
-     Opening uses `xdg-open` (Linux), `open` (macOS) or the shell (Windows); when no opener starts, the address is copied through OSC 52 and the status line says so.
-     A missing, empty or malformed file or config section, or a bad regex, means no links and no error.
-     The file and the git config are read when the tab loads and again on a manual refresh (`r`), so an edit shows after `r`; the browser is started in the background and the status line reports the outcome; no network access is involved.
+   - **Issue links.** The `[issuetracker "name"]` sections of the git config (repository, global or system) and of a `.issuetracker` file in the repository root (git-config syntax; the file wins on the same name) turn references in the message into links: `regex` (group 1 is the reference; without a group the whole match) and `url` (`$1` is the reference, percent-encoded). Quote values that contain `#` or `;`: `regex = "#(\d+)"`. Only `http` and `https` addresses become links, shown underlined in the accent colour; on overlap the earlier match wins. `gx` (or `Enter`, or a double-click) opens the first link on the line under the cursor in the default browser, `2gx` the second; when no opener starts, the address is copied through OSC 52. A missing or malformed file, section or regex means no links and no error. Both are read when the tab loads and on a manual refresh (`r`).
    - **Changes:** the changed files with status `A` `M` `D` `T`, `R old -> new`, `C old -> new` (the similarity score is not shown); merges show changes against the first parent by default, and the heading names the parent (`(merge: against first parent <hash>)`).
      `<space>vp` (detail and diff panes) switches a merge commit to its next parent, wrapping from the last back to the first (`(merge: against parent 2 <hash>)`, status line `Switching to parent 2 of 2...`): the file list is read again against that parent (`diff-tree` with it) and the diff viewer shows the files of that list against it.
      The choice belongs to the selected commit and is not remembered: selecting another commit, or coming back to this one, starts at the first parent.
@@ -235,26 +144,9 @@ Outside Insert and Command mode a paste does nothing.
    - A fresh tab opens on Changes.
      `]`/`[` switch to the next/previous tab (wrapping), `gd` `gc` `gf` jump to Details, Changes, Files from the graph or the detail pane; a click on a label does the same.
      The selected tab is part of the repository tab's view: kept while the graph selection moves, saved with the session, and each tab remembers its own cursor row for the selected commit.
-   - **File paths (#540).** A file row of the Changes tab and of the working-tree Unstaged and Staged lists shows its path in one of three styles, a per-tab view option like `wrap` and `file` in the diff (not saved with the session, name first on a fresh tab):
-     `name first` (default) draws the file name, then the directory dimmed (`parser.cs  src/Core/Git`),
-     `full path` the path from the repository root as before (`src/Core/Git/parser.cs`),
-     and `tree` (#548, and in the working-tree lists #617) folders as a tree like the Files tab: a folder row (`src/`) with its files indented below it, each with its change mark and its name only (a rename `R old.cs -> new.cs`, the old path in full when it sits in another folder);
-     folders come before files.
-     Folders open and close (#616): `za` or a click toggles the folder under the cursor (a double-click leaves the fold as it was: its first click toggles, the double-click undoes that and acts, #622), `h` closes an open folder, else moves the cursor to the parent folder and at the top level does nothing, `l` opens a closed folder (`Enter` goes to the folder diff).
-     A closed folder hides its rows and shows its file count (`src/  3 files`); its diff is still the whole folder.
-     Closed folders are remembered per repository tab (by path, across commits and style changes, not saved with the session); every folder starts open.
-     Switching from a flat style puts the cursor on the closed folder when its file is hidden.
-     The cursor lands on the first file, as in the other styles.
-     A folder row is selectable: the diff pane then shows all changes below that folder in one view (see the diff pane, 1), `Enter` on it focuses the diff and `y` copies the folder path.
-     Commit details, comparisons and merge commits (against the parent chosen) all list this way.
-     The working-tree Unstaged and Staged lists have the same tree (#617), see workflow 2, "Tree style in the lists".
-     When the row is too narrow the directory is cut from the left (`…Core/Git`) and dropped when not even that fits, so the file name keeps its columns until nothing else is left; a status mark (`R`, a conflict text) keeps its place too.
-     A rename shows its old name (or old path) dimmed after the directory when all of it fits, in the full style `old -> new`.
-     `<space>vn` cycles name first, full path and tree for the tab; the `view ▾` dropdown (#646, `<space>vv`) picks one of them directly.
-     The dropdown chip sits in the title row of the Changes tab (the detail pane's, right end, only while Changes or Files is selected) and of both working-tree lists (left of `stage all` / `unstage all`, which stay buttons: staging is an action, not a display option); the chip shows its key before the label when the row is wide enough and is left out when the title leaves no room.
-     The status bar says which style is on.
-     The quick jump labels what is drawn.
-     Copy (`y`) still copies the whole path.
+   - **File paths.** A file row of the Changes tab and of the working-tree Unstaged and Staged lists shows its path in one of three styles, a per-tab view option (not saved with the session, name first on a fresh tab): `name first` (default; the name, then the directory dimmed), `full path` from the repository root, and `tree`: folders as a tree like the Files tab, a folder row (`src/`) with its files indented below it showing the change mark and the name only (a rename `R old.cs -> new.cs`, the old path in full when it sits in another folder); folders come before files.
+     Folders open and close: `za` or a click toggles the folder under the cursor (a double-click leaves the fold as it was and acts), `h` closes an open folder, else moves to the parent folder, `l` opens a closed one (`Enter` goes to the folder diff). A closed folder hides its rows and shows its file count (`src/  3 files`); its diff is still the whole folder. Closed folders are remembered per repository tab (not saved with the session); every folder starts open. A folder row is selectable: the diff pane shows all changes below it, `Enter` focuses the diff and `y` copies the folder path. Commit details, comparisons and merge commits all list this way; the working-tree lists have the same tree (workflow 2, "Tree style in the lists").
+     When the row is too narrow the directory is cut from the left (`…Core/Git`) and dropped when not even that fits, so the file name keeps its columns; a status mark keeps its place. A rename shows its old name dimmed after the directory when it fits. `<space>vn` cycles the three styles; the `view ▾` dropdown (`<space>vv`) picks one directly. The dropdown chip sits in the title row of the Changes tab (while Changes or Files is selected) and of both working-tree lists, shows its key when the row is wide enough and is left out when the title leaves no room. The status bar says which style is on; the quick jump labels what is drawn; `y` still copies the whole path.
    - `j`/`k` scroll the rows of the tab.
      On Changes, focus lands on the first file row, that file's diff is already shown beside the list and `j`/`k` show the diff of each file as the cursor reaches it, no `Enter` (see 1c).
      `Enter` moves focus into the diff (on Details it only says to open Changes; on Files it focuses the content beside the tree); `Ctrl-l` does the same by direction.
@@ -268,48 +160,15 @@ Outside Insert and Command mode a paste does nothing.
    In the box `Backspace`, `Ctrl-u` and `Ctrl-w` edit the text.
    The search scans the loaded commits in small slices between key presses and keeps scanning as the log streams in (on a log cut at the soft row limit, reaching the loaded end loads the rest, about 10 s and ~300 MB on a 1M-commit log, and the scan goes on); the status bar shows `searching N%` meanwhile.
 10. **Copy and refresh.** `y` copies the selected commit hash (OSC 52); `<space>r` refreshes the repository now.
-11. **Quick jump** (`<space>j`, flash/easymotion style).
-    It opens a prompt in Insert mode (`jump _` in the status bar).
-    Type text and every row in view that contains it (case-insensitive; in the graph the text of a row is its ref labels and its subject, so a branch or tag name jumps too) gets a one-letter label drawn over the character after the match, in a chip so it shows without colour.
-    Pressing a label selects that row and closes the prompt; `Enter` selects the nearest match; `Esc` cancels.
-    - Only the rows in view are looked at, so the cost does not depend on the log size.
-      Labels go to the matches nearest the cursor first, home-row letters first.
-      A letter that would continue a match in view is never a label, so typing more text and pressing a label never clash (any other key edits the text).
-      With more matches than letters the farthest stay unlabelled: type more to narrow them.
-    - A match whose label would fall past the right edge of its row takes no letter, so no label is ever hidden. A wide character under a label leaves a blank so the rest of the row does not shift.
-    - It works in the graph, the diffs (history and working tree; it matches the row text, not line numbers or the `+`/`-` marker) and the Unstaged and Staged lists (file paths); the jump moves that list's cursor and the diff beside it follows.
-      In the side-by-side diff both sides are labelled (a label sits within its half; an unchanged line is labelled on its left side).
-      The detail pane has it too (rows in view, file paths on Changes); not yet the sidebar.
-      The prompt closes when focus moves to another pane or tab.
-      Mouse: a click selects any row, as always.
+11. **Quick jump** (`<space>j`, flash/easymotion style). A prompt in Insert mode (`jump _` in the status bar): every row in view that contains the typed text (case-insensitive; in the graph a row's text is its ref labels and its subject) gets a one-letter label in a chip drawn over the character after the match. A label selects that row and closes the prompt; `Enter` selects the nearest match; `Esc` cancels.
+    - Only rows in view are looked at, so the cost does not depend on the log size. Labels go to the matches nearest the cursor first, home-row letters first; a letter that would continue a match in view is never a label; with more matches than letters the farthest stay unlabelled (type more to narrow). A match whose label would fall past the right edge takes no letter.
+    - It works in the graph, the diffs (row text, not line numbers or markers; both sides in the side-by-side diff), the Unstaged and Staged lists (file paths) and the detail pane (rows in view, file paths on Changes); not the sidebar. The prompt closes when focus moves to another pane or tab.
 
-12. **Comparing two commits** (#535, #636). Mark one commit; from then on the commit under the cursor is compared with it, as `git diff <older> <newer>`. One mark is enough, there is no second key press.
-    - **Keys.** `<space>=` in the graph marks the commit under the cursor: its row starts with `[mark]` (text, so it shows in every colour tier and the ASCII set).
-      While a mark is set the status bar hints read `<space>= move mark  Esc end compare`.
-      `<space>=` on a different commit moves the mark there (no compare toggle); on the marked commit it clears the mark.
-      `Esc` in the graph clears the mark and the comparison (after the usual claims on `Esc`: a Visual range, a running fetch).
-      The key is a `<space>` chord, free in the keymap table and not a bare vim key; a plain letter would clash with vim (vim-clash rule).
-      A Visual range keeps its meaning (cherry-pick and revert of the range); the mark is separate and does not use it.
-    - **Order.** The older commit is the one lower in the graph (the log is newest first), whichever of the two was marked first, so the diff always runs older to newer and reads as the change from one to the other.
-      Two commits on different branches are compared the same way (a plain `git diff A B`, no merge base).
-    - **What shows.** Moving the cursor to any other commit shows the comparison with the mark, without another key.
-      The first comparison after marking selects the Changes tab (later moves keep the tab you chose).
-      The Changes tab lists the files of `git diff <older> <newer>` (renames and copies detected as in the commit view), with the heading `N files changed (<older>..<newer>)`; the diff pane beside it shows the file under the cursor from the same command, so list and diff match what `git diff A B` prints.
-      The Details tab names the comparison (`compare  abc1234..def5678`) in place of the parents and shows the commit under the cursor otherwise.
-      With the cursor on the marked commit itself there is nothing to compare: its own changes show.
-      Binary files and mode changes get the notes of the commit view.
-      A merge commit as either end is compared as a tree, like any other (no parent choice; `<space>vp` does nothing then).
-      Diff options (`+`/`-`, `<space>vf`, `<space>vi`, `<space>vs`, `<space>vl`) work as in the commit view.
-      The comparison is not cached: it is read again on every request.
-    - **Cost.** The comparison starts once the cursor's own commit details have loaded, which goes through the same debounce as the commit view: holding `j` or `k` starts no process per row (a commit whose details are cached waits for the same pause), and a load for a commit the cursor left is cancelled.
-      Measured: `git diff --numstat -M` between two commits 300 apart (1359 files changed) takes 0.26 s, so no cap or "comparing" state is needed.
-      Each resting position costs one `git diff <older> <newer>` (async, cancellable).
-      While it runs the Changes tab shows the commit's own files, which the comparison then replaces.
-    - **When it ends.** `Esc` or `<space>=` on the marked commit drops the mark and returns to the selected commit's own changes.
-    - **State.** The mark is part of the tab's view state (`RepositoryViewState.CompareMark`), so every tab has its own, it survives switching tabs, and it is not saved with the session.
-      A refresh keeps it and compares the (possibly moved) selection with it; when the marked commit is no longer in the graph nothing is compared, and `Esc` clears the mark or `<space>=` moves it to the cursor.
-      The shown comparison lives in the details store of the tab and is gone with the selection.
-    - **Mouse.** The actions menu of a graph row (`<space>.` or a double-click) lists "Mark or compare a commit", the same action.
+12. **Comparing two commits.** Mark one commit; from then on the commit under the cursor is compared with it, as `git diff <older> <newer>`. One mark is enough, there is no second key press.
+    - **Keys.** `<space>=` in the graph marks the commit under the cursor (its row starts with `[mark]`); on a different commit it moves the mark, on the marked commit it clears it. `Esc` in the graph clears the mark and the comparison (after the usual claims on `Esc`). While a mark is set the status bar hints read `<space>= move mark  Esc end compare`. A Visual range keeps its meaning (cherry-pick and revert of the range); the mark is separate.
+    - **Order.** The older commit is the one lower in the graph, whichever was marked first, so the diff always runs older to newer. Commits on different branches are compared the same way (a plain `git diff A B`, no merge base); a merge commit at either end is compared as a tree (no parent choice).
+    - **What shows.** Moving the cursor to any other commit shows the comparison with the mark. The first comparison after marking selects the Changes tab. The Changes tab lists the files of `git diff <older> <newer>` with the heading `N files changed (<older>..<newer>)`, the diff pane beside it shows the file under the cursor from the same command; the Details tab names the comparison (`compare  abc1234..def5678`). With the cursor on the marked commit itself its own changes show. Diff options work as in the commit view. The comparison is not cached; it starts after the same debounce as the commit view and one `git diff` (async, cancellable) runs per resting position, while the Changes tab meanwhile shows the commit's own files.
+    - **State.** The mark is part of the tab's view state (`RepositoryViewState.CompareMark`): per tab, kept across tab switches and refreshes, not saved with the session. When the marked commit is no longer in the graph nothing is compared and `Esc` clears the mark or `<space>=` moves it. The actions menu of a graph row (`<space>.` or a double-click) lists "Mark or compare a commit".
 
 ### 1b. Sidebar navigation
 
@@ -319,83 +178,40 @@ Outside Insert and Command mode a paste does nothing.
 3. `/` filters the entries by name (Insert mode: type, `Backspace` erases, `Enter` keeps the filter and returns to Normal mode, `Esc` drops it).
    The filter also matches the worktree shown beside a branch and unfolds every section with a match.
    In Normal mode `Esc` clears an active filter, and otherwise returns focus to the graph.
-4. **Prefix folders (#643).** Local and remote branches are grouped by their `/`-separated prefix: `feature/ui/x` sits under `feature/` and `ui/` (nested to any depth), a branch without `/` stays at the top level, and a remote's branches fold under the remote's own folder first (`origin/`, then the prefix).
-   A folder whose only content is one more folder folds into one row (`feature/ui/`, #647); its key is the deepest folder's path.
-   A folder row shows `▸`/`▾` (ASCII `>`/`v`), its name with a trailing `/` and its entry count dimmed; the branch row below shows the short name, while checkout and every other branch action use the full name.
-   `l`/`Enter` open a folder, `h` closes it (on a closed folder or a branch it moves to the enclosing folder or section); `Enter` and a click on a folder toggle it, and it has no actions menu.
-   Folders are closed by default except the ones holding the current branch and a remote's own folder; what the user opened or closed is kept per tab (not saved with the session).
-   The `/` filter matches the full branch name and shows only the matching branches with every folder above them open.
-   The `*`, `wt:<directory>`, `↑n↓m` and `✗` markers stay on the branch row.
-5. **Tight tree layout (#647).** Section headers start at column 0, their entries (branches, remote folders) sit one column in, and each further nesting level indents by one more column (the Files tab tree uses the same one-column indent and the same row renderer, #658, so its long names and folders are cut in the middle too and a closed folder keeps its file count), so a narrow sidebar gives its width to the names.
-   A name that must be cut is cut in the middle (`worktree-agent-…5cab5`, `feature/6…-diff`) so its distinguishing tail stays; the right-hand markers keep their columns and the last one (`wt:<directory>`, a worktree's branch) is the first to give way, also cut in the middle.
-   While the sidebar has focus the status bar shows the full name of the selected row after the position (`3/120 feature/ui/button`, the graph position then the name; cut in the middle to a third of the line at most so hints and messages stay; a worktree shows its path, a section or folder nothing), so a short or cut name is never ambiguous (#657).
+4. **Prefix folders.** Local and remote branches are grouped by their `/`-separated prefix (nested to any depth; a remote's branches fold under the remote's own folder first); a folder whose only content is one more folder folds into one row (`feature/ui/`). A folder row shows `▸`/`▾` (ASCII `>`/`v`), its name with a trailing `/` and its entry count dimmed; the branch row shows the short name, while checkout and every other branch action use the full name. `l`/`Enter` open a folder, `h` closes it (on a closed folder or a branch it moves to the enclosing folder or section); `Enter` and a click toggle it; it has no actions menu. Folders are closed by default except the ones holding the current branch and a remote's own folder; what the user opened or closed is kept per tab (not saved with the session). The `/` filter matches the full branch name and opens every folder above a match. The `*`, `wt:<directory>`, `↑n↓m` and `✗` markers stay on the branch row.
+5. **Tight tree layout.** Section headers start at column 0, their entries one column in, each further level one more column (the Files tab tree uses the same indent and row renderer). A name that must be cut is cut in the middle (`feature/6…-diff`) so its tail stays; the right-hand markers keep their columns and the last one (`wt:<directory>`) gives way first. While the sidebar has focus the status bar shows the full name of the selected row after the position (cut in the middle to a third of the line at most; a worktree shows its path, a section or folder nothing).
 6. A section header shows its entry count.
    Remotes and Tags are folded by default.
    A branch shows `wt:<directory>` for the worktree that has it checked out (`*` marks the current branch and the current worktree) and `↑n↓m` against its upstream.
-   A local branch whose upstream was deleted on the remote (`%(upstream:track)` says `gone` after a fetch with `--prune`, which is what happens once a PR is merged and its branch removed) gets a dimmed `✗` after its name (ASCII `(x)`), so the branches a local prune could clean up stand out; on a narrow sidebar the name is never cut for the marker below 8 columns or half of the width left after the prefix.
-   The help overlay of the graph and the sidebar ends with a `Markers` section that explains it (#570).
+   A local branch whose upstream was deleted on the remote (`gone` after a fetch with `--prune`) gets a dimmed `✗` after its name (ASCII `(x)`), so the branches a local prune could clean up stand out; on a narrow sidebar the name is never cut for the marker below 8 columns or half of the width left after the prefix. The help overlay of the graph and the sidebar ends with a `Markers` section that explains the markers.
    The sidebar is hidden below 60 columns.
 
 ### 1c. Diff viewing
 
-1. **Where it is.** The diff is part of the Changes tab, not a mode of its own.
-   While Changes is selected, the diff pane is shown beside the file list.
-   It shows one file at a time: the file under the file list's cursor, from the commit's diff against its first parent, or the parent a merge commit was switched to with `<space>vp` (or the comparison's two commits), so the diff always matches the file list.
-   The pane never shows another file; the next one is chosen in the file list (#537).
-   The one exception is the folder view (#548): in the tree style of the file list, a folder row shows the files below it, one after the other in the order of the commit diff, as a single document (title `folder, N files`, hunk counts for all of them).
-   `]f` and `[f` then step from file to file inside it (and stop at the first and last), the options (`+`/`-`, `<space>vf`, ...) keep the folder, and moving the list's cursor to a file or another folder switches the pane.
-   The whole commit diff is loaded once as before, so selecting a folder costs no extra read.
+1. **Where it is.** The diff is part of the Changes tab, not a mode of its own: while Changes is selected, the diff pane is shown beside the file list. It shows one file at a time: the file under the file list's cursor, from the commit's diff against its first parent, or the parent a merge commit was switched to with `<space>vp` (or the comparison's two commits), so the diff always matches the file list. The pane never shows another file; the next one is chosen in the file list.
+   The one exception is the folder view: in the tree style of the file list, a folder row shows the files below it, in commit-diff order, as a single document (title `folder, N files`). `]f` and `[f` step from file to file inside it (and stop at the first and last), the options keep the folder, and moving the list's cursor to a file or another folder switches the pane. Selecting a folder costs no extra read.
    - It is there as soon as the tab is, for the first file. Moving the file cursor with `j`/`k` (or a click on a row) shows that file's diff at once. Selecting another commit in the graph loads that commit's diff at its first file (a load in flight is cancelled when another commit is asked for).
    - `Enter` or `Ctrl-l` on the file list moves focus into the diff to scroll, search and copy; `Esc` or `Ctrl-h` comes back and the diff stays. On the Details tab the pane is not shown; on the Files tab it shows the content of the file under the tree's cursor (item 11).
-   - The diff sits beside the compact file list (a third of the width, 24-60 columns) on screens of 72 columns or more, so both are visible together at 80 columns.
-     Narrow or short screens (under 72 columns, or without the bottom strip) keep the on-demand behaviour: the diff opens with `Enter` on a file row, takes focus and replaces the detail pane (screens under 14 rows zoom it), and `Esc` closes it.
-     An on-demand diff on a screen that is then widened stays open and also keeps showing a Details or Files tab beside it, following the graph selection.
-   - `<space>z` zooms the focused graph, detail or diff pane to the full area between the tab row and the status bar and back (the sidebar does not zoom; moving focus to another pane ends the zoom).
-     Where the Changes or Files tab sits beside the diff / file content (72 columns or more, bottom strip shown) the two zoom as one view, side by side, whichever has focus (#632): moving focus between them keeps the zoom, moving it to another pane ends it.
-     The Details tab and narrow or short screens zoom the single pane.
-     While zoomed, `Tab` only reaches panes that are shown.
-     `Ctrl-w >` / `Ctrl-w <` in the paired zoom move the divider between the two panes (the same width as the normal split, remembered with it, #683); in a single-pane zoom (and the zoomed working-tree diff) no divider is shown, so every resize key leaves the sizes alone and the status bar says `Unzoom the pane to resize`; `Ctrl-w +` / `Ctrl-w -` do the same in the paired zoom, as the bottom strip is not shown; `Ctrl-w =` resets all sizes as usual.
+   - The diff sits beside the compact file list (a third of the width, 24-60 columns) on screens of 72 columns or more. Narrow or short screens (under 72 columns, or without the bottom strip) keep the on-demand behaviour: the diff opens with `Enter` on a file row, takes focus and replaces the detail pane (screens under 14 rows zoom it), and `Esc` closes it. An on-demand diff on a screen that is then widened stays open and also keeps showing a Details or Files tab beside it.
+   - `<space>z` zooms the focused graph, detail or diff pane to the full area between the tab row and the status bar and back (the sidebar does not zoom; moving focus to another pane ends the zoom; `Tab` only reaches panes that are shown). Where the Changes or Files tab sits beside the diff / file content the two zoom as one view, side by side, whichever has focus: moving focus between them keeps the zoom. `Ctrl-w >` / `Ctrl-w <` in the paired zoom move the divider (the same width as the normal split, remembered with it); in a single-pane zoom every resize key leaves the sizes alone and the status bar says `Unzoom the pane to resize`; `Ctrl-w =` resets all sizes as usual.
 2. **Navigate.** `j`/`k`, `Ctrl-d`/`Ctrl-u`, `gg`/`G` scroll (from the file list beside the diff, `J`/`K` scroll by a line and `D`/`U` by half a page without taking focus; `Ctrl-d`/`Ctrl-u` keep paging the list, #755); `]c`/`[c` jump to the next/previous hunk of the file (counts work; at the first or last one the pane stops and the status bar says `No next hunk` / `No previous hunk`, it never moves on to another file).
    `]f`/`[f` pick the next/previous file of the commit (counts work): the pane then shows that file only and the file list's cursor follows; at the first or last file nothing moves and the status bar says `No next file` / `No previous file`.
    The working-tree diff does the same within the list of the file it shows.
    The title shows the file under the cursor, `file n/m` among the commit's files and `hunk n/m` of that file.
 3. **Search.** `/` opens a search box (Insert mode, case-insensitive substring over every row of the shown file including headers (other files of the commit are not searched), highlighted while typing); `Enter` jumps to the first match at or after the cursor, `n`/`N` step through matches and wrap, `Esc` in the box cancels.
-4. **Buttons.** The right end of the title row has chips (`‹ file`, `file ›`, `‹ hunk`, `hunk ›` and `view ▾`, which is always the rightmost; a file's content has `wrap` and `zoom` instead); each is the mouse path of a key (Mouse table) and shows that key before its label (`[c ‹ hunk`, `<space>vv view ▾`) like the tab bar chips (#536).
-   The key text comes from the keymap of the diff's view (the history diff's or the working-tree side's), so rebinding follows; a pane too narrow for the keys drops them first and shows the same buttons plain, then drops buttons as below.
-   The file buttons are `[f` and `]f`; files can also be chosen in the file list.
-   The working-tree diff also puts its staging chips on the first line of the current change group and they show their keys too (`<space>a stage  <space>d discard`; the keys go first when the row cannot keep 30 text columns with them, before any chip is dropped).
-   Narrower panes drop buttons (see Mouse).
-   Quick repeated clicks on a button each count (the toolkit reports the second and third click of a burst as double and triple click, which buttons treat as clicks).
-   A drag selects a range of rows.
-5. **Rows.** Hunks are told apart by a blank row between them and a separator row at the start of each: a short rule, the hunk header and a rule to the right edge (`── @@ -1,3 +1,3 @@ ─────`, plain dashes in the ASCII set), drawn in the quiet colour, in the unified and the side-by-side view alike (it spans both sides); a long header wraps with the rule closing the last line.
-   Then `old new` line numbers, a `+`/`-`/space marker and the text.
-   Text is cut with an ellipsis while word wrap is off (the default).
-   `<space>vw` turns wrap on: a long row continues on the following screen lines under a blank gutter, `j`/`k` move by screen line, the title shows `[wrap]`, there is no horizontal scroll.
-   Tabs expand to 4-column stops and wide characters are never split.
-   `<space>vc` (or the `view ▾` dropdown; per tab, not saved; title `[ws]`) draws whitespace as quiet marks: a tab as `→` followed by spaces to the stop, each leading or inner space as `·`, each trailing space as the heavier `•`, a carriage return as `¶` (ASCII set: `>`, `.` for both kinds of space, `<`); these are the usual marks of editors, drawn in their own subtle colour, much dimmer than the muted text (about 2:1 to 3.5:1 against the background instead of 5:1 or more; #316, #736).
-   A mark takes the column of what it replaces, so wrapping and cutting do not change, and search, quick jump and copy still see the real text (a search match is highlighted in the drawn text, so a space typed in the search does not light up the marks that stand for it).
-   **Changed words** (#740, always on): inside a changed line the exact words that differ from the paired line are drawn on a tinted background (bold as well, underlined where there is no background colour: 16 colours and `NO_COLOR`), the rest of the line keeps the plain added or removed colour.
-   A run of removed lines is paired line by line with the added lines right after it, the same pairing as the side-by-side view, in the unified and the side-by-side diff alike, and the working-tree diff; a line without a partner (a pure insertion or deletion, context, a "no newline" marker between the runs) is not marked.
-   Lines are compared as words, runs of whitespace and single symbols (so indentation, a gained carriage return and a changed operator are marked); lines that share no word or symbol at all (rewritten, not edited) get no marks, the line colour already says it; a line over 2000 characters, a run of over 2000 changed lines and a changed part too big for a 200-by-200 word table are not compared (the part is marked whole), so a huge diff costs only its visible rows.
-   Whitespace marks inside a changed word sit on the same tint.
-   A search match and the selected row keep their own look over the tint.
+4. **Buttons.** The right end of the title row has chips (`‹ file`, `file ›`, `‹ hunk`, `hunk ›` and `view ▾`, which is always the rightmost; a file's content has `wrap` and `zoom` instead); each is the mouse path of a key (Mouse table) and shows that key from the keymap of the diff's view before its label (`[c ‹ hunk`), so rebinding follows. A pane too narrow for the keys drops them first, then drops buttons (see Mouse). The working-tree diff also puts its staging chips on the first line of the current change group, with their keys (`<space>a stage  <space>d discard`). Quick repeated clicks on a button each count; a drag selects a range of rows.
+5. **Rows.** Hunks are told apart by a blank row and a separator row at the start of each: a short rule, the hunk header and a rule to the right edge (plain dashes in the ASCII set), in the quiet colour, spanning both sides in the side-by-side view. Then `old new` line numbers, a `+`/`-`/space marker and the text. Text is cut with an ellipsis while word wrap is off (the default); `<space>vw` turns wrap on (a long row continues on following screen lines, `j`/`k` move by screen line, title `[wrap]`, no horizontal scroll). Tabs expand to 4-column stops and wide characters are never split.
+   `<space>vc` (or the `view ▾` dropdown; per tab, not saved; title `[ws]`) draws whitespace as quiet marks: a tab as `→`, each leading or inner space as `·`, each trailing space as `•`, a carriage return as `¶` (ASCII: `>`, `.`, `<`), in their own subtle colour. A mark takes the column of what it replaces, so wrapping, search, quick jump and copy see the real text.
+   **Changed words** (always on): inside a changed line the exact words that differ from the paired line are drawn on a tinted background (bold as well, underlined where there is no background colour: 16 colours and `NO_COLOR`). A run of removed lines is paired line by line with the added lines right after it, as in the side-by-side view, in the unified, side-by-side and working-tree diffs; a line without a partner is not marked. Lines are compared as words, runs of whitespace and single symbols; lines that share no word or symbol (rewritten, not edited) get no marks; very large lines or runs are not compared (the part is marked whole), so a huge diff costs only its visible rows. Whitespace marks inside a changed word sit on the same tint; a search match and the selected row keep their own look over it.
    The conflict editor marks words the same way in every layout (#740, #764).
    Where the base is shown (three panes, or below the sides after `B`) and the hunk has one, the words of the ours (removed tint) and theirs (added tint) lines that differ from the base line of the same row are marked, and the base words either side changed are marked on the removed tint (the union of its differences against both); only on rows where ours and theirs differ.
    Without a shown base the ours and theirs lines are compared with each other.
    A side line without a base line in its row is not marked.
    Binary files, renames without edits, mode changes and "no newline" markers get a note row; parser warnings (such as invalid UTF-8 in the patch) show as a red `!` row above the first file.
-6. **Options** (per tab, not saved with the session): `+`/`-` show 3 more/fewer unchanged lines around each change (title `[ctx N]`), `<space>vf` shows whole files (`[file]`), `<space>vi` ignores whitespace-only changes (`[-w]`).
-   `+`/`-` start the repeat mode (see Modes), so more presses, also after choosing them in the `view ▾` dropdown, need no prefix; the title shows `[repeat]` until `Esc` or another key.
-   Each reloads the commit with git's `-U<n>` / `-w` (the cache is dropped, the cursor returns to the same file).
-   - In whole-file mode `]c`/`[c` still visit each group of changes, grouped as git's own hunks would be for the current context (changes closer than twice the context lines are one hunk), and the title's `hunk n/m` counts those groups.
-     The grouping uses the context set with `+`/`-` (3 by default), not a `diff.context` from the user's config.
-   - The options reset when the tab's repository is reloaded; a user's `diff.context` config applies until the first change. Files whose changes are whitespace-only stay in the file list but have no diff while `[-w]` is on.
-7. **Side by side** (`<space>vs` or the `view ▾` dropdown; per tab, not saved; title `[split]`).
-   The old side on the left with its line numbers, the new side on the right, a vertical rule between.
-   Unchanged lines appear on both sides; a run of removed lines is paired line by line with the added lines after it (the shorter side stays blank); file and hunk headers and notes span both sides.
-   - It needs a pane of 80 text columns; on a narrower pane the unified rows stay and the title says `[split 80+]` (zoom to get room).
-   - The cursor is one line of the pair: the old side's row (the new side's for an added-only line). `y` copies that row, `Y` still copies the file's rows in diff order, and a Visual range copies from the first row of its first line to the last row of its last line, in diff order.
-   - Wrap wraps each side inside its half and a line takes as many screen lines as its longer side. Search, `]c`, `]f` and the options work as in the unified view (a match on either side puts the cursor on its line).
+6. **Options** (per tab, not saved with the session): `+`/`-` show 3 more/fewer unchanged lines around each change (title `[ctx N]`, and they start the repeat mode, see Modes), `<space>vf` shows whole files (`[file]`), `<space>vi` ignores whitespace-only changes (`[-w]`; whitespace-only files stay in the list without a diff). Each reloads the commit with git's `-U<n>` / `-w` (the cache is dropped, the cursor returns to the same file). In whole-file mode `]c`/`[c` still visit each group of changes as git's hunks would group them for the context set with `+`/`-` (3 by default, not a `diff.context` from the config). The options reset when the tab's repository is reloaded; a user's `diff.context` applies until the first change.
+7. **Side by side** (`<space>vs` or the `view ▾` dropdown; per tab, not saved; title `[split]`). The old side on the left with its line numbers, the new side on the right, a vertical rule between; a run of removed lines is paired line by line with the added lines after it (the shorter side stays blank); file and hunk headers and notes span both sides.
+   - It needs a pane of 80 text columns; on a narrower pane the unified rows stay and the title says `[split 80+]`.
+   - The cursor is one line of the pair: the old side's row (the new side's for an added-only line). `y` copies that row, `Y` the file's rows in diff order, and a Visual range copies in diff order. Wrap wraps each side inside its half. Search, `]c`, `]f` and the options work as in the unified view.
 8. **Back.** `Esc` (or `Ctrl-h`) first clears an active search, then returns focus to the file list (beside the file list the diff stays; an on-demand diff closes). If the tab is changed away from Changes while the diff has focus, focus returns to the detail pane.
 9. **Limits.** A diff is capped at 400,000 rows and 100,000 lines per file (the last row, or the file's note row, says it was cut short).
    `<space>vl` loads the same commit again without the caps (the cursor stays on the same file; with nothing cut it only says so; binary files have no content to load and stay a note).
@@ -403,46 +219,24 @@ Outside Insert and Command mode a paste does nothing.
     Beside the file list it shows the file under the file cursor (the first one for a new commit); an on-demand diff keeps showing the same file if the new commit touches it, else the first one.
     A resize that makes room for the diff loads it at once; one that takes the room away returns focus from the diff to the file list.
     The status bar shows the keys of the focused pane.
-11. **File content** (Files tab, #511, #635).
-    Like the diff of the Changes tab, the pane sits beside the tree from the start (screens of 72 columns or more with the bottom strip) and shows the blob of the selected commit read-only for the file under the tree's cursor, so no key is needed.
-    With no file under the cursor (a folder row, a submodule, a tree still loading) it shows a placeholder (`Select a file to view its contents`).
-    Moving the cursor (`j`/`k`, a click, jumps) changes the content; the read is off the UI thread, starts 40 ms after the cursor rests and is cancelled when it moves on, and the old content stays until the new one arrives.
-    `J`/`K` scroll the content by a line and `D`/`U` by half a page from the tree (`Ctrl-d`/`Ctrl-u` page the tree).
-    `Enter` or a double-click on a file moves focus into the pane; `Esc` returns to the tree and the content stays; `Tab`/`Ctrl-w` and the zoom work as for Changes.
-    Where the diff is not shown beside the list (narrow or short screens) the content opens on demand with `Enter` or a double-click, takes focus and replaces the detail pane (zoomed under 14 rows), and `Esc` closes it.
-    The title reads `File  <n> lines  <path>` (`File` alone on the placeholder); the rows are the lines, each with one line number column and no change marker (side by side does not apply).
-    The 1 MiB blob limit is the only cap: a file of blank lines is about 1M rows and is shown in full (measured in `docs/performance.md`); a binary file shows a note.
-    Scrolling, `/` search with `n`/`N`, quick jump, `<space>vw` wrap and the mouse work as in a diff; `y` copies the line, `Y` the whole file as plain text; the status bar hints and the title buttons name no hunk, file or diff option (only `zoom` and `wrap` remain as buttons).
-    In the pane `]f`/`[f` move the tree's cursor to the next / previous file row (folders and submodules are skipped; `No next file` / `No previous file` at the ends; on demand they say the content has no other files to jump to), `]c`/`[c` say the content has no changes, and `+`/`-`/`<space>vf`/`<space>vi` say the content has no diff options.
-    Neither `]f` nor `]c` is bound in the tree itself.
-   - The blob is read with `cat-file blob` off the UI thread (title shows `Loading...` meanwhile).
-     Over 1 MiB (judged from the size in the tree listing, so nothing is read) the pane says `File too large to show (<size>, the limit is 1.0 MB)`; a file with a NUL byte in its first 8000 bytes says `Binary file (<size>): its content is not shown`; an empty file says `Empty file`; a submodule has no content (status notice).
-     CRLF line ends are shown without the CR; invalid UTF-8 shows as replacement characters.
-     A symbolic link shows the target path it stores.
-     Filters and `.gitattributes` text conversions are not applied: it is the stored blob.
-   - The content belongs to the commit and the Files tab: selecting another commit in the graph shows the placeholder until that commit's tree has loaded, and switching to another tab leaves it (the pane follows the selection again where it is shown beside the file list).
+11. **File content** (Files tab). Like the diff of the Changes tab, the pane sits beside the tree from the start (72 columns or more with the bottom strip) and shows the blob of the selected commit read-only for the file under the tree's cursor, so no key is needed. With no file under the cursor (a folder, a submodule, a tree still loading) it shows `Select a file to view its contents`. The read is off the UI thread, starts 40 ms after the cursor rests and is cancelled when it moves on; the old content stays until the new one arrives.
+    `J`/`K` scroll the content by a line and `D`/`U` by half a page from the tree (`Ctrl-d`/`Ctrl-u` page the tree). `Enter` or a double-click on a file moves focus into the pane; `Esc` returns to the tree; `Tab`/`Ctrl-w` and the zoom work as for Changes. Where the diff is not shown beside the list the content opens on demand, as the diff does. The title reads `File  <n> lines  <path>`; rows have one line number column and no change marker.
+    The 1 MiB blob limit is the only cap (a file of blank lines is about 1M rows, shown in full). Over 1 MiB (judged from the tree listing, so nothing is read) the pane says `File too large to show (<size>, the limit is 1.0 MB)`; a NUL byte in the first 8000 bytes says `Binary file (<size>): its content is not shown`; an empty file says `Empty file`; a submodule has no content; a symbolic link shows its target path. CRLF is shown without the CR; invalid UTF-8 shows as replacement characters; filters and `.gitattributes` conversions are not applied.
+    Scrolling, `/` search, quick jump, `<space>vw` wrap and the mouse work as in a diff; `y` copies the line, `Y` the whole file. In the pane `]f`/`[f` move the tree's cursor to the next / previous file row (`No next file` / `No previous file` at the ends), while `]c`/`[c` and the diff options say the content has none. The content belongs to the commit and the Files tab: selecting another commit shows the placeholder until its tree has loaded.
 
 ### 2. Working-tree view: stage, commit, amend, discard
 
-The working tree is a separate view of the tab, not a graph pane or pseudo-row.
-It has its own views for the keymap (`WorkingUnstaged`, `WorkingStaged`, `WorkingUnstagedDiff`, `WorkingStagedDiff`, `WorkingMessage`); they inherit `Lists` and `Global`, and the diffs the `Diff` navigation rows.
-Everything specified here is built.
+The working tree is a separate view of the tab, not a graph pane or pseudo-row. Its keymap views are `WorkingUnstaged`, `WorkingStaged`, `WorkingUnstagedDiff`, `WorkingStagedDiff`, `WorkingMessage`; they inherit `Lists` and `Global`, and the diffs the `Diff` navigation rows.
 
 **Layout.** Left column: the `Unstaged` list on top (conflicted files first in their own group, then modified, deleted, renamed and untracked files, each with its status letter and path) and the `Staged` list below it, each titled with its count.
 Right: the diff of the file under the cursor and, below it, the message box with an option row `[ ] SignOff  [ ] No-Verify  [ ] Amend` and a `Commit` button (it shows its key, `Ctrl-g`, and drops it on a narrow row).
 The sidebar is hidden (the view gets the whole width); the tab bar stays.
-- Status letters: `M` `A` `D` `R` `C` `T`, `?` untracked, `!` conflicted (with the kind of conflict). A rename or copy shows as `old -> new` in Staged, an edit of the renamed file under its new path in Unstaged. A path that is not valid UTF-8 shows its stray bytes as replacement characters.
-- Ignored files are in no list. List order follows git's, except that conflicted files come first.
-- Terminals under 80 columns show one pane at a time (the focused list shows, `Tab` switches; the focused diff replaces the list, as in 1c).
-  Under 7 rows of content the two lists do not stack and the focused one takes the left column.
-  Under 12 rows the message box shows only while it has focus, in place of the diff area.
-- Lists and diff follow the pane, selection, zoom and diff option rules of workflows 1 and 1c.
+- Status letters: `M` `A` `D` `R` `C` `T`, `?` untracked, `!` conflicted. A rename or copy shows as `old -> new` in Staged. Ignored files are in no list. List order follows git's, except that conflicted files come first.
+- Terminals under 80 columns show one pane at a time (the focused list shows, `Tab` switches; the focused diff replaces the list). Under 7 rows of content the two lists do not stack; under 12 rows the message box shows only while it has focus, in place of the diff area.
 
 **Open and leave.** `<space>s` toggles the view for the active tab; so do a click on the tab's dirty marker and the palette entry `Open or leave the working tree`. The history status bar hints `<space>s working tree` right after `j/k move` in the graph, sidebar and detail panes.
 - The view is per tab: a tab keeps its view mode, cursors, draft message and option checkboxes while another tab or the history is shown. The view mode is not saved with the session (a restart opens on the history); the draft is.
-- Leave with `Esc` from a list (back to the history with the same graph selection) or `<space>s` again; bare `h` only folds and climbs in the tree style, see "Tree style in the lists".
-  `Esc` in the diff and the message box steps back to the lists first (the 1c rule).
-  `q` quits from every pane.
+- Leave with `Esc` from a list (back to the history with the same graph selection) or `<space>s` again. `Esc` in the diff and the message box steps back to the lists first. `q` quits from every pane.
 - Opening focuses the first non-empty list (Unstaged, else Staged). A clean tree shows "Nothing to commit, working tree clean"; the message box stays usable for Amend.
 
 **Focus.** `Tab`/`Shift-Tab` cycle Unstaged, Staged, Diff, Message.
@@ -451,59 +245,23 @@ The sidebar is hidden (the view gets the whole width); the tab bar stays.
 `y` copies the file's or folder's path.
 `<space>1`..`<space>4` jump straight to Unstaged, Staged, Diff (of the file under the cursor) and Message from any pane, including the message box in Normal mode; not in Insert mode, where space is text (`Esc` first).
 
-**Tree style in the lists (#617).** `<space>vn` cycles name first, full path and tree for both lists, as on the Changes tab (same rows: folders before files, each level in ordinal order, a folder with its files indented below it; an untracked directory stays one file row, `dir/`).
-Every row is a file or a folder, and everything that acts on rows goes through the row-to-file map of the state (`WorkingRows`), never through the row number as a file number.
-- **Cursor.** `j`/`k`, `gg`/`G`, ranges and clicks move over folder and file rows; `za` or a click opens and closes the folder under the cursor (a double-click leaves the fold as it was and stages or unstages the folder, #622; each list keeps its own closed folders per tab, not saved with the session; a refresh keeps them); `h` closes an open folder, else moves to the parent folder, else does nothing; `l` opens a closed folder.
-  A closed folder shows its file count (`src/  3 files`).
-  The cursor stays on the same file or folder when the style or a fold changes (on the folder that hides it, or, going to a flat style, on the first file under a folder); after a stage or unstage it stays at the same row, as in the flat styles.
-- **Folder diff.** A folder row selects the combined diff of every file under it, hidden ones in a closed folder included (the working-tree diff for Unstaged, the index diff for Staged, files in list order; the same row and per-file limits, and at most 200 files, one git call each: a longer folder ends with "Showing the first 200 of N files; M more files left out (<space>vl loads all of them)", #625).
-  The title reads `Diff  unstaged  change n/m  src/`.
-  Hunks and lines cannot be staged or discarded from it (the status bar says to pick a file); `Enter` focuses it, `y` copies the folder path, `]f`/`[f` from it go to the next / previous file row.
-- **Stage and unstage.** `<space>a` / `<space>u` (and a double-click) on a folder row act on every file under it in one call to the index (conflicted files skipped and counted; status "Staged src/ (3 files)"); no confirm, as for files.
-  In a Visual range a folder row stands for all the files under it, each file counted once, also when its own row is in the range.
-- **Discard.** `<space>d` on a folder row opens one Confirm, "Discard changes to N files in src/?", that counts every file under the folder (hidden ones too), names the untracked ones (deleted from disk) and says it cannot be undone, like a range of files; `n`/`Esc` do nothing.
-  Conflicted files, submodules and unreadable names are left out and counted.
-  Same for a range with folder rows.
+**Tree style in the lists.** `<space>vn` cycles name first, full path and tree for both lists, as on the Changes tab (an untracked directory stays one file row, `dir/`). Everything that acts on rows goes through the row-to-file map of the state (`WorkingRows`), never through the row number as a file number.
+- **Cursor.** `j`/`k`, `gg`/`G`, ranges and clicks move over folder and file rows; `za` or a click opens and closes a folder (a double-click leaves the fold as it was and stages or unstages the folder; each list keeps its own closed folders per tab, not saved with the session); `h` closes an open folder, else moves to the parent folder; `l` opens a closed folder. The cursor stays on the same file or folder when the style or a fold changes; after a stage or unstage it stays at the same row.
+- **Folder diff.** A folder row selects the combined diff of every file under it, hidden ones included (at most 200 files, one git call each; a longer folder ends with "Showing the first 200 of N files; M more files left out (<space>vl loads all of them)"). Hunks and lines cannot be staged or discarded from it (the status bar says to pick a file); `Enter` focuses it, `y` copies the folder path, `]f`/`[f` go to the next / previous file row.
+- **Stage, unstage, discard.** `<space>a` / `<space>u` (and a double-click) on a folder row act on every file under it in one index call (conflicted files skipped and counted; no confirm). In a Visual range a folder row stands for all its files, each counted once. `<space>d` on a folder row opens one Confirm, "Discard changes to N files in src/?", counting every file under it (hidden ones too), naming the untracked ones (deleted from disk) and saying it cannot be undone; conflicted files, submodules and unreadable names are left out and counted. The same holds for a range with folder rows.
 
 **Side-specific keys.** Each list and each diff side is its own view for the keymap, so help and hints show only what applies: `<space>a`, `<space>A`, `<space>d` exist only on the Unstaged side, `<space>u`, `<space>U` only on the Staged side; the other key there is unbound, not a no-op.
 
-**The diff.** The right box shows the diff of the file under the cursor of the focused list, read off the UI thread with the history diff's limits: the working-tree diff for Unstaged, the index diff for Staged (both paths of a rename), an untracked file as additions, a binary file as a note, and a conflicted file as the combined diff (one file; each line added, removed or context as in the result, with the result's line numbers; the per-parent columns are not shown).
-It is the same widget as the history diff (hunk jumps, wrap, context, whole file, ignore whitespace, split, search, `y`/`Y`, load anyway).
-The title reads `Diff  unstaged|staged  change n/m  <path>`.
-Here a unit is a change group, not a hunk of the patch: every run of consecutive added/removed lines (separated by unchanged lines) is its own unit, even when the patch merged several into one hunk (changes less than twice the context apart).
-The group under the cursor (the cursor on unchanged lines belongs to the group above) is highlighted: a bar in the left margin of each of its rows (`│`, `|` in the ASCII set) and, in the 24-bit schemes, a quiet tint behind them (`GroupBackground`, below the selection tint); the 16-colour and `NO_COLOR` tiers have the bar alone.
-The mark is off while a Visual range is open, since the range is then what the keys act on.
-The staging buttons in the title row, and the same chips on the group's first line, act on this group.
-`]c`/`[c`, the title count and the stage, unstage and discard keys all use these groups, always (the history diff keeps the patch's own hunks: only the working tree stages, decided in #386).
-- It follows the cursor and reloads after every status read, also when the file's status letters did not change (a second edit), keeping the cursor row. A path that is not valid UTF-8 shows its diff too, with replacement characters.
-- Zoom (`<space>z` or the `zoom` entry of the `view ▾` dropdown) gives the diff the whole view (lists and message box hidden) until focus leaves the diff or zoom is used again.
+**The diff.** The right box shows the diff of the file under the cursor of the focused list, read off the UI thread with the history diff's limits: the working-tree diff for Unstaged, the index diff for Staged (both paths of a rename), an untracked file as additions, a binary file as a note, and a conflicted file as the combined diff (one file, each line added, removed or context as in the result). It is the same widget as the history diff (hunk jumps, wrap, context, whole file, ignore whitespace, split, search, `y`/`Y`, load anyway); the title reads `Diff  unstaged|staged  change n/m  <path>`; `<space>z` (or `zoom` in the `view ▾` dropdown) gives it the whole view.
+Here a unit is a change group, not a hunk of the patch: every run of consecutive added/removed lines is its own unit, even when the patch merged several into one hunk. The group under the cursor (on unchanged lines, the group above) is highlighted by a bar in the left margin (`│`, `|` in ASCII) and, in 24-bit schemes, a quiet tint (`GroupBackground`); the mark is off while a Visual range is open. The staging buttons in the title row and on the group's first line, `]c`/`[c`, the title count and the stage, unstage and discard keys all use these groups (the history diff keeps the patch's own hunks). The diff follows the cursor and reloads after every status read, keeping the cursor row.
 
-**Stage and unstage.** All run off the UI thread, one operation per tab at a time (a key pressed meanwhile says "busy").
-When one is done the tab re-reads its status and the cursor lands on the same index, so the keys repeat.
-Failures show git's message in the status bar.
-Paths are always passed literally.
-1. **Files.** `<space>a` in Unstaged stages the file under the cursor (a deletion or rename as git reports it); `<space>u` in Staged unstages it (a rename unstages both paths).
-   `<space>A` stages all (conflicted files skipped, the count reported), `<space>U` unstages all.
-   Neither needs a confirm, since nothing is lost.
-   A double-click on a row does the same as the key.
-2. **Ranges of files.** `v` or a mouse drag in a list starts a Visual range (rows drawn stronger than the selected row); the motions move its far end, `<space>a`/`<space>u` act on every file of the range in one git call (conflicted files skipped and counted, as in stage all), and `y` copies the paths one per line.
-   The range ends when the operation starts, or on a click, `Esc`, `q`, `v`, a change of focus, or a refresh that changes the list (the status bar then says "Selection ended: the rows changed").
-   The title rows have `stage all` / `unstage all` buttons at the right end, showing their key (`<space>A stage all`, `<space>U unstage all`) when the row is wide enough, label-only when narrower and left out when there is no room; the `stage all` key goes before the `path` chip does (#578).
-3. **Hunks and lines.** In the diff of an Unstaged file `<space>a` stages the change group under the cursor (the cursor on unchanged lines belongs to the group above); in the diff of a Staged file `<space>u` unstages it.
-   The patch of a group is built like a Visual range patch, so the other groups of the same hunk stay as they were.
-   `v` (or a drag) starts a Visual range in the diff and `<space>a`/`<space>u` then act on the added and removed lines inside it only (context, header and note rows are ignored; a range with no change is refused).
-   The range survives a refresh that brings the same diff rows (a file watcher or fetch reload with no change, #806); if the rows really changed it ends, as it does on a wrap, side-by-side or width change, and the status bar says "Selection ended: the rows changed". The cursor stays where it was while the range survives.
-   A double-click on a diff row acts on its change group.
-   - The patch is never taken from the rows on screen: the file's diff is read again with git's default context (so the context, whole-file and whitespace options do not matter), the picked lines are found in it by line number and text, and the resulting patch is applied to the index.
-     Git refuses a patch that does not apply and leaves the index alone.
-     If a picked line is no longer in the file the operation stops with "changed since the diff was read" and the diff reloads.
-   - Lines of an untracked text file are staged like any other lines (the file is recorded as intent-to-add first; the rest stays an unstaged addition). A mode change is never part of a partial patch.
-   - Files that cannot be split (binary, staged-added, deleted, renamed without edits, untracked binary or symlink, a name that is not valid UTF-8) go whole when the key acts on the change group, and the status bar says so.
-     Lines picked in a Visual range are never widened to the whole file: the status bar warns "cannot be split into lines" and nothing changes.
-     A binary file has no hunks, so the key stages it whole.
-   - The keys are refused while the diff is loading, for a conflicted file, and while the diff is cut short (`<space>vl` loads all of it first).
-     Afterwards the status is read again and the cursor goes to the change group now at the same position (the next group when it was staged), or to the next file when the file is done.
-     A renamed file with edits can be split: the rename header travels with the patch.
+**Stage and unstage.** All run off the UI thread, one operation per tab at a time (a key pressed meanwhile says "busy"). When one is done the tab re-reads its status and the cursor lands on the same index, so the keys repeat. Failures show git's message in the status bar. Paths are always passed literally.
+1. **Files.** `<space>a` in Unstaged stages the file under the cursor; `<space>u` in Staged unstages it (a rename unstages both paths). `<space>A` stages all (conflicted files skipped, the count reported), `<space>U` unstages all. No confirm, since nothing is lost. A double-click on a row does the same as the key.
+2. **Ranges of files.** `v` or a mouse drag in a list starts a Visual range; the motions move its far end, `<space>a`/`<space>u` act on every file of the range in one git call (conflicted files skipped and counted), and `y` copies the paths one per line. The range ends when the operation starts, or on a click, `Esc`, `q`, `v`, a change of focus, or a refresh that changes the list (the status bar says "Selection ended: the rows changed"). The title rows have `stage all` / `unstage all` buttons showing their key when the row is wide enough.
+3. **Hunks and lines.** In the diff of an Unstaged file `<space>a` stages the change group under the cursor; in the diff of a Staged file `<space>u` unstages it; the other groups of the same hunk stay as they were. `v` (or a drag) starts a Visual range in the diff and the keys then act on the added and removed lines inside it only (a range with no change is refused). The range survives a refresh that brings the same diff rows; if the rows really changed, or on a wrap, side-by-side or width change, it ends and the status bar says so. A double-click on a diff row acts on its change group.
+   - The patch is never taken from the rows on screen: the file's diff is read again with git's default context, the picked lines are found in it by line number and text, and the resulting patch is applied to the index. Git refuses a patch that does not apply and leaves the index alone; if a picked line is no longer in the file the operation stops with "changed since the diff was read" and the diff reloads.
+   - Lines of an untracked text file are staged like any other lines (recorded as intent-to-add first). A mode change is never part of a partial patch. Files that cannot be split (binary, staged-added, deleted, renamed without edits, untracked binary or symlink, a name that is not valid UTF-8) go whole when the key acts on the change group, and the status bar says so; lines picked in a Visual range are never widened to the whole file: the status bar warns "cannot be split into lines" and nothing changes.
+   - The keys are refused while the diff is loading, for a conflicted file, and while the diff is cut short (`<space>vl` loads all of it first). Afterwards the cursor goes to the change group now at the same position (the next group when it was staged), or to the next file when the file is done.
 4. **Conflicted files** show `!`.
    `<space>a` (or a double-click) on one opens a Confirm, "Mark X as resolved?", saying that conflict markers still in the file are not removed or checked and that `git checkout --merge <file>` re-creates the conflict (overwriting the file's current content).
    `y` runs `git add` on it (status: "Marked X resolved").
@@ -511,57 +269,26 @@ Paths are always passed literally.
    The banner with continue, abort and skip and the mergetool key are built (workflow 4); `Enter` (or `<space>to`) on a conflicted file opens the built-in conflict editor (workflow 4, item 2a); its mouse path is the `resolve` chip in the Unstaged title row, shown while the cursor is on a conflicted file (a double-click keeps asking "Mark X as resolved?").
 5. Every action is also a palette entry. The lists refresh from the tab's status after each operation and by polling; `<space>r` forces a refresh.
 
-**Discard.** Nothing discarded can be undone: git keeps no copy, so there is no reflog hint and no dangling stash; the Confirm dialog is the safety.
-`<space>d` on a file in Unstaged, or on a change group or Visual lines in the Unstaged diff, opens a Confirm that names what is lost; `y` runs it.
-There is no key for discarding staged changes (unstage first) and no "discard all".
-- **Dialog texts:** "Discard all unstaged changes to X?" (plus "The deleted file is restored from the index." for a file deleted on disk and "Its staged changes are kept." when the file also has staged changes), "Discard this change (N lines) of X?", "Discard the N selected lines of X?", and for an untracked file "Delete the untracked file X?" (an untracked directory: "...and everything in it").
-- **What happens:** a tracked file is put back as the index has it (staged changes stay).
-  An untracked file is deleted from disk, but never a tracked or an ignored path.
-  Change groups and lines are cut from the file's unstaged diff, read again with git's default context (the same patches staging uses), and applied backwards to the working tree only; the index is never touched.
-  Git refuses a patch that does not apply and changes nothing; a line no longer in the file stops with "changed since the diff was read".
-- **Whole file behind a hunk key:** a file with no hunks to pick from (binary, deleted on disk, untracked) is discarded whole when the key acts on the hunk, and the dialog says so.
-  A file that shows hunks but cannot be cut (text that is not valid UTF-8, a renamed file with a quoted path) is refused with "cannot be split into hunks or lines ... nothing was discarded; discard the whole file from the list".
-  Lines picked in a Visual range are never widened to the whole file.
-- **Ranges of files:** one Confirm, "Discard changes to N files?", names the untracked files, which are deleted (the first five, then a count), and says it cannot be undone.
-  The range ends when `y` is answered; `n`/`Esc` keep it.
-  Conflicted files, submodules and untracked names that are not valid UTF-8 are left out and counted in the dialog.
-  Files go in batches (one restore for the tracked files, then one clean for the untracked, in chunks of 64 paths); if one fails the status bar says so and that the tracked files may already be restored.
-- **Refused before the dialog:** a conflicted file, a submodule, and an untracked name that is not valid UTF-8 on an OS without a byte-exact delete (Windows, macOS; Linux deletes it by its exact bytes behind the same dialog).
-- Same busy rule as staging. The discard buttons and mouse path are in the Mouse section.
+**Discard.** Nothing discarded can be undone: git keeps no copy, so there is no reflog hint; the Confirm dialog is the safety. `<space>d` on a file in Unstaged, or on a change group or Visual lines in the Unstaged diff, opens a Confirm that names what is lost; `y` runs it. There is no key for discarding staged changes (unstage first) and no "discard all".
+- **Dialog texts:** "Discard all unstaged changes to X?" (plus a note when a deleted file is restored from the index or its staged changes are kept), "Discard this change (N lines) of X?", "Discard the N selected lines of X?", "Delete the untracked file X?" (an untracked directory: "...and everything in it"); for a range, "Discard changes to N files?" naming the untracked files, which are deleted (the first five, then a count). `n`/`Esc` keep the range.
+- **What happens:** a tracked file is put back as the index has it (staged changes stay). An untracked file is deleted from disk, but never a tracked or an ignored path. Change groups and lines are cut from the file's unstaged diff, read again with git's default context, and applied backwards to the working tree only; the index is never touched. A line no longer in the file stops with "changed since the diff was read". Files go in batches (one restore for the tracked files, then one clean for the untracked, in chunks of 64 paths); if one fails the status bar says so and that the tracked files may already be restored.
+- **Whole file behind a hunk key:** a file with no hunks to pick from (binary, deleted on disk, untracked) is discarded whole when the key acts on the hunk, and the dialog says so. A file that shows hunks but cannot be cut (text that is not valid UTF-8, a renamed file with a quoted path) is refused with "cannot be split into hunks or lines ... nothing was discarded"; lines picked in a Visual range are never widened to the whole file.
+- **Refused before the dialog:** a conflicted file, a submodule, and an untracked name that is not valid UTF-8 on an OS without a byte-exact delete (Windows, macOS; Linux deletes it by its exact bytes). Same busy rule as staging.
 
 **Message and commit.**
 1. **Writing.** `<space>c` (from a list or the diff) focuses the message box and enters Insert mode.
    The built-in editor: the first line is the subject, a blank line then the body; the title counts the subject width as `12/72` and the part past column 72 is an error-coloured hint, never enforced.
    `Esc` leaves Insert mode but stays in the box (#748): the box has its own Normal mode, the status bar says NORMAL and the cursor stays visible.
-   Normal-mode keys, a vim subset (counts are ignored here):
-   `h` `j` `k` `l` move the cursor inside the text (`h`/`l` stop at the line ends, `j`/`k` keep the display column), `w`/`b` go to the next or previous word, `0`/`$` to the line start or end;
-   `i` and `Enter` insert at the cursor, `a` after it, `I` at the line start, `A` at the line end, `o` opens a line below;
-   `x` deletes the character under the cursor, `dd` the line, `u` undoes the last change (an Insert session counts as one change, and one that typed nothing, ended by `Esc` or by a focus move (`Tab`, click, tab switch), leaves no undo point, and neither do `x` on an empty line or `dd` on empty text; the history is kept while the tab lives, not in the session file).
-   Leaving the box (Normal mode; in Insert mode these are editing keys) is `Ctrl-h`/`Ctrl-j`/`Ctrl-k`/`Ctrl-l`, `Ctrl-w` plus a direction, `Tab`, `<space>1`..`<space>3`, or `Esc` in Normal mode (back to the lists); bare `h`/`j`/`k`/`l` never leave it.
-   The status bar names the pane-move keys on every pane (`Ctrl-h/j/k/l pane`; second in the message box, last elsewhere so a narrow bar cuts it first); it keeps that spelling in the box too, since `Ctrl-w h/j/k/l` and `Tab` are the fallbacks for terminals that deliver `Ctrl-h` as Backspace (key notes in the keymap section).
-   Vim differences kept on purpose: `I` goes to column 0, not the first non-blank character; `l` can rest past the last character (the append position); counts (`3x`) are ignored.
-   A click in the box places the cursor at the pointer before it starts Insert mode.
-   - Editor keys (Insert mode;
-     not rebindable rows in the Keymap table): typed text and pastes insert at the cursor (line endings become new lines);
-     `Enter` is a new line;
-     `Backspace`/`Delete` join lines at their ends;
-     `Left`/`Right` wrap across lines;
-     `Up`/`Down` keep the display column (a wide character takes two, a shorter line clamps the cursor and the wanted column returns on the next longer line);
-     `Tab` inserts spaces up to the next multiple of four (no tab character;
-     `Shift-Tab` does nothing);
-     `Home`/`End` and `Ctrl-a`/`Ctrl-e` go to the line edges;
-     `Ctrl-u` deletes to line start, `Ctrl-k` to line end, `Ctrl-w` the previous word.
-     The cursor never splits a wide character, emoji sequence or combining mark.
-   - Lines are not wrapped on screen: the cursor's line scrolls sideways, and the box scrolls vertically with the cursor line.
+   Normal-mode keys, a vim subset (counts are ignored): `h` `j` `k` `l` move the cursor inside the text, `w`/`b` word motions, `0`/`$` line start or end; `i` and `Enter` insert at the cursor, `a` after it, `I` at the line start, `A` at the line end, `o` opens a line below; `x` deletes the character under the cursor, `dd` the line, `u` undoes the last change (an Insert session counts as one change; the history is kept while the tab lives, not in the session file). Vim differences on purpose: `I` goes to column 0; `l` can rest past the last character.
+   Leaving the box (Normal mode; in Insert mode these are editing keys) is `Ctrl-h`/`Ctrl-j`/`Ctrl-k`/`Ctrl-l`, `Ctrl-w` plus a direction, `Tab`, `<space>1`..`<space>3`, or `Esc` in Normal mode; bare `h`/`j`/`k`/`l` never leave it. The status bar names the pane-move keys on every pane (`Ctrl-h/j/k/l pane`), since `Ctrl-w h/j/k/l` and `Tab` are the fallbacks for terminals that deliver `Ctrl-h` as Backspace. A click in the box places the cursor before it starts Insert mode.
+   - Editor keys (Insert mode; not rebindable rows in the Keymap table): typed text and pastes insert at the cursor; `Enter` is a new line; `Backspace`/`Delete` join lines at their ends; `Left`/`Right` wrap across lines; `Up`/`Down` keep the display column; `Tab` inserts spaces up to the next multiple of four (`Shift-Tab` does nothing); `Home`/`End` and `Ctrl-a`/`Ctrl-e` go to the line edges; `Ctrl-u` deletes to line start, `Ctrl-k` to line end, `Ctrl-w` the previous word. The cursor never splits a wide character, emoji sequence or combining mark. Lines are not wrapped on screen: the cursor's line scrolls sideways.
 2. **Draft.** The message, SignOff and No-Verify (not Amend) are kept per tab until a commit succeeds, and saved in the session file (debounced after each edit and on exit) so they survive restarts.
    Quitting never loses a message: `q` quits at once; only when the final save fails while a message is unsent does the first `q` warn and the next one leave.
    Locating a missing tab moves its draft to the replacing tab (when that tab holds a message of its own, both stay and a notice says so).
    Closing a tab with an unsent message needs a second `Ctrl-w c` (workflow 0).
 3. **Options.** `Alt-s` (SignOff, `-s`), `Alt-n` (No-Verify, `--no-verify`) and `Alt-a` (Amend) toggle from anywhere in the view including Insert mode, or by clicking the checkboxes. All start off; hooks run unless No-Verify is on.
 4. **Commit.** `Ctrl-g` in Insert mode, `<space>c` in the box's Normal mode, or the `Commit` button.
-   There is no `Alt-Enter` (Windows Terminal turns it into fullscreen); the other options fall back to the checkboxes and the palette.
-   (Verified in tmux on Linux with Terminal.Gui 2.5.0: `Alt-s`/`-n`/`-a` arrive as Alt plus the letter.
-   Windows and macOS terminals are not verified.)
+   There is no `Alt-Enter` (Windows Terminal turns it into fullscreen); the other options fall back to the checkboxes and the palette. `Alt-s`/`-n`/`-a` arrive as Alt plus the letter (verified in tmux on Linux with Terminal.Gui 2.5.0; Windows and macOS terminals are not verified).
    - The message goes to `git commit -F -` on stdin, so comment lines (`#`) are kept, unlike a commit through `$EDITOR`.
      Hooks, signing and the author come from the user's git config.
      The commit runs off the UI thread with a 10 minute timeout so hooks can run; the box is read-only meanwhile, and `Esc` cancels it (git is killed, the draft stays; the notice says to check the history, because git may have finished first).
@@ -583,9 +310,7 @@ There is no key for discarding staged changes (unstage first) and no "discard al
    Files a hook rewrites show as new unstaged changes after the refresh.
    A commit that fails on a tab that is not active leaves the status bar notice and keeps its output; the overlay opens once that tab is shown.
 
-**Key labels and ligatures (#753).** Ligature fonts draw `<space>=` as `>=`.
-Key labels in help, the palette, context menus, which-key and the status bar therefore get a thin space (U+2009, one cell wide) between a `>` and a following `=`, `-` or `>`; the config file and the Settings key reference (whose text is also filtered and copied into config snippets) keep the plain text.
-Fonts that still join other pairs need ligatures turned off in the terminal font.
+**Key labels and ligatures.** Key labels in help, the palette, context menus, which-key and the status bar get a thin space (U+2009) between a `>` and a following `=`, `-` or `>`, so ligature fonts do not draw `<space>=` as `>=`; the config file and the Settings key reference keep the plain text.
 
 **Key rule.** Standard vim/neovim keys keep their vim meaning (`j` `k` `h` `l` `gg` `G` `/` `n` `N` `v` `y` `i` `Ctrl-d` `Ctrl-u` ...): `h` `j` `k` `l` move inside a pane and never between panes, which is `Ctrl-h` `Ctrl-j` `Ctrl-k` `Ctrl-l` (#834; supersedes the `h` `l` navigation exception of #338 and the `l`/`h` focus moves of #198).
 The modal screens that replace the panes (reflog, rebase todo, conflict editor, settings, help) are not panes: there `h` still closes or steps back.
@@ -598,10 +323,7 @@ In an Insert-mode picker or prompt printable keys are text (they filter or are t
   The conflict editor (#689) binds bare `n` `N` `o` `t` `b` `u` for the same reason: it is a modal like the rebase todo editor and shadows the search keys there.
   The settings screen (#523) is a modal list, not a buffer, so its view keys `x` `a` `d` `J` `K` `+` `-` are bare on purpose (owner to confirm, asked in the PR of #523).
 
-**Mouse.** Same action path as keys.
-A click on a file row selects it and a double-click stages or unstages it (a deliberate deviation from "double-click opens": the diff already follows the selection).
-The diff's title row gets `stage`/`unstage` and `discard` buttons next to the hunk buttons; the list titles get `stage all`/`unstage all`; the `SignOff`, `No-Verify` and `Amend` checkboxes toggle and `Commit` commits; a drag over diff rows or file rows starts a Visual range; a click on the tab's dirty marker opens the view; a click on the diff box focuses it (on screens of 80 columns or more; narrow screens use the `diff ›` chip of the list's title row, #376).
-The discard itself is reached from the palette, not a list button.
+**Mouse.** Same action path as keys. A click on a file row selects it and a double-click stages or unstages it (a deliberate deviation from "double-click opens": the diff already follows the selection). The diff's title row gets `stage`/`unstage` and `discard` buttons next to the hunk buttons, the list titles `stage all`/`unstage all`; the checkboxes toggle and `Commit` commits; a drag over diff rows or file rows starts a Visual range; a click on the tab's dirty marker opens the view. Narrow screens use the `diff ›` chip of the list's title row. Details: Mouse table.
 
 ### 3. Branches, tags, merge, cherry-pick, reset and the reflog (M3)
 
@@ -807,48 +529,23 @@ A hunk without a pick keeps its conflict markers in the result, so a partial sav
    Staging, committing (as the continue step) and viewing keep working.
 6. **Completion.** A continue that finishes the operation posts "Merged feature/x into main (abc1234)" or the equivalent and removes the banner.
 
-### 5. Fetch, pull and push (M4, keys planned here)
+### 5. Fetch, pull and push
 
-`<space>F` fetch the current branch's remote with `--prune` (all remotes: `remote.fetch-all` from the palette or the Remotes header menu; no second key, #456), `<space>L` pull of the current branch (fast-forward only by default; a diverged branch says so instead of creating a merge commit), `<space>P` push of the current branch.
-Chips in the tab bar (`<space>F fetch`, `<space>L pull`, `<space>P push`, rows of 100 columns or more, the key text from about 127; a cancel chip replaces them while one runs) and the actions menu of the sidebar's Remotes header (the sidebar has no header chips since #469) carry the same actions; the chips are hidden while the repository picker is open (#744).
-A pull also takes the tab's operation gate (it moves the working tree); only one remote operation runs per tab, other tabs are unaffected, and the tab is read again afterwards.
-Each runs in the background with a progress line in the status bar (git's `--progress` output), `Esc` in the graph (or the cancel chip) cancels while it runs, only when nothing else claims it first (a Confirm is not needed; the status bar says "Fetch cancelled"), and the tab stays usable.
-`<space>x` stays the status message dismiss.
-`<space>RD` deletes a remote branch (`push --delete`, remote picker (skipped when only one remote has branches) then branch picker of the cached remote-tracking branches, Confirm naming both; the undo hint is `git push <remote> <old tip>:refs/heads/<branch>`; the local branch stays; with the cursor on a remote branch row, or on a graph commit that has exactly one remote branch, `<space>RD` skips the pickers and goes straight to the Confirm; `<space>bd` does the same when the graph commit has no local branch).
-`<space>P` on a branch without an upstream runs `push --set-upstream <remote> <branch>`: with one remote it pushes at once (no prompt for a choice that does not exist), with several it prompts for the remote (type-to-filter, `origin` first, #825).
-If that first push is rejected as a non-fast-forward (the remote already has a diverged branch of that name, known locally), the force push Confirm opens as for a plain push and also sets the upstream (only when the local tip is not an ancestor of the remote one: a branch that is just behind it gets a status line to pull or rebase and no force offer, #829; the Confirm says commits only on the remote are lost); when the remote branch is not known locally the status says to fetch first (#825).
-`<space>Rf` force pushes the current branch, only ever as `--force-with-lease=<branch>:<our remote-tracking tip>`, behind a Confirm that names the remote branch it overwrites and its current tip; if the remote moved since the last fetch git rejects it ("stale info") and nothing is overwritten.
-A branch without an upstream cannot be force pushed (push it first).
-A plain `<space>P` that git rejects as a non-fast-forward (a rewritten or diverged branch, #746) opens the same Confirm (which also says that commits only on the remote branch are gone afterwards) by itself when the branch is ahead of its upstream, right after the failure shows in the status bar (not for a "fetch first" rejection, where the lease would be stale too; not while another overlay is open).
-The chord is not `<space>Pd` because the key engine always waits for a longer chord (no timeout), so `<space>P` and `<space>Pd` cannot both exist; the new chords sit in the `<space>R` remote group, and all three actions are also in the Remotes header menu.
-The capitals `F` `L` `P` `S` `T` are not "all" variants of the lowercase keys; they are chosen because the lowercase leader keys are taken, and the palette shows the full sequences.
-When the graph or the sidebar has no suitable row selected for a stash or tag key, a picker opens.
-The runner and progress are #44, the keys, chips and mouse #456 (the first push, force push and remote branch delete are #457; the tag push already uses the runner; background calls never prompt, ssh runs in batch mode); the real-terminal credential retry is #45.
+`<space>F` fetches the current branch's remote with `--prune` (all remotes: `remote.fetch-all` from the palette or the Remotes header menu), `<space>L` pulls the current branch (fast-forward only; a diverged branch says so instead of creating a merge commit), `<space>P` pushes it. The tab bar chips and the actions menu of the sidebar's Remotes header carry the same actions; the chips are hidden while the repository picker is open. A pull also takes the tab's operation gate; only one remote operation runs per tab and the tab is read again afterwards. Each runs in the background with git's progress line in the status bar; `Esc` in the graph (when nothing else claims it) or the cancel chip cancels ("Fetch cancelled"), and the tab stays usable. `<space>x` stays the status message dismiss.
 
-**Credentials and ssh prompts** (#45, #512).
-The background run never prompts (`GIT_TERMINAL_PROMPT=0`, ssh in `BatchMode`).
-The remote branch delete (`<space>RD`), the tag push and the remote tag delete offer the same Confirm on a credentials failure (`Runs: git push --delete --force-with-lease=refs/heads/topic:<tip> -- origin refs/heads/topic`, `git push -- origin refs/tags/v1`); there the terminal run reports `remote branch delete finished` or `tag push finished`.
-When a fetch, pull or push fails because it needs a passphrase, a username and password, or a host key confirmation, the error stays in the status bar and a Confirm "Credentials needed" opens (only on the active tab and when no other overlay is open, so it never replaces what you type;
-otherwise the status names the command to run by hand): it names the repository and the command (`Runs: git fetch --prune`), `y` ("Retry in terminal") suspends the TUI exactly like `<space>te` and runs the same command with the terminal handed to git (ssh, askpass or the credential helper ask as they do in a shell), then the TUI returns, the status bar reports `fetch finished` or the exit code (with a pause for Enter on failure so git's message stays readable) and the tab is read again;
-`n` or `Esc` leaves it at the failure.
-A pull retries as `git pull --no-rebase --ff-only`.
-A failure that is not about credentials (missing repository, rejected push, network) and a cancel offer nothing.
-If the Confirm cannot show (tiny terminal) the status names the command to run by hand.
-Not available on an operating system without external-tool support (the status says so).
+- **Remote branch delete.** `<space>RD`: remote picker (skipped when only one remote has branches), branch picker of the cached remote-tracking branches, then a Confirm naming both; the undo hint is `git push <remote> <old tip>:refs/heads/<branch>`; the local branch stays. With the cursor on a remote branch row, or on a graph commit with exactly one remote branch, the pickers are skipped (`<space>bd` does the same when that commit has no local branch).
+- **First push.** `<space>P` on a branch without an upstream runs `push --set-upstream <remote> <branch>`: with one remote at once, with several a type-to-filter remote prompt (`origin` first). If it is rejected as a non-fast-forward (the remote already has a diverged branch of that name, known locally), the force push Confirm opens as for a plain push and also sets the upstream, unless the local tip is an ancestor of the remote one (just behind: a status line says to pull or rebase and no force is offered); when the remote branch is not known locally the status says to fetch first.
+- **Force push.** `<space>Rf`, only ever as `--force-with-lease=<branch>:<our remote-tracking tip>`, behind a Confirm naming the remote branch it overwrites and its tip (and that commits only on the remote are lost); if the remote moved since the last fetch git rejects it and nothing is overwritten. A branch without an upstream cannot be force pushed. A plain `<space>P` that git rejects as a non-fast-forward while the branch is ahead of its upstream opens the same Confirm by itself (not for a "fetch first" rejection, not while another overlay is open).
+- The `F` `L` `P` `S` `T` capitals are not "all" variants of the lowercase keys; the lowercase leader keys are taken. The remote chords sit in the `<space>R` group (not `<space>Pd`, since a key cannot be both complete and a chord prefix); all are also in the Remotes header menu. When the graph or sidebar has no suitable row selected for a stash or tag key, a picker opens.
 
-**Managing remotes** (`<space>R` + key; implemented in #400, config only, nothing is fetched): `Ra` add (name prompt, then URL prompt; a name in use is refused before git runs; the status line suggests a fetch).
-`Rd` remove: a type-to-filter remote picker, or no picker when a remote branch row is selected in the sidebar (its remote is used), then a Confirm naming the remote, its URL and the remote-tracking branches we know of that disappear (the first five, then a count), saying that branches tracking it lose their upstream and the remote itself is untouched; the undo line is `git remote add <name> <url>` and a fetch.
-`Rn` rename: picker, then a name prompt; git renames the remote-tracking branches and upstream settings, so no Confirm.
-`Ru` set URL: picker, then a URL prompt filled with the current URL.
-Refused while a fetch, pull or push runs on the tab.
-The keys work from every pane; the Remotes header menu lists the four actions; the sidebar and graph labels follow after the refresh that every success triggers.
+**Credentials and ssh prompts.** The background run never prompts (`GIT_TERMINAL_PROMPT=0`, ssh in `BatchMode`). When a fetch, pull, push, remote branch delete, tag push or remote tag delete fails because it needs a passphrase, a username and password or a host key confirmation, the error stays in the status bar and a Confirm "Credentials needed" opens (only on the active tab and when no other overlay is open; otherwise the status names the command to run by hand). It names the repository and the command (`Runs: git fetch --prune`); `y` ("Retry in terminal") suspends the TUI like `<space>te` and runs the same command with the terminal handed to git, then the status bar reports `fetch finished` or the exit code (with a pause for Enter on failure) and the tab is read again; `n` or `Esc` leaves it at the failure. A pull retries as `git pull --no-rebase --ff-only`. A failure that is not about credentials (missing repository, rejected push, network) and a cancel offer nothing. Not available on an OS without external-tool support (the status says so).
 
-### 6. Worktrees (M3)
+**Managing remotes** (`<space>R` + key; config only, nothing is fetched; refused while a fetch, pull or push runs on the tab): `Ra` add (name prompt, then URL prompt; a name in use is refused; the status line suggests a fetch). `Rd` remove: a type-to-filter remote picker (none when a remote branch row is selected in the sidebar), then a Confirm naming the remote, its URL and the remote-tracking branches that disappear (the first five, then a count), saying that branches tracking it lose their upstream and the remote itself is untouched; the undo line is `git remote add <name> <url>` and a fetch. `Rn` rename: picker, then a name prompt (git renames the remote-tracking branches and upstream settings, so no Confirm). `Ru` set URL: picker, then a URL prompt filled with the current URL. The keys work from every pane; the Remotes header menu lists the four actions.
+
+### 6. Worktrees
 
 `<space>w` + key.
-The sidebar's Worktrees section shows each worktree with branch, dirty counts, ahead/behind and `locked`/`prunable` flags, so dirty state across all worktrees is visible at a glance without switching.
-The counts read `S2 M3 U1` (staged, changed incl. untracked, conflicted; a zero is left out and a clean worktree shows none) and `↑n↓m` is the worktree branch against its upstream, both from `git status` run in that worktree.
-The tab's own worktree follows its live status; the others are read when the tab or its worktree list changes and then every 30 s, so a change made elsewhere shows up within that interval.
+`<space>w` + key. The sidebar's Worktrees section shows each worktree with branch, dirty counts (`S2 M3 U1`: staged, changed incl. untracked, conflicted; a zero is left out), `↑n↓m` against its upstream and `locked`/`prunable` flags, from `git status` run in that worktree. The tab's own worktree follows its live status; the others are read when the tab or its worktree list changes and then every 30 s.
 1. `wa` add: prompt for a branch name, then for the path (default a sibling directory named after the branch).
    An existing branch is checked out (one held by another worktree is refused); a new name (also one that exists only as a remote branch: no tracking branch is made) creates the branch at the selected sidebar row's or graph commit, else HEAD.
    The tab stays where it is.
@@ -861,7 +558,7 @@ The tab's own worktree follows its live status; the others are read when the tab
 4. `wl` lock (prompt for an optional reason), `wu` unlock, `wp` prune: lists the prunable entries in a Confirm and runs `git worktree prune` on `y`.
 5. Mouse: the actions menu of a worktree row lists switch, open, add, remove, lock, unlock and prune; the Worktrees header menu offers add and prune.
 
-### 7. Stashes (M3)
+### 7. Stashes
 
 Keys are `<space>S` chords, not bare sidebar keys (`a` `p` `d` are vim keys, see the key rule). `Ss` `Su` work from every view; `Sa` `Sp` `Sd` act on the stash row under the sidebar cursor and say "Select a stash in the sidebar first" elsewhere (no picker: a destructive key never guesses a target).
 1. `Ss` push the tracked changes, `Su` push them plus the untracked files (ignored ones never): a prompt popup for an optional message (`Enter` runs, `Esc` cancels). "Nothing to stash" is a warning and points at `Su`.
@@ -871,24 +568,13 @@ Keys are `<space>S` chords, not bare sidebar keys (`a` `p` `d` are vim keys, see
 3. `Sd` drop: Confirm with the stash name and subject; the hint is `git stash store -m "<subject>" <hash>`, and the same command with the full hash is in the status message after the drop.
    The target travels as its commit hash and is looked up again right before the call, so a stack that changed meanwhile does not redirect it ("no longer in the stash list", nothing happens).
    The restore command is written for a POSIX shell.
-4. `Enter` (or a click on the row) on a stash row shows what is inside it in the detail pane, read-only (#699); focus stays in the sidebar, `Ctrl-j` moves to the detail pane.
-   The pane is the commit pane: the Changes tab lists the stash's files (tracked changes with their status letters, then the untracked files saved by `Su` marked `?`) under a heading that names the stash (`Stash stash@{0}: 2 files changed, 1 untracked`), the title shows its name instead of a hash, the Details tab shows the stash commit's message and people with a `stash` row, and the Files tab says a stash has no tree.
-   The file under the cursor opens in the diff pane exactly as for a commit (tracked changes as `git stash show -p`, untracked files as additions; context, whole-file, whitespace and split options apply).
-   There is no stage or unstage inside a stash (git has none).
-   The stash is known by its commit hash: while it is shown, moving the sidebar cursor to another stash row shows that one;
-   selecting a commit in the graph (the user's own move;
-   a graph reload, restore or tab switch that moves the selection keeps the view), or `Enter` on a branch or tag row, ends the view;
-   while a stash is shown the commit actions that read the graph selection (`<space>bc` and the other branch, merge, rebase, reset, pick, compare, tag and external-tool actions) refuse with a notice instead of acting on the graph row (the worktree add starts at HEAD), so select a commit first;
-   the graph row menu still opens (#716);
-   a stash that leaves the stack (dropped, popped, in another client) ends the view with a warning in the status bar instead of showing another stash, and a stash that only moves down the stack keeps showing under its new name.
+4. `Enter` (or a click) on a stash row shows what is inside it in the detail pane, read-only; focus stays in the sidebar, `Ctrl-j` moves to the detail pane. The Changes tab lists the stash's files (tracked changes with their status letters, then the untracked files saved by `Su` marked `?`) under a heading naming the stash (`Stash stash@{0}: 2 files changed, 1 untracked`), the title shows its name instead of a hash, the Details tab shows the stash commit's message with a `stash` row, and the Files tab says a stash has no tree. The file under the cursor opens in the diff pane as for a commit (tracked changes as `git stash show -p`, untracked files as additions; the diff options apply). There is no stage or unstage inside a stash.
+   The stash is known by its commit hash: moving the sidebar cursor to another stash row shows that one; selecting a commit in the graph (the user's own move; a reload, restore or tab switch that moves the selection keeps the view), or `Enter` on a branch or tag row, ends the view. While a stash is shown the commit actions that read the graph selection (branch, merge, rebase, reset, pick, compare, tag and external-tool actions) refuse with a notice instead of acting on the graph row, so select a commit first; the graph row menu still opens. A stash that leaves the stack (dropped, popped, in another client) ends the view with a warning; one that only moves down the stack keeps showing under its new name.
 5. Mouse: the actions menu of a stash row lists apply, pop, drop, push and push-all (`drop` keeps its Confirm); the Stashes header menu offers push and push-all.
 
 ## Look and colours
 
-Colours are decided in one place: `PaletteTable` (`Gitunia.Tui.Views`) holds the colours of a scheme and `Palette` says which role uses which colour, so a theme swaps the table and nothing else.
-The config file's `theme` setting picks the scheme: `auto` (Catppuccin Mocha or Latte by the terminal's background) or the name of a theme file (#61, "Theme files" below).
-`dark` and `light` are still accepted in the file as the built-in dark and light tables (#747), which are close to but not identical with the `catppuccin-mocha` and `catppuccin-latte` theme files (see "Theme files").
-The settings screen no longer offers them and shows them as those two themes; keeping that option rewrites the value to the theme file name.
+Colours are decided in one place: `PaletteTable` (`Gitunia.Tui.Views`) holds the colours of a scheme and `Palette` says which role uses which colour, so a theme swaps the table and nothing else. The config file's `theme` setting picks the scheme: `auto` (Catppuccin Mocha or Latte by the terminal's background) or the name of a theme file ("Theme files" below). `dark` and `light` are still accepted as the built-in dark and light tables, close to but not identical with the `catppuccin-mocha` and `catppuccin-latte` files; the settings screen shows them as those two themes and keeping the option rewrites the value to the file name.
 
 **Frame.** Every pane is a box and neighbouring boxes share their edges, so the whole screen is one frame split into panes (`FrameGrid`, drawn the same way by the UI and by `--print-frame`):
 
@@ -904,50 +590,17 @@ The settings screen no longer offers them and shows them as those two themes; ke
 ```
 
 - Rounded outer corners and plain T and cross junctions; the ASCII tier uses `+`, `-` and `|`. Where two boxes meet there is one line, not two.
-- Titles sit in the top edge of each box as chips after one stretch of line: the sidebar shows the repository name, the graph `History`, the bottom pane its tabs, the commit and the file count, the diff its title (the file shown and the cursor's hunk position, no commit hash: the detail title already shows it) and buttons.
-  The title row of the bottom pane is the line between the graph and the bottom panes (so it costs no extra row).
-- From 100 columns of screen width the History list and the bottom detail and diff panes are padded by two columns (`PanePadding.SpaciousColumns`; the graph on its right side only), so text and rows clear the frame lines; the sidebar and screens under 100 columns keep one.
-  The graph rows have no left padding (#752): the first lane starts in the column next to the frame, and only the right side is padded.
-  Text is padded by one column inside each box otherwise (rows keep their selection tint over the padding); the first and last column and the top and bottom edge row belong to the frame, so the frame costs two columns and one row more than the old divider layout (the old header row is gone).
-- Focus: the focused pane's whole box is drawn in the accent colour (bold), every other line in the quiet border colour, and its title chip is the filled accent chip (the other titles are dim chips).
-  Focus never relies on colour alone: the chips differ in text style, and with `NO_COLOR` the focused box is bold.
+- Titles sit in the top edge of each box as chips: the sidebar shows the repository name, the graph `History`, the bottom pane its tabs, the commit and the file count, the diff its title and buttons. The bottom pane's title row is the line between the graph and the bottom panes.
+- From 100 columns of screen width the History list and the bottom detail and diff panes are padded by two columns (`PanePadding.SpaciousColumns`; the graph on its right side only, its first lane starts next to the frame), the sidebar and narrower screens keep one; the first and last column and the top and bottom edge row belong to the frame.
+- Focus: the focused pane's whole box is drawn in the accent colour (bold), every other line in the quiet border colour, and its title chip is the filled accent chip (the others are dim chips). Focus never relies on colour alone: with `NO_COLOR` the focused box is bold.
 - Layout numbers: the sidebar (clamped 20-36 columns, shown from 60 columns) and the detail/diff split are widths including the padding; drag and the `Ctrl-w` size keys move the shared line.
 
-**Selection and focus.** The selected row is a background tint, never inverse video, so the row keeps its own colours (branch, hash, diff colours stay readable).
-The focused pane's selection uses the full tint (blue), a pane without focus keeps a quieter grey tint, so the cursor stays findable.
-This holds for the graph, sidebar, detail, diff, picker rows and overlay rows.
-The rows of a Visual range are drawn stronger than the selected row (#814): a background one step further towards the accent at 24-bit colour (text that would lose its 4.5 contrast on it is lightened or darkened), and in every tier bold text, plus reverse video at 16 colours and `NO_COLOR` (where no tint can tell the range from the cursor row), so a range never relies on colour alone. The moving end of the range (the cursor row) is also underlined in every tier, so it stands apart from the other range rows without colour (#823). A range looks the same whether the pane has focus or not (Visual mode ends when the focus changes); at `NO_COLOR` the range is bold reverse video and its moving end adds underline.
-Focus is also shown by the frame (above): the focused pane's box is accent, its title is a filled accent chip and the other titles are dim chips.
-The active tab, the status mode (`NORMAL`, `INSERT`...) and an overlay's title bar are the same accent chip; the tab row and the status bar sit on a slightly lighter bar.
-An overlay's frame is drawn in the accent colour.
+**Selection and focus.** The selected row is a background tint, never inverse video, so the row keeps its own colours. The focused pane's selection uses the full tint (blue), a pane without focus a quieter grey tint. The rows of a Visual range are drawn stronger than the selected row: a background one step further towards the accent at 24-bit colour, bold text in every tier, plus reverse video at 16 colours and `NO_COLOR`; the moving end (the cursor row) is also underlined, and a range looks the same whether the pane has focus or not. The active tab, the status mode (`NORMAL`, `INSERT`...) and an overlay's title bar are the same accent chip; the tab row and the status bar sit on a slightly lighter bar; an overlay's frame is accent.
 
-**Roles to colours** (accent blue, green, red, yellow, cyan, purple, muted grey):
+**Roles to colours** (`PaletteTable` has the values): accent blue for section titles, buttons, diff file headers and the focused frame (bold); graph lanes one of 12 colours per branch (6 at 16 colours, none with `NO_COLOR`), commit marks in the lane's colour, branch labels a bold chip filled with the branch colour (text in the theme's chip colour when it reads on it, else black or white; inverse video without colours); local branch green, current branch cyan, remote branch purple, tag yellow (remote branches are not red: red means an error or a deletion); hash, date, line numbers, hints and counts muted; diff whitespace marks subtle (muted blended into the background; faint at 16 colours and `NO_COLOR`); changed words the line's colour on a tint of it (`addedWord` / `removedWord`, bold; at 16 colours and `NO_COLOR` bold and underlined); added / removed / modified green / red / yellow, hunk header cyan; errors red bold; search match dark text on yellow; overlay key column yellow bold.
 
-| Role | Colour |
-|---|---|
-| Section titles, buttons, diff file header, the focused pane's frame | accent, bold |
-| Graph lanes | one of 12 colours (6 in 16-colour mode, none with `NO_COLOR`) per branch, see Lanes in the graph (#761) |
-| Graph commit marks | the lane's colour |
-| Graph branch labels (#760, #849) | a chip (box) filled with the colour of its branch (the lane's colour for the branch that starts the lane), bold, text in the theme's chip colour when it reads on it (4.5) else black or white; inverse video without colours; at 16 colours the text is the scheme's chip colour on the named lane colour, whose contrast the terminal's own palette decides; the current branch keeps its `◆` mark |
-| Local branch / current branch (HEAD) / remote branch outside the graph (sidebar, details); tag everywhere | green / cyan / purple / yellow, bold (remote branches are not red: red means an error or a deletion; blue on a light terminal in the 16-colour scheme, where yellow and purple are taken) |
-| Hash, date, line numbers, hints, counts, punctuation | muted |
-| Diff whitespace marks (`·` `→` `•` `¶`) | subtle: muted blended 55% into the background (70% into the selection tint on a selected row); at 16 colours muted plus the faint attribute; at `NO_COLOR` faint |
-| Changed words inside an added / removed line | the line's colour on a tint of it (`addedWord` / `removedWord`: good / bad blended 15% into the base, less where the text would fall under 4.8:1), bold; at 16 colours and `NO_COLOR` bold and underlined, no background |
-| Added line or file / removed / modified | green / red / yellow; hunk header cyan |
-| Errors | red, bold (in the status bar on its own bar) |
-| Search match | dark text on yellow (kept on a selected row) |
-| Overlay key column | yellow, bold |
-
-**Colour depth.** The scheme follows the terminal. 24-bit (`COLORTERM=truecolor`, also used for 256-colour terminals because Terminal.Gui has no 256-colour output of its own): the Catppuccin palette (Mocha on a dark terminal, Latte on a light one), checked by a test for a contrast ratio of at least 4.5 on a typical dark and light terminal background (3.0 for dividers), also on selected rows. 16-colour (`TERM` without `256color`, or a Terminal.Gui driver that cannot do 24-bit;
-the driver is then forced to 16 colours): only the 16 named colours, so the terminal's own theme decides the exact look;
-the focused selection is bright black (bold), the unfocused one underlined.
-`NO_COLOR` or `TERM=dumb`: text styles only (reverse video for the selection, underline when unfocused (a Visual range is bold reverse video, its cursor row also underlined), bold underline for search matches, underline for the current branch).
-Light backgrounds get darker accents and light tints.
-With `theme = auto` the terminal is asked for its background (OSC 11, before the UI starts, 50 ms timeout, skipped when not interactive, at `NO_COLOR`, for `TERM` unset, `dumb` or `linux`, and on Windows, where the answer is not reliable); an unanswered or unreadable query falls back to `COLORFGBG` (background 7 or 15), and a terminal that offers neither is assumed dark.
-A terminal that answers costs a few ms of startup, a silent one the full timeout.
-The `theme` setting overrides that detection (`light` or `dark`, the legacy aliases; a theme file's `variant` does the same; `auto`, the default, keeps it), at every colour depth except `NO_COLOR`, which has no colours to switch.
-`theme` tells Gitunia what the terminal looks like: `light` assumes a light terminal background, so at 16 colours (where the terminal's own background is kept) it is only readable on a light terminal, while at 24 bits the scheme paints its own backgrounds and works on either.
-A terminal whose `TERM` has no `256color` and that sets no `COLORTERM` (for example over ssh without `COLORTERM` forwarded) gets the 16-colour scheme; set `COLORTERM=truecolor` to force the 24-bit one.
+**Colour depth.** The scheme follows the terminal. 24-bit (`COLORTERM=truecolor`, also used for 256-colour terminals because Terminal.Gui has no 256-colour output of its own): the Catppuccin palette, checked by tests for a contrast ratio of at least 4.5 on a typical dark and light terminal background (3.0 for dividers), also on selected rows. 16-colour (`TERM` without `256color`, or a driver that cannot do 24-bit; a terminal that sets no `COLORTERM`, for example over ssh, gets it: set `COLORTERM=truecolor` to force 24-bit): only the 16 named colours, so the terminal's own theme decides the exact look; the focused selection is bright black (bold), the unfocused one underlined. `NO_COLOR` or `TERM=dumb`: text styles only (reverse video for the selection, underline when unfocused, bold underline for search matches, underline for the current branch).
+With `theme = auto` the terminal is asked for its background (OSC 11, before the UI starts, 50 ms timeout, skipped when not interactive, at `NO_COLOR`, for `TERM` unset, `dumb` or `linux`, and on Windows); an unanswered query falls back to `COLORFGBG`, and a terminal that offers neither is assumed dark. The `theme` setting overrides that detection (`light` or `dark`; a theme file's `variant` does the same) at every colour depth except `NO_COLOR`; it tells Gitunia what the terminal looks like, so `light` at 16 colours (where the terminal's own background is kept) is only readable on a light terminal, while at 24 bits the scheme paints its own backgrounds and works on either.
 
 **Theme files (#61).** A theme is a JSON file (comments and trailing commas allowed), so a user adds one without a release.
 Built-in themes are the same files, embedded in the binary: `catppuccin-mocha`, `catppuccin-macchiato`, `catppuccin-frappe`, `catppuccin-latte`, `tokyo-night`, `tokyo-night-storm`, `tokyo-night-moon`, `tokyo-night-day`, `gruvbox-dark-hard`, `gruvbox-dark-medium`, `gruvbox-dark-soft`, `gruvbox-light-hard`, `gruvbox-light-medium`, `gruvbox-light-soft`, `dracula`, `nord`, `solarized-dark`, `solarized-light`, `rose-pine`, `rose-pine-moon`, `rose-pine-dawn` (#610).
@@ -985,22 +638,11 @@ The files are read and parsed once, at startup; edits show after a restart.
 }
 ```
 
-The built-in values are the published palettes, except that roles which must meet the contrast tests are moved the least that does it (lighter on dark themes, darker on light ones: `muted`, `border`, some accents, the base text of Tokyo Night Day; Dracula red and Nord red move furthest, because the published red fails on the selection tint).
-The Gruvbox, Dracula, Nord, Solarized and Rosé Pine files use the published hex values (all MIT-licensed palettes) with the same rule, and the default 16-colour mapping) and the quieter tints (`selectionDim`, `groupBackground`) are mixes of the base and the selection colour; so `catppuccin-mocha` differs slightly from the `dark` table.
-Roles are the `PaletteTable` colours (the table above says what each paints).
-Unknown keys are ignored; a missing required role, a malformed colour, an unknown `variant` or `version`, or a bad `ansi` entry refuses the whole file, one problem per reason.
-The colours are used at 24-bit and 256-colour output, and the base text and background are always painted, so the theme looks the same on any terminal background.
+The built-in values are the published palettes (the Gruvbox, Dracula, Nord, Solarized and Rosé Pine files use the published hex values, all MIT-licensed), except that roles which must meet the contrast tests are moved the least that does it. Roles are the `PaletteTable` colours. Unknown keys are ignored; a missing required role, a malformed colour, an unknown `variant` or `version`, or a bad `ansi` entry refuses the whole file, one problem per reason. The colours are used at 24-bit and 256-colour output, and the base text and background are always painted, so the theme looks the same on any terminal background.
 
-**The 16-colour mapping rule.** At 16 colours the terminal's own palette decides what the named colours look like, so a theme cannot carry its hex values there.
-The rule: the `variant` picks the built-in 16-colour table (dark: bright accents on the terminal's background; light: normal-intensity accents), and the optional `ansi` object overrides single roles (`accent`, `good`, `bad`, `remote`, `warn`, `info`, `muted`, `mutedOnSelection`, `border`, `chipBackground`) with one of `black red green yellow blue magenta cyan gray darkGray brightRed brightGreen brightYellow brightBlue brightMagenta brightCyan white` (case-insensitive).
-Selection and lanes keep the variant's choice.
-A theme whose `variant` differs from the detected terminal background paints black or white as base, like a forced `dark` or `light`.
-The built-in themes use the default mapping.
-Contrast tests cover every built-in theme at 24-bit (4.5, dividers 3.0, cursor group and lanes included), after rounding to the xterm 256-colour palette (3.0), and at 16 colours (refs stay apart, no text in its own background colour); a user theme is not checked.
+**The 16-colour mapping rule.** At 16 colours the terminal's own palette decides what the named colours look like, so a theme cannot carry its hex values there. The `variant` picks the built-in 16-colour table (dark: bright accents; light: normal-intensity accents), and the optional `ansi` object overrides single roles (`accent`, `good`, `bad`, `remote`, `warn`, `info`, `muted`, `mutedOnSelection`, `border`, `chipBackground`) with one of `black red green yellow blue magenta cyan gray darkGray brightRed brightGreen brightYellow brightBlue brightMagenta brightCyan white` (case-insensitive). Selection and lanes keep the variant's choice; a theme whose `variant` differs from the detected terminal background paints black or white as base. Contrast tests cover every built-in theme at 24-bit, after rounding to the xterm 256-colour palette and at 16 colours; a user theme is not checked.
 
-**Looking at it without the UI.** `--print-frame` reads `config.json` like the app (`frameStyle`).
-`gitunia <repository> --print-frame WxH [--diff] --colors truecolor|16|none [--light]` writes the frame with ANSI colours (the graph is focused, the sidebar cursor shows the dim tint).
-The overlays and the picker are not part of the printed frame; open them with `?`, `:` and `Ctrl-t`.
+**Looking at it without the UI.** `gitunia <repository> --print-frame WxH [--diff] --colors truecolor|16|none [--light]` writes the frame with ANSI colours (reads `config.json` like the app). Overlays and the picker are not part of it; open them with `?`, `:` and `Ctrl-t`.
 
 ## Config file
 
@@ -1049,11 +691,7 @@ The file is read once at startup and never modified by the loader; the settings 
   `tabs.showBranch`: a boolean; a `tabs` that is not an object or a non-boolean value is reported and false applies.
   `scanRoots`: a list of absolute paths, a leading `~` stands for the home folder; it replaces the conventional folders, an empty list turns discovery off, and the picker scans these folders only (depth and count limits unchanged).
   An entry that is not a string, is relative (never resolved against the process working directory) or is not an existing folder is reported by index (`scanRoots[2]`) and skipped; if no entry of a non-empty list is usable, or the value is not a list, the conventional folders apply.
-  `labelCaps` (#851): `rounded` (default), `angled` or `none` (any case); another value is reported and `rounded` applies (#854). With caps the text sits tight against them, without caps the box keeps a space of padding on each side.
-  Rounded draws U+E0B6 before and U+E0B4 after each branch label box, angled U+E0B2 and U+E0B0; each cap is one cell, in the lane colour of the box over the row background (so it meets the box on a selected row too), and the box then has no padding of its own (the cap closes it, #854).
-  Only the Unicode tier takes them, and only with colours: the ASCII tier and a no-colour terminal (where the box is inverse video, which would flip a cap on the selected row) keep the plain box; so does `none`.
-  The 16-colour tier draws caps and box in the same quantised colour.
-  A change in the settings screen redraws every tab's graph at once.
+  `labelCaps`: `rounded` (default), `angled` or `none` (any case); another value is reported and `rounded` applies. Rounded draws U+E0B6 before and U+E0B4 after each branch label box, angled U+E0B2 and U+E0B0, each one cell in the box colour (needs a Nerd Font or Powerline-patched font); with caps the box has no padding of its own. Only the Unicode tier with colours takes them; the ASCII tier, a no-colour terminal and `none` keep the plain box. A change in the settings screen redraws every tab's graph at once.
   `watchFiles` (#543): a boolean, false by default (tabs poll, see `git-layer.md`); another value is reported and false applies; it has no row in the settings screen and takes effect after a restart.
   Options are read at startup; the settings screen applies a change at once (and reads the file again when it opens and when the editor row returns).
 - Problems appear as warnings at startup (the first in the status bar with a count of the others; `<space>m` keeps the first five).
@@ -1061,9 +699,7 @@ The file is read once at startup and never modified by the loader; the settings 
 
 ## Settings screen (design #465; the screen is implemented in #523, the theme in #524, the key reference in #525)
 
-Implemented by #522 (config writer: `ConfigWriter`, `ConfigTextEditor`), #523 (the screen: overlay, categories, toggle, choice, number and path-list controls, filter, mouse, the `$EDITOR` row; `SettingsRegistry`, `SettingsState`, `SettingsReducer`, `SettingsController`), #524 (the Theme setting: live preview, `settings.open-theme`) and #525 (key reference).
-A category without a setting is hidden, so the Git category does not appear yet.
-The registry is the single list the screen, the writer and the table below agree on (a test compares the table with it).
+The registry is the single list the screen, the writer and the table below agree on (a test compares the table with it). A category without a setting is hidden.
 
 One screen for every option of the config file, and the only UI for them (the theme picker of #464 is an entry of it, not a second UI). It edits `config.json`; the file stays the source of truth and the screen never keeps a setting the file cannot hold.
 
@@ -1153,15 +789,6 @@ Every mouse gesture maps to the action id a key produces (`DefaultMouseMap` rows
 - The file changed on disk since it was read (compared by content hash just before the write): the screen re-reads it, shows the new values, and asks to repeat the edit; nothing is overwritten blindly.
   Editing the file by hand while the screen is open is therefore safe; the app does not watch the file otherwise.
 - Settings that hold a value the file cannot (read-only key reference) are not editable and show no control.
-
-**Open choices for the owner** (the default is built unless the owner says otherwise):
-
-1. Entry key: `<space>,` (default) or a different leader key; `:settings` always exists.
-2. Overlay (default) or a full-screen tab.
-3. Edit key bindings in the screen (default: no, the `keys` list stays a hand-edited file; the key reference shows what is bound).
-4. Save on commit of each control (default) or an explicit save key with a dirty marker.
-5. Theme `auto` default (follows the terminal).
-6. Whether the screen offers "Open config.json in `$EDITOR`" as a last row (default: yes, it suspends the TUI like `<space>te`).
 
 ## Keymap
 
