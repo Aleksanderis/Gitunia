@@ -99,7 +99,7 @@ Counts, read from `DefaultKeymap` and `ActionIds` at this commit: 245 action ids
 No leaf shares its letter with a group. Letters left free for later: `i` `n` `p` `q` `y`. The stash letter is `k` because `s` stays the working tree (the most used leader key) and `S` would be an unrelated pair; the owner may prefer another free letter.
 The which-key popup names the groups after the nouns (`+more (branch)`, `+more (rebase)`, `+more (tag)`, ...); `ActionGroups` stays the vocabulary of the palette, the row menu and the help subheaders.
 
-Old chords that now mean something else (muscle-memory hazards; every destructive one still asks first): `<space>td` (difftool, now delete tag), `<space>gs` (squash-merge, now skip), `<space>gr` (rebase, now resolve), `<space>br` (rename, now the rebase group), `<space>P` (push; push is now `rp`, and `rP` is force push: one Shift slip, but it is a lease push that asks first), `<space>r` and `<space>o` (leaves, now groups that wait for a second key). Chords that are simply gone: `<space>gm` `gM` `gp` `gv` `gx` `gi` `gI` `gf` `gw` `gd` `gk`, `<space>tm`, `<space>te`, `<space>to` (see #742 below), `<space>p`, `<space>F` `L` `C`, `<space>R...`, `<space>S...`, `<space>T...`. In the conflict editor `B` (base) becomes `<space>vb` and `R` (re-create) `Ctrl-x`. `detail.retry` moves from `<space>r` to `<space>od` because `<space>r` is now a group and a key cannot be both a complete binding and the start of a longer chord.
+Old chords that now mean something else (muscle-memory hazards; every destructive one still asks first): `<space>td` (difftool, now delete tag), `<space>gs` (squash-merge, now skip), `<space>gr` (rebase, now resolve), `<space>br` (rename, now the rebase group), `<space>P` (push; push is now `rp`, and `rP` is force push: one Shift slip, but it is a lease push that asks first), `<space>r` and `<space>o` (leaves, now groups that wait for a second key). Chords that are simply gone: `<space>gm` `gM` `gp` `gv` `gx` `gi` `gI` `gf` `gw` `gd` `gk`, `<space>tm`, `<space>te`, `<space>to` (see #742 below), `<space>p`, `<space>F` `L` `C`, `<space>R...`, `<space>S...`, `<space>T...`. In the conflict editor `B` (take both) becomes `m` and `R` (re-create) `Ctrl-x` (both approved by the owner on #840, beyond the table of #847). `detail.retry` moves from `<space>r` to `<space>od` because `<space>r` is now a group and a key cannot be both a complete binding and the start of a longer chord.
 
 ### Decisions for the owner
 
@@ -155,8 +155,8 @@ Grouped as the palette groups them (`ActionCatalog.GroupOf`). "Old" lists every 
 |---|---|---|---|---|---|
 | `conflict-editor.all-ours` | Conflict editor: take our side for every unresolved hunk of the file | `O` | same | Everyday |  |
 | `conflict-editor.all-theirs` | Conflict editor: take their side for every unresolved hunk of the file | `T` | same | Everyday |  |
-| `conflict-editor.base` | Conflict editor: show or hide the base below the sides (narrow screens) | `B` | `<space>vb` | Advanced |  |
-| `conflict-editor.both` | Conflict editor: take both sides for the hunk, ours first | `b` | same | Everyday |  |
+| `conflict-editor.base` | Conflict editor: take the common ancestor for the hunk | `b` | same | Everyday |  |
+| `conflict-editor.both` | Conflict editor: take both sides for the hunk, ours first | `B` | `m` | Everyday | owner decision on #840: `B` (Shift-b next to `b` base) is easy to hit by mistake, `m` is "merge both" |
 | `conflict-editor.edit` | Conflict editor: edit the result of the hunk as text | `e` | same | Everyday |  |
 | `conflict-editor.edit-done` | Conflict editor: keep the edited text | `Ctrl-g` | same | Everyday |  |
 | `conflict-editor.edit-newline` | Conflict editor: insert a new line in the edited text | `Enter` | same | Everyday |  |

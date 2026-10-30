@@ -24,13 +24,13 @@ Views inherit like in the keymap: `Lists` covers Graph, Detail, Sidebar, Diff an
 | TabDirtyMarker | Click | `working-tree.open` | The `*` of a dirty tab chip: switch to that tab and open its working-tree view (a click elsewhere on the chip only switches); no effect where the marker is cut off |
 | NewTabButton | Click | `picker.open` | The ` + ` button right after the last tab: open the repository picker for a new tab, same as `Ctrl-t` |
 | CommandsButton | Click | `palette.open` | The ` : commands ` button at the right end of the tab row (rows of 44 columns or more; there is no header bar): open the command palette, the menu of the actions of the focused pane and the global ones, each with its keys |
-| RemoteButton.Fetch | Click | `remote.fetch` | The `<space>F fetch` chip of the tab row (rows of 100 columns or more, the key text from 127), left of the commands button: same as `<space>F` |
-| RemoteButton.Pull | Click | `remote.pull` | The ` pull ` chip: same as `<space>L` |
-| RemoteButton.Push | Click | `remote.push` | The ` push ` chip: same as `<space>P` |
-| RemoteButton.Cancel | Click | `remote.cancel` | The `<space>C cancel` chip that replaces the three chips while one of them runs on the active tab: same as `<space>C` |
+| RemoteButton.Fetch | Click | `remote.fetch` | The `<space>rf fetch` chip of the tab row (rows of 100 columns or more, the key text from 127), left of the commands button: same as `<space>rf` |
+| RemoteButton.Pull | Click | `remote.pull` | The ` pull ` chip: same as `<space>rl` |
+| RemoteButton.Push | Click | `remote.push` | The ` push ` chip: same as `<space>rp` |
+| RemoteButton.Cancel | Click | `remote.cancel` | The `<space>rc cancel` chip that replaces the three chips while one of them runs on the active tab: same as `<space>rc` |
 | BannerButton.Continue | Click | `operation.continue` | The `continue` chip of the in-progress operation banner: same as `<space>gc` |
 | BannerButton.Abort | Click | `operation.abort` | The `abort` chip of the banner: same as `<space>ga` (asks first) |
-| BannerButton.Skip | Click | `operation.skip` | The `skip` chip of the banner (not shown for a merge): same as `<space>gk` (asks first) |
+| BannerButton.Skip | Click | `operation.skip` | The `skip` chip of the banner (not shown for a merge): same as `<space>gs` (asks first) |
 | RowMenuButton | Click | `menu.open-for-row` | The `...` marker in the last three columns of the selected sidebar row: opens the actions menu of that row without moving the cursor (see Actions menu); other rows only select on a click |
 | Backdrop | Click | `cancel` | While the help, palette or status history is open, a click on a pane or the tab row outside it closes it (like `Esc`); the double-click that follows is ignored |
 | Palette | Click | `command.execute` | Run the clicked entry (it is highlighted first) |
@@ -49,7 +49,7 @@ Views inherit like in the keymap: `Lists` covers Graph, Detail, Sidebar, Diff an
 | Reflog | Wheel up | `list.up` | Scroll the reflog list up 3 entries |
 | Reflog | Wheel down | `list.down` | Scroll the reflog list down 3 entries |
 | ReflogButton.Select | Click | `reflog.select-commit` | Action row `Enter` under the reflog list: select the highlighted entry's commit in the graph (the list stays open); a click on an entry itself only highlights it |
-| ReflogButton.Reset | Click | `reset.branch` | Row `<space>gx`: reset the current branch to the highlighted entry (closes the list first) |
+| ReflogButton.Reset | Click | `reset.branch` | Row `<space>bx`: reset the current branch to the highlighted entry (closes the list first) |
 | ReflogButton.Branch | Click | `branch.create` | Row `<space>bc`: new-branch prompt at the highlighted entry |
 | ReflogButton.Checkout | Click | `branch.switch` | Row `<space>bs`: check the entry out with a detached HEAD |
 | ReflogPicker | Click | `input.accept` | A row of the reflog ref picker: highlights it and opens that ref's reflog, like `Enter` |
@@ -75,7 +75,7 @@ Views inherit like in the keymap: `Lists` covers Graph, Detail, Sidebar, Diff an
 | ConflictResult | Wheel down | `list.down` | Result cursor down three lines |
 | ConflictButton.Ours | Click | `conflict-editor.ours` | Chip `o ours`: takes our side for the current conflict |
 | ConflictButton.Theirs | Click | `conflict-editor.theirs` | Chip `t theirs` |
-| ConflictButton.Both | Click | `conflict-editor.both` | Chip `B both` |
+| ConflictButton.Both | Click | `conflict-editor.both` | Chip `m both` |
 | ConflictButton.Base | Click | `conflict-editor.base` | Chip `b base`: takes the common ancestor |
 | ConflictButton.Take | Click | `conflict-editor.take` | Chip `<space>a take` (`take lines` during a Visual selection): takes the active pane's version |
 | ConflictButton.AllOurs | Click | `conflict-editor.all-ours` | Chip `O all ours` |
@@ -88,7 +88,7 @@ Views inherit like in the keymap: `Lists` covers Graph, Detail, Sidebar, Diff an
 | ConflictButton.Redo | Click | `conflict-editor.redo` | Chip `Ctrl-r redo` |
 | ConflictButton.Untake | Click | `conflict-editor.untake` | Chip `<space>u untake` (`untake lines` during a Visual selection) |
 | ConflictButton.Edit | Click | `conflict-editor.edit` | Chip `e edit in result` (`i type` in the result pane): moves into the result at the current conflict and starts typing |
-| ConflictButton.Recreate | Click | `conflict-editor.recreate` | Chip `R re-create`: asks first |
+| ConflictButton.Recreate | Click | `conflict-editor.recreate` | Chip `Ctrl-x re-create`: asks first |
 | ConflictButton.EditDone | Click | `conflict-editor.edit-done` | Chip `Ctrl-g keep`, the only chip while the result is typed in |
 | ConflictButton.Next | Click | `conflict-editor.next` | Chip `n next conflict` |
 | ConflictButton.Previous | Click | `conflict-editor.previous` | Chip `N previous conflict` |
@@ -120,7 +120,7 @@ Views inherit like in the keymap: `Lists` covers Graph, Detail, Sidebar, Diff an
 | WorkingStaged | Double-click | `working-tree.unstage` | Unstage the file, or every file under the folder (same as `<space>u`) |
 | ListButton.StageAll | Click | `working-tree.stage-all` | Button `stage all` at the right end of the Unstaged list's title row, same as `<space>A` (also focuses the list) |
 | ListButton.UnstageAll | Click | `working-tree.unstage-all` | Button `unstage all` in the Staged list's title row, same as `<space>U` |
-| ListButton.Resolve | Click | `conflict.open` | The `resolve` chip in the Unstaged list's title row, left of the `view ▾` chip; shown only while the cursor is on a conflicted file, same as `Enter` / `<space>to`: opens the conflict editor (also focuses the list; #701) |
+| ListButton.Resolve | Click | `conflict.open` | The `resolve` chip in the Unstaged list's title row, left of the `view ▾` chip; shown only while the cursor is on a conflicted file, same as `Enter` / `<space>gr`: opens the conflict editor (also focuses the list; #701) |
 | ListButton.Diff | Click | `working-tree.open-diff` | The `diff ›` chip in the title row of either file list, shown only on screens under 80 columns where the diff is not beside the list; left of the stage all / unstage all button and ahead of the `view ▾` and `resolve` chips (they give way to it), same as `Enter`: the diff of the file or folder under the cursor takes focus and replaces the list (also focuses the list; #376) |
 | ListButton.View | Click | `files.open-view-options` | The `view ▾` chip in the title row of either file list, left of the stage all / unstage all button, same as `<space>vv`: opens the dropdown of the path style |
 | WorkingMessage | Click | `working-tree.edit-message` | Focus the message box and start writing (Insert mode), same as `i`; the cursor goes where the pointer is (the position is not part of the action id) |
@@ -168,7 +168,7 @@ A row that would keep fewer than 30 columns of diff text drops `discard`, then `
 In the working-tree view a click on the diff box focuses it (the mouse path from a list to its diff on screens of 80 columns or more; narrow screens use the `diff ›` chip in the title row of the list).
 The highlighted picker row shows the chips `Alt-p pin`/`Alt-p unpin` and, for a recent repository, `Alt-d remove` at its right edge, the same key-first chips as the diff title (#744; rows of 72 columns or more).
 The repository picker (the opener) hides the fetch, pull and push chips of the tab row, since they act on the active tab's repository; `: commands` stays.
-Clicking the commands button at the right end of the tab row opens the command palette, which lists the actions of the focused pane and the global ones, so every action without a button (for example `<space>vl` load anyway, the search keys, `<space>r` refresh) can be run with the mouse; typing a search or a filter text needs the keyboard, as nothing else can enter text.
+Clicking the commands button at the right end of the tab row opens the command palette, which lists the actions of the focused pane and the global ones, so every action without a button (for example `<space>vl` load anyway, the search keys, `<space>or` refresh) can be run with the mouse; typing a search or a filter text needs the keyboard, as nothing else can enter text.
 
 Terminal.Gui turns on mouse reporting (SGR, mode 1006) at startup and turns it off on exit; there is no switch to disable it yet.
 Verified by writing SGR mouse sequences into the pane of a tmux 3.7c session running the Linux build: clicks, double-clicks, the wheel, press-drag-release (reported as a press, position reports with the button held, a release and then a click at the release position, which the drag logic swallows), divider and title drags, header, palette and button clicks all arrive; a double-click is delivered as a click followed by a double-click event (so a double-click on a sidebar section toggles it once), and a sideways wheel (Ctrl or Shift plus wheel) is ignored (unit-tested only).
