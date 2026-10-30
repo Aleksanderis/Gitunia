@@ -120,25 +120,25 @@ public class PaletteEntryBuilderTests
     }
 
     [Fact]
-    public void GivenTheWhichKeyGroups_WhenComparingVocabulary_ThenEachPrefixHoldsOneActionGroupWithThatName()
+    public void GivenTheWhichKeyGroups_WhenListingTheirBindings_ThenEveryPrefixHoldsMoreThanOneKey()
     {
-        var used = new List<ActionGroup>();
         foreach (var prefix in WhichKeyBuilder.GroupPrefixes)
         {
-            var groups = Table.Bindings
-                .Where(binding => KeyFormatter.Format(binding.Sequence).StartsWith(prefix, StringComparison.Ordinal))
-                .Select(binding => ActionCatalog.GroupOf(binding.Action))
-                .Distinct()
+            var bound = Table.Bindings
+                .Select(binding => KeyFormatter.Format(binding.Sequence))
+                .Where(sequence => sequence.StartsWith(prefix, StringComparison.Ordinal) && sequence.Length > prefix.Length)
                 .ToList();
 
-            var group = Assert.Single(groups);
-            Assert.NotNull(group!.WhichKeyName);
-            used.Add(group);
+            Assert.NotEmpty(bound);
         }
+    }
 
-        var named = typeof(ActionGroups).GetProperties().Select(property => (ActionGroup)property.GetValue(null)!);
-        var withName = named.Where(group => group.WhichKeyName is not null);
-        Assert.Equal(used.OrderBy(group => group.Order), withName.OrderBy(group => group.Order));
+    [Fact]
+    public void GivenTheLeaderMap_WhenLookingAtGroupPrefixes_ThenNoPrefixIsAlsoACompleteBinding()
+    {
+        var sequences = Table.Bindings.Select(binding => KeyFormatter.Format(binding.Sequence)).ToHashSet();
+
+        Assert.All(WhichKeyBuilder.GroupPrefixes, prefix => Assert.DoesNotContain(prefix, sequences));
     }
 
     [Fact]

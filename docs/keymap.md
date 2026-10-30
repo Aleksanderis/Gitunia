@@ -26,15 +26,16 @@ Every default key binding, one table per view. The design rules, notation and mo
 | `Alt-7` | Normal, Visual, Insert | `tab.go-to.7` | Go to tab 7 (same as 7gt) |
 | `Alt-8` | Normal, Visual, Insert | `tab.go-to.8` | Go to tab 8 (same as 8gt) |
 | `Alt-9` | Normal, Visual, Insert | `tab.go-to.9` | Go to tab 9 (same as 9gt) |
+| `<space>oo` | Normal | `picker.open` | Open the repository picker |
 | `Ctrl-t` | Normal, Visual, Insert | `picker.open` | Open the repository picker |
-| `<space>o` | Normal | `picker.open` | Open the repository picker |
-| `Ctrl-w c` | Normal | `tab.close` | Close the tab |
-| `Ctrl-w r` | Normal | `tab.rename` | Rename the tab |
-| `<space>p` | Normal | `repo.pin` | Pin to the top of the picker (toggle) |
-| `Ctrl-w h` `Ctrl-h` `Ctrl-Backspace` | Normal | `pane.focus-left` | Focus the pane to the left |
-| `Ctrl-w j` `Ctrl-j` | Normal | `pane.focus-down` | Focus the pane below |
-| `Ctrl-w k` `Ctrl-k` | Normal | `pane.focus-up` | Focus the pane above |
-| `Ctrl-w l` `Ctrl-l` | Normal | `pane.focus-right` | Focus the pane to the right |
+| `<space>oc` `Ctrl-w c` | Normal | `tab.close` | Close the tab |
+| `<space>on` `Ctrl-w r` | Normal | `tab.rename` | Rename the tab |
+| `<space>op` | Normal | `repo.pin` | Pin to the top of the picker (toggle) |
+| `Ctrl-h` `Ctrl-w h` `Ctrl-Backspace` | Normal | `pane.focus-left` | Focus the pane to the left |
+| `Ctrl-j` `Ctrl-w j` | Normal | `pane.focus-down` | Focus the pane below |
+| `Ctrl-k` `Ctrl-w k` | Normal | `pane.focus-up` | Focus the pane above |
+| `Ctrl-l` `Ctrl-w l` | Normal | `pane.focus-right` | Focus the pane to the right |
+| `<space>ol` | Normal | `tab.last-active` | Previously active tab |
 | `Ctrl-^` | Normal, Visual, Insert | `tab.last-active` | Previously active tab |
 | `<space><Tab>` | Normal | `tab.last-active` | Previously active tab |
 | `Ctrl-w >` | Normal | `pane.wider` | Make the focused pane wider |
@@ -48,23 +49,23 @@ Every default key binding, one table per view. The design rules, notation and mo
 | `<space>*` | Normal | `view.cycle-command-level` | Cycle the command level (Everyday, Advanced, Advanced+) |
 | `<space>,` | Normal | `settings.open` | Open the settings |
 | `<space>s` | Normal | `working-tree.toggle` | Open or leave the working tree |
-| `<space>F` | Normal | `remote.fetch` | Fetch the remote of the current branch (prunes) |
-| `<space>L` | Normal | `remote.pull` | Pull the current branch (fast-forward only) |
-| `<space>P` | Normal | `remote.push` | Push the current branch |
-| `<space>Rf` | Normal | `remote.push-force` | Force push the current branch with a lease (asks first) |
-| `<space>RD` | Normal | `remote.delete-branch` | Delete a branch on a remote (asks first) |
-| `<space>C` | Normal | `remote.cancel` | Cancel the running fetch, pull or push |
-| `<space>Ra` | Normal | `remote.add` | Add a remote (name, then URL) |
-| `<space>Rd` | Normal | `remote.remove` | Remove a remote (asks first) |
-| `<space>Rn` | Normal | `remote.rename` | Rename a remote |
-| `<space>Ru` | Normal | `remote.set-url` | Change the URL of a remote |
-| `<space>Ss` | Normal | `stash.push` | Stash the tracked changes (asks for a message) |
-| `<space>Su` | Normal | `stash.push-untracked` | Stash the tracked and untracked changes (asks for a message) |
+| `<space>rf` | Normal | `remote.fetch` | Fetch the remote of the current branch (prunes) |
+| `<space>rl` | Normal | `remote.pull` | Pull the current branch (fast-forward only) |
+| `<space>rp` | Normal | `remote.push` | Push the current branch |
+| `<space>rP` | Normal | `remote.push-force` | Force push the current branch with a lease (asks first) |
+| `<space>bD` | Normal | `remote.delete-branch` | Delete a branch on a remote (asks first) |
+| `<space>rc` | Normal | `remote.cancel` | Cancel the running fetch, pull or push |
+| `<space>ra` | Normal | `remote.add` | Add a remote (name, then URL) |
+| `<space>rd` | Normal | `remote.remove` | Remove a remote (asks first) |
+| `<space>rn` | Normal | `remote.rename` | Rename a remote |
+| `<space>ru` | Normal | `remote.set-url` | Change the URL of a remote |
+| `<space>ks` | Normal | `stash.push` | Stash the tracked changes (asks for a message) |
+| `<space>ku` | Normal | `stash.push-untracked` | Stash the tracked and untracked changes (asks for a message) |
 | `<space>gc` | Normal | `operation.continue` | Continue the merge, rebase, cherry-pick or revert in progress |
 | `<space>ga` | Normal | `operation.abort` | Abort the merge, rebase, cherry-pick or revert in progress (asks first) |
-| `<space>gk` | Normal | `operation.skip` | Skip the commit a rebase, cherry-pick or revert stopped on (asks first) |
-| `<space>to` | Normal | `conflict.open` | Open the conflict editor (selected or first conflicted file) |
-| `<space>tm` | Normal | `tool.mergetool` | Resolve conflicts in the mergetool |
+| `<space>gs` | Normal | `operation.skip` | Skip the commit a rebase, cherry-pick or revert stopped on (asks first) |
+| `<space>gr` | Normal | `conflict.open` | Open the conflict editor (selected or first conflicted file) |
+| `<space>em` | Normal | `tool.mergetool` | Resolve conflicts in the mergetool |
 | `Esc` | Normal, Visual, Insert, Command, Confirm | `cancel` | Cancel |
 | `Enter` | Insert | `input.accept` | Accept the input |
 | `Enter` | Command | `command.execute` | Run the command |
@@ -97,9 +98,9 @@ Every default key binding, one table per view. The design rules, notation and mo
 | `Enter` | Normal | `graph.open-details` | Focus the commit details |
 | `y` | Normal | `graph.copy-hash` | Copy the commit hash |
 | `<space>=` | Normal | `graph.compare` | Mark or compare a commit |
-| `<space>r` | Normal | `repo.refresh` | Refresh the repository |
-| `<space>td` | Normal | `tool.difftool` | Open the commit in the difftool |
-| `<space>te` | Normal | `tool.commit-editor` | Commit the staged changes in $EDITOR |
+| `<space>or` | Normal | `repo.refresh` | Refresh the repository |
+| `<space>ed` | Normal | `tool.difftool` | Open the commit in the difftool |
+| `<space>ec` | Normal | `tool.commit-editor` | Commit the staged changes in $EDITOR |
 | `]` | Normal | `detail.next-tab` | Next bottom pane tab |
 | `[` | Normal | `detail.previous-tab` | Previous bottom pane tab |
 | `gd` | Normal | `detail.tab-details` | Show the Details tab |
@@ -108,29 +109,29 @@ Every default key binding, one table per view. The design rules, notation and mo
 | `<space>bc` | Normal | `branch.create` | Create a branch and check it out |
 | `<space>bC` | Normal | `branch.create-only` | Create a branch without checking out |
 | `<space>bs` | Normal | `branch.switch` | Switch to a branch (check out) |
-| `<space>br` | Normal | `branch.rename` | Rename the branch |
+| `<space>bn` | Normal | `branch.rename` | Rename the branch |
 | `<space>bd` | Normal | `branch.delete` | Delete the branch (asks first) |
 | `<space>bu` | Normal | `branch.set-upstream` | Set the branch upstream |
 | `<space>bU` | Normal | `branch.unset-upstream` | Unset the branch upstream |
 | `<space>bf` | Normal | `branch.fast-forward` | Fast-forward the branch to its upstream (no checkout) |
-| `<space>Tc` | Normal | `tag.create` | Create a tag at the selected commit |
-| `<space>Td` | Normal | `tag.delete` | Delete the tag (asks first) |
-| `<space>Tp` | Normal | `tag.push` | Push the tag to a remote |
-| `<space>TD` | Normal | `tag.delete-remote` | Delete the tag on a remote (asks first) |
-| `<space>gx` | Normal | `reset.branch` | Reset the current branch to the selection |
-| `<space>gr` | Normal | `rebase.onto` | Rebase the current branch onto the selection |
-| `<space>gi` | Normal | `rebase.interactive` | Interactive rebase onto the selection (edit the todo) |
-| `<space>gI` | Normal | `rebase.interactive-root` | Interactive rebase from the root commit (selection ignored) |
-| `<space>gf` | Normal | `rebase.fixup` | Fix up the commit into the one before it (asks first) |
-| `<space>gw` | Normal | `rebase.reword` | Reword the commit subject (asks first) |
-| `<space>gd` | Normal | `rebase.drop` | Drop the commit from the branch (asks first) |
+| `<space>tc` | Normal | `tag.create` | Create a tag at the selected commit |
+| `<space>td` | Normal | `tag.delete` | Delete the tag (asks first) |
+| `<space>tp` | Normal | `tag.push` | Push the tag to a remote |
+| `<space>tD` | Normal | `tag.delete-remote` | Delete the tag on a remote (asks first) |
+| `<space>bx` | Normal | `reset.branch` | Reset the current branch to the selection |
+| `<space>brr` | Normal | `rebase.onto` | Rebase the current branch onto the selection |
+| `<space>bri` | Normal | `rebase.interactive` | Interactive rebase onto the selection (edit the todo) |
+| `<space>brI` | Normal | `rebase.interactive-root` | Interactive rebase from the root commit (selection ignored) |
+| `<space>brf` | Normal | `rebase.fixup` | Fix up the commit into the one before it (asks first) |
+| `<space>brw` | Normal | `rebase.reword` | Reword the commit subject (asks first) |
+| `<space>brd` | Normal | `rebase.drop` | Drop the commit from the branch (asks first) |
 | `<space>l` | Normal | `reflog.open` | Open the reflog of HEAD (of the branch under the sidebar cursor) |
 | `<space>.` | Normal | `menu.open-for-row` | Open the actions menu of the selected row |
-| `<space>gm` | Normal | `merge.branch` | Merge the selection (fast-forward if possible) |
-| `<space>gM` | Normal | `merge.branch-no-ff` | Merge the selection with a merge commit |
-| `<space>gs` | Normal | `merge.branch-squash` | Squash-merge the selection (stages changes) |
-| `<space>gp` | Normal, Visual | `pick.cherry-pick` | Cherry-pick the selection onto the current branch |
-| `<space>gv` | Normal, Visual | `pick.revert` | Revert the selection with new commits |
+| `<space>bm` | Normal | `merge.branch` | Merge the selection (fast-forward if possible) |
+| `<space>bM` | Normal | `merge.branch-no-ff` | Merge the selection with a merge commit |
+| `<space>bq` | Normal | `merge.branch-squash` | Squash-merge the selection (stages changes) |
+| `<space>bp` | Normal, Visual | `pick.cherry-pick` | Cherry-pick the selection onto the current branch |
+| `<space>bv` | Normal, Visual | `pick.revert` | Revert the selection with new commits |
 
 ## Sidebar
 
@@ -139,34 +140,34 @@ Every default key binding, one table per view. The design rules, notation and mo
 | `<space>bc` | Normal | `branch.create` | Create a branch and check it out |
 | `<space>bC` | Normal | `branch.create-only` | Create a branch without checking out |
 | `<space>bs` | Normal | `branch.switch` | Switch to a branch (check out) |
-| `<space>br` | Normal | `branch.rename` | Rename the branch |
+| `<space>bn` | Normal | `branch.rename` | Rename the branch |
 | `<space>bd` | Normal | `branch.delete` | Delete the branch (asks first) |
 | `<space>bu` | Normal | `branch.set-upstream` | Set the branch upstream |
 | `<space>bU` | Normal | `branch.unset-upstream` | Unset the branch upstream |
 | `<space>bf` | Normal | `branch.fast-forward` | Fast-forward the branch to its upstream (no checkout) |
-| `<space>Tc` | Normal | `tag.create` | Create a tag at the selected commit |
-| `<space>Td` | Normal | `tag.delete` | Delete the tag (asks first) |
-| `<space>Tp` | Normal | `tag.push` | Push the tag to a remote |
-| `<space>TD` | Normal | `tag.delete-remote` | Delete the tag on a remote (asks first) |
+| `<space>tc` | Normal | `tag.create` | Create a tag at the selected commit |
+| `<space>td` | Normal | `tag.delete` | Delete the tag (asks first) |
+| `<space>tp` | Normal | `tag.push` | Push the tag to a remote |
+| `<space>tD` | Normal | `tag.delete-remote` | Delete the tag on a remote (asks first) |
 | `<space>.` | Normal | `menu.open-for-row` | Open the actions menu of the selected row |
 | `<space>l` | Normal | `reflog.open` | Open the reflog of HEAD (of the branch under the sidebar cursor) |
-| `<space>gx` | Normal | `reset.branch` | Reset the current branch to the selection |
-| `<space>gr` | Normal | `rebase.onto` | Rebase the current branch onto the selection |
-| `<space>gi` | Normal | `rebase.interactive` | Interactive rebase onto the selection (edit the todo) |
-| `<space>gI` | Normal | `rebase.interactive-root` | Interactive rebase from the root commit (selection ignored) |
-| `<space>gm` | Normal | `merge.branch` | Merge the selection (fast-forward if possible) |
-| `<space>gM` | Normal | `merge.branch-no-ff` | Merge the selection with a merge commit |
-| `<space>gs` | Normal | `merge.branch-squash` | Squash-merge the selection (stages changes) |
-| `<space>gp` | Normal | `pick.cherry-pick` | Cherry-pick the selection onto the current branch |
-| `<space>gv` | Normal | `pick.revert` | Revert the selection with new commits |
+| `<space>bx` | Normal | `reset.branch` | Reset the current branch to the selection |
+| `<space>brr` | Normal | `rebase.onto` | Rebase the current branch onto the selection |
+| `<space>bri` | Normal | `rebase.interactive` | Interactive rebase onto the selection (edit the todo) |
+| `<space>brI` | Normal | `rebase.interactive-root` | Interactive rebase from the root commit (selection ignored) |
+| `<space>bm` | Normal | `merge.branch` | Merge the selection (fast-forward if possible) |
+| `<space>bM` | Normal | `merge.branch-no-ff` | Merge the selection with a merge commit |
+| `<space>bq` | Normal | `merge.branch-squash` | Squash-merge the selection (stages changes) |
+| `<space>bp` | Normal | `pick.cherry-pick` | Cherry-pick the selection onto the current branch |
+| `<space>bv` | Normal | `pick.revert` | Revert the selection with new commits |
 | `l` | Normal | `sidebar.expand` | Expand the sidebar entry |
 | `Enter` | Normal | `sidebar.activate` | Activate the sidebar entry |
 | `h` | Normal | `sidebar.collapse` | Collapse the sidebar entry |
 | `/` | Normal | `sidebar.filter` | Filter the sidebar |
 | `y` | Normal | `sidebar.copy` | Copy the branch, tag, stash name or worktree path |
-| `<space>Sa` | Normal | `stash.apply` | Apply the selected stash and keep it |
-| `<space>Sp` | Normal | `stash.pop` | Apply the selected stash and drop it |
-| `<space>Sd` | Normal | `stash.drop` | Drop the selected stash (asks first) |
+| `<space>ka` | Normal | `stash.apply` | Apply the selected stash and keep it |
+| `<space>kp` | Normal | `stash.pop` | Apply the selected stash and drop it |
+| `<space>kd` | Normal | `stash.drop` | Drop the selected stash (asks first) |
 | `<space>wa` | Normal | `worktree.add` | Add a worktree (branch, then path) |
 | `<space>wd` | Normal | `worktree.remove` | Remove the selected worktree (asks first) |
 | `<space>wl` | Normal | `worktree.lock` | Lock the selected worktree (optional reason) |
@@ -181,12 +182,12 @@ Every default key binding, one table per view. The design rules, notation and mo
 |---|---|---|---|
 | `Enter` | Normal | `reflog.select-commit` | Select the reflog entry's commit in the graph |
 | `h` `Esc` | Normal | `navigate.back` | Go back |
-| `<space>r` | Normal | `repo.refresh` | Refresh the repository |
+| `<space>or` | Normal | `repo.refresh` | Refresh the repository |
 | `<space>l` | Normal | `reflog.open` | Open the reflog of HEAD (of the branch under the sidebar cursor) |
 | `/` | Normal | `search.open` | Search |
 | `n` | Normal | `search.next` | Next search match |
 | `N` | Normal | `search.previous` | Previous search match |
-| `<space>gx` | Normal | `reset.branch` | Reset the current branch to the selection |
+| `<space>bx` | Normal | `reset.branch` | Reset the current branch to the selection |
 | `<space>bc` | Normal | `branch.create` | Create a branch and check it out |
 | `<space>bs` | Normal | `branch.switch` | Switch to a branch (check out) |
 
@@ -217,7 +218,7 @@ Every default key binding, one table per view. The design rules, notation and mo
 | `<space>u` | Normal, Visual | `conflict-editor.untake` | Conflict editor: untake, make the conflict unresolved again (a Visual selection: remove only its lines) |
 | `zh` | Normal, Visual | `conflict-editor.scroll-left` | Conflict editor: scroll the base, ours and theirs panes sideways to the left |
 | `zl` | Normal, Visual | `conflict-editor.scroll-right` | Conflict editor: scroll the base, ours and theirs panes sideways to the right |
-| `R` | Normal | `conflict-editor.recreate` | Conflict editor: re-create the conflict of the file (asks first) |
+| `Ctrl-x` | Normal | `conflict-editor.recreate` | Conflict editor: re-create the conflict of the file (asks first) |
 | `Enter` | Normal | `conflict-editor.save` | Conflict editor: save the file (asks first) |
 | `Esc` | Normal | `navigate.back` | Go back |
 
@@ -229,7 +230,7 @@ Every default key binding, one table per view. The design rules, notation and mo
 | `o` | Normal | `conflict-editor.ours` | Conflict editor: take our side for the conflict |
 | `t` | Normal | `conflict-editor.theirs` | Conflict editor: take their side for the conflict |
 | `b` | Normal | `conflict-editor.base` | Conflict editor: take the common ancestor for the conflict |
-| `B` | Normal | `conflict-editor.both` | Conflict editor: take both sides for the conflict, ours first |
+| `m` | Normal | `conflict-editor.both` | Conflict editor: take both sides for the conflict, ours first |
 | `O` | Normal | `conflict-editor.all-ours` | Conflict editor: take our side for every unresolved conflict of the file |
 | `T` | Normal | `conflict-editor.all-theirs` | Conflict editor: take their side for every unresolved conflict of the file |
 | `e` | Normal | `conflict-editor.edit` | Conflict editor: move into the result at this conflict and start typing (Insert mode) |
@@ -261,7 +262,7 @@ Every default key binding, one table per view. The design rules, notation and mo
 |---|---|---|---|
 | `Enter` | Normal | `detail.open-diff` | Go to the file diff |
 | `l` | Normal | `detail.expand` | Open the directory or folder under the cursor |
-| `<space>r` | Normal | `detail.retry` | Retry loading the commit details |
+| `<space>od` | Normal | `detail.retry` | Retry loading the commit details |
 | `y` | Normal | `detail.copy-path` | Copy the file path |
 | `gx` | Normal | `detail.open-link` | Open the issue link in the message line (a count picks the nth link) |
 | `<space>j` | Normal | `view.quick-jump-to-row` | Quick jump to a visible row |
@@ -345,13 +346,13 @@ Every default key binding, one table per view. The design rules, notation and mo
 
 | Keys | Modes | Action | What |
 |---|---|---|---|
-| `<space>r` | Normal | `repo.refresh` | Refresh the repository |
+| `<space>or` | Normal | `repo.refresh` | Refresh the repository |
 | `y` | Normal | `working-tree.copy-path` | Copy the file or folder path |
 | `h` | Normal | `working-tree.collapse` | Close the folder, else go to the parent folder |
 | `za` | Normal | `working-tree.toggle-folder` | Open or close the folder under the cursor (tree style) |
 | `Esc` | Normal | `navigate.back` | Go back |
 | `<space>c` | Normal | `working-tree.write-message` | Write the commit message |
-| `<space>te` | Normal | `tool.commit-editor` | Commit the staged changes in $EDITOR |
+| `<space>ec` | Normal | `tool.commit-editor` | Commit the staged changes in $EDITOR |
 | `Enter` | Normal | `working-tree.open-diff` | Go to the diff of the file or folder (a conflicted one: the conflict editor) |
 | `l` | Normal | `working-tree.expand` | Open the folder under the cursor |
 | `<space>j` | Normal | `view.quick-jump-to-row` | Quick jump to a visible row |
@@ -379,13 +380,13 @@ Every default key binding, one table per view. The design rules, notation and mo
 
 | Keys | Modes | Action | What |
 |---|---|---|---|
-| `<space>r` | Normal | `repo.refresh` | Refresh the repository |
+| `<space>or` | Normal | `repo.refresh` | Refresh the repository |
 | `y` | Normal | `working-tree.copy-path` | Copy the file or folder path |
 | `h` | Normal | `working-tree.collapse` | Close the folder, else go to the parent folder |
 | `za` | Normal | `working-tree.toggle-folder` | Open or close the folder under the cursor (tree style) |
 | `Esc` | Normal | `navigate.back` | Go back |
 | `<space>c` | Normal | `working-tree.write-message` | Write the commit message |
-| `<space>te` | Normal | `tool.commit-editor` | Commit the staged changes in $EDITOR |
+| `<space>ec` | Normal | `tool.commit-editor` | Commit the staged changes in $EDITOR |
 | `Enter` | Normal | `working-tree.open-diff` | Go to the diff of the file or folder (a conflicted one: the conflict editor) |
 | `l` | Normal | `working-tree.expand` | Open the folder under the cursor |
 | `<space>j` | Normal | `view.quick-jump-to-row` | Quick jump to a visible row |
@@ -412,7 +413,7 @@ Every default key binding, one table per view. The design rules, notation and mo
 
 | Keys | Modes | Action | What |
 |---|---|---|---|
-| `<space>r` | Normal | `repo.refresh` | Refresh the repository |
+| `<space>or` | Normal | `repo.refresh` | Refresh the repository |
 | `]c` | Normal | `diff.next-hunk` | Next hunk |
 | `[c` | Normal | `diff.previous-hunk` | Previous hunk |
 | `]f` | Normal | `diff.next-file` | Next file |
@@ -434,7 +435,7 @@ Every default key binding, one table per view. The design rules, notation and mo
 | `Y` | Normal | `diff.copy-file` | Copy the displayed rows of the current file |
 | `<space>j` | Normal | `view.quick-jump-to-row` | Quick jump to a visible row |
 | `<space>c` | Normal | `working-tree.write-message` | Write the commit message |
-| `<space>te` | Normal | `tool.commit-editor` | Commit the staged changes in $EDITOR |
+| `<space>ec` | Normal | `tool.commit-editor` | Commit the staged changes in $EDITOR |
 | `<space>a` | Normal, Visual | `working-tree.stage` | Stage the file or folder, the hunk or the selected lines |
 | `<space>d` | Normal, Visual | `working-tree.discard` | Discard the changes of the file or folder, the hunk or the selected lines (asks first) |
 | `Alt-s` | Normal, Visual, Insert | `working-tree.toggle-sign-off` | Commit option: SignOff (toggle) |
@@ -449,7 +450,7 @@ Every default key binding, one table per view. The design rules, notation and mo
 
 | Keys | Modes | Action | What |
 |---|---|---|---|
-| `<space>r` | Normal | `repo.refresh` | Refresh the repository |
+| `<space>or` | Normal | `repo.refresh` | Refresh the repository |
 | `]c` | Normal | `diff.next-hunk` | Next hunk |
 | `[c` | Normal | `diff.previous-hunk` | Previous hunk |
 | `]f` | Normal | `diff.next-file` | Next file |
@@ -471,7 +472,7 @@ Every default key binding, one table per view. The design rules, notation and mo
 | `Y` | Normal | `diff.copy-file` | Copy the displayed rows of the current file |
 | `<space>j` | Normal | `view.quick-jump-to-row` | Quick jump to a visible row |
 | `<space>c` | Normal | `working-tree.write-message` | Write the commit message |
-| `<space>te` | Normal | `tool.commit-editor` | Commit the staged changes in $EDITOR |
+| `<space>ec` | Normal | `tool.commit-editor` | Commit the staged changes in $EDITOR |
 | `<space>u` | Normal, Visual | `working-tree.unstage` | Unstage the file or folder, the hunk or the selected lines |
 | `Alt-s` | Normal, Visual, Insert | `working-tree.toggle-sign-off` | Commit option: SignOff (toggle) |
 | `Alt-n` | Normal, Visual, Insert | `working-tree.toggle-no-verify` | Commit option: No-Verify (toggle) |
@@ -487,8 +488,8 @@ Every default key binding, one table per view. The design rules, notation and mo
 |---|---|---|---|
 | `i` `Enter` | Normal | `working-tree.edit-message` | Edit the commit message |
 | `<space>c` | Normal | `working-tree.commit` | Commit the staged changes |
-| `<space>te` | Normal | `tool.commit-editor` | Commit the staged changes in $EDITOR |
-| `<space>r` | Normal | `repo.refresh` | Refresh the repository |
+| `<space>ec` | Normal | `tool.commit-editor` | Commit the staged changes in $EDITOR |
+| `<space>or` | Normal | `repo.refresh` | Refresh the repository |
 | `Esc` | Normal | `navigate.back` | Go back |
 | `h` | Normal | `working-tree.message-left` | Message box and conflict result: cursor left |
 | `j` | Normal | `working-tree.message-down` | Message box: cursor down |

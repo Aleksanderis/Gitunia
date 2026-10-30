@@ -279,7 +279,7 @@ public sealed class StashController(
     {
         if (result.Outcome == StashOutcome.NothingToStash)
         {
-            var hint = includeUntracked ? string.Empty : " (untracked files are stashed with <space>Su)";
+            var hint = includeUntracked ? string.Empty : " (untracked files are stashed with <space>ku)";
             return new StashReport($"Nothing to stash{hint}", StatusSeverity.Warning);
         }
 

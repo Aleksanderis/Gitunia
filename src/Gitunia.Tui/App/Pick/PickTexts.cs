@@ -55,7 +55,7 @@ public static class PickTexts
                 StatusSeverity.Info),
             _ => new OperationReport(
                 $"The {verb} of {what} stopped on conflicts: resolve the files marked !, then <space>gc to " +
-                "continue, <space>ga to abort or <space>gk to skip the commit",
+                "continue, <space>ga to abort or <space>gs to skip the commit",
                 StatusSeverity.Warning),
         };
     }

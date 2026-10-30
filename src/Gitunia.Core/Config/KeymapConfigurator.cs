@@ -107,7 +107,7 @@ public static class KeymapConfigurator
 
         if (string.IsNullOrWhiteSpace(entry.Key) || !KeySequenceParser.TryParse(entry.Key, out var sequence))
         {
-            error = $"'{entry.Key}' is not a key sequence (examples: J, gg, Ctrl-w c, <space>o)";
+            error = $"'{entry.Key}' is not a key sequence (examples: J, gg, Ctrl-w c, <space>oo)";
             return false;
         }
 

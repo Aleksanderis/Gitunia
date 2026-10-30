@@ -708,7 +708,7 @@ public sealed class MainView : IDisposable
         return null;
     }
 
-    // The resolve chip shows while the Unstaged list's cursor is on a conflicted file (the row <space>to opens).
+    // The resolve chip shows while the Unstaged list's cursor is on a conflicted file (the row <space>gr opens).
     // A file the editor refuses (delete/modify) gets no chip: it would promise what the key then declines.
     private bool IsConflictedUnderCursor() =>
         ConflictedSelection.Find(UnstagedSource.Tree) is { } entry && ConflictEditorSupport.CanOpen(entry.Conflict);
