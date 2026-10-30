@@ -225,6 +225,14 @@ public class GraphRowRendererTests
     }
 
     [Fact]
+    public void GivenAGlyphSetWithCaps_WhenAskingIfItHasCaps_ThenOnlyTheCappedSetSaysYes()
+    {
+        Assert.True(GraphGlyphSet.Unicode.WithLabelCaps(LabelCapStyle.Rounded, hasColors: true).HasLabelCaps);
+        Assert.False(GraphGlyphSet.Unicode.WithLabelCaps(LabelCapStyle.None, hasColors: true).HasLabelCaps);
+        Assert.False(GraphGlyphSet.Ascii.WithLabelCaps(LabelCapStyle.Rounded, hasColors: true).HasLabelCaps);
+    }
+
+    [Fact]
     public void GivenNoCapsOrTiersThatCannotShowThem_WhenAskingForCaps_ThenTheSetKeepsThePlainBox()
     {
         Assert.Equal(GraphGlyphSet.Unicode, GraphGlyphSet.Unicode.WithLabelCaps(LabelCapStyle.None, hasColors: true));
