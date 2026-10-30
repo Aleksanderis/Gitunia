@@ -448,6 +448,20 @@ public class ConflictEditorStateTests
     }
 
     [Fact]
+    public void GivenAJumpToAConflict_WhenFollowingCentered_ThenTheConflictSitsAThirdDownBothPanes()
+    {
+        var state = State(ManyConflicts(40)).NextConflict().NextConflict().NextConflict();
+
+        var centered = state.Follow(12, 15, isCentered: true);
+
+        Assert.Equal(state.Row - 4, centered.TopScroll);
+        Assert.Equal(centered.ResultLineOfRow(state.Row) - 5, centered.ResultScroll);
+        var moved = centered.MoveCursor(1).Follow(12, 15);
+        Assert.Equal(centered.TopScroll, moved.TopScroll);
+        Assert.Equal(centered.ResultScroll, moved.ResultScroll);
+    }
+
+    [Fact]
     public void GivenAThousandLinesAndSixtyConflicts_WhenPickingEveryOneAndUndoingAll_ThenItIsExact()
     {
         var text = ManyConflicts(60);

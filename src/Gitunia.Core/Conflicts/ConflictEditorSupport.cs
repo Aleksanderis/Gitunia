@@ -28,6 +28,6 @@ public static class ConflictEditorSupport
         ConflictKind.AddedByThem => "only they added it",
         ConflictKind.DeletedByUs => "we deleted it (delete/modify)",
         ConflictKind.DeletedByThem => "they deleted it (delete/modify)",
-        _ => "this conflict cannot be resolved hunk by hunk",
+        _ => "this conflict cannot be resolved in the conflict editor",
     };
 }

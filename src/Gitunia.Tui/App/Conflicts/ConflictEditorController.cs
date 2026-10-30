@@ -331,7 +331,7 @@ private static readonly Dictionary<ActionId, ConflictResultCommand> ResultComman
             statuses.Post($"{name}: both sides added it, so the base is empty; pick a side per conflict");
         }
 
-        Update(opened);
+        Update(opened, isCentered: true);
     }
 
     private void Fail(string text)
@@ -392,11 +392,11 @@ private static readonly Dictionary<ActionId, ConflictResultCommand> ResultComman
         }
         else if (action == ActionIds.ConflictEditorNext)
         {
-            Update(state.NextConflict());
+            Update(state.NextConflict(), isCentered: true);
         }
         else if (action == ActionIds.ConflictEditorPrevious)
         {
-            Update(state.PreviousConflict());
+            Update(state.PreviousConflict(), isCentered: true);
         }
         else
         {
@@ -492,11 +492,11 @@ private static readonly Dictionary<ActionId, ConflictResultCommand> ResultComman
         }
         else if (action == ActionIds.ConflictEditorUndo)
         {
-            Update(state.Undo());
+            Update(state.Undo(), isCentered: true);
         }
         else if (action == ActionIds.ConflictEditorRedo)
         {
-            Update(state.Redo());
+            Update(state.Redo(), isCentered: true);
         }
         else
         {
@@ -628,20 +628,20 @@ private static readonly Dictionary<ActionId, ConflictResultCommand> ResultComman
         }
     }
 
-    private void Update(ConflictEditorState state)
+    private void Update(ConflictEditorState state, bool isCentered = false)
     {
-        State = Followed(state);
+        State = Followed(state, isCentered);
         SetMode(DesiredMode(State));
         redraw();
     }
 
     // Scrolls the panes so the cursor shows at the current screen size.
-    private ConflictEditorState Followed(ConflictEditorState state)
+    private ConflictEditorState Followed(ConflictEditorState state, bool isCentered)
     {
         var size = EditorArea();
         var layout = ConflictEditorFrameBuilder.LayoutFor(state, size.Width, size.Height, keys);
 
-        return layout is null ? state : state.Follow(layout.VersionRows, layout.ResultRows);
+        return layout is null ? state : state.Follow(layout.VersionRows, layout.ResultRows, isCentered);
     }
 
     private static KeyMode DesiredMode(ConflictEditorState state)
@@ -886,7 +886,7 @@ private static readonly Dictionary<ActionId, ConflictResultCommand> ResultComman
         }
 
         statuses.Post($"Re-created the conflict of {name}");
-        Update(ConflictEditorState.Create(tabId, old.Path, result.Parts));
+        Update(ConflictEditorState.Create(tabId, old.Path, result.Parts), isCentered: true);
     }
 
     private static StatusEntry? ConflictedToOpen(RepositoryState tab) =>

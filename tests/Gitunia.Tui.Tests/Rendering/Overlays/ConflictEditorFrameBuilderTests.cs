@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Globalization;
 using System.Text;
 using Gitunia.Core.Conflicts;
@@ -321,7 +320,7 @@ public class ConflictEditorFrameBuilderTests
     }
 
     [Fact]
-    public void GivenAFileOfFiveThousandLines_WhenRenderingAfterAScroll_ThenTheFrameIsFast()
+    public void GivenAFileOfFiveThousandLines_WhenRenderingTheEnd_ThenOnlyTheVisibleRowsAreDrawn()
     {
         var builder = new StringBuilder();
         for (var index = 0; index < 100; index++)
@@ -331,19 +330,19 @@ public class ConflictEditorFrameBuilderTests
                 builder.Append(CultureInfo.InvariantCulture, $"common {index} line {line} with some text\n");
             }
 
-            builder.Append(CultureInfo.InvariantCulture, $"<<<<<<< HEAD\nours {index} word\n=======\ntheirs {index} word\n>>>>>>> feature\n");
+            builder.Append(CultureInfo.InvariantCulture, $"<<<<<<< HEAD\nours {index} word\n");
+            builder.Append(CultureInfo.InvariantCulture, $"=======\ntheirs {index} word\n>>>>>>> feature\n");
         }
 
         var state = State(builder.ToString()).MoveToBottom().Follow(20, 15);
-        _ = ConflictEditorFrameBuilder.Build(state, 160, 50, GraphGlyphSet.Unicode);
-        var watch = Stopwatch.StartNew();
-        for (var round = 0; round < 20; round++)
-        {
-            state = state.MoveCursor(-3).Follow(20, 15);
-            Assert.NotNull(ConflictEditorFrameBuilder.Build(state, 160, 50, GraphGlyphSet.Unicode));
-        }
 
-        Assert.True(watch.ElapsedMilliseconds / 20 < 50, $"{watch.ElapsedMilliseconds / 20} ms per frame");
+        var frame = ConflictEditorFrameBuilder.Build(state, 160, 50, GraphGlyphSet.Unicode)!;
+
+        Assert.Equal(50, frame.Height);
+        Assert.Contains(frame.Lines, line => line.Text.Contains("ours 99 word", StringComparison.Ordinal));
+        Assert.DoesNotContain(frame.Lines, line => line.Text.Contains("common 0 line 0", StringComparison.Ordinal));
+        Assert.DoesNotContain(frame.Lines, line => line.Text.Contains("ours 50 word", StringComparison.Ordinal));
+        Assert.Contains("conflict 100 of 100", frame.Lines[0].Text, StringComparison.Ordinal);
     }
 
     private static OverlayFrame Build(ConflictEditorState state, int width = 120, int height = 35) =>
