@@ -132,7 +132,7 @@ public class StagingActionsTests
     }
 
     [Fact]
-    public async Task GivenThreeConflictedFiles_WhenTheEditorStagesOne_ThenItIsStagedWithNoConfirmAndTwoAreReportedLeft()
+    public async Task GivenThreeConflictedFiles_WhenTheEditorStagesOne_ThenItIsStagedAndTwoAreReportedLeft()
     {
         using var harness = new Harness(Conflict("a.txt"), Conflict("b.txt"), Conflict("c.txt"));
         harness.Select(WorkingTreeSection.Unstaged, 2);
@@ -169,7 +169,7 @@ public class StagingActionsTests
         var notice = harness.Staging.StageResolvedFor(harness.Tab, "a.txt");
         await harness.Pump.RunUntilAsync(() => !harness.Staging.IsRunning);
 
-        Assert.Empty(notice);
+        Assert.Contains("saved, not staged", notice, StringComparison.Ordinal);
         Assert.Empty(harness.Writer.Staged);
     }
 

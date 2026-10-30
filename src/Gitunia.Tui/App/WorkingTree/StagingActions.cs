@@ -155,15 +155,16 @@ public sealed class StagingActions(
     /// <summary>
     /// Stages the conflicted <paramref name="path"/> of <paramref name="tab"/> right after the conflict editor saved it
     /// with no conflict marker left (no Confirm), then reports how many conflicted files are left and moves the cursor
-    /// to the next one. Returns a notice when nothing was started, empty otherwise.
+    /// to the first one left. Returns a notice when nothing was started, empty otherwise.
     /// </summary>
     public string StageResolvedFor(RepositoryState tab, string path)
     {
         var entry = tab.WorkingTree?.Unstaged
             .FirstOrDefault(candidate => candidate.Path == path && candidate.Kind == StatusEntryKind.Unmerged);
+        var name = WorkingTreeRowRenderer.Printable(path);
         if (entry is null)
         {
-            return string.Empty;
+            return $"{name} is no longer listed as conflicted: saved, not staged";
         }
 
         if (_gate.IsBusy(tab.Id))
@@ -173,9 +174,10 @@ public sealed class StagingActions(
 
         _gate.Begin(tab.Id);
         var token = cancellationOf(tab.Id);
-        var name = WorkingTreeRowRenderer.Printable(path);
-        var plan = StagingPlan.For(PathsOf(entry, WorkingTreeSection.Unstaged), name, 1, 0) with { IsSavedResolve = true };
-        _ = Task.Run(() => RunAsync(tab, plan, true, false, () => ReportResolved(tab.Id, name), token), CancellationToken.None);
+        var paths = PathsOf(entry, WorkingTreeSection.Unstaged);
+        var plan = StagingPlan.For(paths, name, 1, 0) with { IsSavedResolve = true };
+        var report = () => ReportResolved(tab.Id, name);
+        _ = Task.Run(() => RunAsync(tab, plan, true, false, report, token), CancellationToken.None);
 
         return string.Empty;
     }
@@ -213,7 +215,8 @@ public sealed class StagingActions(
         {
             if (!rows[row].IsFolder && tree.Unstaged[rows[row].EntryIndex].Kind == StatusEntryKind.Unmerged)
             {
-                host.Dispatch(new TabCommand(tab.Id, new SelectWorkingTreeFileCommand(WorkingTreeSection.Unstaged, row)));
+                var select = new SelectWorkingTreeFileCommand(WorkingTreeSection.Unstaged, row);
+                host.Dispatch(new TabCommand(tab.Id, select));
 
                 return;
             }
