@@ -1,7 +1,9 @@
 namespace Gitunia.Core.Conflicts;
 
 /// <summary>How the conflicted file is written, kept so the saved result reads like the file did.</summary>
-/// <param name="LineEnding">The line ending written between result lines: CRLF when the file used it more than LF.</param>
+/// <param name="LineEnding">
+/// The line ending written between result lines: CRLF when the file used it more than LF.
+/// </param>
 /// <param name="HasFinalNewline">Whether the file ended with a line break.</param>
 /// <param name="HadMixedLineEndings">
 /// The file mixed CRLF and LF lines; saving writes <paramref name="LineEnding"/> everywhere.

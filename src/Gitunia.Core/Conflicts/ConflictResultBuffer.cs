@@ -176,7 +176,9 @@ public sealed class ConflictResultBuffer
         && Editor.Lines.SequenceEqual(snapshot.Lines, StringComparer.Ordinal)
         && _regions.SequenceEqual(snapshot.Regions);
 
-    /// <summary>The whole result as a file: lines joined with the line ending, a final one when the file had it.</summary>
+    /// <summary>
+    /// The whole result as a file: lines joined with the line ending, a final one when the file had it.
+    /// </summary>
     /// <param name="lineEnding">The line ending to write.</param>
     /// <param name="hasFinalNewline">Whether the file ended with a line break.</param>
     public string ToText(string lineEnding, bool hasFinalNewline)

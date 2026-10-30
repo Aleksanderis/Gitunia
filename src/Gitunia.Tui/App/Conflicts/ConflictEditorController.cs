@@ -46,7 +46,9 @@ namespace Gitunia.Tui.App.Conflicts;
 /// <param name="isOtherOverlayOpen">True while an overlay other than this editor is open.</param>
 /// <param name="screenSize">The current terminal size.</param>
 /// <param name="glyphs">The characters the editor is drawn with.</param>
-/// <param name="setMode">Switches the keymap mode (Insert while the result is typed in, Visual while lines are selected).</param>
+/// <param name="setMode">
+/// Switches the keymap mode (Insert while the result is typed in, Visual while lines are selected).
+/// </param>
 /// <param name="redraw">Redraws the overlay layer and the status bar.</param>
 /// <param name="gate">The one-operation-per-tab gate, shared with staging, discard, reset and stash.</param>
 /// <param name="keys">Where the chips take their key text from; null uses the default keymap.</param>
@@ -120,7 +122,9 @@ private static readonly Dictionary<ActionId, ConflictResultCommand> ResultComman
     /// <summary>True while lines are selected in a version pane.</summary>
     public bool IsVisual => State is { IsVisual: true };
 
-    /// <summary>The keymap view of the pane the cursor is in (the result's editor keys, or the versions' pick keys).</summary>
+    /// <summary>
+    /// The keymap view of the pane the cursor is in (the result's editor keys, or the versions' pick keys).
+    /// </summary>
     public string ViewName => IsResultActive ? DefaultKeymap.ConflictResultView : DefaultKeymap.ConflictSideView;
 
     /// <summary>The frame to draw, or null when closed, covered by a dialog or the screen is too small.</summary>

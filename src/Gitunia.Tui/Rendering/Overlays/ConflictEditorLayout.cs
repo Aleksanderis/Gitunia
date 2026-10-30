@@ -4,7 +4,6 @@ namespace Gitunia.Tui.Rendering.Overlays;
 
 /// <summary>Where the parts of the full-screen conflict editor sit at a terminal size.</summary>
 /// <param name="Width">Columns of the frame, the whole terminal width.</param>
-/// <param name="Height">Rows of the frame, the terminal height minus the status bar.</param>
 /// <param name="Panes">The version panes shown, left to right (fewer than three on a narrow terminal).</param>
 /// <param name="VersionRows">Rows of each version pane.</param>
 /// <param name="ResultRows">Rows of the result pane.</param>
@@ -12,7 +11,6 @@ namespace Gitunia.Tui.Rendering.Overlays;
 /// <param name="FirstChipLine">Frame line of the first chip row.</param>
 public sealed record ConflictEditorLayout(
     int Width,
-    int Height,
     IReadOnlyList<ConflictPane> Panes,
     int VersionRows,
     int ResultRows,

@@ -35,7 +35,6 @@ public static class ConflictEditorFrameBuilder
     private const int TwoChipRowsFromHeight = 20;
     private const int VersionShareOf = 20;
     private const int VersionShare = 9;
-    private const int ChipGap = 2;
     private const string DiscardHint = "Esc again discards your changes";
     private const string TakenMark = "[taken]";
 
@@ -79,7 +78,6 @@ public static class ConflictEditorFrameBuilder
     [
         new("take lines", DefaultMouseMap.ConflictTakeButton),
         new("end selection", DefaultMouseMap.ConflictSelectButton),
-        new("close", DefaultMouseMap.ConflictCancelButton),
     ];
 
     private static readonly HintChip[] EditingChips =
@@ -87,7 +85,9 @@ public static class ConflictEditorFrameBuilder
         new("keep", DefaultMouseMap.ConflictEditDoneButton),
     ];
 
-    /// <summary>Where the parts sit at a screen size, or null when the screen is too small to draw the editor.</summary>
+    /// <summary>
+    /// Where the parts sit at a screen size, or null when the screen is too small to draw the editor.
+    /// </summary>
     /// <param name="state">The editor.</param>
     /// <param name="screenWidth">Columns of the terminal.</param>
     /// <param name="frameHeight">Rows available to the frame: the terminal height minus the status bar.</param>
@@ -111,18 +111,12 @@ public static class ConflictEditorFrameBuilder
             available = frameHeight - ChromeRows;
         }
 
-        if (available < MinimumPaneRows * 2)
-        {
-            return null;
-        }
-
         var versionRows = Math.Max(MinimumPaneRows, available * VersionShare / VersionShareOf);
         var resultRows = available - versionRows;
         var firstChipLine = ConflictEditorLayout.VersionStartLine + versionRows + 2 + resultRows + 1;
 
         return new ConflictEditorLayout(
             screenWidth,
-            frameHeight,
             PanesFor(state, screenWidth),
             versionRows,
             resultRows,
@@ -439,7 +433,8 @@ public static class ConflictEditorFrameBuilder
         }
     }
 
-    private static string Vertical(GraphGlyphSet glyphs) => glyphs.For(LineDirections.Up | LineDirections.Down).ToString();
+    private static string Vertical(GraphGlyphSet glyphs) =>
+        glyphs.For(LineDirections.Up | LineDirections.Down).ToString();
 
     // A rule across the frame, joined to both side borders; `closesUp` columns meet the pane dividers above it.
     private static StyledLine Rule(int width, GraphGlyphSet glyphs, List<int> closesUp)

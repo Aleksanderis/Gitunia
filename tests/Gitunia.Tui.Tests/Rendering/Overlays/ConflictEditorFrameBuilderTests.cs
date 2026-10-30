@@ -59,11 +59,11 @@ public class ConflictEditorFrameBuilderTests
         var frame = Build(State(Text));
 
         var header = frame.Lines[1].Text;
-        Assert.True(header.IndexOf("base", StringComparison.Ordinal) < header.IndexOf("ours  HEAD", StringComparison.Ordinal));
-        Assert.True(header.IndexOf("ours", StringComparison.Ordinal) < header.IndexOf("theirs  feature", StringComparison.Ordinal));
+        Assert.True(IsBefore(header, "base", "ours  HEAD"));
+        Assert.True(IsBefore(header, "ours", "theirs  feature"));
         var row = RowsContaining(frame, "ours 1")[0];
         Assert.Contains("theirs 1", row, StringComparison.Ordinal);
-        Assert.True(row.IndexOf("ours 1", StringComparison.Ordinal) < row.IndexOf("theirs 1", StringComparison.Ordinal));
+        Assert.True(IsBefore(row, "ours 1", "theirs 1"));
     }
 
     [Fact]
@@ -102,10 +102,12 @@ public class ConflictEditorFrameBuilderTests
         var frame = Build(State(Text).Take(ConflictPick.Theirs), height: 40);
 
         var result = ResultLines(frame);
-        Assert.DoesNotContain(result, line => line.Contains("<<<<<<< HEAD", StringComparison.Ordinal) && line.Contains("two", StringComparison.Ordinal));
-        Assert.Contains("taken from theirs", frame.Lines.Select(line => line.Text).First(line => line.Contains("result", StringComparison.Ordinal)), StringComparison.Ordinal);
+        Assert.DoesNotContain(result, line => line.Contains("ours 1", StringComparison.Ordinal));
+        var resultHeader = TextOfLineWith(frame, " result ");
+        Assert.Contains("taken from theirs", resultHeader, StringComparison.Ordinal);
         var header = frame.Lines[1].Text;
-        Assert.Contains("[taken]", header[header.IndexOf("theirs", StringComparison.Ordinal)..], StringComparison.Ordinal);
+        var theirsHeader = header[header.IndexOf("theirs", StringComparison.Ordinal)..];
+        Assert.Contains("[taken]", theirsHeader, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -113,11 +115,13 @@ public class ConflictEditorFrameBuilderTests
     {
         var frame = Build(State(Text).Take(ConflictPick.Ours).NextConflict(), height: 40);
 
-        var settledRow = frame.Lines.First(line => line.Text.Contains("ours 1", StringComparison.Ordinal) && line.Text.Contains('✓', StringComparison.Ordinal));
+        var settledRow = LineWith(frame, "ours 1", "✓");
         Assert.Contains(settledRow.Segments, segment => segment.Text == "✓" && segment.Role == SegmentRole.DiffAdded);
         var unresolvedRow = frame.Lines.First(line => line.Text.Contains("<<<<<<< HEAD", StringComparison.Ordinal));
         Assert.Contains(unresolvedRow.Segments, segment => segment.Text == "?" && segment.Role == SegmentRole.Error);
-        Assert.Contains(unresolvedRow.Segments, segment => segment.Text.Contains("<<<<<<<", StringComparison.Ordinal) && segment.Role == SegmentRole.Error);
+        Assert.Contains(
+            unresolvedRow.Segments,
+            segment => segment.Text.Contains("<<<<<<<", StringComparison.Ordinal) && segment.Role == SegmentRole.Error);
     }
 
     [Fact]
@@ -125,7 +129,7 @@ public class ConflictEditorFrameBuilderTests
     {
         var frame = Build(State(Text).NextConflict());
 
-        var current = frame.Lines.First(line => line.Text.Contains("│?", StringComparison.Ordinal) && line.Text.Contains('A', StringComparison.Ordinal));
+        var current = LineWith(frame, "│?", "A");
         Assert.Contains(current.Segments, segment => segment.Role == SegmentRole.DiffGroupBar && segment.InGroup);
         var first = frame.Lines.First(line => line.Text.Contains("ours 1", StringComparison.Ordinal));
         Assert.DoesNotContain(first.Segments, segment => segment.InGroup);
@@ -146,7 +150,9 @@ public class ConflictEditorFrameBuilderTests
     {
         var frame = Build(State(Text).ToggleVisual().MoveCursor(1));
 
-        var rows = frame.Lines.Where(line => line.Segments.Any(segment => segment.Selection == SegmentSelection.Range)).ToList();
+        var rows = frame.Lines
+            .Where(line => line.Segments.Any(segment => segment.Selection == SegmentSelection.Range))
+            .ToList();
         Assert.Equal(2, rows.Count);
         Assert.Contains("VISUAL 2", frame.Lines[1].Text, StringComparison.Ordinal);
     }
@@ -157,9 +163,13 @@ public class ConflictEditorFrameBuilderTests
         var frame = Build(State(Diff3Text));
 
         var ours = frame.Lines.First(line => line.Text.Contains("the red fox", StringComparison.Ordinal));
-        Assert.Contains(ours.Segments, segment => segment.Role == SegmentRole.DiffRemovedWord && segment.Text.Contains("red", StringComparison.Ordinal));
+        Assert.Contains(
+            ours.Segments,
+            segment => segment.Role == SegmentRole.DiffRemovedWord && segment.Text.Contains("red", StringComparison.Ordinal));
         var theirs = frame.Lines.First(line => line.Text.Contains("the blue fox", StringComparison.Ordinal));
-        Assert.Contains(theirs.Segments, segment => segment.Role == SegmentRole.DiffAddedWord && segment.Text.Contains("blue", StringComparison.Ordinal));
+        Assert.Contains(
+            theirs.Segments,
+            segment => segment.Role == SegmentRole.DiffAddedWord && segment.Text.Contains("blue", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -176,7 +186,8 @@ public class ConflictEditorFrameBuilderTests
         var versions = State(Text);
 
         var ours = ConflictEditorFrameBuilder.Build(versions, 80, 30, GraphGlyphSet.Unicode)!;
-        var baseFirst = ConflictEditorFrameBuilder.Build(versions.FocusPane(ConflictPane.Base), 80, 30, GraphGlyphSet.Unicode)!;
+        var baseState = versions.FocusPane(ConflictPane.Base);
+        var baseFirst = ConflictEditorFrameBuilder.Build(baseState, 80, 30, GraphGlyphSet.Unicode)!;
 
         Assert.Contains("theirs", ours.Lines[1].Text, StringComparison.Ordinal);
         Assert.DoesNotContain("base", ours.Lines[1].Text, StringComparison.Ordinal);
@@ -350,6 +361,16 @@ public class ConflictEditorFrameBuilderTests
 
     private static List<string> RowsContaining(OverlayFrame frame, string text) =>
         [.. frame.Lines.Select(line => line.Text).Where(line => line.Contains(text, StringComparison.Ordinal))];
+
+    private static bool IsBefore(string text, string first, string second) =>
+        text.IndexOf(first, StringComparison.Ordinal) < text.IndexOf(second, StringComparison.Ordinal);
+
+    private static StyledLine LineWith(OverlayFrame frame, string first, string second) =>
+        frame.Lines.First(line =>
+            line.Text.Contains(first, StringComparison.Ordinal) && line.Text.Contains(second, StringComparison.Ordinal));
+
+    private static string TextOfLineWith(OverlayFrame frame, string text) =>
+        frame.Lines.Select(line => line.Text).First(line => line.Contains(text, StringComparison.Ordinal));
 
     private static int CountOf(string row, string value) => row.Split(value).Length - 1;
 

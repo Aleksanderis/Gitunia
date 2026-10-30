@@ -85,7 +85,9 @@ public sealed class MessageEditor
         MoveTo(0, 0);
     }
 
-    /// <summary>Puts the cursor on a line and a UTF-16 column, both clamped (the column to a text element boundary).</summary>
+    /// <summary>
+    /// Puts the cursor on a line and a UTF-16 column, both clamped (the column to a text element boundary).
+    /// </summary>
     /// <param name="row">Zero-based line.</param>
     /// <param name="column">UTF-16 index in the line.</param>
     public void SetCursor(int row, int column)

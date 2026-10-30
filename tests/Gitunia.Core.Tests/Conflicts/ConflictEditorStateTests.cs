@@ -215,7 +215,10 @@ public class ConflictEditorStateTests
         state = state.TypeKey(new KeyEvent("X"));
 
         Assert.Equal(ConflictPick.Edited, state.SelectedPick);
-        Assert.StartsWith("top\nX<<<<<<< HEAD\nA1\n=======\nB1\n>>>>>>> other\nmid", state.ToText(), StringComparison.Ordinal);
+        Assert.StartsWith(
+            "top\nX<<<<<<< HEAD\nA1\n=======\nB1\n>>>>>>> other\nmid",
+            state.ToText(),
+            StringComparison.Ordinal);
         Assert.Equal(2, state.UnresolvedCount);
     }
 

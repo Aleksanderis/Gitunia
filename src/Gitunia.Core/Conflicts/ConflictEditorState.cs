@@ -23,7 +23,9 @@ namespace Gitunia.Core.Conflicts;
 /// <param name="Format">Line endings of the file, kept on save.</param>
 /// <param name="ActivePane">The pane the cursor is in.</param>
 /// <param name="TopPane">The version pane the cursor was last in (where <c>Ctrl-k</c> returns from the result).</param>
-/// <param name="Row">The cursor's aligned row in the version panes (follows the result cursor while that is active).</param>
+/// <param name="Row">
+/// The cursor's aligned row in the version panes (follows the result cursor while that is active).
+/// </param>
 /// <param name="SelectedIndex">The current conflict: the one the cursor is in or was last in.</param>
 /// <param name="Anchor">The aligned row where a Visual selection started, null when none.</param>
 /// <param name="TopScroll">The first aligned row shown in the version panes.</param>
@@ -138,7 +140,9 @@ public sealed record ConflictEditorState(
         return pick != ConflictPick.Base || Hunks[Index].Base is not null;
     }
 
-    /// <summary>The lines a Visual selection would copy from the active version pane into the current conflict.</summary>
+    /// <summary>
+    /// The lines a Visual selection would copy from the active version pane into the current conflict.
+    /// </summary>
     public IReadOnlyList<string> SelectedLines()
     {
         if (Anchor is null || !IsVersionPane || Hunks.Count == 0)
@@ -245,7 +249,8 @@ public sealed record ConflictEditorState(
     public ConflictEditorState PreviousPane() => FocusPane(PaneOrder[(Array.IndexOf(PaneOrder, ActivePane) + 3) % 4]);
 
     /// <summary>Moves one version pane to the left; from the result it does nothing.</summary>
-    public ConflictEditorState PaneLeft() => IsVersionPane ? FocusPane(PaneOrder[Math.Max(0, (int)ActivePane - 1)]) : this;
+    public ConflictEditorState PaneLeft() =>
+        IsVersionPane ? FocusPane(PaneOrder[Math.Max(0, (int)ActivePane - 1)]) : this;
 
     /// <summary>Moves one version pane to the right; from the result it does nothing.</summary>
     public ConflictEditorState PaneRight() =>
@@ -279,7 +284,8 @@ public sealed record ConflictEditorState(
     /// </summary>
     public ConflictEditorState Take(ConflictPick pick)
     {
-        if (!CanTake(pick) || pick is not (ConflictPick.Ours or ConflictPick.Theirs or ConflictPick.Base or ConflictPick.Both))
+        var isVersion = pick is ConflictPick.Ours or ConflictPick.Theirs or ConflictPick.Base or ConflictPick.Both;
+        if (!CanTake(pick) || !isVersion)
         {
             return this;
         }
@@ -411,7 +417,9 @@ public sealed record ConflictEditorState(
         return (this with { IsDiscardPending = false }).SyncedFromResult();
     }
 
-    /// <summary>A Normal mode command of the result pane (motions, <c>x</c>, <c>dd</c>, <c>o</c>, <c>a</c> ...).</summary>
+    /// <summary>
+    /// A Normal mode command of the result pane (motions, <c>x</c>, <c>dd</c>, <c>o</c>, <c>a</c> ...).
+    /// </summary>
     public ConflictEditorState ApplyResultCommand(ConflictResultCommand command)
     {
         if (IsEditing || IsVersionPane)
