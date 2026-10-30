@@ -43,6 +43,8 @@ public static class SettingsValueReader
         var values = ImmutableDictionary.CreateBuilder<string, SettingValue>();
         values[SettingsRegistry.ThemeId] = SettingValue.OfChoice(ThemeName(theme));
         values[SettingsRegistry.LabelCapsId] = SettingValue.OfChoice(LabelCapName(options.LabelCaps));
+        values[SettingsRegistry.WhichKeyId] = SettingValue.OfChoice(options.WhichKeyPopup ? "on" : "off");
+        values[SettingsRegistry.StatusBarHintsId] = SettingValue.OfChoice(StatusBarHintName(options.StatusBarHints));
         values[SettingsRegistry.ShowBranchId] = SettingValue.OfFlag(options.ShowBranchInTab);
         values[SettingsRegistry.ScanRootsId] = ReadScanRoots(document.ScanRoots);
 
@@ -65,6 +67,15 @@ public static class SettingsValueReader
         LabelCapStyle.Rounded => "rounded",
         LabelCapStyle.Angled => "angled",
         _ => "none",
+    };
+
+    /// <summary>The option a status bar hint mode shows as (and is written as).</summary>
+    /// <param name="mode">The mode.</param>
+    public static string StatusBarHintName(StatusBarHintMode mode) => mode switch
+    {
+        StatusBarHintMode.Minimal => "minimal",
+        StatusBarHintMode.Off => "off",
+        _ => "full",
     };
 
     /// <summary>The theme a choice option stands for.</summary>

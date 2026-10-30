@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using Gitunia.Core.Config.Models;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Repeat;
 using Gitunia.Core.Workspaces.Panes;
@@ -422,6 +423,19 @@ public static class PaneHints
 
         return [.. hints.Take(Pinned.Length), lead, .. hints.Skip(Pinned.Length)];
     }
+
+    /// <summary>
+    /// <paramref name="hints"/> as the <c>hints.statusBar</c> option wants them (#837): all of them, only help,
+    /// commands and quit, or none. The keys keep working whatever is shown.
+    /// </summary>
+    /// <param name="hints">The hints of the focused pane.</param>
+    /// <param name="mode">The option.</param>
+    public static IReadOnlyList<KeyHint> Limit(IReadOnlyList<KeyHint> hints, StatusBarHintMode mode) => mode switch
+    {
+        StatusBarHintMode.Minimal => Pinned,
+        StatusBarHintMode.Off => [],
+        _ => hints,
+    };
 
     /// <summary>The hints of the detail pane while its Changes tab is selected.</summary>
     public static IReadOnlyList<KeyHint> ForDetailChanges() => DetailChanges;

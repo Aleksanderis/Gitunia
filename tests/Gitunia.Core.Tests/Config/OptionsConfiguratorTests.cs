@@ -108,6 +108,55 @@ public sealed class OptionsConfiguratorTests
         Assert.Empty(problems);
     }
 
+    [Theory]
+    [InlineData("{ \"whichKey\": \"on\" }", true)]
+    [InlineData("{ \"whichKey\": \"OFF\" }", false)]
+    [InlineData("{ }", true)]
+    [InlineData("null", true)]
+    public void GivenAValidWhichKeyValue_WhenParsing_ThenItFollowsWithoutProblems(string json, bool expected)
+    {
+        var problems = new List<ConfigProblem>();
+
+        Assert.Equal(expected, OptionsConfigurator.ParseWhichKey(Json(json), problems));
+        Assert.Empty(problems);
+    }
+
+    [Theory]
+    [InlineData("{ \"whichKey\": \"maybe\" }", "hints.whichKey")]
+    [InlineData("{ \"whichKey\": false }", "hints.whichKey")]
+    [InlineData("5", "hints")]
+    public void GivenAnInvalidWhichKeyValue_WhenParsing_ThenTheDefaultAppliesWithAProblem(string json, string path)
+    {
+        var problems = new List<ConfigProblem>();
+
+        Assert.True(OptionsConfigurator.ParseWhichKey(Json(json), problems));
+        Assert.Equal(path, Assert.Single(problems).Path);
+    }
+
+    [Theory]
+    [InlineData("{ \"statusBar\": \"full\" }", StatusBarHintMode.Full)]
+    [InlineData("{ \"statusBar\": \"Minimal\" }", StatusBarHintMode.Minimal)]
+    [InlineData("{ \"statusBar\": \"off\" }", StatusBarHintMode.Off)]
+    [InlineData("{ }", StatusBarHintMode.Full)]
+    public void GivenAValidStatusBarValue_WhenParsing_ThenItFollowsWithoutProblems(string json, StatusBarHintMode expected)
+    {
+        var problems = new List<ConfigProblem>();
+
+        Assert.Equal(expected, OptionsConfigurator.ParseStatusBar(Json(json), problems));
+        Assert.Empty(problems);
+    }
+
+    [Theory]
+    [InlineData("{ \"statusBar\": \"some\" }")]
+    [InlineData("{ \"statusBar\": 1 }")]
+    public void GivenAnInvalidStatusBarValue_WhenParsing_ThenFullAppliesWithAProblemOnTheKey(string json)
+    {
+        var problems = new List<ConfigProblem>();
+
+        Assert.Equal(StatusBarHintMode.Full, OptionsConfigurator.ParseStatusBar(Json(json), problems));
+        Assert.Equal("hints.statusBar", Assert.Single(problems).Path);
+    }
+
     [Fact]
     public void GivenNoScanRoots_WhenParsing_ThenNullMeansTheConventionalFolders()
     {

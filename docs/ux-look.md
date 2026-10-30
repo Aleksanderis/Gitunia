@@ -93,6 +93,9 @@ The file is read once at startup and never modified by the loader; the settings 
   // Ends of the branch labels in the graph: rounded (default) or angled Powerline caps, or none for a plain box.
   // Needs a Nerd Font or Powerline-patched font; a change in the Settings screen applies at once.
   "labelCaps": "rounded",
+  // Hints that teach keys. whichKey: on (default) or off, the popup after a pending chord. statusBar: full (default),
+  // minimal (only ? help, : commands, q quit) or off. The keys work either way; a change in Settings applies at once.
+  "hints": { "whichKey": "on", "statusBar": "full" },
   // Live file watching instead of polling (default false: each watcher takes a scarce inotify instance; read at startup).
   "watchFiles": false,
   "keys": [
@@ -122,6 +125,7 @@ The file is read once at startup and never modified by the loader; the settings 
   `scanRoots`: a list of absolute paths, a leading `~` stands for the home folder; it replaces the conventional folders, an empty list turns discovery off, and the picker scans these folders only (depth and count limits unchanged).
   An entry that is not a string, is relative (never resolved against the process working directory) or is not an existing folder is reported by index (`scanRoots[2]`) and skipped; if no entry of a non-empty list is usable, or the value is not a list, the conventional folders apply.
   `labelCaps`: `rounded` (default), `angled` or `none` (any case); another value is reported and `rounded` applies. Rounded draws U+E0B6 before and U+E0B4 after each branch label box, angled U+E0B2 and U+E0B0, each one cell in the box colour (needs a Nerd Font or Powerline-patched font); with caps the box has no padding of its own. Only the Unicode tier with colours takes them; the ASCII tier, a no-colour terminal and `none` keep the plain box. A change in the settings screen redraws every tab's graph at once.
+  `hints.whichKey` and `hints.statusBar` (#837): `on`/`off` and `full`/`minimal`/`off` (any case); a `hints` that is not an object or another value is reported and the default (`on`, `full`) applies. Off hides the popup only (the pending prefix still shows in the status bar); `minimal` keeps `? help  : commands  q quit`, `off` shows no hints; `?` and `:` always work. Modal hints (confirm answers, editors, the repeat mode) are not affected. Applied at once from the settings screen (Keys category).
   `watchFiles` (#543): a boolean, false by default (tabs poll, see `git-layer.md`); another value is reported and false applies; it has no row in the settings screen and takes effect after a restart.
   Options are read at startup; the settings screen applies a change at once (and reads the file again when it opens and when the editor row returns).
 - Problems appear as warnings at startup (the first in the status bar with a count of the others; `<space>m` keeps the first five).

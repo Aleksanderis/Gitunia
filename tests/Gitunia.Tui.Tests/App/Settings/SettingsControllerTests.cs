@@ -87,6 +87,39 @@ public sealed class SettingsControllerTests : IDisposable
     }
 
     [Fact]
+    public async Task GivenTheWhichKeySetting_WhenTurningItOff_ThenItIsWrittenAndAppliedAtOnce()
+    {
+        await _harness.OpenAsync();
+        _harness.Run(ActionIds.ListDown);
+        _harness.Run(ActionIds.SettingsActivate);
+        _harness.Run(ActionIds.SettingsActivate);
+        _harness.Run(ActionIds.ListDown);
+
+        _harness.Run(ActionIds.SettingsActivate);
+        await _harness.PumpAsync();
+
+        Assert.Contains("\"hints\": { \"whichKey\": \"off\" }", _harness.ReadConfig(), StringComparison.Ordinal);
+        Assert.False(_harness.Applied.Last().WhichKeyPopup);
+    }
+
+    [Fact]
+    public async Task GivenTheStatusBarHintsSetting_WhenChoosingMinimal_ThenItIsWrittenAndAppliedAtOnce()
+    {
+        await _harness.OpenAsync();
+        _harness.Run(ActionIds.ListDown);
+        _harness.Run(ActionIds.SettingsActivate);
+        _harness.Run(ActionIds.ListDown);
+        _harness.Run(ActionIds.SettingsActivate);
+        _harness.Run(ActionIds.ListDown);
+
+        _harness.Run(ActionIds.SettingsActivate);
+        await _harness.PumpAsync();
+
+        Assert.Contains("\"statusBar\": \"minimal\"", _harness.ReadConfig(), StringComparison.Ordinal);
+        Assert.Equal(StatusBarHintMode.Minimal, _harness.Applied.Last().StatusBarHints);
+    }
+
+    [Fact]
     public async Task GivenAChoice_WhenKeepingAnOption_ThenTheFileAndTheRunningThemeChange()
     {
         await _harness.OpenAsync();
@@ -672,8 +705,8 @@ public sealed class SettingsControllerTests : IDisposable
         _harness.Run(ActionIds.ListDown);
         _harness.Run(ActionIds.SettingsActivate);
 
-        var first = _harness.Settings.OnLineClicked(2 + 2, 30, out _);
-        var second = _harness.Settings.OnLineClicked(2 + 2, 30, out _);
+        var first = _harness.Settings.OnLineClicked(2 + 4, 30, out _);
+        var second = _harness.Settings.OnLineClicked(2 + 4, 30, out _);
 
         Assert.Equal(SettingRowKind.Binding, _harness.Settings.State!.Selected!.Kind);
         Assert.Null(first);

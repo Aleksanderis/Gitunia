@@ -21,6 +21,28 @@ public sealed class OverlayController
     /// <summary>How long a chord stays pending before the which-key popup appears.</summary>
     public static readonly TimeSpan WhichKeyDelay = TimeSpan.FromMilliseconds(250);
 
+    /// <summary>
+    /// Whether a pending chord opens the which-key popup (<c>hints.whichKey</c>, #837). Off hides only the popup: the
+    /// status bar still shows the pending prefix and every key works. Turning it off drops a wait or popup in progress.
+    /// </summary>
+    public bool WhichKeyEnabled
+    {
+        get;
+        set
+        {
+            field = value;
+            if (!value)
+            {
+                _whichKeyTimer.Cancel();
+                if (State.WhichKeyVisible)
+                {
+                    State = State.WithWhichKey(false);
+                    Changed?.Invoke();
+                }
+            }
+        }
+    } = true;
+
     private readonly KeymapEngine _engine;
     private readonly KeyController _keys;
     private readonly WhichKeyTimer _whichKeyTimer;
@@ -523,6 +545,11 @@ public sealed class OverlayController
         if (State.WhichKeyVisible)
         {
             Changed?.Invoke();
+            return;
+        }
+
+        if (!WhichKeyEnabled)
+        {
             return;
         }
 

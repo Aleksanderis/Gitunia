@@ -740,6 +740,41 @@ public sealed class OverlayControllerTests : IDisposable
     }
 
     [Fact]
+    public void GivenWhichKeyOff_WhenAChordStaysPending_ThenNoPopupShowsAndTheChordStillCompletes()
+    {
+        _overlays.WhichKeyEnabled = false;
+        Press(new Key('g'));
+
+        // A sentinel timer started after the chord with the same delay fires after any callback of a started wait.
+        using var sentinel = new WhichKeyTimer(TimeSpan.FromMilliseconds(1), action =>
+        {
+            _posted.Enqueue(action);
+            _postedSignal.Release();
+        });
+        sentinel.Start(() => { });
+        Assert.True(_postedSignal.Wait(TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken));
+        RunPosted();
+
+        Assert.False(_overlays.State.WhichKeyVisible);
+        Assert.True(_keys.State.HasPending);
+        Assert.Equal(0, _changes);
+    }
+
+    [Fact]
+    public void GivenAVisiblePopup_WhenTurningWhichKeyOff_ThenItClosesAtOnceAndTheChordStaysPending()
+    {
+        Press(new Key('g'));
+        Assert.True(_postedSignal.Wait(TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken));
+        RunPosted();
+        Assert.True(_overlays.State.WhichKeyVisible);
+
+        _overlays.WhichKeyEnabled = false;
+
+        Assert.False(_overlays.State.WhichKeyVisible);
+        Assert.True(_keys.State.HasPending);
+    }
+
+    [Fact]
     public void GivenPendingChord_WhenItIsCancelledBeforeTheDelay_ThenThePopupNeverShows()
     {
         Press(new Key('g'));
