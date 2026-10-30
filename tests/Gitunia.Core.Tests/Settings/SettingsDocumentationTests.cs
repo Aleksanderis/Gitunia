@@ -39,7 +39,7 @@ public class SettingsDocumentationTests
     {
         var rows = new List<string[]>();
         var inSection = false;
-        foreach (var line in File.ReadAllLines(UxKeymapReader.FindUxDocument("ux-settings.md")))
+        foreach (var line in File.ReadAllLines(RepoDocs.FindUxDocument("ux-settings.md")))
         {
             if (line.StartsWith("## ", StringComparison.Ordinal))
             {
