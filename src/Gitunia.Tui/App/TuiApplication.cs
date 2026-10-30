@@ -469,6 +469,8 @@ public sealed class TuiApplication(
         _view.EdgeDragged += OnEdgeDragged;
         _view.OverlayLineClicked += OnOverlayLineClicked;
         _view.OverlayLineDoubleClicked += OnOverlayLineDoubleClicked;
+        _view.OverlayDragStarted += OnOverlayDragStarted;
+        _view.OverlayDragged += _conflictEditor.OnDragged;
         _view.Graph.ValueChanged += (_, _) => _visual.OnCursorMoved();
         _view.Detail.ValueChanged += (_, _) => _visual.OnCursorMoved();
         _view.Detail.ValueChanged += (_, _) => _diffPane.OnDetailCursorMoved();
@@ -697,6 +699,15 @@ public sealed class TuiApplication(
         {
             _host.Dispatch(new TabCommand(tabId, new SetPaneSizesCommand(sizes.SidebarWidth, sizes.BottomHeight, sizes.DetailWidth)));
             Relayout();
+        }
+    }
+
+    // Only the conflict editor uses a drag over an overlay: from a version row it starts a Visual selection.
+    private void OnOverlayDragStarted(int line, int column)
+    {
+        if (_conflictEditor.OnDragStarted(line, column) is { } view)
+        {
+            _mouse.Handle(view, MouseGesture.DragStart);
         }
     }
 
