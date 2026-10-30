@@ -148,6 +148,7 @@ public static class DefaultKeymap
         Add(bindings, NormalOnly, global, "<space>ga", ActionIds.OperationAbort);
         Add(bindings, NormalOnly, global, "<space>gk", ActionIds.OperationSkip);
         Add(bindings, NormalOnly, global, "<space>to", ActionIds.ConflictOpen);
+        Add(bindings, NormalOnly, global, "<space>tm", ActionIds.ToolMergetool);
         Add(bindings, [.. Enum.GetValues<KeyMode>()], global, "Esc", ActionIds.Cancel);
     }
 
@@ -180,7 +181,6 @@ public static class DefaultKeymap
         Add(bindings, NormalOnly, GraphView, "<space>=", ActionIds.GraphCompare);
         Add(bindings, NormalOnly, GraphView, "<space>r", ActionIds.RepositoryRefresh);
         Add(bindings, NormalOnly, GraphView, "<space>td", ActionIds.ToolDifftool);
-        Add(bindings, NormalOnly, GraphView, "<space>tm", ActionIds.ToolMergetool);
         Add(bindings, NormalOnly, GraphView, "<space>te", ActionIds.ToolCommitEditor);
         AddBottomTabKeys(bindings, GraphView);
         AddBranchKeys(bindings, GraphView);

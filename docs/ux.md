@@ -794,8 +794,8 @@ A hunk without a pick keeps its conflict markers in the result, so a partial sav
      Nothing picked: refused.
      The file is read again right before the write; if it changed on disk since the editor opened, nothing is written and the picks stay.
      The git index is only touched by the Confirm's `git add`.
-   - **What opens.** Text files that both sides changed (`UU`), including a merge, rebase, cherry-pick and revert stop, with `merge`, `diff3` and `zdiff3` markers (CRLF kept).
-     Add/add, delete/modify, binary, non-UTF-8 and over-1-MiB files, a symlink or submodule, a file whose markers are unbalanced or gone, and a name that is not valid UTF-8 are refused with the reason and a pointer to the mergetool (`<space>tm`).
+   - **What opens.** Text files that both sides changed (`UU`) and add/add files (`AA`, edited against an empty base since there is no common ancestor), including a merge, rebase, cherry-pick and revert stop, with `merge`, `diff3` and `zdiff3` markers (CRLF kept).
+     Delete/modify, binary, non-UTF-8 and over-1-MiB files, a symlink or submodule, a file whose markers are unbalanced or gone, and a name that is not valid UTF-8 are refused with the reason and a pointer to the mergetool (`<space>tm`).
      `Enter` on a `!` row goes to the editor (or to that refusal); the file's combined diff is still shown beside the list while the row is selected, and the pane keys move focus into it.
 3. **Continue** (`<space>gc`, or the banner chip): refused while conflicted files remain ("2 files still conflicted"); otherwise runs `<op> --continue` with no editor (`-c core.editor=true`, so git's prepared message is used).
    A rebase may stop again at the next commit: the status line warns and the banner updates.
@@ -1225,7 +1225,7 @@ Modes: rows apply to Normal, except those whose view says `(Visual)` (Visual mod
 | Graph | `<space>=` | Mark the selected commit; while marked, the commit under the cursor is compared with it (`git diff older newer`) in the Changes tab and the diff pane. On another commit move the mark there; on the marked commit clear it (`Esc` clears it too; "Comparing two commits", #535, #636) |
 | Graph | `<space>r` | Refresh repository |
 | Graph | `<space>td` | Open the selected commit (against its first parent) in the configured difftool |
-| Graph | `<space>tm` | Resolve conflicts in the configured mergetool |
+| Global | `<space>tm` | Resolve conflicts in the configured mergetool |
 | Graph | `<space>te` | Commit the staged changes with `$EDITOR` (git's own editor; the working-tree view's `<space>te` does the same) |
 | Graph | `<space>bc` | Create a branch at the selected commit and check it out (prompt popup) |
 | Graph | `<space>bC` | Create a branch at the selected commit without checking it out |

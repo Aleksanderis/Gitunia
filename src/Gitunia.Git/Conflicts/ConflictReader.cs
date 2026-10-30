@@ -7,9 +7,9 @@ using Gitunia.Git.Repositories.Models;
 namespace Gitunia.Git.Conflicts;
 
 /// <summary>
-/// Reads a conflicted path. <c>ls-files -u -z</c> names the stages that exist (1 base, 2 ours, 3 theirs): a missing
-/// stage is delete/modify (refused) or add/add (editable, with an empty base: there is no common ancestor), and a
-/// symlink or submodule entry is not text and is refused.
+/// Reads a conflicted path. <c>ls-files -u -z</c> names the stages that exist (1 base, 2 ours, 3 theirs): only the base
+/// missing is add/add (editable, with an empty base: there is no common ancestor), a missing ours or theirs is
+/// delete/modify (refused), and a symlink or submodule entry is not text and is refused.
 /// The hunks come from the file git left in the working tree, because its markers hold exactly the conflicting
 /// text of each side (and the base for diff3) and show what the user already changed by hand.
 /// A merge-style hunk gets its base from the three stages merged in memory
