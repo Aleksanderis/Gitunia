@@ -6,17 +6,19 @@ namespace Gitunia.Core.Overlays;
 /// <summary>Turns the engine's continuations of a pending chord into popup rows.</summary>
 public static class WhichKeyBuilder
 {
-    /// <summary>Group names by formatted prefix, taken from the action groups (#483): one vocabulary.</summary>
+    /// <summary>Group names by formatted prefix: one noun per chord group (#840), spelled out here.</summary>
     private static readonly Dictionary<string, string> GroupNames = new(StringComparer.Ordinal)
     {
-        ["<space>b"] = ActionGroups.Branch.WhichKeyName!,
-        ["<space>g"] = ActionGroups.Merge.WhichKeyName!,
-        ["<space>T"] = ActionGroups.Tag.WhichKeyName!,
-        ["<space>R"] = ActionGroups.Remote.WhichKeyName!,
-        ["<space>w"] = ActionGroups.Worktree.WhichKeyName!,
-        ["<space>S"] = ActionGroups.Stash.WhichKeyName!,
-        ["<space>t"] = ActionGroups.Tools.WhichKeyName!,
-        ["<space>v"] = ActionGroups.Diff.WhichKeyName!,
+        ["<space>b"] = "branch",
+        ["<space>br"] = "rebase",
+        ["<space>t"] = "tag",
+        ["<space>r"] = "remote",
+        ["<space>w"] = "worktree",
+        ["<space>k"] = "stash",
+        ["<space>o"] = "repositories and tabs",
+        ["<space>g"] = "operation in progress",
+        ["<space>e"] = "external tools",
+        ["<space>v"] = "view options",
     };
 
     private const string MoreKey = "+";

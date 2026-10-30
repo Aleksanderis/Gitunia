@@ -13,7 +13,7 @@ public class HelpAllCommandsTests
 {
     private static readonly KeyBindingTable Table = DefaultKeymap.Create();
 
-    private static readonly string[] HiddenVariantKeys = ["d", "f", "I", "s", "w"];
+    private static readonly string[] HiddenVariantKeys = ["d", "f", "I", "w"];
     private static readonly string[] ClusterActions = ["b.one", "a.one", "c.one", "b.two", "a.two"];
     private static readonly string[] ArrangedActions = ["b.one", "b.two", "a.one", "a.two", "c.one"];
     private static readonly string?[] ArrangedClusters = ["b", "b", "a", "a", null];
@@ -71,14 +71,15 @@ public class HelpAllCommandsTests
         var engine = new KeymapEngine(Table);
         var feeder = new KeyFeeder(engine);
         feeder.Feed("<space>");
-        feeder.Feed("g");
+        feeder.Feed("b");
+        feeder.Feed("r");
 
         var rows = WhichKeyBuilder.Build(
             engine.Continuations(feeder.State, DefaultKeymap.GraphView),
             feeder.State.PendingSequence);
         var more = rows.ToList().FindIndex(row => row.Key == "+");
 
-        Assert.Equal(rows.Count - 1, more + 5);
+        Assert.Equal(rows.Count - 1, more + 4);
         Assert.DoesNotContain(rows.Take(more), row => HiddenVariantKeys.Contains(row.Key));
     }
 

@@ -21,12 +21,12 @@ namespace Gitunia.Tui.App.Conflicts;
 
 /// <summary>
 /// The conflict editor (ux-workflows.md, workflow 4, "Conflict editor"): <c>Enter</c> on a conflicted file of the Unstaged list,
-/// or <c>&lt;space&gt;to</c> from any pane (the file under the Unstaged cursor, else the first conflicted one), reads
+/// or <c>&lt;space&gt;gr</c> from any pane (the file under the Unstaged cursor, else the first conflicted one), reads
 /// it off the UI thread and opens the full-screen editor: the whole file in the base, ours and theirs panes and in the
 /// result below, which is a text editor of its own (<see cref="ConflictEditorState"/>). A cursor moves in a pane;
 /// on a conflict the pick keys copy that pane's version into the result, in a Visual selection only the selected
 /// lines; the result can be typed in (Normal and Insert mode as in the commit box); every change can be undone and
-/// redone, and <c>R</c> re-creates the conflict of the file after a Confirm. <c>Enter</c> saves the result to the
+/// redone, and <c>Ctrl-x</c> re-creates the conflict of the file after a Confirm. <c>Enter</c> saves the result to the
 /// working tree file, after a Confirm when conflicts are unresolved (they keep their conflict markers), and then
 /// offers to mark the file resolved with the usual Confirm. The editor owns the keys while it is open; a Confirm
 /// opens on top of it.
@@ -87,7 +87,7 @@ public sealed class ConflictEditorController(
     private const string CoveredNotice =
         "Another view opened while the file was read: the conflict editor was not opened";
     private const string FileChangedNotice = "The file changed on disk since it was opened: nothing was saved";
-    private const string MergetoolHint = "use <space>tm for the mergetool";
+    private const string MergetoolHint = "use <space>em for the mergetool";
     private const int StatusBarRows = 1;
     private const int DefaultPaneRows = 10;
 
@@ -306,7 +306,7 @@ public sealed class ConflictEditorController(
             return false;
         }
 
-        // <space>to works from any pane: the file under the Unstaged cursor, else the first conflicted one. Enter keeps
+        // <space>gr works from any pane: the file under the Unstaged cursor, else the first conflicted one. Enter keeps
         // its meaning on every other row.
         var entry = isOpenKey ? ConflictedToOpen(tab) : ConflictedUnderCursor(tab);
         if (entry is null)

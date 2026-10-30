@@ -205,7 +205,7 @@ public sealed class PushActions(
                 && reference.Name == $"{remoteName}/{pushedBranch}");
         if (tracking is null)
         {
-            statuses.Warning($"{remoteName}/{pushedBranch} is not known here: fetch first, then force push (<space>Rf)");
+            statuses.Warning($"{remoteName}/{pushedBranch} is not known here: fetch first, then force push (<space>rP)");
             return;
         }
 

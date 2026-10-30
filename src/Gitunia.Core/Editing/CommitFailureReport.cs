@@ -18,7 +18,7 @@ public static class CommitFailureReport
     /// <summary>The hint under the output.</summary>
     public const string Hint =
         "No keyboard input reaches git or its hooks here: a hook that asks a question or a signing program that needs a passphrase fails. "
-        + "Your message is kept. Press <space>te in a file list to run git commit in the terminal (it can prompt), or fix the cause and commit again.";
+        + "Your message is kept. Press <space>ec in a file list to run git commit in the terminal (it can prompt), or fix the cause and commit again.";
 
     /// <summary>Longest status bar notice.</summary>
     private const int MaximumNoticeLength = 160;

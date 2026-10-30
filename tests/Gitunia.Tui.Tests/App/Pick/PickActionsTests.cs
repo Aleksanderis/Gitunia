@@ -115,7 +115,7 @@ public class PickActionsTests
         Assert.Equal(StatusSeverity.Warning, latest.Severity);
         Assert.Contains("<space>gc", latest.Text, StringComparison.Ordinal);
         Assert.Contains("<space>ga", latest.Text, StringComparison.Ordinal);
-        Assert.Contains("<space>gk", latest.Text, StringComparison.Ordinal);
+        Assert.Contains("<space>gs", latest.Text, StringComparison.Ordinal);
         Assert.Contains("UU conflict.txt", repository.Git("status", "--porcelain"), StringComparison.Ordinal);
         Assert.Equal(RepositoryOperation.CherryPick, new RepositoryOperationDetector().Detect(harness.Location));
     }

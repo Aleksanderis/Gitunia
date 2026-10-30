@@ -22,7 +22,7 @@ public static class ReflogFrameBuilder
     private static readonly ReflogEntryAction[] Actions =
     [
         new("Enter", "select the commit in the graph", DefaultMouseMap.ReflogSelectButton),
-        new("<space>gx", "reset the current branch to it", DefaultMouseMap.ReflogResetButton),
+        new("<space>bx", "reset the current branch to it", DefaultMouseMap.ReflogResetButton),
         new("<space>bc", "create a branch here", DefaultMouseMap.ReflogBranchButton),
         new("<space>bs", "check it out (detached HEAD)", DefaultMouseMap.ReflogCheckoutButton),
     ];

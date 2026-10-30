@@ -6,7 +6,7 @@ using Gitunia.Core.Mouse;
 namespace Gitunia.Tui.Rendering.Styling;
 
 /// <summary>
-/// Finds the key text a chip shows next to its label (<c>&lt;space&gt;F fetch</c>): the chip's mouse view names its
+/// Finds the key text a chip shows next to its label (<c>&lt;space&gt;rf fetch</c>): the chip's mouse view names its
 /// action (<see cref="DefaultMouseMap"/>) and the keymap names the keys, so a rebinding follows and nothing is
 /// hand-written.
 /// </summary>

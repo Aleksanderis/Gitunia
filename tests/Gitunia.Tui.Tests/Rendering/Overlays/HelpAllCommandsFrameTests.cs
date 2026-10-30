@@ -31,10 +31,11 @@ public class HelpAllCommandsFrameTests
     {
         var engine = new KeymapEngine(Table);
         var state = engine.Process(KeymapState.Initial, new KeyEvent(" "), DefaultKeymap.GraphView).State;
-        state = engine.Process(state, new KeyEvent("g"), DefaultKeymap.GraphView).State;
+        state = engine.Process(state, new KeyEvent("b"), DefaultKeymap.GraphView).State;
+        state = engine.Process(state, new KeyEvent("r"), DefaultKeymap.GraphView).State;
         var rows = WhichKeyBuilder.Build(engine.Continuations(state, DefaultKeymap.GraphView), state.PendingSequence);
 
-        return Text(WhichKeyFrameBuilder.Build("<space>g", rows, width, ScreenHeight, GraphGlyphSet.Unicode));
+        return Text(WhichKeyFrameBuilder.Build("<space>br", rows, width, ScreenHeight, GraphGlyphSet.Unicode));
     }
 
     private static KeyBindingTable Customised() => KeymapConfigurator.Apply(
@@ -56,19 +57,19 @@ public class HelpAllCommandsFrameTests
                 "│  <space>bc    │ Create a branch and check it out                           │",
                 "│  <space>bC    │ Create a branch without checking out                       │",
                 "│  <space>bs    │ Switch to a branch (check out)                             │",
-                "│  <space>br    │ Rename the branch                                          │",
+                "│  <space>bn    │ Rename the branch                                          │",
                 "│  <space>bd    │ Delete the branch (asks first)                             │",
                 "│  <space>bu    │ Set the branch upstream                                    │",
                 "│  <space>bU    │ Unset the branch upstream                                  │",
                 "│  <space>bf    │ Fast-forward the branch to its upstream (no checkout)      │",
                 "│                                                                            │",
                 "│ Merge and rebase                                                           │",
-                "│  <space>gr    │ Rebase the current branch onto the selection               │",
-                "│  <space>gi    │ Interactive rebase onto the selection (edit the todo)      │",
-                "│  <space>gI    │ Interactive rebase from the root commit (selection ignored)│",
-                "│  <space>gf    │ Fix up the commit into the one before it (asks first)      │",
-                "│  <space>gw    │ Reword the commit subject (asks first)                     │",
-                "│  <space>gd    │ Drop the commit from the branch (asks first)               │",
+                "│  <space>brr   │ Rebase the current branch onto the selection               │",
+                "│  <space>bri   │ Interactive rebase onto the selection (edit the todo)      │",
+                "│  <space>brI   │ Interactive rebase from the root commit (selection ignored)│",
+                "│  <space>brf   │ Fix up the commit into the one before it (asks first)      │",
+                "│  <space>brw   │ Reword the commit subject (asks first)                     │",
+                "│  <space>brd   │ Drop the commit from the branch (asks first)               │",
                 "│                                                                            │",
                 "│ 1-18/60  Esc close  Tab next tab  list keys scroll                         │",
                 "╰────────────────────────────────────────────────────────────────────────────╯"),
@@ -87,19 +88,19 @@ public class HelpAllCommandsFrameTests
                 "│  <space>bc    │ Create a branch and check it out                                             │",
                 "│  <space>bC    │ Create a branch without checking out                                         │",
                 "│  <space>bs    │ Switch to a branch (check out)                                               │",
-                "│  <space>br    │ Rename the branch                                                            │",
+                "│  <space>bn    │ Rename the branch                                                            │",
                 "│  <space>bd    │ Delete the branch (asks first)                                               │",
                 "│  <space>bu    │ Set the branch upstream                                                      │",
                 "│  <space>bU    │ Unset the branch upstream                                                    │",
                 "│  <space>bf    │ Fast-forward the branch to its upstream (no checkout)                        │",
                 "│                                                                                              │",
                 "│ Merge and rebase                                                                             │",
-                "│  <space>gr    │ Rebase the current branch onto the selection                                 │",
-                "│  <space>gi    │ Interactive rebase onto the selection (edit the todo)                        │",
-                "│  <space>gI    │ Interactive rebase from the root commit (selection ignored)                  │",
-                "│  <space>gf    │ Fix up the commit into the one before it (asks first)                        │",
-                "│  <space>gw    │ Reword the commit subject (asks first)                                       │",
-                "│  <space>gd    │ Drop the commit from the branch (asks first)                                 │",
+                "│  <space>brr   │ Rebase the current branch onto the selection                                 │",
+                "│  <space>bri   │ Interactive rebase onto the selection (edit the todo)                        │",
+                "│  <space>brI   │ Interactive rebase from the root commit (selection ignored)                  │",
+                "│  <space>brf   │ Fix up the commit into the one before it (asks first)                        │",
+                "│  <space>brw   │ Reword the commit subject (asks first)                                       │",
+                "│  <space>brd   │ Drop the commit from the branch (asks first)                                 │",
                 "│                                                                                              │",
                 "│ 1-18/59  Esc close  Tab next tab  list keys scroll                                           │",
                 "╰──────────────────────────────────────────────────────────────────────────────────────────────╯"),
@@ -155,23 +156,14 @@ public class HelpAllCommandsFrameTests
         Assert.Equal(
             string.Join(
                 '\n',
-                " <space>g-                                                         ",
+                " <space>br-                                                        ",
                 "│ i  Interactive rebase onto the selection (edit the todo)        │",
                 "│ r  Rebase the current branch onto the selection                 │",
-                "│                                                                 │",
-                "│ m  Merge the selection (fast-forward if possible)               │",
-                "│ M  Merge the selection with a merge commit                      │",
-                "│                                                                 │",
-                "│ p  Cherry-pick the selection onto the current branch            │",
-                "│ v  Revert the selection with new commits                        │",
-                "│                                                                 │",
-                "│ x  Reset the current branch to the selection                    │",
                 "│ ─────────────────────────────────────────────────────────────── │",
                 "│ +  +more (variants and shortcuts)                               │",
                 "│ d  Drop the commit from the branch (asks first)                 │",
                 "│ f  Fix up the commit into the one before it (asks first)        │",
                 "│ I  Interactive rebase from the root commit (selection ignored)  │",
-                "│ s  Squash-merge the selection (stages changes)                  │",
                 "│ w  Reword the commit subject (asks first)                       │",
                 "╰─────────────────────────────────────────────────────────────────╯"),
             WhichKeyText(80));
@@ -183,23 +175,14 @@ public class HelpAllCommandsFrameTests
         Assert.Equal(
             string.Join(
                 '\n',
-                " <space>g-                                                         ",
+                " <space>br-                                                        ",
                 "│ i  Interactive rebase onto the selection (edit the todo)        │",
                 "│ r  Rebase the current branch onto the selection                 │",
-                "│                                                                 │",
-                "│ m  Merge the selection (fast-forward if possible)               │",
-                "│ M  Merge the selection with a merge commit                      │",
-                "│                                                                 │",
-                "│ p  Cherry-pick the selection onto the current branch            │",
-                "│ v  Revert the selection with new commits                        │",
-                "│                                                                 │",
-                "│ x  Reset the current branch to the selection                    │",
                 "│ ─────────────────────────────────────────────────────────────── │",
                 "│ +  +more (variants and shortcuts)                               │",
                 "│ d  Drop the commit from the branch (asks first)                 │",
                 "│ f  Fix up the commit into the one before it (asks first)        │",
                 "│ I  Interactive rebase from the root commit (selection ignored)  │",
-                "│ s  Squash-merge the selection (stages changes)                  │",
                 "│ w  Reword the commit subject (asks first)                       │",
                 "╰─────────────────────────────────────────────────────────────────╯"),
             WhichKeyText(120));

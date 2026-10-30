@@ -25,13 +25,13 @@ public static class PaneHints
     private const string MergetoolLabel = "mergetool";
 
     private static readonly KeyHint ConflictEditorHint = new(
-        "<space>to",
+        "<space>gr",
         ConflictEditorLabel,
         [ActionIds.ConflictOpen]);
 
     // For a conflicted file the editor refuses (delete/modify and the like): the mergetool is the way (#742).
     private static readonly KeyHint ConflictMergetoolHint = new(
-        "<space>tm",
+        "<space>em",
         MergetoolLabel,
         [ActionIds.ToolMergetool]);
 
@@ -226,7 +226,7 @@ public static class PaneHints
         PaneJumps,
         new("<space>c", "commit", [ActionIds.WorkingTreeCommit]),
         new("Alt-s/Alt-n/Alt-a", "options", [ActionIds.WorkingTreeToggleSignOff, ActionIds.WorkingTreeToggleNoVerify, ActionIds.WorkingTreeToggleAmend]),
-        new("<space>te", "$EDITOR", [ActionIds.ToolCommitEditor]),
+        new("<space>ec", "$EDITOR", [ActionIds.ToolCommitEditor]),
     ];
 
     private static readonly ImmutableArray<KeyHint> MessageEditing =
@@ -265,7 +265,7 @@ public static class PaneHints
         new("Enter", "select", [ActionIds.ReflogSelectCommit]),
         new("/", "search", [ActionIds.SearchOpen]),
         new("<space>l", "ref", [ActionIds.ReflogOpen]),
-        new("<space>gx", "reset", [ActionIds.ResetBranch]),
+        new("<space>bx", "reset", [ActionIds.ResetBranch]),
         new("<space>bc", "branch", [ActionIds.BranchCreate]),
         new("<space>bs", "checkout", [ActionIds.BranchSwitch]),
         new("Esc", "close", [ActionIds.NavigateBack]),
@@ -402,7 +402,7 @@ public static class PaneHints
     }
 
     /// <summary>
-    /// <paramref name="hints"/> with <c>&lt;space&gt;to conflict editor</c> right after help, commands and quit: a
+    /// <paramref name="hints"/> with <c>&lt;space&gt;gr conflict editor</c> right after help, commands and quit: a
     /// merge, rebase, cherry-pick or revert is stopped on a conflict, and the key works from every pane (#742). Hints
     /// that already lead with the editor are returned as they are.
     /// </summary>
@@ -411,7 +411,7 @@ public static class PaneHints
         WithConflictHint(hints, ConflictEditorHint, ConflictEditorLabel);
 
     /// <summary>
-    /// <paramref name="hints"/> with <c>&lt;space&gt;tm mergetool</c> in the same place, for a stopped operation
+    /// <paramref name="hints"/> with <c>&lt;space&gt;em mergetool</c> in the same place, for a stopped operation
     /// whose conflicted files are all ones the editor does not take (#742).
     /// </summary>
     /// <param name="hints">The hints of the focused pane.</param>

@@ -7,7 +7,7 @@ Part of the UX spec; start at [ux.md](ux.md). The key tables are generated: [key
 The single source of truth for bindings is the data file `src/Gitunia.Core/Keymap/keymap.default.json` (one row per action, view and mode set: `action`, `view`, `modes`, `keys` with the main key first; a superset of the config `keys` entry, which has one `mode` and one `key`). Change a default there, not in code, and regenerate the reference with `scripts/gen-keymap-doc.sh` (`tools/KeymapDoc`); never edit `keymap.md` by hand.
 Tests on the file (no test parses a table in this document): `keymap.md` matches what the generator renders from the file, every action id exists in `ActionIds`, no key is bound twice in a view and mode, every action in `ActionIds` is bound or listed as unbound in the test (mouse-only, modal or palette-only), and `DefaultKeymap` has no conflicts.
 Add the row to the JSON in the same change that adds a binding; no conflicts within a mode/view. A new action also needs an `ActionCatalog` title (the reference shows it).
-A redesign of the layout is proposed in "Keymap rework" below (#833).
+The layout was redesigned in #840 (design #833, "Keymap rework" below); the generated reference is `docs/keymap.md`.
 Notation: `Ctrl-w c` is a chord, `<space>o` a leader chord, `<` is a literal `<` (config files also accept `<lt>`), `:name` is an ex command and not a key.
 Modes: a row's `modes` say where its keys are active; `Visual` repeats the Lists motions; global `Ctrl-`/`Alt-` rows also work in Insert; `Esc` is bound in every mode; Insert/Command `Enter` accept the input; Confirm mode has only `y` (yes), `n` (no) and `Esc` (no), so a stray `Enter` never confirms a destructive action. `Picker` keys are Insert mode and `Palette` keys Command mode.
 Key notes that the tables cannot carry:
@@ -19,7 +19,7 @@ Key notes that the tables cannot carry:
 - `Ctrl-^` has a second binding, `<space><Tab>`, for terminals that drop it.
 - `Esc` ladder in Normal mode: cancels a pending chord, then clears the search highlight, leaves Insert, cancels running remote work in the graph, else dismisses the status message.
 - Visual `y` copies the range without `+`/`-`/space markers or gutter, a wrapped row once, notes skipped; above about 75 KB it refuses, and a failed copy keeps the range.
-- `<space>bd` asks a second Confirm when the branch is unmerged; `<space>to` with no conflicted file says so in the status bar.
+- `<space>bd` asks a second Confirm when the branch is unmerged; `<space>gr` with no conflicted file says so in the status bar.
 - Working tree, `Enter` on a screen under 80 columns: the diff replaces the list until `Esc`.
 - Graph search prefixes: `author:`, `hash:`, `body:`.
 
@@ -54,7 +54,7 @@ Changes and the working-tree lists offer the path style (`name first`, `full pat
 A tab without options (Details) has no chip and `<space>vv` is not bound there.
 
 **Grouped actions (#483).** The palette and the actions menu list actions under non-selectable subheaders (`Branch`, `Merge and rebase`, `Tag`, `Worktree`, `Stash`, `Working tree`, `Copy`, `Diff`, `Details`, `External tools`, `Navigate`, `View`, `Tabs`, `General`).
-The group of an action comes from `ActionCatalog.GroupOf` (metadata, not a per-list hand-written list; a test fails when a bound action has none) and the which-key popup names its chord groups from the same `ActionGroups`, so there is one vocabulary.
+The group of an action comes from `ActionCatalog.GroupOf` (metadata, not a per-list hand-written list; a test fails when a bound action has none) and the which-key popup names its chord groups by noun (`WhichKeyBuilder`, one name per prefix).
 `j`/`k`, the wheel and clicks only ever land on actions: a click on a subheader or a gap does nothing.
 A blank gap line precedes every subheader except the first (#489), like the help overlay's sections, so it is visible in every colour tier and the ASCII set; on a short screen the gaps are dropped before any row (the menu when gaps plus rows exceed its height, the scrolling palette when it has fewer than 8 list rows).
 The palette keeps the groups in the fixed order above, inside a group the clusters of related actions (#838), and inside a cluster the focused view's own actions first (lone actions come last, whatever their view); a filter keeps matching actions under their groups, the group with the best match first, and groups without a match disappear.
@@ -65,9 +65,9 @@ Inside a group, actions that share an id prefix form a cluster (#838, `ActionClu
 
 Mouse paths are listed in the next section.
 
-## Keymap rework (design #833; proposal, built by #839 and #840)
+## Keymap rework (design #833; implemented by #839 and #840)
 
-Status: **proposal for the owner to edit in this PR.** After #840 lands the tables below are folded into the JSON file (and so into the generated reference) and this section is cut down to the rules and the level list, so the Old column does not go stale. The JSON file stays the truth until #840 changes it; the key moves here are not implemented. #839 built the levels, the setting and the toggle, and no test reads this section.
+Status: **implemented in #840, owner-approved** (plus `m` and `Ctrl-x` in the conflict editor). The JSON file is the truth and `docs/keymap.md` is generated from it; the tables below keep the Old column as the migration reference. #839 built the levels, the setting and the toggle, and no test reads this section.
 Source: the owner's feedback on #833 (too many keys, `<space>b` / `<space>r` confusing, tabs on `Ctrl-w` but repositories on `<space>o`, rare commands mixed with everyday ones).
 Counts, read from `DefaultKeymap` and `ActionIds` at this commit: 245 action ids (the issue said 244), 240 bound, 5 without a key (`help.tab-select` is mouse-only, `pick.mainline` modal, `remote.fetch-all`, `settings.open-theme` and `working-tree.open` palette-only), plus the nine `tab.go-to.N` ids (`Alt-1`..`Alt-9`, Everyday, unchanged). The design adds one action, `view.cycle-command-level`, and a key for `detail.retry`. 50 actions change their main key (the rows of the tables below with a key in "New"); the rest keep theirs.
 
@@ -99,9 +99,9 @@ Counts, read from `DefaultKeymap` and `ActionIds` at this commit: 245 action ids
 No leaf shares its letter with a group. Letters left free for later: `i` `n` `p` `q` `y`. The stash letter is `k` because `s` stays the working tree (the most used leader key) and `S` would be an unrelated pair; the owner may prefer another free letter.
 The which-key popup names the groups after the nouns (`+more (branch)`, `+more (rebase)`, `+more (tag)`, ...); `ActionGroups` stays the vocabulary of the palette, the row menu and the help subheaders.
 
-Old chords that now mean something else (muscle-memory hazards; every destructive one still asks first): `<space>td` (difftool, now delete tag), `<space>gs` (squash-merge, now skip), `<space>gr` (rebase, now resolve), `<space>br` (rename, now the rebase group), `<space>P` (push; push is now `rp`, and `rP` is force push: one Shift slip, but it is a lease push that asks first), `<space>r` and `<space>o` (leaves, now groups that wait for a second key). Chords that are simply gone: `<space>gm` `gM` `gp` `gv` `gx` `gi` `gI` `gf` `gw` `gd` `gk`, `<space>tm`, `<space>te`, `<space>to` (see #742 below), `<space>p`, `<space>F` `L` `C`, `<space>R...`, `<space>S...`, `<space>T...`. In the conflict editor `B` (base) becomes `<space>vb` and `R` (re-create) `Ctrl-x`. `detail.retry` moves from `<space>r` to `<space>od` because `<space>r` is now a group and a key cannot be both a complete binding and the start of a longer chord.
+Old chords that now mean something else (muscle-memory hazards; every destructive one still asks first): `<space>td` (difftool, now delete tag), `<space>gs` (squash-merge, now skip), `<space>gr` (rebase, now resolve), `<space>br` (rename, now the rebase group), `<space>P` (push; push is now `rp`, and `rP` is force push: one Shift slip, but it is a lease push that asks first), `<space>r` and `<space>o` (leaves, now groups that wait for a second key). Chords that are simply gone: `<space>gm` `gM` `gp` `gv` `gx` `gi` `gI` `gf` `gw` `gd` `gk`, `<space>tm`, `<space>te`, `<space>to` (see #742 below), `<space>p`, `<space>F` `L` `C`, `<space>R...`, `<space>S...`, `<space>T...`. In the conflict editor `B` (take both) becomes `m` and `R` (re-create) `Ctrl-x` (both approved by the owner on #840, beyond the table of #847). `detail.retry` moves from `<space>r` to `<space>od` because `<space>r` is now a group and a key cannot be both a complete binding and the start of a longer chord.
 
-### Decisions for the owner
+### Decisions (approved by the owner on #840)
 
 - **Tags and worktrees stay their own groups** (`t`, `w`), and fetch, pull, push stay under `r`, although the issue's rule "all branch work under `<space>b`" listed `T` and `w` among today's places of branch work. Rule 1 (one noun, one prefix) and the length of everyday chords (`<space>bwa` for adding a worktree) decided it; only deleting a branch on a remote moved into `b` (`bD`). To follow the rule literally, move them to `<space>bt` and `<space>bw` and say so in the PR.
 - **Stash is `k`**, and the working tree keeps `s` (see the leader map).
@@ -155,8 +155,8 @@ Grouped as the palette groups them (`ActionCatalog.GroupOf`). "Old" lists every 
 |---|---|---|---|---|---|
 | `conflict-editor.all-ours` | Conflict editor: take our side for every unresolved hunk of the file | `O` | same | Everyday |  |
 | `conflict-editor.all-theirs` | Conflict editor: take their side for every unresolved hunk of the file | `T` | same | Everyday |  |
-| `conflict-editor.base` | Conflict editor: show or hide the base below the sides (narrow screens) | `B` | `<space>vb` | Advanced |  |
-| `conflict-editor.both` | Conflict editor: take both sides for the hunk, ours first | `b` | same | Everyday |  |
+| `conflict-editor.base` | Conflict editor: take the common ancestor for the hunk | `b` | same | Everyday |  |
+| `conflict-editor.both` | Conflict editor: take both sides for the hunk, ours first | `B` | `m` | Everyday | owner decision on #840: `B` (Shift-b next to `b` base) is easy to hit by mistake, `m` is "merge both" |
 | `conflict-editor.edit` | Conflict editor: edit the result of the hunk as text | `e` | same | Everyday |  |
 | `conflict-editor.edit-done` | Conflict editor: keep the edited text | `Ctrl-g` | same | Everyday |  |
 | `conflict-editor.edit-newline` | Conflict editor: insert a new line in the edited text | `Enter` | same | Everyday |  |

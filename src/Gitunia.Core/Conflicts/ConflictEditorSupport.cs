@@ -7,7 +7,7 @@ namespace Gitunia.Core.Conflicts;
 /// Which conflicts the built-in conflict editor takes, in one place so the keys, hints, banner and chips never
 /// advertise the editor for a file it refuses (#742). Both-modified files (UU) and both-added files (AA, add/add:
 /// two sides against an empty base) open; delete/modify and the other kinds go to the mergetool
-/// (<c>&lt;space&gt;tm</c>). The reader can still refuse a particular file (binary, non-UTF-8, too large, markers
+/// (<c>&lt;space&gt;em</c>). The reader can still refuse a particular file (binary, non-UTF-8, too large, markers
 /// gone) after its kind passed.
 /// </summary>
 public static class ConflictEditorSupport

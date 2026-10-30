@@ -21,8 +21,8 @@ public class ContextMenuBuilderTests
 
         Assert.Equal(RowActions.OfGraphRow, entries.Select(entry => entry.Action));
         Assert.All(entries, entry => Assert.NotEqual(string.Empty, entry.Keys));
-        Assert.Equal("<space>gr", entries.Single(entry => entry.Action == ActionIds.RebaseOnto).Keys);
-        Assert.Equal("<space>gi", entries.Single(entry => entry.Action == ActionIds.RebaseInteractive).Keys);
+        Assert.Equal("<space>brr", entries.Single(entry => entry.Action == ActionIds.RebaseOnto).Keys);
+        Assert.Equal("<space>bri", entries.Single(entry => entry.Action == ActionIds.RebaseInteractive).Keys);
     }
 
     [Fact]
@@ -36,7 +36,7 @@ public class ContextMenuBuilderTests
         Assert.Equal(interactive + 1, root.ToList().IndexOf(ActionIds.RebaseInteractiveRoot));
         Assert.DoesNotContain(ActionIds.RebaseInteractiveRoot, other);
         var entries = ContextMenuBuilder.Build(Table, DefaultKeymap.GraphView, root);
-        Assert.Equal("<space>gI", entries.Single(entry => entry.Action == ActionIds.RebaseInteractiveRoot).Keys);
+        Assert.Equal("<space>brI", entries.Single(entry => entry.Action == ActionIds.RebaseInteractiveRoot).Keys);
     }
 
     [Fact]

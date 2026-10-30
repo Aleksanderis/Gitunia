@@ -24,8 +24,8 @@ public class OperationBannerBuilderTests
     {
         var banner = OperationBannerBuilder.Build(Info(RepositoryOperation.Merge, target: "x"), count)!;
 
-        Assert.Equal(hinted, banner.Hint.Contains("<space>to open", StringComparison.Ordinal));
-        Assert.Equal(hinted, banner.ShortHint.Contains("<space>to", StringComparison.Ordinal));
+        Assert.Equal(hinted, banner.Hint.Contains("<space>gr open", StringComparison.Ordinal));
+        Assert.Equal(hinted, banner.ShortHint.Contains("<space>gr", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -33,9 +33,9 @@ public class OperationBannerBuilderTests
     {
         var banner = OperationBannerBuilder.Build(Info(RepositoryOperation.Rebase, target: "x"), 1, editorOpens: false)!;
 
-        Assert.Equal("<space>tm open mergetool", banner.Hint);
-        Assert.Equal("<space>tm mergetool", banner.ShortHint);
-        Assert.DoesNotContain("<space>to", banner.PlainText, StringComparison.Ordinal);
+        Assert.Equal("<space>em open mergetool", banner.Hint);
+        Assert.Equal("<space>em mergetool", banner.ShortHint);
+        Assert.DoesNotContain("<space>gr", banner.PlainText, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -57,7 +57,7 @@ public class OperationBannerBuilderTests
         Assert.Equal(["continue", "abort"], banner.Chips.Select(chip => chip.Label));
         Assert.Equal(
             "MERGING feature/x  3 conflicts  <space>gc continue  <space>ga abort  "
-            + "<space>to open conflict editor",
+            + "<space>gr open conflict editor",
             banner.PlainText);
     }
 

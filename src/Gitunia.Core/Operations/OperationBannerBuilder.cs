@@ -17,16 +17,16 @@ public static class OperationBannerBuilder
 
     // The editor key is the global ConflictOpen binding; the text is not rebuilt from the keymap
     // because the banner is plain data.
-    private const string EditorHint = "<space>to open conflict editor";
-    private const string ShortEditorHint = "<space>to conflict editor";
+    private const string EditorHint = "<space>gr open conflict editor";
+    private const string ShortEditorHint = "<space>gr conflict editor";
 
     // No conflicted file is one the editor takes (delete/modify and the like): the mergetool is the way (#742).
-    private const string MergetoolHint = "<space>tm open mergetool";
-    private const string ShortMergetoolHint = "<space>tm mergetool";
+    private const string MergetoolHint = "<space>em open mergetool";
+    private const string ShortMergetoolHint = "<space>em mergetool";
 
     private static readonly BannerChip Continue = new("<space>gc", "continue", ActionIds.OperationContinue);
     private static readonly BannerChip Abort = new("<space>ga", "abort", ActionIds.OperationAbort);
-    private static readonly BannerChip Skip = new("<space>gk", "skip", ActionIds.OperationSkip);
+    private static readonly BannerChip Skip = new("<space>gs", "skip", ActionIds.OperationSkip);
     private static readonly ImmutableArray<BannerChip> MergeChips = [Continue, Abort];
     private static readonly ImmutableArray<BannerChip> SkippableChips = [Continue, Abort, Skip];
 

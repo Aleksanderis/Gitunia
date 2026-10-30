@@ -22,7 +22,7 @@ using Gitunia.Tui.Views;
 namespace Gitunia.Tui.App.Rebase;
 
 /// <summary>
-/// The interactive rebase's todo editor (ux-workflows.md, workflow 3, "Interactive rebase"): <c>&lt;space&gt;gi</c> reads the
+/// The interactive rebase's todo editor (ux-workflows.md, workflow 3, "Interactive rebase"): <c>&lt;space&gt;bri</c> reads the
 /// commits the target does not have and opens a modal list of them in replay order. Each commit gets an action
 /// (pick, reword, squash, fixup, drop), commits move up and down, a reword opens the multi-line message editor, and
 /// <c>Enter</c> asks for a Confirm that names what is kept and dropped and the undo, then hands the todo to the engine

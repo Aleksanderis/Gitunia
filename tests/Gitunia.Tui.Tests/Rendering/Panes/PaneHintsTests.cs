@@ -167,7 +167,7 @@ public class PaneHintsTests
     {
         var hints = PaneHints.For(PaneKind.WorkingUnstagedDiff, showsFileContent: false, onConflict: true);
 
-        Assert.Equal("<space>to", hints[3].Keys);
+        Assert.Equal("<space>gr", hints[3].Keys);
         Assert.Equal("conflict editor", hints[3].Description);
         AssertKeysTriggerActions(hints, KeyMode.Normal, DefaultKeymap.WorkingUnstagedDiffView);
     }
@@ -181,7 +181,7 @@ public class PaneHintsTests
     {
         var hints = PaneHints.WithConflictEditor(PaneHints.For(pane));
 
-        Assert.Equal("<space>to", hints[3].Keys);
+        Assert.Equal("<space>gr", hints[3].Keys);
         Assert.Equal("conflict editor", hints[3].Description);
         Assert.Equal(PaneHints.For(pane).Count + 1, hints.Count);
         AssertKeysTriggerActions(hints, KeyMode.Normal, ViewFor(pane));
@@ -192,7 +192,7 @@ public class PaneHintsTests
     {
         var hints = PaneHints.For(PaneKind.WorkingUnstaged, showsFileContent: false, onRefusedConflict: true);
 
-        Assert.Equal("<space>tm", hints[3].Keys);
+        Assert.Equal("<space>em", hints[3].Keys);
         Assert.Equal("mergetool", hints[3].Description);
         Assert.DoesNotContain(hints, hint => hint.Description is "conflict editor" or "diff");
         AssertKeysTriggerActions(hints, KeyMode.Normal, DefaultKeymap.WorkingUnstagedView);
@@ -203,7 +203,7 @@ public class PaneHintsTests
     {
         var hints = PaneHints.For(PaneKind.WorkingUnstagedDiff, showsFileContent: false, onRefusedConflict: true);
 
-        Assert.Equal("<space>tm", hints[3].Keys);
+        Assert.Equal("<space>em", hints[3].Keys);
         Assert.DoesNotContain(hints, hint => hint.Description == "conflict editor");
         AssertKeysTriggerActions(hints, KeyMode.Normal, DefaultKeymap.WorkingUnstagedDiffView);
     }
@@ -217,7 +217,7 @@ public class PaneHintsTests
     {
         var hints = PaneHints.WithConflictMergetool(PaneHints.For(pane));
 
-        Assert.Equal("<space>tm", hints[3].Keys);
+        Assert.Equal("<space>em", hints[3].Keys);
         Assert.Equal("mergetool", hints[3].Description);
         Assert.Equal(PaneHints.For(pane).Count + 1, hints.Count);
         AssertKeysTriggerActions(hints, KeyMode.Normal, ViewFor(pane));

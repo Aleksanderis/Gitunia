@@ -354,7 +354,7 @@ public class DetailContentBuilderTests
 
         var content = DetailContentBuilder.Build(entry, CommitDetailsState.Empty, BottomTab.Files, view);
 
-        Assert.Equal(["Could not load the tree (<space>r retries): boom"], Lines(content));
+        Assert.Equal(["Could not load the tree (<space>od retries): boom"], Lines(content));
     }
 
     [Fact]

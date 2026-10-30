@@ -1103,7 +1103,7 @@ public class BranchActionsTests
 
         harness.Run(ActionIds.BranchFastForward);
 
-        Assert.Equal("topic is checked out: pull it with <space>L instead", harness.Branches.Notice);
+        Assert.Equal("topic is checked out: pull it with <space>rl instead", harness.Branches.Notice);
         Assert.Equal(0, harness.Refreshes);
     }
 

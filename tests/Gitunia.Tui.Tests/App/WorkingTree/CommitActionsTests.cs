@@ -135,7 +135,7 @@ public class CommitActionsTests
         Assert.Equal(CommitFailureReport.Heading, output.Heading);
         Assert.Contains("lint failed: a.txt", output.Lines, StringComparer.Ordinal);
         Assert.Contains("fix it", output.Lines, StringComparer.Ordinal);
-        Assert.Contains("<space>te", output.Lines[^1], StringComparison.Ordinal);
+        Assert.Contains("<space>ec", output.Lines[^1], StringComparison.Ordinal);
         Assert.Equal(1, harness.Refreshes);
     }
 

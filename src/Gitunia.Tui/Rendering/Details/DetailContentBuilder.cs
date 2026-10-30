@@ -243,7 +243,7 @@ public static class DetailContentBuilder
 
         if (state.Status == CommitDetailsStatus.Failed)
         {
-            return [Faint($"Could not load the tree (<space>r retries): {state.Error}")];
+            return [Faint($"Could not load the tree (<space>od retries): {state.Error}")];
         }
 
         if (tree.Rows.Count == 0)

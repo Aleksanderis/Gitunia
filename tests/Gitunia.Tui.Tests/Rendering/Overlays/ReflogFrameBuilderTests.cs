@@ -95,7 +95,7 @@ public class ReflogFrameBuilderTests
 
         Assert.Equal(DefaultMouseMap.ReflogSelectButton, ReflogFrameBuilder.ActionAt(state, 4, 24));
         Assert.Equal(DefaultMouseMap.ReflogCheckoutButton, ReflogFrameBuilder.ActionAt(state, 7, 24));
-        Assert.Contains("<space>gx", frame.Lines[5].Text, StringComparison.Ordinal);
+        Assert.Contains("<space>bx", frame.Lines[5].Text, StringComparison.Ordinal);
         Assert.Null(ReflogFrameBuilder.ActionAt(state, 3, 24));
         Assert.Null(ReflogFrameBuilder.ActionAt(state, 8, 24));
     }

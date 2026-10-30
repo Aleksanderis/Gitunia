@@ -571,7 +571,7 @@ public sealed class TuiApplication(
             return;
         }
 
-        // <space>tm is global (#742): it must not start git mergetool under an open overlay or editor.
+        // <space>em is global (#742): it must not start git mergetool under an open overlay or editor.
         if (action == ActionIds.ToolMergetool
             && (_overlays.State.IsOpen || _reflog.IsOpen || _rebaseEditor.IsOpen || _conflictEditor.IsOpen
                 || _settings.IsOpen))
@@ -1442,7 +1442,7 @@ public sealed class TuiApplication(
             OnRefusedConflictedFile());
     }
 
-    // A merge, rebase, cherry-pick or revert is stopped on a conflict: <space>to opens the editor from every pane.
+    // A merge, rebase, cherry-pick or revert is stopped on a conflict: <space>gr opens the editor from every pane.
     private bool ConflictPending() =>
         _host.Workspace.ActiveTab is { Operation: not null } tab
         && OperationBannerBuilder.HasConflicts(tab.WorkingTree);
