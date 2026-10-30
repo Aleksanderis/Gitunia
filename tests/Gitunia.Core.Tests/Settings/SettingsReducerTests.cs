@@ -106,7 +106,7 @@ public class SettingsReducerTests
 
         Assert.Null(outcome.Commit);
         Assert.Equal(
-            [SettingRowKind.Setting, .. Enumerable.Repeat(SettingRowKind.Option, ThemeOptionCount)],
+            [SettingRowKind.Setting, .. Enumerable.Repeat(SettingRowKind.Option, ThemeOptionCount), SettingRowKind.Setting],
             outcome.State.Rows.Select(row => row.Kind));
         Assert.Equal(4, outcome.State.Selected?.Index);
     }
@@ -369,7 +369,7 @@ public class SettingsReducerTests
     [Fact]
     public void GivenAcceptedFilter_WhenActivatingAMatch_ThenTheCursorJumpsToTheSettingInItsCategoryAndTheFilterClears()
     {
-        var typing = Reduce(Open(), SettingsCommandKind.FilterOpen).State.WithFilterText("branch");
+        var typing = Reduce(Open(), SettingsCommandKind.FilterOpen).State.WithFilterText("tab name");
         var accepted = Reduce(typing, SettingsCommandKind.InputAccept).State;
         Assert.False(accepted.IsTyping);
         Assert.True(accepted.IsFiltering);
@@ -485,7 +485,7 @@ public class SettingsReducerTests
         var collapsed = state.WithLayout(collapsed: true);
         var expanded = collapsed.WithLayout(collapsed: false);
 
-        Assert.Equal(5, collapsed.Rows.Count);
+        Assert.Equal(6, collapsed.Rows.Count);
         Assert.Equal(SettingsRegistry.ShowBranchId, collapsed.Selected?.Definition.Id);
         Assert.Equal(SettingsRegistry.ShowBranchId, expanded.Selected?.Definition.Id);
         Assert.Equal(SettingCategory.Tabs, expanded.CurrentCategory);

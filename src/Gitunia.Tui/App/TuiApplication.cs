@@ -181,7 +181,9 @@ public sealed class TuiApplication(
             _capabilities = _capabilities with { IsLightBackground = isLight };
         }
 
-        var glyphs = GraphGlyphSet.For(_capabilities.Unicode);
+        var glyphs = GraphGlyphSet
+            .For(_capabilities.Unicode)
+            .WithLabelCaps(_startupConfig.Options.LabelCaps, _capabilities.Color != ColorDepth.None);
         _glyphs = glyphs;
         var store = new SessionStore(platform.StateDirectory);
         var restored = store.LoadAsync(CancellationToken.None).GetAwaiter().GetResult();
