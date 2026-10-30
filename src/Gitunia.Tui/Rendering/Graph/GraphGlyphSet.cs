@@ -1,4 +1,6 @@
 
+using Gitunia.Core.Config.Models;
+
 namespace Gitunia.Tui.Rendering.Graph;
 
 /// <summary>The characters the graph is drawn with; there is a box-drawing set and an ASCII fallback.</summary>
@@ -14,6 +16,8 @@ namespace Gitunia.Tui.Rendering.Graph;
 /// </param>
 /// <param name="Remote">After the name, inside the label box (the box has one space of padding on each side, so a wide icon does not touch its edge, #827), of a branch that also stands for its remote-tracking branch.</param>
 /// <param name="UpstreamGone">After the label box, separated by a space, of a local branch whose upstream no longer exists.</param>
+/// <param name="LabelCapLeft">Drawn before a branch label box, in the colour of the box over the row background (#851); empty for a plain box.</param>
+/// <param name="LabelCapRight">Drawn after a branch label box, like <paramref name="LabelCapLeft"/>.</param>
 public sealed record GraphGlyphSet(
     char Node,
     char MergeNode,
@@ -23,13 +27,40 @@ public sealed record GraphGlyphSet(
     string CurrentBranch,
     string LocalBranch,
     string Remote,
-    string UpstreamGone)
+    string UpstreamGone,
+    string LabelCapLeft = "",
+    string LabelCapRight = "")
 {
     // Index: Up=1, Down=2, Left=4, Right=8. Lone strokes borrow the straight line of their axis.
     public static GraphGlyphSet Unicode { get; } = new('●', '○', '├', " │││─╯╮┤─╰╭├─┴┬┼", "…", "◆ ⎇ ", "⎇ ", " ", " ✗");
 
     public static GraphGlyphSet Ascii { get; } =
         new('*', 'o', '|', " |||-/\\|-\\/|---+", "~", "HEAD -> ", "", " (r)", " (x)");
+
+    /// <summary>
+    /// The set with Powerline caps on the branch labels (#851). Only the Unicode set takes them, and only where the
+    /// terminal has colours: a cap is drawn in the box colour on the row background, which monochrome (inverse video)
+    /// cannot do on a selected row. The ASCII set, no colours and <see cref="LabelCapStyle.None"/> keep the plain box.
+    /// </summary>
+    /// <param name="style">The configured style.</param>
+    /// <param name="hasColors">The terminal shows colours.</param>
+    public GraphGlyphSet WithLabelCaps(LabelCapStyle style, bool hasColors)
+    {
+        if (IsAscii || !hasColors)
+        {
+            return this;
+        }
+
+        return style switch
+        {
+            LabelCapStyle.Rounded => this with { LabelCapLeft = "\uE0B6", LabelCapRight = "\uE0B4" },
+            LabelCapStyle.Angled => this with { LabelCapLeft = "\uE0B2", LabelCapRight = "\uE0B0" },
+            _ => this,
+        };
+    }
+
+    /// <summary>Branch label boxes are closed by caps (no padding inside the box then, #854).</summary>
+    public bool HasLabelCaps => LabelCapLeft.Length > 0;
 
     /// <summary>This is the ASCII fallback set.</summary>
     public bool IsAscii => Lines == Ascii.Lines;

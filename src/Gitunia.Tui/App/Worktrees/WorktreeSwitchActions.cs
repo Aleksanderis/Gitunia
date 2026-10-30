@@ -14,7 +14,7 @@ using Gitunia.Tui.App.WorkingTree;
 namespace Gitunia.Tui.App.Worktrees;
 
 /// <summary>
-/// Moves between worktrees (ux.md, workflow 6): <c>ws</c> points the active tab at the selected worktree in place, so
+/// Moves between worktrees (ux-workflows.md, workflow 6): <c>ws</c> points the active tab at the selected worktree in place, so
 /// its view state stays and only HEAD, status and graph are read again; <c>wt</c> opens the worktree as its own tab (or
 /// focuses the tab that already shows it); on a local branch row <c>wt</c> opens the worktree that holds the branch.
 /// Nothing here changes the process working directory: the new location is

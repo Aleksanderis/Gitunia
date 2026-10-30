@@ -8,7 +8,7 @@ using Gitunia.Core.Workspaces.Repositories;
 
 namespace Gitunia.Core.Operations;
 
-/// <summary>Builds the banner text of an in-progress operation (ux.md, workflow 4). Pure: same input, same
+/// <summary>Builds the banner text of an in-progress operation (ux-workflows.md, workflow 4). Pure: same input, same
 /// banner.</summary>
 public static class OperationBannerBuilder
 {

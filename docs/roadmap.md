@@ -32,7 +32,7 @@ Done when: a full commit cycle works without leaving the app, including partial 
 
 ## M3 - Branches and worktrees (the reason this project exists)
 
-Status: done (key flows in `docs/ux.md`, workflows 3-7).
+Status: done (key flows in `docs/ux-workflows.md`, workflows 3-7).
 
 Branch create/rename/delete/checkout/upstream/reset, merge, rebase, cherry-pick, revert; worktree add/switch/remove/lock/prune with dirty state across worktrees; stash; tags (create/delete/push); reflog view.
 Done when: the owner can use Gitunia for all daily branch and worktree work.

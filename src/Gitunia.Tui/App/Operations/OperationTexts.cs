@@ -8,7 +8,7 @@ using Gitunia.Tui.App.WorkingTree;
 namespace Gitunia.Tui.App.Operations;
 
 /// <summary>
-/// The words of the in-progress operation actions (ux.md, workflow 4): the refusals, the two Confirm dialogs and the
+/// The words of the in-progress operation actions (ux-workflows.md, workflow 4): the refusals, the two Confirm dialogs and the
 /// status
 /// line for each way a call can end. Pure, so every text is testable without a terminal.
 /// </summary>

@@ -51,7 +51,11 @@ public static class PromptPopupFrameBuilder
         var rowRoom = screenHeight - ScreenMargin - fixedLines;
         lines.AddRange(FitRows(prompt.Details, rowRoom).Select(detail => OverlayBox.Text(detail, width, glyphs)));
         lines.Add(OverlayBox.Text(string.Empty, width, glyphs));
-        lines.Add(OverlayBox.Hints(prompt.Hint, width, glyphs, gap: PromptPopup.HintGap));
+        lines.Add(OverlayBox.Hints(
+            prompt.Hints.Select(hint => new HintItem(hint.Keys, hint.Label)),
+            width,
+            glyphs,
+            gap: PromptPopup.HintGap));
         lines.Add(OverlayBox.Bottom(width, glyphs));
         if (lines.Count > screenHeight - ScreenMargin)
         {

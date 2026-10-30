@@ -5,7 +5,7 @@ using Gitunia.Git.Conflicts.Models;
 namespace Gitunia.Core.Conflicts;
 
 /// <summary>
-/// The open conflict editor (ux.md, workflow 4, "Conflict editor"), modelled on KDiff3: the whole file in four panes,
+/// The open conflict editor (ux-workflows.md, workflow 4, "Conflict editor"), modelled on KDiff3: the whole file in four panes,
 /// the base, ours and theirs side by side (read-only, rows aligned by <see cref="ConflictAlignment"/>) and the result
 /// below, a real text editor over the whole file (<see cref="ConflictResultBuffer"/>). A cursor moves in the active
 /// pane; on a conflict a pick copies that version into the result, in a Visual selection only the selected lines; the

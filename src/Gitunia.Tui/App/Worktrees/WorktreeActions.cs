@@ -16,7 +16,7 @@ using Gitunia.Tui.Input;
 namespace Gitunia.Tui.App.Worktrees;
 
 /// <summary>
-/// The worktree operations of the sidebar (ux.md, workflow 6): add (a branch prompt, then a path prompt), remove (a
+/// The worktree operations of the sidebar (ux-workflows.md, workflow 6): add (a branch prompt, then a path prompt), remove (a
 /// Confirm, and a second one that lists the changes a dirty worktree would lose), lock (optional reason), unlock
 /// and prune (a Confirm listing the entries). Refusals run no git and say why. What is acted on is fixed when the
 /// dialog opens; git runs off the UI thread and the tab reads its repository again afterwards. One operation per

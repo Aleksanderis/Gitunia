@@ -1,0 +1,171 @@
+# UX: mouse
+
+Part of the UX spec; start at [ux.md](ux.md).
+
+## Mouse
+
+Mouse input is optional and goes through the same action path as keys: the mouse map (`DefaultMouseMap`) turns a gesture on a view into the action id a key would produce, and the same handler runs it.
+A test parses the table below and checks it against the defaults, so add a row in the same change that adds a mouse path.
+Views inherit like in the keymap: `Lists` covers Graph, Detail, Sidebar, Diff and the two working-tree lists.
+`CommandsButton`, `NewTabButton`, `Tabs`, `Picker`, the banner chips (`BannerButton.*`), the overlays (`Help`, `Messages`, `Palette`, `Reflog`, `Settings` and `Backdrop` for everything outside an open one) and the buttons (`DiffButton.*`, `DetailTab.*`, `PickerButton.*`, `ListButton.*`, one view per button or label) are views of their own.
+
+| View | Gesture | Action | Effect |
+|---|---|---|---|
+| Lists | Wheel up | `list.up` | Moves the selection up 3 rows (like `3k`) in the pane under the pointer, which gets focus |
+| Lists | Wheel down | `list.down` | Moves the selection down 3 rows (like `3j`) |
+| Lists | Drag start | `visual.toggle` | Pressing a row and moving the pointer starts Visual mode (range selection, like `v`) at the pressed row; graph, detail, diff, the working-tree diff and the two working-tree file lists (to stage the files or lines, press `<space>a` / `<space>u`, or run the action from the palette, `:`) |
+| Lists | Drag up | `list.up` | While dragging, the cursor follows the pointer: moves up by as many rows as the pointer is above it |
+| Lists | Drag down | `list.down` | The same downwards |
+| Graph | Double-click | `menu.open-for-row` | Same as `<space>.`: open the actions menu of the row (the first click selected it); a double-click on blank space below the last row does nothing; the details pane is reached by a click on it, `Enter`, `Ctrl-j` or the menu's Open details row |
+| Detail | Click | `detail.toggle-folder` | Open or close the folder row under the pointer (Changes tab, tree style; nothing on other tabs and styles; the row is selected as usual, so the diff follows; a click on a file only selects it, and a double-click undoes the toggle of its first click, then opens the diff, #622) |
+| Detail | Double-click | `detail.open-diff` | Same as `Enter`: go to the file diff (Files tab: open or close the directory, or focus the file's content; Details tab: open the issue link on the line, if any) |
+| Sidebar | Click | `sidebar.activate` | Same as `Enter`: expand or collapse a section, select the ref's commit in the graph, show a stash in the detail pane (then a click on its file rows opens their diff) |
+| Tabs | Click | `tab.next` | Switch to the clicked tab (same as `3gt` with the tab's number); closes an open picker |
+| TabDirtyMarker | Click | `working-tree.open` | The `*` of a dirty tab chip: switch to that tab and open its working-tree view (a click elsewhere on the chip only switches); no effect where the marker is cut off |
+| NewTabButton | Click | `picker.open` | The ` + ` button right after the last tab: open the repository picker for a new tab, same as `Ctrl-t` |
+| CommandsButton | Click | `palette.open` | The ` : commands ` button at the right end of the tab row (rows of 44 columns or more; there is no header bar): open the command palette, the menu of the actions of the focused pane and the global ones, each with its keys |
+| RemoteButton.Fetch | Click | `remote.fetch` | The `<space>F fetch` chip of the tab row (rows of 100 columns or more, the key text from 127), left of the commands button: same as `<space>F` |
+| RemoteButton.Pull | Click | `remote.pull` | The ` pull ` chip: same as `<space>L` |
+| RemoteButton.Push | Click | `remote.push` | The ` push ` chip: same as `<space>P` |
+| RemoteButton.Cancel | Click | `remote.cancel` | The `<space>C cancel` chip that replaces the three chips while one of them runs on the active tab: same as `<space>C` |
+| BannerButton.Continue | Click | `operation.continue` | The `continue` chip of the in-progress operation banner: same as `<space>gc` |
+| BannerButton.Abort | Click | `operation.abort` | The `abort` chip of the banner: same as `<space>ga` (asks first) |
+| BannerButton.Skip | Click | `operation.skip` | The `skip` chip of the banner (not shown for a merge): same as `<space>gk` (asks first) |
+| RowMenuButton | Click | `menu.open-for-row` | The `...` marker in the last three columns of the selected sidebar row: opens the actions menu of that row without moving the cursor (see Actions menu); other rows only select on a click |
+| Backdrop | Click | `cancel` | While the help, palette or status history is open, a click on a pane or the tab row outside it closes it (like `Esc`); the double-click that follows is ignored |
+| Palette | Click | `command.execute` | Run the clicked entry (it is highlighted first) |
+| Palette | Wheel up | `palette.previous` | Move the highlight up one row |
+| Palette | Wheel down | `palette.next` | Move the highlight down one row |
+| ContextMenu | Click | `command.execute` | Run the clicked entry of the actions menu (it is highlighted first); a click outside closes the menu |
+| ContextMenu | Wheel up | `palette.previous` | Move the highlight up one row |
+| ContextMenu | Wheel down | `palette.next` | Move the highlight down one row |
+| ConfirmButton.Yes | Click | `confirm.yes` | The `y` row of a confirm dialog, same as `y` |
+| ConfirmButton.No | Click | `confirm.no` | The `n` row of a confirm dialog, same as `n` / `Esc` |
+| HelpTab | Click | `help.tab-select` | A tab label in the help overlay's tab row: shows that tab (the row number is the click target; when the labels do not fit, the one compact label `[Graph] 1/4` moves to the next tab) |
+| Help | Wheel up | `list.up` | Scroll the help up 3 lines (wherever the pointer is while the overlay is open) |
+| Help | Wheel down | `list.down` | Scroll the help down 3 lines |
+| Messages | Wheel up | `list.up` | Scroll the status history up 3 lines |
+| Messages | Wheel down | `list.down` | Scroll the status history down 3 lines |
+| Reflog | Wheel up | `list.up` | Scroll the reflog list up 3 entries |
+| Reflog | Wheel down | `list.down` | Scroll the reflog list down 3 entries |
+| ReflogButton.Select | Click | `reflog.select-commit` | Action row `Enter` under the reflog list: select the highlighted entry's commit in the graph (the list stays open); a click on an entry itself only highlights it |
+| ReflogButton.Reset | Click | `reset.branch` | Row `<space>gx`: reset the current branch to the highlighted entry (closes the list first) |
+| ReflogButton.Branch | Click | `branch.create` | Row `<space>bc`: new-branch prompt at the highlighted entry |
+| ReflogButton.Checkout | Click | `branch.switch` | Row `<space>bs`: check the entry out with a detached HEAD |
+| ReflogPicker | Click | `input.accept` | A row of the reflog ref picker: highlights it and opens that ref's reflog, like `Enter` |
+| RebaseEditor | Wheel up | `list.up` | Scroll the todo up 3 commits |
+| RebaseEditor | Wheel down | `list.down` | Scroll the todo down 3 commits |
+| RebaseButton.Pick | Click | `rebase-editor.pick` | Chip `p pick` under the todo: sets the highlighted commit; a click on a commit itself only highlights it |
+| RebaseButton.Reword | Click | `rebase-editor.reword` | Chip `r reword`: opens the message editor |
+| RebaseButton.Squash | Click | `rebase-editor.squash` | Chip `s squash` |
+| RebaseButton.Fixup | Click | `rebase-editor.fixup` | Chip `f fixup` |
+| RebaseButton.Drop | Click | `rebase-editor.drop` | Chip `d drop` |
+| RebaseButton.Up | Click | `rebase-editor.move-up` | Chip `K move up` |
+| RebaseButton.Down | Click | `rebase-editor.move-down` | Chip `J move down` |
+| RebaseButton.Start | Click | `rebase-editor.start` | Chip `Enter start`: asks the Confirm (its `y` and `n` rows are the `ConfirmButton.Yes` and `ConfirmButton.No` views) |
+| RebaseButton.Cancel | Click | `navigate.back` | Chip `Esc cancel`: closes the editor like `Esc` |
+| ConflictSide | Wheel up | `list.up` | Cursor up three lines in the pane (the other panes follow) |
+| ConflictSide | Wheel down | `list.down` | Cursor down three lines |
+| ConflictResult | Wheel up | `list.up` | Result cursor up three lines |
+| ConflictResult | Wheel down | `list.down` | Result cursor down three lines |
+| ConflictButton.Ours | Click | `conflict-editor.ours` | Chip `o ours`: takes our side for the current conflict |
+| ConflictButton.Theirs | Click | `conflict-editor.theirs` | Chip `t theirs` |
+| ConflictButton.Both | Click | `conflict-editor.both` | Chip `B both` |
+| ConflictButton.Base | Click | `conflict-editor.base` | Chip `b base`: takes the common ancestor |
+| ConflictButton.Take | Click | `conflict-editor.take` | Chip `<space>a take` (`take lines` during a Visual selection): takes the active pane's version |
+| ConflictButton.AllOurs | Click | `conflict-editor.all-ours` | Chip `O all ours` |
+| ConflictButton.AllTheirs | Click | `conflict-editor.all-theirs` | Chip `T all theirs` |
+| ConflictButton.Select | Click | `visual.toggle` | Chip `v select lines` (`end selection` while one is open) |
+| ConflictButton.Pane | Click | `pane.next` | Chip `Tab next pane`: base, ours, theirs, result; on a narrow terminal it also changes the version panes shown |
+| ConflictButton.Undo | Click | `conflict-editor.undo` | Chip `u undo` |
+| ConflictButton.Redo | Click | `conflict-editor.redo` | Chip `Ctrl-r redo` |
+| ConflictButton.Untake | Click | `conflict-editor.untake` | Chip `<space>u untake` (`untake lines` during a Visual selection) |
+| ConflictButton.Edit | Click | `conflict-editor.edit` | Chip `e edit in result` (`i type` in the result pane): moves into the result at the current conflict and starts typing |
+| ConflictButton.Recreate | Click | `conflict-editor.recreate` | Chip `R re-create`: asks first |
+| ConflictButton.EditDone | Click | `conflict-editor.edit-done` | Chip `Ctrl-g keep`, the only chip while the result is typed in |
+| ConflictButton.Next | Click | `conflict-editor.next` | Chip `n next conflict` |
+| ConflictButton.Previous | Click | `conflict-editor.previous` | Chip `N previous conflict` |
+| ConflictButton.Save | Click | `conflict-editor.save` | Chip `Enter save`: saves (asks first when conflicts are unresolved) |
+| ConflictButton.Cancel | Click | `navigate.back` | Chip `Esc close`: closes the editor like `Esc` |
+| Settings | Wheel up | `list.up` | Scroll the column under the pointer up 3 rows (the categories or the settings) |
+| Settings | Wheel down | `list.down` | Scroll the column under the pointer down 3 rows |
+| SettingsButton.Edit | Click | `settings.activate` | A click on a setting's control, on an option of an open choice, or a second click on the selected row: edits it like `Enter` (toggle flips, choice opens, option is kept). A first click on a row, and a click on a category, only select |
+| SettingsButton.Add | Click | `settings.add` | The `[+]` marker of a path list: add a folder, like `a` |
+| SettingsButton.Remove | Click | `settings.remove` | The `[x]` marker of a folder: ask to remove it, like `d`; the question's `y` and `n` rows are the `ConfirmButton.Yes` and `ConfirmButton.No` views |
+| MainlineParent | Click | `pick.mainline` | A parent row of the mainline overlay of a cherry-pick or revert of a merge commit: answers like the parent's digit key (the row number is the click target; a click outside cancels) |
+| DiffButton.PreviousFile | Click | `diff.previous-file` | Button `‹ file`, same as `[f` |
+| DiffButton.NextFile | Click | `diff.next-file` | Button `file ›`, same as `]f` |
+| DiffButton.PreviousHunk | Click | `diff.previous-hunk` | Button `‹ hunk`, same as `[c` |
+| DiffButton.NextHunk | Click | `diff.next-hunk` | Button `hunk ›`, same as `]c` |
+| DiffButton.Wrap | Click | `diff.toggle-wrap` | Button `wrap` (a file's content only; the diff has it in the `view ▾` dropdown), same as `<space>vw` |
+| DiffButton.Zoom | Click | `pane.zoom` | Button `zoom` of a file's content (the diff has the entry in the `view ▾` dropdown instead, #758), same as `<space>z` |
+| DiffButton.View | Click | `diff.open-view-options` | Button `view ▾`, same as `<space>vv`: opens the dropdown of context, whole file, ignore space, split, wrap, whitespace marks and zoom |
+| DiffButton.Stage | Click | `working-tree.stage` | Working-tree diff, Unstaged side: button `stage`, same as `<space>a` (the change group under the cursor, or the Visual range); also a chip at the right end of the group's first line (same view, same action) |
+| DiffButton.Unstage | Click | `working-tree.unstage` | Working-tree diff, Staged side: button `unstage`, same as `<space>u`; also a chip on the group's first line |
+| DiffButton.Discard | Click | `working-tree.discard` | Working-tree diff, Unstaged side: button `discard`, same as `<space>d`; opens the Confirm dialog, nothing is discarded before `y`; also a chip on the group's first line |
+| DetailTab.Details | Click | `detail.tab-details` | The `Details` label in the detail pane's title row, same as `gd` (also focuses the pane) |
+| DetailTab.Changes | Click | `detail.tab-changes` | The `Changes` label, same as `gc` |
+| DetailTab.Files | Click | `detail.tab-files` | The `Files` label, same as `gf` |
+| DetailTab.View | Click | `files.open-view-options` | The `view ▾` chip at the right end of the title row while the Changes or Files tab is selected (shown when the row has room), same as `<space>vv`: opens the dropdown of the path style (Changes) or the filter (Files) |
+| WorkingUnstaged | Click | `working-tree.toggle-folder` | A folder row of the tree style opens or closes (same as `za`); on a file row it only moves the cursor |
+| WorkingStaged | Click | `working-tree.toggle-folder` | A folder row of the tree style opens or closes (same as `za`); on a file row it only moves the cursor |
+| WorkingUnstaged | Double-click | `working-tree.stage` | Stage the file, or every file under the folder (same as `<space>a`) |
+| WorkingStaged | Double-click | `working-tree.unstage` | Unstage the file, or every file under the folder (same as `<space>u`) |
+| ListButton.StageAll | Click | `working-tree.stage-all` | Button `stage all` at the right end of the Unstaged list's title row, same as `<space>A` (also focuses the list) |
+| ListButton.UnstageAll | Click | `working-tree.unstage-all` | Button `unstage all` in the Staged list's title row, same as `<space>U` |
+| ListButton.Resolve | Click | `conflict.open` | The `resolve` chip in the Unstaged list's title row, left of the `view ▾` chip; shown only while the cursor is on a conflicted file, same as `Enter` / `<space>to`: opens the conflict editor (also focuses the list; #701) |
+| ListButton.Diff | Click | `working-tree.open-diff` | The `diff ›` chip in the title row of either file list, shown only on screens under 80 columns where the diff is not beside the list; left of the stage all / unstage all button and ahead of the `view ▾` and `resolve` chips (they give way to it), same as `Enter`: the diff of the file or folder under the cursor takes focus and replaces the list (also focuses the list; #376) |
+| ListButton.View | Click | `files.open-view-options` | The `view ▾` chip in the title row of either file list, left of the stage all / unstage all button, same as `<space>vv`: opens the dropdown of the path style |
+| WorkingMessage | Click | `working-tree.edit-message` | Focus the message box and start writing (Insert mode), same as `i`; the cursor goes where the pointer is (the position is not part of the action id) |
+| MessageButton.SignOff | Click | `working-tree.toggle-sign-off` | The `[ ] SignOff` checkbox of the message box, same as `Alt-s` |
+| MessageButton.NoVerify | Click | `working-tree.toggle-no-verify` | The `[ ] No-Verify` checkbox, same as `Alt-n` |
+| MessageButton.Amend | Click | `working-tree.toggle-amend` | The `[ ] Amend` checkbox, same as `Alt-a` |
+| MessageButton.Commit | Click | `working-tree.commit` | The `Commit` button, same as `Ctrl-g` |
+| WorkingUnstagedDiff | Double-click | `working-tree.stage` | Stage the change group under the pointer (same as `<space>a`) |
+| WorkingStagedDiff | Double-click | `working-tree.unstage` | Unstage the change group under the pointer (same as `<space>u`) |
+| Picker | Double-click | `picker.accept` | Open the repository of the row |
+| Picker | Wheel up | `picker.previous` | Move the highlight up one row |
+| Picker | Wheel down | `picker.next` | Move the highlight down one row |
+| PickerButton.Pin | Click | `picker.pin` | Chip `Alt-p pin` / `Alt-p unpin` on the highlighted row, same as `Alt-p` |
+| PickerButton.Remove | Click | `picker.remove-recent` | Chip `Alt-d remove` on a highlighted recent row, same as `Alt-d` |
+| PickerButton.Clone | Click | `picker.clone` | Chip `Alt-c clone` at the right end of the picker's hint line (94 columns or more, not while locating), same as `Alt-c` |
+| PickerButton.Init | Click | `picker.init` | Chip `Alt-i init` next to it, same as `Alt-i` |
+
+Pointer-position behaviour that has no action of its own: a click on a pane focuses it, a click on a list row selects it (graph, detail, sidebar, diff; the details pane follows the graph selection as with keys), a click on a picker row highlights it.
+A click on empty space does nothing.
+The wheel moves the selection, not just the view (the keyboard has no pure scroll either), so the details pane follows it as it does for `j`/`k`.
+A mouse action does not touch a pending count or chord typed before it.
+While the help, palette or status history is open, panes and the picker ignore every mouse gesture (no focus change, no selection), except that the wheel scrolls the help or history (or moves the palette highlight) when the pointer is over a pane or the overlay, and a click on a pane or the tab row closes it, like `Esc`; the which-key popup does not block the mouse.
+
+Drag to select: press a row of the graph, detail, diff or file-list pane and move the pointer; the pane takes focus, the pressed row becomes the anchor, Visual mode starts (status bar `VISUAL`) and the cursor follows the pointer, also above or below the pane while the button is held: while the pointer rests outside the pane the cursor keeps moving every 80 ms, 1 row just outside, 1 more per 2 rows of distance, at most 6, until the pointer is back inside, the list ends or the button is released.
+The range is drawn stronger than the selected row (bolder and a brighter tint, reverse video where there are no colours), and its moving end, the cursor row, is underlined as well.
+The release leaves the range active; a click on a row, `Esc`, `q`, `v` or moving focus to another pane or tab ends it.
+`y` copies the range (the drag plus `y`, or `visual.copy` from the palette) and ends it; staging acts on it too (lines in the working-tree diff, files in its lists).
+The sidebar and the message box have no ranges (a drag there only moves the selection); a drag also does not start a range while a prompt (search, filter, ref jump) or the picker is open.
+
+Drag to resize: the line between the sidebar and the graph, the line between the detail and diff panes, and the title rows of the detail and diff panes (the line between the graph and the bottom panes) follow the pointer while the button is held.
+Sizes are clamped to what fits (at least 12 columns for the sidebar and detail, 20 for the graph and diff, 3 rows for the bottom panes, 4 for the graph), belong to the tab and are saved with the session; `Ctrl-w =` (or `:`, then "Reset the pane sizes") returns to automatic, and `Ctrl-w >` `Ctrl-w <` `Ctrl-w +` `Ctrl-w -` are the keyboard path; after a step the repeat mode (see Modes) takes bare `>` `<` `+` `-` `=` until `Esc` or another key.
+A single zoomed pane has no dividers to drag (the divider between the paired Changes and diff panes does not drag while zoomed, but `Ctrl-w >` `Ctrl-w <` move it, #683).
+
+Clickable titles and buttons: a click on the title row of the detail or diff pane focuses that pane.
+The detail title row starts with the three tab labels (`Details`, `Changes`, `Files`), drawn as buttons: the selected one is the accent chip (quieter when the pane has no focus), the others look exactly like the inactive repository tabs of the tab row (a chip on a subtle tinted background; underlined where the terminal tier has no background colours, `[Name]` in the ASCII tier from 29 columns, one padding column per side).
+The selected tab of an unfocused pane keeps the chip but in bold accent-coloured text (bold and underlined in the colourless tiers) so it still differs from the other tabs; the title of a pane with a single view (graph, sidebar, diff, working-tree lists) is drawn the same way when the pane has no focus, one column of line between them; below 29 columns the padding around the labels goes.
+The content of the detail pane has the same background as the other panes; the frame line and the buttons separate it.
+A click on a label selects the tab.
+The diff title row ends in buttons (see the table), chips like the inactive repository tabs (with the key in bold before the label when the pane is wide enough; the chips on a change group's first line stay label-only) with one column of line between them and `<`/`>` arrows and brackets in the ASCII tier, when the pane is at least 30 columns wider than the buttons need; narrower panes drop buttons in this order, last to go first: `view ▾`, the two hunk buttons, the two file buttons, the keys stay available.
+The path gets the room first: the diff options that used to be five chips (`ctx-`, `ctx+`, `file`, `-w`, `split`) and `wrap` sit behind the one `view ▾` dropdown (#645).
+The working-tree diff has the same title row and buttons, with the staging buttons of its side first: `stage` and `discard` on the Unstaged side (`stage` is the last to be dropped on a narrow row, `discard` sits after the hunk buttons in the drop order), `unstage` on the Staged side; they act on the change group under the cursor or the Visual range like `<space>a`, `<space>u` and `<space>d`, and `discard` opens the Confirm dialog first.
+The change group under the cursor also carries the same chips on its first line, at the right edge (`stage` and `discard` on the Unstaged side, `unstage` on the Staged side; the history diff and a Visual range have none; a line whose text reaches the chips gets none, the title row still has them): a click or double-click on one runs the title button's action, so `discard` still opens the Confirm first.
+A row that would keep fewer than 30 columns of diff text drops `discard`, then `stage`/`unstage`; the keys and the title buttons stay.
+`<space>z` and the `zoom` entry of the `view ▾` dropdown give the diff the whole view (lists and message box hidden) until focus leaves the diff (`Esc`, `Ctrl-h`) or zoom is used again; in the history view with the Changes tab beside the diff they zoom the file list and the diff together and `Esc`/`Ctrl-h` only return focus to the list (#632).
+In the working-tree view a click on the diff box focuses it (the mouse path from a list to its diff on screens of 80 columns or more; narrow screens use the `diff ›` chip in the title row of the list).
+The highlighted picker row shows the chips `Alt-p pin`/`Alt-p unpin` and, for a recent repository, `Alt-d remove` at its right edge, the same key-first chips as the diff title (#744; rows of 72 columns or more).
+The repository picker (the opener) hides the fetch, pull and push chips of the tab row, since they act on the active tab's repository; `: commands` stays.
+Clicking the commands button at the right end of the tab row opens the command palette, which lists the actions of the focused pane and the global ones, so every action without a button (for example `<space>vl` load anyway, the search keys, `<space>r` refresh) can be run with the mouse; typing a search or a filter text needs the keyboard, as nothing else can enter text.
+
+Terminal.Gui turns on mouse reporting (SGR, mode 1006) at startup and turns it off on exit; there is no switch to disable it yet.
+Verified by writing SGR mouse sequences into the pane of a tmux 3.7c session running the Linux build: clicks, double-clicks, the wheel, press-drag-release (reported as a press, position reports with the button held, a release and then a click at the release position, which the drag logic swallows), divider and title drags, header, palette and button clicks all arrive; a double-click is delivered as a click followed by a double-click event (so a double-click on a sidebar section toggles it once), and a sideways wheel (Ctrl or Shift plus wheel) is ignored (unit-tested only).
+Not yet verified with a physical mouse, over ssh, or in kitty, Windows Terminal and macOS terminals.
+Terminals or ssh paths that drop mouse sequences leave the keyboard path unaffected.
+
+Design history (why things are the way they are, measurements, rejected options): `docs/history/ux.md`. Not needed for routine work.

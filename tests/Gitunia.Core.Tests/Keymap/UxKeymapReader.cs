@@ -5,21 +5,21 @@ using Gitunia.Core.Keymap.Models;
 
 namespace Gitunia.Core.Tests.Keymap;
 
-/// <summary>Reads the keymap table in <c>docs/ux.md</c> into bindings so tests can compare it with the defaults.</summary>
+/// <summary>Reads the keymap table in <c>docs/ux-keymap.md</c> into bindings so tests can compare it with the defaults.</summary>
 public static partial class UxKeymapReader
 {
-    public static string FindUxDocument()
+    public static string FindUxDocument(string fileName)
     {
         var root = typeof(UxKeymapReader).Assembly.GetCustomAttributes<AssemblyMetadataAttribute>()
             .FirstOrDefault(attribute => attribute.Key == "RepoRoot")?.Value ?? string.Empty;
-        var candidate = Path.Combine(root, "docs", "ux.md");
+        var candidate = Path.Combine(root, "docs", fileName);
 
         if (File.Exists(candidate))
         {
             return candidate;
         }
 
-        throw new FileNotFoundException($"docs/ux.md not found at {candidate}");
+        throw new FileNotFoundException($"docs/{fileName} not found at {candidate}");
     }
 
     /// <summary>One binding per documented key token; Picker rows are Insert mode, Palette rows Command mode, all others Normal.</summary>
@@ -27,7 +27,7 @@ public static partial class UxKeymapReader
     {
         var bindings = new List<KeyBinding>();
         var inKeymap = false;
-        foreach (var line in File.ReadAllLines(FindUxDocument()))
+        foreach (var line in File.ReadAllLines(FindUxDocument("ux-keymap.md")))
         {
             if (line.StartsWith("## ", StringComparison.Ordinal))
             {

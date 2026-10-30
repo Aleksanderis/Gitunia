@@ -16,7 +16,7 @@ using Gitunia.Tui.Input;
 namespace Gitunia.Tui.App.Rebase;
 
 /// <summary>
-/// Fixup, reword and drop of the commit selected in the graph (ux.md, workflow 3, "Quick rebase"), run through the
+/// Fixup, reword and drop of the commit selected in the graph (ux-workflows.md, workflow 3, "Quick rebase"), run through the
 /// interactive rebase engine with a todo built here. Each goes through a Confirm that names the commit, how many later
 /// commits get new hashes, the force-push warning and the undo (the old tip, kept in <c>ORIG_HEAD</c> and the
 /// reflog); a reword first asks for the new subject in a prompt popup. The refusals are the rebase's (operation in

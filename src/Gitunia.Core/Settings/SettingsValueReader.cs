@@ -42,6 +42,7 @@ public static class SettingsValueReader
         var options = OptionsConfigurator.Read(document, homeDirectory, directoryExists, problems);
         var values = ImmutableDictionary.CreateBuilder<string, SettingValue>();
         values[SettingsRegistry.ThemeId] = SettingValue.OfChoice(ThemeName(theme));
+        values[SettingsRegistry.LabelCapsId] = SettingValue.OfChoice(LabelCapName(options.LabelCaps));
         values[SettingsRegistry.ShowBranchId] = SettingValue.OfFlag(options.ShowBranchInTab);
         values[SettingsRegistry.ScanRootsId] = ReadScanRoots(document.ScanRoots);
 
@@ -55,6 +56,15 @@ public static class SettingsValueReader
         ThemeChoice.DarkName => ThemeChoice.MochaName,
         ThemeChoice.LightName => ThemeChoice.LatteName,
         _ => theme.Name,
+    };
+
+    /// <summary>The option a label cap style shows as (and is written as).</summary>
+    /// <param name="style">The style.</param>
+    public static string LabelCapName(LabelCapStyle style) => style switch
+    {
+        LabelCapStyle.Rounded => "rounded",
+        LabelCapStyle.Angled => "angled",
+        _ => "none",
     };
 
     /// <summary>The theme a choice option stands for.</summary>

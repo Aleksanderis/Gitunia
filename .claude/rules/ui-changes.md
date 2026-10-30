@@ -8,12 +8,12 @@ paths:
 
 # UI, keys and look
 
-Specs, the keymap table and the mouse table are in `docs/ux.md`. Checklist for a change that adds or alters what the user sees or presses:
+Specs start at `docs/ux.md`, which links the parts; the keymap table is in `docs/ux-keymap.md` and the mouse table in `docs/ux-mouse.md`. Checklist for a change that adds or alters what the user sees or presses:
 
 ## A new action, key or mouse path
 
-- The key row goes in the keymap table in `docs/ux.md` in the same change; no conflicts within a mode and view (a test parses the table against `DefaultKeymap`). A mouse path gets its row in the mouse table (a test checks it against `DefaultMouseMap`).
-- Vim-clash rule (owner, #335): standard vim/neovim keys keep their vim meaning; a Gitunia-specific action never binds a bare vim normal-mode command (`s` `u` `c` `a` `x` `r` `D` `M` `E` ...) but a `<space>` leader chord or a `Ctrl-`/`Alt-` combination; `<space>j` is reserved for the quick jump. Check a new key against vim before binding it (list in `docs/ux.md`, workflow 2, "Key rule").
+- The key row goes in the keymap table in `docs/ux-keymap.md` in the same change; no conflicts within a mode and view (a test parses the table against `DefaultKeymap`). A mouse path gets its row in the mouse table (a test checks it against `DefaultMouseMap`).
+- Vim-clash rule (owner, #335): standard vim/neovim keys keep their vim meaning; a Gitunia-specific action never binds a bare vim normal-mode command (`s` `u` `c` `a` `x` `r` `D` `M` `E` ...) but a `<space>` leader chord or a `Ctrl-`/`Alt-` combination; `<space>j` is reserved for the quick jump. Check a new key against vim before binding it (list in `docs/ux-workflows.md`, workflow 2, "Key rule").
 - Everything doable by keyboard is doable by mouse and the reverse; nothing is keyboard-only or mouse-only. A mouse gesture maps to an action id and runs the same handler as the key.
 - The action has a title in `ActionCatalog` (a test fails otherwise). An action bound ahead of its feature goes in `ActionCatalog.Unimplemented`; modal-only ones in `IsModalOnly`.
 - Status bar hints are short, not taken from the catalog titles; each key names its `ActionId` and a test checks the default keymap binds it.

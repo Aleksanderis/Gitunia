@@ -30,7 +30,7 @@ History view: sidebar on the left (branches, remotes, tags, stashes, worktrees),
 
 ## Keys
 
-Gitunia is modal and vim-style; `<space>` is the leader key. `?` shows the keys of the focused view, `:` or `Ctrl-p` opens the command palette, `<space>,` opens the settings screen whose Key reference category lists every binding (rebinds included), `q` closes an overlay or quits. The complete table is the Keymap section of `docs/ux.md`.
+Gitunia is modal and vim-style; `<space>` is the leader key. `?` shows the keys of the focused view, `:` or `Ctrl-p` opens the command palette, `<space>,` opens the settings screen whose Key reference category lists every binding (rebinds included), `q` closes an overlay or quits. The complete table is the Keymap section of `docs/ux-keymap.md`.
 
 ## Everyday tasks
 
@@ -45,7 +45,7 @@ Gitunia is modal and vim-style; `<space>` is the leader key. `?` shows the keys 
 
 ## Configuration
 
-Config is a hand-editable JSON file with comments, `config.json` in `~/.config/gitunia` (`$XDG_CONFIG_HOME/gitunia` overrides). Session state lives in `~/.local/state/gitunia` (`$XDG_STATE_HOME`). The settings screen (`<space>,`) edits the same file and lists every key and action id. Options (theme, scan folders, key bindings) and the file format are described in "Config file" in `docs/ux.md`.
+Config is a hand-editable JSON file with comments, `config.json` in `~/.config/gitunia` (`$XDG_CONFIG_HOME/gitunia` overrides). Session state lives in `~/.local/state/gitunia` (`$XDG_STATE_HOME`). The settings screen (`<space>,`) edits the same file and lists every key and action id. Options (theme, scan folders, key bindings) and the file format are described in "Config file" in `docs/ux-look.md`.
 
 Remap a key by adding an entry to `keys`:
 

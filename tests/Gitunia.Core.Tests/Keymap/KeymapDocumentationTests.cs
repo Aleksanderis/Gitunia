@@ -65,7 +65,7 @@ public class KeymapDocumentationTests
             .Select(registered => $"{registered.View}: {registered.Sequence}")
             .ToList();
 
-        Assert.True(undocumented.Count == 0, $"Registered Normal bindings missing from docs/ux.md:{Environment.NewLine}{string.Join(Environment.NewLine, undocumented)}");
+        Assert.True(undocumented.Count == 0, $"Registered Normal bindings missing from docs/ux-keymap.md:{Environment.NewLine}{string.Join(Environment.NewLine, undocumented)}");
     }
 
     [Fact]
@@ -79,7 +79,7 @@ public class KeymapDocumentationTests
             .Select(registered => $"{registered.View}: {registered.Sequence}")
             .ToList();
 
-        Assert.True(undocumented.Count == 0, $"Registered Insert bindings missing from docs/ux.md:{Environment.NewLine}{string.Join(Environment.NewLine, undocumented)}");
+        Assert.True(undocumented.Count == 0, $"Registered Insert bindings missing from docs/ux-keymap.md:{Environment.NewLine}{string.Join(Environment.NewLine, undocumented)}");
     }
 
     [Fact]

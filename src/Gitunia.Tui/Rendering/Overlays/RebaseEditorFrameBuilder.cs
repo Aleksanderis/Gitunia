@@ -11,7 +11,7 @@ using Gitunia.Tui.Rendering.Styling;
 namespace Gitunia.Tui.Rendering.Overlays;
 
 /// <summary>
-/// Lays out the rebase todo editor (ux.md, workflow 3, "Interactive rebase"): the commits in replay order with their
+/// Lays out the rebase todo editor (ux-workflows.md, workflow 3, "Interactive rebase"): the commits in replay order with their
 /// action, two rows of clickable chips (the mouse path of every key) and a footer; while a reword's message is edited
 /// the same box shows the multi-line message editor instead.
 /// </summary>
@@ -27,9 +27,15 @@ public static class RebaseEditorFrameBuilder
     private const int ActionColumnWidth = 6;
     private const int ListStartLine = 2;
     private const string Note = "oldest first: the top commit is replayed first; squash and fixup meld upwards";
-    private const string MessageHint = "Ctrl-g keeps the message   Enter new line   Esc cancel";
     private const string DiscardHint = "Esc again discards the changes to the todo";
     private const string BlankMessageHint = "A reword needs a message: type one, or Esc to cancel";
+
+    private static readonly HintItem[] MessageHints =
+    [
+        new("Ctrl-g", "keeps the message"),
+        new("Enter", "new line"),
+        new("Esc", "cancel"),
+    ];
 
     private static readonly HintChip[] ChipLabels =
     [
@@ -179,7 +185,7 @@ public static class RebaseEditorFrameBuilder
         }
         else
         {
-            lines.Add(OverlayBox.Hints(MessageHint, width, glyphs, gap: PromptPopup.HintGap));
+            lines.Add(OverlayBox.Hints(MessageHints, width, glyphs, gap: PromptPopup.HintGap));
         }
 
         lines.Add(OverlayBox.Bottom(width, glyphs));

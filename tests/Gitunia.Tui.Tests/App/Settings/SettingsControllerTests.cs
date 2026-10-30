@@ -51,7 +51,7 @@ public sealed class SettingsControllerTests : IDisposable
         Assert.Contains("\"tabs\": { \"showBranch\": true }", text, StringComparison.Ordinal);
         Assert.True(_harness.Applied.Last().ShowBranchInTab);
         Assert.Equal("Saved Show branch in tab name", _harness.Statuses.Log.Latest!.Text);
-        Assert.True(_harness.Settings.State!.ValueOf(SettingsRegistry.All[2]).Flag);
+        Assert.True(_harness.Settings.State!.ValueOf(SettingsRegistry.All[3]).Flag);
     }
 
     [Fact]
@@ -68,6 +68,22 @@ public sealed class SettingsControllerTests : IDisposable
 
         Assert.Contains("\"showBranch\": false", _harness.ReadConfig(), StringComparison.Ordinal);
         Assert.False(_harness.Applied.Last().ShowBranchInTab);
+    }
+
+    [Fact]
+    public async Task GivenTheLabelCapsSetting_WhenChangingIt_ThenTheRunningAppGetsTheNewStyleAtOnce()
+    {
+        await _harness.OpenAsync();
+        _harness.Run(ActionIds.SettingsActivate);
+        _harness.Run(ActionIds.ListDown);
+        _harness.Run(ActionIds.SettingsActivate);
+        _harness.Run(ActionIds.ListDown);
+
+        _harness.Run(ActionIds.SettingsActivate);
+        await _harness.PumpAsync();
+
+        Assert.Contains("\"labelCaps\": \"angled\"", _harness.ReadConfig(), StringComparison.Ordinal);
+        Assert.Equal(LabelCapStyle.Angled, _harness.Applied.Last().LabelCaps);
     }
 
     [Fact]
@@ -367,7 +383,7 @@ public sealed class SettingsControllerTests : IDisposable
 
         Assert.Equal("{ \"tabs\": { \"showBranch\": true } }", _harness.ReadConfig());
         Assert.Contains("changed on disk", _harness.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
-        Assert.True(_harness.Settings.State!.ValueOf(SettingsRegistry.All[2]).Flag);
+        Assert.True(_harness.Settings.State!.ValueOf(SettingsRegistry.All[3]).Flag);
 
         _harness.Run(ActionIds.SettingsToggle);
         await _harness.PumpAsync();

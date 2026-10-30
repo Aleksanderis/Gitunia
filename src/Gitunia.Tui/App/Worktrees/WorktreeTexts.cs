@@ -5,7 +5,7 @@ using Gitunia.Tui.App.WorkingTree;
 
 namespace Gitunia.Tui.App.Worktrees;
 
-/// <summary>The wording of the worktree dialogs and refusals (ux.md, workflow 6): pure, so the texts are testable
+/// <summary>The wording of the worktree dialogs and refusals (ux-workflows.md, workflow 6): pure, so the texts are testable
 /// without a terminal.</summary>
 public static class WorktreeTexts
 {

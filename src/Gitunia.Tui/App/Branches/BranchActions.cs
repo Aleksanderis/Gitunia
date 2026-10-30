@@ -20,7 +20,7 @@ using Gitunia.Tui.Input;
 namespace Gitunia.Tui.App.Branches;
 
 /// <summary>
-/// Create, switch, rename, delete branches and set or unset their upstream (ux.md, workflow 3, "Branches").
+/// Create, switch, rename, delete branches and set or unset their upstream (ux-workflows.md, workflow 3, "Branches").
 /// A name is typed in a prompt popup,
 /// a switch checks out the branch under the cursor at once and asks in a type-to-filter prompt only when the cursor
 /// names no single branch, and a delete goes through the Confirm dialog (a second one
@@ -780,7 +780,7 @@ public sealed class BranchActions(
             [$"Branch to delete at {_label} {position}"],
             null,
             rows,
-            "Enter choose   j/k/h/l select   Esc cancel");
+            [new("Enter", "choose"), new("j/k/h/l", "select"), new("Esc", "cancel")]);
     }
 
     private string AcceptDelete(RepositoryState tab)

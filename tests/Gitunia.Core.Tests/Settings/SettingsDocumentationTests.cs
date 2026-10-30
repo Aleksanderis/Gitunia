@@ -17,7 +17,7 @@ public class SettingsDocumentationTests
         foreach (var definition in SettingsRegistry.All)
         {
             var row = rows.SingleOrDefault(candidate => candidate[1] == definition.Name);
-            Assert.True(row is not null, $"{definition.Name} is not in the settings table of docs/ux.md");
+            Assert.True(row is not null, $"{definition.Name} is not in the settings table of docs/ux-settings.md");
             Assert.Equal(SettingsRegistry.TitleOf(definition.Category), row[0]);
             Assert.Contains(ControlWord(definition.Control), row[2], StringComparison.Ordinal);
             var key = definition.ConfigKey.Length == 0 ? "none" : $"`{definition.ConfigKey}`";
@@ -39,7 +39,7 @@ public class SettingsDocumentationTests
     {
         var rows = new List<string[]>();
         var inSection = false;
-        foreach (var line in File.ReadAllLines(UxKeymapReader.FindUxDocument()))
+        foreach (var line in File.ReadAllLines(UxKeymapReader.FindUxDocument("ux-settings.md")))
         {
             if (line.StartsWith("## ", StringComparison.Ordinal))
             {

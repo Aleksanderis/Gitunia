@@ -15,7 +15,7 @@ namespace Gitunia.Tui.App.Remote;
 
 /// <summary>
 /// Fetch, fetch of all remotes, pull and push of the active tab's current branch, and the cancel of the one that runs
-/// (ux.md, workflow 5). Each runs off the UI thread on the tab's own repository and reports git's progress as one
+/// (ux-workflows.md, workflow 5). Each runs off the UI thread on the tab's own repository and reports git's progress as one
 /// status bar line (<see cref="ProgressLine"/>), not as status messages, so the message history stays clean. One remote
 /// operation per tab; other tabs stay usable. <c>Esc</c> (the cancel action) or the cancel chip stops the running one:
 /// the writer kills git, which leaves the repository consistent. A pull also takes the tab's operation gate because

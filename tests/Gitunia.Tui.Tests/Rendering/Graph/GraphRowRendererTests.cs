@@ -1,3 +1,4 @@
+using Gitunia.Core.Config.Models;
 using Gitunia.Core.Graph;
 using Gitunia.Core.Jump.Models;
 using Gitunia.Core.Search.Models;
@@ -188,6 +189,69 @@ public class GraphRowRendererTests
         }
     }
 
+    [Theory]
+    [InlineData(LabelCapStyle.Rounded, "\uE0B6", "\uE0B4")]
+    [InlineData(LabelCapStyle.Angled, "\uE0B2", "\uE0B0")]
+    public void GivenCaps_WhenRendering_ThenEachBoxIsWrappedInLaneColouredCapsWithNoPaddingInside(
+        LabelCapStyle style,
+        string left,
+        string right)
+    {
+        var commit = CommitFactory.Commit(
+            1,
+            "release",
+            [],
+            new CommitDecoration("refs/heads/main", "main", RefKind.LocalBranch, true),
+            new CommitDecoration("refs/heads/topic", "topic", RefKind.LocalBranch, false));
+        var graph = CommitFactory.Graph(commit);
+        var glyphs = GraphGlyphSet.Unicode.WithLabelCaps(style, hasColors: true);
+
+        var line = GraphRowRenderer.Render(graph[0], new GraphRowOptions(120, 1, glyphs), false);
+
+        var segments = line.Segments.ToList();
+        var boxes = segments.Where(segment => segment.Role == SegmentRole.LaneLabel).ToList();
+        Assert.Equal(2, boxes.Count);
+        foreach (var box in boxes)
+        {
+            var at = segments.IndexOf(box);
+            Assert.Equal(new StyledSegment(left, SegmentRole.Lane, box.ColorIndex), segments[at - 1]);
+            Assert.Equal(new StyledSegment(right, SegmentRole.Lane, box.ColorIndex), segments[at + 1]);
+            Assert.Matches(@"^\S.*\S$", box.Text);
+        }
+
+        Assert.Contains($"{left}{glyphs.CurrentBranch}main", line.Text, StringComparison.Ordinal);
+        Assert.Equal(1, TextWidth.Of(left));
+        Assert.Equal(1, TextWidth.Of(right));
+    }
+
+    [Fact]
+    public void GivenAGlyphSetWithCaps_WhenAskingIfItHasCaps_ThenOnlyTheCappedSetSaysYes()
+    {
+        Assert.True(GraphGlyphSet.Unicode.WithLabelCaps(LabelCapStyle.Rounded, hasColors: true).HasLabelCaps);
+        Assert.False(GraphGlyphSet.Unicode.WithLabelCaps(LabelCapStyle.None, hasColors: true).HasLabelCaps);
+        Assert.False(GraphGlyphSet.Ascii.WithLabelCaps(LabelCapStyle.Rounded, hasColors: true).HasLabelCaps);
+    }
+
+    [Fact]
+    public void GivenNoCapsOrTiersThatCannotShowThem_WhenAskingForCaps_ThenTheSetKeepsThePlainBox()
+    {
+        Assert.Equal(GraphGlyphSet.Unicode, GraphGlyphSet.Unicode.WithLabelCaps(LabelCapStyle.None, hasColors: true));
+        Assert.Equal(GraphGlyphSet.Unicode, GraphGlyphSet.Unicode.WithLabelCaps(LabelCapStyle.Rounded, hasColors: false));
+        Assert.Equal(GraphGlyphSet.Ascii, GraphGlyphSet.Ascii.WithLabelCaps(LabelCapStyle.Rounded, hasColors: true));
+    }
+
+    [Fact]
+    public void GivenNoCaps_WhenRendering_ThenNoCapSegmentIsDrawn()
+    {
+        var commit = CommitFactory.Commit(
+            1, "release", [], new CommitDecoration("refs/heads/main", "main", RefKind.LocalBranch, true));
+        var graph = CommitFactory.Graph(commit);
+
+        var line = GraphRowRenderer.Render(graph[0], new GraphRowOptions(120, 1, GraphGlyphSet.Unicode), false);
+
+        Assert.DoesNotContain(line.Segments, segment => segment.Text is "\uE0B6" or "\uE0B4");
+    }
+
     [Fact]
     public void GivenUpstreamGoneBranch_WhenRendering_ThenTheMarkFollowsTheBoxAfterASpace()
     {
@@ -227,7 +291,35 @@ public class GraphRowRendererTests
     }
 
     [Fact]
-    public void GivenBranchLabels_WhenRendering_ThenTheyCarryTheColourOfTheLaneAndTagsDoNot()
+    public void GivenABranchTheLayoutDidNotSee_WhenRendering_ThenItsChipTakesTheHashColourOfItsName()
+    {
+        const string known = "known";
+        var added = Enumerable.Range(0, 50).Select(number => $"added-{number}")
+            .First(name => BranchColors.PreferredSlot(name) != 3);
+        var commit = CommitFactory.Commit(
+            1,
+            "tip",
+            [],
+            new CommitDecoration($"refs/heads/{known}", known, RefKind.LocalBranch, false),
+            new CommitDecoration($"refs/remotes/origin/{added}", $"origin/{added}", RefKind.RemoteBranch, false));
+        var row = new GraphRow(commit.Id, 0, 1, [], 1, 3, true, [new BranchSlot(known, 3)]);
+        var entry = new GraphEntry(
+            commit.Id,
+            commit.Subject,
+            commit.AuthorName,
+            commit.AuthorTime,
+            commit.Decorations,
+            row);
+
+        var line = GraphRowRenderer.Render(entry, new GraphRowOptions(120, 1, GraphGlyphSet.Unicode), false);
+
+        var labels = line.Segments.Where(segment => segment.Role == SegmentRole.LaneLabel).ToArray();
+        Assert.Equal(3, labels[0].ColorIndex);
+        Assert.Equal(BranchColors.PreferredSlot(added), labels[1].ColorIndex);
+    }
+
+    [Fact]
+    public void GivenBranchLabels_WhenRendering_ThenEachBranchChipCarriesItsOwnColourAndTagsDoNot()
     {
         // A name whose colour is not the first one, so a label that lost its colour index would show.
         var current = Enumerable.Range(0, 50).Select(number => $"branch-{number}")
@@ -253,7 +345,8 @@ public class GraphRowRendererTests
         Assert.Equal(
             [$" {glyphs.CurrentBranch}{current} ", $" {glyphs.LocalBranch}topic ", " origin/other "],
             labels.Select(segment => segment.Text));
-        Assert.All(labels, segment => Assert.Equal(slot, segment.ColorIndex));
+        Assert.Equal(slot, labels[0].ColorIndex);
+        Assert.Equal(3, labels.Select(segment => segment.ColorIndex).Distinct().Count());
         Assert.Contains(line.Segments, segment => segment.Role == SegmentRole.Tag);
     }
 

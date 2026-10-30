@@ -11,7 +11,7 @@ using Gitunia.Tui.Loading.Commits;
 namespace Gitunia.Tui.App.Compare;
 
 /// <summary>
-/// Compares two commits of the graph (#535, #636, ux.md "Comparing two commits"). <c>&lt;space&gt;=</c> marks the
+/// Compares two commits of the graph (#535, #636, ux-workflows.md "Comparing two commits"). <c>&lt;space&gt;=</c> marks the
 /// selected commit; while a mark is set, every other commit under the cursor is compared with it (<see cref="Follow"/>:
 /// <c>git diff older newer</c>, older and newer by graph order, in the Changes tab and the diff pane). On another
 /// commit the key moves the mark, on the marked commit it clears it. <c>Esc</c> in the graph clears the mark and the

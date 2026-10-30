@@ -20,7 +20,7 @@ using Gitunia.Tui.Rendering.Panes;
 namespace Gitunia.Tui.App.WorkingTree;
 
 /// <summary>
-/// The commit part of the working-tree view (ux.md, workflow 2, "Message and commit"): the draft of each tab (message, options,
+/// The commit part of the working-tree view (ux-workflows.md, workflow 2, "Message and commit"): the draft of each tab (message, options,
 /// amend), the message box's Normal and Insert behaviour, and the commit itself. <c>git commit</c> runs off the UI thread and is
 /// cancellable (<c>Esc</c> while it runs); the box is read-only meanwhile. A refused commit says why without running git, a
 /// failed one keeps the draft and shows git's and the hooks' output in the output overlay, a successful one clears the draft,
@@ -83,6 +83,7 @@ public sealed class CommitActions(
     private readonly Dictionary<TabId, CancellationTokenSource> _running = [];
     private readonly Dictionary<TabId, IReadOnlyList<string>> _pendingFailures = [];
     private bool _ownsInsert;
+    private TabId _insertTab;
 
     /// <summary>
     /// Stages every unstaged file of a tab and calls back once the status shows it; returns a notice when nothing
@@ -260,6 +261,7 @@ public sealed class CommitActions(
         if (!isInBox)
         {
             _ownsInsert = false;
+            DraftOf(_insertTab)?.Editor.DropUndoPointIfUnchanged();
             if (keyMode() == KeyMode.Insert)
             {
                 setMode(KeyMode.Normal);
@@ -268,6 +270,7 @@ public sealed class CommitActions(
         else if (keyMode() != KeyMode.Insert)
         {
             _ownsInsert = false;
+            DraftOf(_insertTab)?.Editor.DropUndoPointIfUnchanged();
         }
     }
 
@@ -285,7 +288,7 @@ public sealed class CommitActions(
 
         if (action == ActionIds.Cancel)
         {
-            return TryStopEditing(isInBox);
+            return TryStopEditing(tab, isInBox);
         }
 
         if (action == ActionIds.NavigateBack && isInBox)
@@ -444,6 +447,7 @@ public sealed class CommitActions(
         {
             editor.MarkUndoPoint();
             editor.DeleteUnderCursor();
+            editor.DropUndoPointIfUnchanged();
             return string.Empty;
         }
 
@@ -451,6 +455,7 @@ public sealed class CommitActions(
         {
             editor.MarkUndoPoint();
             editor.DeleteLine();
+            editor.DropUndoPointIfUnchanged();
             return string.Empty;
         }
 
@@ -491,6 +496,7 @@ public sealed class CommitActions(
 
         StartMergeMessageRead(tab, draft);
         _ownsInsert = true;
+        _insertTab = tab.Id;
         setMode(KeyMode.Insert);
         return string.Empty;
     }
@@ -802,12 +808,14 @@ public sealed class CommitActions(
         return true;
     }
 
-    private bool TryStopEditing(bool isInBox)
+    private bool TryStopEditing(RepositoryState tab, bool isInBox)
     {
         if (!isInBox || !IsEditing)
         {
             return false;
         }
+
+        DraftFor(tab.Id).Editor.DropUndoPointIfUnchanged();
 
         _ownsInsert = false;
         setMode(KeyMode.Normal);

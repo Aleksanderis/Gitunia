@@ -18,10 +18,11 @@ namespace Gitunia.Tui.Views.Lists;
 /// Append-only list source over a <see cref="CommitGraph"/>: rows are drawn on demand for the visible range only,
 /// so the cost of a frame does not depend on how many commits are loaded. Appending raises one change event per batch.
 /// </summary>
-public sealed class GraphListSource(CommitGraph graph, GraphGlyphSet glyphs) : IListDataSource, IRangeSource
+public sealed class GraphListSource(CommitGraph graph, GraphGlyphSet initialGlyphs) : IListDataSource, IRangeSource
 {
     private readonly JumpLabelCache _jump = new();
     private GraphRowOptions? _cachedOptions;
+    private GraphGlyphSet _glyphs = initialGlyphs;
     private IReadOnlySet<string>? _upstreamGoneBranches;
     private ObjectId? _markedCommit;
 
@@ -38,6 +39,23 @@ public sealed class GraphListSource(CommitGraph graph, GraphGlyphSet glyphs) : I
     public bool ShowsCutMarker { get; set; }
 
     public int MaxItemLength => 0;
+
+    /// <summary>The characters rows are drawn with; a change (the label caps setting) shows from the next paint.</summary>
+    public GraphGlyphSet Glyphs
+    {
+        get => _glyphs;
+        set
+        {
+            if (_glyphs == value)
+            {
+                return;
+            }
+
+            _glyphs = value;
+            _cachedOptions = null;
+            _jump.Invalidate();
+        }
+    }
 
     /// <summary>The active graph search whose matches are highlighted, null when none.</summary>
     public SearchQuery? Highlight { get; set; }
@@ -133,6 +151,7 @@ public sealed class GraphListSource(CommitGraph graph, GraphGlyphSet glyphs) : I
         var options = OptionsFor(PanePadding.GraphTextWidth(width, columns));
         var commitIndex = CommitIndexOf(item);
         var isRange = Range?.Contains(item) == true;
+        var isRangeCursor = isRange && selected;
         selected |= isRange;
         var line = LineAt(listView, commitIndex, options, selected);
         LinePainter.Paint(
@@ -141,7 +160,8 @@ public sealed class GraphListSource(CommitGraph graph, GraphGlyphSet glyphs) : I
             col,
             row,
             listView.HasFocus,
-            isRange);
+            isRange,
+            isRangeCursor);
     }
 
     public void Dispose()
@@ -189,7 +209,7 @@ public sealed class GraphListSource(CommitGraph graph, GraphGlyphSet glyphs) : I
             _cachedOptions = new GraphRowOptions(
                 width,
                 laneColumns,
-                glyphs,
+                _glyphs,
                 Highlight,
                 UpstreamGoneBranches,
                 MarkedCommit);

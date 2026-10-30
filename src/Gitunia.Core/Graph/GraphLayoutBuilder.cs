@@ -34,6 +34,9 @@ public sealed class GraphLayoutBuilder
     private readonly Dictionary<string, int> _namedSlots = new(StringComparer.Ordinal);
     private readonly IReadOnlyDictionary<ObjectId, string> _branchTips;
 
+    // The other branch names of a commit that carries several (the first one is in _branchTips), see BranchSlot.
+    private readonly IReadOnlyDictionary<ObjectId, IReadOnlyList<string>> _extraNames;
+
     // The branch tips laid out within the last NearRowCount rows (row and slot), so a new branch does not take a
     // colour a branch seen on the same screen already has, even when that branch's lane is closed or it has no lane
     // of its own (#807). Oldest first.
@@ -48,10 +51,16 @@ public sealed class GraphLayoutBuilder
     /// Distinct colours the palette has (at most <see cref="BranchColors.SlotCount"/>): lanes open at the same time
     /// get different colours while one is free, so a short palette (16 colours, a small theme) never repeats one early.
     /// </param>
+    /// <param name="extraBranchNames">
+    /// The further branch names of the commits that carry several (<see cref="BranchColors.ExtraNamesOf"/>): each
+    /// name gets a chip colour of its own (#849), none of them colours a lane.
+    /// </param>
     public GraphLayoutBuilder(
         IReadOnlyDictionary<ObjectId, string>? branchTips = null,
-        int colorCount = BranchColors.SlotCount)
+        int colorCount = BranchColors.SlotCount,
+        IReadOnlyDictionary<ObjectId, IReadOnlyList<string>>? extraBranchNames = null)
     {
+        _extraNames = extraBranchNames ?? FrozenDictionary<ObjectId, IReadOnlyList<string>>.Empty;
         _colorCount = Math.Clamp(colorCount, 1, BranchColors.SlotCount);
         _branchTips = branchTips ?? FrozenDictionary<ObjectId, string>.Empty;
     }
@@ -124,10 +133,8 @@ public sealed class GraphLayoutBuilder
             edges.Add(new GraphEdge(GraphEdgeKind.Outgoing, nodeLane, parentLane, _laneSlots[parentLane]));
         }
 
-        if (isColorChosenByName && _branchTips.ContainsKey(commitId))
-        {
-            _recentTips.Enqueue(new RecentTip(_rows.Count, nodeColor));
-        }
+        // Lanes and edges are final here, so the chip colours avoid the lane colours of this row as well.
+        var labelSlots = LabelSlotsOf(commitId, isTip, nodeColor);
 
         var laneCount = nodeLane + 1;
         foreach (var edge in edges)
@@ -143,7 +150,8 @@ public sealed class GraphLayoutBuilder
             edges.ToArray(),
             FingerprintLanes(),
             nodeColor,
-            isColorChosenByName);
+            isColorChosenByName,
+            labelSlots);
         _rows.Add(row);
         return row;
     }
@@ -178,6 +186,44 @@ public sealed class GraphLayoutBuilder
         return nodeLane;
     }
 
+    // The chip colour of every branch name on the commit (#849): a branch has one colour for the whole graph, the same
+    // for its local and its remote-tracking ref, and different branches differ while a colour is free, even when they
+    // share a lane. The name that started the lane of this row has the lane colour; every other name takes the colour
+    // of its name, moved on at its first appearance to one no open lane and no chip of the last rows uses. All of them
+    // are remembered as recent tips.
+    private BranchSlot[]? LabelSlotsOf(ObjectId commitId, bool isTip, int nodeColor)
+    {
+        if (!_branchTips.TryGetValue(commitId, out var primary))
+        {
+            return null;
+        }
+
+        var slots = new List<BranchSlot> { new(primary, isTip ? nodeColor : SlotForName(primary)) };
+        _recentTips.Enqueue(new RecentTip(_rows.Count, slots[0].Slot));
+        if (_extraNames.TryGetValue(commitId, out var extras))
+        {
+            foreach (var name in extras)
+            {
+                var slot = SlotForName(name);
+                slots.Add(new BranchSlot(name, slot));
+                _recentTips.Enqueue(new RecentTip(_rows.Count, slot));
+            }
+        }
+
+        return [.. slots];
+    }
+
+    private int SlotForName(string name)
+    {
+        if (!_namedSlots.TryGetValue(name, out var slot))
+        {
+            slot = FreeSlotFrom(BranchColors.PreferredSlot(name, _colorCount));
+            _namedSlots[name] = slot;
+        }
+
+        return slot;
+    }
+
     private int IndexOfLane(ObjectId commitId)
     {
         for (var lane = 0; lane < _lanes.Count; lane++)
@@ -210,13 +256,7 @@ public sealed class GraphLayoutBuilder
             return FreeSlotFrom((int)(commitId.Hash64 % (uint)_colorCount));
         }
 
-        if (!_namedSlots.TryGetValue(name, out var slot))
-        {
-            slot = FreeSlotFrom(BranchColors.PreferredSlot(name, _colorCount));
-            _namedSlots[name] = slot;
-        }
-
-        return slot;
+        return SlotForName(name);
     }
 
     private int FreeSlotFrom(int preferred)

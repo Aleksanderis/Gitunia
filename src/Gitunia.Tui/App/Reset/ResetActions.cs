@@ -18,7 +18,7 @@ using Gitunia.Tui.Input;
 namespace Gitunia.Tui.App.Reset;
 
 /// <summary>
-/// Moves the current branch to a commit with a soft, mixed or hard reset (ux.md, workflow 3, "Reset"). A one-key
+/// Moves the current branch to a commit with a soft, mixed or hard reset (ux-workflows.md, workflow 3, "Reset"). A one-key
 /// prompt popup picks the mode; soft runs at once, mixed runs at once when nothing is staged, and everything
 /// that loses work opens the Confirm dialog, which names the target, the files and the old tip for the undo. Refused
 /// on a detached or unborn HEAD and while an operation (merge, rebase, ...) is in progress. The reflog view starts

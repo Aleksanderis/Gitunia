@@ -10,7 +10,7 @@ using Gitunia.Tui.Rendering.Styling;
 namespace Gitunia.Tui.Rendering.Overlays;
 
 /// <summary>
-/// Lays out the conflict editor (ux.md, workflow 4, "Conflict editor"), full screen like KDiff3: the base, ours and
+/// Lays out the conflict editor (ux-workflows.md, workflow 4, "Conflict editor"), full screen like KDiff3: the base, ours and
 /// theirs versions of the whole file side by side on top (fewer panes on a narrow terminal, <c>Tab</c> switches), the
 /// whole result below it, clickable key hints at the bottom of the frame. The top border carries the file and the
 /// position (<c>conflict 2 of 5</c>); the status bar below the frame keeps the key hints of the keyboard.

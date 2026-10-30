@@ -3,7 +3,7 @@ using Gitunia.Git.Conflicts.Models;
 namespace Gitunia.Core.Conflicts;
 
 /// <summary>
-/// The whole file as rows shared by the base, ours and theirs panes (ux.md, "Conflict editor"): common text is the
+/// The whole file as rows shared by the base, ours and theirs panes (ux-workflows.md, "Conflict editor"): common text is the
 /// same line in all three, a conflict takes as many rows as its longest version and the shorter versions are padded
 /// with filler rows, so scrolling the panes together keeps related lines side by side. Built once per opened file
 /// (linear in its size); a frame only reads the rows it shows.

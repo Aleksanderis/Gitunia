@@ -44,7 +44,7 @@ Read the doc before working in its area; don't rely on memory of it.
 | Solution layout, layering, rendering, cross-platform | `docs/architecture.md` |
 | Performance targets and measured numbers | `docs/performance.md` (and the `performance` skill) |
 | Running git, parsers, graph model, worktrees, refresh/watching | `docs/git-layer.md` |
-| Screens, modes, tabs/repo picker, key bindings, workflows, mouse | `docs/ux.md` |
+| Screens, modes, tabs/repo picker, key bindings, workflows, mouse | `docs/ux.md` (index; links the parts: workflows, keymap, mouse, settings, look) |
 | Any test, fixtures, snapshot tests | `docs/testing.md` and the `testing` skill |
 | Milestone goals and open questions | `docs/roadmap.md` |
 | Anything you are about to ask the owner | `docs/decisions.md` first |
@@ -59,7 +59,7 @@ Run from the repo root:
 - Test: `dotnet test`
 - AOT publish (fails on any `IL*` warning): `dotnet publish src/Gitunia.Tui -c Release -o <outdir>`; smoke run: `<outdir>/gitunia`
 - Formatting is enforced by `.editorconfig` during build (`EnforceCodeStyleInBuild`).
-- Branch checks the build cannot see (decisions.md append-only and dated, test hygiene, agent author and trailer): `scripts/check-diff.sh` (instant). Run it before review; the reviewer does too.
+- Branch checks the build cannot see (decisions.md append-only and dated, test hygiene, agent author and trailer): `scripts/check-diff.sh` (instant; archive moves to `docs/history/decisions.md` are allowed; `scripts/test-check-diff.sh` tests the check). Run it before review; the reviewer does too.
 - Quality inspections the build cannot see (captured disposed or modified variables, unused members, redundant arguments): `scripts/inspect.sh` (or `scripts/inspect.ps1`) runs JetBrains inspectcode, the same engine as Rider. It is not part of the edit loop: run `scripts/inspect.sh --changed` (~10 s) after finishing a change that touches lambdas, events or `using`, and the full run (~40 s) once before opening a PR (the reviewer does the same). Fix what it reports; the tool is pinned in `dotnet-tools.json`.
 
 ## Working autonomously

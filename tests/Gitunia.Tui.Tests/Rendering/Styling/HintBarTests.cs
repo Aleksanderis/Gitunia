@@ -11,40 +11,11 @@ namespace Gitunia.Tui.Tests.Rendering.Styling;
 public class HintBarTests
 {
     [Fact]
-    public void GivenKeyedEntries_WhenParsing_ThenEachSplitsIntoKeyAndLabel()
-    {
-        var items = HintBar.Parse("Enter choose   j/k move  Ctrl-g keep  y remove");
-
-        Assert.Equal(
-            [
-                new HintItem("Enter", "choose"),
-                new HintItem("j/k", "move"),
-                new HintItem("Ctrl-g", "keep"),
-                new HintItem("y", "remove"),
-            ],
-            items);
-    }
-
-    [Fact]
-    public void GivenAnEntryThatStartsWithAWord_WhenParsing_ThenItIsAPlainNote()
-    {
-        var items = HintBar.Parse("Type filters   Ctrl-j/k select");
-
-        Assert.Equal([new HintItem(string.Empty, "Type filters"), new HintItem("Ctrl-j/k", "select")], items);
-    }
-
-    [Theory]
-    [InlineData("", 0)]
-    [InlineData("Esc", 1)]
-    public void GivenAnEntryWithoutLabel_WhenParsing_ThenNothingThrows(string text, int count)
-    {
-        Assert.Equal(count, HintBar.Parse(text).Count);
-    }
-
-    [Fact]
     public void GivenHints_WhenBuildingAFooter_ThenKeysUseTheKeyRoleAndTheRestTheBarRole()
     {
-        var line = OverlayBox.Hints("Enter open  Esc back", 40, GraphGlyphSet.Unicode, "> x_");
+        HintItem[] hints = [new("Enter", "open"), new("Esc", "back")];
+
+        var line = OverlayBox.Hints(hints, 40, GraphGlyphSet.Unicode, "> x_");
 
         Assert.Contains("> x_  Enter open  Esc back", line.Text, StringComparison.Ordinal);
         Assert.Equal(
@@ -61,6 +32,22 @@ public class HintBarTests
 
         var keys = frame.Lines[^2].Segments.Where(segment => segment.Role == SegmentRole.StatusKey);
         Assert.Equal(["Ctrl-j/k", "Enter", "Esc"], keys.Select(segment => segment.Text));
+    }
+
+    [Fact]
+    public void GivenAPromptWithANoteAndALabelThatLooksLikeAKey_WhenBuilding_ThenOnlyTheNamedKeysAreKeys()
+    {
+        var prompt = new PromptPopup(
+            "Pick",
+            ["Context"],
+            null,
+            [],
+            [new(string.Empty, "Type filters"), new("Enter", "x"), new("Esc", "1/2 done")]);
+
+        var frame = PromptPopupFrameBuilder.Build(prompt, 90, 24, GraphGlyphSet.Unicode)!;
+
+        var keys = frame.Lines[^2].Segments.Where(segment => segment.Role == SegmentRole.StatusKey);
+        Assert.Equal(["Enter", "Esc"], keys.Select(segment => segment.Text));
     }
 
     [Fact]

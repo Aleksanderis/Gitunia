@@ -308,6 +308,40 @@ public class MessageEditorTests
     }
 
     [Fact]
+    public void GivenAnUndoPoint_WhenTheTextIsUnchanged_ThenDroppingItLeavesNothingToUndo()
+    {
+        var editor = Editor("abc");
+        editor.MarkUndoPoint();
+
+        editor.DropUndoPointIfUnchanged();
+
+        Assert.False(editor.Undo());
+    }
+
+    [Fact]
+    public void GivenAnUndoPoint_WhenTheTextChanged_ThenDroppingKeepsItAndUndoRestores()
+    {
+        var editor = Editor("abc");
+        editor.MarkUndoPoint();
+        editor.Insert("d");
+
+        editor.DropUndoPointIfUnchanged();
+
+        Assert.True(editor.Undo());
+        Assert.Equal("abc", editor.Text);
+    }
+
+    [Fact]
+    public void GivenNoUndoPoint_WhenDropping_ThenNothingHappens()
+    {
+        var editor = Editor("abc");
+
+        editor.DropUndoPointIfUnchanged();
+
+        Assert.Equal("abc", editor.Text);
+    }
+
+    [Fact]
     public void GivenOpenLineBelow_WhenUndoing_ThenTheTextAndCursorComeBack()
     {
         var editor = Editor("abc");

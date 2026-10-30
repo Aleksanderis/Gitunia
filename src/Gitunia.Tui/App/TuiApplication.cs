@@ -84,7 +84,7 @@ public sealed class TuiApplication(
     ConsoleCapabilities detectedCapabilities,
     IPlatform platform) : IDisposable, ITerminalSuspender
 {
-    // Terminal.Gui's default of 25 iterations per second gave ~34 ms key latency; see docs/decisions.md.
+    // Terminal.Gui's default of 25 iterations per second gave ~34 ms key latency; see docs/history/decisions.md.
     private const ushort IterationsPerSecond = 100;
     private const long OverlayDoubleClickGuardMilliseconds = 600;
     private const int ShortHashLength = 7;
@@ -183,7 +183,9 @@ public sealed class TuiApplication(
             _capabilities = _capabilities with { IsLightBackground = isLight };
         }
 
-        var glyphs = GraphGlyphSet.For(_capabilities.Unicode);
+        var glyphs = GraphGlyphSet
+            .For(_capabilities.Unicode)
+            .WithLabelCaps(_startupConfig.Options.LabelCaps, _capabilities.Color != ColorDepth.None);
         _glyphs = glyphs;
         var store = new SessionStore(platform.StateDirectory);
         var restored = store.LoadAsync(CancellationToken.None).GetAwaiter().GetResult();
@@ -1078,6 +1080,7 @@ public sealed class TuiApplication(
         _remote,
         services.Remote,
         services.Tags.ListRemotesAsync,
+        services.Ancestry.IsAncestorAsync,
         _statuses,
         InvokeOnUi,
         tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None,
@@ -1622,16 +1625,31 @@ public sealed class TuiApplication(
         return defaults with { UseFileWatchers = true, MaximumWorkingTreeDirectories = cap };
     }
 
-    // The settings screen changed the file: the running app takes the new options at once (ux.md, "Settings screen").
+    // The settings screen changed the file: the running app takes the new options at once (ux-settings.md, "Settings screen").
     private void ApplyOptions(ConfigOptions options)
     {
         _startupConfig = _startupConfig with { Options = options };
+        ApplyLabelCaps(options.LabelCaps);
         if (!SameRoots(_picker.ScanRoots, options.ScanRoots))
         {
             _picker.ScanRoots = options.ScanRoots;
         }
 
         Relayout();
+    }
+
+    // The caps change the graph labels only: every tab's graph is redrawn with the set that has (or lacks) them.
+    private void ApplyLabelCaps(LabelCapStyle style)
+    {
+        var glyphs = GraphGlyphSet.For(_capabilities.Unicode).WithLabelCaps(style, _capabilities.Color != ColorDepth.None);
+        if (glyphs == _glyphs)
+        {
+            return;
+        }
+
+        _glyphs = glyphs;
+        _effects.ReplaceGlyphs(glyphs);
+        _view.Graph.SetNeedsDraw();
     }
 
     // The theme on screen changed (previewed, kept or restored by the settings screen): the palette is rebuilt and
