@@ -10,6 +10,8 @@ public class HelpBuilderTests
 {
     private static readonly KeyBindingTable Table = DefaultKeymap.Create();
 
+    private static readonly string[] HiddenVariantKeys = ["d", "f", "I", "s", "w"];
+
     private static readonly ActionGroup[] Groups =
     [
         ActionGroups.Branch,
@@ -225,6 +227,24 @@ public class HelpBuilderTests
             new KeySequence([]));
 
         Assert.Equal(["a", "b", "B", "d", "A", "c"], rows.Select(row => row.Key));
+    }
+
+    [Fact]
+    public void GivenTheGitPrefix_WhenBuildingWhichKeyRows_ThenTheUnlistedVariantsFollowAMoreRow()
+    {
+        var engine = new KeymapEngine(Table);
+        var feeder = new KeyFeeder(engine);
+        feeder.Feed("<space>");
+        feeder.Feed("g");
+
+        var rows = WhichKeyBuilder.Build(
+            engine.Continuations(feeder.State, DefaultKeymap.GraphView),
+            feeder.State.PendingSequence);
+        var more = rows.ToList().FindIndex(row => row.Key == "…");
+
+        Assert.True(more > 0);
+        Assert.Equal("+more (variants and shortcuts)", rows[more].Description);
+        Assert.Equal(HiddenVariantKeys.Order(StringComparer.Ordinal), rows.Skip(more + 1).Select(row => row.Key).Order(StringComparer.Ordinal));
     }
 
     [Fact]
