@@ -3,6 +3,7 @@
   { "action": "palette.open", "view": "Global", "modes": ["Normal"], "keys": [":"] },
   { "action": "palette.open", "view": "Global", "modes": ["Normal", "Visual", "Insert"], "keys": ["Ctrl-p"] },
   { "action": "app.quit", "view": "Global", "modes": ["Normal", "Visual"], "keys": ["q"] },
+  { "action": "app.quit", "view": "Global", "modes": ["Normal", "Visual", "Insert"], "keys": ["Ctrl-c"] },
   { "action": "pane.next", "view": "Global", "modes": ["Normal"], "keys": ["Tab", "Ctrl-w w"] },
   { "action": "pane.previous", "view": "Global", "modes": ["Normal"], "keys": ["Shift-Tab"] },
   { "action": "tab.next", "view": "Global", "modes": ["Normal"], "keys": ["gt"] },

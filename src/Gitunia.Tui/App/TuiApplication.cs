@@ -873,15 +873,29 @@ public sealed class TuiApplication(
 
     // Unsent commit messages are saved with the session on exit and restored per tab, so a quit never loses one.
     // Only when the session could not be saved does a quit guard remain: the first quit warns, the next one leaves (#369).
-    private void RequestQuit()
+    private void RequestQuit() => TryQuit();
+
+    private bool TryQuit()
     {
         if (_persistence is not null && !_quitGuard.ShouldQuit())
         {
             _statuses.Warning("Unsent commit message and the session could not be saved: quit again to leave and lose it");
-            return;
+            return false;
         }
 
         RequestStop();
+        return true;
+    }
+
+    // Ctrl-c (#856) works in every mode and modal. The quit guard of a normal quit still applies (a second Ctrl-c leaves).
+    // Running git work is cancelled only once the quit goes ahead, so a held-back Ctrl-c leaves the sessions usable;
+    // Run's finally block saves the session and restores the terminal.
+    private void ForceQuit()
+    {
+        if (TryQuit())
+        {
+            _effects.CancelAll();
+        }
     }
 
     private CommitActions CreateCommits() => new(
@@ -2020,6 +2034,12 @@ public sealed class TuiApplication(
 
     private bool HandleKey(Key key)
     {
+        if (ForceQuitKey.IsMatch(key))
+        {
+            ForceQuit();
+            return true;
+        }
+
         var isPickerShowing = _picker.IsOpen && !IsAnyOverlayOpen();
         return _keys.Handle(key, FocusedViewName()) || isPickerShowing;
     }

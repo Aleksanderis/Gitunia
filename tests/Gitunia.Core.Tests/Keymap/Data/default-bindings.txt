@@ -20,6 +20,7 @@ Insert|Global|Alt-7|tab.go-to.7
 Insert|Global|Alt-8|tab.go-to.8
 Insert|Global|Alt-9|tab.go-to.9
 Insert|Global|Ctrl-^|tab.last-active
+Insert|Global|Ctrl-c|app.quit
 Insert|Global|Ctrl-p|palette.open
 Insert|Global|Ctrl-t|picker.open
 Insert|Global|Enter|input.accept
@@ -187,6 +188,7 @@ Normal|Global|Alt-8|tab.go-to.8
 Normal|Global|Alt-9|tab.go-to.9
 Normal|Global|Ctrl-Backspace|pane.focus-left
 Normal|Global|Ctrl-^|tab.last-active
+Normal|Global|Ctrl-c|app.quit
 Normal|Global|Ctrl-h|pane.focus-left
 Normal|Global|Ctrl-j|pane.focus-down
 Normal|Global|Ctrl-k|pane.focus-up
@@ -509,6 +511,7 @@ Visual|Global|Alt-7|tab.go-to.7
 Visual|Global|Alt-8|tab.go-to.8
 Visual|Global|Alt-9|tab.go-to.9
 Visual|Global|Ctrl-^|tab.last-active
+Visual|Global|Ctrl-c|app.quit
 Visual|Global|Ctrl-p|palette.open
 Visual|Global|Ctrl-t|picker.open
 Visual|Global|Esc|cancel

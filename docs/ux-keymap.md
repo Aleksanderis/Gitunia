@@ -16,6 +16,7 @@ Modes: rows apply to Normal, except those whose view says `(Visual)` (Visual mod
 | Global | `?` | Show keys for current view |
 | Global | `:` / `Ctrl-p` | Command palette |
 | Global | `q` | Quit (closes an overlay or ends a Visual range first) |
+| Global | `Ctrl-c` | Force quit from any mode or modal: cancels running git work and leaves at once (a failed session save still warns once, like `q`); matched before the keymap, so it cannot be remapped away |
 | Global | `Tab` / `Shift-Tab` | Next / previous pane |
 | Lists | `j` `k` / `gg` `G` | Move / top / bottom |
 | Lists | `/` `n` `N` | Search, next, previous (graph search prefixes: `author:`, `hash:`, `body:`) |
@@ -741,7 +742,7 @@ Grouped as the palette groups them (`ActionCatalog.GroupOf`). "Old" lists every 
 
 | Action | What | Old | New | Level | Note |
 |---|---|---|---|---|---|
-| `app.quit` | Quit | `q` | same | Everyday |  |
+| `app.quit` | Quit | `q` `Ctrl-c` | same | Everyday |  |
 | `cancel` | Cancel | `Esc` | same | Everyday |  |
 | `command.execute` | Run the command | `Ctrl-l` `Enter` | same | Everyday |  |
 | `confirm.no` | Answer no | `n` | same | Everyday |  |
