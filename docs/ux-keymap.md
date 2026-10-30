@@ -44,7 +44,7 @@ Modes: rows apply to Normal, except those whose view says `(Visual)` (Visual mod
 | ResizeRepeat | `Esc` | Leave the repeat mode, nothing else happens |
 | Global | `<space>x` | Dismiss the status message |
 | Global | `<space>m` | Show the status message history (overlay; `j`/`k` scroll, `Esc` closes) |
-| Global | `<space>,` | Open the settings screen (overlay over the tab; `Esc` closes; see "Settings screen") |
+| Global | `<space>,` | Open the settings screen (overlay over the tab; `Esc` closes; see "Settings screen" in [ux-settings.md](ux-settings.md)) |
 | Global | `<space>s` | Open the working-tree view of the tab, or leave it (workflow 2) |
 | Global | `<space>F` | Fetch the remote of the current branch with `--prune`, in the background with a progress line (workflow 5) |
 | Global | `<space>L` | Pull the current branch, fast-forward only (a diverged branch is refused, nothing merged) |

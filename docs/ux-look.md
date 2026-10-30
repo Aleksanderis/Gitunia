@@ -79,7 +79,7 @@ The built-in values are the published palettes (the Gruvbox, Dracula, Nord, Sola
 `config.json` in the config directory (`$XDG_CONFIG_HOME/gitunia` or `~/.config/gitunia`, see `architecture.md`).
 JSON with comments and trailing commas, read with source-generated System.Text.Json.
 Unknown properties are ignored, so later sections fit beside `keys`.
-The file is read once at startup and never modified by the loader; the settings screen (below) is the only writer.
+The file is read once at startup and never modified by the loader; the settings screen ([ux-settings.md](ux-settings.md)) is the only writer.
 
 ```jsonc
 {
@@ -106,7 +106,7 @@ The file is read once at startup and never modified by the loader; the settings 
 }
 ```
 
-- Entry fields: `mode` (`Normal`, `Visual`, `Insert`, `Command`, `Confirm`), `view` (`Global`, `Lists`, `Graph`, ... as in the keymap table; a view's keys also apply to the views that inherit from it), `key` (notation of the keymap table), `action` (id from the palette/help, or `none`).
+- Entry fields: `mode` (`Normal`, `Visual`, `Insert`, `Command`, `Confirm`), `view` (`Global`, `Lists`, `Graph`, ... as in the [keymap table](ux-keymap.md); a view's keys also apply to the views that inherit from it), `key` (notation of the [keymap table](ux-keymap.md)), `action` (id from the palette/help, or `none`).
   One entry binds one mode and view; bind a key in Normal and Visual with two entries.
 - An entry on a key that already has a binding in that mode and view replaces it; `none` removes it (and uncovers a binding of the parent view, if any). Two entries for the same mode, view and key: the first applies, the second is reported.
 - Each entry is checked alone.
