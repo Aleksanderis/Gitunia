@@ -71,6 +71,22 @@ public sealed class SettingsControllerTests : IDisposable
     }
 
     [Fact]
+    public async Task GivenTheLabelCapsSetting_WhenChangingIt_ThenTheRunningAppGetsTheNewStyleAtOnce()
+    {
+        await _harness.OpenAsync();
+        _harness.Run(ActionIds.SettingsActivate);
+        _harness.Run(ActionIds.ListDown);
+        _harness.Run(ActionIds.SettingsActivate);
+        _harness.Run(ActionIds.ListDown);
+
+        _harness.Run(ActionIds.SettingsActivate);
+        await _harness.PumpAsync();
+
+        Assert.Contains("\"labelCaps\": \"angled\"", _harness.ReadConfig(), StringComparison.Ordinal);
+        Assert.Equal(LabelCapStyle.Angled, _harness.Applied.Last().LabelCaps);
+    }
+
+    [Fact]
     public async Task GivenAChoice_WhenKeepingAnOption_ThenTheFileAndTheRunningThemeChange()
     {
         await _harness.OpenAsync();

@@ -48,8 +48,8 @@ public static class SettingsRegistry
             SettingControl.Choice,
             ["labelCaps"],
             "The ends of the branch labels in the graph: none is a plain box, rounded and angled draw Powerline "
-                + "caps and need a Nerd Font or Powerline-patched font. Takes effect after a restart.",
-            "none",
+                + "caps and need a Nerd Font or Powerline-patched font.",
+            "rounded",
             ["none", "rounded", "angled"]),
         new SettingDefinition(
             ScanRootsId,

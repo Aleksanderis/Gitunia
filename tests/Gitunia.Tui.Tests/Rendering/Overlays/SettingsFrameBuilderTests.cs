@@ -23,7 +23,7 @@ public class SettingsFrameBuilderTests
                 " Settings".PadRight(78),
                 "│ / filter                                                                   │",
                 "│  Appearance    │  Theme                                           [auto ▾] │",
-                "│  Keys          │  Branch label caps                               [none ▾] │",
+                "│  Keys          │  Branch label caps                            [rounded ▾] │",
                 "│  Repositories  │                                                           │",
                 "│  Tabs          │                                                           │",
                 "│  Config file   │                                                           │",

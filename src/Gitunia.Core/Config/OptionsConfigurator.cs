@@ -34,12 +34,12 @@ public static class OptionsConfigurator
             ParseWatchFiles(document.WatchFiles, problems),
             ParseLabelCaps(document.LabelCaps, problems));
 
-    /// <summary>The <c>labelCaps</c> option: none, rounded or angled (any case); anything else gives none.</summary>
+    /// <summary>The <c>labelCaps</c> option: none, rounded or angled (any case); no value or anything else gives rounded.</summary>
     public static LabelCapStyle ParseLabelCaps(JsonElement? value, ICollection<ConfigProblem> problems)
     {
         if (value is null or { ValueKind: JsonValueKind.Null })
         {
-            return LabelCapStyle.None;
+            return LabelCapStyle.Rounded;
         }
 
         var text = value.Value.ValueKind == JsonValueKind.String ? value.Value.GetString() : null;
@@ -58,9 +58,9 @@ public static class OptionsConfigurator
             return LabelCapStyle.Angled;
         }
 
-        problems.Add(new ConfigProblem(LabelCapsKey, "labelCaps must be none, rounded or angled, using none"));
+        problems.Add(new ConfigProblem(LabelCapsKey, "labelCaps must be none, rounded or angled, using rounded"));
 
-        return LabelCapStyle.None;
+        return LabelCapStyle.Rounded;
     }
 
     /// <summary>The <c>watchFiles</c> flag; anything but true or false gives false.</summary>
