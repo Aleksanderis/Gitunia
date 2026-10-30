@@ -23,4 +23,7 @@ public enum PickerTags
 
     /// <summary>A directory that is a git repository (has a <c>.git</c> entry).</summary>
     Repository = 32,
+
+    /// <summary>The repository directory of an open tab is gone (the tab waits to be located or closed).</summary>
+    Missing = 64,
 }

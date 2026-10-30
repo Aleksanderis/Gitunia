@@ -10,5 +10,7 @@ public sealed record PickerRow(string Path, string Name, PickerTags Tags)
 
     public bool IsPinned => Tags.HasFlag(PickerTags.Pinned);
 
+    public bool IsMissing => Tags.HasFlag(PickerTags.Missing);
+
     public bool IsRecent => Tags.HasFlag(PickerTags.Recent);
 }

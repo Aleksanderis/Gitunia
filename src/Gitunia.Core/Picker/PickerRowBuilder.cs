@@ -51,7 +51,7 @@ public static class PickerRowBuilder
 
         foreach (var tab in context.Workspace.Tabs)
         {
-            Add(tab.Location.RootPath, PickerTags.Open);
+            Add(tab.Location.RootPath, tab.IsMissing ? PickerTags.Open | PickerTags.Missing : PickerTags.Open);
         }
 
         foreach (var path in context.Workspace.Pins)
