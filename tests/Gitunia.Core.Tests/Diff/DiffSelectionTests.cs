@@ -173,6 +173,26 @@ public class DiffSelectionTests
         Assert.Null(DiffSelection.GroupRowsAt(document, 1));
     }
 
+    [Fact]
+    public void GivenTwoHunks_WhenNumberingTheChangedRows_ThenTheNumberFindsTheRowAndTooBigGivesTheLastOne()
+    {
+        var document = Build(TwoHunks);
+
+        var third = DiffSelection.ChangedRowNumbered(document, 2);
+
+        Assert.Equal("added one", document.Rows[third].Text);
+        Assert.Equal(2, DiffSelection.ChangedRowsBefore(document, third));
+        Assert.Equal(document.Rows.Count - 1, DiffSelection.ChangedRowNumbered(document, 99));
+    }
+
+    [Fact]
+    public void GivenADiffWithoutChangedRows_WhenNumberingThem_ThenThereIsNone()
+    {
+        var document = Build("diff --git a/img.png b/img.png\nindex 111..222 100644\nBinary files a/img.png and b/img.png differ\n");
+
+        Assert.Equal(-1, DiffSelection.ChangedRowNumbered(document, 0));
+    }
+
     private static DiffDocument Build(string patch)
     {
         var builder = new DiffDocumentBuilder();

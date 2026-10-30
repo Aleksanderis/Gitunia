@@ -653,6 +653,17 @@ public class WorkingDiffControllerTests
     }
 
     [Fact]
+    public async Task GivenARangeInTheMiddleOfAGroup_WhenDiscardingAndConfirming_ThenTheCursorIsOnTheNextRemainingChange()
+    {
+        using var harness = await OpenRangeAsync("a\nb\nc\n", "a\nB1\nB2\nB3\nB4\nc\n", "B1", 1);
+
+        Handle(harness, ActionIds.WorkingTreeDiscard);
+        await harness.ConfirmAsync();
+
+        Assert.Equal("B3", harness.Document().Rows[harness.CursorRow()].Text);
+    }
+
+    [Fact]
     public async Task GivenAModifiedFileInTheList_WhenDiscardingAndConfirming_ThenItIsRestoredAndItsStagedChangesStay()
     {
         using var repository = TestRepository.Create().Commit("base", new TestFile("a.txt", "one\n"));
