@@ -41,6 +41,11 @@ public sealed record GroupedRows(IReadOnlyList<GroupedRow> Lines)
                 lines.Add(new GroupedRow(group, null));
             }
 
+            else if (gaps && group is not null && group == previous && entries[index].Cluster != entries[index - 1].Cluster)
+            {
+                lines.Add(new GroupedRow(null, null));
+            }
+
             previous = group;
             lines.Add(new GroupedRow(null, index));
         }

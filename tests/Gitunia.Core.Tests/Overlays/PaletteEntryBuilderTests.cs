@@ -140,4 +140,20 @@ public class PaletteEntryBuilderTests
         var withName = named.Where(group => group.WhichKeyName is not null);
         Assert.Equal(used.OrderBy(group => group.Order), withName.OrderBy(group => group.Order));
     }
+
+    [Fact]
+    public void GivenTheDefaultKeymap_WhenBuilding_ThenEachGroupListsItsClustersTogetherAndLooseActionsLast()
+    {
+        var entries = PaletteEntryBuilder.Build(DefaultKeymap.Create(), DefaultKeymap.GraphView);
+
+        foreach (var group in entries.GroupBy(entry => entry.Group))
+        {
+            var clusters = group.Select(entry => entry.Cluster).ToList();
+            var changes = clusters.Where((cluster, index) => index == 0 || cluster != clusters[index - 1]).ToList();
+
+            Assert.Equal(changes.Distinct(), changes);
+            Assert.All(group, entry => Assert.True(
+                entry.Cluster is null || group.Count(other => other.Cluster == entry.Cluster) > 1));
+        }
+    }
 }

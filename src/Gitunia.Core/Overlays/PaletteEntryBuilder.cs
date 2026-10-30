@@ -57,12 +57,18 @@ public static class PaletteEntryBuilder
             entries.Add(new RankedPaletteEntry(entry, chain.Count, order++));
         }
 
-        // Grouped (#483): the groups in their fixed order; inside a group the focused view's own actions first.
-        return [.. entries
-            .OrderBy(item => GroupOrder(item.Entry.Action))
-            .ThenBy(item => item.Rank)
-            .ThenBy(item => item.Order)
-            .Select(item => item.Entry)];
+        // Grouped (#483): the groups in their fixed order; inside a group the clusters of related actions (#838), and
+        // inside a cluster the focused view's own actions first.
+        var ordered = new List<PaletteEntry>(entries.Count);
+        foreach (var group in entries.OrderBy(item => GroupOrder(item.Entry.Action)).GroupBy(item => GroupOrder(item.Entry.Action)))
+        {
+            var members = group.OrderBy(item => item.Rank).ThenBy(item => item.Order).ToList();
+            ordered.AddRange(ActionClusters
+                .Arrange(members, item => item.Entry.Action)
+                .Select(entry => entry.Item.Entry with { Cluster = entry.Cluster }));
+        }
+
+        return ordered;
     }
 
     private static int GroupOrder(ActionId action) => ActionCatalog.GroupOf(action)?.Order ?? int.MaxValue;

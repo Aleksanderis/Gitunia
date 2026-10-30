@@ -29,7 +29,8 @@ public static class HelpFrameBuilder
         var sections = SectionsOf(tabs, tab);
         var descriptionWidth = DescriptionWidth(tabs, WidthFor(screenWidth));
         var rows = sections.Sum(
-            section => section.Rows.Sum(row => WrapText(row.Description, descriptionWidth).Count) + 1);
+            section => section.Rows.Sum(
+                row => WrapText(row.Text, descriptionWidth).Count + (row.GapBefore ? 1 : 0)) + 1);
 
         return rows + Math.Max(0, sections.Count - 1);
     }
@@ -282,9 +283,14 @@ public static class HelpFrameBuilder
             lines.Add(OverlayBox.Text(section.Title, width, glyphs, SegmentRole.SectionTitle));
             foreach (var row in section.Rows)
             {
+                if (row.GapBefore)
+                {
+                    lines.Add(OverlayBox.Text(string.Empty, width, glyphs));
+                }
+
                 var keys = TextWidth.Fit(row.Keys, keysWidth, glyphs.Ellipsis);
                 var padded = keys + new string(' ', Math.Max(0, keysWidth - TextWidth.Of(keys)));
-                var wrapped = WrapText(row.Description, descriptionWidth);
+                var wrapped = WrapText(row.Text, descriptionWidth);
                 for (var index = 0; index < wrapped.Count; index++)
                 {
                     lines.Add(KeysAndDescription(index == 0 ? padded : blankKeys, wrapped[index], width, glyphs));

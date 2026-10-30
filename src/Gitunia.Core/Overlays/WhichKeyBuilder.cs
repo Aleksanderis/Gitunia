@@ -19,7 +19,12 @@ public static class WhichKeyBuilder
         ["<space>v"] = ActionGroups.Diff.WhichKeyName!,
     };
 
-    /// <summary>Bound, but left out of the popup to keep it short: variants and shortcuts of listed entries.</summary>
+    private const string MoreKey = "+";
+    private const string VariantsText = "+more (variants and shortcuts)";
+
+    private sealed record Item(Continuation Continuation, string Label);
+
+    /// <summary>Bound, but listed after a +more row to keep the main list short: variants and shortcuts of listed entries.</summary>
     private static readonly HashSet<ActionId> Unlisted =
     [
         ActionIds.MergeBranchSquash,
@@ -46,16 +51,43 @@ public static class WhichKeyBuilder
         KeySequence pending,
         bool operationInProgress = false)
     {
-        return [.. continuations
+        var items = continuations
             .Where(continuation => continuation.Action is not { } action
-                || (!Unlisted.Contains(action) && (operationInProgress || !OperationOnly.Contains(action))))
-            .Select(continuation => (
-                Continuation: continuation,
-                Label: KeyFormatter.BreakLigatures(KeyFormatter.Format(continuation.Key))))
+                || operationInProgress || !OperationOnly.Contains(action))
+            .Select(continuation => new Item(
+                continuation,
+                KeyFormatter.BreakLigatures(KeyFormatter.Format(continuation.Key))))
             .OrderBy(item => item.Continuation.Action is null)
             .ThenBy(item => item.Label, StringComparer.OrdinalIgnoreCase)
             .ThenByDescending(item => item.Label, StringComparer.Ordinal)
-            .Select(item => new WhichKeyRow(item.Label, DescriptionOf(item.Continuation, pending)))];
+            .ToList();
+        var listed = items.Where(item => item.Continuation.Action is not { } action || !Unlisted.Contains(action)).ToList();
+        var hidden = items.Except(listed).ToList();
+        var actions = listed.Where(item => item.Continuation.Action is not null).ToList();
+
+        var rows = new List<WhichKeyRow>();
+        string? previous = null;
+        foreach (var entry in ActionClusters.Arrange(actions, item => item.Continuation.Action!.Value))
+        {
+            rows.Add(new WhichKeyRow(
+                entry.Item.Label,
+                DescriptionOf(entry.Item.Continuation, pending),
+                rows.Count > 0 && entry.Cluster != previous));
+            previous = entry.Cluster;
+        }
+
+        rows.AddRange(listed
+            .Where(item => item.Continuation.Action is null)
+            .Select(item => new WhichKeyRow(item.Label, DescriptionOf(item.Continuation, pending))));
+
+        // The variants and shortcuts stay out of the main list; they follow a +more row (#838).
+        if (hidden.Count > 0)
+        {
+            rows.Add(new WhichKeyRow(MoreKey, VariantsText));
+            rows.AddRange(hidden.Select(item => new WhichKeyRow(item.Label, DescriptionOf(item.Continuation, pending))));
+        }
+
+        return rows;
     }
 
     /// <summary>The formatted prefixes that carry a group name.</summary>

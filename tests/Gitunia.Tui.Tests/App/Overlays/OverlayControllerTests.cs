@@ -332,12 +332,12 @@ public sealed class OverlayControllerTests : IDisposable
     {
         Press(new Key('?'));
 
-        var number = _overlays.HelpTabNumberAt(1, 14);
+        var number = _overlays.HelpTabNumberAt(1, 5);
         _overlays.Handle(ActionIds.HelpTabSelect, number);
 
         Assert.Equal(2, number);
         Assert.Equal(1, _overlays.State.HelpTab);
-        Assert.Null(_overlays.HelpTabNumberAt(2, 14));
+        Assert.Null(_overlays.HelpTabNumberAt(2, 5));
     }
 
     [Fact]

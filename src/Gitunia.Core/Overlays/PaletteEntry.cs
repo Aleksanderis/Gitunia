@@ -7,10 +7,12 @@ namespace Gitunia.Core.Overlays;
 /// <param name="Title">Human-readable title.</param>
 /// <param name="Keys">Its bindings as shown to the user (<c>j / Down</c>), empty when it has none.</param>
 /// <param name="Group">The subheader the row is listed under (an action group header), null for none.</param>
+/// <param name="Cluster">The cluster of related actions inside the group (#838); null for a loose action. A blank line separates clusters.</param>
 /// <param name="IsImplemented">False when running it only reports "not implemented yet"; the palette greys such a row out.</param>
 public sealed record PaletteEntry(
     ActionId Action,
     string Title,
     string Keys,
     bool IsImplemented = true,
-    string? Group = null);
+    string? Group = null,
+    string? Cluster = null);
