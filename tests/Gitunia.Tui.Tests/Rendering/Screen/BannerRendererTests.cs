@@ -18,7 +18,7 @@ public class BannerRendererTests
         [
             new BannerChip("<space>gc", "continue", ActionIds.OperationContinue),
             new BannerChip("<space>ga", "abort", ActionIds.OperationAbort),
-            new BannerChip("<space>gk", "skip", ActionIds.OperationSkip),
+            new BannerChip("<space>gs", "skip", ActionIds.OperationSkip),
         ]);
 
     [Fact]
@@ -28,7 +28,7 @@ public class BannerRendererTests
 
         Assert.Equal(12, lines.Count);
         Assert.StartsWith(
-            " REBASING feature/x   step 2/5  3 conflicts  <space>gc continue  <space>ga abort  <space>gk skip",
+            " REBASING feature/x   step 2/5  3 conflicts  <space>gc continue  <space>ga abort  <space>gs skip",
             lines[^2].Text,
             StringComparison.Ordinal);
         Assert.DoesNotContain("╰", lines[^2].Text, StringComparison.Ordinal);
@@ -52,8 +52,8 @@ public class BannerRendererTests
         {
             Detail = "3 conflicts",
             Chips = Rebase.Chips.RemoveAt(2),
-            Hint = "<space>to open conflict editor",
-            ShortHint = "<space>to conflict editor",
+            Hint = "<space>gr open conflict editor",
+            ShortHint = "<space>gr conflict editor",
         };
 
         var tight = BannerRenderer.Build(banner, 100, GraphGlyphSet.Unicode);
@@ -63,9 +63,9 @@ public class BannerRendererTests
         Assert.Equal(2, narrow.Chips.Count);
         Assert.DoesNotContain("conflict editor", narrow.Line.Text, StringComparison.Ordinal);
         Assert.Contains("<space>ga abort", narrow.Line.Text, StringComparison.Ordinal);
-        Assert.Contains("<space>to conflict editor", tight.Line.Text, StringComparison.Ordinal);
-        Assert.DoesNotContain("<space>to open", tight.Line.Text, StringComparison.Ordinal);
-        Assert.Contains("<space>to open", wide.Line.Text, StringComparison.Ordinal);
+        Assert.Contains("<space>gr conflict editor", tight.Line.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("<space>gr open", tight.Line.Text, StringComparison.Ordinal);
+        Assert.Contains("<space>gr open", wide.Line.Text, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -74,7 +74,7 @@ public class BannerRendererTests
         var line = BannerRenderer.Build(Rebase, 80, GraphGlyphSet.Unicode);
 
         Assert.Equal(3, line.Chips.Count);
-        Assert.Contains("<space>gk skip", line.Line.Text, StringComparison.Ordinal);
+        Assert.Contains("<space>gs skip", line.Line.Text, StringComparison.Ordinal);
         Assert.DoesNotContain("step 2/5", line.Line.Text, StringComparison.Ordinal);
     }
 
@@ -131,7 +131,7 @@ public class BannerRendererTests
         {
             ("<space>gc", DefaultMouseMap.BannerContinueButton),
             ("<space>ga", DefaultMouseMap.BannerAbortButton),
-            ("<space>gk", DefaultMouseMap.BannerSkipButton),
+            ("<space>gs", DefaultMouseMap.BannerSkipButton),
         })
         {
             var column = banner.Line.Text.IndexOf(key, StringComparison.Ordinal);

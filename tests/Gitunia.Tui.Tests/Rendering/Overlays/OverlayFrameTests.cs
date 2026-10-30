@@ -215,14 +215,14 @@ public class OverlayFrameTests
                 "│ Create a branch and check it out                                 <space>bc │",
                 "│ Create a branch without checking out                             <space>bC │",
                 "│ Switch to a branch (check out)                                   <space>bs │",
-                "│ Rename the branch                                                <space>br │",
+                "│ Rename the branch                                                <space>bn │",
                 "│ Delete the branch (asks first)                                   <space>bd │",
                 "│ Set the branch upstream                                          <space>bu │",
                 "│ Unset the branch upstream                                        <space>bU │",
                 "│ Fast-forward the branch to its upstream (no checkout)            <space>bf │",
                 "│                                                                            │",
                 "│ Merge and rebase                                                           │",
-                "│ Rebase the current branch onto the selection                     <space>gr │",
+                "│ Rebase the current branch onto the selection                    <space>brr │",
                 "│ 1/177 Ctrl-j/k move  Enter run  Esc close                                  │",
                 "╰────────────────────────────────────────────────────────────────────────────╯"),
             Text(frame));
@@ -443,23 +443,23 @@ public class OverlayFrameTests
                 " Keys: Graph                                                    ",
                 "│ [Graph]  Lists   Global   Markers                            │",
                 "│ Branch                                                       │",
-                "│  <space>bc │ Create a branch and check it out                │",
-                "│  <space>bC │ Create a branch without checking out            │",
-                "│  <space>bs │ Switch to a branch (check out)                  │",
-                "│  <space>br │ Rename the branch                               │",
-                "│  <space>bd │ Delete the branch (asks first)                  │",
-                "│  <space>bu │ Set the branch upstream                         │",
-                "│  <space>bU │ Unset the branch upstream                       │",
-                "│  <space>bf │ Fast-forward the branch to its upstream (no     │",
-                "│            │ checkout)                                       │",
+                "│  <space>bc  │ Create a branch and check it out               │",
+                "│  <space>bC  │ Create a branch without checking out           │",
+                "│  <space>bs  │ Switch to a branch (check out)                 │",
+                "│  <space>bn  │ Rename the branch                              │",
+                "│  <space>bd  │ Delete the branch (asks first)                 │",
+                "│  <space>bu  │ Set the branch upstream                        │",
+                "│  <space>bU  │ Unset the branch upstream                      │",
+                "│  <space>bf  │ Fast-forward the branch to its upstream (no    │",
+                "│             │ checkout)                                      │",
                 "│                                                              │",
                 "│ Merge and rebase                                             │",
-                "│  <space>gr │ Rebase the current branch onto the selection    │",
-                "│  <space>gi │ Interactive rebase onto the selection (edit the │",
-                "│            │ todo)                                           │",
-                "│  <space>gI │ Interactive rebase from the root commit         │",
-                "│            │ (selection ignored)                             │",
-                "│  <space>gf │ Fix up the commit into the one before it (asks  │",
+                "│  <space>brr │ Rebase the current branch onto the selection   │",
+                "│  <space>bri │ Interactive rebase onto the selection (edit the│",
+                "│             │ todo)                                          │",
+                "│  <space>brI │ Interactive rebase from the root commit        │",
+                "│             │ (selection ignored)                            │",
+                "│  <space>brf │ Fix up the commit into the one before it (asks │",
                 "│ 1-18/65  Esc close  Tab next tab  list keys scroll           │",
                 "╰──────────────────────────────────────────────────────────────╯"),
             Text(frame));
@@ -558,8 +558,8 @@ public class OverlayFrameTests
         var frame = WhichKeyFrameBuilder.Build("<space>", rows, 60, 40, GraphGlyphSet.Unicode);
         var text = Text(frame);
 
-        Assert.Contains("+more (branch operations)", text, StringComparison.Ordinal);
-        Assert.Contains("+more (tag operations)", text, StringComparison.Ordinal);
+        Assert.Contains("+more (branch)", text, StringComparison.Ordinal);
+        Assert.Contains("+more (tag)", text, StringComparison.Ordinal);
         Assert.All(text.Split('\n'), line => Assert.True(line.Length <= 60));
     }
 

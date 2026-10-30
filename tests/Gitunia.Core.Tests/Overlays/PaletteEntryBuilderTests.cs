@@ -38,8 +38,8 @@ public class PaletteEntryBuilderTests
 
         Assert.Equal("j / Down", entries.Single(entry => entry.Action == ActionIds.ListDown).Keys);
         Assert.Equal(": / Ctrl-p", entries.Single(entry => entry.Action == ActionIds.PaletteOpen).Keys);
-        Assert.Equal("Ctrl-w c", entries.Single(entry => entry.Action == ActionIds.TabClose).Keys);
-        Assert.Equal("Ctrl-t / <space>o", entries.Single(entry => entry.Action == ActionIds.PickerOpen).Keys);
+        Assert.Equal("<space>oc / Ctrl-w c", entries.Single(entry => entry.Action == ActionIds.TabClose).Keys);
+        Assert.Equal("<space>oo / Ctrl-t", entries.Single(entry => entry.Action == ActionIds.PickerOpen).Keys);
     }
 
     [Fact]

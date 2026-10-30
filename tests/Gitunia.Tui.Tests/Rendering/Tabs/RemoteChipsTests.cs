@@ -129,7 +129,7 @@ public class RemoteChipsTests
         var text = ChromeBuilder.Tabs(Model(false) with { Keys = keys }, Keyed, GraphGlyphSet.Unicode).Text;
 
         Assert.Contains(" <space>X fetch ", text, StringComparison.Ordinal);
-        Assert.DoesNotContain("<space>F", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("<space>rf", text, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -147,7 +147,7 @@ public class RemoteChipsTests
         Assert.Contains(" pull ", text, StringComparison.Ordinal);
         Assert.Contains(" push ", text, StringComparison.Ordinal);
         var atBoundary = ChromeBuilder.Tabs(Model(false), boundary, GraphGlyphSet.Unicode).Text;
-        Assert.Contains("<space>F fetch", atBoundary, StringComparison.Ordinal);
+        Assert.Contains("<space>rf fetch", atBoundary, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -155,7 +155,7 @@ public class RemoteChipsTests
     {
         var line = ChromeBuilder.Tabs(Model(false), Keyed, GraphGlyphSet.Unicode);
 
-        Assert.Contains(line.Segments, segment => segment.Text == "<space>F" && segment.Role == SegmentRole.StatusKey);
+        Assert.Contains(line.Segments, segment => segment.Text == "<space>rf" && segment.Role == SegmentRole.StatusKey);
         Assert.Contains(line.Segments, segment => segment.Text == " fetch" && segment.Role == SegmentRole.Status);
     }
 
@@ -164,7 +164,7 @@ public class RemoteChipsTests
     {
         var text = ChromeBuilder.Tabs(Model(false), Keyed, GraphGlyphSet.Ascii).Text;
 
-        Assert.Contains("[<space>F fetch]", text, StringComparison.Ordinal);
+        Assert.Contains("[<space>rf fetch]", text, StringComparison.Ordinal);
         Assert.Equal(Keyed, text.Length);
     }
 
@@ -172,7 +172,7 @@ public class RemoteChipsTests
     public void GivenAKeyedBusyRow_WhenClickingTheCancelChip_ThenItShowsItsKeyAndTheCancelViewIsHit()
     {
         var text = ChromeBuilder.Tabs(Model(true), Keyed, GraphGlyphSet.Unicode).Text;
-        var start = text.IndexOf(" <space>C cancel ", StringComparison.Ordinal);
+        var start = text.IndexOf(" <space>rc cancel ", StringComparison.Ordinal);
 
         Assert.True(start > 0);
         Assert.Equal(DefaultMouseMap.RemoteCancelButton, RemoteChips.ViewAt(Keyed, true, start + 1));
@@ -184,8 +184,8 @@ public class RemoteChipsTests
     {
         var text = ChromeBuilder.Tabs(Model(false), Keyed, GraphGlyphSet.Unicode).Text;
 
-        var fetch = text.IndexOf("<space>F", StringComparison.Ordinal);
-        var pull = text.IndexOf("<space>L", StringComparison.Ordinal);
+        var fetch = text.IndexOf("<space>rf", StringComparison.Ordinal);
+        var pull = text.IndexOf("<space>rl", StringComparison.Ordinal);
         var push = text.IndexOf(" push ", StringComparison.Ordinal) + 1;
 
         Assert.Equal(DefaultMouseMap.RemoteFetchButton, RemoteChips.ViewAt(Keyed, false, fetch));

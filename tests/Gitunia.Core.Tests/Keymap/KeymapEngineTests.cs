@@ -214,11 +214,11 @@ public class KeymapEngineTests
     }
 
     [Fact]
-    public void GivenLeaderChord_WhenPressingSpaceThenO_ThenPickerOpens()
+    public void GivenLeaderChord_WhenPressingSpaceThenOO_ThenPickerOpens()
     {
         var feeder = CreateFeeder();
 
-        Assert.Equal(ActionIds.PickerOpen, feeder.Feed("<space>o").Action);
+        Assert.Equal(ActionIds.PickerOpen, feeder.Feed("<space>oo").Action);
     }
 
     [Fact]

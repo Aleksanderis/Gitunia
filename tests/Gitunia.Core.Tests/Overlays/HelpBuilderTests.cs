@@ -10,7 +10,7 @@ public class HelpBuilderTests
 {
     private static readonly KeyBindingTable Table = DefaultKeymap.Create();
 
-    private static readonly string[] HiddenVariantKeys = ["d", "f", "I", "s", "w"];
+    private static readonly string[] HiddenVariantKeys = ["d", "f", "I", "w"];
 
     private static readonly ActionGroup[] Groups =
     [
@@ -129,8 +129,8 @@ public class HelpBuilderTests
     }
 
     [Theory]
-    [InlineData(false, new[] { "m", "M", "p", "r", "i", "x", "v" }, new[] { "a", "c", "k", "s", "f", "w", "d", "I" })]
-    [InlineData(true, new[] { "m", "a", "c", "k" }, new[] { "s", "f", "w", "d", "I" })]
+    [InlineData(false, new[] { "r" }, new[] { "a", "c", "s" })]
+    [InlineData(true, new[] { "r", "a", "c", "s" }, new string[0])]
     public void GivenTheGitPrefix_WhenBuildingWhichKeyRows_ThenOnlyTheListedKeysShow(
         bool operationInProgress,
         string[] listed,
@@ -149,14 +149,15 @@ public class HelpBuilderTests
         var main = keys.Take(more < 0 ? keys.Count : more).Select(row => row.Key).ToList();
 
         Assert.All(listed, key => Assert.Contains(key, main));
-        Assert.All(hidden.Where(key => key is "s" or "f" or "w" or "d" or "I"), key => Assert.DoesNotContain(key, main));
+        Assert.All(hidden, key => Assert.DoesNotContain(key, main));
     }
 
     [Theory]
-    [InlineData("b", "+more (branch operations)")]
-    [InlineData("g", "+more (merge, rebase, reset, pick)")]
-    [InlineData("T", "+more (tag operations)")]
-    [InlineData("t", "+more (external tools)")]
+    [InlineData("b", "+more (branch)")]
+    [InlineData("g", "+more (operation in progress)")]
+    [InlineData("t", "+more (tag)")]
+    [InlineData("e", "+more (external tools)")]
+    [InlineData("k", "+more (stash)")]
     public void GivenTheLeaderPrefix_WhenBuildingWhichKeyRows_ThenGroupRowsNameContents(string key, string expected)
     {
         var engine = new KeymapEngine(Table);
@@ -202,7 +203,7 @@ public class HelpBuilderTests
     {
         var engine = new KeymapEngine(Table);
         var feeder = new KeyFeeder(engine);
-        feeder.Feed("<space>g");
+        feeder.Feed("<space>b");
 
         var rows = WhichKeyBuilder.Build(
             engine.Continuations(feeder.State, DefaultKeymap.GraphView),
@@ -235,7 +236,8 @@ public class HelpBuilderTests
         var engine = new KeymapEngine(Table);
         var feeder = new KeyFeeder(engine);
         feeder.Feed("<space>");
-        feeder.Feed("g");
+        feeder.Feed("b");
+        feeder.Feed("r");
 
         var rows = WhichKeyBuilder.Build(
             engine.Continuations(feeder.State, DefaultKeymap.GraphView),

@@ -224,7 +224,7 @@ public class StashControllerTests
         var latest = harness.Statuses.Log.Latest!;
         Assert.Equal(StatusSeverity.Warning, latest.Severity);
         Assert.Contains("Nothing to stash", latest.Text, StringComparison.Ordinal);
-        Assert.Contains("<space>Su", latest.Text, StringComparison.Ordinal);
+        Assert.Contains("<space>ku", latest.Text, StringComparison.Ordinal);
     }
 
     [Fact]

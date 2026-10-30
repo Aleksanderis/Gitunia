@@ -132,7 +132,7 @@ public class CommitScriptTests
         var output = Assert.Single(session.Outputs);
         Assert.Contains("Really commit? [y/N]", output, StringComparison.Ordinal);
         Assert.Contains("no answer: stdin is closed", output, StringComparison.Ordinal);
-        Assert.Contains("<space>te", output, StringComparison.Ordinal);
+        Assert.Contains("<space>ec", output, StringComparison.Ordinal);
     }
 
     [Fact]

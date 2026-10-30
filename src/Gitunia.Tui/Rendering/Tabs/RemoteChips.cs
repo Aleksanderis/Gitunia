@@ -8,7 +8,7 @@ namespace Gitunia.Tui.Rendering.Tabs;
 /// The fetch, pull and push chips left of the commands button on the tab row, the mouse path of <c>&lt;space&gt;F</c>,
 /// <c>&lt;space&gt;L</c> and <c>&lt;space&gt;P</c> (#456). While one of them runs they are replaced by one cancel chip
 /// (the mouse path of <c>&lt;space&gt;C</c>). Each chip shows its key from the keymap before its label
-/// (<c>&lt;space&gt;F fetch</c>, #536) when the row is wide enough for that (<see cref="IsKeyed"/>); a narrower row
+/// (<c>&lt;space&gt;rf fetch</c>, #536) when the row is wide enough for that (<see cref="IsKeyed"/>); a narrower row
 /// drops the key text first and rows narrower than <see cref="MinimumWidth"/> have no chips at all (the keys and the
 /// command palette stay). Pure layout: the same width gives the same columns, busy or not, so the tabs never jump.
 /// </summary>

@@ -93,7 +93,7 @@ public class WorkingListTitleButtonsTests
         var view = WorkingListTitleButtons.ViewButton(WorkingTreeSection.Unstaged, "Unstaged 12", 90, null)!;
 
         Assert.Equal(DefaultMouseMap.ListResolveButton, resolve.View);
-        Assert.Equal(" <space>to resolve ", resolve.Label);
+        Assert.Equal(" <space>gr resolve ", resolve.Label);
         Assert.True(resolve.Start + resolve.Width < view.Start);
     }
 
