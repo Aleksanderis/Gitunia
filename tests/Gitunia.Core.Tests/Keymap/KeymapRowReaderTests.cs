@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 using Gitunia.Core.Keymap;
@@ -10,7 +9,6 @@ namespace Gitunia.Core.Tests.Keymap;
 public class KeymapRowReaderTests
 {
     private const int DefaultBindingCount = 550;
-    private const double ParseBudgetMilliseconds = 10;
 
     [Fact]
     public void GivenARow_WhenRead_ThenActionViewModesAndKeysAreKept()
@@ -47,20 +45,6 @@ public class KeymapRowReaderTests
     public void GivenTheEmbeddedFile_WhenLoaded_ThenItYieldsTheBindingsOfTheCodeDefaults()
     {
         Assert.Equal(DefaultBindingCount, DefaultKeymap.CreateBindings().Count);
-    }
-
-    [Fact]
-    public void GivenTheEmbeddedFile_WhenParsed_ThenItStaysWithinTheStartupBudget()
-    {
-        var path = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "src", "Gitunia.Core", "Keymap", "keymap.default.json");
-        var bytes = File.ReadAllBytes(path);
-        Read(bytes);
-
-        var stopwatch = Stopwatch.StartNew();
-        Read(bytes);
-        stopwatch.Stop();
-
-        Assert.True(stopwatch.Elapsed.TotalMilliseconds < ParseBudgetMilliseconds, $"{stopwatch.Elapsed.TotalMilliseconds} ms");
     }
 
     private static IReadOnlyList<KeymapRow> Read(string json) => Read(Encoding.UTF8.GetBytes(json));

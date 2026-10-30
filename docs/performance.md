@@ -30,7 +30,7 @@ Native AOT linux-x64, 120x40 under tmux, medians (they include 1-3 ms of polling
 | Terminal background query (OSC 11, `theme = auto`) | first frame ~26 ms answered, ~75-80 ms when the terminal never answers |
 | File content, worst case 1 MiB of newlines (1M rows) | ~50 ms build, ~56 MB; no row cap |
 | `DiffDocument.ForFile` for a 100,000-row file | 2-9 ms per cursor move; no cache |
-| Keymap defaults (#857): read the embedded `keymap.default.json` (439 rows, 550 bindings) with `Utf8JsonReader` and build the bindings | JIT debug first call ~8 ms including JIT of the code path (upper bound for the AOT binary), ~0.24 ms to rebuild from parsed rows; a test caps the warm parse at 10 ms; AOT publish has no `IL*` warnings |
+| Keymap defaults (#857): read the embedded `keymap.default.json` (439 rows, 550 bindings) with `Utf8JsonReader` and build the bindings | JIT debug first call ~8 ms including JIT of the code path (upper bound for the AOT binary), ~0.24 ms to rebuild from parsed rows; measured once by a throwaway test; AOT publish has no `IL*` warnings |
 | `WordDiff.Compare` per changed row | 0.002 ms typical, 0.31 ms worst case; visible rows only, bounded |
 
 Known limit: at 80x24 the newest row is cut inside the harness marker; pass `--marker "Commit #97500"` there.
