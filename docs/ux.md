@@ -8,7 +8,7 @@ How decisions came about and which issue built what: `docs/history/ux.md` and th
 ## Parts
 
 - [ux-workflows.md](ux-workflows.md): the workflows (open a repository, graph, sidebar, diffs, working tree, branches, operations, remotes, worktrees, stashes).
-- [ux-keymap.md](ux-keymap.md): the keymap (temporary home until the generated reference of #857).
+- [ux-keymap.md](ux-keymap.md): the keymap (design rules; the generated reference is [keymap.md](keymap.md)).
 - [ux-mouse.md](ux-mouse.md): the mouse table and gestures.
 - [ux-settings.md](ux-settings.md): the Settings screen.
 - [ux-look.md](ux-look.md): look and colours, the config file.
@@ -71,7 +71,7 @@ Normal (navigate, act), Visual (select a range of lines, commits or files), Inse
   In the graph, when nothing else claims it, `Esc` clears the comparison mark (#535), and when there is none it dismisses the status message.
 - **`q` always quits,** from any pane, except that it first closes an open overlay or ends a Visual range. `Esc` is back in Detail and Diff; `h` and `l` collapse and expand in the Sidebar and in trees and never change the pane (the diff has no horizontal scroll). `Ctrl-c` is the last resort: it quits from any mode or modal at once and cancels running git work (#856).
 - **Notation:** keys are spelled out everywhere (`Ctrl-d`, `Alt-1`, `Shift-Tab`, `gg`, `<space>o`), never `^d` or `c-d`, in the help overlay, the palette, the which-key popup and the status bar.
-- **Help overlay (`?`):** the keys of the focused view, generated from the keymap table and the action titles, never hand-written, in two columns. One tab per source: the view's own bindings, then the inherited `Lists` and `Global` ones, and `Markers` on the graph and the sidebar; the active tab is in brackets and collapses to `[Graph] 1/4` when the labels do not fit. Rows sit under the `ActionCatalog.GroupOf` subheaders (the palette's vocabulary and order; an action without a group lands in `Other`, a test forbids it). `Tab`/`l` and `Shift-Tab`/`h` switch tabs (or a click), `j`/`k`/`Ctrl-d`/`gg` scroll, `Esc`, `q` or `?` close it; every other action is ignored while it is open. Digits are not tab keys: they stay counts.
+- **Help overlay (`?`):** the keys of the focused view, generated from the keymap and the action titles, never hand-written, in two columns. One tab per source: the view's own bindings, then the inherited `Lists` and `Global` ones, and `Markers` on the graph and the sidebar; the active tab is in brackets and collapses to `[Graph] 1/4` when the labels do not fit. Rows sit under the `ActionCatalog.GroupOf` subheaders (the palette's vocabulary and order; an action without a group lands in `Other`, a test forbids it). `Tab`/`l` and `Shift-Tab`/`h` switch tabs (or a click), `j`/`k`/`Ctrl-d`/`gg` scroll, `Esc`, `q` or `?` close it; every other action is ignored while it is open. Digits are not tab keys: they stay counts.
 - **Command palette (`:` or `Ctrl-p`):** typing filters every action fuzzily (title or action id), `Up`/`Down` (or `Ctrl-j`/`Ctrl-k`) move, `Enter` (or `Ctrl-l`) runs the highlighted action, `Esc` closes.
   Each row shows its bindings and actions are grouped under subheaders (see Actions menu), the focused view's own actions first inside a group.
   Modal-only actions (the Confirm answers, the picker's own keys, the palette's own keys, text-input accept and `Esc`) are not listed; actions bound ahead of their feature are listed greyed out.

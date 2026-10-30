@@ -30,7 +30,7 @@ History view: sidebar on the left (branches, remotes, tags, stashes, worktrees),
 
 ## Keys
 
-Gitunia is modal and vim-style; `<space>` is the leader key. `?` shows the keys of the focused view, `:` or `Ctrl-p` opens the command palette, `<space>,` opens the settings screen whose Key reference category lists every binding (rebinds included), `q` closes an overlay or quits. Once you know the keys, the Keys category of the settings turns the which-key popup and the status bar hints down (`hints.whichKey`, `hints.statusBar`); `?` and `:` always work. The complete table is the Keymap section of `docs/ux-keymap.md`.
+Gitunia is modal and vim-style; `<space>` is the leader key. `?` shows the keys of the focused view, `:` or `Ctrl-p` opens the command palette, `<space>,` opens the settings screen whose Key reference category lists every binding (rebinds included), `q` closes an overlay or quits. Once you know the keys, the Keys category of the settings turns the which-key popup and the status bar hints down (`hints.whichKey`, `hints.statusBar`); `?` and `:` always work. The complete table is `docs/keymap.md`.
 
 ## Everyday tasks
 

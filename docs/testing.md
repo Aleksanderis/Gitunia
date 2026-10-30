@@ -24,7 +24,7 @@
 | Git integration | xUnit, temp repos (see `testing` skill) | Commands end to end: branches, worktrees, stash, merge/rebase, partial staging |
 | Tui loading and effects | xUnit; fakes of the reader interfaces (`tests/Gitunia.Tui.Tests/Fakes`, `FakeGitServices`) where git is not the subject, real temp repos (`TestGit.Services`) where it is | Stores, pollers and loaders without a process per test; the wiring against real git |
 | Graph layout | xUnit, property tests | Lane assignment invariants, determinism, incremental == full |
-| State/keymap | xUnit | Command -> state transitions, modal behaviour, no binding conflicts (test reads the keymap table) |
+| State/keymap | xUnit | Command -> state transitions, modal behaviour, no binding conflicts (tests read `keymap.default.json` and check the generated `docs/keymap.md` is current) |
 | Rendering | snapshot tests of frames as text (`ScreenComposer`); `gitunia <repo> --print-frame WxH` prints the same frame (flags: `CommandLineParser.Usage`) | Layout at several terminal sizes, wide chars, ASCII fallback; `MainViewTests` checks view-level settings the text frames cannot show |
 | Startup smoke | `StartupSmokeTests` runs `TuiApplication.Run` on the headless `ansi` driver with temp config/state dirs, with a repository and with none | The whole shell is constructed as `Program.Main` does and its first frame is drawn, so a constructor-order crash fails `dotnet test`. It cannot see rendering or key handling: UI issues also get a tmux run of the real binary |
 | AOT smoke | CI script | AOT publish succeeds with no `IL*` warnings; binary starts and renders a frame against a fixture repo |

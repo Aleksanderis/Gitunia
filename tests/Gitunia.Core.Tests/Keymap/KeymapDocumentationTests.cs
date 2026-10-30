@@ -1,4 +1,6 @@
+using System.Reflection;
 using Gitunia.Core.Keymap;
+using Gitunia.KeymapDoc;
 using Gitunia.Core.Keymap.Models;
 using Xunit;
 
@@ -6,20 +8,80 @@ namespace Gitunia.Core.Tests.Keymap;
 
 public class KeymapDocumentationTests
 {
+    // Actions with no default key: reached by mouse, from the palette, or by a modal prompt that is not a keymap row.
+    private static readonly HashSet<string> UnboundActions =
+    [
+        "help.tab-select",
+        "pick.mainline",
+        "remote.fetch-all",
+        "settings.open-theme",
+        "working-tree.open",
+    ];
+
     [Fact]
-    public void GivenTheUxKeymapTable_WhenReadingIt_ThenItHasBindings()
+    public void GivenTheKeymapFile_WhenRenderingTheReference_ThenTheCommittedDocIsCurrent()
     {
-        Assert.True(UxKeymapReader.ReadBindings().Count > 30);
+        var expected = KeymapReference.Render(ReadRows());
+
+        var committed = File.ReadAllText(RepoDocs.FindUxDocument("keymap.md")).ReplaceLineEndings("\n");
+
+        Assert.True(
+            committed == expected,
+            "docs/keymap.md is stale: run scripts/gen-keymap-doc.sh and commit the result.");
     }
 
     [Fact]
-    public void GivenTheUxKeymapTable_WhenCheckedForConflicts_ThenThereAreNone()
+    public void GivenTheKeymapFile_WhenReadingIt_ThenItHasRows()
     {
-        var table = new KeyBindingTable(UxKeymapReader.ReadBindings(), DefaultKeymap.ViewParents);
+        Assert.True(ReadRows().Count > 100);
+    }
 
-        var conflicts = table.FindConflicts();
+    [Fact]
+    public void GivenEveryActionInTheKeymapFile_WhenLookingItUpInCode_ThenTheIdExists()
+    {
+        var known = KnownActionIds();
 
-        Assert.True(conflicts.Count == 0, string.Join(Environment.NewLine, conflicts));
+        var unknown = ReadRows()
+            .Select(row => row.Action.Value)
+            .Where(id => !known.Contains(id) && !id.StartsWith("tab.go-to.", StringComparison.Ordinal))
+            .Distinct()
+            .ToList();
+
+        Assert.True(unknown.Count == 0, $"Ids in keymap.default.json missing from ActionIds:{Environment.NewLine}{string.Join(Environment.NewLine, unknown)}");
+    }
+
+    [Fact]
+    public void GivenEveryActionIdInCode_WhenLookingItUpInTheKeymapFile_ThenItIsBoundOrMarkedUnbound()
+    {
+        var bound = ReadRows().Select(row => row.Action.Value).ToHashSet();
+
+        var neither = KnownActionIds()
+            .Where(id => !bound.Contains(id) && !UnboundActions.Contains(id))
+            .Order()
+            .ToList();
+
+        Assert.True(neither.Count == 0, $"Actions with no key and not marked unbound:{Environment.NewLine}{string.Join(Environment.NewLine, neither)}");
+    }
+
+    [Fact]
+    public void GivenTheUnboundList_WhenLookingItUpInTheKeymapFile_ThenNoMarkedActionIsBound()
+    {
+        var bound = ReadRows().Select(row => row.Action.Value).ToHashSet();
+
+        Assert.False(UnboundActions.Overlaps(bound));
+    }
+
+    [Fact]
+    public void GivenTheKeymapFile_WhenCheckingEachView_ThenNoKeyIsBoundTwiceInAMode()
+    {
+        var duplicates = ReadRows()
+            .SelectMany(row => row.Modes.SelectMany(mode => row.Keys.Select(key => (row.View, Mode: mode, Key: key, row.Action))))
+            .GroupBy(entry => (entry.View, entry.Mode, entry.Key))
+            .Where(group => group.Select(entry => entry.Action).Distinct().Count() > 1)
+            .Select(group => $"{group.Key.View} {group.Key.Mode} {group.Key.Key}: {string.Join(", ", group.Select(entry => entry.Action.Value))}")
+            .ToList();
+
+        Assert.True(duplicates.Count == 0, string.Join(Environment.NewLine, duplicates));
     }
 
     [Fact]
@@ -40,49 +102,6 @@ public class KeymapDocumentationTests
     }
 
     [Fact]
-    public void GivenEveryDocumentedBinding_WhenLookingItUp_ThenItIsARegisteredDefault()
-    {
-        var defaults = DefaultKeymap.CreateBindings();
-
-        var missing = UxKeymapReader.ReadBindings()
-            .Where(documented => !defaults.Any(registered => registered.Mode == documented.Mode
-                && registered.View == documented.View
-                && registered.Sequence.Equals(documented.Sequence)))
-            .Select(documented => $"{documented.View}: {documented.Sequence} ({documented.Action})")
-            .ToList();
-
-        Assert.True(missing.Count == 0, $"Documented but not registered:{Environment.NewLine}{string.Join(Environment.NewLine, missing)}");
-    }
-
-    [Fact]
-    public void GivenEveryNormalModeDefault_WhenLookingItUp_ThenItIsDocumented()
-    {
-        var documented = UxKeymapReader.ReadBindings();
-
-        var undocumented = DefaultKeymap.CreateBindings()
-            .Where(registered => registered.Mode == KeyMode.Normal)
-            .Where(registered => !documented.Any(row => row.Mode == KeyMode.Normal && row.View == registered.View && row.Sequence.Equals(registered.Sequence)))
-            .Select(registered => $"{registered.View}: {registered.Sequence}")
-            .ToList();
-
-        Assert.True(undocumented.Count == 0, $"Registered Normal bindings missing from docs/ux-keymap.md:{Environment.NewLine}{string.Join(Environment.NewLine, undocumented)}");
-    }
-
-    [Fact]
-    public void GivenTheMessageBoxInsertModeDefaults_WhenLookingThemUp_ThenTheyAreDocumented()
-    {
-        var documented = UxKeymapReader.ReadBindings();
-
-        var undocumented = DefaultKeymap.CreateBindings()
-            .Where(registered => registered.Mode == KeyMode.Insert && registered.View == DefaultKeymap.WorkingMessageView)
-            .Where(registered => !documented.Any(row => row.Mode == KeyMode.Insert && row.View == registered.View && row.Sequence.Equals(registered.Sequence)))
-            .Select(registered => $"{registered.View}: {registered.Sequence}")
-            .ToList();
-
-        Assert.True(undocumented.Count == 0, $"Registered Insert bindings missing from docs/ux-keymap.md:{Environment.NewLine}{string.Join(Environment.NewLine, undocumented)}");
-    }
-
-    [Fact]
     public void GivenTwoBindingsOnTheSameKeyInOneView_WhenCheckingConflicts_ThenADuplicateIsReported()
     {
         var table = new KeyBindingTable(
@@ -96,4 +115,12 @@ public class KeymapDocumentationTests
 
         Assert.Equal(BindingConflictKind.Duplicate, conflict.Kind);
     }
+
+    private static List<KeymapRow> ReadRows() =>
+        [.. KeymapRowReader.Read(File.ReadAllBytes(RepoDocs.Find("src", "Gitunia.Core", "Keymap", "keymap.default.json")))];
+
+    private static HashSet<string> KnownActionIds() =>
+        [.. typeof(ActionIds).GetProperties(BindingFlags.Public | BindingFlags.Static)
+            .Where(property => property.PropertyType == typeof(ActionId))
+            .Select(property => ((ActionId)property.GetValue(null)!).Value)];
 }
