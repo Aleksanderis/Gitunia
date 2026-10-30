@@ -213,7 +213,7 @@ public static class ActionCatalog
         ["conflict-editor.edit-newline"] = "Conflict editor: insert a new line in the result",
         ["conflict-editor.scroll-left"] = "Conflict editor: scroll the base, ours and theirs panes sideways to the left",
         ["conflict-editor.scroll-right"] = "Conflict editor: scroll the base, ours and theirs panes sideways to the right",
-        ["conflict-editor.save"] = "Conflict editor: save the file (asks first)",
+        ["conflict-editor.save"] = "Conflict editor: save the file and stage it when resolved",
         ["rebase.onto"] = "Rebase the current branch onto the selection",
         ["rebase.fixup"] = "Fix up the commit into the one before it (asks first)",
         ["rebase.reword"] = "Reword the commit subject (asks first)",

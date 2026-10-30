@@ -132,6 +132,48 @@ public class StagingActionsTests
     }
 
     [Fact]
+    public async Task GivenThreeConflictedFiles_WhenTheEditorStagesOne_ThenItIsStagedAndTwoAreReportedLeft()
+    {
+        using var harness = new Harness(Conflict("a.txt"), Conflict("b.txt"), Conflict("c.txt"));
+        harness.Select(WorkingTreeSection.Unstaged, 2);
+        harness.ReloadOnRefresh(Conflict("a.txt"), Conflict("b.txt"), StagedModified("c.txt"));
+
+        var notice = harness.Staging.StageResolvedFor(harness.Tab, "c.txt");
+        await harness.Pump.RunUntilAsync(() => !harness.Staging.IsRunning);
+
+        Assert.Empty(notice);
+        Assert.Equal(["c.txt"], Assert.Single(harness.Writer.Staged));
+        Assert.Equal("Resolved and staged c.txt, 2 conflicts left", harness.Statuses.Log.Latest!.Text);
+        Assert.Equal(2, harness.Tab.WorkingTree!.Unstaged.Count(entry => entry.Kind == StatusEntryKind.Unmerged));
+        Assert.Equal("a.txt", harness.Selection.Path);
+        Assert.Equal(WorkingTreeSection.Unstaged, harness.Selection.Section);
+    }
+
+    [Fact]
+    public async Task GivenTheLastConflictedFile_WhenTheEditorStagesIt_ThenTheStatusSaysAllAreResolved()
+    {
+        using var harness = new Harness(Conflict("c.txt"));
+        harness.ReloadOnRefresh(StagedModified("c.txt"));
+
+        harness.Staging.StageResolvedFor(harness.Tab, "c.txt");
+        await harness.Pump.RunUntilAsync(() => !harness.Staging.IsRunning);
+
+        Assert.Equal("Resolved and staged c.txt: all conflicts resolved, commit it", harness.Statuses.Log.Latest!.Text);
+    }
+
+    [Fact]
+    public async Task GivenAFileThatIsNotConflicted_WhenTheEditorStagesIt_ThenNothingIsStaged()
+    {
+        using var harness = new Harness(Modified("a.txt"));
+
+        var notice = harness.Staging.StageResolvedFor(harness.Tab, "a.txt");
+        await harness.Pump.RunUntilAsync(() => !harness.Staging.IsRunning);
+
+        Assert.Contains("saved, not staged", notice, StringComparison.Ordinal);
+        Assert.Empty(harness.Writer.Staged);
+    }
+
+    [Fact]
     public void GivenAConflictedFileAndNoDialog_WhenStagingIt_ThenItIsRefusedWithoutRunningGit()
     {
         using var harness = new Harness(Conflict("c.txt"));

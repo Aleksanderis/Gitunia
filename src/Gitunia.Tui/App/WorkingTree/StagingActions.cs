@@ -3,6 +3,7 @@ using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Lists;
 using Gitunia.Core.Overlays;
 using Gitunia.Core.Status;
+using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
@@ -41,6 +42,7 @@ public sealed class StagingActions(
     Func<ConfirmPrompt, Action, bool>? confirm = null)
 {
     private const string DirectorySuffix = "/";
+    private const string ContinueKeys = "<space>gc";
 
     private readonly TabOperationGate _gate = gate ?? new TabOperationGate();
 
@@ -151,15 +153,74 @@ public sealed class StagingActions(
     }
 
     /// <summary>
-    /// Opens the "mark resolved" Confirm for the conflicted <paramref name="path"/> of <paramref name="tab"/> (what
-    /// <c>&lt;space&gt;a</c> asks), for the conflict editor after it saved. Returns a notice when nothing was asked.
+    /// Stages the conflicted <paramref name="path"/> of <paramref name="tab"/> right after the conflict editor saved it
+    /// with no conflict marker left (no Confirm), then reports how many conflicted files are left and moves the cursor
+    /// to the first one left. Returns a notice when nothing was started, empty otherwise.
     /// </summary>
-    public string AskResolvedFor(RepositoryState tab, string path)
+    public string StageResolvedFor(RepositoryState tab, string path)
     {
         var entry = tab.WorkingTree?.Unstaged
             .FirstOrDefault(candidate => candidate.Path == path && candidate.Kind == StatusEntryKind.Unmerged);
+        var name = WorkingTreeRowRenderer.Printable(path);
+        if (entry is null)
+        {
+            return $"{name} is no longer listed as conflicted: saved, not staged";
+        }
 
-        return entry is null ? string.Empty : AskResolved(tab, entry);
+        if (_gate.IsBusy(tab.Id))
+        {
+            return "Busy: the last stage or unstage is still running; the saved file was not staged";
+        }
+
+        _gate.Begin(tab.Id);
+        var token = cancellationOf(tab.Id);
+        var paths = PathsOf(entry, WorkingTreeSection.Unstaged);
+        var plan = StagingPlan.For(paths, name, 1, 0) with { IsSavedResolve = true };
+        var report = () => ReportResolved(tab.Id, name);
+        _ = Task.Run(() => RunAsync(tab, plan, true, false, report, token), CancellationToken.None);
+
+        return string.Empty;
+    }
+
+    // The status is re-read by now: the conflicted files left are the ones the banner counts.
+    private void ReportResolved(TabId tabId, string name)
+    {
+        if (host.Workspace.FindTab(tabId) is not { } tab)
+        {
+            return;
+        }
+
+        var left = tab.WorkingTree?.Unstaged.Count(entry => entry.Kind == StatusEntryKind.Unmerged) ?? 0;
+        if (left == 0)
+        {
+            var next = tab.Operation is null ? "commit it" : $"{ContinueKeys} continue";
+            statuses.Post($"Resolved and staged {name}: all conflicts resolved, {next}");
+
+            return;
+        }
+
+        statuses.Post($"Resolved and staged {name}, {OperationText.Plural(left, "conflict")} left");
+        SelectFirstConflicted(tab);
+    }
+
+    private void SelectFirstConflicted(RepositoryState tab)
+    {
+        if (tab.WorkingTree is not { } tree)
+        {
+            return;
+        }
+
+        var rows = tree.RowsOf(WorkingTreeSection.Unstaged);
+        for (var row = 0; row < rows.Count; row++)
+        {
+            if (!rows[row].IsFolder && tree.Unstaged[rows[row].EntryIndex].Kind == StatusEntryKind.Unmerged)
+            {
+                var select = new SelectWorkingTreeFileCommand(WorkingTreeSection.Unstaged, row);
+                host.Dispatch(new TabCommand(tab.Id, select));
+
+                return;
+            }
+        }
     }
 
     private static StatusEntry? ConflictedUnderCursor(WorkingTreeState tree)
@@ -451,6 +512,11 @@ public sealed class StagingActions(
 
     private static string Report(StagingPlan plan, bool isStage)
     {
+        if (plan.IsSavedResolve)
+        {
+            return $"Resolved and staged {plan.Name}";
+        }
+
         if (plan.IsResolve)
         {
             return $"Marked {plan.Name} resolved";

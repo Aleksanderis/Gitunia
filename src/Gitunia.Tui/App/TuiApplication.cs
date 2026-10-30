@@ -1734,7 +1734,7 @@ public sealed class TuiApplication(
         InvokeOnUi,
         tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None,
         ShowConfirm,
-        staging.AskResolvedFor,
+        staging.StageResolvedFor,
         tabId => _effects.Refresh(tabId, false),
         IsOtherThanConflictEditorOpen,
         () => _view.ScreenSize,
