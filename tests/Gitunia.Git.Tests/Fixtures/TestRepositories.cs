@@ -55,6 +55,27 @@ public static class TestRepositories
             .MergeExpectingConflict("other");
     }
 
+    /// <summary>
+    /// A merge stopped on <c>conflict.txt</c>, a 72-line file with five conflict hunks (lines 5, 20, 36, 52 and 66)
+    /// spread between unconflicted lines.
+    /// </summary>
+    public static TestRepository ConflictedManyHunks()
+    {
+        int[] changed = [5, 20, 36, 52, 66];
+        var lines = Enumerable.Range(1, 72).Select(number => $"line {number}").ToArray();
+        string Variant(string side) => string.Join(
+            '\n',
+            lines.Select((line, index) => Array.IndexOf(changed, index + 1) >= 0 ? $"{line} ({side})" : line)) + "\n";
+
+        return TestRepository.Create()
+            .Commit("Initial", new TestFile("conflict.txt", string.Join('\n', lines) + "\n"))
+            .CheckoutNewBranch("other")
+            .Commit("Other change", new TestFile("conflict.txt", Variant("other")))
+            .Checkout("main")
+            .Commit("Main change", new TestFile("conflict.txt", Variant("main")))
+            .MergeExpectingConflict("other");
+    }
+
     /// <summary>Linear main pushed to a local bare origin with upstream tracking set.</summary>
     public static TestRepository WithOrigin() => Linear(2).AddOrigin();
 

@@ -20,7 +20,7 @@
 # rebase-editor (G <space>gi, then squash, drop and so on: the interactive rebase todo editor on a linear branch of a copy of the throwaway repository), rebase-reword (r: the message editor of a reword), rebase-confirm (Enter: the Confirm over the editor) and rebase-narrow (64x24); not for --repo.
 # stash (C-w h G Enter: a stash shown in the detail pane, with a tracked and an untracked file; a copy of the throwaway repository with a stash; not for --repo).
 # whitespace (Enter Enter <space>vc: the diff of the latest commit with whitespace marks; meant for --repo with tabs and trailing spaces in it).
-# conflict-editor and conflict-editor-narrow (<space>s, Enter on a merge conflict with two hunks, then o and n: the conflict editor after one pick; a copy of the throwaway repository stopped on a merge; not for --repo).
+# conflict-editor and conflict-editor-narrow (<space>s, Enter on a merge conflict with five hunks, then o and n: the conflict editor after one pick; a copy of the throwaway repository stopped on a merge; not for --repo).
 # conflict-editor-edit (o e then typed text: the result as a text edit) and conflict-editor-base (100 columns, under the three-pane width; o B: the base block below the two sides); not for --repo.
 # conflict-entry (100x24, <space>s: the Unstaged list on a conflicted file, its status hints leading with the conflict editor, the banner whole) and conflict-entry-keys (the same after <space>t: the which-key popup lists o and sits above the banner); a copy of the throwaway repository stopped on a merge; not for --repo.
 # conflict-add-add-entry (100x30, <space>s: a rebase stopped on a file both branches added; the hints and banner name the conflict editor), conflict-add-add (Enter, o, n: the editor with an empty base pane, one pick), conflict-add-add-save (Enter after O: the Mark resolved Confirm), conflict-add-add-done (y: the file resolved) and conflict-delete-modify-entry (a file one side deleted and the other changed: the hints name the mergetool, the editor key is not offered); not for --repo.
@@ -151,10 +151,10 @@ make_unstaged_repo() { # make_unstaged_repo SOURCE DIR: a copy with one unstaged
   printf 'Edited, not staged.\n' >>"$dir/README.md"
 }
 
-make_conflict_repo() { # make_conflict_repo SOURCE DIR: a copy of the throwaway repository stopped on a merge conflict with two hunks in one file
+make_conflict_repo() { # make_conflict_repo SOURCE DIR: a copy of the throwaway repository stopped on a merge conflict with five hunks spread over a 72-line file
   local source="$1" dir="$2" lines
   cp -r "$source" "$dir"
-  lines="$(printf 'line %s\n' 1 2 3 4 5 6 7 8 9 10 11 12)"
+  lines="$(seq -f 'line %g' 1 72)"
   ( # a subshell keeps the GIT_* variables out of the tmux server and the app under test
   export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_SYSTEM=/dev/null
   export GIT_AUTHOR_NAME="Ada Lovelace" GIT_AUTHOR_EMAIL=ada@example.com GIT_COMMITTER_NAME="Ada Lovelace" GIT_COMMITTER_EMAIL=ada@example.com
@@ -163,11 +163,11 @@ make_conflict_repo() { # make_conflict_repo SOURCE DIR: a copy of the throwaway 
   git -C "$dir" add src/notes.txt
   git -C "$dir" commit -q -m "Add notes"
   git -C "$dir" switch -q -c side
-  sed -i.bak -e 's/^line 3$/line 3, as the side branch wrote it/' -e 's/^line 9$/line 9 (side)/' "$dir/src/notes.txt"
+  sed -i.bak -e 's/^line 5$/line 5, as the side branch wrote it/' -e 's/^line 20$/line 20 (side)/' -e 's/^line 36$/line 36 (side)/' -e 's/^line 52$/line 52 (side)/' -e 's/^line 66$/line 66 (side)\nplus a line only the side branch has/' "$dir/src/notes.txt"
   rm -f "$dir/src/notes.txt.bak"
   git -C "$dir" commit -q -am "Reword notes on the side"
   git -C "$dir" switch -q main
-  sed -i.bak -e 's/^line 3$/line 3 reworded on main/' -e 's/^line 9$/line 9 (main)\nand a new line after it/' "$dir/src/notes.txt"
+  sed -i.bak -e 's/^line 5$/line 5 reworded on main/' -e 's/^line 20$/line 20 (main)\nand a new line after it/' -e 's/^line 36$/line 36 (main)/' -e 's/^line 52$/line 52 reworded on main/' -e 's/^line 66$/line 66 (main)/' "$dir/src/notes.txt"
   rm -f "$dir/src/notes.txt.bak"
   git -C "$dir" commit -q -am "Reword notes on main"
   git -C "$dir" merge -q side >/dev/null 2>&1 || true

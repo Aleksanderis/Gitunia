@@ -117,6 +117,29 @@ public class ConflictEditorControllerTests
     }
 
     [Fact]
+    public async Task GivenALongFileWithFiveConflicts_WhenWalkingAndPicking_ThenTheCursorAndPicksFollowEachHunk()
+    {
+        using var repository = TestRepositories.ConflictedManyHunks();
+        using var harness = await Harness.CreateAsync(repository);
+        await harness.OpenAsync();
+        Assert.Equal(5, harness.Controller.State!.Hunks.Count);
+
+        harness.Run(ActionIds.ConflictEditorOurs);
+        harness.Run(ActionIds.ConflictEditorNext);
+        harness.Run(ActionIds.ConflictEditorNext);
+        harness.Run(ActionIds.ConflictEditorTheirs);
+        harness.Run(ActionIds.ConflictEditorPrevious);
+
+        var state = harness.Controller.State!;
+        Assert.Equal(1, state.Index);
+        Assert.Equal(
+            [ConflictPick.Ours, ConflictPick.None, ConflictPick.Theirs, ConflictPick.None, ConflictPick.None],
+            state.Picks);
+        Assert.Equal(2, state.ResolvedCount);
+        Assert.Equal(3, state.UnresolvedCount);
+    }
+
+    [Fact]
     public async Task GivenNothingPicked_WhenSaving_ThenItIsRefusedWithoutAPrompt()
     {
         using var repository = TestRepositories.Conflicted();

@@ -57,7 +57,8 @@ public static class ConflictEditorFrameBuilder
     private const string TabText = "    ";
     private const string DiscardHint = "Esc again discards your picks";
     private const string EmptySide = "(nothing)";
-    private const string Unresolved = "-";
+    private const string Unresolved = "?";
+    private const string TakenMark = "[taken]";
     private const string NoBasePaneText = "(no base: set diff3, then R)";
     private const string NoBaseText = "(no base for this hunk: set merge.conflictStyle=diff3, then R)";
 
@@ -81,7 +82,7 @@ public static class ConflictEditorFrameBuilder
         new("both", DefaultMouseMap.ConflictBothButton),
         new("all ours", DefaultMouseMap.ConflictAllOursButton),
         new("all theirs", DefaultMouseMap.ConflictAllTheirsButton),
-        new("edit", DefaultMouseMap.ConflictEditButton),
+        new("edit result", DefaultMouseMap.ConflictEditButton),
         new("reset", DefaultMouseMap.ConflictResetButton),
         new("undo", DefaultMouseMap.ConflictUndoButton),
         new("redo", DefaultMouseMap.ConflictRedoButton),
@@ -277,7 +278,8 @@ public static class ConflictEditorFrameBuilder
             resultStart,
             gutter,
             state.DifferingRows(),
-            state.Selected.Base is not null && (isThreePane || baseRows > 0));
+            state.Selected.Base is not null && (isThreePane || baseRows > 0),
+            state.SelectedPick);
     }
 
     private static SideText? BaseOf(ConflictHunk hunk, Plan plan) =>
@@ -445,19 +447,28 @@ public static class ConflictEditorFrameBuilder
     private static char Joint(GraphGlyphSet glyphs, LineDirections directions) =>
         glyphs.IsAscii ? '+' : glyphs.For(directions);
 
+    // The side the hunk's result was taken from carries a `[taken]` mark right after its name (both: ours and theirs).
     private static string SideTitle(string name, string label, SideText side, Plan plan)
     {
+        var taken = IsTaken(name, plan.Pick) ? $"{name}  {TakenMark}" : name;
         if (side.IsEmpty || side.Lines.Count <= plan.SideRows)
         {
-            return $"{name}  {label}";
+            return $"{taken}  {label}";
         }
 
         var last = Math.Min(side.Lines.Count, plan.Scroll + plan.SideRows);
 
         return string.Create(
             CultureInfo.InvariantCulture,
-            $"{name}  (lines {plan.Scroll + 1}-{last} of {side.Lines.Count})  {label}");
+            $"{taken}  (lines {plan.Scroll + 1}-{last} of {side.Lines.Count})  {label}");
     }
+
+    private static bool IsTaken(string name, ConflictPick pick) => name switch
+    {
+        "ours" => pick is ConflictPick.Ours or ConflictPick.Both,
+        "theirs" => pick is ConflictPick.Theirs or ConflictPick.Both,
+        _ => false,
+    };
 
     private static StyledLine NumberedCell(
         SideText side,
@@ -661,16 +672,16 @@ public static class ConflictEditorFrameBuilder
     {
         if (state.IsEditing)
         {
-            return "result  editing";
+            return "result  EDITING: type your text, Esc keeps it";
         }
 
         return state.SelectedPick switch
         {
-            ConflictPick.Edited => "result  edited by you",
-            ConflictPick.Ours => "result  our side",
-            ConflictPick.Theirs => "result  their side",
-            ConflictPick.Both => "result  both sides, ours first",
-            _ => "result  unresolved: the conflict markers stay in the file",
+            ConflictPick.Edited => "result  edited by you  (e edits it again)",
+            ConflictPick.Ours => "result  our side  (e to change it by hand)",
+            ConflictPick.Theirs => "result  their side  (e to change it by hand)",
+            ConflictPick.Both => "result  both sides, ours first  (e to change it by hand)",
+            _ => "result  unresolved  (o t b take a side, e type your own)",
         };
     }
 
@@ -689,7 +700,9 @@ public static class ConflictEditorFrameBuilder
     private static StyledLine StripLine(ConflictEditorState state, int width, GraphGlyphSet glyphs)
     {
         var builder = new LineBuilder(OverlayBox.InnerWidth(width), glyphs.Ellipsis)
-            .Append(" hunks  ", SegmentRole.Faint);
+            .Append(
+                string.Create(CultureInfo.InvariantCulture, $" conflict {state.Index + 1} of {state.Hunks.Count}  "),
+                SegmentRole.SectionTitle);
         for (var index = 0; index < state.Hunks.Count; index++)
         {
             var token = string.Create(CultureInfo.InvariantCulture, $"{index + 1} {PickWord(state.Picks[index])}");
@@ -759,7 +772,8 @@ public static class ConflictEditorFrameBuilder
         int ResultStart,
         int Gutter,
         IReadOnlyList<bool> Different,
-        bool ShowsBase);
+        bool ShowsBase,
+        ConflictPick Pick);
 
     private readonly record struct ResultRow(string Text, SegmentRole Role, int? Number = null);
 

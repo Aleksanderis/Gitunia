@@ -283,14 +283,14 @@ public static class PaneHints
 
     private static readonly ImmutableArray<KeyHint> ConflictEditor =
     [
-        new("n/N", "hunk", [ActionIds.ConflictEditorNext, ActionIds.ConflictEditorPrevious]),
+        new("n/N", "conflict", [ActionIds.ConflictEditorNext, ActionIds.ConflictEditorPrevious]),
         new("o/t/b", "ours/theirs/both", [
             ActionIds.ConflictEditorOurs,
             ActionIds.ConflictEditorTheirs,
             ActionIds.ConflictEditorBoth,
         ]),
         new("O/T", "all", [ActionIds.ConflictEditorAllOurs, ActionIds.ConflictEditorAllTheirs]),
-        new("e", "edit", [ActionIds.ConflictEditorEdit]),
+        new("e", "edit result", [ActionIds.ConflictEditorEdit]),
         new("u", "undo", [ActionIds.ConflictEditorUndo]),
         new("B", "base", [ActionIds.ConflictEditorBase]),
         new("Enter", "save", [ActionIds.ConflictEditorSave]),

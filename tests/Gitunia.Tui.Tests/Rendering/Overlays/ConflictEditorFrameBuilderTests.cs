@@ -26,8 +26,9 @@ public class ConflictEditorFrameBuilderTests
         Assert.NotNull(frame);
         var lines = frame.Lines.Select(line => line.Text).ToList();
         Assert.Contains("Conflict: file.txt  hunk 1/2", lines[0], StringComparison.Ordinal);
-        Assert.Contains("[1 -]", lines[1], StringComparison.Ordinal);
-        Assert.Contains("2 -", lines[1], StringComparison.Ordinal);
+        Assert.Contains("conflict 1 of 2", lines[1], StringComparison.Ordinal);
+        Assert.Contains("[1 ?]", lines[1], StringComparison.Ordinal);
+        Assert.Contains("2 ?", lines[1], StringComparison.Ordinal);
         Assert.Contains("ours  HEAD", lines[3], StringComparison.Ordinal);
         Assert.Contains("theirs  feature", lines[3], StringComparison.Ordinal);
         var firstRow = lines[4];
@@ -356,7 +357,7 @@ public class ConflictEditorFrameBuilderTests
         var frame = ConflictEditorFrameBuilder.Build(state, 120, 30, GraphGlyphSet.Unicode)!;
 
         var lines = frame.Lines.Select(line => line.Text).ToList();
-        Assert.Contains(lines, line => line.Contains("result  editing", StringComparison.Ordinal));
+        Assert.Contains(lines, line => line.Contains("result  EDITING", StringComparison.Ordinal));
         Assert.Contains(lines, line => line.Contains("typed ours 1", StringComparison.Ordinal));
         Assert.Contains(lines, line => line.Contains("Esc/Ctrl-g keeps the text", StringComparison.Ordinal));
         Assert.DoesNotContain(lines, line => line.Contains("o ours", StringComparison.Ordinal));
@@ -682,6 +683,41 @@ public class ConflictEditorFrameBuilderTests
         Assert.Contains(normal.Lines, line => line.Text.Contains("Ctrl-o ours", StringComparison.Ordinal));
         Assert.Contains(editing.Lines, line => line.Text.Contains("Ctrl-o keep", StringComparison.Ordinal));
     }
+
+    [Theory]
+    [InlineData(ConflictPick.Ours, true, false)]
+    [InlineData(ConflictPick.Theirs, false, true)]
+    [InlineData(ConflictPick.Both, true, true)]
+    [InlineData(ConflictPick.None, false, false)]
+    public void GivenAPick_WhenRendering_ThenTheTakenSidesAreMarkedInTheirHeaders(
+        ConflictPick pick,
+        bool oursTaken,
+        bool theirsTaken)
+    {
+        var state = pick == ConflictPick.None ? State(Text) : State(Text).Pick(pick);
+
+        var frame = ConflictEditorFrameBuilder.Build(state, 120, 30, GraphGlyphSet.Unicode)!;
+
+        var header = frame.Lines.Select(line => line.Text).First(line => line.Contains("ours  ", StringComparison.Ordinal));
+        Assert.Equal(oursTaken, header.Contains("ours  [taken]", StringComparison.Ordinal));
+        Assert.Equal(theirsTaken, header.Contains("theirs  [taken]", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void GivenAnyState_WhenRendering_ThenTheResultHeaderSaysHowToTypeInTheResult()
+    {
+        var unresolved = Headers(State(Text));
+        var picked = Headers(State(Text).Pick(ConflictPick.Ours));
+        var editing = Headers(State(Text).Pick(ConflictPick.Ours).BeginEdit());
+
+        Assert.Contains("e type your own", unresolved, StringComparison.Ordinal);
+        Assert.Contains("e to change it by hand", picked, StringComparison.Ordinal);
+        Assert.Contains("EDITING", editing, StringComparison.Ordinal);
+    }
+
+    private static string Headers(ConflictEditorState state) => string.Join(
+        '\n',
+        ConflictEditorFrameBuilder.Build(state, 120, 30, GraphGlyphSet.Unicode)!.Lines.Select(line => line.Text));
 
     private static ConflictEditorState State(string text) =>
         ConflictEditorState.Create(new TabId(1), "file.txt", ConflictParser.Parse(text).Parts!);

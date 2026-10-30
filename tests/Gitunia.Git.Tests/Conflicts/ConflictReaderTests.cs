@@ -32,6 +32,22 @@ public class ConflictReaderTests
     }
 
     [Fact]
+    public async Task GivenALongFileWithFiveConflicts_WhenReading_ThenFiveHunksSitBetweenTheUnconflictedLines()
+    {
+        using var repository = TestRepositories.ConflictedManyHunks();
+
+        var result = await ReadAsync(repository, ConflictPath);
+
+        Assert.Equal(ConflictReadKind.Text, result.Kind);
+        var hunks = result.Parts.Where(part => part.Hunk is not null).Select(part => part.Hunk!).ToList();
+        Assert.Equal(5, hunks.Count);
+        Assert.Equal("line 5 (main)\n", hunks[0].Ours);
+        Assert.Equal("line 66 (other)\n", hunks[4].Theirs);
+        Assert.All(hunks, hunk => Assert.NotNull(hunk.Base));
+        Assert.True(result.Parts.Where(part => part.Hunk is null).Sum(part => part.Common?.Split('\n').Length ?? 0) > 60);
+    }
+
+    [Fact]
     public async Task GivenAMergeStyleFile_WhenReadingTheBase_ThenTheWorkingTreeFileIsNotRewritten()
     {
         using var repository = TestRepositories.Conflicted();
