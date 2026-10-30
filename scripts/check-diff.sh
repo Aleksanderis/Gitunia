@@ -16,17 +16,17 @@ report() {
 }
 
 # decisions.md is append-only: no removed or changed lines, and new entries go under today's dated heading.
-# Exception: a removed line that is added verbatim to docs/history-decisions.md in the same diff is an archive move.
+# Exception: a removed line that is added verbatim to docs/history/decisions.md in the same diff is an archive move.
 archived="$(mktemp)"
 trap 'rm -f "$archived"' EXIT
-git diff -U0 "$base"...HEAD -- docs/history-decisions.md | grep '^+[^+]' | sed 's/^+//' > "$archived" || true
+git diff -U0 "$base"...HEAD -- docs/history/decisions.md | grep '^+[^+]' | sed 's/^+//' > "$archived" || true
 removed="$(git diff -U0 "$base"...HEAD -- docs/decisions.md | grep '^-[^-]' | sed 's/^-//' | grep -cvxF -f "$archived" || true)"
-archive_removed="$(git diff -U0 "$base"...HEAD -- docs/history-decisions.md | grep -c '^-[^-]' || true)"
+archive_removed="$(git diff -U0 "$base"...HEAD -- docs/history/decisions.md | grep -c '^-[^-]' || true)"
 if (( archive_removed > 0 )); then
-    report "docs/history-decisions.md: $archive_removed existing line(s) removed or changed, the archive is append-only"
+    report "docs/history/decisions.md: $archive_removed existing line(s) removed or changed, the archive is append-only"
 fi
 if (( removed > 0 )); then
-    report "docs/decisions.md: $removed existing line(s) removed or changed, the file is append-only (archive moves go verbatim to docs/history-decisions.md in the same diff)"
+    report "docs/decisions.md: $removed existing line(s) removed or changed, the file is append-only (archive moves go verbatim to docs/history/decisions.md in the same diff)"
 fi
 today="$(date +%F)"
 while IFS=$'\t' read -r line heading; do

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Proves the decisions.md append-only check of check-diff.sh: an archive move (removal copied verbatim to
-# docs/history-decisions.md in the same diff) passes, an edit or an unrelated deletion is flagged.
+# docs/history/decisions.md in the same diff) passes, an edit or an unrelated deletion is flagged.
 # Usage: test-check-diff.sh   (exit code 1 on failure)
 set -euo pipefail
 
@@ -10,7 +10,7 @@ trap 'rm -rf "$work"' EXIT
 fail=0
 
 git init -q -b main "$work"
-mkdir -p "$work/scripts" "$work/docs"
+mkdir -p "$work/scripts" "$work/docs/history"
 cp "$root/scripts/check-diff.sh" "$work/scripts/"
 cd "$work"
 git config user.name test
@@ -36,11 +36,12 @@ fresh_branch() {
     git checkout -q main
     git branch -q -D work 2>/dev/null || true
     git checkout -q -b work
+    mkdir -p docs/history
 }
 
 fresh_branch
 printf '# Decisions\n\n## 2026-10-10\n\n**Stack:** one\n\n**Stack:** three\n' > docs/decisions.md
-printf '# History\n\n## 2026-10-10\n\n**Stack:** two\n' > docs/history-decisions.md
+printf '# History\n\n## 2026-10-10\n\n**Stack:** two\n' > docs/history/decisions.md
 git add -A
 git commit -q -m archive
 expect "archive move is accepted" "append-only" 0
@@ -59,17 +60,17 @@ expect "edit of an existing line is flagged" "append-only" 1
 
 fresh_branch
 printf '# Decisions\n\n## 2026-10-10\n\n**Stack:** one\n\n**Stack:** three\n' > docs/decisions.md
-printf '# History\n\n## 2026-10-10\n\n**Stack:** other\n' > docs/history-decisions.md
+printf '# History\n\n## 2026-10-10\n\n**Stack:** other\n' > docs/history/decisions.md
 git add -A
 git commit -q -m mismatch
 expect "removal not found in the archive is flagged" "append-only" 1
 
 fresh_branch
-printf '# History\n\n## 2026-10-10\n\n**Stack:** two\n' > docs/history-decisions.md
+printf '# History\n\n## 2026-10-10\n\n**Stack:** two\n' > docs/history/decisions.md
 git add -A
 git commit -q -m seed
 git checkout -q -b trimmed
-printf '# History\n' > docs/history-decisions.md
+printf '# History\n' > docs/history/decisions.md
 git add -A
 git commit -q -m trim
 out="$(bash scripts/check-diff.sh work 2>&1 || true)"

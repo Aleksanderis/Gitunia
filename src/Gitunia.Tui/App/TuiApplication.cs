@@ -82,7 +82,7 @@ public sealed class TuiApplication(
     ConsoleCapabilities detectedCapabilities,
     IPlatform platform) : IDisposable, ITerminalSuspender
 {
-    // Terminal.Gui's default of 25 iterations per second gave ~34 ms key latency; see docs/history-decisions.md.
+    // Terminal.Gui's default of 25 iterations per second gave ~34 ms key latency; see docs/history/decisions.md.
     private const ushort IterationsPerSecond = 100;
     private const long OverlayDoubleClickGuardMilliseconds = 600;
     private const int ShortHashLength = 7;
