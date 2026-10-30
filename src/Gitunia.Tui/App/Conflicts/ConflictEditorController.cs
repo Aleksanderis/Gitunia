@@ -26,9 +26,9 @@ namespace Gitunia.Tui.App.Conflicts;
 /// result below, which is a text editor of its own (<see cref="ConflictEditorState"/>). A cursor moves in a pane;
 /// on a conflict the pick keys copy that pane's version into the result, in a Visual selection only the selected
 /// lines; the result can be typed in (Normal and Insert mode as in the commit box); every change can be undone and
-/// redone, and <c>Ctrl-x</c> re-creates the conflict of the file after a Confirm. <c>Enter</c> saves the result to the
-/// working tree file, after a Confirm when conflicts are unresolved (they keep their conflict markers), and then
-/// offers to mark the file resolved with the usual Confirm. The editor owns the keys while it is open; a Confirm
+/// redone, and <c>Ctrl-x</c> re-creates the conflict of the file after a Confirm. <c>Ctrl-s</c> saves the result to the
+/// working tree file, after a Confirm when conflicts are unresolved (they keep their conflict markers), and stages
+/// it when none is left (no second Confirm). The editor owns the keys while it is open; a Confirm
 /// opens on top of it.
 /// </summary>
 /// <param name="host">The workspace.</param>
@@ -39,8 +39,8 @@ namespace Gitunia.Tui.App.Conflicts;
 /// <param name="postToUi">Runs an action on the UI thread.</param>
 /// <param name="cancellationOf">The token that ends the work of a tab (the tab was closed).</param>
 /// <param name="confirm">Shows the confirm dialog and runs the callback on <c>y</c>; false when it cannot show.</param>
-/// <param name="askResolved">
-/// Opens the "mark resolved" Confirm for a path of a tab; returns a notice, empty when it asked.
+/// <param name="stageResolved">
+/// Stages a saved, fully resolved path of a tab and reports; returns a notice, empty when it started.
 /// </param>
 /// <param name="refresh">Reads a tab again (refs, graph, status, operation); false when it cannot.</param>
 /// <param name="isOtherOverlayOpen">True while an overlay other than this editor is open.</param>
@@ -61,7 +61,7 @@ public sealed class ConflictEditorController(
     Action<Action> postToUi,
     Func<TabId, CancellationToken> cancellationOf,
     Func<ConfirmPrompt, Action, bool> confirm,
-    Func<RepositoryState, string, string> askResolved,
+    Func<RepositoryState, string, string> stageResolved,
     Func<TabId, bool> refresh,
     Func<bool> isOtherOverlayOpen,
     Func<ScreenSize> screenSize,
@@ -706,6 +706,12 @@ public sealed class ConflictEditorController(
         {
             Update(state.TypeKey(new KeyEvent(KeyNames.Enter)));
         }
+        else if (action == ActionIds.ConflictEditorSave)
+        {
+            // Typing then saving needs no Esc in between: the text is kept as Ctrl-g keeps it.
+            Update(state.EndEdit());
+            Save(State!);
+        }
         else if (action == ActionIds.ConflictEditorEditDone
             || action == ActionIds.Cancel
             || action == ActionIds.NavigateBack)
@@ -905,14 +911,19 @@ public sealed class ConflictEditorController(
         }
 
         Close();
-        refresh(tabId);
-        if (isComplete)
+        if (!isComplete)
         {
-            var notice = askResolved(tab, path);
-            if (notice.Length > 0)
-            {
-                statuses.Warning(notice);
-            }
+            refresh(tabId);
+
+            return;
+        }
+
+        // Staging re-reads the status itself, so the lists and the banner count are current when it reports.
+        var notice = stageResolved(tab, path);
+        if (notice.Length > 0)
+        {
+            refresh(tabId);
+            statuses.Warning(notice);
         }
     }
 
@@ -1037,7 +1048,7 @@ public sealed class ConflictEditorController(
     {
         if (state.IsComplete)
         {
-            return $"Saved {name}: every conflict resolved";
+            return $"Saved {name}";
         }
 
         return $"Saved {name}: {Plural(state.UnresolvedCount, "conflict")} still unresolved";

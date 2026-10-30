@@ -300,7 +300,7 @@ public static class PaneHints
         new("e", "edit in result", [ActionIds.ConflictEditorEdit]),
         new("u", "undo", [ActionIds.ConflictEditorUndo]),
         new("Tab", "pane", [ActionIds.PaneNext]),
-        new("Enter", "save", [ActionIds.ConflictEditorSave]),
+        new("Ctrl-s", "save", [ActionIds.ConflictEditorSave]),
         new("Esc", "close", [ActionIds.NavigateBack]),
     ];
 
@@ -319,7 +319,7 @@ public static class PaneHints
         new("i", "type", [ActionIds.ConflictEditorEdit]),
         new("u", "undo", [ActionIds.ConflictEditorUndo]),
         new("Tab", "pane", [ActionIds.PaneNext]),
-        new("Enter", "save", [ActionIds.ConflictEditorSave]),
+        new("Ctrl-s", "save", [ActionIds.ConflictEditorSave]),
         new("Esc", "close", [ActionIds.NavigateBack]),
     ];
 

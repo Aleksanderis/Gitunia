@@ -9,6 +9,7 @@ Confirm|Global|Esc|cancel
 Confirm|Global|n|confirm.no
 Confirm|Global|y|confirm.yes
 Insert|ConflictResult|Ctrl-g|conflict-editor.edit-done
+Insert|ConflictResult|Ctrl-s|conflict-editor.save
 Insert|ConflictResult|Enter|conflict-editor.edit-newline
 Insert|Global|Alt-1|tab.go-to.1
 Insert|Global|Alt-2|tab.go-to.2
@@ -58,8 +59,8 @@ Insert|WorkingUnstaged|Alt-n|working-tree.toggle-no-verify
 Insert|WorkingUnstaged|Alt-s|working-tree.toggle-sign-off
 Normal|ConflictEditor|<space>u|conflict-editor.untake
 Normal|ConflictEditor|Ctrl-r|conflict-editor.redo
+Normal|ConflictEditor|Ctrl-s|conflict-editor.save
 Normal|ConflictEditor|Ctrl-x|conflict-editor.recreate
-Normal|ConflictEditor|Enter|conflict-editor.save
 Normal|ConflictEditor|Esc|navigate.back
 Normal|ConflictEditor|N|conflict-editor.previous
 Normal|ConflictEditor|[c|conflict-editor.previous

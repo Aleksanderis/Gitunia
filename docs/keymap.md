@@ -219,27 +219,14 @@ Every default key binding, one table per view. The design rules, notation and mo
 | `zh` | Normal, Visual | `conflict-editor.scroll-left` | Conflict editor: scroll the base, ours and theirs panes sideways to the left |
 | `zl` | Normal, Visual | `conflict-editor.scroll-right` | Conflict editor: scroll the base, ours and theirs panes sideways to the right |
 | `Ctrl-x` | Normal | `conflict-editor.recreate` | Conflict editor: re-create the conflict of the file (asks first) |
-| `Enter` | Normal | `conflict-editor.save` | Conflict editor: save the file (asks first) |
+| `Ctrl-s` | Normal | `conflict-editor.save` | Conflict editor: save the file and stage it when resolved |
 | `Esc` | Normal | `navigate.back` | Go back |
-
-## ConflictSide
-
-| Keys | Modes | Action | What |
-|---|---|---|---|
-| `<space>a` | Normal, Visual | `conflict-editor.take` | Conflict editor: take this pane's version for the conflict (a Visual selection: only its lines) |
-| `o` | Normal | `conflict-editor.ours` | Conflict editor: take our side for the conflict |
-| `t` | Normal | `conflict-editor.theirs` | Conflict editor: take their side for the conflict |
-| `b` | Normal | `conflict-editor.base` | Conflict editor: take the common ancestor for the conflict |
-| `m` | Normal | `conflict-editor.both` | Conflict editor: take both sides for the conflict, ours first |
-| `O` | Normal | `conflict-editor.all-ours` | Conflict editor: take our side for every unresolved conflict of the file |
-| `T` | Normal | `conflict-editor.all-theirs` | Conflict editor: take their side for every unresolved conflict of the file |
-| `e` | Normal | `conflict-editor.edit` | Conflict editor: move into the result at this conflict and start typing (Insert mode) |
-| `h` | Normal | `navigate.back` | Go back |
 
 ## ConflictResult
 
 | Keys | Modes | Action | What |
 |---|---|---|---|
+| `Ctrl-s` | Insert | `conflict-editor.save` | Conflict editor: save the file and stage it when resolved |
 | `i` | Normal | `conflict-editor.edit` | Conflict editor: move into the result at this conflict and start typing (Insert mode) |
 | `h` | Normal | `working-tree.message-left` | Message box and conflict result: cursor left |
 | `l` | Normal | `working-tree.message-right` | Message box and conflict result: cursor right |
@@ -255,6 +242,20 @@ Every default key binding, one table per view. The design rules, notation and mo
 | `dd` | Normal | `working-tree.message-delete-line` | Message box and conflict result: delete the line |
 | `Enter` | Insert | `conflict-editor.edit-newline` | Conflict editor: insert a new line in the result |
 | `Ctrl-g` | Insert | `conflict-editor.edit-done` | Conflict editor: stop typing, keep the text |
+
+## ConflictSide
+
+| Keys | Modes | Action | What |
+|---|---|---|---|
+| `<space>a` | Normal, Visual | `conflict-editor.take` | Conflict editor: take this pane's version for the conflict (a Visual selection: only its lines) |
+| `o` | Normal | `conflict-editor.ours` | Conflict editor: take our side for the conflict |
+| `t` | Normal | `conflict-editor.theirs` | Conflict editor: take their side for the conflict |
+| `b` | Normal | `conflict-editor.base` | Conflict editor: take the common ancestor for the conflict |
+| `m` | Normal | `conflict-editor.both` | Conflict editor: take both sides for the conflict, ours first |
+| `O` | Normal | `conflict-editor.all-ours` | Conflict editor: take our side for every unresolved conflict of the file |
+| `T` | Normal | `conflict-editor.all-theirs` | Conflict editor: take their side for every unresolved conflict of the file |
+| `e` | Normal | `conflict-editor.edit` | Conflict editor: move into the result at this conflict and start typing (Insert mode) |
+| `h` | Normal | `navigate.back` | Go back |
 
 ## Detail
 

@@ -165,7 +165,7 @@ Grouped as the palette groups them (`ActionCatalog.GroupOf`). "Old" lists every 
 | `conflict-editor.previous` | Conflict editor: go to the previous conflict hunk | `N` | same | Everyday |  |
 | `conflict-editor.recreate` | Conflict editor: re-create the conflict of the file (asks first) | `R` | `Ctrl-x` | Advanced |  |
 | `conflict-editor.redo` | Conflict editor: redo the undone pick or edit | `Ctrl-r` | same | Advanced |  |
-| `conflict-editor.save` | Conflict editor: save the file (asks first) | `Enter` | same | Everyday |  |
+| `conflict-editor.save` | Conflict editor: save the file and stage it when resolved | `Ctrl-s` | same | Everyday |  |
 | `conflict-editor.scroll-left` | Conflict editor: scroll the base, ours and theirs panes sideways to the left | `zh` | same | Advanced | not in the approved list (#862 came after it) |
 | `conflict-editor.scroll-right` | Conflict editor: scroll the base, ours and theirs panes sideways to the right | `zl` | same | Advanced | not in the approved list (#862 came after it) |
 | `conflict-editor.take` | Conflict editor: take this pane's version for the conflict (a Visual selection: only its lines) | `<space>a` | same | Everyday | not in the approved list (#862 came after it) |

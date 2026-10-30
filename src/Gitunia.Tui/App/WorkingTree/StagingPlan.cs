@@ -11,6 +11,9 @@ public sealed record StagingPlan(IReadOnlyList<string> Paths, string Name, int C
     /// <summary>The plan marks a conflicted file resolved (an <c>add</c>), so the report says so.</summary>
     public bool IsResolve { get; init; }
 
+    /// <summary>The plan stages a file the conflict editor just saved with every conflict resolved.</summary>
+    public bool IsSavedResolve { get; init; }
+
     public static StagingPlan Refused(string notice) => new([], string.Empty, 0, 0, notice);
 
     public static StagingPlan For(IReadOnlyList<string> paths, string name, int count, int skipped) =>

@@ -92,7 +92,7 @@ Views inherit like in the keymap: `Lists` covers Graph, Detail, Sidebar, Diff an
 | ConflictButton.EditDone | Click | `conflict-editor.edit-done` | Chip `Ctrl-g keep`, the only chip while the result is typed in |
 | ConflictButton.Next | Click | `conflict-editor.next` | Chip `n next conflict` |
 | ConflictButton.Previous | Click | `conflict-editor.previous` | Chip `N previous conflict` |
-| ConflictButton.Save | Click | `conflict-editor.save` | Chip `Enter save`: saves (asks first when conflicts are unresolved) |
+| ConflictButton.Save | Click | `conflict-editor.save` | Chip `Ctrl-s save`: saves and stages (asks first when conflicts are unresolved, and then does not stage) |
 | ConflictButton.Cancel | Click | `navigate.back` | Chip `Esc close`: closes the editor like `Esc` |
 | Settings | Wheel up | `list.up` | Scroll the column under the pointer up 3 rows (the categories or the settings) |
 | Settings | Wheel down | `list.down` | Scroll the column under the pointer down 3 rows |

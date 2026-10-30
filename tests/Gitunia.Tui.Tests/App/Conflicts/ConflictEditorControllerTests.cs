@@ -55,10 +55,10 @@ public class ConflictEditorControllerTests
 
         Assert.False(harness.Controller.IsOpen);
         Assert.Equal("main\nother\n", File.ReadAllText(harness.FullPath));
-        Assert.Equal([ConflictPath], harness.ResolvedAsked);
+        Assert.Equal([ConflictPath], harness.StageRequested);
         Assert.Empty(harness.Prompts);
-        Assert.Contains("every conflict resolved", harness.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
-        Assert.Equal(1, harness.Refreshes);
+        Assert.Contains("Saved", harness.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
+        Assert.Equal(0, harness.Refreshes);
         Assert.Contains(ConflictPath, repository.Git("ls-files", "-u"), StringComparison.Ordinal);
         Finish(repository, operation);
         Assert.Equal("main\nother\n", repository.Git("show", "HEAD:conflict.txt").Replace("\r", string.Empty));
@@ -77,7 +77,7 @@ public class ConflictEditorControllerTests
         await harness.WaitAsync();
 
         Assert.DoesNotContain("<<<<<<<", File.ReadAllText(harness.FullPath), StringComparison.Ordinal);
-        Assert.Equal([ConflictPath], harness.ResolvedAsked);
+        Assert.Equal([ConflictPath], harness.StageRequested);
     }
 
     [Fact]
@@ -102,7 +102,7 @@ public class ConflictEditorControllerTests
         Assert.DoesNotContain("II\n", saved, StringComparison.Ordinal);
         Assert.Contains("<<<<<<<", saved, StringComparison.Ordinal);
         Assert.Contains("XI\n", saved, StringComparison.Ordinal);
-        Assert.Empty(harness.ResolvedAsked);
+        Assert.Empty(harness.StageRequested);
         Assert.Contains("1 conflict still unresolved", harness.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
     }
 
@@ -175,7 +175,7 @@ public class ConflictEditorControllerTests
         Assert.Equal("edited elsewhere\n", File.ReadAllText(harness.FullPath));
         Assert.True(harness.Controller.IsOpen);
         Assert.Contains("changed on disk", harness.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
-        Assert.Empty(harness.ResolvedAsked);
+        Assert.Empty(harness.StageRequested);
     }
 
     [Fact]
@@ -193,7 +193,7 @@ public class ConflictEditorControllerTests
         await harness.WaitForStatusAsync("Saved");
         Assert.False(harness.Controller.IsOpen);
         Assert.Equal("other\n", File.ReadAllText(harness.FullPath).Replace("\r", string.Empty));
-        Assert.Equal([ConflictPath], harness.ResolvedAsked);
+        Assert.Equal([ConflictPath], harness.StageRequested);
     }
 
     [Fact]
@@ -472,7 +472,7 @@ public class ConflictEditorControllerTests
         await harness.WaitAsync();
 
         Assert.Equal("hand\nmademain\n", File.ReadAllText(harness.FullPath).Replace("\r", string.Empty));
-        Assert.Equal([ConflictPath], harness.ResolvedAsked);
+        Assert.Equal([ConflictPath], harness.StageRequested);
     }
 
     [Fact]
@@ -1143,7 +1143,7 @@ public class ConflictEditorControllerTests
         var saved = File.ReadAllText(harness.FullPath).Replace("\r", string.Empty);
         Assert.Contains("II\n", saved, StringComparison.Ordinal);
         Assert.DoesNotContain("two\n", saved, StringComparison.Ordinal);
-        Assert.Empty(harness.ResolvedAsked);
+        Assert.Empty(harness.StageRequested);
     }
 
     [Fact]
@@ -1160,6 +1160,42 @@ public class ConflictEditorControllerTests
     }
 
     [Fact]
+    public async Task GivenTypingInTheResult_WhenSaving_ThenTheTypedTextIsKeptSavedAndStagedWithoutEsc()
+    {
+        using var repository = AddedOnBothSides();
+        using var harness = await Harness.CreateAsync(repository);
+        await harness.OpenAsync();
+        harness.Run(ActionIds.ConflictEditorTheirs);
+        harness.Run(ActionIds.ConflictEditorEdit);
+        harness.Type("!");
+
+        harness.Run(ActionIds.ConflictEditorSave);
+        await harness.WaitAsync();
+
+        Assert.False(harness.Controller.IsOpen);
+        Assert.Equal(KeyMode.Normal, harness.Mode);
+        Assert.Equal("!other\n", File.ReadAllText(harness.FullPath).Replace("\r", string.Empty));
+        Assert.Equal([ConflictPath], harness.StageRequested);
+    }
+
+    [Fact]
+    public async Task GivenUnresolvedConflictsLeft_WhenSavingAndConfirming_ThenTheFileIsWrittenButNotStaged()
+    {
+        using var repository = TwoHunks();
+        using var harness = await Harness.CreateAsync(repository);
+        await harness.OpenAsync();
+        harness.Run(ActionIds.ConflictEditorOurs);
+
+        harness.Run(ActionIds.ConflictEditorSave);
+        harness.Answer();
+        await harness.WaitAsync();
+
+        Assert.Contains("<<<<<<<", File.ReadAllText(harness.FullPath), StringComparison.Ordinal);
+        Assert.Empty(harness.StageRequested);
+        Assert.Equal(1, harness.Refreshes);
+    }
+
+    [Fact]
     public async Task GivenInsertMode_WhenAnotherActionComes_ThenItIsIgnoredAndTheModeStays()
     {
         using var repository = TestRepositories.Conflicted();
@@ -1168,7 +1204,7 @@ public class ConflictEditorControllerTests
         harness.Run(ActionIds.ConflictEditorEdit);
 
         harness.Run(ActionIds.ConflictEditorOurs);
-        harness.Run(ActionIds.ConflictEditorSave);
+        harness.Run(ActionIds.ConflictEditorUndo);
 
         Assert.Equal(KeyMode.Insert, harness.Mode);
         Assert.True(harness.Controller.IsEditing);
@@ -1390,7 +1426,7 @@ public class ConflictEditorControllerTests
                 Pump.Post,
                 _ => TestContext.Current.CancellationToken,
                 Confirm,
-                AskResolved,
+                StageResolved,
                 _ =>
                 {
                     Refreshes++;
@@ -1417,7 +1453,7 @@ public class ConflictEditorControllerTests
 
         public List<ConfirmPrompt> Prompts { get; } = [];
 
-        public List<string> ResolvedAsked { get; } = [];
+        public List<string> StageRequested { get; } = [];
 
         public int Refreshes { get; private set; }
 
@@ -1588,9 +1624,9 @@ public class ConflictEditorControllerTests
             return true;
         }
 
-        private string AskResolved(RepositoryState tab, string path)
+        private string StageResolved(RepositoryState tab, string path)
         {
-            ResolvedAsked.Add(path);
+            StageRequested.Add(path);
 
             return string.Empty;
         }
