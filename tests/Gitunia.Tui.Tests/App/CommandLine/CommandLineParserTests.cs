@@ -30,9 +30,15 @@ public class CommandLineParserTests
     }
 
     [Fact]
-    public void GivenVersionFlagAmongOthers_WhenParsing_ThenVersionWins()
+    public void GivenVersionFlagAfterPath_WhenParsing_ThenVersionIsRequested()
     {
         Assert.True(CommandLineParser.Parse(["some/repo", "--version"]).ShowsVersion);
+    }
+
+    [Fact]
+    public void GivenInvalidOptionBeforeVersion_WhenParsing_ThenTheErrorWins()
+    {
+        Assert.NotNull(CommandLineParser.Parse(["--zoom", "--version"]).Error);
     }
 
     [Fact]
