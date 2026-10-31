@@ -61,7 +61,7 @@ jobs:
       - name: AOT publish (any IL* warning fails)
         if: steps.aot.outputs.run == 'true'
         run: |
-          dotnet publish src/Gitunia.Tui -c Release -r linux-x64 -p:TreatWarningsAsErrors=true -o out 2>&1 | tee publish.log
+          dotnet publish src/Gitunia.Tui -c Release -r linux-x64 -p:TreatWarningsAsErrors=true ${{ startsWith(github.ref, 'refs/tags/v') && format('-p:Version={0}', github.ref_name) || '' }} -o out 2>&1 | tee publish.log
           test "${PIPESTATUS[0]}" -eq 0
           if grep -E "warning IL[0-9]+" publish.log; then echo "::error::trim/AOT warnings found"; exit 1; fi
       - name: Smoke run
@@ -138,7 +138,7 @@ jobs:
           done
       - name: AOT publish (any IL* warning fails)
         run: |
-          dotnet publish src/Gitunia.Tui -c Release -r win-x64 -p:TreatWarningsAsErrors=true -o out 2>&1 | tee publish.log
+          dotnet publish src/Gitunia.Tui -c Release -r win-x64 -p:TreatWarningsAsErrors=true ${{ startsWith(github.ref, 'refs/tags/v') && format('-p:Version={0}', github.ref_name) || '' }} -o out 2>&1 | tee publish.log
           test "${PIPESTATUS[0]}" -eq 0
           if grep -E "warning IL[0-9]+" publish.log; then echo "::error::trim/AOT warnings found"; exit 1; fi
       - name: Smoke run

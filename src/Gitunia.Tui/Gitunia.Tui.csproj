@@ -12,6 +12,17 @@
     <UseSystemResourceKeys>true</UseSystemResourceKeys>
     <!-- IL* warnings fail the build via the global TreatWarningsAsErrors. -->
   </PropertyGroup>
+  <!-- Bakes $(Version) into a constant (no reflection on assembly attributes, nothing to read at startup). -->
+  <Target Name="GenerateBuildVersion" BeforeTargets="CoreCompile;GenerateMSBuildEditorConfigFileShouldRun">
+    <PropertyGroup>
+      <BuildVersionFile>$(IntermediateOutputPath)BuildVersion.g.cs</BuildVersionFile>
+    </PropertyGroup>
+    <WriteLinesToFile File="$(BuildVersionFile)" Lines="namespace Gitunia.Tui%3B internal static class BuildVersion { public const string Value = &quot;$(Version)&quot;%3B }" Overwrite="true" WriteOnlyWhenDifferent="true" />
+    <ItemGroup>
+      <Compile Include="$(BuildVersionFile)" />
+      <FileWrites Include="$(BuildVersionFile)" />
+    </ItemGroup>
+  </Target>
   <ItemGroup>
     <PackageReference Include="Terminal.Gui" />
     <ProjectReference Include="..\Gitunia.Core\Gitunia.Core.csproj" />

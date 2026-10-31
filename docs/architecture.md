@@ -81,7 +81,7 @@ A 100 000-file commit loads in 0.6 s with the AOT binary and a worst-case filter
 
 ## Native AOT
 
-Rules: `.claude/rules/csharp-style.md`. `PublishAot=true` and the trim/AOT analyzers are on from the first commit, `IL*` warnings are errors. Targets: linux-x64 first, then linux-arm64, osx-arm64, win-x64. Release archives for linux-x64 and win-x64 are built on `v*` tags by `ci.yml` (`scripts/package.sh`, draft release).
+Rules: `.claude/rules/csharp-style.md`. `PublishAot=true` and the trim/AOT analyzers are on from the first commit, `IL*` warnings are errors. Targets: linux-x64 first, then linux-arm64, osx-arm64, win-x64. Release archives for linux-x64 and win-x64 are built on `v*` tags by `ci.yml` (`scripts/package.sh`, draft release). On a tag both legs publish with `-p:Version=<tag without v>`; `Directory.Build.props` defaults plain builds to `0.0.0-dev`, and a target in `Gitunia.Tui.csproj` bakes `$(Version)` into the generated constant `BuildVersion.Value` (no reflection, no startup cost). `gitunia --version` prints `gitunia <version>` and exits before any discovery or UI (the check is in `CommandLineParser`).
 
 ## Composition root
 

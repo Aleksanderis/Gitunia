@@ -12,8 +12,9 @@ namespace Gitunia.Tui.App.CommandLine;
 /// <param name="Zoom">With a printed frame: the pane that fills the screen, null for the normal layout. <c>diff</c> implies <see cref="OpenDiff"/>.</param>
 /// <param name="Tab">With a printed frame: the tab of the detail pane (default Changes, what a fresh tab shows).</param>
 /// <param name="Colors">With a printed frame: write ANSI colour sequences for this scheme instead of plain text, null for plain text.</param>
+/// <param name="ShowsVersion">Print the version and exit; nothing else is started.</param>
 /// <param name="Error">Why the arguments are invalid, null when they are fine.</param>
-public sealed record CommandLineOptions(string? RepositoryPath, int? FrameWidth, int? FrameHeight, string? Error, bool OpenDiff = false, PaneKind? Zoom = null, BottomTab Tab = BottomTab.Changes, PaletteSettings? Colors = null)
+public sealed record CommandLineOptions(string? RepositoryPath, int? FrameWidth, int? FrameHeight, string? Error, bool OpenDiff = false, PaneKind? Zoom = null, BottomTab Tab = BottomTab.Changes, PaletteSettings? Colors = null, bool ShowsVersion = false)
 {
     public bool PrintsFrame => FrameWidth is not null && FrameHeight is not null;
 }

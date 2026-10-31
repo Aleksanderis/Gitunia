@@ -30,6 +30,12 @@ public static class Program
             return 2;
         }
 
+        if (options.ShowsVersion)
+        {
+            Console.Out.WriteLine($"{AppInfo.Name} {BuildVersion.Value}");
+            return 0;
+        }
+
         var capabilities = PlatformInfo.Current.DetectConsole();
         if ((options.RepositoryPath is null && !capabilities.IsInteractive) || (options.RepositoryPath is null && options.PrintsFrame))
         {
