@@ -176,14 +176,14 @@ public sealed class StagingActions(
         var token = cancellationOf(tab.Id);
         var paths = PathsOf(entry, WorkingTreeSection.Unstaged);
         var plan = StagingPlan.For(paths, name, 1, 0) with { IsSavedResolve = true };
-        var report = () => ReportResolved(tab.Id, name);
+        var report = () => ReportResolved(tab.Id, name, path);
         _ = Task.Run(() => RunAsync(tab, plan, true, false, report, token), CancellationToken.None);
 
         return string.Empty;
     }
 
     // The status is re-read by now: the conflicted files left are the ones the banner counts.
-    private void ReportResolved(TabId tabId, string name)
+    private void ReportResolved(TabId tabId, string name, string path)
     {
         if (host.Workspace.FindTab(tabId) is not { } tab)
         {
@@ -194,13 +194,39 @@ public sealed class StagingActions(
         if (left == 0)
         {
             var next = tab.Operation is null ? "commit it" : $"{ContinueKeys} continue";
-            statuses.Post($"Resolved and staged {name}: all conflicts resolved, {next}");
+            statuses.Post($"Resolved and staged {name} (Staged list): all conflicts resolved, {next}");
+            SelectInSection(tab, WorkingTreeSection.Staged, path);
 
             return;
         }
 
-        statuses.Post($"Resolved and staged {name}, {OperationText.Plural(left, "conflict")} left");
+        statuses.Post($"Resolved and staged {name} (Staged list), {OperationText.Plural(left, "conflict")} left");
         SelectFirstConflicted(tab);
+    }
+
+    // Lands the cursor on the file's own row, so the user sees where the resolved file went.
+    private void SelectInSection(RepositoryState tab, WorkingTreeSection section, string path)
+    {
+        if (tab.WorkingTree is not { } tree)
+        {
+            return;
+        }
+
+        var entries = tree.EntriesOf(section);
+        var rows = tree.RowsOf(section);
+        for (var row = 0; row < rows.Count; row++)
+        {
+            if (!rows[row].IsFolder && entries[rows[row].EntryIndex].Path == path)
+            {
+                host.Dispatch(new TabCommand(tab.Id, new SelectWorkingTreeFileCommand(section, row)));
+
+                // The selection alone would leave the focus in the other list, with the cursor drawn in an unfocused one.
+                var pane = section == WorkingTreeSection.Staged ? PaneKind.WorkingStaged : PaneKind.WorkingUnstaged;
+                host.Dispatch(new TabCommand(tab.Id, new FocusPaneCommand(pane)));
+
+                return;
+            }
+        }
     }
 
     private void SelectFirstConflicted(RepositoryState tab)

@@ -16,8 +16,8 @@ public sealed record PollOptions(
     int BackoffFactor)
 {
     /// <summary>
-    /// 2 s for refs and 5 s for status, like other clients (lazygit refs 2 s, files 10 s); at least five times the last
-    /// refresh up to 60 s so a big repository is not kept busy by its own polling.
+    /// 2 s for refs and 5 s for status; the status interval is at least five times the last refresh, up to 60 s, so a big
+    /// repository is not kept busy by its own polling.
     /// </summary>
     public static PollOptions Default { get; } = new(
         TimeSpan.FromSeconds(2),

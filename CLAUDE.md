@@ -48,7 +48,6 @@ Read the doc before working in its area; don't rely on memory of it.
 | Any test, fixtures, snapshot tests | `docs/testing.md` and the `testing` skill |
 | Milestone goals and open questions | `docs/roadmap.md` |
 | Anything you are about to ask the owner | `docs/decisions.md` first |
-| Prior art and other clients (local only, gitignored; may be absent) | `docs/private/competitor-research.md` |
 | Why a feature is in or out | `README.md` |
 
 ## Build, test and lint
