@@ -128,6 +128,20 @@ public class HelpBuilderTests
         Assert.Contains(rows, row => row is { Key: "t", Description: "Next tab" });
     }
 
+    [Fact]
+    public void GivenTheLeaderPrefix_WhenBuildingWhichKeyRows_ThenTheRepositoriesGroupNamesCtrlT()
+    {
+        var engine = new KeymapEngine(Table);
+        var feeder = new KeyFeeder(engine);
+        feeder.Feed("<space>");
+
+        var rows = WhichKeyBuilder.Build(
+            engine.Continuations(feeder.State, DefaultKeymap.GraphView),
+            feeder.State.PendingSequence);
+
+        Assert.Contains(rows, row => row.Key == "o" && row.Description.Contains("Ctrl-t", StringComparison.Ordinal));
+    }
+
     [Theory]
     [InlineData(false, new[] { "r" }, new[] { "a", "c", "s" })]
     [InlineData(true, new[] { "r", "a", "c", "s" }, new string[0])]

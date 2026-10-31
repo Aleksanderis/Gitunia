@@ -49,9 +49,9 @@ Every default key binding, one table per view. The design rules, notation and mo
 | `<space>*` | Normal | `view.cycle-command-level` | Cycle the command level (Everyday, Advanced, Advanced+) |
 | `<space>,` | Normal | `settings.open` | Open the settings |
 | `<space>s` | Normal | `working-tree.toggle` | Open or leave the working tree |
-| `<space>rf` | Normal | `remote.fetch` | Fetch the remote of the current branch (prunes) |
-| `<space>rl` | Normal | `remote.pull` | Pull the current branch (fast-forward only) |
-| `<space>rp` | Normal | `remote.push` | Push the current branch |
+| `<space>f` `<space>rf` | Normal | `remote.fetch` | Fetch the remote of the current branch (prunes) |
+| `<space>p` `<space>rl` | Normal | `remote.pull` | Pull the current branch (fast-forward only) |
+| `<space>P` `<space>rp` | Normal | `remote.push` | Push the current branch |
 | `<space>rP` | Normal | `remote.push-force` | Force push the current branch with a lease (asks first) |
 | `<space>bD` | Normal | `remote.delete-branch` | Delete a branch on a remote (asks first) |
 | `<space>rc` | Normal | `remote.cancel` | Cancel the running fetch, pull or push |
@@ -93,7 +93,7 @@ Every default key binding, one table per view. The design rules, notation and mo
 | Keys | Modes | Action | What |
 |---|---|---|---|
 | `<space>h` | Normal | `graph.jump-to-head` | Jump to HEAD |
-| `<space>f` | Normal | `graph.jump-to-ref` | Jump to a ref or hash |
+| `<space>J` | Normal | `graph.jump-to-ref` | Jump to a ref or hash |
 | `<space>j` | Normal | `view.quick-jump-to-row` | Quick jump to a visible row |
 | `Enter` | Normal | `graph.open-details` | Focus the commit details |
 | `y` | Normal | `graph.copy-hash` | Copy the commit hash |

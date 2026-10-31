@@ -24,9 +24,9 @@ Views inherit like in the keymap: `Lists` covers Graph, Detail, Sidebar, Diff an
 | TabDirtyMarker | Click | `working-tree.open` | The `*` of a dirty tab chip: switch to that tab and open its working-tree view (a click elsewhere on the chip only switches); no effect where the marker is cut off |
 | NewTabButton | Click | `picker.open` | The ` + ` button right after the last tab: open the repository picker for a new tab, same as `Ctrl-t` |
 | CommandsButton | Click | `palette.open` | The ` : commands ` button at the right end of the tab row (rows of 44 columns or more; there is no header bar): open the command palette, the menu of the actions of the focused pane and the global ones, each with its keys |
-| RemoteButton.Fetch | Click | `remote.fetch` | The `<space>rf fetch` chip of the tab row (rows of 100 columns or more, the key text from 127), left of the commands button: same as `<space>rf` |
-| RemoteButton.Pull | Click | `remote.pull` | The ` pull ` chip: same as `<space>rl` |
-| RemoteButton.Push | Click | `remote.push` | The ` push ` chip: same as `<space>rp` |
+| RemoteButton.Fetch | Click | `remote.fetch` | The `<space>f fetch` chip of the tab row (rows of 100 columns or more, the key text from 127), left of the commands button: same as `<space>f` (or `<space>rf`) |
+| RemoteButton.Pull | Click | `remote.pull` | The ` pull ` chip: same as `<space>p` (or `<space>rl`) |
+| RemoteButton.Push | Click | `remote.push` | The ` push ` chip: same as `<space>P` (or `<space>rp`) |
 | RemoteButton.Cancel | Click | `remote.cancel` | The `<space>rc cancel` chip that replaces the three chips while one of them runs on the active tab: same as `<space>rc` |
 | BannerButton.Continue | Click | `operation.continue` | The `continue` chip of the in-progress operation banner: same as `<space>gc` |
 | BannerButton.Abort | Click | `operation.abort` | The `abort` chip of the banner: same as `<space>ga` (asks first) |

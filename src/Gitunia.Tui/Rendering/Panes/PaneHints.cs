@@ -54,6 +54,7 @@ public static class PaneHints
         new("Ctrl-d/u", "page", [ActionIds.ListHalfPageDown, ActionIds.ListHalfPageUp]),
         new("<space>h", "HEAD", [ActionIds.GraphJumpToHead]),
         new("<space>j", "quick jump", [ActionIds.QuickJump]),
+        new("Ctrl-t", "repositories", [ActionIds.PickerOpen]),
         PaneMove,
     ];
 
@@ -73,6 +74,7 @@ public static class PaneHints
         new("l/Enter", "expand", [ActionIds.SidebarExpand, ActionIds.SidebarActivate]),
         new("h", "collapse", [ActionIds.SidebarCollapse]),
         new("/", "filter", [ActionIds.SidebarFilter]),
+        new("Ctrl-t", "repositories", [ActionIds.PickerOpen]),
         PaneMove,
     ];
 

@@ -158,8 +158,10 @@ Normal|Global|:|palette.open
 Normal|Global|<space>*|view.cycle-command-level
 Normal|Global|<space>,|settings.open
 Normal|Global|<space><Tab>|tab.last-active
+Normal|Global|<space>P|remote.push
 Normal|Global|<space>bD|remote.delete-branch
 Normal|Global|<space>em|tool.mergetool
+Normal|Global|<space>f|remote.fetch
 Normal|Global|<space>ga|operation.abort
 Normal|Global|<space>gc|operation.continue
 Normal|Global|<space>gr|conflict.open
@@ -172,6 +174,7 @@ Normal|Global|<space>ol|tab.last-active
 Normal|Global|<space>on|tab.rename
 Normal|Global|<space>oo|picker.open
 Normal|Global|<space>op|repo.pin
+Normal|Global|<space>p|remote.pull
 Normal|Global|<space>rP|remote.push-force
 Normal|Global|<space>ra|remote.add
 Normal|Global|<space>rc|remote.cancel
@@ -223,6 +226,7 @@ Normal|Global|gt|tab.next
 Normal|Global|q|app.quit
 Normal|Graph|<space>.|menu.open-for-row
 Normal|Graph|<space>=|graph.compare
+Normal|Graph|<space>J|graph.jump-to-ref
 Normal|Graph|<space>bC|branch.create-only
 Normal|Graph|<space>bM|merge.branch-no-ff
 Normal|Graph|<space>bU|branch.unset-upstream
@@ -245,7 +249,6 @@ Normal|Graph|<space>bv|pick.revert
 Normal|Graph|<space>bx|reset.branch
 Normal|Graph|<space>ec|tool.commit-editor
 Normal|Graph|<space>ed|tool.difftool
-Normal|Graph|<space>f|graph.jump-to-ref
 Normal|Graph|<space>h|graph.jump-to-head
 Normal|Graph|<space>j|view.quick-jump-to-row
 Normal|Graph|<space>l|reflog.open

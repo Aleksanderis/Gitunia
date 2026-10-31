@@ -457,7 +457,7 @@ public sealed class BranchActions(
         var name = branch!.Name;
         if (branch.IsCurrent)
         {
-            return $"{name} is checked out: pull it with <space>rl instead";
+            return $"{name} is checked out: pull it with <space>p instead";
         }
 
         if (branch.CheckedOutIn is { } path)

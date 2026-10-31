@@ -22,7 +22,7 @@ public static class ChromeBuilder
 
         if (model.TabCount == 0)
         {
-            return new LineBuilder(width, glyphs.Ellipsis).Append(" no repository open", SegmentRole.Status).Build(SegmentRole.Status);
+            return new LineBuilder(width, glyphs.Ellipsis).Append(" no repository open: Ctrl-t to open one", SegmentRole.Status).Build(SegmentRole.Status);
         }
 
         return new LineBuilder(width, glyphs.Ellipsis)

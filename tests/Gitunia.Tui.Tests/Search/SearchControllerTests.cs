@@ -263,7 +263,7 @@ public class SearchControllerTests
         harness.Press(Key.Enter);
 
         harness.Press(new Key(' '));
-        harness.Press(new Key('f'));
+        harness.Press(new Key('J'));
         harness.Press(Key.Esc);
 
         Assert.Equal(KeyMode.Normal, harness.Mode);
