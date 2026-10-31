@@ -550,8 +550,8 @@ Every default key binding, one table per view. The design rules, notation and mo
 
 | Keys | Modes | Action | What |
 |---|---|---|---|
-| `Tab` `l` | Normal | `help.tab-next` | Next help tab |
-| `Shift-Tab` `h` | Normal | `help.tab-previous` | Previous help tab |
+| `Tab` `l` | Normal | `help.tab-next` | Next help section |
+| `Shift-Tab` `h` | Normal | `help.tab-previous` | Previous help section |
 
 ## ContextRepeat
 
@@ -578,7 +578,7 @@ No default key; reached from the command palette (`:`), the actions menu, the mo
 
 | Action | What |
 |---|---|
-| `help.tab-select` | Show the clicked help tab |
+| `help.tab-select` | Show the clicked help section |
 | `pick.mainline` | Choose the mainline parent in the open cherry-pick or revert prompt |
 | `remote.fetch-all` | Fetch all remotes (prunes) |
 | `settings.open-theme` | Open the settings at the theme |
