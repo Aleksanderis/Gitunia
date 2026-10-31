@@ -163,16 +163,16 @@ public class StagingActionsTests
     }
 
     [Fact]
-    public async Task GivenTheFirstOfThreeConflictedFiles_WhenTheEditorStagesIt_ThenTheCursorMovesToTheFirstLeft()
+    public async Task GivenTheMiddleOfThreeConflictedFiles_WhenTheEditorStagesIt_ThenTheCursorMovesToTheFirstLeftNotTheSameIndex()
     {
         using var harness = new Harness(Conflict("a.txt"), Conflict("b.txt"), Conflict("c.txt"));
-        harness.Select(WorkingTreeSection.Unstaged, 0);
-        harness.ReloadOnRefresh(Conflict("b.txt"), Conflict("c.txt"), StagedModified("a.txt"));
+        harness.Select(WorkingTreeSection.Unstaged, 1);
+        harness.ReloadOnRefresh(Conflict("a.txt"), Conflict("c.txt"), StagedModified("b.txt"));
 
-        harness.Staging.StageResolvedFor(harness.Tab, "a.txt");
+        harness.Staging.StageResolvedFor(harness.Tab, "b.txt");
         await harness.Pump.RunUntilAsync(() => !harness.Staging.IsRunning);
 
-        Assert.Equal(new WorkingTreeSelection(WorkingTreeSection.Unstaged, "b.txt", 0), harness.Selection);
+        Assert.Equal(new WorkingTreeSelection(WorkingTreeSection.Unstaged, "a.txt", 0), harness.Selection);
     }
 
     [Fact]
@@ -208,7 +208,9 @@ public class StagingActionsTests
         Assert.Equal(StatusSeverity.Error, harness.Statuses.Log.Latest!.Severity);
         Assert.Contains("Could not stage", harness.Statuses.Log.Latest.Text, StringComparison.Ordinal);
         Assert.Contains("index.lock exists", harness.Statuses.Log.Latest.Text, StringComparison.Ordinal);
-        Assert.Equal("b.txt", harness.Selection.Path);
+        Assert.DoesNotContain(
+            harness.Statuses.Log.History,
+            entry => entry.Text.StartsWith("Resolved and staged", StringComparison.Ordinal));
     }
 
     [Fact]
