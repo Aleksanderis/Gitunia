@@ -157,7 +157,7 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **UI:** Themes (#61) are JSON files (format and 16-colour rule: `docs/ux.md`, "Theme files"), built-ins embedded in the binary. Published values are nudged where they fail contrast (`docs/ux.md`).
 **Git layer:** Interactive rebase keeps merge commits (#461; supersedes "interactive rebase refuses merges, `--rebase-merges` post-MVP"): git prepares the `--rebase-merges` todo, read through a sequence editor that prints it and fails; label, reset and merge lines are kept and only reordered. Why: the todo is git's to get right; cost is one aborted `rebase` start per read.
 
-**Git layer:** Refresh polls by default (#543; supersedes the ignore-aware watcher of #83/#504 as the default): the active tab reads a fingerprint every 2 s and the status every 5 s, with back-off on slow repositories; file watching is opt-in (`watchFiles`). Why: each `FileSystemWatcher` takes a scarce inotify instance and other clients poll too. Detail: `git-layer.md`.
+**Git layer:** Refresh polls by default (#543; supersedes the ignore-aware watcher of #83/#504 as the default): the active tab reads a fingerprint every 2 s and the status every 5 s, with back-off on slow repositories; file watching is opt-in (`watchFiles`). Why: each `FileSystemWatcher` takes a scarce inotify instance and polling is cheap. Detail: `git-layer.md`.
 **UI:** File content follows the tree cursor (#635; supersedes "opened with `Enter`, closes when the commit or tab changes" in the #511 entry): beside the tree the pane is always there with a placeholder, a commit change shows the placeholder until the new tree loads, `Esc` returns focus and keeps the content; reads start 40 ms after the cursor rests so a held key does not spawn one per row.
 
 ## 2026-10-24
@@ -173,7 +173,7 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 ## 2026-10-29
 
-**Issue links** (#213, reopened by the owner; supersedes the source of the earlier #213 entry): the `[issuetracker "name"]` sections are read from the effective git config (repository, global, system) as well as from `.issuetracker`; a section of the same name in the file wins. Why: the owner's Jira section was not detected and other clients read it from the git config; the file as quoted in the issue already parsed. Cost: one more `git config --list -z` per load.
+**Issue links** (#213, reopened by the owner; supersedes the source of the earlier #213 entry): the `[issuetracker "name"]` sections are read from the effective git config (repository, global, system) as well as from `.issuetracker`; a section of the same name in the file wins. Why: the owner's Jira section was not detected and it belongs in the effective git config; the file as quoted in the issue already parsed. Cost: one more `git config --list -z` per load.
 
 **UI:** Graph colours (#761, owner): one colour per branch name (remote prefix ignored), a hash of the name moved to a free slot. Why: colours that follow the name, not the position; local and remote of one branch match. Detail: `git-layer.md`.
 
@@ -205,7 +205,7 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 ## 2026-11-01
 
-**Process:** The project keeps the name "Gitunia" (#896, owner). Why: the same-named macOS client has little traction, is single-platform and open source, so the collision risk is small and a rename stays cheap before the first release. Re-check that client and the package registries right before the repository goes public; `gitkeel` is the fallback.
+**Process:** The project keeps the name "Gitunia" (#896, owner). Why: the collision risk is small and a rename stays cheap before the first release. Re-check name availability and the package registries right before the repository goes public; `gitkeel` is the fallback.
 
 **UI:** Fetch, pull and push sit on `<space>f`, `<space>p`, `<space>P` (#918, owner); `<space>rf/rl/rp` stay as aliases and jump-to-ref moves to `<space>J`. Why: the most common remote actions deserve two strokes; no bare keys, no new picker key (`Ctrl-t` is named in the `<space>o` entry, hints and empty screen instead). Supersedes the `<space>f` jump and the "`<space>P` is push no more" notes of #840.
 **Process:** Supersedes the reasoning of the 2026-11-01 name entry (#919, owner): the third-party description is no longer relied on; the decision stands, the name "Gitunia" is kept and `gitkeel` stays the fallback. Check the package registries right before the repository goes public.

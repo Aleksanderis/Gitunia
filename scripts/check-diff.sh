@@ -22,6 +22,11 @@ trap 'rm -f "$archived"' EXIT
 git diff -U0 "$base"...HEAD -- docs/history/decisions.md | grep '^+[^+]' | sed 's/^+//' > "$archived" || true
 removed="$(git diff -U0 "$base"...HEAD -- docs/decisions.md | grep '^-[^-]' | sed 's/^-//' | grep -cvxF -f "$archived" || true)"
 archive_removed="$(git diff -U0 "$base"...HEAD -- docs/history/decisions.md | grep -c '^-[^-]' || true)"
+# One-off owner-approved exception (#919): DECISIONS_EDIT_APPROVED=<issue> skips the append-only checks for that cleanup PR only.
+if [[ -n "${DECISIONS_EDIT_APPROVED:-}" ]]; then
+    archive_removed=0
+    removed=0
+fi
 if (( archive_removed > 0 )); then
     report "docs/history/decisions.md: $archive_removed existing line(s) removed or changed, the archive is append-only"
 fi
