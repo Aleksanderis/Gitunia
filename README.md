@@ -24,7 +24,7 @@ In:
 - Reflog: browse it and reset or check out an entry (the undo path for every destructive operation).
 - Interactive rebase editor: reorder, pick, reword, squash, fixup and drop commits.
 - Worktrees: list, add, remove, switch, lock/prune, status per worktree.
-- Stash: list, push, apply, pop, drop.
+- Stash: list, push, apply, pop, drop, restore a single file from a stash.
 - Fetch (with prune), pull, push with progress and cancellation; force push with lease, set upstream on first push, delete a remote branch; dedicated keys and buttons for fetch and pull on top of automatic refresh.
 - Remotes: add, remove, rename, change URL. Clone and init, from the repository picker.
 - Built-in Insert-mode commit message editor, plus hand-off to the user's tools: `$EDITOR`, `git difftool`/`mergetool` (TUI suspends and resumes); clipboard through OSC 52.

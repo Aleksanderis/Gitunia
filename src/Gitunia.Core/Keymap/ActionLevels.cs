@@ -192,6 +192,7 @@ internal static class ActionLevels
             ["stash.apply"] = CommandLevel.Everyday,
             ["stash.drop"] = CommandLevel.Everyday,
             ["stash.pop"] = CommandLevel.Everyday,
+            ["stash.restore-file"] = CommandLevel.AdvancedPlus,
             ["stash.push"] = CommandLevel.Everyday,
             ["stash.push-untracked"] = CommandLevel.AdvancedPlus,
             ["status.dismiss"] = CommandLevel.Everyday,

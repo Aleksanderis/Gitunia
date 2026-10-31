@@ -386,6 +386,8 @@ public static class ActionIds
 
     public static ActionId StashDrop { get; } = new("stash.drop");
 
+    public static ActionId StashRestoreFile { get; } = new("stash.restore-file");
+
     public static ActionId StatusDismiss { get; } = new("status.dismiss");
 
     public static ActionId StatusHistory { get; } = new("status.history");

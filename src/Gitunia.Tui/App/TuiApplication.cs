@@ -1874,6 +1874,22 @@ public sealed class TuiApplication(
     private static SidebarRow? SidebarCursorRow(SidebarListSource source, RepositoryState tab) =>
         source.Rows.IsEmpty ? null : source.Rows[SidebarBuilder.ClampCursor(tab.Sidebar.Cursor, source.Rows.Length)];
 
+    // The file of the shown stash under the cursor of the detail pane's Changes list (restore file).
+    private StashFileTarget? StashFileUnderCursor(RepositoryState tab)
+    {
+        if (tab.View.FocusedPane != PaneKind.Detail || ActiveSession() is not { } session
+            || !_stashView.IsShowing)
+        {
+            return null;
+        }
+
+        return StashFileTargets.Resolve(
+            session.StashView.Shown,
+            session.DetailSource.Content,
+            _view.Detail.SelectedItem ?? -1,
+            session.Details.Current.Details?.UntrackedFileCount ?? 0);
+    }
+
     private IReadOnlyList<IPromptHandler> CreatePrompts(TabOperationGate gate, SidebarListSource sidebarSource)
     {
         var handle = new GraphViewHandle(
@@ -1918,6 +1934,7 @@ public sealed class TuiApplication(
                 tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None,
                 ShowConfirm,
                 tab => SidebarCursorRow(sidebarSource, tab),
+                StashFileUnderCursor,
                 _keys.SetMode,
                 _view.RefreshChrome,
                 gate),

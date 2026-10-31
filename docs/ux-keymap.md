@@ -245,6 +245,7 @@ Grouped as the palette groups them (`ActionCatalog.GroupOf`). "Old" lists every 
 | `stash.pop` | Apply the selected stash and drop it | `<space>Sp` | `<space>kp` | Everyday |  |
 | `stash.push` | Stash the tracked changes (asks for a message) | `<space>Ss` | `<space>ks` | Everyday |  |
 | `stash.push-untracked` | Stash the tracked and untracked changes (asks for a message) | `<space>Su` | `<space>ku` | Advanced+ |  |
+| `stash.restore-file` | Restore the selected file of the shown stash into the working tree (asks first) | (new, #710) | `<space>kr` | Advanced+ | detail pane, Changes tab |
 
 **Working tree**
 

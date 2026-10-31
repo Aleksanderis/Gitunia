@@ -102,6 +102,7 @@ Normal|ContextMenu|k|palette.previous
 Normal|ContextRepeat|+|diff.more-context
 Normal|ContextRepeat|-|diff.less-context
 Normal|ContextRepeat|Esc|repeat.end
+Normal|DetailChanges|<space>kr|stash.restore-file
 Normal|DetailChanges|<space>v1|files.path-name-first
 Normal|DetailChanges|<space>v2|files.path-full-path
 Normal|DetailChanges|<space>v3|files.path-tree

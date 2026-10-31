@@ -29,6 +29,7 @@ namespace Gitunia.Tui.App.Stash;
 /// <param name="cancellationOf">The token that ends the work of a tab (the tab was closed).</param>
 /// <param name="confirm">Shows the confirm dialog, runs the callback on <c>y</c>; false if it cannot show.</param>
 /// <param name="cursorRow">The sidebar row under the cursor of the tab, null when there is none.</param>
+/// <param name="fileTarget">The file of the shown stash under the cursor of the detail pane, null when none.</param>
 /// <param name="setMode">Switches the keymap mode (Insert while the message is typed).</param>
 /// <param name="redraw">Redraws the status bar.</param>
 /// <param name="gate">The one-operation-per-tab gate, shared with the staging actions.</param>
@@ -41,12 +42,15 @@ public sealed class StashController(
     Func<TabId, CancellationToken> cancellationOf,
     Func<ConfirmPrompt, Action, bool> confirm,
     Func<RepositoryState, SidebarRow?> cursorRow,
+    Func<RepositoryState, StashFileTarget?> fileTarget,
     Action<KeyMode> setMode,
     Action redraw,
     TabOperationGate gate) : IPromptHandler
 {
     private const string BusyNotice = "Busy: another operation of this tab is still running";
     private const string NoStashNotice = "Select a stash in the sidebar first";
+    private const string NoFileNotice = "Select a file of a shown stash first (Enter on the stash, Ctrl-j to its files)";
+    private const string TooSmallNoRestoreNotice = "The screen is too small to ask: nothing was restored";
     private const string TooSmallNotice = "The screen is too small to ask: nothing was dropped";
     private const int ShortHashLength = 8;
 
@@ -119,7 +123,7 @@ public sealed class StashController(
 
     private static bool Owns(ActionId action) =>
         action == ActionIds.StashPush || action == ActionIds.StashPushUntracked || action == ActionIds.StashApply
-        || action == ActionIds.StashPop || action == ActionIds.StashDrop;
+        || action == ActionIds.StashPop || action == ActionIds.StashDrop || action == ActionIds.StashRestoreFile;
 
     private bool TryExecutePrompt(ActionId action)
     {
@@ -158,6 +162,17 @@ public sealed class StashController(
             _text = string.Empty;
             setMode(KeyMode.Insert);
             redraw();
+            return string.Empty;
+        }
+
+        if (action == ActionIds.StashRestoreFile)
+        {
+            if (fileTarget(tab) is not { } target)
+            {
+                return NoFileNotice;
+            }
+
+            StartRestoreCheck(tab, target);
             return string.Empty;
         }
 
@@ -249,6 +264,124 @@ public sealed class StashController(
                 result => DropReport(result, entry),
                 token),
             CancellationToken.None);
+    }
+
+    private void StartRestoreCheck(RepositoryState tab, StashFileTarget target)
+    {
+        gate.Begin(tab.Id);
+        var token = cancellationOf(tab.Id);
+        _ = Task.Run(() => CheckRestoreAsync(tab, target, token), CancellationToken.None);
+    }
+
+    private async Task CheckRestoreAsync(RepositoryState tab, StashFileTarget target, CancellationToken token)
+    {
+        try
+        {
+            var state = await writer.CheckRestoreAsync(tab.Location, target.Entry, target.File, token)
+                .ConfigureAwait(false);
+            postToUi(() => AfterRestoreCheck(tab, target, state));
+        }
+        catch (OperationCanceledException) when (token.IsCancellationRequested)
+        {
+            postToUi(() => gate.End(tab.Id));
+        }
+        catch (Exception exception)
+        {
+            var failure = $"Could not restore {target.File.Change.Path}: {OperationText.Reason(exception)}";
+            postToUi(() => Finish(tab.Id, failure, StatusSeverity.Error));
+        }
+    }
+
+    private void AfterRestoreCheck(RepositoryState tab, StashFileTarget target, StashRestoreState state)
+    {
+        gate.End(tab.Id);
+        if (state == StashRestoreState.Overwrites)
+        {
+            if (!confirm(RestorePrompt(target), () => StartRestore(tab, target)))
+            {
+                statuses.Warning(TooSmallNoRestoreNotice);
+            }
+
+            return;
+        }
+
+        if (state == StashRestoreState.Creates)
+        {
+            StartRestore(tab, target);
+            return;
+        }
+
+        var report = RestoreReport(new StashRestoreResult(state, null), target);
+        statuses.Post(report.Text, report.Severity);
+    }
+
+    private void StartRestore(RepositoryState tab, StashFileTarget target)
+    {
+        if (gate.IsBusy(tab.Id))
+        {
+            statuses.Warning($"{BusyNotice}; nothing was restored");
+            return;
+        }
+
+        gate.Begin(tab.Id);
+        var token = cancellationOf(tab.Id);
+        _ = Task.Run(() => RunRestoreAsync(tab, target, token), CancellationToken.None);
+    }
+
+    private async Task RunRestoreAsync(RepositoryState tab, StashFileTarget target, CancellationToken token)
+    {
+        try
+        {
+            var result = await writer.RestoreFileAsync(tab.Location, target.Entry, target.File, token)
+                .ConfigureAwait(false);
+            var done = RestoreReport(result, target);
+            postToUi(() => Finish(tab.Id, done.Text, done.Severity));
+        }
+        catch (OperationCanceledException) when (token.IsCancellationRequested)
+        {
+            postToUi(() => gate.End(tab.Id));
+        }
+        catch (Exception exception)
+        {
+            var failure = $"Could not restore {target.File.Change.Path}: {OperationText.Reason(exception)}";
+            postToUi(() => Finish(tab.Id, failure, StatusSeverity.Error));
+        }
+    }
+
+    private static ConfirmPrompt RestorePrompt(StashFileTarget target) => new(
+        "Restore file from stash",
+        [
+            $"Replace {target.File.Change.Path} in the working tree with its version from {target.Entry.Name}?",
+            "Your current content of the file is lost from the working tree; the stash and the index stay as they are.",
+        ],
+        "Undo: your current content is saved as a git object first; its id is shown afterwards",
+        "Restore file");
+
+    private static StashReport RestoreReport(StashRestoreResult result, StashFileTarget target)
+    {
+        var path = target.File.Change.Path;
+        var name = target.Entry.Name;
+        return result.State switch
+        {
+            StashRestoreState.Missing => Gone(target.Entry),
+            StashRestoreState.NotInStash => new StashReport(
+                $"{name} holds no copy of {path} to restore (the stash deletes it): nothing was changed",
+                StatusSeverity.Warning),
+            StashRestoreState.Identical => new StashReport(
+                $"{path} already matches {name}: nothing to restore",
+                StatusSeverity.Info),
+            _ => new StashReport(RestoredText(result, path, name), StatusSeverity.Info),
+        };
+    }
+
+    private static string RestoredText(StashRestoreResult result, string path, string name)
+    {
+        if (result.BackupBlob is null)
+        {
+            return $"Restored {path} from {name}";
+        }
+
+        return $"Restored {path} from {name}; undo: git cat-file blob {result.BackupBlob} > \"{path}\"";
     }
 
     private async Task RunAsync(
