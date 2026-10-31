@@ -55,10 +55,18 @@ public static class BannerRenderer
 
         if (hint.Length > 0)
         {
-            builder.Append($"{Gap}{hint}", SegmentRole.Status);
+            builder.Append(Gap, SegmentRole.Status);
+            HintBar.AppendOne(builder, SplitHint(hint));
         }
 
         return new BannerLine(builder.Build(SegmentRole.Status), areas);
+    }
+
+    // The hint is "<keys> label"; the keys end at the first space after the closing '>' of a <space> leader.
+    private static HintItem SplitHint(string hint)
+    {
+        var split = hint.IndexOf(' ', Math.Max(0, hint.IndexOf('>')));
+        return split < 0 ? new HintItem(string.Empty, hint) : new HintItem(hint[..split], hint[(split + 1)..]);
     }
 
     private static int ChipsWidth(OperationBanner banner) =>

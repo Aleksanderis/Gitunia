@@ -46,6 +46,20 @@ public class BannerRendererTests
     }
 
     [Fact]
+    public void GivenAnEditorHint_WhenBuilding_ThenItsKeyIsInTheKeyRoleAndItsLabelInTheStatusRole()
+    {
+        var banner = Rebase with { Hint = "<space>gr open conflict editor", ShortHint = "<space>gr conflict editor" };
+
+        var segments = BannerRenderer.Build(banner, 160, GraphGlyphSet.Unicode).Line.Segments;
+
+        var key = segments.Single(segment => segment.Text == "<space>gr");
+        Assert.Equal(SegmentRole.StatusKey, key.Role);
+        var label = segments[segments.ToList().IndexOf(key) + 1];
+        Assert.Equal(SegmentRole.Status, label.Role);
+        Assert.Equal(" open conflict editor", label.Text);
+    }
+
+    [Fact]
     public void GivenAHintAndNarrowWidth_WhenBuilding_ThenTheShortHintReplacesTheLongOneAndTheChipsStayWhole()
     {
         var banner = Rebase with
