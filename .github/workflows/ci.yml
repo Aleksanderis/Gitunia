@@ -17,8 +17,8 @@ permissions:
   contents: read
 
 # Release packaging (#48): on a v* tag the AOT binaries of both legs are archived by scripts/package.sh and attached to
-# a draft GitHub release by the `release` job. Tag runs skip build and tests (#899); the guard job reuses or starts (#921) a green full
-# dispatch run on the same commit. macOS and linux-arm64 binaries follow with their CI legs (#455).
+# a draft GitHub release by the `release` job. Tag runs skip build and tests (#899); the guard job reuses or starts
+# (#921) a green full dispatch run on the same commit. macOS and linux-arm64 binaries follow with their CI legs (#455).
 
 concurrency:
   group: ci-${{ github.ref }}-${{ inputs.platform }}
@@ -34,6 +34,7 @@ jobs:
     timeout-minutes: 60
     permissions:
       actions: write
+      checks: read # `gh run watch` reads job annotations
     steps:
       - name: Require a green full CI run for the tagged commit, starting one if needed (#921)
         env:
