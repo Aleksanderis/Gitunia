@@ -12,6 +12,9 @@ public sealed class StashWriter(GitRunner runner) : IStashWriter
     private const string MessageOption = "-m";
     private const string IncludeUntrackedOption = "--include-untracked";
 
+    private const string LiteralPathspecs = "--literal-pathspecs";
+    private const string UntrackedParent = "^3";
+
     private static readonly TimeSpan WriteTimeout = TimeSpan.FromMinutes(2);
 
     private static readonly string[] TopCommitArguments = ["rev-parse", "--quiet", "--verify", StashRef];
@@ -84,6 +87,82 @@ public sealed class StashWriter(GitRunner runner) : IStashWriter
         string[] arguments = ["stash", "drop", "--quiet", name];
         await runner.RunAsync(location.CommandPath, arguments, WriteOptions, cancellationToken).ConfigureAwait(false);
         return new StashResult(StashOutcome.Done, entry.CommitHash);
+    }
+
+    public async Task<StashRestoreState> CheckRestoreAsync(
+        RepositoryLocation location,
+        StashEntry entry,
+        StashFileChange file,
+        CancellationToken cancellationToken) =>
+        (await InspectAsync(location, entry, file, cancellationToken).ConfigureAwait(false)).State;
+
+    public async Task<StashRestoreResult> RestoreFileAsync(
+        RepositoryLocation location,
+        StashEntry entry,
+        StashFileChange file,
+        CancellationToken cancellationToken)
+    {
+        var inspection = await InspectAsync(location, entry, file, cancellationToken).ConfigureAwait(false);
+        if (inspection.State is not (StashRestoreState.Creates or StashRestoreState.Overwrites))
+        {
+            return new StashRestoreResult(inspection.State, null);
+        }
+
+        string? backup = null;
+        if (inspection.State == StashRestoreState.Overwrites)
+        {
+            // Unfiltered, so the saved blob is the exact bytes on disk (no line-ending or smudge conversion), which
+            // makes "git cat-file blob <id>" a byte-exact undo. It stays reachable by its id until git collects garbage.
+            string[] saveArguments = ["hash-object", "-w", "--no-filters", "--", file.Change.Path];
+            var saved = await runner
+                .RunAsync(location.CommandPath, saveArguments, WriteOptions, cancellationToken)
+                .ConfigureAwait(false);
+            backup = saved.StandardOutputText.Trim();
+        }
+
+        string[] arguments =
+        [
+            LiteralPathspecs, "restore", $"--source={inspection.Source}", "--worktree", "--", file.Change.Path,
+        ];
+        await runner.RunAsync(location.CommandPath, arguments, WriteOptions, cancellationToken).ConfigureAwait(false);
+        return new StashRestoreResult(inspection.State, backup);
+    }
+
+    private async Task<RestoreInspection> InspectAsync(
+        RepositoryLocation location,
+        StashEntry entry,
+        StashFileChange file,
+        CancellationToken cancellationToken)
+    {
+        if (await FindCurrentNameAsync(location, entry, cancellationToken).ConfigureAwait(false) is null)
+        {
+            return new RestoreInspection(StashRestoreState.Missing, string.Empty);
+        }
+
+        // Tracked changes live in the stash commit's tree, the files saved by --include-untracked in its third parent.
+        var source = file.Origin == StashFileOrigin.Untracked ? $"{entry.CommitHash}{UntrackedParent}" : entry.CommitHash;
+        string[] stashedArguments = ["rev-parse", "--quiet", "--verify", $"{source}:{file.Change.Path}"];
+        var stashed = await runner
+            .RunAsync(location.CommandPath, stashedArguments, NoMatchOptions, cancellationToken)
+            .ConfigureAwait(false);
+        if (stashed.ExitCode != 0)
+        {
+            return new RestoreInspection(StashRestoreState.NotInStash, source);
+        }
+
+        var local = Path.Combine(location.CommandPath, file.Change.Path);
+        if (!File.Exists(local) && !Directory.Exists(local) && new FileInfo(local).LinkTarget is null)
+        {
+            return new RestoreInspection(StashRestoreState.Creates, source);
+        }
+
+        // Hashing applies the same clean filters as git add, so line-ending conversion does not fake a difference.
+        string[] localArguments = ["hash-object", "--", file.Change.Path];
+        var current = await runner
+            .RunAsync(location.CommandPath, localArguments, GitRunOptions.ReadOnlyRun, cancellationToken)
+            .ConfigureAwait(false);
+        var same = current.StandardOutputText.Trim() == stashed.StandardOutputText.Trim();
+        return new RestoreInspection(same ? StashRestoreState.Identical : StashRestoreState.Overwrites, source);
     }
 
     private async Task<StashResult> ApplyOrPopAsync(

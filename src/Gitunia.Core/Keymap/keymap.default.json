@@ -226,6 +226,7 @@
   { "action": "stash.apply", "view": "Sidebar", "modes": ["Normal"], "keys": ["<space>ka"] },
   { "action": "stash.pop", "view": "Sidebar", "modes": ["Normal"], "keys": ["<space>kp"] },
   { "action": "stash.drop", "view": "Sidebar", "modes": ["Normal"], "keys": ["<space>kd"] },
+  { "action": "stash.restore-file", "view": "DetailChanges", "modes": ["Normal"], "keys": ["<space>kr"] },
   { "action": "worktree.add", "view": "Sidebar", "modes": ["Normal"], "keys": ["<space>wa"] },
   { "action": "worktree.remove", "view": "Sidebar", "modes": ["Normal"], "keys": ["<space>wd"] },
   { "action": "worktree.lock", "view": "Sidebar", "modes": ["Normal"], "keys": ["<space>wl"] },

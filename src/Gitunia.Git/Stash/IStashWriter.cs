@@ -35,4 +35,25 @@ public interface IStashWriter
     /// <c>git stash store -m "&lt;subject&gt;" &lt;hash&gt;</c> brings it back.
     /// </summary>
     Task<StashResult> DropAsync(RepositoryLocation location, StashEntry entry, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Tells what <see cref="RestoreFileAsync"/> would do with one file of a stash, so the caller can ask first when
+    /// local content would be replaced. Writes nothing.
+    /// </summary>
+    Task<StashRestoreState> CheckRestoreAsync(
+        RepositoryLocation location,
+        StashEntry entry,
+        StashFileChange file,
+        CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Copies one file's stashed version into the working tree (<c>git restore --source=&lt;stash&gt; -- &lt;file&gt;</c>);
+    /// the index, the other files and the stash itself stay as they are. A working-tree file with other content is
+    /// first written to the object database, and its id is returned so the caller can name the undo.
+    /// </summary>
+    Task<StashRestoreResult> RestoreFileAsync(
+        RepositoryLocation location,
+        StashEntry entry,
+        StashFileChange file,
+        CancellationToken cancellationToken);
 }

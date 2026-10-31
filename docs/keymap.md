@@ -291,6 +291,7 @@ Every default key binding, one table per view. The design rules, notation and mo
 | `K` | Normal | `diff.scroll-up` | Scroll the diff up without focusing it |
 | `D` | Normal | `diff.scroll-half-page-down` | Scroll the diff half a page down without focusing it |
 | `U` | Normal | `diff.scroll-half-page-up` | Scroll the diff half a page up without focusing it |
+| `<space>kr` | Normal | `stash.restore-file` | Restore the selected file of the shown stash into the working tree (asks first) |
 
 ## DetailFiles
 

@@ -421,9 +421,11 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
         graphList.SetNeedsDraw();
     }
 
-    // Search and jump-to-ref work on the graph; in other panes only the accept/cancel actions of an open prompt apply.
+    // Search and jump-to-ref work on the graph; in other panes only the accept/cancel actions of an open prompt apply,
+    // and the stash file restore, which acts on the detail pane.
     private bool OffersToPrompts(ActionId action) =>
-        FocusedPane == PaneKind.Graph || action == ActionIds.InputAccept || action == ActionIds.Cancel || action == ActionIds.TabRename;
+        FocusedPane == PaneKind.Graph || action == ActionIds.InputAccept || action == ActionIds.Cancel || action == ActionIds.TabRename
+        || action == ActionIds.StashRestoreFile;
 
     private static void Select(ListView list, int item)
     {

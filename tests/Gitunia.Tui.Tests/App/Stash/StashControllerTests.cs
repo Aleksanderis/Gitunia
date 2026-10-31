@@ -7,6 +7,7 @@ using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
+using Gitunia.Git.Commits.Models;
 using Gitunia.Git.Execution.Exceptions;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Stash;
@@ -240,6 +241,85 @@ public class StashControllerTests
     }
 
     [Fact]
+    public async Task GivenAFileWithLocalChanges_WhenRestoring_ThenTheDialogNamesFileAndStashAndNothingRunsUntilYes()
+    {
+        using var harness = new Harness();
+
+        harness.Execute(ActionIds.StashRestoreFile);
+        await harness.Pump.RunUntilAsync(() => harness.Prompts.Count > 0);
+
+        var prompt = Assert.Single(harness.Prompts);
+        Assert.Equal("Restore file from stash", prompt.Title);
+        Assert.Contains("src/a.txt", prompt.Lines[0], StringComparison.Ordinal);
+        Assert.Contains("stash@{0}", prompt.Lines[0], StringComparison.Ordinal);
+        Assert.Contains("Undo:", prompt.Consequence, StringComparison.Ordinal);
+        Assert.Equal(["check-restore|stash@{0}|src/a.txt|Tracked"], harness.Writer.Calls);
+    }
+
+    [Fact]
+    public async Task GivenTheRestoreIsConfirmed_WhenItFinishes_ThenTheMessageHasTheUndoCommandAndTheTabRefreshes()
+    {
+        using var harness = new Harness();
+        harness.Execute(ActionIds.StashRestoreFile);
+        await harness.Pump.RunUntilAsync(() => harness.Prompts.Count > 0);
+
+        harness.Answer();
+        await harness.WaitAsync();
+
+        Assert.Equal(
+            ["check-restore|stash@{0}|src/a.txt|Tracked", "restore|stash@{0}|src/a.txt|Tracked"],
+            harness.Writer.Calls);
+        var message = harness.Statuses.Log.Latest!.Text;
+        Assert.Contains("Restored src/a.txt from stash@{0}", message, StringComparison.Ordinal);
+        Assert.Contains("git cat-file blob feedbeef > \"src/a.txt\"", message, StringComparison.Ordinal);
+        Assert.Equal(1, harness.Refreshes);
+    }
+
+    [Fact]
+    public async Task GivenTheFileIsNotInTheWorkingTree_WhenRestoring_ThenItRunsWithoutAskingAndHasNoUndo()
+    {
+        using var harness = new Harness();
+        harness.Writer.RestoreState = StashRestoreState.Creates;
+
+        harness.Execute(ActionIds.StashRestoreFile);
+        await harness.WaitAsync();
+
+        Assert.Empty(harness.Prompts);
+        Assert.Equal("Restored src/a.txt from stash@{0}", harness.Statuses.Log.Latest!.Text);
+    }
+
+    [Theory]
+    [InlineData(StashRestoreState.Identical, "already matches")]
+    [InlineData(StashRestoreState.NotInStash, "holds no copy")]
+    [InlineData(StashRestoreState.Missing, "no longer in the stash list")]
+    public async Task GivenNothingToRestore_WhenRestoring_ThenItSaysWhyAndWritesNothing(
+        StashRestoreState state,
+        string expected)
+    {
+        using var harness = new Harness();
+        harness.Writer.RestoreState = state;
+
+        harness.Execute(ActionIds.StashRestoreFile);
+        await harness.WaitAsync();
+
+        Assert.Empty(harness.Prompts);
+        Assert.Equal(["check-restore|stash@{0}|src/a.txt|Tracked"], harness.Writer.Calls);
+        Assert.Contains(expected, harness.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GivenNoStashFileUnderTheCursor_WhenRestoring_ThenItIsRefusedWithoutGit()
+    {
+        using var harness = new Harness { FileTarget = null };
+
+        Assert.True(harness.Controller.TryExecute(ActionIds.StashRestoreFile, null));
+
+        Assert.StartsWith("Select a file of a shown stash", harness.Controller.Notice, StringComparison.Ordinal);
+        Assert.Empty(harness.Writer.Calls);
+        Assert.Empty(harness.Prompts);
+    }
+
+    [Fact]
     public void GivenAnUnrelatedAction_WhenExecuting_ThenTheControllerLeavesItAlone()
     {
         using var harness = new Harness();
@@ -287,6 +367,7 @@ public class StashControllerTests
                 _ => TestContext.Current.CancellationToken,
                 Confirm,
                 _ => Row,
+                _ => FileTarget,
                 mode => Mode = mode,
                 () => { },
                 Gate);
@@ -309,6 +390,12 @@ public class StashControllerTests
         public List<ConfirmPrompt> Prompts { get; } = [];
 
         public SidebarRow? Row { get; init; }
+
+        public StashFileTarget? FileTarget { get; init; } = new(
+            new StashEntry(0, "stash@{0}", "abc123", "wip"),
+            new StashFileChange(
+                new CommitFileChange("src/a.txt", null, FileChangeKind.Modified, null),
+                StashFileOrigin.Tracked));
 
         public KeyMode Mode { get; private set; } = KeyMode.Normal;
 

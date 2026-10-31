@@ -43,6 +43,37 @@ public sealed class FakeStashWriter : IStashWriter
         CancellationToken cancellationToken) =>
         Answer($"drop|{entry.Name}", entry.CommitHash);
 
+    /// <summary>What the restore check and the restore find.</summary>
+    public StashRestoreState RestoreState { get; set; } = StashRestoreState.Overwrites;
+
+    public Task<StashRestoreState> CheckRestoreAsync(
+        RepositoryLocation location,
+        StashEntry entry,
+        StashFileChange file,
+        CancellationToken cancellationToken)
+    {
+        Calls.Add($"check-restore|{entry.Name}|{file.Change.Path}|{file.Origin}");
+
+        return Failure is null ? Task.FromResult(RestoreState) : Task.FromException<StashRestoreState>(Failure);
+    }
+
+    public Task<StashRestoreResult> RestoreFileAsync(
+        RepositoryLocation location,
+        StashEntry entry,
+        StashFileChange file,
+        CancellationToken cancellationToken)
+    {
+        Calls.Add($"restore|{entry.Name}|{file.Change.Path}|{file.Origin}");
+        if (Failure is not null)
+        {
+            return Task.FromException<StashRestoreResult>(Failure);
+        }
+
+        var backup = RestoreState == StashRestoreState.Overwrites ? "feedbeef" : null;
+
+        return Task.FromResult(new StashRestoreResult(RestoreState, backup));
+    }
+
     private Task<StashResult> Answer(string call, string hash)
     {
         Calls.Add(call);

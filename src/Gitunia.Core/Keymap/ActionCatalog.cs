@@ -346,6 +346,7 @@ public static class ActionCatalog
         ["stash.apply"] = "Apply the selected stash and keep it",
         ["stash.drop"] = "Drop the selected stash (asks first)",
         ["stash.pop"] = "Apply the selected stash and drop it",
+        ["stash.restore-file"] = "Restore the selected file of the shown stash into the working tree (asks first)",
         ["stash.push"] = "Stash the tracked changes (asks for a message)",
         ["stash.push-untracked"] = "Stash the tracked and untracked changes (asks for a message)",
         ["status.dismiss"] = "Dismiss the status message",
