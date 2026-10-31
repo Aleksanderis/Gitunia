@@ -191,7 +191,7 @@ public sealed class PaletteTable
             return Ansi16Light(settings.PaintsBase, settings.Definition?.Ansi);
         }
 
-        return Ansi16Dark(settings.PaintsBase, settings.Definition?.Ansi);
+        return Ansi16Dark(settings.PaintsBase, settings.Definition?.Ansi, settings.IsClassicConsole);
     }
 
     // Catppuccin Mocha (dark) and Latte (light), https://catppuccin.com/palette (MIT licensed colour values, see docs/decisions.md).
@@ -260,9 +260,9 @@ public sealed class PaletteTable
     // The 16 named colours: the terminal's theme maps them, so they stay readable whatever it is. The selection uses
     // bright black on a dark terminal and the light grey on a light one; the unfocused selection is underlined, since
     // no second background is safe on every theme.
-    private static PaletteTable Ansi16Dark(bool paintsBase, IReadOnlyDictionary<string, string>? ansi) => new()
+    private static PaletteTable Ansi16Dark(bool paintsBase, IReadOnlyDictionary<string, string>? ansi, bool classicConsole) => new()
     {
-        Accent = Named(ansi, ThemeRoles.Accent, ColorName16.BrightBlue),
+        Accent = Named(ansi, ThemeRoles.Accent, classicConsole ? ColorName16.BrightCyan : ColorName16.BrightBlue),
         Good = Named(ansi, ThemeRoles.Good, ColorName16.BrightGreen),
         Bad = Named(ansi, ThemeRoles.Bad, ColorName16.BrightRed),
         Remote = Named(ansi, ThemeRoles.Remote, ColorName16.BrightMagenta),
@@ -283,7 +283,7 @@ public sealed class PaletteTable
         GroupBackground = Color.None,
         TabButtonBackground = Color.None,
         ChipForeground = Named(ColorName16.Black),
-        ChipBackground = Named(ansi, ThemeRoles.ChipBackground, ColorName16.BrightBlue),
+        ChipBackground = Named(ansi, ThemeRoles.ChipBackground, classicConsole ? ColorName16.BrightCyan : ColorName16.BrightBlue),
         MatchForeground = Named(ColorName16.Black),
         MatchBackground = Named(ColorName16.BrightYellow),
         BaseForeground = paintsBase ? Named(ColorName16.Gray) : Color.None,

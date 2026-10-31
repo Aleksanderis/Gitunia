@@ -84,6 +84,16 @@ public class PaletteTests
         Assert.Equal(Color.None, attribute.Background);
     }
 
+    [Fact]
+    public void GivenTheClassicConsole_WhenChoosingSixteenColours_ThenAccentAndChipAvoidDarkBlue()
+    {
+        var classic = PaletteTable.For(new PaletteSettings(ColorDepth.Ansi16, false, IsClassicConsole: true));
+        var other = PaletteTable.For(new PaletteSettings(ColorDepth.Ansi16, false));
+
+        Assert.NotEqual(other.Accent, classic.Accent);
+        Assert.NotEqual(other.ChipBackground, classic.ChipBackground);
+    }
+
     [Theory]
     [MemberData(nameof(Variants))]
     public void GivenTrueColorScheme_WhenColouringAnyRole_ThenTextIsReadableOnItsBackground(bool isLight)

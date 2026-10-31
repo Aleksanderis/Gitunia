@@ -206,6 +206,24 @@ public sealed class OptionsConfiguratorTests
     }
 
     [Fact]
+    public void GivenNoLabelCaps_WhenReadingTheOptions_ThenThePlatformDefaultApplies()
+    {
+        Assert.Equal(LabelCapStyle.Rounded, OptionsConfigurator.Read(new ConfigDocument(), Home, Exists, []).LabelCaps);
+        Assert.Equal(LabelCapStyle.None, OptionsConfigurator.Read(new ConfigDocument(), Home, Exists, [], LabelCapStyle.None).LabelCaps);
+    }
+
+    [Theory]
+    [InlineData("\"rounded\"", LabelCapStyle.Rounded)]
+    [InlineData("\"angled\"", LabelCapStyle.Angled)]
+    [InlineData("\"none\"", LabelCapStyle.None)]
+    public void GivenAnExplicitLabelCaps_WhenThePlatformDefaultIsNone_ThenTheSettingWins(string json, LabelCapStyle expected)
+    {
+        var document = new ConfigDocument { LabelCaps = Json(json) };
+
+        Assert.Equal(expected, OptionsConfigurator.Read(document, Home, Exists, [], LabelCapStyle.None).LabelCaps);
+    }
+
+    [Fact]
     public void GivenNoScanRoots_WhenParsing_ThenNullMeansTheConventionalFolders()
     {
         var problems = new List<ConfigProblem>();

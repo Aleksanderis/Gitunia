@@ -449,7 +449,8 @@ public sealed class SettingsController(
             snapshot,
             environment.HomeDirectory,
             environment.DirectoryExists,
-            environment.ThemeNames);
+            environment.ThemeNames,
+            environment.DefaultLabelCaps);
 
     private void Finished(Action<SettingsRead> then, SettingsRead read)
     {

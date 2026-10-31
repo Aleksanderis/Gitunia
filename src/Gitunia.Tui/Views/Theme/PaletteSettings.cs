@@ -15,11 +15,13 @@ namespace Gitunia.Tui.Views.Theme;
 /// <param name="Definition">
 /// A theme file to take the colours (24-bit) and the 16-colour overrides from, null for the built-in schemes.
 /// </param>
+/// <param name="IsClassicConsole">The classic Windows console: the 16-colour scheme avoids dark blue, which is hard to read there (#574).</param>
 public sealed record PaletteSettings(
     ColorDepth Depth,
     bool IsLightBackground,
     bool PaintsBase = false,
-    ThemeDefinition? Definition = null)
+    ThemeDefinition? Definition = null,
+    bool IsClassicConsole = false)
 {
     /// <summary>The scheme used before the terminal is known: 24-bit colours for a dark background.</summary>
     public static PaletteSettings Default { get; } = new(ColorDepth.TrueColor, false);
@@ -61,6 +63,6 @@ public sealed record PaletteSettings(
     public static PaletteSettings Choose(ConsoleCapabilities capabilities, bool driverEmitsTrueColor)
     {
         var depth = capabilities.Color is ColorDepth.TrueColor or ColorDepth.Ansi256 && !driverEmitsTrueColor ? ColorDepth.Ansi16 : capabilities.Color;
-        return new PaletteSettings(depth, capabilities.IsLightBackground);
+        return new PaletteSettings(depth, capabilities.IsLightBackground, IsClassicConsole: capabilities.IsClassicConsole);
     }
 }

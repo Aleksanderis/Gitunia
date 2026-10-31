@@ -20,11 +20,13 @@ public static class SettingsValueReader
     /// <param name="homeDirectory">What a leading <c>~</c> in a scan root stands for.</param>
     /// <param name="directoryExists">Whether a folder exists (injected so this stays pure).</param>
     /// <param name="themeNames">The names of the theme files that exist; null for the built-in ones only.</param>
+    /// <param name="defaultLabelCaps">What the label caps are when the file does not set them.</param>
     public static SettingsLoad Read(
         ConfigSnapshot snapshot,
         string homeDirectory,
         Func<string, bool> directoryExists,
-        IReadOnlyCollection<string>? themeNames = null)
+        IReadOnlyCollection<string>? themeNames = null,
+        LabelCapStyle defaultLabelCaps = LabelCapStyle.Rounded)
     {
         var problems = new List<ConfigProblem>();
         var banner = snapshot.Error is { } error ? $"{NotEditable}: {error}" : string.Empty;
@@ -40,7 +42,7 @@ public static class SettingsValueReader
         }
 
         var theme = ThemeConfigurator.Parse(document.Theme, problems, themeNames);
-        var options = OptionsConfigurator.Read(document, homeDirectory, directoryExists, problems);
+        var options = OptionsConfigurator.Read(document, homeDirectory, directoryExists, problems, defaultLabelCaps);
         var values = ImmutableDictionary.CreateBuilder<string, SettingValue>();
         values[SettingsRegistry.ThemeId] = SettingValue.OfChoice(ThemeName(theme));
         values[SettingsRegistry.LabelCapsId] = SettingValue.OfChoice(LabelCapName(options.LabelCaps));

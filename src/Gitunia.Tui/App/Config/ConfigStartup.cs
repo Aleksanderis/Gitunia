@@ -3,6 +3,7 @@ using Gitunia.Core.Config.Models;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Status;
 using Gitunia.Core.Themes;
+using Gitunia.Platform;
 
 namespace Gitunia.Tui.App.Config;
 
@@ -12,10 +13,16 @@ namespace Gitunia.Tui.App.Config;
 /// </summary>
 /// <param name="configDirectory">The directory holding <c>config.json</c>.</param>
 /// <param name="homeDirectory">What <c>~</c> stands for in a scan root.</param>
-public sealed class ConfigStartup(string configDirectory, string homeDirectory)
+/// <param name="defaultLabelCaps">The label caps when the file sets none.</param>
+public sealed class ConfigStartup(string configDirectory, string homeDirectory, LabelCapStyle defaultLabelCaps = LabelCapStyle.Rounded)
 {
     private const int MaximumReportedProblems = 5;
     private const string ThemesFolder = "themes";
+
+    /// <summary>The label caps while the file sets none: plain boxes in the classic console, whose font has no Powerline glyphs (#574).</summary>
+    /// <param name="capabilities">What the platform detected.</param>
+    public static LabelCapStyle DefaultLabelCaps(ConsoleCapabilities capabilities) =>
+        capabilities.IsClassicConsole ? LabelCapStyle.None : LabelCapStyle.Rounded;
 
     /// <summary>Loads the file and applies its key entries to the default keymap. Never throws.</summary>
     public KeymapBuildResult LoadKeymap() => Load().Keymap;
@@ -31,7 +38,7 @@ public sealed class ConfigStartup(string configDirectory, string homeDirectory)
         var theme = ThemeConfigurator.Parse(loaded.Document.Theme, themeProblems, themes.Names);
         themeProblems.AddRange(themes.Problems);
 
-        var options = OptionsConfigurator.Read(loaded.Document, homeDirectory, Directory.Exists, themeProblems);
+        var options = OptionsConfigurator.Read(loaded.Document, homeDirectory, Directory.Exists, themeProblems, defaultLabelCaps);
         var keymap = built with { Problems = [.. loaded.Problems, .. built.Problems, .. themeProblems] };
 
         return new StartupConfig(keymap, theme, options, themes);

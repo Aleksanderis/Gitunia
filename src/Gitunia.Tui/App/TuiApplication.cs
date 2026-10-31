@@ -170,7 +170,7 @@ public sealed class TuiApplication(
         // First of all: the background query below makes .NET switch the terminal to no-echo, line-less input.
         _terminalHandOff = new TerminalHandOff(CaptureTerminalModes());
         _homeDirectory = HomeDirectory ?? Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-        _startupConfig = new ConfigStartup(platform.ConfigDirectory, _homeDirectory).Load();
+        _startupConfig = new ConfigStartup(platform.ConfigDirectory, _homeDirectory, ConfigStartup.DefaultLabelCaps(_capabilities)).Load();
         _chipKeys = new ChipKeys(_startupConfig.Keymap.Table);
         var queriedLight = default(bool?);
         if (_startupConfig.Theme == ThemeChoice.Auto)
@@ -1618,7 +1618,7 @@ public sealed class TuiApplication(
 
     private SettingsController CreateSettings(GraphGlyphSet glyphs) => new(
         new ConfigWriter(platform.ConfigDirectory),
-        new SettingsEnvironment(_homeDirectory, Directory.Exists, _startupConfig.Themes.Names),
+        new SettingsEnvironment(_homeDirectory, Directory.Exists, _startupConfig.Themes.Names, ConfigStartup.DefaultLabelCaps(_capabilities)),
         _statuses,
         InvokeOnUi,
         () => _view.ScreenSize,

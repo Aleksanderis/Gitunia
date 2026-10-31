@@ -5,8 +5,9 @@ namespace Gitunia.Platform;
 /// per-OS directories: <c>~/.config/gitunia</c> and <c>~/.local/state/gitunia</c> (or <c>XDG_CONFIG_HOME</c> / <c>XDG_STATE_HOME</c>
 /// when set) on Linux, macOS and Windows alike, so the config folder can be kept in a dotfiles repository.
 /// </summary>
-public sealed class TerminalPlatform(Func<string, string?>? getEnvironmentVariable = null) : IPlatform
+public sealed class TerminalPlatform(Func<string, string?>? getEnvironmentVariable = null, Func<bool>? isWindows = null) : IPlatform
 {
+    private readonly Func<bool> _isWindows = isWindows ?? OperatingSystem.IsWindows;
     private readonly Func<string, string?> _getEnvironmentVariable = getEnvironmentVariable ?? Environment.GetEnvironmentVariable;
 
     public string ConfigDirectory => Path.Combine(ReadEnvironment("XDG_CONFIG_HOME") ?? Path.Combine(Home, ".config"), PlatformInfo.AppDirectoryName);
@@ -16,7 +17,7 @@ public sealed class TerminalPlatform(Func<string, string?>? getEnvironmentVariab
     public ConsoleCapabilities DetectConsole()
     {
         var interactive = !Console.IsOutputRedirected && !Console.IsInputRedirected;
-        return new ConsoleCapabilities(interactive, DetectColor(interactive), DetectUnicode(), DetectLightBackground());
+        return new ConsoleCapabilities(interactive, DetectColor(interactive), DetectUnicode(), DetectLightBackground(), DetectClassicConsole());
     }
 
     public bool? QueryLightBackground(ConsoleCapabilities capabilities)
@@ -68,7 +69,7 @@ public sealed class TerminalPlatform(Func<string, string?>? getEnvironmentVariab
         }
 
         // Windows Terminal sets WT_SESSION and supports VT truecolor.
-        if (OperatingSystem.IsWindows() && ReadEnvironment("WT_SESSION") is not null)
+        if (_isWindows() && ReadEnvironment("WT_SESSION") is not null)
         {
             return ColorDepth.TrueColor;
         }
@@ -92,6 +93,13 @@ public sealed class TerminalPlatform(Func<string, string?>? getEnvironmentVariab
         var separator = value.LastIndexOf(';');
         return separator >= 0 && value[(separator + 1)..] is "7" or "15";
     }
+
+    /// <summary>
+    /// True on Windows when the terminal is not Windows Terminal (it sets <c>WT_SESSION</c>): the classic console host,
+    /// whose font carries no icon glyphs. Linux and macOS terminals are never classic: there is no such host, and a
+    /// terminal's font cannot be asked, so they keep the full look.
+    /// </summary>
+    public bool DetectClassicConsole() => _isWindows() && ReadEnvironment("WT_SESSION") is null;
 
     public bool DetectUnicode()
     {
