@@ -202,3 +202,7 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 ## 2026-10-31
 
 **Process:** Release tags only package (#899): the `v*` legs skip the build and test steps (the AOT publish still builds with warnings as errors), and the `release` job fails unless a successful `workflow_dispatch` run of `ci.yml` with both legs green exists for the tagged commit. Before tagging, run `gh workflow run ci.yml` and wait for green. Why: Native AOT cannot cross-compile, so the legs stay separate, but repeating the slow Windows suite on every tag buys nothing.
+
+## 2026-11-01
+
+**Process:** The project keeps the name "Gitunia" (#896, owner). Why: the same-named macOS client has little traction, is single-platform and open source, so the collision risk is small and a rename stays cheap before the first release. Re-check that client and the package registries right before the repository goes public; `gitkeel` is the fallback.
