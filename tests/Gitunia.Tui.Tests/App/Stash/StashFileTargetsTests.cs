@@ -8,6 +8,7 @@ using Xunit;
 
 namespace Gitunia.Tui.Tests.App.Stash;
 
+[Trait("Os", "Independent")]
 public class StashFileTargetsTests
 {
     private static readonly StashEntry Stash = new(0, "stash@{0}", "abc123", "wip");
@@ -17,12 +18,12 @@ public class StashFileTargetsTests
     {
         var content = Content(BottomTab.Changes, "a.txt", "b.txt", "new.txt");
 
-        var tracked = StashFileTargets.Resolve(Stash, content, 2, 1);
-        var untracked = StashFileTargets.Resolve(Stash, content, 3, 1);
+        var (trackedStash, trackedChange) = StashFileTargets.Resolve(Stash, content, 2, 1)!;
+        var (_, untrackedChange) = StashFileTargets.Resolve(Stash, content, 3, 1)!;
 
-        Assert.Equal(("b.txt", StashFileOrigin.Tracked), (tracked!.File.Change.Path, tracked.File.Origin));
-        Assert.Equal(("new.txt", StashFileOrigin.Untracked), (untracked!.File.Change.Path, untracked.File.Origin));
-        Assert.Equal(Stash, tracked.Entry);
+        Assert.Equal(("b.txt", StashFileOrigin.Tracked), (trackedChange.Change.Path, trackedChange.Origin));
+        Assert.Equal(("new.txt", StashFileOrigin.Untracked), (untrackedChange.Change.Path, untrackedChange.Origin));
+        Assert.Equal(Stash, trackedStash);
     }
 
     [Fact]

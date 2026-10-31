@@ -297,6 +297,22 @@ public class StashWriterTests
         Assert.Equal("local two\n", File.ReadAllText(Path.Combine(repository.WorkingTreePath, "ab.txt")));
     }
 
+    [Fact]
+    public async Task GivenAutoCrlfAndCrlfFile_WhenRestoring_ThenTheBackupHasTheExactBytesOnDisk()
+    {
+        using var repository = TestRepositories.WithStash();
+        repository.Git("config", "core.autocrlf", "true");
+        var path = Path.Combine(repository.WorkingTreePath, "file.txt");
+        File.WriteAllBytes(path, "local\r\nlines\r\n"u8.ToArray());
+        var location = await LocateAsync(repository);
+        var entry = await TopAsync(location);
+
+        var result = await Writer.RestoreFileAsync(location, entry, TrackedFile("file.txt"), Token);
+
+        Assert.Equal(StashRestoreState.Overwrites, result.State);
+        Assert.Equal("local\r\nlines\r\n", repository.Git("cat-file", "blob", result.BackupBlob!));
+    }
+
     private static StashFileChange TrackedFile(string path) =>
         new(new CommitFileChange(path, null, FileChangeKind.Modified, null), StashFileOrigin.Tracked);
 

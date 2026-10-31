@@ -111,8 +111,9 @@ public sealed class StashWriter(GitRunner runner) : IStashWriter
         string? backup = null;
         if (inspection.State == StashRestoreState.Overwrites)
         {
-            // The replaced content stays reachable by its id until git collects garbage.
-            string[] saveArguments = ["hash-object", "-w", "--", file.Change.Path];
+            // Unfiltered, so the saved blob is the exact bytes on disk (no line-ending or smudge conversion), which
+            // makes "git cat-file blob <id>" a byte-exact undo. It stays reachable by its id until git collects garbage.
+            string[] saveArguments = ["hash-object", "-w", "--no-filters", "--", file.Change.Path];
             var saved = await runner
                 .RunAsync(location.CommandPath, saveArguments, WriteOptions, cancellationToken)
                 .ConfigureAwait(false);
@@ -150,7 +151,7 @@ public sealed class StashWriter(GitRunner runner) : IStashWriter
         }
 
         var local = Path.Combine(location.CommandPath, file.Change.Path);
-        if (!File.Exists(local) && !Directory.Exists(local))
+        if (!File.Exists(local) && !Directory.Exists(local) && new FileInfo(local).LinkTarget is null)
         {
             return new RestoreInspection(StashRestoreState.Creates, source);
         }
