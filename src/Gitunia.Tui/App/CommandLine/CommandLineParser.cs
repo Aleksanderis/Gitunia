@@ -5,10 +5,10 @@ using Gitunia.Tui.Views.Theme;
 
 namespace Gitunia.Tui.App.CommandLine;
 
-/// <summary>Parses <c>gitunia [path] [--print-frame WxH [--diff] [--zoom graph|detail|diff] [--tab details|changes|files] [--colors truecolor|16|none [--light]]]</c>.</summary>
+/// <summary>Parses <c>gitunia [--version] [path] [--print-frame WxH [--diff] [--zoom graph|detail|diff] [--tab details|changes|files] [--colors truecolor|16|none [--light]]]</c>.</summary>
 public static class CommandLineParser
 {
-    public const string Usage = "usage: gitunia <repository path> [--print-frame <columns>x<rows> [--diff] [--zoom graph|detail|diff] [--tab details|changes|files] [--colors truecolor|16|none [--light]]]";
+    public const string Usage = "usage: gitunia <repository path> [--print-frame <columns>x<rows> [--diff] [--zoom graph|detail|diff] [--tab details|changes|files] [--colors truecolor|16|none [--light]]] | gitunia --version";
 
     public static CommandLineOptions Parse(IReadOnlyList<string> arguments)
     {
@@ -23,6 +23,11 @@ public static class CommandLineParser
         for (var index = 0; index < arguments.Count; index++)
         {
             var argument = arguments[index];
+            if (argument == "--version")
+            {
+                return new CommandLineOptions(null, null, null, null, ShowsVersion: true);
+            }
+
             if (argument == "--print-frame")
             {
                 if (index + 1 >= arguments.Count || !TryParseSize(arguments[index + 1], out var parsedWidth, out var parsedHeight))

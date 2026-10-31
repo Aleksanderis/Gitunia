@@ -20,6 +20,34 @@ public class CommandLineParserTests
     }
 
     [Fact]
+    public void GivenVersionFlag_WhenParsing_ThenVersionIsRequestedWithoutPathOrError()
+    {
+        var options = CommandLineParser.Parse(["--version"]);
+
+        Assert.True(options.ShowsVersion);
+        Assert.Null(options.Error);
+        Assert.Null(options.RepositoryPath);
+    }
+
+    [Fact]
+    public void GivenVersionFlagAfterPath_WhenParsing_ThenVersionIsRequested()
+    {
+        Assert.True(CommandLineParser.Parse(["some/repo", "--version"]).ShowsVersion);
+    }
+
+    [Fact]
+    public void GivenInvalidOptionBeforeVersion_WhenParsing_ThenTheErrorWins()
+    {
+        Assert.NotNull(CommandLineParser.Parse(["--zoom", "--version"]).Error);
+    }
+
+    [Fact]
+    public void GivenNoVersionFlag_WhenParsing_ThenVersionIsNotRequested()
+    {
+        Assert.False(CommandLineParser.Parse(["some/repo"]).ShowsVersion);
+    }
+
+    [Fact]
     public void GivenPath_WhenParsing_ThenItIsTheRepositoryPath()
     {
         Assert.Equal("some/repo", CommandLineParser.Parse(["some/repo"]).RepositoryPath);
