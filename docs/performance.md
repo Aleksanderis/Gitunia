@@ -49,7 +49,7 @@ Fix: `IterationRateGovernor` keeps 100/s while the user is working and for 2 s a
 | `j` after a 3 s pause (20 samples per round, two rounds, tmux poll included) | median 17.6 / 23.1 ms | median 26.8 / 32.4 ms (about +9 ms) |
 | `j` 0.3 s after the previous key (same harness) | median 22.3 / 24.1 ms | median 22.9 / 19.3 ms (unchanged) |
 
-With the `git status` children (~1%) the whole app idles at about 2.5%, so the ~2% bar is met for the Gitunia process alone, not for the total. Going lower costs first-key latency in proportion (25/s idle: ~1.0% but about +30 ms); a loop without idle wakeups needs a change inside Terminal.Gui (blocking wait on input and timers). Reproduce: sum fields 14+15 of every `/proc/<pid>/task/*/stat` twice, 60 s apart, in a private tmux.
+With the `git status` children (~1%) the whole app idles at about 2.5%, so the ~2% bar is met for the Gitunia process alone, not for the total. Not measured: the latency of an automatic refresh or reload that finishes while the screen is idle (its redraw waits at most one 20 ms iteration longer), and Windows/macOS. Going lower costs first-key latency in proportion (25/s idle: ~1.0% but about +30 ms); a loop without idle wakeups needs a change inside Terminal.Gui (blocking wait on input and timers). Reproduce: sum fields 14+15 of every `/proc/<pid>/task/*/stat` twice, 60 s apart, in a private tmux.
 
 ## Many tabs
 

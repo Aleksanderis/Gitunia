@@ -32,7 +32,7 @@ public class IterationRateGovernorTests
     }
 
     [Fact]
-    public void GivenInputJustBeforeTheLimit_WhenAsked_ThenTheActiveRateStays()
+    public void GivenNoInputYetButStartedJustBeforeTheLimit_WhenAsked_ThenTheActiveRateStays()
     {
         var governor = new IterationRateGovernor(ActiveRate, IdleRate, IdleAfter, _time);
         _time.Advance(IdleAfter - TimeSpan.FromMilliseconds(1));
