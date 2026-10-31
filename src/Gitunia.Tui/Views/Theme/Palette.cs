@@ -74,7 +74,7 @@ public static class Palette
             {
                 foreground = colors.SubtleOnSelection;
             }
-            else if (colors.SelectionForeground != Color.None && isFocused && segment.Role is SegmentRole.Lane or SegmentRole.RemoteBranch)
+            else if (colors.SelectionForeground != Color.None && isFocused)
             {
                 foreground = colors.SelectionForeground;
             }

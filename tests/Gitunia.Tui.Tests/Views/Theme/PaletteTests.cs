@@ -41,7 +41,10 @@ public class PaletteTests
         var remote = Palette.For(new StyledSegment("x", SegmentRole.RemoteBranch), true, true, classic);
         var hash = Palette.For(new StyledSegment("x", SegmentRole.Hash), true, true, classic);
 
-        Assert.Equal(classic.SelectionForeground, lane.Foreground);
+        var deleted = Palette.For(new StyledSegment("x", SegmentRole.DiffRemoved), true, true, classic);
+
+        Assert.Equal(PaletteTable.For(new PaletteSettings(ColorDepth.Ansi16, false, IsClassicConsole: true)).SelectionForeground, lane.Foreground);
+        Assert.Equal(lane.Foreground, deleted.Foreground);
         Assert.Equal(lane.Foreground, remote.Foreground);
         Assert.Equal(lane.Foreground, hash.Foreground);
         Assert.NotEqual(other.SelectionFocused, classic.SelectionFocused);
@@ -49,12 +52,14 @@ public class PaletteTests
     }
 
     [Fact]
-    public void GivenTheClassicConsole_WhenColouringSecondaryText_ThenItIsBrighterThanOnOtherTerminals()
+    public void GivenTheClassicConsole_WhenColouringSecondaryText_ThenMutedDiffersFromOtherTerminalsAndFromTheWhiteBaseText()
     {
         var classic = PaletteTable.For(new PaletteSettings(ColorDepth.Ansi16, false, IsClassicConsole: true));
         var other = PaletteTable.For(new PaletteSettings(ColorDepth.Ansi16, false));
 
         Assert.NotEqual(other.Muted, classic.Muted);
+        Assert.NotEqual(classic.Muted, classic.BaseForeground);
+        Assert.NotEqual(Color.None, classic.BaseForeground);
         Assert.Equal(Color.None, other.SelectionForeground);
     }
 
