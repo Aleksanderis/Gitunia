@@ -17,8 +17,8 @@ permissions:
   contents: read
 
 # Release packaging (#48): on a v* tag the AOT binaries of both legs are archived by scripts/package.sh and attached to
-# a draft GitHub release by the `release` job. Tag runs skip build and tests (#899); the release job requires a green full
-# dispatch run on the same commit. macOS and linux-arm64 binaries follow with their CI legs (#455).
+# a draft GitHub release by the `release` job. Tag runs skip build and tests (#899); the guard job reuses or starts
+# (#921) a green full dispatch run on the same commit. macOS and linux-arm64 binaries follow with their CI legs (#455).
 
 concurrency:
   group: ci-${{ github.ref }}-${{ inputs.platform }}
@@ -26,27 +26,52 @@ concurrency:
 
 jobs:
   guard:
-    # Tag pushes only (#899): fails in seconds, before the slow legs, when the tagged commit has no green full run.
+    # Tag pushes only (#899, #921): reuses a green full run for the tagged commit, else starts and awaits one, so the
+    # tests run once per release and a red run fails the release before the packaging legs start.
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    # Covers the awaited full run (Windows leg 25 min plus queueing); only this cheap Linux job waits.
+    timeout-minutes: 60
     permissions:
-      actions: read
+      actions: write
+      checks: read # `gh run watch` reads job annotations
     steps:
-      - name: Require a green full CI run for the tagged commit (#899)
+      - name: Require a green full CI run for the tagged commit, starting one if needed (#921)
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          # Tag runs only package. The tests ran in an earlier `gh workflow run ci.yml` (platform all) on this commit:
-          # a successful run of this workflow whose linux-x64 and windows-x64 jobs both succeeded (not skipped). The job names below are the
-          # job ids of the legs; renaming one makes this guard fail closed.
-          runs="$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?head_sha=$GITHUB_SHA&event=workflow_dispatch&status=success" --jq '.workflow_runs[].id')"
-          for id in $runs; do
-            ok="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$id/jobs" --jq '[.jobs[] | select((.name == "linux-x64" or .name == "windows-x64") and .conclusion == "success")] | length')"
-            if [ "$ok" = "2" ]; then echo "Full CI run $id is green for $GITHUB_SHA"; exit 0; fi
+          # Tag runs only package. The tests run in a `workflow_dispatch` run (platform all) on this commit: green means
+          # both legs (job names `linux-x64`, `windows-x64`; renaming one makes this guard fail closed) succeeded, not skipped.
+          api="repos/$GITHUB_REPOSITORY/actions"
+          runs_for() { gh api "$api/workflows/ci.yml/runs?head_sha=$GITHUB_SHA&event=workflow_dispatch&per_page=100" --jq "$1"; }
+          legs_green() {
+            local ok
+            ok="$(gh api "$api/runs/$1/jobs" --jq '[.jobs[] | select((.name == "linux-x64" or .name == "windows-x64") and .conclusion == "success")] | length')"
+            [ "$ok" = "2" ]
+          }
+          for id in $(runs_for '.workflow_runs[] | select(.conclusion == "success") | .id'); do
+            if legs_green "$id"; then echo "Full CI run $id is green for $GITHUB_SHA; no new run"; exit 0; fi
           done
-          echo "::error::No green full CI run (workflow_dispatch, platform all) for $GITHUB_SHA. Run 'gh workflow run ci.yml' on the commit, wait for green, then re-run this release."
-          exit 1
+          # A run already queued or in progress for this commit is awaited instead of starting a second one.
+          id="$(runs_for '[.workflow_runs[] | select(.status != "completed")] | first | .id // empty')"
+          if [ -z "$id" ]; then
+            before="$(runs_for '[.workflow_runs[].id] | sort | join(" ")')"
+            gh workflow run ci.yml --repo "$GITHUB_REPOSITORY" --ref "$GITHUB_REF_NAME" -f platform=all
+            for _ in $(seq 1 24); do
+              sleep 5
+              for candidate in $(runs_for '.workflow_runs[].id'); do
+                case " $before " in *" $candidate "*) ;; *) id="$candidate" ;; esac
+              done
+              [ -n "$id" ] && break
+            done
+            [ -n "$id" ] || { echo "::error::Started CI for $GITHUB_SHA but found no new run"; exit 1; }
+            echo "Started full CI run $id for $GITHUB_SHA"
+          else
+            echo "Awaiting full CI run $id already in progress for $GITHUB_SHA"
+          fi
+          gh run watch "$id" --repo "$GITHUB_REPOSITORY" --exit-status --interval 30 \
+            || { echo "::error::Full CI run $id is not green for $GITHUB_SHA; fix it, then re-run this release"; exit 1; }
+          legs_green "$id" || { echo "::error::Run $id succeeded but its linux-x64 and windows-x64 legs were not both run (platform must be all)"; exit 1; }
 
   linux-x64:
     needs: guard
