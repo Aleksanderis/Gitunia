@@ -16,7 +16,7 @@ Archive of `docs/decisions.md`: decisions that are superseded, closed or purely 
 
 **Code structure:** Conventions from the PR #60 review live in `.claude/rules/csharp-style.md`: no truncated names, one type per file, scripts in `scripts/`, tmux-based interactive testing is Linux/macOS only.
 
-**UI:** The owner confirmed Terminal.Gui as the renderer, so M1 UI work may start. Key style for M1 (#8): agents draft it from common vim-style patterns, the owner adjusts after use, so the keymap stays data-driven.
+**UI:** The owner confirmed Terminal.Gui as the renderer, so M1 UI work may start. Key style for M1 (#8): agents draft it from vim, yazi and lazygit patterns, the owner adjusts after use, so the keymap stays data-driven.
 
 **UI:** M1 key design (#8): `Tab` and `Ctrl-w` + direction move pane focus, single keys per view with a `<space>` leader for global actions, chords show which-key after 500 ms and never time out, Insert mode swallows printable keys. Detail: `docs/history/ux.md`.
 
@@ -72,7 +72,7 @@ Archive of `docs/decisions.md`: decisions that are superseded, closed or purely 
 
 **UI:** Graph ref labels (#214) fold a remote-tracking branch into the local branch of the same name on the same commit and hide `*/HEAD`; merging is by name, not by configured upstream.
 
-**UI:** Every pane is a titled box with shared edges and one column of padding (#197), rounded outer corners, focus shown by the accent box and filled title chip. Why: separate boxes cost two rows and columns each.
+**UI:** Every pane is a titled box with shared edges and one column of padding (#197), rounded outer corners, focus shown by the accent box and filled title chip. Why: separate boxes cost two rows and columns each. Research (ideas only): lazygit, btop, zellij; sources in `docs/history/ux.md`.
 
 **UI:** Owner review of PR #198 (#217-#223): the header row is removed (its command-palette click moved to a ` : commands ` button), remote branches are purple, tabs show `N name markers`, `Ctrl-w r` renames a tab, and a pin keeps a repository at the top of the picker.
 
