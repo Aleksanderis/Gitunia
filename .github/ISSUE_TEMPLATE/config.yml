@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: README and scope
+    url: https://github.com/Aleksanderis/Gitunia/blob/main/README.md
+    about: What Gitunia is for and what is in the MVP.
+  - name: User guide
+    url: https://github.com/Aleksanderis/Gitunia/blob/main/docs/user-guide.md
+    about: Keys, screens and workflows; check here before reporting a question as a bug.
