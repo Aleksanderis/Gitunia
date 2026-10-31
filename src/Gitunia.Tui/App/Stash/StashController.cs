@@ -352,7 +352,7 @@ public sealed class StashController(
         "Restore file from stash",
         [
             $"Replace {target.File.Change.Path} in the working tree with its version from {target.Entry.Name}?",
-            "Your current content of the file is lost from the working tree; the stash and the index stay as they are.",
+            "Your current content of the file is replaced; the stash and the index stay as they are.",
         ],
         "Undo: your current content is saved as a git object first; its id is shown afterwards",
         "Restore file");
