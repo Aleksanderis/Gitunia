@@ -40,7 +40,8 @@ gh api "repos/$repository/pulls/comments" --paginate --jq '[.[]|{pull:(.pull_req
 # One record per issue or PR: owner-written body, owner comments, and owner comments without a later agent comment.
 jq -n --arg login "$login" --arg ownerLabel "$owner_label" --arg agentLabel "$agent_label" \
   --slurpfile issues "$work_dir/issues.json" --slurpfile pulls "$work_dir/pulls.json" --slurpfile inline "$work_dir/inline.json" '
-  def agent: (. // "" | ascii_downcase | gsub("[*_]"; "")) | (contains("<!-- agent:") or contains("agent · claude") or contains("opened by") or contains("\nagent: ") or startswith("agent: "));
+  # Markdown emphasis is stripped so a bold `**Agent: role**` header counts; the marker may start the body.
+  def agent: (. // "" | ascii_downcase | gsub("[*_]"; "")) | (contains("<!-- agent:") or contains("agent · claude") or contains("opened by") or contains("\nagent: ") or test("^\\s*agent: "));
   def entry($author; $body; $at): {mine: ($author == $login), agent: ($body | agent), at: $at};
   [ ($issues[0][] | . + {kind: "issue", reviews: []}), ($pulls[0][] | . + {kind: "pull"}) ]
   | map(. as $item

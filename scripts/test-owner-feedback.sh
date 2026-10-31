@@ -18,6 +18,7 @@ check() {
 check "marker at start of body" $'Agent: orchestrator\n\nDone.' true
 check "marker after newline" $'Fixed.\n\nAgent: implementer' true
 check "bold marker at start" '**Agent: implementer**' true
+check "leading blank lines" $'\n\nAgent: x' true
 check "html marker" '<!-- agent: reviewer -->' true
 check "owner text" 'looks good, agent: nope inline' false
 check "empty body" '' false
