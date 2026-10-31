@@ -91,6 +91,7 @@ public class PaletteTests
         var other = PaletteTable.For(new PaletteSettings(ColorDepth.Ansi16, false));
 
         Assert.NotEqual(other.Accent, classic.Accent);
+        Assert.Equal(PaletteTable.For(new PaletteSettings(ColorDepth.Ansi16, false, IsClassicConsole: true)).Accent, classic.Accent);
         Assert.NotEqual(other.ChipBackground, classic.ChipBackground);
     }
 

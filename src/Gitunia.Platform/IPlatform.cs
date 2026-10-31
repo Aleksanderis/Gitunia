@@ -18,7 +18,7 @@ public enum ColorDepth
 /// false for dark and for unknown.
 /// </param>
 /// <param name="IsClassicConsole">
-/// The classic Windows console host (conhost without Windows Terminal): its default font has no Powerline or Nerd Font glyphs
+/// A Windows terminal that does not set <c>WT_SESSION</c>, in practice the classic console host (conhost): its default font has no Powerline or Nerd Font glyphs
 /// and its dark blue is hard to read. Always false off Windows.
 /// </param>
 public sealed record ConsoleCapabilities(

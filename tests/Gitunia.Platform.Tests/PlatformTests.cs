@@ -82,18 +82,18 @@ public class DetectionTests
     {
         var environment = session is null ? [] : new[] { new EnvironmentVariable("WT_SESSION", session) };
 
-        Assert.Equal(expected, With(windows, environment).DetectClassicConsole());
+        Assert.Equal(expected, WithOs(windows, environment).DetectClassicConsole());
     }
 
     [Fact]
     public void GivenWindowsWithoutSession_WhenDetectingColor_ThenAnsi16AndWithASessionTruecolor()
     {
-        Assert.Equal(ColorDepth.Ansi16, With(true).DetectColor(true));
-        Assert.Equal(ColorDepth.TrueColor, With(true, new EnvironmentVariable("WT_SESSION", "x")).DetectColor(true));
-        Assert.Equal(ColorDepth.Ansi16, With(false, new EnvironmentVariable("WT_SESSION", "x")).DetectColor(true));
+        Assert.Equal(ColorDepth.Ansi16, WithOs(true).DetectColor(true));
+        Assert.Equal(ColorDepth.TrueColor, WithOs(true, new EnvironmentVariable("WT_SESSION", "x")).DetectColor(true));
+        Assert.Equal(ColorDepth.Ansi16, WithOs(false, new EnvironmentVariable("WT_SESSION", "x")).DetectColor(true));
     }
 
-    private static TerminalPlatform With(bool windows, params EnvironmentVariable[] environment)
+    private static TerminalPlatform WithOs(bool windows, params EnvironmentVariable[] environment)
     {
         var dictionary = environment.ToDictionary(entry => entry.Key, entry => entry.Value);
         return new TerminalPlatform(key => dictionary.GetValueOrDefault(key), () => windows);

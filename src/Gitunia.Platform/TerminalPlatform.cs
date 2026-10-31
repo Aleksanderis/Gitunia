@@ -95,8 +95,9 @@ public sealed class TerminalPlatform(Func<string, string?>? getEnvironmentVariab
     }
 
     /// <summary>
-    /// True on Windows when the terminal is not Windows Terminal (it sets <c>WT_SESSION</c>): the classic console host,
-    /// whose font carries no icon glyphs. Linux and macOS terminals are never classic: there is no such host, and a
+    /// True on Windows when <c>WT_SESSION</c> is not set (Windows Terminal sets it): the classic console host, whose font
+    /// carries no icon glyphs. Other Windows terminals without that variable (VS Code, mintty) count as classic too, a
+    /// known trade-off: an explicit <c>labelCaps</c> restores the caps there. Linux and macOS terminals are never classic: there is no such host, and a
     /// terminal's font cannot be asked, so they keep the full look.
     /// </summary>
     public bool DetectClassicConsole() => _isWindows() && ReadEnvironment("WT_SESSION") is null;
