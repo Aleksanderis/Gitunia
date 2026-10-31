@@ -68,6 +68,12 @@ public sealed class PaletteTable
     /// </summary>
     public Color RangeBackground { get; init; } = Color.None;
 
+    /// <summary>
+    /// Text colour that lane and remote-branch text takes on a focused selected row where their own colour does not read on
+    /// <see cref="SelectionFocused"/> (the classic console, #915); <see cref="Color.None"/> keeps the role's colour.
+    /// </summary>
+    public Color SelectionForeground { get; init; } = Color.None;
+
     /// <summary>The tint behind the change group under the cursor of the working-tree diff, quieter than the selection; <see cref="Color.None"/> where the bar beside the group is the only mark.</summary>
     public required Color GroupBackground { get; init; }
 
@@ -268,8 +274,8 @@ public sealed class PaletteTable
         Remote = Named(ansi, ThemeRoles.Remote, ColorName16.BrightMagenta),
         Warn = Named(ansi, ThemeRoles.Warn, ColorName16.BrightYellow),
         Info = Named(ansi, ThemeRoles.Info, ColorName16.BrightCyan),
-        Muted = Named(ansi, ThemeRoles.Muted, ColorName16.DarkGray),
-        MutedOnSelection = Named(ansi, ThemeRoles.MutedOnSelection, ColorName16.Gray),
+        Muted = Named(ansi, ThemeRoles.Muted, classicConsole ? ColorName16.Gray : ColorName16.DarkGray),
+        MutedOnSelection = Named(ansi, ThemeRoles.MutedOnSelection, classicConsole ? ColorName16.White : ColorName16.Gray),
         Subtle = Named(ansi, ThemeRoles.Muted, ColorName16.DarkGray),
         SubtleOnSelection = Named(ansi, ThemeRoles.MutedOnSelection, ColorName16.Gray),
         SubtleStyle = TextStyle.Faint,
@@ -278,7 +284,8 @@ public sealed class PaletteTable
         WordStyle = TextStyle.Bold | TextStyle.Underline,
         Border = Named(ansi, ThemeRoles.Border, ColorName16.DarkGray),
         BarBackground = Color.None,
-        SelectionFocused = Named(ColorName16.DarkGray),
+        SelectionFocused = Named(classicConsole ? ColorName16.Blue : ColorName16.DarkGray),
+        SelectionForeground = classicConsole ? Named(ColorName16.White) : Color.None,
         SelectionDim = Color.None,
         GroupBackground = Color.None,
         TabButtonBackground = Color.None,
@@ -286,7 +293,7 @@ public sealed class PaletteTable
         ChipBackground = Named(ansi, ThemeRoles.ChipBackground, classicConsole ? ColorName16.BrightCyan : ColorName16.BrightBlue),
         MatchForeground = Named(ColorName16.Black),
         MatchBackground = Named(ColorName16.BrightYellow),
-        BaseForeground = paintsBase ? Named(ColorName16.Gray) : Color.None,
+        BaseForeground = paintsBase ? Named(classicConsole ? ColorName16.White : ColorName16.Gray) : Color.None,
         BaseBackground = paintsBase ? Named(ColorName16.Black) : Color.None,
         Lanes = Named(ColorName16.BrightBlue, ColorName16.BrightGreen, ColorName16.BrightYellow, ColorName16.BrightMagenta, ColorName16.BrightRed, ColorName16.BrightCyan),
         SelectionFocusedStyle = TextStyle.Bold,

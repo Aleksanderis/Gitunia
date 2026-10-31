@@ -31,6 +31,33 @@ public class PaletteTests
 
     public static TheoryData<bool> Variants => [false, true];
 
+    [Fact]
+    public void GivenTheClassicConsole_WhenSelectingAGraphRow_ThenTextIsWhiteOnBlueNotGreyOnGrey()
+    {
+        var classic = PaletteTable.For(new PaletteSettings(ColorDepth.Ansi16, false, IsClassicConsole: true));
+        var other = PaletteTable.For(new PaletteSettings(ColorDepth.Ansi16, false));
+
+        var lane = Palette.For(new StyledSegment("x", SegmentRole.Lane, 3), true, true, classic);
+        var remote = Palette.For(new StyledSegment("x", SegmentRole.RemoteBranch), true, true, classic);
+        var hash = Palette.For(new StyledSegment("x", SegmentRole.Hash), true, true, classic);
+
+        Assert.Equal(classic.SelectionForeground, lane.Foreground);
+        Assert.Equal(lane.Foreground, remote.Foreground);
+        Assert.Equal(lane.Foreground, hash.Foreground);
+        Assert.NotEqual(other.SelectionFocused, classic.SelectionFocused);
+        Assert.Equal(classic.SelectionFocused, lane.Background);
+    }
+
+    [Fact]
+    public void GivenTheClassicConsole_WhenColouringSecondaryText_ThenItIsBrighterThanOnOtherTerminals()
+    {
+        var classic = PaletteTable.For(new PaletteSettings(ColorDepth.Ansi16, false, IsClassicConsole: true));
+        var other = PaletteTable.For(new PaletteSettings(ColorDepth.Ansi16, false));
+
+        Assert.NotEqual(other.Muted, classic.Muted);
+        Assert.Equal(Color.None, other.SelectionForeground);
+    }
+
     [Theory]
     [MemberData(nameof(Variants))]
     public void GivenTrueColorScheme_WhenColouringTheCursorGroup_ThenTextIsReadableOnTheGroupTint(bool isLight)
