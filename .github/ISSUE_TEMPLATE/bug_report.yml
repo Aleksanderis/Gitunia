@@ -14,7 +14,8 @@ body:
     id: environment
     attributes:
       label: OS and terminal
-      description: For example Linux (Arch) with kitty, Windows 11 with Windows Terminal.    validations:
+      description: For example Linux (Arch) with kitty, Windows 11 with Windows Terminal.
+    validations:
       required: true
   - type: input
     id: git
