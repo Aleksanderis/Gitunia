@@ -33,7 +33,7 @@ You may run the project's build and test commands. Do not modify files.
 
 ## Output
 
-Format the output as a ready-to-post PR comment, per "Agent identity" in `.claude/skills/work-task/SKILL.md`: first line `### 🔍 Reviewer agent: findings`, then `<!-- agent: reviewer -->`, then the content below, then a closing `---` and `<sub>🔍 Reviewer agent · Claude · PR #<n> @ <short sha></sub>` (use the issue number if there is no PR yet). You can't post it yourself; the caller posts it verbatim.
+Format the output as a ready-to-post PR comment, per "Agent identity" in `.claude/skills/work-task/SKILL.md`: first line `### 🔍 Reviewer agent: findings`, then `<!-- agent: reviewer -->`, then the content below, then a closing `---` and `<sub>🔍 Reviewer agent · Claude · PR #<n> @ <short sha></sub>` (use the issue number if there is no PR yet). You can't post it yourself; the caller fixes the findings and posts only the verdict and the findings that stay open, so write each finding to stand alone and keep the whole output short.
 
 Lead with a verdict: **approve**, **approve with comments** or **changes requested**.
 
