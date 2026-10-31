@@ -261,6 +261,7 @@ Normal|Graph|gc|detail.tab-changes
 Normal|Graph|gd|detail.tab-details
 Normal|Graph|gf|detail.tab-files
 Normal|Graph|y|graph.copy-hash
+Normal|Help|/|help.search
 Normal|Help|Shift-Tab|help.tab-previous
 Normal|Help|Tab|help.tab-next
 Normal|Help|h|help.tab-previous

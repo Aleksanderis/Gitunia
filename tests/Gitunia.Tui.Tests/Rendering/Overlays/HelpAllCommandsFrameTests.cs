@@ -148,22 +148,55 @@ public class HelpAllCommandsFrameTests
                 "│  Lists            │  :            │ Type to filter every action by title or│",
                 "│  Global           │               │ id; Enter runs it, Esc closes          │",
                 "│  Markers          │                                                        │",
-                "│  All Global       │ Mouse                                                  │",
-                "│  All Lists        │  Click        │ Focus a pane, select a row, switch a   │",
-                "│  All Graph        │               │ tab or a help section; outside a popup │",
-                "│  All Sidebar      │               │ it closes                              │",
-                "│  All Detail       │  Double-click │ Graph row: the actions menu;           │",
-                "│  All Diff         │               │ working-tree file: stage or unstage it │",
-                "│  All Working tree │  ...          │ Marker on the selected sidebar row: its│",
-                "│  All Reflog       │               │ actions menu                           │",
-                "│  All Rebase todo  │  Wheel        │ Scroll the pane under the pointer      │",
-                "│  All Conflicts    │  Drag         │ Select a range of rows; drag a divider │",
-                "│  All Settings     │               │ to resize the panes                    │",
-                "│  All Repeat mode  │  Tab row      │ Chips: commands (palette), + (new tab),│",
-                "│> Commands         │               │ fetch, pull and push                   │",
-                "│ Esc close  Tab next section                                                │",
+                "│  All Global       │ Help                                                   │",
+                "│  All Lists        │  /            │ Filter the rows of every section by    │",
+                "│  All Graph        │               │ key, title or action id; Enter keeps   │",
+                "│  All Sidebar      │               │ the filter, Esc clears it, then closes │",
+                "│  All Detail       │                                                        │",
+                "│  All Diff         │ Mouse                                                  │",
+                "│  All Working tree │  Click        │ Focus a pane, select a row, switch a   │",
+                "│  All Reflog       │               │ tab or a help section; outside a popup │",
+                "│  All Rebase todo  │               │ it closes                              │",
+                "│  All Conflicts    │  Double-click │ Graph row: the actions menu;           │",
+                "│  All Settings     │               │ working-tree file: stage or unstage it │",
+                "│  All Repeat mode  │  ...          │ Marker on the selected sidebar row: its│",
+                "│> Commands         │               │ actions menu                           │",
+                "│                   │  Wheel        │ Scroll the pane under the pointer      │",
+                "│                   │  Drag         │ Select a range of rows; drag a divider │",
+                "│ 1-19/22  Esc close  Tab next section  list keys scroll                     │",
                 "╰────────────────────────────────────────────────────────────────────────────╯"),
             HelpText(Table, "Commands", 80));
+    }
+
+    [Fact]
+    public void GivenAFilterBeingTyped_WhenRendering_ThenTheTitleShowsItWithACursorAndTheFooterOffersEnterAndEsc()
+    {
+        var page = HelpBuilder.Filter(HelpBuilder.Build(Table, DefaultKeymap.GraphView), "<space>gc");
+
+        var lines = HelpFrameBuilder.Build(
+            [page], 0, DefaultKeymap.GraphView, 0, 80, ScreenHeight, GraphGlyphSet.Unicode,
+            filter: "<space>gc", isEditingFilter: true)!.Lines.Select(line => line.Text).ToList();
+
+        Assert.Equal(" Keys: Graph  / <space>gc_".PadRight(lines[0].Length), lines[0]);
+        Assert.Contains("Esc clear filter  Enter keep filter", lines[^2]);
+        Assert.Contains(lines, line => line.Contains("<space>gc"));
+        Assert.DoesNotContain(lines, line => line.Contains("<space>gd"));
+    }
+
+    [Fact]
+    public void GivenAKeptFilterWithNoMatch_WhenRendering_ThenTheTitleHasNoCursorAndTheMessageShows()
+    {
+        var page = HelpBuilder.Filter(HelpBuilder.Build(Table, DefaultKeymap.GraphView), "zzzqqq");
+
+        var lines = HelpFrameBuilder.Build(
+            [page], 0, DefaultKeymap.GraphView, 0, 80, ScreenHeight, GraphGlyphSet.Unicode, filter: "zzzqqq")!
+            .Lines.Select(line => line.Text).ToList();
+
+        Assert.StartsWith(" Keys: Graph  / zzzqqq", lines[0]);
+        Assert.DoesNotContain("_", lines[0]);
+        Assert.Contains(lines, line => line.Contains("Nothing matches the filter."));
+        Assert.Contains("Esc clear filter", lines[^2]);
+        Assert.DoesNotContain("Enter keep filter", lines[^2]);
     }
 
     [Fact]

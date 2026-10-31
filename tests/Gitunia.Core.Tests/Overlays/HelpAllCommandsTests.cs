@@ -216,7 +216,23 @@ public class HelpAllCommandsTests
 
         var commands = Assert.Single(tabs, tab => tab.Title == HelpBuilder.CommandsTitle);
 
-        Assert.Equal(["Command palette", "Mouse"], commands.Sections.Select(section => section.Title));
+        Assert.Equal(["Command palette", "Help", "Mouse"], commands.Sections.Select(section => section.Title));
+    }
+
+    [Fact]
+    public void GivenAKeyTitleOrActionId_WhenFiltering_ThenMatchingRowsAppearOnceAcrossAllSections()
+    {
+        var tabs = HelpBuilder.Build(Table, DefaultKeymap.GraphView);
+
+        var byKey = HelpBuilder.Filter(tabs, "<SPACE>gc");
+        var byId = HelpBuilder.Filter(tabs, "graph.copy-hash");
+        var none = HelpBuilder.Filter(tabs, "zzzzqqq");
+
+        Assert.All(byKey.Rows, row => Assert.Contains("<space>gc", row.Keys + row.Text + row.Action?.Value, StringComparison.OrdinalIgnoreCase));
+        Assert.NotEmpty(byKey.Rows);
+        Assert.Contains(byId.Rows, row => row.Action?.Value == "graph.copy-hash");
+        Assert.Equal(byKey.Rows.Count(), byKey.Rows.Select(row => (row.Action?.Value, row.Keys)).Distinct().Count());
+        Assert.Equal("Nothing matches the filter.", Assert.Single(none.Rows).Description);
     }
 
     [Fact]

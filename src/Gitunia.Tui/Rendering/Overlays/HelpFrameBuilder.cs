@@ -95,7 +95,9 @@ public static class HelpFrameBuilder
         int screenWidth,
         int screenHeight,
         GraphGlyphSet glyphs,
-        string? title = null)
+        string? title = null,
+        string? filter = null,
+        bool isEditingFilter = false)
     {
         var rowCount = VisibleRows(tabs, tab, screenWidth, screenHeight);
         if (rowCount == 0)
@@ -109,7 +111,7 @@ public static class HelpFrameBuilder
         var content = Flatten(SectionsOf(tabs, tab), KeysWidth(tabs), contentWidth, descriptionWidth, glyphs);
         var first = Math.Clamp(scroll, 0, Math.Max(0, content.Count - rowCount));
 
-        var lines = new List<StyledLine> { OverlayBox.Title(title ?? $"Keys: {view}", width, glyphs) };
+        var lines = new List<StyledLine> { OverlayBox.Title(title ?? FilterTitle($"Keys: {view}", filter, isEditingFilter), width, glyphs) };
         if (HasMenu(tabs, screenWidth))
         {
             lines.AddRange(MenuRows(tabs, tab, [.. content.Skip(first).Take(rowCount)], rowCount, width, glyphs));
@@ -125,7 +127,12 @@ public static class HelpFrameBuilder
         }
 
         var lead = content.Count > rowCount ? $"{first + 1}-{first + rowCount}/{content.Count}" : string.Empty;
-        var hints = new List<HintItem> { new("Esc", "close") };
+        var hints = new List<HintItem> { new("Esc", filter is null ? "close" : "clear filter") };
+        if (isEditingFilter)
+        {
+            hints.Add(new("Enter", "keep filter"));
+        }
+
         if (tabs.Count > 1)
         {
             hints.Add(new("Tab", HasMenu(tabs, screenWidth) ? "next section" : "next tab"));
@@ -175,6 +182,10 @@ public static class HelpFrameBuilder
 
         return null;
     }
+
+    // The title with the filter line after it: "Keys: Graph  / text" and a cursor while the text is being typed.
+    private static string FilterTitle(string title, string? filter, bool isEditing) =>
+        filter is null ? title : $"{title}  / {filter}{(isEditing ? "_" : string.Empty)}";
 
     private readonly record struct TabLabel(string Text, int Start, int Width, int Tab, bool IsActive);
 

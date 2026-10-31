@@ -91,6 +91,7 @@ internal static class ActionLevels
             ["graph.jump-to-head"] = CommandLevel.Everyday,
             ["graph.jump-to-ref"] = CommandLevel.Everyday,
             ["graph.open-details"] = CommandLevel.Everyday,
+            ["help.search"] = CommandLevel.Everyday,
             ["help.show"] = CommandLevel.Everyday,
             ["help.tab-next"] = CommandLevel.Everyday,
             ["help.tab-previous"] = CommandLevel.Everyday,
