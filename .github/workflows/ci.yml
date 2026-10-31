@@ -25,8 +25,32 @@ concurrency:
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
+  guard:
+    # Tag pushes only (#899): fails in seconds, before the slow legs, when the tagged commit has no green full run.
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: read
+    steps:
+      - name: Require a green full CI run for the tagged commit (#899)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Tag runs only package. The tests ran in an earlier `gh workflow run ci.yml` (platform all) on this commit:
+          # a successful run of this workflow whose linux-x64 and windows-x64 jobs both succeeded (not skipped). The job names below are the
+          # job ids of the legs; renaming one makes this guard fail closed.
+          runs="$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?head_sha=$GITHUB_SHA&event=workflow_dispatch&status=success" --jq '.workflow_runs[].id')"
+          for id in $runs; do
+            ok="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$id/jobs" --jq '[.jobs[] | select((.name == "linux-x64" or .name == "windows-x64") and .conclusion == "success")] | length')"
+            if [ "$ok" = "2" ]; then echo "Full CI run $id is green for $GITHUB_SHA"; exit 0; fi
+          done
+          echo "::error::No green full CI run (workflow_dispatch, platform all) for $GITHUB_SHA. Run 'gh workflow run ci.yml' on the commit, wait for green, then re-run this release."
+          exit 1
+
   linux-x64:
-    if: github.event.pull_request.draft != true && inputs.platform != 'windows'
+    needs: guard
+    if: ${{ !cancelled() && github.event.pull_request.draft != true && inputs.platform != 'windows' && (needs.guard.result == 'success' || needs.guard.result == 'skipped') }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -41,10 +65,10 @@ jobs:
       - name: Build (warnings, including IL*, are errors)
         # Tags only package (#899): the publish below still builds with warnings as errors; build and tests ran in
         # the full dispatch run that the release job requires.
-        if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+        if: ${{ !(github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) }}
         run: dotnet build -c Release
       - name: Test
-        if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+        if: ${{ !(github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) }}
         # A hung run costs 10 minutes, not the job's 15 (#666). The blame hang timeout (one test running longer than
         # 3 minutes) must stay below the step timeout, or the step is cancelled before the report is written; it then
         # names the running test. The step timeout also covers a host that died with no test in flight.
@@ -84,17 +108,18 @@ jobs:
           echo "$frame" | grep -q "Gitunia"
           echo "$frame" | grep -q "NORMAL"
       - name: Package (release tags only)
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
         run: scripts/package.sh linux-x64 out "${GITHUB_REF_NAME#v}" dist
       - uses: actions/upload-artifact@v4
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
         with:
           name: dist-linux-x64
           path: dist/*
           if-no-files-found: error
 
   windows-x64:
-    if: inputs.platform != 'linux'
+    needs: guard
+    if: ${{ !cancelled() && inputs.platform != 'linux' && (needs.guard.result == 'success' || needs.guard.result == 'skipped') }}
     runs-on: windows-latest
     timeout-minutes: 25
     defaults:
@@ -128,10 +153,10 @@ jobs:
             "NUGET_PACKAGES=D:\gitunia-nuget" >> $env:GITHUB_ENV
           }
       - name: Build (warnings, including IL*, are errors)
-        if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+        if: ${{ !(github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) }}
         run: dotnet build -c Release
       - name: Test (one project at a time)
-        if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+        if: ${{ !(github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) }}
         # Not yet verified on the runner (#634). `dotnet test` on the solution runs the four assemblies at once, each with 8 xUnit threads, and the tests start
         # thousands of git.exe processes. On the small runner (2-4 vCPU) that made `git init` wait over 30 s (run
         # 39954351890). Sequential projects keep the wall time about the same on a CPU-bound machine but halve the
@@ -162,10 +187,10 @@ jobs:
           echo "$frame" | grep -q "Gitunia"
           echo "$frame" | grep -q "NORMAL"
       - name: Package (release tags only)
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
         run: scripts/package.sh win-x64 out "${GITHUB_REF_NAME#v}" dist
       - uses: actions/upload-artifact@v4
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
         with:
           name: dist-win-x64
           path: dist/*
@@ -173,27 +198,13 @@ jobs:
 
   release:
     # Draft release so the owner reads the notes and publishes it; never runs for dispatch or branches.
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     needs: [linux-x64, windows-x64]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
       contents: write
-      actions: read
     steps:
-      - name: Require a green full CI run for the tagged commit (#899)
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          # Tag runs only package. The tests ran in an earlier `gh workflow run ci.yml` (platform all) on this commit:
-          # a successful run of this workflow whose linux-x64 and windows-x64 jobs both succeeded (not skipped).
-          runs="$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?head_sha=$GITHUB_SHA&event=workflow_dispatch&status=success" --jq '.workflow_runs[].id')"
-          for id in $runs; do
-            ok="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$id/jobs" --jq '[.jobs[] | select((.name == "linux-x64" or .name == "windows-x64") and .conclusion == "success")] | length')"
-            if [ "$ok" = "2" ]; then echo "Full CI run $id is green for $GITHUB_SHA"; exit 0; fi
-          done
-          echo "::error::No green full CI run (workflow_dispatch, platform all) for $GITHUB_SHA. Run 'gh workflow run ci.yml' on the commit, wait for green, then re-run this release."
-          exit 1
       - uses: actions/download-artifact@v4
         with:
           pattern: dist-*
