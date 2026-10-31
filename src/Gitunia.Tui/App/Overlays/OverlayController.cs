@@ -149,6 +149,10 @@ public sealed class OverlayController
         {
             HandleConfirm(action);
         }
+        else if (State.Kind == OverlayKind.Help && TryHandleHelpFilter(action))
+        {
+            Changed?.Invoke();
+        }
         else if (action == ActionIds.Cancel || action == ActionIds.NavigateBack || action == ActionIds.AppQuit || (State.Kind == OverlayKind.Help && action == ActionIds.HelpShow) || (State.Kind == OverlayKind.Messages && action == ActionIds.StatusHistory))
         {
             Close();
@@ -415,6 +419,7 @@ public sealed class OverlayController
     public int? HelpTabNumberAt(int frameLine, int frameColumn)
     {
         if (State.Kind == OverlayKind.Help
+            && !State.IsHelpFiltered
             && HelpFrameBuilder.TabAt(_helpTabs, State.HelpTab, _screenSize().Width, _screenSize().Height, frameLine, frameColumn)
                 is { } index)
         {
@@ -435,6 +440,43 @@ public sealed class OverlayController
             _engine.Continuations(_keys.State, ViewName, HelpBuilder.IsModalScreen(ViewName) ? null : Level()),
             pending,
             OperationInProgress());
+    }
+
+    // The pages the help shows now: the filtered rows as one page, else the pages themselves.
+    private IReadOnlyList<HelpTab> ShownHelpTabs() =>
+        State.IsHelpFiltered ? [HelpBuilder.Filter(_helpTabs, State.HelpFilter)] : _helpTabs;
+
+    // "/" opens the filter line; Enter keeps the filter; Esc clears it (closing the help is the Esc after that).
+    private bool TryHandleHelpFilter(ActionId action)
+    {
+        if (action == ActionIds.HelpSearch)
+        {
+            State = State.OpenHelpFilter();
+            _keys.SetMode(KeyMode.Insert);
+            return true;
+        }
+
+        if (!State.IsHelpFiltered)
+        {
+            return false;
+        }
+
+        if (action == ActionIds.Cancel)
+        {
+            State = State.ClearHelpFilter();
+            _keys.SetMode(KeyMode.Normal);
+            return true;
+        }
+
+        if (action == ActionIds.InputAccept && State.IsEditingHelpFilter)
+        {
+            State = State.AcceptHelpFilter();
+            _keys.SetMode(KeyMode.Normal);
+            return true;
+        }
+
+        // The filtered rows are one page: the section keys do nothing, scrolling works once the filter is kept.
+        return action == ActionIds.HelpTabNext || action == ActionIds.HelpTabPrevious || action == ActionIds.HelpTabSelect;
     }
 
     private bool TrySwitchHelpTab(ActionId action, int? count)
@@ -471,8 +513,10 @@ public sealed class OverlayController
         var size = _screenSize();
         var width = size.Width;
         var height = size.Height;
-        var maximum = HelpFrameBuilder.MaximumScroll(_helpTabs, State.HelpTab, width, height);
-        var visible = HelpFrameBuilder.VisibleRows(_helpTabs, State.HelpTab, width, height);
+        var shown = ShownHelpTabs();
+        var tab = State.IsHelpFiltered ? 0 : State.HelpTab;
+        var maximum = HelpFrameBuilder.MaximumScroll(shown, tab, width, height);
+        var visible = HelpFrameBuilder.VisibleRows(shown, tab, width, height);
         if (ListMotion.TryMove(action, count, State.HelpScroll, maximum + 1, visible, out var target))
         {
             State = State.ScrollHelpTo(target);
@@ -534,6 +578,25 @@ public sealed class OverlayController
 
     private void OnTextKey(KeyEvent key)
     {
+        if (State is { Kind: OverlayKind.Help, IsEditingHelpFilter: true })
+        {
+            if (key.Name == KeyNames.Backspace)
+            {
+                State = State.DeleteHelpFilterLast();
+            }
+            else if (key.IsPrintable)
+            {
+                State = State.TypeHelpFilter(key.Name);
+            }
+            else
+            {
+                return;
+            }
+
+            Changed?.Invoke();
+            return;
+        }
+
         if (State is not { Kind: OverlayKind.Palette, Palette: { } palette })
         {
             return;

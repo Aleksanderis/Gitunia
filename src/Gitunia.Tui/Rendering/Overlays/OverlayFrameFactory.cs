@@ -26,6 +26,16 @@ public static class OverlayFrameFactory
     {
         return state.Kind switch
         {
+            OverlayKind.Help when state.IsHelpFiltered => HelpFrameBuilder.Build(
+                [HelpBuilder.Filter(helpTabs, state.HelpFilter)],
+                0,
+                state.HelpView,
+                state.HelpScroll,
+                screenWidth,
+                screenHeight,
+                glyphs,
+                filter: state.HelpFilter,
+                isEditingFilter: state.IsEditingHelpFilter),
             OverlayKind.Help => HelpFrameBuilder.Build(
                 helpTabs,
                 state.HelpTab,

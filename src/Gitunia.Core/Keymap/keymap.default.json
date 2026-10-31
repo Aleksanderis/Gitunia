@@ -428,6 +428,7 @@
   { "action": "palette.next", "view": "ContextMenu", "modes": ["Normal"], "keys": ["j", "Down", "Ctrl-j"] },
   { "action": "palette.previous", "view": "ContextMenu", "modes": ["Normal"], "keys": ["k", "Up", "Ctrl-k"] },
   { "action": "command.execute", "view": "ContextMenu", "modes": ["Normal"], "keys": ["Enter", "Ctrl-l"] },
+  { "action": "help.search", "view": "Help", "modes": ["Normal"], "keys": ["/"] },
   { "action": "help.tab-next", "view": "Help", "modes": ["Normal"], "keys": ["Tab", "l"] },
   { "action": "help.tab-previous", "view": "Help", "modes": ["Normal"], "keys": ["Shift-Tab", "h"] },
   { "action": "input.accept", "view": "Global", "modes": ["Insert"], "keys": ["Enter"] },

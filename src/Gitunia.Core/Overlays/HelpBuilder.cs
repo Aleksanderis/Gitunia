@@ -128,6 +128,47 @@ public static class HelpBuilder
         return tabs;
     }
 
+    /// <summary>The title of the single page the filter (<c>/</c>) shows.</summary>
+    public const string FilterTitle = "Search";
+
+    /// <summary>
+    /// The rows of every page whose key, title or action id contains <paramref name="query"/> (case-insensitive), as one
+    /// page with a section per source page. A row listed on several pages (a contextual tab and its all-commands tab)
+    /// appears once, under the first.
+    /// </summary>
+    /// <param name="tabs">The pages of the help.</param>
+    /// <param name="query">The typed filter; whitespace around it is ignored.</param>
+    public static HelpTab Filter(IReadOnlyList<HelpTab> tabs, string query)
+    {
+        var needle = query.Trim();
+        var seen = new HashSet<(string?, string, string)>();
+        var sections = new List<HelpSection>();
+        foreach (var tab in tabs)
+        {
+            var rows = tab.Rows
+                .Where(row => Matches(row, needle) && seen.Add((row.Action?.Value, row.Keys, row.Text)))
+                .Select(row => row with { GapBefore = false })
+                .ToList();
+            if (rows.Count > 0)
+            {
+                sections.Add(new HelpSection(tab.Title, rows));
+            }
+        }
+
+        if (sections.Count == 0)
+        {
+            sections.Add(new HelpSection(FilterTitle, [new HelpRow(string.Empty, "Nothing matches the filter.")]));
+        }
+
+        return new HelpTab(FilterTitle, sections);
+    }
+
+    private static bool Matches(HelpRow row, string needle) =>
+        needle.Length == 0
+        || row.Keys.Contains(needle, StringComparison.OrdinalIgnoreCase)
+        || row.Text.Contains(needle, StringComparison.OrdinalIgnoreCase)
+        || (row.Action?.Value.Contains(needle, StringComparison.OrdinalIgnoreCase) ?? false);
+
     /// <summary>The all-commands tabs: every bound action of every screen once, whatever the focused view.</summary>
     /// <param name="table">The bindings.</param>
     /// <param name="level">The command level (#839); defaults to every command.</param>
@@ -327,6 +368,10 @@ public static class HelpBuilder
         new("Command palette",
         [
             new HelpRow(":", "Type to filter every action by title or id; Enter runs it, Esc closes"),
+        ]),
+        new("Help",
+        [
+            new HelpRow("/", "Filter the rows of every section by key, title or action id; Enter keeps the filter, Esc clears it, then closes"),
         ]),
         new("Mouse",
         [

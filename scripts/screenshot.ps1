@@ -188,6 +188,7 @@ function Get-Scenario([string]$name) {
         'help' { $s.Rows = 30; $s.Keys = '?' }
         'help-lists' { $s.Rows = 30; $s.Keys = '? Tab Tab' }
         'help-all' { $s.Rows = 30; $s.Keys = '? Tab Tab Tab Tab Tab Tab' }
+        'help-filter' { $s.Rows = 30; $s.Keys = '? / < s p a c e > g c' }
         'menu' { $s.Keys = 'j j Space .' }
         'menu-sidebar' { $s.Keys = 'C-w h j j Space .' }
         'sidebar-ref' { $s.Keys = 'C-w h j j j' }

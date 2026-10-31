@@ -551,6 +551,7 @@ Every default key binding, one table per view. The design rules, notation and mo
 
 | Keys | Modes | Action | What |
 |---|---|---|---|
+| `/` | Normal | `help.search` | Filter the help rows by key, title or action id |
 | `Tab` `l` | Normal | `help.tab-next` | Next help section |
 | `Shift-Tab` `h` | Normal | `help.tab-previous` | Previous help section |
 

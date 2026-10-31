@@ -108,6 +108,8 @@ public static class ActionIds
 
     public static ActionId GraphOpenDetails { get; } = new("graph.open-details");
 
+    public static ActionId HelpSearch { get; } = new("help.search");
+
     public static ActionId HelpShow { get; } = new("help.show");
 
     public static ActionId HelpTabNext { get; } = new("help.tab-next");

@@ -25,14 +25,14 @@ public class CommandLevelTests
     }
 
     [Fact]
-    public void GivenTheApprovedList_WhenCountingTheBoundActions_ThenThereAre200EverydayAnd45AdvancedAnd10AdvancedPlus()
+    public void GivenTheApprovedList_WhenCountingTheBoundActions_ThenThereAre201EverydayAnd45AdvancedAnd10AdvancedPlus()
     {
         // The Level column of docs/ux-keymap.md (191 rows plus the nine tab.go-to.N ids, 45, 10).
         var counts = KnownActions()
             .GroupBy(action => ActionCatalog.LevelOf(action)!.Value)
             .ToDictionary(group => group.Key, group => group.Count());
 
-        Assert.Equal(200, counts[CommandLevel.Everyday]);
+        Assert.Equal(201, counts[CommandLevel.Everyday]);
         Assert.Equal(45, counts[CommandLevel.Advanced]);
         Assert.Equal(10, counts[CommandLevel.AdvancedPlus]);
     }

@@ -306,6 +306,83 @@ public sealed class OverlayControllerTests : IDisposable
         Assert.Empty(_routed);
     }
 
+    private string FrameText() => string.Join('\n', _overlays.CurrentFrame()!.Lines.Select(line => line.Text));
+
+    [Fact]
+    public void GivenOpenHelp_WhenTypingSlashAndAKeySequence_ThenOnlyTheMatchingRowsShowAndTheTitleCarriesTheFilter()
+    {
+        Press(new Key('?'));
+
+        Press(new Key('/'));
+        foreach (var character in "<space>gc")
+        {
+            Press(new Key(character));
+        }
+
+        Assert.Equal(KeyMode.Insert, _keys.Mode);
+        Assert.Equal("<space>gc", _overlays.State.HelpFilter);
+        var text = FrameText();
+        Assert.Contains("/ <space>gc_", text);
+        Assert.Contains("<space>gc", text);
+        Assert.DoesNotContain("<space>gd", text);
+        Assert.Empty(_routed);
+    }
+
+    [Fact]
+    public void GivenAHelpFilter_WhenTypingAnActionIdOrBackspacing_ThenRowsFollowTheText()
+    {
+        Press(new Key('?'));
+        Press(new Key('/'));
+        foreach (var character in "help.tab")
+        {
+            Press(new Key(character));
+        }
+
+        Press(Key.Backspace);
+
+        Assert.Equal("help.ta", _overlays.State.HelpFilter);
+        Assert.Contains("Nothing matches the filter.", FrameText());
+    }
+
+    [Fact]
+    public void GivenAHelpFilterKept_WhenPressingEnter_ThenTypingStopsJScrollsAndEscClearsBeforeItCloses()
+    {
+        Press(new Key('?'));
+        Press(new Key('/'));
+        Press(new Key('g'));
+
+        Press(Key.Enter);
+
+        Assert.Equal(KeyMode.Normal, _keys.Mode);
+        Assert.Equal("g", _overlays.State.HelpFilter);
+        Press(new Key('j'));
+        Assert.Equal(1, _overlays.State.HelpScroll);
+        Press(new Key('l'));
+        Assert.Equal(0, _overlays.State.HelpTab);
+
+        Press(Key.Esc);
+
+        Assert.Equal(OverlayKind.Help, _overlays.State.Kind);
+        Assert.Equal(string.Empty, _overlays.State.HelpFilter);
+        Press(Key.Esc);
+        Assert.False(_overlays.State.IsOpen);
+    }
+
+    [Fact]
+    public void GivenTheFilterLineIsBeingTyped_WhenPressingEsc_ThenItClearsAndTheHelpStaysOpen()
+    {
+        Press(new Key('?'));
+        Press(new Key('/'));
+        Press(new Key('q'));
+
+        Press(Key.Esc);
+
+        Assert.Equal(OverlayKind.Help, _overlays.State.Kind);
+        Assert.Equal(KeyMode.Normal, _keys.Mode);
+        Assert.Equal(string.Empty, _overlays.State.HelpFilter);
+        Assert.False(_overlays.State.IsEditingHelpFilter);
+    }
+
     [Fact]
     public void GivenOpenHelp_WhenPressingTabAndShiftTab_ThenTheFourGraphTabsCycleBothWaysAndScrollStartsOver()
     {
