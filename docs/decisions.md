@@ -173,7 +173,7 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 ## 2026-10-29
 
-**Issue links** (#213, reopened by the owner; supersedes the source of the earlier #213 entry): the `[issuetracker "name"]` sections are read from the effective git config (repository, global, system) as well as from `.issuetracker`; a section of the same name in the file wins. Why: the owner's Jira section was not detected and git and common tooling read it from the git config; the file as quoted in the issue already parsed. Cost: one more `git config --list -z` per load.
+**Issue links** (#213, reopened by the owner; supersedes the source of the earlier #213 entry): the `[issuetracker "name"]` sections are read from the effective git config (repository, global, system) as well as from `.issuetracker`; a section of the same name in the file wins. Why: the owner's Jira section was not detected and other clients read it from the git config; the file as quoted in the issue already parsed. Cost: one more `git config --list -z` per load.
 
 **UI:** Graph colours (#761, owner): one colour per branch name (remote prefix ignored), a hash of the name moved to a free slot. Why: colours that follow the name, not the position; local and remote of one branch match. Detail: `git-layer.md`.
 
@@ -205,6 +205,6 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 ## 2026-11-01
 
-**Process:** The project keeps the name "Gitunia" (#896, owner). Why: a rename stays cheap before the first release; `gitkeel` is the fallback.
+**Process:** The project keeps the name "Gitunia" (#896, owner). Why: the same-named macOS client has little traction, is single-platform and open source, so the collision risk is small and a rename stays cheap before the first release. Re-check that client and the package registries right before the repository goes public; `gitkeel` is the fallback.
 
 **Process:** Supersedes the reasoning of the 2026-11-01 name entry (#919, owner): the third-party description is dropped; the decision stands, the name "Gitunia" is kept and `gitkeel` stays the fallback. Check the package registries right before the repository goes public.
