@@ -144,7 +144,7 @@ public class StagingActionsTests
 
         Assert.Empty(notice);
         Assert.Equal(["c.txt"], Assert.Single(harness.Writer.Staged));
-        Assert.Equal("Resolved and staged c.txt, 2 conflicts left", harness.Statuses.Log.Latest!.Text);
+        Assert.Equal("Resolved and staged c.txt (Staged list), 2 conflicts left", harness.Statuses.Log.Latest!.Text);
         Assert.Equal(2, harness.Tab.WorkingTree!.Unstaged.Count(entry => entry.Kind == StatusEntryKind.Unmerged));
         Assert.Equal("a.txt", harness.Selection.Path);
         Assert.Equal(WorkingTreeSection.Unstaged, harness.Selection.Section);
@@ -159,7 +159,23 @@ public class StagingActionsTests
         harness.Staging.StageResolvedFor(harness.Tab, "c.txt");
         await harness.Pump.RunUntilAsync(() => !harness.Staging.IsRunning);
 
-        Assert.Equal("Resolved and staged c.txt: all conflicts resolved, commit it", harness.Statuses.Log.Latest!.Text);
+        Assert.Equal("Resolved and staged c.txt (Staged list): all conflicts resolved, commit it", harness.Statuses.Log.Latest!.Text);
+        Assert.Equal(
+            new WorkingTreeSelection(WorkingTreeSection.Staged, "c.txt", 0),
+            harness.Selection);
+    }
+
+    [Fact]
+    public async Task GivenAModifiedFileStaysUnstaged_WhenTheEditorStagesTheLastConflict_ThenTheStagedListIsFocused()
+    {
+        using var harness = new Harness(Conflict("c.txt"), Modified("m.txt"));
+        harness.ReloadOnRefresh(Modified("m.txt"), StagedModified("c.txt"));
+
+        harness.Staging.StageResolvedFor(harness.Tab, "c.txt");
+        await harness.Pump.RunUntilAsync(() => !harness.Staging.IsRunning);
+
+        Assert.Equal(PaneKind.WorkingStaged, harness.Tab.View.FocusedPane);
+        Assert.Equal("c.txt", harness.Selection.Path);
     }
 
     [Fact]
@@ -187,7 +203,7 @@ public class StagingActionsTests
         await harness.Pump.RunUntilAsync(() => !harness.Staging.IsRunning);
 
         Assert.Equal(
-            "Resolved and staged c.txt: all conflicts resolved, <space>gc continue",
+            "Resolved and staged c.txt (Staged list): all conflicts resolved, <space>gc continue",
             harness.Statuses.Log.Latest!.Text);
     }
 
