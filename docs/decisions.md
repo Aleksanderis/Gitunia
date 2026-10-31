@@ -206,3 +206,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 ## 2026-11-01
 
 **Process:** The project keeps the name "Gitunia" (#896, owner). Why: the same-named macOS client has little traction, is single-platform and open source, so the collision risk is small and a rename stays cheap before the first release. Re-check that client and the package registries right before the repository goes public; `gitkeel` is the fallback.
+
+**UI:** Fetch, pull and push sit on `<space>f`, `<space>p`, `<space>P` (#918, owner); `<space>rf/rl/rp` stay as aliases and jump-to-ref moves to `<space>J`. Why: the most common remote actions deserve two strokes; no bare keys, no new picker key (`Ctrl-t` is named in the `<space>o` entry, hints and empty screen instead). Supersedes the `<space>f` jump and the "`<space>P` is push no more" notes of #840.

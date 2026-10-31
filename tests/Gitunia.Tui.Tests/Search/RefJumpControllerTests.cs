@@ -35,7 +35,7 @@ public class RefJumpControllerTests
         using var harness = new PromptHarness(Graph(), refs: Refs());
 
         harness.Press(new Key(' '));
-        harness.Press(new Key('f'));
+        harness.Press(new Key('J'));
         Assert.Equal(KeyMode.Insert, harness.Mode);
         harness.Type("rel");
         Assert.StartsWith("ref rel_  release/1.0 (1/1)", harness.StatusLine, StringComparison.Ordinal);
@@ -50,7 +50,7 @@ public class RefJumpControllerTests
     {
         using var harness = new PromptHarness(Graph(), refs: Refs());
         harness.Press(new Key(' '));
-        harness.Press(new Key('f'));
+        harness.Press(new Key('J'));
 
         harness.Press(Key.CursorDown);
         harness.Press(Key.Enter);
@@ -63,7 +63,7 @@ public class RefJumpControllerTests
     {
         using var harness = new PromptHarness(Graph(), refs: Refs());
         harness.Press(new Key(' '));
-        harness.Press(new Key('f'));
+        harness.Press(new Key('J'));
 
         harness.Type("0000003");
         harness.Press(Key.Enter);
@@ -76,7 +76,7 @@ public class RefJumpControllerTests
     {
         using var harness = new PromptHarness(Graph(), refs: Refs()) { SelectedRow = 2 };
         harness.Press(new Key(' '));
-        harness.Press(new Key('f'));
+        harness.Press(new Key('J'));
 
         harness.Type("zzz");
         Assert.Contains("no matching ref or commit", harness.StatusLine, StringComparison.Ordinal);
@@ -91,7 +91,7 @@ public class RefJumpControllerTests
     {
         using var harness = new PromptHarness(Graph(), refs: Refs()) { SelectedRow = 3 };
         harness.Press(new Key(' '));
-        harness.Press(new Key('f'));
+        harness.Press(new Key('J'));
 
         harness.Press(Key.Esc);
 
@@ -106,7 +106,7 @@ public class RefJumpControllerTests
         var loaded = CommitFactory.Graph(CommitFactory.Commit(4, "four", [3]), CommitFactory.Commit(3, "three", [2]));
         using var harness = new PromptHarness(loaded, isLoading: true, refs: Refs());
         harness.Press(new Key(' '));
-        harness.Press(new Key('f'));
+        harness.Press(new Key('J'));
         harness.Type("v0");
         harness.Press(Key.Enter);
         Assert.Contains("Loading", harness.Notice, StringComparison.Ordinal);

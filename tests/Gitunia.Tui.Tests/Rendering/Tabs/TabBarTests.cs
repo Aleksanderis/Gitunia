@@ -268,6 +268,6 @@ public class TabBarTests
     {
         var model = new ScreenModel(string.Empty, null, 0, 0, "INSERT", string.Empty, 0, 0, false, string.Empty);
 
-        Assert.Equal(" no repository open", ChromeBuilder.Tabs(model, 40, GraphGlyphSet.Unicode).Text.TrimEnd());
+        Assert.Equal(" no repository open: Ctrl-t to open one", ChromeBuilder.Tabs(model, 40, GraphGlyphSet.Unicode).Text.TrimEnd());
     }
 }
