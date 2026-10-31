@@ -211,3 +211,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **Process:** Supersedes the reasoning of the 2026-11-01 name entry (#919, owner): the third-party description is no longer relied on; the decision stands, the name "Gitunia" is kept and `gitkeel` stays the fallback. Check the package registries right before the repository goes public.
 
 **Process:** The release guard (#921, owner) starts the full CI run itself: it reuses a green `workflow_dispatch` run for the tagged commit, else awaits an active one or starts `ci.yml` (platform all) on the tag and watches it; only a red run fails the release. Supersedes the "run `gh workflow run ci.yml` before tagging" step of the #899 entry. Why: the first tag failed at the guard; tests still run once per release.
+
+**UI:** The main loop runs 100 iterations per second while the user works and 50 after 2 s without input (#909). Why: Terminal.Gui wakes three threads per iteration even when idle (idle CPU ~2.4% at 100, ~1.5% at 50) and the first key after a pause costs about 9 ms more; the full rate stays for key latency. Numbers: `docs/performance.md`, "Idle CPU".

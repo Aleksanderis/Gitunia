@@ -36,6 +36,21 @@ Native AOT linux-x64, 120x40 under tmux, medians (they include 1-3 ms of polling
 
 Known limit: at 80x24 the newest row is cut inside the harness marker; pass `--marker "Commit #97500"` there.
 
+## Idle CPU (#909)
+
+Cause: Terminal.Gui 2.5.0 runs its main loop unconditionally, `Application.MaximumIterationsPerSecond` times a second, each ending in `Task.Delay(..).Wait()` (a wakeup of the timer thread, a pool worker and the main thread, plus a size query and a draw check), and its input thread polls every 20 ms. The poller, the 2 s fingerprint and the UI timers are small next to this. Idle CPU is about proportional to the rate (Linux, AOT, 5000-commit repository, 8 refs, 45 s windows, whole process, threads summed from `/proc/<pid>/task/*/stat`): 100/s 2.56%, 50/s 1.44%, 25/s 1.04%, 10/s 0.91%; 230-390 voluntary context switches per second on each of five threads at 100/s. The rate stays 100/s while working for key latency (the default 25/s gave ~34 ms, `docs/history/decisions.md`).
+
+Fix: `IterationRateGovernor` keeps 100/s while the user is working and for 2 s after the last key, mouse event or paste, and drops to 50/s on an untouched screen; the first input after an idle spell is handled by one slower iteration, then the rate is back at 100/s.
+
+| Case (AOT, 5000-commit repository, 60 s idle after a 15 s settle, whole process, `git status` children excluded) | Before | After |
+|---|---|---|
+| Idle CPU, 3 runs before / 2 after | 2.25, 2.35, 2.58% (median 2.35%) | 1.45, 1.63% |
+| RSS | ~46 MB | ~46-47 MB |
+| `j` after a 3 s pause (20 samples per round, two rounds, tmux poll included) | median 17.6 / 23.1 ms | median 26.8 / 32.4 ms (about +9 ms) |
+| `j` 0.3 s after the previous key (same harness) | median 22.3 / 24.1 ms | median 22.9 / 19.3 ms (unchanged) |
+
+With the `git status` children (~1%) the whole app idles at about 2.5%, so the ~2% bar is met for the Gitunia process alone, not for the total. Not measured: the latency of an automatic refresh or reload that finishes while the screen is idle (its redraw waits at most one 20 ms iteration longer), and Windows/macOS. Going lower costs first-key latency in proportion (25/s idle: ~1.0% but about +30 ms); a loop without idle wakeups needs a change inside Terminal.Gui (blocking wait on input and timers). Reproduce: sum fields 14+15 of every `/proc/<pid>/task/*/stat` twice, 60 s apart, in a private tmux.
+
 ## Many tabs
 
 Only the active tab loads (lazy restore); a visited small tab adds ~0.5-1 MB. Background tabs get their dirty/ahead/behind markers from `BackgroundStatusPoller`: `git status` only, one tab at a time, once at start and then every 30 s, with no graph, refs or watchers loaded. An idle preload would only add memory and processes, so none is done.
@@ -46,7 +61,7 @@ Only the active tab loads (lazy restore); a visited small tab adds ~0.5-1 MB. Ba
 
 ## Polling and watching
 
-Cadence and the opt-in watching budget are specified in `docs/git-layer.md`, "Refresh". Cost: one `git status` read (~54 ms on a 1276-file checkout) per 5 s, about 1% of a core while the tab is active, nothing for a hidden tab; a repository whose status takes 2 s polls every 10 s (~20%, the back-off caps growth). Measured on Linux (#894, AOT build, 60 s idle after a 15 s settle, private tmux, CPU ticks from `/proc/<pid>/stat`, the Gitunia process only; the `git status` children add ~1% on top; reproduce with a clone of `scripts/gen-big-repo.sh 5000` plus `git update-ref --stdin` creating the refs, a published binary in a private tmux, and two reads of fields 14+15 of `/proc/<pid>/stat` 60 s apart): the fingerprint on a throwaway clone of the 5000-commit repository with 8,000 loose refs (5,000 branches, 3,000 tags) takes ~13 ms median (8-50 ms) against 0.1 ms with 8 refs (warm file cache; packed refs are one file and cheaper). Idle CPU of the whole app with the poller running is ~2.8% of a core with 8 refs and ~3.4% with 8,000 loose refs, so the fingerprint adds ~0.6% (the 50 ms maximum is a single spike in 30 timed runs after one warm-up, not a cold start); RSS 49 vs 64 MB. The idle baseline of the process alone is above the ~2% bar set in #894 (follow-up #909). Ignore-aware watching starts in ~2 ms against ~48 ms recursive and registers ~900 of ~9,900 directories off-thread in ~333 ms; the inotify instance limit binds before the 2048-directory cap, then the watcher falls back to polling.
+Cadence and the opt-in watching budget are specified in `docs/git-layer.md`, "Refresh". Cost: one `git status` read (~54 ms on a 1276-file checkout) per 5 s, about 1% of a core while the tab is active, nothing for a hidden tab; a repository whose status takes 2 s polls every 10 s (~20%, the back-off caps growth). Measured on Linux (#894, AOT build, 60 s idle after a 15 s settle, private tmux, CPU ticks from `/proc/<pid>/stat`, the Gitunia process only; the `git status` children add ~1% on top; reproduce with a clone of `scripts/gen-big-repo.sh 5000` plus `git update-ref --stdin` creating the refs, a published binary in a private tmux, and two reads of fields 14+15 of `/proc/<pid>/stat` 60 s apart): the fingerprint on a throwaway clone of the 5000-commit repository with 8,000 loose refs (5,000 branches, 3,000 tags) takes ~13 ms median (8-50 ms) against 0.1 ms with 8 refs (warm file cache; packed refs are one file and cheaper). Idle CPU of the whole app with the poller running is ~2.8% of a core with 8 refs and ~3.4% with 8,000 loose refs, so the fingerprint adds ~0.6% (the 50 ms maximum is a single spike in 30 timed runs after one warm-up, not a cold start); RSS 49 vs 64 MB. That ~2.4-2.8% baseline was above the ~2% bar set in #894; #909 found the cause and fixed it, see "Idle CPU" below. Ignore-aware watching starts in ~2 ms against ~48 ms recursive and registers ~900 of ~9,900 directories off-thread in ~333 ms; the inotify instance limit binds before the 2048-directory cap, then the watcher falls back to polling.
 
 ## Soft row limit (#515)
 

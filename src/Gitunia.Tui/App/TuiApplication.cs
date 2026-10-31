@@ -84,14 +84,18 @@ public sealed class TuiApplication(
     ConsoleCapabilities detectedCapabilities,
     IPlatform platform) : IDisposable, ITerminalSuspender
 {
-    // Terminal.Gui's default of 25 iterations per second gave ~34 ms key latency; see docs/history/decisions.md.
-    private const ushort IterationsPerSecond = 100;
+    // Terminal.Gui's default of 25 iterations per second gave ~34 ms key latency (docs/history/decisions.md); the idle rate saves CPU (#909).
+    private const ushort ActiveIterationsPerSecond = 100;
+    private const ushort IdleIterationsPerSecond = 50;
+    private static readonly TimeSpan IdleAfter = TimeSpan.FromSeconds(2);
     private const long OverlayDoubleClickGuardMilliseconds = 600;
     private const int ShortHashLength = 7;
     private const int HeadlessColumns = 120;
     private const int HeadlessRows = 40;
     private static readonly TimeSpan SaveDebounce = TimeSpan.FromMilliseconds(500);
 
+    private readonly IterationRateGovernor _iterationRate =
+        new(ActiveIterationsPerSecond, IdleIterationsPerSecond, IdleAfter);
     private IApplication _application = null!;
     private WorkspaceHost _host = null!;
     private EffectRunner _effects = null!;
@@ -190,7 +194,7 @@ public sealed class TuiApplication(
         var store = new SessionStore(platform.StateDirectory);
         var restored = store.LoadAsync(CancellationToken.None).GetAwaiter().GetResult();
 
-        Application.MaximumIterationsPerSecond = IterationsPerSecond;
+        Application.MaximumIterationsPerSecond = ActiveIterationsPerSecond;
         CreateApplication();
         _uiInvoker = new SuspendableUiInvoker(_application.Invoke);
 
@@ -2102,8 +2106,19 @@ public sealed class TuiApplication(
 
     private void SubscribeInput()
     {
-        _application.Keyboard.KeyDown += (_, key) => key.Handled = HandleKey(key);
-        _application.Paste += (_, paste) => OnPaste(paste);
+        _application.Keyboard.KeyDown += (_, key) =>
+        {
+            _iterationRate.NoteInput();
+            key.Handled = HandleKey(key);
+        };
+        _application.Paste += (_, paste) =>
+        {
+            _iterationRate.NoteInput();
+            OnPaste(paste);
+        };
+        _application.Mouse.MouseEvent += (_, _) => _iterationRate.NoteInput();
+        _application.Iteration += (_, _) =>
+            Application.MaximumIterationsPerSecond = _iterationRate.CurrentRate();
     }
 
     /// <summary>
