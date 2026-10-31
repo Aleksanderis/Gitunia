@@ -52,7 +52,7 @@ public class BannerRendererTests
 
         var segments = BannerRenderer.Build(banner, 160, GraphGlyphSet.Unicode).Line.Segments;
 
-        var key = segments.Single(segment => segment.Text.Contains("gr", StringComparison.Ordinal));
+        var key = segments.Single(segment => segment.Text == "<space>gr");
         Assert.Equal(SegmentRole.StatusKey, key.Role);
         var label = segments[segments.ToList().IndexOf(key) + 1];
         Assert.Equal(SegmentRole.Status, label.Role);
