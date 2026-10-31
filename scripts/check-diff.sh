@@ -26,6 +26,7 @@ archive_removed="$(git diff -U0 "$base"...HEAD -- docs/history/decisions.md | gr
 if [[ -n "${DECISIONS_EDIT_APPROVED:-}" ]]; then
     archive_removed=0
     removed=0
+    skip_dated=1
 fi
 if (( archive_removed > 0 )); then
     report "docs/history/decisions.md: $archive_removed existing line(s) removed or changed, the archive is append-only"
@@ -34,8 +35,9 @@ if (( removed > 0 )); then
     report "docs/decisions.md: $removed existing line(s) removed or changed, the file is append-only (archive moves go verbatim to docs/history/decisions.md in the same diff)"
 fi
 today="$(date +%F)"
+skip_dated="${skip_dated:-}"
 while IFS=$'\t' read -r line heading; do
-    if [[ "$heading" != "## $today" ]]; then
+    if [[ -z "$skip_dated" && "$heading" != "## $today" ]]; then
         report "docs/decisions.md:$line: entry under '$heading', add it under '## $today'"
     fi
 done < <(git diff -U0 "$base"...HEAD -- docs/decisions.md | awk '
