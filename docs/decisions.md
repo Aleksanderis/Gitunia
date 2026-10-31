@@ -206,3 +206,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 ## 2026-11-01
 
 **Process:** The project keeps the name "Gitunia" (#896, owner). Why: the same-named macOS client has little traction, is single-platform and open source, so the collision risk is small and a rename stays cheap before the first release. Re-check that client and the package registries right before the repository goes public; `gitkeel` is the fallback.
+
+**Process:** Supersedes the reasoning of the 2026-11-01 name entry (#919, owner): the third-party description is no longer relied on; the decision stands, the name "Gitunia" is kept and `gitkeel` stays the fallback. Check the package registries right before the repository goes public.
