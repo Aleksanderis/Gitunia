@@ -54,7 +54,7 @@ Normal (navigate, act), Visual (select a range of lines, commits or files), Inse
 
 - A centred box holds a title, what the answer is for, the text field (`> text_`), the candidate list of a filter prompt and the answering keys: `Enter` accepts, `Esc` cancels, `Ctrl-j`/`Ctrl-k` (also `Up`/`Down`, `Tab`) select in a filter. The keys are the same whether the flow started by key, palette or mouse; a click outside cancels like `Esc`.
 - **Filter pickers** (remote of a push, tag push or delete, remote management, remote-branch delete, upstream, branch checkout; `FilterPicker<T>`): candidates are always on screen under the field, best match first, at most 8 rows, the highlighted row marked `> `, then the position `(2/5)`; an empty list says what is missing. `Enter` runs the highlighted candidate without typing. Letters always filter, so `j`/`k` are text here. A remote branch in the checkout list is written `origin/foo -> local foo`: it is checked out as a new local branch tracking it.
-- The status bar keeps transient messages and the find-as-you-type bars (search `/`, ref jump `<space>f`, quick jump `<space>j`, the diff, reflog and sidebar filters). When the screen is too small for a popup, the prompt shows in the status bar and still answers to its keys.
+- The status bar keeps transient messages and the find-as-you-type bars (search `/`, ref jump `<space>J`, quick jump `<space>j`, the diff, reflog and sidebar filters). When the screen is too small for a popup, the prompt shows in the status bar and still answers to its keys.
 
 ## Focus model and key style
 
