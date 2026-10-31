@@ -64,7 +64,9 @@ public static class Program
         {
             // The frame follows the user's config for the label caps (#851), so a capture shows what the app draws.
             var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-            var labelCaps = new ConfigStartup(PlatformInfo.Current.ConfigDirectory, home).Load().Options.LabelCaps;
+            var configured = new ConfigStartup(
+                PlatformInfo.Current.ConfigDirectory, home, ConfigStartup.DefaultLabelCaps(capabilities));
+            var labelCaps = configured.Load().Options.LabelCaps;
             var hasColors = options.Colors is not null && options.Colors.Depth != ColorDepth.None;
             new FramePrinter(services).PrintAsync(
                 location!,

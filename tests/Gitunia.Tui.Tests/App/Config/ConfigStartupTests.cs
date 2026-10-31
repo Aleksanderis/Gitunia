@@ -3,6 +3,7 @@ using Gitunia.Core.Config.Models;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Status;
+using Gitunia.Platform;
 using Gitunia.Tui.App.Config;
 using Xunit;
 
@@ -112,6 +113,20 @@ public sealed class ConfigStartupTests : IDisposable
 
         Assert.True(options.ShowBranchInTab);
         Assert.Equal([_directory], options.ScanRoots);
+    }
+
+    [Fact]
+    public void GivenTheClassicConsole_WhenLoadingWithoutLabelCaps_ThenNoneAndAnExplicitValueWins()
+    {
+        var classic = new ConsoleCapabilities(true, ColorDepth.Ansi16, true, IsClassicConsole: true);
+        var modern = classic with { IsClassicConsole = false };
+        Assert.Equal(LabelCapStyle.None, ConfigStartup.DefaultLabelCaps(classic));
+        Assert.Equal(LabelCapStyle.Rounded, ConfigStartup.DefaultLabelCaps(modern));
+
+        Assert.Equal(LabelCapStyle.None, new ConfigStartup(_directory, _directory, ConfigStartup.DefaultLabelCaps(classic)).Load().Options.LabelCaps);
+
+        Write("""{ "labelCaps": "angled" }""");
+        Assert.Equal(LabelCapStyle.Angled, new ConfigStartup(_directory, _directory, ConfigStartup.DefaultLabelCaps(classic)).Load().Options.LabelCaps);
     }
 
     [Fact]

@@ -201,6 +201,17 @@ public class SettingsValueReaderTests
         Assert.Empty(load.Warnings);
     }
 
+    [Theory]
+    [InlineData("{}", "none")]
+    [InlineData("{ \"labelCaps\": \"angled\" }", "angled")]
+    public void GivenTheClassicConsoleDefault_WhenReadingTheLabelCaps_ThenOnlyAnUnsetFileShowsNone(string text, string expected)
+    {
+        var load = SettingsValueReader.Read(
+            new ConfigSnapshot(true, text, "h"), Home, _ => true, null, LabelCapStyle.None);
+
+        Assert.Equal(expected, load.Values[SettingsRegistry.LabelCapsId].Choice);
+    }
+
     [Fact]
     public void GivenAUserThemeName_WhenReadingWithTheNamesOnOffer_ThenItIsAcceptedOtherwiseWarned()
     {

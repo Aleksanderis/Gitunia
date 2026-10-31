@@ -73,6 +73,32 @@ public class DetectionTests
         Assert.Equal(Path.Combine(home, ".local", "state", "gitunia"), platform.StateDirectory);
     }
 
+    [Theory]
+    [InlineData(true, null, true)]
+    [InlineData(true, "abc-123", false)]
+    [InlineData(false, null, false)]
+    [InlineData(false, "abc-123", false)]
+    public void GivenOsAndWindowsTerminalSession_WhenDetectingTheClassicConsole_ThenOnlyWindowsWithoutASessionIsClassic(bool windows, string? session, bool expected)
+    {
+        var environment = session is null ? [] : new[] { new EnvironmentVariable("WT_SESSION", session) };
+
+        Assert.Equal(expected, WithOs(windows, environment).DetectClassicConsole());
+    }
+
+    [Fact]
+    public void GivenWindowsWithoutSession_WhenDetectingColor_ThenAnsi16AndWithASessionTruecolor()
+    {
+        Assert.Equal(ColorDepth.Ansi16, WithOs(true).DetectColor(true));
+        Assert.Equal(ColorDepth.TrueColor, WithOs(true, new EnvironmentVariable("WT_SESSION", "x")).DetectColor(true));
+        Assert.Equal(ColorDepth.Ansi16, WithOs(false, new EnvironmentVariable("WT_SESSION", "x")).DetectColor(true));
+    }
+
+    private static TerminalPlatform WithOs(bool windows, params EnvironmentVariable[] environment)
+    {
+        var dictionary = environment.ToDictionary(entry => entry.Key, entry => entry.Value);
+        return new TerminalPlatform(key => dictionary.GetValueOrDefault(key), () => windows);
+    }
+
     private static TerminalPlatform With(params EnvironmentVariable[] environment)
     {
         var dictionary = environment.ToDictionary(entry => entry.Key, entry => entry.Value);

@@ -17,7 +17,12 @@ public enum ColorDepth
 /// The terminal reports a light background (<c>COLORFGBG</c>, replaced by the OSC 11 answer when the theme is auto);
 /// false for dark and for unknown.
 /// </param>
-public sealed record ConsoleCapabilities(bool IsInteractive, ColorDepth Color, bool Unicode, bool IsLightBackground = false);
+/// <param name="IsClassicConsole">
+/// A Windows terminal that does not set <c>WT_SESSION</c>, in practice the classic console host (conhost): its default font has no Powerline or Nerd Font glyphs
+/// and its dark blue is hard to read. Always false off Windows.
+/// </param>
+public sealed record ConsoleCapabilities(
+    bool IsInteractive, ColorDepth Color, bool Unicode, bool IsLightBackground = false, bool IsClassicConsole = false);
 
 /// <summary>
 /// The only place OS-specific behaviour lives. Every member has an implementation

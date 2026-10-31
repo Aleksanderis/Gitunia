@@ -31,16 +31,18 @@ public static class OptionsConfigurator
     /// <param name="homeDirectory">What a leading <c>~</c> in a scan root stands for.</param>
     /// <param name="directoryExists">Whether a directory exists (injected, so this stays pure).</param>
     /// <param name="problems">Receives one problem per bad value.</param>
+    /// <param name="defaultLabelCaps">What <c>labelCaps</c> is when the file does not set it (the platform decides, #574).</param>
     public static ConfigOptions Read(
         ConfigDocument document,
         string homeDirectory,
         Func<string, bool> directoryExists,
-        ICollection<ConfigProblem> problems) =>
+        ICollection<ConfigProblem> problems,
+        LabelCapStyle defaultLabelCaps = LabelCapStyle.Rounded) =>
         new(
             ParseShowBranch(document.Tabs, problems),
             ParseScanRoots(document.ScanRoots, homeDirectory, directoryExists, problems),
             ParseWatchFiles(document.WatchFiles, problems),
-            ParseLabelCaps(document.LabelCaps, problems),
+            ParseLabelCaps(document.LabelCaps, problems, defaultLabelCaps),
             ParseWhichKey(document.Hints, problems),
             ParseStatusBar(document.Hints, problems),
             ParseCommandLevel(document.CommandLevel, problems));
@@ -151,12 +153,15 @@ public static class OptionsConfigurator
         return text;
     }
 
-    /// <summary>The <c>labelCaps</c> option: none, rounded or angled (any case); no value or anything else gives rounded.</summary>
-    public static LabelCapStyle ParseLabelCaps(JsonElement? value, ICollection<ConfigProblem> problems)
+    /// <summary>The <c>labelCaps</c> option: none, rounded or angled (any case); no value gives <paramref name="defaultStyle"/>, anything else is reported and gives rounded.</summary>
+    public static LabelCapStyle ParseLabelCaps(
+        JsonElement? value,
+        ICollection<ConfigProblem> problems,
+        LabelCapStyle defaultStyle = LabelCapStyle.Rounded)
     {
         if (value is null or { ValueKind: JsonValueKind.Null })
         {
-            return LabelCapStyle.Rounded;
+            return defaultStyle;
         }
 
         var text = value.Value.ValueKind == JsonValueKind.String ? value.Value.GetString() : null;
