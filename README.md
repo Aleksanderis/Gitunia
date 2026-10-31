@@ -4,6 +4,8 @@ A keyboard-first terminal Git client in the spirit of graphical Git clients: a r
 
 Status: in development. Milestone progress is in `docs/roadmap.md`.
 
+![Gitunia demo: graph, branch switch, worktree, staging lines, commit](docs/media/demo.gif)
+
 ## Why
 
 Terminal Git tools tend to be great for quick staging and commits but awkward for heavier work: managing many branches, worktrees and navigating a large commit graph. Graphical clients get that model right (graph, branches, worktrees, stashes, interactive rebase as first-class views) but need a mouse and a desktop. Gitunia aims for that model with a mouseless terminal UX.

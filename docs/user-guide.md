@@ -98,6 +98,10 @@ An entry on a key that already has a binding in that mode and view replaces it. 
 
 **See the result.** `?` shows the keys of the focused view; its `Custom` section lists your own bindings (shown once at least one entry applied).
 
+## Regenerating the README demo
+
+The animation in `README.md` (`docs/media/demo.gif`) is a scripted recording of the real binary on a generated throwaway repository, never a real one. On Linux with `vhs`, `ttyd` and `ffmpeg` installed, run `scripts/demo.sh` (it publishes the AOT binary first; pass `--binary <gitunia>` to reuse one, `--out <dir>` to write elsewhere). It writes `demo.gif` (README, about 1 MB) and `demo.webm` (landing page, not committed) into `docs/media/`. The key script is `scripts/demo.tape`: edit its `Type` and `Sleep` lines when the UI or keys change, then rerun and commit the new GIF (keep it under about 3 MB). It is separate from the screenshots flow of the `screenshots` skill and never runs in CI.
+
 ## Not in the MVP
 
 Submodules, LFS, blame, hosting-provider integration, extra themes and plugins. See "MVP scope" in `README.md`.
