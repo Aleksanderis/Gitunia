@@ -42,14 +42,21 @@ Done when: the owner can use Gitunia for all daily branch and worktree work.
 Status: done.
 
 Fetch/pull/push with progress and cancel (keys and buttons, prune, force-with-lease, delete remote branch), interactive rebase editor (reorder/reword/squash/fixup/drop), remote management, clone/init, credential prompt handling, config file for keys/theme, packaging (AOT binaries per OS), docs for users.
-Done when: usable as a daily driver on Linux; Windows binaries build in CI (macOS CI and binary are in the backlog milestone `Mx`, #455).
+Done when: usable as a daily driver on Linux; Windows binaries build in CI (macOS CI and binary are in milestone M6, #455).
 
 ## M5 - Keymap and discoverability
 
-Status: in progress (tracking issue #867; the open issues are the source of truth).
+Status: done (tracking issue #867).
 
 Goal (#833, owner feedback): fewer keys to learn and every command findable. New leader layout (one prefix per noun, no unrelated case pairs, tabs and repositories together), three command levels (Everyday, Advanced, Advanced+) with a fast toggle, help with all-commands tabs and a Custom tab, optional hints, the keymap as a data file with a generated reference, Ctrl-c always quits, key customisation in the user guide.
 Done when: the owner approved the new layout (#840), `?` lists every bound command once, hints and advanced commands can be turned off, and the keymap reference is generated from the data file.
+
+## M6 - Additional, unreviewed
+
+Status: in progress (tracking issue #893; the open issues are the source of truth).
+
+Backlog of reviewed owner items, release and packaging: help search and wording, stash file restore, older-console readability, release version stamp and packaging flow, idle CPU measurement, conflict editor tests, manual and Windows checks, macOS CI and binary (#455), package managers (#62).
+Done when: the first `v*` tag produces verified release archives (#517) and the listed owner checks are done.
 
 ## Post-MVP candidates
 
