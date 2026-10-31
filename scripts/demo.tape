@@ -41,10 +41,8 @@ Type "feature/multiply"
 Sleep 600ms
 Enter
 Sleep 800ms
-Sleep 600ms
 Enter
 Sleep 1500ms
-Sleep 500ms
 
 # Working tree: stage a few lines, then commit.
 Type " s"
@@ -62,5 +60,4 @@ Sleep 700ms
 Type "Document division and modulo"
 Sleep 500ms
 Ctrl+g
-Sleep 1500ms
 Sleep 1500ms

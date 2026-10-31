@@ -67,4 +67,8 @@ Metrics (`key=value`; `nan` means the expected frame never appeared within `--ti
 
 UI pull requests with a visual change carry one capture (2-3 images at most); none for key labels, hints only, docs or logic. Procedure, flags and limits: the `screenshots` skill.
 
+### Regenerating the README demo
+
+The animation in `README.md` (`docs/media/demo.gif`) is a scripted recording of the real binary on a generated throwaway repository, never a real one. On Linux with `vhs`, `ttyd` and `ffmpeg` installed, run `scripts/demo.sh` (it publishes the AOT binary first; pass `--binary <gitunia>` to reuse one, `--out <dir>` to write elsewhere). It writes `demo.gif` (README, about 1 MB) and `demo.webm` (landing page, not committed) into `docs/media/`. The key script is `scripts/demo.tape`: edit its `Type` and `Sleep` lines when the UI or keys change, then rerun and commit the new GIF (keep it under about 3 MB; each re-record adds that to git history, so re-record only when the UI visibly changed). The GIF lives in this repository, not the private screenshots repository, because the README needs a link every visitor can load. Separate from the screenshots flow; never runs in CI.
+
 Design history (CI minutes, screenshot hosting, accepted timer waits): `docs/history/testing.md`.

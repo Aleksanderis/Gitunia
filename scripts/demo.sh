@@ -76,6 +76,7 @@ repo="$work/demo-repo"
 
 mkdir -p "$out_dir" "$work/config" "$work/state"
 export DEMO_BIN="$binary" DEMO_REPO="$repo"
+# Deliberate isolation of the recorded app from the owner config and git identity (the app itself sets none of these).
 export XDG_CONFIG_HOME="$work/config" XDG_STATE_HOME="$work/state"
 export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_SYSTEM=/dev/null
 export GIT_AUTHOR_NAME="Ada Lovelace" GIT_AUTHOR_EMAIL=ada@example.com GIT_COMMITTER_NAME="Ada Lovelace" GIT_COMMITTER_EMAIL=ada@example.com
