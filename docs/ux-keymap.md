@@ -421,9 +421,9 @@ Grouped as the palette groups them (`ActionCatalog.GroupOf`). "Old" lists every 
 | `confirm.no` | Answer no | `n` | same | Everyday |  |
 | `confirm.yes` | Answer yes | `y` | same | Everyday |  |
 | `help.show` | Show keys for this view | `?` | same | Everyday |  |
-| `help.tab-next` | Next help tab | `Tab` `l` | same | Everyday |  |
-| `help.tab-previous` | Previous help tab | `Shift-Tab` `h` | same | Everyday |  |
-| `help.tab-select` | Show the clicked help tab | none | same | Everyday |  |
+| `help.tab-next` | Next help section | `Tab` `l` | same | Everyday |  |
+| `help.tab-previous` | Previous help section | `Shift-Tab` `h` | same | Everyday |  |
+| `help.tab-select` | Show the clicked help section | none | same | Everyday |  |
 | `input.accept` | Accept the input | `Enter` | same | Everyday |  |
 | `menu.open-for-row` | Open the actions menu of the selected row | `<space>.` | same | Everyday |  |
 | `palette.next` | Next palette entry | `Down` `Ctrl-j` `j` | same | Everyday |  |

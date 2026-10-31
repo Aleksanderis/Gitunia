@@ -330,7 +330,7 @@ public static class HelpBuilder
         ]),
         new("Mouse",
         [
-            new HelpRow("Click", "Focus a pane, select a row, switch a tab or a help tab; outside a popup it closes"),
+            new HelpRow("Click", "Focus a pane, select a row, switch a tab or a help section; outside a popup it closes"),
             new HelpRow("Double-click", "Graph row: the actions menu; working-tree file: stage or unstage it"),
             new HelpRow("...", "Marker on the selected sidebar row: its actions menu"),
             new HelpRow("Wheel", "Scroll the pane under the pointer"),
