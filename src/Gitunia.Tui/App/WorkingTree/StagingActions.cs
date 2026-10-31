@@ -220,6 +220,10 @@ public sealed class StagingActions(
             {
                 host.Dispatch(new TabCommand(tab.Id, new SelectWorkingTreeFileCommand(section, row)));
 
+                // The selection alone would leave the focus in the other list, with the cursor drawn in an unfocused one.
+                var pane = section == WorkingTreeSection.Staged ? PaneKind.WorkingStaged : PaneKind.WorkingUnstaged;
+                host.Dispatch(new TabCommand(tab.Id, new FocusPaneCommand(pane)));
+
                 return;
             }
         }
