@@ -7,6 +7,7 @@ using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Diff.Models;
+using Gitunia.Git.Operations.Models;
 using Gitunia.Git.Refs.Models;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Staging;
@@ -159,6 +160,57 @@ public class StagingActionsTests
         await harness.Pump.RunUntilAsync(() => !harness.Staging.IsRunning);
 
         Assert.Equal("Resolved and staged c.txt: all conflicts resolved, commit it", harness.Statuses.Log.Latest!.Text);
+    }
+
+    [Fact]
+    public async Task GivenTheMiddleOfThreeConflictedFiles_WhenTheEditorStagesIt_ThenTheCursorMovesToTheFirstLeftNotTheSameIndex()
+    {
+        using var harness = new Harness(Conflict("a.txt"), Conflict("b.txt"), Conflict("c.txt"));
+        harness.Select(WorkingTreeSection.Unstaged, 1);
+        harness.ReloadOnRefresh(Conflict("a.txt"), Conflict("c.txt"), StagedModified("b.txt"));
+
+        harness.Staging.StageResolvedFor(harness.Tab, "b.txt");
+        await harness.Pump.RunUntilAsync(() => !harness.Staging.IsRunning);
+
+        Assert.Equal(new WorkingTreeSelection(WorkingTreeSection.Unstaged, "a.txt", 0), harness.Selection);
+    }
+
+    [Fact]
+    public async Task GivenTheLastConflictedFileDuringAnOperation_WhenTheEditorStagesIt_ThenTheStatusHintsAtContinuing()
+    {
+        using var harness = new Harness(Conflict("c.txt"));
+        harness.Send(new OperationLoadedCommand(
+            new OperationInfo(RepositoryOperation.Rebase, "x", 1, 1, null, null, null, null)));
+        harness.ReloadOnRefresh(StagedModified("c.txt"));
+
+        harness.Staging.StageResolvedFor(harness.Tab, "c.txt");
+        await harness.Pump.RunUntilAsync(() => !harness.Staging.IsRunning);
+
+        Assert.Equal(
+            "Resolved and staged c.txt: all conflicts resolved, <space>gc continue",
+            harness.Statuses.Log.Latest!.Text);
+    }
+
+    [Fact]
+    public async Task GivenGitFails_WhenTheEditorStagesTheSavedFile_ThenTheErrorIsShownAndNoResolvedReportFollows()
+    {
+        using var harness = new Harness(Conflict("a.txt"), Conflict("b.txt"));
+        harness.Select(WorkingTreeSection.Unstaged, 1);
+        harness.Writer.Failure = new InvalidOperationException("index.lock exists");
+        var refreshed = false;
+        harness.OnRefresh = () => refreshed = true;
+
+        var notice = harness.Staging.StageResolvedFor(harness.Tab, "b.txt");
+        await harness.Pump.RunUntilAsync(() => !harness.Staging.IsRunning);
+
+        Assert.Empty(notice);
+        Assert.True(refreshed);
+        Assert.Equal(StatusSeverity.Error, harness.Statuses.Log.Latest!.Severity);
+        Assert.Contains("Could not stage", harness.Statuses.Log.Latest.Text, StringComparison.Ordinal);
+        Assert.Contains("index.lock exists", harness.Statuses.Log.Latest.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            harness.Statuses.Log.History,
+            entry => entry.Text.StartsWith("Resolved and staged", StringComparison.Ordinal));
     }
 
     [Fact]
