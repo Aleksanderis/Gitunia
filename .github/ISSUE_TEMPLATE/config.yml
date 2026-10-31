@@ -5,4 +5,4 @@ contact_links:
     about: What Gitunia is for and what is in the MVP.
   - name: User guide
     url: https://github.com/Aleksanderis/Gitunia/blob/main/docs/user-guide.md
-    about: Keys, screens and workflows; check here before reporting a question as a bug.
+    about: Keys, screens and workflows; check here before reporting a bug.

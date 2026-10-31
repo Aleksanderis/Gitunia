@@ -14,9 +14,15 @@ body:
     id: environment
     attributes:
       label: OS and terminal
-      description: For example Linux (Arch) with kitty, Windows 11 with Windows Terminal. Include `git --version` if relevant.
-    validations:
+      description: For example Linux (Arch) with kitty, Windows 11 with Windows Terminal.    validations:
       required: true
+  - type: input
+    id: git
+    attributes:
+      label: Git version
+      description: Output of `git --version`.
+    validations:
+      required: false
   - type: textarea
     id: steps
     attributes:
