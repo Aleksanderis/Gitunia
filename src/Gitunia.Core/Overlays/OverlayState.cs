@@ -87,7 +87,7 @@ public sealed record OverlayState(
     /// <summary>Stops typing but keeps the filter, so the rows can be scrolled.</summary>
     public OverlayState AcceptHelpFilter() => this with { IsEditingHelpFilter = false };
 
-    /// <summary>Drops the filter and shows the page that was open before it.</summary>
+    /// <summary>Drops the filter and shows the page that was open before it (from its first line).</summary>
     public OverlayState ClearHelpFilter() => this with { HelpFilter = string.Empty, IsEditingHelpFilter = false, HelpScroll = 0 };
 
     public OverlayState WithPalette(PaletteState palette) => this with { Palette = palette };

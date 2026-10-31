@@ -169,6 +169,37 @@ public class HelpAllCommandsFrameTests
     }
 
     [Fact]
+    public void GivenAFilterBeingTyped_WhenRendering_ThenTheTitleShowsItWithACursorAndTheFooterOffersEnterAndEsc()
+    {
+        var page = HelpBuilder.Filter(HelpBuilder.Build(Table, DefaultKeymap.GraphView), "<space>gc");
+
+        var lines = HelpFrameBuilder.Build(
+            [page], 0, DefaultKeymap.GraphView, 0, 80, ScreenHeight, GraphGlyphSet.Unicode,
+            filter: "<space>gc", isEditingFilter: true)!.Lines.Select(line => line.Text).ToList();
+
+        Assert.Equal(" Keys: Graph  / <space>gc_".PadRight(lines[0].Length), lines[0]);
+        Assert.Contains("Esc clear filter  Enter keep filter", lines[^2]);
+        Assert.Contains(lines, line => line.Contains("<space>gc"));
+        Assert.DoesNotContain(lines, line => line.Contains("<space>gd"));
+    }
+
+    [Fact]
+    public void GivenAKeptFilterWithNoMatch_WhenRendering_ThenTheTitleHasNoCursorAndTheMessageShows()
+    {
+        var page = HelpBuilder.Filter(HelpBuilder.Build(Table, DefaultKeymap.GraphView), "zzzqqq");
+
+        var lines = HelpFrameBuilder.Build(
+            [page], 0, DefaultKeymap.GraphView, 0, 80, ScreenHeight, GraphGlyphSet.Unicode, filter: "zzzqqq")!
+            .Lines.Select(line => line.Text).ToList();
+
+        Assert.StartsWith(" Keys: Graph  / zzzqqq", lines[0]);
+        Assert.DoesNotContain("_", lines[0]);
+        Assert.Contains(lines, line => line.Contains("Nothing matches the filter."));
+        Assert.Contains("Esc clear filter", lines[^2]);
+        Assert.DoesNotContain("Enter keep filter", lines[^2]);
+    }
+
+    [Fact]
     public void GivenTheGitWhichKeyPopupAt80Columns_WhenRendering_ThenItMatchesTheSnapshot()
     {
         Assert.Equal(

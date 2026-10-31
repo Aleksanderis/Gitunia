@@ -71,6 +71,8 @@ public sealed class OverlayControllerTests : IDisposable
         }
     }
 
+    private string FrameText() => string.Join('\n', _overlays.CurrentFrame()!.Lines.Select(line => line.Text));
+
     private bool Press(Key key) => _keys.Handle(key, _overlays.ViewName);
 
     private static ConfirmPrompt Prompt() =>
@@ -306,8 +308,6 @@ public sealed class OverlayControllerTests : IDisposable
         Assert.Empty(_routed);
     }
 
-    private string FrameText() => string.Join('\n', _overlays.CurrentFrame()!.Lines.Select(line => line.Text));
-
     [Fact]
     public void GivenOpenHelp_WhenTypingSlashAndAKeySequence_ThenOnlyTheMatchingRowsShowAndTheTitleCarriesTheFilter()
     {
@@ -326,6 +326,16 @@ public sealed class OverlayControllerTests : IDisposable
         Assert.Contains("<space>gc", text);
         Assert.DoesNotContain("<space>gd", text);
         Assert.Empty(_routed);
+    }
+
+    [Fact]
+    public void GivenAFilteredHelp_WhenClickingTheMenuArea_ThenNoSectionIsPicked()
+    {
+        Press(new Key('?'));
+        Press(new Key('/'));
+        Press(new Key('g'));
+
+        Assert.Null(_overlays.HelpTabNumberAt(2, 5));
     }
 
     [Fact]
