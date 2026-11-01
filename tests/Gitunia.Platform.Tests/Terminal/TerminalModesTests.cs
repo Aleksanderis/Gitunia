@@ -17,14 +17,14 @@ public class TerminalModesTests
         {
             var modes = new TerminalModes(slave);
             Assert.True(modes.Capture());
-            var before = Read(slave);
+            var before = Normalize(Read(slave));
 
             MakeRaw(slave);
-            Assert.NotEqual(before, Read(slave));
+            Assert.NotEqual(before, Normalize(Read(slave)));
 
             modes.Restore();
 
-            Assert.Equal(before, Read(slave));
+            Assert.Equal(before, Normalize(Read(slave)));
         }
         finally
         {
@@ -50,6 +50,23 @@ public class TerminalModesTests
         Assert.Equal(0, GetAttributes(descriptor, buffer));
 
         return buffer;
+    }
+
+    // macOS: struct termios has four 8-byte flag words, then c_cc. Byte 3 of c_lflag (offset 27) holds PENDIN
+    // (0x20000000), a status flag the kernel sets itself after tcsetattr when input is pending; it is not a mode the
+    // restore code controls. Linux has no such bit, so nothing is masked there and the comparison stays exact.
+    private const int MacOsLocalFlagsHighByte = 27;
+    private const byte MacOsPendingInputBit = 0x20;
+
+    private static byte[] Normalize(byte[] termios)
+    {
+        var copy = (byte[])termios.Clone();
+        if (OperatingSystem.IsMacOS())
+        {
+            copy[MacOsLocalFlagsHighByte] &= unchecked((byte)~MacOsPendingInputBit);
+        }
+
+        return copy;
     }
 
     private static void MakeRaw(int descriptor)
