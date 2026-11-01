@@ -2,6 +2,8 @@ using System.Collections.Immutable;
 using Gitunia.App.Settings;
 using Gitunia.App.Status;
 using Gitunia.App;
+using Gitunia.Core.Running;
+using Gitunia.Core.Commits;
 using Gitunia.App.Loading.Commits;
 using Gitunia.App.Tabs;
 using Gitunia.App.Worktrees;
@@ -39,7 +41,6 @@ using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Core.Worktrees;
 using Gitunia.Git;
-using Gitunia.Git.Repositories;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Watching;
 using Gitunia.Git.Watching.Models;
@@ -102,7 +103,7 @@ public sealed class TuiApplication(
     IPlatform platform) : IDisposable, ITerminalSuspender, IShellEffects, IBranchSelectionSource,
     IGraphCommitSelector, IGraphSelectionSource, IOverlayCover, IPickSelectionSource,
     IIssueLinkView, IStashSelectionSource, IStashViewHost, ITerminalRetryHost, IWorktreeSelectionSource,
-    ICompareSource, IQuickJumpHost, ISidebarLayout, IActiveSessions, IPaneChrome
+    ICompareSource, IQuickJumpHost, ISidebarLayout, IActiveSessions, IPaneChrome, IActionRoute
 {
     // Terminal.Gui's default of 25 iterations per second gave ~34 ms key latency (docs/internal/history/decisions.md); the idle rate saves CPU (#909).
     private const ushort ActiveIterationsPerSecond = 100;
@@ -146,11 +147,10 @@ public sealed class TuiApplication(
     private GraphTabBinder _binder = null!;
     private string _homeDirectory = string.Empty;
     private StatusReporter _statuses = null!;
-    private readonly TabActivity _activity = new();
     private StartupConfig _startupConfig = null!;
     private ChipKeys _chipKeys = null!;
     private ConsoleCapabilities _capabilities = detectedCapabilities;
-    private CommitActions _commits = null!;
+    private CommitMessageInput _commits = null!;
     private TagActions _tags = null!;
     private PromptInputHandler _openPrompt = null!;
     private ClipboardCopier _clipboard = null!;
@@ -271,10 +271,11 @@ public sealed class TuiApplication(
             width => _diffView.TitleLine(width, glyphs, _chipKeys, _repeat.Active?.Pane == PaneKind.Diff),
             new DiffListSource(glyphs));
 
-        _commits = CreateCommits();
+        _commits = new CommitMessageInput(_host, this);
         var branches = new BranchActions(_host, this);
         _tags = new TagActions(_host, this);
-        _view.ActiveDraft = () => _host.Workspace.ActiveTabId is { } tabId ? _commits.DraftOf(tabId) : null;
+        _view.ActiveDraft = () => _host.Workspace.ActiveTab?.Commit.Draft;
+        _view.IsCommitting = () => _host.Workspace.ActiveTab?.Running.IsRunning(RunningOperationKind.Commit) == true;
         _view.IsEditingMessage = () => _commits.ShowsCursor;
         _router = new ActionRouter(
             _host,
@@ -304,7 +305,6 @@ public sealed class TuiApplication(
         _router.Visual = _visual;
         var staging = new StagingActions(_host);
         _staging = staging;
-        _commits.StageAllThen = staging.StageAllThen;
         _router.WorkingTree = new WorkingTreeActionHandler(_host, _view, clipboard, staging, _commits)
         {
             Diff = _workingDiff,
@@ -324,8 +324,7 @@ public sealed class TuiApplication(
             PauseForEnter);
 
         _terminalRetry = new TerminalRetry(_host, _statuses, this);
-        _effects.IsTabBusy = _activity.IsBusy;
-        _router.Sync = new SyncActions(_host, this, _activity);
+        _router.Sync = new SyncActions(_host, this);
         _router.RemoteManagement = new RemoteManagementActions(_host, this);
         _reset = new ResetActions(_host, this);
         _router.Reset = _reset;
@@ -353,7 +352,7 @@ public sealed class TuiApplication(
         _router.Refresh = () => _host.Workspace.ActiveTabId is { } activeId && _effects.Refresh(activeId);
 
         _picker = new PickerInput(_host);
-        _workspaceActions = new WorkspaceActions(_host, _commits);
+        _workspaceActions = new WorkspaceActions(_host);
 
         _binder = new GraphTabBinder(
             _host,
@@ -418,8 +417,6 @@ public sealed class TuiApplication(
         _host.Changed += _view.RefreshChrome;
         _host.Changed += _binder.Sync;
         _host.Changed += ApplyFocus;
-        _host.Changed += _commits.ForgetClosedTabs;
-        _host.Changed += _commits.ShowPendingFailure;
         _host.Changed += OnBottomTabMaybeChanged;
         _host.Changed += OnPaneSizesMaybeChanged;
         _host.Changed += _quickJump.CloseIfStale;
@@ -470,7 +467,11 @@ public sealed class TuiApplication(
         ConfigStartup.Report(configured.Problems, _statuses);
 
         _host.Restore(restored.Update);
-        _commits.Restore(restored.Drafts);
+        foreach (var (tabId, saved) in restored.Drafts)
+        {
+            _host.Dispatch(new CommitDraftRestored(tabId, saved));
+        }
+
         _statusPoller = new BackgroundStatusPoller(services.Status, _host, InvokeOnUi, background: _effects.Background);
         _statusPoller.Start();
         _worktreePoller = new WorktreeOverviewPoller(services.Status, _host, background: _effects.Background);
@@ -486,10 +487,8 @@ public sealed class TuiApplication(
             _picker.Open();
         }
 
-        using var persistence = new SessionPersistence(store, _host, SaveDebounce, _statuses, InvokeOnUi, _commits.SnapshotForSession);
+        using var persistence = new SessionPersistence(store, _host, SaveDebounce, _statuses, InvokeOnUi);
         _persistence = persistence;
-        _commits.DraftChanged += ResetQuitWarning;
-        _commits.DraftChanged += persistence.NotifyDraftChanged;
         persistence.Start();
         _view.Graph.SetFocus();
         if (ExitAfterFirstIteration)
@@ -537,6 +536,8 @@ public sealed class TuiApplication(
         _effects.Dispose();
         _view.Dispose();
     }
+
+    void IActionRoute.Route(ActionId action, int? count) => RouteAction(action, count);
 
     private void RouteAction(ActionId action, int? count)
     {
@@ -888,15 +889,7 @@ public sealed class TuiApplication(
     // Run's finally block saves the session and restores the terminal.
     private void ForceQuit() => _host.Dispatch(new QuitRequested(HasUnsentMessageToLose(), true));
 
-    private bool HasUnsentMessageToLose() => _persistence is not null && _commits.HasAnyUnsentMessage();
-
-    private void ResetQuitWarning()
-    {
-        if (_host.State.Shell.QuitWarned)
-        {
-            _host.Dispatch(new QuitWarningReset());
-        }
-    }
+    private bool HasUnsentMessageToLose() => _persistence is not null && CommitRules.HasAnyUnsentMessage(_host.Workspace);
 
     void IShellEffects.MoveDiffCursor(MoveDiffCursorEffect effect)
     {
@@ -905,8 +898,6 @@ public sealed class TuiApplication(
             _workingDiff.MoveAfterReload(effect.Move);
         }
     }
-
-    bool IShellEffects.MoveCommitDraft(TabId missing, TabId target) => _commits.MoveDraft(missing, target);
 
     void IShellEffects.JumpToRow(int row) => _quickJump.JumpTo(row);
 
@@ -992,19 +983,6 @@ public sealed class TuiApplication(
 
     void IShellEffects.OpenFileContent(FileTreeRow row) => _diffPane.OpenFileContent(row);
 
-    private CommitActions CreateCommits() => new(
-        _host,
-        services.CommitWriter,
-        new RepositoryOperationDetector(),
-        _statuses,
-        InvokeOnUi,
-        _effects.RefreshStatus,
-        tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None,
-        _activity.CreateGate(),
-        () => _keys.Mode,
-        RouteAction,
-        _view.RefreshChrome);
-
     BranchSelection IBranchSelectionSource.Current() => BranchSelectionNow();
 
     void IShellEffects.StartReflogEntryAction(ReflogEntryActionEffect effect) => _reflogEntries.Start(effect);
@@ -1032,7 +1010,7 @@ public sealed class TuiApplication(
 
     bool ITerminalRetryHost.IsOverlayOpen() => IsAnyOverlayOpen();
 
-    bool ITerminalRetryHost.IsBusy(TabId tabId) => _activity.IsBusy(tabId);
+    bool ITerminalRetryHost.IsBusy(TabId tabId) => _host.Workspace.FindTab(tabId)?.Running.IsBusy == true;
 
     string ITerminalRetryHost.RunGitInTerminal(string name, IReadOnlyList<string> arguments, RepositoryLocation location) =>
         _externalToolRunner.LaunchGit(name, arguments, location);
@@ -1803,7 +1781,7 @@ public sealed class TuiApplication(
                 services.CommitMessages,
                 tabId => _host.Workspace.FindTab(tabId)?.Location,
                 InvokeOnUi),
-            new CommitMessageInput(_commits),
+            _commits,
         ];
     }
 

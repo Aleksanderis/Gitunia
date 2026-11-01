@@ -2,6 +2,7 @@ using Gitunia.Git.Discard;
 using Gitunia.Git.Staging;
 using Gitunia.App.Background;
 using Gitunia.App.Branches;
+using Gitunia.App.Commits;
 using Gitunia.App.Compare;
 using Gitunia.App.Conflicts;
 using Gitunia.App.Creation;
@@ -27,6 +28,7 @@ using Gitunia.App.Worktrees;
 using Gitunia.Core;
 using Gitunia.Core.Branches;
 using Gitunia.Core.Clipboard;
+using Gitunia.Core.Commits;
 using Gitunia.Core.Compare;
 using Gitunia.Core.Conflicts;
 using Gitunia.Core.Creation;
@@ -88,6 +90,7 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
     private readonly IntegrationEffectHandler _integration;
     private readonly IssueLinkEffectHandler _issueLinks;
     private readonly BranchEffectHandler _branches;
+    private readonly CommitEffectHandler _commits;
     private readonly CompareEffectHandler _compare;
     private readonly ConflictEffectHandler _conflicts;
     private readonly PickerEffectHandler _picker;
@@ -137,6 +140,7 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
         var pickerServices = picker ?? PickerServices.Default;
         _shell = shell ?? NoShellEffects.Instance;
         _branches = new BranchEffectHandler(services.Branches, host);
+        _commits = new CommitEffectHandler(services.CommitWriter, host);
         _compare = new CompareEffectHandler(this, host);
         _conflicts = new ConflictEffectHandler(
             services.Conflicts,
@@ -179,12 +183,6 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
         host.EffectRaised += Run;
         host.Changed += OnHostChanged;
     }
-
-    /// <summary>
-    /// Says whether a tab runs a write or remote operation; such a tab is never evicted
-    /// (closing its session would cancel the work).
-    /// </summary>
-    public Func<TabId, bool> IsTabBusy { get; set; } = static _ => false;
 
     /// <summary>
     /// The bounded queue for background work (polls, prefetch, overview, issue links). Effects the user caused never wait
@@ -301,7 +299,9 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
         InitRepositoryEffect => new InitFailed(text),
         IntegrationEffect integration => new IntegrationFailed(integration.TabId, text),
         BranchEffect branch => new BranchOperationFailed(branch.TabId, text),
+        ReadHeadMessageEffect head => new HeadMessageReadFailed(head.TabId, text),
         DiscardEffect discard => new DiscardFailed(discard.TabId, text),
+        RunCommitEffect commit => new CommitFailed(commit.TabId, text, null),
         ConflictEffect conflict => new ConflictOperationFailed(conflict.TabId, text, StatusSeverity.Error),
         PickEffect pick => new PickFailed(pick.TabId, text),
         RebaseEffect rebase => new RebaseFailed(rebase.TabId, text),
@@ -327,11 +327,17 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
             case BranchEffect branch:
                 _branches.Handle(branch, _cancellation.TokenOf(branch.TabId));
                 break;
+            case CancelCommitEffect cancelCommit:
+                _commits.Cancel(cancelCommit.TabId);
+                break;
             case CancelLoadEffect cancel:
                 Cancel(cancel);
                 break;
             case CancelSyncEffect cancelSync:
                 _sync.Cancel(cancelSync.TabId);
+                break;
+            case CommitReadEffect read:
+                _commits.Handle(read, _cancellation.TokenOf(read.TabId));
                 break;
             case CompareEffect compare:
                 _compare.Handle(compare);
@@ -376,7 +382,7 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
                 StartLoad(load);
                 break;
             case MoveCommitDraftEffect move:
-                _host.Dispatch(new PickerDraftMoved(move.Missing, _shell.MoveCommitDraft(move.Missing, move.Target)));
+                _host.Dispatch(new CommitDraftMoveRequested(move.Missing, move.Target));
                 break;
             case MoveDetailCursorEffect cursor:
                 _shell.MoveDetailCursor(cursor.Row);
@@ -427,6 +433,9 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
                 break;
             case RemoteEffect remote:
                 _remotes.Handle(remote, _cancellation.TokenOf(remote.TabId));
+                break;
+            case RunCommitEffect commit:
+                _commits.Handle(commit, _cancellation.TokenOf(commit.TabId));
                 break;
             case RunActionEffect run:
                 run.Run();
@@ -533,7 +542,7 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
         }
     }
 
-    // A tab runs an operation when its state says so or a legacy gate does; such a tab is never evicted.
-    private bool IsBusy(TabId tabId) => IsTabBusy(tabId) || _host.Workspace.FindTab(tabId)?.Running.IsBusy == true;
+    // A tab runs an operation when its state says so; such a tab is never evicted.
+    private bool IsBusy(TabId tabId) => _host.Workspace.FindTab(tabId)?.Running.IsBusy == true;
 
 }

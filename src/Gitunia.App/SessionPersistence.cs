@@ -1,4 +1,5 @@
 using Gitunia.App.Status;
+using Gitunia.Core.Commits;
 using Gitunia.Core.Persistence;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Tabs;
@@ -18,7 +19,6 @@ public sealed class SessionPersistence : IDisposable
     private readonly Action<Action> _postToUi;
     private readonly Timer _timer;
     private readonly Lock _saveLock = new();
-    private readonly Func<IReadOnlyDictionary<TabId, SessionDraft>> _captureDrafts;
     private Workspace? _lastSaved;
     private IReadOnlyDictionary<TabId, SessionDraft> _lastSavedDrafts = new Dictionary<TabId, SessionDraft>();
     private IReadOnlyDictionary<TabId, SessionDraft> _drafts = new Dictionary<TabId, SessionDraft>();
@@ -26,16 +26,13 @@ public sealed class SessionPersistence : IDisposable
 
     /// <param name="statuses">Told when a save fails.</param>
     /// <param name="postToUi">Runs an action on the UI thread; saves run on a timer thread.</param>
-    /// <param name="captureDrafts">Reads the commit drafts of the tabs; called on the UI thread only (null keeps none).</param>
     public SessionPersistence(
         SessionStore store,
         Dispatcher host,
         TimeSpan debounce,
         StatusReporter statuses,
-        Action<Action> postToUi,
-        Func<IReadOnlyDictionary<TabId, SessionDraft>>? captureDrafts = null)
+        Action<Action> postToUi)
     {
-        _captureDrafts = captureDrafts ?? (() => new Dictionary<TabId, SessionDraft>());
         _statuses = statuses;
         _postToUi = postToUi;
         _store = store;
@@ -48,7 +45,7 @@ public sealed class SessionPersistence : IDisposable
     public void Start()
     {
         _lastSaved = _host.Workspace;
-        _drafts = _lastSavedDrafts = _captureDrafts();
+        _drafts = _lastSavedDrafts = CommitRules.SessionDrafts(_host.Workspace);
         _host.Changed += OnChanged;
     }
 
@@ -67,9 +64,6 @@ public sealed class SessionPersistence : IDisposable
         return !_lastSaveFailed;
     }
 
-    /// <summary>Tells that a commit draft changed (UI thread); the session is saved after the debounce.</summary>
-    public void NotifyDraftChanged() => OnChanged();
-
     public void Dispose()
     {
         _host.Changed -= OnChanged;
@@ -82,10 +76,11 @@ public sealed class SessionPersistence : IDisposable
         _timer.Change(_debounce, Timeout.InfiniteTimeSpan);
     }
 
-    // The drafts are mutable UI objects: copy them here, on the UI thread, and let the timer thread save the copy.
+    // The drafts live in the state: read what a restart keeps of them here, on the UI thread, and let the timer thread
+    // save that copy.
     private void CaptureDrafts()
     {
-        Volatile.Write(ref _drafts, _captureDrafts());
+        Volatile.Write(ref _drafts, CommitRules.SessionDrafts(_host.Workspace));
     }
 
     private static bool SameDrafts(IReadOnlyDictionary<TabId, SessionDraft> left, IReadOnlyDictionary<TabId, SessionDraft> right) =>

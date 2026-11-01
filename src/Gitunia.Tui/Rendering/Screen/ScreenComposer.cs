@@ -170,7 +170,7 @@ public static class ScreenComposer
 
         if (!rects.Message.IsEmpty)
         {
-            var editor = MessageBoxRenderer.EditorLines(working.Draft, rects.MessageEditor, padding, working.IsEditing, glyphs);
+            var editor = MessageBoxRenderer.EditorLines(working.Draft, rects.MessageEditor, padding, working.IsEditing, glyphs, working.IsCommitting);
             AddPlaceholder(overlays, rects.MessageEditor, editor);
             AddPlaceholder(
                 overlays,
@@ -181,7 +181,8 @@ public static class ScreenComposer
                         rects.MessageOptions.Width,
                         padding,
                         glyphs,
-                        model.Keys),
+                        model.Keys,
+                        working.IsCommitting),
                 ]);
         }
 

@@ -1,5 +1,4 @@
 using Gitunia.App;
-using Gitunia.App.Tabs;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Sync;
@@ -15,8 +14,7 @@ namespace Gitunia.Tui.App.Remote;
 /// </summary>
 /// <param name="host">Holds the active tab and takes the commands.</param>
 /// <param name="selection">What the remote branch delete acts on.</param>
-/// <param name="activity">The operations that run through the shared gate; a pull waits for them.</param>
-public sealed class SyncActions(Dispatcher host, IBranchSelectionSource selection, TabActivity activity)
+public sealed class SyncActions(Dispatcher host, IBranchSelectionSource selection)
 {
     /// <summary>Runs the action when it is one of ours; false lets the next handler try.</summary>
     public bool TryExecute(ActionId action, int? count)
@@ -39,7 +37,7 @@ public sealed class SyncActions(Dispatcher host, IBranchSelectionSource selectio
 
         if (KindOf(action) is { } kind)
         {
-            return Send(new SyncRequested(tab.Id, kind, activity.IsBusy(tab.Id)));
+            return Send(new SyncRequested(tab.Id, kind));
         }
 
         if (action != ActionIds.RemoteDeleteBranch && action != ActionIds.BranchDelete)

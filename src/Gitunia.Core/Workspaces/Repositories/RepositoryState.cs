@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using Gitunia.Core.Commits;
 using Gitunia.Core.Sidebar;
 using Gitunia.Core.Running;
 using Gitunia.Core.Sync;
@@ -52,6 +53,9 @@ public sealed record RepositoryState(
 
     /// <summary>The fetch, pull or push that runs for this tab (the status bar line), null when none; the root reducer keeps it.</summary>
     public SyncState? Sync { get; init; }
+
+    /// <summary>The commit message box of this tab: its draft and what the box is doing; the root reducer keeps it.</summary>
+    public CommitState Commit { get; init; } = CommitState.Empty;
 
     /// <summary>The path git commands for this tab run against.</summary>
     public string CommandPath => Location.CommandPath;

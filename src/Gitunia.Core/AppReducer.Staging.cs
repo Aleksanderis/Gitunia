@@ -32,7 +32,9 @@ public static partial class AppReducer
 
     // Staging is refused while a discard or an operation that writes the index or the working tree of the tab runs.
     private static bool BlocksStaging(RepositoryState tab) =>
-        tab.Running.IsRunning(RunningOperationKind.Discard) || BlocksIndexWriters(tab);
+        tab.Running.IsRunning(RunningOperationKind.Commit)
+        || tab.Running.IsRunning(RunningOperationKind.Discard)
+        || BlocksIndexWriters(tab);
 
     // The operations that write the index or the working tree and exclude staging and discarding in both directions.
     private static bool BlocksIndexWriters(RepositoryState tab) =>
@@ -42,7 +44,9 @@ public static partial class AppReducer
         || tab.Running.IsRunning(RunningOperationKind.Rebase)
         || tab.Running.IsRunning(RunningOperationKind.Stash);
 
-    // A stage, unstage or discard of the tab runs: the other operations that write the tree refuse to start.
+    // A stage, unstage, discard or commit of the tab runs: the other operations that write the tree refuse to start.
     private static bool IsStaging(RepositoryState tab) =>
-        tab.Running.IsRunning(RunningOperationKind.Staging) || tab.Running.IsRunning(RunningOperationKind.Discard);
+        tab.Running.IsRunning(RunningOperationKind.Staging)
+        || tab.Running.IsRunning(RunningOperationKind.Commit)
+        || tab.Running.IsRunning(RunningOperationKind.Discard);
 }

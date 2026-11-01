@@ -18,9 +18,7 @@ public abstract record SyncCommand : AppCommand
 /// <summary>A key asked for a fetch, pull or push.</summary>
 /// <param name="TabId">The tab.</param>
 /// <param name="Kind">What was asked for.</param>
-/// <param name="IsLegacyBusy">An operation that has not moved to the pipeline yet runs for the tab (it holds the
-/// shared operation gate); a pull waits for it.</param>
-public sealed record SyncRequested(TabId TabId, SyncKind Kind, bool IsLegacyBusy = false) : SyncCommand(TabId);
+public sealed record SyncRequested(TabId TabId, SyncKind Kind) : SyncCommand(TabId);
 
 /// <summary>Stop the running fetch, pull or push (or say that none runs).</summary>
 /// <param name="TabId">The tab.</param>

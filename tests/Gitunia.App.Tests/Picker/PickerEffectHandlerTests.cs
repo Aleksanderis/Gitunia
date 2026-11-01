@@ -1,6 +1,8 @@
 using Gitunia.App.Picker;
 using Gitunia.App.Tests.Fakes;
 using Gitunia.App.Tests.Tags;
+using Gitunia.Core.Commits;
+using Gitunia.Core.Persistence;
 using Gitunia.Core.Picker;
 using Gitunia.Core.Workspaces;
 using Gitunia.Git.Repositories.Models;
@@ -76,31 +78,53 @@ public class PickerEffectHandlerTests
         }
     }
 
-    [Theory]
-    [InlineData(true, 1)]
-    [InlineData(false, 2)]
-    public async Task GivenMissingTabWithADraft_WhenLocatingIt_ThenTheDraftMovesToTheNewTab(bool moved, int expectedTabs)
+    [Fact]
+    public async Task GivenMissingTabWithADraft_WhenLocatingIt_ThenTheDraftMovesToTheNewTabAndTheMissingOneCloses()
     {
         using var repository = TestRepository.Create();
         repository.Commit("root", new TestFile("a.txt", "1"));
         using var pipeline = PickerPipeline.Create();
-        pipeline.Shell.DraftMoveResult = moved;
         var gone = Path.Combine(Path.GetTempPath(), $"gitunia-gone-{Guid.NewGuid():N}");
         pipeline.Dispatch(new OpenRepositoryCommand(new RepositoryLocation(gone, gone, gone, false, false)));
         var missing = pipeline.Host.Workspace.ActiveTabId!.Value;
+        pipeline.Dispatch(new CommitDraftRestored(missing, new SessionDraft("Keep me", true, false)));
         pipeline.Dispatch(new PickerOpenRequested(missing, string.Empty, pipeline.Host.Clock.GetUtcNow()));
         pipeline.Type(repository.WorkingTreePath);
 
         pipeline.Dispatch(new PickerAcceptPressed());
-        await pipeline.Pump.RunUntilAsync(() => pipeline.Shell.DraftMoves.Count > 0);
+        await pipeline.Pump.RunUntilAsync(() => pipeline.Host.Workspace.FindTab(missing) is null);
 
-        var move = Assert.Single(pipeline.Shell.DraftMoves);
-        Assert.Equal(missing, move.Missing);
-        var target = pipeline.Host.Workspace.FindTab(move.Target)!;
+        var target = Assert.Single(pipeline.Host.Workspace.Tabs);
         Assert.Equal(Path.GetFullPath(repository.WorkingTreePath), target.Location.RootPath);
-        Assert.Equal(expectedTabs, pipeline.Host.Workspace.Tabs.Length);
-        Assert.Equal(moved, pipeline.Host.Workspace.FindTab(missing) is null);
-        Assert.Equal(!moved, pipeline.IsOpen);
+        Assert.Equal(new SessionDraft("Keep me", true, false), CommitRules.SessionDrafts(pipeline.Host.Workspace)[target.Id]);
+        Assert.False(pipeline.IsOpen);
+    }
+
+    [Fact]
+    public async Task GivenTheTargetHasItsOwnMessage_WhenLocatingTheMissingTab_ThenBothTabsStayWithTheirDrafts()
+    {
+        using var repository = TestRepository.Create();
+        repository.Commit("root", new TestFile("a.txt", "1"));
+        using var pipeline = PickerPipeline.Create();
+        var root = Path.GetFullPath(repository.WorkingTreePath);
+        pipeline.Dispatch(new OpenRepositoryCommand(new RepositoryLocation(root, root, root, false, false)));
+        var target = pipeline.Host.Workspace.ActiveTabId!.Value;
+        pipeline.Dispatch(new CommitDraftRestored(target, new SessionDraft("Theirs", false, false)));
+        var gone = Path.Combine(Path.GetTempPath(), $"gitunia-gone-{Guid.NewGuid():N}");
+        pipeline.Dispatch(new OpenRepositoryCommand(new RepositoryLocation(gone, gone, gone, false, false)));
+        var missing = pipeline.Host.Workspace.ActiveTabId!.Value;
+        pipeline.Dispatch(new CommitDraftRestored(missing, new SessionDraft("Mine", false, false)));
+        pipeline.Dispatch(new PickerOpenRequested(missing, string.Empty, pipeline.Host.Clock.GetUtcNow()));
+        pipeline.Type(repository.WorkingTreePath);
+
+        pipeline.Dispatch(new PickerAcceptPressed());
+        await pipeline.Pump.RunUntilAsync(() => pipeline.IsOpen && pipeline.Host.Workspace.Tabs.Length == 2);
+        await Task.Delay(50, TestContext.Current.CancellationToken);
+
+        var drafts = CommitRules.SessionDrafts(pipeline.Host.Workspace);
+        Assert.Equal("Theirs", drafts[target].Message);
+        Assert.Equal("Mine", drafts[missing].Message);
+        Assert.True(pipeline.IsOpen);
     }
 
     [Fact]
@@ -112,6 +136,7 @@ public class PickerEffectHandlerTests
         var root = Path.GetFullPath(repository.WorkingTreePath);
         pipeline.Dispatch(new OpenRepositoryCommand(new RepositoryLocation(root, root, root, false, false)));
         var tab = pipeline.Host.Workspace.ActiveTabId!.Value;
+        pipeline.Dispatch(new CommitDraftRestored(tab, new SessionDraft("Mine", false, false)));
         pipeline.Dispatch(new PickerOpenRequested(tab, string.Empty, pipeline.Host.Clock.GetUtcNow()));
         pipeline.Type(repository.WorkingTreePath);
 
@@ -119,7 +144,7 @@ public class PickerEffectHandlerTests
         await pipeline.Pump.RunUntilAsync(() => !pipeline.IsOpen);
 
         Assert.Equal(tab, Assert.Single(pipeline.Host.Workspace.Tabs).Id);
-        Assert.Empty(pipeline.Shell.DraftMoves);
+        Assert.Equal("Mine", CommitRules.SessionDrafts(pipeline.Host.Workspace)[tab].Message);
     }
 
     [Fact]

@@ -49,15 +49,6 @@ public class SyncReducerTests
         Assert.Null(update.State);
     }
 
-    [Fact]
-    public void GivenAnOperationNotYetInThePipeline_WhenPulling_ThenItIsRefusedWithoutGit()
-    {
-        var update = Reduce(new SyncRequested(Tab, SyncKind.Pull, true));
-
-        Assert.Equal(SyncReducer.OtherBusyNotice, Warning(update.Effects));
-        Assert.Null(update.State);
-    }
-
     [Theory]
     [InlineData(SyncKind.Fetch)]
     [InlineData(SyncKind.FetchAll)]

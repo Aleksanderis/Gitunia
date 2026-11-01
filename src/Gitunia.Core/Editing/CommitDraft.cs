@@ -12,7 +12,7 @@ public sealed class CommitDraft
     private string? _prefilled;
 
     /// <summary>The message being written.</summary>
-    public MessageEditor Editor { get; } = new();
+    public MessageEditor Editor { get; private init; } = new();
 
     /// <summary>Adds a <c>Signed-off-by</c> trailer.</summary>
     public bool SignOff { get; set; }
@@ -25,9 +25,6 @@ public sealed class CommitDraft
 
     /// <summary>The short hash and subject of the commit being amended, empty until HEAD's message was read.</summary>
     public string AmendTarget { get; private set; } = string.Empty;
-
-    /// <summary>A commit is running: the box is read-only.</summary>
-    public bool IsCommitting { get; set; }
 
     /// <summary>Index of the first visible message line; the view keeps the cursor line visible.</summary>
     public int Top { get; set; }
@@ -53,6 +50,22 @@ public sealed class CommitDraft
             return $"{label}{count}{target}";
         }
     }
+
+    /// <summary>
+    /// A separate draft with the same text, options and amend bookkeeping. The state holds drafts that are never changed
+    /// once they are in it: a reducer clones, changes the clone and stores that.
+    /// </summary>
+    public CommitDraft Clone() => new()
+    {
+        Editor = Editor.Clone(),
+        SignOff = SignOff,
+        NoVerify = NoVerify,
+        Amend = Amend,
+        AmendTarget = AmendTarget,
+        Top = Top,
+        _savedText = _savedText,
+        _prefilled = _prefilled,
+    };
 
     /// <summary>Starts an empty box with a prepared message (git's merge message); ignored when something is typed.</summary>
     /// <param name="message">The message to start with.</param>

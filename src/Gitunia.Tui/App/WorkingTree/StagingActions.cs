@@ -3,7 +3,6 @@ using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Lists;
 using Gitunia.Core.Running;
-using Gitunia.Core.Shell;
 using Gitunia.Core.Staging;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
@@ -53,18 +52,6 @@ public sealed class StagingActions(Dispatcher host)
     public string ExecuteSelection(RepositoryState tab, DiffStagingRequest request, DiffCursorMove move)
     {
         Send(new StageSelectionRequested(tab.Id, request.ToSelection(), move));
-
-        return string.Empty;
-    }
-
-    /// <summary>
-    /// Stages every unstaged file of <paramref name="tab"/> whatever the focus (untracked included, conflicted skipped) and
-    /// calls <paramref name="afterStaged"/> once the status shows the result; it does not run after a failure. A refusal is
-    /// posted by the reducer.
-    /// </summary>
-    public string StageAllThen(RepositoryState tab, Action afterStaged)
-    {
-        Send(new StageAllThenRequested(tab.Id, new RunActionCommand(afterStaged)));
 
         return string.Empty;
     }

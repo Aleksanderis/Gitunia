@@ -231,7 +231,7 @@ public sealed class MainView : IDisposable, IPaneLists
             Width = Dim.Func(_ => WorkingRects().MessageEditor.Width),
             Height = Dim.Func(_ => WorkingRects().MessageEditor.Height),
             CanFocus = true,
-            Source = new MessageBoxListSource(() => ActiveDraft(), () => IsEditingMessage(), glyphs),
+            Source = new MessageBoxListSource(() => ActiveDraft(), () => IsEditingMessage(), () => IsCommitting(), glyphs),
             Visible = false,
         };
 
@@ -434,6 +434,9 @@ public sealed class MainView : IDisposable, IPaneLists
 
     /// <summary>True while the message box is in Insert mode, so it shows the text cursor.</summary>
     public Func<bool> IsEditingMessage { get; set; } = () => false;
+
+    /// <summary>True while a commit of the active tab runs, so the message box is read-only.</summary>
+    public Func<bool> IsCommitting { get; set; } = () => false;
 
     public Window Window { get; }
 
@@ -1044,7 +1047,8 @@ public sealed class MainView : IDisposable, IPaneLists
             width,
             PanePadding.ColumnsFor(ScreenWidth),
             _glyphs,
-            _model().Keys);
+            _model().Keys,
+            IsCommitting());
 
     // The checkboxes and the Commit button of the option row are the mouse path of the Alt- chords and the commit key.
     private void OnMessageOptionsClicked(int column)

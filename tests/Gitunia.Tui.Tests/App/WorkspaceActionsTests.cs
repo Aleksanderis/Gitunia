@@ -1,5 +1,6 @@
 using Gitunia.App;
 using Gitunia.Core.Keymap;
+using Gitunia.Core.Commits;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Persistence;
 using Gitunia.Core.Picker;
@@ -214,14 +215,15 @@ public class WorkspaceActionsTests
             host.Dispatch(new OpenRepositoryCommand(new RepositoryLocation(root, gitDirectory, gitDirectory, false, false)));
         }
 
-        var commits = TestCommitActions.Create(host, shell.Statuses);
         if (withUnsentMessage)
         {
-            var drafts = host.Workspace.Tabs.ToDictionary(tab => tab.Id, _ => new SessionDraft("unsent", false, false));
-            commits.Restore(drafts);
+            foreach (var tab in host.Workspace.Tabs)
+            {
+                host.Dispatch(new CommitDraftRestored(tab.Id, new SessionDraft("unsent", false, false)));
+            }
         }
 
-        return new Setup(new WorkspaceActions(host, commits), host);
+        return new Setup(new WorkspaceActions(host), host);
     }
 
     private sealed record Setup(WorkspaceActions Actions, Dispatcher Host);

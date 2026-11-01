@@ -431,7 +431,7 @@ public class WorkingTreeActionHandlerTests
             var writer = new ClipboardWriter(new StringWriter(), new Osc52Options(Osc52Mode.Direct, 100_000));
             Statuses = new StatusReporter(new Dispatcher(AppState.Empty));
             var staging = new StagingActions(_host);
-            var commits = TestCommitActions.Create(_host, Statuses);
+            var commits = TestCommitInput.Create(_host);
             Handler = new WorkingTreeActionHandler(_host, new FakePaneLists(_list), new ClipboardCopier(writer, Statuses), staging, commits);
         }
 
