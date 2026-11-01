@@ -72,6 +72,7 @@ public static class SettingsScreenReducer
             SettingsCategoryClicked clicked => SelectCategory(session, clicked.Index),
             SettingsColumnFocused focused => FocusColumn(session, focused.Column),
             SettingsEditorClosed => Reload(session, effects),
+            SettingsFolderChecked checkedFolder => FolderChecked(session, checkedFolder, effects),
             SettingsFileRead read => Finished(session, read, effects),
             SettingsKeyTyped typed => TypeKey(session, typed.Key),
             SettingsOperationCancelled => session with { IsBusy = false },
@@ -163,7 +164,7 @@ public static class SettingsScreenReducer
             return session;
         }
 
-        var outcome = SettingsReducer.Reduce(screen, kind, session.Environment);
+        var outcome = SettingsReducer.Reduce(screen, kind, session.HomeDirectory);
         var next = session with { Screen = outcome.State };
         if (outcome.Warning.Length > 0)
         {
@@ -186,7 +187,52 @@ public static class SettingsScreenReducer
             effects.Add(new OpenConfigEditorEffect());
         }
 
+        if (outcome.CheckFolder is { } check)
+        {
+            return CheckFolder(next, check, effects);
+        }
+
         return outcome.Commit is { } commit ? Write(next, commit, effects) : next;
+    }
+
+    // The folder check holds the file busy so no read or write starts in between; the result writes or refuses.
+    private static SettingsSession CheckFolder(
+        SettingsSession session,
+        SettingsFolderCheck check,
+        List<AppEffect> effects)
+    {
+        if (session.IsBusy)
+        {
+            effects.Add(new PostStatusEffect(StillSavingNotice, StatusSeverity.Warning));
+
+            return session;
+        }
+
+        effects.Add(new CheckSettingsFolderEffect(check));
+
+        return session with { IsBusy = true };
+    }
+
+    // Esc while the check ran closes the box: the answer is dropped then.
+    private static SettingsSession FolderChecked(
+        SettingsSession session,
+        SettingsFolderChecked answer,
+        List<AppEffect> effects)
+    {
+        var idle = session with { IsBusy = false };
+        if (idle.Screen is not { Input: not null })
+        {
+            return idle;
+        }
+
+        if (!answer.Exists)
+        {
+            effects.Add(new PostStatusEffect($"\"{answer.Check.Typed}\" is not an existing folder", StatusSeverity.Warning));
+
+            return idle;
+        }
+
+        return Write(idle, answer.Check.Commit, effects);
     }
 
     private static SettingsSession TypeKey(SettingsSession session, KeyEvent key)

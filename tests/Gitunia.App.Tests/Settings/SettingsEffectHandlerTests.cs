@@ -121,6 +121,24 @@ public sealed class SettingsEffectHandlerTests : IDisposable
         Assert.IsType<SettingsOperationCancelled>(result);
     }
 
+    [Fact]
+    public async Task GivenAnExistingAndAMissingFolder_WhenChecking_ThenTheAnswerSaysWhichExists()
+    {
+        var commit = Commit(SettingsRegistry.ScanRootsId, SettingValue.OfPaths([_root]));
+        var missing = Path.Combine(_root, "nowhere");
+
+        var found = await RunAsync(
+            new CheckSettingsFolderEffect(new SettingsFolderCheck(_root, _root, commit)),
+            TestContext.Current.CancellationToken);
+        var lost = await RunAsync(
+            new CheckSettingsFolderEffect(new SettingsFolderCheck(missing, missing, commit)),
+            TestContext.Current.CancellationToken);
+
+        Assert.True(Assert.IsType<SettingsFolderChecked>(found).Exists);
+        Assert.False(Assert.IsType<SettingsFolderChecked>(lost).Exists);
+        Assert.Equal(commit, ((SettingsFolderChecked)found).Check.Commit);
+    }
+
     private string ConfigPath => Path.Combine(_root, "config", ConfigLoader.FileName);
 
     private void WriteConfig(string text)

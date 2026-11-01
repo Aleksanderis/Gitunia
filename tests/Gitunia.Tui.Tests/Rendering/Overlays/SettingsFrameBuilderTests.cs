@@ -397,7 +397,7 @@ public class SettingsFrameBuilderTests
     }
 
     private static SettingsState Reduce(SettingsState state, SettingsCommandKind command) =>
-        SettingsReducer.Reduce(state, command, new SettingsEnvironment(Home, _ => true)).State;
+        SettingsReducer.Reduce(state, command, Home).State;
 
     [Fact]
     public void GivenAScreenOf120Columns_WhenRendering_ThenTheFrameUsesTheWiderLimit()

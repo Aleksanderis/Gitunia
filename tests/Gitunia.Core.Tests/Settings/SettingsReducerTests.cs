@@ -251,15 +251,17 @@ public class SettingsReducerTests
         Assert.Equal(SettingRowKind.NewItem, typing.Selected?.Kind);
         var outcome = Reduce(typing.WithInputText("~/Projects"), SettingsCommandKind.InputAccept);
 
-        Assert.Equal([SrvGit, "~/Projects"], outcome.Commit?.Value.Paths);
-        Assert.Equal(1, outcome.Commit?.SelectItem);
-        Assert.Equal($"[{Quote(SrvGit)}, \"~/Projects\"]", outcome.Commit?.Value.ToJson(SettingControl.PathList));
+        var check = outcome.CheckFolder;
+        Assert.Null(outcome.Commit);
+        Assert.Equal(Path.Combine(Home, "Projects"), check?.Path);
+        Assert.Equal([SrvGit, "~/Projects"], check?.Commit.Value.Paths);
+        Assert.Equal(1, check?.Commit.SelectItem);
+        Assert.Equal($"[{Quote(SrvGit)}, \"~/Projects\"]", check?.Commit.Value.ToJson(SettingControl.PathList));
     }
 
     [Theory]
     [InlineData("", "Type a folder path")]
     [InlineData("relative/dir", "not an absolute path")]
-    [InlineData("<root>srv<sep>missing", "not an existing folder")]
     [InlineData("<root>srv<sep>git<sep>", "already in the list")]
     [InlineData("~/code", "already in the list")]
     public void GivenAPathList_WhenAddingAFolderThatCannotBeUsed_ThenItIsRefusedWithTheReasonAndNothingIsWritten(
@@ -275,6 +277,7 @@ public class SettingsReducerTests
         var outcome = Reduce(typing, SettingsCommandKind.InputAccept);
 
         Assert.Null(outcome.Commit);
+        Assert.Null(outcome.CheckFolder);
         Assert.Contains(reason, outcome.Warning, StringComparison.Ordinal);
         Assert.NotNull(outcome.State.Input);
     }
@@ -290,8 +293,8 @@ public class SettingsReducerTests
         Assert.Equal(SrvGit, typing.Input?.Text);
         var outcome = Reduce(typing.WithInputText(SrvNew), SettingsCommandKind.InputAccept);
 
-        Assert.Equal([SrvNew, SrvOther], outcome.Commit?.Value.Paths);
-        Assert.Equal(0, outcome.Commit?.SelectItem);
+        Assert.Equal([SrvNew, SrvOther], outcome.CheckFolder?.Commit.Value.Paths);
+        Assert.Equal(0, outcome.CheckFolder?.Commit.SelectItem);
     }
 
     [Fact]
@@ -650,7 +653,7 @@ public class SettingsReducerTests
             ]);
 
     private static SettingsOutcome Reduce(SettingsState state, SettingsCommandKind command) =>
-        SettingsReducer.Reduce(state, command, Environment);
+        SettingsReducer.Reduce(state, command, Environment.HomeDirectory);
 
     private static SettingDefinition Definition(string id) =>
         SettingsRegistry.All.Concat([PageSize]).First(definition => definition.Id == id);

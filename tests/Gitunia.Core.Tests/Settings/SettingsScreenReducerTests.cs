@@ -371,6 +371,69 @@ public class SettingsScreenReducerTests
     }
 
     [Fact]
+    public void GivenATypedFolder_WhenAccepting_ThenTheDiskCheckIsAnEffectAndTheFileStaysBusyUntilTheAnswer()
+    {
+        var typing = Typed(AddingFolder(), Path.Combine(Environment.HomeDirectory, "code"));
+
+        var update = Reduce(typing, new SettingsActionPressed(ActionIds.InputAccept, null));
+
+        var check = Assert.IsType<CheckSettingsFolderEffect>(update.Effects.OfType<SettingsEffect>().Single()).Check;
+        Assert.Equal(Path.Combine(Environment.HomeDirectory, "code"), check.Path);
+        Assert.Empty(update.Effects.OfType<WriteSettingEffect>());
+        Assert.True(update.Session.IsBusy);
+    }
+
+    [Fact]
+    public void GivenAFolderCheckInFlight_WhenAcceptingAgain_ThenNothingIsStartedAndTheUserIsTold()
+    {
+        var typing = Typed(AddingFolder(), Path.Combine(Environment.HomeDirectory, "code"));
+        var busy = Reduce(typing, new SettingsActionPressed(ActionIds.InputAccept, null)).Session;
+
+        var update = Reduce(busy, new SettingsActionPressed(ActionIds.InputAccept, null));
+
+        Assert.Empty(update.Effects.OfType<SettingsEffect>());
+        Assert.Equal(SettingsScreenReducer.StillSavingNotice, Assert.Single(Posts(update)).Text);
+    }
+
+    [Fact]
+    public void GivenTheFolderExists_WhenTheCheckIsAnswered_ThenTheChangeIsWritten()
+    {
+        var check = AcceptedCheck(out var busy);
+
+        var update = Reduce(busy, new SettingsFolderChecked(check, true));
+
+        Assert.Equal(check.Commit, update.Effects.OfType<WriteSettingEffect>().Single().Commit);
+        Assert.True(update.Session.IsBusy);
+    }
+
+    [Fact]
+    public void GivenTheFolderIsMissing_WhenTheCheckIsAnswered_ThenTheReasonIsShownAndTheBoxStaysOpen()
+    {
+        var check = AcceptedCheck(out var busy);
+
+        var update = Reduce(busy, new SettingsFolderChecked(check, false));
+
+        Assert.Empty(update.Effects.OfType<WriteSettingEffect>());
+        var post = Assert.Single(Posts(update));
+        Assert.Contains("is not an existing folder", post.Text, StringComparison.Ordinal);
+        Assert.Equal(StatusSeverity.Warning, post.Severity);
+        Assert.False(update.Session.IsBusy);
+        Assert.NotNull(update.Session.Screen!.Input);
+    }
+
+    [Fact]
+    public void GivenTheBoxWasClosedMeanwhile_WhenTheCheckIsAnswered_ThenTheAnswerIsDropped()
+    {
+        var check = AcceptedCheck(out var busy);
+        var closed = Reduce(busy, new SettingsActionPressed(ActionIds.Cancel, null)).Session;
+
+        var update = Reduce(closed, new SettingsFolderChecked(check, true));
+
+        Assert.Empty(update.Effects.OfType<WriteSettingEffect>());
+        Assert.False(update.Session.IsBusy);
+    }
+
+    [Fact]
     public void GivenEveryConcreteSettingsCommand_WhenReducing_ThenTheReducerHasACaseForIt()
     {
         var commands = ConcreteSubtypes.InstancesOf<SettingsCommand>();
@@ -396,7 +459,7 @@ public class SettingsScreenReducerTests
     private static SettingsUpdate Reduce(SettingsSession session, SettingsCommand command) =>
         SettingsScreenReducer.Reduce(session, command);
 
-    private static SettingsSession Closed() => SettingsSession.Empty with { Environment = Environment };
+    private static SettingsSession Closed() => SettingsSession.Empty with { HomeDirectory = Environment.HomeDirectory };
 
     private static SettingsSession Busy() => Closed() with { IsBusy = true };
 
@@ -432,6 +495,18 @@ public class SettingsScreenReducerTests
         var opened = Reduce(Busy(), Read(SettingsReadIntent.OpenAtTheme, string.Empty)).Session;
 
         return Reduce(opened, new SettingsActionPressed(ActionIds.SettingsActivate, null)).Session;
+    }
+
+    private static SettingsSession Typed(SettingsSession session, string text) =>
+        session with { Screen = session.Screen!.WithInputText(text) };
+
+    private static SettingsFolderCheck AcceptedCheck(out SettingsSession busy)
+    {
+        var typing = Typed(AddingFolder(), Path.Combine(Environment.HomeDirectory, "code"));
+        var update = Reduce(typing, new SettingsActionPressed(ActionIds.InputAccept, null));
+        busy = update.Session;
+
+        return update.Effects.OfType<CheckSettingsFolderEffect>().Single().Check;
     }
 
     private static SettingsSession AddingFolder()

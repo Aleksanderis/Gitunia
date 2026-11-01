@@ -48,6 +48,11 @@ public sealed record SettingsFileRead(
     IReadOnlyList<SettingDefinition> Definitions,
     IReadOnlyList<KeyReferenceEntry> KeyReference) : SettingsCommand;
 
+/// <summary>A typed folder was looked up on disk.</summary>
+/// <param name="Check">The folder and the change it was for.</param>
+/// <param name="Exists">True when the folder exists.</param>
+public sealed record SettingsFolderChecked(SettingsFolderCheck Check, bool Exists) : SettingsCommand;
+
 /// <summary>A change was written (or refused, or found stale).</summary>
 /// <param name="Commit">What was asked.</param>
 /// <param name="Result">How the write ended.</param>
