@@ -1,4 +1,4 @@
-using Gitunia.Git;
+using Gitunia.Core.Text;
 using Gitunia.Tui.App.Tabs;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;

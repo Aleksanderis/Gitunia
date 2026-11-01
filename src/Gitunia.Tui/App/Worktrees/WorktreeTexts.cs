@@ -1,5 +1,5 @@
 using Gitunia.Core.Overlays;
-using Gitunia.Git;
+using Gitunia.Core.Text;
 using Gitunia.Git.Refs;
 using Gitunia.Git.Worktrees;
 using Gitunia.Tui.App.WorkingTree;

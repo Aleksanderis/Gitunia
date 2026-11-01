@@ -5,11 +5,11 @@ using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Overlays;
 using Gitunia.Core.Persistence;
 using Gitunia.Core.Status;
+using Gitunia.Core.Text;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
-using Gitunia.Git;
 using Gitunia.Git.Commits;
 using Gitunia.Git.Commits.Models;
 using Gitunia.Git.Execution.Exceptions;
@@ -598,7 +598,7 @@ public sealed class CommitActions(
 
     private void ApplyHeadMessage(CommitDraft draft, string? hash, string message)
     {
-        draft.ApplyHeadMessage(ShortHash.Of(hash ?? string.Empty), message);
+        draft.ApplyHeadMessage(ShortHash.Of(hash), message);
         redraw();
     }
 

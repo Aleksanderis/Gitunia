@@ -1,3 +1,4 @@
+using Gitunia.Core.Text;
 using Gitunia.Tui.App.Tabs;
 using Gitunia.Core.Branches;
 using Gitunia.Core.Keymap;
@@ -726,7 +727,7 @@ public sealed class BranchActions(
         {
             _deleteNames = names;
             _deleteIndex = 0;
-            _label = ShortHash.Of(chosen.CommitHash ?? string.Empty);
+            _label = ShortHash.Of(chosen.CommitHash);
             if (chosen.RowKind == SidebarRowKind.Folder)
             {
                 _label = $"{chosen.Name}/";

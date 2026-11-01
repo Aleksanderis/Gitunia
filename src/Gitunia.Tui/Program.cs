@@ -45,8 +45,7 @@ public static class Program
             return 0;
         }
 
-        using var runner = new GitRunner();
-        var services = GitServices.Create(runner);
+        var services = GitServices.Create(new GitRunner());
         RepositoryLocation? location = null;
         if (options.RepositoryPath is not null)
         {

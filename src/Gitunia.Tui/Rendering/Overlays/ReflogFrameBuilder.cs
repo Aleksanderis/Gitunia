@@ -1,7 +1,7 @@
 using System.Globalization;
 using Gitunia.Core.Mouse;
 using Gitunia.Core.Reflog;
-using Gitunia.Git;
+using Gitunia.Core.Text;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Styling;
 

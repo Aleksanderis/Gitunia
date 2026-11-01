@@ -12,7 +12,7 @@ namespace Gitunia.Git.Execution;
 /// Runs the git CLI without a shell. Every call takes an explicit repository path (<c>-C</c>), is async,
 /// cancellable and time-bounded, and captures stderr.
 /// </summary>
-public sealed class GitRunner : IDisposable
+public sealed class GitRunner
 {
     private const int ReadBufferSize = 64 * 1024;
     private const int ErrorBufferSize = 4096;
@@ -20,13 +20,10 @@ public sealed class GitRunner : IDisposable
     private const char CarriageReturn = '\r';
 
     private readonly GitRunnerOptions _options;
-    private readonly SemaphoreSlim _reads;
 
     public GitRunner(GitRunnerOptions? options = null)
     {
         _options = options ?? new GitRunnerOptions();
-        ArgumentOutOfRangeException.ThrowIfLessThan(_options.MaximumConcurrentReads, 1);
-        _reads = new SemaphoreSlim(_options.MaximumConcurrentReads, _options.MaximumConcurrentReads);
     }
 
     /// <summary>Runs git in the repository or worktree at <paramref name="repositoryPath"/> and collects all output.</summary>
@@ -56,8 +53,6 @@ public sealed class GitRunner : IDisposable
         ArgumentException.ThrowIfNullOrEmpty(repositoryPath);
         return StreamCoreAsync(BuildArguments(repositoryPath, arguments), runOptions ?? GitRunOptions.Default, cancellationToken);
     }
-
-    public void Dispose() => _reads.Dispose();
 
     /// <summary>Runs git without a repository (for example <c>--version</c>).</summary>
     public Task<GitResult> RunGlobalAsync(
@@ -206,27 +201,6 @@ public sealed class GitRunner : IDisposable
     }
 
     private async Task<GitResult> RunCoreAsync(IReadOnlyList<string> arguments, GitRunOptions runOptions, CancellationToken cancellationToken)
-    {
-        if (!runOptions.ReadOnly)
-        {
-            return await RunProcessAsync(arguments, runOptions, cancellationToken).ConfigureAwait(false);
-        }
-
-        await _reads.WaitAsync(cancellationToken).ConfigureAwait(false);
-        try
-        {
-            return await RunProcessAsync(arguments, runOptions, cancellationToken).ConfigureAwait(false);
-        }
-        finally
-        {
-            _reads.Release();
-        }
-    }
-
-    private async Task<GitResult> RunProcessAsync(
-        IReadOnlyList<string> arguments,
-        GitRunOptions runOptions,
-        CancellationToken cancellationToken)
     {
         var timeout = runOptions.Timeout ?? _options.EffectiveTimeout;
         using var timeoutSource = new CancellationTokenSource(timeout);

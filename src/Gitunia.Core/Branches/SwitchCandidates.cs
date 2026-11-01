@@ -1,5 +1,5 @@
 using Gitunia.Core.Search;
-using Gitunia.Git;
+using Gitunia.Core.Text;
 using Gitunia.Git.Refs.Models;
 
 namespace Gitunia.Core.Branches;

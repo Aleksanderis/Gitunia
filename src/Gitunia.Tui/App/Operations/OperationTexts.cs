@@ -1,7 +1,7 @@
 using Gitunia.Core.Operations;
 using Gitunia.Core.Overlays;
 using Gitunia.Core.Status;
-using Gitunia.Git;
+using Gitunia.Core.Text;
 using Gitunia.Git.Operations.Models;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Tui.App.WorkingTree;

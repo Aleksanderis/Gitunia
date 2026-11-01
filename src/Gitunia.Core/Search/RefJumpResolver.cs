@@ -1,5 +1,6 @@
 using Gitunia.Core.Graph;
 using Gitunia.Core.Search.Models;
+using Gitunia.Core.Text;
 using Gitunia.Git;
 using Gitunia.Git.Refs.Models;
 

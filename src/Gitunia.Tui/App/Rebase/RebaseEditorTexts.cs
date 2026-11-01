@@ -1,7 +1,7 @@
 using Gitunia.Core.Overlays;
 using Gitunia.Core.Rebase;
 using Gitunia.Core.Status;
-using Gitunia.Git;
+using Gitunia.Core.Text;
 using Gitunia.Git.Operations.Models;
 using Gitunia.Git.Rebase;
 using Gitunia.Git.Refs.Models;
@@ -69,7 +69,7 @@ public static class RebaseEditorTexts
 
         return new OperationReport(
             $"Rebased {state.BranchName} onto {state.TargetLabel} interactively " +
-            $"({ShortHash.Of(result.Head ?? string.Empty)}), was {ShortHash.Of(result.OriginalHead)}; " +
+            $"({ShortHash.Of(result.Head)}), was {ShortHash.Of(result.OriginalHead)}; " +
             $"undo: git reset --keep {result.OriginalHead} (or ORIG_HEAD, the reflog)",
             StatusSeverity.Info);
     }

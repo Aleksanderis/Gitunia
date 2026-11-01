@@ -1,3 +1,4 @@
+using Gitunia.Core.Text;
 using System.Collections.Immutable;
 using Gitunia.Core.Clipboard;
 using Gitunia.Core.Conflicts;

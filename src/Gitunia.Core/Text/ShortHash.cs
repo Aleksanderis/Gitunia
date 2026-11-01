@@ -1,4 +1,4 @@
-namespace Gitunia.Git;
+namespace Gitunia.Core.Text;
 
 /// <summary>The abbreviated commit hash shown to the user: a fixed length, git's default abbreviation.</summary>
 public static class ShortHash

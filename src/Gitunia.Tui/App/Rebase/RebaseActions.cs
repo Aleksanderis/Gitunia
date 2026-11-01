@@ -3,9 +3,9 @@ using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Overlays;
 using Gitunia.Core.Sidebar;
 using Gitunia.Core.Status;
+using Gitunia.Core.Text;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
-using Gitunia.Git;
 using Gitunia.Git.Operations.Models;
 using Gitunia.Git.Rebase;
 using Gitunia.Git.Refs.Models;
@@ -125,7 +125,7 @@ public sealed class RebaseActions(
                 StatusSeverity.Info);
         }
 
-        var head = ShortHash.Of(result.Head ?? string.Empty);
+        var head = ShortHash.Of(result.Head);
         var was = ShortHash.Of(target.OldTip);
         return new OperationReport(
             $"Rebased {target.BranchName} onto {target.Label} ({head}), was {was}; " +

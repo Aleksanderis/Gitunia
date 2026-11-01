@@ -1,4 +1,4 @@
-using Gitunia.Git;
+using Gitunia.Core.Text;
 using System.Collections.Immutable;
 using System.Globalization;
 using Gitunia.Core.Keymap;

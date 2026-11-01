@@ -1,5 +1,5 @@
 using Gitunia.Core.Status;
-using Gitunia.Git;
+using Gitunia.Core.Text;
 using Gitunia.Git.Merge;
 using Gitunia.Tui.App.Operations;
 

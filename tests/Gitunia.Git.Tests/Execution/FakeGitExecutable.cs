@@ -51,15 +51,6 @@ public sealed class FakeGitExecutable : IDisposable
     public static FakeGitExecutable SleepingThenMarking(string markerPath) =>
         Create($"echo $$ > '{markerPath}.pid.tmp' && mv '{markerPath}.pid.tmp' '{markerPath}.pid'\nprintf first\nsleep 30\necho done > '{markerPath}'", $"<nul set /p =\"first\"\r\nping -n 3 127.0.0.1 >nul\r\necho done > \"{markerPath}\"");
 
-    /// <summary>
-    /// Prints 'fast'; when an argument is 'slow' it first records its process id next to the marker (Unix only) and
-    /// sleeps 30 seconds, so the test cancels it.
-    /// </summary>
-    public static FakeGitExecutable SlowOnRequest(string markerPath) =>
-        Create(
-            $"for argument in \"$@\"; do [ \"$argument\" = slow ] && echo $$ > '{markerPath}.pid.tmp' && mv '{markerPath}.pid.tmp' '{markerPath}.pid' && sleep 30; done\nprintf fast",
-            "<nul set /p =\"fast\"");
-
     public static FakeGitExecutable EchoingArgumentsAndLocks() =>
         Create("printf '%s\\n' \"$@\"\nprintf 'LOCKS=%s' \"$GIT_OPTIONAL_LOCKS\"", "echo %*\r\n<nul set /p =\"LOCKS=%GIT_OPTIONAL_LOCKS%\"");
 

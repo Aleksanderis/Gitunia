@@ -3,9 +3,9 @@ using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Overlays;
 using Gitunia.Core.Search;
 using Gitunia.Core.Status;
+using Gitunia.Core.Text;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
-using Gitunia.Git;
 using Gitunia.Git.Operations.Models;
 using Gitunia.Git.Rebase;
 using Gitunia.Git.Refs.Models;
@@ -231,7 +231,7 @@ public sealed class QuickRebaseActions(
         }
 
         return new OperationReport(
-            $"{done} {Quoted(plan)} on {target.BranchName} ({ShortHash.Of(result.Head ?? string.Empty)}), " +
+            $"{done} {Quoted(plan)} on {target.BranchName} ({ShortHash.Of(result.Head)}), " +
             $"was {ShortHash.Of(result.OriginalHead)}; undo: git reset --keep {result.OriginalHead} " +
             "(or ORIG_HEAD, the reflog)",
             StatusSeverity.Info);
