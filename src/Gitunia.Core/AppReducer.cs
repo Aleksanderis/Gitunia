@@ -2,6 +2,7 @@ using Gitunia.Core.Effects;
 using Gitunia.Core.Prompts;
 using Gitunia.Core.Reflog;
 using Gitunia.Core.Settings;
+using Gitunia.Core.Remotes;
 using Gitunia.Core.Shell;
 using Gitunia.Core.Running;
 using Gitunia.Core.Tags;
@@ -24,6 +25,7 @@ public static class AppReducer
         EffectFailedCommand failed => EffectFailed(state, failed),
         ReflogCommand reflog => ReduceReflog(state, reflog),
         SettingsCommand settings => ReduceSettings(state, settings),
+        RemoteCommand remote => ReduceRemote(state, remote),
         ShellCommand shell => ReduceShell(state, shell),
         TabRenameCommand rename => ReduceTabRename(state, rename),
         TagCommand tag => ReduceTag(state, tag),
@@ -91,6 +93,27 @@ public static class AppReducer
         var shell = state.Shell with { Settings = update.Session };
 
         return new AppUpdate(state with { Shell = shell }, update.Effects);
+    }
+
+    // A result or answer for a tab that was closed meanwhile is dropped, like a late TabCommand.
+    private static AppUpdate ReduceRemote(AppState state, RemoteCommand command)
+    {
+        var workspace = state.Workspace;
+        if (workspace.FindTab(command.TabId) is not { } tab)
+        {
+            return new AppUpdate(state, []);
+        }
+
+        var busy = tab.Running.IsRunning(RunningOperationKind.Remotes);
+        var context = new RemoteContext(tab.Id, tab.Location, tab.Refs, workspace.ActiveTabId == tab.Id, busy);
+        var effects = RemoteReducer.Reduce(command, context);
+        var running = tab.Running.Apply(tab.Id, command, effects);
+        if (Equals(running, tab.Running))
+        {
+            return new AppUpdate(state, effects);
+        }
+
+        return new AppUpdate(WithTab(state, tab with { Running = running }), effects);
     }
 
     // A result for a tab that was closed meanwhile is dropped, like a late TabCommand.

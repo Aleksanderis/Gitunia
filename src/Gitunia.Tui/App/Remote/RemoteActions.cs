@@ -52,7 +52,7 @@ public sealed class RemoteActions(
     Action redraw,
     TabOperationGate gate,
     Func<bool> isOverlayOpen,
-    Func<string, IReadOnlyList<string>, RepositoryLocation, string> runInTerminal)
+    Func<string, IReadOnlyList<string>, RepositoryLocation, string> runInTerminal) : IRemoteOperationSource
 {
     private const string BusyNotice = "Busy: a fetch, pull or push of this tab is still running";
     private const string GateBusyNotice = "Busy: another operation of this tab is still running";
