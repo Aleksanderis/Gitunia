@@ -21,7 +21,7 @@ public sealed class OverlayHarness : IRowMenuTargets
     private readonly OverlayController _controller;
     private readonly OverlayHitTests _hits;
     private readonly LiveConfig _config;
-    private Func<CommandLevel>? _level;
+    private Func<CommandLevel> _level = static () => CommandLevel.AdvancedPlus;
 
     public OverlayHarness(
         KeymapEngine engine,
@@ -110,11 +110,5 @@ public sealed class OverlayHarness : IRowMenuTargets
 
     public int? HelpTabNumberAt(int frameLine, int frameColumn) => _hits.HelpTabNumberAt(frameLine, frameColumn);
 
-    private void ApplyLevel()
-    {
-        if (_level is not null)
-        {
-            _config.ChangeOptions(_config.Options with { CommandLevel = _level() });
-        }
-    }
+    private void ApplyLevel() => _config.ChangeOptions(_config.Options with { CommandLevel = _level() });
 }
