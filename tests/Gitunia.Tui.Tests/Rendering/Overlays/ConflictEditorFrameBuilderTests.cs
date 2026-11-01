@@ -33,6 +33,32 @@ public class ConflictEditorFrameBuilderTests
     private const string Diff3Text =
         "top\n<<<<<<< HEAD\nthe red fox\n||||||| base\nthe fox\n=======\nthe blue fox\n>>>>>>> feature\nend\n";
 
+    [Theory]
+    [InlineData(120, 35)]
+    [InlineData(100, 20)]
+    [InlineData(60, 14)]
+    public void GivenAScreen_WhenMeasuringTheViewports_ThenEachModeHasTheRowsOfItsOwnLayout(int width, int height)
+    {
+        var versions = State(Text);
+        var typing = versions.BeginEdit().FocusPane(ConflictPane.Result).BeginEdit();
+        var selecting = versions.ToggleVisual();
+        var viewports = ConflictEditorFrameBuilder.ViewportsFor(width, height)!;
+
+        foreach (var state in new[] { versions, versions.FocusPane(ConflictPane.Result), typing, selecting })
+        {
+            var layout = ConflictEditorFrameBuilder.LayoutFor(state, width, height)!;
+            var viewport = viewports.For(state);
+            Assert.Equal(layout.VersionRows, viewport.VersionRows);
+            Assert.Equal(layout.ResultRows, viewport.ResultRows);
+        }
+    }
+
+    [Fact]
+    public void GivenAScreenTooSmallToDrawTheEditor_WhenMeasuringTheViewports_ThenThereAreNone()
+    {
+        Assert.Null(ConflictEditorFrameBuilder.ViewportsFor(10, 3));
+    }
+
     [Fact]
     public void GivenAWideScreen_WhenRendering_ThenTheFrameFillsTheScreenAboveTheStatusBar()
     {

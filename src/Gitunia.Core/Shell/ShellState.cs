@@ -1,3 +1,4 @@
+using Gitunia.Core.Conflicts;
 using Gitunia.Core.Creation;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Picker;
@@ -24,6 +25,7 @@ namespace Gitunia.Core.Shell;
 /// <param name="Mainline">The open mainline question of a cherry-pick or revert of a merge commit (#977), or null.</param>
 /// <param name="Reflog">The reflog overlay (#984).</param>
 /// <param name="Settings">The settings overlay (#984).</param>
+/// <param name="Conflict">The conflict editor overlay (#982).</param>
 /// <param name="Creation">Clone and init from the repository picker (#985).</param>
 /// <param name="Picker">The repository picker (#985).</param>
 /// <param name="QuitWarned">The first quit after a failed save warned; the next one leaves.</param>
@@ -40,6 +42,7 @@ public sealed record ShellState(
     MainlineQuestion? Mainline,
     ReflogSession Reflog,
     SettingsSession Settings,
+    ConflictSession Conflict,
     CreationSession Creation,
     PickerSession Picker,
     bool QuitWarned,
@@ -56,6 +59,7 @@ public sealed record ShellState(
         null,
         ReflogSession.Empty,
         SettingsSession.Empty,
+        ConflictSession.Empty,
         CreationSession.Empty,
         PickerSession.Empty,
         false,
