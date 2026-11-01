@@ -189,7 +189,7 @@ public sealed class DiffPaneInput : IPromptHandler
 
         if (_view.IsFilesBeside() && !ContentOf(session).IsShownBy(tab.View.DiffPane))
         {
-            _host.Dispatch(new DiffCursorMoved(tab.Id, DiffCursor.None, ContentOf(session)));
+            DispatchIfEffective(new DiffCursorMoved(tab.Id, DiffCursor.None, ContentOf(session)));
         }
 
         if (diff.Search.Phase == DiffSearchPhase.Editing && tab.View.FocusedPane != PaneKind.Diff)
@@ -348,7 +348,8 @@ public sealed class DiffPaneInput : IPromptHandler
         var step = forward ? 1 : -1;
         var target = -1;
         var remaining = count;
-        for (var next = (_detailList.SelectedItem ?? -1) + step; next >= 0 && next < rows.Count && remaining > 0; next += step)
+        var start = _detailList.SelectedItem ?? -1;
+        for (var next = start + step; next >= 0 && next < rows.Count && remaining > 0; next += step)
         {
             if (rows[next].Kind is not (FileTreeRowKind.Directory or FileTreeRowKind.Submodule))
             {

@@ -38,14 +38,23 @@ public sealed class DiffPaneEffectHandler(ITabSessions sessions)
                 session.DiffStore?.Clear();
                 session.ContentStore?.Clear();
                 break;
-            case LoadFileContentEffect content when content.Row.Blob is { } blob:
-                session.ContentStore?.Load(content.Commit, content.Row.Path, blob, content.Row.Size, content.Delay);
+            case LoadFileContentEffect content:
+                LoadContent(session, content);
                 break;
             case ClearFileContentEffect:
                 session.ContentStore?.Clear();
                 break;
             default:
                 throw new UnhandledEffectException(effect);
+        }
+    }
+
+    private static void LoadContent(TabSession session, LoadFileContentEffect content)
+    {
+        // A directory or submodule row has no blob to read.
+        if (content.Row.Blob is { } blob)
+        {
+            session.ContentStore?.Load(content.Commit, content.Row.Path, blob, content.Row.Size, content.Delay);
         }
     }
 

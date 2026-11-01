@@ -30,6 +30,7 @@ public sealed class DiffPaneView
     private readonly IActiveSessions _sessions;
     private readonly ListView _diffList;
     private readonly IPaneChrome _chrome;
+    private bool _showedWithChanges;
 
     /// <param name="host">The state.</param>
     /// <param name="sessions">The shown tab's runtime session.</param>
@@ -58,10 +59,9 @@ public sealed class DiffPaneView
     public bool IsShowingContent => ActiveState().IsShowingContent;
 
     /// <summary>The terminal shows the diff beside the file list (the Changes and Files tabs on a roomy screen).</summary>
-    public bool ShowsWithChanges() => _host.Workspace.ActiveTab is { } tab && PaneLayout.ShowsDiffWithChanges(
-        _chrome.ScreenSize.Width,
-        _chrome.ScreenSize.Height,
-        tab.View.BottomTab);
+    public bool ShowsWithChanges() =>
+        _host.Workspace.ActiveTab is { } tab
+        && DiffPaneRules.ShowsWithChanges(_host.State.Shell.Screen, tab.View.BottomTab);
 
     /// <summary>The Files tab is showing and the screen has room for its content beside the tree.</summary>
     public bool IsFilesBeside() =>
@@ -178,7 +178,9 @@ public sealed class DiffPaneView
         }
 
         var cut = DiffShown.Cut(ActiveState(), full, isLoaded);
-        if (!ReferenceEquals(diff.ShownFull, full) || diff.ShownFile != cut.File || diff.BuiltFolderPath != cut.BuiltFolder)
+        if (!ReferenceEquals(diff.ShownFull, full)
+            || diff.ShownFile != cut.File
+            || diff.BuiltFolderPath != cut.BuiltFolder)
         {
             // The pane holds one file only, the one under the file list's cursor, or the files of the folder there.
             diff.ShownFull = full;
@@ -234,12 +236,39 @@ public sealed class DiffPaneView
 
         var state = tab.View.DiffPane;
         var applied = diff.Applied;
+        var shows = ShowsWithChanges();
+        var screenChanged = shows != _showedWithChanges;
+        _showedWithChanges = shows;
         if (state == applied)
         {
+            if (screenChanged)
+            {
+                _chrome.Relayout();
+            }
+
             return;
         }
 
         diff.Applied = state;
+        Actions.IsRestoring = true;
+        try
+        {
+            ReconcileList(diff, state, applied);
+        }
+        finally
+        {
+            Actions.IsRestoring = false;
+        }
+
+        if (screenChanged || state.IsOpen != applied.IsOpen || state.Zoomed != applied.Zoomed
+            || state.ShowsFilesPane != applied.ShowsFilesPane)
+        {
+            _chrome.Relayout();
+        }
+    }
+
+    private void ReconcileList(DiffSession diff, DiffPaneState state, DiffPaneState applied)
+    {
         if (state.Placeholder != DiffPlaceholder.None)
         {
             ShowPlaceholder(diff, state.Placeholder);
@@ -251,11 +280,6 @@ public sealed class DiffPaneView
         else if (!state.ShowsFilesPane)
         {
             EmptyIfCleared(diff);
-        }
-
-        if (state.IsOpen != applied.IsOpen || state.Zoomed != applied.Zoomed || state.ShowsFilesPane != applied.ShowsFilesPane)
-        {
-            _chrome.Relayout();
         }
     }
 
@@ -329,7 +353,8 @@ public sealed class DiffPaneView
     // A closed pane forgot its diff: its list is empty too.
     private void EmptyIfCleared(DiffSession diff)
     {
-        if (diff.Store.Status == DiffStatus.None && !IsShown() && !ReferenceEquals(diff.Source.Document, DiffDocument.Empty))
+        var isEmpty = ReferenceEquals(diff.Source.Document, DiffDocument.Empty);
+        if (diff.Store.Status == DiffStatus.None && !IsShown() && !isEmpty)
         {
             Empty(diff);
         }

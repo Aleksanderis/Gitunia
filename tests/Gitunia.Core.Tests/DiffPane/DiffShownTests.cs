@@ -7,6 +7,7 @@ using Xunit;
 
 namespace Gitunia.Core.Tests.DiffPane;
 
+[Trait("Os", "Independent")]
 public class DiffShownTests
 {
     [Fact]

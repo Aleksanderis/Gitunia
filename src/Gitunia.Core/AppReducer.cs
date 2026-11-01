@@ -46,12 +46,16 @@ public static partial class AppReducer
     public static AppUpdate Reduce(AppState state, AppCommand command)
     {
         var update = ReduceCommand(state, command);
-        var ranged = VisualReducer.EndIfFocusMoved(update.State);
-        var settled = DiffPaneReducer.Settle(ranged);
+        var settled = DiffPaneReducer.Settle(update.State);
 
-        return settled.Effects.IsEmpty && ReferenceEquals(settled.State, update.State)
-            ? update
-            : new AppUpdate(settled.State, [.. update.Effects, .. settled.Effects]);
+        // Settling may move the focus too, so the range is checked last.
+        var ranged = VisualReducer.EndIfFocusMoved(settled.State);
+        if (settled.Effects.IsEmpty && ReferenceEquals(ranged, update.State))
+        {
+            return update;
+        }
+
+        return new AppUpdate(ranged, [.. update.Effects, .. settled.Effects]);
     }
 
     private static AppUpdate ReduceCommand(AppState state, AppCommand command) => command switch

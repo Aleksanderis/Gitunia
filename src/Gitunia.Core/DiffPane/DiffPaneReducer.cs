@@ -92,7 +92,9 @@ public static class DiffPaneReducer
         var diff = tab.View.DiffPane;
         var settled = diff;
         List<AppEffect> effects = [];
-        if (settled.Zoomed is { } zoomed && zoomed != focused && !DiffPaneRules.KeepsZoomTogether(zoomed, focused, shows))
+        if (settled.Zoomed is { } zoomed
+            && zoomed != focused
+            && !DiffPaneRules.KeepsZoomTogether(zoomed, focused, shows))
         {
             settled = settled with { Zoomed = null };
         }
@@ -133,7 +135,9 @@ public static class DiffPaneReducer
             return pane.Unchanged;
         }
 
-        if (!DiffPaneRules.IsShown(diff, pane.ShowsWithChanges) || facts.Target is not { } target || facts.StoreShowsTarget)
+        if (!DiffPaneRules.IsShown(diff, pane.ShowsWithChanges)
+            || facts.Target is not { } target
+            || facts.StoreShowsTarget)
         {
             return pane.Unchanged;
         }
@@ -192,7 +196,8 @@ public static class DiffPaneReducer
 
         // Beside the file list the diff is part of the tab already; only narrow or short screens open it on demand.
         var diff = WithPending(pane.Diff, facts.Cursor) with { IsOpen = !pane.ShowsWithChanges };
-        diff = diff with { Zoomed = DiffPaneRules.ZoomAfterOpening(diff, pane.State.Shell.Screen, pane.ShowsWithChanges) };
+        var zoomed = DiffPaneRules.ZoomAfterOpening(diff, pane.State.Shell.Screen, pane.ShowsWithChanges);
+        diff = diff with { Zoomed = zoomed };
         var update = Set(pane, diff, new LoadDiffEffect(pane.Tab.Id, target, false));
 
         return Focus(update, pane.Tab.Id, PaneKind.Diff);
@@ -224,7 +229,8 @@ public static class DiffPaneReducer
             ContentCommit = commit,
             IsOpen = !pane.FilesBeside,
         };
-        shown = shown with { Zoomed = DiffPaneRules.ZoomAfterOpening(diff, pane.State.Shell.Screen, pane.ShowsWithChanges) };
+        var zoomed = DiffPaneRules.ZoomAfterOpening(diff, pane.State.Shell.Screen, pane.ShowsWithChanges);
+        shown = shown with { Zoomed = zoomed };
         var update = Set(pane, shown, new LoadFileContentEffect(pane.Tab.Id, row, commit, TimeSpan.Zero));
 
         return Focus(update, pane.Tab.Id, PaneKind.Diff);
@@ -238,7 +244,12 @@ public static class DiffPaneReducer
         }
 
         // The whole commit is loaded already, so showing another file only scrolls.
-        return pane.ShowsWithChanges && moved.Cursor.IsOnItem ? Set(pane, WithPending(pane.Diff, moved.Cursor)) : pane.Unchanged;
+        if (pane.ShowsWithChanges && moved.Cursor.IsOnItem)
+        {
+            return Set(pane, WithPending(pane.Diff, moved.Cursor));
+        }
+
+        return pane.Unchanged;
     }
 
     private static AppUpdate ChangeOptions(Pane pane, DiffOptionsRequested request)
