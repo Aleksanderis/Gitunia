@@ -1,8 +1,8 @@
 using Gitunia.Core.Graph;
 using Gitunia.Core.Lists;
 using Gitunia.Tui.App.Pick;
-using Gitunia.Tui.Tests.Rendering.Graph;
 using Gitunia.Tui.Rendering.Screen;
+using Gitunia.Tui.Tests.Rendering.Graph;
 using Xunit;
 
 namespace Gitunia.Tui.Tests.App.Pick;

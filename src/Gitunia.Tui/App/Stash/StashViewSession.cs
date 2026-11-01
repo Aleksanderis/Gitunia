@@ -1,5 +1,5 @@
+using Gitunia.App.Loading.Stash;
 using Gitunia.Git.Stash;
-using Gitunia.Tui.Loading.Stash;
 
 namespace Gitunia.Tui.App.Stash;
 

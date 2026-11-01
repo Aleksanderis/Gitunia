@@ -1,6 +1,6 @@
-using FuzzyMatcher = Gitunia.Core.Search.FuzzyMatcher;
 using Gitunia.Core.Overlays;
 using Xunit;
+using FuzzyMatcher = Gitunia.Core.Search.FuzzyMatcher;
 
 namespace Gitunia.Core.Tests.Overlays;
 

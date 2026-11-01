@@ -1,3 +1,4 @@
+using Gitunia.App;
 using Gitunia.Core.FileTree;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;

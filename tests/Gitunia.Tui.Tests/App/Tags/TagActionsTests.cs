@@ -1,4 +1,6 @@
-using Gitunia.Tui.Tests.Fakes;
+using Gitunia.App;
+using Gitunia.App.Loading.Commits;
+using Gitunia.App.Tabs;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Overlays;
@@ -7,12 +9,11 @@ using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
 using Gitunia.Git.Tags;
 using Gitunia.Git.Tests.Fixtures;
-using Gitunia.Tui.App;
 using Gitunia.Tui.App.Branches;
-using Gitunia.Tui.App.Tags;
 using Gitunia.Tui.App.Tabs;
-using Gitunia.Tui.Loading.Commits;
+using Gitunia.Tui.App.Tags;
 using Gitunia.Tui.Rendering.Graph;
+using Gitunia.Tui.Tests.Fakes;
 using Xunit;
 
 namespace Gitunia.Tui.Tests.App.Tags;

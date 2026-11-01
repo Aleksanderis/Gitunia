@@ -1,4 +1,5 @@
-using Gitunia.Tui.App.Tabs;
+using Gitunia.App;
+using Gitunia.App.Tabs;
 using Gitunia.Core.Clipboard;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
@@ -13,7 +14,6 @@ using Gitunia.Git.Discard;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Staging;
 using Gitunia.Git.Status.Models;
-using Gitunia.Tui.App;
 using Gitunia.Tui.App.Clipboard;
 using Gitunia.Tui.App.Overlays;
 using Gitunia.Tui.App.Panes;

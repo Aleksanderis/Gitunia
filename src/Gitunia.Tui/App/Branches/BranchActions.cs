@@ -1,5 +1,5 @@
-using Gitunia.Core.Text;
-using Gitunia.Tui.App.Tabs;
+using Gitunia.App;
+using Gitunia.App.Tabs;
 using Gitunia.Core.Branches;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
@@ -8,6 +8,7 @@ using Gitunia.Core.Overlays;
 using Gitunia.Core.Search;
 using Gitunia.Core.Sidebar;
 using Gitunia.Core.Status;
+using Gitunia.Core.Text;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
@@ -15,8 +16,8 @@ using Gitunia.Git;
 using Gitunia.Git.Branches;
 using Gitunia.Git.Refs;
 using Gitunia.Git.Refs.Models;
-using Gitunia.Tui.App.WorkingTree;
 using Gitunia.Tui.App.Remote;
+using Gitunia.Tui.App.WorkingTree;
 using Gitunia.Tui.Input;
 
 namespace Gitunia.Tui.App.Branches;

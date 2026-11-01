@@ -1,4 +1,6 @@
-using Gitunia.Tui.Tests.Fakes;
+using Gitunia.App;
+using Gitunia.App.Loading.Commits;
+using Gitunia.App.Tabs;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Mouse;
@@ -13,13 +15,12 @@ using Gitunia.Git.Reflog.Models;
 using Gitunia.Git.Repositories;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Tests.Fixtures;
-using Gitunia.Tui.App;
 using Gitunia.Tui.App.Branches;
 using Gitunia.Tui.App.Reflog;
 using Gitunia.Tui.App.Reset;
 using Gitunia.Tui.App.Tabs;
-using Gitunia.Tui.Loading.Commits;
 using Gitunia.Tui.Rendering.Graph;
+using Gitunia.Tui.Tests.Fakes;
 using Gitunia.Tui.Views;
 using Xunit;
 

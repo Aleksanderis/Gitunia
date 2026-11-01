@@ -1,7 +1,7 @@
+using Gitunia.App.Loading.Diff;
 using Gitunia.Core.Diff;
 using Gitunia.Git.Status.Models;
 using Gitunia.Tui.App.Panes;
-using Gitunia.Tui.Loading.Diff;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Views.Lists;
 

@@ -1,8 +1,8 @@
 using System.Collections.Immutable;
 using Gitunia.Core.Sidebar;
 using Gitunia.Core.Workspaces.Tabs;
-using Gitunia.Git.Refs.Models;
 using Gitunia.Git.Operations.Models;
+using Gitunia.Git.Refs.Models;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Stash;
 using Gitunia.Git.Worktrees;

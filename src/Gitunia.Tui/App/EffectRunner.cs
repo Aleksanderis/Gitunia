@@ -1,3 +1,10 @@
+using Gitunia.App;
+using Gitunia.App.Loading.Commits;
+using Gitunia.App.Loading.Diff;
+using Gitunia.App.Loading.Stash;
+using Gitunia.App.Loading.Trees;
+using Gitunia.App.Tabs;
+using Gitunia.App.Tabs.Models;
 using Gitunia.Core.IssueTracker;
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
@@ -6,14 +13,9 @@ using Gitunia.Git.Execution.Exceptions;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Watching;
 using Gitunia.Git.Watching.Models;
+using Gitunia.Tui.App.Details;
 using Gitunia.Tui.App.Stash;
 using Gitunia.Tui.App.Tabs;
-using Gitunia.Tui.App.Tabs.Models;
-using Gitunia.Tui.Loading.Commits;
-using Gitunia.Tui.Loading.Trees;
-using Gitunia.Tui.App.Details;
-using Gitunia.Tui.Loading.Diff;
-using Gitunia.Tui.Loading.Stash;
 using Gitunia.Tui.Rendering.Graph;
 
 namespace Gitunia.Tui.App;

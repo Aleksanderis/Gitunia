@@ -1,9 +1,9 @@
+using Gitunia.App;
 using Gitunia.Core.Picker;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Tests.Fixtures;
-using Gitunia.Tui.App;
 using Gitunia.Tui.App.Overlays;
 using Xunit;
 

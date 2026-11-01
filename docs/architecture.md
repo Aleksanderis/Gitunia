@@ -33,7 +33,7 @@ Each project is a layer. It is defined by what it may know about.
 | `Gitunia.App` | The UI-free runtime: effect runner and handlers, stores and loaders for big data, pollers, file watching, session and config persistence, the dispatcher. It does the work Core asks for. | Core, Git, Platform | Terminal.Gui, rendering |
 | `Gitunia.Tui` | What you see and touch: Terminal.Gui views, rendering, key and mouse translation, terminal suspension, composition root and `Program.Main` (the AOT binary). | everything | deciding what a command means |
 
-Dependencies run one way: **Tui -> App -> Core -> Git -> Platform** (Tui also uses Core, Git and Platform directly; App uses Platform). The compiler enforces it through project references: `Gitunia.App.csproj` has no Terminal.Gui reference and `Gitunia.Core.csproj` references only Git, so an App handler cannot draw. That is all the compiler enforces: that a reducer starts no process, reads no file and has no timer is kept by review and by the rule that reducers are pure static functions of their arguments. Only `Gitunia.Tui` references Terminal.Gui. Today `Gitunia.App` does not exist yet (#968 creates it); the runtime code sits in `Gitunia.Tui` (`Loading/`, `App/`).
+Dependencies run one way: **Tui -> App -> Core -> Git -> Platform** (Tui also uses Core, Git and Platform directly; App uses Platform). The compiler enforces it through project references: `Gitunia.App.csproj` has no Terminal.Gui reference and `Gitunia.Core.csproj` references only Git, so an App handler cannot draw. That is all the compiler enforces: that a reducer starts no process, reads no file and has no timer is kept by review and by the rule that reducers are pure static functions of their arguments. Only `Gitunia.Tui` references Terminal.Gui. `Gitunia.App` exists since #968 and holds the stores and loaders (`Loading/`), `GitServices`, the pollers, `TabRefresher`, `SessionPersistence` and `WorkspaceHost`. Still in `Gitunia.Tui` (`App/`, moving with the strangler): `EffectRunner`, `TabSession` and everything with Terminal.Gui or rendering types. `TabSession` holds the list sources and glyphs of the views, so the loaders see it only through `IGraphSession`; splitting its terminal half off is what lets `EffectRunner` move (#999).
 
 Platform and Core are not the same thing: Platform is the bottom layer ("how do I do this on this OS?") and knows nothing about Gitunia; Core is the middle layer ("what happens when the user presses `j`?") and knows nothing about the OS.
 
@@ -145,7 +145,7 @@ src/
   Gitunia.Platform/   OS-specific code
   Gitunia.Git/        git process runner, parsers, readers, models
   Gitunia.Core/       state, commands, reducers, effect definitions, keymap, config (no console, no process)
-  Gitunia.App/        effect runner and handlers, stores, loaders, pollers, watching, persistence (no Terminal.Gui; created by #968)
+  Gitunia.App/        effect runner and handlers, stores, loaders, pollers, watching, persistence (no Terminal.Gui)
   Gitunia.Tui/        views, rendering, input translation, composition root, entry point (AOT publish target)
 tests/                one test project per src project, same names plus `.Tests`
 tools/AnsiToSvg/      tmux capture of the live UI to SVG for PR screenshots (local only, never in CI)

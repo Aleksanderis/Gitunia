@@ -1,3 +1,7 @@
+using Gitunia.App;
+using Gitunia.App.Loading.Commits;
+using Gitunia.App.Tabs;
+using Gitunia.Core.Graph;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Sidebar;
@@ -7,11 +11,9 @@ using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Repositories;
 using Gitunia.Git.Tests.Fixtures;
-using Gitunia.Tui.App;
 using Gitunia.Tui.App.Branches;
 using Gitunia.Tui.App.Merge;
 using Gitunia.Tui.App.Tabs;
-using Gitunia.Tui.Loading.Commits;
 using Gitunia.Tui.Rendering.Graph;
 using Xunit;
 
@@ -299,7 +301,7 @@ public class MergeActionsTests
 
         public static async Task<Harness> LoadAsync(TestRepository repository)
         {
-            var services = GitServices.Create(repository.CreateIsolatedRunner());
+            var services = GitServices.Create(repository.CreateIsolatedRunner(), static () => BranchColors.SlotCount);
             var harness = new Harness(services);
             var location = await services.Discovery.DiscoverAsync(
                 repository.WorkingTreePath,

@@ -1,7 +1,7 @@
+using Gitunia.App.Loading.Commits;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Tui.App.Tabs;
-using Gitunia.Tui.Loading.Commits;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Views.Lists;
 using Xunit;

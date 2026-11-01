@@ -1,4 +1,5 @@
 using System.Text;
+using Gitunia.App.Loading.Commits;
 using Gitunia.Core.Clipboard;
 using Gitunia.Core.IssueTracker;
 using Gitunia.Core.Keymap;
@@ -9,7 +10,6 @@ using Gitunia.Git.IssueTracker.Models;
 using Gitunia.Platform.Urls;
 using Gitunia.Tui.App.Clipboard;
 using Gitunia.Tui.App.Details;
-using Gitunia.Tui.Loading.Commits;
 using Gitunia.Tui.Rendering.Details;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Tests.Fakes;

@@ -1,3 +1,5 @@
+using Gitunia.App;
+using Gitunia.App.Tabs;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Overlays;
@@ -14,9 +16,7 @@ using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Status;
 using Gitunia.Git.Status.Models;
 using Gitunia.Git.Tests.Fixtures;
-using Gitunia.Tui.App;
 using Gitunia.Tui.App.Rebase;
-using Gitunia.Tui.App.Tabs;
 using Xunit;
 
 namespace Gitunia.Tui.Tests.App.Rebase;

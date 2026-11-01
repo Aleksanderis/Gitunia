@@ -1,3 +1,7 @@
+using Gitunia.App.Loading.Commits;
+using Gitunia.App.Loading.Diff;
+using Gitunia.App.Loading.Trees;
+using Gitunia.App.Tabs;
 using Gitunia.Core.Graph;
 using Gitunia.Core.IssueTracker;
 using Gitunia.Core.Search.Models;
@@ -7,9 +11,6 @@ using Gitunia.Tui.App.Details;
 using Gitunia.Tui.App.Panes;
 using Gitunia.Tui.App.Stash;
 using Gitunia.Tui.App.WorkingTree;
-using Gitunia.Tui.Loading.Commits;
-using Gitunia.Tui.Loading.Diff;
-using Gitunia.Tui.Loading.Trees;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Views.Lists;
 
@@ -19,7 +20,7 @@ namespace Gitunia.Tui.App.Tabs;
 /// The runtime side of one tab that the immutable <see cref="RepositoryState"/> does not hold: the streamed graph rows,
 /// the list source drawing them and the load in flight. Touched from the UI thread only.
 /// </summary>
-public sealed class TabSession : IDisposable
+public sealed class TabSession : IGraphSession, IDisposable
 {
     public TabSession(
         TabId tabId,

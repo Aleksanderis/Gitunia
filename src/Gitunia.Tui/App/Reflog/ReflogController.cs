@@ -1,3 +1,4 @@
+using Gitunia.App;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Lists;
@@ -7,10 +8,10 @@ using Gitunia.Core.Search;
 using Gitunia.Core.Sidebar;
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces.Tabs;
-using Gitunia.Git.Refs;
-using Gitunia.Git.Refs.Models;
 using Gitunia.Git.Reflog;
 using Gitunia.Git.Reflog.Models;
+using Gitunia.Git.Refs;
+using Gitunia.Git.Refs.Models;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Tui.App.Branches;
 using Gitunia.Tui.App.Reset;

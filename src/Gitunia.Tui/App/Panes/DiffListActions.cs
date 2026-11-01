@@ -1,13 +1,13 @@
 using System.Globalization;
+using Gitunia.App.Loading.Trees;
 using Gitunia.Core.Diff;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Lists;
-using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Search;
+using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Git.Diff.Models;
 using Gitunia.Tui.App.Clipboard;
-using Gitunia.Tui.Loading.Trees;
 using Gitunia.Tui.Rendering.Diff;
 using Gitunia.Tui.Rendering.Panes;
 using Gitunia.Tui.Search;

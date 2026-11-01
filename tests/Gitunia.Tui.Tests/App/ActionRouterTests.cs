@@ -1,3 +1,5 @@
+using Gitunia.App;
+using Gitunia.App.Loading.Commits;
 using Gitunia.Core.Clipboard;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Status;
@@ -8,7 +10,6 @@ using Gitunia.Tui.App;
 using Gitunia.Tui.App.Clipboard;
 using Gitunia.Tui.App.Sidebar;
 using Gitunia.Tui.App.Tabs;
-using Gitunia.Tui.Loading.Commits;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Screen;
 using Gitunia.Tui.Tests.Rendering.Graph;

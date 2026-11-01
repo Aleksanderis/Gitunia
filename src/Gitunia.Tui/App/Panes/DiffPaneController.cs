@@ -1,3 +1,7 @@
+using Gitunia.App;
+using Gitunia.App.Loading.Commits;
+using Gitunia.App.Loading.Diff;
+using Gitunia.App.Loading.Trees;
 using Gitunia.Core.Diff;
 using Gitunia.Core.FileTree;
 using Gitunia.Core.Keymap;
@@ -11,9 +15,6 @@ using Gitunia.Git.Commits.Models;
 using Gitunia.Tui.App.Clipboard;
 using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.Input;
-using Gitunia.Tui.Loading.Commits;
-using Gitunia.Tui.Loading.Diff;
-using Gitunia.Tui.Loading.Trees;
 using Gitunia.Tui.Rendering.Diff;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Panes;

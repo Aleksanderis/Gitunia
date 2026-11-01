@@ -1,3 +1,4 @@
+using Gitunia.App;
 using Gitunia.Tui.App;
 using Gitunia.Tui.App.Overlays;
 

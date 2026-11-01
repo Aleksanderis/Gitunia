@@ -1,11 +1,11 @@
-using Gitunia.Core.Text;
 using System.Collections.Immutable;
 using System.Globalization;
 using Gitunia.Core.Keymap;
+using Gitunia.Core.Text;
+using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Git.Operations.Models;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Status.Models;
-using Gitunia.Core.Workspaces.Repositories;
 
 namespace Gitunia.Core.Operations;
 

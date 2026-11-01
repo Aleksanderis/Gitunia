@@ -1,5 +1,5 @@
-using System.Text.Unicode;
 using System.Text.Json;
+using System.Text.Unicode;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Xunit;

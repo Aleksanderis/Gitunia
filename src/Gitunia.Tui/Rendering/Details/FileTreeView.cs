@@ -1,5 +1,5 @@
+using Gitunia.App.Loading.Trees;
 using Gitunia.Core.FileTree;
-using Gitunia.Tui.Loading.Trees;
 using Gitunia.Tui.Rendering.Sidebar;
 
 namespace Gitunia.Tui.Rendering.Details;

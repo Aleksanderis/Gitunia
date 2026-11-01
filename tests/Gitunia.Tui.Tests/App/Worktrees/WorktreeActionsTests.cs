@@ -1,19 +1,20 @@
-using Gitunia.Tui.Tests.Fakes;
+using Gitunia.App;
+using Gitunia.App.Loading.Commits;
+using Gitunia.App.Tabs;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Overlays;
 using Gitunia.Core.Sidebar;
+using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Repositories.Models;
-using Gitunia.Core.Status;
 using Gitunia.Git.Tests.Fixtures;
-using Gitunia.Tui.App;
 using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.App.Worktrees;
-using Gitunia.Tui.Loading.Commits;
 using Gitunia.Tui.Rendering.Graph;
+using Gitunia.Tui.Tests.Fakes;
 using Xunit;
 
 namespace Gitunia.Tui.Tests.App.Worktrees;

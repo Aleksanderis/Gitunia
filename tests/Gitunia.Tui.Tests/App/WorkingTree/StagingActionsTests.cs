@@ -1,3 +1,5 @@
+using Gitunia.App;
+using Gitunia.App.Loading.Diff;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Lists;
@@ -12,9 +14,7 @@ using Gitunia.Git.Refs.Models;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Staging;
 using Gitunia.Git.Status.Models;
-using Gitunia.Tui.App;
 using Gitunia.Tui.App.WorkingTree;
-using Gitunia.Tui.Loading.Diff;
 using Gitunia.Tui.Tests.Fakes;
 using Xunit;
 using static Gitunia.Tui.Tests.Rendering.WorkingTree.WorkingTreeEntries;

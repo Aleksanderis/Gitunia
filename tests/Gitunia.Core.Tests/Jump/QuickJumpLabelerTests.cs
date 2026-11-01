@@ -1,6 +1,6 @@
 using Gitunia.Core.Jump;
-using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Jump.Models;
+using Gitunia.Core.Keymap.Models;
 using Xunit;
 
 namespace Gitunia.Core.Tests.Jump;

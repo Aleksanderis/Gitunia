@@ -1,7 +1,7 @@
+using Gitunia.App;
+using Gitunia.App.Tabs;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Status;
-using Gitunia.Tui.App;
-using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.App.WorkingTree;
 
 namespace Gitunia.Tui.Tests.Fakes;

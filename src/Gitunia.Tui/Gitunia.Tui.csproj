@@ -25,6 +25,7 @@
   </Target>
   <ItemGroup>
     <PackageReference Include="Terminal.Gui" />
+    <ProjectReference Include="..\Gitunia.App\Gitunia.App.csproj" />
     <ProjectReference Include="..\Gitunia.Core\Gitunia.Core.csproj" />
     <ProjectReference Include="..\Gitunia.Platform\Gitunia.Platform.csproj" />
   </ItemGroup>
