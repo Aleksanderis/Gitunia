@@ -7,10 +7,6 @@
 - One problem per issue. For a bug, include `gitunia --version`, your OS and terminal, and the steps to reproduce.
 - Report security problems privately: see [SECURITY.md](SECURITY.md).
 
-## Where to start
-
-Issues labelled [good first issue](../../labels/good%20first%20issue) or [help wanted](../../labels/help%20wanted) are the best entry points. Comment on the issue before you start so work is not duplicated.
-
 ## Pull requests
 
 Open an issue first and wait for a reply that the change fits. Unsolicited large PRs or ones adding features outside the README lists may be closed.
