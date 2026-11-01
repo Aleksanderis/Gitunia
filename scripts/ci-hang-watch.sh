@@ -4,6 +4,7 @@
 # the process tree, open files and `sample` stacks (at most 3 reports). Silent otherwise. macOS only (ps, stat -f, sample).
 # Usage: scripts/ci-hang-watch.sh &   (prints to stdout, which is the CI step log)
 set -u
+trap 'exit 0' TERM
 
 seconds_of() { # etime [[dd-]hh:]mm:ss -> seconds
   local t="$1" d=0 h=0 m=0 s=0

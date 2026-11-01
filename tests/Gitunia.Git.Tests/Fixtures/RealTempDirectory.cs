@@ -14,22 +14,23 @@ public static class RealTempDirectory
     private const string TempDirectoryVariable = "TMPDIR";
 
     [ModuleInitializer]
-    public static void Apply()
+    internal static void Apply()
     {
         if (OperatingSystem.IsWindows())
         {
             return;
         }
 
-        var temp = Path.GetTempPath();
-        var real = Resolve(temp.TrimEnd(Path.DirectorySeparatorChar));
-        if (real.Length > 0 && !string.Equals(real, temp.TrimEnd(Path.DirectorySeparatorChar), StringComparison.Ordinal))
+        var temp = Path.GetTempPath().TrimEnd(Path.DirectorySeparatorChar);
+        var real = Resolve(temp);
+
+        if (real.Length > 0 && !string.Equals(real, temp, StringComparison.Ordinal))
         {
             Environment.SetEnvironmentVariable(TempDirectoryVariable, real + Path.DirectorySeparatorChar);
         }
     }
 
-    // Resolves every symbolic link on the way, component by component.
+    // Resolves a symbolic link at each path component (enough for the temp directory; targets are not re-walked).
     private static string Resolve(string path)
     {
         var root = Path.GetPathRoot(path) ?? string.Empty;

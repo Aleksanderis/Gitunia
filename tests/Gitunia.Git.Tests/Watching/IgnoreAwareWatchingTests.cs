@@ -158,9 +158,14 @@ public class IgnoreAwareWatchingTests
         await WaitForAsync(() => watcher.WorkingTreeDirectoryCount == 3);
         await Task.Delay(300, Token);
 
-        // The platform may deliver the creation events of the moved directory late (FSEvents on macOS batches them),
-        // which watches it briefly until the next rescan drops it again; the watchers must settle at three (#959).
-        await WaitForAsync(() => watcher.WorkingTreeDirectoryCount == 3);
+        if (OperatingSystem.IsMacOS())
+        {
+            // A macOS run (#959) saw 5 here after the 300 ms; the suspected cause is FSEvents delivering the creation
+            // events of the moved directory late (not confirmed from a log), which watches it until the next rescan
+            // drops it again. Linux and Windows keep the strict check.
+            await WaitForAsync(() => watcher.WorkingTreeDirectoryCount == 3);
+        }
+
         Assert.Equal(3, watcher.WorkingTreeDirectoryCount);
     }
 

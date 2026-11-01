@@ -234,10 +234,13 @@ jobs:
         # Same shape as the Windows leg: only OS-sensitive tests (#637), projects in sequence, hung host killed. Unlike
         # Windows it runs every project even after a failure (this leg is rarely run, so one run should show all), and
         # scripts/ci-hang-watch.sh prints the process tree and stack samples when no test finishes for 45 s (#959: one
-        # run stalled for 10 minutes with every test thread stuck; it did not recur in five later runs).
+        # run 41260491071 stalled for 10 minutes with every test thread stuck; it did not recur in the 4 Git.Tests runs
+        # after it, runs 41285571728 and 41286099525; the watcher stays until it is explained, issue #960).
         run: |
           set -o pipefail
           scripts/ci-hang-watch.sh &
+          watcher=$!
+          trap 'kill "$watcher" 2>/dev/null || true' EXIT
           status=0
           for project in Core Platform Git Tui; do
             dotnet test "tests/Gitunia.$project.Tests" -c Release --no-build --filter "Os!=Independent" \
