@@ -1,9 +1,11 @@
+using Gitunia.App.Background;
 using Gitunia.App.Tabs;
 using Gitunia.App.Tests.Fakes;
 using Gitunia.App.Tests.Tags;
 using Gitunia.Core;
 using Gitunia.Core.Effects;
 using Gitunia.Core.Keymap.Models;
+using Gitunia.Core.Running;
 using Gitunia.Core.Sidebar;
 using Gitunia.Core.Status;
 using Gitunia.Core.Tags;
@@ -29,8 +31,8 @@ public class EffectPipelineTests
         pipeline.Dispatch(new TagPromptAccepted(pipeline.TabId));
         Assert.Equal(TagPromptKind.CreateMessage, pipeline.Tags.Prompt!.Kind);
         pipeline.Dispatch(new TagPromptAccepted(pipeline.TabId));
-        Assert.True(pipeline.Tags.Running);
-        await pipeline.Pump.RunUntilAsync(() => !pipeline.Tags.Running);
+        Assert.True(pipeline.IsTagRunning);
+        await pipeline.Pump.RunUntilAsync(() => !pipeline.IsTagRunning);
 
         Assert.Equal(repository.Head, repository.Git("rev-parse", "v1").Trim());
         Assert.Null(pipeline.Tags.Prompt);
@@ -50,7 +52,7 @@ public class EffectPipelineTests
         Assert.Equal("Delete tag", confirm.Prompt.Title);
         Assert.Equal("v1", repository.Git("tag", "--list").Trim());
         pipeline.Dispatch(confirm.OnAccepted);
-        await pipeline.Pump.RunUntilAsync(() => !pipeline.Tags.Running);
+        await pipeline.Pump.RunUntilAsync(() => !pipeline.IsTagRunning);
 
         Assert.Equal(string.Empty, repository.Git("tag", "--list").Trim());
         Assert.Contains("Deleted tag v1", pipeline.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
@@ -63,7 +65,7 @@ public class EffectPipelineTests
         var writer = new BlockingTagWriter();
         using var pipeline = await Pipeline.OpenAsync(TestGit.Services with { Tags = writer }, repository);
         pipeline.Dispatch(new TagDeleteConfirmed(pipeline.TabId, "v1", repository.Head));
-        Assert.True(pipeline.Tags.Running);
+        Assert.True(pipeline.IsTagRunning);
 
         pipeline.Dispatch(new TagCreateRequested(pipeline.TabId, new TagTarget(null, null, repository.Head)));
 
@@ -132,10 +134,34 @@ public class EffectPipelineTests
         await pipeline.Pump.RunUntilAsync(() => pipeline.Tags.Prompt is not null);
 
         pipeline.Dispatch(new TagPromptAccepted(pipeline.TabId));
-        await pipeline.Pump.RunUntilAsync(() => !pipeline.Tags.Running);
+        await pipeline.Pump.RunUntilAsync(() => !pipeline.IsTagRunning);
 
         Assert.Equal(["Tag push|push -- origin refs/tags/v1"], pipeline.Shell.Retries);
         Assert.Equal(StatusSeverity.Error, pipeline.Statuses.Log.Latest!.Severity);
+    }
+
+    [Fact]
+    public async Task GivenAFullBackgroundQueue_WhenAUserEffectRuns_ThenItFinishesWithoutWaitingForTheQueue()
+    {
+        using var repository = TestRepositories.Linear();
+        using var pipeline = await Pipeline.OpenAsync(TestGit.Services, repository);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var blocked = Enumerable.Range(0, BackgroundWork.DefaultLimit + 2)
+            .Select(_ => pipeline.Background.RunAsync(() => release.Task, CancellationToken.None))
+            .ToArray();
+        await pipeline.Pump.RunUntilAsync(() => pipeline.Background.Running == BackgroundWork.DefaultLimit);
+        Assert.Equal(2, pipeline.Background.Waiting);
+
+        pipeline.Dispatch(new TagCreateRequested(pipeline.TabId, new TagTarget(null, null, repository.Head)));
+        pipeline.Dispatch(new TagPromptTextChanged(pipeline.TabId, "v1"));
+        pipeline.Dispatch(new TagPromptAccepted(pipeline.TabId));
+        pipeline.Dispatch(new TagPromptAccepted(pipeline.TabId));
+        await pipeline.Pump.RunUntilAsync(() => !pipeline.IsTagRunning);
+
+        Assert.Equal(repository.Head, repository.Git("rev-parse", "v1").Trim());
+        Assert.Equal(2, pipeline.Background.Waiting);
+        release.SetResult();
+        await Task.WhenAll(blocked).WaitAsync(TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken);
     }
 
     private static bool MissesItsCase(EffectRunner<TabSession> runner, AppEffect effect)
@@ -183,6 +209,10 @@ public class EffectPipelineTests
         public bool HasRefs => Host.Workspace.FindTab(TabId)!.Refs.Length > 0;
 
         public TagState Tags => Host.Workspace.FindTab(TabId)!.Tags;
+
+        public bool IsTagRunning => Host.Workspace.FindTab(TabId)!.Running.IsRunning(RunningOperationKind.Tags);
+
+        public BackgroundWork Background => _runner.Background;
 
         public static async Task<Pipeline> OpenAsync(GitServices services, TestRepository repository)
         {

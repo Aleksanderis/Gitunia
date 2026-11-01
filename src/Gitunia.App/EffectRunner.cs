@@ -1,3 +1,4 @@
+using Gitunia.App.Background;
 using Gitunia.App.Loading.Commits;
 using Gitunia.App.Loading.Diff;
 using Gitunia.App.Loading.Stash;
@@ -39,6 +40,7 @@ public sealed class EffectRunner<TSession> : IDisposable
     private readonly Dispatcher _host;
     private readonly IShellEffects _shell;
     private readonly TabCancellation _cancellation = new();
+    private readonly BackgroundWork _background = new();
     private readonly TagEffectHandler _tags;
     private readonly Action<Action> _postToUi;
     private readonly StatusChannel _statuses;
@@ -87,6 +89,12 @@ public sealed class EffectRunner<TSession> : IDisposable
     /// (closing its session would cancel the work).
     /// </summary>
     public Func<TabId, bool> IsTabBusy { get; set; } = static _ => false;
+
+    /// <summary>
+    /// The bounded queue for background work (polls, prefetch, overview, issue links). Effects the user caused never wait
+    /// in it.
+    /// </summary>
+    public BackgroundWork Background => _background;
 
     /// <summary>The sessions of the open tabs.</summary>
     public IEnumerable<TSession> Sessions => _sessions.Values;
@@ -151,6 +159,7 @@ public sealed class EffectRunner<TSession> : IDisposable
 
         _refreshers.Clear();
         _cancellation.Dispose();
+        _background.Dispose();
     }
 
     /// <summary>
@@ -229,8 +238,8 @@ public sealed class EffectRunner<TSession> : IDisposable
         }
     }
 
-    // A tab runs an operation when a gate says so or its tag slice does; such a tab is never evicted.
-    private bool IsBusy(TabId tabId) => IsTabBusy(tabId) || _host.Workspace.FindTab(tabId)?.Tags.Running == true;
+    // A tab runs an operation when its state says so or a legacy gate does; such a tab is never evicted.
+    private bool IsBusy(TabId tabId) => IsTabBusy(tabId) || _host.Workspace.FindTab(tabId)?.Running.IsBusy == true;
 
     private void ReloadIssueLinks(TabId tabId)
     {
@@ -242,7 +251,7 @@ public sealed class EffectRunner<TSession> : IDisposable
 
         var location = tab.Location;
         var token = session.Cancellation.Token;
-        _ = Task.Run(() => LoadIssueLinksAsync(session, location, token), CancellationToken.None);
+        _ = Task.Run(() => QueueIssueLinksAsync(session, location, token), CancellationToken.None);
     }
 
     private void StartLoad(LoadRepositoryEffect load)
@@ -271,11 +280,13 @@ public sealed class EffectRunner<TSession> : IDisposable
                         stashView.Registry),
                     tab.Location,
                     _postToUi,
-                    _detailDebounce),
+                    _detailDebounce,
+                    background: _background),
                 new DiffStore(
                     new StashAwareDiffReader(_services.Diff, _services.StashDetails, stashView.Registry),
                     tab.Location,
-                    _postToUi),
+                    _postToUi,
+                    background: _background),
                 new WorkingDiffStore(_services.Diff, tab.Location, _postToUi),
                 new FileTreeSession(
                     new CommitTreeStore(_services.CommitTree, tab.Location, _postToUi, _detailDebounce)),
@@ -307,7 +318,7 @@ public sealed class EffectRunner<TSession> : IDisposable
             _refreshers[load.TabId] = refresher;
             refresher.Start();
             refresher.SetActive(_host.Workspace.ActiveTabId == load.TabId);
-            _ = Task.Run(() => LoadIssueLinksAsync(session, location, token), CancellationToken.None);
+            _ = Task.Run(() => QueueIssueLinksAsync(session, location, token), CancellationToken.None);
             _ = Task.Run(() => _services.RepositoryLoader.RunAsync(location, session, _host, _statuses, _postToUi, token), CancellationToken.None);
         }
 
@@ -319,6 +330,18 @@ public sealed class EffectRunner<TSession> : IDisposable
         else
         {
             _pendingLoads[load.TabId] = Start;
+        }
+    }
+
+    private async Task QueueIssueLinksAsync(TSession session, RepositoryLocation location, CancellationToken token)
+    {
+        try
+        {
+            await _background.RunAsync(() => LoadIssueLinksAsync(session, location, token), token).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            // The tab closed while the read waited for a background slot.
         }
     }
 

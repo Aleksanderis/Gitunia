@@ -1,3 +1,4 @@
+using Gitunia.App.Background;
 using Gitunia.Git;
 using Gitunia.Git.Commits;
 using Gitunia.Git.Commits.Models;
@@ -22,6 +23,7 @@ public sealed class CommitDetailsStore : IDisposable
     private readonly TimeSpan _debounce;
     private readonly Func<TimeSpan, CancellationToken, Task> _delay;
     private readonly TimeProvider _timeProvider;
+    private readonly IBackgroundWork _background;
     private readonly CommitDetailsCache _cache;
     private CancellationTokenSource? _pending;
     private CancellationTokenSource? _parentPending;
@@ -35,6 +37,7 @@ public sealed class CommitDetailsStore : IDisposable
     /// <param name="debounce">How long a selection must stay put before the commit is read, when it follows another move closely.</param>
     /// <param name="delay">Waits out the debounce; tests inject one they control, the default is <see cref="Task.Delay(TimeSpan, CancellationToken)"/>.</param>
     /// <param name="cache">The cache of loaded details; the default is a <see cref="CommitDetailsCache"/> with its default bounds.</param>
+    /// <param name="background">Where prefetch waits for a slot; the default runs it at once.</param>
     /// <param name="timeProvider">The clock that tells a fresh selection from one in a quick run of moves; tests inject one they control.</param>
     public CommitDetailsStore(
         ICommitDetailsReader reader,
@@ -43,8 +46,10 @@ public sealed class CommitDetailsStore : IDisposable
         TimeSpan debounce,
         Func<TimeSpan, CancellationToken, Task>? delay = null,
         CommitDetailsCache? cache = null,
-        TimeProvider? timeProvider = null)
+        TimeProvider? timeProvider = null,
+        IBackgroundWork? background = null)
     {
+        _background = background ?? UnboundedBackgroundWork.Instance;
         _delay = delay ?? Task.Delay;
         _cache = cache ?? new CommitDetailsCache();
         _timeProvider = timeProvider ?? TimeProvider.System;
@@ -319,7 +324,14 @@ public sealed class CommitDetailsStore : IDisposable
             return;
         }
 
-        await PrefetchAsync(wanted, token).ConfigureAwait(false);
+        try
+        {
+            await _background.RunAsync(() => PrefetchAsync(wanted, token), token).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            // Another commit was selected while the prefetch waited for a background slot.
+        }
     }
 
     /// <summary>Reads the neighbours one after the other. Best effort: a cancelled or failed read is dropped, since the commit is loaded (and its error shown) when it is selected.</summary>

@@ -1,3 +1,4 @@
+using Gitunia.App.Background;
 using Gitunia.Core.Diff;
 using Gitunia.Git;
 using Gitunia.Git.Diff;
@@ -19,7 +20,8 @@ public sealed class DiffStore(
     int rowLimit = DiffStore.DefaultRowLimit,
     int fileLineLimit = DiffStore.DefaultFileLineLimit,
     DiffCache? cache = null,
-    Func<TimeSpan, CancellationToken, Task>? delay = null) : IDisposable
+    Func<TimeSpan, CancellationToken, Task>? delay = null,
+    IBackgroundWork? background = null) : IDisposable
 {
     /// <summary>Rows kept before the diff is cut short; the pane then says so in a last row.</summary>
     public const int DefaultRowLimit = 400_000;
@@ -35,6 +37,7 @@ public sealed class DiffStore(
 
     private readonly DiffCache _cache = cache ?? new DiffCache();
     private readonly Func<TimeSpan, CancellationToken, Task> _delay = delay ?? Task.Delay;
+    private readonly IBackgroundWork _background = background ?? UnboundedBackgroundWork.Instance;
     private CancellationTokenSource? _pending;
     private CancellationTokenSource? _prefetching;
     private IReadOnlyList<ObjectId> _wanted = [];
@@ -232,6 +235,18 @@ public sealed class DiffStore(
             return;
         }
 
+        try
+        {
+            await _background.RunAsync(() => PrefetchNeighboursAsync(commits, token), token).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            // Another commit was selected while the prefetch waited for a background slot.
+        }
+    }
+
+    private async Task PrefetchNeighboursAsync(ObjectId[] commits, CancellationToken token)
+    {
         foreach (var commit in commits)
         {
             try

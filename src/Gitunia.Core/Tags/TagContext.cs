@@ -10,4 +10,10 @@ namespace Gitunia.Core.Tags;
 /// <param name="Location">Where the tab runs its commands.</param>
 /// <param name="Refs">The refs the tab shows.</param>
 /// <param name="IsActive">The tab is the active one.</param>
-public sealed record TagContext(TabId TabId, RepositoryLocation Location, ImmutableArray<GitRef> Refs, bool IsActive);
+/// <param name="IsBusy">A tag operation already runs for the tab (read from the tab's running operations).</param>
+public sealed record TagContext(
+    TabId TabId,
+    RepositoryLocation Location,
+    ImmutableArray<GitRef> Refs,
+    bool IsActive,
+    bool IsBusy);

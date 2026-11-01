@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using Gitunia.Core.Sidebar;
+using Gitunia.Core.Running;
 using Gitunia.Core.Tags;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Refs.Models;
@@ -48,6 +49,9 @@ public sealed record RepositoryState(
 {
     /// <summary>The tag prompt and the running tag operation of this tab.</summary>
     public TagState Tags { get; init; } = TagState.Empty;
+
+    /// <summary>The operations in flight for this tab; the root reducer keeps them (tab eviction and busy refusals read them).</summary>
+    public RunningOperations Running { get; init; } = RunningOperations.Empty;
 
     /// <summary>The path git commands for this tab run against.</summary>
     public string CommandPath => Location.CommandPath;

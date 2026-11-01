@@ -1,3 +1,4 @@
+using Gitunia.App.Background;
 using System.Collections.Immutable;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Repositories;
@@ -22,6 +23,7 @@ public sealed class WorktreeOverviewPoller : IDisposable
     private readonly Dispatcher _host;
     private readonly Action<Action> _postToUi;
     private readonly TimeSpan _interval;
+    private readonly IBackgroundWork _background;
     private readonly CancellationTokenSource _cancellation = new();
     private readonly SemaphoreSlim _wake = new(0, 1);
     private TabId? _watchedTabId;
@@ -33,8 +35,10 @@ public sealed class WorktreeOverviewPoller : IDisposable
         IStatusReader status,
         Dispatcher host,
         Action<Action> postToUi,
-        TimeSpan? interval = null)
+        TimeSpan? interval = null,
+        IBackgroundWork? background = null)
     {
+        _background = background ?? UnboundedBackgroundWork.Instance;
         _status = status;
         _host = host;
         _postToUi = postToUi;
@@ -143,7 +147,7 @@ public sealed class WorktreeOverviewPoller : IDisposable
     {
         try
         {
-            await PollOnceAsync(token).ConfigureAwait(false);
+            await _background.RunAsync(() => PollOnceAsync(token), token).ConfigureAwait(false);
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
         {
