@@ -2,10 +2,10 @@ using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Git.Commits.Models;
 using Gitunia.Git.Refs.Models;
 using Gitunia.Git.Status.Models;
-using Gitunia.Tui.App.Conflicts;
+using Gitunia.Core.Conflicts;
 using Xunit;
 
-namespace Gitunia.Tui.Tests.App.Conflicts;
+namespace Gitunia.Core.Tests.Conflicts;
 
 [Trait("Os", "Independent")]
 public class ConflictedSelectionTests

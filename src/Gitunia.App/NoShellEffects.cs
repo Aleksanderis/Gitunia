@@ -1,5 +1,6 @@
 using Gitunia.Core.Clipboard;
 using Gitunia.Core.Config.Models;
+using Gitunia.Core.Conflicts;
 using Gitunia.Core.Reflog;
 using Gitunia.Core.Workspaces.Tabs;
 
@@ -19,6 +20,10 @@ public sealed class NoShellEffects : IShellEffects
     }
 
     public void StartReflogEntryAction(ReflogEntryActionEffect effect)
+    {
+    }
+
+    public void StageResolvedConflict(StageResolvedConflictEffect effect)
     {
     }
 

@@ -154,6 +154,7 @@ public sealed class TuiApplication(
     private GraphGlyphSet _glyphs = null!;
     private FileTreeController _fileTree = null!;
     private ResetActions _reset = null!;
+    private ConflictSession? _drawnConflict;
     private ReflogSession? _drawnReflog;
     private MainlineQuestion? _drawnMainline;
     private ScreenExtent? _drawnScreen;
@@ -161,7 +162,8 @@ public sealed class TuiApplication(
     private ReflogInput _reflog = null!;
     private ReflogEntryStarter _reflogEntries = null!;
     private RebaseEditorController _rebaseEditor = null!;
-    private ConflictEditorController _conflictEditor = null!;
+    private ConflictEditorInput _conflictEditor = null!;
+    private StagingActions _staging = null!;
     private SettingsScreenInput _settings = null!;
     private ConfigWriter _configWriter = null!;
     private ConfigEditorLauncher _configEditor = null!;
@@ -314,6 +316,7 @@ public sealed class TuiApplication(
         _router.Visual = _visual;
         var operationGate = _activity.CreateGate();
         var staging = CreateStaging(operationGate);
+        _staging = staging;
         _commits.StageAllThen = staging.StageAllThen;
         _router.WorkingTree = new WorkingTreeActionHandler(_host, FocusedPageHeight, clipboard, staging, _commits)
         {
@@ -351,7 +354,7 @@ public sealed class TuiApplication(
         _reflog = new ReflogInput(_host, this, glyphs);
         _reflogEntries = new ReflogEntryStarter(_host, _reset, this);
         _rebaseEditor = CreateRebaseEditor(glyphs, operationGate);
-        _conflictEditor = CreateConflictEditor(glyphs, operationGate, staging);
+        _conflictEditor = new ConflictEditorInput(_host, glyphs, _chipKeys);
         _settings = new SettingsScreenInput(_host, glyphs);
         _configEditor = new ConfigEditorLauncher(
             new ExternalToolLauncher(),
@@ -504,7 +507,7 @@ public sealed class TuiApplication(
         _view.OverlayLineClicked += OnOverlayLineClicked;
         _view.OverlayLineDoubleClicked += OnOverlayLineDoubleClicked;
         _view.OverlayDragStarted += OnOverlayDragStarted;
-        _view.OverlayDragged += _conflictEditor.OnDragged;
+        _view.OverlayDragged += line => _conflictEditor.OnDragged(IsOtherThanConflictEditorOpen(), line);
         _view.Graph.ValueChanged += (_, _) => _visual.OnCursorMoved();
         _view.Detail.ValueChanged += (_, _) => _visual.OnCursorMoved();
         _view.Detail.ValueChanged += (_, _) => _diffPane.OnDetailCursorMoved();
@@ -612,7 +615,7 @@ public sealed class TuiApplication(
         }
 
         if (_settings.TryExecute(action, count)
-            || _conflictEditor.TryExecute(action, count)
+            || _conflictEditor.TryExecute(action, count, IsOtherThanConflictEditorOpen())
             || _rebaseEditor.TryExecute(action, count)
             || _reflog.TryExecute(action, count))
         {
@@ -739,7 +742,7 @@ public sealed class TuiApplication(
     // Only the conflict editor uses a drag over an overlay: from a version row it starts a Visual selection.
     private void OnOverlayDragStarted(int line, int column)
     {
-        if (_conflictEditor.OnDragStarted(line, column) is { } view)
+        if (_conflictEditor.OnDragStarted(IsOtherThanConflictEditorOpen(), line, column) is { } view)
         {
             _mouse.Handle(view, MouseGesture.DragStart);
         }
@@ -754,7 +757,12 @@ public sealed class TuiApplication(
             return;
         }
 
-        var view = _conflictEditor.OnLineClicked(line, _view.Overlay.PointerColumn, out var handled, isDoubleClick: true);
+        var view = _conflictEditor.OnLineClicked(
+            IsOtherThanConflictEditorOpen(),
+            line,
+            _view.Overlay.PointerColumn,
+            out var handled,
+            isDoubleClick: true);
         if (!handled)
         {
             return;
@@ -773,7 +781,11 @@ public sealed class TuiApplication(
         var settingsView = _settings.OnLineClicked(line, _view.Overlay.PointerColumn, out var settingsHandled);
         var reflogView = _reflog.OnLineClicked(line, out var reflogHandled);
         var rebaseView = _rebaseEditor.OnLineClicked(line, _view.Overlay.PointerColumn, out var rebaseHandled);
-        var conflictView = _conflictEditor.OnLineClicked(line, _view.Overlay.PointerColumn, out var conflictHandled);
+        var conflictView = _conflictEditor.OnLineClicked(
+            IsOtherThanConflictEditorOpen(),
+            line,
+            _view.Overlay.PointerColumn,
+            out var conflictHandled);
         if (settingsHandled)
         {
             _overlayClickTicks = Environment.TickCount64;
@@ -845,7 +857,7 @@ public sealed class TuiApplication(
     private void ShowOverlayFrame()
     {
         var overlay = _settings.CurrentFrame()
-            ?? _conflictEditor.CurrentFrame()
+            ?? _conflictEditor.CurrentFrame(IsOtherThanConflictEditorOpen())
             ?? _rebaseEditor.CurrentFrame()
             ?? _reflog.CurrentFrame()
             ?? _overlays.CurrentFrame();
@@ -959,6 +971,8 @@ public sealed class TuiApplication(
     BranchSelection IBranchSelectionSource.Current() => BranchSelectionNow();
 
     void IShellEffects.StartReflogEntryAction(ReflogEntryActionEffect effect) => _reflogEntries.Start(effect);
+
+    void IShellEffects.StageResolvedConflict(StageResolvedConflictEffect effect) => StageResolvedConflict(effect);
 
     void IShellEffects.ApplyOptions(ConfigOptions options) => ApplyOptions(options);
 
@@ -1602,25 +1616,21 @@ public sealed class TuiApplication(
         gate,
         _chipKeys);
 
-    private ConflictEditorController CreateConflictEditor(
-        GraphGlyphSet glyphs,
-        TabOperationGate gate,
-        StagingActions staging) => new(
-        _host,
-        services.Conflicts,
-        services.ConflictWriter,
-        services.ConflictRecreator,
-        _statuses,
-        InvokeOnUi,
-        tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None,
-        staging.StageResolvedFor,
-        tabId => _effects.Refresh(tabId, false),
-        IsOtherThanConflictEditorOpen,
-        () => _view.ScreenSize,
-        glyphs,
-        RefreshOverlay,
-        gate,
-        _chipKeys);
+    // A saved conflicted file with no conflict left is marked resolved; the editor closed already.
+    private void StageResolvedConflict(StageResolvedConflictEffect effect)
+    {
+        if (_host.Workspace.FindTab(effect.TabId) is not { } tab)
+        {
+            return;
+        }
+
+        var notice = _staging.StageResolvedFor(tab, effect.Path);
+        if (notice.Length > 0)
+        {
+            _effects.Refresh(effect.TabId, false);
+            _statuses.Warning(notice);
+        }
+    }
 
     // Moves the graph cursor to a commit; the reason it cannot is returned (empty on success).
     string IGraphCommitSelector.SelectCommit(TabId tabId, string hash)
@@ -1685,16 +1695,19 @@ public sealed class TuiApplication(
         return AppState.Empty with { Shell = ShellState.Empty with { Settings = settings } };
     }
 
-    // The reflog list and the settings screen live in the shell state: a result that arrives later redraws them.
+    // The conflict editor, the reflog list and the settings screen live in the shell state: a result that arrives
+    // later redraws them.
     private void RefreshOverlaysOnStateChange()
     {
         var shell = _host.State.Shell;
-        if (ReferenceEquals(shell.Reflog, _drawnReflog) && ReferenceEquals(shell.Settings, _drawnSettings)
+        if (ReferenceEquals(shell.Conflict, _drawnConflict)
+            && ReferenceEquals(shell.Reflog, _drawnReflog) && ReferenceEquals(shell.Settings, _drawnSettings)
             && ReferenceEquals(shell.Mainline, _drawnMainline) && !MainlineNeedsLayout(shell))
         {
             return;
         }
 
+        _drawnConflict = shell.Conflict;
         _drawnReflog = shell.Reflog;
         _drawnSettings = shell.Settings;
         _drawnMainline = shell.Mainline;

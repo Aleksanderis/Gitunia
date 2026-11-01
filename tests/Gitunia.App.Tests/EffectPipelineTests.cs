@@ -16,12 +16,14 @@ using Gitunia.Core.Running;
 using Gitunia.Core.Sidebar;
 using Gitunia.Core.Status;
 using Gitunia.Core.Prompts;
+using Gitunia.Core.Conflicts;
 using Gitunia.Core.Reflog;
 using Gitunia.Core.Settings;
 using Gitunia.Core.Settings.Models;
 using Gitunia.Core.Tags;
 using Gitunia.Core.Tests.Fixtures;
 using Gitunia.Core.Workspaces;
+using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Tests.Fixtures;
 using Xunit;
@@ -182,6 +184,31 @@ public class EffectPipelineTests
     }
 
     [Fact]
+    public async Task GivenAConflictedFile_WhenSavedThroughTheRunner_ThenTheFileIsWrittenAndHandedToStaging()
+    {
+        using var repository = TestRepositories.Conflicted();
+        using var pipeline = await Pipeline.OpenAsync(TestGit.Services, repository);
+        await pipeline.Pump.RunUntilAsync(() => pipeline.Tab.WorkingTree is not null);
+        var viewport = new ConflictViewport(10, 6);
+        var viewports = new ConflictViewports(viewport, viewport, viewport, viewport);
+
+        pipeline.Dispatch(new ConflictOpenRequested(true, viewports));
+        await pipeline.Pump.RunUntilAsync(() => pipeline.Conflict.IsOpen);
+        pipeline.Dispatch(new ConflictActionPressed(ActionIds.ConflictEditorTheirs, null, viewports));
+        pipeline.Dispatch(new ConflictActionPressed(ActionIds.ConflictEditorSave, null, viewports));
+        await pipeline.Pump.RunUntilAsync(() => !pipeline.Conflict.IsOpen);
+
+        var staged = Assert.Single(pipeline.Shell.StagedConflicts);
+        Assert.Equal("conflict.txt", staged.Path);
+        Assert.Equal(pipeline.TabId, staged.TabId);
+        Assert.DoesNotContain(
+            "<<<<<<<",
+            File.ReadAllText(Path.Combine(repository.WorkingTreePath, "conflict.txt")),
+            StringComparison.Ordinal);
+        Assert.False(pipeline.Tab.Running.IsRunning(RunningOperationKind.Conflicts));
+    }
+
+    [Fact]
     public async Task GivenTheReflogKey_WhenOpenedThroughTheRunner_ThenTheListOpensAndAnEntryActionReachesTheShell()
     {
         using var repository = TestRepositories.Linear();
@@ -336,6 +363,10 @@ public class EffectPipelineTests
         public ReflogSession Reflog => Host.State.Shell.Reflog;
 
         public SettingsSession Settings => Host.State.Shell.Settings;
+
+        public ConflictSession Conflict => Host.State.Shell.Conflict;
+
+        public RepositoryState Tab => Host.Workspace.FindTab(TabId)!;
 
         public bool HasRefs => Host.Workspace.FindTab(TabId)!.Refs.Length > 0;
 

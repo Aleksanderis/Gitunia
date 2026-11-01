@@ -1,5 +1,6 @@
 using Gitunia.Core.Clipboard;
 using Gitunia.Core.Config.Models;
+using Gitunia.Core.Conflicts;
 using Gitunia.Core.Reflog;
 using Gitunia.Core.Workspaces.Tabs;
 
@@ -11,6 +12,8 @@ public sealed class RecordingShell : IShellEffects
     public List<string> Retries { get; } = [];
 
     public List<ReflogEntryActionEffect> EntryActions { get; } = [];
+
+    public List<StageResolvedConflictEffect> StagedConflicts { get; } = [];
 
     public List<ConfigOptions> AppliedOptions { get; } = [];
 
@@ -26,6 +29,8 @@ public sealed class RecordingShell : IShellEffects
         Retries.Add($"{noun}|{string.Join(' ', arguments)}");
 
     public void StartReflogEntryAction(ReflogEntryActionEffect effect) => EntryActions.Add(effect);
+
+    public void StageResolvedConflict(StageResolvedConflictEffect effect) => StagedConflicts.Add(effect);
 
     public void ApplyOptions(ConfigOptions options) => AppliedOptions.Add(options);
 

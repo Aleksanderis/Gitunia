@@ -1,6 +1,7 @@
 using Gitunia.Core.Jump.Models;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
+using Gitunia.Core.Text;
 using Gitunia.Git.Commits.Models;
 using Gitunia.Git.Status.Models;
 using Gitunia.Tui.Rendering.Files;
@@ -232,28 +233,7 @@ public static class WorkingTreeRowRenderer
     }
 
     /// <summary>The text with every lone surrogate replaced by the replacement character, so a terminal never gets a broken string.</summary>
-    public static string Printable(string text)
-    {
-        if (!text.Any(char.IsSurrogate))
-        {
-            return text;
-        }
-
-        var characters = text.ToCharArray();
-        for (var index = 0; index < characters.Length; index++)
-        {
-            if (char.IsHighSurrogate(characters[index]) && index + 1 < characters.Length && char.IsLowSurrogate(characters[index + 1]))
-            {
-                index++;
-            }
-            else if (char.IsSurrogate(characters[index]))
-            {
-                characters[index] = '�';
-            }
-        }
-
-        return new string(characters);
-    }
+    public static string Printable(string text) => PrintableText.Of(text);
 
     private static SegmentRole RoleOf(string mark) => mark switch
     {
