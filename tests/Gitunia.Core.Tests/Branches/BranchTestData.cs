@@ -77,8 +77,7 @@ public static class BranchTestData
     public static BranchContext Context(
         ImmutableArray<GitRef> refs,
         bool busy = false,
-        OperationInfo? operation = null,
-        bool active = true) => new(Tab, Location(), refs, operation, active, busy);
+        OperationInfo? operation = null) => new(Tab, Location(), refs, operation, busy);
 
     public static ImmutableArray<AppEffect> Reduce(
         BranchCommand command,

@@ -83,7 +83,7 @@ public static class BranchResolver
     }
 
     /// <summary>The commit a ref or a hash names, for the graph cursor to land on; null when it is not known.</summary>
-    public static string? CommitOf(ImmutableArray<GitRef> refs, string refOrHash)
+    public static string CommitOf(ImmutableArray<GitRef> refs, string refOrHash)
     {
         var reference = refs.FirstOrDefault(candidate => candidate.FullName == refOrHash);
 

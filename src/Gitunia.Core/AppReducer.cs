@@ -82,8 +82,7 @@ public static class AppReducer
         }
 
         var busy = tab.Running.IsRunning(RunningOperationKind.Branches);
-        var active = workspace.ActiveTabId == tab.Id;
-        var context = new BranchContext(tab.Id, tab.Location, tab.Refs, tab.Operation, active, busy);
+        var context = new BranchContext(tab.Id, tab.Location, tab.Refs, tab.Operation, busy);
         var effects = BranchReducer.Reduce(command, context);
         var running = tab.Running.Apply(tab.Id, command, effects);
         var next = state;
