@@ -5,7 +5,7 @@ namespace Gitunia.Tui.Search;
 
 /// <summary>
 /// One list a quick jump works on (the graph, a diff, a file list): it works out the labels for the typed text, shows them
-/// while the prompt is open and moves the cursor when one is chosen. The prompt (<see cref="QuickJumpController"/>) knows nothing
+/// while the prompt is open and moves the cursor when one is chosen. The prompt (<see cref="QuickJumpInput"/>) knows nothing
 /// else about the list, so a new list only needs a target, and anything that labels rows for a key press can reuse the prompt.
 /// A target belongs to one tab and one open prompt; the prompt asks for a new one each time it opens.
 /// </summary>

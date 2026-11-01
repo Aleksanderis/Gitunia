@@ -1,5 +1,7 @@
+using Gitunia.Core.Compare;
 using Gitunia.Core.Conflicts;
 using Gitunia.Core.Creation;
+using Gitunia.Core.Jump;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Picker;
 using Gitunia.Core.Pick;
@@ -7,6 +9,7 @@ using Gitunia.Core.Prompts;
 using Gitunia.Core.Rebase;
 using Gitunia.Core.Reflog;
 using Gitunia.Core.Settings;
+using Gitunia.Core.Sidebar;
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
 
@@ -30,6 +33,9 @@ namespace Gitunia.Core.Shell;
 /// <param name="Conflict">The conflict editor overlay (#982).</param>
 /// <param name="Creation">Clone and init from the repository picker (#985).</param>
 /// <param name="Picker">The repository picker (#985).</param>
+/// <param name="Compare">What the comparison of commits remembers per tab (#996).</param>
+/// <param name="QuickJump">The open quick jump prompt, or null (#996).</param>
+/// <param name="Sidebar">What the sidebar keys keep between presses: the filter being typed (#996).</param>
 /// <param name="QuitWarned">The first quit after a failed save warned; the next one leaves.</param>
 /// <param name="TabActions">What the tab and pin actions keep between presses (#985).</param>
 /// <param name="Screen">The terminal size, or null until the terminal layer reported it (a dialog then counts as
@@ -48,6 +54,9 @@ public sealed record ShellState(
     ConflictSession Conflict,
     CreationSession Creation,
     PickerSession Picker,
+    CompareSession Compare,
+    QuickJumpSession? QuickJump,
+    SidebarSession Sidebar,
     bool QuitWarned,
     WorkspaceActionSession TabActions,
     ScreenExtent? Screen)
@@ -66,6 +75,9 @@ public sealed record ShellState(
         ConflictSession.Empty,
         CreationSession.Empty,
         PickerSession.Empty,
+        CompareSession.Empty,
+        null,
+        SidebarSession.Empty,
         false,
         WorkspaceActionSession.Empty,
         null);

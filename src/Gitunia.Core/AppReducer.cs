@@ -1,10 +1,12 @@
 using Gitunia.Core.Branches;
+using Gitunia.Core.Compare;
 using Gitunia.Core.Conflicts;
 using Gitunia.Core.Creation;
 using Gitunia.Core.Picker;
 using Gitunia.Core.Effects;
 using Gitunia.Core.ExternalTools;
 using Gitunia.Core.IssueLinks;
+using Gitunia.Core.Jump;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Pick;
 using Gitunia.Core.Integration;
@@ -13,6 +15,7 @@ using Gitunia.Core.Prompts;
 using Gitunia.Core.Rebase;
 using Gitunia.Core.Reflog;
 using Gitunia.Core.Settings;
+using Gitunia.Core.Sidebar;
 using Gitunia.Core.Remotes;
 using Gitunia.Core.Shell;
 using Gitunia.Core.Stash;
@@ -38,6 +41,7 @@ public static partial class AppReducer
     public static AppUpdate Reduce(AppState state, AppCommand command) => command switch
     {
         BranchCommand branch => ReduceBranch(state, branch),
+        CompareCommand compare => ReduceCompare(state, compare),
         ConflictCommand conflict => ReduceConflict(state, conflict),
         CreationCommand creation => ReduceCreation(state, creation),
         EffectFailedCommand failed => EffectFailed(state, failed),
@@ -48,11 +52,13 @@ public static partial class AppReducer
         RebaseEditorCommand editor => ReduceRebaseEditor(state, editor),
         IntegrationCommand integration => ReduceIntegration(state, integration),
         PickerCommand picker => ReducePicker(state, picker),
+        QuickJumpCommand jump => ReduceQuickJump(state, jump),
         QuitCommand quit => ReduceQuit(state, quit),
         ReflogCommand reflog => ReduceReflog(state, reflog),
         SettingsCommand settings => ReduceSettings(state, settings),
         RemoteCommand remote => ReduceRemote(state, remote),
         ShellCommand shell => ReduceShell(state, shell),
+        SidebarActionCommand sidebar => ReduceSidebarAction(state, sidebar),
         StashCommand stash => ReduceStash(state, stash),
         SyncCommand sync => ReduceSync(state, sync),
         TabRenameCommand rename => ReduceTabRename(state, rename),
@@ -83,7 +89,7 @@ public static partial class AppReducer
     private static AppUpdate ReduceWorkspace(AppState state, WorkspaceCommand command)
     {
         var update = WorkspaceReducer.Reduce(state.Workspace, command);
-        var shell = state.Shell;
+        var shell = EndFilterOutsideTab(state.Shell, update.Workspace);
         if (shell.Prompt is { Owner: { } owner } && update.Workspace.ActiveTabId != owner)
         {
             shell = ShellReducer.Reduce(shell, new PromptCancelledCommand()).State;

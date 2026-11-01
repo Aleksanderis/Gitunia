@@ -2,12 +2,13 @@ using Gitunia.App.Loading.Commits;
 using Gitunia.App.Tabs;
 using Gitunia.App;
 using Gitunia.Core.Graph;
+using Gitunia.Core.Effects;
 using Gitunia.Core.Jump;
 using Gitunia.Core.Jump.Models;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
+using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Panes;
-using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Core;
 using Gitunia.Git.Commits;
 using Gitunia.Git.Refs.Models;
@@ -24,11 +25,12 @@ namespace Gitunia.Tui.Tests.Search;
 /// The graph prompts wired to a real keymap engine and a real <see cref="TerminalTabSession"/> but no terminal: keys go in,
 /// the selected row and the status line come out. Work posted to the "UI thread" runs at once.
 /// </summary>
-public sealed class PromptHarness : IDisposable
+public sealed class PromptHarness : IDisposable, IQuickJumpHost
 {
     private readonly Dispatcher _host = new(AppState.Empty);
     private readonly KeyController _keys;
     private readonly List<IPromptHandler> _prompts = [];
+    private readonly QuickJumpInput _quickJump;
 
     public PromptHarness(
         CommitGraph graph,
@@ -39,9 +41,10 @@ public sealed class PromptHarness : IDisposable
     {
         // Search never selects a commit, so the details store never runs a process in these tests.
         var location = new RepositoryLocation(Path.GetTempPath(), Path.GetTempPath(), Path.GetTempPath(), false, false);
+        _host.Dispatch(new OpenRepositoryCommand(location));
         Session = new TerminalTabSession(
             new TabSessionParts(
-                new TabId(1),
+                _host.Workspace.ActiveTabId!.Value,
                 new CommitDetailsStore(TestGit.Services.CommitDetails, location, action => action(), TimeSpan.Zero)),
             GraphGlyphSet.Unicode);
         Session.Append([.. Enumerable.Range(0, graph.Count).Select(index => graph[index])]);
@@ -52,24 +55,14 @@ public sealed class PromptHarness : IDisposable
 
         var references = refs?.ToArray() ?? [];
         var handle = new GraphViewHandle(
-            () => ActiveSession ?? Session,
+            () => Session,
             () => SelectedRow,
             row => SelectedRow = row,
             _host,
             () => Redraws++);
-        _prompts.Add(new QuickJumpController(new QuickJumpHost(
-            () => ActiveSession ?? Session,
-            () => PaneKind.Graph,
-            () => new ListJumpTarget(
-                PaneKind.Graph,
-                text => QuickJumpLabeler.Compute(
-                    text,
-                    new GraphJumpRows(Session.Graph, new GraphRowOptions(80, 2, GraphGlyphSet.Unicode)),
-                    new JumpWindow(FirstVisibleRow, VisibleRowCount, SelectedRow)),
-                text => Session.Source.JumpText = text,
-                row => SelectedRow = row),
-            _host,
-            () => Redraws++)));
+        _quickJump = new QuickJumpInput(_host, this);
+        _prompts.Add(_quickJump);
+        _host.EffectRaised += RunEffect;
         _prompts.Add(new RefJumpController(handle, () => references));
         Search = new SearchController(
             handle,
@@ -89,7 +82,11 @@ public sealed class PromptHarness : IDisposable
                 {
                     if (prompt.TryExecute(action, count))
                     {
-                        Notice = prompt.Notice;
+                        if (prompt.Notice.Length > 0)
+                        {
+                            Notice = prompt.Notice;
+                        }
+
                         return;
                     }
                 }
@@ -103,9 +100,6 @@ public sealed class PromptHarness : IDisposable
     public TerminalTabSession Session { get; }
 
     public SearchController Search { get; }
-
-    /// <summary>When set, the session the shell reports as active instead of <see cref="Session"/> (a tab switch).</summary>
-    public TerminalTabSession? ActiveSession { get; set; }
 
     public int SelectedRow { get; set; }
 
@@ -121,6 +115,26 @@ public sealed class PromptHarness : IDisposable
 
     public string StatusLine => _prompts.Select(prompt => prompt.StatusLine).FirstOrDefault(line => line.Length > 0) ?? string.Empty;
 
+    /// <summary>Opens a second tab and makes it the active one, like a tab switch.</summary>
+    public void SwitchTab() =>
+        _host.Dispatch(new OpenRepositoryCommand(new RepositoryLocation(
+            Path.Combine(Path.GetTempPath(), "second"),
+            Path.GetTempPath(),
+            Path.GetTempPath(),
+            false,
+            false)));
+
+    public IJumpTarget OpenTarget() => new ListJumpTarget(
+        PaneKind.Graph,
+        text => QuickJumpLabeler.Compute(
+            text,
+            new GraphJumpRows(Session.Graph, new GraphRowOptions(80, 2, GraphGlyphSet.Unicode)),
+            new JumpWindow(FirstVisibleRow, VisibleRowCount, SelectedRow)),
+        text => Session.Source.JumpText = text,
+        row => SelectedRow = row);
+
+    public void Redraw() => Redraws++;
+
     public void Press(Key key) => _keys.Handle(key, DefaultKeymap.GraphView);
 
     public void Type(string text)
@@ -132,4 +146,16 @@ public sealed class PromptHarness : IDisposable
     }
 
     public void Dispose() => Session.Dispose();
+
+    private void RunEffect(AppEffect effect)
+    {
+        if (effect is JumpToRowEffect jump)
+        {
+            _quickJump.JumpTo(jump.Row);
+        }
+        else if (effect is PostStatusEffect post)
+        {
+            Notice = post.Text;
+        }
+    }
 }

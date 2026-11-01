@@ -39,7 +39,7 @@ namespace Gitunia.Tui.App;
 /// Maps the action ids the keymap produces to what they do in the graph view. Actions the first shell does not
 /// implement yet are ignored; an action's effects go through the <see cref="Dispatcher"/> as commands.
 /// </summary>
-public sealed class ActionRouter(Dispatcher host, ListView graphList, ListView detailList, Func<TerminalTabSession?> activeSession, Action quit, SidebarActionHandler sidebar, StatusReporter statuses, ClipboardCopier clipboard)
+public sealed class ActionRouter(Dispatcher host, ListView graphList, ListView detailList, Func<TerminalTabSession?> activeSession, Action quit, SidebarInput sidebar, StatusReporter statuses, ClipboardCopier clipboard)
 {
     /// <summary>The notice shown when <c>G</c> stops at the last loaded commit because the log is still streaming in.</summary>
     public const string StillLoadingNotice = "Still loading: at the last loaded commit";
@@ -102,7 +102,7 @@ public sealed class ActionRouter(Dispatcher host, ListView graphList, ListView d
     public PickActions? Pick { get; set; }
 
     /// <summary>Marks a commit and compares it with another (#535); also clears the mark with Esc.</summary>
-    public CompareActions? Compare { get; set; }
+    public CompareInput? Compare { get; set; }
 
     /// <summary>Resetting the current branch to a commit, in the graph and the sidebar.</summary>
     public ResetActions? Reset { get; set; }
@@ -291,7 +291,6 @@ public sealed class ActionRouter(Dispatcher host, ListView graphList, ListView d
 
         if (sidebar.TryHandle(action, count))
         {
-            Message = sidebar.Message;
             return;
         }
 
@@ -321,7 +320,6 @@ public sealed class ActionRouter(Dispatcher host, ListView graphList, ListView d
 
         if (Compare?.TryExecute(action) == true)
         {
-            Message = Compare.Notice;
             return;
         }
 

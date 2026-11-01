@@ -6,6 +6,7 @@ using Gitunia.App.Loading.Diff;
 using Gitunia.App.Loading.Stash;
 using Gitunia.App.Tabs;
 using Gitunia.Core.Keymap;
+using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Sidebar;
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
@@ -15,7 +16,9 @@ using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Stash;
 using Gitunia.Git.Tests.Fixtures;
+using Gitunia.Tui.App.Clipboard;
 using Gitunia.Tui.App.Sidebar;
+using Gitunia.Tui.Tests.App.Sidebar;
 using Gitunia.Tui.App.Stash;
 using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.Rendering.Details;
@@ -34,7 +37,7 @@ public class StashViewTests
         using var harness = await Harness.LoadAsync(repository.WorkingTreePath);
 
         harness.Select("stash@{0}");
-        harness.Handler.TryHandle(ActionIds.SidebarActivate, null);
+        harness.Press(ActionIds.SidebarActivate);
         await harness.WaitForDetailsAsync();
 
         Assert.Equal("stash@{0}", StashViewController.ShownName(harness.Session));
@@ -56,7 +59,7 @@ public class StashViewTests
         Assert.Equal(graphCommit, harness.Controller.ActionTarget(graphCommit));
 
         harness.Select("stash@{0}");
-        harness.Handler.TryHandle(ActionIds.SidebarActivate, null);
+        harness.Press(ActionIds.SidebarActivate);
         await harness.WaitForDetailsAsync();
 
         Assert.Null(harness.Controller.ActionTarget(graphCommit));
@@ -69,7 +72,7 @@ public class StashViewTests
         using var harness = await Harness.LoadAsync(repository.WorkingTreePath);
         Assert.False(harness.Controller.KeepsViewOnSelectionChange(true));
         harness.Select("stash@{0}");
-        harness.Handler.TryHandle(ActionIds.SidebarActivate, null);
+        harness.Press(ActionIds.SidebarActivate);
         await harness.WaitForDetailsAsync();
 
         Assert.True(harness.Controller.KeepsViewOnSelectionChange(true));
@@ -85,7 +88,7 @@ public class StashViewTests
         using var harness = await Harness.LoadAsync(repository.WorkingTreePath);
 
         harness.Select("stash@{0}");
-        harness.Handler.TryHandle(ActionIds.SidebarActivate, null);
+        harness.Press(ActionIds.SidebarActivate);
         await harness.WaitForDetailsAsync();
 
         Assert.Equal(["? only.txt"], harness.ChangesRows()[1..]);
@@ -96,10 +99,10 @@ public class StashViewTests
     {
         using var repository = TestRepositories.WithStash();
         using var harness = await Harness.LoadAsync(repository.WorkingTreePath);
-        harness.DetailVisible = true;
+        harness.Layout.DetailVisible = true;
 
         harness.Select("stash@{0}");
-        harness.Handler.TryHandle(ActionIds.SidebarExpand, null);
+        harness.Press(ActionIds.SidebarExpand);
 
         Assert.False(harness.Controller.IsShowing);
         Assert.Equal(PaneKind.Sidebar, harness.Tab.View.FocusedPane);
@@ -113,7 +116,7 @@ public class StashViewTests
         harness.Select("stash@{0}");
         repository.Git("stash", "drop", "-q");
 
-        harness.Handler.TryHandle(ActionIds.SidebarActivate, null);
+        harness.Press(ActionIds.SidebarActivate);
         await harness.Pump.RunUntilAsync(() => harness.Session.Details.Current.Status == CommitDetailsStatus.Failed);
 
         Assert.Equal(StashAwareCommitDetailsReader.GoneMessage, harness.Session.Details.Current.Error);
@@ -126,7 +129,7 @@ public class StashViewTests
         using var repository = TestRepositories.WithStash();
         using var harness = await Harness.LoadAsync(repository.WorkingTreePath);
         harness.Select("stash@{0}");
-        harness.Handler.TryHandle(ActionIds.SidebarActivate, null);
+        harness.Press(ActionIds.SidebarActivate);
         await harness.WaitForDetailsAsync();
 
         harness.Send(new StashesLoadedCommand([]));
@@ -143,7 +146,7 @@ public class StashViewTests
         using var repository = TestRepositories.WithStash();
         using var harness = await Harness.LoadAsync(repository.WorkingTreePath);
         harness.Select("stash@{0}");
-        harness.Handler.TryHandle(ActionIds.SidebarActivate, null);
+        harness.Press(ActionIds.SidebarActivate);
         await harness.WaitForDetailsAsync();
         harness.Statuses.Post("Dropped stash@{0} (abc); undo: git stash store -m wip abc");
 
@@ -159,7 +162,7 @@ public class StashViewTests
         using var repository = TestRepositories.WithStash();
         using var harness = await Harness.LoadAsync(repository.WorkingTreePath);
         harness.Select("stash@{0}");
-        harness.Handler.TryHandle(ActionIds.SidebarActivate, null);
+        harness.Press(ActionIds.SidebarActivate);
         await harness.WaitForDetailsAsync();
         var shown = harness.Tab.Stashes[0];
         var newer = new StashEntry(0, "stash@{0}", "feedface", "On main: newer");
@@ -178,10 +181,10 @@ public class StashViewTests
         repository.Git("stash", "push", "-q", "-m", "second");
         using var harness = await Harness.LoadAsync(repository.WorkingTreePath);
         harness.Select("stash@{0}");
-        harness.Handler.TryHandle(ActionIds.SidebarActivate, null);
+        harness.Press(ActionIds.SidebarActivate);
         await harness.WaitForDetailsAsync();
 
-        harness.Handler.TryHandle(ActionIds.ListDown, null);
+        harness.Press(ActionIds.ListDown);
 
         Assert.Equal("stash@{1}", StashViewController.ShownName(harness.Session));
         Assert.Equal(harness.Tab.Stashes[1].CommitHash, harness.Session.Details.Current.Commit.ToString());
@@ -193,17 +196,17 @@ public class StashViewTests
         using var repository = TestRepositories.WithStash();
         using var harness = await Harness.LoadAsync(repository.WorkingTreePath);
         harness.Select("stash@{0}");
-        harness.Handler.TryHandle(ActionIds.SidebarActivate, null);
+        harness.Press(ActionIds.SidebarActivate);
         await harness.WaitForDetailsAsync();
 
         harness.Select("main");
-        harness.Handler.TryHandle(ActionIds.SidebarActivate, null);
+        harness.Press(ActionIds.SidebarActivate);
 
         Assert.Null(StashViewController.ShownName(harness.Session));
         Assert.Equal(1, harness.Reselects);
     }
 
-    private sealed class Harness : IDisposable, IStashViewHost
+    private sealed class Harness : IDisposable, IStashViewHost, ITabSessions
     {
         private readonly SidebarListSource _source = new(GraphGlyphSet.Unicode);
 
@@ -230,14 +233,13 @@ public class StashViewTests
                     StashView: view),
                 GraphGlyphSet.Unicode);
             Controller = new StashViewController(host, this, Statuses);
-            Handler = new SidebarActionHandler(
+            Layout = new FixedSidebarLayout();
+            Handler = new SidebarInput(host, Layout);
+            // Subscribes itself to the host and answers the sidebar's effects; nothing else needs the instance.
+            _ = new SidebarEffects(
                 host,
-                _source,
-                () => Session,
-                () => 10,
-                () => true,
-                () => DetailVisible,
-                _ => { })
+                this,
+                new ClipboardCopier(null, Statuses))
             {
                 StashView = Controller,
             };
@@ -256,11 +258,11 @@ public class StashViewTests
 
         public StashViewController Controller { get; }
 
-        public SidebarActionHandler Handler { get; }
+        public SidebarInput Handler { get; }
+
+        public FixedSidebarLayout Layout { get; }
 
         public StatusReporter Statuses { get; } = new(new Dispatcher(AppState.Empty));
-
-        public bool DetailVisible { get; set; }
 
         public int Reselects { get; private set; }
 
@@ -282,10 +284,14 @@ public class StashViewTests
 
             // Stashes is a folded section until opened.
             harness.Select("Stashes");
-            harness.Handler.TryHandle(ActionIds.SidebarExpand, null);
+            harness.Press(ActionIds.SidebarExpand);
 
             return harness;
         }
+
+        public void Press(ActionId action) => Handler.TryHandle(action, null);
+
+        public TabSession Find(TabId tabId) => Session;
 
         public void Select(string label)
         {

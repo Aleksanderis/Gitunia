@@ -9,7 +9,7 @@ using Xunit;
 
 namespace Gitunia.Tui.Tests.Search;
 
-public class QuickJumpControllerTests
+public class QuickJumpInputTests
 {
     private static CommitGraph Graph() => CommitFactory.Graph(
         CommitFactory.Commit(6, "Fix parser crash", [5]),
@@ -107,11 +107,10 @@ public class QuickJumpControllerTests
     public void GivenAnOpenJump_WhenTheTabChangesAndEnterIsPressed_ThenThePromptClosesWithoutSelecting()
     {
         using var harness = new PromptHarness(Graph()) { SelectedRow = 1 };
-        using var other = new PromptHarness(Graph());
-        harness.Press(new Key(' '));
+                harness.Press(new Key(' '));
         harness.Press(new Key('j'));
         harness.Type("fix");
-        harness.ActiveSession = other.Session;
+        harness.SwitchTab();
 
         harness.Press(Key.Enter);
 

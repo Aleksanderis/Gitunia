@@ -10,6 +10,9 @@ using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git;
 using Gitunia.Git.Repositories.Models;
+using Gitunia.App.Compare;
+using Gitunia.Core.Compare;
+using Gitunia.Core.Effects;
 using Gitunia.Tui.App.Compare;
 using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.Rendering.Graph;
@@ -18,15 +21,17 @@ using Xunit;
 
 namespace Gitunia.Tui.Tests.App.Compare;
 
-public sealed class CompareActionsTests : IDisposable
+public sealed class CompareInputTests : IDisposable, ICompareSource, ITabSessions
 {
     private readonly FakeCommitDetailsReader _reader = FakeCommitDetailsReader.Chain(3);
     private readonly UiPump _pump = new(TestContext.Current.CancellationToken);
     private readonly Dispatcher _host = new(AppState.Empty);
     private readonly TerminalTabSession _session;
+    private readonly List<string> _notices = [];
+    private readonly CompareEffectHandler _handler;
     private ObjectId? _selected;
 
-    public CompareActionsTests()
+    public CompareInputTests()
     {
         var root = Path.Combine(Path.GetTempPath(), "gitunia-compare-tests");
         var gitDirectory = Path.Combine(root, ".git");
@@ -41,6 +46,8 @@ public sealed class CompareActionsTests : IDisposable
                 _pump.Post,
                 TimeSpan.FromMilliseconds(1))),
             GraphGlyphSet.Unicode);
+        _handler = new CompareEffectHandler(this, _host);
+        _host.EffectRaised += Run;
         _session.Graph.AddRange(
             [.. Newest.Select(id => new GraphEntry(
                 id,
@@ -53,6 +60,8 @@ public sealed class CompareActionsTests : IDisposable
 
     private IReadOnlyList<ObjectId> Newest => _reader.Commits;
 
+    private string Notice => _notices.LastOrDefault() ?? string.Empty;
+
     [Fact]
     public async Task GivenNoMark_WhenPressingTheKey_ThenTheCommitUnderTheCursorIsMarkedInTheTab()
     {
@@ -61,7 +70,7 @@ public sealed class CompareActionsTests : IDisposable
         Assert.True(actions.TryExecute(ActionIds.GraphCompare));
 
         Assert.Equal(Newest[1], _host.Workspace.ActiveTab!.View.CompareMark);
-        Assert.Contains("Marked", actions.Notice, StringComparison.Ordinal);
+        Assert.Contains("Marked", Notice, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -159,7 +168,7 @@ public sealed class CompareActionsTests : IDisposable
 
         Assert.Equal(Newest[2], _host.Workspace.ActiveTab!.View.CompareMark);
         Assert.False(_session.Details.Current.Details!.IsComparison);
-        Assert.Contains("moved", actions.Notice, StringComparison.Ordinal);
+        Assert.Contains("moved", Notice, StringComparison.Ordinal);
 
         await SelectAsync(Newest[1]);
         await _pump.RunUntilAsync(() => _session.Details.Current.Details!.IsComparison);
@@ -266,11 +275,29 @@ public sealed class CompareActionsTests : IDisposable
         _session.Dispose();
     }
 
-    private async Task<CompareActions> CreateAsync(ObjectId selected)
+    public TerminalTabSession? ActiveSession() => _session;
+
+    public ObjectId? SelectedCommitId() => _selected;
+
+    public TabSession? Find(TabId tabId) => _session;
+
+    private void Run(AppEffect effect)
+    {
+        if (effect is CompareEffect compare)
+        {
+            _handler.Handle(compare);
+        }
+        else if (effect is PostStatusEffect post)
+        {
+            _notices.Add(post.Text);
+        }
+    }
+
+    private async Task<CompareInput> CreateAsync(ObjectId selected)
     {
         await SelectAsync(selected);
 
-        var actions = new CompareActions(_host, () => _session, () => _selected);
+        var actions = new CompareInput(_host, this);
         _session.Details.Changed += actions.Follow;
 
         return actions;

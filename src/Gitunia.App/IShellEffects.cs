@@ -3,6 +3,7 @@ using Gitunia.Core.Config.Models;
 using Gitunia.Core.Conflicts;
 using Gitunia.Core.ExternalTools;
 using Gitunia.Core.Reflog;
+using Gitunia.Core.Sidebar;
 using Gitunia.Core.Workspaces.Tabs;
 
 namespace Gitunia.App;
@@ -54,4 +55,19 @@ public interface IShellEffects
 
     /// <summary>Stops the program: the main loop ends, the session is saved on the way out.</summary>
     void Quit();
+
+    /// <summary>Moves the cursor of the list the quick jump labelled to a row and scrolls it into view.</summary>
+    void JumpToRow(int row);
+
+    /// <summary>Moves the graph cursor to a graph index and scrolls it into view.</summary>
+    void SelectGraphIndex(int index);
+
+    /// <summary>Shows the stash of a sidebar row in the detail pane.</summary>
+    void ShowStash(SidebarRow row);
+
+    /// <summary>Ends the stash view, if one is shown, and puts the graph selection back in the pane.</summary>
+    void LeaveStash();
+
+    /// <summary>Shows the stash under the sidebar cursor when a stash is shown already.</summary>
+    void FollowStashCursor();
 }

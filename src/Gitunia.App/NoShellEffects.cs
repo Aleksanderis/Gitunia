@@ -3,6 +3,7 @@ using Gitunia.Core.Config.Models;
 using Gitunia.Core.Conflicts;
 using Gitunia.Core.ExternalTools;
 using Gitunia.Core.Reflog;
+using Gitunia.Core.Sidebar;
 using Gitunia.Core.Workspaces.Tabs;
 
 namespace Gitunia.App;
@@ -49,6 +50,26 @@ public sealed class NoShellEffects : IShellEffects
     public bool FlushSession() => true;
 
     public void Quit()
+    {
+    }
+
+    public void JumpToRow(int row)
+    {
+    }
+
+    public void SelectGraphIndex(int index)
+    {
+    }
+
+    public void ShowStash(SidebarRow row)
+    {
+    }
+
+    public void LeaveStash()
+    {
+    }
+
+    public void FollowStashCursor()
     {
     }
 }

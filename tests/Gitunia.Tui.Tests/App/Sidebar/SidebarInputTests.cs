@@ -9,7 +9,7 @@ using Xunit;
 
 namespace Gitunia.Tui.Tests.App.Sidebar;
 
-public class SidebarActionHandlerTests
+public class SidebarInputTests
 {
     private static TestRepository MergedFeatureBranchRepository()
     {
@@ -25,7 +25,7 @@ public class SidebarActionHandlerTests
         using var harness = await SidebarHarness.LoadAsync(repository.WorkingTreePath);
         harness.FocusRow("old");
 
-        Assert.True(harness.Handler.TryHandle(ActionIds.SidebarCopy, null));
+        Assert.True(harness.Press(ActionIds.SidebarCopy));
 
         Assert.Equal("\u001b]52;c;b2xk\u001b\\", harness.Clipboard.ToString());
     }
@@ -36,10 +36,10 @@ public class SidebarActionHandlerTests
         using var repository = MergedFeatureBranchRepository();
         using var harness = await SidebarHarness.LoadAsync(repository.WorkingTreePath);
         harness.FocusRow("Tags");
-        harness.Handler.TryHandle(ActionIds.SidebarExpand, null);
-        harness.Handler.TryHandle(ActionIds.SidebarExpand, null);
+        harness.Press(ActionIds.SidebarExpand);
+        harness.Press(ActionIds.SidebarExpand);
 
-        Assert.True(harness.Handler.TryHandle(ActionIds.SidebarCopy, null));
+        Assert.True(harness.Press(ActionIds.SidebarCopy));
 
         Assert.Equal(Osc52Sequence("v2"), harness.Clipboard.ToString());
     }
@@ -53,7 +53,7 @@ public class SidebarActionHandlerTests
         using var harness = await SidebarHarness.LoadAsync(repository.WorkingTreePath);
         harness.FocusRow("stash@{0}");
 
-        Assert.True(harness.Handler.TryHandle(ActionIds.SidebarCopy, null));
+        Assert.True(harness.Press(ActionIds.SidebarCopy));
 
         Assert.Equal(Osc52Sequence("stash@{0}"), harness.Clipboard.ToString());
     }
@@ -67,7 +67,7 @@ public class SidebarActionHandlerTests
         harness.FocusRow("wt-feature");
         var row = harness.Source.Rows.Single(candidate => candidate is { Kind: SidebarRowKind.Worktree, Label: "wt-feature" });
 
-        Assert.True(harness.Handler.TryHandle(ActionIds.SidebarCopy, null));
+        Assert.True(harness.Press(ActionIds.SidebarCopy));
 
         Assert.NotNull(row.Path);
         Assert.True(Path.IsPathRooted(row.Path));
@@ -82,10 +82,10 @@ public class SidebarActionHandlerTests
         using var harness = await SidebarHarness.LoadAsync(repository.WorkingTreePath);
         harness.FocusRow("Tags");
 
-        harness.Handler.TryHandle(ActionIds.SidebarCopy, null);
+        harness.Press(ActionIds.SidebarCopy);
 
         Assert.Equal(string.Empty, harness.Clipboard.ToString());
-        Assert.Equal("Select an entry to copy", harness.Handler.Message);
+        Assert.Equal("Select an entry to copy", harness.Message);
     }
 
     [Fact]
@@ -94,9 +94,9 @@ public class SidebarActionHandlerTests
         using var repository = MergedFeatureBranchRepository();
         using var harness = await SidebarHarness.LoadAsync(repository.WorkingTreePath);
 
-        Assert.True(harness.Handler.TryHandle(ActionIds.PaneNext, null));
+        Assert.True(harness.Press(ActionIds.PaneNext));
         Assert.Equal(PaneKind.Sidebar, harness.Tab.View.FocusedPane);
-        Assert.True(harness.Handler.TryHandle(ActionIds.PaneNext, null));
+        Assert.True(harness.Press(ActionIds.PaneNext));
         Assert.Equal(PaneKind.Graph, harness.Tab.View.FocusedPane);
     }
 
@@ -105,13 +105,13 @@ public class SidebarActionHandlerTests
     {
         using var repository = MergedFeatureBranchRepository();
         using var harness = await SidebarHarness.LoadAsync(repository.WorkingTreePath);
-        harness.DetailVisible = true;
-        harness.Handler.IsDiffVisible = () => true;
+        harness.Layout.DetailVisible = true;
+        harness.Layout.DiffVisible = true;
         harness.Send(new FocusPaneCommand(PaneKind.Detail));
 
-        harness.Handler.TryHandle(ActionIds.PaneNext, null);
+        harness.Press(ActionIds.PaneNext);
         Assert.Equal(PaneKind.Diff, harness.Tab.View.FocusedPane);
-        harness.Handler.TryHandle(ActionIds.PaneFocusLeft, null);
+        harness.Press(ActionIds.PaneFocusLeft);
         Assert.Equal(PaneKind.Detail, harness.Tab.View.FocusedPane);
     }
 
@@ -120,13 +120,13 @@ public class SidebarActionHandlerTests
     {
         using var repository = MergedFeatureBranchRepository();
         using var harness = await SidebarHarness.LoadAsync(repository.WorkingTreePath);
-        harness.DetailVisible = true;
-        harness.Handler.IsDiffVisible = () => true;
+        harness.Layout.DetailVisible = true;
+        harness.Layout.DiffVisible = true;
         harness.Send(new FocusPaneCommand(PaneKind.Graph));
 
-        Assert.True(harness.Handler.TryHandle(ActionIds.PaneFocusDown, null));
+        Assert.True(harness.Press(ActionIds.PaneFocusDown));
         Assert.Equal(PaneKind.Detail, harness.Tab.View.FocusedPane);
-        Assert.True(harness.Handler.TryHandle(ActionIds.PaneFocusUp, null));
+        Assert.True(harness.Press(ActionIds.PaneFocusUp));
         Assert.Equal(PaneKind.Graph, harness.Tab.View.FocusedPane);
     }
 
@@ -135,11 +135,11 @@ public class SidebarActionHandlerTests
     {
         using var repository = MergedFeatureBranchRepository();
         using var harness = await SidebarHarness.LoadAsync(repository.WorkingTreePath);
-        harness.DetailVisible = false;
-        harness.Handler.IsDiffVisible = () => true;
+        harness.Layout.DetailVisible = false;
+        harness.Layout.DiffVisible = true;
         harness.Send(new FocusPaneCommand(PaneKind.Graph));
 
-        harness.Handler.TryHandle(ActionIds.PaneFocusDown, null);
+        harness.Press(ActionIds.PaneFocusDown);
 
         Assert.Equal(PaneKind.Diff, harness.Tab.View.FocusedPane);
     }
@@ -149,13 +149,13 @@ public class SidebarActionHandlerTests
     {
         using var repository = MergedFeatureBranchRepository();
         using var harness = await SidebarHarness.LoadAsync(repository.WorkingTreePath);
-        harness.SidebarVisible = false;
-        harness.DetailVisible = false;
-        harness.Handler.IsGraphVisible = () => false;
-        harness.Handler.IsDiffVisible = () => true;
+        harness.Layout.SidebarVisible = false;
+        harness.Layout.DetailVisible = false;
+        harness.Layout.GraphVisible = false;
+        harness.Layout.DiffVisible = true;
         harness.Send(new FocusPaneCommand(PaneKind.Diff));
 
-        harness.Handler.TryHandle(ActionIds.PaneNext, null);
+        harness.Press(ActionIds.PaneNext);
 
         Assert.Equal(PaneKind.Diff, harness.Tab.View.FocusedPane);
     }
@@ -165,10 +165,10 @@ public class SidebarActionHandlerTests
     {
         using var repository = MergedFeatureBranchRepository();
         using var harness = await SidebarHarness.LoadAsync(repository.WorkingTreePath);
-        harness.SidebarVisible = false;
+        harness.Layout.SidebarVisible = false;
 
-        harness.Handler.TryHandle(ActionIds.PaneNext, null);
-        harness.Handler.TryHandle(ActionIds.PaneFocusLeft, null);
+        harness.Press(ActionIds.PaneNext);
+        harness.Press(ActionIds.PaneFocusLeft);
 
         Assert.Equal(PaneKind.Graph, harness.Tab.View.FocusedPane);
     }
@@ -179,7 +179,7 @@ public class SidebarActionHandlerTests
         using var repository = MergedFeatureBranchRepository();
         using var harness = await SidebarHarness.LoadAsync(repository.WorkingTreePath);
 
-        Assert.False(harness.Handler.TryHandle(ActionIds.ListDown, null));
+        Assert.False(harness.Press(ActionIds.ListDown));
         Assert.Equal(0, harness.Tab.Sidebar.Cursor);
     }
 
@@ -190,12 +190,12 @@ public class SidebarActionHandlerTests
         using var harness = await SidebarHarness.LoadAsync(repository.WorkingTreePath);
         harness.FocusRow("old");
 
-        Assert.True(harness.Handler.TryHandle(ActionIds.SidebarActivate, null));
+        Assert.True(harness.Press(ActionIds.SidebarActivate));
 
         // Newest first: "two" is item 0, "one" (where `old` points) is item 1.
         Assert.Equal(1, harness.SelectedGraphItem);
         Assert.Equal(PaneKind.Sidebar, harness.Tab.View.FocusedPane);
-        Assert.Equal(string.Empty, harness.Handler.Message);
+        Assert.Equal(string.Empty, harness.Message);
     }
 
     [Fact]
@@ -205,9 +205,9 @@ public class SidebarActionHandlerTests
         using var harness = await SidebarHarness.LoadAsync(repository.WorkingTreePath);
         harness.FocusRow("Tags");
 
-        harness.Handler.TryHandle(ActionIds.SidebarExpand, null);
-        harness.Handler.TryHandle(ActionIds.SidebarExpand, null);
-        harness.Handler.TryHandle(ActionIds.SidebarActivate, null);
+        harness.Press(ActionIds.SidebarExpand);
+        harness.Press(ActionIds.SidebarExpand);
+        harness.Press(ActionIds.SidebarActivate);
 
         Assert.Equal("v2", harness.Source.Rows[harness.Tab.Sidebar.Cursor].Label);
         Assert.Equal(0, harness.SelectedGraphItem);
@@ -220,13 +220,13 @@ public class SidebarActionHandlerTests
         using var harness = await SidebarHarness.LoadAsync(repository.WorkingTreePath);
         harness.FocusRow("feature");
 
-        harness.Handler.TryHandle(ActionIds.SidebarExpand, null);
+        harness.Press(ActionIds.SidebarExpand);
 
         Assert.Equal(PaneKind.Sidebar, harness.Tab.View.FocusedPane);
     }
 
     [Fact]
-    public async Task GivenStashRowAndNoStashView_WhenActivating_ThenTheGraphKeepsItsSelectionAndAMessageSaysSo()
+    public async Task GivenStashRowAndNoStashView_WhenActivating_ThenTheGraphKeepsItsSelection()
     {
         using var repository = MergedFeatureBranchRepository();
         repository.WriteFile("a.txt", "dirty");
@@ -234,10 +234,9 @@ public class SidebarActionHandlerTests
         using var harness = await SidebarHarness.LoadAsync(repository.WorkingTreePath);
         harness.FocusRow("stash@{0}");
 
-        harness.Handler.TryHandle(ActionIds.SidebarActivate, null);
+        harness.Press(ActionIds.SidebarActivate);
 
         Assert.Null(harness.SelectedGraphItem);
-        Assert.Contains("no longer in the stash list", harness.Handler.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -248,10 +247,10 @@ public class SidebarActionHandlerTests
         harness.FocusRow("feature");
         harness.HideGraph = true;
 
-        harness.Handler.TryHandle(ActionIds.SidebarActivate, null);
+        harness.Press(ActionIds.SidebarActivate);
 
         Assert.Null(harness.SelectedGraphItem);
-        Assert.Equal("feature is not in the graph", harness.Handler.Message);
+        Assert.Equal("feature is not in the graph", harness.Message);
     }
 
     [Fact]
@@ -261,19 +260,19 @@ public class SidebarActionHandlerTests
         using var harness = await SidebarHarness.LoadAsync(repository.WorkingTreePath);
         harness.FocusRow("Branches");
 
-        harness.Handler.TryHandle(ActionIds.SidebarFilter, null);
-        harness.Handler.OnKey(new KeyEvent("o"));
-        harness.Handler.OnKey(new KeyEvent("l"));
+        harness.Press(ActionIds.SidebarFilter);
+        harness.Input.OnKey(new KeyEvent("o"));
+        harness.Input.OnKey(new KeyEvent("l"));
 
         Assert.Equal(KeyMode.Insert, harness.Mode);
-        Assert.True(harness.Handler.IsEditingFilter);
+        Assert.NotNull(harness.Host.State.Shell.Sidebar.FilterTab);
         Assert.Equal("ol", harness.Tab.Sidebar.FilterText);
         Assert.Equal(["Branches", "old"], harness.Source.Rows.Select(row => row.Label));
 
-        harness.Handler.OnKey(new KeyEvent(KeyNames.Backspace));
+        harness.Input.OnKey(new KeyEvent(KeyNames.Backspace));
         Assert.Equal("o", harness.Tab.Sidebar.FilterText);
 
-        harness.Handler.TryHandle(ActionIds.InputAccept, null);
+        harness.Press(ActionIds.InputAccept);
         Assert.Equal(KeyMode.Normal, harness.Mode);
         Assert.Equal("o", harness.Tab.Sidebar.FilterText);
     }
@@ -284,14 +283,14 @@ public class SidebarActionHandlerTests
         using var repository = MergedFeatureBranchRepository();
         using var harness = await SidebarHarness.LoadAsync(repository.WorkingTreePath);
         harness.FocusRow("Branches");
-        harness.Handler.TryHandle(ActionIds.SidebarFilter, null);
-        foreach (var letter in "zzz") { harness.Handler.OnKey(new KeyEvent(letter.ToString())); }
+        harness.Press(ActionIds.SidebarFilter);
+        foreach (var letter in "zzz") { harness.Input.OnKey(new KeyEvent(letter.ToString())); }
 
-        harness.Handler.TryHandle(ActionIds.Cancel, null);
+        harness.Press(ActionIds.Cancel);
 
         Assert.Equal(KeyMode.Normal, harness.Mode);
         Assert.Equal(string.Empty, harness.Tab.Sidebar.FilterText);
-        Assert.False(harness.Handler.IsEditingFilter);
+        Assert.Null(harness.Host.State.Shell.Sidebar.FilterTab);
     }
 
     [Fact]
@@ -300,16 +299,16 @@ public class SidebarActionHandlerTests
         using var repository = MergedFeatureBranchRepository();
         using var harness = await SidebarHarness.LoadAsync(repository.WorkingTreePath);
         harness.FocusRow("Branches");
-        harness.Handler.TryHandle(ActionIds.SidebarFilter, null);
-        foreach (var letter in "old") { harness.Handler.OnKey(new KeyEvent(letter.ToString())); }
+        harness.Press(ActionIds.SidebarFilter);
+        foreach (var letter in "old") { harness.Input.OnKey(new KeyEvent(letter.ToString())); }
 
-        harness.Handler.TryHandle(ActionIds.InputAccept, null);
+        harness.Press(ActionIds.InputAccept);
 
-        harness.Handler.TryHandle(ActionIds.Cancel, null);
+        harness.Press(ActionIds.Cancel);
         Assert.Equal(string.Empty, harness.Tab.Sidebar.FilterText);
         Assert.Equal(PaneKind.Sidebar, harness.Tab.View.FocusedPane);
 
-        harness.Handler.TryHandle(ActionIds.Cancel, null);
+        harness.Press(ActionIds.Cancel);
         Assert.Equal(PaneKind.Graph, harness.Tab.View.FocusedPane);
     }
 
@@ -320,7 +319,7 @@ public class SidebarActionHandlerTests
         using var harness = await SidebarHarness.LoadAsync(repository.WorkingTreePath);
         harness.FocusRow("Branches");
 
-        Assert.True(harness.Handler.TryHandle(ActionIds.NavigateBack, null));
+        Assert.True(harness.Press(ActionIds.NavigateBack));
 
         Assert.Equal(PaneKind.Graph, harness.Tab.View.FocusedPane);
     }

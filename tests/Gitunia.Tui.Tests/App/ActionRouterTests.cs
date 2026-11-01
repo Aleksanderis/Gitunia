@@ -13,8 +13,8 @@ using Gitunia.Tui.App.Sidebar;
 using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Screen;
+using Gitunia.Tui.Tests.App.Sidebar;
 using Gitunia.Tui.Tests.Rendering.Graph;
-using Gitunia.Tui.Views.Lists;
 using Terminal.Gui.Views;
 using Xunit;
 
@@ -162,7 +162,7 @@ public class ActionRouterTests
             var statuses = new StatusReporter(new Dispatcher(AppState.Empty));
             var host = new Dispatcher(AppState.Empty);
             var copier = new ClipboardCopier(new ClipboardWriter(new StringWriter(), new Osc52Options(Osc52Mode.Direct, 100_000)), statuses);
-            var sidebar = new SidebarActionHandler(host, new SidebarListSource(GraphGlyphSet.Unicode), () => _session, () => 10, () => false, () => false, _ => { }, copier);
+            var sidebar = new SidebarInput(host, new FixedSidebarLayout());
             Router = new ActionRouter(host, GraphList, detailList, () => _session, () => QuitCount++, sidebar, statuses, copier);
         }
 

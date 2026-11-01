@@ -1,10 +1,14 @@
 using Gitunia.App.Loading.Commits;
 using Gitunia.App.Tabs;
+using Gitunia.Core;
+using Gitunia.Core.Effects;
+using Gitunia.Core.Jump;
 using Gitunia.Core.Jump.Models;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Workspaces.Panes;
-using Gitunia.Core.Workspaces.Tabs;
+using Gitunia.Core.Workspaces;
+using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.Rendering.Graph;
@@ -21,27 +25,28 @@ public sealed class QuickJumpTargetTests : IDisposable
     private readonly TestShell _shell = new();
     private readonly List<string?> _shown = [];
     private readonly List<int> _jumps = [];
-    private PaneKind _focused = PaneKind.WorkingUnstaged;
+    private readonly List<string> _notices = [];
     private string? _unavailable;
     private bool _hasTarget = true;
 
     public QuickJumpTargetTests()
     {
         var location = new RepositoryLocation(Path.GetTempPath(), Path.GetTempPath(), Path.GetTempPath(), false, false);
+        _shell.Host.Dispatch(new OpenRepositoryCommand(location));
         _session = new TerminalTabSession(
             new TabSessionParts(
-                new TabId(1),
+                _shell.Host.Workspace.ActiveTabId!.Value,
                 new CommitDetailsStore(TestGit.Services.CommitDetails, location, action => action(), TimeSpan.Zero)),
             GraphGlyphSet.Unicode);
-        Controller = new QuickJumpController(new QuickJumpHost(
-            () => _session,
-            () => _focused,
-            OpenTarget,
-            _shell.Host,
-            () => { }));
+        Focus(PaneKind.WorkingUnstaged);
+        Controller = new QuickJumpInput(_shell.Host, new Host(this));
+        _shell.Host.EffectRaised += Run;
+        _shell.Modes.Clear();
     }
 
-    private QuickJumpController Controller { get; }
+    private QuickJumpInput Controller { get; }
+
+    private string Notice => _notices.LastOrDefault() ?? string.Empty;
 
     [Fact]
     public void GivenAFileList_WhenOpeningTheJump_ThenInsertModeIsOnAndTheListShowsLabelsForEmptyText()
@@ -100,7 +105,7 @@ public sealed class QuickJumpTargetTests : IDisposable
 
         Assert.True(Controller.TryExecute(ActionIds.QuickJump, null));
 
-        Assert.Equal("Not here", Controller.Notice);
+        Assert.Equal("Not here", Notice);
         Assert.Empty(_shell.Modes);
         Assert.Empty(_shown);
     }
@@ -112,7 +117,7 @@ public sealed class QuickJumpTargetTests : IDisposable
 
         Assert.True(Controller.TryExecute(ActionIds.QuickJump, null));
 
-        Assert.Equal("Quick jump is not available here", Controller.Notice);
+        Assert.Equal("Quick jump is not available here", Notice);
         Assert.Empty(_shell.Modes);
     }
 
@@ -120,7 +125,7 @@ public sealed class QuickJumpTargetTests : IDisposable
     public void GivenAnOpenJump_WhenFocusMovesToAnotherPane_ThenTheJumpClosesAndTheKeyIsNotTaken()
     {
         Controller.TryExecute(ActionIds.QuickJump, null);
-        _focused = PaneKind.WorkingStaged;
+        Focus(PaneKind.WorkingStaged);
 
         Assert.False(Controller.HandleTextKey(new KeyEvent("a")));
 
@@ -133,7 +138,7 @@ public sealed class QuickJumpTargetTests : IDisposable
     public void GivenAnOpenJump_WhenAClickMovesFocus_ThenCloseIfStaleEndsIt()
     {
         Controller.TryExecute(ActionIds.QuickJump, null);
-        _focused = PaneKind.WorkingUnstagedDiff;
+        Focus(PaneKind.Detail);
 
         Controller.CloseIfStale();
 
@@ -151,7 +156,22 @@ public sealed class QuickJumpTargetTests : IDisposable
 
     public void Dispose() => _session.Dispose();
 
-    private ListJumpTarget? OpenTarget()
+    private void Run(AppEffect effect)
+    {
+        if (effect is JumpToRowEffect jump)
+        {
+            Controller.JumpTo(jump.Row);
+        }
+        else if (effect is PostStatusEffect post)
+        {
+            _notices.Add(post.Text);
+        }
+    }
+
+    private void Focus(PaneKind pane) =>
+        _shell.Host.Dispatch(new TabCommand(_session.TabId, new FocusPaneCommand(pane)));
+
+    private ListJumpTarget? OpenListTarget()
     {
         if (!_hasTarget)
         {
@@ -168,5 +188,14 @@ public sealed class QuickJumpTargetTests : IDisposable
             _shown.Add,
             _jumps.Add,
             () => _unavailable);
+    }
+
+    private sealed class Host(QuickJumpTargetTests test) : IQuickJumpHost
+    {
+        public IJumpTarget? OpenTarget() => test.OpenListTarget();
+
+        public void Redraw()
+        {
+        }
     }
 }
