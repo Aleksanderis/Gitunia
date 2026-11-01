@@ -301,6 +301,25 @@ public sealed class ThemeFileContrastTests
     }
 
     [Theory]
+    [MemberData(nameof(MirrorNames))]
+    public void GivenAFixedBuiltInTheme_WhenSelectingARow_ThenTheFocusedBarIsClearlyApartFromThePage(string name)
+    {
+        var (colors, definition) = TableOf(name);
+        var baseBackground = Resolve(Color.None, definition, false);
+
+        var ratio = Contrast(ToRgb(colors.SelectionFocused), baseBackground);
+        var minimum = definition.IsLight ? 1.35 : 1.55;
+
+        Assert.True(ratio >= minimum, $"{name}: focused bar {ratio:F2}, wanted at least {minimum:F2}");
+    }
+
+    public static TheoryData<string> MirrorNames =>
+    [
+        "catppuccin-mocha", "catppuccin-latte", "catppuccin-frappe", "tokyo-night-storm", "tokyo-night-moon",
+        "tokyo-night-day", "solarized-dark",
+    ];
+
+    [Theory]
     [MemberData(nameof(Names))]
     public void GivenABuiltInTheme_WhenDrawingARangeRow_ThenItIsApartFromTheBaseMoreThanTheSelectedRow(string name)
     {

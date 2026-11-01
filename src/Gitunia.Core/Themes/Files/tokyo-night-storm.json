@@ -3,17 +3,17 @@
   "name": "Tokyo Night Storm",
   "variant": "dark",
   "colors": {
-    "accent": "#7aa2f7",
+    "accent": "#88abf8",
     "good": "#9ece6a",
-    "bad": "#f7768e",
-    "remote": "#bb9af7",
+    "bad": "#f88ca0",
+    "remote": "#bc9cf7",
     "warn": "#e0af68",
     "info": "#7dcfff",
     "muted": "#9297b6",
-    "mutedOnSelection": "#a9b1d6",
+    "mutedOnSelection": "#bbc2df",
     "border": "#6a7297",
     "barBackground": "#1f2335",
-    "selectionFocused": "#292e42",
+    "selectionFocused": "#494f67",
     "selectionDim": "#262b3e",
     "groupBackground": "#262a3d",
     "tabButtonBackground": "#292e42",
@@ -24,15 +24,15 @@
     "baseForeground": "#c0caf5",
     "baseBackground": "#24283b",
     "lanes": [
-      "#7aa2f7",
+      "#88abf8",
       "#9ece6a",
       "#e0af68",
-      "#bb9af7",
-      "#f7768e",
+      "#bc9cf7",
+      "#f88ca0",
       "#73daca",
       "#ff9e64",
       "#7dcfff",
-      "#a789dc"
+      "#b9a1e3"
     ]
   }
 }
