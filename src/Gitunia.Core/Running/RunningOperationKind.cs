@@ -6,6 +6,9 @@ namespace Gitunia.Core.Running;
 /// </summary>
 public enum RunningOperationKind
 {
+    /// <summary>A branch operation: create, switch, rename, delete, upstream or fast-forward.</summary>
+    Branches,
+
     /// <summary>A tag operation: create, delete, push, delete on a remote, or reading the remotes for the prompt.</summary>
     Tags,
 }

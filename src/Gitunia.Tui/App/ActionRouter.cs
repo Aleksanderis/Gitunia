@@ -192,7 +192,6 @@ public sealed class ActionRouter(Dispatcher host, ListView graphList, ListView d
 
         if (Branches?.TryExecute(action, count) == true)
         {
-            Refuse(Branches.Notice);
             return;
         }
 

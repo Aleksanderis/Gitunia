@@ -1,11 +1,13 @@
 using Gitunia.App.Shell;
 using Gitunia.App.Status;
 using Gitunia.App;
+using Gitunia.Core.Branches;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Lists;
 using Gitunia.Core.Mouse;
 using Gitunia.Core.Reflog;
+using Gitunia.Core.Running;
 using Gitunia.Core.Search;
 using Gitunia.Core.Sidebar;
 using Gitunia.Core.Workspaces.Tabs;
@@ -32,7 +34,6 @@ namespace Gitunia.Tui.App.Reflog;
 /// <param name="host">The workspace.</param>
 /// <param name="reader">Reads the reflog.</param>
 /// <param name="reset">The reset flow an entry starts.</param>
-/// <param name="branches">The branch actions an entry starts.</param>
 /// <param name="statuses">Where refusals and failures are reported.</param>
 /// <param name="postToUi">Runs an action on the UI thread.</param>
 /// <param name="cancellationOf">The token that ends the work of a tab (the tab was closed).</param>
@@ -45,7 +46,6 @@ public sealed class ReflogController(
     Dispatcher host,
     IReflogReader reader,
     ResetActions reset,
-    BranchActions branches,
     StatusReporter statuses,
     Action<Action> postToUi,
     Func<TabId, CancellationToken> cancellationOf,
@@ -468,12 +468,28 @@ public sealed class ReflogController(
             return reset.Begin(state.TabId, entry.Hash);
         }
 
-        if (action == ActionIds.BranchCreate)
+        if (host.Workspace.FindTab(state.TabId) is not { } tab)
         {
-            return branches.BeginCreate(state.TabId, entry.Hash, checkout: true);
+            return string.Empty;
         }
 
-        return branches.CheckoutDetached(state.TabId, entry.Hash);
+        // Both check the entry out, so a refusal that needs no git keeps the list open.
+        var isBusy = tab.Running.IsRunning(RunningOperationKind.Branches);
+        if (BranchRefusals.ForCheckout(isBusy, tab.Operation) is { } refusal)
+        {
+            return refusal;
+        }
+
+        if (action == ActionIds.BranchCreate)
+        {
+            host.Dispatch(new BranchCreateAtRequested(state.TabId, entry.Hash, true));
+        }
+        else
+        {
+            host.Dispatch(new BranchDetachRequested(state.TabId, entry.Hash));
+        }
+
+        return string.Empty;
     }
 
     private ReflogState LoadedState(

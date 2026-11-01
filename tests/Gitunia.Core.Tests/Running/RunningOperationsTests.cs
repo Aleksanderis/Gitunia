@@ -64,9 +64,17 @@ public class RunningOperationsTests
     [Fact]
     public void GivenEveryConcreteTagEffect_WhenInspectingIt_ThenItIsAnOperationEffectOfKindTags()
     {
-        var effects = ConcreteSubtypes.InstancesOf<TagEffect>();
+        // Built through the constructors: an uninitialised instance would show the enum's first value, not the kind.
+        TagEffect[] effects =
+        [
+            new CreateTagEffect(Tab, Location(), "v1", "x", string.Empty, "x"),
+            new DeleteTagEffect(Tab, Location(), "v1", "x"),
+            new ListTagRemotesEffect(Tab, Location(), "v1", false),
+            new PushTagEffect(Tab, Location(), "origin", "v1"),
+            new DeleteTagOnRemoteEffect(Tab, Location(), "origin", "v1"),
+        ];
 
-        Assert.NotEmpty(effects);
+        Assert.Equal(ConcreteSubtypes.InstancesOf<TagEffect>().Count, effects.Length);
         Assert.All(effects, effect => Assert.Equal(RunningOperationKind.Tags, effect.Kind));
     }
 

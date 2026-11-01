@@ -12,6 +12,7 @@ namespace Gitunia.Core.Prompts;
 /// <param name="OnAccepted">Turns the answer into the feature's command.</param>
 /// <param name="Owner">The tab the prompt belongs to, or null.</param>
 /// <param name="ReturnMode">The key mode to restore when the prompt closes.</param>
+/// <param name="ListOnly">The picker has no text field and moves on <c>j/k/h/l</c> as well.</param>
 public sealed record OpenPrompt(
     string Title,
     string Context,
@@ -20,4 +21,5 @@ public sealed record OpenPrompt(
     PromptPicker? Picker,
     IPromptResult OnAccepted,
     TabId? Owner,
-    KeyMode ReturnMode);
+    KeyMode ReturnMode,
+    bool ListOnly = false);
