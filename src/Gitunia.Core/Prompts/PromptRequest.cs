@@ -15,6 +15,10 @@ namespace Gitunia.Core.Prompts;
 /// <param name="Choices">The candidates of a type-to-filter picker; null for a prompt that only asks for text.</param>
 /// <param name="NoMatch">The row (and the notice on Enter) when nothing matches; used by pickers.</param>
 /// <param name="Owner">The tab the prompt belongs to; the prompt closes when that tab is no longer the active one.</param>
+/// <param name="ListOnly">
+/// A picker without a text field: <c>j/k/h/l</c> and the arrows move the highlight, so no letter is swallowed by a
+/// filter. Needs <paramref name="Choices"/>.
+/// </param>
 /// <param name="KeyChoices">The options of a prompt answered by one key; null for a text or picker prompt. Any other
 /// key is ignored and Enter does nothing; Esc cancels.</param>
 public sealed record PromptRequest(
@@ -26,4 +30,5 @@ public sealed record PromptRequest(
     ImmutableArray<PromptChoice>? Choices = null,
     string NoMatch = "No match",
     TabId? Owner = null,
+    bool ListOnly = false,
     ImmutableArray<PromptKeyChoice>? KeyChoices = null);

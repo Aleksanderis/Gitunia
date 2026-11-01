@@ -21,6 +21,11 @@ public static class OpenPromptPopup
             return PromptPopup.ForText(prompt.Title, prompt.Context, prompt.Text, prompt.AcceptLabel);
         }
 
+        if (prompt.ListOnly)
+        {
+            return ListPopup(prompt, picker);
+        }
+
         return PromptPopup.ForFilter(
             prompt.Title,
             prompt.Context,
@@ -28,5 +33,18 @@ public static class OpenPromptPopup
             picker.Rows(),
             prompt.AcceptLabel,
             picker.Candidates.Length > 1);
+    }
+
+    private static PromptPopup ListPopup(OpenPrompt prompt, PromptPicker picker)
+    {
+        var names = picker.Candidates.Select(choice => choice.Text).ToList();
+        var position = PickerRows.Position(picker.Index, names.Count);
+
+        return new PromptPopup(
+            prompt.Title,
+            [$"{prompt.Context} {position}"],
+            null,
+            PickerRows.Window(names, picker.Index),
+            [new("Enter", prompt.AcceptLabel), new("j/k/h/l", "select"), new("Esc", "cancel")]);
     }
 }

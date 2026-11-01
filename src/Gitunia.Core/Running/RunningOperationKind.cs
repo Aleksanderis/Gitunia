@@ -6,6 +6,9 @@ namespace Gitunia.Core.Running;
 /// </summary>
 public enum RunningOperationKind
 {
+    /// <summary>A branch operation: create, switch, rename, delete, upstream or fast-forward.</summary>
+    Branches,
+
     /// <summary>A reset, a merge, or continuing, aborting or skipping the operation in progress.</summary>
     Integration,
 

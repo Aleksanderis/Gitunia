@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using Gitunia.App.Settings;
 using Gitunia.App.Shell;
 using Gitunia.App.Status;
 using Gitunia.App;
@@ -21,6 +22,7 @@ using Gitunia.Core.Operations;
 using Gitunia.Core.Overlays;
 using Gitunia.Core.Persistence;
 using Gitunia.Core.Picker;
+using Gitunia.Core.Reflog;
 using Gitunia.Core.Settings;
 using Gitunia.Core.Settings.Models;
 using Gitunia.Core.Sidebar;
@@ -94,6 +96,7 @@ public sealed class TuiApplication(
     GitServices services,
     ConsoleCapabilities detectedCapabilities,
     IPlatform platform) : IDisposable, ITerminalSuspender, IShellEffects, IBranchSelectionSource,
+    IGraphCommitSelector,
     IStashSelectionSource, IStashViewHost
 {
     // Terminal.Gui's default of 25 iterations per second gave ~34 ms key latency (docs/internal/history/decisions.md); the idle rate saves CPU (#909).
@@ -141,7 +144,6 @@ public sealed class TuiApplication(
     private ChipKeys _chipKeys = null!;
     private ConsoleCapabilities _capabilities = detectedCapabilities;
     private CommitActions _commits = null!;
-    private BranchActions _branches = null!;
     private TagActions _tags = null!;
     private PromptInputHandler _openPrompt = null!;
     private ClipboardCopier _clipboard = null!;
@@ -154,10 +156,15 @@ public sealed class TuiApplication(
     private GraphGlyphSet _glyphs = null!;
     private FileTreeController _fileTree = null!;
     private ResetActions _reset = null!;
-    private ReflogController _reflog = null!;
+    private ReflogSession? _drawnReflog;
+    private SettingsSession? _drawnSettings;
+    private ReflogInput _reflog = null!;
+    private ReflogEntryStarter _reflogEntries = null!;
     private RebaseEditorController _rebaseEditor = null!;
     private ConflictEditorController _conflictEditor = null!;
-    private SettingsController _settings = null!;
+    private SettingsScreenInput _settings = null!;
+    private ConfigWriter _configWriter = null!;
+    private ConfigEditorLauncher _configEditor = null!;
     private SessionPersistence? _persistence;
     private QuitGuard _quitGuard = null!;
     private SuspendableUiInvoker _uiInvoker = null!;
@@ -211,7 +218,13 @@ public sealed class TuiApplication(
         CreateApplication();
         _uiInvoker = new SuspendableUiInvoker(_application.Invoke);
 
-        _host = new Dispatcher(AppState.Empty, _uiInvoker);
+        _configWriter = new ConfigWriter(platform.ConfigDirectory);
+        var settingsEnvironment = new SettingsEnvironment(
+            _homeDirectory,
+            Directory.Exists,
+            _startupConfig.Themes.Names,
+            ConfigStartup.DefaultLabelCaps(_capabilities));
+        _host = new Dispatcher(WithSettings(settingsEnvironment), _uiInvoker);
         _statuses = new StatusReporter(_host);
         _sessionFactory = new TerminalTabSessionFactory(glyphs);
         _effects = new EffectRunner<TerminalTabSession>(
@@ -221,7 +234,12 @@ public sealed class TuiApplication(
             _sessionFactory,
             _statuses,
             watcherOptions: WatcherOptionsFor(_startupConfig.Options),
-            shell: this);
+            shell: this,
+            settings: new SettingsServices(
+                _configWriter,
+                settingsEnvironment,
+                SettingsRegistry.WithThemes(_startupConfig.Themes.Names),
+                _startupConfig.Keymap.Table));
 
         _clipboard = CreateClipboard();
         var clipboard = _clipboard;
@@ -238,6 +256,7 @@ public sealed class TuiApplication(
         _stashView = new StashViewController(_host, this, _statuses);
         _sidebar.StashView = _stashView;
         _host.Changed += _stashView.Reconcile;
+        _host.Changed += RefreshOverlaysOnStateChange;
         _sidebar.IsGraphVisible = () => !CurrentPaneRects().Graph.IsEmpty;
         _sidebar.IsDiffVisible = () => !CurrentPaneRects().Diff.IsEmpty;
 
@@ -252,7 +271,7 @@ public sealed class TuiApplication(
             new DiffListSource(glyphs));
 
         _commits = CreateCommits();
-        _branches = CreateBranches();
+        var branches = new BranchActions(_host, this);
         _tags = new TagActions(_host, this);
         _view.ActiveDraft = () => _host.Workspace.ActiveTabId is { } tabId ? _commits.DraftOf(tabId) : null;
         _view.IsEditingMessage = () => _commits.ShowsCursor;
@@ -302,7 +321,7 @@ public sealed class TuiApplication(
             Visual = _visual,
             Discard = CreateDiscard(operationGate),
         };
-        _router.Branches = _branches;
+        _router.Branches = branches;
         _router.Stash = new StashActions(_host, this);
         _router.Tags = _tags;
         _openPrompt = new PromptInputHandler(_host);
@@ -334,10 +353,17 @@ public sealed class TuiApplication(
             _host,
             ActiveSession,
             () => SelectedCommitHash() is { } hash && ObjectId.TryParse(hash, out var id) ? id : null);
-        _reflog = CreateReflog(glyphs);
+        _reflog = new ReflogInput(_host, this, glyphs);
+        _reflogEntries = new ReflogEntryStarter(_host, _reset, this);
         _rebaseEditor = CreateRebaseEditor(glyphs, operationGate);
         _conflictEditor = CreateConflictEditor(glyphs, operationGate, staging);
-        _settings = CreateSettings(glyphs);
+        _settings = new SettingsScreenInput(_host, glyphs);
+        _configEditor = new ConfigEditorLauncher(
+            new ExternalToolLauncher(),
+            this,
+            _statuses,
+            Environment.GetEnvironmentVariable,
+            PauseForEnter);
         _worktrees = CreateWorktrees(operationGate, sidebarSource);
         _router.Worktrees = _worktrees;
         _router.WorktreeSwitch = CreateWorktreeSwitch(operationGate, sidebarSource);
@@ -481,7 +507,6 @@ public sealed class TuiApplication(
         _view.Window.ViewportChanged += (_, _) => DeferToNextIteration(_diffPane.OnScreenResized);
         _view.Window.ViewportChanged += (_, _) => ReportScreenSize();
         _view.Window.ViewportChanged += (_, _) => _overlays.OnScreenResized();
-        _view.Window.ViewportChanged += (_, _) => _settings.OnScreenResized();
         _mainline.Attach(_view.Window);
         _popups = new PromptPopupTracker(CurrentPopup, () => _view.ScreenSize, ShowOverlayFrame);
         _view.ChromeRefreshed += _popups.Sync;
@@ -942,18 +967,22 @@ public sealed class TuiApplication(
         RouteAction,
         _view.RefreshChrome);
 
-    private BranchActions CreateBranches() => new(
-        _host,
-        services.Branches,
-        _statuses,
-        InvokeOnUi,
-        tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None,
-        _activity.CreateGate(),
-        tabId => _effects.Refresh(tabId, false),
-        _view.RefreshChrome,
-        BranchSelectionNow);
-
     BranchSelection IBranchSelectionSource.Current() => BranchSelectionNow();
+
+    void IShellEffects.StartReflogEntryAction(ReflogEntryActionEffect effect) => _reflogEntries.Start(effect);
+
+    void IShellEffects.ApplyOptions(ConfigOptions options) => ApplyOptions(options);
+
+    void IShellEffects.ApplyTheme(ThemeChoice theme) => ApplyTheme(theme);
+
+    void IShellEffects.OpenConfigEditor()
+    {
+        var notice = _configEditor.Launch(_configWriter.FilePath, () => _host.Dispatch(new SettingsEditorClosed()));
+        if (notice.Length > 0)
+        {
+            _statuses.Warning(notice);
+        }
+    }
 
     void IShellEffects.CopyToClipboard(CopyToClipboardEffect effect) =>
         _clipboard.Copy(effect.Text, effect.Description);
@@ -1556,26 +1585,6 @@ public sealed class TuiApplication(
         return _reflog.IsOpen ? DefaultKeymap.ReflogView : _overlays.ViewName;
     }
 
-    private SettingsController CreateSettings(GraphGlyphSet glyphs) => new(
-        new ConfigWriter(platform.ConfigDirectory),
-        new SettingsEnvironment(_homeDirectory, Directory.Exists, _startupConfig.Themes.Names, ConfigStartup.DefaultLabelCaps(_capabilities)),
-        _statuses,
-        InvokeOnUi,
-        () => _view.ScreenSize,
-        glyphs,
-        _host,
-        RefreshOverlay,
-        ApplyOptions,
-        ApplyTheme,
-        new ConfigEditorLauncher(
-            new ExternalToolLauncher(),
-            this,
-            _statuses,
-            Environment.GetEnvironmentVariable,
-            PauseForEnter).Launch,
-        () => KeyReferenceBuilder.Build(_startupConfig.Keymap.Table),
-        SettingsRegistry.WithThemes(_startupConfig.Themes.Names));
-
     private static bool SameRoots(ImmutableArray<string>? current, ImmutableArray<string>? other)
     {
         if (current is null || other is null)
@@ -1685,22 +1694,8 @@ public sealed class TuiApplication(
         gate,
         _chipKeys);
 
-    private ReflogController CreateReflog(GraphGlyphSet glyphs) => new(
-        _host,
-        services.Reflog,
-        _reset,
-        _branches,
-        _statuses,
-        InvokeOnUi,
-        tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None,
-        SelectCommitInGraph,
-        BranchSelectionNow,
-        () => _view.ScreenSize,
-        glyphs,
-        RefreshOverlay);
-
     // Moves the graph cursor to a commit; the reason it cannot is returned (empty on success).
-    private string SelectCommitInGraph(TabId tabId, string hash)
+    string IGraphCommitSelector.SelectCommit(TabId tabId, string hash)
     {
         var graph = _effects.SessionOf(tabId)?.Graph;
         if (graph is null || !ObjectId.TryParse(hash, out var id))
@@ -1751,6 +1746,29 @@ public sealed class TuiApplication(
     {
         var size = _view.ScreenSize;
         _host.Dispatch(new ScreenResizedCommand(new ScreenExtent(size.Width, size.Height), _host.Clock.GetUtcNow()));
+        _settings.OnScreenResized();
+    }
+
+    // The initial state: nothing open, and the machine facts the settings screen checks folders with.
+    private static AppState WithSettings(SettingsEnvironment environment)
+    {
+        var settings = SettingsSession.Empty with { Environment = environment };
+
+        return AppState.Empty with { Shell = ShellState.Empty with { Settings = settings } };
+    }
+
+    // The reflog list and the settings screen live in the shell state: a result that arrives later redraws them.
+    private void RefreshOverlaysOnStateChange()
+    {
+        var shell = _host.State.Shell;
+        if (ReferenceEquals(shell.Reflog, _drawnReflog) && ReferenceEquals(shell.Settings, _drawnSettings))
+        {
+            return;
+        }
+
+        _drawnReflog = shell.Reflog;
+        _drawnSettings = shell.Settings;
+        RefreshOverlay();
     }
 
     private void InvokeOnUi(Action action) => _uiInvoker.Invoke(action);
@@ -1844,7 +1862,6 @@ public sealed class TuiApplication(
             // The prompt that owns Insert mode must see Esc and Enter first, so the ref prompt comes before the search.
             _openPrompt,
             CreateQuickRebase(gate),
-            _branches,
             _push,
             _pick,
             new RefJumpController(handle, () => _host.Workspace.ActiveTab?.Refs ?? []),

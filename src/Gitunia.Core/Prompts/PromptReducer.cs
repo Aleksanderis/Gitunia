@@ -48,6 +48,7 @@ public static class PromptReducer
             request.OnAccepted,
             request.Owner,
             state.ReturnMode,
+            request.ListOnly,
             request.KeyChoices);
         var opened = (state with { Prompt = prompt, Confirm = null, Output = null }).WithMode(KeyMode.Insert);
 
@@ -67,9 +68,15 @@ public static class PromptReducer
             return KeyChosen(state, prompt, keys, normalized);
         }
 
-        if (prompt.Picker is { } picker && PickerKeys.IsMove(normalized, out var step))
+        if (prompt.Picker is { } picker && (PickerKeys.IsMove(normalized, out var step)
+            || prompt is { ListOnly: true } && IsLetterMove(normalized, out step)))
         {
             return Replace(state, prompt with { Picker = picker.Moved(step) });
+        }
+
+        if (prompt.ListOnly)
+        {
+            return new ShellUpdate(state, []);
         }
 
         if (PromptTextEditor.Apply(prompt.Text, key) is not { } edited || edited == prompt.Text)
@@ -96,6 +103,24 @@ public static class PromptReducer
         var answer = new PromptAnswer(string.Empty, chosen.Value);
 
         return new ShellUpdate(Close(state, prompt), [], prompt.OnAccepted.Answered(answer));
+    }
+
+    private static bool IsLetterMove(KeyEvent key, out int step)
+    {
+        step = 0;
+        if (key.Modifiers != KeyModifiers.None)
+        {
+            return false;
+        }
+
+        step = key.Name switch
+        {
+            "j" or "l" => 1,
+            "k" or "h" => -1,
+            _ => 0,
+        };
+
+        return step != 0;
     }
 
     private static ShellUpdate Accept(ShellState state)

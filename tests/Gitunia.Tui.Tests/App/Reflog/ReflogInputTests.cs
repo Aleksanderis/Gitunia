@@ -1,15 +1,19 @@
-using Gitunia.Core;
-using Gitunia.Core.Effects;
-using Gitunia.Core.Integration;
-using Gitunia.Core.Prompts;
-using Gitunia.Git.Reset;
+using Gitunia.App;
+using Gitunia.App.Reflog;
 using Gitunia.App.Status;
 using Gitunia.App.Loading.Commits;
 using Gitunia.App.Tabs;
 using Gitunia.Core.Keymap;
+using Gitunia.Core.Integration;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Mouse;
+using Gitunia.Core;
+using Gitunia.Core.Branches;
+using Gitunia.Core.Effects;
 using Gitunia.Core.Overlays;
+using Gitunia.Core.Prompts;
+using Gitunia.Core.Reflog;
+using Gitunia.Core.Shell;
 using Gitunia.Core.Sidebar;
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
@@ -17,6 +21,7 @@ using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git;
 using Gitunia.Git.Reflog;
 using Gitunia.Git.Reflog.Models;
+using Gitunia.Git.Reset;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Tests.Fixtures;
 using Gitunia.Tui.App.Branches;
@@ -24,13 +29,12 @@ using Gitunia.Tui.App.Reflog;
 using Gitunia.Tui.App.Reset;
 using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.Rendering.Graph;
-using Gitunia.Tui.Tests.Fakes;
-using Gitunia.Tui.Views;
+using Gitunia.Tui.Rendering.Overlays;
 using Xunit;
 
 namespace Gitunia.Tui.Tests.App.Reflog;
 
-public class ReflogControllerTests
+public class ReflogInputTests
 {
     [Fact]
     public async Task GivenCommitsAmendResetAndCheckout_WhenOpeningTheReflog_ThenEveryActionIsListedNewestFirst()
@@ -66,7 +70,7 @@ public class ReflogControllerTests
         harness.Run(ActionIds.ResetBranch);
         Assert.False(harness.Reflog.IsOpen);
         await harness.PumpUntilAsync(() => harness.Mode == KeyMode.Insert);
-        harness.PressInPrompt("s");
+        harness.Host.Dispatch(new PromptKeyPressedCommand(new KeyEvent("s")));
 
         var prepare = Assert.Single(harness.Effects.OfType<PrepareResetEffect>());
         Assert.Equal(new ResetTarget(lost, "main", ResetMode.Soft), prepare.Target);
@@ -111,16 +115,15 @@ public class ReflogControllerTests
         harness.MoveTo(harness.Reflog.State!.Entries.ToList().FindIndex(entry => entry.Hash == first));
 
         harness.Run(ActionIds.BranchCreate);
+
+        // The branch pipeline (BranchReducer, BranchEffectHandler) is tested on its own: here the list closes and the
+        // name prompt of the branch feature opens at the entry.
         Assert.False(harness.Reflog.IsOpen);
         Assert.Equal(KeyMode.Insert, harness.Mode);
-        Assert.Contains(first[..7], PopupText.Of(harness.Branches), StringComparison.Ordinal);
-        harness.Branches.HandleTextKey(new KeyEvent("r"));
-        harness.Branches.HandleTextKey(new KeyEvent("x"));
-        Assert.True(harness.Branches.TryExecute(ActionIds.InputAccept, null));
-        await harness.PumpUntilAsync(() => harness.Refreshes > 0);
-
-        Assert.Equal(first, repository.Git("rev-parse", "rx").Trim());
-        Assert.Equal("rx", repository.Git("branch", "--show-current").Trim());
+        Assert.Equal($"At {first[..7]}", harness.Host.State.Shell.Prompt!.Context);
+        var answer = Assert.IsType<BranchNameAnswer>(harness.Host.State.Shell.Prompt.OnAccepted);
+        Assert.Equal(first, answer.StartPoint);
+        Assert.True(answer.Checkout);
     }
 
     [Fact]
@@ -133,12 +136,27 @@ public class ReflogControllerTests
         harness.MoveTo(harness.Reflog.State!.Entries.ToList().FindIndex(entry => entry.Hash == first));
 
         harness.Run(ActionIds.BranchSwitch);
-        await harness.PumpUntilAsync(() => harness.Refreshes > 0);
 
         Assert.False(harness.Reflog.IsOpen);
-        Assert.Equal(first, repository.Head);
-        Assert.Equal(string.Empty, repository.Git("branch", "--show-current").Trim());
-        Assert.StartsWith("HEAD is detached at", harness.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
+        var effect = Assert.IsType<SwitchBranchEffect>(Assert.Single(harness.Effects.OfType<BranchEffect>()));
+        Assert.Equal(SwitchTargetKind.DetachedCommit, effect.TargetKind);
+        Assert.Equal(first, effect.Target);
+    }
+
+    [Fact]
+    public async Task GivenABranchOperationRunning_WhenCheckingAnEntryOut_ThenTheListStaysOpenAndNothingRuns()
+    {
+        using var repository = TwoCommits();
+        using var harness = await Harness.LoadAsync(repository);
+        await harness.OpenAsync();
+        harness.Host.Dispatch(new BranchDeleteConfirmed(harness.TabId, "topic", repository.Head, null));
+        harness.Effects.Clear();
+
+        harness.Run(ActionIds.BranchSwitch);
+
+        Assert.True(harness.Reflog.IsOpen);
+        Assert.Empty(harness.Effects.OfType<BranchEffect>());
+        Assert.Equal(BranchRefusals.BusyNotice, harness.Statuses.Log.Latest!.Text);
     }
 
     [Fact]
@@ -456,10 +474,10 @@ public class ReflogControllerTests
         Assert.True(harness.Reflog.SelectEntryAt(2));
 
         Assert.True(harness.Click(harness.ActionLine(3)));
-        await harness.PumpUntilAsync(() => harness.Refreshes > 0);
 
         Assert.False(harness.Reflog.IsOpen);
-        Assert.Equal(first, repository.Head);
+        var effect = Assert.IsType<SwitchBranchEffect>(Assert.Single(harness.Effects.OfType<BranchEffect>()));
+        Assert.Equal(first, effect.Target);
         Assert.False(harness.Click(0));
     }
 
@@ -500,53 +518,42 @@ public class ReflogControllerTests
             Task.FromResult(new ParseResult<ReflogEntry>([], []));
     }
 
-    private sealed class Harness : IDisposable, IBranchSelectionSource
+    private sealed class Harness : IDisposable
     {
-        private readonly TestShell _shell = new();
         private readonly UiPump _pump = new(TestContext.Current.CancellationToken);
+        private readonly Dispatcher _host;
+        private readonly ReflogEffectHandler _handler;
+        private readonly ReflogEntryStarter _starter;
+        private readonly ReflogInput _input;
         private TerminalTabSession? _session;
 
         private Harness(IReflogReader? reader)
         {
-            _shell.Host.EffectRaised += Effects.Add;
-            _shell.Host.EffectRaised += PostStatus;
-            Reset = new ResetActions(_shell.Host, this);
-            Branches = new BranchActions(
-                _shell.Host,
-                TestGit.Services.Branches,
-                Statuses,
-                _pump.Post,
-                _ => TestContext.Current.CancellationToken,
-                new TabOperationGate(),
-                CountRefresh,
-                () => { },
-                () => Selection);
-            Reflog = new ReflogController(
-                _shell.Host,
-                reader ?? TestGit.Services.Reflog,
-                Reset,
-                Branches,
-                Statuses,
-                _pump.Post,
-                _ => TestContext.Current.CancellationToken,
-                SelectCommit,
-                () => Selection,
-                () => new ScreenSize(100, 30),
-                GraphGlyphSet.Unicode,
-                () => { });
+            _host = new Dispatcher(AppState.Empty, _pump);
+            Statuses = new StatusReporter(_host);
+            Reset = new ResetActions(_host, new FixedSelection(this));
+            _handler = new ReflogEffectHandler(reader ?? TestGit.Services.Reflog, _host);
+            _starter = new ReflogEntryStarter(_host, Reset, new RecordingGraph(this));
+            _input = new ReflogInput(_host, new FixedSelection(this), GraphGlyphSet.Unicode);
+            Reflog = new ReflogFacade(_host, _input);
+            _host.EffectRaised += Effects.Add;
+            _host.EffectRaised += Route;
+            _host.Dispatch(new ScreenResizedCommand(new ScreenExtent(100, 30), _host.Clock.GetUtcNow()));
         }
 
-        public ReflogController Reflog { get; }
+        public ReflogFacade Reflog { get; }
 
         public ResetActions Reset { get; }
 
+        public Dispatcher Host => _host;
+
         public List<AppEffect> Effects { get; } = [];
 
-        public BranchActions Branches { get; }
+        public TabId TabId => _host.Workspace.ActiveTabId!.Value;
 
-        public StatusReporter Statuses => _shell.Statuses;
+        public StatusReporter Statuses { get; }
 
-        public KeyMode Mode => _shell.Mode;
+        public KeyMode Mode => _host.State.Shell.Mode;
 
         public int Refreshes { get; private set; }
 
@@ -562,8 +569,8 @@ public class ReflogControllerTests
             var location = await TestGit.Services.Discovery.DiscoverAsync(
                 repository.WorkingTreePath,
                 TestContext.Current.CancellationToken);
-            harness._shell.Host.Dispatch(new OpenRepositoryCommand(location));
-            var tabId = harness._shell.Host.Workspace.ActiveTabId!.Value;
+            harness._host.Dispatch(new OpenRepositoryCommand(location));
+            var tabId = harness._host.Workspace.ActiveTabId!.Value;
             harness._session = new TerminalTabSession(
                 new TabSessionParts(
                     tabId,
@@ -572,7 +579,7 @@ public class ReflogControllerTests
             await TestGit.Services.RepositoryLoader.RunAsync(
                 location,
                 harness._session,
-                harness._shell.Host,
+                harness._host,
                 harness.Statuses,
                 InlineUi.Post,
                 harness._session.Cancellation.Token);
@@ -610,35 +617,78 @@ public class ReflogControllerTests
         // The frame line of the nth action row under the entries.
         public int ActionLine(int index) => 1 + Reflog.State!.Entries.Count + index;
 
-        public void PressInPrompt(string key) => _shell.Host.Dispatch(new PromptKeyPressedCommand(new KeyEvent(key)));
-
         public void Run(ActionId action) => Assert.True(Reflog.TryExecute(action, null), action.Value);
 
         public Task PumpUntilAsync(Func<bool> condition) => _pump.RunUntilAsync(condition);
 
         public void Dispose() => _session?.Dispose();
 
-        BranchSelection IBranchSelectionSource.Current() => Selection;
-
-        // The runner posts the status of a refusal; the test shell does not run that effect.
-        private void PostStatus(AppEffect effect)
+        // What the effect runner does with the effects of the reflog and of the controllers that have not moved.
+        private void Route(AppEffect effect)
         {
-            if (effect is PostStatusEffect post)
+            switch (effect)
             {
-                Statuses.Post(post.Text, post.Severity);
+                case ReadReflogEffect read:
+                    _handler.Handle(read, TestContext.Current.CancellationToken);
+                    break;
+                case ReflogEntryActionEffect entry:
+                    _starter.Start(entry);
+                    break;
+                case SetKeyModeEffect mode:
+                    _host.Dispatch(new SetKeyModeCommand(mode.Mode));
+                    break;
+                case PostStatusEffect post:
+                    _host.Dispatch(new StatusPostedCommand(post.Text, post.Severity, _host.Clock.GetUtcNow()));
+                    break;
+                case RunActionEffect run:
+                    run.Run();
+                    break;
+                case ShowPromptEffect prompt:
+                    _host.Dispatch(new PromptRequestedCommand(prompt.Request));
+                    break;
             }
-        }
-
-        private string SelectCommit(TabId tabId, string hash)
-        {
-            SelectedCommits.Add(hash);
-            return SelectRefusal;
         }
 
         private bool CountRefresh(TabId tabId)
         {
             Refreshes++;
             return true;
+        }
+
+        private sealed class RecordingGraph(Harness owner) : IGraphCommitSelector
+        {
+            public string SelectCommit(TabId tabId, string hash)
+            {
+                owner.SelectedCommits.Add(hash);
+                return owner.SelectRefusal;
+            }
+        }
+
+        private sealed class FixedSelection(Harness owner) : IBranchSelectionSource
+        {
+            public BranchSelection Current() => owner.Selection;
+        }
+    }
+
+    // The list as the tests read it: the input class over the state in the dispatcher.
+    private sealed class ReflogFacade(Dispatcher host, ReflogInput input)
+    {
+        public bool IsOpen => input.IsOpen;
+
+        public ReflogState? State => host.State.Shell.Reflog.List;
+
+        public OverlayFrame? CurrentFrame() => input.CurrentFrame();
+
+        public bool TryExecute(ActionId action, int? count) => input.TryExecute(action, count);
+
+        public bool HandleTextKey(KeyEvent key) => input.HandleTextKey(key);
+
+        public string? OnLineClicked(int frameLine, out bool handled) => input.OnLineClicked(frameLine, out handled);
+
+        public bool SelectEntryAt(int frameLine)
+        {
+            input.OnLineClicked(frameLine, out var handled);
+            return handled;
         }
     }
 }

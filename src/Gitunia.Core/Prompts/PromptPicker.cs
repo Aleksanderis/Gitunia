@@ -32,7 +32,7 @@ public sealed record PromptPicker(
             Candidates =
             [
                 .. All
-                    .Select(choice => (Choice: choice, Score: ChoiceMatcher.Score(pattern, choice.Text)))
+                    .Select(choice => (Choice: choice, Score: ChoiceMatcher.Score(pattern, choice.Match ?? choice.Text)))
                     .Where(pair => pair.Score is not null)
                     .OrderByDescending(pair => pair.Score)
                     .Select(pair => pair.Choice),
