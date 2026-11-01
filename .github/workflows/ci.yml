@@ -17,65 +17,51 @@ permissions:
   contents: read
 
 # Release packaging (#48): on a v* tag the AOT binaries of both legs are archived by scripts/package.sh and attached to
-# a draft GitHub release by the `release` job. Tag runs skip build and tests (#899); the guard job reuses or starts
-# (#921) a green full dispatch run on the same commit. macOS and linux-arm64 binaries follow with their CI legs (#455).
+# a draft GitHub release by the `release` job. The `check` job (#937) looks for a green full dispatch run on the tagged
+# commit: if there is one the tag run skips build and tests (#899), else it builds and tests itself. It never waits. macOS and linux-arm64 binaries follow with their CI legs (#455).
 
 concurrency:
   group: ci-${{ github.ref }}-${{ inputs.platform }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
-  guard:
-    # Tag pushes only (#899, #921): reuses a green full run for the tagged commit, else starts and awaits one, so the
-    # tests run once per release and a red run fails the release before the packaging legs start.
+  check:
+    # Tag pushes only (#937): looks up, in seconds, whether a green full run exists for the tagged commit. It never
+    # starts a run and never waits on one. Green: the legs only package. Not green: the legs build and test first.
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
-    # Covers the awaited full run (Windows leg 25 min plus queueing); only this cheap Linux job waits.
-    timeout-minutes: 60
+    timeout-minutes: 2
     permissions:
-      actions: write
-      checks: read # `gh run watch` reads job annotations
+      actions: read
+    outputs:
+      green: ${{ steps.lookup.outputs.green }}
     steps:
-      - name: Require a green full CI run for the tagged commit, starting one if needed (#921)
+      - name: Look for a green full CI run for the tagged commit
+        id: lookup
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          # Tag runs only package. The tests run in a `workflow_dispatch` run (platform all) on this commit: green means
-          # both legs (job names `linux-x64`, `windows-x64`; renaming one makes this guard fail closed) succeeded, not skipped.
+          # Green means a successful `workflow_dispatch` run on this commit whose jobs `linux-x64` and `windows-x64`
+          # both succeeded, not skipped (renaming a leg makes this report not green). Any lookup error also reports
+          # not green, so the tag run tests instead of trusting an unverified run (fail closed).
           api="repos/$GITHUB_REPOSITORY/actions"
-          runs_for() { gh api "$api/workflows/ci.yml/runs?head_sha=$GITHUB_SHA&event=workflow_dispatch&per_page=100" --jq "$1"; }
-          legs_green() {
-            local ok
-            ok="$(gh api "$api/runs/$1/jobs" --jq '[.jobs[] | select((.name == "linux-x64" or .name == "windows-x64") and .conclusion == "success")] | length')"
-            [ "$ok" = "2" ]
-          }
-          for id in $(runs_for '.workflow_runs[] | select(.conclusion == "success") | .id'); do
-            if legs_green "$id"; then echo "Full CI run $id is green for $GITHUB_SHA; no new run"; exit 0; fi
-          done
-          # A run already queued or in progress for this commit is awaited instead of starting a second one.
-          id="$(runs_for '[.workflow_runs[] | select(.status != "completed")] | first | .id // empty')"
-          if [ -z "$id" ]; then
-            before="$(runs_for '[.workflow_runs[].id] | sort | join(" ")')"
-            gh workflow run ci.yml --repo "$GITHUB_REPOSITORY" --ref "$GITHUB_REF_NAME" -f platform=all
-            for _ in $(seq 1 24); do
-              sleep 5
-              for candidate in $(runs_for '.workflow_runs[].id'); do
-                case " $before " in *" $candidate "*) ;; *) id="$candidate" ;; esac
-              done
-              [ -n "$id" ] && break
+          green=false
+          if ids="$(gh api "$api/workflows/ci.yml/runs?head_sha=$GITHUB_SHA&event=workflow_dispatch&status=success&per_page=100" --jq '.workflow_runs[].id')"; then
+            for id in $ids; do
+              if ok="$(gh api "$api/runs/$id/jobs" --jq '[.jobs[] | select((.name == "linux-x64" or .name == "windows-x64") and .conclusion == "success")] | length')" && [ "$ok" = "2" ]; then
+                echo "Full CI run $id is green for $GITHUB_SHA; the legs only package"; green=true; break
+              fi
             done
-            [ -n "$id" ] || { echo "::error::Started CI for $GITHUB_SHA but found no new run"; exit 1; }
-            echo "Started full CI run $id for $GITHUB_SHA"
           else
-            echo "Awaiting full CI run $id already in progress for $GITHUB_SHA"
+            echo "::warning::Could not list CI runs; treating as not green"
           fi
-          gh run watch "$id" --repo "$GITHUB_REPOSITORY" --exit-status --interval 30 \
-            || { echo "::error::Full CI run $id is not green for $GITHUB_SHA; fix it, then re-run this release"; exit 1; }
-          legs_green "$id" || { echo "::error::Run $id succeeded but its linux-x64 and windows-x64 legs were not both run (platform must be all)"; exit 1; }
+          [ "$green" = true ] || echo "No green full CI run for $GITHUB_SHA; this run builds and tests before packaging"
+          echo "green=$green" >> "$GITHUB_OUTPUT"
 
   linux-x64:
-    needs: guard
-    if: ${{ !cancelled() && github.event.pull_request.draft != true && inputs.platform != 'windows' && (needs.guard.result == 'success' || needs.guard.result == 'skipped') }}
+    needs: check
+    # `check` is skipped off tags; if it failed, `green` is empty and the tag run tests (fail closed).
+    if: ${{ !cancelled() && github.event.pull_request.draft != true && inputs.platform != 'windows' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -88,12 +74,12 @@ jobs:
       - name: Native AOT prerequisites
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends clang zlib1g-dev
       - name: Build (warnings, including IL*, are errors)
-        # Tags only package (#899): the publish below still builds with warnings as errors; build and tests ran in
-        # the full dispatch run that the release job requires.
-        if: ${{ !(github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) }}
+        # A tag run with a green full run for the commit only packages (#899, #937); the publish below still builds
+        # with warnings as errors. Without one (or off tags) the build and tests run here.
+        if: ${{ !(github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && needs.check.outputs.green == 'true') }}
         run: dotnet build -c Release
       - name: Test
-        if: ${{ !(github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) }}
+        if: ${{ !(github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && needs.check.outputs.green == 'true') }}
         # A hung run costs 10 minutes, not the job's 15 (#666). The blame hang timeout (one test running longer than
         # 3 minutes) must stay below the step timeout, or the step is cancelled before the report is written; it then
         # names the running test. The step timeout also covers a host that died with no test in flight.
@@ -143,8 +129,8 @@ jobs:
           if-no-files-found: error
 
   windows-x64:
-    needs: guard
-    if: ${{ !cancelled() && inputs.platform != 'linux' && (needs.guard.result == 'success' || needs.guard.result == 'skipped') }}
+    needs: check
+    if: ${{ !cancelled() && inputs.platform != 'linux' }}
     runs-on: windows-latest
     timeout-minutes: 25
     defaults:
@@ -178,10 +164,10 @@ jobs:
             "NUGET_PACKAGES=D:\gitunia-nuget" >> $env:GITHUB_ENV
           }
       - name: Build (warnings, including IL*, are errors)
-        if: ${{ !(github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) }}
+        if: ${{ !(github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && needs.check.outputs.green == 'true') }}
         run: dotnet build -c Release
       - name: Test (one project at a time)
-        if: ${{ !(github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) }}
+        if: ${{ !(github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && needs.check.outputs.green == 'true') }}
         # Not yet verified on the runner (#634). `dotnet test` on the solution runs the four assemblies at once, each with 8 xUnit threads, and the tests start
         # thousands of git.exe processes. On the small runner (2-4 vCPU) that made `git init` wait over 30 s (run
         # 39954351890). Sequential projects keep the wall time about the same on a CPU-bound machine but halve the
