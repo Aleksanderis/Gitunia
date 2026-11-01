@@ -3,6 +3,7 @@ using Gitunia.Core.Effects;
 using Gitunia.Core.Prompts;
 using Gitunia.Core.Remotes;
 using Gitunia.Core.Shell;
+using Gitunia.Core.Stash;
 using Gitunia.Core.Running;
 using Gitunia.Core.Tags;
 using Gitunia.Core.Status;
@@ -26,6 +27,7 @@ public static class AppReducer
         EffectFailedCommand failed => EffectFailed(state, failed),
         RemoteCommand remote => ReduceRemote(state, remote),
         ShellCommand shell => ReduceShell(state, shell),
+        StashCommand stash => ReduceStash(state, stash),
         TabRenameCommand rename => ReduceTabRename(state, rename),
         TagCommand tag => ReduceTag(state, tag),
         WorkspaceCommand workspace => ReduceWorkspace(state, workspace),
@@ -72,6 +74,27 @@ public static class AppReducer
         var busy = tab.Running.IsRunning(RunningOperationKind.Remotes);
         var context = new RemoteContext(tab.Id, tab.Location, tab.Refs, workspace.ActiveTabId == tab.Id, busy);
         var effects = RemoteReducer.Reduce(command, context);
+        var running = tab.Running.Apply(tab.Id, command, effects);
+        if (Equals(running, tab.Running))
+        {
+            return new AppUpdate(state, effects);
+        }
+
+        return new AppUpdate(WithTab(state, tab with { Running = running }), effects);
+    }
+
+    // A result or answer for a tab that was closed meanwhile is dropped, like a late TabCommand.
+    private static AppUpdate ReduceStash(AppState state, StashCommand command)
+    {
+        var workspace = state.Workspace;
+        if (workspace.FindTab(command.TabId) is not { } tab)
+        {
+            return new AppUpdate(state, []);
+        }
+
+        var busy = tab.Running.IsRunning(RunningOperationKind.Stash);
+        var context = new StashContext(tab.Id, tab.Location, tab.Stashes, tab.View.FocusedPane, busy);
+        var effects = StashReducer.Reduce(command, context);
         var running = tab.Running.Apply(tab.Id, command, effects);
         if (Equals(running, tab.Running))
         {

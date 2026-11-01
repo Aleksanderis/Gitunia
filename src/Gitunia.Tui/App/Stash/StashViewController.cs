@@ -2,6 +2,7 @@ using Gitunia.App.Status;
 using Gitunia.App;
 using Gitunia.Core.Graph;
 using Gitunia.Core.Sidebar;
+using Gitunia.Core.Stash;
 using Gitunia.Git;
 using Gitunia.Tui.App.Tabs;
 
@@ -14,9 +15,7 @@ namespace Gitunia.Tui.App.Stash;
 /// </summary>
 public sealed class StashViewController(
     Dispatcher host,
-    Func<TerminalTabSession?> activeSession,
-    Action reselectGraphCommit,
-    Action refreshDetail,
+    IStashViewHost view,
     StatusReporter statuses)
 {
     /// <summary>Starts showing the stash of a sidebar row.</summary>
@@ -25,9 +24,9 @@ public sealed class StashViewController(
     public bool Show(SidebarRow row)
     {
         if (host.Workspace.ActiveTab is not { } tab
-            || activeSession() is not { } session
+            || view.ActiveSession() is not { } session
             || row.Kind != SidebarRowKind.Stash
-            || tab.Stashes.FirstOrDefault(candidate => candidate.CommitHash == row.CommitHash) is not { } entry
+            || StashViewRules.Find(tab.Stashes, row.CommitHash) is not { } entry
             || !ObjectId.TryParse(entry.CommitHash, out var commit))
         {
             return false;
@@ -36,13 +35,13 @@ public sealed class StashViewController(
         session.StashView.Registry.Add(entry);
         session.StashView.Shown = entry;
         session.Details.Select(commit);
-        refreshDetail();
+        view.RefreshDetail();
 
         return true;
     }
 
     /// <summary>The detail pane shows a stash of the active tab now.</summary>
-    public bool IsShowing => activeSession() is { } session && IsShowingIn(session);
+    public bool IsShowing => view.ActiveSession() is { } session && IsShowingIn(session);
 
     /// <summary>The name of the stash the pane shows in <paramref name="session"/>, null for a commit.</summary>
     public static string? ShownName(TerminalTabSession session) => IsShowingIn(session) ? session.StashView.Shown?.Name : null;
@@ -76,13 +75,13 @@ public sealed class StashViewController(
     /// <summary>Ends the stash view and puts the graph selection back in the pane; no-op without one.</summary>
     public void Leave()
     {
-        if (activeSession() is not { } session || !IsShowingIn(session))
+        if (view.ActiveSession() is not { } session || !IsShowingIn(session))
         {
             return;
         }
 
         session.StashView.Shown = null;
-        reselectGraphCommit();
+        view.ReselectGraphCommit();
     }
 
     /// <summary>
@@ -92,7 +91,7 @@ public sealed class StashViewController(
     /// </summary>
     public void Reconcile()
     {
-        if (host.Workspace.ActiveTab is not { } tab || activeSession() is not { } session
+        if (host.Workspace.ActiveTab is not { } tab || view.ActiveSession() is not { } session
             || session.StashView.Shown is not { } shown)
         {
             return;
@@ -105,24 +104,23 @@ public sealed class StashViewController(
             return;
         }
 
-        var current = tab.Stashes.FirstOrDefault(candidate => candidate.CommitHash == shown.CommitHash);
-        if (current is null)
+        var change = StashViewRules.Reconcile(shown, tab.Stashes);
+        if (change.Kind == StashViewChangeKind.Gone)
         {
             session.StashView.Shown = null;
 
-            // A drop or pop from this app already reported the stash by name (with the restore command): keep that.
-            if (statuses.Current?.Text.Contains(shown.Name, StringComparison.Ordinal) != true)
+            if (StashViewRules.ShouldWarnGone(shown, statuses.Current?.Text))
             {
-                statuses.Warning($"{shown.Name} is no longer in the stash list");
+                statuses.Warning(StashViewRules.GoneNotice(shown));
             }
 
-            reselectGraphCommit();
+            view.ReselectGraphCommit();
         }
-        else if (current != shown)
+        else if (change.Kind == StashViewChangeKind.Renamed && change.Current is { } current)
         {
             session.StashView.Registry.Add(current);
             session.StashView.Shown = current;
-            refreshDetail();
+            view.RefreshDetail();
         }
     }
 

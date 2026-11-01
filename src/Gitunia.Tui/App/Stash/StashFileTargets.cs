@@ -1,3 +1,4 @@
+using Gitunia.Core.Stash;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Stash;
 using Gitunia.Git.Stash.Models;
