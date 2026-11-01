@@ -54,4 +54,4 @@ Settings (`<space>,`) edits the same file. The format is in [ux-look.md](ux-look
 
 ## Git config is respected
 
-Gitunia uses your git configuration, hooks, credential helpers and editor, and changes a repository's config only when you ask (upstream, remotes, clone).
+Gitunia uses your Git configuration, hooks, credential helpers and editor, and changes a repository's config only when you ask (upstream, remotes, clone).
