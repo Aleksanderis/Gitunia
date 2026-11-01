@@ -427,6 +427,7 @@ public sealed class TuiApplication(
         ];
         _graphObservers = [.. _promptDisplays.OfType<IGraphObserver>()];
         _keys.TextKeyHandler = HandleTextKey;
+        _inputHandlers.RequireComplete();
         _actions = new ActionExecutor(
             _inputHandlers,
             new RepeatStarter(_host, _view, _repeat, _paneSizes),

@@ -259,7 +259,6 @@ public sealed class WorkingDiffController : IActionHandler, ITextKeyHandler, IAc
         return _actions.HandleTextKey(diff, diff?.Source.Document ?? DiffDocument.Empty, key);
     }
 
-
     /// <summary>Call when the shown tab changed: hooks the new tab's diff store and restores its cursor.</summary>
     public void OnTabSwitched(TerminalTabSession? previous, TerminalTabSession? current)
     {

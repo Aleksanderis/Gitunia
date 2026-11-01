@@ -16,14 +16,42 @@ public sealed class InputHandlers
     /// <param name="target">The object that does the work.</param>
     public void Add(InputHandler handler, object target)
     {
+        var isHandler = false;
         if (target is IActionHandler action)
         {
             _actions[handler] = action;
+            isHandler = true;
         }
 
         if (target is ITextKeyHandler textKey)
         {
             _textKeys[handler] = textKey;
+            isHandler = true;
+        }
+
+        if (!isHandler)
+        {
+            throw new ArgumentException($"{target.GetType().Name} takes neither actions nor typed keys", nameof(target));
+        }
+    }
+
+    /// <summary>
+    /// Fails at startup when a case the routing can name has no object behind it, instead of on the first key that
+    /// reaches it (a failure inside the runner would only show as a status message).
+    /// </summary>
+    public void RequireComplete()
+    {
+        foreach (var handler in Enum.GetValues<InputHandler>())
+        {
+            if (handler != InputHandler.CommitMessage)
+            {
+                ActionsOf(handler);
+            }
+        }
+
+        foreach (var handler in InputRouting.TextKeyHandlers())
+        {
+            TextKeysOf(handler);
         }
     }
 

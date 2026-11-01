@@ -1,9 +1,9 @@
-using Gitunia.Tui.Input;
 using Gitunia.App;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Sync;
 using Gitunia.Tui.App.Branches;
+using Gitunia.Tui.Input;
 
 namespace Gitunia.Tui.App.Remote;
 

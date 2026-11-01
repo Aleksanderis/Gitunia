@@ -1,4 +1,3 @@
-using Gitunia.Tui.Input;
 using Gitunia.App;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
@@ -7,6 +6,7 @@ using Gitunia.Core.Reflog;
 using Gitunia.Core.Shell;
 using Gitunia.Core.Sidebar;
 using Gitunia.Tui.App.Branches;
+using Gitunia.Tui.Input;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Overlays;
 

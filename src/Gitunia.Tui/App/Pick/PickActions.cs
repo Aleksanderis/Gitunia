@@ -20,7 +20,6 @@ namespace Gitunia.Tui.App.Pick;
 public sealed class PickActions(Dispatcher host, IPickSelectionSource selection)
     : IActionHandler, ITextKeyHandler, IPromptDisplay
 {
-
     /// <summary>The mainline question as a status line, for a screen too small for the overlay.</summary>
     public string StatusLine
     {
@@ -99,7 +98,6 @@ public sealed class PickActions(Dispatcher host, IPickSelectionSource selection)
 
         return true;
     }
-
 
     private static PickKind? KindOf(ActionId action)
     {

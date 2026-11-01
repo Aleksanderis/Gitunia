@@ -1,9 +1,9 @@
-using Gitunia.Tui.Input;
 using Gitunia.App;
 using Gitunia.Core.Conflicts;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Shell;
+using Gitunia.Tui.Input;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Overlays;
 using Gitunia.Tui.Rendering.Styling;

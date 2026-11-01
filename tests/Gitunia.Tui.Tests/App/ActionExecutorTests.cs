@@ -12,6 +12,7 @@ using Xunit;
 namespace Gitunia.Tui.Tests.App;
 
 /// <summary>A key through the real reducer and executor: the first handler in the order that takes it wins.</summary>
+[Trait("Os", "Independent")]
 public class ActionExecutorTests : IInputFocusSource
 {
     private readonly Dispatcher _host = new(AppState.Empty);

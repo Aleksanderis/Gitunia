@@ -1,10 +1,10 @@
-using Gitunia.Tui.Input;
 using Gitunia.App;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Lists;
 using Gitunia.Core.Visual;
 using Gitunia.Core.Workspaces.Panes;
+using Gitunia.Tui.Input;
 using Gitunia.Tui.Views;
 using Gitunia.Tui.Views.Lists;
 

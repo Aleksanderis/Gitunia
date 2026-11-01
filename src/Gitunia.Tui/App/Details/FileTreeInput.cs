@@ -27,7 +27,6 @@ public sealed class FileTreeInput(Dispatcher host, ListView detailList)
     private const string FilterLabel = "/";
     private const string AppliedFilterLabel = "filter: ";
 
-
     public string StatusLine
     {
         get
@@ -92,7 +91,6 @@ public sealed class FileTreeInput(Dispatcher host, ListView detailList)
         // Insert mode swallows every key, so a stray one never moves the list or fires a binding.
         return true;
     }
-
 
     private bool ExecuteInFiles(RepositoryState tab, ActionId action)
     {

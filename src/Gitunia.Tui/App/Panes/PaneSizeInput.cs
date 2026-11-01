@@ -1,9 +1,9 @@
-using Gitunia.Tui.Input;
 using Gitunia.App;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Tui.App.WorkingTree;
+using Gitunia.Tui.Input;
 
 namespace Gitunia.Tui.App.Panes;
 

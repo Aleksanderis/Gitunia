@@ -1,8 +1,8 @@
-using Gitunia.Tui.Input;
 using Gitunia.App;
 using Gitunia.Core.Creation;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
+using Gitunia.Tui.Input;
 
 namespace Gitunia.Tui.App.Creation;
 

@@ -147,7 +147,6 @@ public sealed class DiffPaneInput : IActionHandler, ITextKeyHandler, IActionNoti
         _view.ShowContent();
     }
 
-
     /// <summary>The terminal changed size: loads the diff that now has room.</summary>
     public void OnScreenResized() => FollowSelection();
 

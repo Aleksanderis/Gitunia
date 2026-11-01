@@ -22,7 +22,6 @@ public sealed class QuickJumpInput(Dispatcher host, IQuickJumpHost view)
 {
     private IJumpTarget? _target;
 
-
     public string StatusLine
     {
         get

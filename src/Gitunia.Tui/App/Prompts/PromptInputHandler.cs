@@ -16,7 +16,6 @@ namespace Gitunia.Tui.App.Prompts;
 /// <param name="host">Holds the state the popup is drawn from and takes the commands.</param>
 public sealed class PromptInputHandler(Dispatcher host) : IActionHandler, ITextKeyHandler, IPromptDisplay
 {
-
     public string StatusLine => string.Empty;
 
     public PromptPopup? Popup => host.State.Shell.Prompt is { } prompt ? OpenPromptPopup.Of(prompt) : null;
@@ -55,5 +54,4 @@ public sealed class PromptInputHandler(Dispatcher host) : IActionHandler, ITextK
 
         return true;
     }
-
 }
