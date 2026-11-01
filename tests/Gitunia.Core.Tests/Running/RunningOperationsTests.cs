@@ -1,9 +1,13 @@
 using Gitunia.Core.Running;
 using Gitunia.Core.Remotes;
+using Gitunia.Core.Stash;
 using Gitunia.Core.Tags;
 using Gitunia.Core.Tests.Fixtures;
 using Gitunia.Core.Workspaces.Tabs;
+using Gitunia.Git.Commits.Models;
 using Gitunia.Git.Repositories.Models;
+using Gitunia.Git.Stash;
+using Gitunia.Git.Stash.Models;
 using Xunit;
 
 namespace Gitunia.Core.Tests.Running;
@@ -110,6 +114,41 @@ public class RunningOperationsTests
 
         Assert.Equal(5, results.Length);
         Assert.All(results, result => Assert.Equal(RunningOperationKind.Remotes, result.Kind));
+    }
+
+    [Fact]
+    public void GivenEveryConcreteStashEffect_WhenInspectingIt_ThenItIsAnOperationEffectOfKindStash()
+    {
+        var effects = ConcreteSubtypes.InstancesOf<StashEffect>();
+        var location = Location();
+        var entry = new StashEntry(0, "stash@{0}", "abc", "m");
+        var file = new StashFileChange(
+            new CommitFileChange("a", null, FileChangeKind.Added, null),
+            StashFileOrigin.Tracked);
+        var target = new StashFileTarget(entry, file);
+
+        // Instances are uninitialised (the constructor does not run), so one built per type shows the kind.
+        Assert.NotEmpty(effects);
+        Assert.All(effects, effect => Assert.IsAssignableFrom<OperationEffect>(effect));
+        StashEffect[] built =
+        [
+            new PushStashEffect(Tab, location, "m", false),
+            new ApplyStashEffect(Tab, location, entry, false),
+            new DropStashEffect(Tab, location, entry),
+            new CheckStashRestoreEffect(Tab, location, target),
+            new RestoreStashFileEffect(Tab, location, target),
+        ];
+        Assert.Equal(effects.Count, built.Length);
+        Assert.All(built, effect => Assert.Equal(RunningOperationKind.Stash, effect.Kind));
+    }
+
+    [Fact]
+    public void GivenEveryConcreteStashResultCommand_WhenInspectingIt_ThenItEndsTheKindStash()
+    {
+        var results = ConcreteSubtypes.InstancesOf<StashCommand>().OfType<IOperationResult>().ToArray();
+
+        Assert.Equal(4, results.Length);
+        Assert.All(results, result => Assert.Equal(RunningOperationKind.Stash, result.Kind));
     }
 
     private static DeleteTagEffect Delete(TabId tab) => new(tab, Location(), "v1", "x");
