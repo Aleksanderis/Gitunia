@@ -7,12 +7,12 @@ using Gitunia.Core.Overlays;
 using Gitunia.Core.Picker;
 using Gitunia.Core.Search;
 using Gitunia.Core.Status;
+using Gitunia.Core.Text;
 using Gitunia.Git.Execution.Exceptions;
 using Gitunia.Git.Remotes.Models;
 using Gitunia.Git.Repositories;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Tui.App.Overlays;
-using Gitunia.Tui.App.Remote;
 using Gitunia.Tui.Input;
 
 namespace Gitunia.Tui.App.Creation;

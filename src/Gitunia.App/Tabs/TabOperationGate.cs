@@ -5,7 +5,7 @@ namespace Gitunia.App.Tabs;
 /// <summary>
 /// Lets one operation of a kind run per tab at a time. Staging, discarding, reset and the editors share one gate, so a
 /// discard never starts while a stage of the same tab is still running or its status is still being re-read; branch,
-/// push and remote management keep a gate each (tags use the running flag in their state). Every gate comes from <see cref="TabActivity"/>, which tab
+/// the commit actions keep a gate each (migrated features use the running flag in their state). Every gate comes from <see cref="TabActivity"/>, which tab
 /// eviction asks before it cancels a tab's work.
 /// </summary>
 public sealed class TabOperationGate

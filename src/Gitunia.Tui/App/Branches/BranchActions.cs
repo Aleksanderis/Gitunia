@@ -2,8 +2,8 @@ using Gitunia.App;
 using Gitunia.Core.Branches;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
+using Gitunia.Core.Sync;
 using Gitunia.Core.Workspaces.Tabs;
-using Gitunia.Tui.App.Remote;
 
 namespace Gitunia.Tui.App.Branches;
 
@@ -26,8 +26,9 @@ public sealed class BranchActions(Dispatcher host, IBranchSelectionSource select
 
         var current = selection.Current();
 
-        // A remote branch (its row, or a graph commit that has only remote ones) is deleted by PushActions.
-        if (action == ActionIds.BranchDelete && RemoteDeleteTarget.IsRemoteOnly(tab, current))
+        // A remote branch (its row, or a graph commit that has only remote ones) is deleted by SyncActions.
+        var target = new SyncTarget(current.RowKind, current.Name, current.CommitHash);
+        if (action == ActionIds.BranchDelete && RemoteDeleteTarget.IsRemoteOnly(tab.Refs, target))
         {
             return false;
         }

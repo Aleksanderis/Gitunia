@@ -97,7 +97,7 @@ public class BranchActionsTests
     }
 
     [Fact]
-    public void GivenARemoteBranchRow_WhenDeleting_ThenThePushActionsGetItAndNoBranchCommandRuns()
+    public void GivenARemoteBranchRow_WhenDeleting_ThenTheSyncActionsGetItAndNoBranchCommandRuns()
     {
         var tabId = _host.Workspace.ActiveTabId!.Value;
         _host.Dispatch(new TabCommand(tabId, new RefsLoadedCommand([RemoteBranch("origin/topic")])));

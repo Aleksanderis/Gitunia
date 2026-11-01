@@ -18,6 +18,9 @@ public enum RunningOperationKind
     /// <summary>A stash operation: push, apply, pop, drop, or restoring one file of a stash.</summary>
     Stash,
 
+    /// <summary>A fetch, pull, push or remote branch delete, or reading the remotes and comparing branches for their questions.</summary>
+    Sync,
+
     /// <summary>A tag operation: create, delete, push, delete on a remote, or reading the remotes for the prompt.</summary>
     Tags,
 }

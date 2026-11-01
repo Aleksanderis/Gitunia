@@ -10,6 +10,7 @@ using Gitunia.App.Settings;
 using Gitunia.App.Remotes;
 using Gitunia.App.Stash;
 using Gitunia.App.Status;
+using Gitunia.App.Sync;
 using Gitunia.App.Tabs;
 using Gitunia.App.Tabs.Models;
 using Gitunia.App.Tags;
@@ -23,6 +24,7 @@ using Gitunia.Core.Reflog;
 using Gitunia.Core.Settings;
 using Gitunia.Core.Remotes;
 using Gitunia.Core.Stash;
+using Gitunia.Core.Sync;
 using Gitunia.Core.Tags;
 using Gitunia.Core.IssueTracker;
 using Gitunia.Core.Shell;
@@ -63,6 +65,7 @@ public sealed class EffectRunner<TSession> : IDisposable
     private readonly CancellationTokenSource _shutdown = new();
     private readonly RemoteEffectHandler _remotes;
     private readonly StashEffectHandler _stash;
+    private readonly SyncEffectHandler _sync;
     private readonly TagEffectHandler _tags;
     private readonly Action<Action> _postToUi;
     private readonly StatusReporter _statuses;
@@ -99,6 +102,7 @@ public sealed class EffectRunner<TSession> : IDisposable
         _integration = IntegrationEffectHandler.Create(services, host);
         _remotes = new RemoteEffectHandler(services.RemoteManager, host);
         _stash = new StashEffectHandler(services.StashWriter, host);
+        _sync = new SyncEffectHandler(services.Remote, services.RemoteManager, services.Ancestry, host);
         _tags = new TagEffectHandler(services.Tags, host);
         _pollOptions = pollOptions ?? PollOptions.Default;
         _warmTabLimit = Math.Max(1, warmTabLimit);
@@ -222,6 +226,7 @@ public sealed class EffectRunner<TSession> : IDisposable
         SettingsEffect => new SettingsOperationFailed(text),
         RemoteEffect remote => new RemoteOperationFailed(remote.TabId, text),
         StashEffect stash => new StashOperationFailed(stash.TabId, text),
+        SyncEffect sync => new SyncFailed(sync.TabId, text, null, null),
         TagEffect tag => new TagOperationFailed(tag.TabId, text, null),
         _ => new EffectFailedCommand(text),
     };
@@ -235,6 +240,9 @@ public sealed class EffectRunner<TSession> : IDisposable
                 break;
             case CancelLoadEffect cancel:
                 Cancel(cancel);
+                break;
+            case CancelSyncEffect cancelSync:
+                _sync.Cancel(cancelSync.TabId);
                 break;
             case CopyToClipboardEffect copy:
                 _shell.CopyToClipboard(copy);
@@ -286,6 +294,9 @@ public sealed class EffectRunner<TSession> : IDisposable
                 break;
             case StashEffect stash:
                 _stash.Handle(stash, _cancellation.TokenOf(stash.TabId));
+                break;
+            case SyncEffect sync:
+                _sync.Handle(sync, _cancellation.TokenOf(sync.TabId));
                 break;
             case TagEffect tag:
                 _tags.Handle(tag, _cancellation.TokenOf(tag.TabId));
