@@ -1,171 +1,199 @@
+using Gitunia.App;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
+using Gitunia.Core.Persistence;
 using Gitunia.Core.Picker;
 using Gitunia.Core.Workspaces;
-using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Tui.App;
-using Gitunia.Tui.App.Overlays;
 using Gitunia.Tui.App.Prompts;
 using Gitunia.Tui.Tests.Fakes;
 using Xunit;
 
 namespace Gitunia.Tui.Tests.App;
 
+// The view side of the tab and picker actions: it asks the reducer who owns an action and dispatches the rest; the
+// decisions themselves are tested in Gitunia.Core.Tests (WorkspaceActionReducerTests).
 public class WorkspaceActionsTests
 {
     [Fact]
     public void GivenThreeTabs_WhenATabClickRunsTabNextWithItsNumber_ThenThatTabIsActive()
     {
-        var (actions, host, _) = Create(3);
+        var setup = Create(3);
 
-        var handled = actions.TryExecute(ActionIds.TabNext, 3);
+        var handled = setup.Actions.TryExecute(ActionIds.TabNext, 3);
 
         Assert.True(handled);
-        Assert.Equal(host.Workspace.Tabs[2].Id, host.Workspace.ActiveTabId);
+        Assert.Equal(setup.Host.Workspace.Tabs[2].Id, setup.Host.Workspace.ActiveTabId);
     }
 
     [Fact]
     public void GivenAnOpenPicker_WhenATabIsClicked_ThenThePickerClosesAndTheTabIsActive()
     {
-        var (actions, host, picker) = Create(2);
-        picker.Open();
+        var setup = Create(2);
+        OpenPicker(setup.Host);
 
-        actions.TryExecute(ActionIds.TabNext, 1);
+        setup.Actions.TryExecute(ActionIds.TabNext, 1);
 
-        Assert.False(picker.IsOpen);
-        Assert.Equal(host.Workspace.Tabs[0].Id, host.Workspace.ActiveTabId);
+        Assert.False(setup.Host.State.Shell.Picker.IsOpen);
+        Assert.Equal(setup.Host.Workspace.Tabs[0].Id, setup.Host.Workspace.ActiveTabId);
     }
 
     [Fact]
     public void GivenNoTabs_WhenATabClickArrives_ThenNothingHappens()
     {
-        var (actions, host, _) = Create(0);
+        var setup = Create(0);
 
-        var handled = actions.TryExecute(ActionIds.TabNext, 1);
+        var handled = setup.Actions.TryExecute(ActionIds.TabNext, 1);
 
         Assert.True(handled);
-        Assert.Empty(host.Workspace.Tabs);
+        Assert.Empty(setup.Host.Workspace.Tabs);
     }
 
     [Fact]
     public void GivenAnOpenPicker_WhenTheMouseDoubleClickActionRuns_ThenThePickerHandlesIt()
     {
-        var (actions, _, picker) = Create(0);
-        picker.Open();
+        var setup = Create(0);
+        OpenPicker(setup.Host);
 
-        var handled = actions.TryExecute(ActionIds.PickerAccept, null);
+        var handled = setup.Actions.TryExecute(ActionIds.PickerAccept, null);
 
         Assert.True(handled);
+        Assert.StartsWith("nothing to open", setup.Host.State.Shell.Picker.State!.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GivenAClosedPicker_WhenAPickerActionArrives_ThenItIsLeftToTheOthers()
+    {
+        var setup = Create(1);
+
+        Assert.False(setup.Actions.TryExecute(ActionIds.PickerAccept, null));
+        Assert.False(setup.Actions.TryExecute(ActionIds.GraphJumpToHead, null));
     }
 
     [Fact]
     public void GivenAnOpenPickerWithAQuery_WhenPickerOpenRunsAgain_ThenTheStateIsKept()
     {
-        var (actions, _, picker) = Create(1);
-        picker.Open();
-        picker.Apply(new TypeTextCommand("abc"));
+        var setup = Create(1);
+        OpenPicker(setup.Host);
+        setup.Host.Dispatch(new TypeTextCommand("abc"));
 
-        actions.TryExecute(ActionIds.PickerOpen, null);
+        setup.Actions.TryExecute(ActionIds.PickerOpen, null);
 
-        Assert.Equal("abc", picker.State!.Query);
+        Assert.Equal("abc", setup.Host.State.Shell.Picker.State!.Query);
     }
 
     [Fact]
     public void GivenAnUnsentMessage_WhenClosingTheTab_ThenTheFirstCloseOnlyWarnsAndTheSecondCloses()
     {
-        var (actions, host, _) = Create(2, hasUnsentMessage: _ => true);
+        var setup = Create(2, withUnsentMessage: true);
 
-        actions.TryExecute(ActionIds.TabClose, null);
+        setup.Actions.TryExecute(ActionIds.TabClose, null);
 
-        Assert.Equal(2, host.Workspace.Tabs.Length);
-        Assert.Contains("Unsent commit message", actions.Message, StringComparison.Ordinal);
+        Assert.Equal(2, setup.Host.Workspace.Tabs.Length);
+        Assert.Contains("Unsent commit message", setup.Actions.Message, StringComparison.Ordinal);
 
-        actions.TryExecute(ActionIds.TabClose, null);
+        setup.Actions.TryExecute(ActionIds.TabClose, null);
 
-        Assert.Single(host.Workspace.Tabs);
+        Assert.Single(setup.Host.Workspace.Tabs);
+        Assert.Empty(setup.Actions.Message);
     }
 
     [Fact]
     public void GivenAnUnsentMessage_WhenAnotherActionComesBetweenTheCloses_ThenTheGuardWarnsAgain()
     {
-        var (actions, host, _) = Create(2, hasUnsentMessage: _ => true);
-        actions.TryExecute(ActionIds.TabClose, null);
+        var setup = Create(2, withUnsentMessage: true);
+        setup.Actions.TryExecute(ActionIds.TabClose, null);
 
-        actions.TryExecute(ActionIds.TabLastActive, null);
-        actions.TryExecute(ActionIds.TabClose, null);
+        setup.Actions.TryExecute(ActionIds.TabLastActive, null);
+        setup.Actions.TryExecute(ActionIds.TabClose, null);
 
-        Assert.Equal(2, host.Workspace.Tabs.Length);
+        Assert.Equal(2, setup.Host.Workspace.Tabs.Length);
+    }
+
+    [Fact]
+    public void GivenAWarning_WhenAnActionOfAnotherHandlerComes_ThenTheNoticeIsGone()
+    {
+        var setup = Create(2, withUnsentMessage: true);
+        setup.Actions.TryExecute(ActionIds.TabClose, null);
+
+        var handled = setup.Actions.TryExecute(ActionIds.GraphJumpToHead, null);
+
+        Assert.False(handled);
+        Assert.Empty(setup.Actions.Message);
     }
 
     [Fact]
     public void GivenNoUnsentMessage_WhenClosingTheTab_ThenItClosesAtOnce()
     {
-        var (actions, host, _) = Create(2, hasUnsentMessage: _ => false);
+        var setup = Create(2);
 
-        actions.TryExecute(ActionIds.TabClose, null);
+        setup.Actions.TryExecute(ActionIds.TabClose, null);
 
-        Assert.Single(host.Workspace.Tabs);
+        Assert.Single(setup.Host.Workspace.Tabs);
     }
 
     [Fact]
     public void GivenATab_WhenRenamingAndAccepting_ThenTheTypedNameIsTheTabTitle()
     {
-        var (actions, host, _) = Create(1);
-        var prompt = new PromptInputHandler(host);
-        var tab = host.Workspace.ActiveTab!;
+        var setup = Create(1);
+        var prompt = new PromptInputHandler(setup.Host);
+        var tab = setup.Host.Workspace.ActiveTab!;
 
-        Assert.True(actions.TryExecute(ActionIds.TabRename, null));
-        Assert.Equal(KeyMode.Insert, host.State.Shell.Mode);
+        Assert.True(setup.Actions.TryExecute(ActionIds.TabRename, null));
+        Assert.Equal(KeyMode.Insert, setup.Host.State.Shell.Mode);
         Assert.Contains("repo0_", PopupText.Of(prompt), StringComparison.Ordinal);
         Type(prompt, "-2");
         prompt.TryExecute(ActionIds.InputAccept, null);
 
-        Assert.Equal("repo0-2", host.Workspace.FindTab(tab.Id)!.Title);
-        Assert.Equal("repo0", host.Workspace.FindTab(tab.Id)!.DisplayName);
-        Assert.Equal(KeyMode.Normal, host.State.Shell.Mode);
+        Assert.Equal("repo0-2", setup.Host.Workspace.FindTab(tab.Id)!.Title);
+        Assert.Equal("repo0", setup.Host.Workspace.FindTab(tab.Id)!.DisplayName);
+        Assert.Equal(KeyMode.Normal, setup.Host.State.Shell.Mode);
         Assert.Equal(string.Empty, PopupText.Of(prompt));
     }
 
     [Fact]
     public void GivenARenamedTab_WhenAcceptingAnEmptyName_ThenTheRepositoryNameIsBack()
     {
-        var (actions, host, _) = Create(1);
-        var prompt = new PromptInputHandler(host);
-        actions.TryExecute(ActionIds.TabRename, null);
+        var setup = Create(1);
+        var prompt = new PromptInputHandler(setup.Host);
+        setup.Actions.TryExecute(ActionIds.TabRename, null);
         Type(prompt, "x");
         prompt.TryExecute(ActionIds.InputAccept, null);
 
-        actions.TryExecute(ActionIds.TabRename, null);
+        setup.Actions.TryExecute(ActionIds.TabRename, null);
         prompt.HandleTextKey(new KeyEvent("u", KeyModifiers.Ctrl));
         prompt.TryExecute(ActionIds.InputAccept, null);
 
-        Assert.Null(host.Workspace.ActiveTab!.CustomName);
-        Assert.Equal("repo0", host.Workspace.ActiveTab.Title);
+        Assert.Null(setup.Host.Workspace.ActiveTab!.CustomName);
+        Assert.Equal("repo0", setup.Host.Workspace.ActiveTab.Title);
     }
 
     [Fact]
     public void GivenTheRenamePrompt_WhenCancelling_ThenTheNameIsUnchanged()
     {
-        var (actions, host, _) = Create(1);
-        var prompt = new PromptInputHandler(host);
-        actions.TryExecute(ActionIds.TabRename, null);
+        var setup = Create(1);
+        var prompt = new PromptInputHandler(setup.Host);
+        setup.Actions.TryExecute(ActionIds.TabRename, null);
         Type(prompt, "zzz");
 
         prompt.TryExecute(ActionIds.Cancel, null);
 
-        Assert.Null(host.Workspace.ActiveTab!.CustomName);
-        Assert.Equal(KeyMode.Normal, host.State.Shell.Mode);
+        Assert.Null(setup.Host.Workspace.ActiveTab!.CustomName);
+        Assert.Equal(KeyMode.Normal, setup.Host.State.Shell.Mode);
     }
 
     [Fact]
     public void GivenNoTab_WhenRenaming_ThenNoPromptOpens()
     {
-        var (actions, host, _) = Create(0);
+        var setup = Create(0);
 
-        Assert.False(actions.TryExecute(ActionIds.TabRename, null));
-        Assert.Null(host.State.Shell.Prompt);
+        Assert.False(setup.Actions.TryExecute(ActionIds.TabRename, null));
+        Assert.Null(setup.Host.State.Shell.Prompt);
     }
+
+    private static void OpenPicker(Dispatcher host) =>
+        host.Dispatch(new PickerOpenRequested(null, string.Empty, host.Clock.GetUtcNow()));
 
     private static void Type(PromptInputHandler prompt, string text)
     {
@@ -175,18 +203,26 @@ public class WorkspaceActionsTests
         }
     }
 
-    private static WorkspaceActionsHarness Create(int tabCount, Func<TabId, bool>? hasUnsentMessage = null)
+    private static Setup Create(int tabCount, bool withUnsentMessage = false)
     {
-        var host = new TestShell().Host;
+        var shell = new TestShell();
+        var host = shell.Host;
         for (var index = 0; index < tabCount; index++)
         {
             var root = Path.Combine(Path.GetTempPath(), "gitunia-workspace-actions", $"repo{index}");
-            host.Dispatch(new OpenRepositoryCommand(new RepositoryLocation(root, Path.Combine(root, ".git"), Path.Combine(root, ".git"), false, false)));
+            var gitDirectory = Path.Combine(root, ".git");
+            host.Dispatch(new OpenRepositoryCommand(new RepositoryLocation(root, gitDirectory, gitDirectory, false, false)));
         }
 
-        // Background results are queued and never run: these tests are synchronous and must not race a scan on another thread.
-        var pump = new UiPump(TestContext.Current.CancellationToken);
-        var picker = new PickerController(TestGit.Services.Discovery, host, Path.GetTempPath(), pump.Post);
-        return new WorkspaceActionsHarness(new WorkspaceActions(host, picker, () => { }, hasUnsentMessage), host, picker);
+        var commits = TestCommitActions.Create(host, shell.Statuses);
+        if (withUnsentMessage)
+        {
+            var drafts = host.Workspace.Tabs.ToDictionary(tab => tab.Id, _ => new SessionDraft("unsent", false, false));
+            commits.Restore(drafts);
+        }
+
+        return new Setup(new WorkspaceActions(host, commits), host);
     }
+
+    private sealed record Setup(WorkspaceActions Actions, Dispatcher Host);
 }

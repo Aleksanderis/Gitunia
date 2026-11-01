@@ -3,7 +3,7 @@ using System.Collections.Immutable;
 namespace Gitunia.Core.Picker;
 
 /// <summary>A change to the open picker.</summary>
-public abstract record PickerCommand
+public abstract record PickerCommand : AppCommand
 {
     private protected PickerCommand()
     {
