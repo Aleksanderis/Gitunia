@@ -63,6 +63,11 @@ internal static class QuickRebases
 
     public static ImmutableArray<AppEffect> SubjectAccepted(QuickRebaseSubjectAccepted accepted, RebaseContext context)
     {
+        if (context.IsBusy)
+        {
+            return [RebaseReducer.Post(RebaseReducer.BusyNotice)];
+        }
+
         var subject = accepted.Text.Trim();
         if (subject.Length == 0)
         {

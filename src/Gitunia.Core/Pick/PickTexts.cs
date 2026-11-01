@@ -39,21 +39,21 @@ public static class PickTexts
     /// <summary>The rows of the mainline overlay, one per parent of the merge commit.</summary>
     public static IReadOnlyList<string> MainlineRows(PickCommit merge) => merge.Parents.Select(Parent).ToList();
 
-    public static PickReport Report(PickResult result, PickKind kind, string target, string what)
+    public static PostedText Report(PickResult result, PickKind kind, string target, string what)
     {
         var tip = ShortHash.Of(result.Head);
         var was = ShortHash.Of(result.OldHead);
         var verb = Verb(kind);
         return result.Outcome switch
         {
-            PickOutcome.Completed => new PickReport(
+            PickOutcome.Completed => new PostedText(
                 $"{PastTense(kind)} {what} onto {target} ({tip}), was {was}; undo: git reset --hard {was} " +
                 "(the reflog has it)",
                 StatusSeverity.Info),
-            PickOutcome.NothingToApply => new PickReport(
+            PickOutcome.NothingToApply => new PostedText(
                 $"Nothing to {verb}: {target} already has the changes of {what}",
                 StatusSeverity.Info),
-            _ => new PickReport(
+            _ => new PostedText(
                 $"The {verb} of {what} stopped on conflicts: resolve the files marked !, then <space>gc to " +
                 "continue, <space>ga to abort or <space>gs to skip the commit",
                 StatusSeverity.Warning),
