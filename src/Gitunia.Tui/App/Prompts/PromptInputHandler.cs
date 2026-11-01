@@ -3,12 +3,13 @@ using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Overlays;
 using Gitunia.Core.Prompts;
+using Gitunia.Core.Shell;
 using Gitunia.Tui.Input;
 
 namespace Gitunia.Tui.App.Prompts;
 
 /// <summary>
-/// The terminal side of the one prompt model (#971): while a prompt is open in <see cref="Gitunia.Core.Shell.ShellState"/>
+/// The terminal side of the one prompt model (#971): while a prompt is open in <see cref="ShellState"/>
 /// it turns Enter, Esc and the typed keys into prompt commands and hands the popup to the renderer. It decides nothing
 /// and knows no feature: what a prompt means is its result command, reduced in Core.
 /// </summary>

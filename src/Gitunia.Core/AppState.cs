@@ -10,7 +10,7 @@ namespace Gitunia.Core;
 /// its features move (docs/architecture.md, "Effects as data").
 /// </summary>
 /// <param name="Workspace">The repository tabs with their per-tab state, recents and pins.</param>
-/// <param name="Shell">The key mode, status messages, confirm dialog and output overlay.</param>
+/// <param name="Shell">The key mode, status messages, confirm dialog, output overlay and open prompt.</param>
 public sealed record AppState(Workspace Workspace, ShellState Shell)
 {
     public AppState(Workspace workspace)

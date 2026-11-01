@@ -165,6 +165,22 @@ public class PromptReducerTests
     }
 
     [Fact]
+    public void GivenADialogOverThePrompt_WhenThePromptIsCancelled_ThenTheDialogKeepsItsModeAndReturnsToTheOldOne()
+    {
+        var state = Reduce(ShellState.Empty, Request(initialText: "x")).State;
+        state = ShellReducer.Reduce(
+            state,
+            new ConfirmRequestedCommand(AskDelete, new SetKeyModeCommand(KeyMode.Normal), null)).State;
+
+        var cancelled = Reduce(state, new PromptCancelledCommand()).State;
+        Assert.Null(cancelled.Prompt);
+        Assert.Equal(KeyMode.Confirm, cancelled.Mode);
+
+        var answered = ShellReducer.Reduce(cancelled, new ConfirmAnsweredCommand(ConfirmAnswer.No)).State;
+        Assert.Equal(KeyMode.Normal, answered.Mode);
+    }
+
+    [Fact]
     public void GivenAPicker_WhenOpening_ThenEveryChoiceIsACandidateAndTheFirstIsHighlighted()
     {
         var update = Reduce(ShellState.Empty, Picker("origin", "backup"));

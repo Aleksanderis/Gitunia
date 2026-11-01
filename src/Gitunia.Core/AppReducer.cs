@@ -68,6 +68,7 @@ public static class AppReducer
         return new AppUpdate(WithTab(state, update.Tab), update.Effects);
     }
 
+    // A result for a tab that was closed meanwhile is dropped, like a late TabCommand.
     private static AppUpdate ReduceTag(AppState state, TagCommand command)
     {
         var workspace = state.Workspace;

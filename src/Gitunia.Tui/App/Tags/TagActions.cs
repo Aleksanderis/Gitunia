@@ -4,13 +4,14 @@ using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Tags;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Tui.App.Branches;
+using Gitunia.Tui.App.Prompts;
 
 namespace Gitunia.Tui.App.Tags;
 
 /// <summary>
 /// The terminal side of the tag actions: it turns the tag keys into <see cref="TagCommand"/>s for the active tab. It
 /// decides nothing; the reducer does, and the runner performs the effects. The prompts it leads to are the shared prompt
-/// model (<see cref="Gitunia.Tui.App.Prompts.PromptInputHandler"/> turns their keys into commands).
+/// model (<see cref="PromptInputHandler"/> turns their keys into commands).
 /// </summary>
 /// <param name="host">Holds the active tab and takes the commands.</param>
 /// <param name="selection">What the actions act on.</param>

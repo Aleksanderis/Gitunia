@@ -106,8 +106,22 @@ public static class PromptReducer
         return new ShellUpdate(Close(state, prompt), []);
     }
 
-    private static ShellState Close(ShellState state, OpenPrompt prompt) =>
-        (state with { Prompt = null }).WithMode(prompt.ReturnMode);
+    // A dialog or box open over the prompt keeps the mode it set; it returns to where the prompt was opened from.
+    private static ShellState Close(ShellState state, OpenPrompt prompt)
+    {
+        var closed = state with { Prompt = null };
+        if (state.Confirm is { } confirm)
+        {
+            return closed with { Confirm = confirm with { ReturnMode = prompt.ReturnMode } };
+        }
+
+        if (state.Output is { } output)
+        {
+            return closed with { Output = output with { ReturnMode = prompt.ReturnMode } };
+        }
+
+        return closed.WithMode(prompt.ReturnMode);
+    }
 
     private static ShellUpdate Replace(ShellState state, OpenPrompt prompt) =>
         new(state with { Prompt = prompt }, []);
