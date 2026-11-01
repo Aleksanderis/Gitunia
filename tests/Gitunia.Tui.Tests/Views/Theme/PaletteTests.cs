@@ -478,7 +478,8 @@ public class PaletteTests
                 var attribute = Palette.For(new StyledSegment("x", SegmentRole.Lane, lane), true, isFocused, colors);
 
                 Assert.True(
-                    Contrast(ToRgb(attribute.Foreground), ToRgb(attribute.Background)) >= SelectionContrast.AccentOnSelectionRatio,
+                    Contrast(ToRgb(attribute.Foreground), ToRgb(attribute.Background))
+                        >= SelectionContrast.AccentOnSelectionRatio,
                     $"lane {lane}, focused {isFocused}");
             }
         }

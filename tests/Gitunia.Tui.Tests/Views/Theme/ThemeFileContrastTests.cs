@@ -187,7 +187,9 @@ public sealed class ThemeFileContrastTests
                 var isMark = role is SegmentRole.WhitespaceMark
                     or SegmentRole.WhitespaceMarkAddedWord or SegmentRole.WhitespaceMarkRemovedWord;
                 var minimum = isMark ? SubtleQuantizedRatio : QuantizedRatio;
-                if (highlight.IsSelected && SelectionContrast.Minimum(ReadableRatio, true, Resolve(attribute.Foreground, definition, true), colors) < ReadableRatio)
+                var rawForeground = Resolve(attribute.Foreground, definition, true);
+                var accentMinimum = SelectionContrast.Minimum(ReadableRatio, highlight.IsSelected, rawForeground, colors);
+                if (accentMinimum < ReadableRatio)
                 {
                     minimum = QuantizedAccentOnSelectionRatio;
                 }

@@ -80,7 +80,10 @@ public sealed class PaletteTable
     /// <summary>The background of an inactive repository tab (a button on the bar), visibly apart from <see cref="BarBackground"/> (#240).</summary>
     public required Color TabButtonBackground { get; init; }
 
-    /// <summary>The background of the selected tab in the tab strip; <see cref="Color.None"/> falls back to <see cref="SelectionFocused"/>.</summary>
+    /// <summary>
+    /// The background of the selected bottom-pane tab (Details, Files); <see cref="Color.None"/> falls back to
+    /// <see cref="SelectionFocused"/>. Kept apart from the bar so the tab keeps its look when the bar gets stronger (#934).
+    /// </summary>
     public Color SelectedTabBackground { get; init; } = Color.None;
 
     /// <summary>Text on a <see cref="ChipBackground"/> (status mode, active tab, overlay title).</summary>
@@ -155,7 +158,7 @@ public sealed class PaletteTable
     private const double ReadableStep = 0.05;
     private const double RangeAccentShare = 0.2;
 
-    // A light selection bar is darker than its page, so the same tint share would sink the text below the readable ratio.
+    // A light selection bar is darker than its page, so the same share would sink text below the readable ratio.
     private const double RangeAccentShareLight = 0.08;
 
     // Shared by every table and never changed.
@@ -248,7 +251,7 @@ public sealed class PaletteTable
         Warn = Rgb(0x8a5811),
         Info = Rgb(0x116d72),
         Muted = Rgb(0x5f6175),
-        MutedOnSelection = Rgb(0x4c4f69),
+        MutedOnSelection = Rgb(0x535670),
         Subtle = Rgb(0xa0a2af),
         SubtleOnSelection = Rgb(0x848798),
         AddedWord = Rgb(0xdde5e2),

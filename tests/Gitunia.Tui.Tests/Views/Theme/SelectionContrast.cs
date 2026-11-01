@@ -11,14 +11,15 @@ namespace Gitunia.Tui.Tests.Views.Theme;
 /// </summary>
 internal static class SelectionContrast
 {
-    public const double AccentOnSelectionRatio = 3.0;
+    public const double AccentOnSelectionRatio = 3.5;
 
     public static double Minimum(double ordinary, bool isSelected, int foreground, PaletteTable colors) =>
         isSelected && IsAccent(foreground, colors) ? Math.Min(ordinary, AccentOnSelectionRatio) : ordinary;
 
     private static bool IsAccent(int foreground, PaletteTable colors)
     {
-        Color[] accents = [colors.Accent, colors.Good, colors.Bad, colors.Remote, colors.Warn, colors.Info, .. colors.Lanes];
+        Color[] accents =
+            [colors.Accent, colors.Good, colors.Bad, colors.Remote, colors.Warn, colors.Info, .. colors.Lanes];
 
         return accents.Any(accent => (accent.R << 16 | accent.G << 8 | accent.B) == foreground);
     }
