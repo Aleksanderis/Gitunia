@@ -27,7 +27,7 @@ $emptyConfig = [System.IO.Path]::GetTempFileName()
 $env:GIT_CONFIG_GLOBAL = $emptyConfig; $env:GIT_CONFIG_SYSTEM = $emptyConfig
 function Get-Prefix([string]$text) {
     $i = $text.IndexOf(':')
-    if ($i -gt 0 -and $i -le 20) { return $text.Substring(0, $i) }
+    if ($i -ge 8 -and $i -le 20) { return $text.Substring(0, $i) }
     $text.Substring(0, [Math]::Min(12, $text.Length))
 }
 if (-not $Marker) { $Marker = Get-Prefix ((git -C $Repo log -1 --format=%s HEAD) | Select-Object -First 1) }

@@ -42,11 +42,11 @@ done
 export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_SYSTEM=/dev/null
 # The app truncates long subjects with an ellipsis (the newest row also carries ref decorations),
 # so a full subject may never appear on screen, and the decorations cut the newest row shorter
-# than the others (#1001). Defaults are short prefixes: up to the first colon, else 12 chars;
+# than the others (#1001). Defaults are short prefixes: up to the first colon, else 12 chars (a colon prefix under 8 chars, like "fix", is not specific enough);
 # explicit --marker/--oldest are used as given.
 prefix() {
   local s="$1" head="${1%%:*}"
-  if [ "$head" != "$s" ] && [ -n "$head" ] && [ "${#head}" -le 20 ]; then printf '%s' "$head"; else printf '%s' "${s:0:12}"; fi
+  if [ "$head" != "$s" ] && [ -n "$head" ] && [ "${#head}" -ge 8 ] && [ "${#head}" -le 20 ]; then printf '%s' "$head"; else printf '%s' "${s:0:12}"; fi
 }
 if [ -z "$marker" ]; then
   marker="$(git -C "$repo" log -1 --format=%s HEAD)"
