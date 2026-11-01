@@ -1,14 +1,18 @@
 using Gitunia.Core.Branches;
 using Gitunia.Core.Effects;
+using Gitunia.Core.Keymap.Models;
+using Gitunia.Core.Pick;
 using Gitunia.Core.Integration;
 using Gitunia.Core.Operations;
 using Gitunia.Core.Prompts;
+using Gitunia.Core.Rebase;
 using Gitunia.Core.Reflog;
 using Gitunia.Core.Settings;
 using Gitunia.Core.Remotes;
 using Gitunia.Core.Shell;
 using Gitunia.Core.Stash;
 using Gitunia.Core.Running;
+using Gitunia.Core.Sync;
 using Gitunia.Core.Tags;
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
@@ -30,12 +34,15 @@ public static class AppReducer
     {
         BranchCommand branch => ReduceBranch(state, branch),
         EffectFailedCommand failed => EffectFailed(state, failed),
+        PickCommand pick => ReducePick(state, pick),
+        RebaseCommand rebase => ReduceRebase(state, rebase),
         IntegrationCommand integration => ReduceIntegration(state, integration),
         ReflogCommand reflog => ReduceReflog(state, reflog),
         SettingsCommand settings => ReduceSettings(state, settings),
         RemoteCommand remote => ReduceRemote(state, remote),
         ShellCommand shell => ReduceShell(state, shell),
         StashCommand stash => ReduceStash(state, stash),
+        SyncCommand sync => ReduceSync(state, sync),
         TabRenameCommand rename => ReduceTabRename(state, rename),
         TagCommand tag => ReduceTag(state, tag),
         WorkspaceCommand workspace => ReduceWorkspace(state, workspace),
@@ -67,6 +74,11 @@ public static class AppReducer
         if (shell.Prompt is { Owner: { } owner } && update.Workspace.ActiveTabId != owner)
         {
             shell = ShellReducer.Reduce(shell, new PromptCancelledCommand()).State;
+        }
+
+        if (shell.Mainline is { } question && update.Workspace.ActiveTabId != question.TabId)
+        {
+            shell = (shell with { Mainline = null }).WithMode(KeyMode.Normal);
         }
 
         var changed = new AppState(update.Workspace, shell);
@@ -105,6 +117,72 @@ public static class AppReducer
         return new AppUpdate(state with { Shell = shell }, update.Effects);
     }
 
+    // A result or answer for a tab that was closed meanwhile is dropped, like a late TabCommand. The mainline question
+    // lives in the shell state because it is an overlay; the reducer returns it after each command.
+    private static AppUpdate ReducePick(AppState state, PickCommand command)
+    {
+        var workspace = state.Workspace;
+        if (workspace.FindTab(command.TabId) is not { } tab)
+        {
+            return new AppUpdate(state, []);
+        }
+
+        var busy = tab.Running.IsRunning(RunningOperationKind.Pick);
+        var question = state.Shell.Mainline is { } open && open.TabId == tab.Id ? open : null;
+        var context = new PickContext(
+            tab.Id,
+            tab.Location,
+            tab.Head,
+            tab.Operation,
+            workspace.ActiveTabId == tab.Id,
+            busy,
+            question);
+        var update = PickReducer.Reduce(command, context);
+        var running = tab.Running.Apply(tab.Id, command, update.Effects);
+        var next = state;
+        if (!Equals(running, tab.Running))
+        {
+            next = WithTab(state, tab with { Running = running });
+        }
+
+        if (!Equals(update.Question, question))
+        {
+            next = next with { Shell = next.Shell with { Mainline = update.Question } };
+        }
+
+        return new AppUpdate(next, update.Effects);
+    }
+
+    // A result or answer for a tab that was closed meanwhile is dropped, like a late TabCommand.
+    private static AppUpdate ReduceRebase(AppState state, RebaseCommand command)
+    {
+        var workspace = state.Workspace;
+        if (workspace.FindTab(command.TabId) is not { } tab)
+        {
+            return new AppUpdate(state, []);
+        }
+
+        var busy = tab.Running.IsRunning(RunningOperationKind.Rebase);
+        var context = new RebaseContext(tab, workspace.ActiveTabId == tab.Id, busy, IsOverlayOpen(state.Shell));
+        var effects = RebaseReducer.Reduce(command, context);
+        var running = tab.Running.Apply(tab.Id, command, effects);
+        if (Equals(running, tab.Running))
+        {
+            return new AppUpdate(state, effects);
+        }
+
+        return new AppUpdate(WithTab(state, tab with { Running = running }), effects);
+    }
+
+    // A late question must not replace what the user is looking at.
+    private static bool IsOverlayOpen(ShellState shell) =>
+        shell.Confirm is not null
+        || shell.Output is not null
+        || shell.Prompt is not null
+        || shell.Mainline is not null
+        || shell.Reflog.IsOpen
+        || shell.Settings.IsOpen;
+
     // A result or answer for a tab that was closed meanwhile is dropped, like a late TabCommand.
     private static AppUpdate ReduceIntegration(AppState state, IntegrationCommand command)
     {
@@ -136,7 +214,8 @@ public static class AppReducer
         }
 
         var busy = tab.Running.IsRunning(RunningOperationKind.Remotes);
-        var context = new RemoteContext(tab.Id, tab.Location, tab.Refs, workspace.ActiveTabId == tab.Id, busy);
+        var syncing = tab.Running.IsRunning(RunningOperationKind.Sync);
+        var context = new RemoteContext(tab.Id, tab.Location, tab.Refs, workspace.ActiveTabId == tab.Id, busy, syncing);
         var effects = RemoteReducer.Reduce(command, context);
         var running = tab.Running.Apply(tab.Id, command, effects);
         if (Equals(running, tab.Running))
@@ -166,6 +245,38 @@ public static class AppReducer
         }
 
         return new AppUpdate(WithTab(state, tab with { Running = running }), effects);
+    }
+
+    // A result or answer for a tab that was closed meanwhile is dropped, like a late TabCommand.
+    private static AppUpdate ReduceSync(AppState state, SyncCommand command)
+    {
+        var workspace = state.Workspace;
+        if (workspace.FindTab(command.TabId) is not { } tab)
+        {
+            return new AppUpdate(state, []);
+        }
+
+        var shell = state.Shell;
+        var overlay = shell.Confirm is not null || shell.Prompt is not null || shell.Output is not null;
+        var busy = tab.Running.IsRunning(RunningOperationKind.Sync);
+        var other = tab.Running.Items.Any(item => item.Kind != RunningOperationKind.Sync);
+        var context = new SyncContext(
+            tab.Id,
+            tab.Location,
+            tab.Refs,
+            workspace.ActiveTabId == tab.Id,
+            busy,
+            other,
+            overlay,
+            tab.Sync);
+        var update = SyncReducer.Reduce(command, context);
+        var running = tab.Running.Apply(tab.Id, command, update.Effects);
+        if (Equals(running, tab.Running) && Equals(update.State, tab.Sync))
+        {
+            return new AppUpdate(state, update.Effects);
+        }
+
+        return new AppUpdate(WithTab(state, tab with { Running = running, Sync = update.State }), update.Effects);
     }
 
     // A result for a tab that was closed meanwhile is dropped, like a late TabCommand.

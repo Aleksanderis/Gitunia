@@ -9,6 +9,11 @@ public enum RunningOperationKind
     /// <summary>A branch operation: create, switch, rename, delete, upstream or fast-forward.</summary>
     Branches,
 
+    /// <summary>A cherry-pick or revert: reading the commits, then picking them.</summary>
+    Pick,
+
+    /// <summary>A rebase onto a commit or a quick fixup, reword or drop: planning, counting merges or rebasing.</summary>
+    Rebase,
     /// <summary>A reset, a merge, or continuing, aborting or skipping the operation in progress.</summary>
     Integration,
 
@@ -17,6 +22,9 @@ public enum RunningOperationKind
 
     /// <summary>A stash operation: push, apply, pop, drop, or restoring one file of a stash.</summary>
     Stash,
+
+    /// <summary>A fetch, pull, push or remote branch delete, or reading the remotes and comparing branches for their questions.</summary>
+    Sync,
 
     /// <summary>A tag operation: create, delete, push, delete on a remote, or reading the remotes for the prompt.</summary>
     Tags,
