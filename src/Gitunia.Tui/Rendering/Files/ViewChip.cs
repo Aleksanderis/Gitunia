@@ -4,7 +4,7 @@ using Gitunia.Tui.Rendering.Styling;
 namespace Gitunia.Tui.Rendering.Files;
 
 /// <summary>
-/// The <c>view ▾</c> chip in the title row of a file list (the Changes and Files tabs, the two working-tree lists)
+/// The <c>view ▾</c> chip in the title row of a file list (the Changes and Files tabs, the two Changes view lists)
 /// that opens the dropdown of the list's view options (#646; the path style since #540). Like the diff's chips it
 /// shows its key before the label when there is room, and the same layout draws it and finds it under a click.
 /// </summary>

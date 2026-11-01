@@ -24,7 +24,7 @@ public static class DiffPaneRenderer
         return lines;
     }
 
-    /// <summary>The rows only, starting at <see cref="DiffPaneModel.TopRow"/>, padded (<see cref="PanePadding"/>); the working-tree view draws its own title on the frame.</summary>
+    /// <summary>The rows only, starting at <see cref="DiffPaneModel.TopRow"/>, padded (<see cref="PanePadding"/>); the Changes view draws its own title on the frame.</summary>
     public static IReadOnlyList<StyledLine> RenderRows(DiffPaneModel pane, int width, int contentHeight, GraphGlyphSet glyphs, int paddingColumns = PanePadding.Columns)
     {
         var lines = new List<StyledLine>(contentHeight);
@@ -60,7 +60,7 @@ public static class DiffPaneRenderer
     }
 
     /// <summary>
-    /// The title row of the working-tree diff: <paramref name="title"/> as the pane's chip, then the buttons at the right end
+    /// The title row of the Changes view diff: <paramref name="title"/> as the pane's chip, then the buttons at the right end
     /// (<see cref="DiffTitleButtons.Layout(int, WorkingTreeButtons, ChipKeys, bool)"/>) when the row is wide enough.
     /// </summary>
     public static StyledLine RenderWorkingTitle(

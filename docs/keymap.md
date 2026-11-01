@@ -2,7 +2,7 @@
 
 <!-- Generated from src/Gitunia.Core/Keymap/keymap.default.json by tools/KeymapDoc. Do not edit: change the JSON, then run `scripts/gen-keymap-doc.sh`. A test fails when this file is stale. -->
 
-Every default key binding, one table per view. The design rules, notation and modes are in [ux-keymap.md](ux-keymap.md). A view's keys also apply to the views that inherit from it (`Global` applies everywhere). Keys are listed main key first; `Ctrl-w c` is a chord, `<space>o` a leader chord. Rebinds in `config.json` are not shown here (see the Key reference in the settings screen).
+Every default key binding, one table per view. The design rules, notation and modes are in [ux-keymap.md](internal/ux-keymap.md). A view's keys also apply to the views that inherit from it (`Global` applies everywhere). Keys are listed main key first; `Ctrl-w c` is a chord, `<space>o` a leader chord. Rebinds in `config.json` are not shown here (see the Key reference in the settings screen).
 
 ## Global
 
@@ -48,7 +48,7 @@ Every default key binding, one table per view. The design rules, notation and mo
 | `<space>m` | Normal | `status.history` | Show the status message history |
 | `<space>*` | Normal | `view.cycle-command-level` | Cycle the command level (Everyday, Advanced, Advanced+) |
 | `<space>,` | Normal | `settings.open` | Open the settings |
-| `<space>s` | Normal | `working-tree.toggle` | Open or leave the working tree |
+| `<space>s` | Normal | `working-tree.toggle` | Open or leave the Changes view |
 | `<space>f` `<space>rf` | Normal | `remote.fetch` | Fetch the remote of the current branch (prunes) |
 | `<space>p` `<space>rl` | Normal | `remote.pull` | Pull the current branch (fast-forward only) |
 | `<space>P` `<space>rp` | Normal | `remote.push` | Push the current branch |
@@ -584,4 +584,4 @@ No default key; reached from the command palette (`:`), the actions menu, the mo
 | `pick.mainline` | Choose the mainline parent in the open cherry-pick or revert prompt |
 | `remote.fetch-all` | Fetch all remotes (prunes) |
 | `settings.open-theme` | Open the settings at the theme |
-| `working-tree.open` | Open the working tree |
+| `working-tree.open` | Open the Changes view |

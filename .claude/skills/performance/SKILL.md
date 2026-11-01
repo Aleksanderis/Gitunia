@@ -1,11 +1,11 @@
 ---
 name: performance
-description: Performance and memory checklist for Gitunia hot paths (git output parsers, graph layout, rendering, caches, startup). Use when you write or review code that parses git output, lays out or scrolls the graph, renders per frame, caches data, or runs at startup, or when a change touches the numbers in docs/performance.md.
+description: Performance and memory checklist for Gitunia hot paths (git output parsers, graph layout, rendering, caches, startup). Use when you write or review code that parses git output, lays out or scrolls the graph, renders per frame, caches data, or runs at startup, or when a change touches the numbers in docs/internal/performance.md.
 ---
 
 # Performance and memory
 
-Targets and verified numbers are in `docs/performance.md`; read it first, do not repeat it here. Budgets: cold start to first frame under 100 ms, scrolling a 100k-commit graph without dropped frames, background tabs cheap, input never blocked by a git process.
+Targets and verified numbers are in `docs/internal/performance.md`; read it first, do not repeat it here. Budgets: cold start to first frame under 100 ms, scrolling a 100k-commit graph without dropped frames, background tabs cheap, input never blocked by a git process.
 
 ## Measure before optimising
 
@@ -62,7 +62,7 @@ Parsers of `git log`, `status`, `diff` and `for-each-ref` output; graph layout; 
 - No reflection, runtime codegen or `dynamic`; use source generators (`System.Text.Json` source gen). Reflection-based serializers, `Activator` and expression compilation break or slow AOT.
 - Startup path: nothing that is not needed for the first frame (no git calls for background tabs, no config scans, no regex construction, no large static initialisers, no assembly scanning). Defer the rest until after the first frame.
 - Prefer source-generated regex or none; avoid generic instantiations over many value types (binary size, startup).
-- After adding a dependency or touching anything reflection-adjacent, run the AOT publish (command in CLAUDE.md) and re-measure cold start against `docs/performance.md`.
+- After adding a dependency or touching anything reflection-adjacent, run the AOT publish (command in CLAUDE.md) and re-measure cold start against `docs/internal/performance.md`.
 - Spawning `git` dominates cost: batch (one call yielding many NUL-separated records) instead of one process per item, and never poll on the UI thread.
 
 ## Reporting

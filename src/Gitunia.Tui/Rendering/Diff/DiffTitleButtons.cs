@@ -65,7 +65,7 @@ public static class DiffTitleButtons
         Layout(width, WorkingTreeButtons.None, keys, isFileContent);
 
     /// <summary>
-    /// The buttons of the working-tree diff: the staging ones come first in the drop order for the stage side (<c>stage</c>
+    /// The buttons of the Changes view diff: the staging ones come first in the drop order for the stage side (<c>stage</c>
     /// and <c>discard</c> on the Unstaged side, <c>unstage</c> on the Staged side), so a narrow row keeps what the pane is for.
     /// Each button shows its key before the label (<c>[c ‹ hunk</c>) when the buttons that fit also fit with their
     /// keys; otherwise the key text goes first, then the buttons in the drop order.

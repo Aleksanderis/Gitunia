@@ -1,5 +1,7 @@
 # Performance
 
+*Internal design note for maintainers and agents. Not needed to use or contribute to Gitunia.*
+
 Targets and verified numbers. The checklist for writing hot-path code is the `performance` skill; the measurement harness is in `docs/testing.md`. Record new numbers here when a target is verified.
 
 ## Targets

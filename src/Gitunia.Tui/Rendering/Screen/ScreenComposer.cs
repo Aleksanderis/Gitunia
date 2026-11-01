@@ -114,7 +114,7 @@ public static class ScreenComposer
         return lines;
     }
 
-    /// <summary>Lays out the working-tree view as styled lines, without a terminal: what snapshot tests and <c>--print-frame</c> show.</summary>
+    /// <summary>Lays out the Changes view as styled lines, without a terminal: what snapshot tests and <c>--print-frame</c> show.</summary>
     /// <param name="model">The chrome content.</param>
     /// <param name="working">What the view shows.</param>
     /// <param name="width">Terminal columns.</param>

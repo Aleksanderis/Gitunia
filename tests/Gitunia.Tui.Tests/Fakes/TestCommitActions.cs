@@ -6,7 +6,7 @@ using Gitunia.Tui.App.WorkingTree;
 
 namespace Gitunia.Tui.Tests.Fakes;
 
-/// <summary>Builds <see cref="CommitActions"/> over fakes, for tests whose subject is another part of the working-tree view.</summary>
+/// <summary>Builds <see cref="CommitActions"/> over fakes, for tests whose subject is another part of the Changes view.</summary>
 public static class TestCommitActions
 {
     public static CommitActions Create(WorkspaceHost host, StatusChannel statuses) => new(

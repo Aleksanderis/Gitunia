@@ -1,7 +1,7 @@
 namespace Gitunia.Core.Editing;
 
 /// <summary>
-/// The commit being written in one tab's working-tree view: the message editor, the three options and the amend bookkeeping. It
+/// The commit being written in one tab's Changes view: the message editor, the three options and the amend bookkeeping. It
 /// lives as long as the tab (ux-workflows.md, workflow 2: the draft is kept until a commit succeeds). Pure and renderer-agnostic.
 /// </summary>
 public sealed class CommitDraft

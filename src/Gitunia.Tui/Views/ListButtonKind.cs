@@ -1,6 +1,6 @@
 namespace Gitunia.Tui.Views;
 
-/// <summary>The buttons in the title row of a working-tree file list.</summary>
+/// <summary>The buttons in the title row of a Changes view file list.</summary>
 public enum ListButtonKind
 {
     /// <summary>The <c>stage all</c> (Unstaged) or <c>unstage all</c> (Staged) button.</summary>

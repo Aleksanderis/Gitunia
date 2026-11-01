@@ -112,7 +112,7 @@ public class PaneHintsTests
     [InlineData(PaneKind.Detail)]
     public void GivenAHistoryPane_WhenAskingForHints_ThenTheyShowHowToOpenTheWorkingTree(PaneKind pane)
     {
-        Assert.Contains(PaneHints.For(pane), hint => hint.Keys == "<space>s" && hint.Description == "working tree");
+        Assert.Contains(PaneHints.For(pane), hint => hint.Keys == "<space>s" && hint.Description == "Changes view");
     }
 
     [Theory]

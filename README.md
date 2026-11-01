@@ -2,64 +2,53 @@
 
 <h1 align="center">Gitunia</h1>
 
-A keyboard-first terminal Git client in the spirit of graphical Git clients: a real commit graph, first-class branches and worktrees, vim-style modal navigation, mouse optional.
-
-Status: in development. Milestone progress is in `docs/roadmap.md`.
+A keyboard-first terminal Git client: a real commit graph, first-class branches and worktrees, vim-style modal navigation, the mouse is optional but fully functional.
 
 ![Gitunia demo: graph, branch switch, worktree, staging lines, commit](docs/media/demo.gif)
 
 ## Why
 
-Terminal Git tools tend to be great for quick staging and commits but awkward for heavier work: managing many branches, worktrees and navigating a large commit graph. Graphical clients get that model right (graph, branches, worktrees, stashes, interactive rebase as first-class views) but need a mouse and a desktop. Gitunia aims for that model with a mouseless terminal UX.
+Terminal Git tools are great for quick staging and commits but awkward for many branches, worktrees and large graphs. Graphical clients get that model right but need a mouse and a desktop. Gitunia brings that model to the terminal.
 
-## Goal
+## Features
 
-A standalone client for all your repositories, not a tool you launch from inside one: start it from anywhere, open several repositories in tabs, and have them back next time. A daily-driver client for developers who live in the terminal and do non-trivial Git work: many branches, several worktrees, rebases, cherry-picks, large repositories.
+- Commit graph that scrolls and searches through 100k+ commits
+- Stage files, hunks and single lines, then commit or amend
+- Branches, merge, rebase, reset, cherry-pick and revert
+- Fetch, pull and push with progress
+- Unified and side-by-side diffs, also between any two commits
+- Standalone multi-repository client: tabs, repository picker, session restore
+- Stashes as a first-class view
+- 3-way merge conflict resolution
+- Worktrees as a first-class view
+- Tags, clone, init and remotes
+- Interactive rebase editor
+- Reflog browser as the undo path for destructive actions
+- Command palette, configurable vim-style keys and full mouse support
 
-## MVP scope
+Not included: submodules, LFS UI, blame, hosting-provider integration, plugins.
 
-In:
-- Standalone, multi-repository workspace: launch from any directory (or with `gitunia [path]`), repository tabs, open/recent/pinned repository picker with fuzzy search, session restore (open tabs, selection per tab), per-tab state that survives switching.
-- Commit graph (scrollable, searchable, handles 100k+ commits).
-- Working tree: status, stage/unstage files, hunks and lines, commit, amend; conflicted files resolved in a built-in full-screen conflict editor modelled on KDiff3 (base, ours and theirs side by side over the whole file, whole versions or single lines picked into an editable result, with undo).
-- Diff viewer (unified and side-by-side), also between any two commits (mark one, select the other).
-- Branches: list local/remote, checkout, create, rename, delete, reset (soft/mixed/hard), merge, rebase, upstream tracking, ahead/behind.
-- Tags: create (lightweight and annotated), delete, push and delete on a remote.
-- Reflog: browse it and reset or check out an entry (the undo path for every destructive operation).
-- Interactive rebase editor: reorder, pick, reword, squash, fixup and drop commits.
-- Worktrees: list, add, remove, switch, lock/prune, status per worktree.
-- Stash: list, push, apply, pop, drop, restore a single file from a stash.
-- Fetch (with prune), pull, push with progress and cancellation; force push with lease, set upstream on first push, delete a remote branch; dedicated keys and buttons for fetch and pull on top of automatic refresh.
-- Remotes: add, remove, rename, change URL. Clone and init, from the repository picker.
-- Built-in Insert-mode commit message editor, plus hand-off to the user's tools: `$EDITOR`, `git difftool`/`mergetool` (TUI suspends and resumes); clipboard through OSC 52.
-- Issue links in commit messages from `[issuetracker "name"]` sections of a `.issuetracker` file or the git config (VS Code style regex and URL sections), opened in the browser. A link from the message only: no hosting-provider integration, no network access, no API.
-- Vim-style modal keymap, command palette, configurable keys. Mouse support is optional, never required.
+## Install
 
-Out until after MVP (ask before adding): submodules, LFS UI, blame view, hosting-provider integrations (PRs, issues), further built-in themes (Catppuccin, Tokyo Night and user theme files are in; the rest of the set is tracked as issues), plugins.
+Needs Git 2.43 or newer on your `PATH`.
 
-## Stack
+Ways to install: Linux `.deb`/`.rpm`, Arch/Omarchy archive, Windows and Linux archive, or from source. For more details look in the [user guide](docs/user-guide.md#install).
 
-- C# on .NET 10 (LTS), Native AOT for the published binary. Cross-platform: Linux, Windows, macOS (lowest priority).
-- Config lives in `~/.config/gitunia` and session state in `~/.local/state/gitunia` on every OS (`XDG_CONFIG_HOME` / `XDG_STATE_HOME` override), never in a repository. Config is meant to be hand-edited and kept in a dotfiles repository.
-- Git access by running the `git` CLI and parsing plumbing/porcelain output (no libgit2 for writes).
-- TUI rendering: Terminal.Gui v2. See `docs/architecture.md`.
-
-## Install and first run
-
-Needs `git` 2.43 or newer on your `PATH`.
-
-- Release archives (linux-x64, win-x64) are built on version tags; unpack and put `gitunia` on your `PATH`. None are published yet.
-- From source: install the .NET SDK pinned in `global.json`, then the Native AOT prerequisites (Linux: `clang`, `zlib1g-dev`; Windows: the "Desktop development with C++" workload), then `dotnet publish src/Gitunia.Tui -c Release -o publish` and run `publish/gitunia`. Details: `docs/user-guide.md`.
-
-Then:
+## Quick start
 
 ```
 gitunia                 # restore the last session, or show the repository picker
 gitunia ~/Projects/foo  # open a repository (any subfolder resolves to its root)
 ```
 
-In the picker type to filter repositories or type a path, `Enter` opens it in a tab. Press `?` for the keys of the current view, `:` for the command palette, `q` to quit. The user guide is `docs/user-guide.md`; every key is in the settings screen's Key reference (`<space>,`) and the key reference in `docs/keymap.md`.
+In the picker type to filter or type a path. `Enter` opens it in a tab. `?` shows the keys of the current view, `:` opens the command palette, `q` quits.
 
 ## Docs
 
-Start with `CLAUDE.md` (rules and routing table), then `docs/`.
+- [Customising keys](docs/customising-keys.md) and [key reference](docs/keymap.md)
+- Design documents are in `docs/` (maintainer notes in `docs/internal/`)
+- Project conventions are in [CLAUDE.md](CLAUDE.md)
+
+## Contributing, security, license
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) and [SECURITY.md](SECURITY.md). Licensed under the MIT License ([LICENSE](LICENSE)). This covers the logo too.

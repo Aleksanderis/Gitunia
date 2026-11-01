@@ -12,7 +12,7 @@ using Terminal.Gui.Views;
 
 namespace Gitunia.Tui.Views.Lists;
 
-/// <summary>List source over one file list (Unstaged or Staged) of the working-tree view of the active tab; it can show a Visual range of files.</summary>
+/// <summary>List source over one file list (Unstaged or Staged) of the Changes view of the active tab; it can show a Visual range of files.</summary>
 public sealed class WorkingTreeListSource(WorkingTreeSection section, GraphGlyphSet glyphs) : IListDataSource, IRangeSource
 {
     private readonly JumpLabelCache _jump = new();

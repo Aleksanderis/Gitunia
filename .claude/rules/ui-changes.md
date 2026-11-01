@@ -8,18 +8,18 @@ paths:
 
 # UI, keys and look
 
-Specs start at `docs/ux.md`, which links the parts; the key reference is generated in `docs/keymap.md` (design rules in `docs/ux-keymap.md`) and the mouse table in `docs/ux-mouse.md`. Checklist for a change that adds or alters what the user sees or presses:
+Specs start at `docs/internal/ux.md`, which links the parts; the key reference is generated in `docs/keymap.md` (design rules in `docs/internal/ux-keymap.md`) and the mouse table in `docs/internal/ux-mouse.md`. Checklist for a change that adds or alters what the user sees or presses:
 
 ## A new action, key or mouse path
 
 - The key row goes in `src/Gitunia.Core/Keymap/keymap.default.json` in the same change, then run `scripts/gen-keymap-doc.sh` to refresh `docs/keymap.md`; no conflicts within a mode and view (tests check the file and the generated reference). A mouse path gets its row in the mouse table (a test checks it against `DefaultMouseMap`).
-- Vim-clash rule (owner, #335): standard vim/neovim keys keep their vim meaning; a Gitunia-specific action never binds a bare vim normal-mode command (`s` `u` `c` `a` `x` `r` `D` `M` `E` ...) but a `<space>` leader chord or a `Ctrl-`/`Alt-` combination; `<space>j` is reserved for the quick jump. Check a new key against vim before binding it (list in `docs/ux-workflows.md`, workflow 2, "Key rule").
+- Vim-clash rule (owner, #335): standard vim/neovim keys keep their vim meaning; a Gitunia-specific action never binds a bare vim normal-mode command (`s` `u` `c` `a` `x` `r` `D` `M` `E` ...) but a `<space>` leader chord or a `Ctrl-`/`Alt-` combination; `<space>j` is reserved for the quick jump. Check a new key against vim before binding it (list in `docs/internal/ux-workflows.md`, workflow 2, "Key rule").
 - Everything doable by keyboard is doable by mouse and the reverse; nothing is keyboard-only or mouse-only. A mouse gesture maps to an action id and runs the same handler as the key.
 - The action has a title in `ActionCatalog` (a test fails otherwise). An action bound ahead of its feature goes in `ActionCatalog.Unimplemented`; modal-only ones in `IsModalOnly`.
 - Status bar hints are short, not taken from the catalog titles; each key names its `ActionId` and a test checks the default keymap binds it.
 - Help, palette and which-key text is generated from the keymap and catalog, never hand-written.
 - Key notation is spelled out everywhere (`Ctrl-d`, `Alt-1`, `Shift-Tab`, `<space>o`), never `^d` or `c-d`.
-- `Esc` and `q` follow the precedence in `docs/ux.md` ("Focus model and key style"). In Insert mode printable keys are text: only `Esc`, `Enter`, `Ctrl-` and `Alt-` combinations act.
+- `Esc` and `q` follow the precedence in `docs/internal/ux.md` ("Focus model and key style"). In Insert mode printable keys are text: only `Esc`, `Enter`, `Ctrl-` and `Alt-` combinations act.
 - Destructive actions go through Confirm mode (`y`/`n`/`Esc` only, never `Enter`) and say what they do and how to undo it.
 
 ## Rendering and colour

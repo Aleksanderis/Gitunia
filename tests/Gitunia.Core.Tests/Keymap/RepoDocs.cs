@@ -2,10 +2,12 @@ using System.Reflection;
 
 namespace Gitunia.Core.Tests.Keymap;
 
-/// <summary>Finds files of the repository (<c>docs/</c>, the keymap data file) for the documentation tests.</summary>
+/// <summary>
+/// Finds files of the repository (<c>docs/</c>, <c>docs/internal/</c>, the keymap data file) for the documentation tests.
+/// </summary>
 public static class RepoDocs
 {
-    public static string FindUxDocument(string fileName) => Find("docs", fileName);
+    public static string FindUxDocument(string fileName) => Find("docs", "internal", fileName);
 
     public static string Find(params string[] relativePath)
     {

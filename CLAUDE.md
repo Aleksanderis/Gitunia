@@ -1,8 +1,8 @@
 # Gitunia
 
-Keyboard-first terminal Git client (graph, branches, worktrees, vim-style keys). See README.md for goal and MVP scope.
+Keyboard-first terminal Git client (graph, branches, worktrees, vim-style keys). See README.md for goal and features.
 
-Design docs are in `docs/` (architecture, git-layer, ux, testing, roadmap, decisions). Work is tracked as GitHub issues grouped by milestone M0-M4 (goals in `docs/roadmap.md`).
+Reader docs are in `docs/` (user guide, architecture, git-layer, testing). Maintainer and agent notes are in `docs/internal/` (ux, roadmap, decisions, performance, retrospectives, history). Work is tracked as GitHub issues grouped by milestone M0-M4 (goals in `docs/internal/roadmap.md`).
 
 ## Stack
 
@@ -14,7 +14,7 @@ Design docs are in `docs/` (architecture, git-layer, ux, testing, roadmap, decis
 
 - Gitunia is a standalone multi-repo client with tabs. Never depend on the process working directory: every git call takes an explicit repo/worktree path, and all repo state is scoped to a tab. No static or global "current repo".
 - Cross-platform (Linux, Windows, macOS; macOS lowest priority, Linux is built and tested first). No platform-specific APIs outside the platform abstraction; anything platform-specific gets a branch for every supported OS or an explicit "unsupported" path. Paths via `Path` APIs, no hardcoded separators, `/dev/null` or `/tmp`. Details: `docs/architecture.md`.
-- Keep to the MVP scope in README.md. Don't add features beyond it without asking.
+- Keep to the Features and "Not included" lists in README.md. Don't add features beyond it without asking.
 - Native AOT from day one: no reflection or runtime codegen, every dependency AOT/trimming-compatible; run the AOT publish after adding one (rules in `.claude/rules/csharp-style.md`).
 - The Git layer returns typed results and never touches the UI. The state layer is pure (`(State, Command) -> State` plus effects) and runs without a terminal. Only the rendering layer touches the console. Layering details: `docs/architecture.md`.
 - Never block the UI thread on a git process. Every git call is async, cancellable and has a timeout.
@@ -22,7 +22,7 @@ Design docs are in `docs/` (architecture, git-layer, ux, testing, roadmap, decis
 - Respect the user's git config, hooks, credential helpers and worktree layout (`docs/git-layer.md` lists the only env vars we set).
 - Code style, naming, folders, static vs instance and AOT rules: `.claude/rules/csharp-style.md`, loaded when you touch `.cs` files. Git layer rules: `.claude/rules/git-layer.md`. UI, keys and colour rules: `.claude/rules/ui-changes.md`. Read them before writing code there.
 - Scripts (bash and PowerShell) live in `scripts/`; `tools/` holds small C# helper programs.
-- Don't copy code from other projects verbatim. Ideas and git command patterns are fine; note the source in `docs/decisions.md` only if it shaped a non-obvious decision.
+- Don't copy code from other projects verbatim. Ideas and git command patterns are fine; note the source in `docs/internal/decisions.md` only if it shaped a non-obvious decision.
 
 ## Git conventions
 
@@ -32,7 +32,7 @@ Design docs are in `docs/` (architecture, git-layer, ux, testing, roadmap, decis
 - Syncing unpushed local commits with `origin/main`: `git fetch` then `git rebase origin/main`. Never `git merge origin/main` or a bare `git pull` (merge commits are for PR merges only); if a merge slipped in, redo it as a rebase.
 - Changes that address PR review comments (code, docs, skills, CLAUDE.md alike) all go through a PR branch, never straight to `main`. The straight-to-`main` exception above applies only to standalone requests from the owner.
 - After a PR is merged, nothing of it remains: remove its worktree and delete the branch locally and on the remote (spike branches are the exception and stay).
-- Agent identity: every commit, PR body and GitHub comment says which agent (orchestrator, implementer, reviewer) produced it: author-name convention, `Agent:` trailer, header and signature. Details in the `work-task` skill, "Agent identity". Never add the "🤖 Generated with Claude Code" line to PR bodies or comments.
+- Agent identity: every commit, PR body and GitHub comment says which agent (orchestrator, implementer, reviewer) produced it: header, signature and hidden marker on GitHub comments; author name or `Agent:` trailer on commits is a soft convention. Details in the `work-task` skill, "Agent identity". Never add the "🤖 Generated with Claude Code" line to PR bodies or comments.
 - Commits: Conventional Commits (`feat:`, `fix:`, `docs:`, `test:`, `refactor:`, `chore:`, `ci:`), optional scope, imperative subject.
 
 ## Which doc to read
@@ -42,12 +42,12 @@ Read the doc before working in its area; don't rely on memory of it.
 | Working on | Read |
 |---|---|
 | Solution layout, layering, rendering, cross-platform | `docs/architecture.md` |
-| Performance targets and measured numbers | `docs/performance.md` (and the `performance` skill) |
+| Performance targets and measured numbers | `docs/internal/performance.md` (and the `performance` skill) |
 | Running git, parsers, graph model, worktrees, refresh/watching | `docs/git-layer.md` |
-| Screens, modes, tabs/repo picker, key bindings, workflows, mouse | `docs/ux.md` (index; links the parts: workflows, keymap, mouse, settings, look) |
+| Screens, modes, tabs/repo picker, key bindings, workflows, mouse | `docs/internal/ux.md` (index; links the parts: workflows, keymap, mouse, settings, look) |
 | Any test, fixtures, snapshot tests | `docs/testing.md` and the `testing` skill |
-| Milestone goals and open questions | `docs/roadmap.md` |
-| Anything you are about to ask the owner | `docs/decisions.md` first |
+| Milestone goals and open questions | `docs/internal/roadmap.md` |
+| Anything you are about to ask the owner | `docs/internal/decisions.md` first |
 | Why a feature is in or out | `README.md` |
 
 ## Build, test and lint
@@ -58,7 +58,6 @@ Run from the repo root:
 - Test: `dotnet test`
 - AOT publish (fails on any `IL*` warning): `dotnet publish src/Gitunia.Tui -c Release -o <outdir>`; smoke run: `<outdir>/gitunia`
 - Formatting is enforced by `.editorconfig` during build (`EnforceCodeStyleInBuild`).
-- Branch checks the build cannot see (decisions.md append-only and dated, test hygiene, agent author and trailer): `scripts/check-diff.sh` (instant; archive moves to `docs/history/decisions.md` are allowed; `scripts/test-check-diff.sh` tests the check). Run it before review; the reviewer does too.
 - Quality inspections the build cannot see (captured disposed or modified variables, unused members, redundant arguments): `scripts/inspect.sh` (or `scripts/inspect.ps1`) runs JetBrains inspectcode, the same engine as Rider. It is not part of the edit loop: run `scripts/inspect.sh --changed` (~10 s) after finishing a change that touches lambdas, events or `using`, and the full run (~40 s) once before opening a PR (the reviewer does the same). Fix what it reports; the tool is pinned in `dotnet-tools.json`.
 
 ## Working autonomously

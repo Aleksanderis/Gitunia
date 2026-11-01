@@ -85,7 +85,7 @@ public sealed class TuiApplication(
     ConsoleCapabilities detectedCapabilities,
     IPlatform platform) : IDisposable, ITerminalSuspender
 {
-    // Terminal.Gui's default of 25 iterations per second gave ~34 ms key latency (docs/history/decisions.md); the idle rate saves CPU (#909).
+    // Terminal.Gui's default of 25 iterations per second gave ~34 ms key latency (docs/internal/history/decisions.md); the idle rate saves CPU (#909).
     private const ushort ActiveIterationsPerSecond = 100;
     private const ushort IdleIterationsPerSecond = 50;
     private static readonly TimeSpan IdleAfter = TimeSpan.FromSeconds(2);
@@ -435,7 +435,7 @@ public sealed class TuiApplication(
         // Subscribes itself to the host and the list in its constructor; nothing else needs the instance.
         _ = new SidebarPresenter(_host, _view.Sidebar, sidebarSource);
 
-        // Same for the working-tree view; it must run before ApplyFocus, which needs the panes it shows.
+        // Same for the Changes view; it must run before ApplyFocus, which needs the panes it shows.
         _ = new WorkingTreePresenter(_host, _view);
 
         _statuses.Changed += _view.RefreshChrome;

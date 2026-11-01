@@ -7,7 +7,7 @@ using Gitunia.Tui.Rendering.Styling;
 namespace Gitunia.Tui.Rendering.Diff;
 
 /// <summary>
-/// The chips at the right edge of the first line of the change group under the cursor in the working-tree diff:
+/// The chips at the right edge of the first line of the change group under the cursor in the Changes view diff:
 /// <c>stage</c> and <c>discard</c> on the Unstaged side, <c>unstage</c> on the Staged side. They are the same buttons,
 /// views and actions as the ones in the title row (<see cref="DiffTitleButtons"/>), placed where the eye is.
 /// A row too narrow to keep <see cref="MinimumTextWidth"/>

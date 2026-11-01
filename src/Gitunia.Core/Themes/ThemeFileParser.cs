@@ -6,7 +6,7 @@ using Gitunia.Core.Themes.Models;
 namespace Gitunia.Core.Themes;
 
 /// <summary>
-/// Reads a theme file (format: <c>docs/ux-look.md</c>, "Theme files"). Pure: the text comes in, the theme and the reasons
+/// Reads a theme file (format: <c>docs/internal/ux-look.md</c>, "Theme files"). Pure: the text comes in, the theme and the reasons
 /// it was refused come out. Uses the DOM reader of System.Text.Json, so it needs no reflection.
 /// </summary>
 public static class ThemeFileParser

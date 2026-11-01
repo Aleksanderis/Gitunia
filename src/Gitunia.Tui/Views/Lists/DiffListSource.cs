@@ -29,7 +29,7 @@ public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource, IRan
 
     public DiffDocument Document { get; private set; } = DiffDocument.Empty;
 
-    /// <summary>The change group under the cursor is marked (the working-tree diff, where a group is the unit of staging).</summary>
+    /// <summary>The change group under the cursor is marked (the Changes view diff, where a group is the unit of staging).</summary>
     public bool HighlightsGroup { get; set; }
 
     /// <summary>

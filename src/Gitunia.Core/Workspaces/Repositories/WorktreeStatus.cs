@@ -13,7 +13,7 @@ public sealed record WorktreeStatus(int Staged, int Changed, int Conflicted, int
     /// <summary>There is anything for <c>git status</c> to list.</summary>
     public bool IsDirty => Staged > 0 || Changed > 0 || Conflicted > 0;
 
-    /// <summary>Counts a full status read: the entries the working-tree view lists, ignored paths excluded.</summary>
+    /// <summary>Counts a full status read: the entries the Changes view lists, ignored paths excluded.</summary>
     public static WorktreeStatus From(StatusSnapshot status)
     {
         var staged = 0;

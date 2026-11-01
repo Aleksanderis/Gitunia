@@ -12,7 +12,7 @@ using Gitunia.Tui.Rendering.WorkingTree;
 namespace Gitunia.Tui.App.WorkingTree;
 
 /// <summary>
-/// Handles the actions of the working-tree view: opening and leaving it, moving between its lists and the diff and the cursor in
+/// Handles the actions of the Changes view: opening and leaving it, moving between its lists and the diff and the cursor in
 /// them, and copying a path. While the view is shown it owns every list and pane action, so none of them reaches the hidden graph
 /// or sidebar; the actions of the diff go to the <see cref="WorkingDiffController"/> first. Everything it changes goes through
 /// commands, so the state decides and the views follow.
@@ -114,7 +114,7 @@ public sealed class WorkingTreeActionHandler(
         }
         else if (!TryFocus(tab, action) && !TryOpenDiff(tab, action) && !TryMove(tab, action, count) && !TryCopy(tab, action) && !TryStage(tab, action) && !TryDiscard(tab, action))
         {
-            Message = $"{ActionCatalog.Describe(action)}: not available in the working-tree view";
+            Message = $"{ActionCatalog.Describe(action)}: not available in the Changes view";
         }
 
         return true;

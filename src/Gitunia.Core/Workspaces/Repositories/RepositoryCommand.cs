@@ -59,18 +59,18 @@ public sealed record StatusLoadedCommand(RepositoryStatusSummary Summary) : Repo
 /// <param name="Snapshot">The status read.</param>
 public sealed record WorkingTreeLoadedCommand(StatusSnapshot Snapshot) : RepositoryCommand;
 
-/// <summary>Show the working-tree view of the tab and focus its first non-empty list (Unstaged, else Staged).</summary>
+/// <summary>Show the Changes view of the tab and focus its first non-empty list (Unstaged, else Staged).</summary>
 public sealed record OpenWorkingTreeCommand : RepositoryCommand;
 
-/// <summary>Go back from the working-tree view to the history view (the graph keeps its selection).</summary>
+/// <summary>Go back from the Changes view to the history view (the graph keeps its selection).</summary>
 public sealed record LeaveWorkingTreeCommand : RepositoryCommand;
 
-/// <summary>Select a row (a file, or a folder in the tree style) in the working-tree view.</summary>
+/// <summary>Select a row (a file, or a folder in the tree style) in the Changes view.</summary>
 /// <param name="Section">The list.</param>
 /// <param name="Index">Row index; clamped to the list, ignored when the list is empty.</param>
 public sealed record SelectWorkingTreeFileCommand(WorkingTreeSection Section, int Index) : RepositoryCommand;
 
-/// <summary>Close or open a folder of a working-tree list in the tree style.</summary>
+/// <summary>Close or open a folder of a Changes view list in the tree style.</summary>
 /// <param name="Section">The list.</param>
 /// <param name="Folder">The folder path from the repository root.</param>
 /// <param name="Collapse">True to close, false to open, null to flip it.</param>

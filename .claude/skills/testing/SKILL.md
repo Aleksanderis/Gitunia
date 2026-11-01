@@ -28,7 +28,7 @@ Name tests `Given<Context>_When<Action>_Then<Outcome>` (PascalCase parts, e.g. `
 
 - No new sleeps or polling loops to wait for background work. Wait on a signal: `UiPump` (queues posted UI callbacks and runs them on the test thread until a condition holds; stores are UI-thread-only, so a test that reads store state while a load is in flight must not post inline from the loader thread), a `TaskCompletionSource` completed from the store's `Changed` event or a file watcher, or an injected delay (e.g. the `delay` parameter of `CommitDetailsStore`, `scanningDelay` of `PickerController`). A guard timeout only bounds a hang. `RepositoryWatcher.BecameStale` is the signal for a background tab turning stale.
 - Fake git scripts (`FakeGitExecutable`) are probe-run once after writing (they exit at once when `GITUNIA_FAKE_PROBE` is set) and retried on "Text file busy": a process forked by a parallel test can hold the fresh file open for writing until its exec. Tests that cancel a running fake wait for `ProcessIdSignal` (the fake renames its `.pid` file into place) instead of a delay.
-- Accepted intrinsic timer waits (the wait is the thing under test) are listed in `docs/history/testing.md`; add no new ones without saying why in the PR.
+- Accepted intrinsic timer waits (the wait is the thing under test) are listed in `docs/internal/history/testing.md`; add no new ones without saying why in the PR.
 
 ## Isolated repos
 

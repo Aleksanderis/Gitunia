@@ -10,7 +10,7 @@ using Gitunia.Tui.Rendering.Styling;
 
 namespace Gitunia.Tui.Rendering.WorkingTree;
 
-/// <summary>Draws the panes of the working-tree view as styled lines: the file lists with their empty states, and the placeholders of the diff and the message box.</summary>
+/// <summary>Draws the panes of the Changes view as styled lines: the file lists with their empty states, and the placeholders of the diff and the message box.</summary>
 public static class WorkingTreePaneRenderer
 {
     /// <summary>Shown while the tab has not read its status yet.</summary>

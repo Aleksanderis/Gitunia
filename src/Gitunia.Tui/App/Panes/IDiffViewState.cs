@@ -5,7 +5,7 @@ namespace Gitunia.Tui.App.Panes;
 
 /// <summary>
 /// What the diff list behaviour needs of a tab's diff: the list source, the search and the remembered cursor.
-/// Implemented by the history and the working-tree diff sessions.
+/// Implemented by the history and the Changes view diff sessions.
 /// </summary>
 public interface IDiffViewState
 {

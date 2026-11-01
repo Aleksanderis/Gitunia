@@ -6,7 +6,7 @@ namespace Gitunia.Tui.Loading.Diff;
 /// A least-recently-used cache of diffs, bounded twice: by entry count and by the rows held in total (a diff row is
 /// roughly 100 to 200 bytes, so the default budget keeps a tab to a few megabytes whatever the graph size, see #199). A diff alone
 /// over the row budget is not kept. Not thread-safe: UI thread only. The key says what a diff is of: <see cref="DiffCache"/> keys
-/// commits, which never change, so entries never go stale; the working-tree view keys files and drops everything when the status changes.
+/// commits, which never change, so entries never go stale; the Changes view keys files and drops everything when the status changes.
 /// </summary>
 /// <typeparam name="TKey">What a diff belongs to.</typeparam>
 public class KeyedDiffCache<TKey>

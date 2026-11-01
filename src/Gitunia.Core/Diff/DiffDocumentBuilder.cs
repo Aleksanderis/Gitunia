@@ -39,7 +39,7 @@ public sealed class DiffDocumentBuilder
     /// so hunk navigation still visits each group of changes as git's own hunks would. Null for a normal diff.
     /// </param>
     /// <param name="groupChanges">
-    /// Set for the working-tree diff: every group of consecutive added or removed lines is its own anchor (the row of its first
+    /// Set for the Changes view diff: every group of consecutive added or removed lines is its own anchor (the row of its first
     /// changed line), however close the hunk merged them, so staging and navigation act per group. Replaces the hunk header
     /// anchors and <paramref name="wholeFileContext"/>.
     /// </param>

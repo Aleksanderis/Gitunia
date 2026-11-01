@@ -1,5 +1,7 @@
 # Roadmap
 
+*Internal design note for maintainers and agents. Not needed to use or contribute to Gitunia.*
+
 Milestone goals and exit criteria. Tasks are GitHub issues grouped by these milestones; order within a milestone comes from each issue's `Blocked by:` line. The status line under each heading is updated when a milestone changes state; the open issues are the source of truth.
 
 ## M0 - Technology spike (throwaway code allowed)

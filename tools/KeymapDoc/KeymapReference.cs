@@ -16,7 +16,7 @@ public static class KeymapReference
         var text = new StringBuilder();
         text.Append("# Keymap reference\n\n");
         text.Append("<!-- Generated from src/Gitunia.Core/Keymap/keymap.default.json by tools/KeymapDoc. Do not edit: change the JSON, then run `scripts/gen-keymap-doc.sh`. A test fails when this file is stale. -->\n\n");
-        text.Append("Every default key binding, one table per view. The design rules, notation and modes are in [ux-keymap.md](ux-keymap.md). ");
+        text.Append("Every default key binding, one table per view. The design rules, notation and modes are in [ux-keymap.md](internal/ux-keymap.md). ");
         text.Append("A view's keys also apply to the views that inherit from it (`Global` applies everywhere). Keys are listed main key first; ");
         text.Append("`Ctrl-w c` is a chord, `<space>o` a leader chord. Rebinds in `config.json` are not shown here (see the Key reference in the settings screen).\n");
 

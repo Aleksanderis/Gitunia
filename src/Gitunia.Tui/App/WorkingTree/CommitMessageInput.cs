@@ -5,7 +5,7 @@ namespace Gitunia.Tui.App.WorkingTree;
 
 /// <summary>
 /// Lets the commit message box receive the keys typed in Insert mode next to the other prompts. It owns no action: the box's actions
-/// reach <see cref="CommitActions"/> through the working-tree view's handler, only the typed keys come through here.
+/// reach <see cref="CommitActions"/> through the Changes view's handler, only the typed keys come through here.
 /// </summary>
 /// <param name="commits">The commit actions that own the editor.</param>
 public sealed class CommitMessageInput(CommitActions commits) : IPromptHandler

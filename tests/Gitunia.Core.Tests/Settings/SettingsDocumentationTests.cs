@@ -17,7 +17,7 @@ public class SettingsDocumentationTests
         foreach (var definition in SettingsRegistry.All)
         {
             var row = rows.SingleOrDefault(candidate => candidate[1] == definition.Name);
-            Assert.True(row is not null, $"{definition.Name} is not in the settings table of docs/ux-settings.md");
+            Assert.True(row is not null, $"{definition.Name} is not in the settings table of docs/internal/ux-settings.md");
             Assert.Equal(SettingsRegistry.TitleOf(definition.Category), row[0]);
             Assert.Contains(ControlWord(definition.Control), row[2], StringComparison.Ordinal);
             var key = definition.ConfigKey.Length == 0 ? "none" : $"`{definition.ConfigKey}`";

@@ -1,6 +1,8 @@
 # UX: keymap
 
-Part of the UX spec; start at [ux.md](ux.md). The key tables are generated: [keymap.md](keymap.md) lists every default binding per view.
+*Internal design note for maintainers and agents. Not needed to use or contribute to Gitunia.*
+
+Part of the UX spec; start at [ux.md](ux.md). The key tables are generated: [keymap.md](../keymap.md) lists every default binding per view.
 
 ## Keymap
 
@@ -20,7 +22,7 @@ Key notes that the tables cannot carry:
 - `Esc` ladder in Normal mode: cancels a pending chord, then clears the search highlight, leaves Insert, cancels running remote work in the graph, else dismisses the status message.
 - Visual `y` copies the range without `+`/`-`/space markers or gutter, a wrapped row once, notes skipped; above about 75 KB it refuses, and a failed copy keeps the range.
 - `<space>bd` asks a second Confirm when the branch is unmerged; `<space>gr` with no conflicted file says so in the status bar.
-- Working tree, `Enter` on a screen under 80 columns: the diff replaces the list until `Esc`.
+- Changes view, `Enter` on a screen under 80 columns: the diff replaces the list until `Esc`.
 - Graph search prefixes: `author:`, `hash:`, `body:`.
 
 **Actions menu** (`<space>.` in the graph or sidebar, a double-click on a graph row, or a click on the `...` marker at the right edge of the selected sidebar row; #471, #479, #482).
@@ -47,13 +49,13 @@ The menu is the mouse path of every sidebar action; the header chips it replaced
 
 **Title dropdown (#645, `view ▾`).** The reusable title-row dropdown is the actions menu popup (above) opened under a title button: titled `View`, one line per option with its key at the right edge (`+` / `-` context, `<space>vf` whole file, `<space>vi` ignore space, `<space>vs` split, `<space>vw` wrap, `<space>vc` whitespace marks, then `<space>z` zoom), `j`/`k`/`Down`/`Up` move, `Enter` or a click runs the option after the menu closes, `Esc` or a click outside closes it, a resize closes it.
 It hangs under the button (above the row near the bottom of the screen), is as wide as its longest line needs, and when the screen is too small for it the status bar says so and the keys still work.
-The history diff, the Changes tab diff and both working-tree diffs carry it; `<space>vv` opens it from the keyboard.
+The history diff, the Changes tab diff and both Changes view diffs carry it; `<space>vv` opens it from the keyboard.
 A file's content has no dropdown (its only option, wrap, stays a button).
-The Changes tab, both working-tree lists and the Files tab use the same component (#646): titled `View`, hanging under a `view ▾` chip at the right end of their title row, opened by `<space>vv` or a click.
-Changes and the working-tree lists offer the path style (`name first`, `full path`, `tree`, set directly; `<space>vn` still cycles), the Files tab the path filter (its only display option; the same as `/`).
+The Changes tab, both Changes view lists and the Files tab use the same component (#646): titled `View`, hanging under a `view ▾` chip at the right end of their title row, opened by `<space>vv` or a click.
+Changes and the Changes view lists offer the path style (`name first`, `full path`, `tree`, set directly; `<space>vn` still cycles), the Files tab the path filter (its only display option; the same as `/`).
 A tab without options (Details) has no chip and `<space>vv` is not bound there.
 
-**Grouped actions (#483).** The palette and the actions menu list actions under non-selectable subheaders (`Branch`, `Merge and rebase`, `Tag`, `Worktree`, `Stash`, `Working tree`, `Copy`, `Diff`, `Details`, `External tools`, `Navigate`, `View`, `Tabs`, `General`).
+**Grouped actions (#483).** The palette and the actions menu list actions under non-selectable subheaders (`Branch`, `Merge and rebase`, `Tag`, `Worktree`, `Stash`, `Changes`, `Copy`, `Diff`, `Details`, `External tools`, `Navigate`, `View`, `Tabs`, `General`).
 The group of an action comes from `ActionCatalog.GroupOf` (metadata, not a per-list hand-written list; a test fails when a bound action has none) and the which-key popup names its chord groups by noun (`WhichKeyBuilder`, one name per prefix).
 `j`/`k`, the wheel and clicks only ever land on actions: a click on a subheader or a gap does nothing.
 A blank gap line precedes every subheader except the first (#489), like the help overlay's sections, so it is visible in every colour tier and the ASCII set; on a short screen the gaps are dropped before any row (the menu when gaps plus rows exceed its height, the scrolling palette when it has fewer than 8 list rows).
@@ -74,7 +76,7 @@ Counts, read from `DefaultKeymap` and `ActionIds` at this commit: 245 action ids
 ### Layout rules
 
 1. **One noun, one prefix.** Every `<space>` group is one noun and a noun has exactly one group: `b` branch, `t` tag, `w` worktree, `k` stash, `r` remote, `o` repositories and tabs, `g` operation in progress, `e` external tools, `v` view options.
-2. **No lowercase/uppercase pair with unrelated meanings.** Gone: `s`/`S` (working tree / stash), `t`/`T` (tools / tags), `r`/`R` (refresh / remotes), `l`/`L` (reflog / pull), `c`/`C` (commit / cancel), and `b`/`B`, `r`/`R` in the conflict editor. Kept, because the two keys are one action in two strengths or its direct opposite: `p`/`P` (pull / push, #918), `bc`/`bC` (create and check out / create only), `bu`/`bU` (set / unset upstream), `bm`/`bM`, `bd`/`bD` (local / remote branch), `rp`/`rP` (push / force push), `td`/`tD`, `a`/`A`, `u`/`U` (stage and unstage, one file / all), `n`/`N`, `o`/`O`, `t`/`T`, `y`/`Y`, `j`/`J`, `k`/`K`.
+2. **No lowercase/uppercase pair with unrelated meanings.** Gone: `s`/`S` (Changes view / stash), `t`/`T` (tools / tags), `r`/`R` (refresh / remotes), `l`/`L` (reflog / pull), `c`/`C` (commit / cancel), and `b`/`B`, `r`/`R` in the conflict editor. Kept, because the two keys are one action in two strengths or its direct opposite: `p`/`P` (pull / push, #918), `bc`/`bC` (create and check out / create only), `bu`/`bU` (set / unset upstream), `bm`/`bM`, `bd`/`bD` (local / remote branch), `rp`/`rP` (push / force push), `td`/`tD`, `a`/`A`, `u`/`U` (stage and unstage, one file / all), `n`/`N`, `o`/`O`, `t`/`T`, `y`/`Y`, `j`/`J`, `k`/`K`.
 3. **All branch work under `<space>b`.** Create, switch, rename, delete (local `bd`, remote `bD`), upstream, fast-forward, merge (three kinds), rebase (the sub-group `<space>br`, which also holds fixup, reword and drop), reset, cherry-pick and revert. Tags and worktrees are nouns of their own (rule 1) and keep their own groups, listed next to `b` in the which-key popup.
 4. **Tabs and repositories together under `<space>o`** (`oo` open, `or` refresh, `oc` close tab, `on` rename tab, `op` pin, `ol` last tab). `Ctrl-t` (named in the `<space>o` which-key entry, the Graph and Sidebar hints and the empty screen, #918), `Ctrl-w c`, `Ctrl-w r`, `Ctrl-^`, `<space><Tab>`, `gt`, `gT` and `Alt-1`..`Alt-9` stay (aliases, or the tab-switching keys).
 5. **Aliases on one row.** Help, palette and the tables below show one row per action: main key first, then the other keys (`Tab  also Ctrl-w w`). The main key is the first one in the "New" column. Built by #838 (help); the palette shows the same main-key-first list.
@@ -94,9 +96,9 @@ Counts, read from `DefaultKeymap` and `ActionIds` at this commit: 245 action ids
 | `g` | Operation in progress | `gc` continue, `ga` abort, `gs` skip, `gr` resolve (open the conflict editor) |
 | `e` | External tools | `ed` difftool, `em` mergetool, `ec` commit in `$EDITOR` |
 | `v` | View options | unchanged (`vv` menu, `vw`, `vf`, `vi`, `vs`, `vc`, `vl`, `vp`, `vn`, `v1`..`v3`), plus `vb` base in the conflict editor |
-| leaves | | `s` working tree, `c` write the message or commit (working tree), `a` `A` `d` `u` `U` stage, discard, unstage (working tree), `1`..`4` working-tree panes, `h` jump to HEAD, `J` jump to a ref, `j` quick jump, `f` fetch, `p` pull, `P` push (#918; the `<space>r` rows stay as aliases), `=` compare, `l` reflog, `z` zoom, `x` dismiss, `m` messages, `,` settings, `.` actions menu, `*` toggle advanced commands |
+| leaves | | `s` Changes view, `c` write the message or commit (Changes view), `a` `A` `d` `u` `U` stage, discard, unstage (Changes view), `1`..`4` Changes view panes, `h` jump to HEAD, `J` jump to a ref, `j` quick jump, `f` fetch, `p` pull, `P` push (#918; the `<space>r` rows stay as aliases), `=` compare, `l` reflog, `z` zoom, `x` dismiss, `m` messages, `,` settings, `.` actions menu, `*` toggle advanced commands |
 
-No leaf shares its letter with a group. Letters left free for later: `i` `n` `q` `y`. The stash letter is `k` because `s` stays the working tree (the most used leader key) and `S` would be an unrelated pair; the owner may prefer another free letter.
+No leaf shares its letter with a group. Letters left free for later: `i` `n` `q` `y`. The stash letter is `k` because `s` stays the Changes view (the most used leader key) and `S` would be an unrelated pair; the owner may prefer another free letter.
 The which-key popup names the groups after the nouns (`+more (branch)`, `+more (rebase)`, `+more (tag)`, ...); `ActionGroups` stays the vocabulary of the palette, the row menu and the help subheaders.
 
 Old chords that now mean something else (muscle-memory hazards; every destructive one still asks first): `<space>td` (difftool, now delete tag), `<space>gs` (squash-merge, now skip), `<space>gr` (rebase, now resolve), `<space>br` (rename, now the rebase group), `<space>P` (push again from #918, `rP` is force push: one Shift slip, but it is a lease push that asks first), `<space>r` and `<space>o` (leaves, now groups that wait for a second key). Chords that are simply gone: `<space>gm` `gM` `gp` `gv` `gx` `gi` `gI` `gf` `gw` `gd` `gk`, `<space>tm`, `<space>te`, `<space>to` (see #742 below), `<space>F` `L` `C`, `<space>R...`, `<space>S...`, `<space>T...`. In the conflict editor `B` (take both) becomes `m` and `R` (re-create) `Ctrl-x` (both approved by the owner on #840, beyond the table of #847). `detail.retry` moves from `<space>r` to `<space>od` because `<space>r` is now a group and a key cannot be both a complete binding and the start of a longer chord.
@@ -104,7 +106,7 @@ Old chords that now mean something else (muscle-memory hazards; every destructiv
 ### Decisions (approved by the owner on #840)
 
 - **Tags and worktrees stay their own groups** (`t`, `w`), and fetch, pull, push stay under `r`, although the issue's rule "all branch work under `<space>b`" listed `T` and `w` among today's places of branch work. Rule 1 (one noun, one prefix) and the length of everyday chords (`<space>bwa` for adding a worktree) decided it; only deleting a branch on a remote moved into `b` (`bD`). To follow the rule literally, move them to `<space>bt` and `<space>bw` and say so in the PR.
-- **Stash is `k`**, and the working tree keeps `s` (see the leader map).
+- **Stash is `k`**, and the Changes view keeps `s` (see the leader map).
 - **Levels** (the Level column) and the judgement notes in it.
 - **`<space>*`** as the toggle key.
 
@@ -247,7 +249,7 @@ Grouped as the palette groups them (`ActionCatalog.GroupOf`). "Old" lists every 
 | `stash.push-untracked` | Stash the tracked and untracked changes (asks for a message) | `<space>Su` | `<space>ku` | Advanced+ |  |
 | `stash.restore-file` | Restore the selected file of the shown stash into the working tree (asks first) | (new, #710) | `<space>kr` | Advanced+ | detail pane, Changes tab |
 
-**Working tree**
+**Changes view**
 
 | Action | What | Old | New | Level | Note |
 |---|---|---|---|---|---|
@@ -276,11 +278,11 @@ Grouped as the palette groups them (`ActionCatalog.GroupOf`). "Old" lists every 
 | `working-tree.message-up` | Message box: cursor up | `k` | same | Everyday |  |
 | `working-tree.message-word-next` | Message box: next word | `w` | same | Everyday |  |
 | `working-tree.message-word-previous` | Message box: previous word | `b` | same | Everyday |  |
-| `working-tree.open` | Open the working tree | none | same | Advanced |  |
+| `working-tree.open` | Open the Changes view | none | same | Advanced |  |
 | `working-tree.open-diff` | Go to the diff of the file or folder | `Enter` | same | Everyday |  |
 | `working-tree.stage` | Stage the file or folder, the hunk or the selected lines | `<space>a` | same | Everyday |  |
 | `working-tree.stage-all` | Stage all files | `<space>A` | same | Everyday |  |
-| `working-tree.toggle` | Open or leave the working tree | `<space>s` | same | Everyday |  |
+| `working-tree.toggle` | Open or leave the Changes view | `<space>s` | same | Everyday |  |
 | `working-tree.toggle-amend` | Commit option: Amend (toggle) | `Alt-a` | same | Everyday |  |
 | `working-tree.toggle-folder` | Open or close the folder under the cursor (tree style) | `za` | same | Everyday |  |
 | `working-tree.toggle-no-verify` | Commit option: No-Verify (toggle) | `Alt-n` | same | Advanced |  |

@@ -1,6 +1,6 @@
 namespace Gitunia.Tui.Rendering.Diff;
 
-/// <summary>Which staging buttons the title row of the working-tree diff carries (none for the history diff).</summary>
+/// <summary>Which staging buttons the title row of the Changes view diff carries (none for the history diff).</summary>
 public enum WorkingTreeButtons
 {
     None,

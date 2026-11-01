@@ -27,7 +27,7 @@ public class CommandLevelTests
     [Fact]
     public void GivenTheApprovedList_WhenCountingTheBoundActions_ThenThereAre201EverydayAnd45AdvancedAnd10AdvancedPlus()
     {
-        // The Level column of docs/ux-keymap.md (192 rows plus the nine tab.go-to.N ids, 45, 10).
+        // The Level column of docs/internal/ux-keymap.md (192 rows plus the nine tab.go-to.N ids, 45, 10).
         var counts = KnownActions()
             .GroupBy(action => ActionCatalog.LevelOf(action)!.Value)
             .ToDictionary(group => group.Key, group => group.Count());

@@ -7,7 +7,7 @@ using Gitunia.Tui.Rendering.Styling;
 
 namespace Gitunia.Tui.Rendering.WorkingTree;
 
-/// <summary>The files of one working-tree list as quick-jump rows: the path (a rename as old and new), after the status letter.</summary>
+/// <summary>The files of one Changes view list as quick-jump rows: the path (a rename as old and new), after the status letter.</summary>
 /// <param name="tree">The working tree, null while it is not loaded.</param>
 /// <param name="section">The list.</param>
 /// <param name="width">Columns of the list's text area.</param>

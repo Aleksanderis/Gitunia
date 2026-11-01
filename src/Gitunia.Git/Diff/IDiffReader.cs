@@ -34,7 +34,7 @@ public interface IDiffReader
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Streams the diff of one file of the working-tree view: <c>git diff</c> for a file in the Unstaged list (an untracked file as
+    /// Streams the diff of one file of the Changes view: <c>git diff</c> for a file in the Unstaged list (an untracked file as
     /// additions, a conflicted file as git's combined diff), <c>git diff --cached</c> for one in the Staged list. The file is
     /// found by its literal path (and, for a rename, the old path too). A path that is not valid UTF-8 cannot be an argument
     /// and <c>git diff</c> reads no pathspec file, so the unfiltered diff is streamed and the file picked by its lossily

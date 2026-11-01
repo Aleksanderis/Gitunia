@@ -1,6 +1,6 @@
 namespace Gitunia.Core.Workspaces.Repositories;
 
-/// <summary>The selected row of the working-tree view, by identity so it survives a refresh.</summary>
+/// <summary>The selected row of the Changes view, by identity so it survives a refresh.</summary>
 /// <param name="Section">The list the row is in.</param>
 /// <param name="Path">Path relative to the repository root: the file, or the folder when
 /// <paramref name="IsFolder"/>.</param>

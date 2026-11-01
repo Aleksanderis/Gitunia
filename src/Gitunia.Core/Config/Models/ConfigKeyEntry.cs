@@ -19,7 +19,7 @@ public sealed record ConfigKeyEntry
     public string? View { get; init; }
 
     /// <summary>
-    /// Key sequence in the notation of <c>docs/ux-keymap.md</c>, for example <c>J</c>, <c>gg</c> or
+    /// Key sequence in the notation of <c>docs/internal/ux-keymap.md</c>, for example <c>J</c>, <c>gg</c> or
     /// <c>&lt;space&gt;o</c>.
     /// </summary>
     public string? Key { get; init; }
