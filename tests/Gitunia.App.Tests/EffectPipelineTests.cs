@@ -1,10 +1,14 @@
 using Gitunia.App.Background;
+using Gitunia.App.Settings;
 using Gitunia.App.Status;
 using Gitunia.App.Tabs;
 using Gitunia.App.Tests.Fakes;
 using Gitunia.App.Tests.Tags;
 using Gitunia.Core;
+using Gitunia.Core.Config;
+using Gitunia.Core.Config.Models;
 using Gitunia.Core.Effects;
+using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Overlays;
 using Gitunia.Core.Shell;
@@ -12,6 +16,9 @@ using Gitunia.Core.Running;
 using Gitunia.Core.Sidebar;
 using Gitunia.Core.Status;
 using Gitunia.Core.Prompts;
+using Gitunia.Core.Reflog;
+using Gitunia.Core.Settings;
+using Gitunia.Core.Settings.Models;
 using Gitunia.Core.Tags;
 using Gitunia.Core.Tests.Fixtures;
 using Gitunia.Core.Workspaces;
@@ -175,6 +182,76 @@ public class EffectPipelineTests
     }
 
     [Fact]
+    public async Task GivenTheReflogKey_WhenOpenedThroughTheRunner_ThenTheListOpensAndAnEntryActionReachesTheShell()
+    {
+        using var repository = TestRepositories.Linear();
+        using var pipeline = await Pipeline.OpenAsync(TestGit.Services, repository);
+
+        pipeline.Dispatch(new ReflogOpenRequested(null));
+        await pipeline.Pump.RunUntilAsync(() => pipeline.Reflog.IsOpen);
+        pipeline.Dispatch(new ReflogActionPressed(ActionIds.ResetBranch, null, 10));
+
+        var list = pipeline.Reflog.List!;
+        var entry = Assert.Single(pipeline.Shell.EntryActions);
+        Assert.Equal(ReflogEntryKind.Reset, entry.Kind);
+        Assert.Equal(list.Selected!.Hash, entry.Hash);
+        Assert.Equal(pipeline.TabId, entry.TabId);
+    }
+
+    [Fact]
+    public async Task GivenTheTabIsClosedWhileTheReflogIsRead_WhenTheResultArrives_ThenNoListOpensAndNewReadsWork()
+    {
+        using var repository = TestRepositories.Linear();
+        using var pipeline = await Pipeline.OpenAsync(TestGit.Services, repository);
+        pipeline.Dispatch(new ReflogOpenRequested(null));
+
+        pipeline.Dispatch(new CloseTabCommand(pipeline.TabId));
+        await pipeline.Pump.RunUntilAsync(() => !pipeline.Reflog.IsReading);
+
+        Assert.False(pipeline.Reflog.IsOpen);
+    }
+
+    [Fact]
+    public async Task GivenTheSettingsKey_WhenOpenedThroughTheRunner_ThenTheScreenOpensAndTheFileOptionsReachTheShell()
+    {
+        using var repository = TestRepositories.Linear();
+        var config = Directory.CreateTempSubdirectory("gitunia-settings-pipeline-").FullName;
+        try
+        {
+            var services = new SettingsServices(
+                new ConfigWriter(config),
+                new SettingsEnvironment(config, Directory.Exists),
+                SettingsRegistry.All,
+                DefaultKeymap.Create());
+            using var pipeline = await Pipeline.OpenAsync(TestGit.Services, repository, services);
+
+            pipeline.Dispatch(new SettingsActionPressed(ActionIds.SettingsOpen, null));
+            await pipeline.Pump.RunUntilAsync(() => pipeline.Settings.IsOpen);
+
+            Assert.Single(pipeline.Shell.AppliedOptions);
+            Assert.Contains(ThemeChoice.Auto, pipeline.Shell.AppliedThemes);
+            Assert.False(pipeline.Settings.IsBusy);
+        }
+        finally
+        {
+            Directory.Delete(config, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task GivenARunnerWithoutAConfigFile_WhenOpeningTheSettings_ThenItFailsAtOnceAndNothingStaysBusy()
+    {
+        using var repository = TestRepositories.Linear();
+        using var pipeline = await Pipeline.OpenAsync(TestGit.Services, repository);
+
+        pipeline.Dispatch(new SettingsActionPressed(ActionIds.SettingsOpen, null));
+
+        Assert.False(pipeline.Settings.IsBusy);
+        Assert.False(pipeline.Settings.IsOpen);
+        Assert.Equal(StatusSeverity.Error, pipeline.Statuses.Log.Latest!.Severity);
+    }
+
+    [Fact]
     public async Task GivenAPushThatNeedsCredentials_WhenItFailsThroughTheRunner_ThenTheShellOffersTheTerminalRetry()
     {
         using var repository = TestRepositories.WithOrigin().Tag("v1");
@@ -256,6 +333,10 @@ public class EffectPipelineTests
 
         public TabId TabId => Host.Workspace.ActiveTabId!.Value;
 
+        public ReflogSession Reflog => Host.State.Shell.Reflog;
+
+        public SettingsSession Settings => Host.State.Shell.Settings;
+
         public bool HasRefs => Host.Workspace.FindTab(TabId)!.Refs.Length > 0;
 
         public OpenPrompt? Prompt => Host.State.Shell.Prompt;
@@ -264,7 +345,10 @@ public class EffectPipelineTests
 
         public BackgroundWork Background => _runner.Background;
 
-        public static async Task<Pipeline> OpenAsync(GitServices services, TestRepository repository)
+        public static async Task<Pipeline> OpenAsync(
+            GitServices services,
+            TestRepository repository,
+            SettingsServices? settings = null)
         {
             var pump = new UiPump(TestContext.Current.CancellationToken);
             var host = new Dispatcher(AppState.Empty, pump);
@@ -277,7 +361,8 @@ public class EffectPipelineTests
                 new TabSessionFactory(),
                 statuses,
                 watcherOptions: TestGit.QuietWatcherOptions,
-                shell: shell);
+                shell: shell,
+                settings: settings);
             var location = await TestGit.Services.Discovery.DiscoverAsync(
                 repository.WorkingTreePath,
                 TestContext.Current.CancellationToken);

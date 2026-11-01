@@ -1,4 +1,6 @@
 using Gitunia.Core.Clipboard;
+using Gitunia.Core.Config.Models;
+using Gitunia.Core.Reflog;
 using Gitunia.Core.Workspaces.Tabs;
 
 namespace Gitunia.App;
@@ -16,4 +18,19 @@ public interface IShellEffects
 
     /// <summary>Offers to run the same git arguments in the real terminal (credentials are needed).</summary>
     void OfferTerminalRetry(TabId tabId, string noun, IReadOnlyList<string> arguments);
+
+    /// <summary>
+    /// Starts the flow a reflog entry stands for (the reset prompt, the branch prompt, a detached checkout, the graph
+    /// cursor) and answers with <c>ReflogEntryActionStarted</c> or <c>ReflogEntryActionRefused</c>.
+    /// </summary>
+    void StartReflogEntryAction(ReflogEntryActionEffect effect);
+
+    /// <summary>Makes the options of the config file take effect in the running app.</summary>
+    void ApplyOptions(ConfigOptions options);
+
+    /// <summary>Shows a theme in the running app.</summary>
+    void ApplyTheme(ThemeChoice theme);
+
+    /// <summary>Opens the config file in the editor; <c>SettingsEditorClosed</c> follows when it closes.</summary>
+    void OpenConfigEditor();
 }

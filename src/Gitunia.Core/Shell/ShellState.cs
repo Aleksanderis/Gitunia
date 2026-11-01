@@ -1,5 +1,7 @@
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Prompts;
+using Gitunia.Core.Reflog;
+using Gitunia.Core.Settings;
 using Gitunia.Core.Status;
 
 namespace Gitunia.Core.Shell;
@@ -15,6 +17,8 @@ namespace Gitunia.Core.Shell;
 /// <param name="Confirm">The open confirm dialog, or null.</param>
 /// <param name="Output">The open output overlay, or null.</param>
 /// <param name="Prompt">The open prompt (text field or picker), or null.</param>
+/// <param name="Reflog">The reflog overlay (#984).</param>
+/// <param name="Settings">The settings overlay (#984).</param>
 /// <param name="Screen">The terminal size, or null until the terminal layer reported it (a dialog then counts as
 /// fitting).</param>
 public sealed record ShellState(
@@ -24,9 +28,11 @@ public sealed record ShellState(
     ConfirmDialog? Confirm,
     OutputOverlay? Output,
     OpenPrompt? Prompt,
+    ReflogSession Reflog,
+    SettingsSession Settings,
     ScreenExtent? Screen)
 {
-    public static ShellState Empty { get; } = new(KeyMode.Normal, 0, StatusLog.Empty, null, null, null, null);
+    public static ShellState Empty { get; } = new(KeyMode.Normal, 0, StatusLog.Empty, null, null, null, ReflogSession.Empty, SettingsSession.Empty, null);
 
     /// <summary>
     /// The key mode to return to when a dialog or box opened now closes: an open dialog or box replaced by a newer one
