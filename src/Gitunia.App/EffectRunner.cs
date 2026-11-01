@@ -4,6 +4,8 @@ using Gitunia.App.Loading.Commits;
 using Gitunia.App.Loading.Diff;
 using Gitunia.App.Loading.Stash;
 using Gitunia.App.Loading.Trees;
+using Gitunia.App.Pick;
+using Gitunia.App.Rebase;
 using Gitunia.App.Reflog;
 using Gitunia.App.Settings;
 using Gitunia.App.Remotes;
@@ -16,7 +18,9 @@ using Gitunia.Core;
 using Gitunia.Core.Branches;
 using Gitunia.Core.Clipboard;
 using Gitunia.Core.Effects;
+using Gitunia.Core.Pick;
 using Gitunia.Core.Prompts;
+using Gitunia.Core.Rebase;
 using Gitunia.Core.Reflog;
 using Gitunia.Core.Settings;
 using Gitunia.Core.Remotes;
@@ -55,6 +59,8 @@ public sealed class EffectRunner<TSession> : IDisposable
     private readonly TabCancellation _cancellation = new();
     private readonly BackgroundWork _background = new();
     private readonly BranchEffectHandler _branches;
+    private readonly PickEffectHandler _pick;
+    private readonly RebaseEffectHandler _rebase;
     private readonly ReflogEffectHandler _reflog;
     private readonly SettingsEffectHandler? _settings;
     private readonly CancellationTokenSource _shutdown = new();
@@ -91,6 +97,8 @@ public sealed class EffectRunner<TSession> : IDisposable
     {
         _shell = shell ?? NoShellEffects.Instance;
         _branches = new BranchEffectHandler(services.Branches, host);
+        _pick = new PickEffectHandler(services.Pick, services.PickCommits, host);
+        _rebase = new RebaseEffectHandler(services.Rebase, services.QuickRebase, host);
         _reflog = new ReflogEffectHandler(services.Reflog, host);
         _settings = settings is null ? null : new SettingsEffectHandler(settings, host);
         _remotes = new RemoteEffectHandler(services.RemoteManager, host);
@@ -213,6 +221,8 @@ public sealed class EffectRunner<TSession> : IDisposable
     private static AppCommand FailureOf(AppEffect effect, string text) => effect switch
     {
         BranchEffect branch => new BranchOperationFailed(branch.TabId, text),
+        PickEffect pick => new PickFailed(pick.TabId, text),
+        RebaseEffect rebase => new RebaseFailed(rebase.TabId, text),
         ReadReflogEffect => new ReflogReadFailed(text),
         SettingsEffect => new SettingsOperationFailed(text),
         RemoteEffect remote => new RemoteOperationFailed(remote.TabId, text),
@@ -240,8 +250,14 @@ public sealed class EffectRunner<TSession> : IDisposable
             case OfferTerminalRetryEffect offer:
                 _shell.OfferTerminalRetry(offer.TabId, offer.Noun, offer.Arguments);
                 break;
+            case PickEffect pick:
+                _pick.Handle(pick, _cancellation.TokenOf(pick.TabId));
+                break;
             case PostStatusEffect post:
                 _host.Dispatch(new StatusPostedCommand(post.Text, post.Severity, _host.Clock.GetUtcNow()));
+                break;
+            case RebaseEffect rebase:
+                _rebase.Handle(rebase, _cancellation.TokenOf(rebase.TabId));
                 break;
             case ReadReflogEffect read:
                 _reflog.Handle(read, _cancellation.TokenOf(read.TabId));

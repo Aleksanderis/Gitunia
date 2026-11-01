@@ -21,6 +21,7 @@ using Gitunia.Core.Mouse;
 using Gitunia.Core.Operations;
 using Gitunia.Core.Overlays;
 using Gitunia.Core.Persistence;
+using Gitunia.Core.Pick;
 using Gitunia.Core.Picker;
 using Gitunia.Core.Reflog;
 using Gitunia.Core.Settings;
@@ -96,7 +97,7 @@ public sealed class TuiApplication(
     GitServices services,
     ConsoleCapabilities detectedCapabilities,
     IPlatform platform) : IDisposable, ITerminalSuspender, IShellEffects, IBranchSelectionSource,
-    IGraphCommitSelector,
+    IGraphCommitSelector, IGraphSelectionSource, IPickSelectionSource,
     IStashSelectionSource, IStashViewHost
 {
     // Terminal.Gui's default of 25 iterations per second gave ~34 ms key latency (docs/internal/history/decisions.md); the idle rate saves CPU (#909).
@@ -151,12 +152,13 @@ public sealed class TuiApplication(
     private ExternalToolRunner _externalToolRunner = null!;
     private PushActions _push = null!;
     private PickActions _pick = null!;
-    private MainlineOverlayTracker _mainline = null!;
     private PromptPopupTracker _popups = null!;
     private GraphGlyphSet _glyphs = null!;
     private FileTreeController _fileTree = null!;
     private ResetActions _reset = null!;
     private ReflogSession? _drawnReflog;
+    private MainlineQuestion? _drawnMainline;
+    private ScreenExtent? _drawnScreen;
     private SettingsSession? _drawnSettings;
     private ReflogInput _reflog = null!;
     private ReflogEntryStarter _reflogEntries = null!;
@@ -342,12 +344,8 @@ public sealed class TuiApplication(
         _reset = CreateReset(operationGate);
         _router.Reset = _reset;
         _router.Merge = CreateMerge(operationGate);
-        _router.Rebase = CreateRebase(operationGate);
-        _pick = CreatePick(operationGate);
-        _mainline = new MainlineOverlayTracker(
-            () => _pick.Prompt is not null,
-            IsMainlineCovered,
-            RefreshOverlay);
+        _router.Rebase = new RebaseActions(_host, this, this);
+        _pick = new PickActions(_host, this);
         _router.Pick = _pick;
         _router.Compare = new CompareActions(
             _host,
@@ -467,7 +465,7 @@ public sealed class TuiApplication(
             _quickJump,
             _fileTree,
             _worktrees,
-            .. CreatePrompts(operationGate),
+            .. CreatePrompts(),
         ];
         _router.Prompts = _prompts;
         _keys.TextKeyHandler = HandleTextKey;
@@ -479,7 +477,6 @@ public sealed class TuiApplication(
         _ = new WorkingTreePresenter(_host, _view);
 
         _host.Changed += _view.RefreshChrome;
-        _host.Changed += _mainline.Sync;
         _host.Changed += _binder.Sync;
         _host.Changed += ApplyFocus;
         _host.Changed += _commits.ForgetClosedTabs;
@@ -507,7 +504,6 @@ public sealed class TuiApplication(
         _view.Window.ViewportChanged += (_, _) => DeferToNextIteration(_diffPane.OnScreenResized);
         _view.Window.ViewportChanged += (_, _) => ReportScreenSize();
         _view.Window.ViewportChanged += (_, _) => _overlays.OnScreenResized();
-        _mainline.Attach(_view.Window);
         _popups = new PromptPopupTracker(CurrentPopup, () => _view.ScreenSize, ShowOverlayFrame);
         _view.ChromeRefreshed += _popups.Sync;
         _view.Window.ViewportChanged += (_, _) => _popups.Sync();
@@ -1005,27 +1001,8 @@ public sealed class TuiApplication(
         BranchSelectionNow,
         gate);
 
-    private PickActions CreatePick(TabOperationGate gate) => new(
-        _host,
-        services.Pick,
-        services.PickCommits,
-        _statuses,
-        InvokeOnUi,
-        tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None,
-        tabId => _effects.Refresh(tabId, false),
-        RefreshMainlineAndChrome,
-        _visual.End,
-        PickSelectionNow,
-        gate);
-
-    private void RefreshMainlineAndChrome()
-    {
-        _mainline.Sync();
-        _view.RefreshChrome();
-    }
-
     // A focused sidebar acts on its ref, the graph on the Visual range when one is active, else the selected commit.
-    private PickSelection PickSelectionNow()
+    PickSelection IPickSelectionSource.Current()
     {
         var chosen = BranchSelectionNow();
         if (chosen.RowKind is not null)
@@ -1043,6 +1020,10 @@ public sealed class TuiApplication(
         return new PickSelection(null, PickRange.Hashes(graph, range));
     }
 
+    void IPickSelectionSource.EndRange() => _visual.End();
+
+    string? IGraphSelectionSource.SelectedCommit() => SelectedCommitHash();
+
     private ResetActions CreateReset(TabOperationGate gate) => new(
         _host,
         services.Reset,
@@ -1054,29 +1035,6 @@ public sealed class TuiApplication(
         tabId => _effects.Refresh(tabId, false),
         _view.RefreshChrome,
         BranchSelectionNow,
-        gate);
-
-    private RebaseActions CreateRebase(TabOperationGate gate) => new(
-        _host,
-        services.Rebase,
-        _statuses,
-        InvokeOnUi,
-        tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None,
-        tabId => _effects.Refresh(tabId, false),
-        BranchSelectionNow,
-        IsAnyOverlayOpen,
-        gate);
-
-    private QuickRebaseActions CreateQuickRebase(TabOperationGate gate) => new(
-        _host,
-        services.QuickRebase,
-        _statuses,
-        InvokeOnUi,
-        tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None,
-        tabId => _effects.Refresh(tabId, false),
-        SelectedCommitHash,
-        IsAnyOverlayOpen,
-        _view.RefreshChrome,
         gate);
 
     // A focused sidebar acts on its row, any other pane on the commit selected in the graph.
@@ -1793,15 +1751,22 @@ public sealed class TuiApplication(
     private void RefreshOverlaysOnStateChange()
     {
         var shell = _host.State.Shell;
-        if (ReferenceEquals(shell.Reflog, _drawnReflog) && ReferenceEquals(shell.Settings, _drawnSettings))
+        if (ReferenceEquals(shell.Reflog, _drawnReflog) && ReferenceEquals(shell.Settings, _drawnSettings)
+            && ReferenceEquals(shell.Mainline, _drawnMainline) && !MainlineNeedsLayout(shell))
         {
             return;
         }
 
         _drawnReflog = shell.Reflog;
         _drawnSettings = shell.Settings;
+        _drawnMainline = shell.Mainline;
+        _drawnScreen = shell.Screen;
         RefreshOverlay();
     }
+
+    // An open mainline question is placed again when the window is resized.
+    private bool MainlineNeedsLayout(ShellState shell) =>
+        shell.Mainline is not null && !Equals(shell.Screen, _drawnScreen);
 
     private void InvokeOnUi(Action action) => _uiInvoker.Invoke(action);
 
@@ -1873,7 +1838,7 @@ public sealed class TuiApplication(
 
     void IStashViewHost.RefreshDetail() => RefreshDetail();
 
-    private IReadOnlyList<IPromptHandler> CreatePrompts(TabOperationGate gate)
+    private IReadOnlyList<IPromptHandler> CreatePrompts()
     {
         var handle = new GraphViewHandle(
             ActiveSession,
@@ -1893,7 +1858,6 @@ public sealed class TuiApplication(
         [
             // The prompt that owns Insert mode must see Esc and Enter first, so the ref prompt comes before the search.
             _openPrompt,
-            CreateQuickRebase(gate),
             _push,
             _reset,
             _pick,

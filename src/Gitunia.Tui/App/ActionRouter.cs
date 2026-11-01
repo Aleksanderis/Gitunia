@@ -241,7 +241,6 @@ public sealed class ActionRouter(Dispatcher host, ListView graphList, ListView d
 
         if (Rebase?.TryExecute(action, count) == true)
         {
-            Refuse(Rebase.Notice);
             return;
         }
 

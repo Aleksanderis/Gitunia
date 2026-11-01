@@ -1,6 +1,9 @@
 using Gitunia.Core.Branches;
 using Gitunia.Core.Effects;
+using Gitunia.Core.Keymap.Models;
+using Gitunia.Core.Pick;
 using Gitunia.Core.Prompts;
+using Gitunia.Core.Rebase;
 using Gitunia.Core.Reflog;
 using Gitunia.Core.Settings;
 using Gitunia.Core.Remotes;
@@ -27,6 +30,8 @@ public static class AppReducer
     {
         BranchCommand branch => ReduceBranch(state, branch),
         EffectFailedCommand failed => EffectFailed(state, failed),
+        PickCommand pick => ReducePick(state, pick),
+        RebaseCommand rebase => ReduceRebase(state, rebase),
         ReflogCommand reflog => ReduceReflog(state, reflog),
         SettingsCommand settings => ReduceSettings(state, settings),
         RemoteCommand remote => ReduceRemote(state, remote),
@@ -64,6 +69,11 @@ public static class AppReducer
             shell = ShellReducer.Reduce(shell, new PromptCancelledCommand()).State;
         }
 
+        if (shell.Mainline is { } question && update.Workspace.ActiveTabId != question.TabId)
+        {
+            shell = (shell with { Mainline = null }).WithMode(KeyMode.Normal);
+        }
+
         var changed = new AppState(update.Workspace, shell);
         if (shell.Reflog.List is { } list && update.Workspace.FindTab(list.TabId) is null)
         {
@@ -99,6 +109,72 @@ public static class AppReducer
 
         return new AppUpdate(state with { Shell = shell }, update.Effects);
     }
+
+    // A result or answer for a tab that was closed meanwhile is dropped, like a late TabCommand. The mainline question
+    // lives in the shell state because it is an overlay; the reducer returns it after each command.
+    private static AppUpdate ReducePick(AppState state, PickCommand command)
+    {
+        var workspace = state.Workspace;
+        if (workspace.FindTab(command.TabId) is not { } tab)
+        {
+            return new AppUpdate(state, []);
+        }
+
+        var busy = tab.Running.IsRunning(RunningOperationKind.Pick);
+        var question = state.Shell.Mainline is { } open && open.TabId == tab.Id ? open : null;
+        var context = new PickContext(
+            tab.Id,
+            tab.Location,
+            tab.Head,
+            tab.Operation,
+            workspace.ActiveTabId == tab.Id,
+            busy,
+            question);
+        var update = PickReducer.Reduce(command, context);
+        var running = tab.Running.Apply(tab.Id, command, update.Effects);
+        var next = state;
+        if (!Equals(running, tab.Running))
+        {
+            next = WithTab(state, tab with { Running = running });
+        }
+
+        if (!Equals(update.Question, question))
+        {
+            next = next with { Shell = next.Shell with { Mainline = update.Question } };
+        }
+
+        return new AppUpdate(next, update.Effects);
+    }
+
+    // A result or answer for a tab that was closed meanwhile is dropped, like a late TabCommand.
+    private static AppUpdate ReduceRebase(AppState state, RebaseCommand command)
+    {
+        var workspace = state.Workspace;
+        if (workspace.FindTab(command.TabId) is not { } tab)
+        {
+            return new AppUpdate(state, []);
+        }
+
+        var busy = tab.Running.IsRunning(RunningOperationKind.Rebase);
+        var context = new RebaseContext(tab, workspace.ActiveTabId == tab.Id, busy, IsOverlayOpen(state.Shell));
+        var effects = RebaseReducer.Reduce(command, context);
+        var running = tab.Running.Apply(tab.Id, command, effects);
+        if (Equals(running, tab.Running))
+        {
+            return new AppUpdate(state, effects);
+        }
+
+        return new AppUpdate(WithTab(state, tab with { Running = running }), effects);
+    }
+
+    // A late question must not replace what the user is looking at.
+    private static bool IsOverlayOpen(ShellState shell) =>
+        shell.Confirm is not null
+        || shell.Output is not null
+        || shell.Prompt is not null
+        || shell.Mainline is not null
+        || shell.Reflog.IsOpen
+        || shell.Settings.IsOpen;
 
     // A result or answer for a tab that was closed meanwhile is dropped, like a late TabCommand.
     private static AppUpdate ReduceRemote(AppState state, RemoteCommand command)

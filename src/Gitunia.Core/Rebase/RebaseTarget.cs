@@ -1,6 +1,6 @@
 using Gitunia.Core.Workspaces.Tabs;
 
-namespace Gitunia.Tui.App.Rebase;
+namespace Gitunia.Core.Rebase;
 
 /// <summary>
 /// What a rebase acts on, fixed when it is asked so a refresh while the dialog is open cannot redirect it.

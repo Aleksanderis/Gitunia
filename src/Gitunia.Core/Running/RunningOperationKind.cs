@@ -9,6 +9,12 @@ public enum RunningOperationKind
     /// <summary>A branch operation: create, switch, rename, delete, upstream or fast-forward.</summary>
     Branches,
 
+    /// <summary>A cherry-pick or revert: reading the commits, then picking them.</summary>
+    Pick,
+
+    /// <summary>A rebase onto a commit or a quick fixup, reword or drop: planning, counting merges or rebasing.</summary>
+    Rebase,
+
     /// <summary>A remote management operation: add, remove, rename, set the URL, or reading the remotes for the prompt.</summary>
     Remotes,
 
