@@ -30,6 +30,7 @@ public class PathCompleterTests
             var candidates = PathCompleter.Candidates("~/projects/myrepo/al", context);
 
             Assert.Equal(["Alpha", "alpine"], candidates.Select(candidate => candidate.Name));
+            // Real file system check: on macOS and Windows the directory lists as typed, the completer must correct it.
             Assert.Equal(Path.Combine(root, "Projects", "MyRepo", "Alpha"), candidates[0].Path);
         }
         finally
@@ -76,12 +77,12 @@ public class PathCompleterTests
         var context = PickerFixtures.Context() with
         {
             // A case-insensitive file system answers for the typed spelling and echoes it back.
-            ListDirectories = directory => ListIgnoringCase(directory, PickerFixtures.PathOf("code")),
+            ListDirectories = ListIgnoringCase,
         };
 
         var candidates = PathCompleter.Candidates("~/CODE/a", context);
 
-        Assert.Equal(Path.Combine(PickerFixtures.PathOf("code"), "alpha"), candidates[0].Path, ignoreCase: true);
+        Assert.Equal(PickerFixtures.PathOf("code", "alpha"), candidates[0].Path);
     }
 
     [Fact]
@@ -210,8 +211,17 @@ public class PathCompleterTests
         Assert.Equal(["code"], PathCompleter.Candidates("~", context).Select(candidate => candidate.Name));
     }
 
-    private static string[] ListIgnoringCase(string directory, string existing) =>
-        string.Equals(Path.TrimEndingDirectorySeparator(directory), existing, StringComparison.OrdinalIgnoreCase)
-            ? [Path.Combine(directory, "alpha")]
+    // Models a case-insensitive file system: the home directory holds "code", and any spelling of it lists as typed.
+    private static string[] ListIgnoringCase(string directory)
+    {
+        var trimmed = Path.TrimEndingDirectorySeparator(directory);
+        if (trimmed == Path.TrimEndingDirectorySeparator(PickerFixtures.Home))
+        {
+            return [PickerFixtures.PathOf("code")];
+        }
+
+        return string.Equals(trimmed, PickerFixtures.PathOf("code"), StringComparison.OrdinalIgnoreCase)
+            ? [Path.Combine(trimmed, "alpha")]
             : [];
+    }
 }
