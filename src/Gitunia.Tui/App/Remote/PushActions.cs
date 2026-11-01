@@ -45,7 +45,7 @@ namespace Gitunia.Tui.App.Remote;
 /// <param name="redraw">Redraws the status bar.</param>
 /// <param name="selection">What the cursor is on: a remote branch row is deleted without the pickers.</param>
 public sealed class PushActions(
-    WorkspaceHost host,
+    Dispatcher host,
     RemoteActions remote,
     IRemoteWriter writer,
     Func<RepositoryLocation, CancellationToken, Task<IReadOnlyList<string>>> remotesOf,

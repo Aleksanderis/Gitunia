@@ -1,3 +1,4 @@
+using Gitunia.Core;
 using Gitunia.App;
 using Gitunia.App.Loading.Commits;
 using Gitunia.App.Tabs;
@@ -23,7 +24,7 @@ public sealed class SidebarHarness : IDisposable
     private readonly TerminalTabSession _session;
     private readonly TerminalTabSession _emptySession;
 
-    private SidebarHarness(WorkspaceHost host, TerminalTabSession session, SidebarListSource source, RepositoryLocation location)
+    private SidebarHarness(Dispatcher host, TerminalTabSession session, SidebarListSource source, RepositoryLocation location)
     {
         Host = host;
         _session = session;
@@ -48,7 +49,7 @@ public sealed class SidebarHarness : IDisposable
         source.Update(host.Workspace.ActiveTab);
     }
 
-    public WorkspaceHost Host { get; }
+    public Dispatcher Host { get; }
 
     /// <summary>What the handler wrote to the terminal (OSC 52 sequences).</summary>
     public StringWriter Clipboard { get; } = new();
@@ -73,7 +74,7 @@ public sealed class SidebarHarness : IDisposable
     public static async Task<SidebarHarness> LoadAsync(string repositoryPath)
     {
         var location = await TestGit.Services.Discovery.DiscoverAsync(repositoryPath, CancellationToken.None);
-        var host = new WorkspaceHost(Workspace.Empty);
+        var host = new Dispatcher(AppState.Empty);
         host.Dispatch(new OpenRepositoryCommand(location));
         var tabId = host.Workspace.ActiveTabId!.Value;
         var session = new TerminalTabSession(

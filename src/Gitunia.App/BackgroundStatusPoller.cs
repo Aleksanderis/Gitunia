@@ -14,13 +14,13 @@ namespace Gitunia.App;
 public sealed class BackgroundStatusPoller : IDisposable
 {
     private readonly IStatusReader _status;
-    private readonly WorkspaceHost _host;
+    private readonly Dispatcher _host;
     private readonly Action<Action> _postToUi;
     private readonly TimeSpan _interval;
     private readonly CancellationTokenSource _cancellation = new();
     private Task? _loop;
 
-    public BackgroundStatusPoller(IStatusReader status, WorkspaceHost host, Action<Action> postToUi, TimeSpan? interval = null)
+    public BackgroundStatusPoller(IStatusReader status, Dispatcher host, Action<Action> postToUi, TimeSpan? interval = null)
     {
         _status = status;
         _host = host;

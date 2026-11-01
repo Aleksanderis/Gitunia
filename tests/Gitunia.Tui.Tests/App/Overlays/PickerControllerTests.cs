@@ -1,3 +1,4 @@
+using Gitunia.Core;
 using Gitunia.App;
 using Gitunia.Core.Picker;
 using Gitunia.Core.Workspaces;
@@ -18,7 +19,7 @@ public class PickerControllerTests
         TimeSpan? scanningDelay = null,
         Func<TabId, TabId, bool>? moveDraft = null)
     {
-        var host = new WorkspaceHost(Workspace.Empty);
+        var host = new Dispatcher(AppState.Empty);
         var pump = new UiPump(TestContext.Current.CancellationToken);
         // Never show scanning by default: only the tests about it opt in, with a zero delay.
         var picker = new PickerController(TestGit.Services.Discovery, host, home, pump.Post, listingTimeout, listDirectories, scanningDelay ?? Timeout.InfiniteTimeSpan, moveDraft);
@@ -32,7 +33,7 @@ public class PickerControllerTests
         var home = Directory.CreateTempSubdirectory("gitunia-home-");
         Directory.CreateDirectory(Path.Combine(configured.FullName, "inside", ".git"));
         Directory.CreateDirectory(Path.Combine(home.FullName, "code", "outside", ".git"));
-        var host = new WorkspaceHost(Workspace.Empty);
+        var host = new Dispatcher(AppState.Empty);
         var pump = new UiPump(TestContext.Current.CancellationToken);
         var picker = new PickerController(
             TestGit.Services.Discovery,
@@ -61,7 +62,7 @@ public class PickerControllerTests
     {
         var home = Directory.CreateTempSubdirectory("gitunia-home-");
         Directory.CreateDirectory(Path.Combine(home.FullName, "code", "outside", ".git"));
-        var host = new WorkspaceHost(Workspace.Empty);
+        var host = new Dispatcher(AppState.Empty);
         var pump = new UiPump(TestContext.Current.CancellationToken);
         var picker = new PickerController(
             TestGit.Services.Discovery,

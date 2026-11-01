@@ -1,3 +1,4 @@
+using Gitunia.Core;
 using Gitunia.App;
 using Gitunia.App.Tabs;
 using Gitunia.Core.Editing;
@@ -248,7 +249,7 @@ public class CommitScriptTests
 
     private sealed class Session
     {
-        private readonly WorkspaceHost _host = new(Workspace.Empty);
+        private readonly Dispatcher _host = new(AppState.Empty);
         private readonly GitRunner _runner;
         private readonly RepositoryLocation _location;
         private KeyMode _mode = KeyMode.Normal;

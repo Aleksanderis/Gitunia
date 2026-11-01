@@ -12,7 +12,7 @@ namespace Gitunia.Tui.App.Panes;
 /// #540): both are part of the repository tab's view state.
 /// </summary>
 /// <param name="host">The workspace the tab state lives in.</param>
-public sealed class DetailTabController(WorkspaceHost host)
+public sealed class DetailTabController(Dispatcher host)
 {
     private static readonly int TabCount = Enum.GetValues<BottomTab>().Length;
 

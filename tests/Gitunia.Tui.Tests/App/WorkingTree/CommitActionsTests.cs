@@ -1,3 +1,4 @@
+using Gitunia.Core;
 using Gitunia.App;
 using Gitunia.App.Tabs;
 using Gitunia.Core.Editing;
@@ -691,7 +692,7 @@ public class CommitActionsTests
 
     private sealed class Harness : IDisposable
     {
-        private readonly WorkspaceHost _host = new(Workspace.Empty);
+        private readonly Dispatcher _host = new(AppState.Empty);
 
         public Harness(params StatusEntry[] entries)
         {

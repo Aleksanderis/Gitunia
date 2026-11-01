@@ -19,7 +19,7 @@ namespace Gitunia.Tui.App;
 /// Tells whether a tab holds a commit message that was not committed (closing it needs a second step); null for never.
 /// </param>
 public sealed class WorkspaceActions(
-    WorkspaceHost host,
+    Dispatcher host,
     PickerController picker,
     Action quit,
     Func<TabId, bool>? hasUnsentMessage = null)

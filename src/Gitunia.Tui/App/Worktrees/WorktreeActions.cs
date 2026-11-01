@@ -40,7 +40,7 @@ namespace Gitunia.Tui.App.Worktrees;
 /// <param name="setMode">Switches the input mode (Insert while a prompt is open).</param>
 /// <param name="redraw">Redraws the status bar.</param>
 public sealed class WorktreeActions(
-    WorkspaceHost host,
+    Dispatcher host,
     IWorktreeWriter writer,
     StatusChannel statuses,
     Action<Action> postToUi,

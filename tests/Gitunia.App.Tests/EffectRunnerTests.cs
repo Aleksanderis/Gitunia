@@ -1,3 +1,4 @@
+using Gitunia.Core;
 using Gitunia.App.Tabs;
 using Gitunia.App.Tabs.Models;
 using Gitunia.App.Tests.Fakes;
@@ -26,7 +27,7 @@ public class EffectRunnerTests
 
         var firstId = scratch.Tabs[0].Id;
         var secondId = scratch.Tabs[1].Id;
-        var host = new WorkspaceHost(Workspace.Empty);
+        var host = new Dispatcher(AppState.Empty);
         using var effects = new EffectRunner<TabSession>(fakes.Services, host, pump.Post, new TabSessionFactory(), new StatusChannel(), watcherOptions: TestGit.QuietWatcherOptions);
 
         host.Restore(new WorkspaceUpdate(
@@ -59,7 +60,7 @@ public class EffectRunnerTests
 
         var firstId = scratch.Tabs[0].Id;
         var secondId = scratch.Tabs[1].Id;
-        var host = new WorkspaceHost(Workspace.Empty);
+        var host = new Dispatcher(AppState.Empty);
         using var effects = new EffectRunner<TabSession>(fakes.Services, host, pump.Post, new TabSessionFactory(), new StatusChannel(), watcherOptions: TestGit.QuietWatcherOptions);
         host.Restore(new WorkspaceUpdate(
             scratch with { ActiveTabId = firstId },
@@ -87,7 +88,7 @@ public class EffectRunnerTests
         }
 
         var ids = scratch.Tabs.Select(tab => tab.Id).ToArray();
-        var host = new WorkspaceHost(Workspace.Empty);
+        var host = new Dispatcher(AppState.Empty);
         using var effects = new EffectRunner<TabSession>(
             fakes.Services,
             host,
@@ -135,7 +136,7 @@ public class EffectRunnerTests
         }
 
         var ids = scratch.Tabs.Select(tab => tab.Id).ToArray();
-        var host = new WorkspaceHost(Workspace.Empty);
+        var host = new Dispatcher(AppState.Empty);
         using var effects = new EffectRunner<TabSession>(
             fakes.Services,
             host,
@@ -172,7 +173,7 @@ public class EffectRunnerTests
         var location = await TestGit.Services.Discovery.DiscoverAsync(repository.WorkingTreePath, CancellationToken.None);
         var update = WorkspaceReducer.Reduce(Workspace.Empty, new OpenRepositoryCommand(location));
         var tabId = update.Workspace.Tabs[0].Id;
-        var host = new WorkspaceHost(Workspace.Empty);
+        var host = new Dispatcher(AppState.Empty);
         var interval = TimeSpan.FromMilliseconds(50);
         var poll = new PollOptions(interval, interval, TimeSpan.FromMilliseconds(200), 1);
         using var effects = new EffectRunner<TabSession>(
@@ -207,7 +208,7 @@ public class EffectRunnerTests
         var location = await TestGit.Services.Discovery.DiscoverAsync(repository.WorkingTreePath, CancellationToken.None);
         var update = WorkspaceReducer.Reduce(Workspace.Empty, new OpenRepositoryCommand(location));
         var tabId = update.Workspace.Tabs[0].Id;
-        var host = new WorkspaceHost(Workspace.Empty);
+        var host = new Dispatcher(AppState.Empty);
         using var effects = new EffectRunner<TabSession>(TestGit.Services, host, pump.Post, new TabSessionFactory(), new StatusChannel());
         host.Restore(update);
         var session = effects.SessionOf(tabId)!;
@@ -230,7 +231,7 @@ public class EffectRunnerTests
             .DiscoverAsync(repository.WorkingTreePath, CancellationToken.None);
         var update = WorkspaceReducer.Reduce(Workspace.Empty, new OpenRepositoryCommand(location));
         var tabId = update.Workspace.Tabs[0].Id;
-        var host = new WorkspaceHost(Workspace.Empty);
+        var host = new Dispatcher(AppState.Empty);
         using var effects = new EffectRunner<TabSession>(
             TestGit.Services,
             host,

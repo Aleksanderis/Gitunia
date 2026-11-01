@@ -34,7 +34,7 @@ namespace Gitunia.Tui.App.Operations;
 /// <param name="confirm">Shows the confirm dialog, runs the callback on <c>y</c>; false if it cannot show.</param>
 /// <param name="gate">The one-operation-per-tab gate, shared with the staging actions.</param>
 public sealed class OperationController(
-    WorkspaceHost host,
+    Dispatcher host,
     IOperationWriter writer,
     StatusChannel statuses,
     Action<Action> postToUi,

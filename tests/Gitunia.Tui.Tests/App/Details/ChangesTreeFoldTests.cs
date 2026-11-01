@@ -1,3 +1,4 @@
+using Gitunia.Core;
 using Gitunia.App;
 using Gitunia.App.Loading.Commits;
 using Gitunia.App.Tabs;
@@ -30,7 +31,7 @@ public class ChangesTreeFoldTests : IDisposable
         new("top.txt", null, FileChangeKind.Modified, null),
     ];
 
-    private readonly WorkspaceHost _host = new(Workspace.Empty);
+    private readonly Dispatcher _host = new(AppState.Empty);
     private readonly GraphEntry _entry = CommitFactory.Graph(CommitFactory.Commit(1, "root", []))[0];
     private readonly UiPump _pump = new(TestContext.Current.CancellationToken);
     private readonly TerminalTabSession _session;

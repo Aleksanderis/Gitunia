@@ -24,7 +24,7 @@ namespace Gitunia.Tui.App.WorkingTree;
 /// <param name="staging">Stages and unstages files, hunks and lines.</param>
 /// <param name="commits">The message box and the commit.</param>
 public sealed class WorkingTreeActionHandler(
-    WorkspaceHost host,
+    Dispatcher host,
     Func<int> pageHeight,
     ClipboardCopier clipboard,
     StagingActions staging,

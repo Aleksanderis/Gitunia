@@ -39,7 +39,7 @@ namespace Gitunia.Tui.App.Remote;
 /// <param name="selection">What is selected now: a sidebar row or the graph commit.</param>
 /// <param name="remoteOperationRuns">Whether a fetch, pull or push runs on the tab; remotes stay then.</param>
 public sealed class RemoteManagementActions(
-    WorkspaceHost host,
+    Dispatcher host,
     IRemoteManager manager,
     StatusChannel statuses,
     Action<Action> postToUi,

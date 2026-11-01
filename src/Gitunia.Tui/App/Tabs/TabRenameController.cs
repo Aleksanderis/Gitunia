@@ -14,7 +14,7 @@ namespace Gitunia.Tui.App.Tabs;
 /// <c>Enter</c> saves it (the name is stored in the session), an empty name goes back to the repository name,
 /// <c>Esc</c> leaves the name alone.
 /// </summary>
-public sealed class TabRenameController(WorkspaceHost host, Action<KeyMode> setMode, Action redraw) : IPromptHandler
+public sealed class TabRenameController(Dispatcher host, Action<KeyMode> setMode, Action redraw) : IPromptHandler
 {
     private TabId? _renaming;
     private string _text = string.Empty;

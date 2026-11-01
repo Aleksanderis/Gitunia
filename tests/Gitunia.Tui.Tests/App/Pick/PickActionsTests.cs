@@ -1,3 +1,4 @@
+using Gitunia.Core;
 using Gitunia.App;
 using Gitunia.App.Loading.Commits;
 using Gitunia.App.Tabs;
@@ -488,7 +489,7 @@ public class PickActionsTests
 
     private sealed class Harness : IDisposable
     {
-        private readonly WorkspaceHost _host = new(Workspace.Empty);
+        private readonly Dispatcher _host = new(AppState.Empty);
         private readonly List<TerminalTabSession> _sessions = [];
         private PickSelection _selection = new(null, []);
 

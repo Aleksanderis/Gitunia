@@ -13,7 +13,7 @@ namespace Gitunia.Tui.App.Stash;
 /// which stash is shown, follows the stash stack and gives the pane back to the graph selection when the view ends.
 /// </summary>
 public sealed class StashViewController(
-    WorkspaceHost host,
+    Dispatcher host,
     Func<TerminalTabSession?> activeSession,
     Action reselectGraphCommit,
     Action refreshDetail,

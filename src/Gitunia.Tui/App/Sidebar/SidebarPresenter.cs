@@ -14,12 +14,12 @@ namespace Gitunia.Tui.App.Sidebar;
 /// </summary>
 public sealed class SidebarPresenter
 {
-    private readonly WorkspaceHost _host;
+    private readonly Dispatcher _host;
     private readonly ListView _list;
     private readonly SidebarListSource _source;
     private bool _isSyncing;
 
-    public SidebarPresenter(WorkspaceHost host, ListView list, SidebarListSource source)
+    public SidebarPresenter(Dispatcher host, ListView list, SidebarListSource source)
     {
         _host = host;
         _list = list;

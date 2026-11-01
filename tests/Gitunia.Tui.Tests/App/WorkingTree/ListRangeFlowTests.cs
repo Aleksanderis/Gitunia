@@ -1,3 +1,4 @@
+using Gitunia.Core;
 using Gitunia.App;
 using Gitunia.App.Tabs;
 using Gitunia.Core.Clipboard;
@@ -223,7 +224,7 @@ public sealed class ListRangeFlowTests : IDisposable
 
     private sealed class Flow : IDisposable
     {
-        private readonly WorkspaceHost _host = new(Workspace.Empty);
+        private readonly Dispatcher _host = new(AppState.Empty);
         private readonly ListView _list;
         private readonly ListView _stagedList;
         private readonly WhichKeyTimer _timer = new(TimeSpan.FromHours(1), action => action());

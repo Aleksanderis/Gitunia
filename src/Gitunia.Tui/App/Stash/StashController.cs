@@ -37,7 +37,7 @@ namespace Gitunia.Tui.App.Stash;
 /// <param name="redraw">Redraws the status bar.</param>
 /// <param name="gate">The one-operation-per-tab gate, shared with the staging actions.</param>
 public sealed class StashController(
-    WorkspaceHost host,
+    Dispatcher host,
     IStashWriter writer,
     StatusChannel statuses,
     Action<Action> postToUi,

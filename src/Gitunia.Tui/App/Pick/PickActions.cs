@@ -37,7 +37,7 @@ namespace Gitunia.Tui.App.Pick;
 /// <param name="selection">What is selected now: a sidebar row, a graph commit or a Visual range.</param>
 /// <param name="gate">The one-operation-per-tab gate, shared with staging, discard, reset and merge.</param>
 public sealed class PickActions(
-    WorkspaceHost host,
+    Dispatcher host,
     IPickWriter writer,
     IPickCommitReader reader,
     StatusChannel statuses,

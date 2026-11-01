@@ -1,3 +1,4 @@
+using Gitunia.Core;
 using Gitunia.Core.Workspaces;
 using Gitunia.Git.Repositories.Models;
 using Xunit;
@@ -17,7 +18,7 @@ public class BackgroundStatusPollerTests
         var workspace = Open(active, background);
         var activeId = workspace.Tabs[0].Id;
         var backgroundId = workspace.Tabs[1].Id;
-        var host = new WorkspaceHost(Workspace.Empty);
+        var host = new Dispatcher(AppState.Empty);
         host.Restore(new WorkspaceUpdate(workspace with { ActiveTabId = activeId }, []));
         using var poller = new BackgroundStatusPoller(reader, host, InlineUi.Post);
 
@@ -38,7 +39,7 @@ public class BackgroundStatusPollerTests
         reader.SetDirty(background, true);
         var workspace = Open(active, background);
         var backgroundId = workspace.Tabs[1].Id;
-        var host = new WorkspaceHost(Workspace.Empty);
+        var host = new Dispatcher(AppState.Empty);
         host.Restore(new WorkspaceUpdate(workspace with { ActiveTabId = workspace.Tabs[0].Id }, []));
         using var poller = new BackgroundStatusPoller(reader, host, InlineUi.Post);
         await poller.PollOnceAsync(CancellationToken.None);

@@ -1,3 +1,4 @@
+using Gitunia.Core;
 using Gitunia.App;
 using Gitunia.App.Loading.Commits;
 using Gitunia.App.Tabs;
@@ -384,7 +385,7 @@ public class ResetActionsTests
 
     private sealed class Harness : IDisposable
     {
-        private readonly WorkspaceHost _host = new(Workspace.Empty);
+        private readonly Dispatcher _host = new(AppState.Empty);
         private readonly List<Action> _answers = [];
         private readonly List<TerminalTabSession> _sessions = [];
         private BranchSelection _selection = new(null, null, null);

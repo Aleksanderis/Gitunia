@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using Gitunia.Core.Sidebar;
+using Gitunia.Core.Tags;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Refs.Models;
 using Gitunia.Git.Operations.Models;
@@ -45,6 +46,9 @@ public sealed record RepositoryState(
     OperationInfo? Operation = null,
     bool RebaseAutoStash = false)
 {
+    /// <summary>The tag prompt and the running tag operation of this tab.</summary>
+    public TagState Tags { get; init; } = TagState.Empty;
+
     /// <summary>The path git commands for this tab run against.</summary>
     public string CommandPath => Location.CommandPath;
 

@@ -5,7 +5,7 @@ using Gitunia.Git.Repositories.Models;
 namespace Gitunia.Core.Workspaces;
 
 /// <summary>A change to the workspace as a whole.</summary>
-public abstract record WorkspaceCommand
+public abstract record WorkspaceCommand : AppCommand
 {
     private protected WorkspaceCommand()
     {

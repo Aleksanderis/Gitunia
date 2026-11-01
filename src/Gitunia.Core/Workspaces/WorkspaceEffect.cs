@@ -3,7 +3,7 @@ using Gitunia.Core.Workspaces.Tabs;
 namespace Gitunia.Core.Workspaces;
 
 /// <summary>Work the runner performs after a state change. Effects are data and carry the path they run against.</summary>
-public abstract record WorkspaceEffect
+public abstract record WorkspaceEffect : AppEffect
 {
     private protected WorkspaceEffect()
     {

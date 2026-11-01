@@ -15,7 +15,7 @@ namespace Gitunia.Tui.App.Tabs;
 /// Keeps the graph list showing the active tab: swaps the list source when the active tab changes and restores the tab's
 /// own selection and scroll position, waiting for the streamed rows when the selected commit is not loaded yet.
 /// </summary>
-public sealed class GraphTabBinder(WorkspaceHost host, EffectRunner<TerminalTabSession> effects, ListView graph, GraphListSource emptySource, Action redraw)
+public sealed class GraphTabBinder(Dispatcher host, EffectRunner<TerminalTabSession> effects, ListView graph, GraphListSource emptySource, Action redraw)
 {
     private TerminalTabSession? _goneSession;
     private ImmutableArray<GitRef> _goneRefs;

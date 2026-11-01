@@ -3,6 +3,7 @@ using Gitunia.App;
 using Gitunia.App.Loading.Commits;
 using Gitunia.App.Tabs;
 using Gitunia.App.Worktrees;
+using Gitunia.Core;
 using Gitunia.Core.Clipboard;
 using Gitunia.Core.Config;
 using Gitunia.Core.Config.Models;
@@ -86,7 +87,7 @@ namespace Gitunia.Tui.App;
 public sealed class TuiApplication(
     GitServices services,
     ConsoleCapabilities detectedCapabilities,
-    IPlatform platform) : IDisposable, ITerminalSuspender
+    IPlatform platform) : IDisposable, ITerminalSuspender, IShellEffects, IBranchSelectionSource
 {
     // Terminal.Gui's default of 25 iterations per second gave ~34 ms key latency (docs/internal/history/decisions.md); the idle rate saves CPU (#909).
     private const ushort ActiveIterationsPerSecond = 100;
@@ -100,7 +101,7 @@ public sealed class TuiApplication(
     private readonly IterationRateGovernor _iterationRate =
         new(ActiveIterationsPerSecond, IdleIterationsPerSecond, IdleAfter);
     private IApplication _application = null!;
-    private WorkspaceHost _host = null!;
+    private Dispatcher _host = null!;
     private TerminalTabSessionFactory _sessionFactory = null!;
     private EffectRunner<TerminalTabSession> _effects = null!;
     private BackgroundStatusPoller? _statusPoller;
@@ -135,7 +136,8 @@ public sealed class TuiApplication(
     private ConsoleCapabilities _capabilities = detectedCapabilities;
     private CommitActions _commits = null!;
     private BranchActions _branches = null!;
-    private TagActions _tags = null!;
+    private TagPromptHandler _tags = null!;
+    private ClipboardCopier _clipboard = null!;
     private RemoteActions _remote = null!;
     private ExternalToolRunner _externalToolRunner = null!;
     private PushActions _push = null!;
@@ -203,7 +205,7 @@ public sealed class TuiApplication(
         CreateApplication();
         _uiInvoker = new SuspendableUiInvoker(_application.Invoke);
 
-        _host = new WorkspaceHost(Workspace.Empty);
+        _host = new Dispatcher(AppState.Empty, _uiInvoker);
         _sessionFactory = new TerminalTabSessionFactory(glyphs);
         _effects = new EffectRunner<TerminalTabSession>(
             services,
@@ -211,9 +213,11 @@ public sealed class TuiApplication(
             InvokeOnUi,
             _sessionFactory,
             _statuses,
-            watcherOptions: WatcherOptionsFor(_startupConfig.Options));
+            watcherOptions: WatcherOptionsFor(_startupConfig.Options),
+            shell: this);
 
-        var clipboard = CreateClipboard();
+        _clipboard = CreateClipboard();
+        var clipboard = _clipboard;
         var sidebarSource = new SidebarListSource(glyphs);
         _sidebar = new SidebarActionHandler(
             _host,
@@ -243,7 +247,7 @@ public sealed class TuiApplication(
 
         _commits = CreateCommits();
         _branches = CreateBranches();
-        _tags = CreateTags();
+        _tags = new TagPromptHandler(_host, this);
         _view.ActiveDraft = () => _host.Workspace.ActiveTabId is { } tabId ? _commits.DraftOf(tabId) : null;
         _view.IsEditingMessage = () => _commits.ShowsCursor;
         _router = new ActionRouter(
@@ -958,26 +962,23 @@ public sealed class TuiApplication(
         _view.RefreshChrome,
         BranchSelectionNow);
 
-    private TagActions CreateTags() => new(
-        _host,
-        services.Tags,
-        _statuses,
-        InvokeOnUi,
-        tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None,
-        _activity.CreateGate(),
-        ShowConfirm,
-        tabId => _effects.Refresh(tabId, false),
-        SetMode,
-        _view.RefreshChrome,
-        BranchSelectionNow,
-        OfferTerminalRetry);
+    BranchSelection IBranchSelectionSource.Current() => BranchSelectionNow();
 
-    private void OfferTerminalRetry(
-        TabId tabId,
-        string noun,
-        IReadOnlyList<string> arguments,
-        Func<bool> isBusy) =>
-        _remote.OfferTerminalRetry(tabId, noun, arguments, isBusy);
+    bool IShellEffects.ShowConfirm(ConfirmPrompt prompt, AppCommand onAccepted) =>
+        _overlays.ShowConfirm(prompt, () => _host.Dispatch(onAccepted));
+
+    void IShellEffects.SetKeyMode(KeyMode mode) => SetMode(mode);
+
+    void IShellEffects.CopyToClipboard(CopyToClipboardEffect effect) =>
+        _clipboard.Copy(effect.Text, effect.Description);
+
+    // The terminal retry is asked again for a tab whose tag operation started meanwhile.
+    void IShellEffects.OfferTerminalRetry(TabId tabId, string noun, IReadOnlyList<string> arguments) =>
+        _remote.OfferTerminalRetry(
+            tabId,
+            noun,
+            arguments,
+            () => _host.Workspace.FindTab(tabId)?.Tags.Running == true);
 
     private MergeActions CreateMerge(TabOperationGate gate) => new(
         _host,

@@ -1,3 +1,4 @@
+using Gitunia.Core;
 using Gitunia.App;
 using Gitunia.App.Loading.Commits;
 using Gitunia.App.Loading.Diff;
@@ -205,7 +206,7 @@ public class StashViewTests
     {
         private readonly SidebarListSource _source = new(GraphGlyphSet.Unicode);
 
-        private Harness(WorkspaceHost host, RepositoryLocation location)
+        private Harness(Dispatcher host, RepositoryLocation location)
         {
             Host = host;
             var tabId = host.Workspace.ActiveTabId!.Value;
@@ -247,7 +248,7 @@ public class StashViewTests
 
         public UiPump Pump { get; } = new(TestContext.Current.CancellationToken);
 
-        public WorkspaceHost Host { get; }
+        public Dispatcher Host { get; }
 
         public TerminalTabSession Session { get; }
 
@@ -268,7 +269,7 @@ public class StashViewTests
         public static async Task<Harness> LoadAsync(string repositoryPath)
         {
             var location = await TestGit.Services.Discovery.DiscoverAsync(repositoryPath, CancellationToken.None);
-            var host = new WorkspaceHost(Workspace.Empty);
+            var host = new Dispatcher(AppState.Empty);
             host.Dispatch(new OpenRepositoryCommand(location));
             var harness = new Harness(host, location);
             await TestGit.Services.RepositoryLoader.RunAsync(

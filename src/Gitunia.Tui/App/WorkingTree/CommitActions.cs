@@ -46,7 +46,7 @@ namespace Gitunia.Tui.App.WorkingTree;
 /// Shows a Confirm dialog and runs the callback on <c>y</c>; false when it does not fit. Null never asks.
 /// </param>
 public sealed class CommitActions(
-    WorkspaceHost host,
+    Dispatcher host,
     ICommitWriter writer,
     IRepositoryOperationDetector operations,
     StatusChannel statuses,

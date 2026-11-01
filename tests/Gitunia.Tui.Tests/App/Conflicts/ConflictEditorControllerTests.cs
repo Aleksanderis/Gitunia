@@ -1,3 +1,4 @@
+using Gitunia.Core;
 using Gitunia.App;
 using Gitunia.App.Tabs;
 using Gitunia.Core.Conflicts;
@@ -1405,7 +1406,7 @@ public class ConflictEditorControllerTests
 
     private sealed class Harness : IDisposable
     {
-        private readonly WorkspaceHost _host = new(Workspace.Empty);
+        private readonly Dispatcher _host = new(AppState.Empty);
         private readonly List<Action> _answers = [];
 
         private Harness(TestRepository repository, RepositoryLocation location, IConflictRecreator? recreator)

@@ -41,7 +41,7 @@ public sealed class TabRefresher : IDisposable
     private readonly IOperationInfoReader _operations;
     private readonly IGitConfigReader? _config;
     private readonly IncrementalGraphLoader _graphLoader;
-    private readonly WorkspaceHost _host;
+    private readonly Dispatcher _host;
     private readonly IGraphSession _session;
     private readonly RepositoryLocation _location;
     private readonly StatusChannel _statuses;
@@ -66,7 +66,7 @@ public sealed class TabRefresher : IDisposable
         IRepositoryRefresher refresher,
         IStashReader stashes,
         IncrementalGraphLoader graphLoader,
-        WorkspaceHost host,
+        Dispatcher host,
         IGraphSession session,
         RepositoryLocation location,
         StatusChannel statuses,

@@ -1,4 +1,5 @@
 using Gitunia.App;
+using Gitunia.Core;
 using Gitunia.App.Loading.Commits;
 using Gitunia.App.Tabs;
 using Gitunia.Core.Keymap;
@@ -188,7 +189,7 @@ public sealed class WorktreeSwitchActionsTests
                 () => Row);
         }
 
-        public WorkspaceHost Host { get; } = new(Workspace.Empty);
+        public Dispatcher Host { get; } = new(AppState.Empty);
 
         public WorktreeSwitchActions Actions { get; }
 

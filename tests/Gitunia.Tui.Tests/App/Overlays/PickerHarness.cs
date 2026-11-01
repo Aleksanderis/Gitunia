@@ -7,4 +7,4 @@ namespace Gitunia.Tui.Tests.App.Overlays;
 /// <param name="Picker">The controller under test.</param>
 /// <param name="Host">The workspace host.</param>
 /// <param name="Pump">The queue that stands in for the UI thread.</param>
-public sealed record PickerHarness(PickerController Picker, WorkspaceHost Host, UiPump Pump);
+public sealed record PickerHarness(PickerController Picker, Dispatcher Host, UiPump Pump);

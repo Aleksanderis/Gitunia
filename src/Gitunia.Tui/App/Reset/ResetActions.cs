@@ -41,7 +41,7 @@ namespace Gitunia.Tui.App.Reset;
 /// <param name="selection">What is selected now: a sidebar row or the graph commit.</param>
 /// <param name="gate">The one-operation-per-tab gate, shared with staging, discard and stash.</param>
 public sealed class ResetActions(
-    WorkspaceHost host,
+    Dispatcher host,
     IResetWriter writer,
     IStatusReader statusReader,
     IRepositoryOperationDetector operations,
