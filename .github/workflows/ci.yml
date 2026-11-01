@@ -8,9 +8,9 @@ on:
   workflow_dispatch:
     inputs:
       platform:
-        description: Which leg to run (tags always run both)
+        description: Which leg to run (all = linux and windows; macOS costs 10x minutes, so only macos runs it; tags run all three)
         type: choice
-        options: [all, linux, windows]
+        options: [all, linux, windows, macos]
         default: all
 
 permissions:
@@ -19,7 +19,8 @@ permissions:
 # Release packaging (#48): on a v* tag the AOT binaries of both legs are archived by scripts/package.sh and attached to
 # a draft GitHub release by the `release` job. The `check` job (#937) looks for a green full dispatch run on the tagged
 # commit: if there is one the tag run skips build and tests (#899), else it builds and tests itself. It never waits.
-# macOS and linux-arm64 binaries follow with their CI legs (#455).
+# The macOS leg (#455) runs on tags and when chosen in a dispatch, never as part of `all` (10x minutes); macos-14 is pinned because it is Apple silicon. It always
+# builds and tests (the green-run lookup covers Linux and Windows only). linux-arm64 follows with its own leg.
 
 concurrency:
   group: ci-${{ github.ref }}-${{ inputs.platform }}
@@ -62,7 +63,7 @@ jobs:
   linux-x64:
     needs: check
     # `check` is skipped off tags; if it failed, `green` is empty and the tag run tests (fail closed).
-    if: ${{ !cancelled() && github.event.pull_request.draft != true && inputs.platform != 'windows' }}
+    if: ${{ !cancelled() && github.event.pull_request.draft != true && (inputs.platform == 'all' || inputs.platform == 'linux' || github.event_name == 'push') }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -137,7 +138,7 @@ jobs:
 
   windows-x64:
     needs: check
-    if: ${{ !cancelled() && inputs.platform != 'linux' }}
+    if: ${{ !cancelled() && (inputs.platform == 'all' || inputs.platform == 'windows' || github.event_name == 'push') }}
     runs-on: windows-latest
     timeout-minutes: 25
     defaults:
@@ -214,10 +215,60 @@ jobs:
           path: dist/*
           if-no-files-found: error
 
+  macos-arm64:
+    # Tags and an explicit `platform: macos` dispatch only (#455): macOS minutes cost 10x on the free plan.
+    needs: check
+    if: ${{ !cancelled() && (inputs.platform == 'macos' || github.event_name == 'push') }}
+    runs-on: macos-14
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - name: Build (warnings, including IL*, are errors)
+        run: dotnet build -c Release
+      - name: Test (one project at a time)
+        # Same shape as the Windows leg: only OS-sensitive tests (#637), projects in sequence, hung host killed.
+        run: |
+          for project in Core Platform Git Tui; do
+            dotnet test "tests/Gitunia.$project.Tests" -c Release --no-build --filter "Os!=Independent" \
+              --blame-hang-timeout 10m --blame-hang-dump-type none || exit 1
+          done
+      - name: AOT publish (any IL* warning fails)
+        run: |
+          version_arg=""; if [[ "$GITHUB_REF" == refs/tags/v* ]]; then version_arg="-p:Version=${GITHUB_REF_NAME#v}"; fi
+          dotnet publish src/Gitunia.Tui -c Release -r osx-arm64 -p:TreatWarningsAsErrors=true $version_arg -o out 2>&1 | tee publish.log
+          test "${PIPESTATUS[0]}" -eq 0
+          if grep -E "warning IL[0-9]+" publish.log; then echo "::error::trim/AOT warnings found"; exit 1; fi
+      - name: Smoke run
+        run: |
+          out="$(./out/gitunia)"
+          echo "$out"
+          echo "$out" | grep -q "gitunia"
+      - name: Smoke run (graph frame of this repository)
+        run: |
+          frame="$(./out/gitunia "$GITHUB_WORKSPACE" --print-frame 100x12)"
+          echo "$frame"
+          echo "$frame" | grep -q "Gitunia"
+          echo "$frame" | grep -q "NORMAL"
+      - name: Package (release tags only)
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+        run: scripts/package.sh osx-arm64 out "${GITHUB_REF_NAME#v}" dist
+      - uses: actions/upload-artifact@v4
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+        with:
+          name: dist-osx-arm64
+          path: dist/*
+          if-no-files-found: error
+
   release:
-    # Draft release so the owner reads the notes and publishes it; never runs for dispatch or branches.
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
-    needs: [linux-x64, windows-x64]
+    # Draft release so the owner reads the notes and publishes it; never runs for dispatch or branches. A red macOS leg
+    # (lowest priority, never run before the first tag) does not block the Linux and Windows assets (#455).
+    if: ${{ !cancelled() && github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && needs.linux-x64.result == 'success' && needs.windows-x64.result == 'success' }}
+    needs: [linux-x64, windows-x64, macos-arm64]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
