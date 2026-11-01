@@ -57,6 +57,20 @@ public sealed class MessageEditor
     /// <summary>True when there is nothing but whitespace (git refuses such a message).</summary>
     public bool IsBlank => _lines.All(string.IsNullOrWhiteSpace);
 
+    /// <summary>A separate editor with the same text, cursor, remembered column and undo points.</summary>
+    public MessageEditor Clone()
+    {
+        var copy = new MessageEditor { UsesTabCharacters = UsesTabCharacters };
+        copy._lines.Clear();
+        copy._lines.AddRange(_lines);
+        copy._undo.AddRange(_undo);
+        copy.CursorRow = CursorRow;
+        copy.CursorColumn = CursorColumn;
+        copy._desiredWidth = _desiredWidth;
+
+        return copy;
+    }
+
     /// <summary>Replaces the whole text and puts the cursor at its end. The undo history is dropped.</summary>
     public void SetText(string text)
     {

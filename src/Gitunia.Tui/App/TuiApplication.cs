@@ -23,6 +23,7 @@ using Gitunia.Core.Overlays;
 using Gitunia.Core.Persistence;
 using Gitunia.Core.Pick;
 using Gitunia.Core.Picker;
+using Gitunia.Core.Rebase;
 using Gitunia.Core.Reflog;
 using Gitunia.Core.Settings;
 using Gitunia.Core.Settings.Models;
@@ -45,7 +46,8 @@ using Gitunia.Git.Watching.Models;
 using Gitunia.Platform;
 using Gitunia.Platform.ExternalTools;
 using Gitunia.Platform.Terminal;
-using Gitunia.Platform.Urls;
+using Gitunia.Core.ExternalTools;
+using Gitunia.Core.IssueTracker.Models;
 using Gitunia.Tui.App.Branches;
 using Gitunia.Tui.App.Clipboard;
 using Gitunia.Tui.App.Compare;
@@ -98,8 +100,8 @@ public sealed class TuiApplication(
     GitServices services,
     ConsoleCapabilities detectedCapabilities,
     IPlatform platform) : IDisposable, ITerminalSuspender, IShellEffects, IBranchSelectionSource,
-    IGraphCommitSelector, IGraphSelectionSource, IPickSelectionSource,
-    IStashSelectionSource, IStashViewHost, ITerminalRetryHost, IWorktreeSelectionSource
+    IGraphCommitSelector, IGraphSelectionSource, IOverlayCover, IPickSelectionSource,
+    IIssueLinkView, IStashSelectionSource, IStashViewHost, ITerminalRetryHost, IWorktreeSelectionSource
 {
     // Terminal.Gui's default of 25 iterations per second gave ~34 ms key latency (docs/internal/history/decisions.md); the idle rate saves CPU (#909).
     private const ushort ActiveIterationsPerSecond = 100;
@@ -159,12 +161,13 @@ public sealed class TuiApplication(
     private ResetActions _reset = null!;
     private ConflictSession? _drawnConflict;
     private ReflogSession? _drawnReflog;
+    private RebaseEditorSession? _drawnRebaseEditor;
     private MainlineQuestion? _drawnMainline;
     private ScreenExtent? _drawnScreen;
     private SettingsSession? _drawnSettings;
     private ReflogInput _reflog = null!;
     private ReflogEntryStarter _reflogEntries = null!;
-    private RebaseEditorController _rebaseEditor = null!;
+    private RebaseEditorInput _rebaseEditor = null!;
     private ConflictEditorInput _conflictEditor = null!;
     private StagingActions? _staging;
     private SettingsScreenInput _settings = null!;
@@ -357,7 +360,7 @@ public sealed class TuiApplication(
             () => SelectedCommitHash() is { } hash && ObjectId.TryParse(hash, out var id) ? id : null);
         _reflog = new ReflogInput(_host, this, glyphs);
         _reflogEntries = new ReflogEntryStarter(_host, _reset, this);
-        _rebaseEditor = CreateRebaseEditor(glyphs, operationGate);
+        _rebaseEditor = new RebaseEditorInput(_host, this, this, glyphs, _chipKeys);
         _conflictEditor = new ConflictEditorInput(_host, glyphs, _chipKeys);
         _settings = new SettingsScreenInput(_host, glyphs);
         _configEditor = new ConfigEditorLauncher(
@@ -370,10 +373,7 @@ public sealed class TuiApplication(
         _router.Operations = new OperationActions(_host);
         _router.DetailTabs = new DetailTabInput(_host);
         _router.PaneSizes = new PaneSizeInput(_host, _diffPane, _workingDiff);
-        _router.ExternalTools = new ExternalToolActions(
-            _externalToolRunner,
-            () => _host.Workspace.ActiveTab?.Location,
-            SelectedCommitHash);
+        _router.ExternalTools = new ExternalToolInput(_host, this);
         _router.Refresh = () => _host.Workspace.ActiveTabId is { } activeId && _effects.Refresh(activeId);
 
         _picker = new PickerInput(_host);
@@ -400,14 +400,7 @@ public sealed class TuiApplication(
         _keys.Interceptor = _repeat.TryHandle;
         var fileTree = new FileTreeInput(_host, _view.Detail);
         _router.FileTree = fileTree;
-        _router.IssueLinks = new IssueLinkActions(
-            new UrlOpener(),
-            clipboard,
-            _statuses,
-            () => ActiveSession()?.DetailSource,
-            () => _view.Detail.SelectedItem,
-            IsMessageFocused,
-            InvokeOnUi);
+        _router.IssueLinks = new IssueLinkInput(_host, this);
         _whichKeyTimer = new WhichKeyTimer(OverlayController.WhichKeyDelay, InvokeOnUi);
         _overlays = new OverlayController(
             engine,
@@ -931,6 +924,28 @@ public sealed class TuiApplication(
     }
 
     bool IShellEffects.MoveCommitDraft(TabId missing, TabId target) => _commits.MoveDraft(missing, target);
+
+    void IShellEffects.LaunchExternalTool(LaunchExternalToolEffect effect)
+    {
+        var notice = _externalToolRunner.Launch(effect.Kind, effect.Location, effect.Commit);
+        if (notice.Length > 0)
+        {
+            _statuses.Warning(notice);
+        }
+    }
+
+    bool IIssueLinkView.IsMessageFocused() => IsMessageFocused();
+
+    ImmutableArray<IssueReference> IIssueLinkView.LinksOfSelectedRow()
+    {
+        var rows = ActiveSession()?.DetailSource.Content.Rows;
+        if (_view.Detail.SelectedItem is { } row && rows is not null && row >= 0 && row < rows.Count)
+        {
+            return [.. rows[row].References ?? []];
+        }
+
+        return [];
+    }
 
     bool IShellEffects.FlushSession() => _persistence?.FlushSucceeded() ?? true;
 
@@ -1467,6 +1482,8 @@ public sealed class TuiApplication(
     private bool IsAnyOverlayOpen() => _rebaseEditor.IsOpen || _conflictEditor.IsOpen || IsOtherThanRebaseEditorOpen();
 
     // The rebase editor is covered by these (its Confirm above all) and must not take their keys.
+    bool IOverlayCover.IsOtherOverlayOpen() => IsOtherThanRebaseEditorOpen();
+
     private bool IsOtherThanRebaseEditorOpen() =>
         _overlays.State.IsOpen
         || _reflog.IsOpen
@@ -1570,22 +1587,6 @@ public sealed class TuiApplication(
         _view.RefreshPalette();
     }
 
-    private RebaseEditorController CreateRebaseEditor(GraphGlyphSet glyphs, TabOperationGate gate) => new(
-        _host,
-        services.InteractiveRebase,
-        services.CommitDetails,
-        _statuses,
-        InvokeOnUi,
-        tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None,
-        tabId => _effects.Refresh(tabId, false),
-        BranchSelectionNow,
-        IsOtherThanRebaseEditorOpen,
-        () => _view.ScreenSize,
-        glyphs,
-        RefreshOverlay,
-        gate,
-        _chipKeys);
-
     // A saved conflicted file with no conflict left is marked resolved; the editor closed already.
     private void StageResolvedConflict(StageResolvedConflictEffect effect)
     {
@@ -1677,6 +1678,7 @@ public sealed class TuiApplication(
         var shell = _host.State.Shell;
         if (ReferenceEquals(shell.Conflict, _drawnConflict)
             && ReferenceEquals(shell.Reflog, _drawnReflog) && ReferenceEquals(shell.Settings, _drawnSettings)
+            && ReferenceEquals(shell.RebaseEditor, _drawnRebaseEditor)
             && ReferenceEquals(shell.Mainline, _drawnMainline) && !MainlineNeedsLayout(shell))
         {
             return;
@@ -1684,6 +1686,7 @@ public sealed class TuiApplication(
 
         _drawnConflict = shell.Conflict;
         _drawnReflog = shell.Reflog;
+        _drawnRebaseEditor = shell.RebaseEditor;
         _drawnSettings = shell.Settings;
         _drawnMainline = shell.Mainline;
         _drawnScreen = shell.Screen;

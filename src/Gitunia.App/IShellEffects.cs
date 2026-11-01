@@ -2,6 +2,7 @@ using Gitunia.Core.Clipboard;
 using Gitunia.Core.Config.Models;
 using Gitunia.Core.Conflicts;
 using Gitunia.Core.FileTree;
+using Gitunia.Core.ExternalTools;
 using Gitunia.Core.Reflog;
 using Gitunia.Core.Workspaces.Tabs;
 
@@ -41,6 +42,9 @@ public interface IShellEffects
 
     /// <summary>Opens the config file in the editor; <c>SettingsEditorClosed</c> follows when it closes.</summary>
     void OpenConfigEditor();
+
+    /// <summary>Suspends the UI, runs the git tool on the real terminal and refreshes the tab afterwards.</summary>
+    void LaunchExternalTool(LaunchExternalToolEffect effect);
 
     /// <summary>Moves the unsent commit message of a missing tab to the tab that replaces it. False when the other tab
     /// holds its own message and nothing moved.</summary>

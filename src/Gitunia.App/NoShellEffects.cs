@@ -2,6 +2,7 @@ using Gitunia.Core.Clipboard;
 using Gitunia.Core.Config.Models;
 using Gitunia.Core.Conflicts;
 using Gitunia.Core.FileTree;
+using Gitunia.Core.ExternalTools;
 using Gitunia.Core.Reflog;
 using Gitunia.Core.Workspaces.Tabs;
 
@@ -37,6 +38,10 @@ public sealed class NoShellEffects : IShellEffects
     }
 
     public void OpenConfigEditor()
+    {
+    }
+
+    public void LaunchExternalTool(LaunchExternalToolEffect effect)
     {
     }
 
