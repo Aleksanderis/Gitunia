@@ -3,7 +3,7 @@
 # Usage: scripts/package.sh <rid> <publish-dir> <version> <out-dir>
 # Non-Windows rids give gitunia-<version>-<rid>.tar.gz, win-* rids give .zip
 # plus the bare gitunia-<version>-<rid>.exe and its .sha256 for a portable winget package (#941). Used by the release job in ci.yml.
-# Needs sha256sum (macOS will need a shasum fallback with #455).
+# Works with GNU tools and with macOS (shasum, bsdtar) (#455).
 set -euo pipefail
 
 if [ "$#" -ne 4 ]; then
@@ -36,15 +36,17 @@ case "$rid" in
     else echo "need 7z or zip to build $archive" >&2; exit 1; fi ;;
   *)
     archive="$name.tar.gz"
-    (cd "$stage" && tar --owner=0 --group=0 -czf "$out/$archive" "$name") ;;
+    if tar --version 2>/dev/null | grep -q "GNU tar"; then owner=(--owner=0 --group=0); else owner=(--uid 0 --gid 0 --uname root --gname root); fi
+    (cd "$stage" && tar "${owner[@]}" -czf "$out/$archive" "$name") ;;
 esac
 
-(cd "$out" && sha256sum "$archive" > "$archive.sha256")
+if command -v sha256sum >/dev/null 2>&1; then sha() { sha256sum "$@"; }; else sha() { shasum -a 256 "$@"; }; fi
+(cd "$out" && sha "$archive" > "$archive.sha256")
 case "$rid" in
   win-*)
     # Bare binary for a portable winget package (#941).
     bare="$name.exe"
     cp "$src/$exe" "$out/$bare"
-    (cd "$out" && sha256sum "$bare" > "$bare.sha256") ;;
+    (cd "$out" && sha "$bare" > "$bare.sha256") ;;
 esac
 echo "$out/$archive"
