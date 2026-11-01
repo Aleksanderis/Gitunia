@@ -1,6 +1,9 @@
+using Gitunia.App;
 using Gitunia.App.Status;
 using Gitunia.App.Loading.Commits;
 using Gitunia.App.Tabs;
+using Gitunia.Core;
+using Gitunia.Core.Branches;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Mouse;
@@ -107,16 +110,15 @@ public class ReflogControllerTests
         harness.MoveTo(harness.Reflog.State!.Entries.ToList().FindIndex(entry => entry.Hash == first));
 
         harness.Run(ActionIds.BranchCreate);
+
+        // The branch pipeline (BranchReducer, BranchEffectHandler) is tested on its own: here the list closes and the
+        // name prompt of the branch feature opens at the entry.
         Assert.False(harness.Reflog.IsOpen);
         Assert.Equal(KeyMode.Insert, harness.Mode);
-        Assert.Contains(first[..7], PopupText.Of(harness.Branches), StringComparison.Ordinal);
-        harness.Branches.HandleTextKey(new KeyEvent("r"));
-        harness.Branches.HandleTextKey(new KeyEvent("x"));
-        Assert.True(harness.Branches.TryExecute(ActionIds.InputAccept, null));
-        await harness.PumpUntilAsync(() => harness.Refreshes > 0);
-
-        Assert.Equal(first, repository.Git("rev-parse", "rx").Trim());
-        Assert.Equal("rx", repository.Git("branch", "--show-current").Trim());
+        Assert.Equal($"At {first[..7]}", harness.Host.State.Shell.Prompt!.Context);
+        var answer = Assert.IsType<BranchNameAnswer>(harness.Host.State.Shell.Prompt.OnAccepted);
+        Assert.Equal(first, answer.StartPoint);
+        Assert.True(answer.Checkout);
     }
 
     [Fact]
@@ -129,12 +131,28 @@ public class ReflogControllerTests
         harness.MoveTo(harness.Reflog.State!.Entries.ToList().FindIndex(entry => entry.Hash == first));
 
         harness.Run(ActionIds.BranchSwitch);
-        await harness.PumpUntilAsync(() => harness.Refreshes > 0);
 
         Assert.False(harness.Reflog.IsOpen);
-        Assert.Equal(first, repository.Head);
-        Assert.Equal(string.Empty, repository.Git("branch", "--show-current").Trim());
-        Assert.StartsWith("HEAD is detached at", harness.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
+        var effect = Assert.IsType<SwitchBranchEffect>(Assert.Single(harness.Effects.OfType<BranchEffect>()));
+        Assert.Equal(SwitchTargetKind.DetachedCommit, effect.TargetKind);
+        Assert.Equal(first, effect.Target);
+    }
+
+    [Fact]
+    public async Task GivenABranchOperationRunning_WhenCheckingAnEntryOut_ThenTheListStaysOpenAndNothingRuns()
+    {
+        using var repository = TwoCommits();
+        using var harness = await Harness.LoadAsync(repository);
+        await harness.OpenAsync();
+        harness.Host.Dispatch(
+            new BranchDeleteConfirmed(harness.TabId, "topic", repository.Head, null));
+        harness.Effects.Clear();
+
+        harness.Run(ActionIds.BranchSwitch);
+
+        Assert.True(harness.Reflog.IsOpen);
+        Assert.Empty(harness.Effects.OfType<BranchEffect>());
+        Assert.Equal(BranchRefusals.BusyNotice, harness.Statuses.Log.Latest!.Text);
     }
 
     [Fact]
@@ -452,10 +470,10 @@ public class ReflogControllerTests
         Assert.True(harness.Reflog.SelectEntryAt(2));
 
         Assert.True(harness.Click(harness.ActionLine(3)));
-        await harness.PumpUntilAsync(() => harness.Refreshes > 0);
 
         Assert.False(harness.Reflog.IsOpen);
-        Assert.Equal(first, repository.Head);
+        var effect = Assert.IsType<SwitchBranchEffect>(Assert.Single(harness.Effects.OfType<BranchEffect>()));
+        Assert.Equal(first, effect.Target);
         Assert.False(harness.Click(0));
     }
 
@@ -504,6 +522,7 @@ public class ReflogControllerTests
 
         private Harness(IReflogReader? reader)
         {
+            _shell.Host.EffectRaised += Effects.Add;
             Reset = new ResetActions(
                 _shell.Host,
                 TestGit.Services.Reset,
@@ -516,21 +535,10 @@ public class ReflogControllerTests
                 () => { },
                 () => Selection,
                 new TabOperationGate());
-            Branches = new BranchActions(
-                _shell.Host,
-                TestGit.Services.Branches,
-                Statuses,
-                _pump.Post,
-                _ => TestContext.Current.CancellationToken,
-                new TabOperationGate(),
-                CountRefresh,
-                () => { },
-                () => Selection);
             Reflog = new ReflogController(
                 _shell.Host,
                 reader ?? TestGit.Services.Reflog,
                 Reset,
-                Branches,
                 Statuses,
                 _pump.Post,
                 _ => TestContext.Current.CancellationToken,
@@ -545,7 +553,11 @@ public class ReflogControllerTests
 
         public ResetActions Reset { get; }
 
-        public BranchActions Branches { get; }
+        public Dispatcher Host => _shell.Host;
+
+        public List<AppEffect> Effects { get; } = [];
+
+        public TabId TabId => _shell.Host.Workspace.ActiveTabId!.Value;
 
         public StatusReporter Statuses => _shell.Statuses;
 

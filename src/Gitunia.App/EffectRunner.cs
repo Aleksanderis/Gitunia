@@ -1,4 +1,5 @@
 using Gitunia.App.Background;
+using Gitunia.App.Branches;
 using Gitunia.App.Loading.Commits;
 using Gitunia.App.Loading.Diff;
 using Gitunia.App.Loading.Stash;
@@ -10,6 +11,7 @@ using Gitunia.App.Tabs;
 using Gitunia.App.Tabs.Models;
 using Gitunia.App.Tags;
 using Gitunia.Core;
+using Gitunia.Core.Branches;
 using Gitunia.Core.Clipboard;
 using Gitunia.Core.Effects;
 using Gitunia.Core.Prompts;
@@ -48,6 +50,7 @@ public sealed class EffectRunner<TSession> : IDisposable
     private readonly IShellEffects _shell;
     private readonly TabCancellation _cancellation = new();
     private readonly BackgroundWork _background = new();
+    private readonly BranchEffectHandler _branches;
     private readonly RemoteEffectHandler _remotes;
     private readonly StashEffectHandler _stash;
     private readonly TagEffectHandler _tags;
@@ -79,6 +82,7 @@ public sealed class EffectRunner<TSession> : IDisposable
         IShellEffects? shell = null)
     {
         _shell = shell ?? NoShellEffects.Instance;
+        _branches = new BranchEffectHandler(services.Branches, host);
         _remotes = new RemoteEffectHandler(services.RemoteManager, host);
         _stash = new StashEffectHandler(services.StashWriter, host);
         _tags = new TagEffectHandler(services.Tags, host);
@@ -196,6 +200,7 @@ public sealed class EffectRunner<TSession> : IDisposable
     // A feature's effect fails with that feature's result command, so its running flag is cleared.
     private static AppCommand FailureOf(AppEffect effect, string text) => effect switch
     {
+        BranchEffect branch => new BranchOperationFailed(branch.TabId, text),
         RemoteEffect remote => new RemoteOperationFailed(remote.TabId, text),
         StashEffect stash => new StashOperationFailed(stash.TabId, text),
         TagEffect tag => new TagOperationFailed(tag.TabId, text, null),
@@ -206,6 +211,9 @@ public sealed class EffectRunner<TSession> : IDisposable
     {
         switch (effect)
         {
+            case BranchEffect branch:
+                _branches.Handle(branch, _cancellation.TokenOf(branch.TabId));
+                break;
             case CancelLoadEffect cancel:
                 Cancel(cancel);
                 break;

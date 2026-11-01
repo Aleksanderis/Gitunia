@@ -141,7 +141,6 @@ public sealed class TuiApplication(
     private ChipKeys _chipKeys = null!;
     private ConsoleCapabilities _capabilities = detectedCapabilities;
     private CommitActions _commits = null!;
-    private BranchActions _branches = null!;
     private TagActions _tags = null!;
     private PromptInputHandler _openPrompt = null!;
     private ClipboardCopier _clipboard = null!;
@@ -252,7 +251,7 @@ public sealed class TuiApplication(
             new DiffListSource(glyphs));
 
         _commits = CreateCommits();
-        _branches = CreateBranches();
+        var branches = new BranchActions(_host, this);
         _tags = new TagActions(_host, this);
         _view.ActiveDraft = () => _host.Workspace.ActiveTabId is { } tabId ? _commits.DraftOf(tabId) : null;
         _view.IsEditingMessage = () => _commits.ShowsCursor;
@@ -302,7 +301,7 @@ public sealed class TuiApplication(
             Visual = _visual,
             Discard = CreateDiscard(operationGate),
         };
-        _router.Branches = _branches;
+        _router.Branches = branches;
         _router.Stash = new StashActions(_host, this);
         _router.Tags = _tags;
         _openPrompt = new PromptInputHandler(_host);
@@ -941,17 +940,6 @@ public sealed class TuiApplication(
         () => _keys.Mode,
         RouteAction,
         _view.RefreshChrome);
-
-    private BranchActions CreateBranches() => new(
-        _host,
-        services.Branches,
-        _statuses,
-        InvokeOnUi,
-        tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None,
-        _activity.CreateGate(),
-        tabId => _effects.Refresh(tabId, false),
-        _view.RefreshChrome,
-        BranchSelectionNow);
 
     BranchSelection IBranchSelectionSource.Current() => BranchSelectionNow();
 
@@ -1721,7 +1709,6 @@ public sealed class TuiApplication(
         _host,
         services.Reflog,
         _reset,
-        _branches,
         _statuses,
         InvokeOnUi,
         tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None,
@@ -1876,7 +1863,6 @@ public sealed class TuiApplication(
             // The prompt that owns Insert mode must see Esc and Enter first, so the ref prompt comes before the search.
             _openPrompt,
             CreateQuickRebase(gate),
-            _branches,
             _push,
             _reset,
             _pick,
