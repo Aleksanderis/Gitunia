@@ -1,3 +1,5 @@
+using Gitunia.Tui.Tests.App.Overlays;
+using Gitunia.Tui.App;
 using Gitunia.App.Status;
 using Gitunia.Core;
 using Gitunia.Core.Clipboard;
@@ -13,7 +15,6 @@ using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Staging;
 using Gitunia.Git.Status.Models;
 using Gitunia.Tui.App.Clipboard;
-using Gitunia.Tui.App.Overlays;
 using Gitunia.Tui.App.Panes;
 using Gitunia.Tui.App.WorkingTree;
 using Gitunia.Tui.Input;
@@ -219,7 +220,7 @@ public sealed class ListRangeFlowTests : IDisposable
         Assert.Equal(KeyMode.Normal, _flow.Keys.Mode);
     }
 
-    private sealed class Flow : IDisposable
+    private sealed class Flow : IDisposable, IActionRoute
     {
         private readonly TestShell _shell = new();
         private readonly StagingWiring _wiring;
@@ -239,9 +240,15 @@ public sealed class ListRangeFlowTests : IDisposable
             Pump = new UiPump(TestContext.Current.CancellationToken);
 
             var engine = new KeymapEngine(DefaultKeymap.Create());
-            Keys = new KeyController(engine, Route, _shell.Host);
-            Overlays = new OverlayController(
-                engine, Keys, _timer, Route, () => new ScreenSize(100, 30), GraphGlyphSet.Unicode, () => DefaultKeymap.WorkingUnstagedView, Statuses, _shell.Host);
+            Keys = new KeyController(engine, this, _shell.Host);
+            Overlays = new OverlayHarness(
+                engine,
+                Keys,
+                _timer,
+                this,
+                new FakePaneChrome(new ScreenSize(100, 30)),
+                new TestFocusedView(() => DefaultKeymap.WorkingUnstagedView),
+                _shell);
 
             var staging = new StagingActions(_shell.Host);
             _wiring = new StagingWiring(
@@ -274,7 +281,7 @@ public sealed class ListRangeFlowTests : IDisposable
 
         public KeyController Keys { get; }
 
-        public OverlayController Overlays { get; }
+        public OverlayHarness Overlays { get; }
 
         public VisualRangeInput Visual { get; }
 
@@ -305,7 +312,7 @@ public sealed class ListRangeFlowTests : IDisposable
         }
 
         /// <summary>Runs an action as the input path does: the open dialog first, then the working-tree handler.</summary>
-        public void Run(ActionId action, int? count = null) => Route(action, count);
+        public void Run(ActionId action, int? count = null) => ((IActionRoute)this).Route(action, count);
 
         public void Press(Key key) => Keys.Handle(key, Overlays.ViewName);
 
@@ -332,7 +339,7 @@ public sealed class ListRangeFlowTests : IDisposable
             }
         }
 
-        private void Route(ActionId action, int? count)
+        void IActionRoute.Route(ActionId action, int? count)
         {
             if (Overlays.Handle(action, count))
             {

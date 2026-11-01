@@ -1,3 +1,4 @@
+using Gitunia.Tui.App;
 using Gitunia.App.Loading.Commits;
 using Gitunia.App.Tabs;
 using Gitunia.App;
@@ -25,7 +26,7 @@ namespace Gitunia.Tui.Tests.Search;
 /// The graph prompts wired to a real keymap engine and a real <see cref="TerminalTabSession"/> but no terminal: keys go in,
 /// the selected row and the status line come out. Work posted to the "UI thread" runs at once.
 /// </summary>
-public sealed class PromptHarness : IDisposable, IQuickJumpHost
+public sealed class PromptHarness : IDisposable, IQuickJumpHost, IActionRoute, ITextKeyHandler
 {
     private readonly Dispatcher _host = new(AppState.Empty);
     private readonly KeyController _keys;
@@ -73,29 +74,27 @@ public sealed class PromptHarness : IDisposable, IQuickJumpHost
             TimeSpan.Zero);
         _prompts.Add(Search);
         Session.Changed += () => _prompts.OfType<IGraphObserver>().ToList().ForEach(prompt => prompt.OnGraphChanged());
-        _keys = new KeyController(
-            new KeymapEngine(DefaultKeymap.Create()),
-            (action, count) =>
-            {
-                Notice = string.Empty;
-                foreach (var prompt in _prompts.OfType<IActionHandler>())
-                {
-                    if (prompt.TryExecute(action, count))
-                    {
-                        if (prompt is IActionNotice { Notice.Length: > 0 } noticed)
-                        {
-                            Notice = noticed.Notice;
-                        }
-
-                        return;
-                    }
-                }
-            },
-            _host)
-        {
-            TextKeyHandler = key => _prompts.OfType<ITextKeyHandler>().Any(prompt => prompt.HandleTextKey(key)),
-        };
+        _keys = new KeyController(new KeymapEngine(DefaultKeymap.Create()), this, _host, textKeys: this);
     }
+
+    void IActionRoute.Route(ActionId action, int? count)
+    {
+        Notice = string.Empty;
+        foreach (var prompt in _prompts.OfType<IActionHandler>())
+        {
+            if (prompt.TryExecute(action, count))
+            {
+                if (prompt is IActionNotice { Notice.Length: > 0 } noticed)
+                {
+                    Notice = noticed.Notice;
+                }
+
+                return;
+            }
+        }
+    }
+
+    bool ITextKeyHandler.HandleTextKey(KeyEvent key) => _prompts.OfType<ITextKeyHandler>().Any(prompt => prompt.HandleTextKey(key));
 
     public TerminalTabSession Session { get; }
 

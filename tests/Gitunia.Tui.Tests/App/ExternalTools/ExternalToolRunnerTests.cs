@@ -2,6 +2,8 @@ using Gitunia.App.Status;
 using Gitunia.App;
 using Gitunia.Core.Status;
 using Gitunia.Core;
+using Gitunia.Core.Effects;
+using Gitunia.Core.Workspaces;
 using Gitunia.Git.ExternalTools;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Platform.ExternalTools;
@@ -15,14 +17,24 @@ public class ExternalToolRunnerTests
     private static readonly RepositoryLocation Location = new("/r", "/r/.git", "/r/.git", false, false);
 
     private readonly List<string> _events = [];
-    private readonly StatusReporter _statuses = new(new Dispatcher(AppState.Empty));
+    private readonly Dispatcher _host = new(AppState.Empty);
+    private readonly StatusReporter _statuses;
     private readonly FakeLauncher _launcher;
     private readonly FakeTerminal _terminal;
 
     public ExternalToolRunnerTests()
     {
+        _statuses = new StatusReporter(_host);
         _launcher = new FakeLauncher(_events);
         _terminal = new FakeTerminal(_events);
+        _host.Dispatch(new OpenRepositoryCommand(Location));
+        _host.EffectRaised += effect =>
+        {
+            if (effect is RefreshTabEffect)
+            {
+                _events.Add("refresh");
+            }
+        };
     }
 
     [Fact]
@@ -85,7 +97,7 @@ public class ExternalToolRunnerTests
     }
 
     private ExternalToolRunner CreateRunner() =>
-        new(_launcher, _terminal, _statuses, _ => _events.Add("refresh"), () => _events.Add("pause"));
+        new(_launcher, _terminal, _statuses, _host, new RecordingPause(_events));
 
     private sealed class FakeLauncher(List<string> events) : IExternalToolLauncher
     {
@@ -117,5 +129,10 @@ public class ExternalToolRunnerTests
             events.Add("resume");
             resumed();
         }
+    }
+
+    private sealed class RecordingPause(List<string> events) : IUserPause
+    {
+        public void Wait() => events.Add("pause");
     }
 }

@@ -108,7 +108,7 @@ public sealed class ConfigEditorLauncherTests : IDisposable
     }
 
     private ConfigEditorLauncher CreateLauncher() =>
-        new(_launcher, _terminal, _statuses, name => _variables.GetValueOrDefault(name), () => _events.Add("pause"));
+        new(_launcher, _terminal, _statuses, name => _variables.GetValueOrDefault(name), new RecordingPause(_events));
 
     private sealed class FakeLauncher(List<string> events) : IExternalToolLauncher
     {
@@ -140,5 +140,10 @@ public sealed class ConfigEditorLauncherTests : IDisposable
             events.Add("resume");
             resumed();
         }
+    }
+
+    private sealed class RecordingPause(List<string> events) : IUserPause
+    {
+        public void Wait() => events.Add("pause");
     }
 }

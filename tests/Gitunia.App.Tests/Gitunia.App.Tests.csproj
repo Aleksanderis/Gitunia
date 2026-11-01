@@ -21,7 +21,7 @@
   </ItemGroup>
   <ItemGroup>
     <!-- Test helpers shared with Gitunia.Tui.Tests, which owns them (a new fake there that needs Terminal.Gui must be excluded here too): the fakes (the ones that need the terminal layer or the controllers excluded), the services and pump helpers. -->
-    <Compile Include="..\Gitunia.Tui.Tests\Fakes\*.cs" Exclude="..\Gitunia.Tui.Tests\Fakes\DiffPaneWiring.cs;..\Gitunia.Tui.Tests\Fakes\FakePaneLists.cs;..\Gitunia.Tui.Tests\Fakes\PopupText.cs;..\Gitunia.Tui.Tests\Fakes\StagingWiring.cs;..\Gitunia.Tui.Tests\Fakes\TestCommitInput.cs" Link="Fakes\%(Filename)%(Extension)" />
+    <Compile Include="..\Gitunia.Tui.Tests\Fakes\*.cs" Exclude="..\Gitunia.Tui.Tests\Fakes\DiffPaneWiring.cs;..\Gitunia.Tui.Tests\Fakes\FakePaneLists.cs;..\Gitunia.Tui.Tests\Fakes\PopupText.cs;..\Gitunia.Tui.Tests\Fakes\StagingWiring.cs;..\Gitunia.Tui.Tests\Fakes\TestCommitInput.cs;..\Gitunia.Tui.Tests\Fakes\FakeActiveSessions.cs;..\Gitunia.Tui.Tests\Fakes\FakePaneChrome.cs;..\Gitunia.Tui.Tests\Fakes\FakeGraphDetailLists.cs;..\Gitunia.Tui.Tests\Fakes\CountingQuit.cs;..\Gitunia.Tui.Tests\Fakes\TestFocusedView.cs" Link="Fakes\%(Filename)%(Extension)" />
     <Compile Include="..\Gitunia.Tui.Tests\TestGit.cs" Link="Shared\TestGit.cs" />
     <Compile Include="..\Gitunia.Tui.Tests\RunWatchdog.cs" Link="Shared\RunWatchdog.cs" />
     <Compile Include="..\Gitunia.Tui.Tests\App\UiPump.cs" Link="Shared\UiPump.cs" />

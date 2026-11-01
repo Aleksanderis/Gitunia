@@ -29,7 +29,7 @@ public class StatusActionHandlerTests : IDisposable
     {
         var statuses = new StatusReporter(new Dispatcher(AppState.Empty));
         statuses.Error("boom");
-        var handler = new StatusActionHandler(statuses, () => null);
+        var handler = new StatusActionHandler(statuses, new FakeActiveSessions(() => null));
 
         Assert.True(handler.TryHandle(ActionIds.StatusDismiss));
 
@@ -43,7 +43,7 @@ public class StatusActionHandlerTests : IDisposable
     {
         var statuses = new StatusReporter(new Dispatcher(AppState.Empty));
         statuses.Warning("careful");
-        var handler = new StatusActionHandler(statuses, () => null);
+        var handler = new StatusActionHandler(statuses, new FakeActiveSessions(() => null));
 
         Assert.True(handler.TryHandleFallback(ActionIds.Cancel));
 
@@ -60,7 +60,7 @@ public class StatusActionHandlerTests : IDisposable
         clock.Advance(StatusLifetime.Of(StatusSeverity.Info));
         var changes = 0;
         host.Changed += () => changes++;
-        var handler = new StatusActionHandler(statuses, () => null);
+        var handler = new StatusActionHandler(statuses, new FakeActiveSessions(() => null));
 
         handler.TryHandleFallback(ActionIds.Cancel);
 
@@ -74,7 +74,7 @@ public class StatusActionHandlerTests : IDisposable
         var statuses = new StatusReporter(new Dispatcher(AppState.Empty, clock: clock));
         statuses.Error("boom");
         clock.Advance(TimeSpan.FromSeconds(10));
-        var handler = new StatusActionHandler(statuses, () => null);
+        var handler = new StatusActionHandler(statuses, new FakeActiveSessions(() => null));
 
         handler.TryHandleFallback(ActionIds.Cancel);
 
@@ -86,7 +86,7 @@ public class StatusActionHandlerTests : IDisposable
     {
         var statuses = new StatusReporter(new Dispatcher(AppState.Empty));
         statuses.Warning("careful");
-        var handler = new StatusActionHandler(statuses, () => null);
+        var handler = new StatusActionHandler(statuses, new FakeActiveSessions(() => null));
 
         Assert.False(handler.TryHandle(ActionIds.Cancel));
 
@@ -98,7 +98,7 @@ public class StatusActionHandlerTests : IDisposable
     {
         var statuses = new StatusReporter(new Dispatcher(AppState.Empty));
         statuses.Warning("careful");
-        var handler = new StatusActionHandler(statuses, () => null);
+        var handler = new StatusActionHandler(statuses, new FakeActiveSessions(() => null));
 
         Assert.False(handler.TryHandleFallback(ActionIds.RepositoryRefresh));
 
@@ -108,7 +108,7 @@ public class StatusActionHandlerTests : IDisposable
     [Fact]
     public void GivenAnUnrelatedAction_WhenHandling_ThenItIsNotClaimed()
     {
-        var handler = new StatusActionHandler(new StatusReporter(new Dispatcher(AppState.Empty)), () => null);
+        var handler = new StatusActionHandler(new StatusReporter(new Dispatcher(AppState.Empty)), new FakeActiveSessions(() => null));
 
         Assert.False(handler.TryHandle(ActionIds.RepositoryRefresh));
     }
@@ -116,7 +116,7 @@ public class StatusActionHandlerTests : IDisposable
     [Fact]
     public void GivenNoSession_WhenRetrying_ThenNothingToRetry()
     {
-        var handler = new StatusActionHandler(new StatusReporter(new Dispatcher(AppState.Empty)), () => null);
+        var handler = new StatusActionHandler(new StatusReporter(new Dispatcher(AppState.Empty)), new FakeActiveSessions(() => null));
 
         Assert.True(handler.TryHandle(ActionIds.DetailRetry));
 
@@ -129,7 +129,7 @@ public class StatusActionHandlerTests : IDisposable
         using var testRepository = TestRepository.Create().Commit("one", new TestFile("a.txt", "1"));
         var pump = new UiPump(Token);
         _session = await CreateSessionAsync(pump, testRepository);
-        var handler = new StatusActionHandler(new StatusReporter(new Dispatcher(AppState.Empty)), () => _session);
+        var handler = new StatusActionHandler(new StatusReporter(new Dispatcher(AppState.Empty)), new FakeActiveSessions(() => _session));
 
         handler.TryHandle(ActionIds.DetailRetry);
 
@@ -145,7 +145,7 @@ public class StatusActionHandlerTests : IDisposable
         Assert.True(ObjectId.TryParse(new string('1', 40), out var missing));
         _session.Details.Select(missing);
         await pump.RunUntilAsync(() => _session.Details.Current.Status == CommitDetailsStatus.Failed);
-        var handler = new StatusActionHandler(new StatusReporter(new Dispatcher(AppState.Empty)), () => _session);
+        var handler = new StatusActionHandler(new StatusReporter(new Dispatcher(AppState.Empty)), new FakeActiveSessions(() => _session));
 
         handler.TryHandle(ActionIds.DetailRetry);
 
@@ -156,7 +156,7 @@ public class StatusActionHandlerTests : IDisposable
     [Fact]
     public void GivenNoSession_WhenSwitchingTheMergeParent_ThenItSaysThereIsNoMerge()
     {
-        var handler = new StatusActionHandler(new StatusReporter(new Dispatcher(AppState.Empty)), () => null);
+        var handler = new StatusActionHandler(new StatusReporter(new Dispatcher(AppState.Empty)), new FakeActiveSessions(() => null));
 
         Assert.True(handler.TryHandle(ActionIds.DiffMergeParent));
 
@@ -178,7 +178,7 @@ public class StatusActionHandlerTests : IDisposable
         Assert.True(ObjectId.TryParse(testRepository.Git("rev-parse", "HEAD").Trim(), out var merge));
         _session.Details.Select(merge);
         await pump.RunUntilAsync(() => _session.Details.Current.Status == CommitDetailsStatus.Loaded);
-        var handler = new StatusActionHandler(new StatusReporter(new Dispatcher(AppState.Empty)), () => _session);
+        var handler = new StatusActionHandler(new StatusReporter(new Dispatcher(AppState.Empty)), new FakeActiveSessions(() => _session));
 
         handler.TryHandle(ActionIds.DiffMergeParent);
         await pump.RunUntilAsync(() => _session.Details.Current.Details!.ParentIndex == 1);
@@ -207,7 +207,7 @@ public class StatusActionHandlerTests : IDisposable
         var missing = FakeCommitDetailsReader.MissingId();
         store.Select(missing);
         await pump.RunUntilAsync(() => store.Current.Status == CommitDetailsStatus.Failed);
-        var handler = new StatusActionHandler(new StatusReporter(new Dispatcher(AppState.Empty)), () => _session);
+        var handler = new StatusActionHandler(new StatusReporter(new Dispatcher(AppState.Empty)), new FakeActiveSessions(() => _session));
 
         handler.TryHandle(ActionIds.DetailRetry);
 

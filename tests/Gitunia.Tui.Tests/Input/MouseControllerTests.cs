@@ -1,6 +1,9 @@
+using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Mouse;
 using Gitunia.Tui.Input;
+using Gitunia.Tui.App;
+using Gitunia.Tui.Views;
 using Xunit;
 
 namespace Gitunia.Tui.Tests.Input;
@@ -48,5 +51,10 @@ public class MouseControllerTests
     }
 
     private static MouseController CreateController(List<string> executed) =>
-        new(DefaultMouseMap.Create(), (action, _) => executed.Add(action.Value), () => false);
+        new(DefaultMouseMap.Create(), new RecordingRoute(executed), new MouseGate());
+
+    private sealed class RecordingRoute(List<string> executed) : IActionRoute
+    {
+        public void Route(ActionId action, int? count) => executed.Add(action.Value);
+    }
 }

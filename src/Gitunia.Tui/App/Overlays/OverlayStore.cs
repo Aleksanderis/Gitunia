@@ -20,7 +20,7 @@ public sealed class OverlayStore
     private readonly Dispatcher _host;
     private readonly StatusReporter _statuses;
     private readonly WhichKeyTimer _whichKeyTimer;
-    private readonly FocusedKeymapView _baseView;
+    private readonly IFocusedView _baseView;
     private OverlayState _state = OverlayState.None;
     private bool _shellChanged;
     private ConfirmDialog? _shownConfirm;
@@ -35,7 +35,7 @@ public sealed class OverlayStore
         Dispatcher host,
         StatusReporter statuses,
         WhichKeyTimer whichKeyTimer,
-        FocusedKeymapView baseView)
+        IFocusedView baseView)
     {
         _host = host;
         _statuses = statuses;

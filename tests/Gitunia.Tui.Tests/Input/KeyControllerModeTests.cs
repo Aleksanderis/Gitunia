@@ -1,3 +1,4 @@
+using Gitunia.Tui.App;
 using Gitunia.App;
 using Gitunia.App.Shell;
 using Gitunia.Core;
@@ -20,7 +21,7 @@ public class KeyControllerModeTests
 
     public KeyControllerModeTests()
     {
-        _keys = new KeyController(new KeymapEngine(DefaultKeymap.Create()), (_, _) => { }, _host);
+        _keys = new KeyController(new KeymapEngine(DefaultKeymap.Create()), new IgnoringRoute(), _host);
     }
 
     [Fact]
@@ -67,5 +68,12 @@ public class KeyControllerModeTests
             null));
 
         Assert.Equal(KeyMode.Confirm, _keys.Mode);
+    }
+
+    private sealed class IgnoringRoute : IActionRoute
+    {
+        public void Route(ActionId action, int? count)
+        {
+        }
     }
 }

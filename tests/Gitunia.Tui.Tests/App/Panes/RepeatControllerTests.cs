@@ -5,6 +5,10 @@ using Gitunia.Core.Keymap.Repeat;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Core;
+using Gitunia.Core.Workspaces;
+using Gitunia.Core.Workspaces.Repositories;
+using Gitunia.Git.Repositories.Models;
+using Gitunia.Tui.App;
 using Gitunia.Tui.App.Panes;
 using Gitunia.Tui.Input;
 using Xunit;
@@ -12,21 +16,22 @@ using Xunit;
 namespace Gitunia.Tui.Tests.App.Panes;
 
 [Trait("Os", "Independent")]
-public class RepeatControllerTests
+public class RepeatControllerTests : IActionRoute, IInputBlocker
 {
     private readonly List<ActionId> _executed = [];
     private readonly RepeatController _repeat;
     private readonly KeyController _keys;
-    private TabId? _tab = new(1);
-    private PaneKind _focused = PaneKind.Graph;
+    private readonly Dispatcher _host = new(AppState.Empty);
     private bool _blocked;
 
     public RepeatControllerTests()
     {
         var table = DefaultKeymap.Create();
-        _keys = new KeyController(new KeymapEngine(table), RouteAction, new Dispatcher(AppState.Empty));
-        _repeat = new RepeatController(table, () => _tab, () => _focused, () => _blocked, RouteAction);
-        _keys.Interceptor = _repeat.TryHandle;
+        _host.Dispatch(new OpenRepositoryCommand(Location("/a")));
+        _host.Dispatch(new OpenRepositoryCommand(Location("/b")));
+        _host.Dispatch(new ActivateTabCommand(new TabId(1)));
+        _repeat = new RepeatController(table, _host, this, this);
+        _keys = new KeyController(new KeymapEngine(table), this, _host, _repeat);
     }
 
     [Fact]
@@ -60,7 +65,7 @@ public class RepeatControllerTests
     [Fact]
     public void GivenTheResizeModeInTheDiff_WhenPressingPlus_ThenThePaneGrowsTallerInsteadOfAddingContext()
     {
-        _focused = PaneKind.Diff;
+        Focus(PaneKind.Diff);
         Press("Ctrl-w", ">");
 
         Press("+");
@@ -71,7 +76,7 @@ public class RepeatControllerTests
     [Fact]
     public void GivenTheContextMode_WhenPressingPlusAndMinus_ThenTheContextStepsRepeat()
     {
-        _focused = PaneKind.Diff;
+        Focus(PaneKind.Diff);
         Press("+");
 
         Press("+", "-");
@@ -121,7 +126,7 @@ public class RepeatControllerTests
     {
         Press("Ctrl-w", ">");
 
-        _focused = PaneKind.Sidebar;
+        Focus(PaneKind.Sidebar);
 
         Assert.Null(_repeat.Active);
     }
@@ -131,7 +136,7 @@ public class RepeatControllerTests
     {
         Press("Ctrl-w", ">");
 
-        _tab = new TabId(2);
+        _host.Dispatch(new ActivateTabCommand(new TabId(2)));
 
         Assert.Null(_repeat.Active);
     }
@@ -152,7 +157,7 @@ public class RepeatControllerTests
     [Fact]
     public void GivenAToggleAction_WhenItRuns_ThenNoModeStarts()
     {
-        _focused = PaneKind.Diff;
+        Focus(PaneKind.Diff);
 
         Press(" ", "v", "w");
 
@@ -162,7 +167,7 @@ public class RepeatControllerTests
     [Fact]
     public void GivenAPaneThatHasNoDiffOptions_WhenAddingContext_ThenNoModeStarts()
     {
-        _focused = PaneKind.Graph;
+        Focus(PaneKind.Graph);
 
         _repeat.Started(ActionIds.DiffMoreContext);
 
@@ -179,7 +184,13 @@ public class RepeatControllerTests
         Assert.NotNull(_repeat.Active);
     }
 
-    private void RouteAction(ActionId action, int? count)
+    public bool IsBlocked => _blocked;
+
+    private static RepositoryLocation Location(string path) => new(path, $"{path}/.git", $"{path}/.git", false, false);
+
+    private void Focus(PaneKind pane) => _host.Dispatch(new TabCommand(_host.Workspace.ActiveTabId!.Value, new FocusPaneCommand(pane)));
+
+    void IActionRoute.Route(ActionId action, int? count)
     {
         _executed.Add(action);
         _repeat.Started(action);
@@ -196,7 +207,7 @@ public class RepeatControllerTests
         }
     }
 
-    private string ViewOfFocus() => _focused switch
+    private string ViewOfFocus() => _host.Workspace.ActiveTab!.View.FocusedPane switch
     {
         PaneKind.Diff => DefaultKeymap.DiffView,
         PaneKind.Sidebar => DefaultKeymap.SidebarView,
