@@ -1,22 +1,27 @@
 # Architecture
 
+Status: the target model below ("Effects as data") is the spec for M7 (#990). Until each feature has moved (strangler, see "Migration rule"), the code has two models side by side: the target pipeline and the old one (`Workspace`/`TabCommand` reducers in Core plus controllers in `Gitunia.Tui/App` wired with delegates, `TabActivity`, `TabOperationGate`). Text that describes only the old model says "today".
+
 ## Overview
 
 ```
 Terminal (keys, mouse, resize)
    |  raw input / VT sequences
    v
-Rendering layer  <----  View model (what to draw)
-   ^                         ^
-   | commands                | state
-   v                         |
-State layer (pure: (State, Command) -> (State, Effects))
-   |  effects
-   v
-Git layer (async, cancellable) ---- spawns `git` ---- repo on disk
+Gitunia.Tui   views, rendering, input translation      (Terminal.Gui)
+   ^  state (read)            | commands
+   |                          v
+Gitunia.Core  AppState + (AppState, Command) -> (AppState, Effects)   pure
+                              | effects
+                              v
+Gitunia.App   runner + one handler per effect, stores, pollers, watching, persistence
+                              | async, cancellable
+                              v
+Gitunia.Git   spawns `git` ---- repo on disk
+              results come back to Core as commands, posted through the dispatcher
 ```
 
-## The four projects
+## The five projects
 
 Each project is a layer. It is defined by what it may know about.
 
@@ -24,20 +29,110 @@ Each project is a layer. It is defined by what it may know about.
 |---|---|---|---|
 | `Gitunia.Platform` | OS and environment code only: config/state directory locations, console capability detection, launching external programs (`$EDITOR`, difftool), byte-exact file deletion. It knows nothing about git or the app. | the OS | git, state, UI |
 | `Gitunia.Git` | Runs the `git` CLI and turns its output into typed results: process runner, parsers, readers (commits, refs, status, diff, stash, worktrees), the graph model. | Platform | state, UI |
-| `Gitunia.Core` | The app's logic: `AppState`, commands, effects, keymap, mouse map, config, session persistence. Pure `(State, Command) -> (State, Effects)`; runs and tests without a terminal. | Git (its types) | the console, Terminal.Gui, spawning processes |
-| `Gitunia.Tui` | What you see and touch: Terminal.Gui views, rendering, key and mouse translation, the effect runner, and `Program.Main` (the AOT binary). | everything | nothing is above it |
+| `Gitunia.Core` | The app's logic: `AppState`, commands, reducers, effect definitions, keymap, mouse map, config models. Pure `(AppState, Command) -> (AppState, Effects)`; runs and tests without a terminal. | Git (its types) | the console, Terminal.Gui, spawning processes, timers; new file access goes to App (existing file helpers such as `AtomicFileWriter`, `ConfigLoader`, `ConfigWriter`, `SessionStore`, `RepositoryScanner` stay in Core until a migration issue moves them) |
+| `Gitunia.App` | The UI-free runtime: effect runner and handlers, stores and loaders for big data, pollers, file watching, session and config persistence, the dispatcher. It does the work Core asks for. | Core, Git, Platform | Terminal.Gui, rendering |
+| `Gitunia.Tui` | What you see and touch: Terminal.Gui views, rendering, key and mouse translation, terminal suspension, composition root and `Program.Main` (the AOT binary). | everything | deciding what a command means |
 
-Dependencies run one way: **Tui -> Core -> Git -> Platform** (Tui also uses Platform directly). The compiler enforces it; for example Core cannot reference Terminal.Gui.
+Dependencies run one way: **Tui -> App -> Core -> Git -> Platform** (Tui also uses Core, Git and Platform directly; App uses Platform). The compiler enforces it through project references: `Gitunia.App.csproj` has no Terminal.Gui reference and `Gitunia.Core.csproj` references only Git, so an App handler cannot draw. That is all the compiler enforces: that a reducer starts no process, reads no file and has no timer is kept by review and by the rule that reducers are pure static functions of their arguments. Only `Gitunia.Tui` references Terminal.Gui. Today `Gitunia.App` does not exist yet (#968 creates it); the runtime code sits in `Gitunia.Tui` (`Loading/`, `App/`).
 
 Platform and Core are not the same thing: Platform is the bottom layer ("how do I do this on this OS?") and knows nothing about Gitunia; Core is the middle layer ("what happens when the user presses `j`?") and knows nothing about the OS.
 
-Example, Enter on a commit: Tui turns the key into a key event; Core's keymap makes it a command and the reducer returns a new state plus an effect ("load the diff for repo X, commit Y"); Tui's effect runner executes it through a Git reader; Git spawns `git show` and returns a parsed diff; the result goes back to Core as a command, the state updates and Tui redraws.
+## Effects as data (target model)
+
+### State
+
+One root `AppState` (Core) holds everything that is logic and not drawing:
+
+- the `Workspace` (ordered repo tabs, active tab, recents and pins; each tab a `RepositoryState`: selection, scroll, status, filters);
+- app-wide interaction state: the key mode, the open overlay or prompt, the confirm dialog (with the command to dispatch on `y`), status messages, the output overlay;
+- the running operations per tab (operation id, kind, cancellation requested or not).
+
+`AppState` is immutable, changed only by reducers, and small: it is copied on every command, including every cursor key.
+
+### Big data stays outside the state
+
+Graph rows, diffs, file trees, commit details and caches are never fields of `AppState` or `RepositoryState`. They live in stores in `Gitunia.App` (mutable, one per tab and kind, readable from the UI thread while a handler fills them). State holds a small reference to a store: an id (tab, kind) and a version number, plus the cheap view state (selected index, scroll offset, counts). A handler fills a store off the UI thread and posts a result command carrying only the new version and counts; the reducer stores them, and views read the visible rows from the store by index.
+
+What stays in state and what moves (so #978, #979, #981 and #994 decide alike): in state, small data bounded by the number of refs, stashes or worktrees (`Refs`, head, `Worktrees`, `Stashes`, `WorktreeStatuses`, the list of conflicted paths). In stores, anything that grows with commits, files or lines: graph rows, diffs, trees, commit details and the full working-tree status (state keeps its counts, the selected path and a version). A destructive command (discard, stash drop) names its target in the command (path, hunk, stash id) taken from what the user saw, never looked up in a store by the reducer.
+
+This keeps the key path flat: `j` is a reducer call that copies a record of a few dozen fields and never touches a 100 000-row list; rendering reads only the rows it draws. A reducer needs counts and ids, not the data; when it needs a fact about the data (does this hash exist?), the command that asks carries the answer, computed by the handler. Review rule: if a field grows with the repository, it belongs in a store. The bar "startup and key latency unchanged" (`scripts/measure.sh` numbers on `main` before #968, compared in #968, #969 and #988; targets in `docs/internal/performance.md`) is what enforces it.
+
+### Commands and effects
+
+- A **command** is a sealed record in a sealed hierarchy per feature (`BranchCommand`, `StashCommand`, ...), in `Core/<Feature>/`. Features nest into the root through their parent: the root command carries `TabCommand(TabId, RepositoryCommand)` as today, and a feature's hierarchy is one case of it. User intent (`BranchCreateRequested`, `BranchNameAccepted`) and results (`BranchCreateSucceeded`, `BranchCreateFailed`) are both commands; a handler never changes state, it only posts result commands.
+- An **effect** is a sealed record too and coarse: one effect is one git-layer operation or one external action (`CreateBranch(Repo, Name, StartPoint)`, `LoadDiff(...)`, `CopyToClipboard(...)`, `ScheduleStatusExpiry(...)`), never a script of several steps. A sequence ("create, switch, refresh") is the reducer reacting to each result command with the next effect, so every step shows in a Core test.
+- A **feature reducer** is a pure static function `(FeatureState, FeatureCommand) -> (FeatureState, Effects)` in `Core/<Feature>/`. A feature owns its slice of state and does not read another feature's slice; shared facts (active tab, busy) come from the root.
+- A reducer does no I/O and reads no clock or random source; time and ids arrive as part of a command.
+
+### Registration: one line per feature
+
+Adding a feature touches the root types in four places, one line each, so parallel feature PRs rarely conflict on them: one case in the root command hierarchy (the feature's command type), one field for its state slice (with an `Empty` default) in `RepositoryState` or `AppState`, one line in the root reducer's switch that delegates to the feature reducer, and one line in the runner's effect switch that delegates to the feature's handler class. Records, reducer and handler bodies and views live in the feature's own files in `Core/<Feature>/` and `App/<Feature>/`. A root switch case never holds logic. Insert your line in alphabetical order by feature name (not at the end, where two PRs would always collide); when two PRs still conflict on adjacent lines, keep both lines when merging `origin/main`.
+
+### Runner contract (`Gitunia.App`)
+
+- **One handler per effect type**, reached by a type switch over the sealed effect hierarchy (no reflection, no `Type`-keyed registry, so AOT and trimming are safe). The compiler does not check completeness of a hierarchy (C# has no closed hierarchies, a switch over an abstract record warns without a `_` arm), so each switch ends in `_ => throw` and `Gitunia.App.Tests` has a test that finds every concrete effect subtype and checks it has a handler (tests may use reflection; the binary may not). Core has the same test for commands of each reducer. This matters most for destructive effects (reset, discard, delete).
+- A handler is an object with its collaborators as constructor parameters (readers, writers, stores, clock). It takes the effect (it carries the repo path and tab id; never the process working directory) and a `CancellationToken`, does the work and posts result commands. It does not read `AppState`.
+- **Cancellation is per tab.** The runner keeps a token source per tab; closing a tab cancels its work. Superseded work (a newer selection) cancels the older effect of the same kind and tab. A result posted before the cancel still arrives: result commands carry the operation or request id, and the reducer ignores one that does not match the id in state. Which tabs are evicted is the reducer's decision (it returns an `EvictTab` effect from the recent-use order in state); the runner only frees the stores. Eviction of a cold tab never cancels a running user operation.
+- **Timeouts stay in the git layer**: every `GitRunner` call has its own bound. A handler adds no second one; a timeout arrives as a Git exception and becomes a failure result.
+- **Failures become result commands** (`...Failed` with a typed error or message). A handler lets no exception escape except cancellation, which it swallows; the runner has a last-resort catch that posts a generic `EffectFailed` so state never stays "running" forever.
+- **The running-operation flag lives in state.** The reducer marks an operation started when it returns a mutating effect and clears it on the result command. Busy refusals (a second push while one runs) and tab eviction read that state in Core, so they have Core tests. This replaces `TabActivity` and `TabOperationGate`, which stay only until the last feature using them has moved (#993). Background effects (polls, prefetch, overview) run through a bounded queue (about 8 at once) so a user effect never waits behind them (#993).
+
+### Threading
+
+`AppState` and every reducer call live on the UI thread only. One dispatcher interface accepts commands from any thread, queues them and runs the reducer on the UI thread, then hands the effects to the runner (implementation in `Gitunia.App` over a UI-thread invoker that Tui supplies). Handlers run off the UI thread and post result commands back through the dispatcher; they never touch state or views. Stores are the only shared mutable data: written by a handler, read by views, published by swapping a complete snapshot (a reader sees a whole version, never a half-filled one).
+
+### Key mode and the input path (#970 and #987)
+
+- **#970 moves state** that lives in controllers and delegates today: the key mode is a field of `AppState`, changed by a set-mode command instead of a `setMode` delegate; the confirm dialog, status messages and output overlay likewise. Prompt and picker state is #971, overlay state of reflog, settings and creation is #984 and #985. #970 does not change who handles a key.
+- **#987 moves routing**: a key or mouse gesture becomes one command (action id, count, focus) and the reducer picks the handler from state. It is blocked on #970, #971 and the overlay migrations (#984, #985), reads the mode, prompt and overlay fields they created and changes only routing code (`ActionRouter`, `RouteAction`, `HandleTextKey`, overlay click routing).
+
+So #970 never edits routing order, and #987 never adds state for mode, prompts or overlays. Until #987, controllers receive keys the old way and only dispatch the mode command.
+
+### Where code goes
+
+| Concern | Project |
+|---|---|
+| `AppState`, commands, reducers, effect records, keymap, mouse map, prompt and picker models | `Gitunia.Core` (`Core/<Feature>/`) |
+| runner, handlers, stores and loaders, pollers, watchers, session and config persistence, `GitServices` | `Gitunia.App` (`App/<Feature>/`) |
+| views, rendering and frame builders, key and mouse translation (a key event to a command), terminal suspension, composition root, `Program` | `Gitunia.Tui` |
+
+A new class: if it needs Terminal.Gui or draws, it is Tui; if it spawns git, touches files, or owns a timer or thread, it is App; if it decides what happens, it is Core.
+
+### Tests
+
+- **Feature logic is a synchronous Core test**: build a state, apply a command, assert the new state and effects. No terminal, no `UiPump`, no git, no fakes.
+- **Handlers are tested in `Gitunia.App.Tests` against real git** on temp repos (`testing` skill): the effect goes in, the result command comes out, the repo has changed.
+- **`Gitunia.Tui.Tests` keeps snapshot tests only** (frames rendered from a given state) and the startup smoke test.
+- A feature may add one test that chains reducer, handler and reducer by hand (feeding the result command back) to show the loop closes.
+
+### Worked example: create a branch, from key to refreshed graph
+
+1. Tui: the keymap turns `<space>bn` into the action `branch.create`; input translation dispatches the feature's `BranchCreateRequested` for the active tab.
+2. Core, branch reducer: the tab has no running operation, so it opens the name prompt (state change only: prompt open, mode Insert). No effect. Each typed key is a prompt command that changes the prompt text.
+3. Enter dispatches `BranchNameAccepted(name)`. The reducer validates the name (pure), closes the prompt, marks the tab's running operation `CreateBranch`, sets the status "Creating branch ..." and returns the effect `CreateBranch(repo, name, startPoint)`.
+4. App, runner: the type switch routes the effect to the branch handler, which calls the branch writer off the UI thread with the tab's token and posts `BranchCreateSucceeded(tab, name)`.
+5. Core: the reducer clears the running operation, sets "Created branch x" and returns two effects, `LoadRefs(repo)` and `LoadGraph(repo)` (one git-layer operation each). On failure the handler posts `BranchCreateFailed(error)`: the reducer clears the flag, shows the error and returns no refresh.
+6. App: the refs handler posts `RefsLoaded(tab, refs)` (refs are small and stay in state, which also feeds the sidebar and name validation); the graph handler fills the tab's graph store and posts `GraphLoaded(tab, version, count, selectedIndex)`, where the handler worked out the new index of the selected hash.
+7. Core: the reducer stores the refs, the version, the count and the selected index (it cannot look up the hash itself); Tui redraws the visible rows from the store.
+
+Tests: steps 2, 3 and 5 are synchronous Core tests (including "second create refused while one runs" and "tab closed meanwhile"); step 4 is one `Gitunia.App.Tests` handler test against a temp repo.
+
+### Migration rule
+
+Strangler. Old controllers and the new pipeline coexist until each feature has moved. A feature moves in one PR, completely: state, commands, reducer, effects, handlers and tests, with the old controller and its tests deleted or reduced to view code. No feature is half-moved within a PR (no controller that dispatches half its actions and calls old delegates for the rest). Old controllers reach the new pipeline only by dispatching commands. Order and batches: tracking issue #990. A PR lists every old test case it dropped, with the reason.
+
+### Limits every M7 PR keeps
+
+- No delegate dependencies (`.claude/rules/csharp-style.md`, "Dependencies, not callbacks"), at most five constructor parameters, no `null!` late wiring.
+- No file over about 500 lines in `Gitunia.Tui/App` or `Gitunia.App`.
+- Behaviour, keys, texts and snapshots unchanged; startup and key latency unchanged (`scripts/measure.sh`).
+- Build, tests and the AOT smoke run green.
 
 ## Principles
 
-- **Workspace model.** `AppState` holds a `Workspace` (ordered repo tabs, active tab, recent/pinned repos). Each tab owns an independent `RepositoryState` (graph, selection, scroll, status, worktrees). Commands are routed to a tab by id; effects carry the repo path they run against. Only the 5 most recently used tabs keep a loaded graph (about 350 bytes per commit); colder tabs are evicted and reload on activation (`EffectRunner`, docs/internal/performance.md). The app starts with no repo (the picker shows) and restores the previous session when there is one.
+- **Workspace model.** `AppState` holds a `Workspace` (ordered repo tabs, active tab, recent/pinned repos). Each tab owns an independent `RepositoryState` (view state and small data; big loaded data lives in the tab's stores). Commands are routed to a tab by id; effects carry the repo path they run against. Only the 5 most recently used tabs keep a loaded graph (about 350 bytes per commit); colder tabs are evicted and reload on activation (`EffectRunner`, docs/internal/performance.md). The app starts with no repo (the picker shows) and restores the previous session when there is one.
 - **Persistence.** Open tabs, recents, pins, per-tab view state and config live in the user config/state dir and are written atomically. A corrupt or missing file never prevents startup.
-- **Pure state.** Effects (run a git command, open an editor, copy to clipboard) are returned as data; a runner executes them and feeds the results back as commands.
+- **Pure state.** Effects (run a git command, open an editor, copy to clipboard) are returned as data; the runner executes them and feeds the results back as commands ("Effects as data").
 - **Async git.** Every git call is async, cancellable and time-bounded; the UI never blocks on one.
 - **Shared prompt components.** Prompts are data, not views: `PromptPopup` (Core) is drawn by the one `PromptPopupFrameBuilder`; every type-to-filter prompt keeps its candidates in a `FilterPicker<T>` (#766). A new picker is a new call into it, never a new copy. Behaviour: `docs/internal/ux.md`, "Prompt popups".
 - **Shared key hints and chips.** A "key plus what it does" is drawn by one of two builders in `Rendering/Styling`: `HintBar` for a row of hints and `KeyedChip` for a clickable chip (`ChipStyle` picks the roles, the key comes from the keymap through `ChipKeys`). Footers pass explicit `HintItem` lists to `OverlayBox.Hints`; keys are never guessed from text. Prompt footers are a renderer-agnostic `PromptHint` list in Core (`PromptPopup.Hints`) mapped to `HintItem` by `PromptPopupFrameBuilder`. A new hint row or button uses these; rules: `.claude/rules/ui-changes.md`.
@@ -49,15 +144,16 @@ Example, Enter on a commit: Tui turns the key into a key event; Core's keymap ma
 src/
   Gitunia.Platform/   OS-specific code
   Gitunia.Git/        git process runner, parsers, readers, models
-  Gitunia.Core/       state, commands, effects, keymap, config (no console, no process)
-  Gitunia.Tui/        renderer, input, views, app wiring, entry point (AOT publish target)
+  Gitunia.Core/       state, commands, reducers, effect definitions, keymap, config (no console, no process)
+  Gitunia.App/        effect runner and handlers, stores, loaders, pollers, watching, persistence (no Terminal.Gui; created by #968)
+  Gitunia.Tui/        views, rendering, input translation, composition root, entry point (AOT publish target)
 tests/                one test project per src project, same names plus `.Tests`
 tools/AnsiToSvg/      tmux capture of the live UI to SVG for PR screenshots (local only, never in CI)
 scripts/              bash and PowerShell helpers: big-repo generator, measurement harness, inspectcode wrapper, screenshots
 ```
 
 - Folders are domain first, technical kind second (`Models/` for records and enums); namespaces follow folders. Look at the folders themselves for the current domain list.
-- Each test project mirrors the folder and file names of the code it tests (`Commits/CommitLogParserTests.cs`). Test types: Git tests run against real temp repos, Core tests are pure state/keymap tests, Tui tests are snapshot tests of rendered frames. Shared helpers sit in the folder of their domain or in `Fixtures/`.
+- Each test project mirrors the folder and file names of the code it tests (`Commits/CommitLogParserTests.cs`). Test types: Git tests and App handler tests run against real temp repos, Core tests are synchronous state/command/keymap tests, Tui tests are snapshot tests of rendered frames. Shared helpers sit in the folder of their domain or in `Fixtures/`.
 - Unused usings fail the build (IDE0005, which needs `GenerateDocumentationFile`; the missing-doc, partial-param-doc and broken-cref warnings that brings are silenced in `Directory.Build.props`).
 - Build config is in `Directory.Build.props` and `Directory.Packages.props` (central package management); `IL*` (AOT/trim) warnings fail the build through the global `TreatWarningsAsErrors`.
 
@@ -85,7 +181,7 @@ Rules: `.claude/rules/csharp-style.md`. `PublishAot=true` and the trim/AOT analy
 
 ## Composition root
 
-`Program.Main` creates the `GitRunner` and calls `GitServices.Create`, which wires every reader and loader by hand and passes the `GitServices` record to the application. The Tui depends on the reader interfaces, each with a fake in `tests/Gitunia.Tui.Tests/Fakes`; tests build the same record (`TestGit.Services`) or swap one part with `with`. Static versus instance: `.claude/rules/csharp-style.md`.
+`Program.Main` creates the `GitRunner` and calls `GitServices.Create`, which wires every reader and loader by hand and passes the `GitServices` record to the application; the composition root builds everything once into `readonly` fields, with no late wiring (#988). The App and Tui depend on the reader interfaces, each with a fake in `tests/Gitunia.Tui.Tests/Fakes`; tests build the same record (`TestGit.Services`) or swap one part with `with`. Static versus instance: `.claude/rules/csharp-style.md`.
 
 ## Cross-platform
 
