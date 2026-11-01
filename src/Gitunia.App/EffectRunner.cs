@@ -7,12 +7,14 @@ using Gitunia.App.Loading.Trees;
 using Gitunia.App.Status;
 using Gitunia.App.Tabs;
 using Gitunia.App.Tabs.Models;
+using Gitunia.App.Remotes;
 using Gitunia.App.Tags;
 using Gitunia.Core;
 using Gitunia.Core.Branches;
 using Gitunia.Core.Clipboard;
 using Gitunia.Core.Effects;
 using Gitunia.Core.Prompts;
+using Gitunia.Core.Remotes;
 using Gitunia.Core.Tags;
 using Gitunia.Core.IssueTracker;
 using Gitunia.Core.Shell;
@@ -47,6 +49,7 @@ public sealed class EffectRunner<TSession> : IDisposable
     private readonly TabCancellation _cancellation = new();
     private readonly BackgroundWork _background = new();
     private readonly BranchEffectHandler _branches;
+    private readonly RemoteEffectHandler _remotes;
     private readonly TagEffectHandler _tags;
     private readonly Action<Action> _postToUi;
     private readonly StatusReporter _statuses;
@@ -77,6 +80,7 @@ public sealed class EffectRunner<TSession> : IDisposable
     {
         _shell = shell ?? NoShellEffects.Instance;
         _branches = new BranchEffectHandler(services.Branches, host);
+        _remotes = new RemoteEffectHandler(services.RemoteManager, host);
         _tags = new TagEffectHandler(services.Tags, host);
         _pollOptions = pollOptions ?? PollOptions.Default;
         _warmTabLimit = Math.Max(1, warmTabLimit);
@@ -193,6 +197,7 @@ public sealed class EffectRunner<TSession> : IDisposable
     private static AppCommand FailureOf(AppEffect effect, string text) => effect switch
     {
         BranchEffect branch => new BranchOperationFailed(branch.TabId, text),
+        RemoteEffect remote => new RemoteOperationFailed(remote.TabId, text),
         TagEffect tag => new TagOperationFailed(tag.TabId, text, null),
         _ => new EffectFailedCommand(text),
     };
@@ -221,6 +226,9 @@ public sealed class EffectRunner<TSession> : IDisposable
                 break;
             case RefreshTabEffect refresh:
                 Refresh(refresh.TabId, false);
+                break;
+            case RemoteEffect remote:
+                _remotes.Handle(remote, _cancellation.TokenOf(remote.TabId));
                 break;
             case RunActionEffect run:
                 run.Run();
