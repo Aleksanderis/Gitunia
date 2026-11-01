@@ -8,6 +8,7 @@ using Xunit;
 
 namespace Gitunia.Core.Tests.IssueLinks;
 
+[Trait("Os", "Independent")]
 public class IssueLinkReducerTests
 {
     private static readonly ImmutableArray<IssueReference> Two =
@@ -89,7 +90,7 @@ public class IssueLinkReducerTests
         Assert.Equal("issue link", copy.Description);
         var post = Assert.IsType<PostStatusEffect>(effects[1]);
         Assert.Equal(
-            "Could not open the link (could not start xdg-open); copied https://example.org/1 instead",
+            "Could not open the link (could not start xdg-open); tried copying https://example.org/1 instead",
             post.Text);
         Assert.Equal(StatusSeverity.Warning, post.Severity);
     }

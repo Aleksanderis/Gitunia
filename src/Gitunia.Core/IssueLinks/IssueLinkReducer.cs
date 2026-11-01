@@ -54,7 +54,7 @@ public static class IssueLinkReducer
         return
         [
             new CopyToClipboardEffect(finished.Url, "issue link"),
-            Warn($"Could not open the link ({finished.Error}); copied {finished.Url} instead"),
+            Warn($"Could not open the link ({finished.Error}); tried copying {finished.Url} instead"),
         ];
     }
 
