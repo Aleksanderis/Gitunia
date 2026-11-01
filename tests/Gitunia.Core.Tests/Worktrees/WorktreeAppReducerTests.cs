@@ -168,7 +168,8 @@ public class WorktreeAppReducerTests
         var asked = AppReducer.Reduce(state, new WorktreeRemoveNeedsForce(tabId, "x", ["a"]));
         var confirm = Assert.IsType<ShowConfirmEffect>(Assert.Single(asked.Effects));
         var refusal = new StatusPostedCommand(confirm.UnavailableNotice, StatusSeverity.Warning, Start);
-        state = AppReducer.Reduce(asked.State, new ConfirmRequestedCommand(confirm.Prompt, confirm.OnAccepted, refusal)).State;
+        var request = new ConfirmRequestedCommand(confirm.Prompt, confirm.OnAccepted, refusal);
+        state = AppReducer.Reduce(asked.State, request).State;
         state = AppReducer.Reduce(state, new CloseTabCommand(tabId)).State;
         Assert.NotNull(state.Shell.Confirm);
 
@@ -185,7 +186,8 @@ public class WorktreeAppReducerTests
         var (state, tabId) = Opened("alpha");
         var asked = AppReducer.Reduce(state, new WorktreeRemoveNeedsForce(tabId, "x", ["a"]));
         var confirm = Assert.IsType<ShowConfirmEffect>(Assert.Single(asked.Effects));
-        state = AppReducer.Reduce(asked.State, new ConfirmRequestedCommand(confirm.Prompt, confirm.OnAccepted, null)).State;
+        var request = new ConfirmRequestedCommand(confirm.Prompt, confirm.OnAccepted, null);
+        state = AppReducer.Reduce(asked.State, request).State;
 
         var update = AppReducer.Reduce(state, new ConfirmAnsweredCommand(ConfirmAnswer.Yes));
 

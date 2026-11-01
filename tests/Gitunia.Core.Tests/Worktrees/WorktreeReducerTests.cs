@@ -236,7 +236,9 @@ public class WorktreeReducerTests
     {
         var linked = Sibling("wt");
 
-        var update = Reduce(new WorktreeUnlockRequested(Tab, WorktreeRow(linked)), Context(MainAnd(Info(linked, "wt"))));
+        var context = Context(MainAnd(Info(linked, "wt")));
+
+        var update = Reduce(new WorktreeUnlockRequested(Tab, WorktreeRow(linked)), context);
 
         Assert.Equal($"{linked} is not locked", Warning(update.Effects));
     }

@@ -5,7 +5,8 @@ using Gitunia.Git.Worktrees.Models;
 
 namespace Gitunia.Core.Worktrees;
 
-/// <summary>An operation on worktrees. Each posts one result <see cref="WorktreeCommand"/>; none changes state.</summary>
+/// <summary>An operation on worktrees. Each posts one result <see cref="WorktreeCommand"/>; none changes
+/// state.</summary>
 public abstract record WorktreeEffect : OperationEffect
 {
     private protected WorktreeEffect(TabId tabId, RepositoryLocation location)
@@ -57,7 +58,7 @@ public sealed record PruneWorktreesEffect(TabId TabId, RepositoryLocation Locati
 
 /// <summary>
 /// Resolve the path of a worktree to its location and post <see cref="WorktreeLocated"/>. It only reads, so it is not
-/// an operation of the tab: it neither marks the tab busy nor waits for an operation to end.
+/// an operation of the tab: it does not mark the tab busy. A running operation blocks only the follow-up of a switch.
 /// </summary>
 /// <param name="TabId">The tab whose cancellation ends the read (the tab was closed).</param>
 /// <param name="Path">The worktree directory.</param>

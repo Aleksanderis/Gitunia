@@ -5,7 +5,8 @@ namespace Gitunia.Core.Worktrees;
 
 /// <summary>The result of the branch prompt of a new worktree.</summary>
 /// <param name="TabId">The tab.</param>
-/// <param name="SelectedStart">The commit a new branch starts at when one is typed, fixed when the prompt opened.</param>
+/// <param name="SelectedStart">The commit a new branch starts at when one is typed, fixed when the prompt
+/// opened.</param>
 public sealed record WorktreeBranchAnswer(TabId TabId, string? SelectedStart) : IPromptResult
 {
     public AppCommand Answered(PromptAnswer answer) => new WorktreeBranchAccepted(TabId, SelectedStart, answer.Text);

@@ -91,6 +91,11 @@ public sealed class WorktreeOverviewPoller : IDisposable
         }
 
         var statuses = builder.ToImmutable();
+        if (cancellationToken.IsCancellationRequested)
+        {
+            return;
+        }
+
         _host.Post(new WorktreeStatusesRead(tab.Id, tab.Location, statuses));
     }
 

@@ -56,7 +56,12 @@ public static class WorktreeReducer
         }
 
         // A selected worktree or branch row wins over the graph selection; without either git starts at HEAD.
-        var start = target is { RowKind: not SidebarRowKind.Stash, RowCommitHash: { } hash } ? hash : target.GraphCommit;
+        var start = target.GraphCommit;
+        if (target is { RowKind: not SidebarRowKind.Stash, RowCommitHash: { } hash })
+        {
+            start = hash;
+        }
+
         var request = new PromptRequest(
             "New worktree",
             "Branch: an existing one, or a new name",

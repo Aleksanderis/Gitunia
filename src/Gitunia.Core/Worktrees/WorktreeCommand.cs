@@ -133,7 +133,8 @@ public sealed record WorktreeLocateFailed(TabId TabId, string Text) : WorktreeCo
 
 /// <summary>The status of the tab's other worktrees was read for the sidebar overview.</summary>
 /// <param name="TabId">The tab.</param>
-/// <param name="Location">Where the tab was when the read started; a tab that moved meanwhile ignores the result.</param>
+/// <param name="Location">Where the tab was when the read started; a tab that moved meanwhile ignores the
+/// result.</param>
 /// <param name="Statuses">The status of each worktree by path.</param>
 public sealed record WorktreeStatusesRead(
     TabId TabId,

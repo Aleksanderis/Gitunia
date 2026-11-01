@@ -40,7 +40,9 @@ public class WorktreeEffectHandlerTests
         var location = await LocateAsync(repository.WorkingTreePath);
         var path = Path.GetFullPath(Path.Combine(repository.WorkingTreePath, "..", "topic-tree"));
 
-        var result = await RunAsync(new AddWorktreeEffect(Tab, location, new WorktreeAddRequest(path, "topic", null), true));
+        var request = new WorktreeAddRequest(path, "topic", null);
+
+        var result = await RunAsync(new AddWorktreeEffect(Tab, location, request, true));
 
         Assert.Equal(path, Assert.IsType<WorktreeOperationSucceeded>(result).OpenPath);
         Assert.Equal("topic", repository.GitIn(path, ["branch", "--show-current"]).Trim());

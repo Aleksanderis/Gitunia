@@ -19,7 +19,9 @@ public class WorktreeSwitchReducerTests
     [Fact]
     public void GivenAWorktreeRow_WhenSwitching_ThenItsPathIsLocatedToSwitch()
     {
-        var update = Reduce(new WorktreeSwitchRequested(Tab, WorktreeRow(Linked)), Context(MainAnd(Info(Linked, "wt"))));
+        var context = Context(MainAnd(Info(Linked, "wt")));
+
+        var update = Reduce(new WorktreeSwitchRequested(Tab, WorktreeRow(Linked)), context);
 
         var locate = Assert.IsType<LocateWorktreeEffect>(Assert.Single(update.Effects));
         Assert.Equal(Linked, locate.Path);
@@ -39,7 +41,8 @@ public class WorktreeSwitchReducerTests
     [Fact]
     public void GivenALocalBranchHeldByAWorktree_WhenOpening_ThenThatWorktreeIsLocated()
     {
-        var context = Context(MainAnd(Info(Linked, "topic")), [Local("main", true), Local("topic", checkedOutIn: Linked)]);
+        var refs = new[] { Local("main", true), Local("topic", checkedOutIn: Linked) };
+        var context = Context(MainAnd(Info(Linked, "topic")), [.. refs]);
 
         var update = Reduce(new WorktreeOpenRequested(Tab, Row(SidebarRowKind.LocalBranch, "topic")), context);
 
@@ -126,7 +129,8 @@ public class WorktreeSwitchReducerTests
         var update = Reduce(located, Context());
 
         Assert.Equal(new SwitchWorktreeCommand(Tab, located.Location), update.Workspace);
-        Assert.Equal($"Switched to worktree {Linked}", Assert.IsType<PostStatusEffect>(Assert.Single(update.Effects)).Text);
+        var post = Assert.IsType<PostStatusEffect>(Assert.Single(update.Effects));
+        Assert.Equal($"Switched to worktree {Linked}", post.Text);
     }
 
     [Fact]

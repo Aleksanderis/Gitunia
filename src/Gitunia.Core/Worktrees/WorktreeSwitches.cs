@@ -20,24 +20,25 @@ internal static class WorktreeSwitches
     {
         if (isSwitch && context.IsBusy)
         {
-            return [Warn(WorktreeTexts.BusyNotice)];
+            return [WorktreeReducer.Warn(WorktreeTexts.BusyNotice)];
         }
 
         if (WorktreeResolver.OfRowOrBranch(context.Tab, target) is not { } worktree)
         {
-            return [Warn(WorktreeTexts.NoWorktreeNotice)];
+            return [WorktreeReducer.Warn(WorktreeTexts.NoWorktreeNotice)];
         }
 
         var refusal = Refusal(context, worktree, isSwitch);
         if (refusal.Length > 0)
         {
-            return [Warn(refusal)];
+            return [WorktreeReducer.Warn(refusal)];
         }
 
         return [new LocateWorktreeEffect(context.Tab.Id, worktree.Path, isSwitch)];
     }
 
-    /// <summary>Applies the resolved location: opens a tab, or points the tab at it unless that became impossible.</summary>
+    /// <summary>Applies the resolved location: opens a tab, or points the tab at it unless that became
+    /// impossible.</summary>
     public static WorktreeUpdate Located(WorktreeLocated located, WorktreeContext context)
     {
         var root = located.Location.RootPath;
@@ -51,12 +52,14 @@ internal static class WorktreeSwitches
         if (context.IsBusy)
         {
             return new WorktreeUpdate(
-                [Warn($"{WorktreeTexts.BusyNotice}; the tab stays on {context.Tab.Location.RootPath}")]);
+                [WorktreeReducer.Warn($"{WorktreeTexts.BusyNotice}; the tab stays on {context.Tab.Location.RootPath}")]);
         }
 
         if (OtherTabShowing(context, root) is { } other)
         {
-            return new WorktreeUpdate([Warn($"{root} is already open in tab {other.Title}: the tab stays where it is")]);
+            var text = $"{root} is already open in tab {other.Title}: the tab stays where it is";
+
+            return new WorktreeUpdate([WorktreeReducer.Warn(text)]);
         }
 
         return new WorktreeUpdate(
@@ -64,7 +67,8 @@ internal static class WorktreeSwitches
             new SwitchWorktreeCommand(context.Tab.Id, located.Location));
     }
 
-    /// <summary>The overview of the other worktrees was read: the tab takes it unless it moved or nothing changed.</summary>
+    /// <summary>The overview of the other worktrees was read: the tab takes it unless it moved or nothing
+    /// changed.</summary>
     public static WorktreeUpdate StatusesRead(WorktreeStatusesRead read, WorktreeContext context)
     {
         var tab = context.Tab;
@@ -112,5 +116,4 @@ internal static class WorktreeSwitches
         && current.Count == read.Statuses.Count
         && read.Statuses.All(pair => current.TryGetValue(pair.Key, out var existing) && existing == pair.Value);
 
-    private static PostStatusEffect Warn(string text) => new(text, StatusSeverity.Warning);
 }

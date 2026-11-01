@@ -28,7 +28,9 @@ public class WorktreePipelineTests
         using var repository = TestRepository.Create().Commit("one", new TestFile("a.txt", "1"));
         using var pipeline = await Pipeline.OpenAsync(repository, expectedWorktrees: 1);
 
-        pipeline.Dispatch(new WorktreeAddRequested(pipeline.TabId, new WorktreeTarget(null, null, null, null, repository.Head)));
+        var target = new WorktreeTarget(null, null, null, null, repository.Head);
+
+        pipeline.Dispatch(new WorktreeAddRequested(pipeline.TabId, target));
         Assert.Equal("New worktree", pipeline.Prompt!.Title);
         pipeline.Type("fresh");
         pipeline.Dispatch(new PromptAcceptedCommand());
@@ -278,7 +280,8 @@ public class WorktreePipelineTests
             return pipeline;
         }
 
-        public static WorktreeTarget RowOf(string path) => new(SidebarRowKind.Worktree, Path.GetFileName(path), path, null, null);
+        public static WorktreeTarget RowOf(string path) =>
+            new(SidebarRowKind.Worktree, Path.GetFileName(path), path, null, null);
 
         public void Dispatch(AppCommand command) => Host.Dispatch(command);
 
