@@ -61,7 +61,7 @@ These are quality inspections, not style, so neither the compiler nor `.editorco
 - Delegates are a last resort, for a decorator or wrapper whose job is to call the function it wraps. Fine as before: C# events, and a lambda passed as a plain call argument to a pure algorithm (LINQ, a comparer, `token.Register(KillQuietly, process)`), as long as it is not stored as a dependency.
 - More than five constructor parameters means the class does too much: split it, or group what always travels together into one context record.
 - Existing code that breaks these rules is being migrated (#965); new and touched code follows them.
-- Where logic goes: decisions in Core reducers (`Core/<Feature>/`), git and file work in `Gitunia.App` effect handlers, views and input translation in `Gitunia.Tui`; a feature adds one line each to the root command, state and reducer (`docs/architecture.md`, "Effects as data").
+- Where logic goes: decisions in Core reducers (`Core/<Feature>/`), git and file work in `Gitunia.App` effect handlers, views and input translation in `Gitunia.Tui`; a feature adds one line each to the root command, state, reducer and runner switch, in alphabetical order (`docs/architecture.md`, "Effects as data").
 
 ## Testability
 
