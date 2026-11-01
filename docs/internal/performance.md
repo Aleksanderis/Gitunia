@@ -61,6 +61,10 @@ Only the active tab loads (lazy restore); a visited small tab adds ~0.5-1 MB. Ba
 
 Polls of hidden tabs, the worktree overview, commit and diff prefetch and issue-link reads run through `BackgroundWork`: at most 8 at once (`DefaultLimit`, `Gitunia.App/Background/`), the rest wait. Each job runs its reads one after the other, so this also caps the processes background work can start at 8. User effects and the load of the shown tab bypass it. Measured on the 5000-commit repository (`scripts/measure.sh`, AOT, 120x40, two alternating rounds of main and the #993 branch): cold start 59-62 ms vs 60-68 ms, `j` key latency median 15-24 ms vs 17 ms, page scroll 17-23 ms vs 17 ms, RSS 52-53 MB both; the differences are inside the run-to-run noise of the harness. The queue only waits when more than 8 jobs overlap, which a single user's navigation does not reach.
 
+## Shell state (#970)
+
+Key mode, status messages, the confirm dialog and the output box are `AppState.Shell`, so a mode switch or a status message is now a dispatched command and raises `Dispatcher.Changed` (before, a mode switch only redrew the bar). Measured on the 5000-commit repository (`scripts/measure.sh`, AOT, 120x40, two alternating rounds of main and the #970 branch): cold start 71 and 58 ms vs 56 and 58 ms, `j` key latency median 16.5 and 15.7 ms vs 16.5 and 16.6 ms, page scroll 16.8 and 16.6 ms vs 16.4 and 16.7 ms, RSS 51-53 MB both; inside the run-to-run noise of the harness.
+
 ## Bounded memory
 
 `EffectRunner` keeps the 5 most recently used loaded tabs (`DefaultWarmTabLimit`, the active one included). A tab beyond that, not running an operation, drops its session and goes back to pending; cursor, scroll and selected commit live in the workspace state and are restored by the background reload (graph search and diff position are lost). With 12 tabs of 20,000 commits, RSS after visiting all fell from ~125 MB to ~98 MB; going back to an evicted tab costs a reload (~100 ms), a recent tab stays instant. Memory is about 5 tabs x size, not the sum.

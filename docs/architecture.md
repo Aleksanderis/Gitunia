@@ -1,6 +1,6 @@
 # Architecture
 
-Status: the target model below ("Effects as data") is the spec for M7 (#990). Built (#969, #993): `AppState`, `AppCommand`, `AppEffect`, `AppReducer`, the `Dispatcher` and the runner with its type switch, proven by the tag feature (create, delete, push, delete on a remote; `Core/Tags/`, `App/Tags/`). Until each other feature has moved (strangler, see "Migration rule"), the code has two models side by side: the target pipeline and the old one (`Workspace`/`TabCommand` reducers in Core plus controllers in `Gitunia.Tui/App` wired with delegates, `TabActivity`, `TabOperationGate`). Text that describes only the old model says "today".
+Status: the target model below ("Effects as data") is the spec for M7 (#990). Built (#969, #993, #970): `AppState`, `AppCommand`, `AppEffect`, `AppReducer`, the `Dispatcher` and the runner with its type switch, proven by the tag feature (create, delete, push, delete on a remote; `Core/Tags/`, `App/Tags/`) and by the shell slice (key mode, status messages, confirm dialog, output overlay; `Core/Shell/`). Until each other feature has moved (strangler, see "Migration rule"), the code has two models side by side: the target pipeline and the old one (`Workspace`/`TabCommand` reducers in Core plus controllers in `Gitunia.Tui/App` wired with delegates, `TabActivity`, `TabOperationGate`). Text that describes only the old model says "today".
 
 ## Overview
 
@@ -44,7 +44,7 @@ Platform and Core are not the same thing: Platform is the bottom layer ("how do 
 One root `AppState` (Core) holds everything that is logic and not drawing:
 
 - the `Workspace` (ordered repo tabs, active tab, recents and pins; each tab a `RepositoryState`: selection, scroll, status, filters);
-- app-wide interaction state: the key mode, the open overlay or prompt, the confirm dialog (with the command to dispatch on `y`), status messages, the output overlay;
+- app-wide interaction state, `AppState.Shell` (`ShellState`, #970): the key mode, the confirm dialog (with the command to reduce on `y`), status messages, the output overlay and the screen size; the open overlay or prompt follows with #971, #984 and #985;
 - the running operations per tab (operation id, kind, cancellation requested or not).
 
 `AppState` is immutable, changed only by reducers, and small: it is copied on every command, including every cursor key.
@@ -80,7 +80,20 @@ Adding a feature touches the root types in four places, one line each, so parall
 
 ### The pilot: tags (#969)
 
-`Core/Tags/` is the reference for a migrated feature. `TagCommand` (user intent and results) goes through `AppReducer` to `TagReducer`, which owns `TagState` (the open prompt; whether an operation runs is `RepositoryState.Running`, kept by the root reducer) and returns `TagEffect`s (`CreateTagEffect`, ...) plus generic effects (`PostStatusEffect`, `RefreshTabEffect`, `ShowConfirmEffect` whose accepted command is part of the effect, `SetKeyModeEffect`, `OfferTerminalRetryEffect`). `App/Tags/TagEffectHandler` runs the git work and posts exactly one result command; the runner's last-resort catch posts the feature's failure command (`TagOperationFailed`, which ends the running mark) or, for an effect without a slice, `EffectFailedCommand`. What only the terminal can do (confirm dialog, key mode, clipboard, terminal retry) goes through `IShellEffects`, which `TuiApplication` implements until those pieces move into state (#970, #971). `Tui/App/Tags/TagPromptHandler` only turns keys into commands and draws the popup from `TagState`. Tests: `TagReducerTests` and `AppReducerTests` (Core, synchronous), `TagEffectHandlerTests` (App, real git), `EffectPipelineTests` (command to git and back through the real runner) and the completeness tests that find every concrete effect and command type by reflection.
+`Core/Tags/` is the reference for a migrated feature. `TagCommand` (user intent and results) goes through `AppReducer` to `TagReducer`, which owns `TagState` (the open prompt; whether an operation runs is `RepositoryState.Running`, kept by the root reducer) and returns `TagEffect`s (`CreateTagEffect`, ...) plus generic effects (`PostStatusEffect`, `RefreshTabEffect`, `ShowConfirmEffect` whose accepted command is part of the effect, `SetKeyModeEffect`, `OfferTerminalRetryEffect`). `App/Tags/TagEffectHandler` runs the git work and posts exactly one result command; the runner's last-resort catch posts the feature's failure command (`TagOperationFailed`, which ends the running mark) or, for an effect without a slice, `EffectFailedCommand`. What only the terminal can do (clipboard, terminal retry) goes through `IShellEffects`, which `TuiApplication` implements until the clipboard moves (#971); the confirm dialog and the key mode are shell state (next section). `Tui/App/Tags/TagPromptHandler` only turns keys into commands and draws the popup from `TagState`. Tests: `TagReducerTests` and `AppReducerTests` (Core, synchronous), `TagEffectHandlerTests` (App, real git), `EffectPipelineTests` (command to git and back through the real runner) and the completeness tests that find every concrete effect and command type by reflection.
+
+### Shell state: mode, status, confirm, output (#970)
+
+`Core/Shell/` holds the app-wide interaction state and the commands that change it; `ShellReducer` is pure and reads no clock (a command that needs the time carries it, stamped by `Dispatcher.Clock`).
+
+- **Key mode.** `SetKeyModeCommand` sets `ShellState.Mode` and counts the switch in `ModeChanges`. `KeyController` follows the state (it subscribes to `Dispatcher.Changed`) and drops its pending chord or count on every switch, also to the same mode. A feature reducer still asks with `SetKeyModeEffect`; the runner turns it into the command. Nobody calls a set-mode delegate.
+- **Status messages.** `StatusPostedCommand` (with its time) appends to the `StatusLog` in state and returns `ScheduleStatusAgingEffect`; `StatusAgingTimer` (App) waits and posts `StatusAgedCommand`, whose reducer schedules the next step (end of the highlight, expiry) until the message is gone. `StatusReporter` (App, `Post`, `Error`, `Warning`, `Dismiss`, `Current`, `IsFresh`) is the thin class the old controllers keep calling: it stamps the time, dispatches the command and reads the current message back from state. `PostStatusEffect` is the same command for a reducer.
+- **Confirm dialog.** `ConfirmRequestedCommand(prompt, onAccepted, refusal)` opens the dialog (mode Confirm, the mode to return to remembered) when it fits the screen; `ConfirmAnsweredCommand` closes it and, for yes only, reduces `onAccepted` right after (`ShellUpdate.Next`, so the accepted command shows in the same Core test). "Screen too small to ask" stays a refusal: nothing opens, the optional `refusal` status is posted and the caller must not start the action. Whether the dialog fits is `ConfirmLayout` (Core), the same arithmetic `ConfirmFrameBuilder` draws with, so reducer and renderer cannot disagree; the terminal layer reports its size with `ScreenResizedCommand` (on start and every resize), which also closes an open dialog that no longer fits, with a warning. `ShowConfirmEffect` (from a reducer) reaches the same command through the runner.
+- **Output overlay.** `OutputShownCommand` / `OutputClosedCommand` hold the title, heading and lines; a dialog and a box replace each other and an open overlay.
+- **Controllers that have not moved.** They keep their `Action` callback: `ShellDispatch.Confirm(host, prompt, action)` dispatches the request with a `RunActionCommand(action)` as accepted command (the reducer returns `RunActionEffect`, the runner runs it), `SetKeyMode` and `ShowOutput` dispatch their commands. `RunActionCommand` goes away with the last such controller; a moved feature puts its own command in the dialog.
+- **Drawing.** `OverlayController` (Tui) only draws: it mirrors the dialog and the box into its `OverlayState` (a render projection with the scroll of the box) and answers keys by dispatching `ConfirmAnsweredCommand` or `OutputClosedCommand`. Who handles a key did not change (that is #987).
+
+Tests: `ShellReducerTests`, `ConfirmLayoutTests` and `AppReducerTests` (Core: Esc and `n`, too small, resize, a tab closed while the dialog is open), `StatusReporterTests` (App), `EffectPipelineTests` (command to dialog to git and back), `KeyControllerModeTests` and `OverlayControllerTests` (Tui). Tui tests of controllers use `TestShell` (`tests/Gitunia.Tui.Tests/Fakes`): a real dispatcher whose dialogs, mode, status and output are the real state, plus `Answer()`/`Decline()` and the recorded prompts.
 
 ### Threading
 
@@ -88,10 +101,10 @@ Adding a feature touches the root types in four places, one line each, so parall
 
 ### Key mode and the input path (#970 and #987)
 
-- **#970 moves state** that lives in controllers and delegates today: the key mode is a field of `AppState`, changed by a set-mode command instead of a `setMode` delegate; the confirm dialog, status messages and output overlay likewise. Prompt and picker state is #971, overlay state of reflog, settings and creation is #984 and #985. #970 does not change who handles a key.
+- **#970 moved state** that lived in controllers and delegates: the key mode is a field of `AppState.Shell`, changed by `SetKeyModeCommand` instead of a `setMode` delegate; the confirm dialog, status messages and output overlay likewise (previous section). Prompt and picker state is #971, overlay state of reflog, settings and creation is #984 and #985. #970 did not change who handles a key.
 - **#987 moves routing**: a key or mouse gesture becomes one command (action id, count, focus) and the reducer picks the handler from state. It is blocked on #970, #971 and the overlay migrations (#984, #985), reads the mode, prompt and overlay fields they created and changes only routing code (`ActionRouter`, `RouteAction`, `HandleTextKey`, overlay click routing).
 
-So #970 never edits routing order, and #987 never adds state for mode, prompts or overlays. Until #987, controllers receive keys the old way and only dispatch the mode command.
+So #970 never edited routing order, and #987 never adds state for mode, prompts or overlays; it reads `ShellState.Mode`, `Confirm` and `Output`. Until #987, controllers receive keys the old way and only dispatch the mode command.
 
 ### Where code goes
 
