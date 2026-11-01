@@ -1,3 +1,5 @@
+using Gitunia.Core.Text;
+using Gitunia.Tui.App.Tabs;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Lists;
@@ -63,7 +65,6 @@ public sealed class RebaseEditorController(
     TabOperationGate gate,
     ChipKeys? keys = null)
 {
-    private const int ShortHashLength = 7;
     private const string BusyNotice = "Busy: another operation of this tab is still running";
     private const string SelectNotice = "Select a commit (graph) or a branch or tag (sidebar) to rebase onto";
     private const string TooSmallNotice = "The screen is too small to ask: nothing was rebased";
@@ -216,7 +217,7 @@ public sealed class RebaseEditorController(
             return;
         }
 
-        var label = isRoot ? RootLabel : chosen.Name ?? ShortHash(hash!);
+        var label = isRoot ? RootLabel : chosen.Name ?? ShortHash.Of(hash!);
         var generation = ++_generation;
         var location = tab.Location;
         var token = cancellationOf(tab.Id);
@@ -573,5 +574,4 @@ public sealed class RebaseEditorController(
     private static RebaseBase BaseOf(string? targetHash) =>
         (targetHash is null ? RebaseBase.Root : RebaseBase.OntoCommit(targetHash)).WithMerges();
 
-    private static string ShortHash(string hash) => hash[..Math.Min(ShortHashLength, hash.Length)];
 }

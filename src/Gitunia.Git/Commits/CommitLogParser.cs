@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Text;
 using Gitunia.Git.Commits.Models;
 using Gitunia.Git.Refs;
@@ -14,7 +15,7 @@ public sealed class CommitLogParser
     private static readonly ObjectId[] NoParents = [];
     private static readonly CommitDecoration[] NoDecorations = [];
 
-    private readonly List<byte> _carry = [];
+    private readonly ArrayBufferWriter<byte> _carry = new();
     private readonly List<string> _warnings = [];
     private readonly Dictionary<string, string> _internedText = [];
 
@@ -22,7 +23,7 @@ public sealed class CommitLogParser
     public IReadOnlyList<string> Warnings => _warnings;
 
     /// <summary>Bytes of an unfinished commit held back (never more than one commit).</summary>
-    public int BufferedByteCount => _carry.Count;
+    public int BufferedByteCount => _carry.WrittenCount;
 
     /// <summary>Parses the next chunk and appends every commit completed by it to <paramref name="output"/>.</summary>
     public void Feed(ReadOnlySpan<byte> chunk, ICollection<CommitInfo> output)
@@ -32,27 +33,19 @@ public sealed class CommitLogParser
             var terminator = chunk.IndexOf(GitSeparators.RecordTerminator);
             if (terminator < 0)
             {
-                foreach (var value in chunk)
-                {
-                    _carry.Add(value);
-                }
-
+                _carry.Write(chunk);
                 return;
             }
 
-            if (_carry.Count == 0)
+            if (_carry.WrittenCount == 0)
             {
                 ParseRecord(chunk[..terminator], output);
             }
             else
             {
-                foreach (var value in chunk[..terminator])
-                {
-                    _carry.Add(value);
-                }
-
-                ParseRecord(_carry.ToArray(), output);
-                _carry.Clear();
+                _carry.Write(chunk[..terminator]);
+                ParseRecord(_carry.WrittenSpan, output);
+                _carry.ResetWrittenCount();
             }
 
             chunk = chunk[(terminator + 1)..];
@@ -62,10 +55,10 @@ public sealed class CommitLogParser
     /// <summary>Call after the last chunk; reports a truncated final commit.</summary>
     public void Complete()
     {
-        if (_carry.Count > 0)
+        if (_carry.WrittenCount > 0)
         {
-            _warnings.Add($"Output ended inside a commit record ({_carry.Count} bytes dropped)");
-            _carry.Clear();
+            _warnings.Add($"Output ended inside a commit record ({_carry.WrittenCount} bytes dropped)");
+            _carry.ResetWrittenCount();
         }
     }
 
@@ -93,25 +86,25 @@ public sealed class CommitLogParser
         }
 
         var decorations = new List<CommitDecoration>();
-        foreach (var part in text.Split(", "))
+        foreach (var part in text.Split(CommitLogFormat.DecorationSeparator))
         {
             var name = part;
             var current = false;
-            if (name.StartsWith("HEAD -> ", StringComparison.Ordinal))
+            if (name.StartsWith(CommitLogFormat.HeadPointerPrefix, StringComparison.Ordinal))
             {
-                name = name["HEAD -> ".Length..];
+                name = name[CommitLogFormat.HeadPointerPrefix.Length..];
                 current = true;
             }
-            else if (name == "HEAD")
+            else if (name == GitOptions.HeadRevision)
             {
-                decorations.Add(new CommitDecoration("HEAD", "HEAD", RefKind.Head, true));
+                decorations.Add(new CommitDecoration(GitOptions.HeadRevision, GitOptions.HeadRevision, RefKind.Head, true));
                 continue;
             }
 
-            var isTag = name.StartsWith("tag: ", StringComparison.Ordinal);
+            var isTag = name.StartsWith(CommitLogFormat.TagPrefix, StringComparison.Ordinal);
             if (isTag)
             {
-                name = name["tag: ".Length..];
+                name = name[CommitLogFormat.TagPrefix.Length..];
             }
 
             decorations.Add(Decorate(name, isTag, current));

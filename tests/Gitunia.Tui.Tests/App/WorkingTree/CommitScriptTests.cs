@@ -15,6 +15,7 @@ using Gitunia.Git.Status;
 using Gitunia.Git.Status.Models;
 using Gitunia.Git.Tests.Fixtures;
 using Gitunia.Tui.App;
+using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.App.WorkingTree;
 using Gitunia.Tui.Tests.Fakes;
 using Xunit;
@@ -265,6 +266,7 @@ public class CommitScriptTests
                 Pump.Post,
                 RefreshStatus,
                 _ => Token,
+                new TabOperationGate(),
                 (_, _, lines) => Outputs.Add(string.Join('\n', lines)),
                 () => _mode,
                 mode => _mode = mode,

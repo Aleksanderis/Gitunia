@@ -1,4 +1,5 @@
 using Gitunia.Core.Search;
+using Gitunia.Core.Text;
 using Gitunia.Git.Refs.Models;
 
 namespace Gitunia.Core.Branches;
@@ -9,7 +10,6 @@ namespace Gitunia.Core.Branches;
 /// </summary>
 public static class SwitchCandidates
 {
-    private const int ShortHashLength = 7;
     private const char RemoteSeparator = '/';
 
     /// <param name="refs">The tab's refs.</param>
@@ -55,7 +55,7 @@ public static class SwitchCandidates
 
         if (commitHash is not null)
         {
-            var shortHash = commitHash[..Math.Min(ShortHashLength, commitHash.Length)];
+            var shortHash = ShortHash.Of(commitHash);
             candidates.Add(new SwitchCandidate(
                 SwitchTargetKind.DetachedCommit,
                 $"detached at {shortHash}",

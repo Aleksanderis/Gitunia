@@ -1,3 +1,4 @@
+using Gitunia.Tui.App.Tabs;
 using Gitunia.Core.Lists;
 using Gitunia.Core.Overlays;
 using Gitunia.Core.Status;

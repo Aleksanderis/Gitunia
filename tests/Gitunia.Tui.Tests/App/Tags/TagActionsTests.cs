@@ -392,6 +392,7 @@ public class TagActionsTests
                 Statuses,
                 Pump.Post,
                 _ => TestContext.Current.CancellationToken,
+                new TabOperationGate(),
                 Confirm,
                 _ =>
                 {

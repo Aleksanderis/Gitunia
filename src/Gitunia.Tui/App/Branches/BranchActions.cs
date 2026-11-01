@@ -1,3 +1,5 @@
+using Gitunia.Core.Text;
+using Gitunia.Tui.App.Tabs;
 using Gitunia.Core.Branches;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
@@ -34,6 +36,7 @@ namespace Gitunia.Tui.App.Branches;
 /// <param name="statuses">Where the outcome is reported.</param>
 /// <param name="postToUi">Runs an action on the UI thread.</param>
 /// <param name="cancellationOf">The token that ends the work of a tab (the tab was closed).</param>
+/// <param name="busy">Marks the tab while an operation of this kind runs (one at a time; tab eviction waits for it).</param>
 /// <param name="confirm">Shows the confirm dialog and runs the callback on <c>y</c>; false when it cannot show.</param>
 /// <param name="refresh">Reads a tab again (refs, graph, status); false when it cannot.</param>
 /// <param name="setMode">Switches the keymap mode (Insert while a prompt is open).</param>
@@ -45,18 +48,17 @@ public sealed class BranchActions(
     StatusChannel statuses,
     Action<Action> postToUi,
     Func<TabId, CancellationToken> cancellationOf,
+    TabOperationGate busy,
     Func<ConfirmPrompt, Action, bool> confirm,
     Func<TabId, bool> refresh,
     Action<KeyMode> setMode,
     Action redraw,
     Func<BranchSelection> selection) : IPromptHandler
 {
-    private const int ShortHashLength = 7;
     private const string BusyNotice = "Busy: the last branch operation is still running";
     private const string TooSmallNotice = "The screen is too small to ask: nothing was deleted";
     private const string SelectNotice = "Select a local branch (sidebar) or a commit with one branch on it";
 
-    private readonly HashSet<TabId> _busy = [];
     private BranchPromptKind _kind;
     private TabId _tabId;
     private string _text = string.Empty;
@@ -220,13 +222,13 @@ public sealed class BranchActions(
             return string.Empty;
         }
 
-        if ((BeginOperation(tab) ?? (checkout ? OperationRefusal(tab) : null)) is { } busy)
+        if ((BeginOperation(tab) ?? (checkout ? OperationRefusal(tab) : null)) is { } refusal)
         {
-            return busy;
+            return refusal;
         }
 
         _startPoint = commitHash;
-        _label = ShortHash(commitHash);
+        _label = ShortHash.Of(commitHash);
         _checkout = checkout;
         Open(BranchPromptKind.Create, tab, string.Empty);
         redraw();
@@ -244,15 +246,15 @@ public sealed class BranchActions(
             return string.Empty;
         }
 
-        if ((BeginOperation(tab) ?? OperationRefusal(tab)) is { } busy)
+        if ((BeginOperation(tab) ?? OperationRefusal(tab)) is { } refusal)
         {
-            return busy;
+            return refusal;
         }
 
         Start(tab, "Could not check out", async token =>
         {
             await writer.SwitchDetachedAsync(tab.Location, commitHash, token).ConfigureAwait(false);
-            return $"HEAD is detached at {ShortHash(commitHash)}";
+            return $"HEAD is detached at {ShortHash.Of(commitHash)}";
         }, CommitOf(tab, commitHash));
         return string.Empty;
     }
@@ -268,7 +270,6 @@ public sealed class BranchActions(
         return step != 0;
     }
 
-    private static string ShortHash(string hash) => hash[..Math.Min(ShortHashLength, hash.Length)];
 
     private bool TryHandleOpenPrompt(ActionId action)
     {
@@ -304,7 +305,7 @@ public sealed class BranchActions(
         return $"A {name} is in progress: finish or abort the {name} first (<space>gc continue, <space>ga abort)";
     }
 
-    private string? BeginOperation(RepositoryState tab) => _busy.Contains(tab.Id) ? BusyNotice : null;
+    private string? BeginOperation(RepositoryState tab) => busy.IsBusy(tab.Id) ? BusyNotice : null;
 
     private void Close()
     {
@@ -337,7 +338,7 @@ public sealed class BranchActions(
         else if (chosen.CommitHash is { } hash)
         {
             _startPoint = hash;
-            _label = ShortHash(hash);
+            _label = ShortHash.Of(hash);
         }
         else
         {
@@ -490,7 +491,7 @@ public sealed class BranchActions(
         Start(tab, "Could not fast-forward", async token =>
         {
             await writer.FastForwardAsync(tab.Location, name, upstream, token).ConfigureAwait(false);
-            return $"Fast-forwarded {name} from {ShortHash(old)} to {ShortHash(upstreamRef.CommitHash)} "
+            return $"Fast-forwarded {name} from {ShortHash.Of(old)} to {ShortHash.Of(upstreamRef.CommitHash)} "
                 + $"(undo: git update-ref {GitRefPrefixes.Heads}{name} {old})";
         });
         return string.Empty;
@@ -681,7 +682,7 @@ public sealed class BranchActions(
                 Start(tab, "Could not check out", async token =>
                 {
                     await writer.SwitchDetachedAsync(tab.Location, target, token).ConfigureAwait(false);
-                    return $"HEAD is detached at {ShortHash(target)}";
+                    return $"HEAD is detached at {ShortHash.Of(target)}";
                 }, CommitOf(tab, target));
                 break;
         }
@@ -726,7 +727,7 @@ public sealed class BranchActions(
         {
             _deleteNames = names;
             _deleteIndex = 0;
-            _label = ShortHash(chosen.CommitHash ?? string.Empty);
+            _label = ShortHash.Of(chosen.CommitHash);
             if (chosen.RowKind == SidebarRowKind.Folder)
             {
                 _label = $"{chosen.Name}/";
@@ -804,7 +805,7 @@ public sealed class BranchActions(
 
         var prompt = new ConfirmPrompt(
             "Delete branch",
-            [$"Delete the branch {branch.Name} (at {ShortHash(branch.CommitHash)})?"],
+            [$"Delete the branch {branch.Name} (at {ShortHash.Of(branch.CommitHash)})?"],
             $"Undo: git branch {branch.Name} {branch.CommitHash}",
             "Delete branch");
         return confirm(prompt, () => StartDelete(tab.Id, branch)) ? string.Empty : TooSmallNotice;
@@ -812,7 +813,7 @@ public sealed class BranchActions(
 
     private void StartDelete(TabId tabId, GitRef branch)
     {
-        if (host.Workspace.FindTab(tabId) is not { } tab || !_busy.Add(tabId))
+        if (host.Workspace.FindTab(tabId) is not { } tab || !busy.Begin(tabId))
         {
             statuses.Warning($"{BusyNotice}; nothing was deleted");
             return;
@@ -839,7 +840,7 @@ public sealed class BranchActions(
         }
         catch (OperationCanceledException)
         {
-            postToUi(() => _busy.Remove(tab.Id));
+            postToUi(() => busy.End(tab.Id));
         }
         catch (Exception exception)
         {
@@ -851,7 +852,7 @@ public sealed class BranchActions(
     // The branch holds commits that neither HEAD nor its upstream reach: a second, explicit answer is needed.
     private void AskForce(RepositoryState tab, GitRef branch)
     {
-        _busy.Remove(tab.Id);
+        busy.End(tab.Id);
         var prompt = new ConfirmPrompt(
             "Delete unmerged branch",
             [
@@ -868,7 +869,7 @@ public sealed class BranchActions(
 
     private void StartForceDelete(RepositoryState tab, GitRef branch)
     {
-        if (!_busy.Add(tab.Id))
+        if (!busy.Begin(tab.Id))
         {
             statuses.Warning($"{BusyNotice}; nothing was deleted");
             return;
@@ -887,7 +888,7 @@ public sealed class BranchActions(
         }
         catch (OperationCanceledException)
         {
-            postToUi(() => _busy.Remove(tab.Id));
+            postToUi(() => busy.End(tab.Id));
         }
         catch (Exception exception)
         {
@@ -897,7 +898,7 @@ public sealed class BranchActions(
     }
 
     private static string DeletedText(GitRef branch) =>
-        $"Deleted branch {branch.Name} (was {ShortHash(branch.CommitHash)}; restore: " +
+        $"Deleted branch {branch.Name} (was {ShortHash.Of(branch.CommitHash)}; restore: " +
         $"git branch {branch.Name} {branch.CommitHash})";
 
     private void Start(
@@ -906,7 +907,7 @@ public sealed class BranchActions(
         Func<CancellationToken, Task<string>> work,
         ObjectId? follow = null)
     {
-        _busy.Add(tab.Id);
+        busy.Begin(tab.Id);
         var token = cancellationOf(tab.Id);
         _ = Task.Run(() => RunAsync(tab.Id, failure, work, follow, token), CancellationToken.None);
     }
@@ -945,7 +946,7 @@ public sealed class BranchActions(
         }
         catch (OperationCanceledException)
         {
-            postToUi(() => _busy.Remove(tabId));
+            postToUi(() => busy.End(tabId));
         }
         catch (Exception exception)
         {
@@ -956,7 +957,7 @@ public sealed class BranchActions(
     // After a success the graph cursor follows: the saved selection is the commit the refreshed graph then selects.
     private void Finish(TabId tabId, string text, StatusSeverity severity, ObjectId? follow = null)
     {
-        _busy.Remove(tabId);
+        busy.End(tabId);
         statuses.Post(text, severity);
         if (follow is { } commit && severity == StatusSeverity.Info)
         {

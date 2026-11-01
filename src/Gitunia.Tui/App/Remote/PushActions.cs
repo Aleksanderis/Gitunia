@@ -1,3 +1,5 @@
+using Gitunia.Core.Text;
+using Gitunia.Tui.App.Tabs;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Overlays;
@@ -36,6 +38,7 @@ namespace Gitunia.Tui.App.Remote;
 /// <param name="statuses">Where the outcome is reported.</param>
 /// <param name="postToUi">Runs an action on the UI thread.</param>
 /// <param name="cancellationOf">The token that ends the work of a tab (the tab was closed).</param>
+/// <param name="busy">Marks the tab while an operation of this kind runs (one at a time; tab eviction waits for it).</param>
 /// <param name="confirm">Shows the confirm dialog and runs the callback on <c>y</c>; false when it cannot show.</param>
 /// <param name="refresh">Reads a tab again; false when it cannot.</param>
 /// <param name="setMode">Switches the keymap mode (Insert while a prompt is open).</param>
@@ -50,19 +53,18 @@ public sealed class PushActions(
     StatusChannel statuses,
     Action<Action> postToUi,
     Func<TabId, CancellationToken> cancellationOf,
+    TabOperationGate busy,
     Func<ConfirmPrompt, Action, bool> confirm,
     Func<TabId, bool> refresh,
     Action<KeyMode> setMode,
     Action redraw,
     Func<BranchSelection> selection) : IPromptHandler
 {
-    private const int ShortHashLength = 7;
     private const string DefaultRemote = "origin";
     private const string BusyNotice = "Busy: the last push operation is still running";
     private const string TooSmallNotice = "The screen is too small to ask: nothing was changed";
     private const string NoRemoteNotice = "There is no remote: add one first";
 
-    private readonly HashSet<TabId> _busy = [];
     private PushPromptKind _kind;
     private TabId _tabId;
     private string _text = string.Empty;
@@ -122,11 +124,11 @@ public sealed class PushActions(
                 return false;
             }
 
-            Notice = _busy.Contains(tab.Id) ? BusyNotice : LoadRemotes(tab, action, current);
+            Notice = busy.IsBusy(tab.Id) ? BusyNotice : LoadRemotes(tab, action, current);
         }
         else if (action == ActionIds.RemotePushForce)
         {
-            Notice = _busy.Contains(tab.Id) ? BusyNotice : LoadRemotes(tab, action, CurrentBranchOf(tab));
+            Notice = busy.IsBusy(tab.Id) ? BusyNotice : LoadRemotes(tab, action, CurrentBranchOf(tab));
         }
         else if (action == ActionIds.RemoteDeleteBranch || action == ActionIds.BranchDelete
             && RemoteDeleteTarget.IsRemoteOnly(tab, selection()))
@@ -134,7 +136,7 @@ public sealed class PushActions(
             // When the cursor names one remote branch (its row, or the one on the graph commit) there is no picker.
             var named = RemoteDeleteTarget.Names(tab, selection());
             _directName = named.Count == 1 ? named[0] : null;
-            Notice = _busy.Contains(tab.Id) ? BusyNotice : LoadRemotes(tab, action, null);
+            Notice = busy.IsBusy(tab.Id) ? BusyNotice : LoadRemotes(tab, action, null);
         }
         else
         {
@@ -175,7 +177,7 @@ public sealed class PushActions(
     public void OfferForce(TabId tabId, string pushedBranch)
     {
         // A branch that is only behind its upstream is rejected too, but the answer there is a pull, not a force.
-        if (_kind != PushPromptKind.None || _busy.Contains(tabId) || host.Workspace.ActiveTabId != tabId
+        if (_kind != PushPromptKind.None || busy.IsBusy(tabId) || host.Workspace.ActiveTabId != tabId
             || host.Workspace.ActiveTab is not { } tab || CurrentBranchOf(tab) is not { } current
             || !HasUpstream(current) || current.Name != pushedBranch || current.Ahead is not > 0)
         {
@@ -192,7 +194,7 @@ public sealed class PushActions(
     /// </summary>
     public void OfferForceFirstPush(TabId tabId, string pushedBranch, string remoteName)
     {
-        if (_kind != PushPromptKind.None || _busy.Contains(tabId) || host.Workspace.ActiveTabId != tabId
+        if (_kind != PushPromptKind.None || busy.IsBusy(tabId) || host.Workspace.ActiveTabId != tabId
             || host.Workspace.ActiveTab is not { } tab || CurrentBranchOf(tab) is not { } current
             || current.Name != pushedBranch)
         {
@@ -210,7 +212,7 @@ public sealed class PushActions(
         }
 
         // Only a branch with commits of its own is worth a force: one that is just behind needs a pull or rebase.
-        _busy.Add(tabId);
+        busy.Begin(tabId);
         var token = cancellationOf(tabId);
         var target = new RemoteBranchName(remoteName, pushedBranch);
         _ = Task.Run(() => CheckAheadAsync(tab, current, target, tracking, token), CancellationToken.None);
@@ -225,7 +227,6 @@ public sealed class PushActions(
 
     private static bool HasUpstream(GitRef branch) => branch.UpstreamFullName is not null && !branch.IsUpstreamGone;
 
-    private static string ShortHash(string hash) => hash[..Math.Min(ShortHashLength, hash.Length)];
 
     private async Task CheckAheadAsync(
         RepositoryState tab,
@@ -242,7 +243,7 @@ public sealed class PushActions(
         }
         catch (OperationCanceledException)
         {
-            postToUi(() => _busy.Remove(tab.Id));
+            postToUi(() => busy.End(tab.Id));
         }
         catch (Exception exception)
         {
@@ -259,7 +260,7 @@ public sealed class PushActions(
         GitRef tracking,
         bool behind)
     {
-        _busy.Remove(tab.Id);
+        busy.End(tab.Id);
         if (_kind != PushPromptKind.None || host.Workspace.ActiveTabId != tab.Id
             || host.Workspace.ActiveTab is not { } active || CurrentBranchOf(active) is not { } now || now.Name != current.Name || now.CommitHash != current.CommitHash)
         {
@@ -326,7 +327,7 @@ public sealed class PushActions(
             return $"{current.Name} has no upstream: push it first";
         }
 
-        _busy.Add(tab.Id);
+        busy.Begin(tab.Id);
         var token = cancellationOf(tab.Id);
         _ = Task.Run(() => ReadRemotesAsync(tab, action, current, token), CancellationToken.None);
         return string.Empty;
@@ -341,7 +342,7 @@ public sealed class PushActions(
         }
         catch (OperationCanceledException)
         {
-            postToUi(() => _busy.Remove(tab.Id));
+            postToUi(() => busy.End(tab.Id));
         }
         catch (Exception exception)
         {
@@ -352,7 +353,7 @@ public sealed class PushActions(
 
     private void OnRemotesRead(RepositoryState tab, ActionId action, GitRef? current, IReadOnlyList<string> remotes)
     {
-        _busy.Remove(tab.Id);
+        busy.End(tab.Id);
         if (host.Workspace.ActiveTabId != tab.Id || _kind != PushPromptKind.None)
         {
             return;
@@ -416,7 +417,7 @@ public sealed class PushActions(
         var prompt = new ConfirmPrompt(
             "Force push",
             [
-                $"Force push {branch.Name} to {name}, overwriting it (now at {ShortHash(upstream.CommitHash)})?",
+                $"Force push {branch.Name} to {name}, overwriting it (now at {ShortHash.Of(upstream.CommitHash)})?",
                 "A lease: refused when the remote moved since your last fetch.",
                 "Commits that are only on the remote branch are no longer on it afterwards.",
             ],
@@ -424,7 +425,7 @@ public sealed class PushActions(
             "Force push");
         var lease = new PushLease(target.Branch, upstream.CommitHash);
         var request = new PushRequest(target.Remote, branch.Name, setUpstream, lease);
-        var done = $"Force pushed {branch.Name} to {name} (was {ShortHash(upstream.CommitHash)})";
+        var done = $"Force pushed {branch.Name} to {name} (was {ShortHash.Of(upstream.CommitHash)})";
         if (!confirm(prompt, () => StartForce(tab.Id, request, done)))
         {
             statuses.Warning(TooSmallNotice);
@@ -555,7 +556,7 @@ public sealed class PushActions(
         var prompt = new ConfirmPrompt(
             "Delete branch on remote",
             [
-                $"Delete the branch {branch} on the remote {remoteName} (at {ShortHash(target.CommitHash)})?",
+                $"Delete the branch {branch} on the remote {remoteName} (at {ShortHash.Of(target.CommitHash)})?",
                 "Local branches are not touched.",
             ],
             $"Undo: git push {remoteName} {target.CommitHash}:{GitRefPrefixes.Heads}{branch}",
@@ -565,13 +566,13 @@ public sealed class PushActions(
 
     private void StartDelete(TabId tabId, RemoteBranchRef target)
     {
-        if (host.Workspace.FindTab(tabId) is not { } tab || _busy.Contains(tabId))
+        if (host.Workspace.FindTab(tabId) is not { } tab || busy.IsBusy(tabId))
         {
             statuses.Warning($"{BusyNotice}; nothing was deleted");
             return;
         }
 
-        _busy.Add(tabId);
+        busy.Begin(tabId);
         var token = cancellationOf(tabId);
         _ = Task.Run(() => DeleteAsync(tab, target, token), CancellationToken.None);
     }
@@ -591,7 +592,7 @@ public sealed class PushActions(
         }
         catch (OperationCanceledException)
         {
-            postToUi(() => _busy.Remove(tab.Id));
+            postToUi(() => busy.End(tab.Id));
         }
         catch (Exception exception)
         {
@@ -604,7 +605,7 @@ public sealed class PushActions(
                 if (offer)
                 {
                     var retry = RemoteCommands.BuildDeleteBranch(name.Remote, name.Branch, target.CommitHash, false);
-                    remote.OfferTerminalRetry(tab.Id, "Remote branch delete", retry, () => _busy.Contains(tab.Id));
+                    remote.OfferTerminalRetry(tab.Id, "Remote branch delete", retry, () => busy.IsBusy(tab.Id));
                 }
             });
         }
@@ -612,7 +613,7 @@ public sealed class PushActions(
 
     private void Finish(TabId tabId, string text, StatusSeverity severity, bool refreshTab)
     {
-        _busy.Remove(tabId);
+        busy.End(tabId);
         statuses.Post(text, severity);
         if (refreshTab)
         {

@@ -3,6 +3,7 @@ using Gitunia.Core.Keymap;
 using Gitunia.Core.Mouse;
 using Gitunia.Core.Overlays;
 using Gitunia.Core.Rebase;
+using Gitunia.Core.Text;
 using Gitunia.Git.Rebase;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Panes;
@@ -23,7 +24,6 @@ public static class RebaseEditorFrameBuilder
     private const int ScreenMargin = 2;
     private const int FixedChromeRows = 4;
     private const int MessageChromeRows = 3;
-    private const int ShortHashLength = 7;
     private const int ActionColumnWidth = 6;
     private const int ListStartLine = 2;
     private const string Note = "oldest first: the top commit is replayed first; squash and fixup meld upwards";
@@ -170,7 +170,7 @@ public static class RebaseEditorFrameBuilder
             return null;
         }
 
-        var hash = edit.Hash[..Math.Min(ShortHashLength, edit.Hash.Length)];
+        var hash = ShortHash.Of(edit.Hash);
         var lines = new List<StyledLine> { OverlayBox.Title($"Reword {hash}", width, glyphs) };
         var textWidth = OverlayBox.InnerWidth(width) - 1;
         foreach (var line in MessageEditorRenderer.Render(edit.Editor, textWidth, rows, showCursor: true))
@@ -207,7 +207,7 @@ public static class RebaseEditorFrameBuilder
                 isSelected);
         }
 
-        var hash = row.Hash[..Math.Min(ShortHashLength, row.Hash.Length)];
+        var hash = ShortHash.Of(row.Hash);
         var role = row.Action == RebaseTodoAction.Drop ? SegmentRole.Faint : SegmentRole.Plain;
         var text = $"{action} {hash} {row.ShownSubject}";
         return OverlayBox.TwoColumns(text, string.Empty, width, glyphs, role, role, isSelected);

@@ -1,5 +1,6 @@
 using Gitunia.Core.Graph;
 using Gitunia.Core.Search.Models;
+using Gitunia.Core.Text;
 using Gitunia.Git;
 using Gitunia.Git.Refs.Models;
 
@@ -62,7 +63,7 @@ public static class RefJumpResolver
             var hash = entry.Id.ToString();
             if (hash.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
             {
-                found.Add(new RefJumpCandidate($"{hash[..Math.Min(hash.Length, 7)]} {entry.Subject}", entry.Id, null));
+                found.Add(new RefJumpCandidate($"{ShortHash.Of(hash)} {entry.Subject}", entry.Id, null));
             }
         }
 

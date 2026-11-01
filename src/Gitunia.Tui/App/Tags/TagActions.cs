@@ -4,6 +4,7 @@ using Gitunia.Core.Overlays;
 using Gitunia.Core.Search;
 using Gitunia.Core.Sidebar;
 using Gitunia.Core.Status;
+using Gitunia.Core.Text;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Execution.Exceptions;
@@ -11,6 +12,7 @@ using Gitunia.Git.Refs.Models;
 using Gitunia.Git.Remotes;
 using Gitunia.Git.Tags;
 using Gitunia.Tui.App.Branches;
+using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.App.WorkingTree;
 using Gitunia.Tui.Input;
 
@@ -32,6 +34,7 @@ namespace Gitunia.Tui.App.Tags;
 /// <param name="statuses">Where the outcome is reported.</param>
 /// <param name="postToUi">Runs an action on the UI thread.</param>
 /// <param name="cancellationOf">The token that ends the work of a tab (the tab was closed).</param>
+/// <param name="busy">Marks the tab while an operation of this kind runs (one at a time; tab eviction waits for it).</param>
 /// <param name="confirm">Shows the confirm dialog and runs the callback on <c>y</c>; false when it cannot show.</param>
 /// <param name="refresh">Reads a tab again (refs, graph, status); false when it cannot.</param>
 /// <param name="setMode">Switches the keymap mode (Insert while a prompt is open).</param>
@@ -47,6 +50,7 @@ public sealed class TagActions(
     StatusChannel statuses,
     Action<Action> postToUi,
     Func<TabId, CancellationToken> cancellationOf,
+    TabOperationGate busy,
     Func<ConfirmPrompt, Action, bool> confirm,
     Func<TabId, bool> refresh,
     Action<KeyMode> setMode,
@@ -54,12 +58,10 @@ public sealed class TagActions(
     Func<BranchSelection> selection,
     Action<TabId, string, IReadOnlyList<string>, Func<bool>> offerTerminal) : IPromptHandler
 {
-    private const int ShortHashLength = 7;
     private const string BusyNotice = "Busy: the last tag operation is still running";
     private const string TooSmallNotice = "The screen is too small to ask: nothing was changed";
     private const string SelectNotice = "Select a tag (sidebar) or a commit with one tag on it";
 
-    private readonly HashSet<TabId> _busy = [];
     private TagPromptKind _kind;
     private TabId _tabId;
     private string _text = string.Empty;
@@ -164,7 +166,6 @@ public sealed class TagActions(
     {
     }
 
-    private static string ShortHash(string hash) => hash[..Math.Min(ShortHashLength, hash.Length)];
 
     private static bool HasTag(RepositoryState tab, string name) =>
         tab.Refs.Any(reference => reference.Kind == RefKind.Tag && reference.Name == name);
@@ -188,7 +189,7 @@ public sealed class TagActions(
         return true;
     }
 
-    private string? BeginOperation(RepositoryState tab) => _busy.Contains(tab.Id) ? BusyNotice : null;
+    private string? BeginOperation(RepositoryState tab) => busy.IsBusy(tab.Id) ? BusyNotice : null;
 
     private void Close()
     {
@@ -213,7 +214,7 @@ public sealed class TagActions(
         }
 
         _startPoint = hash;
-        _label = chosen.Name ?? ShortHash(hash);
+        _label = chosen.Name ?? ShortHash.Of(hash);
         Open(TagPromptKind.CreateName, tab, string.Empty);
         return string.Empty;
     }
@@ -319,7 +320,7 @@ public sealed class TagActions(
         var prompt = new ConfirmPrompt(
             "Delete tag",
             [
-                $"Delete the local tag {tag!.Name} (at {ShortHash(tag.CommitHash)})?",
+                $"Delete the local tag {tag!.Name} (at {ShortHash.Of(tag.CommitHash)})?",
                 "A copy on a remote is not touched.",
             ],
             $"Undo: git tag {tag.Name} {tag.ObjectHash}",
@@ -329,7 +330,7 @@ public sealed class TagActions(
 
     private void StartDelete(TabId tabId, GitRef tag)
     {
-        if (host.Workspace.FindTab(tabId) is not { } tab || _busy.Contains(tabId))
+        if (host.Workspace.FindTab(tabId) is not { } tab || busy.IsBusy(tabId))
         {
             statuses.Warning($"{BusyNotice}; nothing was deleted");
             return;
@@ -339,7 +340,7 @@ public sealed class TagActions(
         Start(tab, "Could not delete the tag", async token =>
         {
             await writer.DeleteAsync(tab.Location, name, token).ConfigureAwait(false);
-            return $"Deleted tag {name} (was {ShortHash(tag.ObjectHash)}; restore: git tag {name} {tag.ObjectHash})";
+            return $"Deleted tag {name} (was {ShortHash.Of(tag.ObjectHash)}; restore: git tag {name} {tag.ObjectHash})";
         });
     }
 
@@ -351,7 +352,7 @@ public sealed class TagActions(
         }
 
         var name = tag!.Name;
-        _busy.Add(tab.Id);
+        busy.Begin(tab.Id);
         var token = cancellationOf(tab.Id);
         _ = Task.Run(() => ReadRemotesAsync(tab, name, push, token), CancellationToken.None);
         return string.Empty;
@@ -366,7 +367,7 @@ public sealed class TagActions(
         }
         catch (OperationCanceledException)
         {
-            postToUi(() => _busy.Remove(tab.Id));
+            postToUi(() => busy.End(tab.Id));
         }
         catch (Exception exception)
         {
@@ -377,7 +378,7 @@ public sealed class TagActions(
 
     private void OpenRemotePrompt(RepositoryState tab, string name, bool push, IReadOnlyList<string> remotes)
     {
-        _busy.Remove(tab.Id);
+        busy.End(tab.Id);
         if (remotes.Count == 0)
         {
             statuses.Warning("There is no remote: add one first");
@@ -432,7 +433,7 @@ public sealed class TagActions(
 
     private void StartDeleteOnRemote(TabId tabId, string remote, string name)
     {
-        if (host.Workspace.FindTab(tabId) is not { } tab || _busy.Contains(tabId))
+        if (host.Workspace.FindTab(tabId) is not { } tab || busy.IsBusy(tabId))
         {
             statuses.Warning($"{BusyNotice}; nothing was deleted");
             return;
@@ -445,14 +446,14 @@ public sealed class TagActions(
         }, new TerminalRetry("Remote tag delete", RemoteCommands.BuildTagDelete(remote, name, false)));
     }
 
-    // Own busy set, not the shared operation gate: tag writes take ref locks, never the index lock.
+    // Own gate, not the staging one: tag writes take ref locks, never the index lock.
     private void Start(
         RepositoryState tab,
         string failure,
         Func<CancellationToken, Task<string>> work,
         TerminalRetry? retry = null)
     {
-        _busy.Add(tab.Id);
+        busy.Begin(tab.Id);
         var token = cancellationOf(tab.Id);
         _ = Task.Run(() => RunAsync(tab.Id, failure, work, retry, token), CancellationToken.None);
     }
@@ -471,7 +472,7 @@ public sealed class TagActions(
         }
         catch (OperationCanceledException)
         {
-            postToUi(() => _busy.Remove(tabId));
+            postToUi(() => busy.End(tabId));
         }
         catch (Exception exception)
         {
@@ -483,7 +484,7 @@ public sealed class TagActions(
                 Finish(tabId, text, StatusSeverity.Error, true);
                 if (offer)
                 {
-                    offerTerminal(tabId, retry!.Noun, retry.Arguments, () => _busy.Contains(tabId));
+                    offerTerminal(tabId, retry!.Noun, retry.Arguments, () => busy.IsBusy(tabId));
                 }
             });
         }
@@ -491,7 +492,7 @@ public sealed class TagActions(
 
     private void Finish(TabId tabId, string text, StatusSeverity severity, bool refreshTab)
     {
-        _busy.Remove(tabId);
+        busy.End(tabId);
         statuses.Post(text, severity);
         if (refreshTab)
         {

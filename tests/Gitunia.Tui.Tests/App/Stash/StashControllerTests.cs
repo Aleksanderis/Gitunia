@@ -14,7 +14,7 @@ using Gitunia.Git.Stash;
 using Gitunia.Git.Stash.Models;
 using Gitunia.Tui.App;
 using Gitunia.Tui.App.Stash;
-using Gitunia.Tui.App.WorkingTree;
+using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.Tests.Fakes;
 using Xunit;
 
@@ -182,7 +182,7 @@ public class StashControllerTests
         Assert.Equal(["push|wip|False"], harness.Writer.Calls);
         Assert.Equal(KeyMode.Normal, harness.Mode);
         Assert.Equal(string.Empty, PopupText.Of(harness.Controller));
-        Assert.StartsWith("Stashed \"wip\" as 01234567", harness.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
+        Assert.StartsWith("Stashed \"wip\" as 0123456", harness.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
     }
 
     [Fact]

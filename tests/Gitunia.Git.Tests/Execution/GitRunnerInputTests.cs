@@ -106,7 +106,7 @@ public class GitRunnerInputTests
             new GitRunOptions(StandardInput: Encoding.UTF8.GetBytes("hello\n")),
             Token))
         {
-            output.AddRange(chunk);
+            output.AddRange(chunk.Span);
         }
 
         Assert.Equal("e69de29bb2d1d6434b8b29ae775ad8c2e48c5391", Encoding.UTF8.GetString([.. output]).Trim());

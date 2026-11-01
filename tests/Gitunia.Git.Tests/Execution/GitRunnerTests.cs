@@ -168,7 +168,7 @@ public class GitRunnerTests
 
         await foreach (var chunk in RunnerFor(fake).StreamAsync(AnyDirectory, ["log"], cancellationToken: TestContext.Current.CancellationToken))
         {
-            collected.AddRange(chunk);
+            collected.AddRange(chunk.Span);
         }
 
         Assert.Equal("hello", Encoding.UTF8.GetString([.. collected]));
@@ -183,7 +183,7 @@ public class GitRunnerTests
         {
             await foreach (var unused in RunnerFor(fake).StreamAsync(AnyDirectory, ["log"], cancellationToken: TestContext.Current.CancellationToken))
             {
-                Assert.NotNull(unused);
+                Assert.False(unused.IsEmpty);
             }
         });
     }
@@ -219,7 +219,7 @@ public class GitRunnerTests
 
         await foreach (var unused in RunnerFor(fake).StreamAsync(AnyDirectory, ["log"], cancellationToken: TestContext.Current.CancellationToken))
         {
-            Assert.NotEmpty(unused);
+            Assert.False(unused.IsEmpty);
             break;
         }
 

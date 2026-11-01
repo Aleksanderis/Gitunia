@@ -220,7 +220,7 @@ jobs:
     needs: check
     if: ${{ !cancelled() && (inputs.platform == 'macos' || github.event_name == 'push') }}
     runs-on: macos-14
-    timeout-minutes: 30
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
         with:
@@ -231,12 +231,23 @@ jobs:
       - name: Build (warnings, including IL*, are errors)
         run: dotnet build -c Release
       - name: Test (one project at a time)
-        # Same shape as the Windows leg: only OS-sensitive tests (#637), projects in sequence, hung host killed.
+        # Same shape as the Windows leg: only OS-sensitive tests (#637), projects in sequence, hung host killed. Unlike
+        # Windows it runs every project even after a failure (this leg is rarely run, so one run should show all), and
+        # scripts/ci-hang-watch.sh prints the process tree and stack samples when no test finishes for 45 s (#959: one
+        # run 41260491071 stalled for 10 minutes with every test thread stuck; it did not recur in the 4 Git.Tests runs
+        # after it, runs 41285571728 and 41286099525; the watcher stays until it is explained, issue #960).
         run: |
+          set -o pipefail
+          scripts/ci-hang-watch.sh &
+          watcher=$!
+          trap 'kill "$watcher" 2>/dev/null || true' EXIT
+          status=0
           for project in Core Platform Git Tui; do
             dotnet test "tests/Gitunia.$project.Tests" -c Release --no-build --filter "Os!=Independent" \
-              --blame-hang-timeout 10m --blame-hang-dump-type none || exit 1
+              --logger "console;verbosity=normal" --blame-hang-timeout 3m --blame-hang-dump-type none 2>&1 \
+              | tee -a /tmp/test-out.log || status=1
           done
+          exit $status
       - name: AOT publish (any IL* warning fails)
         run: |
           version_arg=""; if [[ "$GITHUB_REF" == refs/tags/v* ]]; then version_arg="-p:Version=${GITHUB_REF_NAME#v}"; fi

@@ -13,6 +13,15 @@ public static class CommitLogFormat
     /// <summary>Hash, parents, author name, author email, author time (raw: unix seconds and UTC offset), decorations, subject.</summary>
     public const string Format = $"tformat:%H{Separator}%P{Separator}%an{Separator}%ae{Separator}%ad{Separator}%D{Separator}%s";
 
+    /// <summary>Between two refs of the <c>%D</c> field.</summary>
+    public const string DecorationSeparator = ", ";
+
+    /// <summary>Starts the <c>%D</c> entry of the branch HEAD points to (<c>HEAD -> refs/heads/main</c>).</summary>
+    public const string HeadPointerPrefix = "HEAD -> ";
+
+    /// <summary>Starts a tag entry of the <c>%D</c> field (<c>tag: refs/tags/v1</c>).</summary>
+    public const string TagPrefix = "tag: ";
+
     private const string TopologicalOrder = "--topo-order";
     private const string DateOrder = "--date-order";
 

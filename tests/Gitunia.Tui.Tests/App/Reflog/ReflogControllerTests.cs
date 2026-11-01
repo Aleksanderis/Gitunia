@@ -19,7 +19,6 @@ using Gitunia.Tui.App.Reflog;
 using Gitunia.Tui.App.Reset;
 using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.Loading.Commits;
-using Gitunia.Tui.App.WorkingTree;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Views;
 using Xunit;
@@ -524,6 +523,7 @@ public class ReflogControllerTests
                 Statuses,
                 _pump.Post,
                 _ => TestContext.Current.CancellationToken,
+                new TabOperationGate(),
                 (_, _) => true,
                 CountRefresh,
                 mode => Mode = mode,

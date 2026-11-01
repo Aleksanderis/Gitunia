@@ -13,11 +13,6 @@ namespace Gitunia.Tui.App.Rebase;
 /// </summary>
 public static class RebaseGuard
 {
-    private const int ShortHashLength = 7;
-
-    /// <summary>The first seven characters of a hash.</summary>
-    public static string ShortHash(string hash) => hash[..Math.Min(ShortHashLength, hash.Length)];
-
     /// <summary>
     /// Why a rebase must not start in this tab, or null: an operation is in progress, HEAD is not on a branch with
     /// commits, <paramref name="sameCommit"/> is where the branch already is, or tracked files have changes

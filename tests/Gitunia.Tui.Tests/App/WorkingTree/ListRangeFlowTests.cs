@@ -1,3 +1,4 @@
+using Gitunia.Tui.App.Tabs;
 using Gitunia.Core.Clipboard;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;

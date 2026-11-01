@@ -178,6 +178,23 @@ public class BranchActionsTests
     }
 
     [Fact]
+    public async Task GivenABranchBeingCreated_WhenItRuns_ThenTheGateMarksTheTabUntilItEnds()
+    {
+        using var repository = RepositoryWithTopic();
+        using var harness = await Harness.LoadAsync(repository);
+        harness.Select(new BranchSelection(SidebarRowKind.LocalBranch, "topic", repository.Head));
+
+        harness.Run(ActionIds.BranchCreate);
+        harness.Type("feature/gated");
+        harness.Run(ActionIds.InputAccept);
+        var busyWhileRunning = harness.Busy.IsAnyBusy;
+        await harness.FinishAsync();
+
+        Assert.True(busyWhileRunning);
+        Assert.False(harness.Busy.IsAnyBusy);
+    }
+
+    [Fact]
     public async Task GivenAGraphCommit_WhenCreatingWithoutCheckout_ThenHeadStaysAndTheBranchIsAtTheCommit()
     {
         using var repository = RepositoryWithTopic();
@@ -1242,6 +1259,7 @@ public class BranchActionsTests
                 Statuses,
                 Pump.Post,
                 _ => TestContext.Current.CancellationToken,
+                Busy,
                 Confirm,
                 _ =>
                 {
@@ -1256,6 +1274,8 @@ public class BranchActionsTests
         public BranchActions Branches { get; }
 
         public StatusChannel Statuses { get; } = new();
+
+        public TabOperationGate Busy { get; } = new();
 
         public List<ConfirmPrompt> Prompts { get; } = [];
 

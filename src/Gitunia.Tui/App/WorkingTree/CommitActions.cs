@@ -5,6 +5,7 @@ using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Overlays;
 using Gitunia.Core.Persistence;
 using Gitunia.Core.Status;
+using Gitunia.Core.Text;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Repositories;
@@ -15,6 +16,7 @@ using Gitunia.Git.Execution.Exceptions;
 using Gitunia.Git.Repositories;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Status.Models;
+using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.Rendering.Panes;
 
 namespace Gitunia.Tui.App.WorkingTree;
@@ -33,6 +35,7 @@ namespace Gitunia.Tui.App.WorkingTree;
 /// <param name="postToUi">Runs an action on the UI thread.</param>
 /// <param name="refreshStatus">Asks a tab to re-read its status and calls back when the new state is in; false when it cannot.</param>
 /// <param name="cancellationOf">The token that ends the work of a tab (the tab was closed).</param>
+/// <param name="busy">Marks the tab while a commit runs (tab eviction waits for it).</param>
 /// <param name="showOutput">Shows a failed command's output (title, heading, lines).</param>
 /// <param name="keyMode">The current input mode.</param>
 /// <param name="setMode">Switches the input mode.</param>
@@ -49,6 +52,7 @@ public sealed class CommitActions(
     Action<Action> postToUi,
     Func<TabId, Action, bool> refreshStatus,
     Func<TabId, CancellationToken> cancellationOf,
+    TabOperationGate busy,
     Action<string, string, IReadOnlyList<string>> showOutput,
     Func<KeyMode> keyMode,
     Action<KeyMode> setMode,
@@ -57,7 +61,6 @@ public sealed class CommitActions(
     Func<ConfirmPrompt, Action, bool>? showConfirm = null)
 {
     private const string StageAllQuestion = "Nothing is staged. Stage all changes and commit?";
-    private const int ShortHashLength = 7;
     private const string CancelledNotice = "Commit cancelled: check the history, git may have finished first";
 
     private static readonly FrozenSet<ActionId> NormalKeys = FrozenSet.ToFrozenSet(
@@ -595,7 +598,7 @@ public sealed class CommitActions(
 
     private void ApplyHeadMessage(CommitDraft draft, string? hash, string message)
     {
-        draft.ApplyHeadMessage(Short(hash ?? string.Empty), message);
+        draft.ApplyHeadMessage(ShortHash.Of(hash), message);
         redraw();
     }
 
@@ -694,6 +697,7 @@ public sealed class CommitActions(
         var upstream = needsForcePush ? tab.WorkingTree?.Snapshot.Branch.UpstreamName : null;
         var source = CancellationTokenSource.CreateLinkedTokenSource(cancellationOf(tab.Id));
         _running[tab.Id] = source;
+        busy.Begin(tab.Id);
         draft.IsCommitting = true;
         var location = tab.Location;
         var tabId = tab.Id;
@@ -778,13 +782,13 @@ public sealed class CommitActions(
 
     private static string SuccessMessage(CommitRequest request, CommitResult result, string? forcePushUpstream)
     {
-        var hash = Short(result.Hash);
+        var hash = ShortHash.Of(result.Hash);
         if (!request.Amend || result.PreviousHash is not { } previous)
         {
             return $"Committed {hash}";
         }
 
-        var old = Short(previous);
+        var old = ShortHash.Of(previous);
         var warning = string.Empty;
         if (forcePushUpstream is not null)
         {
@@ -828,6 +832,7 @@ public sealed class CommitActions(
     {
         if (_running.Remove(tabId, out var source))
         {
+            busy.End(tabId);
             source.Dispose();
         }
     }
@@ -855,7 +860,6 @@ public sealed class CommitActions(
 
     private static string OnOff(bool isOn) => isOn ? "on" : "off";
 
-    private static string Short(string hash) => hash.Length > ShortHashLength ? hash[..ShortHashLength] : hash;
 
     private void Send(RepositoryState tab, RepositoryCommand command) => host.Dispatch(new TabCommand(tab.Id, command));
 }
