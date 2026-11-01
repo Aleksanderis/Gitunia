@@ -103,7 +103,10 @@ internal static class SyncRemoteDelete
         return AskDelete(branches, name.Remote, name.Branch, context);
     }
 
-    private static ShowPromptEffect AskBranch(ImmutableArray<RemoteBranchRef> branches, string remote, SyncContext context)
+    private static ShowPromptEffect AskBranch(
+        ImmutableArray<RemoteBranchRef> branches,
+        string remote,
+        SyncContext context)
     {
         var names = branches.Where(branch => branch.Name.Remote == remote).Select(branch => branch.Name.Branch);
         var request = new PromptRequest(

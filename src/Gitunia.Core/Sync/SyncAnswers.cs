@@ -9,7 +9,8 @@ namespace Gitunia.Core.Sync;
 /// <param name="Branch">The branch the prompt was opened for.</param>
 public sealed record SyncRemoteAnswer(TabId TabId, string Branch) : IPromptResult
 {
-    public AppCommand Answered(PromptAnswer answer) => new SyncRemoteChosen(TabId, Branch, answer.Choice ?? string.Empty);
+    public AppCommand Answered(PromptAnswer answer) =>
+        new SyncRemoteChosen(TabId, Branch, answer.Choice ?? string.Empty);
 }
 
 /// <summary>The result of the remote picker of a remote branch delete.</summary>

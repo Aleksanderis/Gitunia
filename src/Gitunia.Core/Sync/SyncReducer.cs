@@ -49,8 +49,8 @@ public static class SyncReducer
         SyncProgressed progressed => Progressed(progressed, context),
         SyncRemoteChosen chosen => RemoteChosen(chosen, context),
         SyncRemotesListed listed => Listed(listed, context),
-        SyncRequested request => Requested(request.Kind, context),
-        SyncSucceeded succeeded => Ended([Post(succeeded.Text, StatusSeverity.Info), new RefreshTabEffect(context.TabId)]),
+        SyncRequested request => Requested(request, context),
+        SyncSucceeded succeeded => Succeeded(succeeded, context),
         _ => throw new UnhandledCommandException(command),
     };
 
@@ -70,7 +70,7 @@ public static class SyncReducer
 
     private static SyncUpdate Ended(ImmutableArray<AppEffect> effects) => new(null, effects);
 
-    private static SyncUpdate Requested(SyncKind kind, SyncContext context)
+    private static SyncUpdate Requested(SyncRequested request, SyncContext context)
     {
         if (context.IsBusy)
         {
@@ -78,13 +78,13 @@ public static class SyncReducer
         }
 
         var current = CurrentBranch(context.Refs);
-        switch (kind)
+        switch (request.Kind)
         {
             case SyncKind.Fetch:
                 return Transfer(new FetchEffect(context.TabId, context.Location, false), "Fetching", "Fetch");
             case SyncKind.FetchAll:
                 return Transfer(new FetchEffect(context.TabId, context.Location, true), "Fetching", "Fetch");
-            case SyncKind.Pull when context.IsOtherBusy:
+            case SyncKind.Pull when context.IsOtherBusy || request.IsLegacyBusy:
                 return Keep(context, [Post(OtherBusyNotice)]);
             case SyncKind.Pull:
                 return Transfer(new PullEffect(context.TabId, context.Location), "Pulling", "Pull");
@@ -110,6 +110,9 @@ public static class SyncReducer
 
     internal static SyncUpdate Transfer(SyncEffect effect, string activity, string noun) =>
         new(new SyncState(activity, noun, null, false), [effect]);
+
+    private static SyncUpdate Succeeded(SyncSucceeded succeeded, SyncContext context) =>
+        Ended([Post(succeeded.Text, StatusSeverity.Info), new RefreshTabEffect(context.TabId)]);
 
     private static SyncUpdate Cancel(SyncContext context)
     {

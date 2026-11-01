@@ -57,6 +57,26 @@ public class RemoteReducerTests
     }
 
     [Fact]
+    public void GivenAFetchStartedWhileAnAddRenameOrUrlPromptWasOpen_WhenAccepted_ThenNothingChanges()
+    {
+        var remotes = ImmutableArray<RemoteInfo>.Empty;
+        var accepted = new RemoteCommand[]
+        {
+            new RemoteAddUrlAccepted(Tab, "backup", "https://example.com/b.git"),
+            new RemoteRenameAccepted(Tab, remotes, "origin", "other"),
+            new RemoteUrlAccepted(Tab, "origin", "https://example.com/o.git", "https://example.com/new.git"),
+        };
+
+        foreach (var command in accepted)
+        {
+            var effects = Reduce(command, syncing: true);
+
+            Assert.StartsWith(RemoteReducer.SyncRunsNotice, Warning(effects), StringComparison.Ordinal);
+            Assert.DoesNotContain(effects, effect => effect is RemoteEffect);
+        }
+    }
+
+    [Fact]
     public void GivenTheRemotesRead_WhenAdding_ThenTheNamePromptOpensForTheTab()
     {
         var effects = Reduce(new RemotesListed(Tab, RemoteAction.Add, Nothing, Origin));

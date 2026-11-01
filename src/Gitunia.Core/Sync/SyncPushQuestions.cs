@@ -19,7 +19,10 @@ internal static class SyncPushQuestions
     private const string DefaultRemote = "origin";
 
     /// <summary>Reads the remotes for a question about a branch.</summary>
-    public static ImmutableArray<AppEffect> ListRemotes(SyncRemotesPurpose purpose, string branch, SyncContext context) =>
+    public static ImmutableArray<AppEffect> ListRemotes(
+        SyncRemotesPurpose purpose,
+        string branch,
+        SyncContext context) =>
         [new ListSyncRemotesEffect(context.TabId, context.Location, purpose, branch, null)];
 
     /// <summary>The force push key: refused without a branch that has an upstream, else reads the remotes.</summary>
@@ -157,7 +160,9 @@ internal static class SyncPushQuestions
 
         if (result.IsBehind)
         {
-            var text = $"{result.Branch} is behind {result.Remote}/{result.Branch}: pull or rebase it, no force push offered";
+            var name = $"{result.Remote}/{result.Branch}";
+            var text = $"{result.Branch} is behind {name}: pull or rebase it, no force push offered";
+
             return [SyncReducer.Post(text)];
         }
 
@@ -187,6 +192,8 @@ internal static class SyncPushQuestions
         var request = new PushRequest(target.Remote, branch, setUpstream, lease);
         var done = $"Force pushed {branch} to {name} (was {ShortHash.Of(upstreamHash)})";
 
-        return [new ShowConfirmEffect(prompt, new SyncForceConfirmed(context.TabId, request, done), SyncReducer.TooSmallNotice)];
+        var accepted = new SyncForceConfirmed(context.TabId, request, done);
+
+        return [new ShowConfirmEffect(prompt, accepted, SyncReducer.TooSmallNotice)];
     }
 }

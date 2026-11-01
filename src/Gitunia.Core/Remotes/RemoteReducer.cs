@@ -202,6 +202,11 @@ public static class RemoteReducer
             return [Post($"{BusyNotice}; nothing was added")];
         }
 
+        if (context.IsSyncing)
+        {
+            return [Post($"{SyncRunsNotice}; nothing was added")];
+        }
+
         return [new AddRemoteEffect(context.TabId, context.Location, accepted.Name, url)];
     }
 
@@ -223,6 +228,11 @@ public static class RemoteReducer
             return [Post($"{BusyNotice}; nothing was renamed")];
         }
 
+        if (context.IsSyncing)
+        {
+            return [Post($"{SyncRunsNotice}; nothing was renamed")];
+        }
+
         return [new RenameRemoteEffect(context.TabId, context.Location, accepted.OldName, newName)];
     }
 
@@ -237,6 +247,11 @@ public static class RemoteReducer
         if (context.IsBusy)
         {
             return [Post($"{BusyNotice}; nothing was changed")];
+        }
+
+        if (context.IsSyncing)
+        {
+            return [Post($"{SyncRunsNotice}; nothing was changed")];
         }
 
         return [new SetRemoteUrlEffect(context.TabId, context.Location, accepted.Name, accepted.OldUrl, url)];

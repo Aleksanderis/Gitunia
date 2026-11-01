@@ -130,7 +130,12 @@ public sealed class SyncEffectHandler(
         switch (effect)
         {
             case DeleteRemoteBranchEffect delete:
-                var arguments = RemoteCommands.BuildDeleteBranch(delete.Remote, delete.Branch, delete.CommitHash, false);
+                var arguments = RemoteCommands.BuildDeleteBranch(
+                    delete.Remote,
+                    delete.Branch,
+                    delete.CommitHash,
+                    false);
+
                 return new SyncFailed(
                     effect.TabId,
                     $"Could not delete the branch on the remote: {reason}",

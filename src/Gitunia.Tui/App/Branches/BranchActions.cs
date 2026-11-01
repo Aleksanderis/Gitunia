@@ -27,7 +27,8 @@ public sealed class BranchActions(Dispatcher host, IBranchSelectionSource select
         var current = selection.Current();
 
         // A remote branch (its row, or a graph commit that has only remote ones) is deleted by SyncActions.
-        if (action == ActionIds.BranchDelete && RemoteDeleteTarget.IsRemoteOnly(tab.Refs, new SyncTarget(current.RowKind, current.Name, current.CommitHash)))
+        var target = new SyncTarget(current.RowKind, current.Name, current.CommitHash);
+        if (action == ActionIds.BranchDelete && RemoteDeleteTarget.IsRemoteOnly(tab.Refs, target))
         {
             return false;
         }

@@ -314,7 +314,7 @@ public sealed class TuiApplication(
 
         _terminalRetry = new TerminalRetry(_host, _statuses, this);
         _effects.IsTabBusy = _activity.IsBusy;
-        _router.Sync = new SyncActions(_host, this);
+        _router.Sync = new SyncActions(_host, this, _activity);
         _router.RemoteManagement = new RemoteManagementActions(_host, this);
         _reset = CreateReset(operationGate);
         _router.Reset = _reset;
