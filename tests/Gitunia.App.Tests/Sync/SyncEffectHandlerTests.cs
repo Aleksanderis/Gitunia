@@ -289,7 +289,7 @@ public class SyncEffectHandlerTests
     [InlineData(false)]
     public async Task GivenTwoTips_WhenComparing_ThenTheResultSaysWhetherTheLocalOneIsInTheRemotesHistory(bool behind)
     {
-        using var repository = TestRepositories.Linear(3);
+        using var repository = TestRepositories.Linear();
         var older = repository.Git("rev-parse", "HEAD~1").Trim();
         var location = await LocateAsync(repository);
         var (local, tracking) = behind ? (older, repository.Head) : (repository.Head, older);

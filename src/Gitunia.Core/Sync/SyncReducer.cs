@@ -90,8 +90,6 @@ public static class SyncReducer
                 return Transfer(new PullEffect(context.TabId, context.Location), "Pulling", "Pull");
             case SyncKind.PushForce:
                 return Keep(context, SyncPushQuestions.ForceRequested(current, context));
-            default:
-                break;
         }
 
         // A branch without an upstream asks for the remote first; everything else is the plain push.
