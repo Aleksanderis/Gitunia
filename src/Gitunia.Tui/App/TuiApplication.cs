@@ -3,6 +3,7 @@ using Gitunia.App;
 using Gitunia.App.Loading.Commits;
 using Gitunia.App.Tabs;
 using Gitunia.App.Worktrees;
+using Gitunia.Core.Running;
 using Gitunia.Core;
 using Gitunia.Core.Clipboard;
 using Gitunia.Core.Config;
@@ -507,9 +508,9 @@ public sealed class TuiApplication(
 
         _host.Restore(restored.Update);
         _commits.Restore(restored.Drafts);
-        _statusPoller = new BackgroundStatusPoller(services.Status, _host, InvokeOnUi);
+        _statusPoller = new BackgroundStatusPoller(services.Status, _host, InvokeOnUi, background: _effects.Background);
         _statusPoller.Start();
-        _worktreePoller = new WorktreeOverviewPoller(services.Status, _host, InvokeOnUi);
+        _worktreePoller = new WorktreeOverviewPoller(services.Status, _host, InvokeOnUi, background: _effects.Background);
         _worktreePoller.Start();
         if (location is not null)
         {
@@ -978,7 +979,7 @@ public sealed class TuiApplication(
             tabId,
             noun,
             arguments,
-            () => _host.Workspace.FindTab(tabId)?.Tags.Running == true);
+            () => _host.Workspace.FindTab(tabId)?.Running.IsRunning(RunningOperationKind.Tags) == true);
 
     private MergeActions CreateMerge(TabOperationGate gate) => new(
         _host,

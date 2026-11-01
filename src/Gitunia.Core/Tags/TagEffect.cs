@@ -1,19 +1,17 @@
+using Gitunia.Core.Running;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Repositories.Models;
 
 namespace Gitunia.Core.Tags;
 
 /// <summary>An operation on tags. Each posts one result <see cref="TagCommand"/>; none changes state itself.</summary>
-public abstract record TagEffect : AppEffect
+public abstract record TagEffect : OperationEffect
 {
     private protected TagEffect(TabId tabId, RepositoryLocation location)
+        : base(tabId, RunningOperationKind.Tags)
     {
-        TabId = tabId;
         Location = location;
     }
-
-    /// <summary>The tab the result belongs to.</summary>
-    public TabId TabId { get; }
 
     /// <summary>Where the operation runs.</summary>
     public RepositoryLocation Location { get; }

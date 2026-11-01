@@ -1,4 +1,5 @@
 using Gitunia.Core.Effects;
+using Gitunia.Core.Running;
 using Gitunia.Core.Tags;
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
@@ -42,9 +43,11 @@ public static class AppReducer
             return new AppUpdate(state, []);
         }
 
-        var context = new TagContext(tab.Id, tab.Location, tab.Refs, workspace.ActiveTabId == tab.Id);
+        var busy = tab.Running.IsRunning(RunningOperationKind.Tags);
+        var context = new TagContext(tab.Id, tab.Location, tab.Refs, workspace.ActiveTabId == tab.Id, busy);
         var update = TagReducer.Reduce(tab.Tags, command, context);
-        return new AppUpdate(WithTab(state, tab with { Tags = update.State }), update.Effects);
+        var running = tab.Running.Apply(tab.Id, command, update.Effects);
+        return new AppUpdate(WithTab(state, tab with { Tags = update.State, Running = running }), update.Effects);
     }
 
     private static AppUpdate EffectFailed(AppState state, EffectFailedCommand failed) =>

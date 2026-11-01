@@ -38,12 +38,12 @@ public static class TagReducer
     /// <summary>Applies a command to the tag slice of a tab.</summary>
     public static TagUpdate Reduce(TagState state, TagCommand command, TagContext context) => command switch
     {
-        TagCreateRequested create => Create(state, create.Target),
+        TagCreateRequested create => Create(state, create.Target, context),
         TagDeleteConfirmed confirmed => DeleteConfirmed(state, confirmed, context),
         TagDeleteOnRemoteConfirmed confirmed => DeleteOnRemoteConfirmed(state, confirmed, context),
         TagDeleteOnRemoteRequested request => LoadRemotes(state, request.Target, false, context),
         TagDeleteRequested request => AskDelete(state, request.Target, context),
-        TagOperationCancelled => Update(state with { Running = false }),
+        TagOperationCancelled => Update(state),
         TagOperationFailed failed => Failed(state, failed, context),
         TagOperationSucceeded succeeded => Succeeded(state, succeeded, context),
         TagPromptAccepted => Accept(state, context),
@@ -51,7 +51,7 @@ public static class TagReducer
         TagPromptMoved moved => Move(state, moved.Step),
         TagPromptTextChanged changed => TextChanged(state, changed.Text),
         TagPushRequested request => LoadRemotes(state, request.Target, true, context),
-        TagRemotesFailed failed => Update(state with { Running = false }, Post(failed.Text, StatusSeverity.Error)),
+        TagRemotesFailed failed => Update(state, Post(failed.Text, StatusSeverity.Error)),
         TagRemotesLoaded loaded => RemotesLoaded(state, loaded, context),
         _ => throw new UnhandledCommandException(command),
     };
@@ -65,14 +65,14 @@ public static class TagReducer
     private static PostStatusEffect Post(string text, StatusSeverity severity = StatusSeverity.Warning) =>
         new(text, severity);
 
-    private static TagUpdate Create(TagState state, TagTarget target)
+    private static TagUpdate Create(TagState state, TagTarget target, TagContext context)
     {
         if (state.Prompt is not null)
         {
             return Update(state);
         }
 
-        if (state.Running)
+        if (context.IsBusy)
         {
             return Update(state, Post(BusyNotice));
         }
@@ -146,7 +146,7 @@ public static class TagReducer
             prompt.StartPoint,
             prompt.Text.Trim(),
             prompt.Label);
-        return CloseWith(state with { Running = true }, effect);
+        return CloseWith(state, effect);
     }
 
     private static TagUpdate AcceptRemote(TagState state, TagPrompt prompt, TagContext context)
@@ -159,7 +159,7 @@ public static class TagReducer
         if (prompt.Kind == TagPromptKind.PushRemote)
         {
             return CloseWith(
-                state with { Running = true },
+                state,
                 new PushTagEffect(context.TabId, context.Location, remote, prompt.TagName));
         }
 
@@ -209,7 +209,7 @@ public static class TagReducer
             return Update(state);
         }
 
-        if (state.Running)
+        if (context.IsBusy)
         {
             return Update(state, Post(BusyNotice));
         }
@@ -233,13 +233,13 @@ public static class TagReducer
 
     private static TagUpdate DeleteConfirmed(TagState state, TagDeleteConfirmed confirmed, TagContext context)
     {
-        if (state.Running)
+        if (context.IsBusy)
         {
             return Update(state, Post($"{BusyNotice}; nothing was deleted"));
         }
 
         var effect = new DeleteTagEffect(context.TabId, context.Location, confirmed.Name, confirmed.ObjectHash);
-        return Update(state with { Running = true }, effect);
+        return Update(state, effect);
     }
 
     private static TagUpdate DeleteOnRemoteConfirmed(
@@ -247,13 +247,13 @@ public static class TagReducer
         TagDeleteOnRemoteConfirmed confirmed,
         TagContext context)
     {
-        if (state.Running)
+        if (context.IsBusy)
         {
             return Update(state, Post($"{BusyNotice}; nothing was deleted"));
         }
 
         var effect = new DeleteTagOnRemoteEffect(context.TabId, context.Location, confirmed.Remote, confirmed.Name);
-        return Update(state with { Running = true }, effect);
+        return Update(state, effect);
     }
 
     private static TagUpdate LoadRemotes(TagState state, TagTarget target, bool push, TagContext context)
@@ -263,7 +263,7 @@ public static class TagReducer
             return Update(state);
         }
 
-        if (state.Running)
+        if (context.IsBusy)
         {
             return Update(state, Post(BusyNotice));
         }
@@ -274,12 +274,12 @@ public static class TagReducer
         }
 
         var effect = new ListTagRemotesEffect(context.TabId, context.Location, tag!.Name, push);
-        return Update(state with { Running = true }, effect);
+        return Update(state, effect);
     }
 
     private static TagUpdate RemotesLoaded(TagState state, TagRemotesLoaded loaded, TagContext context)
     {
-        var idle = state with { Running = false };
+        var idle = state;
         if (loaded.Remotes.Length == 0)
         {
             return Update(idle, Post("There is no remote: add one first"));
@@ -297,7 +297,7 @@ public static class TagReducer
 
     private static TagUpdate Succeeded(TagState state, TagOperationSucceeded succeeded, TagContext context) =>
         Update(
-            state with { Running = false },
+            state,
             Post(succeeded.Text, StatusSeverity.Info),
             new RefreshTabEffect(context.TabId));
 
@@ -313,7 +313,7 @@ public static class TagReducer
             effects.Add(new OfferTerminalRetryEffect(context.TabId, retry.Noun, retry.Arguments));
         }
 
-        return new TagUpdate(state with { Running = false }, [.. effects]);
+        return new TagUpdate(state, [.. effects]);
     }
 
     // Finds the local tag a delete or a push acts on, or returns why there is none.

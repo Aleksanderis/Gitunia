@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using Gitunia.Core.Running;
 using Gitunia.Core.Workspaces.Tabs;
 
 namespace Gitunia.Core.Tags;
@@ -66,17 +67,26 @@ public sealed record TagDeleteOnRemoteConfirmed(TabId TabId, string Remote, stri
 /// <summary>Result: a tag operation finished.</summary>
 /// <param name="TabId">The tab.</param>
 /// <param name="Text">What to tell the user.</param>
-public sealed record TagOperationSucceeded(TabId TabId, string Text) : TagCommand(TabId);
+public sealed record TagOperationSucceeded(TabId TabId, string Text) : TagCommand(TabId), IOperationResult
+{
+    RunningOperationKind IOperationResult.Kind => RunningOperationKind.Tags;
+}
 
 /// <summary>Result: a tag operation failed; the tab is refreshed anyway because git may have done part of it.</summary>
 /// <param name="TabId">The tab.</param>
 /// <param name="Text">The first error line with what was tried.</param>
 /// <param name="Retry">The terminal retry to offer, null when the failure was not about credentials.</param>
-public sealed record TagOperationFailed(TabId TabId, string Text, TagRetry? Retry) : TagCommand(TabId);
+public sealed record TagOperationFailed(TabId TabId, string Text, TagRetry? Retry) : TagCommand(TabId), IOperationResult
+{
+    RunningOperationKind IOperationResult.Kind => RunningOperationKind.Tags;
+}
 
 /// <summary>Result: the operation was cancelled (the tab was closed).</summary>
 /// <param name="TabId">The tab.</param>
-public sealed record TagOperationCancelled(TabId TabId) : TagCommand(TabId);
+public sealed record TagOperationCancelled(TabId TabId) : TagCommand(TabId), IOperationResult
+{
+    RunningOperationKind IOperationResult.Kind => RunningOperationKind.Tags;
+}
 
 /// <summary>Result: the remotes were read.</summary>
 /// <param name="TabId">The tab.</param>
@@ -84,9 +94,15 @@ public sealed record TagOperationCancelled(TabId TabId) : TagCommand(TabId);
 /// <param name="Push">True to push, false to delete on the remote.</param>
 /// <param name="Remotes">The remote names.</param>
 public sealed record TagRemotesLoaded(TabId TabId, string Name, bool Push, ImmutableArray<string> Remotes)
-    : TagCommand(TabId);
+    : TagCommand(TabId), IOperationResult
+{
+    RunningOperationKind IOperationResult.Kind => RunningOperationKind.Tags;
+}
 
 /// <summary>Result: the remotes could not be read.</summary>
 /// <param name="TabId">The tab.</param>
 /// <param name="Text">What to tell the user.</param>
-public sealed record TagRemotesFailed(TabId TabId, string Text) : TagCommand(TabId);
+public sealed record TagRemotesFailed(TabId TabId, string Text) : TagCommand(TabId), IOperationResult
+{
+    RunningOperationKind IOperationResult.Kind => RunningOperationKind.Tags;
+}

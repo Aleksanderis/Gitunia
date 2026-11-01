@@ -1,5 +1,7 @@
 using Gitunia.Core;
 using Gitunia.App.Tabs;
+using Gitunia.App.Tests.Tags;
+using Gitunia.Core.Tags;
 using Gitunia.App.Tabs.Models;
 using Gitunia.App.Tests.Fakes;
 using Gitunia.Core.Status;
@@ -162,6 +164,53 @@ public class EffectRunnerTests
 
         Assert.Same(firstSession, effects.SessionOf(ids[0]));
         Assert.Equal(1, firstSession.Graph.Count);
+    }
+
+    [Fact]
+    public async Task GivenColdTabWithAnOperationInState_WhenSwitching_ThenTabIsNotEvictedAndItsWorkIsNotCancelled()
+    {
+        var fakes = new FakeGitServices();
+        var writer = new BlockingTagWriter();
+        fakes.CommitLog.AddOnTop("root");
+        var pump = new UiPump(TestContext.Current.CancellationToken);
+        var scratch = Workspace.Empty;
+        foreach (var name in new[] { "first", "second", "third" })
+        {
+            var location = FakeStatusReader.LocationOf(name);
+            scratch = WorkspaceReducer.Reduce(scratch, new OpenRepositoryCommand(location)).Workspace;
+        }
+
+        var ids = scratch.Tabs.Select(tab => tab.Id).ToArray();
+        var host = new Dispatcher(AppState.Empty);
+        using var effects = new EffectRunner<TabSession>(
+            fakes.Services with { Tags = writer },
+            host,
+            pump.Post,
+            new TabSessionFactory(),
+            new StatusChannel(),
+            watcherOptions: TestGit.QuietWatcherOptions,
+            warmTabLimit: 2);
+        host.Restore(new WorkspaceUpdate(
+            scratch with { ActiveTabId = ids[0] },
+            [.. scratch.Tabs.Select(tab => new LoadRepositoryEffect(tab.Id, tab.CommandPath))]));
+        await pump.RunUntilAsync(() => !effects.SessionOf(ids[0])!.IsLoading);
+        var firstSession = effects.SessionOf(ids[0])!;
+        host.Dispatch(new TagDeleteConfirmed(ids[0], "v1", "1111111111111111111111111111111111111111"));
+        await writer.Started.Task.WaitAsync(TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken);
+        Assert.True(host.Workspace.FindTab(ids[0])!.Running.IsBusy);
+
+        host.Dispatch(new ActivateTabCommand(ids[1]));
+        await pump.RunUntilAsync(() => !effects.SessionOf(ids[1])!.IsLoading);
+        Assert.Same(firstSession, effects.SessionOf(ids[0]));
+        Assert.Equal(1, firstSession.Graph.Count);
+
+        host.Dispatch(new ActivateTabCommand(ids[2]));
+        await pump.RunUntilAsync(() => !effects.SessionOf(ids[2])!.IsLoading);
+
+        Assert.Same(firstSession, effects.SessionOf(ids[0]));
+        Assert.Equal(1, firstSession.Graph.Count);
+        Assert.False(writer.Token.IsCancellationRequested);
+        Assert.False(writer.Finished);
     }
 
     [Fact]
