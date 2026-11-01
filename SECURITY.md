@@ -6,7 +6,7 @@ Please do not open a public issue for a security problem.
 
 Report it privately through GitHub: open the repository's **Security** tab, choose **Report a vulnerability**, and describe the problem, the affected version (`gitunia --version`) and steps to reproduce.
 
-You can expect an acknowledgement within a week. Gitunia is maintained by one person in spare time, so fixes are best effort; a confirmed issue is fixed in the next release and credited if you wish.
+You can expect an acknowledgement within a week. Gitunia is maintained by one person in spare time, so fixes are best effort; a confirmed issue is fixed in a following release and credited if you wish.
 
 ## Scope
 
@@ -14,4 +14,4 @@ Gitunia is a local terminal client that runs the `git` command-line tool on your
 
 ## Supported versions
 
-Only the latest release.
+Only the latest release (until the first release is published, the `main` branch).

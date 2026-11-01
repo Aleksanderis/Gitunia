@@ -25,7 +25,7 @@ If you do send one:
 Gitunia is developed with AI coding agents under the maintainer's direction. That is why the repository contains files you may not expect:
 
 - `CLAUDE.md` and `.claude/` are the standing instructions, rules and skills for those agents. They double as a compact description of the project conventions.
-- `docs/` holds the design documents; `docs/decisions.md` is an append-only log of design decisions and `docs/history/` is its archive.
+- `docs/` holds the design documents; `docs/decisions.md` is an append-only log of design decisions and `docs/history/` archives moved or superseded doc text, decisions included.
 - Issues and pull requests carry labels such as `agent-created` (opened by an agent) and `owner` (the maintainer wrote or commented). Commits made by an agent say so in the author name and an `Agent:` trailer.
 
 Every change is reviewed and merged by the maintainer, whoever (or whatever) wrote it. You do not need to use or understand the agent setup to contribute.
