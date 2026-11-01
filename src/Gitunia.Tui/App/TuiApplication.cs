@@ -129,12 +129,12 @@ public sealed class TuiApplication(
     private PaneKind _appliedFocus = PaneKind.Graph;
     private OverlayController _overlays = null!;
     private WhichKeyTimer _whichKeyTimer = null!;
-    private PickerController _picker = null!;
+    private PickerInput _picker = null!;
     private DiffPaneController _diffPane = null!;
     private WorkingDiffController _workingDiff = null!;
     private QuickJumpController _quickJump = null!;
     private WorkspaceActions _workspaceActions = null!;
-    private RepositoryCreationActions _creation = null!;
+    private CreationInput _creation = null!;
     private GraphTabBinder _binder = null!;
     private string _homeDirectory = string.Empty;
     private StatusReporter _statuses = null!;
@@ -164,7 +164,7 @@ public sealed class TuiApplication(
     private ConfigWriter _configWriter = null!;
     private ConfigEditorLauncher _configEditor = null!;
     private SessionPersistence? _persistence;
-    private QuitGuard _quitGuard = null!;
+    private bool _pickerShown;
     private SuspendableUiInvoker _uiInvoker = null!;
     private TerminalHandOff _terminalHandOff = null!;
     private Action? _suspendedWork;
@@ -222,7 +222,7 @@ public sealed class TuiApplication(
             Directory.Exists,
             _startupConfig.Themes.Names,
             ConfigStartup.DefaultLabelCaps(_capabilities));
-        _host = new Dispatcher(WithSettings(settingsEnvironment), _uiInvoker);
+        _host = new Dispatcher(InitialState(settingsEnvironment), _uiInvoker);
         _statuses = new StatusReporter(_host);
         _sessionFactory = new TerminalTabSessionFactory(glyphs);
         _effects = new EffectRunner<TerminalTabSession>(
@@ -379,14 +379,8 @@ public sealed class TuiApplication(
             SelectedCommitHash);
         _router.Refresh = () => _host.Workspace.ActiveTabId is { } activeId && _effects.Refresh(activeId);
 
-        _picker = new PickerController(
-            services.Discovery,
-            _host,
-            _homeDirectory,
-            InvokeOnUi,
-            moveDraft: _commits.MoveDraft,
-            scanRoots: _startupConfig.Options.ScanRoots);
-        _workspaceActions = new WorkspaceActions(_host, _picker, RequestQuit, _commits.HasUnsentMessage);
+        _picker = new PickerInput(_host);
+        _workspaceActions = new WorkspaceActions(_host, _commits);
 
         _binder = new GraphTabBinder(
             _host,
@@ -439,22 +433,13 @@ public sealed class TuiApplication(
         _overlays.Changed += RefreshOverlay;
         _overlays.OperationInProgress = () => _host.Workspace.ActiveTab?.Operation is not null;
         _overlays.MenuTarget = view => MenuTargetOf(view, sidebarSource);
-        _creation = new RepositoryCreationActions(
-            services.Creator,
-            _picker,
-            _statuses,
-            InvokeOnUi,
-            _host,
-            _view.RefreshChrome,
-            _homeDirectory,
-            DefaultCloneParent);
+        _creation = new CreationInput(_host);
         _router.Creation = _creation;
         _quickJump = CreateQuickJump();
         _router.QuickJump = _quickJump;
         // The quick jump is also in the router (first in line, so Esc and Enter reach it in every pane) and here for its status line and typed keys.
         _prompts =
         [
-            _creation,
             _diffPane,
             _workingDiff,
             _quickJump,
@@ -483,7 +468,7 @@ public sealed class TuiApplication(
         _keys.PendingChanged += _view.RefreshChrome;
         _keys.TextKeyPressed += OnTextKey;
         _keys.TextKeyPressed += _sidebar.OnKey;
-        _picker.Changed += OnPickerChanged;
+        _host.Changed += OnPickerChanged;
         _view.Graph.ValueChanged += (_, _) => OnSelectionChanged();
         _view.Graph.HasFocusChanged += (_, _) => OnPaneFocused(_view.Graph, PaneKind.Graph);
         _view.Sidebar.HasFocusChanged += (_, _) => OnPaneFocused(_view.Sidebar, PaneKind.Sidebar);
@@ -546,8 +531,7 @@ public sealed class TuiApplication(
 
         using var persistence = new SessionPersistence(store, _host, SaveDebounce, _statuses, InvokeOnUi, _commits.SnapshotForSession);
         _persistence = persistence;
-        _quitGuard = new QuitGuard(_commits.HasAnyUnsentMessage, persistence.FlushSucceeded);
-        _commits.DraftChanged += _quitGuard.Reset;
+        _commits.DraftChanged += ResetQuitWarning;
         _commits.DraftChanged += persistence.NotifyDraftChanged;
         persistence.Start();
         _view.Graph.SetFocus();
@@ -591,7 +575,6 @@ public sealed class TuiApplication(
 
     public void Dispose()
     {
-        _creation.CancelAndWait();
         _whichKeyTimer.Dispose();
         _statusPoller?.Dispose();
         _effects.Dispose();
@@ -624,7 +607,7 @@ public sealed class TuiApplication(
         }
 
         if (!_overlays.Handle(action, count)
-            && !_creation.TryExecute(action, count)
+            && !_creation.TryExecute(action)
             && !_workspaceActions.TryExecute(action, count))
         {
             _router.Execute(action, count);
@@ -922,30 +905,28 @@ public sealed class TuiApplication(
 
     // Unsent commit messages are saved with the session on exit and restored per tab, so a quit never loses one.
     // Only when the session could not be saved does a quit guard remain: the first quit warns, the next one leaves (#369).
-    private void RequestQuit() => TryQuit();
-
-    private bool TryQuit()
-    {
-        if (_persistence is not null && !_quitGuard.ShouldQuit())
-        {
-            _statuses.Warning("Unsent commit message and the session could not be saved: quit again to leave and lose it");
-            return false;
-        }
-
-        RequestStop();
-        return true;
-    }
+    private void RequestQuit() => _host.Dispatch(new QuitRequested(HasUnsentMessageToLose(), false));
 
     // Ctrl-c (#856) works in every mode and modal. The quit guard of a normal quit still applies (a second Ctrl-c leaves).
     // Running git work is cancelled only once the quit goes ahead, so a held-back Ctrl-c leaves the sessions usable;
     // Run's finally block saves the session and restores the terminal.
-    private void ForceQuit()
+    private void ForceQuit() => _host.Dispatch(new QuitRequested(HasUnsentMessageToLose(), true));
+
+    private bool HasUnsentMessageToLose() => _persistence is not null && _commits.HasAnyUnsentMessage();
+
+    private void ResetQuitWarning()
     {
-        if (TryQuit())
+        if (_host.State.Shell.QuitWarned)
         {
-            _effects.CancelAll();
+            _host.Dispatch(new QuitWarningReset());
         }
     }
+
+    bool IShellEffects.MoveCommitDraft(TabId missing, TabId target) => _commits.MoveDraft(missing, target);
+
+    bool IShellEffects.FlushSession() => _persistence?.FlushSucceeded() ?? true;
+
+    void IShellEffects.Quit() => RequestStop();
 
     private CommitActions CreateCommits() => new(
         _host,
@@ -1419,18 +1400,10 @@ public sealed class TuiApplication(
     private string RemoteProgressNow() =>
         FirstNotEmpty(
             _host.Workspace.ActiveTab?.Sync?.ProgressLine ?? string.Empty,
-            _creation.ProgressLine());
+            _creation.ProgressLine);
 
     private bool RemoteIsBusy() =>
         _creation.IsCloning || _host.Workspace.ActiveTab?.Sync is not null;
-
-    // The folder a clone goes into when the picker holds no path: the first scan root that exists, else home.
-    private string DefaultCloneParent()
-    {
-        var roots = _startupConfig.Options.ScanRoots
-            ?? RepositoryScanner.DefaultRoots(_homeDirectory, Directory.Exists);
-        return roots.FirstOrDefault(Directory.Exists) ?? _homeDirectory;
-    }
 
     private static string FirstNotEmpty(params string[] texts) => texts.FirstOrDefault(text => text.Length > 0) ?? string.Empty;
 
@@ -1588,7 +1561,7 @@ public sealed class TuiApplication(
         _overlays.WhichKeyEnabled = options.WhichKeyPopup;
         if (!SameRoots(_picker.ScanRoots, options.ScanRoots))
         {
-            _picker.ScanRoots = options.ScanRoots;
+            _picker.ChangeScanRoots(options.ScanRoots);
         }
 
         Relayout();
@@ -1720,11 +1693,16 @@ public sealed class TuiApplication(
     }
 
     // The initial state: nothing open, and the machine facts the settings screen checks folders with.
-    private static AppState WithSettings(SettingsEnvironment environment)
+    private AppState InitialState(SettingsEnvironment environment)
     {
         var settings = SettingsSession.Empty with { Environment = environment };
+        var picker = PickerSession.Empty with
+        {
+            HomeDirectory = _homeDirectory,
+            ScanRoots = _startupConfig.Options.ScanRoots,
+        };
 
-        return AppState.Empty with { Shell = ShellState.Empty with { Settings = settings } };
+        return AppState.Empty with { Shell = ShellState.Empty with { Settings = settings, Picker = picker } };
     }
 
     // The reflog list and the settings screen live in the shell state: a result that arrives later redraws them.
@@ -2040,36 +2018,29 @@ public sealed class TuiApplication(
 
     private void OnTextKey(KeyEvent keyEvent)
     {
-        if (!_picker.IsOpen || _keys.Mode != KeyMode.Insert)
+        if (_keys.Mode == KeyMode.Insert)
         {
-            return;
-        }
-
-        // The picker's query is plain state, not a text widget: it takes printable keys and edits itself with Backspace (some terminals send it as Ctrl-h).
-        if (keyEvent.IsPrintable)
-        {
-            _picker.Apply(new TypeTextCommand(keyEvent.Name));
-        }
-        else if (keyEvent is { Name: KeyNames.Backspace, Modifiers: KeyModifiers.None or KeyModifiers.Ctrl })
-        {
-            _picker.Apply(new BackspaceCommand());
+            _picker.TypeKey(keyEvent);
         }
     }
 
+    // The picker lives in the shell state; the view follows it: the graph hides behind it and the focus comes back when it closes.
     private void OnPickerChanged()
     {
-        if (_picker.IsOpen)
+        var isOpen = _picker.IsOpen;
+        if (isOpen)
         {
             _visual.End();
         }
 
-        if (!_overlays.State.IsOpen && _picker.IsOpen != (_keys.Mode == KeyMode.Insert))
+        if (isOpen == _pickerShown)
         {
-            _host.SetKeyMode(_picker.IsOpen ? KeyMode.Insert : KeyMode.Normal);
+            return;
         }
 
-        _view.ShowPicker(_picker.IsOpen);
-        if (!_picker.IsOpen)
+        _pickerShown = isOpen;
+        _view.ShowPicker(isOpen);
+        if (!isOpen)
         {
             // Hiding the graph moved the toolkit focus: put it back on the pane the tab's state names.
             _appliedFocus = (PaneKind)(-1);
@@ -2082,10 +2053,7 @@ public sealed class TuiApplication(
     // A click highlights the row; the double-click's "open" comes from the mouse map as picker.accept.
     private void OnPickerRowClicked(int index)
     {
-        if (_picker.State is { } state)
-        {
-            _picker.Apply(new MoveHighlightCommand(index - state.Highlight));
-        }
+        _picker.ClickRow(index);
     }
 
     private void OnSelectionChanged()

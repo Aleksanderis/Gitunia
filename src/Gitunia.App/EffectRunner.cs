@@ -1,10 +1,12 @@
 using Gitunia.App.Background;
 using Gitunia.App.Branches;
+using Gitunia.App.Creation;
 using Gitunia.App.Loading.Commits;
 using Gitunia.App.Loading.Diff;
 using Gitunia.App.Loading.Stash;
 using Gitunia.App.Loading.Trees;
 using Gitunia.App.Integration;
+using Gitunia.App.Picker;
 using Gitunia.App.Reflog;
 using Gitunia.App.Settings;
 using Gitunia.App.Remotes;
@@ -17,8 +19,10 @@ using Gitunia.App.Tags;
 using Gitunia.Core;
 using Gitunia.Core.Branches;
 using Gitunia.Core.Clipboard;
+using Gitunia.Core.Creation;
 using Gitunia.Core.Effects;
 using Gitunia.Core.Integration;
+using Gitunia.Core.Picker;
 using Gitunia.Core.Prompts;
 using Gitunia.Core.Reflog;
 using Gitunia.Core.Settings;
@@ -58,8 +62,10 @@ public sealed class EffectRunner<TSession> : IDisposable
     private readonly IShellEffects _shell;
     private readonly TabCancellation _cancellation = new();
     private readonly BackgroundWork _background = new();
+    private readonly CreationEffectHandler _creation;
     private readonly IntegrationEffectHandler _integration;
     private readonly BranchEffectHandler _branches;
+    private readonly PickerEffectHandler _picker;
     private readonly ReflogEffectHandler _reflog;
     private readonly SettingsEffectHandler? _settings;
     private readonly CancellationTokenSource _shutdown = new();
@@ -93,10 +99,14 @@ public sealed class EffectRunner<TSession> : IDisposable
         int warmTabLimit = DefaultWarmTabLimit,
         PollOptions? pollOptions = null,
         IShellEffects? shell = null,
-        SettingsServices? settings = null)
+        SettingsServices? settings = null,
+        PickerServices? picker = null)
     {
+        var pickerServices = picker ?? PickerServices.Default;
         _shell = shell ?? NoShellEffects.Instance;
         _branches = new BranchEffectHandler(services.Branches, host);
+        _creation = new CreationEffectHandler(services.Creator, pickerServices.Files, host);
+        _picker = new PickerEffectHandler(services.Discovery, pickerServices.Files, host, pickerServices.Timings);
         _reflog = new ReflogEffectHandler(services.Reflog, host);
         _settings = settings is null ? null : new SettingsEffectHandler(settings, host);
         _integration = IntegrationEffectHandler.Create(services, host);
@@ -194,6 +204,7 @@ public sealed class EffectRunner<TSession> : IDisposable
 
         _refreshers.Clear();
         _shutdown.Cancel();
+        _creation.CancelAndWait();
         _shutdown.Dispose();
         _cancellation.Dispose();
         _statusAging.Dispose();
@@ -220,9 +231,13 @@ public sealed class EffectRunner<TSession> : IDisposable
     // A feature's effect fails with that feature's result command, so its running flag is cleared.
     private static AppCommand FailureOf(AppEffect effect, string text) => effect switch
     {
+        CloneRepositoryEffect => new CloneFailed(text),
+        DiscoverRepositoryEffect discover => new PickerDiscoveryFailed(discover.Request, text),
+        InitRepositoryEffect => new InitFailed(text),
         IntegrationEffect integration => new IntegrationFailed(integration.TabId, text),
         BranchEffect branch => new BranchOperationFailed(branch.TabId, text),
         ReadReflogEffect => new ReflogReadFailed(text),
+        ScanRepositoriesEffect => new PickerScanFinished([]),
         SettingsEffect => new SettingsOperationFailed(text),
         RemoteEffect remote => new RemoteOperationFailed(remote.TabId, text),
         StashEffect stash => new StashOperationFailed(stash.TabId, text),
@@ -247,17 +262,37 @@ public sealed class EffectRunner<TSession> : IDisposable
             case CopyToClipboardEffect copy:
                 _shell.CopyToClipboard(copy);
                 break;
+            case CreationEffect creation:
+                _creation.Handle(creation, _shutdown.Token);
+                break;
+            case FlushSessionEffect flush:
+                _host.Dispatch(new SessionFlushed(_shell.FlushSession(), flush.Force));
+                break;
             case IntegrationEffect integration:
                 _integration.Handle(integration, _cancellation.TokenOf(integration.TabId));
                 break;
             case LoadRepositoryEffect load:
                 StartLoad(load);
                 break;
+            case MoveCommitDraftEffect move:
+                _host.Dispatch(new PickerDraftMoved(move.Missing, _shell.MoveCommitDraft(move.Missing, move.Target)));
+                break;
             case OfferTerminalRetryEffect offer:
                 _shell.OfferTerminalRetry(offer.TabId, offer.Noun, offer.Arguments);
                 break;
+            case PickerEffect picker:
+                _picker.Handle(picker, _shutdown.Token);
+                break;
             case PostStatusEffect post:
                 _host.Dispatch(new StatusPostedCommand(post.Text, post.Severity, _host.Clock.GetUtcNow()));
+                break;
+            case QuitEffect quit:
+                if (quit.CancelWork)
+                {
+                    CancelAll();
+                }
+
+                _shell.Quit();
                 break;
             case ReadReflogEffect read:
                 _reflog.Handle(read, _cancellation.TokenOf(read.TabId));

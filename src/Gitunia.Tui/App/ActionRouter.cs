@@ -93,7 +93,7 @@ public sealed class ActionRouter(Dispatcher host, ListView graphList, ListView d
     public SyncActions? Sync { get; set; }
 
     /// <summary>Clone and init from the picker; Esc is only its once everything else passed.</summary>
-    public RepositoryCreationActions? Creation { get; set; }
+    public CreationInput? Creation { get; set; }
 
     /// <summary>Merging the selected commit or branch into the current branch (merge, no-ff, squash).</summary>
     public MergeActions? Merge { get; set; }

@@ -13,8 +13,7 @@ public class PickerReducerTests
             PickerFixtures.PathOf("code", "alpha"),
             PickerFixtures.PathOf("code", "beta"),
             PickerFixtures.PathOf("code", "gamma"),
-        ],
-        directories: new Dictionary<string, string[]> { [PickerFixtures.PathOf("code")] = ["alpha", "beta"] });
+        ]);
 
     private static PickerState Type(PickerState state, string text) => PickerReducer.Reduce(state, new TypeTextCommand(text), Context());
 
@@ -77,7 +76,7 @@ public class PickerReducerTests
     public void GivenPathQuery_WhenPressingTab_ThenThePathIsCompleted()
     {
         var state = Type(PickerReducer.Open(Context()), "~/code/b");
-        state = PickerReducer.Reduce(state, new ListingCompletedCommand(state.Query, [.. PathCompleter.Candidates(state.Query, Context())]), Context());
+        state = PickerReducer.Reduce(state, new ListingCompletedCommand(state.Query, PickerFixtures.Listed("beta")), Context());
 
         state = PickerReducer.Reduce(state, new CompletePathCommand(), Context());
 
@@ -97,7 +96,7 @@ public class PickerReducerTests
     public void GivenListedPath_WhenTypingMore_ThenPreviousRowsAndHighlightStayUntilTheNewListingArrives()
     {
         var state = Type(PickerReducer.Open(Context()), "~/code/");
-        state = PickerReducer.Reduce(state, new ListingCompletedCommand(state.Query, [.. PathCompleter.Candidates(state.Query, Context())]), Context());
+        state = PickerReducer.Reduce(state, new ListingCompletedCommand(state.Query, PickerFixtures.Listed("alpha", "beta")), Context());
         state = PickerReducer.Reduce(state, new MoveHighlightCommand(1), Context());
 
         state = Type(state, "b");
@@ -131,7 +130,7 @@ public class PickerReducerTests
     public void GivenListingForAnOlderQuery_WhenItCompletes_ThenItIsIgnored()
     {
         var state = Type(PickerReducer.Open(Context()), "~/code/");
-        var stale = new ListingCompletedCommand("~/cod", [.. PathCompleter.Candidates("~/code/", Context())]);
+        var stale = new ListingCompletedCommand("~/cod", PickerFixtures.Listed("alpha", "beta"));
 
         Assert.Equal(state, PickerReducer.Reduce(state, stale, Context()));
     }
@@ -141,7 +140,7 @@ public class PickerReducerTests
     {
         var state = Type(PickerReducer.Open(Context()), "~/code/");
 
-        state = PickerReducer.Reduce(state, new ListingCompletedCommand(state.Query, [.. PathCompleter.Candidates(state.Query, Context())]), Context());
+        state = PickerReducer.Reduce(state, new ListingCompletedCommand(state.Query, PickerFixtures.Listed("alpha", "beta")), Context());
 
         Assert.False(state.IsListing);
         Assert.Equal(["alpha", "beta"], state.Rows.Select(row => row.Name));
