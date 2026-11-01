@@ -1,9 +1,9 @@
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
-using Gitunia.Tui.Input;
+using Gitunia.Core.Overlays;
 using Xunit;
 
-namespace Gitunia.Tui.Tests.Input;
+namespace Gitunia.Core.Tests.Overlays;
 
 [Trait("Os", "Independent")]
 public class PickerKeysTests

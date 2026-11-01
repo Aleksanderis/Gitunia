@@ -1,6 +1,7 @@
 using Gitunia.Core.Effects;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Overlays;
+using Gitunia.Core.Prompts;
 using Gitunia.Core.Running;
 using Gitunia.Core.Shell;
 using Gitunia.Core.Status;
@@ -32,17 +33,17 @@ public class AppReducerTests
     }
 
     [Fact]
-    public void GivenATagCommand_WhenReducing_ThenOnlyThatTabsTagSliceChanges()
+    public void GivenATagCommand_WhenReducing_ThenThePromptIsRequestedForThatTabOnly()
     {
         var state = Opened("alpha", "beta");
-        var first = state.Workspace.Tabs[0].Id;
         var second = state.Workspace.Tabs[1].Id;
 
         var update = AppReducer.Reduce(state, new TagCreateRequested(second, new TagTarget(null, null, Commit)));
 
-        Assert.NotNull(update.State.Workspace.FindTab(second)!.Tags.Prompt);
-        Assert.Null(update.State.Workspace.FindTab(first)!.Tags.Prompt);
-        Assert.Equal(state.Workspace.ActiveTabId, update.State.Workspace.ActiveTabId);
+        var request = Assert.IsType<ShowPromptEffect>(Assert.Single(update.Effects)).Request;
+        Assert.Equal(second, request.Owner);
+        Assert.Same(state.Workspace, update.State.Workspace);
+        Assert.Null(update.State.Shell.Prompt);
     }
 
     [Fact]
@@ -70,25 +71,85 @@ public class AppReducerTests
     }
 
     [Fact]
-    public void GivenATabWithAnOpenTagPrompt_WhenItIsClosed_ThenTheKeyModeGoesBackToNormal()
+    public void GivenATabWithAnOpenPrompt_WhenItIsClosed_ThenThePromptClosesAndTheKeyModeGoesBack()
     {
         var state = Opened("alpha");
         var tabId = state.Workspace.Tabs[0].Id;
-        state = AppReducer.Reduce(state, new TagCreateRequested(tabId, new TagTarget(null, null, Commit))).State;
+        state = Run(state, new TagCreateRequested(tabId, new TagTarget(null, null, Commit)));
+        Assert.Equal(KeyMode.Insert, state.Shell.Mode);
 
         var update = AppReducer.Reduce(state, new CloseTabCommand(tabId));
 
-        Assert.Contains(update.Effects, effect => effect is SetKeyModeEffect { Mode: KeyMode.Normal });
+        Assert.Null(update.State.Shell.Prompt);
+        Assert.Equal(KeyMode.Normal, update.State.Shell.Mode);
     }
 
     [Fact]
-    public void GivenATabWithoutPrompt_WhenItIsClosed_ThenNoKeyModeEffectComesOut()
+    public void GivenAnOpenPrompt_WhenAnotherTabBecomesActive_ThenThePromptOfTheLeftTabIsCancelled()
+    {
+        var state = Opened("alpha", "beta");
+        var first = state.Workspace.Tabs[0].Id;
+        state = Run(state, new ActivateTabCommand(first));
+        state = Run(state, new TabRenameRequested(first));
+        Assert.NotNull(state.Shell.Prompt);
+
+        var update = AppReducer.Reduce(state, new NextTabCommand());
+
+        Assert.Null(update.State.Shell.Prompt);
+        Assert.Equal(KeyMode.Normal, update.State.Shell.Mode);
+    }
+
+    [Fact]
+    public void GivenAnOpenPrompt_WhenAnotherTabIsOpened_ThenThePromptIsCancelled()
+    {
+        var state = Opened("alpha");
+        state = Run(state, new TabRenameRequested(state.Workspace.Tabs[0].Id));
+
+        var update = AppReducer.Reduce(state, new OpenRepositoryCommand(Location("beta")));
+
+        Assert.Null(update.State.Shell.Prompt);
+    }
+
+    [Fact]
+    public void GivenATabWithoutPrompt_WhenItIsClosed_ThenTheKeyModeIsUntouched()
     {
         var state = Opened("alpha");
 
         var update = AppReducer.Reduce(state, new CloseTabCommand(state.Workspace.Tabs[0].Id));
 
-        Assert.DoesNotContain(update.Effects, effect => effect is SetKeyModeEffect);
+        Assert.Equal(state.Shell.ModeChanges, update.State.Shell.ModeChanges);
+    }
+
+    [Fact]
+    public void GivenARenamePrompt_WhenTypingAndAccepting_ThenTheTabIsRenamedAndTheStatusSaysSo()
+    {
+        var state = Opened("alpha");
+        var tabId = state.Workspace.Tabs[0].Id;
+        state = Run(state, new TabRenameRequested(tabId));
+        Assert.Equal("alpha", state.Shell.Prompt!.Text);
+        state = Run(state, new PromptKeyPressedCommand(new KeyEvent("-")));
+        state = Run(state, new PromptKeyPressedCommand(new KeyEvent("2")));
+
+        var update = AppReducer.Reduce(state, new PromptAcceptedCommand());
+
+        Assert.Equal("alpha-2", update.State.Workspace.FindTab(tabId)!.Title);
+        Assert.Null(update.State.Shell.Prompt);
+        Assert.Equal(KeyMode.Normal, update.State.Shell.Mode);
+        var post = Assert.IsType<PostStatusEffect>(Assert.Single(update.Effects));
+        Assert.Equal("tab is now alpha-2", post.Text);
+    }
+
+    [Fact]
+    public void GivenARenamePrompt_WhenTheTabIsClosedAndTheAnswerArrivesLate_ThenItIsDropped()
+    {
+        var state = Opened("alpha");
+        var tabId = state.Workspace.Tabs[0].Id;
+        state = AppReducer.Reduce(state, new CloseTabCommand(tabId)).State;
+
+        var update = AppReducer.Reduce(state, new TabRenameAnswered(tabId, "x"));
+
+        Assert.Same(state, update.State);
+        Assert.Empty(update.Effects);
     }
 
     [Fact]
@@ -211,6 +272,19 @@ public class AppReducerTests
     }
 
     private static TagDeleteConfirmed DeleteAccepted(TabId tabId) => new(tabId, "v1", Commit);
+
+    // Reduces a command and feeds the prompt requests back like the runner does.
+    private static AppState Run(AppState state, AppCommand command)
+    {
+        var update = AppReducer.Reduce(state, command);
+        var next = update.State;
+        foreach (var effect in update.Effects.OfType<ShowPromptEffect>())
+        {
+            next = AppReducer.Reduce(next, new PromptRequestedCommand(effect.Request)).State;
+        }
+
+        return next;
+    }
 
     private static AppState Opened(params string[] names)
     {

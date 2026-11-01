@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using Gitunia.Core.Effects;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Overlays;
+using Gitunia.Core.Prompts;
 using Gitunia.Core.Status;
 
 namespace Gitunia.Core.Shell;
@@ -22,28 +23,15 @@ public static class ShellReducer
         ConfirmRequestedCommand request => Ask(state, request),
         OutputClosedCommand => CloseOutput(state),
         OutputShownCommand shown => ShowOutput(state, shown),
+        PromptCommand prompt => PromptReducer.Reduce(state, prompt),
         RunActionCommand run => new ShellUpdate(state, [new RunActionEffect(run.Run)]),
         ScreenResizedCommand resized => Resize(state, resized),
-        SetKeyModeCommand mode => new ShellUpdate(WithMode(state, mode.Mode), []),
+        SetKeyModeCommand mode => new ShellUpdate(state.WithMode(mode.Mode), []),
         StatusAgedCommand aged => new ShellUpdate(state, Schedule(state, aged.At)),
         StatusDismissedCommand dismissed => Dismiss(state, dismissed.At),
         StatusPostedCommand posted => Post(state, posted),
         _ => throw new UnhandledCommandException(command),
     };
-
-    // The key mode to return to when an open dialog closes: an open dialog or box replaced by a newer one keeps its.
-    private static KeyMode ReturnModeOf(ShellState state)
-    {
-        if (state.Confirm is { } confirm)
-        {
-            return confirm.ReturnMode;
-        }
-
-        return state.Output is { } output ? output.ReturnMode : state.Mode;
-    }
-
-    private static ShellState WithMode(ShellState state, KeyMode mode) =>
-        state with { Mode = mode, ModeChanges = state.ModeChanges + 1 };
 
     private static ShellUpdate Ask(ShellState state, ConfirmRequestedCommand request)
     {
@@ -52,8 +40,8 @@ public static class ShellReducer
             return new ShellUpdate(state, [], request.Refusal);
         }
 
-        var dialog = new ConfirmDialog(request.Prompt, request.OnAccepted, ReturnModeOf(state));
-        var opened = WithMode(state with { Confirm = dialog, Output = null }, KeyMode.Confirm);
+        var dialog = new ConfirmDialog(request.Prompt, request.OnAccepted, state.ReturnMode);
+        var opened = (state with { Confirm = dialog, Output = null }).WithMode(KeyMode.Confirm);
 
         return new ShellUpdate(opened, []);
     }
@@ -68,7 +56,7 @@ public static class ShellReducer
             return new ShellUpdate(state, []);
         }
 
-        var closed = WithMode(state with { Confirm = null }, dialog.ReturnMode);
+        var closed = (state with { Confirm = null }).WithMode(dialog.ReturnMode);
 
         return new ShellUpdate(closed, [], answer == ConfirmAnswer.Yes ? dialog.OnAccepted : null);
     }
@@ -82,7 +70,7 @@ public static class ShellReducer
             return new ShellUpdate(resizedState, []);
         }
 
-        var closed = WithMode(resizedState with { Confirm = null }, dialog.ReturnMode);
+        var closed = (resizedState with { Confirm = null }).WithMode(dialog.ReturnMode);
         var warning = new StatusPostedCommand(ResizedNotice, StatusSeverity.Warning, resized.At);
 
         return new ShellUpdate(closed, [], warning);
@@ -90,8 +78,8 @@ public static class ShellReducer
 
     private static ShellUpdate ShowOutput(ShellState state, OutputShownCommand shown)
     {
-        var output = new OutputOverlay(shown.Title, shown.Heading, shown.Lines, ReturnModeOf(state));
-        var opened = WithMode(state with { Output = output, Confirm = null }, KeyMode.Normal);
+        var output = new OutputOverlay(shown.Title, shown.Heading, shown.Lines, state.ReturnMode);
+        var opened = (state with { Output = output, Confirm = null }).WithMode(KeyMode.Normal);
 
         return new ShellUpdate(opened, []);
     }
@@ -103,7 +91,7 @@ public static class ShellReducer
             return new ShellUpdate(state, []);
         }
 
-        return new ShellUpdate(WithMode(state with { Output = null }, output.ReturnMode), []);
+        return new ShellUpdate((state with { Output = null }).WithMode(output.ReturnMode), []);
     }
 
     private static ShellUpdate Post(ShellState state, StatusPostedCommand posted)

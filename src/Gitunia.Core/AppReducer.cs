@@ -1,10 +1,12 @@
 using Gitunia.Core.Effects;
+using Gitunia.Core.Prompts;
 using Gitunia.Core.Shell;
 using Gitunia.Core.Running;
 using Gitunia.Core.Tags;
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Repositories;
+using Gitunia.Core.Workspaces.Tabs;
 
 namespace Gitunia.Core;
 
@@ -19,6 +21,7 @@ public static class AppReducer
     {
         EffectFailedCommand failed => EffectFailed(state, failed),
         ShellCommand shell => ReduceShell(state, shell),
+        TabRenameCommand rename => ReduceTabRename(state, rename),
         TagCommand tag => ReduceTag(state, tag),
         WorkspaceCommand workspace => ReduceWorkspace(state, workspace),
         _ => throw new UnhandledCommandException(command),
@@ -39,19 +42,32 @@ public static class AppReducer
         return new AppUpdate(then.State, [.. update.Effects, .. then.Effects]);
     }
 
+    // A prompt belongs to the tab it was opened in and closes when that tab is closed or no longer the active one.
     private static AppUpdate ReduceWorkspace(AppState state, WorkspaceCommand command)
     {
         var update = WorkspaceReducer.Reduce(state.Workspace, command);
-        var effects = update.Effects.Cast<AppEffect>().ToList();
-        if (command is CloseTabCommand close && state.Workspace.FindTab(close.TabId) is { } closed)
+        var shell = state.Shell;
+        if (shell.Prompt is { Owner: { } owner } && update.Workspace.ActiveTabId != owner)
         {
-            effects.AddRange(TagReducer.OnTabClosed(closed.Tags));
+            shell = ShellReducer.Reduce(shell, new PromptCancelledCommand()).State;
         }
 
-        return new AppUpdate(state with { Workspace = update.Workspace }, [.. effects]);
+        return new AppUpdate(new AppState(update.Workspace, shell), [.. update.Effects]);
     }
 
     // A result for a tab that was closed meanwhile is dropped, like a late TabCommand.
+    private static AppUpdate ReduceTabRename(AppState state, TabRenameCommand command)
+    {
+        if (state.Workspace.FindTab(command.TabId) is not { } tab)
+        {
+            return new AppUpdate(state, []);
+        }
+
+        var update = TabRenameReducer.Reduce(tab, command);
+
+        return new AppUpdate(WithTab(state, update.Tab), update.Effects);
+    }
+
     private static AppUpdate ReduceTag(AppState state, TagCommand command)
     {
         var workspace = state.Workspace;
@@ -62,9 +78,14 @@ public static class AppReducer
 
         var busy = tab.Running.IsRunning(RunningOperationKind.Tags);
         var context = new TagContext(tab.Id, tab.Location, tab.Refs, workspace.ActiveTabId == tab.Id, busy);
-        var update = TagReducer.Reduce(tab.Tags, command, context);
-        var running = tab.Running.Apply(tab.Id, command, update.Effects);
-        return new AppUpdate(WithTab(state, tab with { Tags = update.State, Running = running }), update.Effects);
+        var effects = TagReducer.Reduce(command, context);
+        var running = tab.Running.Apply(tab.Id, command, effects);
+        if (Equals(running, tab.Running))
+        {
+            return new AppUpdate(state, effects);
+        }
+
+        return new AppUpdate(WithTab(state, tab with { Running = running }), effects);
     }
 
     private static AppUpdate EffectFailed(AppState state, EffectFailedCommand failed) =>

@@ -1,4 +1,5 @@
 using Gitunia.Core.Keymap.Models;
+using Gitunia.Core.Prompts;
 using Gitunia.Core.Status;
 
 namespace Gitunia.Core.Shell;
@@ -13,6 +14,7 @@ namespace Gitunia.Core.Shell;
 /// <param name="Status">The status messages and which one still shows.</param>
 /// <param name="Confirm">The open confirm dialog, or null.</param>
 /// <param name="Output">The open output overlay, or null.</param>
+/// <param name="Prompt">The open prompt (text field or picker), or null.</param>
 /// <param name="Screen">The terminal size, or null until the terminal layer reported it (a dialog then counts as
 /// fitting).</param>
 public sealed record ShellState(
@@ -21,7 +23,28 @@ public sealed record ShellState(
     StatusLog Status,
     ConfirmDialog? Confirm,
     OutputOverlay? Output,
+    OpenPrompt? Prompt,
     ScreenExtent? Screen)
 {
-    public static ShellState Empty { get; } = new(KeyMode.Normal, 0, StatusLog.Empty, null, null, null);
+    public static ShellState Empty { get; } = new(KeyMode.Normal, 0, StatusLog.Empty, null, null, null, null);
+
+    /// <summary>
+    /// The key mode to return to when a dialog or box opened now closes: an open dialog or box replaced by a newer one
+    /// keeps its own. An open prompt is not asked: it leaves Insert mode on, and the dialog returns to it.
+    /// </summary>
+    public KeyMode ReturnMode
+    {
+        get
+        {
+            if (Confirm is { } confirm)
+            {
+                return confirm.ReturnMode;
+            }
+
+            return Output is { } output ? output.ReturnMode : Mode;
+        }
+    }
+
+    /// <summary>Switches the key mode and counts the switch.</summary>
+    public ShellState WithMode(KeyMode mode) => this with { Mode = mode, ModeChanges = ModeChanges + 1 };
 }

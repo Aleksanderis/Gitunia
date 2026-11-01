@@ -1,6 +1,5 @@
 using System.Collections.Immutable;
 using Gitunia.Core.Effects;
-using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Tests.Fixtures;
 using Gitunia.Core.Sidebar;
 using Gitunia.Core.Status;
@@ -20,15 +19,16 @@ public class TagReducerTests
     private static readonly TabId Tab = new(1);
 
     [Fact]
-    public void GivenAGraphCommit_WhenCreating_ThenTheNamePromptOpensAtItInInsertMode()
+    public void GivenAGraphCommit_WhenCreating_ThenTheNamePromptIsRequestedAtIt()
     {
-        var update = Reduce(TagState.Empty, new TagCreateRequested(Tab, Graph(Commit)));
+        var effects = Reduce(new TagCreateRequested(Tab, Graph(Commit)));
 
-        var prompt = update.State.Prompt!;
-        Assert.Equal(TagPromptKind.CreateName, prompt.Kind);
-        Assert.Equal(Commit, prompt.StartPoint);
-        Assert.Equal("1111111", prompt.Label);
-        Assert.Equal(KeyMode.Insert, Assert.IsType<SetKeyModeEffect>(Assert.Single(update.Effects)).Mode);
+        var request = Assert.IsType<ShowPromptEffect>(Assert.Single(effects)).Request;
+        Assert.Equal("New tag", request.Title);
+        Assert.Equal("At 1111111", request.Context);
+        Assert.Null(request.Choices);
+        Assert.Equal(Tab, request.Owner);
+        Assert.Equal(new TagNameAnswer(Tab, Commit, "1111111"), request.OnAccepted);
     }
 
     [Fact]
@@ -36,94 +36,78 @@ public class TagReducerTests
     {
         var target = new TagTarget(SidebarRowKind.LocalBranch, "main", Commit);
 
-        var update = Reduce(TagState.Empty, new TagCreateRequested(Tab, target));
+        var effects = Reduce(new TagCreateRequested(Tab, target));
 
-        Assert.Equal("main", update.State.Prompt!.Label);
+        var request = Assert.IsType<ShowPromptEffect>(Assert.Single(effects)).Request;
+        Assert.Equal("At main", request.Context);
+        Assert.Equal(new TagNameAnswer(Tab, Commit, "main"), request.OnAccepted);
     }
 
     [Fact]
-    public void GivenNothingSelected_WhenCreating_ThenNoPromptOpensAndTheWarningSaysSo()
+    public void GivenNothingSelected_WhenCreating_ThenNoPromptIsRequestedAndTheWarningSaysSo()
     {
-        var update = Reduce(TagState.Empty, new TagCreateRequested(Tab, new TagTarget(null, null, null)));
+        var effects = Reduce(new TagCreateRequested(Tab, new TagTarget(null, null, null)));
 
-        Assert.Null(update.State.Prompt);
-        Assert.Equal("Select a commit or a ref first", Warning(update));
+        Assert.DoesNotContain(effects, effect => effect is ShowPromptEffect);
+        Assert.Equal("Select a commit or a ref first", Warning(effects));
     }
 
     [Fact]
     public void GivenARunningOperation_WhenCreating_ThenItIsRefusedAsBusy()
     {
-        var update = Reduce(TagState.Empty, new TagCreateRequested(Tab, Graph(Commit)), busy: true);
+        var effects = Reduce(new TagCreateRequested(Tab, Graph(Commit)), busy: true);
 
-        Assert.Null(update.State.Prompt);
-        Assert.Equal(TagReducer.BusyNotice, Warning(update));
+        Assert.DoesNotContain(effects, effect => effect is ShowPromptEffect);
+        Assert.Equal(TagReducer.BusyNotice, Warning(effects));
     }
 
     [Fact]
-    public void GivenATagNameInUse_WhenAcceptingTheName_ThenThePromptClosesWithoutAnEffectOnGit()
+    public void GivenATagNameInUse_WhenTheNameIsAccepted_ThenNothingIsAskedOrCreated()
     {
-        var state = Typed(TagPromptKind.CreateName, " v1 ");
+        var effects = Reduce(new TagNameAccepted(Tab, Commit, "1111111", " v1 "), Tags(("v1", Commit, Commit)));
 
-        var update = Reduce(state, new TagPromptAccepted(Tab), Tags(("v1", Commit, Commit)));
-
-        Assert.Null(update.State.Prompt);
-        Assert.Equal("Tag v1 already exists", Warning(update));
-        Assert.DoesNotContain(update.Effects, effect => effect is TagEffect);
+        Assert.Equal("Tag v1 already exists", Warning(effects));
+        Assert.DoesNotContain(effects, effect => effect is TagEffect or ShowPromptEffect);
     }
 
     [Fact]
-    public void GivenAnEmptyName_WhenAccepting_ThenNothingIsCreated()
+    public void GivenAnEmptyName_WhenTheNameIsAccepted_ThenNothingIsCreated()
     {
-        var update = Reduce(Typed(TagPromptKind.CreateName, "  "), new TagPromptAccepted(Tab));
+        var effects = Reduce(new TagNameAccepted(Tab, Commit, "1111111", "  "));
 
-        Assert.Null(update.State.Prompt);
-        Assert.Equal("No name: nothing was created", Warning(update));
+        Assert.Equal("No name: nothing was created", Warning(effects));
+        Assert.DoesNotContain(effects, effect => effect is TagEffect or ShowPromptEffect);
     }
 
     [Fact]
-    public void GivenAFreeName_WhenAccepting_ThenTheMessagePromptOpensAndKeepsTheStartPoint()
+    public void GivenAFreeName_WhenTheNameIsAccepted_ThenTheMessagePromptIsRequestedAndKeepsTheStartPoint()
     {
-        var update = Reduce(Typed(TagPromptKind.CreateName, "v2"), new TagPromptAccepted(Tab));
+        var effects = Reduce(new TagNameAccepted(Tab, Commit, "1111111", " v2 "));
 
-        var prompt = update.State.Prompt!;
-        Assert.Equal(TagPromptKind.CreateMessage, prompt.Kind);
-        Assert.Equal("v2", prompt.NewName);
-        Assert.Equal(string.Empty, prompt.Text);
-        Assert.Equal(Commit, prompt.StartPoint);
+        var request = Assert.IsType<ShowPromptEffect>(Assert.Single(effects)).Request;
+        Assert.Equal("Tag message", request.Title);
+        Assert.Equal("v2: empty makes a lightweight tag", request.Context);
+        Assert.Equal(string.Empty, request.InitialText);
+        Assert.Equal(new TagMessageAnswer(Tab, Commit, "1111111", "v2"), request.OnAccepted);
     }
 
     [Fact]
-    public void GivenAMessage_WhenAccepting_ThenAnAnnotatedTagIsRequested()
+    public void GivenAMessage_WhenTheMessageIsAccepted_ThenAnAnnotatedTagIsRequested()
     {
-        var state = Typed(TagPromptKind.CreateMessage, " release ", newName: "v2");
+        var effects = Reduce(new TagMessageAccepted(Tab, Commit, "1111111", "v2", " release "));
 
-        var update = Reduce(state, new TagPromptAccepted(Tab));
-
-        var create = Assert.Single(update.Effects.OfType<CreateTagEffect>());
+        var create = Assert.IsType<CreateTagEffect>(Assert.Single(effects));
         Assert.Equal("v2", create.Name);
         Assert.Equal(Commit, create.StartPoint);
         Assert.Equal("release", create.Message);
-        Assert.Null(update.State.Prompt);
-        Assert.Contains(update.Effects, effect => effect is SetKeyModeEffect { Mode: KeyMode.Normal });
     }
 
     [Fact]
-    public void GivenAnEmptyMessage_WhenAccepting_ThenTheEffectCarriesNoMessage()
+    public void GivenAnEmptyMessage_WhenTheMessageIsAccepted_ThenTheEffectCarriesNoMessage()
     {
-        var state = Typed(TagPromptKind.CreateMessage, string.Empty, newName: "v2");
+        var effects = Reduce(new TagMessageAccepted(Tab, Commit, "1111111", "v2", string.Empty));
 
-        var update = Reduce(state, new TagPromptAccepted(Tab));
-
-        Assert.Equal(string.Empty, Assert.Single(update.Effects.OfType<CreateTagEffect>()).Message);
-    }
-
-    [Fact]
-    public void GivenTheMessagePrompt_WhenCancelling_ThenNoTagIsRequested()
-    {
-        var update = Reduce(Typed(TagPromptKind.CreateMessage, "x", newName: "v2"), new TagPromptCancelled(Tab));
-
-        Assert.Null(update.State.Prompt);
-        Assert.DoesNotContain(update.Effects, effect => effect is TagEffect);
+        Assert.Equal(string.Empty, Assert.IsType<CreateTagEffect>(Assert.Single(effects)).Message);
     }
 
     [Fact]
@@ -132,9 +116,9 @@ public class TagReducerTests
         var refs = Tags(("v1", Annotated, Commit));
         var target = new TagTarget(SidebarRowKind.Tag, "v1", Commit);
 
-        var update = Reduce(TagState.Empty, new TagDeleteRequested(Tab, target), refs);
+        var effects = Reduce(new TagDeleteRequested(Tab, target), refs);
 
-        var confirm = Assert.IsType<ShowConfirmEffect>(Assert.Single(update.Effects));
+        var confirm = Assert.IsType<ShowConfirmEffect>(Assert.Single(effects));
         Assert.Contains("v1", confirm.Prompt.Lines[0]);
         Assert.Equal($"Undo: git tag v1 {Annotated}", confirm.Prompt.Consequence);
         Assert.Equal(new TagDeleteConfirmed(Tab, "v1", Annotated), confirm.OnAccepted);
@@ -145,17 +129,17 @@ public class TagReducerTests
     {
         var refs = Tags(("v1", Commit, Commit), ("v1-rc", Commit, Commit));
 
-        var update = Reduce(TagState.Empty, new TagDeleteRequested(Tab, Graph(Commit)), refs);
+        var effects = Reduce(new TagDeleteRequested(Tab, Graph(Commit)), refs);
 
-        Assert.Equal("2 tags point here: pick one in the sidebar", Warning(update));
+        Assert.Equal("2 tags point here: pick one in the sidebar", Warning(effects));
     }
 
     [Fact]
     public void GivenACommitWithoutTag_WhenDeleting_ThenTheWarningSaysToSelectATag()
     {
-        var update = Reduce(TagState.Empty, new TagDeleteRequested(Tab, Graph(Commit)));
+        var effects = Reduce(new TagDeleteRequested(Tab, Graph(Commit)));
 
-        Assert.Equal("Select a tag (sidebar) or a commit with one tag on it", Warning(update));
+        Assert.Equal("Select a tag (sidebar) or a commit with one tag on it", Warning(effects));
     }
 
     [Fact]
@@ -163,27 +147,27 @@ public class TagReducerTests
     {
         var target = new TagTarget(SidebarRowKind.LocalBranch, "main", Commit);
 
-        var update = Reduce(TagState.Empty, new TagDeleteRequested(Tab, target), Tags(("main", Commit, Commit)));
+        var effects = Reduce(new TagDeleteRequested(Tab, target), Tags(("main", Commit, Commit)));
 
-        Assert.Equal("Select a tag first", Warning(update));
+        Assert.Equal("Select a tag first", Warning(effects));
     }
 
     [Fact]
     public void GivenTheConfirmAnswered_WhenNothingRuns_ThenTheDeleteIsRequested()
     {
-        var update = Reduce(TagState.Empty, new TagDeleteConfirmed(Tab, "v1", Annotated));
+        var effects = Reduce(new TagDeleteConfirmed(Tab, "v1", Annotated));
 
-        var delete = Assert.IsType<DeleteTagEffect>(Assert.Single(update.Effects));
+        var delete = Assert.IsType<DeleteTagEffect>(Assert.Single(effects));
         Assert.Equal("v1", delete.Name);
     }
 
     [Fact]
     public void GivenTheConfirmAnswered_WhenAnotherOperationStartedMeanwhile_ThenNothingIsDeleted()
     {
-        var update = Reduce(TagState.Empty, new TagDeleteConfirmed(Tab, "v1", Annotated), busy: true);
+        var effects = Reduce(new TagDeleteConfirmed(Tab, "v1", Annotated), busy: true);
 
-        Assert.DoesNotContain(update.Effects, effect => effect is TagEffect);
-        Assert.Equal($"{TagReducer.BusyNotice}; nothing was deleted", Warning(update));
+        Assert.DoesNotContain(effects, effect => effect is TagEffect);
+        Assert.Equal($"{TagReducer.BusyNotice}; nothing was deleted", Warning(effects));
     }
 
     [Fact]
@@ -191,86 +175,69 @@ public class TagReducerTests
     {
         var refs = Tags(("v1", Commit, Commit));
 
-        var update = Reduce(TagState.Empty, new TagPushRequested(Tab, Graph(Commit)), refs);
+        var effects = Reduce(new TagPushRequested(Tab, Graph(Commit)), refs);
 
-        var list = Assert.IsType<ListTagRemotesEffect>(Assert.Single(update.Effects));
+        var list = Assert.IsType<ListTagRemotesEffect>(Assert.Single(effects));
         Assert.Equal("v1", list.Name);
         Assert.True(list.Push);
     }
 
     [Fact]
-    public void GivenNoRemote_WhenTheRemotesLoad_ThenNoPromptOpensAndTheWarningSaysSo()
+    public void GivenNoRemote_WhenTheRemotesLoad_ThenNoPromptIsRequestedAndTheWarningSaysSo()
     {
-        var update = Reduce(TagState.Empty, new TagRemotesLoaded(Tab, "v1", true, []));
+        var effects = Reduce(new TagRemotesLoaded(Tab, "v1", true, []));
 
-        Assert.Null(update.State.Prompt);
-        Assert.Equal("There is no remote: add one first", Warning(update));
+        Assert.DoesNotContain(effects, effect => effect is ShowPromptEffect);
+        Assert.Equal("There is no remote: add one first", Warning(effects));
     }
 
     [Fact]
-    public void GivenTheTabWasLeft_WhenTheRemotesLoad_ThenNoPromptOpens()
+    public void GivenTheTabWasLeft_WhenTheRemotesLoad_ThenNoPromptIsRequested()
     {
-        var update = Reduce(TagState.Empty, new TagRemotesLoaded(Tab, "v1", true, ["origin"]), active: false);
+        var effects = Reduce(new TagRemotesLoaded(Tab, "v1", true, ["origin"]), active: false);
 
-        Assert.Null(update.State.Prompt);
-        Assert.Empty(update.Effects);
+        Assert.Empty(effects);
     }
 
     [Fact]
-    public void GivenTwoRemotes_WhenTyping_ThenOnlyMatchingRemotesAreOffered()
+    public void GivenTwoRemotes_WhenTheRemotesLoadForAPush_ThenAPickerOverThemIsRequested()
     {
-        var opened = Reduce(TagState.Empty, new TagRemotesLoaded(Tab, "v1", true, ["origin", "backup"]));
-        Assert.Equal(2, opened.State.Prompt!.Candidates.Length);
+        var effects = Reduce(new TagRemotesLoaded(Tab, "v1", true, ["origin", "backup"]));
 
-        var typed = Reduce(opened.State, new TagPromptTextChanged(Tab, "bac"));
-
-        Assert.Equal(["backup"], typed.State.Prompt!.Candidates);
+        var request = Assert.IsType<ShowPromptEffect>(Assert.Single(effects)).Request;
+        Assert.Equal("Push tag", request.Title);
+        Assert.Equal("Remote to push v1 to", request.Context);
+        Assert.Equal(["origin", "backup"], request.Choices!.Value.Select(choice => choice.Value));
+        Assert.Equal(TagReducer.NoRemoteMatch, request.NoMatch);
+        Assert.Equal(new TagRemoteAnswer(Tab, "v1", true), request.OnAccepted);
     }
 
     [Fact]
-    public void GivenTwoRemotes_WhenMovingUpFromTheFirst_ThenTheHighlightWrapsToTheLast()
+    public void GivenARemoteDelete_WhenTheRemotesLoad_ThenThePickerSaysItDeletes()
     {
-        var opened = Reduce(TagState.Empty, new TagRemotesLoaded(Tab, "v1", true, ["origin", "backup"]));
+        var effects = Reduce(new TagRemotesLoaded(Tab, "v1", false, ["origin"]));
 
-        var moved = Reduce(opened.State, new TagPromptMoved(Tab, -1));
-
-        Assert.Equal(1, moved.State.Prompt!.Index);
+        var request = Assert.IsType<ShowPromptEffect>(Assert.Single(effects)).Request;
+        Assert.Equal("Delete tag on remote", request.Title);
+        Assert.Equal("Remote to delete v1 from", request.Context);
+        Assert.Equal(new TagRemoteAnswer(Tab, "v1", false), request.OnAccepted);
     }
 
     [Fact]
-    public void GivenAChosenRemote_WhenAcceptingAPush_ThenOnlyThatTagGoesToThatRemote()
+    public void GivenAChosenRemote_WhenAPushIsChosen_ThenOnlyThatTagGoesToThatRemote()
     {
-        var opened = Reduce(TagState.Empty, new TagRemotesLoaded(Tab, "v1", true, ["origin", "backup"]));
-        var moved = Reduce(opened.State, new TagPromptMoved(Tab, 1));
+        var effects = Reduce(new TagRemoteChosen(Tab, "v1", true, "backup"));
 
-        var update = Reduce(moved.State, new TagPromptAccepted(Tab));
-
-        var push = Assert.Single(update.Effects.OfType<PushTagEffect>());
+        var push = Assert.IsType<PushTagEffect>(Assert.Single(effects));
         Assert.Equal(("backup", "v1"), (push.Remote, push.Name));
-        Assert.Null(update.State.Prompt);
     }
 
     [Fact]
-    public void GivenNoMatchingRemote_WhenAccepting_ThenThePromptStaysOpenWithAWarning()
+    public void GivenARemote_WhenARemoteDeleteIsChosen_ThenTheConfirmNamesRemoteAndTagAndTheLocalTagStays()
     {
-        var opened = Reduce(TagState.Empty, new TagRemotesLoaded(Tab, "v1", true, ["origin"]));
-        var typed = Reduce(opened.State, new TagPromptTextChanged(Tab, "zzz"));
+        var effects = Reduce(new TagRemoteChosen(Tab, "v1", false, "origin"));
 
-        var update = Reduce(typed.State, new TagPromptAccepted(Tab));
-
-        Assert.NotNull(update.State.Prompt);
-        Assert.Equal("No matching remote", Warning(update));
-        Assert.DoesNotContain(update.Effects, effect => effect is TagEffect);
-    }
-
-    [Fact]
-    public void GivenARemote_WhenAcceptingARemoteDelete_ThenTheConfirmNamesRemoteAndTagAndTheLocalTagStays()
-    {
-        var opened = Reduce(TagState.Empty, new TagRemotesLoaded(Tab, "v1", false, ["origin"]));
-
-        var update = Reduce(opened.State, new TagPromptAccepted(Tab));
-
-        var confirm = Assert.Single(update.Effects.OfType<ShowConfirmEffect>());
+        var confirm = Assert.Single(effects.OfType<ShowConfirmEffect>());
         Assert.Contains("v1", confirm.Prompt.Lines[0]);
         Assert.Contains("origin", confirm.Prompt.Lines[0]);
         Assert.Equal("The local tag stays.", confirm.Prompt.Lines[1]);
@@ -280,12 +247,12 @@ public class TagReducerTests
     [Fact]
     public void GivenASuccess_WhenReducing_ThenTheTabIsRefreshedAndTheTextIsPosted()
     {
-        var update = Reduce(TagState.Empty, new TagOperationSucceeded(Tab, "Created tag v1"));
+        var effects = Reduce(new TagOperationSucceeded(Tab, "Created tag v1"));
 
         Assert.Contains(
-            update.Effects,
+            effects,
             effect => effect is PostStatusEffect { Text: "Created tag v1", Severity: StatusSeverity.Info });
-        Assert.Contains(update.Effects, effect => effect is RefreshTabEffect);
+        Assert.Contains(effects, effect => effect is RefreshTabEffect);
     }
 
     [Fact]
@@ -293,36 +260,36 @@ public class TagReducerTests
     {
         var retry = new TagRetry("Tag push", ["push", "origin", "refs/tags/v1"]);
 
-        var update = Reduce(TagState.Empty, new TagOperationFailed(Tab, "denied", retry));
+        var effects = Reduce(new TagOperationFailed(Tab, "denied", retry));
 
-        Assert.Contains(update.Effects, effect => effect is PostStatusEffect { Severity: StatusSeverity.Error });
-        var offer = Assert.Single(update.Effects.OfType<OfferTerminalRetryEffect>());
+        Assert.Contains(effects, effect => effect is PostStatusEffect { Severity: StatusSeverity.Error });
+        var offer = Assert.Single(effects.OfType<OfferTerminalRetryEffect>());
         Assert.Equal("Tag push", offer.Noun);
     }
 
     [Fact]
     public void GivenAFailureWithoutCredentials_WhenReducing_ThenNoRetryIsOfferedButTheTabIsRefreshed()
     {
-        var update = Reduce(TagState.Empty, new TagOperationFailed(Tab, "rejected", null));
+        var effects = Reduce(new TagOperationFailed(Tab, "rejected", null));
 
-        Assert.DoesNotContain(update.Effects, effect => effect is OfferTerminalRetryEffect);
-        Assert.Contains(update.Effects, effect => effect is RefreshTabEffect);
+        Assert.DoesNotContain(effects, effect => effect is OfferTerminalRetryEffect);
+        Assert.Contains(effects, effect => effect is RefreshTabEffect);
     }
 
     [Fact]
     public void GivenTheRemotesFailed_WhenReducing_ThenTheErrorIsPostedWithoutRefreshing()
     {
-        var update = Reduce(TagState.Empty, new TagRemotesFailed(Tab, "no remotes"));
+        var effects = Reduce(new TagRemotesFailed(Tab, "no remotes"));
 
-        Assert.Equal(StatusSeverity.Error, Assert.IsType<PostStatusEffect>(Assert.Single(update.Effects)).Severity);
+        Assert.Equal(StatusSeverity.Error, Assert.IsType<PostStatusEffect>(Assert.Single(effects)).Severity);
     }
 
     [Fact]
     public void GivenACancelledOperation_WhenReducing_ThenNothingIsPosted()
     {
-        var update = Reduce(TagState.Empty, new TagOperationCancelled(Tab));
+        var effects = Reduce(new TagOperationCancelled(Tab));
 
-        Assert.Empty(update.Effects);
+        Assert.Empty(effects);
     }
 
     [Fact]
@@ -330,14 +297,12 @@ public class TagReducerTests
     {
         var commands = ConcreteSubtypes.InstancesOf<TagCommand>();
         Assert.NotEmpty(commands);
-        var prompt = Typed(TagPromptKind.CreateName, "x").Prompt;
-        var state = new TagState(prompt);
 
         foreach (var command in commands)
         {
             try
             {
-                TagReducer.Reduce(state, command, Context([], true));
+                TagReducer.Reduce(command, Context([], true));
             }
             catch (UnhandledCommandException)
             {
@@ -350,13 +315,12 @@ public class TagReducerTests
         }
     }
 
-    private static TagUpdate Reduce(
-        TagState state,
+    private static ImmutableArray<AppEffect> Reduce(
         TagCommand command,
         ImmutableArray<GitRef>? refs = null,
         bool active = true,
         bool busy = false) =>
-        TagReducer.Reduce(state, command, Context(refs ?? [], active, busy));
+        TagReducer.Reduce(command, Context(refs ?? [], active, busy));
 
     private static TagContext Context(ImmutableArray<GitRef> refs, bool active, bool busy = false) =>
         new(Tab, Location(), refs, active, busy);
@@ -369,15 +333,6 @@ public class TagReducerTests
     }
 
     private static TagTarget Graph(string commit) => new(null, null, commit);
-
-    private static TagState Typed(TagPromptKind kind, string text, string newName = "")
-    {
-        var opened = TagReducer.Reduce(
-            TagState.Empty,
-            new TagCreateRequested(Tab, Graph(Commit)),
-            Context([], true)).State;
-        return new TagState(opened.Prompt! with { Kind = kind, Text = text, NewName = newName });
-    }
 
     private static ImmutableArray<GitRef> Tags(params (string Name, string ObjectHash, string CommitHash)[] tags) =>
     [
@@ -396,9 +351,9 @@ public class TagReducerTests
             null)),
     ];
 
-    private static string Warning(TagUpdate update)
+    private static string Warning(ImmutableArray<AppEffect> effects)
     {
-        var post = Assert.IsType<PostStatusEffect>(Assert.Single(update.Effects.OfType<PostStatusEffect>()));
+        var post = Assert.IsType<PostStatusEffect>(Assert.Single(effects.OfType<PostStatusEffect>()));
         Assert.Equal(StatusSeverity.Warning, post.Severity);
         return post.Text;
     }

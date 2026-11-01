@@ -11,6 +11,7 @@ using Gitunia.Core.Shell;
 using Gitunia.Core.Running;
 using Gitunia.Core.Sidebar;
 using Gitunia.Core.Status;
+using Gitunia.Core.Prompts;
 using Gitunia.Core.Tags;
 using Gitunia.Core.Tests.Fixtures;
 using Gitunia.Core.Workspaces;
@@ -31,18 +32,39 @@ public class EffectPipelineTests
 
         pipeline.Dispatch(new TagCreateRequested(pipeline.TabId, new TagTarget(null, null, repository.Head)));
         Assert.Equal(KeyMode.Insert, pipeline.Host.State.Shell.Mode);
-        pipeline.Dispatch(new TagPromptTextChanged(pipeline.TabId, "v1"));
-        pipeline.Dispatch(new TagPromptAccepted(pipeline.TabId));
-        Assert.Equal(TagPromptKind.CreateMessage, pipeline.Tags.Prompt!.Kind);
+        Assert.Equal("New tag", pipeline.Prompt!.Title);
+        pipeline.Type("v1");
+        pipeline.Dispatch(new PromptAcceptedCommand());
+        Assert.Equal("Tag message", pipeline.Prompt!.Title);
         Assert.Equal(KeyMode.Insert, pipeline.Host.State.Shell.Mode);
-        pipeline.Dispatch(new TagPromptAccepted(pipeline.TabId));
+        pipeline.Dispatch(new PromptAcceptedCommand());
+        Assert.Null(pipeline.Prompt);
         Assert.True(pipeline.IsTagRunning);
         await pipeline.Pump.RunUntilAsync(() => !pipeline.IsTagRunning);
 
         Assert.Equal(repository.Head, repository.Git("rev-parse", "v1").Trim());
-        Assert.Null(pipeline.Tags.Prompt);
+        Assert.Null(pipeline.Prompt);
         Assert.Contains("lightweight tag v1", pipeline.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
         Assert.Equal(KeyMode.Normal, pipeline.Host.State.Shell.Mode);
+    }
+
+    [Fact]
+    public async Task GivenATab_WhenRenamingItThroughThePromptCommands_ThenTheTitleChangesAndTheModeGoesBack()
+    {
+        using var repository = TestRepositories.Linear();
+        using var pipeline = await Pipeline.OpenAsync(TestGit.Services, repository);
+        var original = pipeline.Host.Workspace.FindTab(pipeline.TabId)!.Title;
+
+        pipeline.Dispatch(new TabRenameRequested(pipeline.TabId));
+        Assert.Equal(original, pipeline.Prompt!.Text);
+        Assert.Equal(KeyMode.Insert, pipeline.Host.State.Shell.Mode);
+        pipeline.Type("-2");
+        pipeline.Dispatch(new PromptAcceptedCommand());
+
+        Assert.Equal($"{original}-2", pipeline.Host.Workspace.FindTab(pipeline.TabId)!.Title);
+        Assert.Null(pipeline.Prompt);
+        Assert.Equal(KeyMode.Normal, pipeline.Host.State.Shell.Mode);
+        Assert.Equal($"tab is now {original}-2", pipeline.Statuses.Log.Latest!.Text);
     }
 
     [Fact]
@@ -94,7 +116,7 @@ public class EffectPipelineTests
 
         pipeline.Dispatch(new TagCreateRequested(pipeline.TabId, new TagTarget(null, null, repository.Head)));
 
-        Assert.Null(pipeline.Tags.Prompt);
+        Assert.Null(pipeline.Prompt);
         Assert.Equal(TagReducer.BusyNotice, pipeline.Statuses.Log.Latest!.Text);
     }
 
@@ -159,9 +181,9 @@ public class EffectPipelineTests
         var writer = new AuthFailingTagWriter(TestGit.Services.Tags, "git@host: Permission denied (publickey).");
         using var pipeline = await Pipeline.OpenAsync(TestGit.Services with { Tags = writer }, repository);
         pipeline.Dispatch(new TagPushRequested(pipeline.TabId, new TagTarget(SidebarRowKind.Tag, "v1", repository.Head)));
-        await pipeline.Pump.RunUntilAsync(() => pipeline.Tags.Prompt is not null);
+        await pipeline.Pump.RunUntilAsync(() => pipeline.Prompt is not null);
 
-        pipeline.Dispatch(new TagPromptAccepted(pipeline.TabId));
+        pipeline.Dispatch(new PromptAcceptedCommand());
         await pipeline.Pump.RunUntilAsync(() => !pipeline.IsTagRunning);
 
         Assert.Equal(["Tag push|push -- origin refs/tags/v1"], pipeline.Shell.Retries);
@@ -181,9 +203,9 @@ public class EffectPipelineTests
         Assert.Equal(2, pipeline.Background.Waiting);
 
         pipeline.Dispatch(new TagCreateRequested(pipeline.TabId, new TagTarget(null, null, repository.Head)));
-        pipeline.Dispatch(new TagPromptTextChanged(pipeline.TabId, "v1"));
-        pipeline.Dispatch(new TagPromptAccepted(pipeline.TabId));
-        pipeline.Dispatch(new TagPromptAccepted(pipeline.TabId));
+        pipeline.Type("v1");
+        pipeline.Dispatch(new PromptAcceptedCommand());
+        pipeline.Dispatch(new PromptAcceptedCommand());
         await pipeline.Pump.RunUntilAsync(() => !pipeline.IsTagRunning);
 
         Assert.Equal(repository.Head, repository.Git("rev-parse", "v1").Trim());
@@ -236,7 +258,7 @@ public class EffectPipelineTests
 
         public bool HasRefs => Host.Workspace.FindTab(TabId)!.Refs.Length > 0;
 
-        public TagState Tags => Host.Workspace.FindTab(TabId)!.Tags;
+        public OpenPrompt? Prompt => Host.State.Shell.Prompt;
 
         public bool IsTagRunning => Host.Workspace.FindTab(TabId)!.Running.IsRunning(RunningOperationKind.Tags);
 
@@ -268,6 +290,14 @@ public class EffectPipelineTests
         }
 
         public void Dispatch(AppCommand command) => Host.Dispatch(command);
+
+        public void Type(string text)
+        {
+            foreach (var character in text)
+            {
+                Host.Dispatch(new PromptKeyPressedCommand(new KeyEvent(character.ToString())));
+            }
+        }
 
         public void Dispose() => _runner.Dispose();
     }

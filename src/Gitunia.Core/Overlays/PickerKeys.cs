@@ -1,7 +1,7 @@
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 
-namespace Gitunia.Tui.Input;
+namespace Gitunia.Core.Overlays;
 
 /// <summary>
 /// The keys that move the highlight of a type-to-filter picker. Letters filter, so the vim-style moves are

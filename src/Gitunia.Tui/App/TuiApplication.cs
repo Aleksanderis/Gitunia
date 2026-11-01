@@ -62,6 +62,7 @@ using Gitunia.Tui.App.Settings;
 using Gitunia.Tui.App.Sidebar;
 using Gitunia.Tui.App.Stash;
 using Gitunia.Tui.App.Tabs;
+using Gitunia.Tui.App.Prompts;
 using Gitunia.Tui.App.Tags;
 using Gitunia.Tui.App.WorkingTree;
 using Gitunia.Tui.App.Worktrees;
@@ -139,7 +140,8 @@ public sealed class TuiApplication(
     private ConsoleCapabilities _capabilities = detectedCapabilities;
     private CommitActions _commits = null!;
     private BranchActions _branches = null!;
-    private TagPromptHandler _tags = null!;
+    private TagActions _tags = null!;
+    private PromptInputHandler _openPrompt = null!;
     private ClipboardCopier _clipboard = null!;
     private RemoteActions _remote = null!;
     private ExternalToolRunner _externalToolRunner = null!;
@@ -250,7 +252,7 @@ public sealed class TuiApplication(
 
         _commits = CreateCommits();
         _branches = CreateBranches();
-        _tags = new TagPromptHandler(_host, this);
+        _tags = new TagActions(_host, this);
         _view.ActiveDraft = () => _host.Workspace.ActiveTabId is { } tabId ? _commits.DraftOf(tabId) : null;
         _view.IsEditingMessage = () => _commits.ShowsCursor;
         _router = new ActionRouter(
@@ -301,6 +303,8 @@ public sealed class TuiApplication(
         };
         _router.Branches = _branches;
         _router.Tags = _tags;
+        _openPrompt = new PromptInputHandler(_host);
+        _router.OpenPrompt = _openPrompt;
         // The tool runner comes before the remote actions, whose terminal retry launches git through it.
         _externalToolRunner = new ExternalToolRunner(
             new ExternalToolLauncher(),
@@ -1869,10 +1873,9 @@ public sealed class TuiApplication(
         return
         [
             // The prompt that owns Insert mode must see Esc and Enter first, so the ref prompt comes before the search.
-            new TabRenameController(_host, _view.RefreshChrome),
+            _openPrompt,
             CreateQuickRebase(gate),
             _branches,
-            _tags,
             _push,
             _remoteManagement,
             _reset,

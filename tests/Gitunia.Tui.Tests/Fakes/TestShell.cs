@@ -4,14 +4,16 @@ using Gitunia.Core;
 using Gitunia.Core.Effects;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Overlays;
+using Gitunia.Core.Prompts;
 using Gitunia.Core.Shell;
 
 namespace Gitunia.Tui.Tests.Fakes;
 
 /// <summary>
 /// The shell state of a test: a dispatcher whose confirm dialogs, key mode, status messages and output box are the
-/// real ones (<see cref="ShellState"/>). It records every dialog that was shown, answers them like a user and runs the
-/// callbacks of controllers that have not moved to commands yet, as the effect runner does in the app.
+/// real ones (<see cref="ShellState"/>). It records every dialog that was shown, answers them like a user, runs the
+/// callbacks of controllers that have not moved to commands yet and opens the prompts that reducers ask for, as the
+/// effect runner does in the app.
 /// </summary>
 public sealed class TestShell
 {
@@ -78,6 +80,10 @@ public sealed class TestShell
         if (effect is RunActionEffect run)
         {
             run.Run();
+        }
+        else if (effect is ShowPromptEffect prompt)
+        {
+            Host.Dispatch(new PromptRequestedCommand(prompt.Request));
         }
     }
 
