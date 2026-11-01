@@ -59,7 +59,7 @@ Only the active tab loads (lazy restore); a visited small tab adds ~0.5-1 MB. Ba
 
 ## Background work (#993)
 
-Polls of hidden tabs, the worktree overview, commit and diff prefetch and issue-link reads run through `BackgroundWork`: at most 8 at once (`DefaultLimit`, `Gitunia.App/Background/`), the rest wait. Each job runs its reads one after the other, so this also caps the processes background work can start at 8. User effects and the load of the shown tab bypass it. Unchanged by the queue on the 5000-commit repository (`scripts/measure.sh`, AOT, before/after in the #993 PR): the queue only waits when more than 8 jobs overlap, which a single user's navigation does not reach.
+Polls of hidden tabs, the worktree overview, commit and diff prefetch and issue-link reads run through `BackgroundWork`: at most 8 at once (`DefaultLimit`, `Gitunia.App/Background/`), the rest wait. Each job runs its reads one after the other, so this also caps the processes background work can start at 8. User effects and the load of the shown tab bypass it. Measured on the 5000-commit repository (`scripts/measure.sh`, AOT, 120x40, two alternating rounds of main and the #993 branch): cold start 59-62 ms vs 60-68 ms, `j` key latency median 15-24 ms vs 17 ms, page scroll 17-23 ms vs 17 ms, RSS 52-53 MB both; the differences are inside the run-to-run noise of the harness. The queue only waits when more than 8 jobs overlap, which a single user's navigation does not reach.
 
 ## Bounded memory
 

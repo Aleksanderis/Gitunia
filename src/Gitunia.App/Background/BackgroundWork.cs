@@ -3,7 +3,7 @@ namespace Gitunia.App.Background;
 /// <summary>
 /// Runs at most <see cref="DefaultLimit"/> background jobs at once; the others wait in arrival order. A git read is a
 /// process, so the limit also bounds the processes background work can start (docs/internal/performance.md,
-/// "Background queue"). Thread safe.
+/// "Background work"). Thread safe.
 /// </summary>
 public sealed class BackgroundWork : IBackgroundWork, IDisposable
 {
@@ -45,9 +45,22 @@ public sealed class BackgroundWork : IBackgroundWork, IDisposable
         finally
         {
             Interlocked.Decrement(ref _running);
-            _slots.Release();
+            ReleaseSlot();
         }
     }
 
+    /// <summary>Frees the semaphore. A job still running at shutdown frees its slot into nothing.</summary>
     public void Dispose() => _slots.Dispose();
+
+    private void ReleaseSlot()
+    {
+        try
+        {
+            _slots.Release();
+        }
+        catch (ObjectDisposedException)
+        {
+            // Disposed with the runner while this job was running.
+        }
+    }
 }
