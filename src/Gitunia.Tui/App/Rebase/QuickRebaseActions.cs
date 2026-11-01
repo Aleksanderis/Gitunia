@@ -3,6 +3,7 @@ using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Overlays;
 using Gitunia.Core.Search;
 using Gitunia.Core.Status;
+using Gitunia.Core.Text;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Operations.Models;
@@ -77,7 +78,7 @@ public sealed class QuickRebaseActions(
 
             return PromptPopup.ForText(
                 "Reword commit",
-                $"New subject for {RebaseGuard.ShortHash(_plan.Commit)}; the rest of the message is kept",
+                $"New subject for {ShortHash.Of(_plan.Commit)}; the rest of the message is kept",
                 _text,
                 "next");
         }
@@ -162,7 +163,7 @@ public sealed class QuickRebaseActions(
     }
 
     private static string Quoted(QuickRebasePlan plan) =>
-        $"{RebaseGuard.ShortHash(plan.Commit)} \"{plan.Subject}\"";
+        $"{ShortHash.Of(plan.Commit)} \"{plan.Subject}\"";
 
     private static ConfirmPrompt PromptFor(QuickRebaseTarget target, GitRef? current, string? autoStashNote)
     {
@@ -203,7 +204,7 @@ public sealed class QuickRebaseActions(
             yes);
     }
 
-    private static string QuotedCommit(string hash, string subject) => $"{RebaseGuard.ShortHash(hash)} \"{subject}\"";
+    private static string QuotedCommit(string hash, string subject) => $"{ShortHash.Of(hash)} \"{subject}\"";
 
     private static string VerbOf(QuickRebaseKind kind) => kind switch
     {
@@ -225,13 +226,13 @@ public sealed class QuickRebaseActions(
         {
             return new OperationReport(
                 $"{noun} of {Quoted(plan)} stopped on conflicts: resolve the files marked !, then " +
-                $"<space>gc (continue), <space>ga (abort, back to {RebaseGuard.ShortHash(result.OriginalHead)})",
+                $"<space>gc (continue), <space>ga (abort, back to {ShortHash.Of(result.OriginalHead)})",
                 StatusSeverity.Warning);
         }
 
         return new OperationReport(
-            $"{done} {Quoted(plan)} on {target.BranchName} ({RebaseGuard.ShortHash(result.Head ?? string.Empty)}), " +
-            $"was {RebaseGuard.ShortHash(result.OriginalHead)}; undo: git reset --keep {result.OriginalHead} " +
+            $"{done} {Quoted(plan)} on {target.BranchName} ({ShortHash.Of(result.Head)}), " +
+            $"was {ShortHash.Of(result.OriginalHead)}; undo: git reset --keep {result.OriginalHead} " +
             "(or ORIG_HEAD, the reflog)",
             StatusSeverity.Info);
     }
@@ -337,7 +338,7 @@ public sealed class QuickRebaseActions(
             postToUi(() =>
             {
                 _asking.Remove(tabId);
-                statuses.Error($"Could not {VerbOf(kind)} {RebaseGuard.ShortHash(hash)}: {reason}");
+                statuses.Error($"Could not {VerbOf(kind)} {ShortHash.Of(hash)}: {reason}");
             });
         }
     }

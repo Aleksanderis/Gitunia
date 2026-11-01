@@ -1,4 +1,5 @@
 using Gitunia.Core.Status;
+using Gitunia.Core.Text;
 using Gitunia.Git.Pick;
 using Gitunia.Tui.App.Operations;
 using Gitunia.Tui.App.WorkingTree;
@@ -21,28 +22,28 @@ public static class PickTexts
         }
 
         var commit = commits[0];
-        var shortHash = OperationTexts.ShortHash(commit.Hash);
+        var shortHash = ShortHash.Of(commit.Hash);
         return commit.Subject.Length == 0 ? shortHash : $"{shortHash} {commit.Subject}";
     }
 
     public static string MainlinePrompt(PickKind kind, PickCommit merge)
     {
         var parents = merge.Parents.Select((parent, index) => $"[{index + 1}] {Parent(parent)}");
-        return $"{Verb(kind)} merge commit {OperationTexts.ShortHash(merge.Hash)}: keep the mainline of " +
+        return $"{Verb(kind)} merge commit {ShortHash.Of(merge.Hash)}: keep the mainline of " +
             $"{string.Join("  ", parents)}  (Esc cancels)";
     }
 
     /// <summary>The title of the mainline overlay.</summary>
     public static string MainlineTitle(PickKind kind, PickCommit merge) =>
-        $"{Verb(kind)} merge commit {OperationTexts.ShortHash(merge.Hash)}: keep the mainline of";
+        $"{Verb(kind)} merge commit {ShortHash.Of(merge.Hash)}: keep the mainline of";
 
     /// <summary>The rows of the mainline overlay, one per parent of the merge commit.</summary>
     public static IReadOnlyList<string> MainlineRows(PickCommit merge) => merge.Parents.Select(Parent).ToList();
 
     public static OperationReport Report(PickResult result, PickKind kind, string target, string what)
     {
-        var tip = OperationTexts.ShortHash(result.Head);
-        var was = OperationTexts.ShortHash(result.OldHead);
+        var tip = ShortHash.Of(result.Head);
+        var was = ShortHash.Of(result.OldHead);
         var verb = Verb(kind);
         return result.Outcome switch
         {
@@ -65,7 +66,7 @@ public static class PickTexts
 
     private static string Parent(PickParent parent)
     {
-        var shortHash = OperationTexts.ShortHash(parent.Hash);
+        var shortHash = ShortHash.Of(parent.Hash);
         return parent.Subject.Length == 0 ? shortHash : $"{shortHash} {parent.Subject}";
     }
 }

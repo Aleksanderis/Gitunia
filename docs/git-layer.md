@@ -16,7 +16,7 @@ Contract between `Gitunia.Git` and everything above it: the rules every caller a
 
 ### Runner (`GitRunner`)
 
-- `RunAsync` collects output; `StreamAsync` yields stdout chunks (idle timeout that pauses while the consumer works, errors surface after the last chunk, disposing early kills git). Errors are `GitCommandFailedException` (exit code not in `AcceptedExitCodes`), `GitTimeoutException`, `GitNotFoundException`, `GitVersionTooOldException`; cancellation raises `OperationCanceledException`; timeout or cancel kills the whole process tree.
+- `RunAsync` collects output; `StreamAsync` yields stdout chunks (idle timeout that pauses while the consumer works, errors surface after the last chunk, disposing early kills git). A chunk is a view of one pooled 64 KiB buffer, valid only until the next chunk is requested: parse or copy it first. Errors are `GitCommandFailedException` (exit code not in `AcceptedExitCodes`), `GitTimeoutException`, `GitNotFoundException`, `GitVersionTooOldException`; cancellation raises `OperationCanceledException`; timeout or cancel kills the whole process tree.
 - Stdin is closed at once unless the call sets `GitRunOptions.StandardInput` (patches, `commit -F -`, paths; `RunAsync` only). Read-only polling passes `ReadOnly: true`; mutating calls never do. `GitRunnerOptions.EnvironmentOverrides` is for tests only. `OnStandardErrorLine` reports stderr segments (split at LF and CR) and makes the timeout an idle limit.
 
 ### Remote calls (`RemoteRunner`, `IRemoteWriter`)

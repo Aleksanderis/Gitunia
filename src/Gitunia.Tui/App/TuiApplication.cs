@@ -1,3 +1,4 @@
+using Gitunia.Core.Text;
 using System.Collections.Immutable;
 using Gitunia.Core.Clipboard;
 using Gitunia.Core.Conflicts;
@@ -89,7 +90,6 @@ public sealed class TuiApplication(
     private const ushort IdleIterationsPerSecond = 50;
     private static readonly TimeSpan IdleAfter = TimeSpan.FromSeconds(2);
     private const long OverlayDoubleClickGuardMilliseconds = 600;
-    private const int ShortHashLength = 7;
     private const int HeadlessColumns = 120;
     private const int HeadlessRows = 40;
     private static readonly TimeSpan SaveDebounce = TimeSpan.FromMilliseconds(500);
@@ -1781,7 +1781,7 @@ public sealed class TuiApplication(
         var index = graph.IndexOf(id);
         if (index < 0)
         {
-            var shortHash = hash[..Math.Min(ShortHashLength, hash.Length)];
+            var shortHash = ShortHash.Of(hash);
             if (_effects.SessionOf(tabId)?.IsLoading == true)
             {
                 return $"{shortHash} is not loaded yet";

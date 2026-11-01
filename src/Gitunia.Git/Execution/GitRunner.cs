@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
@@ -39,8 +40,11 @@ public sealed class GitRunner
         return RunCoreAsync(BuildArguments(repositoryPath, arguments), runOptions ?? GitRunOptions.Default, cancellationToken);
     }
 
-    /// <summary>Streams stdout in chunks as git produces it. Errors surface after the last chunk; disposing early kills git.</summary>
-    public IAsyncEnumerable<byte[]> StreamAsync(
+    /// <summary>
+    /// Streams stdout in chunks as git produces it. Errors surface after the last chunk; disposing early kills git. A
+    /// chunk is a view of a pooled buffer: it is valid only until the next chunk is requested, so parse or copy it first.
+    /// </summary>
+    public IAsyncEnumerable<ReadOnlyMemory<byte>> StreamAsync(
         string repositoryPath,
         IReadOnlyList<string> arguments,
         GitRunOptions? runOptions = null,
@@ -230,7 +234,7 @@ public sealed class GitRunner
         }
     }
 
-    private async IAsyncEnumerable<byte[]> StreamCoreAsync(
+    private async IAsyncEnumerable<ReadOnlyMemory<byte>> StreamCoreAsync(
         IReadOnlyList<string> arguments,
         GitRunOptions runOptions,
         [EnumeratorCancellation] CancellationToken cancellationToken)
@@ -242,7 +246,7 @@ public sealed class GitRunner
         var errorTask = process.StandardError.ReadToEndAsync(linked.Token);
         await WriteInputAsync(process, null, linked.Token).ConfigureAwait(false);
         var output = process.StandardOutput.BaseStream;
-        var buffer = new byte[ReadBufferSize];
+        var buffer = ArrayPool<byte>.Shared.Rent(ReadBufferSize);
         try
         {
             while (true)
@@ -265,7 +269,7 @@ public sealed class GitRunner
                     break;
                 }
 
-                yield return buffer.AsSpan(0, count).ToArray();
+                yield return buffer.AsMemory(0, count);
             }
 
             timeoutSource.CancelAfter(timeout);
@@ -275,6 +279,7 @@ public sealed class GitRunner
         {
             // Early disposal, cancellation, timeout and failures all end here.
             KillQuietly(process);
+            ArrayPool<byte>.Shared.Return(buffer);
         }
     }
 

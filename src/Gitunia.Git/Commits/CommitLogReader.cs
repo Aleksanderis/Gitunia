@@ -36,7 +36,7 @@ public sealed class CommitLogReader : ICommitLogReader
             .StreamAsync(location.CommandPath, arguments, GitRunOptions.ReadOnlyRun, cancellationToken)
             .ConfigureAwait(false))
         {
-            parser.Feed(chunk, completed);
+            parser.Feed(chunk.Span, completed);
             foreach (var commit in completed)
             {
                 yield return commit;

@@ -1,3 +1,4 @@
+using Gitunia.Core.Text;
 using System.Collections.Immutable;
 using System.Globalization;
 using Gitunia.Core.Keymap;
@@ -12,7 +13,6 @@ namespace Gitunia.Core.Operations;
 /// banner.</summary>
 public static class OperationBannerBuilder
 {
-    private const int ShortHashLength = 7;
     private const string Gap = "  ";
 
     // The editor key is the global ConflictOpen binding; the text is not rebuilt from the keymap
@@ -110,7 +110,7 @@ public static class OperationBannerBuilder
             return info.Target ?? string.Empty;
         }
 
-        return info.Commit is { } commit ? commit[..Math.Min(ShortHashLength, commit.Length)] : string.Empty;
+        return info.Commit is { } commit ? ShortHash.Of(commit) : string.Empty;
     }
 
     private static string ConflictText(int count) => count switch

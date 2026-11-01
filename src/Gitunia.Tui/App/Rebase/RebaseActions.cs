@@ -3,6 +3,7 @@ using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Overlays;
 using Gitunia.Core.Sidebar;
 using Gitunia.Core.Status;
+using Gitunia.Core.Text;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Operations.Models;
@@ -113,7 +114,7 @@ public sealed class RebaseActions(
             return new OperationReport(
                 $"Rebase of {target.BranchName} onto {target.Label} stopped on conflicts: resolve the files " +
                 $"marked !, then <space>gc (continue), <space>ga (abort, back to " +
-                $"{RebaseGuard.ShortHash(target.OldTip)})",
+                $"{ShortHash.Of(target.OldTip)})",
                 StatusSeverity.Warning);
         }
 
@@ -124,8 +125,8 @@ public sealed class RebaseActions(
                 StatusSeverity.Info);
         }
 
-        var head = RebaseGuard.ShortHash(result.Head ?? string.Empty);
-        var was = RebaseGuard.ShortHash(target.OldTip);
+        var head = ShortHash.Of(result.Head);
+        var was = ShortHash.Of(target.OldTip);
         return new OperationReport(
             $"Rebased {target.BranchName} onto {target.Label} ({head}), was {was}; " +
             $"undo: git reset --keep {target.OldTip} (or ORIG_HEAD, the reflog)",
@@ -151,7 +152,7 @@ public sealed class RebaseActions(
             return refusal;
         }
 
-        var label = chosen.Name ?? RebaseGuard.ShortHash(hash);
+        var label = chosen.Name ?? ShortHash.Of(hash);
         var target = new RebaseTarget(tab.Id, hash, label, tab.Head!.BranchName!, tab.Head.CommitHash!);
         var current = tab.Refs.FirstOrDefault(
             candidate => candidate.IsCurrent && candidate.Kind == RefKind.LocalBranch);

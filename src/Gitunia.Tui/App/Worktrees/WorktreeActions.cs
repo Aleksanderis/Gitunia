@@ -4,6 +4,7 @@ using Gitunia.Core.Overlays;
 using Gitunia.Core.Search;
 using Gitunia.Core.Sidebar;
 using Gitunia.Core.Status;
+using Gitunia.Core.Text;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git;
@@ -53,7 +54,6 @@ public sealed class WorktreeActions(
 {
     private const string BusyNotice = "Busy: another operation on this tab is still running";
     private const string TooSmallNotice = "The screen is too small to ask: nothing was changed";
-    private const int ShortHashLength = 7;
     private const string NoWorktreeNotice = "Select a worktree in the sidebar first";
 
     private PromptStage _stage = PromptStage.None;
@@ -273,9 +273,8 @@ public sealed class WorktreeActions(
     private string? StartPointOf() =>
         selectedRow() is { Kind: not SidebarRowKind.Stash, CommitHash: { } hash } ? hash : selectedCommit();
 
-    private string StartText() => _startPoint is { } start ? $" (new, at {Shorten(start)})" : " (existing)";
+    private string StartText() => _startPoint is { } start ? $" (new, at {ShortHash.Of(start)})" : " (existing)";
 
-    private static string Shorten(string hash) => hash.Length > ShortHashLength ? hash[..ShortHashLength] : hash;
 
     private void AcceptPath(RepositoryState tab, string text)
     {

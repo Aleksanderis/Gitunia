@@ -1,6 +1,7 @@
 using Gitunia.Core.Operations;
 using Gitunia.Core.Overlays;
 using Gitunia.Core.Status;
+using Gitunia.Core.Text;
 using Gitunia.Git.Operations.Models;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Tui.App.WorkingTree;
@@ -14,7 +15,6 @@ namespace Gitunia.Tui.App.Operations;
 /// </summary>
 public static class OperationTexts
 {
-    private const int ShortHashLength = 7;
 
     public const string NoOperationNotice = "No merge, rebase, cherry-pick or revert is in progress";
 
@@ -22,9 +22,6 @@ public static class OperationTexts
         $"{OperationText.Plural(count, "file")} still conflicted: resolve and mark them (<space>a) first";
 
     public static string CannotSkipMerge => "A merge cannot be skipped: continue or abort it";
-
-    public static string ShortHash(string? hash) =>
-        hash is null ? string.Empty : hash[..Math.Min(ShortHashLength, hash.Length)];
 
     public static ConfirmPrompt AbortPrompt(OperationInfo info, string? branch, string? oldTip)
     {
@@ -44,7 +41,7 @@ public static class OperationTexts
     public static ConfirmPrompt SkipPrompt(OperationInfo info)
     {
         var name = OperationBannerBuilder.NameOf(info.Kind);
-        var commit = info.Commit is null ? "this commit" : ShortHash(info.Commit);
+        var commit = info.Commit is null ? "this commit" : ShortHash.Of(info.Commit);
         var subject = info.Subject is null ? string.Empty : $" {info.Subject}";
         return new ConfirmPrompt(
             $"Skip commit in {name}",
@@ -70,7 +67,7 @@ public static class OperationTexts
     public static OperationReport SkipReport(OperationInfo info, OperationResult result)
     {
         var name = OperationBannerBuilder.NameOf(info.Kind);
-        var skipped = $"Skipped {(info.Commit is null ? "the commit" : ShortHash(info.Commit))}";
+        var skipped = $"Skipped {(info.Commit is null ? "the commit" : ShortHash.Of(info.Commit))}";
 
         if (result.Outcome == OperationOutcome.Conflicted)
         {
@@ -78,14 +75,14 @@ public static class OperationTexts
         }
 
         return new OperationReport(
-            $"{skipped}; the {name} is finished ({ShortHash(result.Head)})",
+            $"{skipped}; the {name} is finished ({ShortHash.Of(result.Head)})",
             StatusSeverity.Info);
     }
 
     public static OperationReport AbortReport(OperationInfo info, string? branch, OperationResult result)
     {
         var name = OperationBannerBuilder.NameOf(info.Kind);
-        var at = branch is null ? ShortHash(result.Head) : $"{branch} at {ShortHash(result.Head)}";
+        var at = branch is null ? ShortHash.Of(result.Head) : $"{branch} at {ShortHash.Of(result.Head)}";
         return new OperationReport($"Aborted the {name}; back to {at}", StatusSeverity.Info);
     }
 
@@ -96,7 +93,7 @@ public static class OperationTexts
     {
         if (info.Kind == RepositoryOperation.Merge)
         {
-            return $"The working tree and index go back to {ShortHash(oldTip)}; the branch itself has not moved.";
+            return $"The working tree and index go back to {ShortHash.Of(oldTip)}; the branch itself has not moved.";
         }
 
         if (oldTip is null)
@@ -104,7 +101,7 @@ public static class OperationTexts
             return "Everything the operation changed is thrown away.";
         }
 
-        return $"{branch ?? "HEAD"} goes back to {ShortHash(oldTip)}; that commit stays in the reflog.";
+        return $"{branch ?? "HEAD"} goes back to {ShortHash.Of(oldTip)}; that commit stays in the reflog.";
     }
 
     private static OperationReport StoppedAgain(string done, string name) =>
@@ -114,7 +111,7 @@ public static class OperationTexts
 
     private static string Finished(OperationInfo info, string? branch, string? head)
     {
-        var tip = ShortHash(head);
+        var tip = ShortHash.Of(head);
         var into = branch is null ? string.Empty : $" into {branch}";
         return info.Kind switch
         {

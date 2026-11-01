@@ -5,6 +5,7 @@ using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Overlays;
 using Gitunia.Core.Persistence;
 using Gitunia.Core.Status;
+using Gitunia.Core.Text;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Repositories;
@@ -60,7 +61,6 @@ public sealed class CommitActions(
     Func<ConfirmPrompt, Action, bool>? showConfirm = null)
 {
     private const string StageAllQuestion = "Nothing is staged. Stage all changes and commit?";
-    private const int ShortHashLength = 7;
     private const string CancelledNotice = "Commit cancelled: check the history, git may have finished first";
 
     private static readonly FrozenSet<ActionId> NormalKeys = FrozenSet.ToFrozenSet(
@@ -598,7 +598,7 @@ public sealed class CommitActions(
 
     private void ApplyHeadMessage(CommitDraft draft, string? hash, string message)
     {
-        draft.ApplyHeadMessage(Short(hash ?? string.Empty), message);
+        draft.ApplyHeadMessage(ShortHash.Of(hash), message);
         redraw();
     }
 
@@ -782,13 +782,13 @@ public sealed class CommitActions(
 
     private static string SuccessMessage(CommitRequest request, CommitResult result, string? forcePushUpstream)
     {
-        var hash = Short(result.Hash);
+        var hash = ShortHash.Of(result.Hash);
         if (!request.Amend || result.PreviousHash is not { } previous)
         {
             return $"Committed {hash}";
         }
 
-        var old = Short(previous);
+        var old = ShortHash.Of(previous);
         var warning = string.Empty;
         if (forcePushUpstream is not null)
         {
@@ -860,7 +860,6 @@ public sealed class CommitActions(
 
     private static string OnOff(bool isOn) => isOn ? "on" : "off";
 
-    private static string Short(string hash) => hash.Length > ShortHashLength ? hash[..ShortHashLength] : hash;
 
     private void Send(RepositoryState tab, RepositoryCommand command) => host.Dispatch(new TabCommand(tab.Id, command));
 }
