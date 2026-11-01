@@ -14,12 +14,17 @@ public enum RunningOperationKind
 
     /// <summary>A rebase onto a commit or a quick fixup, reword or drop: planning, counting merges or rebasing.</summary>
     Rebase,
+    /// <summary>A reset, a merge, or continuing, aborting or skipping the operation in progress.</summary>
+    Integration,
 
     /// <summary>A remote management operation: add, remove, rename, set the URL, or reading the remotes for the prompt.</summary>
     Remotes,
 
     /// <summary>A stash operation: push, apply, pop, drop, or restoring one file of a stash.</summary>
     Stash,
+
+    /// <summary>A fetch, pull, push or remote branch delete, or reading the remotes and comparing branches for their questions.</summary>
+    Sync,
 
     /// <summary>A tag operation: create, delete, push, delete on a remote, or reading the remotes for the prompt.</summary>
     Tags,

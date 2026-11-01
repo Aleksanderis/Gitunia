@@ -11,9 +11,11 @@ namespace Gitunia.Core.Remotes;
 /// <param name="Refs">The refs the tab shows.</param>
 /// <param name="IsActive">The tab is the active one.</param>
 /// <param name="IsBusy">A remote operation already runs for the tab (read from the tab's running operations).</param>
+/// <param name="IsSyncing">A fetch, pull or push runs for the tab: remotes stay as they are meanwhile.</param>
 public sealed record RemoteContext(
     TabId TabId,
     RepositoryLocation Location,
     ImmutableArray<GitRef> Refs,
     bool IsActive,
-    bool IsBusy);
+    bool IsBusy,
+    bool IsSyncing = false);

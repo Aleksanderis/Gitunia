@@ -88,14 +88,12 @@ public sealed class ActionRouter(Dispatcher host, ListView graphList, ListView d
     /// <summary>The remote management actions (add, remove, rename, set URL); they own their prompts.</summary>
     public RemoteManagementActions? RemoteManagement { get; set; }
 
-    /// <summary>Fetch, pull, push and the cancel of the running one; Esc is only its once the prompts passed.</summary>
-    public RemoteActions? Remote { get; set; }
+    /// <summary>Fetch, pull, push, the push cases that ask first and the remote branch delete, and the cancel of the running
+    /// one; Esc is only its once the prompts passed.</summary>
+    public SyncActions? Sync { get; set; }
 
     /// <summary>Clone and init from the picker; Esc is only its once everything else passed.</summary>
     public RepositoryCreationActions? Creation { get; set; }
-
-    /// <summary>The push cases that ask first (first push, force with lease, delete a remote branch).</summary>
-    public PushActions? Push { get; set; }
 
     /// <summary>Merging the selected commit or branch into the current branch (merge, no-ff, squash).</summary>
     public MergeActions? Merge { get; set; }
@@ -122,7 +120,7 @@ public sealed class ActionRouter(Dispatcher host, ListView graphList, ListView d
     public WorktreeSwitchActions? WorktreeSwitch { get; set; }
 
     /// <summary>Continue, abort and skip of the operation in progress (works in every view).</summary>
-    public OperationController? Operations { get; set; }
+    public OperationActions? Operations { get; set; }
 
     /// <summary>The pane resize keys.</summary>
     public PaneSizeController? PaneSizes { get; set; }
@@ -209,21 +207,18 @@ public sealed class ActionRouter(Dispatcher host, ListView graphList, ListView d
             return;
         }
 
-        if (Push?.TryExecute(action, count) == true)
+        if (action != ActionIds.Cancel && Sync?.TryExecute(action, count) == true)
         {
-            Refuse(Push.Notice);
             return;
         }
 
         if (RemoteManagement?.TryExecute(action, count) == true)
         {
-            Refuse(RemoteManagement.Notice);
             return;
         }
 
         if (Merge?.TryExecute(action, count) == true)
         {
-            Refuse(Merge.Notice);
             return;
         }
 
@@ -235,7 +230,6 @@ public sealed class ActionRouter(Dispatcher host, ListView graphList, ListView d
 
         if (Reset?.TryExecute(action, count) == true)
         {
-            Refuse(Reset.Notice);
             return;
         }
 
@@ -295,15 +289,8 @@ public sealed class ActionRouter(Dispatcher host, ListView graphList, ListView d
             return;
         }
 
-        if (action != ActionIds.Cancel && Remote?.TryExecute(action, count) == true)
-        {
-            Message = Remote.Notice;
-            return;
-        }
-
         if (Operations?.TryExecute(action, count) == true)
         {
-            Message = Operations.Notice;
             return;
         }
 
@@ -338,9 +325,8 @@ public sealed class ActionRouter(Dispatcher host, ListView graphList, ListView d
             }
         }
 
-        if (Remote?.TryExecute(action, count) == true)
+        if (Sync?.TryExecute(action, count) == true)
         {
-            Message = Remote.Notice;
             return;
         }
 

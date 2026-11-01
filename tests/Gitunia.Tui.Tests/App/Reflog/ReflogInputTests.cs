@@ -4,6 +4,7 @@ using Gitunia.App.Status;
 using Gitunia.App.Loading.Commits;
 using Gitunia.App.Tabs;
 using Gitunia.Core.Keymap;
+using Gitunia.Core.Integration;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Mouse;
 using Gitunia.Core;
@@ -20,7 +21,7 @@ using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git;
 using Gitunia.Git.Reflog;
 using Gitunia.Git.Reflog.Models;
-using Gitunia.Git.Repositories;
+using Gitunia.Git.Reset;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Tests.Fixtures;
 using Gitunia.Tui.App.Branches;
@@ -69,10 +70,10 @@ public class ReflogInputTests
         harness.Run(ActionIds.ResetBranch);
         Assert.False(harness.Reflog.IsOpen);
         await harness.PumpUntilAsync(() => harness.Mode == KeyMode.Insert);
-        harness.Reset.HandleTextKey(new KeyEvent("s"));
-        await harness.PumpUntilAsync(() => harness.Refreshes > 0);
+        harness.Host.Dispatch(new PromptKeyPressedCommand(new KeyEvent("s")));
 
-        Assert.Equal(lost, repository.Head);
+        var prepare = Assert.Single(harness.Effects.OfType<PrepareResetEffect>());
+        Assert.Equal(new ResetTarget(lost, "main", ResetMode.Soft), prepare.Target);
     }
 
     [Fact]
@@ -530,18 +531,7 @@ public class ReflogInputTests
         {
             _host = new Dispatcher(AppState.Empty, _pump);
             Statuses = new StatusReporter(_host);
-            Reset = new ResetActions(
-                _host,
-                TestGit.Services.Reset,
-                TestGit.Services.Status,
-                new RepositoryOperationDetector(),
-                Statuses,
-                _pump.Post,
-                _ => TestContext.Current.CancellationToken,
-                CountRefresh,
-                () => { },
-                () => Selection,
-                new TabOperationGate());
+            Reset = new ResetActions(_host, new FixedSelection(this));
             _handler = new ReflogEffectHandler(reader ?? TestGit.Services.Reflog, _host);
             _starter = new ReflogEntryStarter(_host, Reset, new RecordingGraph(this));
             _input = new ReflogInput(_host, new FixedSelection(this), GraphGlyphSet.Unicode);

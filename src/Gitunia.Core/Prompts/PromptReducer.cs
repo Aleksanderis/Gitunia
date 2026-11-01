@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Gitunia.Core.Effects;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Overlays;
@@ -47,7 +48,8 @@ public static class PromptReducer
             request.OnAccepted,
             request.Owner,
             state.ReturnMode,
-            request.ListOnly);
+            request.ListOnly,
+            request.KeyChoices);
         var opened = (state with { Prompt = prompt, Confirm = null, Output = null }).WithMode(KeyMode.Insert);
 
         return new ShellUpdate(opened, []);
@@ -61,6 +63,11 @@ public static class PromptReducer
         }
 
         var normalized = key.Normalize();
+        if (prompt.KeyChoices is { } keys)
+        {
+            return KeyChosen(state, prompt, keys, normalized);
+        }
+
         if (prompt.Picker is { } picker && (PickerKeys.IsMove(normalized, out var step)
             || prompt is { ListOnly: true } && IsLetterMove(normalized, out step)))
         {
@@ -78,6 +85,24 @@ public static class PromptReducer
         }
 
         return Replace(state, prompt with { Text = edited, Picker = prompt.Picker?.Filtered(edited) });
+    }
+
+    // A one-key prompt closes on a listed key and ignores every other, like Enter.
+    private static ShellUpdate KeyChosen(
+        ShellState state,
+        OpenPrompt prompt,
+        ImmutableArray<PromptKeyChoice> keys,
+        KeyEvent key)
+    {
+        var listed = keys.FirstOrDefault(choice => choice.Key == key.Name);
+        if (key.Modifiers != KeyModifiers.None || listed is not { } chosen)
+        {
+            return new ShellUpdate(state, []);
+        }
+
+        var answer = new PromptAnswer(string.Empty, chosen.Value);
+
+        return new ShellUpdate(Close(state, prompt), [], prompt.OnAccepted.Answered(answer));
     }
 
     private static bool IsLetterMove(KeyEvent key, out int step)
@@ -100,7 +125,7 @@ public static class PromptReducer
 
     private static ShellUpdate Accept(ShellState state)
     {
-        if (state.Prompt is not { } prompt)
+        if (state.Prompt is not { } prompt || prompt.KeyChoices is not null)
         {
             return new ShellUpdate(state, []);
         }

@@ -1,486 +1,138 @@
-using Gitunia.App.Status;
-using Gitunia.App.Loading.Commits;
-using Gitunia.App.Tabs;
+using Gitunia.App;
+using Gitunia.Core;
+using Gitunia.Core.Effects;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
-using Gitunia.Core.Overlays;
 using Gitunia.Core.Sidebar;
-using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
-using Gitunia.Core.Workspaces.Tabs;
-using Gitunia.Git.Repositories;
-using Gitunia.Git.Tests.Fixtures;
+using Gitunia.Core.Workspaces.Repositories;
+using Gitunia.Git.Refs.Models;
+using Gitunia.Git.Repositories.Models;
 using Gitunia.Tui.App.Branches;
 using Gitunia.Tui.App.Reset;
-using Gitunia.Tui.App.Tabs;
-using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Tests.Fakes;
 using Xunit;
 
 namespace Gitunia.Tui.Tests.App.Reset;
 
+// The actions only turn the key into a command that carries the selected commit; the decisions are in
+// ResetReducerTests and the work on the repository in the App tests.
 public class ResetActionsTests
 {
-    [Fact]
-    public async Task GivenACommit_WhenChoosingSoft_ThenItRunsAtOnceKeepsTheChangeStagedAndNamesTheOldTip()
+    private const string Commit = "2222222222222222222222222222222222222222";
+
+    private readonly TestShell _shell = new();
+    private readonly Dispatcher _host;
+    private readonly FixedSelection _selection = new();
+    private readonly List<AppEffect> _effects = [];
+    private readonly ResetActions _actions;
+
+    public ResetActionsTests()
     {
-        using var repository = TwoCommits();
-        var old = repository.Head;
-        var first = FirstCommit(repository);
-        using var harness = await Harness.LoadAsync(repository);
-        harness.Select(first);
-
-        harness.Run(ActionIds.ResetBranch);
-        Assert.Equal(KeyMode.Insert, harness.Mode);
-        Assert.Contains("soft", PopupText.Of(harness.Reset), StringComparison.Ordinal);
-        harness.Press("s");
-        await harness.FinishAsync();
-
-        Assert.Empty(harness.Prompts);
-        Assert.Equal(KeyMode.Normal, harness.Mode);
-        Assert.Equal(first, repository.Head);
-        Assert.Equal("M  a.txt", repository.Git("status", "--porcelain").TrimEnd());
-        var text = harness.Statuses.Log.Latest!.Text;
-        Assert.Contains($"was {old[..7]}", text, StringComparison.Ordinal);
-        Assert.Contains($"git reset --soft {old}", text, StringComparison.Ordinal);
-        Assert.Equal(1, harness.Refreshes);
+        _host = _shell.Host;
+        _host.Dispatch(new OpenRepositoryCommand(Location()));
+        var tabId = _host.Workspace.ActiveTabId!.Value;
+        _host.Dispatch(new TabCommand(tabId, new HeadLoadedCommand(new HeadState(HeadKind.Branch, "main", "abc"))));
+        _host.EffectRaised += _effects.Add;
+        _actions = new ResetActions(_host, _selection);
     }
 
     [Fact]
-    public async Task GivenNothingStaged_WhenChoosingMixed_ThenItRunsAtOnceAndKeepsTheFiles()
+    public void GivenAGraphCommit_WhenPressingTheResetKey_ThenTheModePromptOpensAtIt()
     {
-        using var repository = TwoCommits();
-        repository.WriteFile("a.txt", "unstaged edit");
-        var first = FirstCommit(repository);
-        using var harness = await Harness.LoadAsync(repository);
-        harness.Select(first);
+        _selection.Current = new BranchSelection(null, null, Commit);
 
-        harness.Run(ActionIds.ResetBranch);
-        harness.Press("m");
-        await harness.FinishAsync();
+        Assert.True(_actions.TryExecute(ActionIds.ResetBranch, null));
 
-        Assert.Empty(harness.Prompts);
-        Assert.Equal(first, repository.Head);
-        Assert.Equal(" M a.txt", repository.Git("status", "--porcelain").TrimEnd());
-        Assert.Equal("unstaged edit", File.ReadAllText(Path.Combine(repository.WorkingTreePath, "a.txt")));
+        Assert.Equal("Move main to 2222222", _host.State.Shell.Prompt!.Context);
+        Assert.Equal(KeyMode.Insert, _host.State.Shell.Mode);
     }
 
-    [Fact]
-    public async Task GivenStagedChanges_WhenChoosingMixed_ThenAConfirmNamesThemAndNothingMovesUntilYes()
+    [Theory]
+    [InlineData(SidebarRowKind.LocalBranch)]
+    [InlineData(SidebarRowKind.RemoteBranch)]
+    [InlineData(SidebarRowKind.Tag)]
+    public void GivenARefRow_WhenPressingTheResetKey_ThenThePromptOpensAtItsCommit(SidebarRowKind kind)
     {
-        using var repository = TwoCommits();
-        repository.WriteFile("a.txt", "staged edit");
-        repository.Git("add", "a.txt");
-        repository.WriteFile("a.txt", "staged edit and more");
-        var old = repository.Head;
-        using var harness = await Harness.LoadAsync(repository);
-        harness.Select(FirstCommit(repository));
+        _selection.Current = new BranchSelection(kind, "x", Commit);
 
-        harness.Run(ActionIds.ResetBranch);
-        harness.Press("m");
-        await harness.PumpUntilAsync(() => harness.Prompts.Count > 0);
+        _actions.TryExecute(ActionIds.ResetBranch, null);
 
-        var prompt = Assert.Single(harness.Prompts);
-        Assert.Equal("Mixed reset", prompt.Title);
-        Assert.Contains(
-            "1 file loses the staged state (1 partially staged)",
-            string.Join(' ', prompt.Lines),
-            StringComparison.Ordinal);
-        Assert.Contains("cannot be recovered from the reflog", prompt.Consequence, StringComparison.Ordinal);
-        Assert.Contains($"git reset --mixed {old}", prompt.Consequence, StringComparison.Ordinal);
-        Assert.Equal(old, repository.Head);
-
-        harness.Answer();
-        await harness.FinishAsync();
-
-        Assert.Equal(FirstCommit(repository), repository.Head);
-        Assert.Equal(" M a.txt", repository.Git("status", "--porcelain").TrimEnd());
-    }
-
-    [Fact]
-    public async Task GivenADirtyTree_WhenChoosingHard_ThenTheConfirmListsTheFilesAndTheUndoAndYesDropsThem()
-    {
-        using var repository = TwoCommits();
-        repository.WriteFile("a.txt", "dirty");
-        repository.WriteFile("untracked.txt", "keep");
-        var old = repository.Head;
-        var first = FirstCommit(repository);
-        using var harness = await Harness.LoadAsync(repository);
-        harness.Select(first);
-
-        harness.Run(ActionIds.ResetBranch);
-        harness.Press("h");
-        await harness.PumpUntilAsync(() => harness.Prompts.Count > 0);
-
-        var prompt = Assert.Single(harness.Prompts);
-        var lines = string.Join('\n', prompt.Lines);
-        Assert.Equal("Hard reset", prompt.Title);
-        Assert.Contains($"to {first[..7]} with --hard", lines, StringComparison.Ordinal);
-        Assert.Contains("1 file with uncommitted changes will be overwritten", lines, StringComparison.Ordinal);
-        Assert.Contains("  a.txt", lines, StringComparison.Ordinal);
-        Assert.DoesNotContain("untracked.txt", lines, StringComparison.Ordinal);
-        Assert.Contains("Untracked files stay unless", lines, StringComparison.Ordinal);
-        Assert.Contains($"git reset --hard {old}", prompt.Consequence, StringComparison.Ordinal);
-        Assert.Contains("ORIG_HEAD", prompt.Consequence, StringComparison.Ordinal);
-        Assert.Contains("cannot be restored", prompt.Consequence, StringComparison.Ordinal);
-        Assert.Equal(old, repository.Head);
-        Assert.Equal("dirty", File.ReadAllText(Path.Combine(repository.WorkingTreePath, "a.txt")));
-
-        harness.Answer();
-        await harness.FinishAsync();
-
-        Assert.Equal(first, repository.Head);
-        Assert.Equal("1", File.ReadAllText(Path.Combine(repository.WorkingTreePath, "a.txt")));
-        Assert.Equal("keep", File.ReadAllText(Path.Combine(repository.WorkingTreePath, "untracked.txt")));
-    }
-
-    [Fact]
-    public async Task GivenManyChangedFiles_WhenChoosingHard_ThenTheConfirmCountsAllAndListsOnlyTheFirstFew()
-    {
-        using var repository = TestRepository.Create()
-            .Commit("one", [.. Enumerable.Range(0, 8).Select(index => new TestFile($"f{index}.txt", "1"))])
-            .Commit("two", new TestFile("f0.txt", "2"));
-        foreach (var index in Enumerable.Range(0, 8))
-        {
-            repository.WriteFile($"f{index}.txt", "dirty");
-        }
-
-        using var harness = await Harness.LoadAsync(repository);
-        harness.Select(FirstCommit(repository));
-
-        harness.Run(ActionIds.ResetBranch);
-        harness.Press("h");
-        await harness.PumpUntilAsync(() => harness.Prompts.Count > 0);
-
-        var lines = string.Join('\n', harness.Prompts[0].Lines);
-        Assert.Contains("8 files with uncommitted changes", lines, StringComparison.Ordinal);
-        Assert.Contains("and 2 more", lines, StringComparison.Ordinal);
-        Assert.DoesNotContain("f7.txt", lines, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public async Task GivenACleanTree_WhenChoosingHard_ThenTheConfirmSaysThereIsNothingToLose()
-    {
-        using var repository = TwoCommits();
-        using var harness = await Harness.LoadAsync(repository);
-        harness.Select(FirstCommit(repository));
-
-        harness.Run(ActionIds.ResetBranch);
-        harness.Press("h");
-        await harness.PumpUntilAsync(() => harness.Prompts.Count > 0);
-
-        Assert.Contains(
-            "no uncommitted changes to lose",
-            string.Join(' ', harness.Prompts[0].Lines),
-            StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public async Task GivenTheModePrompt_WhenCancelling_ThenNothingRunsAndNormalModeReturns()
-    {
-        using var repository = TwoCommits();
-        var old = repository.Head;
-        using var harness = await Harness.LoadAsync(repository);
-        harness.Select(FirstCommit(repository));
-
-        harness.Run(ActionIds.ResetBranch);
-        harness.Run(ActionIds.Cancel);
-
-        Assert.Equal(KeyMode.Normal, harness.Mode);
-        Assert.Equal(string.Empty, PopupText.Of(harness.Reset));
-        Assert.Equal(old, repository.Head);
-        Assert.Equal(0, harness.Refreshes);
-    }
-
-    [Fact]
-    public async Task GivenTheModePrompt_WhenTypingAnotherKey_ThenThePromptStaysOpen()
-    {
-        using var repository = TwoCommits();
-        using var harness = await Harness.LoadAsync(repository);
-        harness.Select(FirstCommit(repository));
-
-        harness.Run(ActionIds.ResetBranch);
-        harness.Press("x");
-        harness.Press("S");
-
-        Assert.Equal(KeyMode.Insert, harness.Mode);
-        Assert.Contains("hard", PopupText.Of(harness.Reset), StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public async Task GivenAConfirmThatWasDeclined_WhenHard_ThenNothingMoves()
-    {
-        using var repository = TwoCommits();
-        var old = repository.Head;
-        using var harness = await Harness.LoadAsync(repository);
-        harness.Select(FirstCommit(repository));
-
-        harness.Run(ActionIds.ResetBranch);
-        harness.Press("h");
-        await harness.PumpUntilAsync(() => harness.Prompts.Count > 0);
-        harness.Decline();
-
-        Assert.Equal(old, repository.Head);
-        Assert.Equal(0, harness.Refreshes);
-    }
-
-    [Fact]
-    public async Task GivenAScreenTooSmallForTheDialog_WhenHard_ThenItWarnsAndNothingMoves()
-    {
-        using var repository = TwoCommits();
-        var old = repository.Head;
-        using var harness = await Harness.LoadAsync(repository);
-        harness.CanShowDialog = false;
-        harness.Select(FirstCommit(repository));
-
-        harness.Run(ActionIds.ResetBranch);
-        harness.Press("h");
-        await harness.PumpUntilAsync(() => harness.Statuses.Log.Latest is not null);
-
-        Assert.Equal(StatusSeverity.Warning, harness.Statuses.Log.Latest!.Severity);
-        Assert.Contains("nothing was reset", harness.Statuses.Log.Latest.Text, StringComparison.Ordinal);
-        Assert.Equal(old, repository.Head);
-    }
-
-    [Fact]
-    public async Task GivenADetachedHead_WhenResetting_ThenItIsRefusedWithoutAPrompt()
-    {
-        using var repository = TwoCommits();
-        var old = repository.Head;
-        repository.Checkout(old);
-        using var harness = await Harness.LoadAsync(repository);
-        harness.Select(FirstCommit(repository));
-
-        harness.Run(ActionIds.ResetBranch);
-
-        Assert.Contains("HEAD is detached", harness.Reset.Notice, StringComparison.Ordinal);
-        Assert.Equal(KeyMode.Normal, harness.Mode);
-        Assert.Equal(old, repository.Head);
-    }
-
-    [Fact]
-    public async Task GivenAMergeInProgress_WhenResetting_ThenItIsRefusedAndTheMergeStays()
-    {
-        using var repository = TestRepositories.Conflicted();
-        var old = repository.Head;
-        using var harness = await Harness.LoadAsync(repository);
-        harness.Select(repository.Git("rev-list", "--max-parents=0", "HEAD").Trim());
-
-        harness.Run(ActionIds.ResetBranch);
-
-        Assert.Equal("A merge is in progress: finish or abort the merge first", harness.Reset.Notice);
-        Assert.Equal(KeyMode.Normal, harness.Mode);
-        Assert.Equal(old, repository.Head);
-        Assert.True(File.Exists(Path.Combine(repository.WorkingTreePath, ".git", "MERGE_HEAD")));
-    }
-
-    [Fact]
-    public async Task GivenNothingSelected_WhenResetting_ThenNoPromptOpens()
-    {
-        using var repository = TwoCommits();
-        using var harness = await Harness.LoadAsync(repository);
-        harness.Select(null);
-
-        harness.Run(ActionIds.ResetBranch);
-
-        Assert.Contains("Select a commit", harness.Reset.Notice, StringComparison.Ordinal);
-        Assert.Equal(KeyMode.Normal, harness.Mode);
-    }
-
-    [Fact]
-    public async Task GivenACommitPassedByAnotherView_WhenBegun_ThenTheSameFlowRunsOnIt()
-    {
-        using var repository = TwoCommits();
-        var first = FirstCommit(repository);
-        using var harness = await Harness.LoadAsync(repository);
-
-        var notice = harness.Reset.Begin(harness.TabId, first);
-        harness.Press("s");
-        await harness.FinishAsync();
-
-        Assert.Equal(string.Empty, notice);
-        Assert.Equal(first, repository.Head);
-    }
-
-    [Fact]
-    public async Task GivenAFailingReset_WhenRunning_ThenTheErrorIsReportedAndNothingIsClaimed()
-    {
-        using var repository = TwoCommits();
-        var old = repository.Head;
-        using var harness = await Harness.LoadAsync(repository);
-
-        harness.Reset.Begin(harness.TabId, new string('a', 40));
-        harness.Press("s");
-        await harness.PumpUntilAsync(() => harness.Statuses.Log.Latest is not null);
-
-        Assert.Equal(StatusSeverity.Error, harness.Statuses.Log.Latest!.Severity);
-        Assert.StartsWith("Could not reset:", harness.Statuses.Log.Latest.Text, StringComparison.Ordinal);
-        Assert.Equal(old, repository.Head);
+        Assert.Equal("Move main to 2222222", _host.State.Shell.Prompt!.Context);
     }
 
     [Theory]
     [InlineData(SidebarRowKind.Stash)]
     [InlineData(SidebarRowKind.Worktree)]
     [InlineData(SidebarRowKind.Section)]
-    public async Task GivenASidebarRowThatIsNotARef_WhenResetting_ThenNoPromptOpensAndNothingMoves(SidebarRowKind kind)
+    public void GivenARowThatIsNotARef_WhenPressingTheResetKey_ThenNoPromptOpensAndTheUserIsTold(SidebarRowKind kind)
     {
-        using var repository = TwoCommits();
-        var old = repository.Head;
-        using var harness = await Harness.LoadAsync(repository);
-        harness.SelectRow(kind, FirstCommit(repository));
+        _selection.Current = new BranchSelection(kind, "x", Commit);
 
-        harness.Run(ActionIds.ResetBranch);
+        _actions.TryExecute(ActionIds.ResetBranch, null);
 
-        Assert.Contains("Select a commit", harness.Reset.Notice, StringComparison.Ordinal);
-        Assert.Equal(KeyMode.Normal, harness.Mode);
-        Assert.Equal(old, repository.Head);
+        Assert.Null(_host.State.Shell.Prompt);
+        var post = Assert.IsType<PostStatusEffect>(Assert.Single(_effects));
+        Assert.StartsWith("Select a commit", post.Text, StringComparison.Ordinal);
     }
 
     [Fact]
-    public async Task GivenATagRow_WhenResettingSoft_ThenTheBranchMovesToTheTagCommit()
+    public void GivenNothingSelected_WhenPressingTheResetKey_ThenNoPromptOpens()
     {
-        using var repository = TwoCommits();
-        var first = FirstCommit(repository);
-        using var harness = await Harness.LoadAsync(repository);
-        harness.SelectRow(SidebarRowKind.Tag, first);
+        _actions.TryExecute(ActionIds.ResetBranch, null);
 
-        harness.Run(ActionIds.ResetBranch);
-        harness.Press("s");
-        await harness.FinishAsync();
-
-        Assert.Equal(first, repository.Head);
+        Assert.Null(_host.State.Shell.Prompt);
+        Assert.Equal(KeyMode.Normal, _host.State.Shell.Mode);
     }
 
     [Fact]
-    public async Task GivenAnotherOperationOfTheTab_WhenResetting_ThenItIsRefusedAndTheGateIsReleasedAfterwards()
+    public void GivenACommitFromAnotherView_WhenBegun_ThenTheSameFlowRunsAndNoRefusalIsReturned()
     {
-        using var repository = TwoCommits();
-        var old = repository.Head;
-        using var harness = await Harness.LoadAsync(repository);
-        harness.Select(FirstCommit(repository));
-        harness.Gate.Begin(harness.TabId);
+        var notice = _actions.Begin(_host.Workspace.ActiveTabId!.Value, Commit);
 
-        harness.Run(ActionIds.ResetBranch);
-
-        Assert.Contains("Busy", harness.Reset.Notice, StringComparison.Ordinal);
-        Assert.Equal(KeyMode.Normal, harness.Mode);
-        Assert.Equal(old, repository.Head);
-
-        harness.Gate.End(harness.TabId);
-        harness.Run(ActionIds.ResetBranch);
-        harness.Press("s");
-        await harness.FinishAsync();
-
-        Assert.False(harness.Gate.IsBusy(harness.TabId));
+        Assert.Equal(string.Empty, notice);
+        Assert.NotNull(_host.State.Shell.Prompt);
     }
 
-    private static TestRepository TwoCommits() =>
-        TestRepository.Create()
-            .Commit("one", new TestFile("a.txt", "1"))
-            .Commit("two", new TestFile("a.txt", "2"));
-
-    private static string FirstCommit(TestRepository repository) =>
-        repository.Git("rev-list", "--max-parents=0", "HEAD").Trim();
-
-    private sealed class Harness : IDisposable
+    [Fact]
+    public void GivenADetachedHead_WhenBegun_ThenTheRefusalIsReturnedForTheCaller()
     {
-        private readonly TestShell _shell = new();
-        private readonly List<TerminalTabSession> _sessions = [];
-        private BranchSelection _selection = new(null, null, null);
+        var tabId = _host.Workspace.ActiveTabId!.Value;
+        _host.Dispatch(new TabCommand(tabId, new HeadLoadedCommand(new HeadState(HeadKind.Detached, null, "abc"))));
 
-        private Harness()
+        _host.EffectRaised += effect =>
         {
-            Pump = new UiPump(TestContext.Current.CancellationToken);
-            Reset = new ResetActions(
-                _shell.Host,
-                TestGit.Services.Reset,
-                TestGit.Services.Status,
-                new RepositoryOperationDetector(),
-                Statuses,
-                Pump.Post,
-                _ => TestContext.Current.CancellationToken,
-                _ =>
-                {
-                    Refreshes++;
-                    return true;
-                },
-                () => { },
-                () => _selection,
-                Gate);
-        }
-
-        public ResetActions Reset { get; }
-
-        public StatusReporter Statuses => _shell.Statuses;
-
-        public List<ConfirmPrompt> Prompts => _shell.Prompts;
-
-        public int Refreshes { get; private set; }
-
-        public KeyMode Mode => _shell.Mode;
-
-        public TabOperationGate Gate { get; } = new();
-
-        public bool CanShowDialog
-        {
-            get => _shell.CanShowDialog;
-            set => _shell.CanShowDialog = value;
-        }
-
-        public TabId TabId => _shell.Host.Workspace.ActiveTabId!.Value;
-
-        private UiPump Pump { get; }
-
-        public static async Task<Harness> LoadAsync(TestRepository repository)
-        {
-            var harness = new Harness();
-            var location = await TestGit.Services.Discovery.DiscoverAsync(
-                repository.WorkingTreePath,
-                TestContext.Current.CancellationToken);
-            harness._shell.Host.Dispatch(new OpenRepositoryCommand(location));
-            var session = new TerminalTabSession(
-                new TabSessionParts(
-                    harness.TabId,
-                    new CommitDetailsStore(TestGit.Services.CommitDetails, location, action => action(), TimeSpan.Zero)),
-                GraphGlyphSet.Unicode);
-            harness._sessions.Add(session);
-            await TestGit.Services.RepositoryLoader.RunAsync(
-                location,
-                session,
-                harness._shell.Host,
-                harness.Statuses,
-                InlineUi.Post,
-                session.Cancellation.Token);
-            return harness;
-        }
-
-        public void Select(string? commitHash) => _selection = new BranchSelection(null, null, commitHash);
-
-        public void SelectRow(SidebarRowKind kind, string commitHash) =>
-            _selection = new BranchSelection(kind, "row", commitHash);
-
-        public void Run(ActionId action) => Assert.True(Reset.TryExecute(action, null), action.Value);
-
-        public void Press(string key) => Assert.True(Reset.HandleTextKey(new KeyEvent(key)));
-
-        /// <summary>Presses <c>y</c> in the open dialog.</summary>
-        public void Answer() => _shell.Answer();
-
-
-        /// <summary>Presses <c>n</c> in the open dialog: the callback is dropped.</summary>
-        public void Decline() => _shell.Decline();
-
-        public Task FinishAsync() => PumpUntilAsync(() => Statuses.Log.Latest is not null && Refreshes > 0
-            || Statuses.Log.Latest?.Severity == StatusSeverity.Error);
-
-        public Task PumpUntilAsync(Func<bool> condition) => Pump.RunUntilAsync(condition);
-
-        public void Dispose()
-        {
-            foreach (var session in _sessions)
+            // The runner posts the status of a refusal; the test shell does not run that effect.
+            if (effect is PostStatusEffect post)
             {
-                session.Dispose();
+                _shell.Statuses.Post(post.Text, post.Severity);
             }
-        }
+        };
+
+        var notice = _actions.Begin(tabId, Commit);
+
+        Assert.Equal("HEAD is detached: switch to a branch first", notice);
+        Assert.Null(_host.State.Shell.Prompt);
+    }
+
+    [Fact]
+    public void GivenAnUnrelatedAction_WhenExecuting_ThenTheActionsLeaveItAlone()
+    {
+        Assert.False(_actions.TryExecute(ActionIds.TagCreate, null));
+        Assert.Empty(_effects);
+    }
+
+    private static RepositoryLocation Location()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "gitunia-reset-actions-tests");
+        var gitDirectory = Path.Combine(root, ".git");
+        return new RepositoryLocation(root, gitDirectory, gitDirectory, false, false);
+    }
+
+    private sealed class FixedSelection : IBranchSelectionSource
+    {
+        public BranchSelection Current { get; set; } = new(null, null, null);
+
+        BranchSelection IBranchSelectionSource.Current() => Current;
     }
 }

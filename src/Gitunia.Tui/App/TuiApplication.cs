@@ -6,7 +6,6 @@ using Gitunia.App;
 using Gitunia.App.Loading.Commits;
 using Gitunia.App.Tabs;
 using Gitunia.App.Worktrees;
-using Gitunia.Core.Running;
 using Gitunia.Core.Shell;
 using Gitunia.Core;
 using Gitunia.Core.Clipboard;
@@ -98,7 +97,7 @@ public sealed class TuiApplication(
     ConsoleCapabilities detectedCapabilities,
     IPlatform platform) : IDisposable, ITerminalSuspender, IShellEffects, IBranchSelectionSource,
     IGraphCommitSelector, IGraphSelectionSource, IPickSelectionSource,
-    IStashSelectionSource, IStashViewHost
+    IStashSelectionSource, IStashViewHost, ITerminalRetryHost
 {
     // Terminal.Gui's default of 25 iterations per second gave ~34 ms key latency (docs/internal/history/decisions.md); the idle rate saves CPU (#909).
     private const ushort ActiveIterationsPerSecond = 100;
@@ -148,9 +147,8 @@ public sealed class TuiApplication(
     private TagActions _tags = null!;
     private PromptInputHandler _openPrompt = null!;
     private ClipboardCopier _clipboard = null!;
-    private RemoteActions _remote = null!;
+    private TerminalRetry _terminalRetry = null!;
     private ExternalToolRunner _externalToolRunner = null!;
-    private PushActions _push = null!;
     private PickActions _pick = null!;
     private PromptPopupTracker _popups = null!;
     private GraphGlyphSet _glyphs = null!;
@@ -336,14 +334,13 @@ public sealed class TuiApplication(
             RefreshAfterTool,
             PauseForEnter);
 
-        // The remote actions come first: remote management asks them whether a fetch, pull or push runs.
-        _remote = CreateRemote(operationGate);
-        _effects.IsTabBusy = tabId => _activity.IsBusy(tabId) || _remote.IsRunning(tabId);
-        _router.Remote = _remote;
-        _router.RemoteManagement = new RemoteManagementActions(_host, this, _remote);
-        _reset = CreateReset(operationGate);
+        _terminalRetry = new TerminalRetry(_host, _statuses, this);
+        _effects.IsTabBusy = _activity.IsBusy;
+        _router.Sync = new SyncActions(_host, this, _activity);
+        _router.RemoteManagement = new RemoteManagementActions(_host, this);
+        _reset = new ResetActions(_host, this);
         _router.Reset = _reset;
-        _router.Merge = CreateMerge(operationGate);
+        _router.Merge = new MergeActions(_host, this);
         _router.Rebase = new RebaseActions(_host, this, this);
         _pick = new PickActions(_host, this);
         _router.Pick = _pick;
@@ -366,11 +363,7 @@ public sealed class TuiApplication(
         _router.Worktrees = _worktrees;
         _router.WorktreeSwitch = CreateWorktreeSwitch(operationGate, sidebarSource);
         _worktrees.OpenWorktree = _router.WorktreeSwitch.OpenPath;
-        _router.Operations = CreateOperations(operationGate);
-        _push = CreatePush();
-        _router.Push = _push;
-        _remote.PushRejected = _push.OfferForce;
-        _remote.FirstPushRejected = _push.OfferForceFirstPush;
+        _router.Operations = new OperationActions(_host);
         _router.DetailTabs = new DetailTabController(_host);
         _router.PaneSizes = new PaneSizeController(
             () => _diffPane.Arrangement(),
@@ -983,23 +976,15 @@ public sealed class TuiApplication(
     void IShellEffects.CopyToClipboard(CopyToClipboardEffect effect) =>
         _clipboard.Copy(effect.Text, effect.Description);
 
-    // The terminal retry is asked again for a tab whose tag operation started meanwhile.
     void IShellEffects.OfferTerminalRetry(TabId tabId, string noun, IReadOnlyList<string> arguments) =>
-        _remote.OfferTerminalRetry(
-            tabId,
-            noun,
-            arguments,
-            () => _host.Workspace.FindTab(tabId)?.Running.IsRunning(RunningOperationKind.Tags) == true);
+        _terminalRetry.Offer(tabId, noun, arguments);
 
-    private MergeActions CreateMerge(TabOperationGate gate) => new(
-        _host,
-        services.Merge,
-        _statuses,
-        InvokeOnUi,
-        tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None,
-        tabId => _effects.Refresh(tabId, false),
-        BranchSelectionNow,
-        gate);
+    bool ITerminalRetryHost.IsOverlayOpen() => IsAnyOverlayOpen();
+
+    bool ITerminalRetryHost.IsBusy(TabId tabId) => _activity.IsBusy(tabId);
+
+    string ITerminalRetryHost.RunGitInTerminal(string name, IReadOnlyList<string> arguments, RepositoryLocation location) =>
+        _externalToolRunner.LaunchGit(name, arguments, location);
 
     // A focused sidebar acts on its ref, the graph on the Visual range when one is active, else the selected commit.
     PickSelection IPickSelectionSource.Current()
@@ -1024,19 +1009,6 @@ public sealed class TuiApplication(
 
     string? IGraphSelectionSource.SelectedCommit() => SelectedCommitHash();
 
-    private ResetActions CreateReset(TabOperationGate gate) => new(
-        _host,
-        services.Reset,
-        services.Status,
-        new RepositoryOperationDetector(),
-        _statuses,
-        InvokeOnUi,
-        tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None,
-        tabId => _effects.Refresh(tabId, false),
-        _view.RefreshChrome,
-        BranchSelectionNow,
-        gate);
-
     // A focused sidebar acts on its row, any other pane on the commit selected in the graph.
     private BranchSelection BranchSelectionNow()
     {
@@ -1054,40 +1026,6 @@ public sealed class TuiApplication(
         tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None,
         gate);
 
-    private RemoteActions CreateRemote(TabOperationGate gate) => new(
-        _host,
-        services.Remote,
-        _statuses,
-        InvokeOnUi,
-        tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None,
-        tabId => _effects.Refresh(tabId, false),
-        _view.RefreshChrome,
-        gate,
-        IsAnyOverlayOpen,
-        _externalToolRunner.LaunchGit);
-
-    private PushActions CreatePush() => new(
-        _host,
-        _remote,
-        services.Remote,
-        services.Tags.ListRemotesAsync,
-        services.Ancestry.IsAncestorAsync,
-        _statuses,
-        InvokeOnUi,
-        tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None,
-        _activity.CreateGate(),
-        tabId => _effects.Refresh(tabId, false),
-        _view.RefreshChrome,
-        BranchSelectionNow);
-
-    private OperationController CreateOperations(TabOperationGate gate) => new(
-        _host,
-        services.OperationWriter,
-        _statuses,
-        InvokeOnUi,
-        tabId => _effects.Refresh(tabId, false),
-        tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None,
-        gate);
 
     private WorktreeActions CreateWorktrees(TabOperationGate gate, SidebarListSource sidebarSource) => new(
         _host,
@@ -1438,11 +1376,11 @@ public sealed class TuiApplication(
 
     private string RemoteProgressNow() =>
         FirstNotEmpty(
-            _host.Workspace.ActiveTabId is { } tabId ? _remote.ProgressLine(tabId) : string.Empty,
+            _host.Workspace.ActiveTab?.Sync?.ProgressLine ?? string.Empty,
             _creation.ProgressLine());
 
     private bool RemoteIsBusy() =>
-        _creation.IsCloning || (_host.Workspace.ActiveTabId is { } tabId && _remote.IsRunning(tabId));
+        _creation.IsCloning || _host.Workspace.ActiveTab?.Sync is not null;
 
     // The folder a clone goes into when the picker holds no path: the first scan root that exists, else home.
     private string DefaultCloneParent()
@@ -1858,8 +1796,6 @@ public sealed class TuiApplication(
         [
             // The prompt that owns Insert mode must see Esc and Enter first, so the ref prompt comes before the search.
             _openPrompt,
-            _push,
-            _reset,
             _pick,
             new RefJumpController(handle, () => _host.Workspace.ActiveTab?.Refs ?? []),
             new SearchController(

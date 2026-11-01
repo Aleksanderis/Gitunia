@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using Gitunia.Core.Sidebar;
 using Gitunia.Core.Running;
+using Gitunia.Core.Sync;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Refs.Models;
 using Gitunia.Git.Operations.Models;
@@ -48,6 +49,9 @@ public sealed record RepositoryState(
 {
     /// <summary>The operations in flight for this tab; the root reducer keeps them (tab eviction and busy refusals read them).</summary>
     public RunningOperations Running { get; init; } = RunningOperations.Empty;
+
+    /// <summary>The fetch, pull or push that runs for this tab (the status bar line), null when none; the root reducer keeps it.</summary>
+    public SyncState? Sync { get; init; }
 
     /// <summary>The path git commands for this tab run against.</summary>
     public string CommandPath => Location.CommandPath;

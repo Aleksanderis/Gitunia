@@ -19,6 +19,8 @@ namespace Gitunia.Core.Prompts;
 /// A picker without a text field: <c>j/k/h/l</c> and the arrows move the highlight, so no letter is swallowed by a
 /// filter. Needs <paramref name="Choices"/>.
 /// </param>
+/// <param name="KeyChoices">The options of a prompt answered by one key; null for a text or picker prompt. Any other
+/// key is ignored and Enter does nothing; Esc cancels.</param>
 public sealed record PromptRequest(
     string Title,
     string Context,
@@ -28,4 +30,5 @@ public sealed record PromptRequest(
     ImmutableArray<PromptChoice>? Choices = null,
     string NoMatch = "No match",
     TabId? Owner = null,
-    bool ListOnly = false);
+    bool ListOnly = false,
+    ImmutableArray<PromptKeyChoice>? KeyChoices = null);
