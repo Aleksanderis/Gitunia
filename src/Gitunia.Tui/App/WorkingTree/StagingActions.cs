@@ -22,8 +22,6 @@ namespace Gitunia.Tui.App.WorkingTree;
 /// <param name="gate">The one-operation-per-tab gate of the controllers that have not moved.</param>
 public sealed class StagingActions(Dispatcher host, TabOperationGate gate)
 {
-    private const string BusyNotice = "Busy: the last stage, unstage or discard is still running";
-
     /// <summary>True for the actions this class runs.</summary>
     public static bool Handles(ActionId action) =>
         action == ActionIds.WorkingTreeStage
@@ -47,7 +45,7 @@ public sealed class StagingActions(Dispatcher host, TabOperationGate gate)
     {
         if (gate.IsBusy(tab.Id))
         {
-            return BusyNotice;
+            return StagingReducer.BusyNotice;
         }
 
         Send(new StagingRequested(tab.Id, ActionOf(action), range));
@@ -64,7 +62,7 @@ public sealed class StagingActions(Dispatcher host, TabOperationGate gate)
     {
         if (gate.IsBusy(tab.Id))
         {
-            return BusyNotice;
+            return StagingReducer.BusyNotice;
         }
 
         var selection = new StagingSelection(request.Target.Side, request.Target.Entry, request.Lines, request.IsRange);
@@ -82,7 +80,7 @@ public sealed class StagingActions(Dispatcher host, TabOperationGate gate)
     {
         if (gate.IsBusy(tab.Id))
         {
-            return BusyNotice;
+            return StagingReducer.BusyNotice;
         }
 
         Send(new StageAllThenRequested(tab.Id, new RunActionCommand(afterStaged)));
@@ -99,7 +97,7 @@ public sealed class StagingActions(Dispatcher host, TabOperationGate gate)
     {
         if (gate.IsBusy(tab.Id))
         {
-            return $"{BusyNotice}; the saved file was not staged";
+            return $"{StagingReducer.BusyNotice}; the saved file was not staged";
         }
 
         Send(new StageResolvedRequested(tab.Id, path));

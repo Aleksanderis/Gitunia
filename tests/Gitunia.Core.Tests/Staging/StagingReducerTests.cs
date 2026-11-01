@@ -16,6 +16,7 @@ using static Gitunia.Tui.Tests.Rendering.WorkingTree.WorkingTreeEntries;
 namespace Gitunia.Core.Tests.Staging;
 
 // The pure part of staging: what a key touches, the refusals and the reports. Real git is the handler's tests.
+[Trait("Os", "Independent")]
 public class StagingReducerTests
 {
     private static readonly TabId Tab = new(1);
