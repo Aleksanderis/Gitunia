@@ -1,4 +1,5 @@
 using System.Globalization;
+using Gitunia.App.Shell;
 using Gitunia.Core.Jump;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
@@ -153,7 +154,7 @@ public sealed class QuickJumpController(QuickJumpHost host) : IPromptHandler
             _target = target;
             _text = string.Empty;
             target.ShowLabels(_text);
-            host.SetMode(KeyMode.Insert);
+            host.Dispatcher.SetKeyMode(KeyMode.Insert);
         }
     }
 
@@ -166,6 +167,6 @@ public sealed class QuickJumpController(QuickJumpHost host) : IPromptHandler
         _target = null;
         _session = null;
         _text = string.Empty;
-        host.SetMode(KeyMode.Normal);
+        host.Dispatcher.SetKeyMode(KeyMode.Normal);
     }
 }

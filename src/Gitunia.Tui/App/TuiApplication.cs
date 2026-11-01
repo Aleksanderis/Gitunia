@@ -1,9 +1,12 @@
 using System.Collections.Immutable;
+using Gitunia.App.Shell;
+using Gitunia.App.Status;
 using Gitunia.App;
 using Gitunia.App.Loading.Commits;
 using Gitunia.App.Tabs;
 using Gitunia.App.Worktrees;
 using Gitunia.Core.Running;
+using Gitunia.Core.Shell;
 using Gitunia.Core;
 using Gitunia.Core.Clipboard;
 using Gitunia.Core.Config;
@@ -113,7 +116,6 @@ public sealed class TuiApplication(
     private RepeatController _repeat = null!;
     private MouseController _mouse = null!;
     private long _overlayClickTicks = long.MinValue / 2;
-    private long _statusAgingGeneration;
     private VisualRangeController _visual = null!;
     private IReadOnlyList<IPromptHandler> _prompts = [];
     private SidebarActionHandler _sidebar = null!;
@@ -130,7 +132,7 @@ public sealed class TuiApplication(
     private RepositoryCreationActions _creation = null!;
     private GraphTabBinder _binder = null!;
     private string _homeDirectory = string.Empty;
-    private readonly StatusChannel _statuses = new();
+    private StatusReporter _statuses = null!;
     private readonly TabActivity _activity = new();
     private StartupConfig _startupConfig = null!;
     private ChipKeys _chipKeys = null!;
@@ -207,6 +209,7 @@ public sealed class TuiApplication(
         _uiInvoker = new SuspendableUiInvoker(_application.Invoke);
 
         _host = new Dispatcher(AppState.Empty, _uiInvoker);
+        _statuses = new StatusReporter(_host);
         _sessionFactory = new TerminalTabSessionFactory(glyphs);
         _effects = new EffectRunner<TerminalTabSession>(
             services,
@@ -228,7 +231,6 @@ public sealed class TuiApplication(
             () => !CurrentPaneRects().Sidebar.IsEmpty,
             () => !CurrentPaneRects().Detail.IsEmpty,
             SelectGraphItem,
-            mode => _keys.SetMode(mode),
             clipboard);
         _stashView = new StashViewController(_host, ActiveSession, ReselectGraphCommit, RefreshDetail, _statuses);
         _sidebar.StashView = _stashView;
@@ -266,7 +268,6 @@ public sealed class TuiApplication(
             ActiveSession,
             _view.Detail,
             _view.Diff,
-            mode => _keys.SetMode(mode),
             () => _view.ScreenSize,
             Relayout,
             _view.RefreshChrome,
@@ -276,7 +277,6 @@ public sealed class TuiApplication(
             _host,
             ActiveSession,
             _view.WorkingDiff,
-            mode => _keys.SetMode(mode),
             _view.RefreshChrome,
             clipboard,
             Relayout);
@@ -286,10 +286,9 @@ public sealed class TuiApplication(
         _visual = new VisualRangeController(
             () => _host.Workspace.ActiveTab?.View.FocusedPane ?? PaneKind.Graph,
             PaneView,
-            () => _keys.Mode,
-            mode => _keys.SetMode(mode),
+            _host,
             new RangeCopier(clipboard, ActiveSession, () => _host.Workspace.ActiveTab?.WorkingTree).Copy,
-            text => _statuses.Post(text));
+            _statuses);
         _router.Visual = _visual;
         var operationGate = _activity.CreateGate();
         var staging = CreateStaging(operationGate);
@@ -376,7 +375,7 @@ public sealed class TuiApplication(
 
         var configured = _startupConfig.Keymap;
         var engine = new KeymapEngine(configured.Table);
-        _keys = new KeyController(engine, RouteAction);
+        _keys = new KeyController(engine, RouteAction, _host);
         _repeat = new RepeatController(
             configured.Table,
             () => _host.Workspace.ActiveTabId,
@@ -389,7 +388,6 @@ public sealed class TuiApplication(
             ActiveSession,
             () => _view.Detail.SelectedItem,
             MoveDetailCursor,
-            _keys.SetMode,
             RefreshDetail,
             _diffPane.OpenFileContent);
         _router.FileTree = _fileTree;
@@ -410,7 +408,8 @@ public sealed class TuiApplication(
             () => _view.ScreenSize,
             glyphs,
             () => _router.ViewName,
-            _statuses);
+            _statuses,
+            _host);
         _overlays.WhichKeyEnabled = _startupConfig.Options.WhichKeyPopup;
         _overlays.Level = () => _startupConfig.Options.CommandLevel;
         _overlays.Changed += RefreshOverlay;
@@ -421,7 +420,7 @@ public sealed class TuiApplication(
             _picker,
             _statuses,
             InvokeOnUi,
-            _keys.SetMode,
+            _host,
             _view.RefreshChrome,
             _homeDirectory,
             DefaultCloneParent);
@@ -448,8 +447,6 @@ public sealed class TuiApplication(
         // Same for the Changes view; it must run before ApplyFocus, which needs the panes it shows.
         _ = new WorkingTreePresenter(_host, _view);
 
-        _statuses.Changed += _view.RefreshChrome;
-        _statuses.Changed += ScheduleStatusAging;
         _host.Changed += _view.RefreshChrome;
         _host.Changed += _mainline.Sync;
         _host.Changed += _binder.Sync;
@@ -477,6 +474,7 @@ public sealed class TuiApplication(
         _view.Gestured += OnGestured;
         _view.MessageClicked += _commits.PlaceCursor;
         _view.Window.ViewportChanged += (_, _) => DeferToNextIteration(_diffPane.OnScreenResized);
+        _view.Window.ViewportChanged += (_, _) => ReportScreenSize();
         _view.Window.ViewportChanged += (_, _) => _overlays.OnScreenResized();
         _view.Window.ViewportChanged += (_, _) => _settings.OnScreenResized();
         _mainline.Attach(_view.Window);
@@ -935,20 +933,9 @@ public sealed class TuiApplication(
         _effects.RefreshStatus,
         tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None,
         _activity.CreateGate(),
-        ShowOutput,
         () => _keys.Mode,
-        SetMode,
         RouteAction,
-        _view.RefreshChrome,
-        ShowConfirm);
-
-    // The overlay controller and the key controller are created after the commit actions, so they are reached through these methods.
-    private void ShowOutput(string title, string heading, IReadOnlyList<string> lines) =>
-        _overlays.ShowOutput(title, heading, lines);
-
-    private void SetMode(KeyMode mode) => _keys.SetMode(mode);
-
-    private bool ShowConfirm(ConfirmPrompt prompt, Action onConfirmed) => _overlays.ShowConfirm(prompt, onConfirmed);
+        _view.RefreshChrome);
 
     private BranchActions CreateBranches() => new(
         _host,
@@ -957,18 +944,11 @@ public sealed class TuiApplication(
         InvokeOnUi,
         tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None,
         _activity.CreateGate(),
-        ShowConfirm,
         tabId => _effects.Refresh(tabId, false),
-        SetMode,
         _view.RefreshChrome,
         BranchSelectionNow);
 
     BranchSelection IBranchSelectionSource.Current() => BranchSelectionNow();
-
-    bool IShellEffects.ShowConfirm(ConfirmPrompt prompt, AppCommand onAccepted) =>
-        _overlays.ShowConfirm(prompt, () => _host.Dispatch(onAccepted));
-
-    void IShellEffects.SetKeyMode(KeyMode mode) => SetMode(mode);
 
     void IShellEffects.CopyToClipboard(CopyToClipboardEffect effect) =>
         _clipboard.Copy(effect.Text, effect.Description);
@@ -999,9 +979,6 @@ public sealed class TuiApplication(
         InvokeOnUi,
         tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None,
         tabId => _effects.Refresh(tabId, false),
-#pragma warning disable IDE0200 // _keys is assigned after this runs; a method group would capture null
-        mode => _keys.SetMode(mode),
-#pragma warning restore IDE0200
         RefreshMainlineAndChrome,
         _visual.End,
         PickSelectionNow,
@@ -1040,9 +1017,7 @@ public sealed class TuiApplication(
         _statuses,
         InvokeOnUi,
         tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None,
-        ShowConfirm,
         tabId => _effects.Refresh(tabId, false),
-        SetMode,
         _view.RefreshChrome,
         BranchSelectionNow,
         gate);
@@ -1053,7 +1028,6 @@ public sealed class TuiApplication(
         _statuses,
         InvokeOnUi,
         tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None,
-        ShowConfirm,
         tabId => _effects.Refresh(tabId, false),
         BranchSelectionNow,
         IsAnyOverlayOpen,
@@ -1065,11 +1039,9 @@ public sealed class TuiApplication(
         _statuses,
         InvokeOnUi,
         tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None,
-        ShowConfirm,
         tabId => _effects.Refresh(tabId, false),
         SelectedCommitHash,
         IsAnyOverlayOpen,
-        SetMode,
         _view.RefreshChrome,
         gate);
 
@@ -1088,7 +1060,6 @@ public sealed class TuiApplication(
         InvokeOnUi,
         _effects.RefreshStatus,
         tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None,
-        ShowConfirm,
         gate);
 
     private RemoteManagementActions CreateRemoteManagement() => new(
@@ -1098,9 +1069,7 @@ public sealed class TuiApplication(
         InvokeOnUi,
         tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None,
         _activity.CreateGate(),
-        ShowConfirm,
         tabId => _effects.Refresh(tabId, false),
-        SetMode,
         _view.RefreshChrome,
         BranchSelectionNow,
         _remote.IsRunning);
@@ -1114,7 +1083,6 @@ public sealed class TuiApplication(
         tabId => _effects.Refresh(tabId, false),
         _view.RefreshChrome,
         gate,
-        ShowConfirm,
         IsAnyOverlayOpen,
         _externalToolRunner.LaunchGit);
 
@@ -1128,9 +1096,7 @@ public sealed class TuiApplication(
         InvokeOnUi,
         tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None,
         _activity.CreateGate(),
-        ShowConfirm,
         tabId => _effects.Refresh(tabId, false),
-        SetMode,
         _view.RefreshChrome,
         BranchSelectionNow);
 
@@ -1141,7 +1107,6 @@ public sealed class TuiApplication(
         InvokeOnUi,
         tabId => _effects.Refresh(tabId, false),
         tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None,
-        ShowConfirm,
         gate);
 
     private WorktreeActions CreateWorktrees(TabOperationGate gate, SidebarListSource sidebarSource) => new(
@@ -1151,11 +1116,9 @@ public sealed class TuiApplication(
         InvokeOnUi,
         tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None,
         tabId => _effects.Refresh(tabId, false),
-        ShowConfirm,
         gate,
         () => SelectedSidebarRow(sidebarSource),
         SelectedCommitHash,
-        SetMode,
         _view.RefreshChrome);
 
     private WorktreeSwitchActions CreateWorktreeSwitch(TabOperationGate gate, SidebarListSource sidebarSource) => new(
@@ -1257,8 +1220,7 @@ public sealed class TuiApplication(
         InvokeOnUi,
         _effects.RefreshStatus,
         tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None,
-        gate,
-        ShowConfirm);
+        gate);
 
     private TerminalTabSession? ActiveSession() => _host.Workspace.ActiveTabId is { } id ? _effects.SessionOf(id) : null;
 
@@ -1640,7 +1602,7 @@ public sealed class TuiApplication(
         InvokeOnUi,
         () => _view.ScreenSize,
         glyphs,
-        SetMode,
+        _host,
         RefreshOverlay,
         ApplyOptions,
         ApplyTheme,
@@ -1733,13 +1695,11 @@ public sealed class TuiApplication(
         _statuses,
         InvokeOnUi,
         tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None,
-        ShowConfirm,
         tabId => _effects.Refresh(tabId, false),
         BranchSelectionNow,
         IsOtherThanRebaseEditorOpen,
         () => _view.ScreenSize,
         glyphs,
-        SetMode,
         RefreshOverlay,
         gate,
         _chipKeys);
@@ -1755,13 +1715,11 @@ public sealed class TuiApplication(
         _statuses,
         InvokeOnUi,
         tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None,
-        ShowConfirm,
         staging.StageResolvedFor,
         tabId => _effects.Refresh(tabId, false),
         IsOtherThanConflictEditorOpen,
         () => _view.ScreenSize,
         glyphs,
-        SetMode,
         RefreshOverlay,
         gate,
         _chipKeys);
@@ -1778,7 +1736,6 @@ public sealed class TuiApplication(
         BranchSelectionNow,
         () => _view.ScreenSize,
         glyphs,
-        SetMode,
         RefreshOverlay);
 
     // Moves the graph cursor to a commit; the reason it cannot is returned (empty on success).
@@ -1828,30 +1785,11 @@ public sealed class TuiApplication(
             && graph[index].Row.Edges.All(edge => edge.Kind != GraphEdgeKind.Outgoing);
     }
 
-    // Added to the wait for a message to age, so the clock is surely past the threshold when the timeout fires.
-    private static readonly TimeSpan StatusAgingMargin = TimeSpan.FromMilliseconds(20);
-
-    // A message loses its highlight and then expires with no key pressed, so the bar is drawn again at those moments.
-    // Each change of the channel replaces the earlier wait; a stale timeout does nothing.
-    private void ScheduleStatusAging()
+    // The shell state knows the screen size, so it can refuse a confirm dialog that does not fit and close one that no longer does.
+    private void ReportScreenSize()
     {
-        var generation = ++_statusAgingGeneration;
-        if (_statuses.UntilNextChange is not { } wait)
-        {
-            return;
-        }
-
-        _application.AddTimeout(
-            wait + StatusAgingMargin,
-            () =>
-            {
-                if (generation == _statusAgingGeneration)
-                {
-                    _statuses.Tick();
-                }
-
-                return false;
-            });
+        var size = _view.ScreenSize;
+        _host.Dispatch(new ScreenResizedCommand(new ScreenExtent(size.Width, size.Height), _host.Clock.GetUtcNow()));
     }
 
     private void InvokeOnUi(Action action) => _uiInvoker.Invoke(action);
@@ -1922,7 +1860,7 @@ public sealed class TuiApplication(
                 _view.Graph.SelectedItem = row + ScreenLayout.ReservedLeadingRows;
                 _view.Graph.EnsureSelectedItemVisible();
             },
-            _keys.SetMode,
+            _host,
             () =>
             {
                 _view.Graph.SetNeedsDraw();
@@ -1931,7 +1869,7 @@ public sealed class TuiApplication(
         return
         [
             // The prompt that owns Insert mode must see Esc and Enter first, so the ref prompt comes before the search.
-            new TabRenameController(_host, _keys.SetMode, _view.RefreshChrome),
+            new TabRenameController(_host, _view.RefreshChrome),
             CreateQuickRebase(gate),
             _branches,
             _tags,
@@ -1954,10 +1892,8 @@ public sealed class TuiApplication(
                 InvokeOnUi,
                 tabId => _effects.Refresh(tabId, false),
                 tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None,
-                ShowConfirm,
                 tab => SidebarCursorRow(sidebarSource, tab),
                 StashFileUnderCursor,
-                _keys.SetMode,
                 _view.RefreshChrome,
                 gate),
         ];
@@ -1967,7 +1903,7 @@ public sealed class TuiApplication(
         ActiveSession,
         () => _host.Workspace.ActiveTab?.View.FocusedPane ?? PaneKind.Graph,
         OpenJumpTarget,
-        _keys.SetMode,
+        _host,
         _view.RefreshChrome));
 
     // The target of the focused list, null for a pane without a quick jump (the sidebar, the message box).
@@ -2067,7 +2003,7 @@ public sealed class TuiApplication(
             {
                 // A filter typed in the tab left behind must not keep owning Insert mode.
                 editing.IsEditingFilter = false;
-                _keys.SetMode(KeyMode.Normal);
+                _host.SetKeyMode(KeyMode.Normal);
             }
 
             if (previous.Tree is { } previousTree)
@@ -2184,7 +2120,7 @@ public sealed class TuiApplication(
 
         if (!_overlays.State.IsOpen && _picker.IsOpen != (_keys.Mode == KeyMode.Insert))
         {
-            _keys.SetMode(_picker.IsOpen ? KeyMode.Insert : KeyMode.Normal);
+            _host.SetKeyMode(_picker.IsOpen ? KeyMode.Insert : KeyMode.Normal);
         }
 
         _view.ShowPicker(_picker.IsOpen);

@@ -9,6 +9,7 @@ using Gitunia.Git.Repositories.Models;
 using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Search;
+using Gitunia.Tui.Tests.Fakes;
 using Xunit;
 
 namespace Gitunia.Tui.Tests.Search;
@@ -17,7 +18,7 @@ namespace Gitunia.Tui.Tests.Search;
 public sealed class QuickJumpTargetTests : IDisposable
 {
     private readonly TerminalTabSession _session;
-    private readonly List<KeyMode> _modes = [];
+    private readonly TestShell _shell = new();
     private readonly List<string?> _shown = [];
     private readonly List<int> _jumps = [];
     private PaneKind _focused = PaneKind.WorkingUnstaged;
@@ -36,7 +37,7 @@ public sealed class QuickJumpTargetTests : IDisposable
             () => _session,
             () => _focused,
             OpenTarget,
-            _modes.Add,
+            _shell.Host,
             () => { }));
     }
 
@@ -47,7 +48,7 @@ public sealed class QuickJumpTargetTests : IDisposable
     {
         Controller.TryExecute(ActionIds.QuickJump, null);
 
-        Assert.Equal([KeyMode.Insert], _modes);
+        Assert.Equal([KeyMode.Insert], _shell.Modes);
         Assert.Equal([string.Empty], _shown);
         Assert.StartsWith("jump _", Controller.StatusLine, StringComparison.Ordinal);
     }
@@ -63,7 +64,7 @@ public sealed class QuickJumpTargetTests : IDisposable
         Assert.True(Controller.HandleTextKey(new KeyEvent("w")));
 
         Assert.Equal([1], _jumps);
-        Assert.Equal(KeyMode.Normal, _modes[^1]);
+        Assert.Equal(KeyMode.Normal, _shell.Modes[^1]);
         Assert.Null(_shown[^1]);
         Assert.Equal(string.Empty, Controller.StatusLine);
     }
@@ -89,7 +90,7 @@ public sealed class QuickJumpTargetTests : IDisposable
 
         Assert.Empty(_jumps);
         Assert.Null(_shown[^1]);
-        Assert.Equal(KeyMode.Normal, _modes[^1]);
+        Assert.Equal(KeyMode.Normal, _shell.Modes[^1]);
     }
 
     [Fact]
@@ -100,7 +101,7 @@ public sealed class QuickJumpTargetTests : IDisposable
         Assert.True(Controller.TryExecute(ActionIds.QuickJump, null));
 
         Assert.Equal("Not here", Controller.Notice);
-        Assert.Empty(_modes);
+        Assert.Empty(_shell.Modes);
         Assert.Empty(_shown);
     }
 
@@ -112,7 +113,7 @@ public sealed class QuickJumpTargetTests : IDisposable
         Assert.True(Controller.TryExecute(ActionIds.QuickJump, null));
 
         Assert.Equal("Quick jump is not available here", Controller.Notice);
-        Assert.Empty(_modes);
+        Assert.Empty(_shell.Modes);
     }
 
     [Fact]
@@ -124,7 +125,7 @@ public sealed class QuickJumpTargetTests : IDisposable
         Assert.False(Controller.HandleTextKey(new KeyEvent("a")));
 
         Assert.Null(_shown[^1]);
-        Assert.Equal(KeyMode.Normal, _modes[^1]);
+        Assert.Equal(KeyMode.Normal, _shell.Modes[^1]);
         Assert.Equal(string.Empty, Controller.StatusLine);
     }
 
@@ -136,7 +137,7 @@ public sealed class QuickJumpTargetTests : IDisposable
 
         Controller.CloseIfStale();
 
-        Assert.Equal(KeyMode.Normal, _modes[^1]);
+        Assert.Equal(KeyMode.Normal, _shell.Modes[^1]);
         Assert.Null(_shown[^1]);
     }
 
@@ -145,7 +146,7 @@ public sealed class QuickJumpTargetTests : IDisposable
     {
         Controller.CloseIfStale();
 
-        Assert.Empty(_modes);
+        Assert.Empty(_shell.Modes);
     }
 
     public void Dispose() => _session.Dispose();

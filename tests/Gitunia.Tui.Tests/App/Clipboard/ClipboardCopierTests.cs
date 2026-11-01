@@ -1,5 +1,8 @@
+using Gitunia.App.Status;
+using Gitunia.App;
 using Gitunia.Core.Clipboard;
 using Gitunia.Core.Status;
+using Gitunia.Core;
 using Gitunia.Tui.App.Clipboard;
 using Xunit;
 
@@ -11,7 +14,7 @@ public class ClipboardCopierTests
     public void GivenSupportedTerminal_WhenCopying_ThenSequenceIsWrittenAndInfoPosted()
     {
         var output = new StringWriter();
-        var statuses = new StatusChannel();
+        var statuses = new StatusReporter(new Dispatcher(AppState.Empty));
         var copier = new ClipboardCopier(new ClipboardWriter(output, new Osc52Options(Osc52Mode.Direct, 100_000)), statuses);
 
         Assert.True(copier.Copy("abc", "commit hash"));
@@ -25,7 +28,7 @@ public class ClipboardCopierTests
     public void GivenUnsupportedTerminal_WhenCopying_ThenWarningExplainsAndNothingIsWritten()
     {
         var output = new StringWriter();
-        var statuses = new StatusChannel();
+        var statuses = new StatusReporter(new Dispatcher(AppState.Empty));
         var writer = new ClipboardWriter(output, Osc52Environment.Detect(name => name == "TERM" ? "dumb" : null));
 
         Assert.False(new ClipboardCopier(writer, statuses).Copy("abc", "commit hash"));
@@ -37,7 +40,7 @@ public class ClipboardCopierTests
     [Fact]
     public void GivenNoWriter_WhenCopying_ThenWarningSaysConsoleIsNotInteractive()
     {
-        var statuses = new StatusChannel();
+        var statuses = new StatusReporter(new Dispatcher(AppState.Empty));
 
         Assert.False(new ClipboardCopier(null, statuses).Copy("abc", "commit hash"));
 

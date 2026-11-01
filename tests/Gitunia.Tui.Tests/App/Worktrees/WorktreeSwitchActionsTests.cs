@@ -1,3 +1,4 @@
+using Gitunia.App.Status;
 using Gitunia.App;
 using Gitunia.Core;
 using Gitunia.App.Loading.Commits;
@@ -5,7 +6,6 @@ using Gitunia.App.Tabs;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Sidebar;
-using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
@@ -193,7 +193,7 @@ public sealed class WorktreeSwitchActionsTests
 
         public WorktreeSwitchActions Actions { get; }
 
-        public StatusChannel Statuses { get; } = new();
+        public StatusReporter Statuses { get; } = new(new Dispatcher(AppState.Empty));
 
         public TabOperationGate Gate { get; } = new();
 
@@ -283,7 +283,7 @@ public sealed class WorktreeSwitchActionsTests
                 TimeSpan.Zero);
             var session = new TerminalTabSession(new TabSessionParts(tabId, details), GraphGlyphSet.Unicode);
             await TestGit.Services.RepositoryLoader
-                .RunAsync(location, session, Host, new StatusChannel(), InlineUi.Post, Token);
+                .RunAsync(location, session, Host, new StatusReporter(new Dispatcher(AppState.Empty)), InlineUi.Post, Token);
         }
     }
 }

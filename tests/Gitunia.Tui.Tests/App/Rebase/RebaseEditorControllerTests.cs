@@ -1,5 +1,4 @@
-using Gitunia.Core;
-using Gitunia.App;
+using Gitunia.App.Status;
 using Gitunia.App.Tabs;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
@@ -24,6 +23,7 @@ using Gitunia.Tui.App.Branches;
 using Gitunia.Tui.App.Rebase;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Views;
+using Gitunia.Tui.Tests.Fakes;
 using Xunit;
 
 namespace Gitunia.Tui.Tests.App.Rebase;
@@ -553,17 +553,15 @@ public class RebaseEditorControllerTests
 
     private sealed class Harness : IDisposable
     {
-        private readonly Dispatcher _host = new(AppState.Empty);
-        private readonly List<Action> _answers = [];
-        private readonly List<KeyMode> _modes = [];
+        private readonly TestShell _shell = new();
         private BranchSelection _selection = new(null, null, null);
 
         private Harness(TestRepository repository, RepositoryLocation location, Func<string, string?> environment)
         {
             Runner = repository.CreateIsolatedRunner();
             Location = location;
-            _host.Dispatch(new OpenRepositoryCommand(location));
-            TabId = _host.Workspace.ActiveTabId!.Value;
+            _shell.Host.Dispatch(new OpenRepositoryCommand(location));
+            TabId = _shell.Host.Workspace.ActiveTabId!.Value;
             Pump = new UiPump(TestContext.Current.CancellationToken);
             var detector = new RepositoryOperationDetector();
             var writer = new InteractiveRebaseWriter(
@@ -573,13 +571,12 @@ public class RebaseEditorControllerTests
                 new SequenceEditorCommand(["cp"]),
                 environment);
             Controller = new RebaseEditorController(
-                _host,
+                _shell.Host,
                 writer,
                 new CommitDetailsReader(Runner),
                 Statuses,
                 Pump.Post,
                 _ => TestContext.Current.CancellationToken,
-                Confirm,
                 _ =>
                 {
                     Refreshes++;
@@ -589,7 +586,6 @@ public class RebaseEditorControllerTests
                 () => IsOtherOverlayOpen,
                 () => new ScreenSize(100, 30),
                 GraphGlyphSet.Unicode,
-                _modes.Add,
                 () => { },
                 Gate);
         }
@@ -600,15 +596,19 @@ public class RebaseEditorControllerTests
 
         public RebaseEditorController Controller { get; }
 
-        public StatusChannel Statuses { get; } = new();
+        public StatusReporter Statuses => _shell.Statuses;
 
         public TabOperationGate Gate { get; } = new();
 
-        public List<ConfirmPrompt> Prompts { get; } = [];
+        public List<ConfirmPrompt> Prompts => _shell.Prompts;
 
         public int Refreshes { get; private set; }
 
-        public bool CanShowDialog { get; set; } = true;
+        public bool CanShowDialog
+        {
+            get => _shell.CanShowDialog;
+            set => _shell.CanShowDialog = value;
+        }
 
         public bool IsOtherOverlayOpen { get; set; }
 
@@ -616,9 +616,9 @@ public class RebaseEditorControllerTests
 
         public UiPump Pump { get; }
 
-        public KeyMode Mode => _modes.Count == 0 ? KeyMode.Normal : _modes[^1];
+        public KeyMode Mode => _shell.Mode;
 
-        public RepositoryState Tab => _host.Workspace.FindTab(TabId)!;
+        public RepositoryState Tab => _shell.Host.Workspace.FindTab(TabId)!;
 
         // The target is the commit of main unless a test names another (null: nothing selected).
         public static async Task<Harness> CreateAsync(
@@ -660,7 +660,7 @@ public class RebaseEditorControllerTests
         public void SelectRow(SidebarRowKind kind, string commitHash, string name) =>
             _selection = new BranchSelection(kind, name, commitHash);
 
-        public void CloseTab() => _host.Dispatch(new CloseTabCommand(TabId));
+        public void CloseTab() => _shell.Host.Dispatch(new CloseTabCommand(TabId));
 
         public void Open() => Assert.True(Controller.TryExecute(ActionIds.RebaseInteractive, null));
 
@@ -689,37 +689,16 @@ public class RebaseEditorControllerTests
             Controller.State!.Edit!.Editor.SetText(message);
             Run(ActionIds.RebaseEditorMessageSave);
         }
+        public void Answer() => _shell.Answer();
 
-        public void Answer()
-        {
-            var answers = _answers.ToList();
-            _answers.Clear();
-            foreach (var answer in answers)
-            {
-                answer();
-            }
-        }
 
-        public void Decline() => _answers.Clear();
+        public void Decline() => _shell.Decline();
 
         public Task WaitAsync() => Pump.RunUntilAsync(() => !Gate.IsAnyBusy && Statuses.Log.Latest is not null);
 
         public void Dispose()
         {
         }
-
-        private bool Confirm(ConfirmPrompt prompt, Action onConfirmed)
-        {
-            if (!CanShowDialog)
-            {
-                return false;
-            }
-
-            Prompts.Add(prompt);
-            _answers.Add(onConfirmed);
-            return true;
-        }
-
-        private void Send(RepositoryCommand command) => _host.Dispatch(new TabCommand(TabId, command));
+        private void Send(RepositoryCommand command) => _shell.Host.Dispatch(new TabCommand(TabId, command));
     }
 }

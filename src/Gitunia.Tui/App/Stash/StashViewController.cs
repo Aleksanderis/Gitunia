@@ -1,7 +1,7 @@
+using Gitunia.App.Status;
 using Gitunia.App;
 using Gitunia.Core.Graph;
 using Gitunia.Core.Sidebar;
-using Gitunia.Core.Status;
 using Gitunia.Git;
 using Gitunia.Tui.App.Tabs;
 
@@ -17,7 +17,7 @@ public sealed class StashViewController(
     Func<TerminalTabSession?> activeSession,
     Action reselectGraphCommit,
     Action refreshDetail,
-    StatusChannel statuses)
+    StatusReporter statuses)
 {
     /// <summary>Starts showing the stash of a sidebar row.</summary>
     /// <param name="row">A stash row.</param>

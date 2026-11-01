@@ -1,6 +1,8 @@
 using Gitunia.Core.Effects;
 using Gitunia.Core.Keymap.Models;
+using Gitunia.Core.Overlays;
 using Gitunia.Core.Running;
+using Gitunia.Core.Shell;
 using Gitunia.Core.Status;
 using Gitunia.Core.Tags;
 using Gitunia.Core.Workspaces;
@@ -12,6 +14,11 @@ namespace Gitunia.Core.Tests;
 
 public class AppReducerTests
 {
+    private static readonly DateTimeOffset Start = new(2026, 10, 18, 12, 0, 0, TimeSpan.Zero);
+
+    private static readonly ConfirmPrompt DeletePrompt =
+        new("Delete tag", ["Delete tag v1?"], "Undo: recreate the tag", "Delete tag");
+
     private const string Commit = "1111111111111111111111111111111111111111";
 
     [Fact]
@@ -127,6 +134,83 @@ public class AppReducerTests
         Assert.False(failed.Workspace.FindTab(tabId)!.Running.IsBusy);
         Assert.Contains(again.Effects, effect => effect is DeleteTagEffect);
     }
+
+    [Fact]
+    public void GivenAConfirmedTagDelete_WhenYIsAnswered_ThenTheAcceptedCommandRunsAndTheDialogCloses()
+    {
+        var (state, tabId) = AskedToDeleteTag();
+
+        var update = AppReducer.Reduce(state, new ConfirmAnsweredCommand(ConfirmAnswer.Yes));
+
+        Assert.Null(update.State.Shell.Confirm);
+        Assert.Equal(KeyMode.Normal, update.State.Shell.Mode);
+        Assert.Contains(update.Effects, effect => effect is DeleteTagEffect);
+        Assert.True(update.State.Workspace.FindTab(tabId)!.Running.IsBusy);
+    }
+
+    [Fact]
+    public void GivenAnOpenTagDeleteDialog_WhenNIsAnswered_ThenNothingStarts()
+    {
+        var (state, tabId) = AskedToDeleteTag();
+
+        var update = AppReducer.Reduce(state, new ConfirmAnsweredCommand(ConfirmAnswer.No));
+
+        Assert.Null(update.State.Shell.Confirm);
+        Assert.Empty(update.Effects);
+        Assert.False(update.State.Workspace.FindTab(tabId)!.Running.IsBusy);
+    }
+
+    [Fact]
+    public void GivenAnOpenTagDeleteDialog_WhenTheTabIsClosedAndYIsAnswered_ThenNothingStartsAndTheDialogCloses()
+    {
+        var (state, tabId) = AskedToDeleteTag();
+        state = AppReducer.Reduce(state, new CloseTabCommand(tabId)).State;
+        Assert.NotNull(state.Shell.Confirm);
+
+        var update = AppReducer.Reduce(state, new ConfirmAnsweredCommand(ConfirmAnswer.Yes));
+
+        Assert.Null(update.State.Shell.Confirm);
+        Assert.Equal(KeyMode.Normal, update.State.Shell.Mode);
+        Assert.Empty(update.Effects);
+    }
+
+    [Fact]
+    public void GivenATooSmallScreen_WhenATagDeleteIsAsked_ThenNoDialogOpensAndTheRefusalIsPosted()
+    {
+        var state = Opened("alpha");
+        var tabId = state.Workspace.Tabs[0].Id;
+        state = AppReducer.Reduce(state, new ScreenResizedCommand(new ScreenExtent(80, 5), Start)).State;
+        var refusal = new StatusPostedCommand("The screen is too small to ask", StatusSeverity.Warning, Start);
+
+        var update = AppReducer.Reduce(state, new ConfirmRequestedCommand(DeletePrompt, DeleteAccepted(tabId), refusal));
+
+        Assert.Null(update.State.Shell.Confirm);
+        Assert.Equal(KeyMode.Normal, update.State.Shell.Mode);
+        Assert.Equal("The screen is too small to ask", update.State.Shell.Status.Current(Start)?.Text);
+        Assert.DoesNotContain(update.Effects, effect => effect is OperationEffect);
+    }
+
+    [Fact]
+    public void GivenAShellCommand_WhenReducing_ThenTheWorkspaceIsUntouched()
+    {
+        var state = Opened("alpha");
+
+        var update = AppReducer.Reduce(state, new SetKeyModeCommand(KeyMode.Insert));
+
+        Assert.Same(state.Workspace, update.State.Workspace);
+        Assert.Equal(KeyMode.Insert, update.State.Shell.Mode);
+    }
+
+    private static (AppState State, TabId TabId) AskedToDeleteTag()
+    {
+        var state = Opened("alpha");
+        var tabId = state.Workspace.Tabs[0].Id;
+        var asked = AppReducer.Reduce(state, new ConfirmRequestedCommand(DeletePrompt, DeleteAccepted(tabId), null));
+
+        return (asked.State, tabId);
+    }
+
+    private static TagDeleteConfirmed DeleteAccepted(TabId tabId) => new(tabId, "v1", Commit);
 
     private static AppState Opened(params string[] names)
     {

@@ -1,3 +1,5 @@
+using Gitunia.App.Shell;
+using Gitunia.App.Status;
 using Gitunia.App;
 using Gitunia.App.Tabs;
 using Gitunia.Core.Keymap;
@@ -31,17 +33,15 @@ namespace Gitunia.Tui.App.WorkingTree;
 /// <param name="refreshStatus">Asks a tab to re-read its status and calls back when the new state is in; false when it cannot.</param>
 /// <param name="cancellationOf">The token that ends the work of a tab (the tab was closed).</param>
 /// <param name="gate">The one-operation-per-tab gate, shared with the discard actions; null gives this instance its own.</param>
-/// <param name="confirm">Shows the confirm dialog and runs the callback on <c>y</c>; false when it cannot be shown. Without it a conflicted file is refused.</param>
 public sealed class StagingActions(
     Dispatcher host,
     IIndexWriter writer,
     PatchStager patchStager,
-    StatusChannel statuses,
+    StatusReporter statuses,
     Action<Action> postToUi,
     Func<TabId, Action, bool> refreshStatus,
     Func<TabId, CancellationToken> cancellationOf,
-    TabOperationGate? gate = null,
-    Func<ConfirmPrompt, Action, bool>? confirm = null)
+    TabOperationGate? gate = null)
 {
     private const string DirectorySuffix = "/";
     private const string ContinueKeys = "<space>gc";
@@ -289,13 +289,8 @@ public sealed class StagingActions(
             ],
             "Undo: git checkout --merge <file> re-creates the conflict (it overwrites the file's current content).",
             "Mark resolved");
-        if (confirm is null || !confirm(prompt, () => StartResolved(tab, entry)))
+        if (!host.Confirm(prompt, () => StartResolved(tab, entry)))
         {
-            if (confirm is null)
-            {
-                return $"{name} is conflicted: resolve it first";
-            }
-
             return "The screen is too small to ask: nothing was marked resolved";
         }
 

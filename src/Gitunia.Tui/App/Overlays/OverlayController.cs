@@ -1,7 +1,11 @@
+using Gitunia.App;
+using Gitunia.App.Shell;
+using Gitunia.App.Status;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Lists;
 using Gitunia.Core.Overlays;
+using Gitunia.Core.Shell;
 using Gitunia.Core.Status;
 using Gitunia.Tui.Input;
 using Gitunia.Tui.Rendering.Graph;
@@ -56,9 +60,14 @@ public sealed class OverlayController
     private readonly Func<ScreenSize> _screenSize;
     private readonly GraphGlyphSet _glyphs;
     private readonly Func<string> _baseView;
-    private readonly StatusChannel _statuses;
+    private readonly StatusReporter _statuses;
     private IReadOnlyList<HelpTab> _helpTabs = [];
-    private Action? _onConfirmed;
+    private readonly Dispatcher _host;
+    private OverlayState _state = OverlayState.None;
+    private bool _shellChanged;
+    private ConfirmDialog? _shownConfirm;
+    private OutputOverlay? _shownOutput;
+    private StatusLog _seenStatus = StatusLog.Empty;
 
     /// <param name="engine">The keymap engine (its table feeds the help and the palette).</param>
     /// <param name="keys">The key controller whose mode this controller switches.</param>
@@ -68,6 +77,7 @@ public sealed class OverlayController
     /// <param name="glyphs">The characters overlays are drawn with.</param>
     /// <param name="baseView">The keymap view that is focused when no overlay is open (asked each time: it follows the focused pane).</param>
     /// <param name="statuses">The status messages the history overlay lists.</param>
+    /// <param name="host">Holds the key mode, the confirm dialog and the output box this controller shows.</param>
     public OverlayController(
         KeymapEngine engine,
         KeyController keys,
@@ -76,7 +86,8 @@ public sealed class OverlayController
         Func<ScreenSize> screenSize,
         GraphGlyphSet glyphs,
         Func<string> baseView,
-        StatusChannel statuses)
+        StatusReporter statuses,
+        Dispatcher host)
     {
         _engine = engine;
         _keys = keys;
@@ -86,15 +97,34 @@ public sealed class OverlayController
         _glyphs = glyphs;
         _baseView = baseView;
         _statuses = statuses;
+        _host = host;
+        _seenStatus = host.State.Shell.Status;
         keys.PendingChanged += OnPendingChanged;
         keys.TextKeyPressed += OnTextKey;
-        statuses.Changed += OnStatusChanged;
+        host.Changed += OnHostChanged;
     }
 
     /// <summary>Raised when what the overlay layer shows may have changed.</summary>
     public event Action? Changed;
 
-    public OverlayState State { get; private set; } = OverlayState.None;
+    /// <summary>
+    /// The overlay state. The confirm dialog and the output box are shell state and follow it at once, so a callback
+    /// of an answered dialog already sees the dialog closed.
+    /// </summary>
+    public OverlayState State
+    {
+        get
+        {
+            if (SyncShell())
+            {
+                _shellChanged = true;
+            }
+
+            return _state;
+        }
+
+        private set => _state = value;
+    }
 
     /// <summary>
     /// What the actions menu of the focused row offers: asked with the keymap view it opens from (the graph or the
@@ -174,62 +204,10 @@ public sealed class OverlayController
     }
 
     /// <summary>
-    /// Shows the output of a failed command (a failing commit hook) in a scrollable box; <c>Esc</c> closes it. An open overlay is
-    /// replaced (the output is the newer fact).
+    /// Call when the terminal size changed. The menu hangs on a row of the old layout, so it closes. A confirm dialog
+    /// that no longer fits is closed by the shell reducer (<see cref="ScreenResizedCommand"/>).
     /// </summary>
-    /// <param name="title">The box title.</param>
-    /// <param name="heading">The heading of the text section.</param>
-    /// <param name="lines">The output, one entry per line.</param>
-    public void ShowOutput(string title, string heading, IReadOnlyList<string> lines)
-    {
-        var returnMode = State.IsOpen ? State.ReturnMode : _keys.Mode;
-        var rows = lines.Select(line => new HelpRow(string.Empty, line));
-        _helpTabs = [new HelpTab(heading, [new HelpSection(heading, [.. rows])])];
-        Open(OverlayState.OpenOutput(title, returnMode), KeyMode.Normal);
-    }
-
-    /// <summary>
-    /// Asks the user before a destructive action: shows the dialog and switches to Confirm mode, where only <c>y</c> runs
-    /// <paramref name="onConfirmed"/>; <c>n</c> and <c>Esc</c> drop it. Returns false (and shows nothing) when the dialog does not fit
-    /// the screen: the caller must then not start the action. An open overlay is replaced.
-    /// </summary>
-    /// <param name="prompt">What the dialog says.</param>
-    /// <param name="onConfirmed">Runs after the dialog is closed, on <c>y</c> only.</param>
-    public bool ShowConfirm(ConfirmPrompt prompt, Action onConfirmed)
-    {
-        var size = _screenSize();
-        if (ConfirmFrameBuilder.Build(prompt, size.Width, size.Height, _glyphs) is null)
-        {
-            return false;
-        }
-
-        var returnMode = State.IsOpen ? State.ReturnMode : _keys.Mode;
-        _onConfirmed = onConfirmed;
-        Open(OverlayState.OpenConfirm(prompt, returnMode), KeyMode.Confirm);
-        return true;
-    }
-
-    /// <summary>
-    /// Call when the terminal size changed. A confirm dialog that no longer fits is closed without answering (its callback is
-    /// dropped and a warning says nothing happened): a dialog nobody can read must not be answerable with a stray <c>y</c>.
-    /// </summary>
-    public void OnScreenResized()
-    {
-        CloseMenuOnResize();
-        if (State is not { Kind: OverlayKind.Confirm, Confirm: { } prompt })
-        {
-            return;
-        }
-
-        var size = _screenSize();
-        if (ConfirmFrameBuilder.Build(prompt, size.Width, size.Height, _glyphs) is not null)
-        {
-            return;
-        }
-
-        _statuses.Warning("The screen became too small for the question: nothing was done");
-        HandleConfirm(ActionIds.ConfirmNo);
-    }
+    public void OnScreenResized() => CloseMenuOnResize();
 
     /// <summary>The answer drawn on a frame line of the open confirm dialog (a mouse click); null when the line is none or no dialog is open.</summary>
     public ConfirmAnswer? ConfirmAnswerAt(int frameLine)
@@ -385,30 +363,38 @@ public sealed class OverlayController
     // Only the answers act; every other action is swallowed so nothing behind the dialog moves, and Enter never confirms.
     private void HandleConfirm(ActionId action)
     {
-        if (action != ActionIds.ConfirmYes && action != ActionIds.ConfirmNo && action != ActionIds.Cancel)
+        if (action == ActionIds.ConfirmYes)
         {
-            return;
+            _host.Dispatch(new ConfirmAnsweredCommand(ConfirmAnswer.Yes));
         }
-
-        var onConfirmed = action == ActionIds.ConfirmYes ? _onConfirmed : null;
-        _onConfirmed = null;
-        Close();
-        onConfirmed?.Invoke();
+        else if (action == ActionIds.ConfirmNo || action == ActionIds.Cancel)
+        {
+            _host.Dispatch(new ConfirmAnsweredCommand(ConfirmAnswer.No));
+        }
     }
 
     private void Open(OverlayState state, KeyMode mode)
     {
         _whichKeyTimer.Cancel();
         State = state;
-        _keys.SetMode(mode);
+        _host.SetKeyMode(mode);
         Changed?.Invoke();
     }
 
     private void Close()
     {
+        var wasOutput = State.Kind == OverlayKind.Output;
         var returnMode = State.ReturnMode;
         State = OverlayState.None;
-        _keys.SetMode(returnMode);
+        if (wasOutput)
+        {
+            _host.Dispatch(new OutputClosedCommand());
+        }
+        else
+        {
+            _host.SetKeyMode(returnMode);
+        }
+
         Changed?.Invoke();
     }
 
@@ -452,7 +438,7 @@ public sealed class OverlayController
         if (action == ActionIds.HelpSearch)
         {
             State = State.OpenHelpFilter();
-            _keys.SetMode(KeyMode.Insert);
+            _host.SetKeyMode(KeyMode.Insert);
             return true;
         }
 
@@ -464,14 +450,14 @@ public sealed class OverlayController
         if (action == ActionIds.Cancel)
         {
             State = State.ClearHelpFilter();
-            _keys.SetMode(KeyMode.Normal);
+            _host.SetKeyMode(KeyMode.Normal);
             return true;
         }
 
         if (action == ActionIds.InputAccept && State.IsEditingHelpFilter)
         {
             State = State.AcceptHelpFilter();
-            _keys.SetMode(KeyMode.Normal);
+            _host.SetKeyMode(KeyMode.Normal);
             return true;
         }
 
@@ -565,15 +551,96 @@ public sealed class OverlayController
         return ActionCatalog.PaletteOnly.Contains(new ActionId(identifier)) ? new ActionId(identifier) : null;
     }
 
-    private void OnStatusChanged()
+    // The confirm dialog and the output box are shell state: this controller draws them and keeps the scroll of the box.
+    // A dialog or box replaces an overlay that is open (it is the newer fact).
+    private void OnHostChanged()
     {
-        if (State.Kind != OverlayKind.Messages)
+        var changed = SyncShell() || _shellChanged;
+        _shellChanged = false;
+        var status = _host.State.Shell.Status;
+        if (!ReferenceEquals(status, _seenStatus))
         {
-            return;
+            _seenStatus = status;
+            changed |= RefreshMessages();
+        }
+
+        if (changed)
+        {
+            Changed?.Invoke();
+        }
+    }
+
+    private bool SyncShell()
+    {
+        var shell = _host.State.Shell;
+        var changed = false;
+        if (!ReferenceEquals(shell.Confirm, _shownConfirm))
+        {
+            changed |= ShowConfirm(shell.Confirm);
+        }
+
+        if (!ReferenceEquals(shell.Output, _shownOutput))
+        {
+            changed |= ShowOutput(shell.Output);
+        }
+
+        return changed;
+    }
+
+    private bool ShowConfirm(ConfirmDialog? dialog)
+    {
+        _shownConfirm = dialog;
+        if (dialog is not null)
+        {
+            _whichKeyTimer.Cancel();
+            _state = OverlayState.OpenConfirm(dialog.Prompt, dialog.ReturnMode);
+
+            return true;
+        }
+
+        if (_state.Kind != OverlayKind.Confirm)
+        {
+            return false;
+        }
+
+        _state = OverlayState.None;
+
+        return true;
+    }
+
+    private bool ShowOutput(OutputOverlay? output)
+    {
+        _shownOutput = output;
+        if (output is not null)
+        {
+            var rows = output.Lines.Select(line => new HelpRow(string.Empty, line));
+            _helpTabs = [new HelpTab(output.Heading, [new HelpSection(output.Heading, [.. rows])])];
+            _whichKeyTimer.Cancel();
+            _state = OverlayState.OpenOutput(output.Title, output.ReturnMode);
+
+            return true;
+        }
+
+        if (_state.Kind != OverlayKind.Output)
+        {
+            return false;
+        }
+
+        _state = OverlayState.None;
+
+        return true;
+    }
+
+    private bool RefreshMessages()
+    {
+        if (_state.Kind != OverlayKind.Messages)
+        {
+            return false;
         }
 
         _helpTabs = [new HelpTab("Newest first", [MessageSection()])];
-        Changed?.Invoke();
+
+        return true;
     }
 
     private void OnTextKey(KeyEvent key)

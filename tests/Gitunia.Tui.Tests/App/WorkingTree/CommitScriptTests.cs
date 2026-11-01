@@ -1,5 +1,4 @@
-using Gitunia.Core;
-using Gitunia.App;
+using Gitunia.App.Status;
 using Gitunia.App.Tabs;
 using Gitunia.Core.Editing;
 using Gitunia.Core.Keymap;
@@ -249,10 +248,9 @@ public class CommitScriptTests
 
     private sealed class Session
     {
-        private readonly Dispatcher _host = new(AppState.Empty);
+        private readonly TestShell _shell = new();
         private readonly GitRunner _runner;
         private readonly RepositoryLocation _location;
-        private KeyMode _mode = KeyMode.Normal;
 
         private Session(GitRunner runner, RepositoryLocation location)
         {
@@ -260,7 +258,7 @@ public class CommitScriptTests
             _location = location;
             Pump = new UiPump(Token);
             Commits = new CommitActions(
-                _host,
+                _shell.Host,
                 new CommitWriter(runner),
                 new RepositoryOperationDetector(),
                 Statuses,
@@ -268,20 +266,12 @@ public class CommitScriptTests
                 RefreshStatus,
                 _ => Token,
                 new TabOperationGate(),
-                (_, _, lines) => Outputs.Add(string.Join('\n', lines)),
-                () => _mode,
-                mode => _mode = mode,
+                () => _shell.Mode,
                 (_, _) => { },
-                () => { },
-                (prompt, onConfirmed) =>
-                {
-                    Prompts.Add(prompt);
-                    _onConfirmed = onConfirmed;
-                    return DialogFits;
-                });
+                () => { });
             var indexWriter = new IndexWriter(runner);
             var staging = new StagingActions(
-                _host,
+                _shell.Host,
                 indexWriter,
                 new PatchStager(new FakeDiffReader(), indexWriter),
                 Statuses,
@@ -291,34 +281,36 @@ public class CommitScriptTests
             Commits.StageAllThen = staging.StageAllThen;
         }
 
-        private Action? _onConfirmed;
+        public bool DialogFits
+        {
+            get => _shell.CanShowDialog;
+            set => _shell.CanShowDialog = value;
+        }
 
-        public bool DialogFits { get; set; } = true;
+        public List<ConfirmPrompt> Prompts => _shell.Prompts;
 
-        public List<ConfirmPrompt> Prompts { get; } = [];
+        public void Confirm() => Assert.True(_shell.Answer());
 
-        public void Confirm() => _onConfirmed!();
-
-        public void Dismiss() => _onConfirmed = null;
+        public void Dismiss() => _shell.Decline();
 
         public UiPump Pump { get; }
 
-        public StatusChannel Statuses { get; } = new();
+        public StatusReporter Statuses => _shell.Statuses;
 
         public CommitActions Commits { get; }
 
-        public List<string> Outputs { get; } = [];
+        public List<string> Outputs => [.. _shell.Outputs.Select(output => string.Join('\n', output.Lines))];
 
         public CommitDraft Draft => Commits.DraftFor(Tab.Id);
 
-        private RepositoryState Tab => _host.Workspace.ActiveTab!;
+        private RepositoryState Tab => _shell.Host.Workspace.ActiveTab!;
 
         public static async Task<Session> OpenAsync(TestRepository repository)
         {
             var runner = repository.CreateIsolatedRunner();
             var location = await new RepositoryDiscovery(runner).DiscoverAsync(repository.WorkingTreePath, Token);
             var session = new Session(runner, location);
-            session._host.Dispatch(new OpenRepositoryCommand(location));
+            session._shell.Host.Dispatch(new OpenRepositoryCommand(location));
             await session.ReloadStatusAsync();
             session.Send(new OpenWorkingTreeCommand());
             return session;
@@ -367,6 +359,6 @@ public class CommitScriptTests
         }
 
         private void Send(RepositoryCommand command) =>
-            _host.Dispatch(new TabCommand(_host.Workspace.ActiveTabId!.Value, command));
+            _shell.Host.Dispatch(new TabCommand(_shell.Host.Workspace.ActiveTabId!.Value, command));
     }
 }

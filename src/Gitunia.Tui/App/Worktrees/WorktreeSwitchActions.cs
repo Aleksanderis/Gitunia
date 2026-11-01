@@ -1,9 +1,9 @@
+using Gitunia.App.Status;
 using Gitunia.App;
 using Gitunia.App.Tabs;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Sidebar;
-using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
@@ -32,7 +32,7 @@ namespace Gitunia.Tui.App.Worktrees;
 public sealed class WorktreeSwitchActions(
     Dispatcher host,
     RepositoryDiscovery discovery,
-    StatusChannel statuses,
+    StatusReporter statuses,
     Action<Action> postToUi,
     Func<TabId, CancellationToken> cancellationOf,
     TabOperationGate gate,

@@ -1,5 +1,4 @@
-using Gitunia.Core;
-using Gitunia.App;
+using Gitunia.App.Status;
 using Gitunia.App.Tabs;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
@@ -120,7 +119,7 @@ public class RemoteActionsTests
         Assert.Contains("Runs: git fetch --prune", prompt.Consequence, StringComparison.Ordinal);
         Assert.Empty(harness.TerminalCalls);
 
-        harness.Answers[0]();
+        harness.Answer();
 
         var call = Assert.Single(harness.TerminalCalls);
         Assert.Equal($"fetch|{harness.Root}|fetch --prune", call);
@@ -134,7 +133,7 @@ public class RemoteActionsTests
 
         harness.Execute(ActionIds.RemotePull);
         await harness.WaitAsync();
-        harness.Answers[0]();
+        harness.Answer();
 
         Assert.Equal([$"pull|{harness.Root}|pull --no-rebase --ff-only"], harness.TerminalCalls);
         Assert.False(harness.Gate.IsAnyBusy);
@@ -152,7 +151,7 @@ public class RemoteActionsTests
             new PushRequest("origin", "topic", false, new PushLease("topic", "abc123")),
             "Force pushed");
         await harness.WaitAsync();
-        harness.Answers[0]();
+        harness.Answer();
 
         Assert.Equal(
             [$"push|{harness.Root}|push --force-with-lease=refs/heads/topic:abc123 -- origin topic:refs/heads/topic"],
@@ -240,7 +239,7 @@ public class RemoteActionsTests
         harness.Writer.Blocks = true;
         harness.Execute(ActionIds.RemoteFetch);
 
-        harness.Answers[0]();
+        harness.Answer();
 
         Assert.Empty(harness.TerminalCalls);
         Assert.StartsWith("Busy", harness.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
@@ -257,7 +256,7 @@ public class RemoteActionsTests
 
         harness.Execute(ActionIds.RemoteFetch);
         await harness.WaitAsync();
-        harness.Answers[0]();
+        harness.Answer();
 
         Assert.Equal(
             notice,
@@ -396,18 +395,18 @@ public class RemoteActionsTests
 
     private sealed class Harness : IDisposable
     {
-        private readonly Dispatcher _host = new(AppState.Empty);
+        private readonly TestShell _shell = new();
 
         public Harness()
         {
             Root = Path.Combine(Path.GetTempPath(), "gitunia-remote-actions-tests");
             var gitDirectory = Path.Combine(Root, ".git");
             var location = new RepositoryLocation(Root, gitDirectory, gitDirectory, false, false);
-            _host.Dispatch(new OpenRepositoryCommand(location));
-            TabId = _host.Workspace.ActiveTabId!.Value;
+            _shell.Host.Dispatch(new OpenRepositoryCommand(location));
+            TabId = _shell.Host.Workspace.ActiveTabId!.Value;
             Pump = new UiPump(TestContext.Current.CancellationToken);
             Actions = new RemoteActions(
-                _host,
+                _shell.Host,
                 Writer,
                 Statuses,
                 Pump.Post,
@@ -419,7 +418,6 @@ public class RemoteActionsTests
                 },
                 () => { },
                 Gate,
-                Confirm,
                 () => OverlayOpen,
                 RunInTerminal);
         }
@@ -432,7 +430,7 @@ public class RemoteActionsTests
 
         public FakeRemoteWriter Writer { get; } = new();
 
-        public StatusChannel Statuses { get; } = new();
+        public StatusReporter Statuses => _shell.Statuses;
 
         public TabOperationGate Gate { get; } = new();
 
@@ -440,15 +438,19 @@ public class RemoteActionsTests
 
         public int Refreshes { get; private set; }
 
-        public RepositoryState Tab => _host.Workspace.ActiveTab!;
+        public RepositoryState Tab => _shell.Host.Workspace.ActiveTab!;
 
-        public List<ConfirmPrompt> Prompts { get; } = [];
+        public List<ConfirmPrompt> Prompts => _shell.Prompts;
 
-        public List<Action> Answers { get; } = [];
+        public bool Answer() => _shell.Answer();
 
         public List<string> TerminalCalls { get; } = [];
 
-        public bool CanConfirm { get; init; } = true;
+        public bool CanConfirm
+        {
+            get => _shell.CanShowDialog;
+            init => _shell.CanShowDialog = value;
+        }
 
         public bool OverlayOpen { get; set; }
 
@@ -462,7 +464,7 @@ public class RemoteActionsTests
         {
             var other = Path.Combine(Root, "other");
             var gitDirectory = Path.Combine(other, ".git");
-            _host.Dispatch(
+            _shell.Host.Dispatch(
                 new OpenRepositoryCommand(new RepositoryLocation(other, gitDirectory, gitDirectory, false, false)));
         }
 
@@ -470,17 +472,6 @@ public class RemoteActionsTests
         {
         }
 
-        private bool Confirm(ConfirmPrompt prompt, Action onYes)
-        {
-            if (!CanConfirm)
-            {
-                return false;
-            }
-
-            Prompts.Add(prompt);
-            Answers.Add(onYes);
-            return true;
-        }
 
         private string RunInTerminal(string name, IReadOnlyList<string> arguments, RepositoryLocation location)
         {

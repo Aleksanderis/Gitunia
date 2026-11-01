@@ -1,7 +1,7 @@
 using Gitunia.App.Loading.Graph;
+using Gitunia.App.Status;
 using Gitunia.App.Tabs;
 using Gitunia.Core.Graph;
-using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
@@ -37,7 +37,7 @@ public sealed class RepositoryLoader
     /// <param name="statuses">Told when a part of the load fails.</param>
     /// <param name="postToUi">Runs an action on the UI thread.</param>
     /// <param name="token">Cancelled when the tab closes; taken by the caller because the session disposes its source.</param>
-    public async Task RunAsync(RepositoryLocation location, IGraphSession session, Dispatcher host, StatusChannel statuses, Action<Action> postToUi, CancellationToken token)
+    public async Task RunAsync(RepositoryLocation location, IGraphSession session, Dispatcher host, StatusReporter statuses, Action<Action> postToUi, CancellationToken token)
     {
         var metadata = LoadMetadataAsync(location, session.TabId, host, statuses, postToUi, token);
         var sidebarData = _sidebarLoader.LoadAsync(location, session.TabId, host, statuses, postToUi, token);
@@ -91,7 +91,7 @@ public sealed class RepositoryLoader
     public async Task ExpandAsync(
         RepositoryLocation location,
         IGraphSession session,
-        StatusChannel statuses,
+        StatusReporter statuses,
         Action<Action> postToUi,
         int shownCount,
         ObjectId lastShown,
@@ -159,7 +159,7 @@ public sealed class RepositoryLoader
         }
     }
 
-    private static void ExpansionFailed(IGraphSession session, StatusChannel statuses, int graphVersion, string message)
+    private static void ExpansionFailed(IGraphSession session, StatusReporter statuses, int graphVersion, string message)
     {
         if (session.GraphVersion != graphVersion)
         {
@@ -170,7 +170,7 @@ public sealed class RepositoryLoader
         session.EndExpansion();
     }
 
-    private async Task LoadMetadataAsync(RepositoryLocation location, TabId tabId, Dispatcher host, StatusChannel statuses, Action<Action> postToUi, CancellationToken token)
+    private async Task LoadMetadataAsync(RepositoryLocation location, TabId tabId, Dispatcher host, StatusReporter statuses, Action<Action> postToUi, CancellationToken token)
     {
         try
         {

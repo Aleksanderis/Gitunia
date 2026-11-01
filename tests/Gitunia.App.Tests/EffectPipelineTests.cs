@@ -1,10 +1,13 @@
 using Gitunia.App.Background;
+using Gitunia.App.Status;
 using Gitunia.App.Tabs;
 using Gitunia.App.Tests.Fakes;
 using Gitunia.App.Tests.Tags;
 using Gitunia.Core;
 using Gitunia.Core.Effects;
 using Gitunia.Core.Keymap.Models;
+using Gitunia.Core.Overlays;
+using Gitunia.Core.Shell;
 using Gitunia.Core.Running;
 using Gitunia.Core.Sidebar;
 using Gitunia.Core.Status;
@@ -27,9 +30,11 @@ public class EffectPipelineTests
         using var pipeline = await Pipeline.OpenAsync(TestGit.Services, repository);
 
         pipeline.Dispatch(new TagCreateRequested(pipeline.TabId, new TagTarget(null, null, repository.Head)));
+        Assert.Equal(KeyMode.Insert, pipeline.Host.State.Shell.Mode);
         pipeline.Dispatch(new TagPromptTextChanged(pipeline.TabId, "v1"));
         pipeline.Dispatch(new TagPromptAccepted(pipeline.TabId));
         Assert.Equal(TagPromptKind.CreateMessage, pipeline.Tags.Prompt!.Kind);
+        Assert.Equal(KeyMode.Insert, pipeline.Host.State.Shell.Mode);
         pipeline.Dispatch(new TagPromptAccepted(pipeline.TabId));
         Assert.True(pipeline.IsTagRunning);
         await pipeline.Pump.RunUntilAsync(() => !pipeline.IsTagRunning);
@@ -37,7 +42,7 @@ public class EffectPipelineTests
         Assert.Equal(repository.Head, repository.Git("rev-parse", "v1").Trim());
         Assert.Null(pipeline.Tags.Prompt);
         Assert.Contains("lightweight tag v1", pipeline.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
-        Assert.Equal([KeyMode.Insert, KeyMode.Insert, KeyMode.Normal], pipeline.Shell.Modes);
+        Assert.Equal(KeyMode.Normal, pipeline.Host.State.Shell.Mode);
     }
 
     [Fact]
@@ -48,14 +53,34 @@ public class EffectPipelineTests
         var target = new TagTarget(SidebarRowKind.Tag, "v1", repository.Head);
 
         pipeline.Dispatch(new TagDeleteRequested(pipeline.TabId, target));
-        var confirm = Assert.Single(pipeline.Shell.Confirms);
+        var confirm = pipeline.Host.State.Shell.Confirm!;
         Assert.Equal("Delete tag", confirm.Prompt.Title);
+        Assert.Equal(KeyMode.Confirm, pipeline.Host.State.Shell.Mode);
         Assert.Equal("v1", repository.Git("tag", "--list").Trim());
-        pipeline.Dispatch(confirm.OnAccepted);
+        pipeline.Dispatch(new ConfirmAnsweredCommand(ConfirmAnswer.Yes));
+        Assert.Null(pipeline.Host.State.Shell.Confirm);
+        Assert.Equal(KeyMode.Normal, pipeline.Host.State.Shell.Mode);
         await pipeline.Pump.RunUntilAsync(() => !pipeline.IsTagRunning);
 
         Assert.Equal(string.Empty, repository.Git("tag", "--list").Trim());
         Assert.Contains("Deleted tag v1", pipeline.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task GivenATooSmallScreen_WhenDeletingATagThroughCommands_ThenNoDialogOpensAndTheNoticeIsShown()
+    {
+        using var repository = TestRepositories.Linear().Tag("v1");
+        using var pipeline = await Pipeline.OpenAsync(TestGit.Services, repository);
+        pipeline.Dispatch(new ScreenResizedCommand(new ScreenExtent(80, 5), pipeline.Host.Clock.GetUtcNow()));
+
+        pipeline.Dispatch(new TagDeleteRequested(
+            pipeline.TabId,
+            new TagTarget(SidebarRowKind.Tag, "v1", repository.Head)));
+
+        Assert.Null(pipeline.Host.State.Shell.Confirm);
+        Assert.Equal(KeyMode.Normal, pipeline.Host.State.Shell.Mode);
+        Assert.Equal("The screen is too small to ask: nothing was changed", pipeline.Statuses.Current?.Text);
+        Assert.Equal("v1", repository.Git("tag", "--list").Trim());
     }
 
     [Fact]
@@ -93,9 +118,12 @@ public class EffectPipelineTests
     {
         using var repository = TestRepositories.Linear();
         using var pipeline = await Pipeline.OpenAsync(TestGit.Services, repository);
-        pipeline.Shell.ThrowOnKeyMode = true;
+        pipeline.Dispatch(new ConfirmRequestedCommand(
+            new ConfirmPrompt("Boom", ["Run it?"], "No undo.", "Run"),
+            new RunActionCommand(() => throw new InvalidOperationException("boom")),
+            null));
 
-        pipeline.Dispatch(new TagCreateRequested(pipeline.TabId, new TagTarget(null, null, repository.Head)));
+        pipeline.Dispatch(new ConfirmAnsweredCommand(ConfirmAnswer.Yes));
 
         Assert.StartsWith("Internal error (InvalidOperationException):", pipeline.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
         Assert.Equal(StatusSeverity.Error, pipeline.Statuses.Log.Latest.Severity);
@@ -114,7 +142,7 @@ public class EffectPipelineTests
             host,
             pump.Post,
             new TabSessionFactory(),
-            new StatusChannel(),
+            new StatusReporter(host),
             watcherOptions: TestGit.QuietWatcherOptions);
 
         foreach (var effect in effects)
@@ -187,7 +215,7 @@ public class EffectPipelineTests
             EffectRunner<TabSession> runner,
             UiPump pump,
             RecordingShell shell,
-            StatusChannel statuses)
+            StatusReporter statuses)
         {
             Host = host;
             _runner = runner;
@@ -202,7 +230,7 @@ public class EffectPipelineTests
 
         public RecordingShell Shell { get; }
 
-        public StatusChannel Statuses { get; }
+        public StatusReporter Statuses { get; }
 
         public TabId TabId => Host.Workspace.ActiveTabId!.Value;
 
@@ -219,7 +247,7 @@ public class EffectPipelineTests
             var pump = new UiPump(TestContext.Current.CancellationToken);
             var host = new Dispatcher(AppState.Empty, pump);
             var shell = new RecordingShell();
-            var statuses = new StatusChannel();
+            var statuses = new StatusReporter(host);
             var runner = new EffectRunner<TabSession>(
                 services,
                 host,

@@ -1,3 +1,4 @@
+using Gitunia.App.Status;
 using Gitunia.Core;
 using Gitunia.App.Tabs;
 using Gitunia.App.Loading;
@@ -265,6 +266,7 @@ public class RepositoryLoaderTests
         {
             Location = FakeStatusReader.LocationOf("loader");
             Host = new Dispatcher(AppState.Empty);
+            Statuses = new StatusReporter(Host);
             Host.Dispatch(new OpenRepositoryCommand(Location));
             TabId = Host.Workspace.ActiveTabId!.Value;
             Session = new TabSession(
@@ -286,7 +288,7 @@ public class RepositoryLoaderTests
 
         public FakeStashReader Stashes { get; } = new();
 
-        public StatusChannel Statuses { get; } = new();
+        public StatusReporter Statuses { get; }
 
         public Dispatcher Host { get; }
 

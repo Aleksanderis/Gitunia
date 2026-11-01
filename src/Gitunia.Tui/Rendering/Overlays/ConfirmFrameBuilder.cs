@@ -11,10 +11,6 @@ namespace Gitunia.Tui.Rendering.Overlays;
 /// </summary>
 public static class ConfirmFrameBuilder
 {
-    private const int MaximumWidth = 96;
-    private const int MinimumPopupWidth = 64;
-    private const int ScreenMargin = 2;
-    private const int AnswerRows = 2;
     private const string YesKey = "y";
     private const string NoKey = "n";
     private const string NoLabel = "Cancel (Esc does the same)";
@@ -23,14 +19,13 @@ public static class ConfirmFrameBuilder
     /// <summary>The dialog for a screen, or null when it does not fit.</summary>
     public static OverlayFrame? Build(ConfirmPrompt prompt, int screenWidth, int screenHeight, GraphGlyphSet glyphs)
     {
-        var widest = prompt.Lines.Append(prompt.Consequence).Select(TextWidth.Of).DefaultIfEmpty(0).Max();
-        var width = OverlayBox.FitWidth(widest, MinimumPopupWidth, MaximumWidth, screenWidth, ScreenMargin);
-        if (width < OverlayBox.MinimumWidth)
+        if (!ConfirmLayout.Fits(prompt, screenWidth, screenHeight))
         {
             return null;
         }
 
-        var textWidth = Math.Max(1, OverlayBox.InnerWidth(width) - 2);
+        var width = ConfirmLayout.WidthFor(prompt, screenWidth);
+        var textWidth = ConfirmLayout.TextWidth(width);
         var lines = new List<StyledLine> { OverlayBox.Title(prompt.Title, width, glyphs) };
         foreach (var paragraph in prompt.Lines)
         {
@@ -43,11 +38,6 @@ public static class ConfirmFrameBuilder
         lines.Add(Answer(YesKey, prompt.YesLabel, width, glyphs));
         lines.Add(Answer(NoKey, NoLabel, width, glyphs));
         lines.Add(OverlayBox.Bottom(width, glyphs));
-        if (lines.Count > screenHeight - ScreenMargin)
-        {
-            return null;
-        }
-
         return new OverlayFrame((screenWidth - width) / 2, Math.Max(0, (screenHeight - lines.Count) / 2), lines);
     }
 
@@ -57,7 +47,7 @@ public static class ConfirmFrameBuilder
     /// </summary>
     public static ConfirmAnswer? AnswerAt(int frameLine, int frameHeight)
     {
-        var yesLine = frameHeight - 1 - AnswerRows;
+        var yesLine = frameHeight - 1 - ConfirmLayout.AnswerRows;
         if (frameLine == yesLine)
         {
             return ConfirmAnswer.Yes;

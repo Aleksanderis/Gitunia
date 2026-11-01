@@ -1,3 +1,4 @@
+using Gitunia.App.Status;
 using Gitunia.Core;
 using Gitunia.App.Tabs;
 using System.Drawing;
@@ -11,7 +12,6 @@ using Gitunia.Core.Diff;
 using Gitunia.Core.FileTree;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
-using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Repositories;
@@ -506,13 +506,12 @@ public class FileContentViewTests
                 () => Session,
                 detailList,
                 diffList,
-                _ => { },
                 () => new ScreenSize(width, 40),
                 () => { },
                 () => { },
                 new ClipboardCopier(
                     new ClipboardWriter(Clipboard, new Osc52Options(Osc52Mode.Direct, 100_000)),
-                    new StatusChannel()));
+                    new StatusReporter(new Dispatcher(AppState.Empty))));
 
             Controller.OnTabSwitched(null, session);
             DetailList.ValueChanged += (_, _) => Controller.OnDetailCursorMoved();
@@ -521,7 +520,6 @@ public class FileContentViewTests
                 () => Session,
                 () => _cursor,
                 row => _cursor = row,
-                _ => { },
                 RefreshDetail,
                 Controller.OpenFileContent);
         }
@@ -570,7 +568,7 @@ public class FileContentViewTests
                 location,
                 session,
                 host,
-                new StatusChannel(),
+                new StatusReporter(new Dispatcher(AppState.Empty)),
                 InlineUi.Post,
                 session.Cancellation.Token);
             var head = session.Graph[0].Id;

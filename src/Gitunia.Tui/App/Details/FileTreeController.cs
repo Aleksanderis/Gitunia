@@ -1,3 +1,4 @@
+using Gitunia.App.Shell;
 using Gitunia.App;
 using Gitunia.App.Loading.Trees;
 using Gitunia.Core.FileTree;
@@ -25,7 +26,6 @@ namespace Gitunia.Tui.App.Details;
 /// <param name="activeSession">The active tab's session, null when there is none.</param>
 /// <param name="selectedRow">The cursor row of the detail list.</param>
 /// <param name="moveCursor">Moves the cursor of the detail list to a row.</param>
-/// <param name="setMode">Switches the key mode (Insert while the filter is typed).</param>
 /// <param name="refresh">Rebuilds the detail pane after the tree changed.</param>
 /// <param name="openFile">Shows the content of a file row in the diff pane; returns a notice when it cannot.</param>
 public sealed class FileTreeController(
@@ -33,7 +33,6 @@ public sealed class FileTreeController(
     Func<TerminalTabSession?> activeSession,
     Func<int?> selectedRow,
     Action<int> moveCursor,
-    Action<KeyMode> setMode,
     Action refresh,
     Func<FileTreeRow, string> openFile) : IPromptHandler
 {
@@ -236,13 +235,13 @@ public sealed class FileTreeController(
         if (action == ActionIds.InputAccept)
         {
             tree.IsEditingFilter = false;
-            setMode(KeyMode.Normal);
+            host.SetKeyMode(KeyMode.Normal);
             refresh();
         }
         else if (action == ActionIds.Cancel)
         {
             tree.IsEditingFilter = false;
-            setMode(KeyMode.Normal);
+            host.SetKeyMode(KeyMode.Normal);
             ChangeFilter(tree, string.Empty);
         }
         else
@@ -263,7 +262,7 @@ public sealed class FileTreeController(
         }
 
         tree.IsEditingFilter = true;
-        setMode(KeyMode.Insert);
+        host.SetKeyMode(KeyMode.Insert);
         refresh();
     }
 

@@ -1,4 +1,7 @@
+using Gitunia.App.Status;
+using Gitunia.App;
 using Gitunia.Core.Status;
+using Gitunia.Core;
 using Gitunia.Platform.ExternalTools;
 using Gitunia.Tui.App.ExternalTools;
 using Gitunia.Tui.App.Settings;
@@ -10,7 +13,7 @@ public sealed class ConfigEditorLauncherTests : IDisposable
 {
     private readonly List<string> _events = [];
     private readonly Dictionary<string, string> _variables = [];
-    private readonly StatusChannel _statuses = new();
+    private readonly StatusReporter _statuses = new(new Dispatcher(AppState.Empty));
     private readonly FakeLauncher _launcher;
     private readonly FakeTerminal _terminal;
     private readonly string _directory = Directory.CreateTempSubdirectory("gitunia-editor-").FullName;

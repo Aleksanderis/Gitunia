@@ -1,0 +1,68 @@
+using Gitunia.App;
+using Gitunia.App.Shell;
+using Gitunia.Core;
+using Gitunia.Core.Keymap;
+using Gitunia.Core.Keymap.Models;
+using Gitunia.Tui.Input;
+using Terminal.Gui.Input;
+using Xunit;
+
+namespace Gitunia.Tui.Tests.Input;
+
+[Trait("Os", "Independent")]
+public class KeyControllerModeTests
+{
+    private readonly Dispatcher _host = new(AppState.Empty);
+    private readonly KeyController _keys;
+
+    public KeyControllerModeTests()
+    {
+        _keys = new KeyController(new KeymapEngine(DefaultKeymap.Create()), (_, _) => { }, _host);
+    }
+
+    [Fact]
+    public void GivenAModeCommand_WhenDispatched_ThenTheControllerFollowsTheStateAndRaisesPendingChanged()
+    {
+        var raised = 0;
+        _keys.PendingChanged += () => raised++;
+
+        _host.SetKeyMode(KeyMode.Insert);
+
+        Assert.Equal(KeyMode.Insert, _keys.Mode);
+        Assert.Equal(KeyMode.Insert, _host.State.Shell.Mode);
+        Assert.Equal(1, raised);
+    }
+
+    [Fact]
+    public void GivenAPendingChord_WhenTheModeIsSetToTheSameMode_ThenThePendingKeysAreDropped()
+    {
+        _keys.Handle(new Key('g'), DefaultKeymap.GraphView);
+        Assert.True(_keys.State.HasPending);
+
+        _host.SetKeyMode(KeyMode.Normal);
+
+        Assert.False(_keys.State.HasPending);
+        Assert.Equal(string.Empty, _keys.PendingText);
+    }
+
+    [Fact]
+    public void GivenOtherCommands_WhenDispatched_ThenAPendingChordStays()
+    {
+        _keys.Handle(new Key('g'), DefaultKeymap.GraphView);
+
+        _host.Dispatch(new Gitunia.Core.Shell.StatusPostedCommand("x", Gitunia.Core.Status.StatusSeverity.Info, _host.Clock.GetUtcNow()));
+
+        Assert.True(_keys.State.HasPending);
+    }
+
+    [Fact]
+    public void GivenAConfirmDialogAsked_WhenTheShellOpensIt_ThenTheControllerIsInConfirmMode()
+    {
+        _host.Dispatch(new Gitunia.Core.Shell.ConfirmRequestedCommand(
+            new Gitunia.Core.Overlays.ConfirmPrompt("Delete", ["Delete x?"], "No undo.", "Delete"),
+            new Gitunia.Core.Shell.RunActionCommand(() => { }),
+            null));
+
+        Assert.Equal(KeyMode.Confirm, _keys.Mode);
+    }
+}

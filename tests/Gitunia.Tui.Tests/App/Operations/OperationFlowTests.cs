@@ -1,5 +1,4 @@
-using Gitunia.Core;
-using Gitunia.App;
+using Gitunia.App.Status;
 using Gitunia.App.Tabs;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
@@ -18,6 +17,7 @@ using Gitunia.Git.Status;
 using Gitunia.Git.Status.Models;
 using Gitunia.Git.Tests.Fixtures;
 using Gitunia.Tui.App.Operations;
+using Gitunia.Tui.Tests.Fakes;
 using Xunit;
 
 namespace Gitunia.Tui.Tests.App.Operations;
@@ -147,8 +147,7 @@ public class OperationFlowTests
 
     private sealed class Harness : IDisposable
     {
-        private readonly Dispatcher _host = new(AppState.Empty);
-        private readonly List<Action> _answers = [];
+        private readonly TestShell _shell = new();
         private readonly GitRunner _runner;
         private readonly RepositoryLocation _location;
         private readonly TabId _tabId;
@@ -157,32 +156,31 @@ public class OperationFlowTests
         {
             _runner = repository.CreateIsolatedRunner();
             _location = location;
-            _host.Dispatch(new OpenRepositoryCommand(location));
-            _tabId = _host.Workspace.ActiveTabId!.Value;
+            _shell.Host.Dispatch(new OpenRepositoryCommand(location));
+            _tabId = _shell.Host.Workspace.ActiveTabId!.Value;
             Pump = new UiPump(TestContext.Current.CancellationToken);
             var writer = new OperationWriter(new OperationRunner(_runner, new RepositoryOperationDetector()));
             Controller = new OperationController(
-                _host,
+                _shell.Host,
                 writer,
                 Statuses,
                 Pump.Post,
                 _ => true,
                 _ => TestContext.Current.CancellationToken,
-                Confirm,
                 Gate);
         }
 
         public UiPump Pump { get; }
 
-        public StatusChannel Statuses { get; } = new();
+        public StatusReporter Statuses => _shell.Statuses;
 
         public TabOperationGate Gate { get; } = new();
 
         public OperationController Controller { get; }
 
-        public List<ConfirmPrompt> Prompts { get; } = [];
+        public List<ConfirmPrompt> Prompts => _shell.Prompts;
 
-        public RepositoryState Tab => _host.Workspace.FindTab(_tabId)!;
+        public RepositoryState Tab => _shell.Host.Workspace.FindTab(_tabId)!;
 
         public static async Task<Harness> CreateAsync(TestRepository repository)
         {
@@ -210,30 +208,14 @@ public class OperationFlowTests
         public RepositoryOperation Detect() => new RepositoryOperationDetector().Detect(_location);
 
         public void Execute(ActionId action) => Controller.TryExecute(action, null);
+        public void Answer() => _shell.Answer();
 
-        public void Answer()
-        {
-            foreach (var answer in _answers)
-            {
-                answer();
-            }
-
-            _answers.Clear();
-        }
 
         public Task WaitAsync() => Pump.RunUntilAsync(() => !Gate.IsAnyBusy && Statuses.Log.Latest is not null);
 
         public void Dispose()
         {
         }
-
-        private bool Confirm(ConfirmPrompt prompt, Action onConfirmed)
-        {
-            Prompts.Add(prompt);
-            _answers.Add(onConfirmed);
-            return true;
-        }
-
-        private void Send(RepositoryCommand command) => _host.Dispatch(new TabCommand(_tabId, command));
+        private void Send(RepositoryCommand command) => _shell.Host.Dispatch(new TabCommand(_tabId, command));
     }
 }

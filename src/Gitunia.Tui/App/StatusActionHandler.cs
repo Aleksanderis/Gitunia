@@ -1,6 +1,6 @@
+using Gitunia.App.Status;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
-using Gitunia.Core.Status;
 using Gitunia.Tui.App.Tabs;
 
 namespace Gitunia.Tui.App;
@@ -12,7 +12,7 @@ namespace Gitunia.Tui.App;
 /// </summary>
 /// <param name="statuses">The channel whose latest message is dismissed.</param>
 /// <param name="activeSession">The active tab's session, null when there is none.</param>
-public sealed class StatusActionHandler(StatusChannel statuses, Func<TerminalTabSession?> activeSession)
+public sealed class StatusActionHandler(StatusReporter statuses, Func<TerminalTabSession?> activeSession)
 {
     /// <summary>A short notice for the status bar from the last handled action, empty when none.</summary>
     public string Message { get; private set; } = string.Empty;

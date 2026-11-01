@@ -1,4 +1,5 @@
 using Gitunia.Core.Effects;
+using Gitunia.Core.Shell;
 using Gitunia.Core.Running;
 using Gitunia.Core.Tags;
 using Gitunia.Core.Status;
@@ -17,10 +18,26 @@ public static class AppReducer
     public static AppUpdate Reduce(AppState state, AppCommand command) => command switch
     {
         EffectFailedCommand failed => EffectFailed(state, failed),
+        ShellCommand shell => ReduceShell(state, shell),
         TagCommand tag => ReduceTag(state, tag),
         WorkspaceCommand workspace => ReduceWorkspace(state, workspace),
         _ => throw new UnhandledCommandException(command),
     };
+
+    // A command that follows (the accepted command of a confirm dialog) is reduced on the new state, after it.
+    private static AppUpdate ReduceShell(AppState state, ShellCommand command)
+    {
+        var update = ShellReducer.Reduce(state.Shell, command);
+        var shown = state with { Shell = update.State };
+        if (update.Next is not { } next)
+        {
+            return new AppUpdate(shown, update.Effects);
+        }
+
+        var then = Reduce(shown, next);
+
+        return new AppUpdate(then.State, [.. update.Effects, .. then.Effects]);
+    }
 
     private static AppUpdate ReduceWorkspace(AppState state, WorkspaceCommand command)
     {
@@ -31,7 +48,7 @@ public static class AppReducer
             effects.AddRange(TagReducer.OnTabClosed(closed.Tags));
         }
 
-        return new AppUpdate(new AppState(update.Workspace), [.. effects]);
+        return new AppUpdate(state with { Workspace = update.Workspace }, [.. effects]);
     }
 
     // A result for a tab that was closed meanwhile is dropped, like a late TabCommand.
@@ -60,7 +77,7 @@ public static class AppReducer
         {
             if (tabs[index].Id == tab.Id)
             {
-                return new AppState(state.Workspace with { Tabs = tabs.SetItem(index, tab) });
+                return state with { Workspace = state.Workspace with { Tabs = tabs.SetItem(index, tab) } };
             }
         }
 

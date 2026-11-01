@@ -1,5 +1,4 @@
-using Gitunia.Core;
-using Gitunia.App;
+using Gitunia.App.Status;
 using Gitunia.App.Loading.Commits;
 using Gitunia.App.Tabs;
 using Gitunia.Core.Keymap;
@@ -385,8 +384,7 @@ public class ResetActionsTests
 
     private sealed class Harness : IDisposable
     {
-        private readonly Dispatcher _host = new(AppState.Empty);
-        private readonly List<Action> _answers = [];
+        private readonly TestShell _shell = new();
         private readonly List<TerminalTabSession> _sessions = [];
         private BranchSelection _selection = new(null, null, null);
 
@@ -394,20 +392,18 @@ public class ResetActionsTests
         {
             Pump = new UiPump(TestContext.Current.CancellationToken);
             Reset = new ResetActions(
-                _host,
+                _shell.Host,
                 TestGit.Services.Reset,
                 TestGit.Services.Status,
                 new RepositoryOperationDetector(),
                 Statuses,
                 Pump.Post,
                 _ => TestContext.Current.CancellationToken,
-                Confirm,
                 _ =>
                 {
                     Refreshes++;
                     return true;
                 },
-                mode => Mode = mode,
                 () => { },
                 () => _selection,
                 Gate);
@@ -415,19 +411,23 @@ public class ResetActionsTests
 
         public ResetActions Reset { get; }
 
-        public StatusChannel Statuses { get; } = new();
+        public StatusReporter Statuses => _shell.Statuses;
 
-        public List<ConfirmPrompt> Prompts { get; } = [];
+        public List<ConfirmPrompt> Prompts => _shell.Prompts;
 
         public int Refreshes { get; private set; }
 
-        public KeyMode Mode { get; private set; } = KeyMode.Normal;
+        public KeyMode Mode => _shell.Mode;
 
         public TabOperationGate Gate { get; } = new();
 
-        public bool CanShowDialog { get; set; } = true;
+        public bool CanShowDialog
+        {
+            get => _shell.CanShowDialog;
+            set => _shell.CanShowDialog = value;
+        }
 
-        public TabId TabId => _host.Workspace.ActiveTabId!.Value;
+        public TabId TabId => _shell.Host.Workspace.ActiveTabId!.Value;
 
         private UiPump Pump { get; }
 
@@ -437,7 +437,7 @@ public class ResetActionsTests
             var location = await TestGit.Services.Discovery.DiscoverAsync(
                 repository.WorkingTreePath,
                 TestContext.Current.CancellationToken);
-            harness._host.Dispatch(new OpenRepositoryCommand(location));
+            harness._shell.Host.Dispatch(new OpenRepositoryCommand(location));
             var session = new TerminalTabSession(
                 new TabSessionParts(
                     harness.TabId,
@@ -447,8 +447,8 @@ public class ResetActionsTests
             await TestGit.Services.RepositoryLoader.RunAsync(
                 location,
                 session,
-                harness._host,
-                new StatusChannel(),
+                harness._shell.Host,
+                harness.Statuses,
                 InlineUi.Post,
                 session.Cancellation.Token);
             return harness;
@@ -464,18 +464,11 @@ public class ResetActionsTests
         public void Press(string key) => Assert.True(Reset.HandleTextKey(new KeyEvent(key)));
 
         /// <summary>Presses <c>y</c> in the open dialog.</summary>
-        public void Answer()
-        {
-            var answers = _answers.ToList();
-            _answers.Clear();
-            foreach (var answer in answers)
-            {
-                answer();
-            }
-        }
+        public void Answer() => _shell.Answer();
+
 
         /// <summary>Presses <c>n</c> in the open dialog: the callback is dropped.</summary>
-        public void Decline() => _answers.Clear();
+        public void Decline() => _shell.Decline();
 
         public Task FinishAsync() => PumpUntilAsync(() => Statuses.Log.Latest is not null && Refreshes > 0
             || Statuses.Log.Latest?.Severity == StatusSeverity.Error);
@@ -488,18 +481,6 @@ public class ResetActionsTests
             {
                 session.Dispose();
             }
-        }
-
-        private bool Confirm(ConfirmPrompt prompt, Action onYes)
-        {
-            if (!CanShowDialog)
-            {
-                return false;
-            }
-
-            Prompts.Add(prompt);
-            _answers.Add(onYes);
-            return true;
         }
     }
 }

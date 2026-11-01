@@ -1,3 +1,4 @@
+using Gitunia.App.Status;
 using Gitunia.Core;
 using Gitunia.App;
 using Gitunia.App.Loading.Commits;
@@ -236,7 +237,6 @@ public class StashViewTests
                 () => 10,
                 () => true,
                 () => DetailVisible,
-                _ => { },
                 _ => { })
             {
                 StashView = Controller,
@@ -258,7 +258,7 @@ public class StashViewTests
 
         public SidebarActionHandler Handler { get; }
 
-        public StatusChannel Statuses { get; } = new();
+        public StatusReporter Statuses { get; } = new(new Dispatcher(AppState.Empty));
 
         public bool DetailVisible { get; set; }
 
@@ -276,7 +276,7 @@ public class StashViewTests
                 location,
                 harness.Session,
                 host,
-                new StatusChannel(),
+                new StatusReporter(new Dispatcher(AppState.Empty)),
                 InlineUi.Post,
                 harness.Session.Cancellation.Token);
 

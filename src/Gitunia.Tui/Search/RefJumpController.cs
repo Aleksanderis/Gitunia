@@ -1,4 +1,5 @@
 using System.Globalization;
+using Gitunia.App.Shell;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Search;
@@ -44,19 +45,19 @@ public sealed class RefJumpController(GraphViewHandle view, Func<IEnumerable<Git
         if (action == ActionIds.GraphJumpToRef && view.ActiveSession() is { } session)
         {
             _prompt = RefJumpResolver.Resolve(string.Empty, refs(), session.Graph);
-            view.SetMode(KeyMode.Insert);
+            view.Dispatcher.SetKeyMode(KeyMode.Insert);
         }
         else if (action == ActionIds.InputAccept && _prompt is not null)
         {
             var selected = _prompt.Selected;
             _prompt = null;
-            view.SetMode(KeyMode.Normal);
+            view.Dispatcher.SetKeyMode(KeyMode.Normal);
             Jump(selected);
         }
         else if (action == ActionIds.Cancel && _prompt is not null)
         {
             _prompt = null;
-            view.SetMode(KeyMode.Normal);
+            view.Dispatcher.SetKeyMode(KeyMode.Normal);
         }
         else
         {

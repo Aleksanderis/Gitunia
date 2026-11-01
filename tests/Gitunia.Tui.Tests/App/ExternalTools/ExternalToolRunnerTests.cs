@@ -1,4 +1,7 @@
+using Gitunia.App.Status;
+using Gitunia.App;
 using Gitunia.Core.Status;
+using Gitunia.Core;
 using Gitunia.Git.ExternalTools;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Platform.ExternalTools;
@@ -12,7 +15,7 @@ public class ExternalToolRunnerTests
     private static readonly RepositoryLocation Location = new("/r", "/r/.git", "/r/.git", false, false);
 
     private readonly List<string> _events = [];
-    private readonly StatusChannel _statuses = new();
+    private readonly StatusReporter _statuses = new(new Dispatcher(AppState.Empty));
     private readonly FakeLauncher _launcher;
     private readonly FakeTerminal _terminal;
 

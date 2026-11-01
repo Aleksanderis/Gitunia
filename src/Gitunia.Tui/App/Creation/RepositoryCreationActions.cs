@@ -1,3 +1,6 @@
+using Gitunia.App.Shell;
+using Gitunia.App.Status;
+using Gitunia.App;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Overlays;
@@ -27,16 +30,16 @@ namespace Gitunia.Tui.App.Creation;
 /// <param name="picker">The picker the prompts open from and the result is opened through.</param>
 /// <param name="statuses">Where the outcome is reported.</param>
 /// <param name="postToUi">Runs an action on the UI thread.</param>
-/// <param name="setMode">Switches the keymap mode.</param>
+/// <param name="host">Switches the keymap mode.</param>
 /// <param name="redraw">Redraws the chrome (popup, progress line, chips).</param>
 /// <param name="homeDirectory">The home directory (<c>~</c>).</param>
 /// <param name="defaultParent">The folder a clone goes into when the picker has no path: the first scan root.</param>
 public sealed class RepositoryCreationActions(
     IRepositoryCreator creator,
     PickerController picker,
-    StatusChannel statuses,
+    StatusReporter statuses,
     Action<Action> postToUi,
-    Action<KeyMode> setMode,
+    Dispatcher host,
     Action redraw,
     string homeDirectory,
     Func<string> defaultParent) : IPromptHandler
@@ -232,7 +235,7 @@ public sealed class RepositoryCreationActions(
             _text = Abbreviate(state.IsPathMode ? ResolveTyped(state.Query) : picker.BaseDirectory());
         }
 
-        setMode(KeyMode.Insert);
+        host.SetKeyMode(KeyMode.Insert);
         return string.Empty;
     }
 
@@ -296,7 +299,7 @@ public sealed class RepositoryCreationActions(
     {
         _kind = CreationPromptKind.None;
         _text = string.Empty;
-        setMode(picker.IsOpen ? KeyMode.Insert : KeyMode.Normal);
+        host.SetKeyMode(picker.IsOpen ? KeyMode.Insert : KeyMode.Normal);
     }
 
     private bool Cancel()

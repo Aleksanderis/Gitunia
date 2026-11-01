@@ -1,3 +1,4 @@
+using Gitunia.App.Status;
 using Gitunia.App;
 using Gitunia.App.Tabs;
 using Gitunia.Core.Keymap;
@@ -34,7 +35,7 @@ namespace Gitunia.Tui.App.Merge;
 public sealed class MergeActions(
     Dispatcher host,
     IMergeWriter writer,
-    StatusChannel statuses,
+    StatusReporter statuses,
     Action<Action> postToUi,
     Func<TabId, CancellationToken> cancellationOf,
     Func<TabId, bool> refresh,

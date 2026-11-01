@@ -1,3 +1,5 @@
+using Gitunia.App.Shell;
+using Gitunia.App.Status;
 using Gitunia.App;
 using Gitunia.App.Tabs;
 using Gitunia.Core.Lists;
@@ -29,16 +31,14 @@ namespace Gitunia.Tui.App.WorkingTree;
 /// <param name="postToUi">Runs an action on the UI thread.</param>
 /// <param name="refreshStatus">Asks a tab to re-read its status and calls back when the new state is in; false when it cannot.</param>
 /// <param name="cancellationOf">The token that ends the work of a tab (the tab was closed).</param>
-/// <param name="confirm">Shows the confirm dialog and runs the callback on <c>y</c>; false when the dialog cannot be shown.</param>
 /// <param name="gate">The one-operation-per-tab gate, shared with the staging actions.</param>
 public sealed class DiscardActions(
     Dispatcher host,
     PatchDiscarder patchDiscarder,
-    StatusChannel statuses,
+    StatusReporter statuses,
     Action<Action> postToUi,
     Func<TabId, Action, bool> refreshStatus,
     Func<TabId, CancellationToken> cancellationOf,
-    Func<ConfirmPrompt, Action, bool> confirm,
     TabOperationGate gate)
 {
     private const string BusyNotice = "Busy: the last stage, unstage or discard is still running";
@@ -408,7 +408,7 @@ public sealed class DiscardActions(
     }
 
     private string Ask(ConfirmPrompt prompt, Action onConfirmed) =>
-        confirm(prompt, onConfirmed) ? string.Empty : TooSmallNotice;
+        host.Confirm(prompt, onConfirmed) ? string.Empty : TooSmallNotice;
 
     private void StartFile(RepositoryState tab, StatusEntry entry)
     {

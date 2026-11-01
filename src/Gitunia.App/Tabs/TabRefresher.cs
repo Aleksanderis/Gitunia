@@ -1,8 +1,8 @@
 using System.Diagnostics;
 using Gitunia.App.Loading.Graph;
+using Gitunia.App.Status;
 using Gitunia.App.Tabs.Models;
 using Gitunia.Core.Graph;
-using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Git.Config;
@@ -44,7 +44,7 @@ public sealed class TabRefresher : IDisposable
     private readonly Dispatcher _host;
     private readonly IGraphSession _session;
     private readonly RepositoryLocation _location;
-    private readonly StatusChannel _statuses;
+    private readonly StatusReporter _statuses;
     private readonly Action<Action> _postToUi;
     private readonly RepositoryWatcher? _watcher;
     private readonly TabPoller? _poller;
@@ -69,7 +69,7 @@ public sealed class TabRefresher : IDisposable
         Dispatcher host,
         IGraphSession session,
         RepositoryLocation location,
-        StatusChannel statuses,
+        StatusReporter statuses,
         Action<Action> postToUi,
         WatchBudget budget,
         RepositoryWatcherOptions options,

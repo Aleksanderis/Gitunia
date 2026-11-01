@@ -1,3 +1,5 @@
+using Gitunia.App.Shell;
+using Gitunia.App.Status;
 using Gitunia.App;
 using Gitunia.App.Tabs;
 using Gitunia.Core.Keymap;
@@ -30,23 +32,19 @@ namespace Gitunia.Tui.App.Stash;
 /// <param name="postToUi">Runs an action on the UI thread.</param>
 /// <param name="refresh">Asks a tab to read everything again; false when it cannot.</param>
 /// <param name="cancellationOf">The token that ends the work of a tab (the tab was closed).</param>
-/// <param name="confirm">Shows the confirm dialog, runs the callback on <c>y</c>; false if it cannot show.</param>
 /// <param name="cursorRow">The sidebar row under the cursor of the tab, null when there is none.</param>
 /// <param name="fileTarget">The file of the shown stash under the cursor of the detail pane, null when none.</param>
-/// <param name="setMode">Switches the keymap mode (Insert while the message is typed).</param>
 /// <param name="redraw">Redraws the status bar.</param>
 /// <param name="gate">The one-operation-per-tab gate, shared with the staging actions.</param>
 public sealed class StashController(
     Dispatcher host,
     IStashWriter writer,
-    StatusChannel statuses,
+    StatusReporter statuses,
     Action<Action> postToUi,
     Func<TabId, bool> refresh,
     Func<TabId, CancellationToken> cancellationOf,
-    Func<ConfirmPrompt, Action, bool> confirm,
     Func<RepositoryState, SidebarRow?> cursorRow,
     Func<RepositoryState, StashFileTarget?> fileTarget,
-    Action<KeyMode> setMode,
     Action redraw,
     TabOperationGate gate) : IPromptHandler
 {
@@ -162,7 +160,7 @@ public sealed class StashController(
             _pushing = tab.Id;
             _includeUntracked = action == ActionIds.StashPushUntracked;
             _text = string.Empty;
-            setMode(KeyMode.Insert);
+            host.SetKeyMode(KeyMode.Insert);
             redraw();
             return string.Empty;
         }
@@ -186,7 +184,7 @@ public sealed class StashController(
 
         if (action == ActionIds.StashDrop)
         {
-            return confirm(DropPrompt(entry), () => StartDrop(tab, entry)) ? string.Empty : TooSmallNotice;
+            return host.Confirm(DropPrompt(entry), () => StartDrop(tab, entry)) ? string.Empty : TooSmallNotice;
         }
 
         StartApply(tab, entry, action == ActionIds.StashPop);
@@ -206,7 +204,7 @@ public sealed class StashController(
     private void ClosePrompt()
     {
         _pushing = null;
-        setMode(KeyMode.Normal);
+        host.SetKeyMode(KeyMode.Normal);
         redraw();
     }
 
@@ -299,7 +297,7 @@ public sealed class StashController(
         gate.End(tab.Id);
         if (state == StashRestoreState.Overwrites)
         {
-            if (!confirm(RestorePrompt(target), () => StartRestore(tab, target)))
+            if (!host.Confirm(RestorePrompt(target), () => StartRestore(tab, target)))
             {
                 statuses.Warning(TooSmallNoRestoreNotice);
             }

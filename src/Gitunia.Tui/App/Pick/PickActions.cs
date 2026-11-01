@@ -1,3 +1,5 @@
+using Gitunia.App.Shell;
+using Gitunia.App.Status;
 using Gitunia.App;
 using Gitunia.App.Tabs;
 using Gitunia.Core.Keymap;
@@ -31,7 +33,6 @@ namespace Gitunia.Tui.App.Pick;
 /// <param name="postToUi">Runs an action on the UI thread.</param>
 /// <param name="cancellationOf">The token that ends the work of a tab (the tab was closed).</param>
 /// <param name="refresh">Reads a tab again (refs, graph, status); false when it cannot.</param>
-/// <param name="setMode">Switches the keymap mode (Insert while the mainline prompt is open).</param>
 /// <param name="redraw">Redraws the status bar.</param>
 /// <param name="endRange">Ends the Visual range once the action took it.</param>
 /// <param name="selection">What is selected now: a sidebar row, a graph commit or a Visual range.</param>
@@ -40,11 +41,10 @@ public sealed class PickActions(
     Dispatcher host,
     IPickWriter writer,
     IPickCommitReader reader,
-    StatusChannel statuses,
+    StatusReporter statuses,
     Action<Action> postToUi,
     Func<TabId, CancellationToken> cancellationOf,
     Func<TabId, bool> refresh,
-    Action<KeyMode> setMode,
     Action redraw,
     Action endRange,
     Func<PickSelection> selection,
@@ -232,7 +232,7 @@ public sealed class PickActions(
     private void Close()
     {
         _isOpen = false;
-        setMode(KeyMode.Normal);
+        host.SetKeyMode(KeyMode.Normal);
     }
 
     private string Begin(RepositoryState tab, PickKind kind)
@@ -309,7 +309,7 @@ public sealed class PickActions(
             // The call fails as a whole on -m 2 or higher when a plain commit is among the commits.
             _usableParents = commits.Any(commit => !commit.IsMerge) ? 1 : _mainlineCount;
             _isOpen = true;
-            setMode(KeyMode.Insert);
+            host.SetKeyMode(KeyMode.Insert);
         }
         else
         {

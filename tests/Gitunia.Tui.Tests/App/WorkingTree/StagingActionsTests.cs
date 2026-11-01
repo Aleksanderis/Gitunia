@@ -1,3 +1,5 @@
+using Gitunia.App.Status;
+using Gitunia.Core.Shell;
 using Gitunia.Core;
 using Gitunia.App;
 using Gitunia.App.Loading.Diff;
@@ -243,13 +245,14 @@ public class StagingActionsTests
     }
 
     [Fact]
-    public void GivenAConflictedFileAndNoDialog_WhenStagingIt_ThenItIsRefusedWithoutRunningGit()
+    public void GivenAConflictedFileAndNoRoomForTheDialog_WhenStagingIt_ThenItIsRefusedWithoutRunningGit()
     {
         using var harness = new Harness(Conflict("c.txt"));
+        harness.ShrinkScreen();
 
         var notice = harness.Run(ActionIds.WorkingTreeStage);
 
-        Assert.Contains("conflicted", notice, StringComparison.Ordinal);
+        Assert.Contains("too small", notice, StringComparison.Ordinal);
         Assert.Empty(harness.Writer.Staged);
     }
 
@@ -453,7 +456,7 @@ public class StagingActionsTests
 
         public FakeDiffReader Reader { get; } = new();
 
-        public StatusChannel Statuses { get; } = new();
+        public StatusReporter Statuses { get; } = new(new Dispatcher(AppState.Empty));
 
         public StagingActions Staging { get; }
 
@@ -461,6 +464,9 @@ public class StagingActionsTests
         public Action OnRefresh { get; set; } = () => { };
 
         public RepositoryState Tab => _host.Workspace.ActiveTab!;
+
+        public void ShrinkScreen() =>
+            _host.Dispatch(new ScreenResizedCommand(new ScreenExtent(1, 1), _host.Clock.GetUtcNow()));
 
         public WorkingTreeSelection Selection => Tab.WorkingTree!.Selection!;
 

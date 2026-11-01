@@ -1,10 +1,12 @@
 using System.Text;
 using Gitunia.App.Loading.Commits;
+using Gitunia.App.Status;
+using Gitunia.App;
 using Gitunia.Core.Clipboard;
 using Gitunia.Core.IssueTracker;
 using Gitunia.Core.Keymap;
-using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces.Tabs;
+using Gitunia.Core;
 using Gitunia.Git.Commits.Models;
 using Gitunia.Git.IssueTracker.Models;
 using Gitunia.Platform.Urls;
@@ -24,7 +26,7 @@ public class IssueLinkActionsTests : IDisposable
     private const string Message = "Subject\n\nSee #1 and #2\nplain line";
 
     private readonly StringWriter _terminal = new();
-    private readonly StatusChannel _statuses = new();
+    private readonly StatusReporter _statuses = new(new Dispatcher(AppState.Empty));
     private readonly FakeUrlOpener _opener = new();
     private readonly Queue<Action> _posted = new();
     private readonly TestSignal _arrived = new();

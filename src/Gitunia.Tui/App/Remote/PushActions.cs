@@ -1,3 +1,5 @@
+using Gitunia.App.Shell;
+using Gitunia.App.Status;
 using Gitunia.App;
 using Gitunia.App.Tabs;
 using Gitunia.Core.Keymap;
@@ -39,9 +41,7 @@ namespace Gitunia.Tui.App.Remote;
 /// <param name="postToUi">Runs an action on the UI thread.</param>
 /// <param name="cancellationOf">The token that ends the work of a tab (the tab was closed).</param>
 /// <param name="busy">Marks the tab while an operation of this kind runs (one at a time; tab eviction waits for it).</param>
-/// <param name="confirm">Shows the confirm dialog and runs the callback on <c>y</c>; false when it cannot show.</param>
 /// <param name="refresh">Reads a tab again; false when it cannot.</param>
-/// <param name="setMode">Switches the keymap mode (Insert while a prompt is open).</param>
 /// <param name="redraw">Redraws the status bar.</param>
 /// <param name="selection">What the cursor is on: a remote branch row is deleted without the pickers.</param>
 public sealed class PushActions(
@@ -50,13 +50,11 @@ public sealed class PushActions(
     IRemoteWriter writer,
     Func<RepositoryLocation, CancellationToken, Task<IReadOnlyList<string>>> remotesOf,
     Func<RepositoryLocation, string, string, CancellationToken, Task<bool>> isAncestor,
-    StatusChannel statuses,
+    StatusReporter statuses,
     Action<Action> postToUi,
     Func<TabId, CancellationToken> cancellationOf,
     TabOperationGate busy,
-    Func<ConfirmPrompt, Action, bool> confirm,
     Func<TabId, bool> refresh,
-    Action<KeyMode> setMode,
     Action redraw,
     Func<BranchSelection> selection) : IPromptHandler
 {
@@ -302,7 +300,7 @@ public sealed class PushActions(
     private void Close()
     {
         _kind = PushPromptKind.None;
-        setMode(KeyMode.Normal);
+        host.SetKeyMode(KeyMode.Normal);
     }
 
     private void Open(PushPromptKind kind, RepositoryState tab, IReadOnlyList<string> options)
@@ -311,7 +309,7 @@ public sealed class PushActions(
         _tabId = tab.Id;
         _text = string.Empty;
         _options = options;
-        setMode(KeyMode.Insert);
+        host.SetKeyMode(KeyMode.Insert);
         RefreshCandidates();
     }
 
@@ -426,7 +424,7 @@ public sealed class PushActions(
         var lease = new PushLease(target.Branch, upstream.CommitHash);
         var request = new PushRequest(target.Remote, branch.Name, setUpstream, lease);
         var done = $"Force pushed {branch.Name} to {name} (was {ShortHash.Of(upstream.CommitHash)})";
-        if (!confirm(prompt, () => StartForce(tab.Id, request, done)))
+        if (!host.Confirm(prompt, () => StartForce(tab.Id, request, done)))
         {
             statuses.Warning(TooSmallNotice);
         }
@@ -561,7 +559,7 @@ public sealed class PushActions(
             ],
             $"Undo: git push {remoteName} {target.CommitHash}:{GitRefPrefixes.Heads}{branch}",
             "Delete on remote");
-        return confirm(prompt, () => StartDelete(tab.Id, target)) ? string.Empty : TooSmallNotice;
+        return host.Confirm(prompt, () => StartDelete(tab.Id, target)) ? string.Empty : TooSmallNotice;
     }
 
     private void StartDelete(TabId tabId, RemoteBranchRef target)

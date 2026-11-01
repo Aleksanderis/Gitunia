@@ -1,8 +1,8 @@
+using Gitunia.App.Status;
 using Gitunia.Core;
 using Gitunia.App;
 using Gitunia.Core.Clipboard;
 using Gitunia.Core.Keymap;
-using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Repositories;
@@ -426,7 +426,7 @@ public class WorkingTreeActionHandlerTests
             }
 
             var writer = new ClipboardWriter(new StringWriter(), new Osc52Options(Osc52Mode.Direct, 100_000));
-            Statuses = new StatusChannel();
+            Statuses = new StatusReporter(new Dispatcher(AppState.Empty));
             var indexWriter = new FakeIndexWriter();
             var staging = new StagingActions(_host, indexWriter, new PatchStager(new FakeDiffReader(), indexWriter), Statuses, action => action(), (_, done) => { done(); return true; }, _ => CancellationToken.None);
             var commits = TestCommitActions.Create(_host, Statuses);
@@ -435,7 +435,7 @@ public class WorkingTreeActionHandlerTests
 
         public WorkingTreeActionHandler Handler { get; }
 
-        public StatusChannel Statuses { get; }
+        public StatusReporter Statuses { get; }
 
         public RepositoryState Tab => _host.Workspace.ActiveTab!;
 

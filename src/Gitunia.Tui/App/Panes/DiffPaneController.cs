@@ -52,7 +52,6 @@ public sealed class DiffPaneController : IPromptHandler
     /// <param name="activeSession">The active tab's runtime session.</param>
     /// <param name="detailList">The detail pane's list, where a file is picked.</param>
     /// <param name="diffList">The diff pane's list.</param>
-    /// <param name="setMode">Switches the input mode (Insert while the search box is open).</param>
     /// <param name="screenSize">Terminal columns and rows, to tell whether the diff fits next to the file list and the graph.</param>
     /// <param name="relayout">Asks the views to lay out again after the pane arrangement changed.</param>
     /// <param name="refreshChrome">Redraws the pane titles and the status bar after the diff changed on its own (it finished loading).</param>
@@ -62,7 +61,6 @@ public sealed class DiffPaneController : IPromptHandler
         Func<TerminalTabSession?> activeSession,
         ListView detailList,
         ListView diffList,
-        Action<KeyMode> setMode,
         Func<ScreenSize> screenSize,
         Action relayout,
         Action refreshChrome,
@@ -77,7 +75,7 @@ public sealed class DiffPaneController : IPromptHandler
         _refreshChrome = refreshChrome;
         _actions = new DiffListActions(
             diffList,
-            setMode,
+            host,
             clipboard,
             () => activeSession()?.Diff,
             SideBySideHint);

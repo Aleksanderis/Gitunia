@@ -1,3 +1,5 @@
+using Gitunia.App.Shell;
+using Gitunia.App.Status;
 using Gitunia.App;
 using Gitunia.App.Tabs;
 using Gitunia.Core.Conflicts;
@@ -40,7 +42,6 @@ namespace Gitunia.Tui.App.Conflicts;
 /// <param name="statuses">Where refusals, failures and the outcome are reported.</param>
 /// <param name="postToUi">Runs an action on the UI thread.</param>
 /// <param name="cancellationOf">The token that ends the work of a tab (the tab was closed).</param>
-/// <param name="confirm">Shows the confirm dialog and runs the callback on <c>y</c>; false when it cannot show.</param>
 /// <param name="stageResolved">
 /// Stages a saved, fully resolved path of a tab and reports; returns a notice, empty when it started.
 /// </param>
@@ -48,9 +49,6 @@ namespace Gitunia.Tui.App.Conflicts;
 /// <param name="isOtherOverlayOpen">True while an overlay other than this editor is open.</param>
 /// <param name="screenSize">The current terminal size.</param>
 /// <param name="glyphs">The characters the editor is drawn with.</param>
-/// <param name="setMode">
-/// Switches the keymap mode (Insert while the result is typed in, Visual while lines are selected).
-/// </param>
 /// <param name="redraw">Redraws the overlay layer and the status bar.</param>
 /// <param name="gate">The one-operation-per-tab gate, shared with staging, discard, reset and stash.</param>
 /// <param name="keys">Where the chips take their key text from; null uses the default keymap.</param>
@@ -59,16 +57,14 @@ public sealed class ConflictEditorController(
     IConflictReader reader,
     IConflictWriter writer,
     IConflictRecreator recreator,
-    StatusChannel statuses,
+    StatusReporter statuses,
     Action<Action> postToUi,
     Func<TabId, CancellationToken> cancellationOf,
-    Func<ConfirmPrompt, Action, bool> confirm,
     Func<RepositoryState, string, string> stageResolved,
     Func<TabId, bool> refresh,
     Func<bool> isOtherOverlayOpen,
     Func<ScreenSize> screenSize,
     GraphGlyphSet glyphs,
-    Action<KeyMode> setMode,
     Action redraw,
     TabOperationGate gate,
     ChipKeys? keys = null)
@@ -787,7 +783,7 @@ public sealed class ConflictEditorController(
         if (mode != _mode)
         {
             _mode = mode;
-            setMode(mode);
+            host.SetKeyMode(mode);
         }
     }
 
@@ -829,7 +825,7 @@ public sealed class ConflictEditorController(
             ],
             "Undo: git checkout --merge -- <file> re-creates the whole conflict (it discards what you resolved).",
             "Save");
-        if (!confirm(prompt, () => Write(state)))
+        if (!host.Confirm(prompt, () => Write(state)))
         {
             statuses.Warning(TooSmallNotice);
         }
@@ -941,7 +937,7 @@ public sealed class ConflictEditorController(
             ],
             "No undo for the file's current content: git checkout --merge -- <file> overwrites it.",
             "Re-create");
-        if (!confirm(prompt, () => Recreate(state)))
+        if (!host.Confirm(prompt, () => Recreate(state)))
         {
             statuses.Warning(TooSmallNotice);
         }

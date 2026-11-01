@@ -1,8 +1,8 @@
+using Gitunia.App.Status;
 using Gitunia.App;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Lists;
-using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Repositories;
@@ -38,7 +38,7 @@ namespace Gitunia.Tui.App;
 /// Maps the action ids the keymap produces to what they do in the graph view. Actions the first shell does not
 /// implement yet are ignored; an action's effects go through the <see cref="Dispatcher"/> as commands.
 /// </summary>
-public sealed class ActionRouter(Dispatcher host, ListView graphList, ListView detailList, Func<TerminalTabSession?> activeSession, Action quit, SidebarActionHandler sidebar, StatusChannel statuses, ClipboardCopier clipboard)
+public sealed class ActionRouter(Dispatcher host, ListView graphList, ListView detailList, Func<TerminalTabSession?> activeSession, Action quit, SidebarActionHandler sidebar, StatusReporter statuses, ClipboardCopier clipboard)
 {
     /// <summary>The notice shown when <c>G</c> stops at the last loaded commit because the log is still streaming in.</summary>
     public const string StillLoadingNotice = "Still loading: at the last loaded commit";

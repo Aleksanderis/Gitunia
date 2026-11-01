@@ -13,7 +13,6 @@ namespace Gitunia.Tui.Tests.App.Tabs;
 public class TabRenameControllerTests
 {
     private readonly Dispatcher _host = new(AppState.Empty);
-    private KeyMode _mode = KeyMode.Normal;
 
     [Fact]
     public void GivenATab_WhenRenamingAndAccepting_ThenTheTypedNameIsTheTabTitle()
@@ -21,14 +20,14 @@ public class TabRenameControllerTests
         var controller = Create("alpha");
 
         Assert.True(controller.TryExecute(ActionIds.TabRename, null));
-        Assert.Equal(KeyMode.Insert, _mode);
+        Assert.Equal(KeyMode.Insert, _host.State.Shell.Mode);
         Assert.Contains("alpha_", PopupText.Of(controller), StringComparison.Ordinal);
         Type(controller, "-2");
         controller.TryExecute(ActionIds.InputAccept, null);
 
         Assert.Equal("alpha-2", _host.Workspace.ActiveTab!.Title);
         Assert.Equal("alpha", _host.Workspace.ActiveTab.DisplayName);
-        Assert.Equal(KeyMode.Normal, _mode);
+        Assert.Equal(KeyMode.Normal, _host.State.Shell.Mode);
         Assert.Equal(string.Empty, PopupText.Of(controller));
         Assert.Contains("alpha-2", controller.Notice, StringComparison.Ordinal);
     }
@@ -59,7 +58,7 @@ public class TabRenameControllerTests
         controller.TryExecute(ActionIds.Cancel, null);
 
         Assert.Null(_host.Workspace.ActiveTab!.CustomName);
-        Assert.Equal(KeyMode.Normal, _mode);
+        Assert.Equal(KeyMode.Normal, _host.State.Shell.Mode);
     }
 
     [Fact]
@@ -83,6 +82,6 @@ public class TabRenameControllerTests
     {
         var root = Path.Combine(Path.GetTempPath(), "gitunia-rename", name);
         _host.Dispatch(new OpenRepositoryCommand(new RepositoryLocation(root, Path.Combine(root, ".git"), Path.Combine(root, ".git"), false, false)));
-        return new TabRenameController(_host, newMode => _mode = newMode, () => { });
+        return new TabRenameController(_host, () => { });
     }
 }

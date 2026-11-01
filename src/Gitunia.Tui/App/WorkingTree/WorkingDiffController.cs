@@ -42,7 +42,6 @@ public sealed class WorkingDiffController : IPromptHandler
     /// <param name="host">The workspace the focus commands go to.</param>
     /// <param name="activeSession">The active tab's runtime session.</param>
     /// <param name="diffList">The list of the diff box.</param>
-    /// <param name="setMode">Switches the input mode (Insert while the search box is open).</param>
     /// <param name="refreshChrome">Redraws the frame titles and the status bar after the diff changed on its own (it finished loading).</param>
     /// <param name="clipboard">Copies diff text.</param>
     /// <param name="relayout">Lays the panes out again after the zoom changed; null in tests without a screen.</param>
@@ -50,7 +49,6 @@ public sealed class WorkingDiffController : IPromptHandler
         Dispatcher host,
         Func<TerminalTabSession?> activeSession,
         ListView diffList,
-        Action<KeyMode> setMode,
         Action refreshChrome,
         ClipboardCopier clipboard,
         Action? relayout = null)
@@ -60,7 +58,7 @@ public sealed class WorkingDiffController : IPromptHandler
         _diffList = diffList;
         _refreshChrome = refreshChrome;
         _relayout = relayout ?? (() => { });
-        _actions = new DiffListActions(diffList, setMode, clipboard, () => activeSession()?.WorkingDiff, string.Empty, "change");
+        _actions = new DiffListActions(diffList, host, clipboard, () => activeSession()?.WorkingDiff, string.Empty, "change");
         host.Changed += OnWorkspaceChanged;
     }
 

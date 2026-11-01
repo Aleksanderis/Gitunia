@@ -1,5 +1,4 @@
-using Gitunia.Core;
-using Gitunia.App;
+using Gitunia.App.Status;
 using Gitunia.App.Loading.Commits;
 using Gitunia.App.Tabs;
 using Gitunia.Core.Keymap;
@@ -372,8 +371,7 @@ public sealed class WorktreeActionsTests
     private sealed class Harness : IDisposable
     {
         private readonly RepositoryLocation _location;
-        private readonly Dispatcher _host = new(AppState.Empty);
-        private readonly List<Action> _callbacks = [];
+        private readonly TestShell _shell = new();
         private readonly TestSignal _refreshed = new();
 
         private Harness(RepositoryLocation location, SidebarRow? row, string? selectedCommit)
@@ -381,17 +379,15 @@ public sealed class WorktreeActionsTests
             _location = location;
             Row = row;
             Actions = new WorktreeActions(
-                _host,
+                _shell.Host,
                 TestGit.Services.Worktrees,
                 Statuses,
                 InlineUi.Post,
                 _ => CancellationToken.None,
                 Refresh,
-                Confirm,
                 new TabOperationGate(),
                 () => Row,
                 () => selectedCommit,
-                mode => Mode = mode,
                 () => { })
             {
                 OpenWorktree = (_, path) => Opened.Add(path),
@@ -400,17 +396,17 @@ public sealed class WorktreeActionsTests
 
         public WorktreeActions Actions { get; }
 
-        public StatusChannel Statuses { get; } = new();
+        public StatusReporter Statuses => _shell.Statuses;
 
-        public List<ConfirmPrompt> Prompts { get; } = [];
+        public List<ConfirmPrompt> Prompts => _shell.Prompts;
 
         public List<string> Opened { get; } = [];
 
-        public KeyMode Mode { get; private set; } = KeyMode.Normal;
+        public KeyMode Mode => _shell.Mode;
 
         public SidebarRow? Row { get; }
 
-        public RepositoryState Tab => _host.Workspace.ActiveTab!;
+        public RepositoryState Tab => _shell.Host.Workspace.ActiveTab!;
 
         public static async Task<Harness> LoadAsync(
             string tabPath,
@@ -421,7 +417,7 @@ public sealed class WorktreeActionsTests
             var location = await TestGit.Services.Discovery.DiscoverAsync(tabPath, Token);
             var row = WorktreeRow(rowPath);
             var harness = new Harness(location, selectedRow ?? row, selectedCommit);
-            harness._host.Dispatch(new OpenRepositoryCommand(location));
+            harness._shell.Host.Dispatch(new OpenRepositoryCommand(location));
             await harness.ReloadAsync();
             return harness;
         }
@@ -452,9 +448,7 @@ public sealed class WorktreeActionsTests
         public async Task AnswerAsync()
         {
             var shown = Prompts.Count;
-            var callback = _callbacks[^1];
-            _callbacks.Clear();
-            callback();
+            Assert.True(_shell.Answer());
             var deadline = DateTime.UtcNow.AddSeconds(30);
             while (_refreshed.CurrentCount == 0 && Prompts.Count == shown && DateTime.UtcNow < deadline)
             {
@@ -501,7 +495,7 @@ public sealed class WorktreeActionsTests
 
         private async Task ReloadAsync()
         {
-            var tabId = _host.Workspace.ActiveTabId!.Value;
+            var tabId = _shell.Host.Workspace.ActiveTabId!.Value;
             var details = new CommitDetailsStore(
                 TestGit.Services.CommitDetails,
                 _location,
@@ -509,19 +503,12 @@ public sealed class WorktreeActionsTests
                 TimeSpan.Zero);
             var session = new TerminalTabSession(new TabSessionParts(tabId, details), GraphGlyphSet.Unicode);
             await TestGit.Services.RepositoryLoader
-                .RunAsync(_location, session, _host, new StatusChannel(), InlineUi.Post, Token);
+                .RunAsync(_location, session, _shell.Host, new StatusReporter(_shell.Host), InlineUi.Post, Token);
         }
 
         private bool Refresh(TabId tabId)
         {
             _refreshed.Release();
-            return true;
-        }
-
-        private bool Confirm(ConfirmPrompt prompt, Action onConfirmed)
-        {
-            Prompts.Add(prompt);
-            _callbacks.Add(onConfirmed);
             return true;
         }
     }

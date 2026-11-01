@@ -1,5 +1,4 @@
-using Gitunia.Core;
-using Gitunia.App;
+using Gitunia.App.Status;
 using Gitunia.App.Loading.Commits;
 using Gitunia.App.Tabs;
 using Gitunia.Core.Keymap;
@@ -499,40 +498,36 @@ public class ReflogControllerTests
 
     private sealed class Harness : IDisposable
     {
-        private readonly Dispatcher _host = new(AppState.Empty);
+        private readonly TestShell _shell = new();
         private readonly UiPump _pump = new(TestContext.Current.CancellationToken);
         private TerminalTabSession? _session;
 
         private Harness(IReflogReader? reader)
         {
             Reset = new ResetActions(
-                _host,
+                _shell.Host,
                 TestGit.Services.Reset,
                 TestGit.Services.Status,
                 new RepositoryOperationDetector(),
                 Statuses,
                 _pump.Post,
                 _ => TestContext.Current.CancellationToken,
-                (_, _) => true,
                 CountRefresh,
-                mode => Mode = mode,
                 () => { },
                 () => Selection,
                 new TabOperationGate());
             Branches = new BranchActions(
-                _host,
+                _shell.Host,
                 TestGit.Services.Branches,
                 Statuses,
                 _pump.Post,
                 _ => TestContext.Current.CancellationToken,
                 new TabOperationGate(),
-                (_, _) => true,
                 CountRefresh,
-                mode => Mode = mode,
                 () => { },
                 () => Selection);
             Reflog = new ReflogController(
-                _host,
+                _shell.Host,
                 reader ?? TestGit.Services.Reflog,
                 Reset,
                 Branches,
@@ -543,7 +538,6 @@ public class ReflogControllerTests
                 () => Selection,
                 () => new ScreenSize(100, 30),
                 GraphGlyphSet.Unicode,
-                mode => Mode = mode,
                 () => { });
         }
 
@@ -553,9 +547,9 @@ public class ReflogControllerTests
 
         public BranchActions Branches { get; }
 
-        public StatusChannel Statuses { get; } = new();
+        public StatusReporter Statuses => _shell.Statuses;
 
-        public KeyMode Mode { get; private set; } = KeyMode.Normal;
+        public KeyMode Mode => _shell.Mode;
 
         public int Refreshes { get; private set; }
 
@@ -571,8 +565,8 @@ public class ReflogControllerTests
             var location = await TestGit.Services.Discovery.DiscoverAsync(
                 repository.WorkingTreePath,
                 TestContext.Current.CancellationToken);
-            harness._host.Dispatch(new OpenRepositoryCommand(location));
-            var tabId = harness._host.Workspace.ActiveTabId!.Value;
+            harness._shell.Host.Dispatch(new OpenRepositoryCommand(location));
+            var tabId = harness._shell.Host.Workspace.ActiveTabId!.Value;
             harness._session = new TerminalTabSession(
                 new TabSessionParts(
                     tabId,
@@ -581,8 +575,8 @@ public class ReflogControllerTests
             await TestGit.Services.RepositoryLoader.RunAsync(
                 location,
                 harness._session,
-                harness._host,
-                new StatusChannel(),
+                harness._shell.Host,
+                harness.Statuses,
                 InlineUi.Post,
                 harness._session.Cancellation.Token);
             return harness;

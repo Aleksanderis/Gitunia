@@ -1,3 +1,5 @@
+using Gitunia.App.Shell;
+using Gitunia.App.Status;
 using Gitunia.App;
 using Gitunia.App.Tabs;
 using Gitunia.Core.Keymap;
@@ -31,26 +33,21 @@ namespace Gitunia.Tui.App.Worktrees;
 /// <param name="postToUi">Runs an action on the UI thread.</param>
 /// <param name="cancellationOf">The token that ends the work of a tab (the tab was closed).</param>
 /// <param name="refresh">Reads the repository of a tab again; false when it cannot.</param>
-/// <param name="confirm">Shows the confirm dialog and runs the callback on <c>y</c>; false when the dialog cannot
-/// be shown.</param>
 /// <param name="gate">The one-operation-per-tab gate.</param>
 /// <param name="selectedRow">The sidebar row under the cursor of the active tab.</param>
 /// <param name="selectedCommit">The commit selected in the graph (the start point of a new branch), null for
 /// none.</param>
-/// <param name="setMode">Switches the input mode (Insert while a prompt is open).</param>
 /// <param name="redraw">Redraws the status bar.</param>
 public sealed class WorktreeActions(
     Dispatcher host,
     IWorktreeWriter writer,
-    StatusChannel statuses,
+    StatusReporter statuses,
     Action<Action> postToUi,
     Func<TabId, CancellationToken> cancellationOf,
     Func<TabId, bool> refresh,
-    Func<ConfirmPrompt, Action, bool> confirm,
     TabOperationGate gate,
     Func<SidebarRow?> selectedRow,
     Func<string?> selectedCommit,
-    Action<KeyMode> setMode,
     Action redraw) : IPromptHandler
 {
     private const string BusyNotice = "Busy: another operation on this tab is still running";
@@ -184,7 +181,7 @@ public sealed class WorktreeActions(
     {
         _stage = PromptStage.None;
         _text = string.Empty;
-        setMode(KeyMode.Normal);
+        host.SetKeyMode(KeyMode.Normal);
     }
 
     private void Accept()
@@ -245,7 +242,7 @@ public sealed class WorktreeActions(
         _stage = stage;
         _tabId = tab.Id;
         _text = text;
-        setMode(KeyMode.Insert);
+        host.SetKeyMode(KeyMode.Insert);
     }
 
     private void AcceptBranch(RepositoryState tab, string name)
@@ -312,7 +309,7 @@ public sealed class WorktreeActions(
             return refusal;
         }
 
-        var shown = confirm(WorktreeTexts.RemovePrompt(worktree), () => StartRemove(tab, worktree));
+        var shown = host.Confirm(WorktreeTexts.RemovePrompt(worktree), () => StartRemove(tab, worktree));
         return shown ? string.Empty : TooSmallNotice;
     }
 
@@ -357,7 +354,7 @@ public sealed class WorktreeActions(
     private void AskAboutChanges(RepositoryState tab, WorktreeInfo worktree, IReadOnlyList<string> changes)
     {
         gate.End(tab.Id);
-        var shown = confirm(
+        var shown = host.Confirm(
             WorktreeTexts.DirtyRemovePrompt(worktree, changes),
             () => StartForcedRemove(tab, worktree));
         if (!shown)
@@ -448,7 +445,7 @@ public sealed class WorktreeActions(
             return "No worktree entry to prune";
         }
 
-        return confirm(WorktreeTexts.PrunePrompt(prunable), () => StartPrune(tab)) ? string.Empty : TooSmallNotice;
+        return host.Confirm(WorktreeTexts.PrunePrompt(prunable), () => StartPrune(tab)) ? string.Empty : TooSmallNotice;
     }
 
     private void StartPrune(RepositoryState tab)

@@ -1,3 +1,4 @@
+using Gitunia.App.Shell;
 using Gitunia.App;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
@@ -14,7 +15,7 @@ namespace Gitunia.Tui.App.Tabs;
 /// <c>Enter</c> saves it (the name is stored in the session), an empty name goes back to the repository name,
 /// <c>Esc</c> leaves the name alone.
 /// </summary>
-public sealed class TabRenameController(Dispatcher host, Action<KeyMode> setMode, Action redraw) : IPromptHandler
+public sealed class TabRenameController(Dispatcher host, Action redraw) : IPromptHandler
 {
     private TabId? _renaming;
     private string _text = string.Empty;
@@ -43,19 +44,19 @@ public sealed class TabRenameController(Dispatcher host, Action<KeyMode> setMode
         {
             _renaming = tab.Id;
             _text = tab.Title;
-            setMode(KeyMode.Insert);
+            host.SetKeyMode(KeyMode.Insert);
         }
         else if (action == ActionIds.InputAccept && _renaming is { } id)
         {
             _renaming = null;
-            setMode(KeyMode.Normal);
+            host.SetKeyMode(KeyMode.Normal);
             host.Dispatch(new TabCommand(id, new SetTabNameCommand(_text)));
             Notice = host.Workspace.FindTab(id) is { } renamed ? $"tab is now {renamed.Title}" : string.Empty;
         }
         else if (action == ActionIds.Cancel && _renaming is not null)
         {
             _renaming = null;
-            setMode(KeyMode.Normal);
+            host.SetKeyMode(KeyMode.Normal);
         }
         else
         {

@@ -66,7 +66,6 @@ public class ChangesTreeFoldTests : IDisposable
             () => _session,
             () => _cursor,
             row => _cursor = row,
-            _ => { },
             Refresh,
             _ => string.Empty);
         Refresh();

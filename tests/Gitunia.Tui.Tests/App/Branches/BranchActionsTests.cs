@@ -1,5 +1,4 @@
-using Gitunia.Core;
-using Gitunia.App;
+using Gitunia.App.Status;
 using Gitunia.App.Loading.Commits;
 using Gitunia.App.Tabs;
 using Gitunia.Core.Keymap;
@@ -1247,8 +1246,7 @@ public class BranchActionsTests
 
     private sealed class Harness : IDisposable
     {
-        private readonly Dispatcher _host = new(AppState.Empty);
-        private readonly List<Action> _answers = [];
+        private readonly TestShell _shell = new();
         private readonly List<TerminalTabSession> _sessions = [];
         private BranchSelection _selection = new(null, null, null);
 
@@ -1256,36 +1254,38 @@ public class BranchActionsTests
         {
             Pump = new UiPump(TestContext.Current.CancellationToken);
             Branches = new BranchActions(
-                _host,
+                _shell.Host,
                 TestGit.Services.Branches,
                 Statuses,
                 Pump.Post,
                 _ => TestContext.Current.CancellationToken,
                 Busy,
-                Confirm,
                 _ =>
                 {
                     Refreshes++;
                     return true;
                 },
-                mode => Mode = mode,
                 () => { },
                 () => _selection);
         }
 
         public BranchActions Branches { get; }
 
-        public StatusChannel Statuses { get; } = new();
+        public StatusReporter Statuses => _shell.Statuses;
 
         public TabOperationGate Busy { get; } = new();
 
-        public List<ConfirmPrompt> Prompts { get; } = [];
+        public List<ConfirmPrompt> Prompts => _shell.Prompts;
 
         public int Refreshes { get; private set; }
 
-        public KeyMode Mode { get; private set; } = KeyMode.Normal;
+        public KeyMode Mode => _shell.Mode;
 
-        public bool CanShowDialog { get; set; } = true;
+        public bool CanShowDialog
+        {
+            get => _shell.CanShowDialog;
+            set => _shell.CanShowDialog = value;
+        }
 
         private UiPump Pump { get; }
 
@@ -1301,8 +1301,8 @@ public class BranchActionsTests
             var location = await TestGit.Services.Discovery.DiscoverAsync(
                 repository.WorkingTreePath,
                 TestContext.Current.CancellationToken);
-            _host.Dispatch(new OpenRepositoryCommand(location));
-            var tabId = _host.Workspace.ActiveTabId!.Value;
+            _shell.Host.Dispatch(new OpenRepositoryCommand(location));
+            var tabId = _shell.Host.Workspace.ActiveTabId!.Value;
             var session = new TerminalTabSession(
                 new TabSessionParts(
                     tabId,
@@ -1312,23 +1312,23 @@ public class BranchActionsTests
             await TestGit.Services.RepositoryLoader.RunAsync(
                 location,
                 session,
-                _host,
-                new StatusChannel(),
+                _shell.Host,
+                new StatusReporter(_shell.Host),
                 InlineUi.Post,
                 session.Cancellation.Token);
         }
 
-        public ObjectId? SelectedCommit => _host.Workspace.ActiveTab!.View.SelectedCommit;
+        public ObjectId? SelectedCommit => _shell.Host.Workspace.ActiveTab!.View.SelectedCommit;
 
-        public TabId TabId => _host.Workspace.ActiveTabId!.Value;
+        public TabId TabId => _shell.Host.Workspace.ActiveTabId!.Value;
 
         public async Task LoadOperationAsync()
         {
             var token = TestContext.Current.CancellationToken;
-            var location = _host.Workspace.ActiveTab!.Location;
+            var location = _shell.Host.Workspace.ActiveTab!.Location;
             var operation = new RepositoryOperationDetector().Detect(location);
             var info = await new OperationInfoReader().ReadAsync(location, operation, token);
-            _host.Dispatch(new TabCommand(TabId, new OperationLoadedCommand(info)));
+            _shell.Host.Dispatch(new TabCommand(TabId, new OperationLoadedCommand(info)));
         }
 
         public void Select(BranchSelection selection) => _selection = selection;
@@ -1346,15 +1346,8 @@ public class BranchActionsTests
         }
 
         /// <summary>Presses <c>y</c> in the open dialog.</summary>
-        public void Answer()
-        {
-            var answers = _answers.ToList();
-            _answers.Clear();
-            foreach (var answer in answers)
-            {
-                answer();
-            }
-        }
+        public void Answer() => _shell.Answer();
+
 
         public Task FinishAsync() => PumpUntilAsync(() => Statuses.Log.Latest is not null && Refreshes > 0
             || Statuses.Log.Latest?.Severity == StatusSeverity.Error);
@@ -1367,18 +1360,6 @@ public class BranchActionsTests
             {
                 session.Dispose();
             }
-        }
-
-        private bool Confirm(ConfirmPrompt prompt, Action onYes)
-        {
-            if (!CanShowDialog)
-            {
-                return false;
-            }
-
-            Prompts.Add(prompt);
-            _answers.Add(onYes);
-            return true;
         }
     }
 }

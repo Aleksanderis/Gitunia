@@ -1,9 +1,10 @@
+using Gitunia.App.Shell;
+using Gitunia.App.Status;
 using Gitunia.App;
 using Gitunia.App.Tabs;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Lists;
-using Gitunia.Core.Overlays;
 using Gitunia.Core.Rebase;
 using Gitunia.Core.Sidebar;
 using Gitunia.Core.Status;
@@ -38,13 +39,11 @@ namespace Gitunia.Tui.App.Rebase;
 /// <param name="statuses">Where refusals, failures and the outcome are reported.</param>
 /// <param name="postToUi">Runs an action on the UI thread.</param>
 /// <param name="cancellationOf">The token that ends the work of a tab (the tab was closed).</param>
-/// <param name="confirm">Shows the confirm dialog and runs the callback on <c>y</c>; false when it cannot show.</param>
 /// <param name="refresh">Reads a tab again (refs, graph, status, operation); false when it cannot.</param>
 /// <param name="selection">What is selected now: a sidebar row or the graph commit.</param>
 /// <param name="isOtherOverlayOpen">True while an overlay other than this editor is open.</param>
 /// <param name="screenSize">The current terminal size.</param>
 /// <param name="glyphs">The characters the editor is drawn with.</param>
-/// <param name="setMode">Switches the keymap mode (Insert while a message is edited).</param>
 /// <param name="redraw">Redraws the overlay layer and the status bar.</param>
 /// <param name="gate">The one-operation-per-tab gate, shared with staging, discard, reset and stash.</param>
 /// <param name="keys">Where the chips take their key text from; null uses the default keymap.</param>
@@ -52,16 +51,14 @@ public sealed class RebaseEditorController(
     Dispatcher host,
     IInteractiveRebaseWriter writer,
     ICommitDetailsReader details,
-    StatusChannel statuses,
+    StatusReporter statuses,
     Action<Action> postToUi,
     Func<TabId, CancellationToken> cancellationOf,
-    Func<ConfirmPrompt, Action, bool> confirm,
     Func<TabId, bool> refresh,
     Func<BranchSelection> selection,
     Func<bool> isOtherOverlayOpen,
     Func<ScreenSize> screenSize,
     GraphGlyphSet glyphs,
-    Action<KeyMode> setMode,
     Action redraw,
     TabOperationGate gate,
     ChipKeys? keys = null)
@@ -180,7 +177,7 @@ public sealed class RebaseEditorController(
         _generation++;
         if (State is { Edit: not null })
         {
-            setMode(KeyMode.Normal);
+            host.SetKeyMode(KeyMode.Normal);
         }
 
         State = null;
@@ -357,7 +354,7 @@ public sealed class RebaseEditorController(
                 return;
             }
 
-            setMode(KeyMode.Normal);
+            host.SetKeyMode(KeyMode.Normal);
             Update(state.SaveEdit());
         }
         else if (action == ActionIds.RebaseEditorMessageNewLine)
@@ -367,7 +364,7 @@ public sealed class RebaseEditorController(
         }
         else if (action == ActionIds.Cancel || action == ActionIds.NavigateBack)
         {
-            setMode(KeyMode.Normal);
+            host.SetKeyMode(KeyMode.Normal);
             Update(state.CancelEdit());
         }
     }
@@ -468,7 +465,7 @@ public sealed class RebaseEditorController(
     private void OpenMessage(RebaseEditorState state, string message)
     {
         State = state.BeginEdit(message);
-        setMode(KeyMode.Insert);
+        host.SetKeyMode(KeyMode.Insert);
         redraw();
     }
 
@@ -489,7 +486,7 @@ public sealed class RebaseEditorController(
         var current = tab?.Refs
             .FirstOrDefault(candidate => candidate.IsCurrent && candidate.Kind == RefKind.LocalBranch);
         var note = RebaseGuard.AutoStashNote(tab);
-        if (!confirm(RebaseEditorTexts.ConfirmFor(state, current, note), () => Start(state)))
+        if (!host.Confirm(RebaseEditorTexts.ConfirmFor(state, current, note), () => Start(state)))
         {
             statuses.Warning(TooSmallNotice);
         }

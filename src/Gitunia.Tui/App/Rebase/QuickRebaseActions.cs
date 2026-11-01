@@ -1,3 +1,5 @@
+using Gitunia.App.Shell;
+using Gitunia.App.Status;
 using Gitunia.App;
 using Gitunia.App.Tabs;
 using Gitunia.Core.Keymap;
@@ -32,24 +34,20 @@ namespace Gitunia.Tui.App.Rebase;
 /// <param name="statuses">Where the outcome is reported.</param>
 /// <param name="postToUi">Runs an action on the UI thread.</param>
 /// <param name="cancellationOf">The token that ends the work of a tab (the tab was closed).</param>
-/// <param name="confirm">Shows the confirm dialog and runs the callback on <c>y</c>; false when it cannot show.</param>
 /// <param name="refresh">Reads a tab again (refs, graph, status, operation); false when it cannot.</param>
 /// <param name="selectedCommit">The hash of the commit selected in the graph, null when none.</param>
 /// <param name="isOverlayOpen">True while an overlay is open; a late Confirm must not replace it.</param>
-/// <param name="setMode">Switches the keymap mode (Insert while the subject prompt is open).</param>
 /// <param name="redraw">Redraws the status bar.</param>
 /// <param name="gate">The one-operation-per-tab gate, shared with staging, discard, reset and stash.</param>
 public sealed class QuickRebaseActions(
     Dispatcher host,
     IQuickRebaseWriter writer,
-    StatusChannel statuses,
+    StatusReporter statuses,
     Action<Action> postToUi,
     Func<TabId, CancellationToken> cancellationOf,
-    Func<ConfirmPrompt, Action, bool> confirm,
     Func<TabId, bool> refresh,
     Func<string?> selectedCommit,
     Func<bool> isOverlayOpen,
-    Action<KeyMode> setMode,
     Action redraw,
     TabOperationGate gate) : IPromptHandler
 {
@@ -260,7 +258,7 @@ public sealed class QuickRebaseActions(
     private void ClosePrompt()
     {
         _plan = null;
-        setMode(KeyMode.Normal);
+        host.SetKeyMode(KeyMode.Normal);
     }
 
     private string AcceptSubject()
@@ -367,7 +365,7 @@ public sealed class QuickRebaseActions(
         _plan = plan;
         _promptTab = tabId;
         _text = plan.Subject;
-        setMode(KeyMode.Insert);
+        host.SetKeyMode(KeyMode.Insert);
         redraw();
     }
 
@@ -393,7 +391,7 @@ public sealed class QuickRebaseActions(
         var target = new QuickRebaseTarget(tabId, plan, tab.Head!.BranchName!, newSubject);
         var current = tab.Refs.FirstOrDefault(
             candidate => candidate.IsCurrent && candidate.Kind == RefKind.LocalBranch);
-        if (!confirm(PromptFor(target, current, RebaseGuard.AutoStashNote(tab)), () => Start(target)))
+        if (!host.Confirm(PromptFor(target, current, RebaseGuard.AutoStashNote(tab)), () => Start(target)))
         {
             statuses.Warning(TooSmallNotice);
         }

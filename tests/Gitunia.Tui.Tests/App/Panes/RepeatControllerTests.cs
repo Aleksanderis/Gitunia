@@ -1,8 +1,10 @@
+using Gitunia.App;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Keymap.Repeat;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Tabs;
+using Gitunia.Core;
 using Gitunia.Tui.App.Panes;
 using Gitunia.Tui.Input;
 using Xunit;
@@ -22,7 +24,7 @@ public class RepeatControllerTests
     public RepeatControllerTests()
     {
         var table = DefaultKeymap.Create();
-        _keys = new KeyController(new KeymapEngine(table), RouteAction);
+        _keys = new KeyController(new KeymapEngine(table), RouteAction, new Dispatcher(AppState.Empty));
         _repeat = new RepeatController(table, () => _tab, () => _focused, () => _blocked, RouteAction);
         _keys.Interceptor = _repeat.TryHandle;
     }

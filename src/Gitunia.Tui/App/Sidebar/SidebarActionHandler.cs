@@ -1,3 +1,4 @@
+using Gitunia.App.Shell;
 using Gitunia.App;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
@@ -29,7 +30,6 @@ public sealed class SidebarActionHandler(
     Func<bool> isSidebarVisible,
     Func<bool> isDetailVisible,
     Action<int> selectGraphItem,
-    Action<KeyMode> setMode,
     ClipboardCopier? clipboard = null)
 {
     private bool _isEditingFilter;
@@ -247,7 +247,7 @@ public sealed class SidebarActionHandler(
         {
             _isEditingFilter = true;
             _editingTabId = tab.Id;
-            setMode(KeyMode.Insert);
+            host.SetKeyMode(KeyMode.Insert);
         }
         else if (action == ActionIds.NavigateBack)
         {
@@ -351,7 +351,7 @@ public sealed class SidebarActionHandler(
     private void StopEditing()
     {
         _isEditingFilter = false;
-        setMode(KeyMode.Normal);
+        host.SetKeyMode(KeyMode.Normal);
     }
 
     private void SetFilter(RepositoryState tab, string text) => Send(tab, new SetSidebarFilterCommand(text));

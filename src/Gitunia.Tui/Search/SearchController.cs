@@ -1,3 +1,4 @@
+using Gitunia.App.Shell;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Search;
@@ -76,7 +77,7 @@ public sealed class SearchController(
         if (action == ActionIds.SearchOpen)
         {
             Dispatch(session, new OpenSearchCommand());
-            view.SetMode(KeyMode.Insert);
+            view.Dispatcher.SetKeyMode(KeyMode.Insert);
         }
         else if (action == ActionIds.SearchNext || action == ActionIds.SearchPrevious)
         {
@@ -86,12 +87,12 @@ public sealed class SearchController(
         else if (action == ActionIds.InputAccept && session.Search.Phase == SearchPhase.Editing)
         {
             Dispatch(session, new AcceptSearchCommand(view.SelectedRow()));
-            view.SetMode(KeyMode.Normal);
+            view.Dispatcher.SetKeyMode(KeyMode.Normal);
         }
         else if (action == ActionIds.Cancel && session.Search.IsOpen)
         {
             Dispatch(session, new CancelSearchCommand());
-            view.SetMode(KeyMode.Normal);
+            view.Dispatcher.SetKeyMode(KeyMode.Normal);
         }
         else
         {

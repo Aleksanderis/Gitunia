@@ -1,3 +1,5 @@
+using Gitunia.App.Shell;
+using Gitunia.App.Status;
 using Gitunia.App;
 using Gitunia.App.Tabs;
 using Gitunia.Core.Keymap;
@@ -32,22 +34,18 @@ namespace Gitunia.Tui.App.Remote;
 /// <param name="postToUi">Runs an action on the UI thread.</param>
 /// <param name="cancellationOf">The token that ends the work of a tab (the tab was closed).</param>
 /// <param name="busy">Marks the tab while an operation of this kind runs (one at a time; tab eviction waits for it).</param>
-/// <param name="confirm">Shows the confirm dialog and runs the callback on <c>y</c>; false when it cannot show.</param>
 /// <param name="refresh">Reads a tab again (refs, graph, status); false when it cannot.</param>
-/// <param name="setMode">Switches the keymap mode (Insert while a prompt is open).</param>
 /// <param name="redraw">Redraws the status bar.</param>
 /// <param name="selection">What is selected now: a sidebar row or the graph commit.</param>
 /// <param name="remoteOperationRuns">Whether a fetch, pull or push runs on the tab; remotes stay then.</param>
 public sealed class RemoteManagementActions(
     Dispatcher host,
     IRemoteManager manager,
-    StatusChannel statuses,
+    StatusReporter statuses,
     Action<Action> postToUi,
     Func<TabId, CancellationToken> cancellationOf,
     TabOperationGate busy,
-    Func<ConfirmPrompt, Action, bool> confirm,
     Func<TabId, bool> refresh,
-    Action<KeyMode> setMode,
     Action redraw,
     Func<BranchSelection> selection,
     Func<TabId, bool> remoteOperationRuns) : IPromptHandler
@@ -264,7 +262,7 @@ public sealed class RemoteManagementActions(
     private void Close()
     {
         _kind = RemotePromptKind.None;
-        setMode(KeyMode.Normal);
+        host.SetKeyMode(KeyMode.Normal);
     }
 
     private void Open(RemotePromptKind kind, RepositoryState tab, string text)
@@ -272,7 +270,7 @@ public sealed class RemoteManagementActions(
         _kind = kind;
         _tabId = tab.Id;
         _text = text;
-        setMode(KeyMode.Insert);
+        host.SetKeyMode(KeyMode.Insert);
     }
 
     private string LoadRemotes(RepositoryState tab, RemotePromptKind first)
@@ -509,7 +507,7 @@ public sealed class RemoteManagementActions(
             lines,
             $"Undo: git remote add {remote.Name} {remote.Url}, then fetch it",
             "Remove remote");
-        return confirm(prompt, () => StartRemove(tab.Id, remote)) ? string.Empty : TooSmallNotice;
+        return host.Confirm(prompt, () => StartRemove(tab.Id, remote)) ? string.Empty : TooSmallNotice;
     }
 
     private void StartRemove(TabId tabId, RemoteInfo remote)
