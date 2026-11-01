@@ -28,7 +28,12 @@ while [ $# -gt 0 ]; do
   esac
 done
 
-work="$(mktemp -d)"
+# A fixed, short work dir keeps the paths visible in the GIF (the worktree path dialog, the status line) identical on every run.
+work="/tmp/gitunia-demo"
+[ ! -e "$work" ] || [ -e "$work/.gitunia-demo" ] || { echo "$work exists and is not a demo work dir; remove it first" >&2; exit 3; }
+rm -rf "$work"
+mkdir -p "$work"
+touch "$work/.gitunia-demo"
 trap 'rm -rf "$work"' EXIT
 if [ -z "$binary" ]; then
   command -v dotnet >/dev/null 2>&1 || { echo "missing tool 'dotnet' (or pass --binary)" >&2; exit 3; }
