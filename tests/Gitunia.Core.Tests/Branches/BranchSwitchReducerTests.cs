@@ -1,5 +1,6 @@
 using Gitunia.Core.Branches;
 using Gitunia.Core.Effects;
+using Gitunia.Core.Prompts;
 using Gitunia.Core.Sidebar;
 using Gitunia.Git.Operations.Models;
 using Gitunia.Git.Repositories.Models;
@@ -273,6 +274,18 @@ public class BranchSwitchReducerTests
         var effects = Reduce(new BranchSwitchChosen(Tab, "refs/heads/gone"), MainAndTopic());
 
         Assert.Equal("No matching branch", Warning(effects));
+    }
+
+    [Fact]
+    public void GivenARemoteRow_WhenFilteringForTheLocalSuffix_ThenOnlyTheNameIsMatched()
+    {
+        var refs = Refs(Local("main", Main, current: true), Remote("origin/topic", Topic));
+        var request = Assert.IsType<ShowPromptEffect>(Assert.Single(
+            Reduce(new BranchSwitchRequested(Tab, new BranchTarget(null, null, null)), refs))).Request;
+
+        var picker = PromptPicker.Of(request.Choices!.Value, request.NoMatch, "local");
+
+        Assert.Empty(picker.Candidates);
     }
 
     private static OperationInfo Stopped(RepositoryOperation kind) =>

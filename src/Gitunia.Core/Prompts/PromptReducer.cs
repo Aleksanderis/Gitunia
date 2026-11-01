@@ -82,12 +82,18 @@ public static class PromptReducer
 
     private static bool IsLetterMove(KeyEvent key, out int step)
     {
-        step = key.Modifiers == KeyModifiers.None ? key.Name switch
+        step = 0;
+        if (key.Modifiers != KeyModifiers.None)
+        {
+            return false;
+        }
+
+        step = key.Name switch
         {
             "j" or "l" => 1,
             "k" or "h" => -1,
             _ => 0,
-        } : 0;
+        };
 
         return step != 0;
     }

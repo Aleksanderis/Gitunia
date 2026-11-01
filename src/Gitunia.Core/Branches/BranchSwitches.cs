@@ -120,6 +120,6 @@ internal static class BranchSwitches
             ? $"{candidate.Label} -> local {SwitchCandidates.LocalNameOf(candidate.Target)}"
             : candidate.Label;
 
-        return new PromptChoice(FollowRef(candidate), text);
+        return new PromptChoice(FollowRef(candidate), text, candidate.Label);
     }
 }
