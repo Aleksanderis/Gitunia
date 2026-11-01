@@ -83,7 +83,7 @@ public static class Program
             return 0;
         }
 
-        using var application = new TuiApplication(services, capabilities, PlatformInfo.Current);
+        var application = new TuiApplication(services, capabilities, PlatformInfo.Current);
         return application.Run(location);
     }
 }

@@ -1,3 +1,5 @@
+using Gitunia.Tui.Rendering.Diff;
+using Gitunia.Tui.App.Tabs;
 using Gitunia.App;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Workspaces.Panes;

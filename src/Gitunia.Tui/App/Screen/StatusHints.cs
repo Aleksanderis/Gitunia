@@ -1,16 +1,13 @@
+using Gitunia.Core.Operations;
 using Gitunia.App;
 using Gitunia.Core.Commits;
 using Gitunia.Core.Conflicts;
 using Gitunia.Core.Overlays;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Tabs;
-using Gitunia.Tui.App.Config;
 using Gitunia.Tui.App.Overlays;
-using Gitunia.Tui.App.Panes;
 using Gitunia.Tui.App.Reflog;
 using Gitunia.Tui.Rendering.Panes;
-using Gitunia.Tui.Rendering.Screen;
-using Gitunia.Tui.Rendering.Styling;
 
 namespace Gitunia.Tui.App.Screen;
 

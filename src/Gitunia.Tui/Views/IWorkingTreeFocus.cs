@@ -1,5 +1,5 @@
+using Gitunia.Tui.Rendering.Diff;
 using Gitunia.Core.Workspaces.Panes;
-using Gitunia.Tui.Rendering.WorkingTree;
 
 namespace Gitunia.Tui.Views;
 

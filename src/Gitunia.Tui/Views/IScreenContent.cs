@@ -19,7 +19,7 @@ public interface IScreenContent
     StyledLine DiffTitle(int width);
 
     /// <summary>The filter line of the sidebar.</summary>
-    SidebarChrome SidebarChrome();
+    SidebarChrome SidebarFilter();
 
     /// <summary>The title of the diff box of the Changes view: side, hunk and file.</summary>
     string WorkingDiffTitle();

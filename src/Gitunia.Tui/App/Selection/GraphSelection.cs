@@ -1,10 +1,13 @@
+using Gitunia.Core.Text;
+using Gitunia.Core.Graph;
+using Gitunia.Tui.App.Reflog;
+using Gitunia.Tui.App.Rebase;
 using Gitunia.App.Tabs;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git;
 using Gitunia.Tui.App.Compare;
 using Gitunia.Tui.App.Stash;
 using Gitunia.Tui.App.Tabs;
-using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Screen;
 using Gitunia.Tui.Views;
 using Gitunia.Tui.Views.Lists;

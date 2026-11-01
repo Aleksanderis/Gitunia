@@ -4,7 +4,6 @@ using Gitunia.App.Loading.Trees;
 using Gitunia.Core.Diff;
 using Gitunia.Core.DiffPane;
 using Gitunia.Core.Workspaces.Panes;
-using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Tui.App.Clipboard;
 using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.Rendering.Diff;

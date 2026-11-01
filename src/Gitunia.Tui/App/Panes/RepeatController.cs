@@ -4,7 +4,6 @@ using Gitunia.Tui.Input;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Keymap.Repeat;
 using Gitunia.Core.Workspaces.Panes;
-using Gitunia.Core.Workspaces.Tabs;
 
 namespace Gitunia.Tui.App.Panes;
 

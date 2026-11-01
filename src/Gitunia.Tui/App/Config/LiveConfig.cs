@@ -1,6 +1,4 @@
 using Gitunia.Core.Config.Models;
-using Gitunia.Core.Keymap;
-using Gitunia.Core.Settings.Models;
 using Gitunia.Platform;
 using Gitunia.Tui.Rendering.Graph;
 

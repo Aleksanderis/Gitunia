@@ -1,10 +1,11 @@
+using Gitunia.Core.Workspaces.Panes;
+using Gitunia.App.Tabs;
+using Gitunia.Core.Graph;
 using System.Collections.Immutable;
 using Gitunia.App;
 using Gitunia.App.Loading.Commits;
 using Gitunia.Core.Details;
-using Gitunia.Core.FileTree;
 using Gitunia.Core.IssueTracker.Models;
-using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Tui.App.Config;
 using Gitunia.Tui.App.Panes;
@@ -48,7 +49,6 @@ public sealed class DetailPresenter : IStashViewHost, IIssueLinkView
         _panes = panes;
         _diffPane = diffPane;
         _config = config;
-        host.Changed += OnBottomTabMaybeChanged;
     }
 
     /// <inheritdoc />
@@ -155,8 +155,11 @@ public sealed class DetailPresenter : IStashViewHost, IIssueLinkView
         }
     }
 
-    // The tab of the bottom pane is repository tab state: whoever changed it (key, click, restored session), the rows follow.
-    private void OnBottomTabMaybeChanged()
+    /// <summary>
+    /// The tab of the bottom pane is repository tab state: whoever changed it (key, click, restored session), the rows
+    /// follow. Call after every state change.
+    /// </summary>
+    public void Follow()
     {
         if (ActiveSession() is { } session
             && _host.Workspace.ActiveTab is { } tab

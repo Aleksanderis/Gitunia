@@ -1,8 +1,8 @@
+using Gitunia.Core.Settings;
 using Gitunia.App;
 using Gitunia.Core.Conflicts;
 using Gitunia.Core.Rebase;
 using Gitunia.Core.Reflog;
-using Gitunia.Core.Settings.Models;
 using Gitunia.Core.Shell;
 using Gitunia.Core.Pick;
 using Gitunia.Tui.Views;

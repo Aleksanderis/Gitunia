@@ -1,4 +1,6 @@
+using Gitunia.Tui.Views;
 using Gitunia.App;
+using Gitunia.App.Shell;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Lists;

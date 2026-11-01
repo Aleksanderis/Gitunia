@@ -1,4 +1,3 @@
-using Gitunia.Core.Mouse;
 using Gitunia.Core.Keymap;
 
 namespace Gitunia.Tui.App.Overlays.Clicks;

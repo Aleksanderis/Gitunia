@@ -16,7 +16,7 @@ namespace Gitunia.Tui.Views;
 /// The chrome of the Changes view: the divider and edges between its boxes, the title row of the diff box, the commit
 /// option row and the buttons on the title rows of the file lists. It reports a click on any of them as a mouse gesture.
 /// </summary>
-public sealed class WorkingTreeChrome
+public sealed class WorkingTreeChrome : IDisposable
 {
     private readonly ChromeParts _parts;
     private readonly WorkingListButtons _buttons;
@@ -77,6 +77,15 @@ public sealed class WorkingTreeChrome
         _messageOptions.Clicked += OnMessageOptionsClicked;
         _diffTitle.Clicked += OnDiffTitleClicked;
         WireGestures();
+    }
+
+    /// <inheritdoc />
+    public void Dispose()
+    {
+        foreach (var view in FrameViews.Concat(RowViews))
+        {
+            view.Dispose();
+        }
     }
 
     /// <summary>Raised for a click on a chrome view: the keymap view name, the gesture and the target.</summary>

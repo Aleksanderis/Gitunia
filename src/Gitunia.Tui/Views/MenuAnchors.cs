@@ -1,10 +1,10 @@
+using Gitunia.Tui.Rendering.Styling;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Mouse;
 using Gitunia.Core.Overlays;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Tui.Rendering.Details;
 using Gitunia.Tui.Rendering.Diff;
-using Gitunia.Tui.Rendering.Panes;
 using Gitunia.Tui.Views.Lists;
 
 namespace Gitunia.Tui.Views;

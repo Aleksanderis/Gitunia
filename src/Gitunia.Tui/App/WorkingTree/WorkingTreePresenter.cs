@@ -1,5 +1,4 @@
 using Gitunia.App;
-using Gitunia.Core.Keymap;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Repositories;

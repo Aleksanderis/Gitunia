@@ -1,3 +1,4 @@
+using Gitunia.Tui.Rendering.Files;
 using Gitunia.Core.Conflicts;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Tui.Rendering.Panes;

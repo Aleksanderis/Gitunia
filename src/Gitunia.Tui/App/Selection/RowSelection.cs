@@ -4,7 +4,6 @@ using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Worktrees;
 using Gitunia.Tui.App.Branches;
 using Gitunia.Tui.App.Worktrees;
-using Gitunia.Tui.Rendering.Sidebar;
 using Gitunia.Tui.Views;
 
 namespace Gitunia.Tui.App.Selection;

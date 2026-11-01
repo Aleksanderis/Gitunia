@@ -1,9 +1,7 @@
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Repositories;
-using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Panes;
 using Gitunia.Tui.Rendering.Screen;
-using Gitunia.Tui.Rendering.Styling;
 using Gitunia.Tui.Views.Lists;
 using Gitunia.Tui.Views.Theme;
 using Terminal.Gui.ViewBase;

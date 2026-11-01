@@ -1,4 +1,3 @@
-using Gitunia.Core.Mouse;
 using Gitunia.Tui.App.Conflicts;
 
 namespace Gitunia.Tui.App.Overlays.Clicks;

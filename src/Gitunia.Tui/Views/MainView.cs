@@ -56,7 +56,7 @@ public sealed class MainView : IDisposable
         };
         _sidebarFilter = new LineView(width =>
         {
-            var chrome = content.SidebarChrome();
+            var chrome = content.SidebarFilter();
             var line = SidebarRowRenderer.FilterLine(chrome.FilterText, chrome.IsEditingFilter, PanePadding.TextWidth(width), glyphs);
 
             return PanePadding.Wrap(line);
@@ -239,7 +239,11 @@ public sealed class MainView : IDisposable
     }
 
     /// <inheritdoc />
-    public void Dispose() => _parts.Panes.Window.Dispose();
+    public void Dispose()
+    {
+        _working.Dispose();
+        _parts.Panes.Window.Dispose();
+    }
 
     private PaneListView FocusedBasePane()
     {

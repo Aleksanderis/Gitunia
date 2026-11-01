@@ -1,3 +1,5 @@
+using Gitunia.Core.Workspaces.Repositories;
+using Gitunia.Tui.Rendering.Styling;
 using Gitunia.Core.Keymap.Repeat;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Tui.Rendering.Panes;

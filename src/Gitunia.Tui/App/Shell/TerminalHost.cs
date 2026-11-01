@@ -5,7 +5,6 @@ using Gitunia.Tui.Input;
 using Gitunia.Tui.Views.Theme;
 using Terminal.Gui.App;
 using Terminal.Gui.Input;
-using Terminal.Gui.ViewBase;
 using Terminal.Gui.Views;
 
 namespace Gitunia.Tui.App.Shell;
@@ -47,10 +46,10 @@ public sealed class TerminalHost : ITerminalSuspender, IDisposable
         SubscribeInput();
     }
 
-    /// <summary>Raised for every key press; a subscriber that takes the key sets <see cref="Key.Handled"/>.</summary>
+    /// <summary>Raised for every key press; a subscriber that takes the key sets <c>Handled</c>.</summary>
     public event EventHandler<Key>? KeyDown;
 
-    /// <summary>Raised for a bracketed paste; a subscriber that takes it sets <see cref="PasteEventArgs.Handled"/>.</summary>
+    /// <summary>Raised for a bracketed paste; a subscriber that takes it sets <c>Handled</c>.</summary>
     public event EventHandler<PasteEventArgs>? Pasted;
 
     /// <summary>Raised on the UI thread when the terminal window gained focus.</summary>
