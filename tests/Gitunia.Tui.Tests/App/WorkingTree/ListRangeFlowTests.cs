@@ -1,5 +1,4 @@
 using Gitunia.App.Status;
-using Gitunia.App.Tabs;
 using Gitunia.Core;
 using Gitunia.Core.Clipboard;
 using Gitunia.Core.Keymap;
@@ -9,7 +8,6 @@ using Gitunia.Core.Overlays;
 using Gitunia.Core.Visual;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Repositories;
-using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Discard;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Staging;
@@ -203,7 +201,7 @@ public sealed class ListRangeFlowTests : IDisposable
 
         _flow.Run(ActionIds.WorkingTreeDiscard);
 
-        Assert.Contains("unstage", _flow.Handler.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("unstage the files first", _flow.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
         Assert.Equal(OverlayKind.None, _flow.Overlays.State.Kind);
     }
 
@@ -245,10 +243,13 @@ public sealed class ListRangeFlowTests : IDisposable
             Overlays = new OverlayController(
                 engine, Keys, _timer, Route, () => new ScreenSize(100, 30), GraphGlyphSet.Unicode, () => DefaultKeymap.WorkingUnstagedView, Statuses, _shell.Host);
 
-            Gate = new TabOperationGate();
-            var staging = new StagingActions(_shell.Host, Gate);
-            _wiring = new StagingWiring(_shell.Host, Index, new PatchStager(new FakeDiffReader(), Index), Pump);
-            var discard = new DiscardActions(_shell.Host, new PatchDiscarder(new FakeDiffReader(), Discarder), Statuses, Pump.Post, Refresh, _ => CancellationToken.None, Gate);
+            var staging = new StagingActions(_shell.Host);
+            _wiring = new StagingWiring(
+                _shell.Host,
+                Index,
+                new PatchStager(new FakeDiffReader(), Index),
+                Pump,
+                new PatchDiscarder(new FakeDiffReader(), Discarder));
             var clipboard = new ClipboardWriter(ClipboardOutput, new Osc52Options(Osc52Mode.Direct, 100_000));
             Visual = new VisualRangeInput(_shell.Host, new FakePaneLists(_list, _stagedList));
             _copier = new RangeCopier(
@@ -257,10 +258,9 @@ public sealed class ListRangeFlowTests : IDisposable
                 () => _shell.Host.Workspace.ActiveTab?.WorkingTree);
             _shell.Host.EffectRaised += CopyRange;
             Handler = new WorkingTreeActionHandler(
-                _shell.Host, () => 10, new ClipboardCopier(clipboard, Statuses), staging, TestCommitActions.Create(_shell.Host, Statuses))
+                _shell.Host, new FakePaneLists(_list, _stagedList), new ClipboardCopier(clipboard, Statuses), staging, TestCommitActions.Create(_shell.Host, Statuses))
             {
                 Visual = Visual,
-                Discard = discard,
             };
         }
 
@@ -279,8 +279,6 @@ public sealed class ListRangeFlowTests : IDisposable
         public VisualRangeInput Visual { get; }
 
         public WorkingTreeActionHandler Handler { get; }
-
-        public TabOperationGate Gate { get; }
 
         public StatusReporter Statuses => _shell.Statuses;
 
@@ -312,7 +310,7 @@ public sealed class ListRangeFlowTests : IDisposable
         public void Press(Key key) => Keys.Handle(key, Overlays.ViewName);
 
         public Task WaitAsync() =>
-            Pump.RunUntilAsync(() => !Gate.IsAnyBusy && !Tab.Running.IsBusy && Statuses.Log.Latest is not null);
+            Pump.RunUntilAsync(() => !Tab.Running.IsBusy && Statuses.Log.Latest is not null);
 
         public void Dispose()
         {
@@ -353,12 +351,6 @@ public sealed class ListRangeFlowTests : IDisposable
             _list.SelectedItem = selection is { Section: WorkingTreeSection.Unstaged } ? selection.Index : null;
             _stagedList.SelectedItem = selection is { Section: WorkingTreeSection.Staged } ? selection.Index : null;
             Visual.OnCursorMoved();
-        }
-
-        private bool Refresh(TabId tabId, Action done)
-        {
-            Pump.Post(done);
-            return true;
         }
 
         private void Send(RepositoryCommand command) =>

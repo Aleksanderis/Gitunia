@@ -277,13 +277,12 @@ public class CommitScriptTests
                 ReadStatus = ReadStatusAsync,
             };
 
-            var staging = new StagingActions(_shell.Host, new TabOperationGate());
+            var staging = new StagingActions(_shell.Host);
             Commits.StageAllThen = staging.StageAllThen;
         }
 
         public bool DialogFits
         {
-            get => _shell.CanShowDialog;
             set => _shell.CanShowDialog = value;
         }
 

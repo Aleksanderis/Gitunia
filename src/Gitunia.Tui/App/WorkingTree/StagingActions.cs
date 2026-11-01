@@ -1,5 +1,4 @@
 using Gitunia.App;
-using Gitunia.App.Tabs;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Lists;
@@ -15,12 +14,10 @@ namespace Gitunia.Tui.App.WorkingTree;
 /// Turns the staging keys of the Changes view and the two requests of other controllers (stage all before a commit, stage
 /// a file the conflict editor resolved) into staging commands. Everything that decides (what the key touches, the busy
 /// checks, the dialog that marks a conflict resolved, the status text) is the Core staging reducer; the git work is its
-/// effect (ux-workflows.md, workflow 2, "Stage and unstage"). Only work still on the legacy gate (discard, the editors)
-/// is asked here, because the reducer cannot see it.
+/// effect (ux-workflows.md, workflow 2, "Stage and unstage").
 /// </summary>
 /// <param name="host">The workspace the commands go to.</param>
-/// <param name="gate">The one-operation-per-tab gate of the controllers that have not moved.</param>
-public sealed class StagingActions(Dispatcher host, TabOperationGate gate)
+public sealed class StagingActions(Dispatcher host)
 {
     /// <summary>True for the actions this class runs.</summary>
     public static bool Handles(ActionId action) =>
@@ -43,11 +40,6 @@ public sealed class StagingActions(Dispatcher host, TabOperationGate gate)
     /// instead of the one under the cursor.</param>
     public string Execute(RepositoryState tab, ActionId action, RowRange? range = null)
     {
-        if (gate.IsBusy(tab.Id))
-        {
-            return StagingReducer.BusyNotice;
-        }
-
         Send(new StagingRequested(tab.Id, ActionOf(action), range));
 
         return string.Empty;
@@ -60,13 +52,7 @@ public sealed class StagingActions(Dispatcher host, TabOperationGate gate)
     /// </summary>
     public string ExecuteSelection(RepositoryState tab, DiffStagingRequest request, DiffCursorMove move)
     {
-        if (gate.IsBusy(tab.Id))
-        {
-            return StagingReducer.BusyNotice;
-        }
-
-        var selection = new StagingSelection(request.Target.Side, request.Target.Entry, request.Lines, request.IsRange);
-        Send(new StageSelectionRequested(tab.Id, selection, move));
+        Send(new StageSelectionRequested(tab.Id, request.ToSelection(), move));
 
         return string.Empty;
     }
@@ -78,11 +64,6 @@ public sealed class StagingActions(Dispatcher host, TabOperationGate gate)
     /// </summary>
     public string StageAllThen(RepositoryState tab, Action afterStaged)
     {
-        if (gate.IsBusy(tab.Id))
-        {
-            return StagingReducer.BusyNotice;
-        }
-
         Send(new StageAllThenRequested(tab.Id, new RunActionCommand(afterStaged)));
 
         return string.Empty;
@@ -95,11 +76,6 @@ public sealed class StagingActions(Dispatcher host, TabOperationGate gate)
     /// </summary>
     public string StageResolvedFor(RepositoryState tab, string path)
     {
-        if (gate.IsBusy(tab.Id))
-        {
-            return $"{StagingReducer.BusyNotice}; the saved file was not staged";
-        }
-
         Send(new StageResolvedRequested(tab.Id, path));
 
         return string.Empty;

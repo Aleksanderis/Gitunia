@@ -1,4 +1,5 @@
 using Gitunia.App.Loading.Diff;
+using Gitunia.Core.Staging;
 using Gitunia.Git.Diff.Models;
 
 namespace Gitunia.Tui.App.WorkingTree;
@@ -7,4 +8,8 @@ namespace Gitunia.Tui.App.WorkingTree;
 /// <param name="Target">The file shown, and the side it is on.</param>
 /// <param name="Lines">The added and removed lines of the hunk or the Visual range; empty for a file that has no hunks (it goes whole).</param>
 /// <param name="IsRange">The lines come from a Visual range, not from the hunk under the cursor.</param>
-public sealed record DiffStagingRequest(WorkingDiffRequest Target, IReadOnlyList<ChangedLine> Lines, bool IsRange);
+public sealed record DiffStagingRequest(WorkingDiffRequest Target, IReadOnlyList<ChangedLine> Lines, bool IsRange)
+{
+    /// <summary>The same pick as the Core commands carry it.</summary>
+    public StagingSelection ToSelection() => new(Target.Side, Target.Entry, Lines, IsRange);
+}

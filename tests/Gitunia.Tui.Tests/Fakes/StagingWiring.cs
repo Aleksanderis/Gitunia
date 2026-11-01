@@ -6,6 +6,9 @@ using Gitunia.Core.Staging;
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Core;
+using Gitunia.App.Discard;
+using Gitunia.Core.Discard;
+using Gitunia.Git.Discard;
 using Gitunia.Git.Staging;
 using Gitunia.Tui.Tests.App;
 using Xunit;
@@ -13,7 +16,7 @@ using Xunit;
 namespace Gitunia.Tui.Tests.Fakes;
 
 /// <summary>
-/// What the effect runner does for staging, for tests of controllers that send staging commands: runs the real
+/// What the effect runner does for staging, for tests of controllers that send staging and discard commands: runs the real
 /// <see cref="StagingEffectHandler"/> on the effects the reducer returns, posts the status messages and opens the dialogs the
 /// reducer asks for and stands in for the tab refresher (<see cref="OnRefresh"/> runs on the UI pump before the result is
 /// reduced, like a status read that has been applied).
@@ -23,12 +26,19 @@ public sealed class StagingWiring : IStatusRefresher, IDisposable
     private readonly Dispatcher _host;
     private readonly UiPump _pump;
     private readonly StagingEffectHandler _handler;
+    private readonly DiscardEffectHandler? _discard;
 
-    public StagingWiring(Dispatcher host, IIndexWriter writer, PatchStager stager, UiPump pump)
+    public StagingWiring(
+        Dispatcher host,
+        IIndexWriter writer,
+        PatchStager stager,
+        UiPump pump,
+        PatchDiscarder? discarder = null)
     {
         _host = host;
         _pump = pump;
         _handler = new StagingEffectHandler(writer, stager, this, host);
+        _discard = discarder is null ? null : new DiscardEffectHandler(discarder, this, host);
         host.EffectRaised += OnEffect;
     }
 
@@ -73,6 +83,10 @@ public sealed class StagingWiring : IStatusRefresher, IDisposable
         if (effect is StagingEffect staging)
         {
             _handler.Handle(staging, TestContext.Current.CancellationToken);
+        }
+        else if (effect is DiscardEffect discard)
+        {
+            _discard!.Handle(discard, TestContext.Current.CancellationToken);
         }
         else if (effect is PostStatusEffect post)
         {

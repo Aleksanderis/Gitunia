@@ -4,6 +4,7 @@ using Gitunia.Core.Conflicts;
 using Gitunia.Core.Creation;
 using Gitunia.Core.Details;
 using Gitunia.Core.DiffPane;
+using Gitunia.Core.Discard;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Picker;
 using Gitunia.Core.Effects;
@@ -66,6 +67,7 @@ public static partial class AppReducer
         CreationCommand creation => ReduceCreation(state, creation),
         DetailCommand detail => DetailReducer.Reduce(state, detail),
         DiffPaneCommand diffPane => DiffPaneReducer.Reduce(state, diffPane),
+        DiscardCommand discard => ReduceDiscard(state, discard),
         EffectFailedCommand failed => EffectFailed(state, failed),
         ExternalToolCommand tool => new AppUpdate(state, ExternalToolReducer.Reduce(tool, state.Workspace.ActiveTab)),
         IssueLinkCommand link => new AppUpdate(state, IssueLinkReducer.Reduce(link)),

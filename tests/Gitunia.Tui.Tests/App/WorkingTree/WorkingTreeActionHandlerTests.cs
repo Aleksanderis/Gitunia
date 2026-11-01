@@ -1,4 +1,3 @@
-using Gitunia.App.Tabs;
 using Gitunia.App.Status;
 using Gitunia.Core;
 using Gitunia.App;
@@ -13,6 +12,8 @@ using Gitunia.Git.Status.Models;
 using Gitunia.Tui.App.Clipboard;
 using Gitunia.Tui.App.WorkingTree;
 using Gitunia.Tui.Tests.Fakes;
+using System.Drawing;
+using Terminal.Gui.Views;
 using Xunit;
 using static Gitunia.Tui.Tests.Rendering.WorkingTree.WorkingTreeEntries;
 
@@ -411,12 +412,14 @@ public class WorkingTreeActionHandlerTests
             ActionIds.FilesTogglePathStyle.Value,
         ];
 
-    private sealed class Harness
+    private sealed class Harness : IDisposable
     {
         private readonly Dispatcher _host = new(AppState.Empty);
+        private readonly ListView _list = new() { X = 0, Y = 0, Width = 60, Height = PageHeight };
 
         public Harness(params StatusEntry[] entries)
         {
+            _list.SetRelativeLayout(new Size(80, 24));
             var root = Path.Combine(Path.GetTempPath(), "gitunia-working-tree-handler-tests");
             var location = new RepositoryLocation(root, Path.Combine(root, ".git"), Path.Combine(root, ".git"), false, false);
             _host.Dispatch(new OpenRepositoryCommand(location));
@@ -427,12 +430,14 @@ public class WorkingTreeActionHandlerTests
 
             var writer = new ClipboardWriter(new StringWriter(), new Osc52Options(Osc52Mode.Direct, 100_000));
             Statuses = new StatusReporter(new Dispatcher(AppState.Empty));
-            var staging = new StagingActions(_host, new TabOperationGate());
+            var staging = new StagingActions(_host);
             var commits = TestCommitActions.Create(_host, Statuses);
-            Handler = new WorkingTreeActionHandler(_host, () => PageHeight, new ClipboardCopier(writer, Statuses), staging, commits);
+            Handler = new WorkingTreeActionHandler(_host, new FakePaneLists(_list), new ClipboardCopier(writer, Statuses), staging, commits);
         }
 
         public WorkingTreeActionHandler Handler { get; }
+
+        public void Dispose() => _list.Dispose();
 
         public StatusReporter Statuses { get; }
 

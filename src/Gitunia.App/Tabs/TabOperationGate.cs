@@ -3,8 +3,8 @@ using Gitunia.Core.Workspaces.Tabs;
 namespace Gitunia.App.Tabs;
 
 /// <summary>
-/// Lets one operation of a kind run per tab at a time. Discarding and the editors share one gate; the commit actions keep
-/// one each (migrated features, staging included, use the running flag in their state). Every gate comes from
+/// Lets one operation of a kind run per tab at a time. The commit actions keep one each
+/// (migrated features, staging and discarding included, use the running flag in their state). Every gate comes from
 /// <see cref="TabActivity"/>, which tab eviction asks before it cancels a tab's work.
 /// </summary>
 public sealed class TabOperationGate
