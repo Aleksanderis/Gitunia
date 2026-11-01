@@ -61,6 +61,7 @@ using Gitunia.Tui.App.Remote;
 using Gitunia.Tui.App.Reset;
 using Gitunia.Tui.App.Settings;
 using Gitunia.Tui.App.Sidebar;
+using Gitunia.Core.Stash;
 using Gitunia.Tui.App.Stash;
 using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.App.Tags;
@@ -92,7 +93,8 @@ namespace Gitunia.Tui.App;
 public sealed class TuiApplication(
     GitServices services,
     ConsoleCapabilities detectedCapabilities,
-    IPlatform platform) : IDisposable, ITerminalSuspender, IShellEffects, IBranchSelectionSource
+    IPlatform platform) : IDisposable, ITerminalSuspender, IShellEffects, IBranchSelectionSource,
+    IStashSelectionSource, IStashViewHost
 {
     // Terminal.Gui's default of 25 iterations per second gave ~34 ms key latency (docs/internal/history/decisions.md); the idle rate saves CPU (#909).
     private const ushort ActiveIterationsPerSecond = 100;
@@ -140,6 +142,7 @@ public sealed class TuiApplication(
     private ConsoleCapabilities _capabilities = detectedCapabilities;
     private CommitActions _commits = null!;
     private BranchActions _branches = null!;
+    private StashActions _stashActions = null!;
     private TagActions _tags = null!;
     private PromptInputHandler _openPrompt = null!;
     private ClipboardCopier _clipboard = null!;
@@ -233,7 +236,7 @@ public sealed class TuiApplication(
             () => !CurrentPaneRects().Detail.IsEmpty,
             SelectGraphItem,
             clipboard);
-        _stashView = new StashViewController(_host, ActiveSession, ReselectGraphCommit, RefreshDetail, _statuses);
+        _stashView = new StashViewController(_host, this, _statuses);
         _sidebar.StashView = _stashView;
         _host.Changed += _stashView.Reconcile;
         _sidebar.IsGraphVisible = () => !CurrentPaneRects().Graph.IsEmpty;
@@ -251,6 +254,7 @@ public sealed class TuiApplication(
 
         _commits = CreateCommits();
         _branches = CreateBranches();
+        _stashActions = new StashActions(_host, this);
         _tags = new TagActions(_host, this);
         _view.ActiveDraft = () => _host.Workspace.ActiveTabId is { } tabId ? _commits.DraftOf(tabId) : null;
         _view.IsEditingMessage = () => _commits.ShowsCursor;
@@ -301,6 +305,7 @@ public sealed class TuiApplication(
             Discard = CreateDiscard(operationGate),
         };
         _router.Branches = _branches;
+        _router.Stash = _stashActions;
         _router.Tags = _tags;
         _openPrompt = new PromptInputHandler(_host);
         _router.OpenPrompt = _openPrompt;
@@ -438,7 +443,7 @@ public sealed class TuiApplication(
             _quickJump,
             _fileTree,
             _worktrees,
-            .. CreatePrompts(operationGate, sidebarSource),
+            .. CreatePrompts(operationGate),
         ];
         _router.Prompts = _prompts;
         _keys.TextKeyHandler = HandleTextKey;
@@ -1840,7 +1845,19 @@ public sealed class TuiApplication(
             session.Details.Current.Details?.UntrackedFileCount ?? 0);
     }
 
-    private IReadOnlyList<IPromptHandler> CreatePrompts(TabOperationGate gate, SidebarListSource sidebarSource)
+    string? IStashSelectionSource.CursorStashCommit() =>
+        _sidebar.CursorRow is { Kind: SidebarRowKind.Stash } row ? row.CommitHash : null;
+
+    StashFileTarget? IStashSelectionSource.FileUnderCursor() =>
+        _host.Workspace.ActiveTab is { } tab ? StashFileUnderCursor(tab) : null;
+
+    TerminalTabSession? IStashViewHost.ActiveSession() => ActiveSession();
+
+    void IStashViewHost.ReselectGraphCommit() => ReselectGraphCommit();
+
+    void IStashViewHost.RefreshDetail() => RefreshDetail();
+
+    private IReadOnlyList<IPromptHandler> CreatePrompts(TabOperationGate gate)
     {
         var handle = new GraphViewHandle(
             ActiveSession,
@@ -1873,17 +1890,6 @@ public sealed class TuiApplication(
                 tabId => _host.Workspace.FindTab(tabId)?.Location,
                 InvokeOnUi),
             new CommitMessageInput(_commits),
-            new StashController(
-                _host,
-                services.StashWriter,
-                _statuses,
-                InvokeOnUi,
-                tabId => _effects.Refresh(tabId, false),
-                tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None,
-                tab => SidebarCursorRow(sidebarSource, tab),
-                StashFileUnderCursor,
-                _view.RefreshChrome,
-                gate),
         ];
     }
 

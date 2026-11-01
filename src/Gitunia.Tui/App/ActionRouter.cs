@@ -23,6 +23,7 @@ using Gitunia.Tui.App.Remote;
 using Gitunia.Tui.App.Reset;
 using Gitunia.Tui.App.Sidebar;
 using Gitunia.Tui.App.Tabs;
+using Gitunia.Tui.App.Stash;
 using Gitunia.Tui.App.Tags;
 using Gitunia.Tui.App.WorkingTree;
 using Gitunia.Tui.App.Worktrees;
@@ -77,6 +78,9 @@ public sealed class ActionRouter(Dispatcher host, ListView graphList, ListView d
 
     /// <summary>The branch actions (create, switch, rename, delete), which own their prompts in every pane.</summary>
     public BranchActions? Branches { get; set; }
+
+    /// <summary>The stash actions (push, apply, pop, drop, restore a file), which own their prompt and dialog.</summary>
+    public StashActions? Stash { get; set; }
 
     /// <summary>The tag actions (create, delete, push, remote delete), which own their prompts in every pane.</summary>
     public TagActions? Tags { get; set; }
@@ -193,6 +197,11 @@ public sealed class ActionRouter(Dispatcher host, ListView graphList, ListView d
         if (Branches?.TryExecute(action, count) == true)
         {
             Refuse(Branches.Notice);
+            return;
+        }
+
+        if (Stash?.TryExecute(action, count) == true)
+        {
             return;
         }
 
@@ -429,11 +438,9 @@ public sealed class ActionRouter(Dispatcher host, ListView graphList, ListView d
         graphList.SetNeedsDraw();
     }
 
-    // Search and jump-to-ref work on the graph; in other panes only the accept/cancel actions of an open prompt apply,
-    // and the stash file restore, which acts on the detail pane.
+    // Search and jump-to-ref work on the graph; in other panes only the accept/cancel actions of an open prompt apply.
     private bool OffersToPrompts(ActionId action) =>
-        FocusedPane == PaneKind.Graph || action == ActionIds.InputAccept || action == ActionIds.Cancel
-        || action == ActionIds.StashRestoreFile;
+        FocusedPane == PaneKind.Graph || action == ActionIds.InputAccept || action == ActionIds.Cancel;
 
     private static void Select(ListView list, int item)
     {

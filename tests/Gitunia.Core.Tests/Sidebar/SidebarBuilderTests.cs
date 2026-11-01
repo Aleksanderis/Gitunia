@@ -30,7 +30,7 @@ public class SidebarBuilderTests
         var tab = Unfolded(Tab(
             refs: [Branch("zeta"), Branch("Alpha"), Remote("origin/main"), Remote("origin/HEAD", "refs/remotes/origin/main"), Tag("v1")],
             worktrees: [Worktree("/work/repo", "main", isMain: true)],
-            stashes: [Stash(0, "On main: wip")]));
+            stashes: [StashAt(0, "On main: wip")]));
 
         var rows = SidebarBuilder.Build(tab);
 
@@ -137,7 +137,7 @@ public class SidebarBuilderTests
         var tab = Tab(
             refs: [Tag("v1.0")],
             worktrees: [Worktree("/work/repo-wt", "topic")],
-            stashes: [Stash(0, "wip")]);
+            stashes: [StashAt(0, "wip")]);
         tab = tab with { Sidebar = SidebarState.Initial with { CollapsedSections = [] } };
 
         var rows = SidebarBuilder.Build(tab);

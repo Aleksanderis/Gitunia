@@ -38,7 +38,7 @@ internal static class SidebarFixtures
     public static WorktreeInfo Worktree(string path, string? branch, bool isMain = false, bool isLocked = false, bool isPrunable = false) =>
         new(path, new string('a', 40), branch is null ? null : $"refs/heads/{branch}", branch is null, false, isLocked, null, isPrunable, null, isMain);
 
-    public static StashEntry Stash(int index, string message) => new(index, $"stash@{{{index}}}", new string('c', 40), message);
+    public static StashEntry StashAt(int index, string message) => new(index, $"stash@{{{index}}}", new string('c', 40), message);
 
     private static GitRef Ref(string fullName, string name, RefKind kind, string? checkedOutIn, bool isCurrent, int? ahead, int? behind, string? symbolicTarget) =>
         new(fullName, name, kind, new string('b', 40), new string('b', 40), null, ahead, behind, false, isCurrent, checkedOutIn, symbolicTarget);
