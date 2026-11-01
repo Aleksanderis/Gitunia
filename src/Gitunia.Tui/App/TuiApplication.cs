@@ -235,7 +235,7 @@ public sealed class TuiApplication(
             Directory.Exists,
             _startupConfig.Themes.Names,
             ConfigStartup.DefaultLabelCaps(_capabilities));
-        _host = new Dispatcher(InitialState(settingsEnvironment), _uiInvoker);
+        _host = new Dispatcher(InitialState(), _uiInvoker);
         _statuses = new StatusReporter(_host);
         _sessionFactory = new TerminalTabSessionFactory(glyphs);
         _effects = new EffectRunner<TerminalTabSession>(
@@ -1644,10 +1644,10 @@ public sealed class TuiApplication(
         _settings.OnScreenResized();
     }
 
-    // The initial state: nothing open, and the machine facts the settings screen checks folders with.
-    private AppState InitialState(SettingsEnvironment environment)
+    // The initial state: nothing open, and the home folder the settings screen expands `~` with.
+    private AppState InitialState()
     {
-        var settings = SettingsSession.Empty with { Environment = environment };
+        var settings = SettingsSession.Empty with { HomeDirectory = _homeDirectory };
         var picker = PickerSession.Empty with
         {
             HomeDirectory = _homeDirectory,

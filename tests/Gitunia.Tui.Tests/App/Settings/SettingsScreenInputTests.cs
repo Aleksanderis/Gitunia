@@ -378,6 +378,7 @@ public sealed class SettingsScreenInputTests : IDisposable
         _harness.Type(Path.Combine(_harness.Root, "nowhere"));
 
         _harness.Run(ActionIds.InputAccept);
+        await _harness.PumpAsync();
 
         Assert.Contains("not an existing folder", _harness.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
         Assert.Equal(StatusSeverity.Warning, _harness.Statuses.Log.Latest.Severity);
@@ -769,7 +770,7 @@ public sealed class SettingsScreenInputTests : IDisposable
             Root = Directory.CreateTempSubdirectory("gitunia-settings-").FullName;
             ConfigPath = Path.Combine(Root, "config", ConfigLoader.FileName);
             var environment = new SettingsEnvironment(Root, Directory.Exists);
-            var settings = SettingsSession.Empty with { Environment = environment };
+            var settings = SettingsSession.Empty with { HomeDirectory = environment.HomeDirectory };
             _host = new Dispatcher(AppState.Empty with { Shell = ShellState.Empty with { Settings = settings } }, _pump);
             Statuses = new StatusReporter(_host);
             _handler = new SettingsEffectHandler(
