@@ -4,6 +4,9 @@ using Gitunia.App.Loading.Commits;
 using Gitunia.App.Loading.Diff;
 using Gitunia.App.Loading.Stash;
 using Gitunia.App.Loading.Trees;
+using Gitunia.App.Integration;
+using Gitunia.App.Reflog;
+using Gitunia.App.Settings;
 using Gitunia.App.Remotes;
 using Gitunia.App.Stash;
 using Gitunia.App.Status;
@@ -15,7 +18,10 @@ using Gitunia.Core;
 using Gitunia.Core.Branches;
 using Gitunia.Core.Clipboard;
 using Gitunia.Core.Effects;
+using Gitunia.Core.Integration;
 using Gitunia.Core.Prompts;
+using Gitunia.Core.Reflog;
+using Gitunia.Core.Settings;
 using Gitunia.Core.Remotes;
 using Gitunia.Core.Stash;
 using Gitunia.Core.Sync;
@@ -52,7 +58,11 @@ public sealed class EffectRunner<TSession> : IDisposable
     private readonly IShellEffects _shell;
     private readonly TabCancellation _cancellation = new();
     private readonly BackgroundWork _background = new();
+    private readonly IntegrationEffectHandler _integration;
     private readonly BranchEffectHandler _branches;
+    private readonly ReflogEffectHandler _reflog;
+    private readonly SettingsEffectHandler? _settings;
+    private readonly CancellationTokenSource _shutdown = new();
     private readonly RemoteEffectHandler _remotes;
     private readonly StashEffectHandler _stash;
     private readonly SyncEffectHandler _sync;
@@ -82,10 +92,14 @@ public sealed class EffectRunner<TSession> : IDisposable
         WatchBudget? watchBudget = null,
         int warmTabLimit = DefaultWarmTabLimit,
         PollOptions? pollOptions = null,
-        IShellEffects? shell = null)
+        IShellEffects? shell = null,
+        SettingsServices? settings = null)
     {
         _shell = shell ?? NoShellEffects.Instance;
         _branches = new BranchEffectHandler(services.Branches, host);
+        _reflog = new ReflogEffectHandler(services.Reflog, host);
+        _settings = settings is null ? null : new SettingsEffectHandler(settings, host);
+        _integration = IntegrationEffectHandler.Create(services, host);
         _remotes = new RemoteEffectHandler(services.RemoteManager, host);
         _stash = new StashEffectHandler(services.StashWriter, host);
         _sync = new SyncEffectHandler(services.Remote, services.RemoteManager, services.Ancestry, host);
@@ -179,6 +193,8 @@ public sealed class EffectRunner<TSession> : IDisposable
         }
 
         _refreshers.Clear();
+        _shutdown.Cancel();
+        _shutdown.Dispose();
         _cancellation.Dispose();
         _statusAging.Dispose();
         _background.Dispose();
@@ -204,7 +220,10 @@ public sealed class EffectRunner<TSession> : IDisposable
     // A feature's effect fails with that feature's result command, so its running flag is cleared.
     private static AppCommand FailureOf(AppEffect effect, string text) => effect switch
     {
+        IntegrationEffect integration => new IntegrationFailed(integration.TabId, text),
         BranchEffect branch => new BranchOperationFailed(branch.TabId, text),
+        ReadReflogEffect => new ReflogReadFailed(text),
+        SettingsEffect => new SettingsOperationFailed(text),
         RemoteEffect remote => new RemoteOperationFailed(remote.TabId, text),
         StashEffect stash => new StashOperationFailed(stash.TabId, text),
         SyncEffect sync => new SyncFailed(sync.TabId, text, null, null),
@@ -228,6 +247,9 @@ public sealed class EffectRunner<TSession> : IDisposable
             case CopyToClipboardEffect copy:
                 _shell.CopyToClipboard(copy);
                 break;
+            case IntegrationEffect integration:
+                _integration.Handle(integration, _cancellation.TokenOf(integration.TabId));
+                break;
             case LoadRepositoryEffect load:
                 StartLoad(load);
                 break;
@@ -237,8 +259,14 @@ public sealed class EffectRunner<TSession> : IDisposable
             case PostStatusEffect post:
                 _host.Dispatch(new StatusPostedCommand(post.Text, post.Severity, _host.Clock.GetUtcNow()));
                 break;
+            case ReadReflogEffect read:
+                _reflog.Handle(read, _cancellation.TokenOf(read.TabId));
+                break;
             case RefreshTabEffect refresh:
                 Refresh(refresh.TabId, false);
+                break;
+            case ReflogEntryActionEffect entry:
+                _shell.StartReflogEntryAction(entry);
                 break;
             case RemoteEffect remote:
                 _remotes.Handle(remote, _cancellation.TokenOf(remote.TabId));
@@ -248,6 +276,12 @@ public sealed class EffectRunner<TSession> : IDisposable
                 break;
             case ScheduleStatusAgingEffect aging:
                 _statusAging.Schedule(aging.After);
+                break;
+            case SettingsEffect settings:
+                PerformSettings(settings);
+                break;
+            case SettingsShellEffect settingsShell:
+                PerformSettingsShell(settingsShell);
                 break;
             case SetKeyModeEffect mode:
                 _host.Dispatch(new SetKeyModeCommand(mode.Mode));
@@ -266,6 +300,37 @@ public sealed class EffectRunner<TSession> : IDisposable
                 break;
             case TagEffect tag:
                 _tags.Handle(tag, _cancellation.TokenOf(tag.TabId));
+                break;
+            default:
+                throw new UnhandledEffectException(effect);
+        }
+    }
+
+    // Without settings services (a runner without a config file) the file work fails at once, so nothing stays busy.
+    private void PerformSettings(SettingsEffect effect)
+    {
+        if (_settings is null)
+        {
+            _host.Dispatch(new SettingsOperationFailed("The config file is not available"));
+
+            return;
+        }
+
+        _settings.Handle(effect, _shutdown.Token);
+    }
+
+    private void PerformSettingsShell(SettingsShellEffect effect)
+    {
+        switch (effect)
+        {
+            case ApplySettingsOptionsEffect options:
+                _shell.ApplyOptions(options.Options);
+                break;
+            case ApplySettingsThemeEffect theme:
+                _shell.ApplyTheme(theme.Theme);
+                break;
+            case OpenConfigEditorEffect:
+                _shell.OpenConfigEditor();
                 break;
             default:
                 throw new UnhandledEffectException(effect);

@@ -376,7 +376,7 @@ Mixed runs at once when the index equals HEAD; otherwise it opens a Confirm sayi
 Hard opens a Confirm that lists the tracked files and the count of changes that will be lost (untracked files stay unless the target commit tracks a file at the same path, and it says so) and the old tip for the undo (the reflog restores commits, never uncommitted changes, and the Confirm says so).
 Refused during an in-progress operation and on a detached or unborn HEAD.
 The status after a reset names the old tip and the undo (`reset [--hard] <old hash>`, also `ORIG_HEAD` and the reflog).
-Implemented in #392 (`ResetActions.Begin(tab, commit)` is the entry the reflog view calls).
+Implemented in #392 (`ResetActions.Begin(tab, commit)`, now a thin view class over `ResetRequested`, is the entry the reflog view calls).
 The reflog view offers the same key on an entry.
 Mouse: the actions menu of a graph or sidebar row.
 

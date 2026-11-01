@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Workspaces.Tabs;
 
@@ -13,6 +14,7 @@ namespace Gitunia.Core.Prompts;
 /// <param name="Owner">The tab the prompt belongs to, or null.</param>
 /// <param name="ReturnMode">The key mode to restore when the prompt closes.</param>
 /// <param name="ListOnly">The picker has no text field and moves on <c>j/k/h/l</c> as well.</param>
+/// <param name="KeyChoices">The options when one key answers the prompt; null otherwise.</param>
 public sealed record OpenPrompt(
     string Title,
     string Context,
@@ -22,4 +24,5 @@ public sealed record OpenPrompt(
     IPromptResult OnAccepted,
     TabId? Owner,
     KeyMode ReturnMode,
-    bool ListOnly = false);
+    bool ListOnly = false,
+    ImmutableArray<PromptKeyChoice>? KeyChoices = null);

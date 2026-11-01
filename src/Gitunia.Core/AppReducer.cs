@@ -1,6 +1,10 @@
 using Gitunia.Core.Branches;
 using Gitunia.Core.Effects;
+using Gitunia.Core.Integration;
+using Gitunia.Core.Operations;
 using Gitunia.Core.Prompts;
+using Gitunia.Core.Reflog;
+using Gitunia.Core.Settings;
 using Gitunia.Core.Remotes;
 using Gitunia.Core.Shell;
 using Gitunia.Core.Stash;
@@ -26,6 +30,9 @@ public static class AppReducer
     {
         BranchCommand branch => ReduceBranch(state, branch),
         EffectFailedCommand failed => EffectFailed(state, failed),
+        IntegrationCommand integration => ReduceIntegration(state, integration),
+        ReflogCommand reflog => ReduceReflog(state, reflog),
+        SettingsCommand settings => ReduceSettings(state, settings),
         RemoteCommand remote => ReduceRemote(state, remote),
         ShellCommand shell => ReduceShell(state, shell),
         StashCommand stash => ReduceStash(state, stash),
@@ -51,7 +58,8 @@ public static class AppReducer
         return new AppUpdate(then.State, [.. update.Effects, .. then.Effects]);
     }
 
-    // A prompt belongs to the tab it was opened in and closes when that tab is closed or no longer the active one.
+    // A prompt belongs to the tab it was opened in and closes when that tab is closed or no longer the active one; the
+    // reflog list closes with its tab.
     private static AppUpdate ReduceWorkspace(AppState state, WorkspaceCommand command)
     {
         var update = WorkspaceReducer.Reduce(state.Workspace, command);
@@ -61,7 +69,61 @@ public static class AppReducer
             shell = ShellReducer.Reduce(shell, new PromptCancelledCommand()).State;
         }
 
-        return new AppUpdate(new AppState(update.Workspace, shell), [.. update.Effects]);
+        var changed = new AppState(update.Workspace, shell);
+        if (shell.Reflog.List is { } list && update.Workspace.FindTab(list.TabId) is null)
+        {
+            var closed = ReduceReflog(changed, new ReflogTabClosed());
+
+            return new AppUpdate(closed.State, [.. update.Effects, .. closed.Effects]);
+        }
+
+        return new AppUpdate(changed, [.. update.Effects]);
+    }
+
+    // A result for a tab that was closed meanwhile only ends the read.
+    private static AppUpdate ReduceReflog(AppState state, ReflogCommand command)
+    {
+        var workspace = state.Workspace;
+        var session = state.Shell.Reflog;
+        var listTab = session.List is { } list ? workspace.FindTab(list.TabId) : null;
+        if (command is ReflogLoaded loaded && workspace.FindTab(loaded.TabId) is null)
+        {
+            command = new ReflogReadCancelled();
+        }
+
+        var update = ReflogReducer.Reduce(session, command, new ReflogContext(workspace.ActiveTab, listTab));
+        var shell = state.Shell with { Reflog = update.Session };
+
+        return new AppUpdate(state with { Shell = shell }, update.Effects);
+    }
+
+    private static AppUpdate ReduceSettings(AppState state, SettingsCommand command)
+    {
+        var update = SettingsScreenReducer.Reduce(state.Shell.Settings, command);
+        var shell = state.Shell with { Settings = update.Session };
+
+        return new AppUpdate(state with { Shell = shell }, update.Effects);
+    }
+
+    // A result or answer for a tab that was closed meanwhile is dropped, like a late TabCommand.
+    private static AppUpdate ReduceIntegration(AppState state, IntegrationCommand command)
+    {
+        if (state.Workspace.FindTab(command.TabId) is not { } tab)
+        {
+            return new AppUpdate(state, []);
+        }
+
+        var busy = tab.Running.IsRunning(RunningOperationKind.Integration);
+        var conflicts = OperationBannerBuilder.ConflictCount(tab.WorkingTree);
+        var context = new IntegrationContext(tab.Id, tab.Location, tab.Head, tab.Operation, conflicts, busy);
+        var effects = IntegrationReducer.Reduce(command, context);
+        var running = tab.Running.Apply(tab.Id, command, effects);
+        if (Equals(running, tab.Running))
+        {
+            return new AppUpdate(state, effects);
+        }
+
+        return new AppUpdate(WithTab(state, tab with { Running = running }), effects);
     }
 
     // A result or answer for a tab that was closed meanwhile is dropped, like a late TabCommand.

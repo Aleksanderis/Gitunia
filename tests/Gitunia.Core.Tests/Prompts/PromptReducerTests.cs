@@ -307,6 +307,67 @@ public class PromptReducerTests
         }
     }
 
+    [Fact]
+    public void GivenAOneKeyPrompt_WhenAListedKeyIsPressed_ThenItClosesAndAnswersWithThatChoice()
+    {
+        var opened = Reduce(ShellState.Empty, KeyRequest()).State;
+
+        var update = Reduce(opened, new PromptKeyPressedCommand(new KeyEvent("h")));
+
+        Assert.Null(update.State.Prompt);
+        Assert.Equal(KeyMode.Normal, update.State.Mode);
+        var answered = Assert.IsType<StatusPostedCommand>(update.Next);
+        Assert.Equal("|hard", answered.Text);
+    }
+
+    [Fact]
+    public void GivenAOneKeyPrompt_WhenAnotherKeyOrAModifiedKeyIsPressed_ThenThePromptStaysOpenAndNothingIsTyped()
+    {
+        var opened = Reduce(ShellState.Empty, KeyRequest()).State;
+
+        var other = Reduce(opened, new PromptKeyPressedCommand(new KeyEvent("x")));
+        var modified = Reduce(opened, new PromptKeyPressedCommand(new KeyEvent("h", KeyModifiers.Ctrl)));
+
+        Assert.Same(opened.Prompt, other.State.Prompt);
+        Assert.Null(other.Next);
+        Assert.Same(opened.Prompt, modified.State.Prompt);
+        Assert.Null(modified.Next);
+    }
+
+    [Fact]
+    public void GivenAOneKeyPrompt_WhenEnterIsPressed_ThenItDoesNothingAndEscCancels()
+    {
+        var opened = Reduce(ShellState.Empty, KeyRequest()).State;
+
+        var accepted = Reduce(opened, new PromptAcceptedCommand());
+        var cancelled = Reduce(opened, new PromptCancelledCommand());
+
+        Assert.Same(opened.Prompt, accepted.State.Prompt);
+        Assert.Null(accepted.Next);
+        Assert.Null(cancelled.State.Prompt);
+        Assert.Null(cancelled.Next);
+    }
+
+    [Fact]
+    public void GivenAOneKeyPrompt_WhenDrawn_ThenEachOptionIsListedWithItsKeyAndOnlyCancelIsHinted()
+    {
+        var opened = Reduce(ShellState.Empty, KeyRequest()).State;
+
+        var popup = OpenPromptPopup.Of(opened.Prompt!);
+
+        Assert.Null(popup.Input);
+        Assert.Equal(["s  soft", "h  hard"], popup.Details);
+        Assert.Single(popup.Hints);
+    }
+
+    private static PromptRequest KeyRequest() =>
+        new(
+            "Reset",
+            "Move main",
+            string.Empty,
+            new EchoResult(),
+            KeyChoices: [new PromptKeyChoice("s", "soft", "soft"), new PromptKeyChoice("h", "hard", "hard")]);
+
     private static ShellUpdate Reduce(ShellState state, PromptRequest request) =>
         PromptReducer.Reduce(state, new PromptRequestedCommand(request));
 

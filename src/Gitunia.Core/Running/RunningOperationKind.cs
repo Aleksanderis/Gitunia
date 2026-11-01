@@ -9,6 +9,9 @@ public enum RunningOperationKind
     /// <summary>A branch operation: create, switch, rename, delete, upstream or fast-forward.</summary>
     Branches,
 
+    /// <summary>A reset, a merge, or continuing, aborting or skipping the operation in progress.</summary>
+    Integration,
+
     /// <summary>A remote management operation: add, remove, rename, set the URL, or reading the remotes for the prompt.</summary>
     Remotes,
 

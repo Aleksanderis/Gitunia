@@ -120,7 +120,7 @@ public sealed class ActionRouter(Dispatcher host, ListView graphList, ListView d
     public WorktreeSwitchActions? WorktreeSwitch { get; set; }
 
     /// <summary>Continue, abort and skip of the operation in progress (works in every view).</summary>
-    public OperationController? Operations { get; set; }
+    public OperationActions? Operations { get; set; }
 
     /// <summary>The pane resize keys.</summary>
     public PaneSizeController? PaneSizes { get; set; }
@@ -219,7 +219,6 @@ public sealed class ActionRouter(Dispatcher host, ListView graphList, ListView d
 
         if (Merge?.TryExecute(action, count) == true)
         {
-            Refuse(Merge.Notice);
             return;
         }
 
@@ -231,7 +230,6 @@ public sealed class ActionRouter(Dispatcher host, ListView graphList, ListView d
 
         if (Reset?.TryExecute(action, count) == true)
         {
-            Refuse(Reset.Notice);
             return;
         }
 
@@ -294,7 +292,6 @@ public sealed class ActionRouter(Dispatcher host, ListView graphList, ListView d
 
         if (Operations?.TryExecute(action, count) == true)
         {
-            Message = Operations.Notice;
             return;
         }
 
