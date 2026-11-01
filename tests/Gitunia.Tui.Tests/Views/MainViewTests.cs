@@ -1,3 +1,6 @@
+using Gitunia.App;
+using Gitunia.Core;
+using Gitunia.Tui.App.WorkingTree;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Panes;
 using Gitunia.Tui.Rendering.Screen;
@@ -107,5 +110,6 @@ public class MainViewTests
         () => new SidebarChrome(string.Empty, false, false),
         () => PaneArrangement.Normal,
         _ => new StyledLine([]),
-        new DiffListSource(GraphGlyphSet.Unicode));
+        new DiffListSource(GraphGlyphSet.Unicode),
+        new StateMessageBoxPort(new Dispatcher(AppState.Empty)));
 }

@@ -1,6 +1,5 @@
 using System.Collections;
 using System.Collections.Specialized;
-using Gitunia.Core.Editing;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Panes;
 using Gitunia.Tui.Rendering.Styling;
@@ -15,14 +14,10 @@ namespace Gitunia.Tui.Views.Lists;
 /// <see cref="MessageBoxRenderer"/>. The view shows the draft of the active tab; the whole window is drawn once per redraw (on the
 /// first row) and the other rows pick their line from it.
 /// </summary>
-/// <param name="draft">The active tab's draft, null when it has none.</param>
-/// <param name="isEditing">The box is in Insert mode.</param>
-/// <param name="isCommitting">A commit runs, so the box is read-only.</param>
+/// <param name="port">The draft, cursor and committing facts of the active tab.</param>
 /// <param name="glyphs">The character set.</param>
 public sealed class MessageBoxListSource(
-    Func<CommitDraft?> draft,
-    Func<bool> isEditing,
-    Func<bool> isCommitting,
+    IMessageBoxPort port,
     GraphGlyphSet glyphs) : IListDataSource
 {
     // More rows than any terminal shows; the view only draws the visible ones.
@@ -56,7 +51,7 @@ public sealed class MessageBoxListSource(
         if (item == 0)
         {
             var rect = new PaneRect(0, 0, width, listView.Viewport.Height);
-            _window = MessageBoxRenderer.EditorLines(draft(), rect, padding, listView.HasFocus && isEditing(), glyphs, isCommitting());
+            _window = MessageBoxRenderer.EditorLines(port.Draft, rect, padding, listView.HasFocus && port.ShowsCursor, glyphs, port.IsCommitting);
         }
 
         if (item >= 0 && item < _window.Count)
