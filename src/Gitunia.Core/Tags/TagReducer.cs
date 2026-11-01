@@ -83,11 +83,11 @@ public static class TagReducer
         }
 
         var prompt = BlankPrompt with { StartPoint = hash, Label = target.Name ?? ShortHash.Of(hash) };
-        return Open(state, prompt);
+        return Open(prompt);
     }
 
-    private static TagUpdate Open(TagState state, TagPrompt prompt) =>
-        Update(state with { Prompt = prompt }, new SetKeyModeEffect(KeyMode.Insert));
+    private static TagUpdate Open(TagPrompt prompt) =>
+        Update(new TagState(prompt), new SetKeyModeEffect(KeyMode.Insert));
 
     private static TagUpdate Close(TagState state)
     {
@@ -96,7 +96,7 @@ public static class TagReducer
             return Update(state);
         }
 
-        return Update(state with { Prompt = null }, new SetKeyModeEffect(KeyMode.Normal));
+        return Update(TagState.Empty, new SetKeyModeEffect(KeyMode.Normal));
     }
 
     private static TagUpdate CloseWith(TagState state, params AppEffect[] effects)
@@ -134,7 +134,7 @@ public static class TagReducer
         }
 
         var next = prompt with { Kind = TagPromptKind.CreateMessage, NewName = name, Text = string.Empty };
-        return Open(state, next);
+        return Open(next);
     }
 
     private static TagUpdate AcceptMessage(TagState state, TagPrompt prompt, TagContext context)
@@ -180,7 +180,7 @@ public static class TagReducer
         }
 
         var edited = prompt with { Text = text };
-        return Update(state with { Prompt = prompt.IsPicker ? Filtered(edited) : edited });
+        return Update(new TagState(prompt.IsPicker ? Filtered(edited) : edited));
     }
 
     private static TagPrompt Filtered(TagPrompt prompt)
@@ -199,7 +199,7 @@ public static class TagReducer
 
         var count = prompt.Candidates.Length;
         var index = count == 0 ? 0 : (((prompt.Index + step) % count) + count) % count;
-        return Update(state with { Prompt = prompt with { Index = index } });
+        return Update(new TagState(prompt with { Index = index }));
     }
 
     private static TagUpdate AskDelete(TagState state, TagTarget target, TagContext context)
@@ -279,20 +279,19 @@ public static class TagReducer
 
     private static TagUpdate RemotesLoaded(TagState state, TagRemotesLoaded loaded, TagContext context)
     {
-        var idle = state;
         if (loaded.Remotes.Length == 0)
         {
-            return Update(idle, Post("There is no remote: add one first"));
+            return Update(state, Post("There is no remote: add one first"));
         }
 
         if (!context.IsActive || state.Prompt is not null)
         {
-            return Update(idle);
+            return Update(state);
         }
 
         var kind = loaded.Push ? TagPromptKind.PushRemote : TagPromptKind.DeleteRemote;
         var prompt = Filtered(BlankPrompt with { Kind = kind, TagName = loaded.Name, Remotes = loaded.Remotes });
-        return Open(idle, prompt);
+        return Open(prompt);
     }
 
     private static TagUpdate Succeeded(TagState state, TagOperationSucceeded succeeded, TagContext context) =>

@@ -57,6 +57,10 @@ With the `git status` children (~1%) the whole app idles at about 2.5%, so the ~
 
 Only the active tab loads (lazy restore); a visited small tab adds ~0.5-1 MB. Background tabs get their dirty/ahead/behind markers from `BackgroundStatusPoller`: `git status` only, one tab at a time, once at start and then every 30 s, with no graph, refs or watchers loaded. An idle preload would only add memory and processes, so none is done.
 
+## Background work (#993)
+
+Polls of hidden tabs, the worktree overview, commit and diff prefetch and issue-link reads run through `BackgroundWork`: at most 8 at once (`DefaultLimit`, `Gitunia.App/Background/`), the rest wait. Each job runs its reads one after the other, so this also caps the processes background work can start at 8. User effects and the load of the shown tab bypass it. Unchanged by the queue on the 5000-commit repository (`scripts/measure.sh`, AOT, before/after in the #993 PR): the queue only waits when more than 8 jobs overlap, which a single user's navigation does not reach.
+
 ## Bounded memory
 
 `EffectRunner` keeps the 5 most recently used loaded tabs (`DefaultWarmTabLimit`, the active one included). A tab beyond that, not running an operation, drops its session and goes back to pending; cursor, scroll and selected commit live in the workspace state and are restored by the background reload (graph search and diff position are lost). With 12 tabs of 20,000 commits, RSS after visiting all fell from ~125 MB to ~98 MB; going back to an evicted tab costs a reload (~100 ms), a recent tab stays instant. Memory is about 5 tabs x size, not the sum.

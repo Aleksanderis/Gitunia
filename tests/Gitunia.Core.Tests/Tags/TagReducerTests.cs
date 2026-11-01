@@ -376,7 +376,7 @@ public class TagReducerTests
             TagState.Empty,
             new TagCreateRequested(Tab, Graph(Commit)),
             Context([], true)).State;
-        return opened with { Prompt = opened.Prompt! with { Kind = kind, Text = text, NewName = newName } };
+        return new TagState(opened.Prompt! with { Kind = kind, Text = text, NewName = newName });
     }
 
     private static ImmutableArray<GitRef> Tags(params (string Name, string ObjectHash, string CommitHash)[] tags) =>

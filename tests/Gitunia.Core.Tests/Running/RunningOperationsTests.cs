@@ -67,7 +67,7 @@ public class RunningOperationsTests
         var effects = ConcreteSubtypes.InstancesOf<TagEffect>();
 
         Assert.NotEmpty(effects);
-        Assert.All(effects, effect => Assert.Equal(RunningOperationKind.Tags, ((OperationEffect)effect).Kind));
+        Assert.All(effects, effect => Assert.Equal(RunningOperationKind.Tags, effect.Kind));
     }
 
     [Fact]
