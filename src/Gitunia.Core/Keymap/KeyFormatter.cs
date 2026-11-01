@@ -3,7 +3,7 @@ using Gitunia.Core.Keymap.Models;
 
 namespace Gitunia.Core.Keymap;
 
-/// <summary>Writes keys the way <c>docs/ux-keymap.md</c> does (<c>gg</c>, <c>Ctrl-w c</c>, <c>&lt;space&gt;oo</c>), for display.</summary>
+/// <summary>Writes keys the way <c>docs/internal/ux-keymap.md</c> does (<c>gg</c>, <c>Ctrl-w c</c>, <c>&lt;space&gt;oo</c>), for display.</summary>
 public static class KeyFormatter
 {
     private const char ThinSpace = '\u2009';

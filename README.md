@@ -46,7 +46,7 @@ In the picker type to filter or type a path. `Enter` opens it in a tab. `?` show
 ## Docs
 
 - [Customising keys](docs/customising-keys.md) and [key reference](docs/keymap.md)
-- Design documents are in `docs/`
+- Design documents are in `docs/` (maintainer notes in `docs/internal/`)
 - Project conventions are in [CLAUDE.md](CLAUDE.md)
 
 ## Contributing, security, license

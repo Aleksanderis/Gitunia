@@ -113,8 +113,8 @@ The file is read once at startup and never modified by the loader; the settings 
 }
 ```
 
-- A step-by-step guide with examples is [customising-keys.md](customising-keys.md); this section is the reference.
-- Entry fields: `mode` (`Normal`, `Visual`, `Insert`, `Command`, `Confirm`), `view` (`Global`, `Lists`, `Graph`, ... as in the [keymap reference](keymap.md); a view's keys also apply to the views that inherit from it), `key` (notation of the [keymap reference](keymap.md)), `action` (id from the palette/help, or `none`).
+- A step-by-step guide with examples is [customising-keys.md](../customising-keys.md); this section is the reference.
+- Entry fields: `mode` (`Normal`, `Visual`, `Insert`, `Command`, `Confirm`), `view` (`Global`, `Lists`, `Graph`, ... as in the [keymap reference](../keymap.md); a view's keys also apply to the views that inherit from it), `key` (notation of the [keymap reference](../keymap.md)), `action` (id from the palette/help, or `none`).
   One entry binds one mode and view; bind a key in Normal and Visual with two entries.
 - An entry on a key that already has a binding in that mode and view replaces it; `none` removes it (and uncovers a binding of the parent view, if any). Two entries for the same mode, view and key: the first applies, the second is reported.
 - Each entry is checked alone.

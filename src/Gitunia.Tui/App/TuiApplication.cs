@@ -84,7 +84,7 @@ public sealed class TuiApplication(
     ConsoleCapabilities detectedCapabilities,
     IPlatform platform) : IDisposable, ITerminalSuspender
 {
-    // Terminal.Gui's default of 25 iterations per second gave ~34 ms key latency (docs/history/decisions.md); the idle rate saves CPU (#909).
+    // Terminal.Gui's default of 25 iterations per second gave ~34 ms key latency (docs/internal/history/decisions.md); the idle rate saves CPU (#909).
     private const ushort ActiveIterationsPerSecond = 100;
     private const ushort IdleIterationsPerSecond = 50;
     private static readonly TimeSpan IdleAfter = TimeSpan.FromSeconds(2);

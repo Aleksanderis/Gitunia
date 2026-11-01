@@ -2,7 +2,7 @@
 
 Keyboard-first terminal Git client (graph, branches, worktrees, vim-style keys). See README.md for goal and features.
 
-Design docs are in `docs/` (architecture, git-layer, ux, testing, roadmap, decisions). Work is tracked as GitHub issues grouped by milestone M0-M4 (goals in `docs/roadmap.md`).
+Reader docs are in `docs/` (user guide, architecture, git-layer, testing). Maintainer and agent notes are in `docs/internal/` (ux, roadmap, decisions, performance, retrospectives, history). Work is tracked as GitHub issues grouped by milestone M0-M4 (goals in `docs/internal/roadmap.md`).
 
 ## Stack
 
@@ -22,7 +22,7 @@ Design docs are in `docs/` (architecture, git-layer, ux, testing, roadmap, decis
 - Respect the user's git config, hooks, credential helpers and worktree layout (`docs/git-layer.md` lists the only env vars we set).
 - Code style, naming, folders, static vs instance and AOT rules: `.claude/rules/csharp-style.md`, loaded when you touch `.cs` files. Git layer rules: `.claude/rules/git-layer.md`. UI, keys and colour rules: `.claude/rules/ui-changes.md`. Read them before writing code there.
 - Scripts (bash and PowerShell) live in `scripts/`; `tools/` holds small C# helper programs.
-- Don't copy code from other projects verbatim. Ideas and git command patterns are fine; note the source in `docs/decisions.md` only if it shaped a non-obvious decision.
+- Don't copy code from other projects verbatim. Ideas and git command patterns are fine; note the source in `docs/internal/decisions.md` only if it shaped a non-obvious decision.
 
 ## Git conventions
 
@@ -42,12 +42,12 @@ Read the doc before working in its area; don't rely on memory of it.
 | Working on | Read |
 |---|---|
 | Solution layout, layering, rendering, cross-platform | `docs/architecture.md` |
-| Performance targets and measured numbers | `docs/performance.md` (and the `performance` skill) |
+| Performance targets and measured numbers | `docs/internal/performance.md` (and the `performance` skill) |
 | Running git, parsers, graph model, worktrees, refresh/watching | `docs/git-layer.md` |
-| Screens, modes, tabs/repo picker, key bindings, workflows, mouse | `docs/ux.md` (index; links the parts: workflows, keymap, mouse, settings, look) |
+| Screens, modes, tabs/repo picker, key bindings, workflows, mouse | `docs/internal/ux.md` (index; links the parts: workflows, keymap, mouse, settings, look) |
 | Any test, fixtures, snapshot tests | `docs/testing.md` and the `testing` skill |
-| Milestone goals and open questions | `docs/roadmap.md` |
-| Anything you are about to ask the owner | `docs/decisions.md` first |
+| Milestone goals and open questions | `docs/internal/roadmap.md` |
+| Anything you are about to ask the owner | `docs/internal/decisions.md` first |
 | Why a feature is in or out | `README.md` |
 
 ## Build, test and lint

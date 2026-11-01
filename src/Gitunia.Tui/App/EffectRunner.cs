@@ -26,7 +26,7 @@ public sealed class EffectRunner : IDisposable
 {
     /// <summary>
     /// How many tabs, the active one included, keep their loaded graph; older tabs are evicted
-    /// (docs/performance.md, "Bounded memory").
+    /// (docs/internal/performance.md, "Bounded memory").
     /// </summary>
     public const int DefaultWarmTabLimit = 5;
 
@@ -243,7 +243,7 @@ public sealed class EffectRunner : IDisposable
             _ = Task.Run(() => _services.RepositoryLoader.RunAsync(location, session, _host, _statuses, _postToUi, token), CancellationToken.None);
         }
 
-        // Only the active tab loads now; background tabs keep an empty session until first activated (docs/performance.md, "Many tabs").
+        // Only the active tab loads now; background tabs keep an empty session until first activated (docs/internal/performance.md, "Many tabs").
         if (_host.Workspace.ActiveTabId == load.TabId)
         {
             Start();

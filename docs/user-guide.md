@@ -59,7 +59,7 @@ Full table: [keymap.md](keymap.md). To rebind: [customising-keys.md](customising
 - **Config:** `config.json` in `~/.config/gitunia`. Set `$XDG_CONFIG_HOME` to override.
 - **Session state:** `~/.local/state/gitunia`.
 
-Settings (`<space>,`) edits the same file. The format is in [ux-look.md](ux-look.md).
+Settings (`<space>,`) edits the same file. The format is in [ux-look.md](internal/ux-look.md).
 
 ## Git config is respected
 

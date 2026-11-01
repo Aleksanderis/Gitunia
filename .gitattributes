@@ -1,2 +1,2 @@
 * text=auto eol=lf
-docs/decisions.md merge=union
+docs/internal/decisions.md merge=union

@@ -15,7 +15,7 @@ public class KeymapDocumentationTests
     {
         var expected = KeymapReference.Render(ReadRows());
 
-        var committed = File.ReadAllText(RepoDocs.FindUxDocument("keymap.md")).ReplaceLineEndings("\n");
+        var committed = File.ReadAllText(RepoDocs.Find("docs", "keymap.md")).ReplaceLineEndings("\n");
 
         Assert.True(
             committed == expected,

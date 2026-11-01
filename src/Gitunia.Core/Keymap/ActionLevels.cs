@@ -4,7 +4,7 @@ using Gitunia.Core.Keymap.Models;
 namespace Gitunia.Core.Keymap;
 
 /// <summary>
-/// The command level of every action (#839): the approved list of <c>docs/ux-keymap.md</c> ("Levels"), one entry per
+/// The command level of every action (#839): the approved list of <c>docs/internal/ux-keymap.md</c> ("Levels"), one entry per
 /// action id so a test can fail when a bound action has none. Read through <see cref="ActionCatalog.LevelOf"/>.
 /// </summary>
 internal static class ActionLevels

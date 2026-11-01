@@ -70,7 +70,7 @@ Per control:
   The list shows the keymap read at startup: after editing `keys`, restart.
   Editing a binding in the UI is out of scope (see open choices).
 
-Keys are Normal-mode view keys of the `Settings` view (rows in the [keymap reference](keymap.md)); no new global leader beyond `<space>,`, which also closes the screen.
+Keys are Normal-mode view keys of the `Settings` view (rows in the [keymap reference](../keymap.md)); no new global leader beyond `<space>,`, which also closes the screen.
 A path list is always expanded: its folders are rows under the setting row, `a` or `Enter` on the setting row adds one, and a list with no entry in the file shows "default folders" (the first add writes a list that replaces them).
 The settings never open over another overlay.
 While the screen is open the file is the source of truth: it is read when the screen opens, a write that finds the file changed re-reads it, and the editor row re-reads it when the editor closes (key bindings still need a restart).

@@ -4,7 +4,7 @@ namespace Gitunia.Tui.Input;
 /// Chooses how many main-loop iterations per second Terminal.Gui runs. Every iteration costs a few wakeups of three
 /// threads even when nothing changed, so the full rate is kept only while the user is working and for
 /// <paramref name="idleAfter"/> after the last key, mouse event or paste; an untouched screen drops to
-/// <paramref name="idleRate"/> (idle CPU is about proportional to the rate, see docs/performance.md). The first
+/// <paramref name="idleRate"/> (idle CPU is about proportional to the rate, see docs/internal/performance.md). The first
 /// input after an idle spell waits for one slower iteration, then the rate is back at <paramref name="activeRate"/>.
 /// </summary>
 /// <param name="activeRate">Iterations per second while the user is working (key latency).</param>

@@ -7,7 +7,7 @@ namespace Gitunia.Core.Settings;
 
 /// <summary>
 /// Every setting the screen offers, as data. The screen, the writer and the docs table are generated from or checked
-/// against this list; a later option adds one row here (and its row in the table of <c>docs/ux-settings.md</c>).
+/// against this list; a later option adds one row here (and its row in the table of <c>docs/internal/ux-settings.md</c>).
 /// </summary>
 public static class SettingsRegistry
 {

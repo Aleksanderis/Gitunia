@@ -222,3 +222,4 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 **Process:** macOS CI leg and release binary (#455): `macos-arm64` runs on `v*` tags and on `platform=macos` dispatch only, never in `all`; it always builds and tests (OS-sensitive tests), the `check` lookup stays Linux and Windows. The release does not wait for a green macOS leg: a macOS failure cannot block the Linux and Windows assets. The binary is unsigned (browser downloads need `xattr -d com.apple.quarantine`). Why: macOS minutes cost 10x; arm64 only because `macos-latest` is Apple silicon and AOT cannot cross-compile (osx-x64 not shipped).
 
+**Docs:** Docs are split by audience (#902, owner): `docs/` for readers, `docs/internal/` for maintainer and agent notes.

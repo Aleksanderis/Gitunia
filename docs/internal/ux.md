@@ -10,7 +10,7 @@ How decisions came about and which issue built what: `docs/history/ux.md` and th
 ## Parts
 
 - [ux-workflows.md](ux-workflows.md): the workflows (open a repository, graph, sidebar, diffs, Changes view, branches, operations, remotes, worktrees, stashes).
-- [ux-keymap.md](ux-keymap.md): the keymap (design rules; the generated reference is [keymap.md](keymap.md)).
+- [ux-keymap.md](ux-keymap.md): the keymap (design rules; the generated reference is [keymap.md](../keymap.md)).
 - [ux-mouse.md](ux-mouse.md): the mouse table and gestures.
 - [ux-settings.md](ux-settings.md): the Settings screen.
 - [ux-look.md](ux-look.md): look and colours, the config file.

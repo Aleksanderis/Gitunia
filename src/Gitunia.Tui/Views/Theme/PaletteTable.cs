@@ -209,7 +209,7 @@ public sealed class PaletteTable
         return Ansi16Dark(settings.PaintsBase, settings.Definition?.Ansi, settings.IsClassicConsole);
     }
 
-    // Catppuccin Mocha (dark) and Latte (light), https://catppuccin.com/palette (MIT licensed colour values, see docs/decisions.md).
+    // Catppuccin Mocha (dark) and Latte (light), https://catppuccin.com/palette (MIT licensed colour values, see docs/internal/decisions.md).
     private static PaletteTable TrueColorDark(bool paintsBase) => new()
     {
         Accent = Rgb(0x89b4fa),

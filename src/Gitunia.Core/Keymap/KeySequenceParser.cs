@@ -3,7 +3,7 @@ using Gitunia.Core.Keymap.Models;
 namespace Gitunia.Core.Keymap;
 
 /// <summary>
-/// Reads key sequences written the way <c>docs/ux-keymap.md</c> writes them. Whitespace separates words. A word is
+/// Reads key sequences written the way <c>docs/internal/ux-keymap.md</c> writes them. Whitespace separates words. A word is
 /// a named key (<c>Enter</c>), a modified key (<c>Ctrl-w</c>, <c>Alt-1</c>, <c>Shift-Tab</c>), or a run of
 /// keys where plain characters stand for themselves and <c>&lt;...&gt;</c> holds a special key
 /// (<c>&lt;space&gt;o</c>, <c>gg</c>, <c>]c</c>). A lone <c>&lt;</c> word, or <c>&lt;lt&gt;</c>, is a

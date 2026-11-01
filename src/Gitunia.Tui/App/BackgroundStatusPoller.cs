@@ -9,7 +9,7 @@ namespace Gitunia.Tui.App;
 /// <summary>
 /// Keeps the tab bar markers (dirty, ahead, behind) right for tabs that are not shown: runs <c>git status</c> only (no graph, no refs, no
 /// watchers) for one background tab at a time, once at start and then on a slow timer. Nothing else is loaded for those tabs
-/// (docs/performance.md, "Many tabs"). The active tab is skipped; its own refresher keeps it current.
+/// (docs/internal/performance.md, "Many tabs"). The active tab is skipped; its own refresher keeps it current.
 /// </summary>
 public sealed class BackgroundStatusPoller : IDisposable
 {

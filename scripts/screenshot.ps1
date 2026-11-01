@@ -2,7 +2,7 @@
 # Screenshots of the real UI for pull requests (Windows; PowerShell 7, psmux, resvg, dotnet, git; `gh` for publish/clean).
 # PowerShell twin of scripts/screenshot.sh: same commands, options and scenario names. The real binary runs in a private
 # psmux server on a throwaway repo, `capture-pane -p -e` gives the ANSI frame, tools/AnsiToSvg turns it into an SVG and
-# resvg into a PNG (rsvg-convert has no native Windows build; see docs/decisions.md). Headless, no network.
+# resvg into a PNG (rsvg-convert has no native Windows build; see docs/internal/decisions.md). Headless, no network.
 # See the screenshots skill (.claude/skills/screenshots/SKILL.md). psmux: `winget install marlocarlo.psmux`;
 # resvg: `winget install linebender.resvg`.
 #

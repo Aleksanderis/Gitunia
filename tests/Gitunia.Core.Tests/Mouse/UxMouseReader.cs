@@ -4,7 +4,7 @@ using Gitunia.Core.Tests.Keymap;
 
 namespace Gitunia.Core.Tests.Mouse;
 
-/// <summary>Reads the mouse table in <c>docs/ux-mouse.md</c> (columns <c>View | Gesture | Action | Effect</c>) into bindings.</summary>
+/// <summary>Reads the mouse table in <c>docs/internal/ux-mouse.md</c> (columns <c>View | Gesture | Action | Effect</c>) into bindings.</summary>
 public static class UxMouseReader
 {
     public static IReadOnlyList<UxMouseRow> ReadRows()
@@ -47,6 +47,6 @@ public static class UxMouseReader
         "Drag start" => MouseGesture.DragStart,
         "Drag up" => MouseGesture.DragUp,
         "Drag down" => MouseGesture.DragDown,
-        _ => throw new InvalidDataException($"Unknown mouse gesture in docs/ux-mouse.md: {text}"),
+        _ => throw new InvalidDataException($"Unknown mouse gesture in docs/internal/ux-mouse.md: {text}"),
     };
 }

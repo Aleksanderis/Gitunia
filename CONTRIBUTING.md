@@ -26,7 +26,16 @@ dotnet build
 dotnet test
 ```
 
-The .NET SDK version is pinned in `global.json`. Source is in `src/` (`Gitunia.Core`, `Gitunia.Git`, `Gitunia.Platform`, `Gitunia.Tui`) and tests are in `tests/`. Layers are described in `docs/architecture.md`. A Native AOT publish needs a C compiler. See [the user guide](docs/user-guide.md#install).
+The .NET SDK version is pinned in `global.json`. Source is in `src/` (`Gitunia.Core`, `Gitunia.Git`, `Gitunia.Platform`, `Gitunia.Tui`) and tests are in `tests/`. A Native AOT publish needs a C compiler. See [the user guide](docs/user-guide.md#install).
+
+## Code overview
+
+- `src/Gitunia.Core`: the app logic, with pure state, commands, keymap and config. Runs without a terminal.
+- `src/Gitunia.Git`: runs the `git` CLI and parses its output into typed results.
+- `src/Gitunia.Platform`: the only place for OS-specific code.
+- `src/Gitunia.Tui`: Terminal.Gui rendering and the app wiring.
+- Layering: dependencies run Tui -> Core -> Git -> Platform, and only Tui touches the console.
+- Details: [architecture](docs/architecture.md), [testing](docs/testing.md), [Git layer](docs/git-layer.md). The `docs/internal/` folder holds maintainer and agent design notes that are not required reading.
 
 ## Agent-assisted development
 

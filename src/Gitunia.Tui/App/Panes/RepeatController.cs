@@ -7,7 +7,7 @@ using Gitunia.Core.Workspaces.Tabs;
 namespace Gitunia.Tui.App.Panes;
 
 /// <summary>
-/// Holds the sticky repeat mode (docs/ux.md, "Modes"): started after a step action, it gives the step keys of the
+/// Holds the sticky repeat mode (docs/internal/ux.md, "Modes"): started after a step action, it gives the step keys of the
 /// keymap views <c>ContextRepeat</c> and <c>ResizeRepeat</c> priority over the pane's own keys until another key,
 /// a focus change or an overlay ends it.
 /// </summary>

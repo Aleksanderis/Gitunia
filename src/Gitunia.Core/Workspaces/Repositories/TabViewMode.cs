@@ -1,6 +1,6 @@
 namespace Gitunia.Core.Workspaces.Repositories;
 
-/// <summary>Which view of the repository a tab shows (docs/ux-workflows.md, workflow 2).</summary>
+/// <summary>Which view of the repository a tab shows (docs/internal/ux-workflows.md, workflow 2).</summary>
 public enum TabViewMode
 {
     /// <summary>The graph with the sidebar and the commit detail pane.</summary>

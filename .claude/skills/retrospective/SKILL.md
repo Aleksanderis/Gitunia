@@ -13,7 +13,7 @@ Improve the instructions from evidence. Never runs unattended; nothing changes u
 
 ## 1. Collect
 
-- Range: after the last entry in `docs/retrospectives.md`; the first run takes the last 40 merged PRs.
+- Range: after the last entry in `docs/internal/retrospectives.md`; the first run takes the last 40 merged PRs.
 - `.claude/skills/retrospective/scripts/collect.sh <scratchpad>/retro.md [since-pr] [limit]` writes every PR's comments tagged OWNER, REVIEWER or IMPLEMENTER (plus a [MISPOSTED] mark when the signature names another PR) and prints counts. Read the file in parts, never raw `gh` output. Over ~30 PRs, read in a forked subagent and bring back grouped findings only.
 - Weight: an OWNER comment outweighs a reviewer finding; a finding the implementer fixed is a real miss; a finding the implementer skipped ("Not done", "accepted as a nit") in 3+ PRs is reviewer noise, so propose dropping or demoting that check in `reviewer.md` instead of a new rule.
 
@@ -29,7 +29,7 @@ Improve the instructions from evidence. Never runs unattended; nothing changes u
 ## 3. Audit what exists
 
 Read `CLAUDE.md`, `.claude/rules/*`, `.claude/agents/*`, every `SKILL.md` and the memory feedback files (`MEMORY.md` in the project memory directory). Report with file:line:
-- **Duplicates** (keep the narrowest, point to it from the other; a memory restating a repo rule is one, ask before deleting it) and **contradictions** between files or with `docs/decisions.md`.
+- **Duplicates** (keep the narrowest, point to it from the other; a memory restating a repo rule is one, ask before deleting it) and **contradictions** between files or with `docs/internal/decisions.md`.
 - **Stale references:** files, scripts, commands, labels, issue numbers, doc sections that no longer exist (verify with ls, grep, gh).
 - **Now enforceable:** prose a script, `.editorconfig` or test could replace.
 - **Size:** line counts against the last run. Silence is not "unused": a rule agents follow yields no findings, so trim only duplicates, stale text and enforced prose, and any growth names what it drops.
@@ -43,5 +43,5 @@ One terminal report, no edits: a table of proposals (id, evidence PRs, action en
 - Only approved ids, as worded; anything new becomes a new proposal.
 - Owner-requested instruction changes: local `chore:` commit on `main` with an `Agent: orchestrator` trailer, not pushed (say so). Changes answering PR review comments go through a PR branch.
 - After a script or `.editorconfig` change run `dotnet build`; run a new check once over recent history to confirm it flags nothing clean.
-- Append to `docs/retrospectives.md` (create with a one-line header): date, PR range, counts per recurring group, proposals applied or declined with the owner's reason, instruction file line counts.
+- Append to `docs/internal/retrospectives.md` (create with a one-line header): date, PR range, counts per recurring group, proposals applied or declined with the owner's reason, instruction file line counts.
 - Never weaken a rule or gate to make agents faster; if that seems right, tell the owner.
