@@ -107,7 +107,7 @@ public class QuickJumpInputTests
     public void GivenAnOpenJump_WhenTheTabChangesAndEnterIsPressed_ThenThePromptClosesWithoutSelecting()
     {
         using var harness = new PromptHarness(Graph()) { SelectedRow = 1 };
-                harness.Press(new Key(' '));
+        harness.Press(new Key(' '));
         harness.Press(new Key('j'));
         harness.Type("fix");
         harness.SwitchTab();

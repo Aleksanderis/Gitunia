@@ -217,6 +217,7 @@ public class EffectPipelineTests
     {
         using var repository = TestRepositories.WithStash();
         using var pipeline = await Pipeline.OpenAsync(TestGit.Services, repository);
+        await pipeline.Pump.RunUntilAsync(() => pipeline.Tab.Stashes.Length > 0);
         pipeline.Dispatch(new TabCommand(pipeline.TabId, new FocusPaneCommand(PaneKind.Sidebar)));
         pipeline.Dispatch(new TabCommand(pipeline.TabId, new SetSidebarFilterCommand("stash@")));
         pipeline.Dispatch(new TabCommand(pipeline.TabId, new SetSidebarCursorCommand(1)));

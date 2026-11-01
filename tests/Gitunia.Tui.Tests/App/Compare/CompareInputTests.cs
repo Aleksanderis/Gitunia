@@ -275,11 +275,11 @@ public sealed class CompareInputTests : IDisposable, ICompareSource, ITabSession
         _session.Dispose();
     }
 
-    public TerminalTabSession? ActiveSession() => _session;
+    public TerminalTabSession ActiveSession() => _session;
 
     public ObjectId? SelectedCommitId() => _selected;
 
-    public TabSession? Find(TabId tabId) => _session;
+    public TabSession Find(TabId tabId) => _session;
 
     private void Run(AppEffect effect)
     {

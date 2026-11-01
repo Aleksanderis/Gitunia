@@ -87,7 +87,7 @@ public sealed class CompareEffectHandlerTests : IDisposable, ITabSessions
         handler.Handle(new StartComparisonEffect(Tab, _reader.Commits[2], _reader.Commits[0], _reader.Commits[2]));
     }
 
-    public TabSession? Find(TabId tabId) => _session;
+    public TabSession Find(TabId tabId) => _session;
 
     public void Dispose() => _session.Dispose();
 

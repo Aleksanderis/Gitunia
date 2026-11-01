@@ -84,7 +84,7 @@ public sealed class SidebarEffectHandlerTests : IDisposable, ITabSessions
         Assert.Equal(new SidebarCommitMissing(Tab, "main", true), answer);
     }
 
-    public TabSession? Find(TabId tabId) => _session;
+    public TabSession Find(TabId tabId) => _session;
 
     public void Dispose() => _session.Dispose();
 
