@@ -5,8 +5,8 @@
 # Usage: scripts/measure.sh <binary> <repo> [options]
 #   --runs N          cold-start repetitions (default 5)
 #   --keys N          key-latency samples (default 20)
-#   --marker TEXT     text of the newest commit subject (default: first 20 chars of the HEAD subject)
-#   --oldest TEXT     text of the oldest commit subject (default: first 20 chars of the root subject)
+#   --marker TEXT     text of the newest commit subject (default: HEAD subject up to the first colon, else 12 chars)
+#   --oldest TEXT     text of the oldest commit subject (default: root subject up to the first colon, else 12 chars)
 #   --size WxH        terminal size (default 120x40)
 #   --only-start      stop after cold start + size (for binaries without navigation)
 #   --timeout SEC     per-wait timeout (default 10)
@@ -41,15 +41,20 @@ done
 
 export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_SYSTEM=/dev/null
 # The app truncates long subjects with an ellipsis (the newest row also carries ref decorations),
-# so a full subject may never appear on screen. Defaults are 20-char prefixes; explicit
-# --marker/--oldest are used as given.
+# so a full subject may never appear on screen, and the decorations cut the newest row shorter
+# than the others (#1001). Defaults are short prefixes: up to the first colon, else 12 chars (a colon prefix under 8 chars, like "fix", is not specific enough);
+# explicit --marker/--oldest are used as given.
+prefix() {
+  local s="$1" head="${1%%:*}"
+  if [ "$head" != "$s" ] && [ -n "$head" ] && [ "${#head}" -ge 8 ] && [ "${#head}" -le 20 ]; then printf '%s' "$head"; else printf '%s' "${s:0:12}"; fi
+}
 if [ -z "$marker" ]; then
   marker="$(git -C "$repo" log -1 --format=%s HEAD)"
-  marker="${marker:0:20}"
+  marker="$(prefix "$marker")"
 fi
 if [ -z "$oldest" ]; then
   oldest="$(git -C "$repo" log --max-parents=0 -1 --format=%s HEAD)"
-  oldest="${oldest:0:20}"
+  oldest="$(prefix "$oldest")"
 fi
 
 # Private state/config dirs: a restored session (extra tabs, saved scroll position) would change
