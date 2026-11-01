@@ -77,6 +77,11 @@ public static class SyncReducer
             return Keep(context, [Post(BusyNotice)]);
         }
 
+        if (context.IsOtherBusy)
+        {
+            return Keep(context, [Post(OtherBusyNotice)]);
+        }
+
         var current = CurrentBranch(context.Refs);
         switch (request.Kind)
         {
@@ -84,8 +89,6 @@ public static class SyncReducer
                 return Transfer(new FetchEffect(context.TabId, context.Location, false), "Fetching", "Fetch");
             case SyncKind.FetchAll:
                 return Transfer(new FetchEffect(context.TabId, context.Location, true), "Fetching", "Fetch");
-            case SyncKind.Pull when context.IsOtherBusy:
-                return Keep(context, [Post(OtherBusyNotice)]);
             case SyncKind.Pull:
                 return Transfer(new PullEffect(context.TabId, context.Location), "Pulling", "Pull");
             case SyncKind.PushForce:
