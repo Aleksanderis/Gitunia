@@ -84,7 +84,9 @@ public static class PickerSessionReducer
         Workspace workspace,
         List<AppEffect> effects)
     {
-        if (open.KeepIfOpen && session.IsOpen || open.OnlyWithoutTabs && !workspace.Tabs.IsEmpty)
+        var keepsOpen = open.KeepIfOpen && session.IsOpen;
+        var needsNoTabs = open.OnlyWithoutTabs && !workspace.Tabs.IsEmpty;
+        if (keepsOpen || needsNoTabs)
         {
             return session;
         }
@@ -101,7 +103,8 @@ public static class PickerSessionReducer
             effects.Add(new CancelPickerListingEffect());
         }
 
-        if (opened.IsScanning || opened.LastScan is { } last && open.Now - last < RescanInterval)
+        var scannedRecently = opened.LastScan is { } last && open.Now - last < RescanInterval;
+        if (opened.IsScanning || scannedRecently)
         {
             return opened;
         }

@@ -1,5 +1,6 @@
 using Gitunia.App.Picker;
 using Gitunia.App.Tests.Fakes;
+using Gitunia.App.Tests.Tags;
 using Gitunia.Core.Picker;
 using Gitunia.Core.Workspaces;
 using Gitunia.Git.Repositories.Models;
@@ -321,21 +322,39 @@ public class PickerEffectHandlerTests
     }
 
     [Fact]
-    public async Task GivenListing_WhenThePickerCloses_ThenTheListingIsCancelledAndPostsNothing()
+    public async Task GivenListing_WhenItIsCancelled_ThenItPostsNothingAndTheNextListingIsTheFirstResult()
     {
         using var release = new ManualResetEventSlim();
-        using var pipeline = PipelineWith(directory => Blocked(release, directory, "alpha"));
-        pipeline.Open();
-        pipeline.Type("~/");
+        using var finished = new ManualResetEventSlim();
+        using var started = new ManualResetEventSlim();
+        var files = new ScriptedDirectories(directory =>
+        {
+            if (!directory.EndsWith("slow", StringComparison.Ordinal))
+            {
+                return [Path.Combine(directory, "fresh")];
+            }
 
-        pipeline.Dispatch(new PickerCloseRequested());
+            started.Set();
+            Assert.True(release.Wait(TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken));
+            finished.Set();
+
+            return [Path.Combine(directory, "stale")];
+        });
+        var dispatcher = new RecordingDispatcher();
+        var discovery = TestGit.Services.Discovery;
+        var handler = new PickerEffectHandler(discovery, files, dispatcher, PickerTimings.Default);
+        var home = PickerFiles.Home;
+        using var shutdown = new CancellationTokenSource();
+
+        handler.Handle(new ListPickerDirectoriesEffect($"{home}/slow/", home, home), shutdown.Token);
+        Assert.True(started.Wait(TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken));
+        handler.Handle(new CancelPickerListingEffect(), shutdown.Token);
         release.Set();
-        pipeline.Open();
+        Assert.True(finished.Wait(TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken));
+        handler.Handle(new ListPickerDirectoriesEffect($"{home}/fast/", home, home), shutdown.Token);
 
-        // A new open starts its own state; the cancelled listing must not fill it.
-        await Task.Delay(50, TestContext.Current.CancellationToken);
-        Assert.Empty(pipeline.State.Rows);
-        Assert.False(pipeline.State.IsListing);
+        var first = Assert.IsType<ListingCompletedCommand>(await dispatcher.NextAsync(TestContext.Current.CancellationToken));
+        Assert.Equal($"{home}/fast/", first.Query);
     }
 
     private static PickerPipeline PipelineWith(Func<string, IReadOnlyList<string>> list) =>

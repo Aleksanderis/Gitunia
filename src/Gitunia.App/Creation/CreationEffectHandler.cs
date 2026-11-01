@@ -77,6 +77,19 @@ public sealed class CreationEffectHandler(IRepositoryCreator creator, IDirectory
     // scan root that exists, else home.
     private void ResolveParent(ResolveCloneParentEffect effect)
     {
+        try
+        {
+            dispatcher.Post(new CloneParentResolved(effect.Source, FindParent(effect)));
+        }
+        catch (Exception exception) when (exception is not OutOfMemoryException)
+        {
+            // The default folder is only a suggestion: home does when the lookup fails.
+            dispatcher.Post(new CloneParentResolved(effect.Source, effect.HomeDirectory));
+        }
+    }
+
+    private string FindParent(ResolveCloneParentEffect effect)
+    {
         string parent;
         if (effect.TypedPath is { } typed)
         {
@@ -90,7 +103,7 @@ public sealed class CreationEffectHandler(IRepositoryCreator creator, IDirectory
             parent = roots.FirstOrDefault(files.DirectoryExists) ?? effect.HomeDirectory;
         }
 
-        dispatcher.Post(new CloneParentResolved(effect.Source, parent));
+        return parent;
     }
 
     private void StartClone(CloneRepositoryEffect effect, CancellationToken shutdown)

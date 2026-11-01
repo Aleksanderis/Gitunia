@@ -5,6 +5,7 @@ using Xunit;
 
 namespace Gitunia.Core.Tests.Shell;
 
+[Trait("Os", "Independent")]
 public class QuitReducerTests
 {
     [Theory]
