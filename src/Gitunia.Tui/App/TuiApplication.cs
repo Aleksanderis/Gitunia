@@ -936,7 +936,7 @@ public sealed class TuiApplication(
 
     ImmutableArray<IssueReference> IIssueLinkView.LinksOfSelectedRow()
     {
-        var rows = ActiveSession()?.DetailSource?.Content.Rows;
+        var rows = ActiveSession()?.DetailSource.Content.Rows;
         if (_view.Detail.SelectedItem is { } row && rows is not null && row >= 0 && row < rows.Count)
         {
             return [.. rows[row].References ?? []];
