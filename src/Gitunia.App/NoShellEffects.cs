@@ -4,6 +4,7 @@ using Gitunia.Core.Conflicts;
 using Gitunia.Core.FileTree;
 using Gitunia.Core.ExternalTools;
 using Gitunia.Core.Reflog;
+using Gitunia.Core.Staging;
 using Gitunia.Core.Workspaces.Tabs;
 
 namespace Gitunia.App;
@@ -46,6 +47,10 @@ public sealed class NoShellEffects : IShellEffects
     }
 
     public bool MoveCommitDraft(TabId missing, TabId target) => true;
+
+    public void MoveDiffCursor(MoveDiffCursorEffect effect)
+    {
+    }
 
     public void MoveDetailCursor(int row)
     {

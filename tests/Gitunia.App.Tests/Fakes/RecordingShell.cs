@@ -5,6 +5,7 @@ using Gitunia.Core.FileTree;
 using Gitunia.Core.ExternalTools;
 using Gitunia.Core.Picker;
 using Gitunia.Core.Reflog;
+using Gitunia.Core.Staging;
 using Gitunia.Core.Workspaces.Tabs;
 
 namespace Gitunia.App.Tests.Fakes;
@@ -29,6 +30,8 @@ public sealed class RecordingShell : IShellEffects
     public List<MoveCommitDraftEffect> DraftMoves { get; } = [];
 
     public bool DraftMoveResult { get; set; } = true;
+
+    public List<MoveDiffCursorEffect> DiffCursorMoves { get; } = [];
 
     public int Flushed { get; private set; }
 
@@ -56,6 +59,8 @@ public sealed class RecordingShell : IShellEffects
     public void ApplyTheme(ThemeChoice theme) => AppliedThemes.Add(theme);
 
     public void OpenConfigEditor() => EditorOpened++;
+
+    public void MoveDiffCursor(MoveDiffCursorEffect effect) => DiffCursorMoves.Add(effect);
 
     public void LaunchExternalTool(LaunchExternalToolEffect effect) => Tools.Add(effect);
 

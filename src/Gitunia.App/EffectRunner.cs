@@ -1,3 +1,4 @@
+using Gitunia.Git.Staging;
 using Gitunia.App.Background;
 using Gitunia.App.Branches;
 using Gitunia.App.Conflicts;
@@ -10,6 +11,7 @@ using Gitunia.App.Picker;
 using Gitunia.App.Reflog;
 using Gitunia.App.Settings;
 using Gitunia.App.Remotes;
+using Gitunia.App.Staging;
 using Gitunia.App.Stash;
 using Gitunia.App.Status;
 using Gitunia.App.Sync;
@@ -34,6 +36,7 @@ using Gitunia.Core.Rebase;
 using Gitunia.Core.Reflog;
 using Gitunia.Core.Settings;
 using Gitunia.Core.Remotes;
+using Gitunia.Core.Staging;
 using Gitunia.Core.Stash;
 using Gitunia.Core.Sync;
 using Gitunia.Core.Tags;
@@ -54,7 +57,7 @@ namespace Gitunia.App;
 /// dispatcher. The switch ends in a throw, and a test checks that every concrete effect type has a case.
 /// </summary>
 /// <typeparam name="TSession">The session type the factory builds; the terminal layer adds its views to it.</typeparam>
-public sealed partial class EffectRunner<TSession> : IDisposable
+public sealed partial class EffectRunner<TSession> : IDisposable, IStatusRefresher
     where TSession : TabSession
 {
     /// <summary>
@@ -81,6 +84,7 @@ public sealed partial class EffectRunner<TSession> : IDisposable
     private readonly SettingsEffectHandler? _settings;
     private readonly CancellationTokenSource _shutdown = new();
     private readonly RemoteEffectHandler _remotes;
+    private readonly StagingEffectHandler _staging;
     private readonly StashEffectHandler _stash;
     private readonly SyncEffectHandler _sync;
     private readonly TagEffectHandler _tags;
@@ -133,6 +137,11 @@ public sealed partial class EffectRunner<TSession> : IDisposable
         _integration = IntegrationEffectHandler.Create(services, host);
         _issueLinks = new IssueLinkEffectHandler(urlOpener ?? new UrlOpener(), host);
         _remotes = new RemoteEffectHandler(services.RemoteManager, host);
+        _staging = new StagingEffectHandler(
+            services.IndexWriter,
+            new PatchStager(services.Diff, services.IndexWriter),
+            this,
+            host);
         _stash = new StashEffectHandler(services.StashWriter, host);
         _sync = new SyncEffectHandler(services.Remote, services.RemoteManager, services.Ancestry, host);
         _tags = new TagEffectHandler(services.Tags, host);
@@ -218,6 +227,18 @@ public sealed partial class EffectRunner<TSession> : IDisposable
         return true;
     }
 
+    /// <inheritdoc />
+    public void RefreshThen(TabId tabId, Action done)
+    {
+        _postToUi(() =>
+        {
+            if (!RefreshStatus(tabId, done))
+            {
+                done();
+            }
+        });
+    }
+
     public void Dispose()
     {
         foreach (var refresher in _refreshers.Values)
@@ -268,6 +289,7 @@ public sealed partial class EffectRunner<TSession> : IDisposable
         ScanRepositoriesEffect => new PickerScanFinished([]),
         SettingsEffect => new SettingsOperationFailed(text),
         RemoteEffect remote => new RemoteOperationFailed(remote.TabId, text),
+        StagingEffect staging => new StagingFailed(staging.TabId, text),
         StashEffect stash => new StashOperationFailed(stash.TabId, text),
         SyncEffect sync => new SyncFailed(sync.TabId, text, null, null),
         TagEffect tag => new TagOperationFailed(tag.TabId, text, null),
@@ -315,6 +337,9 @@ public sealed partial class EffectRunner<TSession> : IDisposable
                 break;
             case MoveDetailCursorEffect cursor:
                 _shell.MoveDetailCursor(cursor.Row);
+                break;
+            case MoveDiffCursorEffect moveCursor:
+                _shell.MoveDiffCursor(moveCursor);
                 break;
             case OfferTerminalRetryEffect offer:
                 _shell.OfferTerminalRetry(offer.TabId, offer.Noun, offer.Arguments);
@@ -383,6 +408,9 @@ public sealed partial class EffectRunner<TSession> : IDisposable
                 break;
             case StageResolvedConflictEffect stage:
                 _shell.StageResolvedConflict(stage);
+                break;
+            case StagingEffect staging:
+                _staging.Handle(staging, _cancellation.TokenOf(staging.TabId));
                 break;
             case StashEffect stash:
                 _stash.Handle(stash, _cancellation.TokenOf(stash.TabId));

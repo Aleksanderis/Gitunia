@@ -2,6 +2,7 @@ using Gitunia.App;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Lists;
+using Gitunia.Core.Staging;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Repositories;
@@ -408,7 +409,9 @@ public sealed class WorkingTreeActionHandler(
         var range = ListRange(tab);
         var isRangeAction = action == ActionIds.WorkingTreeStage || action == ActionIds.WorkingTreeUnstage;
         Message = staging.Execute(tab, action, isRangeAction ? range : null);
-        if (Message.Length == 0 && isRangeAction)
+
+        // The range ends once the operation started; a refusal (posted by the reducer) keeps it.
+        if (Message.Length == 0 && isRangeAction && staging.IsRunning(tab.Id))
         {
             Visual?.End();
         }
@@ -447,9 +450,8 @@ public sealed class WorkingTreeActionHandler(
             return capture.Notice;
         }
 
-        var diff = Diff;
-        var notice = staging.ExecuteSelection(tab, request, () => MoveAfterReload(diff, capture));
-        if (notice.Length == 0)
+        var notice = staging.ExecuteSelection(tab, request, new DiffCursorMove(capture.HunkIndex, capture.ChangesBefore));
+        if (notice.Length == 0 && staging.IsRunning(tab.Id))
         {
             Visual?.End();
         }
@@ -458,17 +460,8 @@ public sealed class WorkingTreeActionHandler(
     }
 
     // A staged or discarded Visual range keeps the cursor at the next change; a hunk goes to the next group.
-    private static void MoveAfterReload(WorkingDiffController diff, DiffStagingCapture capture)
-    {
-        if (capture.ChangesBefore >= 0)
-        {
-            diff.MoveToChangeAfterReload(capture.ChangesBefore);
-        }
-        else
-        {
-            diff.MoveToHunkAfterReload(capture.HunkIndex);
-        }
-    }
+    private static void MoveAfterReload(WorkingDiffController diff, DiffStagingCapture capture) =>
+        diff.MoveAfterReload(new DiffCursorMove(capture.HunkIndex, capture.ChangesBefore));
 
     private bool TryDiscard(RepositoryState tab, ActionId action)
     {

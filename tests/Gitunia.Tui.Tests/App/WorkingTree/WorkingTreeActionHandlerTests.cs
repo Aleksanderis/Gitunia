@@ -1,3 +1,4 @@
+using Gitunia.App.Tabs;
 using Gitunia.App.Status;
 using Gitunia.Core;
 using Gitunia.App;
@@ -8,7 +9,6 @@ using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Repositories.Models;
-using Gitunia.Git.Staging;
 using Gitunia.Git.Status.Models;
 using Gitunia.Tui.App.Clipboard;
 using Gitunia.Tui.App.WorkingTree;
@@ -427,8 +427,7 @@ public class WorkingTreeActionHandlerTests
 
             var writer = new ClipboardWriter(new StringWriter(), new Osc52Options(Osc52Mode.Direct, 100_000));
             Statuses = new StatusReporter(new Dispatcher(AppState.Empty));
-            var indexWriter = new FakeIndexWriter();
-            var staging = new StagingActions(_host, indexWriter, new PatchStager(new FakeDiffReader(), indexWriter), Statuses, action => action(), (_, done) => { done(); return true; }, _ => CancellationToken.None);
+            var staging = new StagingActions(_host, new TabOperationGate());
             var commits = TestCommitActions.Create(_host, Statuses);
             Handler = new WorkingTreeActionHandler(_host, () => PageHeight, new ClipboardCopier(writer, Statuses), staging, commits);
         }

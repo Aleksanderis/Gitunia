@@ -18,6 +18,10 @@
     <Compile Include="..\Gitunia.Git.Tests\Fixtures\TestGitSpeed.cs" Link="Fixtures\TestGitSpeed.cs" />
   </ItemGroup>
   <ItemGroup>
+    <!-- Status entries and working-tree states for tests, owned by Gitunia.Tui.Tests. -->
+    <Compile Include="..\Gitunia.Tui.Tests\Rendering\WorkingTree\WorkingTreeEntries.cs" Link="Shared\WorkingTreeEntries.cs" />
+  </ItemGroup>
+  <ItemGroup>
     <!-- The renderer of docs/keymap.md, linked from the generator so a test can check the committed file is current (#868). -->
     <Compile Include="..\..\tools\KeymapDoc\KeymapReference.cs" Link="Keymap\KeymapReference.cs" />
   </ItemGroup>

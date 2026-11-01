@@ -29,6 +29,7 @@ using Gitunia.Core.Settings;
 using Gitunia.Core.Settings.Models;
 using Gitunia.Core.Sidebar;
 using Gitunia.Core.Stash;
+using Gitunia.Core.Staging;
 using Gitunia.Core.Status;
 using Gitunia.Core.Text;
 using Gitunia.Core.Workspaces;
@@ -40,7 +41,6 @@ using Gitunia.Git;
 using Gitunia.Git.Discard;
 using Gitunia.Git.Repositories;
 using Gitunia.Git.Repositories.Models;
-using Gitunia.Git.Staging;
 using Gitunia.Git.Watching;
 using Gitunia.Git.Watching.Models;
 using Gitunia.Platform;
@@ -923,6 +923,14 @@ public sealed class TuiApplication(
         }
     }
 
+    void IShellEffects.MoveDiffCursor(MoveDiffCursorEffect effect)
+    {
+        if (_host.Workspace.ActiveTabId == effect.TabId)
+        {
+            _workingDiff.MoveAfterReload(effect.Move);
+        }
+    }
+
     bool IShellEffects.MoveCommitDraft(TabId missing, TabId target) => _commits.MoveDraft(missing, target);
 
     void IShellEffects.LaunchExternalTool(LaunchExternalToolEffect effect)
@@ -1137,15 +1145,7 @@ public sealed class TuiApplication(
         return rows[SidebarBuilder.ClampCursor(tab.Sidebar.Cursor, rows.Length)];
     }
 
-    private StagingActions CreateStaging(TabOperationGate gate) => new(
-        _host,
-        services.IndexWriter,
-        new PatchStager(services.Diff, services.IndexWriter),
-        _statuses,
-        InvokeOnUi,
-        _effects.RefreshStatus,
-        tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None,
-        gate);
+    private StagingActions CreateStaging(TabOperationGate gate) => new(_host, gate);
 
     private TerminalTabSession? ActiveSession() => _host.Workspace.ActiveTabId is { } id ? _effects.SessionOf(id) : null;
 

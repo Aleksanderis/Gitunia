@@ -4,6 +4,7 @@ using Gitunia.Core.Diff;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Lists;
+using Gitunia.Core.Staging;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Repositories;
@@ -235,6 +236,19 @@ public sealed class WorkingDiffController : IPromptHandler
     {
         _changeAfterReload = changeNumber;
         _hunkAfterReload = null;
+    }
+
+    /// <summary>After the next reload of the same file the cursor goes where <paramref name="move"/> says (a staged or discarded hunk or range).</summary>
+    public void MoveAfterReload(DiffCursorMove move)
+    {
+        if (move.ChangesBefore >= 0)
+        {
+            MoveToChangeAfterReload(move.ChangesBefore);
+        }
+        else
+        {
+            MoveToHunkAfterReload(move.HunkIndex);
+        }
     }
 
     public bool HandleTextKey(KeyEvent key)
