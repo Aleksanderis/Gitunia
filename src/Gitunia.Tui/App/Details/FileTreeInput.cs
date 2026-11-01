@@ -99,7 +99,7 @@ public sealed class FileTreeInput(Dispatcher host, ListView detailList) : IPromp
 
     private bool ExecuteInFiles(RepositoryState tab, ActionId action)
     {
-        var cursor = FilesCursor(tab);
+        var cursor = FilesCursor();
         if (action == ActionIds.DetailOpenDiff)
         {
             host.Dispatch(new FileTreeOpened(tab.Id, cursor));
@@ -171,7 +171,7 @@ public sealed class FileTreeInput(Dispatcher host, ListView detailList) : IPromp
         return step != TreeStep.Leave;
     }
 
-    private FileTreeCursor FilesCursor(RepositoryState tab)
+    private FileTreeCursor FilesCursor()
     {
         var rows = ContentOfList().Tree;
         var index = detailList.SelectedItem ?? -1;

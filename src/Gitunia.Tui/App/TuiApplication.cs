@@ -154,7 +154,6 @@ public sealed class TuiApplication(
     private PickActions _pick = null!;
     private PromptPopupTracker _popups = null!;
     private GraphGlyphSet _glyphs = null!;
-    private FileTreeInput _fileTree = null!;
     private DetailTreeState? _builtTree;
     private PaneSizes? _laidOutSizes;
     private ResetActions _reset = null!;
@@ -399,8 +398,8 @@ public sealed class TuiApplication(
             () => IsAnyOverlayOpen() || _picker.IsOpen,
             RouteAction);
         _keys.Interceptor = _repeat.TryHandle;
-        _fileTree = new FileTreeInput(_host, _view.Detail);
-        _router.FileTree = _fileTree;
+        var fileTree = new FileTreeInput(_host, _view.Detail);
+        _router.FileTree = fileTree;
         _router.IssueLinks = new IssueLinkActions(
             new UrlOpener(),
             clipboard,
@@ -435,7 +434,7 @@ public sealed class TuiApplication(
             _diffPane,
             _workingDiff,
             _quickJump,
-            _fileTree,
+            fileTree,
             .. CreatePrompts(),
         ];
         _router.Prompts = _prompts;

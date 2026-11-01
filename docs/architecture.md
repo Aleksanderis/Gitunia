@@ -132,6 +132,7 @@ A slice of `ShellState` (`Conflict: ConflictSession`) with its own reducer; `Con
 - **View.** `Tui/App/Conflicts/ConflictEditorInput` draws the slice and turns keys, typed text, clicks and drags into commands (hit tests stay in `ConflictEditorFrameBuilder`); a dialog or other overlay on top (`isCovered`) takes the keys instead.
 
 Tests: `ConflictReducerTests` (Core, synchronous, including the tab closed while a dialog is open), `ConflictEffectHandlerTests` (App, real repositories), `EffectPipelineTests` (through the real runner), `ConflictEditorInputTests` (Tui: the former controller scenarios end to end over a real dispatcher and handler).
+
 ### Detail tabs, pane sizes and file trees (#995)
 
 `DetailTabController`, `PaneSizeController` and `FileTreeController` are gone. No external process is involved, so there are reducers and no effect handlers.
