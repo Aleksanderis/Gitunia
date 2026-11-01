@@ -2,7 +2,6 @@ using Gitunia.Core.Commits;
 using Gitunia.Core.Picker;
 using Gitunia.Core.Running;
 using Gitunia.Core.Shell;
-using Gitunia.Core.Workspaces.Repositories;
 
 namespace Gitunia.Core;
 
@@ -24,7 +23,7 @@ public static partial class AppReducer
             state.Workspace.ActiveTabId == tab.Id,
             state.Shell.Mode,
             tab.Running.IsRunning(RunningOperationKind.Commit),
-            BlocksCommit(tab));
+            tab.Running.Excludes(RunningOperationKind.Commit));
         var update = CommitReducer.Reduce(command, context);
         var running = tab.Running.Apply(tab.Id, command, update.Effects);
         var changed = state;
@@ -82,10 +81,4 @@ public static partial class AppReducer
 
         return new AppUpdate(current, [.. effects]);
     }
-
-    // Committing is refused while a stage, discard or an operation that writes the index or the working tree runs.
-    private static bool BlocksCommit(RepositoryState tab) =>
-        tab.Running.IsRunning(RunningOperationKind.Staging)
-        || tab.Running.IsRunning(RunningOperationKind.Discard)
-        || BlocksIndexWriters(tab);
 }
