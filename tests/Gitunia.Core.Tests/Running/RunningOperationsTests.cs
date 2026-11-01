@@ -1,3 +1,4 @@
+using Gitunia.Core.Discard;
 using Gitunia.Core.Integration;
 using Gitunia.Core.Running;
 using Gitunia.Core.Remotes;
@@ -6,12 +7,14 @@ using Gitunia.Core.Tags;
 using Gitunia.Core.Tests.Fixtures;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Core.Worktrees;
+using Gitunia.Core.Staging;
 using Gitunia.Git.Commits.Models;
 using Gitunia.Git.Merge;
 using Gitunia.Git.Operations.Models;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Reset;
 using Gitunia.Git.Stash;
+using Gitunia.Git.Diff.Models;
 using Gitunia.Git.Stash.Models;
 using Gitunia.Git.Worktrees.Models;
 using Xunit;
@@ -70,6 +73,35 @@ public class RunningOperationsTests
 
         Assert.True(stepped.IsRunning(RunningOperationKind.Tags));
         Assert.Equal(2, Assert.Single(stepped.Items).Id);
+    }
+
+    [Fact]
+    public void GivenEveryConcreteDiscardEffect_WhenInspectingIt_ThenItIsAnOperationEffectOfKindDiscard()
+    {
+        // Built through the constructors: an uninitialised instance would show the enum's first value, not the kind.
+        DiscardEffect[] effects =
+        [
+            new DiscardFilesEffect(Tab, Location(), [], 0),
+            new DiscardSelectionEffect(
+                Tab,
+                Location(),
+                new StagingSelection(WorkingDiffSide.Unstaged, null!, [], false),
+                true,
+                null),
+        ];
+
+        Assert.Equal(2, effects.Length);
+        Assert.All(effects, effect => Assert.Equal(RunningOperationKind.Discard, effect.Kind));
+        Assert.All(effects, effect => Assert.Equal(Tab, effect.TabId));
+    }
+
+    [Fact]
+    public void GivenEveryConcreteDiscardResultCommand_WhenInspectingIt_ThenItEndsTheKindDiscard()
+    {
+        var results = ConcreteSubtypes.InstancesOf<DiscardCommand>().OfType<IOperationResult>().ToArray();
+
+        Assert.Equal(3, results.Length);
+        Assert.All(results, result => Assert.Equal(RunningOperationKind.Discard, result.Kind));
     }
 
     [Fact]

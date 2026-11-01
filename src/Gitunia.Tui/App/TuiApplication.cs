@@ -39,7 +39,6 @@ using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Core.Worktrees;
 using Gitunia.Git;
-using Gitunia.Git.Discard;
 using Gitunia.Git.Repositories;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Watching;
@@ -303,15 +302,13 @@ public sealed class TuiApplication(
         _visual = new VisualRangeInput(_host, _view);
         _rangeCopier = new RangeCopier(clipboard, ActiveSession, () => _host.Workspace.ActiveTab?.WorkingTree);
         _router.Visual = _visual;
-        var operationGate = _activity.CreateGate();
-        var staging = CreateStaging(operationGate);
+        var staging = new StagingActions(_host);
         _staging = staging;
         _commits.StageAllThen = staging.StageAllThen;
-        _router.WorkingTree = new WorkingTreeActionHandler(_host, FocusedPageHeight, clipboard, staging, _commits)
+        _router.WorkingTree = new WorkingTreeActionHandler(_host, _view, clipboard, staging, _commits)
         {
             Diff = _workingDiff,
             Visual = _visual,
-            Discard = CreateDiscard(operationGate),
         };
         _router.Branches = branches;
         _router.Stash = new StashActions(_host, this);
@@ -1079,16 +1076,6 @@ public sealed class TuiApplication(
         return new WorktreeTarget(row?.Kind, row?.Label, row?.Path, row?.CommitHash, SelectedCommitHash());
     }
 
-    private DiscardActions CreateDiscard(TabOperationGate gate) => new(
-        _host,
-        new PatchDiscarder(services.Diff, services.Discarder),
-        _statuses,
-        InvokeOnUi,
-        _effects.RefreshStatus,
-        tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None,
-        gate);
-
-
     // The actions menu of the row under the cursor of the graph or the sidebar, hanging at that row.
     private RowMenuTarget? MenuTargetOf(string view, SidebarListSource sidebarSource)
     {
@@ -1171,8 +1158,6 @@ public sealed class TuiApplication(
         return rows[SidebarBuilder.ClampCursor(tab.Sidebar.Cursor, rows.Length)];
     }
 
-    private StagingActions CreateStaging(TabOperationGate gate) => new(_host, gate);
-
     private TerminalTabSession? ActiveSession() => _host.Workspace.ActiveTabId is { } id ? _effects.SessionOf(id) : null;
 
     // The state decides which pane has focus; the toolkit focus follows it (a click goes the other way, see OnPaneFocused).
@@ -1191,9 +1176,6 @@ public sealed class TuiApplication(
             pane.SetFocus();
         }
     }
-
-    private int FocusedPageHeight() =>
-        PaneView(_host.Workspace.ActiveTab?.View.FocusedPane ?? PaneKind.Graph).Viewport.Height;
 
     private PaneListView PaneView(PaneKind pane) => pane switch
     {

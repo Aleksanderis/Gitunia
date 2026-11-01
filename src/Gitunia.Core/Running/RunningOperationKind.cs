@@ -12,6 +12,9 @@ public enum RunningOperationKind
     /// <summary>The conflict editor: reading a file, saving the result or re-creating the conflict.</summary>
     Conflicts,
 
+    /// <summary>Discarding files, a hunk or lines; ends when the status has been read again.</summary>
+    Discard,
+
     /// <summary>A cherry-pick or revert: reading the commits, then picking them.</summary>
     Pick,
 

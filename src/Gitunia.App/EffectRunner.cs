@@ -1,3 +1,4 @@
+using Gitunia.Git.Discard;
 using Gitunia.Git.Staging;
 using Gitunia.App.Background;
 using Gitunia.App.Branches;
@@ -5,6 +6,7 @@ using Gitunia.App.Compare;
 using Gitunia.App.Conflicts;
 using Gitunia.App.Creation;
 using Gitunia.App.DiffPane;
+using Gitunia.App.Discard;
 using Gitunia.App.Pick;
 using Gitunia.App.Rebase;
 using Gitunia.App.Integration;
@@ -30,6 +32,7 @@ using Gitunia.Core.Conflicts;
 using Gitunia.Core.Creation;
 using Gitunia.Core.Details;
 using Gitunia.Core.DiffPane;
+using Gitunia.Core.Discard;
 using Gitunia.Core.Effects;
 using Gitunia.Core.ExternalTools;
 using Gitunia.Core.IssueLinks;
@@ -81,6 +84,7 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
     private readonly BackgroundWork _background = new();
     private readonly CreationEffectHandler _creation;
     private readonly DiffPaneEffectHandler _diffPane;
+    private readonly DiscardEffectHandler _discard;
     private readonly IntegrationEffectHandler _integration;
     private readonly IssueLinkEffectHandler _issueLinks;
     private readonly BranchEffectHandler _branches;
@@ -141,6 +145,7 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
             host);
         _creation = new CreationEffectHandler(services.Creator, pickerServices.Files, host);
         _diffPane = new DiffPaneEffectHandler(this);
+        _discard = new DiscardEffectHandler(new PatchDiscarder(services.Diff, services.Discarder), this, host);
         _picker = new PickerEffectHandler(services.Discovery, pickerServices.Files, host, pickerServices.Timings);
         _pick = new PickEffectHandler(services.Pick, services.PickCommits, host);
         _rebase = new RebaseEffectHandler(services.Rebase, services.QuickRebase, host);
@@ -296,6 +301,7 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
         InitRepositoryEffect => new InitFailed(text),
         IntegrationEffect integration => new IntegrationFailed(integration.TabId, text),
         BranchEffect branch => new BranchOperationFailed(branch.TabId, text),
+        DiscardEffect discard => new DiscardFailed(discard.TabId, text),
         ConflictEffect conflict => new ConflictOperationFailed(conflict.TabId, text, StatusSeverity.Error),
         PickEffect pick => new PickFailed(pick.TabId, text),
         RebaseEffect rebase => new RebaseFailed(rebase.TabId, text),
@@ -344,6 +350,9 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
                 break;
             case DiffPaneEffect diffPane:
                 _diffPane.Handle(diffPane);
+                break;
+            case DiscardEffect discard:
+                _discard.Handle(discard, _cancellation.TokenOf(discard.TabId));
                 break;
             case FlushSessionEffect flush:
                 _host.Dispatch(new SessionFlushed(_shell.FlushSession(), flush.Force));

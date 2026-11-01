@@ -1,6 +1,5 @@
 using Gitunia.Core.Keymap;
 using Gitunia.Tui.Tests.Fakes;
-using Gitunia.App.Tabs;
 using Gitunia.Core;
 using Gitunia.Core.Effects;
 using Gitunia.Core.Lists;
@@ -68,18 +67,6 @@ public class StagingActionsTests
     }
 
     [Fact]
-    public void GivenOtherWorkOnTheLegacyGate_WhenAKeyIsPressed_ThenItIsRefusedWithoutAReducerCommand()
-    {
-        using var harness = new Harness(Modified("a.txt"));
-        harness.Gate.Begin(harness.Tab.Id);
-
-        var notice = harness.Staging.Execute(harness.Tab, ActionIds.WorkingTreeStage);
-
-        Assert.Contains("Busy", notice, StringComparison.Ordinal);
-        Assert.Empty(harness.Effects);
-    }
-
-    [Fact]
     public void GivenAStageThatRuns_WhenAnotherKeyIsPressed_ThenTheReducerRefusesItAsBusy()
     {
         using var harness = new Harness(Modified("a.txt"), Modified("b.txt"));
@@ -120,18 +107,6 @@ public class StagingActionsTests
     }
 
     [Fact]
-    public void GivenOtherWorkOnTheLegacyGate_WhenTheEditorStagesTheSavedFile_ThenItSaysTheFileWasNotStaged()
-    {
-        using var harness = new Harness(Conflict("c.txt"));
-        harness.Gate.Begin(harness.Tab.Id);
-
-        var notice = harness.Staging.StageResolvedFor(harness.Tab, "c.txt");
-
-        Assert.Contains("the saved file was not staged", notice, StringComparison.Ordinal);
-        Assert.Empty(harness.Effects);
-    }
-
-    [Fact]
     public void GivenTheKeysOfTheStagingActions_WhenAskedWhatTheyHandle_ThenOnlyTheFourFileKeysAreTheirs()
     {
         Assert.True(StagingActions.Handles(ActionIds.WorkingTreeStage));
@@ -153,13 +128,11 @@ public class StagingActionsTests
             Send(new WorkingTreeLoadedCommand(Snapshot(entries)));
             Send(new OpenWorkingTreeCommand());
             Send(new FocusPaneCommand(PaneKind.WorkingUnstaged));
-            Staging = new StagingActions(_shell.Host, Gate);
+            Staging = new StagingActions(_shell.Host);
             _shell.Host.EffectRaised += Record;
         }
 
         public StagingActions Staging { get; }
-
-        public TabOperationGate Gate { get; } = new();
 
         /// <summary>The staging effects the reducer returned (a runner would perform them).</summary>
         public List<StagingEffect> Effects { get; } = [];

@@ -770,32 +770,23 @@ public class WorkingDiffControllerTests
             Controller = new WorkingDiffController(host, () => Session, DiffList, () => { }, copier);
             Controller.OnTabSwitched(null, session);
             var indexWriter = TestGit.Services.IndexWriter;
-            Staging = new StagingActions(host, Gate);
+            Staging = new StagingActions(host);
             // Wires itself to the dispatcher: runs the staging effects like the effect runner does.
-            _ = new StagingWiring(host, indexWriter, new PatchStager(TestGit.Services.Diff, indexWriter), pump)
+            _ = new StagingWiring(
+                host,
+                indexWriter,
+                new PatchStager(TestGit.Services.Diff, indexWriter),
+                pump,
+                new PatchDiscarder(TestGit.Services.Diff, TestGit.Services.Discarder))
             {
                 ReadStatus = ReadAndApplyStatusAsync,
                 OnCursorMove = move => Controller.MoveAfterReload(move.Move),
             };
             Visual = new VisualRangeInput(host, new FakePaneLists(DiffList));
-            Handler = new WorkingTreeActionHandler(host, () => 10, copier, Staging, TestCommitActions.Create(host, Statuses)) { Diff = Controller, Visual = Visual };
-            Handler.Discard = new DiscardActions(
-                host,
-                new PatchDiscarder(TestGit.Services.Diff, TestGit.Services.Discarder),
-                Statuses,
-                pump.Post,
-                (_, done) =>
-                {
-                    pump.Post(done);
-                    return true;
-                },
-                _ => Token,
-                Gate);
+            Handler = new WorkingTreeActionHandler(host, new FakePaneLists(DiffList), copier, Staging, TestCommitActions.Create(host, Statuses)) { Diff = Controller, Visual = Visual };
         }
 
         public StagingActions Staging { get; }
-
-        public TabOperationGate Gate { get; } = new();
 
         /// <summary>The confirm dialogs the actions asked for, oldest first.</summary>
         public List<ConfirmPrompt> Prompts => _shell.Prompts;
@@ -861,7 +852,7 @@ public class WorkingDiffControllerTests
         public async Task ConfirmAsync()
         {
             Assert.True(_shell.Answer());
-            await _pump.RunUntilAsync(() => !Gate.IsAnyBusy);
+            await _pump.RunUntilAsync(() => !Tab.Running.IsBusy);
             await RefreshStatusAsync();
         }
 

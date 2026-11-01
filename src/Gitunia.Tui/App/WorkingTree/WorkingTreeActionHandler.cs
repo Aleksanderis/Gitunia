@@ -1,6 +1,7 @@
 using Gitunia.App;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
+using Gitunia.Core.Discard;
 using Gitunia.Core.Lists;
 using Gitunia.Core.Staging;
 using Gitunia.Core.Workspaces;
@@ -10,6 +11,7 @@ using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Tui.App.Clipboard;
 using Gitunia.Tui.App.Panes;
 using Gitunia.Tui.Rendering.WorkingTree;
+using Gitunia.Tui.Views;
 
 namespace Gitunia.Tui.App.WorkingTree;
 
@@ -20,13 +22,13 @@ namespace Gitunia.Tui.App.WorkingTree;
 /// commands, so the state decides and the views follow.
 /// </summary>
 /// <param name="host">The workspace.</param>
-/// <param name="pageHeight">Visible rows of the focused list, for the half-page motions.</param>
+/// <param name="lists">The lists of the panes, whose visible rows size the half-page motions.</param>
 /// <param name="clipboard">Copies the path of a file.</param>
 /// <param name="staging">Stages and unstages files, hunks and lines.</param>
 /// <param name="commits">The message box and the commit.</param>
 public sealed class WorkingTreeActionHandler(
     Dispatcher host,
-    Func<int> pageHeight,
+    IPaneLists lists,
     ClipboardCopier clipboard,
     StagingActions staging,
     CommitActions commits)
@@ -49,9 +51,6 @@ public sealed class WorkingTreeActionHandler(
 
     /// <summary>Visual mode, which the diff box uses for line ranges; null in tests that do not need it.</summary>
     public VisualRangeInput? Visual { get; set; }
-
-    /// <summary>Discards files, hunks and lines after a confirm dialog; null in tests that do not need it.</summary>
-    public DiscardActions? Discard { get; set; }
 
     /// <summary>A short notice for the status bar from the last action, empty when none.</summary>
     public string Message { get; private set; } = string.Empty;
@@ -262,13 +261,13 @@ public sealed class WorkingTreeActionHandler(
 
         if (tab.WorkingTree is not { } tree)
         {
-            return ListMotion.TryMove(action, count, 0, 0, pageHeight(), out _);
+            return ListMotion.TryMove(action, count, 0, 0, PageHeight(tab), out _);
         }
 
         var section = tab.View.FocusedPane == PaneKind.WorkingStaged ? WorkingTreeSection.Staged : WorkingTreeSection.Unstaged;
         var itemCount = tree.RowsOf(section).Count;
         var current = tree.Selection is { } selection && selection.Section == section ? selection.Index : 0;
-        if (!ListMotion.TryMove(action, count, current, itemCount, pageHeight(), out var target))
+        if (!ListMotion.TryMove(action, count, current, itemCount, PageHeight(tab), out var target))
         {
             return false;
         }
@@ -459,10 +458,8 @@ public sealed class WorkingTreeActionHandler(
         return notice;
     }
 
-    // A staged or discarded Visual range keeps the cursor at the next change; a hunk goes to the next group.
-    private static void MoveAfterReload(WorkingDiffController diff, DiffStagingCapture capture) =>
-        diff.MoveAfterReload(new DiffCursorMove(capture.HunkIndex, capture.ChangesBefore));
-
+    // In the list the key acts on the file or folder under the cursor, or on the files of the Visual range; in the diff on
+    // the hunk under the cursor or the Visual lines. The reducer asks first and the range ends once the user confirmed.
     private bool TryDiscard(RepositoryState tab, ActionId action)
     {
         if (action != ActionIds.WorkingTreeDiscard)
@@ -470,25 +467,19 @@ public sealed class WorkingTreeActionHandler(
             return false;
         }
 
-        Message = "Discard is not available";
-        if (Discard is not null && WorkingPanes.IsDiff(tab.View.FocusedPane))
+        if (WorkingPanes.IsDiff(tab.View.FocusedPane))
         {
-            Message = DiscardFromDiff(tab, Discard);
+            Message = DiscardFromDiff(tab);
         }
-        else if (Discard is not null)
+        else
         {
-            Message = DiscardFromList(tab, Discard);
+            host.Dispatch(new DiscardRequested(tab.Id, ListRange(tab)));
         }
 
         return true;
     }
 
-    // In the list the key acts on the file under the cursor, or on the files of the Visual range (one dialog counts them); the range ends once the user confirmed.
-    private string DiscardFromList(RepositoryState tab, DiscardActions discard) =>
-        ListRange(tab) is { } range ? discard.ExecuteRange(tab, range, () => Visual?.End()) : discard.Execute(tab);
-
-    // In the diff the key acts on the hunk under the cursor, or on the Visual lines; the range ends once the user confirmed.
-    private string DiscardFromDiff(RepositoryState tab, DiscardActions discard)
+    private string DiscardFromDiff(RepositoryState tab)
     {
         if (tab.View.FocusedPane != PaneKind.WorkingUnstagedDiff)
         {
@@ -506,12 +497,13 @@ public sealed class WorkingTreeActionHandler(
             return capture.Notice;
         }
 
-        return discard.ExecuteSelection(
-            tab,
-            request,
-            () => Visual?.End(),
-            () => MoveAfterReload(diff, capture));
+        var move = new DiffCursorMove(capture.HunkIndex, capture.ChangesBefore);
+        host.Dispatch(new DiscardSelectionRequested(tab.Id, request.ToSelection(), move));
+
+        return string.Empty;
     }
+
+    private int PageHeight(RepositoryState tab) => lists.ListOf(tab.View.FocusedPane).Viewport.Height;
 
     private static bool IsInFocusedList(RepositoryState tab, WorkingTreeSelection selection) =>
         (tab.View.FocusedPane == PaneKind.WorkingStaged) == (selection.Section == WorkingTreeSection.Staged);
