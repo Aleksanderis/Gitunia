@@ -26,14 +26,17 @@ while sleep 8; do
       if [ "$ppid" = "$host" ] && [ "$(seconds_of "$etime")" -ge 25 ]; then stuck="$stuck $pid"; fi
     done < /tmp/ps-now.txt
   done
-  for host in $hosts; do
-    hostetime=$(awk -v h="$host" '$1 == h {print $3}' /tmp/ps-now.txt)
-    [ "$(seconds_of "$hostetime")" -ge 100 ] && stuck="$stuck $host"
-  done
+  # No test finished for 45 s: the host itself is stalled.
+  if [ -f /tmp/test-out.log ]; then
+    age=$(( $(date +%s) - $(stat -f %m /tmp/test-out.log) ))
+    [ "$age" -ge 45 ] && stuck="$stuck $hosts"
+  fi
   [ -z "$stuck" ] && continue
   report=$((report + 1))
   [ "$report" -gt 3 ] && continue
   echo "::group::hang-watch report $report at $(date -u +%T): hosts=$hosts stuck=$stuck"
+  echo "processes: $(ps -ax | wc -l)  fd limit: $(ulimit -n)  maxprocperuid: $(sysctl -n kern.maxprocperuid)  host fds: $(lsof -p ${hosts%% *} 2>/dev/null | wc -l)"
+  tail -5 /tmp/test-out.log | cut -c1-200
   ps -axo pid,ppid,pgid,stat,etime,command | grep -E "PID|git|fakegit|sleep|Tests|dotnet" | grep -v grep | cut -c1-260
   for pid in $stuck; do
     echo "--- lsof $pid"; lsof -p "$pid" 2>&1 | head -40
