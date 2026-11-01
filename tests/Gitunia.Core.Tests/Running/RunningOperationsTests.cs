@@ -5,6 +5,7 @@ using Gitunia.Core.Stash;
 using Gitunia.Core.Tags;
 using Gitunia.Core.Tests.Fixtures;
 using Gitunia.Core.Workspaces.Tabs;
+using Gitunia.Core.Worktrees;
 using Gitunia.Git.Commits.Models;
 using Gitunia.Git.Merge;
 using Gitunia.Git.Operations.Models;
@@ -12,6 +13,7 @@ using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Reset;
 using Gitunia.Git.Stash;
 using Gitunia.Git.Stash.Models;
+using Gitunia.Git.Worktrees.Models;
 using Xunit;
 
 namespace Gitunia.Core.Tests.Running;
@@ -194,6 +196,42 @@ public class RunningOperationsTests
 
         Assert.Equal(4, results.Length);
         Assert.All(results, result => Assert.Equal(RunningOperationKind.Integration, result.Kind));
+    }
+
+    [Fact]
+    public void GivenEveryConcreteWorktreeEffect_WhenInspectingIt_ThenItIsAnOperationEffectOfKindWorktrees()
+    {
+        var effects = ConcreteSubtypes.InstancesOf<WorktreeEffect>();
+        var location = Location();
+
+        // Instances are uninitialised (the constructor does not run), so one built per type shows the kind.
+        Assert.NotEmpty(effects);
+        Assert.All(effects, effect => Assert.IsAssignableFrom<OperationEffect>(effect));
+        WorktreeEffect[] built =
+        [
+            new AddWorktreeEffect(Tab, location, new WorktreeAddRequest("p", "b", null), false),
+            new RemoveWorktreeEffect(Tab, location, "p", false),
+            new LockWorktreeEffect(Tab, location, "p", string.Empty),
+            new UnlockWorktreeEffect(Tab, location, "p"),
+            new PruneWorktreesEffect(Tab, location),
+        ];
+        Assert.Equal(effects.Count, built.Length);
+        Assert.All(built, effect => Assert.Equal(RunningOperationKind.Worktrees, effect.Kind));
+    }
+
+    [Fact]
+    public void GivenEveryConcreteWorktreeResultCommand_WhenInspectingIt_ThenItEndsTheKindWorktrees()
+    {
+        var results = ConcreteSubtypes.InstancesOf<WorktreeCommand>().OfType<IOperationResult>().ToArray();
+
+        Assert.Equal(4, results.Length);
+        Assert.All(results, result => Assert.Equal(RunningOperationKind.Worktrees, result.Kind));
+    }
+
+    [Fact]
+    public void GivenTheLocateEffect_WhenInspectingIt_ThenItIsNotAnOperationOfTheTab()
+    {
+        Assert.False(typeof(OperationEffect).IsAssignableFrom(typeof(LocateWorktreeEffect)));
     }
 
     private static DeleteTagEffect Delete(TabId tab) => new(tab, Location(), "v1", "x");

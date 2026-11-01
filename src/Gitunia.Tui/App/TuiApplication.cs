@@ -33,6 +33,7 @@ using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
+using Gitunia.Core.Worktrees;
 using Gitunia.Git;
 using Gitunia.Git.Discard;
 using Gitunia.Git.Repositories;
@@ -97,7 +98,7 @@ public sealed class TuiApplication(
     ConsoleCapabilities detectedCapabilities,
     IPlatform platform) : IDisposable, ITerminalSuspender, IShellEffects, IBranchSelectionSource,
     IGraphCommitSelector,
-    IStashSelectionSource, IStashViewHost
+    IStashSelectionSource, IStashViewHost, IWorktreeSelectionSource
 {
     // Terminal.Gui's default of 25 iterations per second gave ~34 ms key latency (docs/internal/history/decisions.md); the idle rate saves CPU (#909).
     private const ushort ActiveIterationsPerSecond = 100;
@@ -116,6 +117,7 @@ public sealed class TuiApplication(
     private EffectRunner<TerminalTabSession> _effects = null!;
     private BackgroundStatusPoller? _statusPoller;
     private WorktreeOverviewPoller? _worktreePoller;
+    private SidebarListSource? _sidebarSource;
     private MainView _view = null!;
     private ActionRouter _router = null!;
     private KeyController _keys = null!;
@@ -126,7 +128,6 @@ public sealed class TuiApplication(
     private IReadOnlyList<IPromptHandler> _prompts = [];
     private SidebarActionHandler _sidebar = null!;
     private StashViewController _stashView = null!;
-    private WorktreeActions _worktrees = null!;
     private PaneKind _appliedFocus = PaneKind.Graph;
     private OverlayController _overlays = null!;
     private WhichKeyTimer _whichKeyTimer = null!;
@@ -244,6 +245,7 @@ public sealed class TuiApplication(
         _clipboard = CreateClipboard();
         var clipboard = _clipboard;
         var sidebarSource = new SidebarListSource(glyphs);
+        _sidebarSource = sidebarSource;
         _sidebar = new SidebarActionHandler(
             _host,
             sidebarSource,
@@ -364,10 +366,7 @@ public sealed class TuiApplication(
             _statuses,
             Environment.GetEnvironmentVariable,
             PauseForEnter);
-        _worktrees = CreateWorktrees(operationGate, sidebarSource);
-        _router.Worktrees = _worktrees;
-        _router.WorktreeSwitch = CreateWorktreeSwitch(operationGate, sidebarSource);
-        _worktrees.OpenWorktree = _router.WorktreeSwitch.OpenPath;
+        _router.Worktrees = new WorktreeActions(_host, this);
         _router.Operations = new OperationActions(_host);
         _push = CreatePush();
         _router.Push = _push;
@@ -466,7 +465,6 @@ public sealed class TuiApplication(
             _workingDiff,
             _quickJump,
             _fileTree,
-            _worktrees,
             .. CreatePrompts(operationGate),
         ];
         _router.Prompts = _prompts;
@@ -538,7 +536,7 @@ public sealed class TuiApplication(
         _commits.Restore(restored.Drafts);
         _statusPoller = new BackgroundStatusPoller(services.Status, _host, InvokeOnUi, background: _effects.Background);
         _statusPoller.Start();
-        _worktreePoller = new WorktreeOverviewPoller(services.Status, _host, InvokeOnUi, background: _effects.Background);
+        _worktreePoller = new WorktreeOverviewPoller(services.Status, _host, background: _effects.Background);
         _worktreePoller.Start();
         if (location is not null)
         {
@@ -1064,6 +1062,14 @@ public sealed class TuiApplication(
         return BranchSelection.Of(inSidebar ? _sidebar.CursorRow : null, SelectedCommitHash);
     }
 
+    // The sidebar row under the cursor (whichever pane has focus) and the commit selected in the graph.
+    WorktreeTarget IWorktreeSelectionSource.Current()
+    {
+        var row = _sidebarSource is null ? null : SelectedSidebarRow(_sidebarSource);
+
+        return new WorktreeTarget(row?.Kind, row?.Label, row?.Path, row?.CommitHash, SelectedCommitHash());
+    }
+
     private DiscardActions CreateDiscard(TabOperationGate gate) => new(
         _host,
         new PatchDiscarder(services.Diff, services.Discarder),
@@ -1098,27 +1104,6 @@ public sealed class TuiApplication(
         tabId => _effects.Refresh(tabId, false),
         _view.RefreshChrome,
         BranchSelectionNow);
-
-    private WorktreeActions CreateWorktrees(TabOperationGate gate, SidebarListSource sidebarSource) => new(
-        _host,
-        services.Worktrees,
-        _statuses,
-        InvokeOnUi,
-        tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None,
-        tabId => _effects.Refresh(tabId, false),
-        gate,
-        () => SelectedSidebarRow(sidebarSource),
-        SelectedCommitHash,
-        _view.RefreshChrome);
-
-    private WorktreeSwitchActions CreateWorktreeSwitch(TabOperationGate gate, SidebarListSource sidebarSource) => new(
-        _host,
-        services.Discovery,
-        _statuses,
-        InvokeOnUi,
-        tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None,
-        gate,
-        () => SelectedSidebarRow(sidebarSource));
 
     // The actions menu of the row under the cursor of the graph or the sidebar, hanging at that row.
     private RowMenuTarget? MenuTargetOf(string view, SidebarListSource sidebarSource)

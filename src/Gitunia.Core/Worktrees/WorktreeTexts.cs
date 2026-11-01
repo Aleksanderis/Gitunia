@@ -1,29 +1,39 @@
+using System.Collections.Immutable;
 using Gitunia.Core.Overlays;
 using Gitunia.Core.Text;
+using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Git.Refs;
 using Gitunia.Git.Worktrees;
-using Gitunia.Tui.App.WorkingTree;
 
-namespace Gitunia.Tui.App.Worktrees;
+namespace Gitunia.Core.Worktrees;
 
-/// <summary>The wording of the worktree dialogs and refusals (ux-workflows.md, workflow 6): pure, so the texts are testable
-/// without a terminal.</summary>
+/// <summary>The wording of the worktree dialogs and refusals (ux-workflows.md, workflow 6): pure, so the texts are
+/// testable without a terminal.</summary>
 public static class WorktreeTexts
 {
+    /// <summary>Shown when another worktree operation of the tab still runs.</summary>
+    public const string BusyNotice = "Busy: another operation on this tab is still running";
+
+    /// <summary>Shown when an action needs a worktree row and the cursor is elsewhere.</summary>
+    public const string NoWorktreeNotice = "Select a worktree in the sidebar first";
+
+    /// <summary>Shown when a confirm cannot be displayed.</summary>
+    public const string TooSmallNotice = "The screen is too small to ask: nothing was changed";
+
     private const int NamedChangeLimit = 5;
 
     private const string DirtyConsequence =
         "The uncommitted changes are deleted with the directory (--force). Git keeps no copy: this cannot be undone.";
 
     /// <summary>Why the worktree cannot be removed here, empty when it can.</summary>
-    public static string RemoveRefusal(WorktreeInfo worktree, string tabRoot, Func<string, string, bool> samePath)
+    public static string RemoveRefusal(WorktreeInfo worktree, string tabRoot)
     {
         if (worktree.IsMain)
         {
             return "The main worktree cannot be removed";
         }
 
-        if (samePath(worktree.Path, tabRoot))
+        if (RepositoryPathComparer.Instance.Equals(worktree.Path, tabRoot))
         {
             return "This tab is on that worktree: open another to remove it";
         }
@@ -41,6 +51,7 @@ public static class WorktreeTexts
         return string.Empty;
     }
 
+    /// <summary>The first confirm of a removal.</summary>
     public static ConfirmPrompt RemovePrompt(WorktreeInfo worktree)
     {
         var branch = "It has a detached HEAD: commits that no branch reaches are lost.";
@@ -56,14 +67,16 @@ public static class WorktreeTexts
             "Remove worktree");
     }
 
-    public static ConfirmPrompt DirtyRemovePrompt(WorktreeInfo worktree, IReadOnlyList<string> changes)
+    /// <summary>The second confirm, for a worktree that holds uncommitted changes.</summary>
+    public static ConfirmPrompt DirtyRemovePrompt(string path, ImmutableArray<string> changes)
     {
         var names = changes.Take(NamedChangeLimit).ToList();
-        var more = changes.Count > names.Count ? $" and {changes.Count - names.Count} more" : string.Empty;
+        var more = changes.Length > names.Count ? $" and {changes.Length - names.Count} more" : string.Empty;
+
         return new ConfirmPrompt(
             "Remove worktree with changes",
             [
-                $"{worktree.Path} has {OperationText.Plural(changes.Count, "changed or untracked path")}: " +
+                $"{path} has {CountText.Plural(changes.Length, "changed or untracked path")}: " +
                 $"{string.Join(", ", names)}{more}",
                 "Remove it anyway?",
             ],
@@ -71,13 +84,15 @@ public static class WorktreeTexts
             "Remove and lose changes");
     }
 
+    /// <summary>The confirm of a prune, listing the entries.</summary>
     public static ConfirmPrompt PrunePrompt(IReadOnlyList<WorktreeInfo> prunable)
     {
         var lines = new List<string>
         {
-            $"Prune {OperationText.Plural(prunable.Count, "worktree entry")} whose directory is gone?",
+            $"Prune {CountText.Plural(prunable.Count, "worktree entry")} whose directory is gone?",
         };
         lines.AddRange(prunable.Select(worktree => worktree.Path));
+
         return new ConfirmPrompt(
             "Prune worktrees",
             lines,
@@ -91,9 +106,11 @@ public static class WorktreeTexts
     {
         var parent = Path.GetDirectoryName(Path.TrimEndingDirectorySeparator(tabRoot)) ?? tabRoot;
         var directory = branch.Replace('/', '-').Replace('\\', '-');
+
         return Path.Combine(parent, directory);
     }
 
+    /// <summary>The branch name without its <c>refs/heads/</c> prefix.</summary>
     public static string ShortName(string fullName)
     {
         if (fullName.StartsWith(GitRefPrefixes.Heads, StringComparison.Ordinal))
@@ -112,6 +129,7 @@ public static class WorktreeTexts
         }
 
         var hash = worktree.HeadHash is { Length: >= ShortHash.Length } head ? head[..ShortHash.Length] : "<hash>";
+
         return $"Undo: git worktree add <path> {hash} checks that commit out again.";
     }
 }

@@ -13,6 +13,7 @@ using Gitunia.App.Status;
 using Gitunia.App.Tabs;
 using Gitunia.App.Tabs.Models;
 using Gitunia.App.Tags;
+using Gitunia.App.Worktrees;
 using Gitunia.Core;
 using Gitunia.Core.Branches;
 using Gitunia.Core.Clipboard;
@@ -29,6 +30,7 @@ using Gitunia.Core.Shell;
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Tabs;
+using Gitunia.Core.Worktrees;
 using Gitunia.Git.Execution.Exceptions;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Watching;
@@ -64,6 +66,7 @@ public sealed class EffectRunner<TSession> : IDisposable
     private readonly RemoteEffectHandler _remotes;
     private readonly StashEffectHandler _stash;
     private readonly TagEffectHandler _tags;
+    private readonly WorktreeEffectHandler _worktrees;
     private readonly Action<Action> _postToUi;
     private readonly StatusReporter _statuses;
     private readonly StatusAgingTimer _statusAging;
@@ -100,6 +103,7 @@ public sealed class EffectRunner<TSession> : IDisposable
         _remotes = new RemoteEffectHandler(services.RemoteManager, host);
         _stash = new StashEffectHandler(services.StashWriter, host);
         _tags = new TagEffectHandler(services.Tags, host);
+        _worktrees = new WorktreeEffectHandler(services.Worktrees, services.Discovery, host);
         _pollOptions = pollOptions ?? PollOptions.Default;
         _warmTabLimit = Math.Max(1, warmTabLimit);
         _watcherOptions = watcherOptions ?? RepositoryWatcherOptions.Default;
@@ -223,6 +227,8 @@ public sealed class EffectRunner<TSession> : IDisposable
         RemoteEffect remote => new RemoteOperationFailed(remote.TabId, text),
         StashEffect stash => new StashOperationFailed(stash.TabId, text),
         TagEffect tag => new TagOperationFailed(tag.TabId, text, null),
+        LocateWorktreeEffect locate => new WorktreeLocateFailed(locate.TabId, text),
+        WorktreeEffect worktree => new WorktreeOperationFailed(worktree.TabId, text),
         _ => new EffectFailedCommand(text),
     };
 
@@ -289,6 +295,12 @@ public sealed class EffectRunner<TSession> : IDisposable
                 break;
             case TagEffect tag:
                 _tags.Handle(tag, _cancellation.TokenOf(tag.TabId));
+                break;
+            case LocateWorktreeEffect locate:
+                _worktrees.Locate(locate, _cancellation.TokenOf(locate.TabId));
+                break;
+            case WorktreeEffect worktree:
+                _worktrees.Handle(worktree, _cancellation.TokenOf(worktree.TabId));
                 break;
             default:
                 throw new UnhandledEffectException(effect);
