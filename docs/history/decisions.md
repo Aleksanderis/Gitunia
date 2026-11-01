@@ -1,6 +1,6 @@
 # Decisions history
 
-Archive of `docs/decisions.md`: decisions that are superseded, closed or purely historical, moved here word for word with their dated headings and in their original order. Not required reading; the live decisions are in `docs/decisions.md`. Nothing in this file is edited, only appended when `docs/decisions.md` is archived again (an archive move is accepted by `scripts/check-diff.sh` when the removed lines appear verbatim here in the same diff).
+Archive of `docs/decisions.md`: decisions that are superseded, closed or purely historical, moved here word for word with their dated headings and in their original order. Not required reading; the live decisions are in `docs/decisions.md`. Nothing in this file is edited, only appended when `docs/decisions.md` is archived again.
 
 ## 2026-10-10
 
