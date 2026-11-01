@@ -84,7 +84,7 @@ public sealed class PickerEffectHandler(
                 () => PathCandidates.List(effect.Query, effect.HomeDirectory, effect.BaseDirectory, files, token),
                 CancellationToken.None);
             var first = await Task.WhenAny(work, Task.Delay(timings.ScanningDelay, token)).ConfigureAwait(false);
-            if (first != work)
+            if (first != work && !cancellation.IsCancellationRequested)
             {
                 dispatcher.Post(new ShowScanningCommand(effect.Query));
             }
