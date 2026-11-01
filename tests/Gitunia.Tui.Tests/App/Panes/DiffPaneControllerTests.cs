@@ -1,3 +1,4 @@
+using Gitunia.App.Tabs;
 using System.Drawing;
 using System.Text;
 using Gitunia.App;
@@ -1134,7 +1135,7 @@ public class DiffPaneControllerTests
         private readonly UiPump _pump;
         private readonly KeyHolder _keys = new();
 
-        private DiffHarness(WorkspaceHost host, TabSession session, UiPump pump, TestRepository? ownedRepository, int screenHeight, int screenWidth)
+        private DiffHarness(WorkspaceHost host, TerminalTabSession session, UiPump pump, TestRepository? ownedRepository, int screenHeight, int screenWidth)
         {
             _pump = pump;
             Host = host;
@@ -1154,7 +1155,7 @@ public class DiffPaneControllerTests
 
         public WorkspaceHost Host { get; }
 
-        public TabSession Session { get; }
+        public TerminalTabSession Session { get; }
 
         public ListView DetailList { get; }
 
@@ -1178,11 +1179,12 @@ public class DiffPaneControllerTests
             host.Dispatch(new OpenRepositoryCommand(location));
             var tabId = host.Workspace.ActiveTabId!.Value;
             var pump = new UiPump(Token);
-            var session = new TabSession(
-                tabId,
-                GraphGlyphSet.Unicode,
-                new CommitDetailsStore(TestGit.Services.CommitDetails, location, pump.Post, TimeSpan.Zero),
-                new DiffStore(TestGit.Services.Diff, location, pump.Post, rowLimit));
+            var session = new TerminalTabSession(
+                new TabSessionParts(
+                    tabId,
+                    new CommitDetailsStore(TestGit.Services.CommitDetails, location, pump.Post, TimeSpan.Zero),
+                    new DiffStore(TestGit.Services.Diff, location, pump.Post, rowLimit)),
+                GraphGlyphSet.Unicode);
             await TestGit.Services.RepositoryLoader.RunAsync(location, session, host, new StatusChannel(), InlineUi.Post, session.Cancellation.Token);
             var harness = new DiffHarness(host, session, pump, owned, screenHeight, screenWidth);
             await harness.ShowDetailsOfAsync(session.Graph[0].Id);

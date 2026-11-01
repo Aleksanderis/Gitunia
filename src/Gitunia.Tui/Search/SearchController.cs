@@ -32,7 +32,7 @@ public sealed class SearchController(
     private static readonly TimeSpan DefaultBodyDebounce = TimeSpan.FromMilliseconds(250);
 
     // Touched by the UI thread and by the end of a run on a pool thread, so every access takes the lock.
-    private readonly Dictionary<TabSession, CancellationTokenSource> _bodySearches = [];
+    private readonly Dictionary<TerminalTabSession, CancellationTokenSource> _bodySearches = [];
 
     public string Notice { get; private set; } = string.Empty;
 
@@ -125,7 +125,7 @@ public sealed class SearchController(
         }
     }
 
-    private void CatchUp(TabSession session)
+    private void CatchUp(TerminalTabSession session)
     {
         if (session.Search.Query is null)
         {
@@ -142,7 +142,7 @@ public sealed class SearchController(
         }
     }
 
-    private void Dispatch(TabSession session, GraphSearchCommand command)
+    private void Dispatch(TerminalTabSession session, GraphSearchCommand command)
     {
         var update = GraphSearchReducer.Reduce(session.Search, command);
         session.Search = update.State;
@@ -172,7 +172,7 @@ public sealed class SearchController(
     }
 
     // Cancels the earlier question of this tab (a newer query, or a refresh) and asks again off the UI thread.
-    private void StartBodySearch(TabSession session, SearchBodiesEffect effect)
+    private void StartBodySearch(TerminalTabSession session, SearchBodiesEffect effect)
     {
         CancelBodySearch(session);
         var location = locationOf?.Invoke(session.TabId);
@@ -191,7 +191,7 @@ public sealed class SearchController(
         _ = RunBodySearchAsync(session, location, effect, source);
     }
 
-    private void CancelBodySearch(TabSession session)
+    private void CancelBodySearch(TerminalTabSession session)
     {
         CancellationTokenSource? running;
         lock (_bodySearches)
@@ -204,7 +204,7 @@ public sealed class SearchController(
     }
 
     // The run of a closed tab is cancelled by its session; its entry must not outlive it.
-    private void ForgetBodySearch(TabSession session, CancellationTokenSource source)
+    private void ForgetBodySearch(TerminalTabSession session, CancellationTokenSource source)
     {
         var owned = false;
         lock (_bodySearches)
@@ -224,7 +224,7 @@ public sealed class SearchController(
     }
 
     private async Task RunBodySearchAsync(
-        TabSession session,
+        TerminalTabSession session,
         RepositoryLocation location,
         SearchBodiesEffect effect,
         CancellationTokenSource source)
@@ -259,7 +259,7 @@ public sealed class SearchController(
         });
     }
 
-    private void ScanSlice(TabSession session, int generation)
+    private void ScanSlice(TerminalTabSession session, int generation)
     {
         var search = session.Search;
         if (search.Generation != generation || search.Query is null || session.Cancellation.IsCancellationRequested)

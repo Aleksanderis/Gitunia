@@ -506,7 +506,7 @@ public sealed class WorktreeActionsTests
                 _location,
                 action => action(),
                 TimeSpan.Zero);
-            var session = new TabSession(tabId, GraphGlyphSet.Unicode, details);
+            var session = new TerminalTabSession(new TabSessionParts(tabId, details), GraphGlyphSet.Unicode);
             await TestGit.Services.RepositoryLoader
                 .RunAsync(_location, session, _host, new StatusChannel(), InlineUi.Post, Token);
         }

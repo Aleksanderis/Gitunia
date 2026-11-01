@@ -40,7 +40,7 @@ public sealed class DiffPaneController : IPromptHandler
     private static readonly TimeSpan ContentFollowDelay = TimeSpan.FromMilliseconds(40);
 
     private readonly WorkspaceHost _host;
-    private readonly Func<TabSession?> _activeSession;
+    private readonly Func<TerminalTabSession?> _activeSession;
     private readonly ListView _detailList;
     private readonly ListView _diffList;
     private readonly Func<ScreenSize> _screenSize;
@@ -59,7 +59,7 @@ public sealed class DiffPaneController : IPromptHandler
     /// <param name="clipboard">Copies diff text.</param>
     public DiffPaneController(
         WorkspaceHost host,
-        Func<TabSession?> activeSession,
+        Func<TerminalTabSession?> activeSession,
         ListView detailList,
         ListView diffList,
         Action<KeyMode> setMode,
@@ -306,7 +306,7 @@ public sealed class DiffPaneController : IPromptHandler
             keys);
 
     /// <summary>Call when the shown tab changed: hooks the new tab's diff store and restores its cursor.</summary>
-    public void OnTabSwitched(TabSession? previous, TabSession? current)
+    public void OnTabSwitched(TerminalTabSession? previous, TerminalTabSession? current)
     {
         if (previous?.Diff is { } old)
         {
@@ -848,7 +848,7 @@ public sealed class DiffPaneController : IPromptHandler
 
     // The Files tab beside the tree shows what is under its cursor: a file's content (read off the UI thread; the old
     // content stays until the new one arrives), else a placeholder.
-    private void SyncContent(TabSession session, DiffSession diff)
+    private void SyncContent(TerminalTabSession session, DiffSession diff)
     {
         if (diff.ContentStore is not { } store)
         {
@@ -896,7 +896,7 @@ public sealed class DiffPaneController : IPromptHandler
         _refreshChrome();
     }
 
-    private FileTreeRow? TreeRowUnderCursor(TabSession session)
+    private FileTreeRow? TreeRowUnderCursor(TerminalTabSession session)
     {
         var rows = session.DetailSource.Content is { Tab: BottomTab.Files } content ? content.Tree : [];
         var index = _detailList.SelectedItem ?? -1;

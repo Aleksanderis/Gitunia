@@ -11,7 +11,7 @@ namespace Gitunia.Tui.Search;
 /// <param name="SetMode">Switches the input mode (Insert while the prompt is open).</param>
 /// <param name="Redraw">Redraws the status bar (the lists redraw themselves through their target).</param>
 public sealed record QuickJumpHost(
-    Func<TabSession?> ActiveSession,
+    Func<TerminalTabSession?> ActiveSession,
     Func<PaneKind> FocusedPane,
     Func<IJumpTarget?> OpenTarget,
     Action<KeyMode> SetMode,

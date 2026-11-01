@@ -756,7 +756,7 @@ public class WorkingDiffControllerTests
         private readonly List<Action> _pendingAnswers = [];
         private KeyMode _mode = KeyMode.Normal;
 
-        private Harness(TestRepository repository, WorkspaceHost host, TabSession session, UiPump pump)
+        private Harness(TestRepository repository, WorkspaceHost host, TerminalTabSession session, UiPump pump)
         {
             _repository = repository;
             _pump = pump;
@@ -810,7 +810,7 @@ public class WorkingDiffControllerTests
 
         public WorkspaceHost Host { get; }
 
-        public TabSession Session { get; }
+        public TerminalTabSession Session { get; }
 
         public StatusChannel Statuses { get; }
 
@@ -830,11 +830,12 @@ public class WorkingDiffControllerTests
             var host = new WorkspaceHost(Workspace.Empty);
             host.Dispatch(new OpenRepositoryCommand(location));
             var pump = new UiPump(Token);
-            var session = new TabSession(
-                host.Workspace.ActiveTabId!.Value,
-                GraphGlyphSet.Unicode,
-                new CommitDetailsStore(TestGit.Services.CommitDetails, location, pump.Post, TimeSpan.Zero),
-                workingDiffStore: new WorkingDiffStore(TestGit.Services.Diff, location, pump.Post));
+            var session = new TerminalTabSession(
+                new TabSessionParts(
+                    host.Workspace.ActiveTabId!.Value,
+                    new CommitDetailsStore(TestGit.Services.CommitDetails, location, pump.Post, TimeSpan.Zero),
+                    WorkingDiffStore: new WorkingDiffStore(TestGit.Services.Diff, location, pump.Post)),
+                GraphGlyphSet.Unicode);
             var harness = new Harness(repository, host, session, pump);
             await harness.LoadStatusAsync();
             harness.Handler.TryExecute(ActionIds.WorkingTreeOpen, null);

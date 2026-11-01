@@ -15,19 +15,19 @@ namespace Gitunia.Tui.App.Tabs;
 /// Keeps the graph list showing the active tab: swaps the list source when the active tab changes and restores the tab's
 /// own selection and scroll position, waiting for the streamed rows when the selected commit is not loaded yet.
 /// </summary>
-public sealed class GraphTabBinder(WorkspaceHost host, EffectRunner effects, ListView graph, GraphListSource emptySource, Action redraw)
+public sealed class GraphTabBinder(WorkspaceHost host, EffectRunner<TerminalTabSession> effects, ListView graph, GraphListSource emptySource, Action redraw)
 {
-    private TabSession? _goneSession;
+    private TerminalTabSession? _goneSession;
     private ImmutableArray<GitRef> _goneRefs;
     private bool _hasShown;
     private TabId? _shownTabId;
-    private TabSession? _shownSession;
+    private TerminalTabSession? _shownSession;
     private bool _restorePending;
     private int _itemBeforeReplace;
     private int _rowBeforeReplace;
 
     /// <summary>Raised when the shown tab changed, with the session that was shown and the one that is shown now (either may be null).</summary>
-    public event Action<TabSession?, TabSession?>? Switched;
+    public event Action<TerminalTabSession?, TerminalTabSession?>? Switched;
 
     /// <summary>Raised after rows were appended or the shown tab changed, so searches can look at the new rows.</summary>
     public event Action? GraphChanged;
@@ -88,7 +88,7 @@ public sealed class GraphTabBinder(WorkspaceHost host, EffectRunner effects, Lis
     }
 
     // The branches whose upstream is gone come from the tab's refs; rebuilt only when the refs were replaced.
-    private void ShowUpstreamGone(TabSession? session)
+    private void ShowUpstreamGone(TerminalTabSession? session)
     {
         if (session is null
             || host.Workspace.ActiveTab is not { } tab
@@ -104,7 +104,7 @@ public sealed class GraphTabBinder(WorkspaceHost host, EffectRunner effects, Lis
     }
 
     // The mark is part of the tab's state; the list source only draws it.
-    private void ShowCompareMark(TabSession? session)
+    private void ShowCompareMark(TerminalTabSession? session)
     {
         if (session is null
             || host.Workspace.ActiveTab is not { } tab

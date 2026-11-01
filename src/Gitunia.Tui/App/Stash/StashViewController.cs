@@ -14,7 +14,7 @@ namespace Gitunia.Tui.App.Stash;
 /// </summary>
 public sealed class StashViewController(
     WorkspaceHost host,
-    Func<TabSession?> activeSession,
+    Func<TerminalTabSession?> activeSession,
     Action reselectGraphCommit,
     Action refreshDetail,
     StatusChannel statuses)
@@ -45,10 +45,10 @@ public sealed class StashViewController(
     public bool IsShowing => activeSession() is { } session && IsShowingIn(session);
 
     /// <summary>The name of the stash the pane shows in <paramref name="session"/>, null for a commit.</summary>
-    public static string? ShownName(TabSession session) => IsShowingIn(session) ? session.StashView.Shown?.Name : null;
+    public static string? ShownName(TerminalTabSession session) => IsShowingIn(session) ? session.StashView.Shown?.Name : null;
 
     /// <summary>The graph-entry stand-in of the shown stash the detail rows are built for; null for none.</summary>
-    public static GraphEntry? ShownEntry(TabSession session)
+    public static GraphEntry? ShownEntry(TerminalTabSession session)
     {
         if (!IsShowingIn(session) || session.StashView.Shown is not { } stash
             || !ObjectId.TryParse(stash.CommitHash, out var commit))
@@ -126,6 +126,6 @@ public sealed class StashViewController(
         }
     }
 
-    private static bool IsShowingIn(TabSession session) =>
+    private static bool IsShowingIn(TerminalTabSession session) =>
         session.StashView.Shown is { } shown && session.Details.Current.Commit?.ToString() == shown.CommitHash;
 }

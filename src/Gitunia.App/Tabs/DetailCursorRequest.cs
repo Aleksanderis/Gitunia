@@ -1,6 +1,6 @@
 using Gitunia.Core.Workspaces.Tabs;
 
-namespace Gitunia.Tui.App.Details;
+namespace Gitunia.App.Tabs;
 
 /// <summary>What the detail pane showed before and shows now, for deciding where its cursor goes.</summary>
 /// <param name="PreviousShortHash">The commit the pane showed before.</param>

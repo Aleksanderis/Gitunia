@@ -1,5 +1,6 @@
 using Gitunia.App;
 using Gitunia.App.Loading.Commits;
+using Gitunia.App.Tabs;
 using Gitunia.Core.Clipboard;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Sidebar;
@@ -19,14 +20,18 @@ namespace Gitunia.Tui.Tests.App.Sidebar;
 /// <summary>A loaded tab with a sidebar handler wired to recorders instead of views.</summary>
 public sealed class SidebarHarness : IDisposable
 {
-    private readonly TabSession _session;
-    private readonly TabSession _emptySession;
+    private readonly TerminalTabSession _session;
+    private readonly TerminalTabSession _emptySession;
 
-    private SidebarHarness(WorkspaceHost host, TabSession session, SidebarListSource source, RepositoryLocation location)
+    private SidebarHarness(WorkspaceHost host, TerminalTabSession session, SidebarListSource source, RepositoryLocation location)
     {
         Host = host;
         _session = session;
-        _emptySession = new TabSession(session.TabId, GraphGlyphSet.Unicode, new CommitDetailsStore(TestGit.Services.CommitDetails, location, action => action(), TimeSpan.Zero));
+        _emptySession = new TerminalTabSession(
+            new TabSessionParts(
+                session.TabId,
+                new CommitDetailsStore(TestGit.Services.CommitDetails, location, action => action(), TimeSpan.Zero)),
+            GraphGlyphSet.Unicode);
         _emptySession.Complete();
         Source = source;
         Handler = new SidebarActionHandler(
@@ -71,7 +76,11 @@ public sealed class SidebarHarness : IDisposable
         var host = new WorkspaceHost(Workspace.Empty);
         host.Dispatch(new OpenRepositoryCommand(location));
         var tabId = host.Workspace.ActiveTabId!.Value;
-        var session = new TabSession(tabId, GraphGlyphSet.Unicode, new CommitDetailsStore(TestGit.Services.CommitDetails, location, action => action(), TimeSpan.Zero));
+        var session = new TerminalTabSession(
+            new TabSessionParts(
+                tabId,
+                new CommitDetailsStore(TestGit.Services.CommitDetails, location, action => action(), TimeSpan.Zero)),
+            GraphGlyphSet.Unicode);
 
         // Posting runs the action inline (serialized, like the UI thread would).
         await TestGit.Services.RepositoryLoader.RunAsync(location, session, host, new StatusChannel(), InlineUi.Post, session.Cancellation.Token);

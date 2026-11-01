@@ -2,6 +2,7 @@ using Gitunia.App;
 using Gitunia.App.Loading.Commits;
 using Gitunia.App.Loading.Diff;
 using Gitunia.App.Loading.Stash;
+using Gitunia.App.Tabs;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Sidebar;
 using Gitunia.Core.Status;
@@ -213,10 +214,10 @@ public class StashViewTests
                 new StashAwareDiffReader(TestGit.Services.Diff, TestGit.Services.StashDetails, view.Registry),
                 location,
                 Pump.Post);
-            Session = new TabSession(
-                tabId,
-                GraphGlyphSet.Unicode,
-                new CommitDetailsStore(
+            Session = new TerminalTabSession(
+                new TabSessionParts(
+                    tabId,
+                    new CommitDetailsStore(
                     new StashAwareCommitDetailsReader(
                         TestGit.Services.CommitDetails,
                         TestGit.Services.StashDetails,
@@ -224,7 +225,8 @@ public class StashViewTests
                     location,
                     Pump.Post,
                     TimeSpan.Zero),
-                stashView: view);
+                    StashView: view),
+                GraphGlyphSet.Unicode);
             Controller = new StashViewController(host, () => Session, () => Reselects++, () => { }, Statuses);
             Handler = new SidebarActionHandler(
                 host,
@@ -247,7 +249,7 @@ public class StashViewTests
 
         public WorkspaceHost Host { get; }
 
-        public TabSession Session { get; }
+        public TerminalTabSession Session { get; }
 
         public DiffStore Diff { get; }
 

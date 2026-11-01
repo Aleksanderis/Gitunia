@@ -489,7 +489,7 @@ public class PickActionsTests
     private sealed class Harness : IDisposable
     {
         private readonly WorkspaceHost _host = new(Workspace.Empty);
-        private readonly List<TabSession> _sessions = [];
+        private readonly List<TerminalTabSession> _sessions = [];
         private PickSelection _selection = new(null, []);
 
         private Harness(GitServices services)
@@ -541,10 +541,11 @@ public class PickActionsTests
                 TestContext.Current.CancellationToken);
             harness.Location = location;
             harness._host.Dispatch(new OpenRepositoryCommand(location));
-            var session = new TabSession(
-                harness.TabId,
-                GraphGlyphSet.Unicode,
-                new CommitDetailsStore(services.CommitDetails, location, action => action(), TimeSpan.Zero));
+            var session = new TerminalTabSession(
+                new TabSessionParts(
+                    harness.TabId,
+                    new CommitDetailsStore(services.CommitDetails, location, action => action(), TimeSpan.Zero)),
+                GraphGlyphSet.Unicode);
             harness._sessions.Add(session);
             await services.RepositoryLoader.RunAsync(
                 location,

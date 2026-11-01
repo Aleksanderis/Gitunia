@@ -1,5 +1,6 @@
 using Gitunia.App;
 using Gitunia.App.Loading.Commits;
+using Gitunia.App.Tabs;
 using Gitunia.Core.Clipboard;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Status;
@@ -138,12 +139,16 @@ public class ActionRouterTests
 
     private sealed class RouterHarness : IDisposable
     {
-        private readonly TabSession _session;
+        private readonly TerminalTabSession _session;
 
         public RouterHarness(bool isLoading)
         {
             var location = new RepositoryLocation(Path.GetTempPath(), Path.GetTempPath(), Path.GetTempPath(), false, false);
-            _session = new TabSession(new TabId(1), GraphGlyphSet.Unicode, new CommitDetailsStore(TestGit.Services.CommitDetails, location, action => action(), TimeSpan.Zero));
+            _session = new TerminalTabSession(
+                new TabSessionParts(
+                    new TabId(1),
+                    new CommitDetailsStore(TestGit.Services.CommitDetails, location, action => action(), TimeSpan.Zero)),
+                GraphGlyphSet.Unicode);
             var commits = Enumerable.Range(1, CommitCount).Select(number => CommitFactory.Commit(number, $"commit {number}", number == CommitCount ? [] : [number + 1])).ToArray();
             var graph = CommitFactory.Graph(commits);
             _session.Append(Enumerable.Range(0, graph.Count).Select(index => graph[index]).ToArray());
@@ -163,7 +168,7 @@ public class ActionRouterTests
 
         public int QuitCount { get; private set; }
 
-        public TabSession Session => _session;
+        public TerminalTabSession Session => _session;
 
         public ListView GraphList { get; }
 

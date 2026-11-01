@@ -10,7 +10,7 @@ namespace Gitunia.Tui.Input;
 /// <param name="SetMode">Switches the input mode (Insert while a prompt is open).</param>
 /// <param name="Redraw">Redraws the graph and the status bar.</param>
 public sealed record GraphViewHandle(
-    Func<TabSession?> ActiveSession,
+    Func<TerminalTabSession?> ActiveSession,
     Func<int> SelectedRow,
     Action<int> SelectRow,
     Action<KeyMode> SetMode,

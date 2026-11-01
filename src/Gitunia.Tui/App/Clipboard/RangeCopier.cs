@@ -10,7 +10,7 @@ namespace Gitunia.Tui.App.Clipboard;
 /// <param name="clipboard">Copies the text.</param>
 /// <param name="activeSession">The active tab's session, null when there is none.</param>
 /// <param name="workingTree">The active tab's working tree for the file lists, null when it has none; omitted where the lists have no ranges.</param>
-public sealed class RangeCopier(ClipboardCopier clipboard, Func<TabSession?> activeSession, Func<WorkingTreeState?>? workingTree = null)
+public sealed class RangeCopier(ClipboardCopier clipboard, Func<TerminalTabSession?> activeSession, Func<WorkingTreeState?>? workingTree = null)
 {
     private static readonly RangeCopyResult NothingToCopy = new(false, "Nothing to copy");
 
