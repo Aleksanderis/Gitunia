@@ -1,5 +1,6 @@
 using Gitunia.App.Loading.Commits;
 using Gitunia.App.Tabs;
+using Gitunia.App.Tests.Fakes;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Repositories.Models;
 using Xunit;

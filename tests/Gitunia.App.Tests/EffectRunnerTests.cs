@@ -1,5 +1,6 @@
 using Gitunia.App.Tabs;
 using Gitunia.App.Tabs.Models;
+using Gitunia.App.Tests.Fakes;
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
 using Gitunia.Git.Tests.Fixtures;

@@ -1,4 +1,5 @@
 using Gitunia.App.Loading.Commits;
+using Gitunia.App.Loading.Diff;
 using Gitunia.App.Tabs;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Repositories.Models;
@@ -36,5 +37,37 @@ public class TabSessionTests
         Assert.True(session.Source.ShowsCutMarker);
         session.ReplaceGraph([]);
         Assert.False(session.Source.ShowsCutMarker);
+    }
+
+    [Fact]
+    public void GivenWorkingDiff_WhenStatusReadUnchanged_ThenTheWorkingDiffIsInvalidated()
+    {
+        var location = new RepositoryLocation(Path.GetTempPath(), Path.GetTempPath(), Path.GetTempPath(), false, false);
+        var details = new CommitDetailsStore(TestGit.Services.CommitDetails, location, action => action(), TimeSpan.Zero);
+        var workingDiffStore = new WorkingDiffStore(TestGit.Services.Diff, location, action => action());
+        using var session = new TerminalTabSession(
+            new TabSessionParts(new TabId(1), details, WorkingDiffStore: workingDiffStore),
+            GraphGlyphSet.Unicode);
+        var generation = session.WorkingDiff!.Generation;
+
+        session.NotifyStatusRead();
+
+        Assert.Equal(generation + 1, session.WorkingDiff.Generation);
+    }
+
+    [Fact]
+    public void GivenTerminalSession_WhenDisposed_ThenTheBaseCancellationIsCancelled()
+    {
+        var location = new RepositoryLocation(Path.GetTempPath(), Path.GetTempPath(), Path.GetTempPath(), false, false);
+        var details = new CommitDetailsStore(TestGit.Services.CommitDetails, location, action => action(), TimeSpan.Zero);
+        var diffStore = new DiffStore(TestGit.Services.Diff, location, action => action());
+        var session = new TerminalTabSession(
+            new TabSessionParts(new TabId(1), details, diffStore),
+            GraphGlyphSet.Unicode);
+        var token = session.Cancellation.Token;
+
+        session.Dispose();
+
+        Assert.True(token.IsCancellationRequested);
     }
 }

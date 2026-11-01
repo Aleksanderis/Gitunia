@@ -1337,17 +1337,17 @@ public sealed class TuiApplication(
 
         var newScreenModel = screenModel
             with
-        {
-            RemoteBusy = RemoteIsBusy(),
-            Keys = _chipKeys,
-            SelectedName = FocusedSidebarName(),
-            MessageSeverity = CurrentMessageSeverity(),
-            MessageIsFresh = _statuses.IsFresh,
-            Hints = CurrentHints(),
-            RepeatPane = _repeat.Active?.Pane,
-            SearchLine = _prompts.Select(prompt => prompt.StatusLine).FirstOrDefault(line => line.Length > 0) ??
+            {
+                RemoteBusy = RemoteIsBusy(),
+                Keys = _chipKeys,
+                SelectedName = FocusedSidebarName(),
+                MessageSeverity = CurrentMessageSeverity(),
+                MessageIsFresh = _statuses.IsFresh,
+                Hints = CurrentHints(),
+                RepeatPane = _repeat.Active?.Pane,
+                SearchLine = _prompts.Select(prompt => prompt.StatusLine).FirstOrDefault(line => line.Length > 0) ??
                              PopupFallbackLine(),
-        };
+            };
 
         return newScreenModel;
     }
