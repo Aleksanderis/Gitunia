@@ -1,8 +1,8 @@
-using System.Globalization;
-using System.Text;
 using Gitunia.Core.Conflicts;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Workspaces.Tabs;
+using System.Globalization;
+using System.Text;
 using Gitunia.Git.Conflicts;
 using Gitunia.Git.Conflicts.Models;
 using Xunit;

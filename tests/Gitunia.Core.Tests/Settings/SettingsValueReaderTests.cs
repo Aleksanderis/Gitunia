@@ -1,8 +1,8 @@
 using Gitunia.Core.Config.Models;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Settings;
-using Gitunia.Core.Settings.Models;
 using Gitunia.Core.Themes;
+using Gitunia.Core.Settings.Models;
 using Xunit;
 
 namespace Gitunia.Core.Tests.Settings;

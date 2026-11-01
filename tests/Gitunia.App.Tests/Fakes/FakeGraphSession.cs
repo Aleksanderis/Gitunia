@@ -25,8 +25,6 @@ public sealed class FakeGraphSession(TabId tabId) : IGraphSession, IDisposable
 
     public int? TruncatedTotal { get; private set; }
 
-    public string LoadError { get; private set; } = string.Empty;
-
     public void NotifyStatusRead()
     {
     }
@@ -45,7 +43,6 @@ public sealed class FakeGraphSession(TabId tabId) : IGraphSession, IDisposable
     public void Fail(string message)
     {
         IsLoading = false;
-        LoadError = message;
         LoadFinished?.Invoke();
     }
 

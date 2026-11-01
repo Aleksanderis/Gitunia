@@ -176,7 +176,7 @@ jobs:
         run: dotnet build -c Release
       - name: Test (one project at a time)
         if: ${{ !(github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && needs.check.outputs.green == 'true') }}
-        # Not yet verified on the runner (#634). `dotnet test` on the solution runs the four assemblies at once, each with 8 xUnit threads, and the tests start
+        # Not yet verified on the runner (#634). `dotnet test` on the solution runs the five assemblies at once, each with 8 xUnit threads, and the tests start
         # thousands of git.exe processes. On the small runner (2-4 vCPU) that made `git init` wait over 30 s (run
         # 39954351890). Sequential projects keep the wall time about the same on a CPU-bound machine but halve the
         # time every git call waits (2 CPUs, local: Git.Tests 6m27 -> 2m43). The loop stops at the first failing
@@ -184,7 +184,7 @@ jobs:
         # Only OS-sensitive tests run here (#637): classes marked [Trait("Os", "Independent")] are proven by Linux
         # and skipped; an unmarked test still runs, so a forgotten mark costs time, never coverage.
         run: |
-          for project in Core Platform Git Tui; do
+          for project in Core Platform Git App Tui; do
             dotnet test "tests/Gitunia.$project.Tests" -c Release --no-build --filter "Os!=Independent" \
               --blame-hang-timeout 10m --blame-hang-dump-type none || exit 1
           done
@@ -242,7 +242,7 @@ jobs:
           watcher=$!
           trap 'kill "$watcher" 2>/dev/null || true' EXIT
           status=0
-          for project in Core Platform Git Tui; do
+          for project in Core Platform Git App Tui; do
             dotnet test "tests/Gitunia.$project.Tests" -c Release --no-build --filter "Os!=Independent" \
               --logger "console;verbosity=normal" --blame-hang-timeout 3m --blame-hang-dump-type none 2>&1 \
               | tee -a /tmp/test-out.log || status=1
