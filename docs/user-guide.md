@@ -6,6 +6,8 @@ How to install and use Gitunia. This guide covers the common paths only; for key
 
 Requirements: `git` 2.43 or newer on your `PATH`. Any terminal works; truecolor or 256 colours look best, with a fallback to 16 colours or plain styles (and ASCII when Unicode is missing).
 
+**From a .deb or .rpm package (linux-x64).** The draft releases also carry `gitunia_<version>_amd64.deb` and `gitunia-<version>-1.x86_64.rpm` (with `.sha256` files). They install only `/usr/bin/gitunia` and the licence under `/usr/share/doc/gitunia/` and depend on `git`. Debian, Ubuntu: `sudo apt install ./gitunia_<version>_amd64.deb`. Fedora: `sudo dnf install ./gitunia-<version>-1.x86_64.rpm`. Afterwards `gitunia --version` works from any directory.
+
 **From a release archive.** Release archives for linux-x64 and win-x64 are attached to the draft releases built on version tags (see `docs/architecture.md`; none are published yet while the project is in development). Unpack the archive and put the `gitunia` binary (`gitunia.exe` on Windows) on your `PATH`. The `.sha256` file next to the archive lets you check the download. `gitunia --version` prints the release it was built from (`0.0.0-dev` for a local build).
 
 **From source.** Install the .NET SDK version pinned in `global.json` (.NET 10) and the Native AOT build prerequisites (Linux: `clang` and the zlib development headers, e.g. `zlib1g-dev`; Windows: the Visual Studio "Desktop development with C++" workload). Then from the repository root:
