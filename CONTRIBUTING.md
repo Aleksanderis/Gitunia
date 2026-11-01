@@ -7,13 +7,20 @@
 - One problem per issue. For a bug, include `gitunia --version`, your OS and terminal, and the steps to reproduce.
 - Report security problems privately: see [SECURITY.md](SECURITY.md).
 
+## Where to start
+
+Issues labelled [good first issue](../../labels/good%20first%20issue) or [help wanted](../../labels/help%20wanted) are the best entry points. Comment on the issue before you start so work is not duplicated.
+
 ## Pull requests
 
 Open an issue first and wait for a reply that the change fits. Unsolicited large PRs or ones adding features outside the README lists may be closed.
 
 - Branch from `main`, one issue per PR, reference it (`Closes #<n>`).
 - Use Conventional Commits (`feat:`, `fix:`, `docs:`, `test:`, `refactor:`, `chore:`).
-- `dotnet build` and `dotnet test` must pass; warnings are errors.
+- `dotnet build` and `dotnet test` must pass; warnings are errors. CI does not run automatically on PRs: the maintainer starts it.
+- Add tests for behaviour you change or add. Git code is tested against real temporary repos, not mocks; see `docs/testing.md`.
+- Code style is enforced by `.editorconfig` during the build, so there is nothing separate to run.
+- Keep the PR focused and describe what changed and why. Expect review comments; the maintainer merges.
 - Keep Linux, Windows and macOS working, and the binary Native AOT compatible. See `docs/architecture.md` and `docs/testing.md`.
 
 ## Development setup
@@ -23,7 +30,7 @@ dotnet build
 dotnet test
 ```
 
-The .NET SDK version is pinned in `global.json`.
+The .NET SDK version is pinned in `global.json`. Source is in `src/` (`Gitunia.Core`, `Gitunia.Git`, `Gitunia.Platform`, `Gitunia.Tui`; layers in `docs/architecture.md`), tests in `tests/`. A Native AOT publish needs a C compiler; see [the user guide](docs/user-guide.md#install).
 
 ## Agent-assisted development
 

@@ -12,4 +12,4 @@ Gitunia is a local client that runs the `git` CLI and makes no network connectio
 
 ## Supported versions
 
-The latest release.
+The latest release. Until the first release is published, the `main` branch.
