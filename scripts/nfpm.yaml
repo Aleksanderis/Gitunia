@@ -12,6 +12,13 @@ homepage: https://github.com/Aleksanderis/Gitunia
 license: MIT
 depends:
   - git
+overrides:
+  deb:
+    depends:
+      - git (>= 1:2.43)
+  rpm:
+    depends:
+      - git >= 2.43
 contents:
   - src: ${BINARY}
     dst: /usr/bin/gitunia
