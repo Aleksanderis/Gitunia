@@ -38,7 +38,7 @@ effort: medium
 ## 4. Deliver
 
 - Build, test and (if relevant) AOT-publish; report real output, including failures.
-- Before the reviewer runs, run `scripts/check-diff.sh` (`docs/decisions.md` append-only and dated, test hygiene, agent author name and `Agent:` trailer on every commit) and fix what it prints, then walk the self-review list below. These are the findings reviewers raised again and again; every one you fix here is one round of review saved.
+- Before the reviewer runs, walk the self-review list below. These are the findings reviewers raised again and again; every one you fix here is one round of review saved.
 - Self-review list (each item answered before review, not after):
   - **`docs/decisions.md`.** Entry only under the rule in section 3 (non-obvious choice or an override; mark the superseded entry).
   - **Sweep after a rename, key move or behaviour change.** Grep the old term, key and wording across `src/`, `tests/`, `docs/` (`ux*.md`, `git-layer.md`, `architecture.md`), status hints, `ActionCatalog` titles, XML docs, test names and the bodies of related open issues. Stale text in docs, hints and comments was the most common should-fix.
@@ -60,9 +60,9 @@ effort: medium
 
 ## Agent identity
 
-All agents act through the owner's GitHub login, so every artifact must say which agent made it. Roles: `orchestrator` (the main session: picks issues, opens PRs, merges), `implementer` (a per-issue subagent: code, tests, fix commits) and `reviewer` (the `reviewer` subagent) and `readiness` (the `work-readiness` skill: reports and issue edits).
+All agents act through the owner's GitHub login, so every PR body and GitHub comment must say which agent made it (commits: see below). Roles: `orchestrator` (the main session: picks issues, opens PRs, merges), `implementer` (a per-issue subagent: code, tests, fix commits) and `reviewer` (the `reviewer` subagent) and `readiness` (the `work-readiness` skill: reports and issue edits).
 
-- **Commits:** author name is the role, email stays the owner's from git config (so GitHub still links the commit): `GIT_AUTHOR_NAME="Claude (implementer)" git commit ...`. The committer stays the owner. Add an `Agent: <role>` trailer above the `Co-Authored-By` line.
+- **Commits (soft convention, not enforced):** nice to have: author name is the role, email stays the owner's from git config (`GIT_AUTHOR_NAME="Claude (implementer)" git commit ...`), and/or an `Agent: <role>` trailer above the `Co-Authored-By` line.
 - **PR comments, reviews, issue comments:** start with a header line, end with a signature line, and include a hidden marker so they can be filtered:
 
   ```

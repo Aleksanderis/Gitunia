@@ -21,7 +21,7 @@ Improve the instructions from evidence. Never runs unattended; nothing changes u
 
 - Group findings by cause, not wording; count distinct PRs. Threshold: 3 for a prose rule, 2 for something a script, `.editorconfig` severity or test can enforce. One-offs and ideas the owner declined before (see the log) stay out.
 - For each group take the weakest fix that works:
-  1. **Enforce** in `scripts/check-diff.sh`, `.editorconfig`, an analyzer or a test.
+  1. **Enforce** in `.editorconfig`, an analyzer or a test.
   2. **Make an existing rule findable:** shorter, in the path-loaded file, or a `work-task` checklist item.
   3. **New rule:** one line, in the narrowest place loaded when it matters (`.claude/rules/` before `CLAUDE.md`).
 - A manual fix agents repeat by hand is a candidate for a script in `scripts/`.
@@ -42,6 +42,6 @@ One terminal report, no edits: a table of proposals (id, evidence PRs, action en
 
 - Only approved ids, as worded; anything new becomes a new proposal.
 - Owner-requested instruction changes: local `chore:` commit on `main` with an `Agent: orchestrator` trailer, not pushed (say so). Changes answering PR review comments go through a PR branch.
-- After a script or `.editorconfig` change run `dotnet build` and `scripts/check-diff.sh`; run a new check once over recent history to confirm it flags nothing clean.
+- After a script or `.editorconfig` change run `dotnet build`; run a new check once over recent history to confirm it flags nothing clean.
 - Append to `docs/retrospectives.md` (create with a one-line header): date, PR range, counts per recurring group, proposals applied or declined with the owner's reason, instruction file line counts.
 - Never weaken a rule or gate to make agents faster; if that seems right, tell the owner.

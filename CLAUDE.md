@@ -32,7 +32,7 @@ Design docs are in `docs/` (architecture, git-layer, ux, testing, roadmap, decis
 - Syncing unpushed local commits with `origin/main`: `git fetch` then `git rebase origin/main`. Never `git merge origin/main` or a bare `git pull` (merge commits are for PR merges only); if a merge slipped in, redo it as a rebase.
 - Changes that address PR review comments (code, docs, skills, CLAUDE.md alike) all go through a PR branch, never straight to `main`. The straight-to-`main` exception above applies only to standalone requests from the owner.
 - After a PR is merged, nothing of it remains: remove its worktree and delete the branch locally and on the remote (spike branches are the exception and stay).
-- Agent identity: every commit, PR body and GitHub comment says which agent (orchestrator, implementer, reviewer) produced it: author-name convention, `Agent:` trailer, header and signature. Details in the `work-task` skill, "Agent identity". Never add the "🤖 Generated with Claude Code" line to PR bodies or comments.
+- Agent identity: every commit, PR body and GitHub comment says which agent (orchestrator, implementer, reviewer) produced it: header, signature and hidden marker on GitHub comments; author name or `Agent:` trailer on commits is a soft convention. Details in the `work-task` skill, "Agent identity". Never add the "🤖 Generated with Claude Code" line to PR bodies or comments.
 - Commits: Conventional Commits (`feat:`, `fix:`, `docs:`, `test:`, `refactor:`, `chore:`, `ci:`), optional scope, imperative subject.
 
 ## Which doc to read
@@ -58,7 +58,6 @@ Run from the repo root:
 - Test: `dotnet test`
 - AOT publish (fails on any `IL*` warning): `dotnet publish src/Gitunia.Tui -c Release -o <outdir>`; smoke run: `<outdir>/gitunia`
 - Formatting is enforced by `.editorconfig` during build (`EnforceCodeStyleInBuild`).
-- Branch checks the build cannot see (decisions.md append-only and dated, test hygiene, agent author and trailer): `scripts/check-diff.sh` (instant; archive moves to `docs/history/decisions.md` are allowed; `scripts/test-check-diff.sh` tests the check). Run it before review; the reviewer does too.
 - Quality inspections the build cannot see (captured disposed or modified variables, unused members, redundant arguments): `scripts/inspect.sh` (or `scripts/inspect.ps1`) runs JetBrains inspectcode, the same engine as Rider. It is not part of the edit loop: run `scripts/inspect.sh --changed` (~10 s) after finishing a change that touches lambdas, events or `using`, and the full run (~40 s) once before opening a PR (the reviewer does the same). Fix what it reports; the tool is pinned in `dotnet-tools.json`.
 
 ## Working autonomously
