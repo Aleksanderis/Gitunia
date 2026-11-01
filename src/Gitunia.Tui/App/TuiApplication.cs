@@ -45,7 +45,8 @@ using Gitunia.Git.Watching.Models;
 using Gitunia.Platform;
 using Gitunia.Platform.ExternalTools;
 using Gitunia.Platform.Terminal;
-using Gitunia.Platform.Urls;
+using Gitunia.Core.ExternalTools;
+using Gitunia.Core.IssueTracker.Models;
 using Gitunia.Tui.App.Branches;
 using Gitunia.Tui.App.Clipboard;
 using Gitunia.Tui.App.Compare;
@@ -99,7 +100,7 @@ public sealed class TuiApplication(
     ConsoleCapabilities detectedCapabilities,
     IPlatform platform) : IDisposable, ITerminalSuspender, IShellEffects, IBranchSelectionSource,
     IGraphCommitSelector, IGraphSelectionSource, IOverlayCover, IPickSelectionSource,
-    IStashSelectionSource, IStashViewHost, ITerminalRetryHost, IWorktreeSelectionSource
+    IIssueLinkView, IStashSelectionSource, IStashViewHost, ITerminalRetryHost, IWorktreeSelectionSource
 {
     // Terminal.Gui's default of 25 iterations per second gave ~34 ms key latency (docs/internal/history/decisions.md); the idle rate saves CPU (#909).
     private const ushort ActiveIterationsPerSecond = 100;
@@ -375,10 +376,7 @@ public sealed class TuiApplication(
             () => _view.ScreenSize,
             ApplyPaneSizes,
             () => _workingDiff.IsZoomed);
-        _router.ExternalTools = new ExternalToolActions(
-            _externalToolRunner,
-            () => _host.Workspace.ActiveTab?.Location,
-            SelectedCommitHash);
+        _router.ExternalTools = new ExternalToolInput(_host, this);
         _router.Refresh = () => _host.Workspace.ActiveTabId is { } activeId && _effects.Refresh(activeId);
 
         _picker = new PickerInput(_host);
@@ -411,14 +409,7 @@ public sealed class TuiApplication(
             RefreshDetail,
             _diffPane.OpenFileContent);
         _router.FileTree = _fileTree;
-        _router.IssueLinks = new IssueLinkActions(
-            new UrlOpener(),
-            clipboard,
-            _statuses,
-            () => ActiveSession()?.DetailSource,
-            () => _view.Detail.SelectedItem,
-            IsMessageFocused,
-            InvokeOnUi);
+        _router.IssueLinks = new IssueLinkInput(_host, this);
         _whichKeyTimer = new WhichKeyTimer(OverlayController.WhichKeyDelay, InvokeOnUi);
         _overlays = new OverlayController(
             engine,
@@ -931,6 +922,28 @@ public sealed class TuiApplication(
     }
 
     bool IShellEffects.MoveCommitDraft(TabId missing, TabId target) => _commits.MoveDraft(missing, target);
+
+    void IShellEffects.LaunchExternalTool(LaunchExternalToolEffect effect)
+    {
+        var notice = _externalToolRunner.Launch(effect.Kind, effect.Location, effect.Commit);
+        if (notice.Length > 0)
+        {
+            _statuses.Warning(notice);
+        }
+    }
+
+    bool IIssueLinkView.IsMessageFocused() => IsMessageFocused();
+
+    ImmutableArray<IssueReference> IIssueLinkView.LinksOfSelectedRow()
+    {
+        var rows = ActiveSession()?.DetailSource?.Content.Rows;
+        if (_view.Detail.SelectedItem is { } row && rows is not null && row >= 0 && row < rows.Count)
+        {
+            return [.. rows[row].References ?? []];
+        }
+
+        return [];
+    }
 
     bool IShellEffects.FlushSession() => _persistence?.FlushSucceeded() ?? true;
 

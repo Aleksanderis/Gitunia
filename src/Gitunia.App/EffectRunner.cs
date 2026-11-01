@@ -5,6 +5,7 @@ using Gitunia.App.Creation;
 using Gitunia.App.Pick;
 using Gitunia.App.Rebase;
 using Gitunia.App.Integration;
+using Gitunia.App.IssueLinks;
 using Gitunia.App.Picker;
 using Gitunia.App.Reflog;
 using Gitunia.App.Settings;
@@ -22,6 +23,8 @@ using Gitunia.Core.Clipboard;
 using Gitunia.Core.Conflicts;
 using Gitunia.Core.Creation;
 using Gitunia.Core.Effects;
+using Gitunia.Core.ExternalTools;
+using Gitunia.Core.IssueLinks;
 using Gitunia.Core.Pick;
 using Gitunia.Core.Integration;
 using Gitunia.Core.Picker;
@@ -40,6 +43,7 @@ using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Core.Worktrees;
 using Gitunia.Git.Watching;
 using Gitunia.Git.Watching.Models;
+using Gitunia.Platform.Urls;
 
 namespace Gitunia.App;
 
@@ -65,6 +69,7 @@ public sealed partial class EffectRunner<TSession> : IDisposable
     private readonly BackgroundWork _background = new();
     private readonly CreationEffectHandler _creation;
     private readonly IntegrationEffectHandler _integration;
+    private readonly IssueLinkEffectHandler _issueLinks;
     private readonly BranchEffectHandler _branches;
     private readonly ConflictEffectHandler _conflicts;
     private readonly PickerEffectHandler _picker;
@@ -106,7 +111,8 @@ public sealed partial class EffectRunner<TSession> : IDisposable
         PollOptions? pollOptions = null,
         IShellEffects? shell = null,
         SettingsServices? settings = null,
-        PickerServices? picker = null)
+        PickerServices? picker = null,
+        IUrlOpener? urlOpener = null)
     {
         var pickerServices = picker ?? PickerServices.Default;
         _shell = shell ?? NoShellEffects.Instance;
@@ -124,6 +130,7 @@ public sealed partial class EffectRunner<TSession> : IDisposable
         _reflog = new ReflogEffectHandler(services.Reflog, host);
         _settings = settings is null ? null : new SettingsEffectHandler(settings, host);
         _integration = IntegrationEffectHandler.Create(services, host);
+        _issueLinks = new IssueLinkEffectHandler(urlOpener ?? new UrlOpener(), host);
         _remotes = new RemoteEffectHandler(services.RemoteManager, host);
         _stash = new StashEffectHandler(services.StashWriter, host);
         _sync = new SyncEffectHandler(services.Remote, services.RemoteManager, services.Ancestry, host);
@@ -293,6 +300,9 @@ public sealed partial class EffectRunner<TSession> : IDisposable
             case FlushSessionEffect flush:
                 _host.Dispatch(new SessionFlushed(_shell.FlushSession(), flush.Force));
                 break;
+            case LaunchExternalToolEffect tool:
+                _shell.LaunchExternalTool(tool);
+                break;
             case IntegrationEffect integration:
                 _integration.Handle(integration, _cancellation.TokenOf(integration.TabId));
                 break;
@@ -304,6 +314,9 @@ public sealed partial class EffectRunner<TSession> : IDisposable
                 break;
             case OfferTerminalRetryEffect offer:
                 _shell.OfferTerminalRetry(offer.TabId, offer.Noun, offer.Arguments);
+                break;
+            case OpenUrlEffect openUrl:
+                _issueLinks.Handle(openUrl);
                 break;
             case PickerEffect picker:
                 _picker.Handle(picker, _shutdown.Token);

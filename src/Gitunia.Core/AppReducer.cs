@@ -3,6 +3,8 @@ using Gitunia.Core.Conflicts;
 using Gitunia.Core.Creation;
 using Gitunia.Core.Picker;
 using Gitunia.Core.Effects;
+using Gitunia.Core.ExternalTools;
+using Gitunia.Core.IssueLinks;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Pick;
 using Gitunia.Core.Integration;
@@ -39,6 +41,8 @@ public static partial class AppReducer
         ConflictCommand conflict => ReduceConflict(state, conflict),
         CreationCommand creation => ReduceCreation(state, creation),
         EffectFailedCommand failed => EffectFailed(state, failed),
+        ExternalToolCommand tool => new AppUpdate(state, ExternalToolReducer.Reduce(tool, state.Workspace.ActiveTab)),
+        IssueLinkCommand link => new AppUpdate(state, IssueLinkReducer.Reduce(link)),
         PickCommand pick => ReducePick(state, pick),
         RebaseCommand rebase => ReduceRebase(state, rebase),
         RebaseEditorCommand editor => ReduceRebaseEditor(state, editor),
