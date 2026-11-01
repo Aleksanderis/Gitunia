@@ -1,3 +1,5 @@
+using Gitunia.App;
+using Gitunia.App.Settings;
 using Gitunia.App.Status;
 using Gitunia.Core.Config;
 using Gitunia.Core.Config.Models;
@@ -6,18 +8,20 @@ using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Mouse;
 using Gitunia.Core.Settings;
 using Gitunia.Core.Settings.Models;
+using Gitunia.Core.Shell;
 using Gitunia.Core.Status;
 using Gitunia.Tui.App.Config;
 using Gitunia.Tui.App.Settings;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Overlays;
 using Gitunia.Tui.Views;
-using Gitunia.Tui.Tests.Fakes;
+using Gitunia.Core;
+using Gitunia.Core.Effects;
 using Xunit;
 
 namespace Gitunia.Tui.Tests.App.Settings;
 
-public sealed class SettingsControllerTests : IDisposable
+public sealed class SettingsScreenInputTests : IDisposable
 {
     private readonly Harness _harness = new();
 
@@ -756,27 +760,29 @@ public sealed class SettingsControllerTests : IDisposable
     private sealed class Harness : IDisposable
     {
         private readonly UiPump _pump = new(TestContext.Current.CancellationToken);
-        private readonly TestShell _shell = new();
-        private int _pending;
+        private readonly Dispatcher _host;
+        private readonly SettingsEffectHandler _handler;
+        private readonly SettingsScreenInput _input;
 
         public Harness()
         {
             Root = Directory.CreateTempSubdirectory("gitunia-settings-").FullName;
             ConfigPath = Path.Combine(Root, "config", ConfigLoader.FileName);
-            Settings = new SettingsController(
-                new ConfigWriter(Path.Combine(Root, "config")),
-                new SettingsEnvironment(Root, Directory.Exists),
-                Statuses,
-                Post,
-                () => Size,
-                GraphGlyphSet.Unicode,
-                _shell.Host,
-                () => { },
-                Applied.Add,
-                Themes.Add,
-                LaunchEditor,
-                () => KeyReferenceBuilder.Build(Keymap),
-                cancellationToken: TestContext.Current.CancellationToken);
+            var environment = new SettingsEnvironment(Root, Directory.Exists);
+            var settings = SettingsSession.Empty with { Environment = environment };
+            _host = new Dispatcher(AppState.Empty with { Shell = ShellState.Empty with { Settings = settings } }, _pump);
+            Statuses = new StatusReporter(_host);
+            _handler = new SettingsEffectHandler(
+                new SettingsServices(
+                    new ConfigWriter(Path.Combine(Root, "config")),
+                    environment,
+                    SettingsRegistry.All,
+                    Keymap),
+                _host);
+            _input = new SettingsScreenInput(_host, GraphGlyphSet.Unicode);
+            Settings = new SettingsFacade(_host, _input);
+            _host.EffectRaised += Route;
+            Size = new ScreenSize(100, 30);
         }
 
         public string Root { get; }
@@ -787,17 +793,28 @@ public sealed class SettingsControllerTests : IDisposable
 
         public string ConfigPath { get; }
 
-        public SettingsController Settings { get; }
+        public SettingsFacade Settings { get; }
 
-        public StatusReporter Statuses => _shell.Statuses;
+        public StatusReporter Statuses { get; }
 
         public List<ConfigOptions> Applied { get; } = [];
 
         public List<ThemeChoice> Themes { get; } = [];
 
-        public KeyMode Mode => _shell.Mode;
+        public KeyMode Mode => _host.State.Shell.Mode;
 
-        public ScreenSize Size { get; set; } = new(100, 30);
+        public ScreenSize Size
+        {
+            get;
+            set
+            {
+                field = value;
+                _host.Dispatch(new ScreenResizedCommand(
+                    new ScreenExtent(value.Width, value.Height),
+                    _host.Clock.GetUtcNow()));
+                _input.OnScreenResized();
+            }
+        }
 
         public string EditorFile { get; private set; } = string.Empty;
 
@@ -849,12 +866,8 @@ public sealed class SettingsControllerTests : IDisposable
             await PumpAsync();
         }
 
-        // Runs the posted results of the file work started so far (one post per read or write).
-        public async Task PumpAsync()
-        {
-            await _pump.RunPostsAsync(Math.Max(1, _pending));
-            _pending = 0;
-        }
+        // Runs the posted results of the file work until the state says no read or write is running any more.
+        public Task PumpAsync() => _pump.RunUntilAsync(() => !_host.State.Shell.Settings.IsBusy);
 
         public void Dispose()
         {
@@ -864,14 +877,57 @@ public sealed class SettingsControllerTests : IDisposable
             }
         }
 
-        private void Post(Action action) => _pump.Post(action);
-
-        private string LaunchEditor(string file, Action returned)
+        // What the effect runner does with the effects of the settings screen, with the shell recorded.
+        private void Route(AppEffect effect)
         {
-            EditorFile = file;
-            EditorReturned = returned;
+            switch (effect)
+            {
+                case SettingsEffect file:
+                    _handler.Handle(file, TestContext.Current.CancellationToken);
+                    break;
+                case ApplySettingsOptionsEffect options:
+                    Applied.Add(options.Options);
+                    break;
+                case ApplySettingsThemeEffect theme:
+                    Themes.Add(theme.Theme);
+                    break;
+                case OpenConfigEditorEffect:
+                    EditorFile = ConfigPath;
+                    EditorReturned = () => _host.Dispatch(new SettingsEditorClosed());
+                    if (EditorNotice.Length > 0)
+                    {
+                        Statuses.Warning(EditorNotice);
+                    }
 
-            return EditorNotice;
+                    break;
+                case SetKeyModeEffect mode:
+                    _host.Dispatch(new SetKeyModeCommand(mode.Mode));
+                    break;
+                case PostStatusEffect post:
+                    _host.Dispatch(new StatusPostedCommand(post.Text, post.Severity, _host.Clock.GetUtcNow()));
+                    break;
+            }
         }
+    }
+
+    // The screen as the tests read it: the input class over the state in the dispatcher.
+    private sealed class SettingsFacade(Dispatcher host, SettingsScreenInput input)
+    {
+        public bool IsOpen => host.State.Shell.Settings.IsOpen;
+
+        public SettingsState? State => host.State.Shell.Settings.Screen;
+
+        public OverlayFrame? CurrentFrame() => input.CurrentFrame();
+
+        public bool TryExecute(ActionId action, int? count) => input.TryExecute(action, count);
+
+        public bool HandleTextKey(KeyEvent key) => input.HandleTextKey(key);
+
+        public string? OnLineClicked(int line, int column, out bool handled) =>
+            input.OnLineClicked(line, column, out handled);
+
+        public void FocusColumnAt(int column) => input.FocusColumnAt(column);
+
+        public void OnScreenResized() => input.OnScreenResized();
     }
 }

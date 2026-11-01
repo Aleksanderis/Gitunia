@@ -1,4 +1,6 @@
 using Gitunia.Core.Clipboard;
+using Gitunia.Core.Config.Models;
+using Gitunia.Core.Reflog;
 using Gitunia.Core.Workspaces.Tabs;
 
 namespace Gitunia.App;
@@ -13,6 +15,22 @@ public sealed class NoShellEffects : IShellEffects
     }
 
     public void OfferTerminalRetry(TabId tabId, string noun, IReadOnlyList<string> arguments)
+    {
+    }
+
+    public void StartReflogEntryAction(ReflogEntryActionEffect effect)
+    {
+    }
+
+    public void ApplyOptions(ConfigOptions options)
+    {
+    }
+
+    public void ApplyTheme(ThemeChoice theme)
+    {
+    }
+
+    public void OpenConfigEditor()
     {
     }
 }
