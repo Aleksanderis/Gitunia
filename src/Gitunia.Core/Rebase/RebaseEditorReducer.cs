@@ -13,10 +13,11 @@ namespace Gitunia.Core.Rebase;
 /// <summary>
 /// The interactive rebase's todo editor (ux-workflows.md, workflow 3, "Interactive rebase") as pure transitions
 /// <c>(session, command, context) -> (session, effects)</c>. <c>&lt;space&gt;bri</c> reads the commits the target does
-/// not have and opens a modal list of them in replay order. Each commit gets an action (pick, squash, fixup, drop), commits move up and
-/// down, a reword opens the multi-line message editor, and <c>Enter</c> asks for a Confirm that names what is kept and
-/// dropped and the undo, then hands the todo to the engine. A stop on conflicts is the in-progress rebase of workflow 4.
-/// While the editor is open it consumes every action; the Confirm opens on top of it, so declining keeps the todo.
+/// not have and opens a modal list of them in replay order. Each commit gets an action (pick, reword, squash, fixup,
+/// drop), commits move up and down, a reword opens the multi-line message editor, and <c>Enter</c> asks for a Confirm
+/// that names what is kept and dropped and the undo, then hands the todo to the engine. A stop on conflicts is the
+/// in-progress rebase of workflow 4. While the editor is open it consumes every action; the Confirm opens on top of
+/// it, so declining keeps the todo.
 /// </summary>
 public static class RebaseEditorReducer
 {

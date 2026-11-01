@@ -29,7 +29,8 @@ public sealed partial class EffectRunner<TSession>
     {
         try
         {
-            await _background.RunAsync(() => LoadIssueLinksAsync(session, location, token), token).ConfigureAwait(false);
+            await _background.RunAsync(() => LoadIssueLinksAsync(session, location, token), token)
+                .ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
@@ -76,7 +77,9 @@ public sealed partial class EffectRunner<TSession>
 
     private void StartActiveTabLoad()
     {
-        if (_pendingLoads.Count > 0 && _host.Workspace.ActiveTabId is { } active && _pendingLoads.Remove(active, out var start))
+        if (_pendingLoads.Count > 0
+            && _host.Workspace.ActiveTabId is { } active
+            && _pendingLoads.Remove(active, out var start))
         {
             start();
         }

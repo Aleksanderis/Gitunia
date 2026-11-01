@@ -36,7 +36,7 @@ public sealed class RebaseEditorEffectHandler(
         {
             result = await WorkAsync(effect, token).ConfigureAwait(false);
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (token.IsCancellationRequested)
         {
             result = Cancelled(effect);
         }
@@ -44,7 +44,8 @@ public sealed class RebaseEditorEffectHandler(
         {
             result = new RebaseEditorReadFailed(effect.TabId, exception.Message, StatusSeverity.Warning);
         }
-        catch (Exception exception) when (exception is RebaseRangeException or RebaseEnvironmentException)
+        catch (Exception exception) when (effect is RunInteractiveRebaseEffect
+            && exception is RebaseRangeException or RebaseEnvironmentException)
         {
             // Nothing ran: the todo comes back so the work of editing it is not lost.
             var run = (RunInteractiveRebaseEffect)effect;
