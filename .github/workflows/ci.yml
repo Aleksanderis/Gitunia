@@ -18,7 +18,8 @@ permissions:
 
 # Release packaging (#48): on a v* tag the AOT binaries of both legs are archived by scripts/package.sh and attached to
 # a draft GitHub release by the `release` job. The `check` job (#937) looks for a green full dispatch run on the tagged
-# commit: if there is one the tag run skips build and tests (#899), else it builds and tests itself. It never waits. macOS and linux-arm64 binaries follow with their CI legs (#455).
+# commit: if there is one the tag run skips build and tests (#899), else it builds and tests itself. It never waits.
+# macOS and linux-arm64 binaries follow with their CI legs (#455).
 
 concurrency:
   group: ci-${{ github.ref }}-${{ inputs.platform }}
