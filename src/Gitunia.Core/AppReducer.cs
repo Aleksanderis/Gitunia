@@ -1,5 +1,7 @@
 using Gitunia.Core.Branches;
 using Gitunia.Core.Effects;
+using Gitunia.Core.Integration;
+using Gitunia.Core.Operations;
 using Gitunia.Core.Prompts;
 using Gitunia.Core.Reflog;
 using Gitunia.Core.Settings;
@@ -27,6 +29,7 @@ public static class AppReducer
     {
         BranchCommand branch => ReduceBranch(state, branch),
         EffectFailedCommand failed => EffectFailed(state, failed),
+        IntegrationCommand integration => ReduceIntegration(state, integration),
         ReflogCommand reflog => ReduceReflog(state, reflog),
         SettingsCommand settings => ReduceSettings(state, settings),
         RemoteCommand remote => ReduceRemote(state, remote),
@@ -98,6 +101,27 @@ public static class AppReducer
         var shell = state.Shell with { Settings = update.Session };
 
         return new AppUpdate(state with { Shell = shell }, update.Effects);
+    }
+
+    // A result or answer for a tab that was closed meanwhile is dropped, like a late TabCommand.
+    private static AppUpdate ReduceIntegration(AppState state, IntegrationCommand command)
+    {
+        if (state.Workspace.FindTab(command.TabId) is not { } tab)
+        {
+            return new AppUpdate(state, []);
+        }
+
+        var busy = tab.Running.IsRunning(RunningOperationKind.Integration);
+        var conflicts = OperationBannerBuilder.ConflictCount(tab.WorkingTree);
+        var context = new IntegrationContext(tab.Id, tab.Location, tab.Head, tab.Operation, conflicts, busy);
+        var effects = IntegrationReducer.Reduce(command, context);
+        var running = tab.Running.Apply(tab.Id, command, effects);
+        if (Equals(running, tab.Running))
+        {
+            return new AppUpdate(state, effects);
+        }
+
+        return new AppUpdate(WithTab(state, tab with { Running = running }), effects);
     }
 
     // A result or answer for a tab that was closed meanwhile is dropped, like a late TabCommand.

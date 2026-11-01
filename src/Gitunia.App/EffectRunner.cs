@@ -4,6 +4,7 @@ using Gitunia.App.Loading.Commits;
 using Gitunia.App.Loading.Diff;
 using Gitunia.App.Loading.Stash;
 using Gitunia.App.Loading.Trees;
+using Gitunia.App.Integration;
 using Gitunia.App.Reflog;
 using Gitunia.App.Settings;
 using Gitunia.App.Remotes;
@@ -16,6 +17,7 @@ using Gitunia.Core;
 using Gitunia.Core.Branches;
 using Gitunia.Core.Clipboard;
 using Gitunia.Core.Effects;
+using Gitunia.Core.Integration;
 using Gitunia.Core.Prompts;
 using Gitunia.Core.Reflog;
 using Gitunia.Core.Settings;
@@ -54,6 +56,7 @@ public sealed class EffectRunner<TSession> : IDisposable
     private readonly IShellEffects _shell;
     private readonly TabCancellation _cancellation = new();
     private readonly BackgroundWork _background = new();
+    private readonly IntegrationEffectHandler _integration;
     private readonly BranchEffectHandler _branches;
     private readonly ReflogEffectHandler _reflog;
     private readonly SettingsEffectHandler? _settings;
@@ -93,6 +96,7 @@ public sealed class EffectRunner<TSession> : IDisposable
         _branches = new BranchEffectHandler(services.Branches, host);
         _reflog = new ReflogEffectHandler(services.Reflog, host);
         _settings = settings is null ? null : new SettingsEffectHandler(settings, host);
+        _integration = IntegrationEffectHandler.Create(services, host);
         _remotes = new RemoteEffectHandler(services.RemoteManager, host);
         _stash = new StashEffectHandler(services.StashWriter, host);
         _tags = new TagEffectHandler(services.Tags, host);
@@ -212,6 +216,7 @@ public sealed class EffectRunner<TSession> : IDisposable
     // A feature's effect fails with that feature's result command, so its running flag is cleared.
     private static AppCommand FailureOf(AppEffect effect, string text) => effect switch
     {
+        IntegrationEffect integration => new IntegrationFailed(integration.TabId, text),
         BranchEffect branch => new BranchOperationFailed(branch.TabId, text),
         ReadReflogEffect => new ReflogReadFailed(text),
         SettingsEffect => new SettingsOperationFailed(text),
@@ -233,6 +238,9 @@ public sealed class EffectRunner<TSession> : IDisposable
                 break;
             case CopyToClipboardEffect copy:
                 _shell.CopyToClipboard(copy);
+                break;
+            case IntegrationEffect integration:
+                _integration.Handle(integration, _cancellation.TokenOf(integration.TabId));
                 break;
             case LoadRepositoryEffect load:
                 StartLoad(load);

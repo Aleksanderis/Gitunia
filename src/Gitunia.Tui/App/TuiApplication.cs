@@ -339,9 +339,9 @@ public sealed class TuiApplication(
         _effects.IsTabBusy = tabId => _activity.IsBusy(tabId) || _remote.IsRunning(tabId);
         _router.Remote = _remote;
         _router.RemoteManagement = new RemoteManagementActions(_host, this, _remote);
-        _reset = CreateReset(operationGate);
+        _reset = new ResetActions(_host, this);
         _router.Reset = _reset;
-        _router.Merge = CreateMerge(operationGate);
+        _router.Merge = new MergeActions(_host, this);
         _router.Rebase = CreateRebase(operationGate);
         _pick = CreatePick(operationGate);
         _mainline = new MainlineOverlayTracker(
@@ -368,7 +368,7 @@ public sealed class TuiApplication(
         _router.Worktrees = _worktrees;
         _router.WorktreeSwitch = CreateWorktreeSwitch(operationGate, sidebarSource);
         _worktrees.OpenWorktree = _router.WorktreeSwitch.OpenPath;
-        _router.Operations = CreateOperations(operationGate);
+        _router.Operations = new OperationActions(_host);
         _push = CreatePush();
         _router.Push = _push;
         _remote.PushRejected = _push.OfferForce;
@@ -995,16 +995,6 @@ public sealed class TuiApplication(
             arguments,
             () => _host.Workspace.FindTab(tabId)?.Running.IsRunning(RunningOperationKind.Tags) == true);
 
-    private MergeActions CreateMerge(TabOperationGate gate) => new(
-        _host,
-        services.Merge,
-        _statuses,
-        InvokeOnUi,
-        tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None,
-        tabId => _effects.Refresh(tabId, false),
-        BranchSelectionNow,
-        gate);
-
     private PickActions CreatePick(TabOperationGate gate) => new(
         _host,
         services.Pick,
@@ -1042,19 +1032,6 @@ public sealed class TuiApplication(
 
         return new PickSelection(null, PickRange.Hashes(graph, range));
     }
-
-    private ResetActions CreateReset(TabOperationGate gate) => new(
-        _host,
-        services.Reset,
-        services.Status,
-        new RepositoryOperationDetector(),
-        _statuses,
-        InvokeOnUi,
-        tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None,
-        tabId => _effects.Refresh(tabId, false),
-        _view.RefreshChrome,
-        BranchSelectionNow,
-        gate);
 
     private RebaseActions CreateRebase(TabOperationGate gate) => new(
         _host,
@@ -1121,15 +1098,6 @@ public sealed class TuiApplication(
         tabId => _effects.Refresh(tabId, false),
         _view.RefreshChrome,
         BranchSelectionNow);
-
-    private OperationController CreateOperations(TabOperationGate gate) => new(
-        _host,
-        services.OperationWriter,
-        _statuses,
-        InvokeOnUi,
-        tabId => _effects.Refresh(tabId, false),
-        tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None,
-        gate);
 
     private WorktreeActions CreateWorktrees(TabOperationGate gate, SidebarListSource sidebarSource) => new(
         _host,
@@ -1895,7 +1863,6 @@ public sealed class TuiApplication(
             _openPrompt,
             CreateQuickRebase(gate),
             _push,
-            _reset,
             _pick,
             new RefJumpController(handle, () => _host.Workspace.ActiveTab?.Refs ?? []),
             new SearchController(

@@ -1,4 +1,4 @@
-namespace Gitunia.Tui.App.Merge;
+namespace Gitunia.Core.Integration;
 
 /// <summary>What one merge acts on, fixed when the key is pressed.</summary>
 /// <param name="Revision">What is passed to git: a full branch ref or a commit hash.</param>
