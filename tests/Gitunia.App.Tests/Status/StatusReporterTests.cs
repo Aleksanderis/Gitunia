@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using Gitunia.App.Status;
 using Gitunia.App.Tests.Fakes;
 using Gitunia.Core;
@@ -95,13 +96,13 @@ public class StatusReporterTests
     {
         var host = new Dispatcher(AppState.Empty);
         using var timer = new StatusAgingTimer(host);
-        var changes = 0;
-        host.Changed += () => Interlocked.Increment(ref changes);
+        var changes = new StrongBox<int>();
+        host.Changed += () => Interlocked.Increment(ref changes.Value);
 
         timer.Schedule(TimeSpan.FromMilliseconds(50));
         timer.Schedule(TimeSpan.FromMilliseconds(10));
         await Task.Delay(TimeSpan.FromMilliseconds(300), TestContext.Current.CancellationToken);
 
-        Assert.Equal(1, Volatile.Read(ref changes));
+        Assert.Equal(1, Volatile.Read(ref changes.Value));
     }
 }

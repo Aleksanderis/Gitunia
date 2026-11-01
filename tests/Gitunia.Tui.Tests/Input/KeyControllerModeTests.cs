@@ -3,6 +3,9 @@ using Gitunia.App.Shell;
 using Gitunia.Core;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
+using Gitunia.Core.Overlays;
+using Gitunia.Core.Shell;
+using Gitunia.Core.Status;
 using Gitunia.Tui.Input;
 using Terminal.Gui.Input;
 using Xunit;
@@ -50,7 +53,7 @@ public class KeyControllerModeTests
     {
         _keys.Handle(new Key('g'), DefaultKeymap.GraphView);
 
-        _host.Dispatch(new Gitunia.Core.Shell.StatusPostedCommand("x", Gitunia.Core.Status.StatusSeverity.Info, _host.Clock.GetUtcNow()));
+        _host.Dispatch(new StatusPostedCommand("x", StatusSeverity.Info, _host.Clock.GetUtcNow()));
 
         Assert.True(_keys.State.HasPending);
     }
@@ -58,9 +61,9 @@ public class KeyControllerModeTests
     [Fact]
     public void GivenAConfirmDialogAsked_WhenTheShellOpensIt_ThenTheControllerIsInConfirmMode()
     {
-        _host.Dispatch(new Gitunia.Core.Shell.ConfirmRequestedCommand(
-            new Gitunia.Core.Overlays.ConfirmPrompt("Delete", ["Delete x?"], "No undo.", "Delete"),
-            new Gitunia.Core.Shell.RunActionCommand(() => { }),
+        _host.Dispatch(new ConfirmRequestedCommand(
+            new ConfirmPrompt("Delete", ["Delete x?"], "No undo.", "Delete"),
+            new RunActionCommand(() => { }),
             null));
 
         Assert.Equal(KeyMode.Confirm, _keys.Mode);

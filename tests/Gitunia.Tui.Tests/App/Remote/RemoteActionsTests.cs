@@ -442,7 +442,7 @@ public class RemoteActionsTests
 
         public List<ConfirmPrompt> Prompts => _shell.Prompts;
 
-        public bool Answer() => _shell.Answer();
+        public void Answer() => _shell.Answer();
 
         public List<string> TerminalCalls { get; } = [];
 

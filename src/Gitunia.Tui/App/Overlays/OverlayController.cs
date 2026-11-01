@@ -67,7 +67,7 @@ public sealed class OverlayController
     private bool _shellChanged;
     private ConfirmDialog? _shownConfirm;
     private OutputOverlay? _shownOutput;
-    private StatusLog _seenStatus = StatusLog.Empty;
+    private StatusLog _seenStatus;
 
     /// <param name="engine">The keymap engine (its table feeds the help and the palette).</param>
     /// <param name="keys">The key controller whose mode this controller switches.</param>
