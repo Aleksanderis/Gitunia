@@ -21,12 +21,11 @@ namespace Gitunia.Tui.App.Details;
 /// </summary>
 /// <param name="host">The state and the commands.</param>
 /// <param name="detailList">The list of the detail pane: it owns the cursor and shows the rows of the active tab.</param>
-public sealed class FileTreeInput(Dispatcher host, ListView detailList) : IPromptHandler
+public sealed class FileTreeInput(Dispatcher host, ListView detailList)
+    : IActionHandler, ITextKeyHandler, IPromptDisplay
 {
     private const string FilterLabel = "/";
     private const string AppliedFilterLabel = "filter: ";
-
-    public string Notice => string.Empty;
 
     public string StatusLine
     {
@@ -91,10 +90,6 @@ public sealed class FileTreeInput(Dispatcher host, ListView detailList) : IPromp
 
         // Insert mode swallows every key, so a stray one never moves the list or fires a binding.
         return true;
-    }
-
-    public void OnGraphChanged()
-    {
     }
 
     private bool ExecuteInFiles(RepositoryState tab, ActionId action)

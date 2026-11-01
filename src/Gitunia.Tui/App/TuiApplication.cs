@@ -15,9 +15,9 @@ using Gitunia.Core.Conflicts;
 using Gitunia.Core.Details;
 using Gitunia.Core.FileTree;
 using Gitunia.Core.Graph;
+using Gitunia.Core.Input;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
-using Gitunia.Core.Keymap.Repeat;
 using Gitunia.Core.Mouse;
 using Gitunia.Core.Operations;
 using Gitunia.Core.Overlays;
@@ -102,7 +102,7 @@ public sealed class TuiApplication(
     IPlatform platform) : IDisposable, ITerminalSuspender, IShellEffects, IBranchSelectionSource,
     IGraphCommitSelector, IGraphSelectionSource, IOverlayCover, IPickSelectionSource,
     IIssueLinkView, IStashSelectionSource, IStashViewHost, ITerminalRetryHost, IWorktreeSelectionSource,
-    ICompareSource, IQuickJumpHost, ISidebarLayout, IActiveSessions, IPaneChrome, IActionRoute
+    ICompareSource, IQuickJumpHost, ISidebarLayout, IActiveSessions, IPaneChrome, IInputFocusSource, IConflictCover
 {
     // Terminal.Gui's default of 25 iterations per second gave ~34 ms key latency (docs/internal/history/decisions.md); the idle rate saves CPU (#909).
     private const ushort ActiveIterationsPerSecond = 100;
@@ -123,14 +123,20 @@ public sealed class TuiApplication(
     private WorktreeOverviewPoller? _worktreePoller;
     private SidebarListSource? _sidebarSource;
     private MainView _view = null!;
-    private ActionRouter _router = null!;
+    private readonly InputHandlers _inputHandlers = new();
+    private ActionInput _actionInput = null!;
+    private ActionExecutor _actions = null!;
+    private FocusedKeymapView _focusedView = null!;
+    private CompareInput _compare = null!;
+    private PaneSizeInput _paneSizes = null!;
     private KeyController _keys = null!;
     private RepeatController _repeat = null!;
     private MouseController _mouse = null!;
     private long _overlayClickTicks = long.MinValue / 2;
     private VisualRangeInput _visual = null!;
     private RangeCopier _rangeCopier = null!;
-    private IReadOnlyList<IPromptHandler> _prompts = [];
+    private IReadOnlyList<IPromptDisplay> _promptDisplays = [];
+    private IReadOnlyList<IGraphObserver> _graphObservers = [];
     private SidebarInput _sidebar = null!;
     private StashViewController _stashView = null!;
     private PaneKind _appliedFocus = PaneKind.Graph;
@@ -235,6 +241,7 @@ public sealed class TuiApplication(
             ConfigStartup.DefaultLabelCaps(_capabilities));
         _host = new Dispatcher(InitialState(), _uiInvoker);
         _statuses = new StatusReporter(_host);
+        _actionInput = new ActionInput(_host, this);
         _sessionFactory = new TerminalTabSessionFactory(glyphs);
         _effects = new EffectRunner<TerminalTabSession>(
             services,
@@ -270,22 +277,28 @@ public sealed class TuiApplication(
             new DiffListSource(glyphs),
             new StateMessageBoxPort(_host));
 
-        var commits = new CommitMessageInput(_host, this);
+        var commits = new CommitMessageInput(_host, _actionInput);
         var branches = new BranchActions(_host, this);
         _tags = new TagActions(_host, this);
-        _router = new ActionRouter(
-            _host,
-            _view.Graph,
-            _view.Detail,
-            ActiveSession,
-            RequestQuit,
-            _sidebar,
-            _statuses,
-            clipboard);
-        _router.ScreenHeight = () => _view.ScreenSize.Height;
+        _focusedView = new FocusedKeymapView(_host, _view.Detail);
+        var statusActions = new StatusActionHandler(_statuses, ActiveSession);
+        _inputHandlers.Add(InputHandler.StatusActions, statusActions);
+        _inputHandlers.Add(
+            InputHandler.Navigation,
+            new NavigationActions(
+                _host,
+                _view.Graph,
+                _view.Detail,
+                ActiveSession,
+                RequestQuit,
+                () => _view.ScreenSize.Height,
+                statusActions,
+                clipboard));
+        _inputHandlers.Add(InputHandler.Refresh, new RefreshActions(_host, _effects));
+        _inputHandlers.Add(InputHandler.Sidebar, _sidebar);
         _diffView = new DiffPaneView(_host, this, _view, this, clipboard);
         _diffPane = new DiffPaneInput(_host, this, _view, _diffView);
-        _router.Diff = _diffPane;
+        _inputHandlers.Add(InputHandler.Diff, _diffPane);
         _workingDiff = new WorkingDiffController(
             _host,
             ActiveSession,
@@ -298,19 +311,22 @@ public sealed class TuiApplication(
         _view.WorkingDiffButtons = () => WorkingTreePaneRenderer.StagingButtons(_host.Workspace.ActiveTab?.WorkingTree);
         _visual = new VisualRangeInput(_host, _view);
         _rangeCopier = new RangeCopier(clipboard, ActiveSession, () => _host.Workspace.ActiveTab?.WorkingTree);
-        _router.Visual = _visual;
+        _inputHandlers.Add(InputHandler.Visual, _visual);
         var staging = new StagingActions(_host);
         _staging = staging;
-        _router.WorkingTree = new WorkingTreeActionHandler(_host, _view, clipboard, staging, commits)
-        {
-            Diff = _workingDiff,
-            Visual = _visual,
-        };
-        _router.Branches = branches;
-        _router.Stash = new StashActions(_host, this);
-        _router.Tags = _tags;
+        _inputHandlers.Add(InputHandler.WorkingDiff, _workingDiff);
+        _inputHandlers.Add(
+            InputHandler.WorkingTree,
+            new WorkingTreeActionHandler(_host, _view, clipboard, staging, commits)
+            {
+                Diff = _workingDiff,
+                Visual = _visual,
+            });
+        _inputHandlers.Add(InputHandler.Branches, branches);
+        _inputHandlers.Add(InputHandler.Stash, new StashActions(_host, this));
+        _inputHandlers.Add(InputHandler.Tags, _tags);
         _openPrompt = new PromptInputHandler(_host);
-        _router.OpenPrompt = _openPrompt;
+        _inputHandlers.Add(InputHandler.OpenPrompt, _openPrompt);
         // The tool runner comes before the remote actions, whose terminal retry launches git through it.
         _externalToolRunner = new ExternalToolRunner(
             new ExternalToolLauncher(),
@@ -320,35 +336,42 @@ public sealed class TuiApplication(
             PauseForEnter);
 
         _terminalRetry = new TerminalRetry(_host, _statuses, this);
-        _router.Sync = new SyncActions(_host, this);
-        _router.RemoteManagement = new RemoteManagementActions(_host, this);
+        _inputHandlers.Add(InputHandler.Sync, new SyncActions(_host, this));
+        _inputHandlers.Add(InputHandler.RemoteManagement, new RemoteManagementActions(_host, this));
         _reset = new ResetActions(_host, this);
-        _router.Reset = _reset;
-        _router.Merge = new MergeActions(_host, this);
-        _router.Rebase = new RebaseActions(_host, this, this);
+        _inputHandlers.Add(InputHandler.Reset, _reset);
+        _inputHandlers.Add(InputHandler.Merge, new MergeActions(_host, this));
+        _inputHandlers.Add(InputHandler.Rebase, new RebaseActions(_host, this, this));
         _pick = new PickActions(_host, this);
-        _router.Pick = _pick;
-        _router.Compare = new CompareInput(_host, this);
+        _inputHandlers.Add(InputHandler.Pick, _pick);
+        _compare = new CompareInput(_host, this);
+        _inputHandlers.Add(InputHandler.Compare, _compare);
         _reflog = new ReflogInput(_host, this, glyphs);
         _reflogEntries = new ReflogEntryStarter(_host, _reset, this);
         _rebaseEditor = new RebaseEditorInput(_host, this, this, glyphs, _chipKeys);
         _conflictEditor = new ConflictEditorInput(_host, glyphs, _chipKeys);
         _settings = new SettingsScreenInput(_host, glyphs);
+        _inputHandlers.Add(InputHandler.Settings, _settings);
+        _inputHandlers.Add(InputHandler.ConflictEditor, new ConflictEditorActions(_conflictEditor, this));
+        _inputHandlers.Add(InputHandler.ConflictEditor, _conflictEditor);
+        _inputHandlers.Add(InputHandler.RebaseEditor, _rebaseEditor);
+        _inputHandlers.Add(InputHandler.Reflog, _reflog);
         _configEditor = new ConfigEditorLauncher(
             new ExternalToolLauncher(),
             this,
             _statuses,
             Environment.GetEnvironmentVariable,
             PauseForEnter);
-        _router.Worktrees = new WorktreeActions(_host, this);
-        _router.Operations = new OperationActions(_host);
-        _router.DetailTabs = new DetailTabInput(_host);
-        _router.PaneSizes = new PaneSizeInput(_host, _diffView, _workingDiff);
-        _router.ExternalTools = new ExternalToolInput(_host, this);
-        _router.Refresh = () => _host.Workspace.ActiveTabId is { } activeId && _effects.Refresh(activeId);
+        _inputHandlers.Add(InputHandler.Worktrees, new WorktreeActions(_host, this));
+        _inputHandlers.Add(InputHandler.Operations, new OperationActions(_host));
+        _inputHandlers.Add(InputHandler.DetailTabs, new DetailTabInput(_host));
+        _paneSizes = new PaneSizeInput(_host, _diffView, _workingDiff);
+        _inputHandlers.Add(InputHandler.PaneSizes, _paneSizes);
+        _inputHandlers.Add(InputHandler.ExternalTools, new ExternalToolInput(_host, this));
 
         _picker = new PickerInput(_host);
         _workspaceActions = new WorkspaceActions(_host);
+        _inputHandlers.Add(InputHandler.WorkspaceActions, _workspaceActions);
 
         _binder = new GraphTabBinder(
             _host,
@@ -361,39 +384,40 @@ public sealed class TuiApplication(
 
         var configured = _startupConfig.Keymap;
         var engine = new KeymapEngine(configured.Table);
-        _keys = new KeyController(engine, RouteAction, _host);
+        _keys = new KeyController(engine, _actionInput.Route, _host);
         _repeat = new RepeatController(
             configured.Table,
             () => _host.Workspace.ActiveTabId,
             () => _host.Workspace.ActiveTab?.View.FocusedPane ?? PaneKind.Graph,
             () => IsAnyOverlayOpen() || _picker.IsOpen,
-            RouteAction);
+            _actionInput.Route);
         _keys.Interceptor = _repeat.TryHandle;
         var fileTree = new FileTreeInput(_host, _view.Detail);
-        _router.FileTree = fileTree;
-        _router.IssueLinks = new IssueLinkInput(_host, this);
+        _inputHandlers.Add(InputHandler.FileTree, fileTree);
+        _inputHandlers.Add(InputHandler.IssueLinks, new IssueLinkInput(_host, this));
         _whichKeyTimer = new WhichKeyTimer(OverlayController.WhichKeyDelay, InvokeOnUi);
         _overlays = new OverlayController(
             engine,
             _keys,
             _whichKeyTimer,
-            RouteAction,
+            _actionInput.Route,
             () => _view.ScreenSize,
             glyphs,
-            () => _router.ViewName,
+            () => _focusedView.Name,
             _statuses,
             _host);
+        _inputHandlers.Add(InputHandler.Overlays, _overlays);
         _overlays.WhichKeyEnabled = _startupConfig.Options.WhichKeyPopup;
         _overlays.Level = () => _startupConfig.Options.CommandLevel;
         _overlays.Changed += RefreshOverlay;
         _overlays.OperationInProgress = () => _host.Workspace.ActiveTab?.Operation is not null;
         _overlays.MenuTarget = view => MenuTargetOf(view, sidebarSource);
         _creation = new CreationInput(_host);
-        _router.Creation = _creation;
+        _inputHandlers.Add(InputHandler.Creation, _creation);
+        _inputHandlers.Add(InputHandler.CreationEscape, new CreationEscapeActions(_creation));
         _quickJump = CreateQuickJump();
-        _router.QuickJump = _quickJump;
-        // The quick jump is also in the router (first in line, so Esc and Enter reach it in every pane) and here for its status line and typed keys.
-        _prompts =
+        _inputHandlers.Add(InputHandler.QuickJump, _quickJump);
+        _promptDisplays =
         [
             _diffPane,
             _workingDiff,
@@ -401,8 +425,13 @@ public sealed class TuiApplication(
             fileTree,
             .. CreatePrompts(commits),
         ];
-        _router.Prompts = _prompts;
+        _graphObservers = [.. _promptDisplays.OfType<IGraphObserver>()];
         _keys.TextKeyHandler = HandleTextKey;
+        _inputHandlers.RequireComplete();
+        _actions = new ActionExecutor(
+            _inputHandlers,
+            new RepeatStarter(_host, _view, _repeat, _paneSizes),
+            ActiveSession);
 
         // Subscribes itself to the host and the list in its constructor; nothing else needs the instance.
         _ = new SidebarPresenter(_host, _view.Sidebar, sidebarSource);
@@ -429,7 +458,7 @@ public sealed class TuiApplication(
         _view.WorkingStaged.HasFocusChanged += (_, _) => OnPaneFocused(_view.WorkingStaged, PaneKind.WorkingStaged);
         _view.WorkingDiff.HasFocusChanged += (_, _) => OnPaneFocused(_view.WorkingDiff, SelectedWorkingDiffPane());
         _view.WorkingMessage.HasFocusChanged += (_, _) => OnPaneFocused(_view.WorkingMessage, PaneKind.WorkingMessage);
-        _mouse = new MouseController(DefaultMouseMap.Create(), RouteAction, IsAnyOverlayOpen);
+        _mouse = new MouseController(DefaultMouseMap.Create(), _actionInput.Route, IsAnyOverlayOpen);
         _view.SuppressMouseWhen(IsAnyOverlayOpen);
         _view.Gestured += OnGestured;
         _view.MessageClicked += commits.PlaceCursor;
@@ -533,65 +562,15 @@ public sealed class TuiApplication(
         _view.Dispose();
     }
 
-    void IActionRoute.Route(ActionId action, int? count) => RouteAction(action, count);
+    InputFocus IInputFocusSource.Current() => new(_overlays.State.Kind, !_view.Detail.HasFocus);
 
-    private void RouteAction(ActionId action, int? count)
-    {
-        // The settings do not open over another overlay (help, palette, a dialog, the reflog).
-        if ((action == ActionIds.SettingsOpen || action == ActionIds.SettingsOpenTheme)
-            && (_overlays.State.IsOpen || _reflog.IsOpen || _rebaseEditor.IsOpen || _conflictEditor.IsOpen))
-        {
-            return;
-        }
-
-        // <space>em is global (#742): it must not start git mergetool under an open overlay or editor.
-        if (action == ActionIds.ToolMergetool
-            && (_overlays.State.IsOpen || _reflog.IsOpen || _rebaseEditor.IsOpen || _conflictEditor.IsOpen
-                || _settings.IsOpen))
-        {
-            return;
-        }
-
-        if (_settings.TryExecute(action, count)
-            || _conflictEditor.TryExecute(action, count, IsOtherThanConflictEditorOpen())
-            || _rebaseEditor.TryExecute(action, count)
-            || _reflog.TryExecute(action, count))
-        {
-            return;
-        }
-
-        if (!_overlays.Handle(action, count)
-            && !_creation.TryExecute(action)
-            && !_workspaceActions.TryExecute(action, count))
-        {
-            _router.Execute(action, count);
-            StartRepeat(action);
-        }
-    }
+    void IShellEffects.RouteAction(RouteActionEffect effect) => _actions.Run(effect);
 
     private bool IsWorkingDiffRepeating() =>
         _repeat.Active?.Pane is PaneKind.WorkingUnstagedDiff or PaneKind.WorkingStagedDiff;
 
-    // A step that took effect (the resize did not refuse, the context belongs to a diff) starts the sticky repeat mode.
-    private void StartRepeat(ActionId action)
-    {
-        var isRefused = RepeatMode.IsResizeStep(action) && _router.PaneSizes?.WasRefused == true;
-        var isHistoryDiff = _host.Workspace.ActiveTab?.View.FocusedPane == PaneKind.Diff;
-        var hasNoDiffOptions = RepeatMode.IsContextStep(action)
-            && isHistoryDiff
-            && _view.Diff.Source is DiffListSource { Document.IsFileContent: true };
-        if (!isRefused && !hasNoDiffOptions)
-        {
-            _repeat.Started(action);
-        }
-    }
-
     private bool HandleTextKey(KeyEvent key) =>
-        _settings.HandleTextKey(key)
-        || _rebaseEditor.HandleTextKey(key)
-        || _conflictEditor.HandleTextKey(key)
-        || _reflog.HandleTextKey(key)
-        || _prompts.Any(prompt => prompt.HandleTextKey(key));
+        InputRouting.TextKeyHandlers().Any(handler => _inputHandlers.TextKeysOf(handler).HandleTextKey(key));
 
     private void OnGestured(string viewName, MouseGesture gesture, int? target)
     {
@@ -723,77 +702,96 @@ public sealed class TuiApplication(
         }
     }
 
-    // A click on a palette row highlights it and runs it (the palette is the menu of every action).
+    // A click on an overlay line goes to the first overlay under it, in the order InputRouting.ClickTargets gives; a
+    // click on a palette row highlights it and runs it (the palette is the menu of every action).
     private void OnOverlayLineClicked(int line)
     {
-        var settingsView = _settings.OnLineClicked(line, _view.Overlay.PointerColumn, out var settingsHandled);
-        var reflogView = _reflog.OnLineClicked(line, out var reflogHandled);
-        var rebaseView = _rebaseEditor.OnLineClicked(line, _view.Overlay.PointerColumn, out var rebaseHandled);
-        var conflictView = _conflictEditor.OnLineClicked(
-            IsOtherThanConflictEditorOpen(),
-            line,
-            _view.Overlay.PointerColumn,
-            out var conflictHandled);
-        if (settingsHandled)
+        foreach (var target in InputRouting.ClickTargets())
         {
-            _overlayClickTicks = Environment.TickCount64;
-            if (settingsView is not null)
+            if (ClickOn(target, line) is not { } click)
             {
-                _mouse.Handle(settingsView, MouseGesture.Click);
+                continue;
             }
-        }
-        else if (conflictHandled)
-        {
-            _overlayClickTicks = Environment.TickCount64;
-            if (conflictView is not null)
-            {
-                _mouse.Handle(conflictView, MouseGesture.Click);
-            }
-        }
-        else if (rebaseHandled)
-        {
-            _overlayClickTicks = Environment.TickCount64;
-            if (rebaseView is not null)
-            {
-                _mouse.Handle(rebaseView, MouseGesture.Click);
-            }
-        }
-        else if (reflogHandled)
-        {
-            _overlayClickTicks = Environment.TickCount64;
-            if (reflogView is not null)
-            {
-                _mouse.Handle(reflogView, MouseGesture.Click);
-            }
-        }
-        else if (_overlays.HelpTabNumberAt(line, _view.Overlay.PointerColumn) is { } helpTab)
-        {
-            _overlayClickTicks = Environment.TickCount64;
-            _mouse.Handle(DefaultMouseMap.HelpTabLabel, MouseGesture.Click, helpTab);
-        }
-        else if (_overlays.SelectPaletteEntryAt(line))
-        {
-            _overlayClickTicks = Environment.TickCount64;
-            _mouse.Handle(DefaultKeymap.PaletteView, MouseGesture.Click);
-        }
-        else if (_overlays.SelectMenuEntryAt(line))
-        {
-            _overlayClickTicks = Environment.TickCount64;
-            _mouse.Handle(DefaultKeymap.ContextMenuView, MouseGesture.Click);
-        }
-        else if (_pick.Prompt is { } prompt && !IsMainlineCovered())
-        {
-            if (MainlineFrameBuilder.ParentAt(line, prompt.Parents.Count) is { } parent)
+
+            if (click.GuardsDoubleClick)
             {
                 _overlayClickTicks = Environment.TickCount64;
-                _mouse.Handle(DefaultMouseMap.MainlineParentRow, MouseGesture.Click, parent);
             }
+
+            if (click.View is not null)
+            {
+                _mouse.Handle(click.View, MouseGesture.Click, click.Target);
+            }
+
+            return;
         }
-        else if (_overlays.ConfirmAnswerAt(line) is { } answer)
+    }
+
+    private OverlayClick? ClickOn(OverlayClickTarget target, int line)
+    {
+        var column = _view.Overlay.PointerColumn;
+        switch (target)
         {
-            _overlayClickTicks = Environment.TickCount64;
-            _mouse.Handle(answer == ConfirmAnswer.Yes ? DefaultMouseMap.ConfirmYesButton : DefaultMouseMap.ConfirmNoButton, MouseGesture.Click);
+            case OverlayClickTarget.Settings:
+                return ClickOfEditor(_settings.OnLineClicked(line, column, out var settingsHandled), settingsHandled);
+            case OverlayClickTarget.ConflictEditor:
+                var conflictView = _conflictEditor.OnLineClicked(
+                    IsOtherThanConflictEditorOpen(),
+                    line,
+                    column,
+                    out var conflictHandled);
+
+                return ClickOfEditor(conflictView, conflictHandled);
+            case OverlayClickTarget.RebaseEditor:
+                return ClickOfEditor(_rebaseEditor.OnLineClicked(line, column, out var rebaseHandled), rebaseHandled);
+            case OverlayClickTarget.Reflog:
+                return ClickOfEditor(_reflog.OnLineClicked(line, out var reflogHandled), reflogHandled);
+            case OverlayClickTarget.HelpTab:
+                return _overlays.HelpTabNumberAt(line, column) is { } helpTab
+                    ? new OverlayClick(DefaultMouseMap.HelpTabLabel, helpTab)
+                    : null;
+            case OverlayClickTarget.Palette:
+                return _overlays.SelectPaletteEntryAt(line) ? new OverlayClick(DefaultKeymap.PaletteView) : null;
+            case OverlayClickTarget.ContextMenu:
+                return _overlays.SelectMenuEntryAt(line) ? new OverlayClick(DefaultKeymap.ContextMenuView) : null;
+            case OverlayClickTarget.Mainline:
+                return ClickOnMainline(line);
+            case OverlayClickTarget.Confirm:
+                return ClickOnConfirm(line);
+            default:
+                throw new InvalidOperationException($"No click handling for {target}");
         }
+    }
+
+    private static OverlayClick? ClickOfEditor(string? view, bool isHandled) =>
+        isHandled ? new OverlayClick(view) : null;
+
+    // The mainline question owns every click while it is open and nothing covers it, also one outside its rows.
+    private OverlayClick? ClickOnMainline(int line)
+    {
+        if (_pick.Prompt is not { } prompt || IsMainlineCovered())
+        {
+            return null;
+        }
+
+        if (MainlineFrameBuilder.ParentAt(line, prompt.Parents.Count) is not { } parent)
+        {
+            return new OverlayClick(null, GuardsDoubleClick: false);
+        }
+
+        return new OverlayClick(DefaultMouseMap.MainlineParentRow, parent);
+    }
+
+    private OverlayClick? ClickOnConfirm(int line)
+    {
+        if (_overlays.ConfirmAnswerAt(line) is not { } answer)
+        {
+            return null;
+        }
+
+        var view = answer == ConfirmAnswer.Yes ? DefaultMouseMap.ConfirmYesButton : DefaultMouseMap.ConfirmNoButton;
+
+        return new OverlayClick(view);
     }
 
     private void RefreshOverlay()
@@ -815,7 +813,7 @@ public sealed class TuiApplication(
     }
 
     private PromptPopup? CurrentPopup() =>
-        _prompts.Select(prompt => prompt.Popup).FirstOrDefault(popup => popup is not null);
+        _promptDisplays.Select(prompt => prompt.Popup).FirstOrDefault(popup => popup is not null);
 
     // The popup of the open text or choice prompt, when no other overlay is open.
     private OverlayFrame? PopupFrame()
@@ -1197,7 +1195,11 @@ public sealed class TuiApplication(
             ActiveSession(),
             _keys.Mode,
             _keys.PendingText,
-            FirstNotEmpty(_workspaceActions.Message, _router.Message, RemoteProgressNow(), _statuses.Current?.Text ?? string.Empty),
+            FirstNotEmpty(
+                _workspaceActions.Message,
+                _actions.Message,
+                RemoteProgressNow(),
+                _statuses.Current?.Text ?? string.Empty),
             _view.Graph.SelectedItem,
             TabLabelFactory.Create(
                 _host.Workspace,
@@ -1216,8 +1218,8 @@ public sealed class TuiApplication(
                 MessageIsFresh = _statuses.IsFresh,
                 Hints = CurrentHints(),
                 RepeatPane = _repeat.Active?.Pane,
-                SearchLine = _prompts.Select(prompt => prompt.StatusLine).FirstOrDefault(line => line.Length > 0) ??
-                             PopupFallbackLine(),
+                SearchLine = _promptDisplays.Select(prompt => prompt.StatusLine).FirstOrDefault(line => line.Length > 0)
+                    ?? PopupFallbackLine(),
             };
 
         return newScreenModel;
@@ -1225,7 +1227,7 @@ public sealed class TuiApplication(
 
     private StatusSeverity? CurrentMessageSeverity()
     {
-        if (_workspaceActions.Message.Length + _router.Message.Length > 0 || RemoteIsBusy())
+        if (_workspaceActions.Message.Length + _actions.Message.Length > 0 || RemoteIsBusy())
         {
             return null;
         }
@@ -1465,6 +1467,8 @@ public sealed class TuiApplication(
 
     // The rebase editor is covered by these (its Confirm above all) and must not take their keys.
     bool IOverlayCover.IsOtherOverlayOpen() => IsOtherThanRebaseEditorOpen();
+
+    bool IConflictCover.IsOtherThanConflictEditorOpen() => IsOtherThanConflictEditorOpen();
 
     private bool IsOtherThanRebaseEditorOpen() =>
         _overlays.State.IsOpen
@@ -1749,7 +1753,7 @@ public sealed class TuiApplication(
 
     void IStashViewHost.RefreshDetail() => RefreshDetail();
 
-    private IReadOnlyList<IPromptHandler> CreatePrompts(CommitMessageInput commits)
+    private IReadOnlyList<IPromptDisplay> CreatePrompts(CommitMessageInput commits)
     {
         var handle = new GraphViewHandle(
             ActiveSession,
@@ -1765,20 +1769,18 @@ public sealed class TuiApplication(
                 _view.Graph.SetNeedsDraw();
                 _view.RefreshChrome();
             });
-        return
-        [
-            // The prompt that owns Insert mode must see Esc and Enter first, so the ref prompt comes before the search.
-            _openPrompt,
-            _pick,
-            new RefJumpController(handle, () => _host.Workspace.ActiveTab?.Refs ?? []),
-            new SearchController(
-                handle,
-                DeferToNextIteration,
-                services.CommitMessages,
-                tabId => _host.Workspace.FindTab(tabId)?.Location,
-                InvokeOnUi),
-            commits,
-        ];
+        var refJump = new RefJumpController(handle, () => _host.Workspace.ActiveTab?.Refs ?? []);
+        var search = new SearchController(
+            handle,
+            DeferToNextIteration,
+            services.CommitMessages,
+            tabId => _host.Workspace.FindTab(tabId)?.Location,
+            InvokeOnUi);
+        _inputHandlers.Add(InputHandler.RefJump, refJump);
+        _inputHandlers.Add(InputHandler.Search, search);
+        _inputHandlers.Add(InputHandler.CommitMessage, commits);
+
+        return [_openPrompt, _pick, refJump, search];
     }
 
     private QuickJumpInput CreateQuickJump() => new(_host, this);
@@ -1867,9 +1869,9 @@ public sealed class TuiApplication(
 
     private void OnGraphChanged()
     {
-        foreach (var prompt in _prompts)
+        foreach (var observer in _graphObservers)
         {
-            prompt.OnGraphChanged();
+            observer.OnGraphChanged();
         }
     }
 
@@ -1878,7 +1880,7 @@ public sealed class TuiApplication(
         if (previous is not null)
         {
             previous.Details.Changed -= RefreshDetail;
-            previous.Details.Changed -= _router.Compare!.Follow;
+            previous.Details.Changed -= _compare.Follow;
             previous.IssueLinksChanged -= RefreshDetail;
             if (previous.Tree is { } previousTree)
             {
@@ -1894,7 +1896,7 @@ public sealed class TuiApplication(
         if (current is not null)
         {
             current.Details.Changed += RefreshDetail;
-            current.Details.Changed += _router.Compare!.Follow;
+            current.Details.Changed += _compare.Follow;
             current.IssueLinksChanged += RefreshDetail;
             if (current.Tree is { } currentTree)
             {

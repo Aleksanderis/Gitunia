@@ -1,3 +1,4 @@
+using Gitunia.Tui.Input;
 using Gitunia.App;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
@@ -13,7 +14,7 @@ namespace Gitunia.Tui.App.Worktrees;
 /// </summary>
 /// <param name="host">Holds the active tab and takes the commands.</param>
 /// <param name="selection">What the actions act on.</param>
-public sealed class WorktreeActions(Dispatcher host, IWorktreeSelectionSource selection)
+public sealed class WorktreeActions(Dispatcher host, IWorktreeSelectionSource selection) : IActionHandler
 {
     /// <summary>Runs the action when it is a worktree action; false lets the next handler try.</summary>
     public bool TryExecute(ActionId action)
@@ -33,6 +34,8 @@ public sealed class WorktreeActions(Dispatcher host, IWorktreeSelectionSource se
 
         return true;
     }
+
+    bool IActionHandler.TryExecute(ActionId action, int? count) => TryExecute(action);
 
     private WorktreeCommand? Request(TabId tabId, ActionId action)
     {

@@ -20,7 +20,7 @@ namespace Gitunia.Tui.App.Overlays;
 /// consumes the actions and typed text while one is open, and shows the which-key popup for a chord that stays pending.
 /// The state transitions themselves are the pure methods of <see cref="OverlayState"/> and <see cref="PaletteState"/>.
 /// </summary>
-public sealed class OverlayController
+public sealed class OverlayController : IActionHandler
 {
     /// <summary>How long a chord stays pending before the which-key popup appears.</summary>
     public static readonly TimeSpan WhichKeyDelay = TimeSpan.FromMilliseconds(250);
@@ -166,6 +166,8 @@ public sealed class OverlayController
             _glyphs,
             bannerShown);
     }
+
+    bool IActionHandler.TryExecute(ActionId action, int? count) => Handle(action, count);
 
     /// <summary>Handles an action while an overlay may be open; returns true when it was consumed.</summary>
     public bool Handle(ActionId action, int? count)

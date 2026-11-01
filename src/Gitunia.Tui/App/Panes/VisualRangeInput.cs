@@ -4,6 +4,7 @@ using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Lists;
 using Gitunia.Core.Visual;
 using Gitunia.Core.Workspaces.Panes;
+using Gitunia.Tui.Input;
 using Gitunia.Tui.Views;
 using Gitunia.Tui.Views.Lists;
 
@@ -15,7 +16,7 @@ namespace Gitunia.Tui.App.Panes;
 /// reads the cursor, turns keys into <see cref="VisualCommand"/>s and draws the range state in the list source of the
 /// pane (stronger than the selected row). <c>y</c> copies it through the shell; the sidebar has no ranges.
 /// </summary>
-public sealed class VisualRangeInput
+public sealed class VisualRangeInput : IActionHandler
 {
     private readonly Dispatcher _host;
     private readonly IPaneLists _lists;

@@ -10,6 +10,7 @@ using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Tui.App.Clipboard;
 using Gitunia.Tui.App.Panes;
+using Gitunia.Tui.Input;
 using Gitunia.Tui.Rendering.WorkingTree;
 using Gitunia.Tui.Views;
 
@@ -31,7 +32,7 @@ public sealed class WorkingTreeActionHandler(
     IPaneLists lists,
     ClipboardCopier clipboard,
     StagingActions staging,
-    CommitMessageInput commits)
+    CommitMessageInput commits) : IActionHandler, IActionNotice
 {
     private static readonly HashSet<ActionId> LeftToOthers =
     [
@@ -54,6 +55,8 @@ public sealed class WorkingTreeActionHandler(
 
     /// <summary>A short notice for the status bar from the last action, empty when none.</summary>
     public string Message { get; private set; } = string.Empty;
+
+    string IActionNotice.Notice => Message;
 
     /// <summary>Returns true when the action was handled here and no other pane may act on it.</summary>
     public bool TryExecute(ActionId action, int? count)

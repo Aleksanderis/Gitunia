@@ -4,6 +4,7 @@ using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Rebase;
 using Gitunia.Core.Shell;
 using Gitunia.Tui.App.Branches;
+using Gitunia.Tui.Input;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Overlays;
 using Gitunia.Tui.Rendering.Styling;
@@ -26,7 +27,7 @@ public sealed class RebaseEditorInput(
     IBranchSelectionSource selection,
     IOverlayCover cover,
     GraphGlyphSet glyphs,
-    ChipKeys? keys = null)
+    ChipKeys? keys = null) : IActionHandler, ITextKeyHandler
 {
     private RebaseEditorSession Session => host.State.Shell.RebaseEditor;
 

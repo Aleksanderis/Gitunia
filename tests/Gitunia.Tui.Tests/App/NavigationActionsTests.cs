@@ -4,62 +4,64 @@ using Gitunia.App;
 using Gitunia.App.Loading.Commits;
 using Gitunia.App.Tabs;
 using Gitunia.Core.Clipboard;
+using Gitunia.Core.Input;
 using Gitunia.Core.Keymap;
+using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Tui.App;
 using Gitunia.Tui.App.Clipboard;
-using Gitunia.Tui.App.Sidebar;
+using Gitunia.Tui.App.Panes;
+using Gitunia.Tui.Input;
 using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Screen;
-using Gitunia.Tui.Tests.App.Sidebar;
 using Gitunia.Tui.Tests.Rendering.Graph;
 using Terminal.Gui.Views;
 using Xunit;
 
 namespace Gitunia.Tui.Tests.App;
 
-public class ActionRouterTests
+public class NavigationActionsTests
 {
     private const int CommitCount = 5;
 
     [Fact]
     public void GivenTheLogIsStillLoading_WhenPressingG_ThenTheSelectionIsTheLastLoadedCommitAndTheHintShows()
     {
-        using var harness = new RouterHarness(isLoading: true);
+        using var harness = new NavigationHarness(isLoading: true);
 
-        harness.Router.Execute(ActionIds.ListBottom, null);
+        harness.Actions.TryExecute(ActionIds.ListBottom, null);
 
-        Assert.Equal(ActionRouter.StillLoadingNotice, harness.Router.Message);
+        Assert.Equal(NavigationActions.StillLoadingNotice, harness.Actions.Notice);
         Assert.Equal(CommitCount - 1 + ScreenLayout.ReservedLeadingRows, harness.GraphList.SelectedItem);
     }
 
     [Fact]
     public void GivenTheLogIsCutAtTheSoftLimit_WhenPressingG_ThenTheRestIsRequestedAndTheHintShows()
     {
-        using var harness = new RouterHarness(isLoading: false);
+        using var harness = new NavigationHarness(isLoading: false);
         harness.Session.Truncate(500);
         var requests = 0;
         harness.Session.ExpandRequested += () => requests++;
 
-        harness.Router.Execute(ActionIds.ListBottom, null);
+        harness.Actions.TryExecute(ActionIds.ListBottom, null);
 
         Assert.Equal(1, requests);
         Assert.True(harness.Session.IsLoading);
-        Assert.Equal(ActionRouter.StillLoadingNotice, harness.Router.Message);
+        Assert.Equal(NavigationActions.StillLoadingNotice, harness.Actions.Notice);
         Assert.Equal(CommitCount - 1 + ScreenLayout.ReservedLeadingRows, harness.GraphList.SelectedItem);
     }
 
     [Fact]
     public void GivenTheLogIsCutAtTheSoftLimit_WhenPressingGWithACount_ThenTheRestIsNotRequested()
     {
-        using var harness = new RouterHarness(isLoading: false);
+        using var harness = new NavigationHarness(isLoading: false);
         harness.Session.Truncate(500);
         var requests = 0;
         harness.Session.ExpandRequested += () => requests++;
 
-        harness.Router.Execute(ActionIds.ListBottom, 3);
+        harness.Actions.TryExecute(ActionIds.ListBottom, 3);
 
         Assert.Equal(0, requests);
     }
@@ -67,62 +69,65 @@ public class ActionRouterTests
     [Fact]
     public void GivenTheLogIsLoaded_WhenPressingG_ThenThereIsNoHint()
     {
-        using var harness = new RouterHarness(isLoading: false);
+        using var harness = new NavigationHarness(isLoading: false);
 
-        harness.Router.Execute(ActionIds.ListBottom, null);
+        harness.Actions.TryExecute(ActionIds.ListBottom, null);
 
-        Assert.Equal(string.Empty, harness.Router.Message);
+        Assert.Equal(string.Empty, harness.Actions.Notice);
     }
 
     [Fact]
     public void GivenAScreenUnder14Rows_WhenOpeningDetails_ThenTheNoticeSaysTheScreenIsTooShort()
     {
-        using var harness = new RouterHarness(isLoading: false);
-        harness.Router.ScreenHeight = () => 13;
+        using var harness = new NavigationHarness(isLoading: false, screenHeight: 13);
 
-        harness.Router.Execute(ActionIds.GraphOpenDetails, null);
+        harness.Actions.TryExecute(ActionIds.GraphOpenDetails, null);
 
-        Assert.Equal("The details pane needs a taller screen", harness.Router.Message);
+        Assert.Equal("The details pane needs a taller screen", harness.Actions.Notice);
     }
 
     [Fact]
     public void GivenAScreenOf14Rows_WhenOpeningDetails_ThenThereIsNoNotice()
     {
-        using var harness = new RouterHarness(isLoading: false);
-        harness.Router.ScreenHeight = () => 14;
+        using var harness = new NavigationHarness(isLoading: false, screenHeight: 14);
 
-        harness.Router.Execute(ActionIds.GraphOpenDetails, null);
+        harness.Actions.TryExecute(ActionIds.GraphOpenDetails, null);
 
-        Assert.Equal(string.Empty, harness.Router.Message);
+        Assert.Equal(string.Empty, harness.Actions.Notice);
     }
 
     [Fact]
     public void GivenTheLogIsStillLoading_WhenMovingDown_ThenThereIsNoHint()
     {
-        using var harness = new RouterHarness(isLoading: true);
+        using var harness = new NavigationHarness(isLoading: true);
 
-        harness.Router.Execute(ActionIds.ListDown, null);
+        harness.Actions.TryExecute(ActionIds.ListDown, null);
 
-        Assert.Equal(string.Empty, harness.Router.Message);
+        Assert.Equal(string.Empty, harness.Actions.Notice);
     }
 
     [Fact]
     public void GivenTheHintShows_WhenTheLoadFinishes_ThenTheHintIsGone()
     {
-        using var harness = new RouterHarness(isLoading: true);
-        harness.Router.Execute(ActionIds.ListBottom, null);
+        using var harness = new NavigationHarness(isLoading: true);
+        var handlers = new InputHandlers();
+        handlers.Add(InputHandler.Navigation, harness.Actions);
+        var session = harness.Session;
+        var executor = new ActionExecutor(handlers, new NoRepeat(), () => session);
+        executor.Run(new RouteActionEffect(ActionIds.ListBottom, null, [InputHandler.Navigation]));
+        Assert.Equal(NavigationActions.StillLoadingNotice, executor.Message);
 
         harness.Session.Complete();
 
-        Assert.Equal(string.Empty, harness.Router.Message);
+        Assert.Equal(string.Empty, executor.Message);
     }
 
     [Fact]
     public void GivenTheGraphPane_WhenAppQuitRuns_ThenTheApplicationQuits()
     {
-        using var harness = new RouterHarness(isLoading: false);
+        using var harness = new NavigationHarness(isLoading: false);
 
-        harness.Router.Execute(ActionIds.AppQuit, null);
+        harness.Actions.TryExecute(ActionIds.AppQuit, null);
 
         Assert.Equal(1, harness.QuitCount);
     }
@@ -130,18 +135,25 @@ public class ActionRouterTests
     [Fact]
     public void GivenTheGraphPane_WhenNavigateBackRuns_ThenTheApplicationDoesNotQuit()
     {
-        using var harness = new RouterHarness(isLoading: false);
+        using var harness = new NavigationHarness(isLoading: false);
 
-        harness.Router.Execute(ActionIds.NavigateBack, null);
+        harness.Actions.TryExecute(ActionIds.NavigateBack, null);
 
         Assert.Equal(0, harness.QuitCount);
     }
 
-    private sealed class RouterHarness : IDisposable
+    private sealed class NoRepeat : IRepeatStarter
+    {
+        public void AfterPaneAction(ActionId action)
+        {
+        }
+    }
+
+    private sealed class NavigationHarness : IDisposable
     {
         private readonly TerminalTabSession _session;
 
-        public RouterHarness(bool isLoading)
+        public NavigationHarness(bool isLoading, int screenHeight = 40)
         {
             var location = new RepositoryLocation(Path.GetTempPath(), Path.GetTempPath(), Path.GetTempPath(), false, false);
             _session = new TerminalTabSession(
@@ -162,8 +174,15 @@ public class ActionRouterTests
             var statuses = new StatusReporter(new Dispatcher(AppState.Empty));
             var host = new Dispatcher(AppState.Empty);
             var copier = new ClipboardCopier(new ClipboardWriter(new StringWriter(), new Osc52Options(Osc52Mode.Direct, 100_000)), statuses);
-            var sidebar = new SidebarInput(host, new FixedSidebarLayout());
-            Router = new ActionRouter(host, GraphList, detailList, () => _session, () => QuitCount++, sidebar, statuses, copier);
+            Actions = new NavigationActions(
+                host,
+                GraphList,
+                detailList,
+                () => _session,
+                () => QuitCount++,
+                () => screenHeight,
+                new StatusActionHandler(statuses, () => _session),
+                copier);
         }
 
         public int QuitCount { get; private set; }
@@ -172,7 +191,7 @@ public class ActionRouterTests
 
         public ListView GraphList { get; }
 
-        public ActionRouter Router { get; }
+        public NavigationActions Actions { get; }
 
         public void Dispose() => _session.Dispose();
     }

@@ -29,7 +29,7 @@ namespace Gitunia.Tui.App.Panes;
 /// <see cref="DiffListActions"/>. It is also the diff's search prompt (the box in Insert mode), so it plugs into the
 /// same prompt list as the graph search.
 /// </summary>
-public sealed class DiffPaneInput : IPromptHandler
+public sealed class DiffPaneInput : IActionHandler, ITextKeyHandler, IActionNotice, IPromptDisplay
 {
     private readonly Dispatcher _host;
     private readonly IActiveSessions _sessions;
@@ -145,10 +145,6 @@ public sealed class DiffPaneInput : IPromptHandler
         var treeCommit = session is { Diff.ContentStore: not null, Tree: { } tree } ? tree.Store.Current.Commit : null;
         _host.Dispatch(new DiffContentOpened(tab.Id, row, treeCommit));
         _view.ShowContent();
-    }
-
-    public void OnGraphChanged()
-    {
     }
 
     /// <summary>The terminal changed size: loads the diff that now has room.</summary>

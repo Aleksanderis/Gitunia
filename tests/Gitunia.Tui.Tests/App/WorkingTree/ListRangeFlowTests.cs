@@ -304,7 +304,7 @@ public sealed class ListRangeFlowTests : IDisposable
             Sync();
         }
 
-        /// <summary>Runs an action as the router does: the open dialog first, then the working-tree handler.</summary>
+        /// <summary>Runs an action as the input path does: the open dialog first, then the working-tree handler.</summary>
         public void Run(ActionId action, int? count = null) => Route(action, count);
 
         public void Press(Key key) => Keys.Handle(key, Overlays.ViewName);

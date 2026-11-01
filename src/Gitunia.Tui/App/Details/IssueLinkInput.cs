@@ -2,6 +2,7 @@ using Gitunia.App;
 using Gitunia.Core.IssueLinks;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
+using Gitunia.Tui.Input;
 
 namespace Gitunia.Tui.App.Details;
 
@@ -11,7 +12,7 @@ namespace Gitunia.Tui.App.Details;
 /// </summary>
 /// <param name="host">Takes the commands.</param>
 /// <param name="view">The detail pane.</param>
-public sealed class IssueLinkInput(Dispatcher host, IIssueLinkView view)
+public sealed class IssueLinkInput(Dispatcher host, IIssueLinkView view) : IActionHandler
 {
     public bool TryExecute(ActionId action, int? count)
     {

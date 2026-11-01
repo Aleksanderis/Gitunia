@@ -289,7 +289,7 @@ public class StashViewTests
             return harness;
         }
 
-        public void Press(ActionId action) => Handler.TryHandle(action, null);
+        public void Press(ActionId action) => Handler.TryExecute(action, null);
 
         public TabSession Find(TabId tabId) => Session;
 

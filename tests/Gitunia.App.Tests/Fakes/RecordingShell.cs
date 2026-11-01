@@ -3,6 +3,7 @@ using Gitunia.Core.Config.Models;
 using Gitunia.Core.Conflicts;
 using Gitunia.Core.FileTree;
 using Gitunia.Core.ExternalTools;
+using Gitunia.Core.Input;
 using Gitunia.Core.Reflog;
 using Gitunia.Core.Sidebar;
 using Gitunia.Core.Staging;
@@ -23,6 +24,8 @@ public sealed class RecordingShell : IShellEffects
     public List<ConfigOptions> AppliedOptions { get; } = [];
 
     public List<ThemeChoice> AppliedThemes { get; } = [];
+
+    public List<RouteActionEffect> Routed { get; } = [];
 
     public int EditorOpened { get; private set; }
 
@@ -49,6 +52,8 @@ public sealed class RecordingShell : IShellEffects
     public List<int> CursorMoves { get; } = [];
 
     public List<string> OpenedFiles { get; } = [];
+
+    public void RouteAction(RouteActionEffect effect) => Routed.Add(effect);
 
     public void CopyToClipboard(CopyToClipboardEffect effect)
     {

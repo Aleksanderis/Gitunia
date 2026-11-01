@@ -2,7 +2,10 @@ using Gitunia.Tui.Views.Lists;
 
 namespace Gitunia.Tui.App.Clipboard;
 
-/// <summary>Copies the path of the file row selected in the detail pane; kept apart from the <see cref="ActionRouter"/> so it runs without a terminal.</summary>
+/// <summary>
+/// Copies the path of the file row selected in the detail pane; kept apart from the <see cref="NavigationActions"/> so it
+/// runs without a terminal.
+/// </summary>
 /// <param name="clipboard">Copies the path.</param>
 public sealed class DetailPathCopier(ClipboardCopier clipboard)
 {

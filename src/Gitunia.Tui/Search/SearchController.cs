@@ -23,7 +23,7 @@ public sealed class SearchController(
     ICommitMessageSearcher? messages = null,
     Func<TabId, RepositoryLocation?>? locationOf = null,
     Action<Action>? invokeOnUi = null,
-    TimeSpan? bodyDebounce = null) : IPromptHandler
+    TimeSpan? bodyDebounce = null) : IActionHandler, ITextKeyHandler, IActionNotice, IPromptDisplay, IGraphObserver
 {
     private const int SliceSize = 5000;
 

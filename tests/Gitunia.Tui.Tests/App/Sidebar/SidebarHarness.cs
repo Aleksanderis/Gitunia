@@ -68,12 +68,12 @@ public sealed class SidebarHarness : IDisposable, ITabSessions
 
     public string Message => Effects.Message;
 
-    /// <summary>Presses an action the way the router does; false when the sidebar does not handle it.</summary>
+    /// <summary>Presses an action the way the input path does; false when the sidebar does not handle it.</summary>
     public bool Press(ActionId action, int? count = null)
     {
         Effects.Reset();
 
-        return Input.TryHandle(action, count);
+        return Input.TryExecute(action, count);
     }
 
     public TabSession Find(TabId tabId) => HideGraph ? _emptySession : _session;

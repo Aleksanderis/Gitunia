@@ -2,6 +2,7 @@ using Gitunia.App;
 using Gitunia.Core.Creation;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
+using Gitunia.Tui.Input;
 
 namespace Gitunia.Tui.App.Creation;
 
@@ -11,7 +12,7 @@ namespace Gitunia.Tui.App.Creation;
 /// it asks are shell prompts, so it draws and edits nothing itself.
 /// </summary>
 /// <param name="host">Holds the state and takes the commands.</param>
-public sealed class CreationInput(Dispatcher host)
+public sealed class CreationInput(Dispatcher host) : IActionHandler
 {
     /// <summary>Whether a clone runs (the status bar shows its progress and a cancel chip).</summary>
     public bool IsCloning => host.State.Shell.Creation.RunningClone is not null;
@@ -48,6 +49,8 @@ public sealed class CreationInput(Dispatcher host)
 
         return true;
     }
+
+    bool IActionHandler.TryExecute(ActionId action, int? count) => TryExecute(action);
 
     /// <summary>Esc cancels a running clone; the caller asks only after every other holder of Esc passed.</summary>
     /// <param name="action">The bound action.</param>

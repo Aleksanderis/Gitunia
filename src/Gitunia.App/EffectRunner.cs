@@ -37,6 +37,7 @@ using Gitunia.Core.DiffPane;
 using Gitunia.Core.Discard;
 using Gitunia.Core.Effects;
 using Gitunia.Core.ExternalTools;
+using Gitunia.Core.Input;
 using Gitunia.Core.IssueLinks;
 using Gitunia.Core.Jump;
 using Gitunia.Core.Pick;
@@ -415,6 +416,9 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
                 }
 
                 _shell.Quit();
+                break;
+            case RouteActionEffect route:
+                _shell.RouteAction(route);
                 break;
             case RebaseEffect rebase:
                 _rebase.Handle(rebase, _cancellation.TokenOf(rebase.TabId));

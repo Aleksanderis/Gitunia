@@ -2,16 +2,17 @@ using Gitunia.App;
 using Gitunia.Core.Commits;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Workspaces;
+using Gitunia.Tui.Input;
 
 namespace Gitunia.Tui.App;
 
 /// <summary>
 /// The view side of the workspace-level actions (tabs, pinning, the repository picker): asks the reducer whether the
 /// action is its own and dispatches it with the facts only the terminal layer knows (unsent commit messages). Anything
-/// else is left to the <see cref="ActionRouter"/>: <see cref="TryExecute"/> returns false for actions it does not own.
+/// else is left to the panes: <see cref="TryExecute"/> returns false for actions it does not own.
 /// </summary>
 /// <param name="host">Holds the state and takes the commands.</param>
-public sealed class WorkspaceActions(Dispatcher host)
+public sealed class WorkspaceActions(Dispatcher host) : IActionHandler
 {
     /// <summary>A short notice for the status bar from the last action, empty when none.</summary>
     public string Message => host.State.Shell.TabActions.Notice;

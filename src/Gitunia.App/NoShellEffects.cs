@@ -3,6 +3,7 @@ using Gitunia.Core.Config.Models;
 using Gitunia.Core.Conflicts;
 using Gitunia.Core.FileTree;
 using Gitunia.Core.ExternalTools;
+using Gitunia.Core.Input;
 using Gitunia.Core.Reflog;
 using Gitunia.Core.Sidebar;
 using Gitunia.Core.Staging;
@@ -15,6 +16,10 @@ namespace Gitunia.App;
 public sealed class NoShellEffects : IShellEffects
 {
     public static NoShellEffects Instance { get; } = new();
+
+    public void RouteAction(RouteActionEffect effect)
+    {
+    }
 
     public void CopyToClipboard(CopyToClipboardEffect effect)
     {

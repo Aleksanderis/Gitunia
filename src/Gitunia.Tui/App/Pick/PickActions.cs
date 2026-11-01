@@ -17,11 +17,9 @@ namespace Gitunia.Tui.App.Pick;
 /// </summary>
 /// <param name="host">Holds the state the question is drawn from and takes the commands.</param>
 /// <param name="selection">What the actions act on.</param>
-public sealed class PickActions(Dispatcher host, IPickSelectionSource selection) : IPromptHandler
+public sealed class PickActions(Dispatcher host, IPickSelectionSource selection)
+    : IActionHandler, ITextKeyHandler, IPromptDisplay
 {
-    /// <summary>Refusals are status messages posted by the reducer, so there is no notice.</summary>
-    public string Notice => string.Empty;
-
     /// <summary>The mainline question as a status line, for a screen too small for the overlay.</summary>
     public string StatusLine
     {
@@ -99,10 +97,6 @@ public sealed class PickActions(Dispatcher host, IPickSelectionSource selection)
         }
 
         return true;
-    }
-
-    public void OnGraphChanged()
-    {
     }
 
     private static PickKind? KindOf(ActionId action)

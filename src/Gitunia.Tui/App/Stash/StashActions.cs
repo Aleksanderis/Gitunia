@@ -1,3 +1,4 @@
+using Gitunia.Tui.Input;
 using Gitunia.App;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
@@ -13,7 +14,7 @@ namespace Gitunia.Tui.App.Stash;
 /// </summary>
 /// <param name="host">Holds the active tab and takes the commands.</param>
 /// <param name="selection">What the actions act on.</param>
-public sealed class StashActions(Dispatcher host, IStashSelectionSource selection)
+public sealed class StashActions(Dispatcher host, IStashSelectionSource selection) : IActionHandler
 {
     /// <summary>Runs the action when it is a stash action; false lets the next handler try.</summary>
     public bool TryExecute(ActionId action, int? count)

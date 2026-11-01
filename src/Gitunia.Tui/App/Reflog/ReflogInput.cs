@@ -6,6 +6,7 @@ using Gitunia.Core.Reflog;
 using Gitunia.Core.Shell;
 using Gitunia.Core.Sidebar;
 using Gitunia.Tui.App.Branches;
+using Gitunia.Tui.Input;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Overlays;
 
@@ -20,6 +21,7 @@ namespace Gitunia.Tui.App.Reflog;
 /// <param name="selection">What the sidebar cursor is on, to pick the branch whose reflog opens.</param>
 /// <param name="glyphs">The characters the list is drawn with.</param>
 public sealed class ReflogInput(Dispatcher host, IBranchSelectionSource selection, GraphGlyphSet glyphs)
+    : IActionHandler, ITextKeyHandler
 {
     private ReflogSession Session => host.State.Shell.Reflog;
 
