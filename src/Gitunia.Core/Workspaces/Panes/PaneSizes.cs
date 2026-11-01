@@ -1,8 +1,8 @@
-namespace Gitunia.Tui.Rendering.Panes;
+namespace Gitunia.Core.Workspaces.Panes;
 
 /// <summary>
 /// Pane sizes the user changed (by dragging a divider or with the resize keys); null means "automatic", the size
-/// <see cref="PaneLayout"/> picks from the screen. The values are wishes: the layout clamps them to what fits.
+/// the pane layout picks from the screen. The values are wishes: the layout clamps them to what fits.
 /// </summary>
 /// <param name="SidebarWidth">Columns of the sidebar list, without its divider.</param>
 /// <param name="BottomHeight">Rows of the bottom strip (detail and diff panes), including the title row.</param>

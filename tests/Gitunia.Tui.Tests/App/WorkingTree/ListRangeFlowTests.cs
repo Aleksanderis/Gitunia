@@ -94,7 +94,7 @@ public sealed class ListRangeFlowTests : IDisposable
         _flow.Run(ActionIds.ListDown);
         _flow.Run(ActionIds.WorkingTreeStage);
 
-        Assert.Contains("conflicted", _flow.Handler.Message, StringComparison.Ordinal);
+        Assert.Contains("conflicted", _flow.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
         Assert.True(_flow.Visual.IsActive);
         Assert.Empty(_flow.Index.Staged);
     }
@@ -223,6 +223,7 @@ public sealed class ListRangeFlowTests : IDisposable
     private sealed class Flow : IDisposable
     {
         private readonly TestShell _shell = new();
+        private readonly StagingWiring _wiring;
         private readonly ListView _list;
         private readonly ListView _stagedList;
         private readonly WhichKeyTimer _timer = new(TimeSpan.FromHours(1), action => action());
@@ -244,7 +245,8 @@ public sealed class ListRangeFlowTests : IDisposable
                 engine, Keys, _timer, Route, () => new ScreenSize(100, 30), GraphGlyphSet.Unicode, () => DefaultKeymap.WorkingUnstagedView, Statuses, _shell.Host);
 
             Gate = new TabOperationGate();
-            var staging = new StagingActions(_shell.Host, Index, new PatchStager(new FakeDiffReader(), Index), Statuses, Pump.Post, Refresh, _ => CancellationToken.None, Gate);
+            var staging = new StagingActions(_shell.Host, Gate);
+            _wiring = new StagingWiring(_shell.Host, Index, new PatchStager(new FakeDiffReader(), Index), Pump);
             var discard = new DiscardActions(_shell.Host, new PatchDiscarder(new FakeDiffReader(), Discarder), Statuses, Pump.Post, Refresh, _ => CancellationToken.None, Gate);
             var clipboard = new ClipboardWriter(ClipboardOutput, new Osc52Options(Osc52Mode.Direct, 100_000));
             Visual = new VisualRangeController(
@@ -305,10 +307,12 @@ public sealed class ListRangeFlowTests : IDisposable
 
         public void Press(Key key) => Keys.Handle(key, Overlays.ViewName);
 
-        public Task WaitAsync() => Pump.RunUntilAsync(() => !Gate.IsAnyBusy && Statuses.Log.Latest is not null);
+        public Task WaitAsync() =>
+            Pump.RunUntilAsync(() => !Gate.IsAnyBusy && !Tab.Running.IsBusy && Statuses.Log.Latest is not null);
 
         public void Dispose()
         {
+            _wiring.Dispose();
             _timer.Dispose();
             _list.Dispose();
             _stagedList.Dispose();

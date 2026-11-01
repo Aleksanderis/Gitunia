@@ -3,6 +3,8 @@ using Gitunia.App.Loading.Diff;
 using Gitunia.App.Tabs;
 using Gitunia.Core.Lists;
 using Gitunia.Core.Overlays;
+using Gitunia.Core.Running;
+using Gitunia.Core.Staging;
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Panes;
@@ -273,6 +275,20 @@ public class DiscardActionsTests
     }
 
     [Fact]
+    public void GivenAStageInProgress_WhenADiscardIsAsked_ThenItIsRefusedAsBusyAndNoDialogOpens()
+    {
+        using var harness = new Harness(Modified("a.txt"), Modified("b.txt"));
+        harness.StartStaging();
+        Assert.True(harness.Tab.Running.IsRunning(RunningOperationKind.Staging));
+
+        var notice = harness.Execute();
+
+        Assert.Contains("Busy", notice, StringComparison.Ordinal);
+        Assert.Empty(harness.Prompts);
+        Assert.Equal(0, harness.Discarder.CallCount);
+    }
+
+    [Fact]
     public async Task GivenADiscardInProgress_WhenAnotherIsAsked_ThenItIsRefusedAsBusy()
     {
         using var harness = new Harness(Modified("a.txt"), Modified("b.txt"));
@@ -463,7 +479,7 @@ public class DiscardActionsTests
         /// <summary>Stands in for the tab refresher: runs when a status read is requested, before the completion callback.</summary>
         public Action OnRefresh { get; set; } = () => { };
 
-        private RepositoryState Tab => _shell.Host.Workspace.ActiveTab!;
+        public RepositoryState Tab => _shell.Host.Workspace.ActiveTab!;
 
         public string Execute() => Discard.Execute(Tab);
 
@@ -480,6 +496,10 @@ public class DiscardActionsTests
             var request = new DiffStagingRequest(new WorkingDiffRequest(side, shown), lines, isRange);
             return Discard.ExecuteSelection(Tab, request, null, onDiscarded);
         }
+
+        /// <summary>Marks a stage as running, as the reducer does when the key starts one (no runner here).</summary>
+        public void StartStaging() =>
+            _shell.Host.Dispatch(new StagingRequested(_shell.Host.Workspace.ActiveTabId!.Value, StagingAction.Stage));
 
         /// <summary>Presses <c>y</c> in the open dialog.</summary>
         public void Answer() => _shell.Answer();

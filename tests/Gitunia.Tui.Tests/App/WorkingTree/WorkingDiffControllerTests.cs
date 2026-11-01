@@ -770,19 +770,13 @@ public class WorkingDiffControllerTests
             Controller = new WorkingDiffController(host, () => Session, DiffList, () => { }, copier);
             Controller.OnTabSwitched(null, session);
             var indexWriter = TestGit.Services.IndexWriter;
-            Staging = new StagingActions(
-                host,
-                indexWriter,
-                new PatchStager(TestGit.Services.Diff, indexWriter),
-                Statuses,
-                pump.Post,
-                (_, done) =>
-                {
-                    pump.Post(done);
-                    return true;
-                },
-                _ => Token,
-                Gate);
+            Staging = new StagingActions(host, Gate);
+            // Wires itself to the dispatcher: runs the staging effects like the effect runner does.
+            _ = new StagingWiring(host, indexWriter, new PatchStager(TestGit.Services.Diff, indexWriter), pump)
+            {
+                ReadStatus = ReadAndApplyStatusAsync,
+                OnCursorMove = move => Controller.MoveAfterReload(move.Move),
+            };
             Visual = new VisualRangeController(() => Tab.View.FocusedPane, _ => DiffList, host);
             Handler = new WorkingTreeActionHandler(host, () => 10, copier, Staging, TestCommitActions.Create(host, Statuses)) { Diff = Controller, Visual = Visual };
             Handler.Discard = new DiscardActions(
@@ -859,8 +853,8 @@ public class WorkingDiffControllerTests
         public async Task StageAsync(ActionId action)
         {
             Handler.TryExecute(action, null);
-            await _pump.RunUntilAsync(() => !Staging.IsRunning);
-            await RefreshStatusAsync();
+            await _pump.RunUntilAsync(() => !Staging.IsRunning(Tab.Id));
+            await WaitForLoadedAsync();
         }
 
         /// <summary>Answers <c>y</c> in the open dialog, waits for the discard, then re-reads the status like the tab refresher does.</summary>
@@ -886,14 +880,7 @@ public class WorkingDiffControllerTests
 
         public async Task RefreshStatusAsync()
         {
-            var snapshot = await ReadStatusAsync();
-            Host.Dispatch(new TabCommand(Tab.Id, new WorkingTreeLoadedCommand(snapshot)));
-            if (Session.WorkingDiff!.Store.Status != DiffStatus.Loading)
-            {
-                // The letters did not change: the refresher tells the session so the shown file is read again.
-                Session.NotifyStatusRead();
-            }
-
+            ApplyStatus(await ReadStatusAsync());
             await WaitForLoadedAsync();
         }
 
@@ -903,6 +890,24 @@ public class WorkingDiffControllerTests
             _repository.Dispose();
         }
 
+
+        // The staging half of the tab refresher: the status is read off the pump and applied on it.
+        private async Task<Action> ReadAndApplyStatusAsync()
+        {
+            var snapshot = await ReadStatusAsync();
+
+            return () => ApplyStatus(snapshot);
+        }
+
+        private void ApplyStatus(StatusSnapshot snapshot)
+        {
+            Host.Dispatch(new TabCommand(Tab.Id, new WorkingTreeLoadedCommand(snapshot)));
+            if (Session.WorkingDiff!.Store.Status != DiffStatus.Loading)
+            {
+                // The letters did not change: the refresher tells the session so the shown file is read again.
+                Session.NotifyStatusRead();
+            }
+        }
 
         private async Task LoadStatusAsync()
         {

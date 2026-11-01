@@ -2,6 +2,8 @@ using Gitunia.Core.Branches;
 using Gitunia.Core.Compare;
 using Gitunia.Core.Conflicts;
 using Gitunia.Core.Creation;
+using Gitunia.Core.Details;
+using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Picker;
 using Gitunia.Core.Effects;
 using Gitunia.Core.ExternalTools;
@@ -18,6 +20,7 @@ using Gitunia.Core.Settings;
 using Gitunia.Core.Sidebar;
 using Gitunia.Core.Remotes;
 using Gitunia.Core.Shell;
+using Gitunia.Core.Staging;
 using Gitunia.Core.Stash;
 using Gitunia.Core.Running;
 using Gitunia.Core.Sync;
@@ -44,9 +47,11 @@ public static partial class AppReducer
         CompareCommand compare => ReduceCompare(state, compare),
         ConflictCommand conflict => ReduceConflict(state, conflict),
         CreationCommand creation => ReduceCreation(state, creation),
+        DetailCommand detail => DetailReducer.Reduce(state, detail),
         EffectFailedCommand failed => EffectFailed(state, failed),
         ExternalToolCommand tool => new AppUpdate(state, ExternalToolReducer.Reduce(tool, state.Workspace.ActiveTab)),
         IssueLinkCommand link => new AppUpdate(state, IssueLinkReducer.Reduce(link)),
+        PaneSizeCommand paneSize => PaneSizeReducer.Reduce(state, paneSize),
         PickCommand pick => ReducePick(state, pick),
         RebaseCommand rebase => ReduceRebase(state, rebase),
         RebaseEditorCommand editor => ReduceRebaseEditor(state, editor),
@@ -59,6 +64,7 @@ public static partial class AppReducer
         RemoteCommand remote => ReduceRemote(state, remote),
         ShellCommand shell => ReduceShell(state, shell),
         SidebarActionCommand sidebar => ReduceSidebarAction(state, sidebar),
+        StagingCommand staging => ReduceStaging(state, staging),
         StashCommand stash => ReduceStash(state, stash),
         SyncCommand sync => ReduceSync(state, sync),
         TabRenameCommand rename => ReduceTabRename(state, rename),
@@ -108,7 +114,8 @@ public static partial class AppReducer
             effects.AddRange(closedTodo.Effects);
         }
 
-        var changed = new AppState(update.Workspace, shell);
+        var changed = DetailReducer.CloseFilterOfLeftTab(state.Workspace, new AppState(update.Workspace, shell));
+        shell = changed.Shell;
         if (shell.Reflog.List is { } list && update.Workspace.FindTab(list.TabId) is null)
         {
             var closed = ReduceReflog(changed, new ReflogTabClosed());
@@ -194,7 +201,7 @@ public static partial class AppReducer
             return new AppUpdate(state, []);
         }
 
-        var busy = tab.Running.IsRunning(RunningOperationKind.Pick);
+        var busy = tab.Running.IsRunning(RunningOperationKind.Pick) || IsStaging(tab);
         var question = state.Shell.Mainline is { } open && open.TabId == tab.Id ? open : null;
         var context = new PickContext(
             tab.Id,
@@ -229,7 +236,7 @@ public static partial class AppReducer
             return new AppUpdate(state, []);
         }
 
-        var busy = tab.Running.IsRunning(RunningOperationKind.Rebase);
+        var busy = tab.Running.IsRunning(RunningOperationKind.Rebase) || IsStaging(tab);
         var context = new RebaseContext(tab, workspace.ActiveTabId == tab.Id, busy, IsOverlayOpen(state.Shell));
         var effects = RebaseReducer.Reduce(command, context);
         var running = tab.Running.Apply(tab.Id, command, effects);
@@ -292,7 +299,7 @@ public static partial class AppReducer
             return new AppUpdate(state, []);
         }
 
-        var busy = tab.Running.IsRunning(RunningOperationKind.Integration);
+        var busy = tab.Running.IsRunning(RunningOperationKind.Integration) || IsStaging(tab);
         var conflicts = OperationBannerBuilder.ConflictCount(tab.WorkingTree);
         var context = new IntegrationContext(tab.Id, tab.Location, tab.Head, tab.Operation, conflicts, busy);
         var effects = IntegrationReducer.Reduce(command, context);
@@ -336,7 +343,7 @@ public static partial class AppReducer
             return new AppUpdate(state, []);
         }
 
-        var busy = tab.Running.IsRunning(RunningOperationKind.Stash);
+        var busy = tab.Running.IsRunning(RunningOperationKind.Stash) || IsStaging(tab);
         var context = new StashContext(tab.Id, tab.Location, tab.Stashes, tab.View.FocusedPane, busy);
         var effects = StashReducer.Reduce(command, context);
         var running = tab.Running.Apply(tab.Id, command, effects);
@@ -403,7 +410,7 @@ public static partial class AppReducer
             return new AppUpdate(state, []);
         }
 
-        var busy = tab.Running.IsRunning(RunningOperationKind.Branches);
+        var busy = tab.Running.IsRunning(RunningOperationKind.Branches) || IsStaging(tab);
         var context = new BranchContext(tab.Id, tab.Location, tab.Refs, tab.Operation, busy);
         var effects = BranchReducer.Reduce(command, context);
         var running = tab.Running.Apply(tab.Id, command, effects);

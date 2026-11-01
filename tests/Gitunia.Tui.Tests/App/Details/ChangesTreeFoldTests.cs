@@ -2,6 +2,7 @@ using Gitunia.Core;
 using Gitunia.App;
 using Gitunia.App.Loading.Commits;
 using Gitunia.App.Tabs;
+using Gitunia.Core.Details;
 using Gitunia.Core.Graph;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Workspaces;
@@ -16,6 +17,7 @@ using Gitunia.Tui.Rendering.Details;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Tests.Fakes;
 using Gitunia.Tui.Tests.Rendering.Graph;
+using Terminal.Gui.Views;
 using Xunit;
 
 namespace Gitunia.Tui.Tests.App.Details;
@@ -35,8 +37,8 @@ public class ChangesTreeFoldTests : IDisposable
     private readonly GraphEntry _entry = CommitFactory.Graph(CommitFactory.Commit(1, "root", []))[0];
     private readonly UiPump _pump = new(TestContext.Current.CancellationToken);
     private readonly TerminalTabSession _session;
-    private readonly FileTreeController _controller;
-    private int _cursor;
+    private readonly FileTreeInput _controller;
+    private readonly ListView _list;
 
     public ChangesTreeFoldTests()
     {
@@ -61,32 +63,29 @@ public class ChangesTreeFoldTests : IDisposable
                 _pump.Post,
                 TimeSpan.FromMilliseconds(1))),
             GraphGlyphSet.Unicode);
-        _controller = new FileTreeController(
-            _host,
-            () => _session,
-            () => _cursor,
-            row => _cursor = row,
-            Refresh,
-            _ => string.Empty);
+        _list = new ListView { Source = _session.DetailSource };
+        _controller = new FileTreeInput(_host, _list);
+        _host.EffectRaised += OnEffect;
+        _host.Changed += Refresh;
         Refresh();
     }
 
     [Fact]
     public void GivenAnOpenFolder_WhenTogglingIt_ThenItsRowsGoAndItShowsTheFileCount()
     {
-        _cursor = 1;
+        Cursor = 1;
 
         var handled = _controller.TryExecute(ActionIds.DetailToggleFolder, null);
 
         Assert.True(handled);
         Assert.Equal(["src/  3 files", "M top.txt"], Outline());
-        Assert.Equal(1, _cursor);
+        Assert.Equal(1, Cursor);
     }
 
     [Fact]
     public void GivenAClosedFolder_WhenTogglingIt_ThenItsRowsReturn()
     {
-        _cursor = 1;
+        Cursor = 1;
         _controller.TryExecute(ActionIds.DetailToggleFolder, null);
 
         _controller.TryExecute(ActionIds.DetailToggleFolder, null);
@@ -97,20 +96,20 @@ public class ChangesTreeFoldTests : IDisposable
     [Fact]
     public void GivenAFileRow_WhenToggling_ThenNothingChanges()
     {
-        _cursor = 3;
+        Cursor = 3;
 
         _controller.TryExecute(ActionIds.DetailToggleFolder, null);
 
-        Assert.Empty(_session.CollapsedFolders);
+        Assert.Empty(ClosedFolders);
         Assert.Equal(7, _session.DetailSource.Content.Rows.Count);
     }
 
     [Fact]
     public void GivenAnInnerFolderClosed_WhenTheOuterOneClosesAndOpens_ThenTheInnerOneStaysClosed()
     {
-        _cursor = 2;
+        Cursor = 2;
         _controller.TryExecute(ActionIds.DetailToggleFolder, null);
-        _cursor = 1;
+        Cursor = 1;
         _controller.TryExecute(ActionIds.DetailToggleFolder, null);
         _controller.TryExecute(ActionIds.DetailToggleFolder, null);
 
@@ -120,68 +119,68 @@ public class ChangesTreeFoldTests : IDisposable
     [Fact]
     public void GivenAnOpenFolder_WhenPressingH_ThenItClosesAndTheCursorStays()
     {
-        _cursor = 1;
+        Cursor = 1;
 
         _controller.TryExecute(ActionIds.DetailCollapse, null);
 
         Assert.Equal(["src/  3 files", "M top.txt"], Outline());
-        Assert.Equal(1, _cursor);
+        Assert.Equal(1, Cursor);
     }
 
     [Fact]
     public void GivenAFileInAFolder_WhenPressingH_ThenTheCursorGoesToItsFolder()
     {
-        _cursor = 4;
+        Cursor = 4;
 
         _controller.TryExecute(ActionIds.DetailCollapse, null);
 
-        Assert.Equal(1, _cursor);
-        Assert.Empty(_session.CollapsedFolders);
+        Assert.Equal(1, Cursor);
+        Assert.Empty(ClosedFolders);
     }
 
     [Fact]
     public void GivenAClosedInnerFolder_WhenPressingH_ThenTheCursorGoesToTheOuterFolder()
     {
-        _cursor = 2;
+        Cursor = 2;
         _controller.TryExecute(ActionIds.DetailToggleFolder, null);
 
         _controller.TryExecute(ActionIds.DetailCollapse, null);
 
-        Assert.Equal(1, _cursor);
+        Assert.Equal(1, Cursor);
     }
 
     [Fact]
     public void GivenATopLevelFile_WhenPressingH_ThenNothingChanges()
     {
-        _cursor = 6;
+        Cursor = 6;
 
         _controller.TryExecute(ActionIds.DetailCollapse, null);
 
-        Assert.Equal(6, _cursor);
-        Assert.Empty(_session.CollapsedFolders);
+        Assert.Equal(6, Cursor);
+        Assert.Empty(ClosedFolders);
     }
 
     [Fact]
     public void GivenAClosedTopLevelFolder_WhenPressingL_ThenItOpensAndTheCursorStays()
     {
-        _cursor = 1;
+        Cursor = 1;
         _controller.TryExecute(ActionIds.DetailToggleFolder, null);
 
         _controller.TryExecute(ActionIds.DetailExpand, null);
 
-        Assert.Empty(_session.CollapsedFolders);
-        Assert.Equal(1, _cursor);
+        Assert.Empty(ClosedFolders);
+        Assert.Equal(1, Cursor);
     }
 
     [Fact]
     public void GivenAFile_WhenPressingL_ThenNothingChanges()
     {
-        _cursor = 6;
+        Cursor = 6;
 
         _controller.TryExecute(ActionIds.DetailExpand, null);
 
-        Assert.Equal(6, _cursor);
-        Assert.Empty(_session.CollapsedFolders);
+        Assert.Equal(6, Cursor);
+        Assert.Empty(ClosedFolders);
     }
 
     [Fact]
@@ -218,6 +217,7 @@ public class ChangesTreeFoldTests : IDisposable
 
     public void Dispose()
     {
+        _list.Dispose();
         _session.Dispose();
         GC.SuppressFinalize(this);
     }
@@ -225,7 +225,23 @@ public class ChangesTreeFoldTests : IDisposable
     private DetailContent Build(FilePathStyle style, IReadOnlySet<string> collapsed) =>
         DetailContentBuilder.Build(_entry, State(), BottomTab.Changes, null, style, null, collapsed);
 
-    private void Refresh() => _session.DetailSource.Update(Build(FilePathStyle.Tree, _session.CollapsedFolders));
+    private IReadOnlySet<string> ClosedFolders => _host.Workspace.ActiveTab!.View.DetailTree.ClosedFolders;
+
+    private int Cursor
+    {
+        get => _list.SelectedItem ?? 0;
+        set => _list.SelectedItem = value;
+    }
+
+    private void OnEffect(AppEffect effect)
+    {
+        if (effect is MoveDetailCursorEffect move && move.Row < (_list.Source?.Count ?? 0))
+        {
+            Cursor = move.Row;
+        }
+    }
+
+    private void Refresh() => _session.DetailSource.Update(Build(FilePathStyle.Tree, ClosedFolders));
 
     private CommitDetailsState State() => new(
         _entry.Id,

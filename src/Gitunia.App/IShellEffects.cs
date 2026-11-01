@@ -1,9 +1,11 @@
 using Gitunia.Core.Clipboard;
 using Gitunia.Core.Config.Models;
 using Gitunia.Core.Conflicts;
+using Gitunia.Core.FileTree;
 using Gitunia.Core.ExternalTools;
 using Gitunia.Core.Reflog;
 using Gitunia.Core.Sidebar;
+using Gitunia.Core.Staging;
 using Gitunia.Core.Workspaces.Tabs;
 
 namespace Gitunia.App;
@@ -49,6 +51,16 @@ public interface IShellEffects
     /// <summary>Moves the unsent commit message of a missing tab to the tab that replaces it. False when the other tab
     /// holds its own message and nothing moved.</summary>
     bool MoveCommitDraft(TabId missing, TabId target);
+
+    /// <summary>Moves the cursor of the Changes view diff of the tab after a staged hunk or range was read again; does
+    /// nothing when the tab is not the one shown.</summary>
+    void MoveDiffCursor(MoveDiffCursorEffect effect);
+
+    /// <summary>Moves the cursor of the detail list to a row.</summary>
+    void MoveDetailCursor(int row);
+
+    /// <summary>Shows the content of a file row of the Files tab in the diff pane's place; reports why it cannot.</summary>
+    void OpenFileContent(FileTreeRow row);
 
     /// <summary>Saves the session now; false when the save failed.</summary>
     bool FlushSession();
