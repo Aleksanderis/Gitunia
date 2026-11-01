@@ -1,4 +1,3 @@
-using Gitunia.Tui.App.Tabs;
 using Gitunia.Core.Lists;
 using Gitunia.Core.Overlays;
 using Gitunia.Core.Status;
@@ -11,6 +10,7 @@ using Gitunia.Git.Discard;
 using Gitunia.Git.Execution;
 using Gitunia.Git.Staging.Models;
 using Gitunia.Git.Status.Models;
+using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.Rendering.WorkingTree;
 
 namespace Gitunia.Tui.App.WorkingTree;

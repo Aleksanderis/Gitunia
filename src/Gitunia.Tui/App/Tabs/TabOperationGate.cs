@@ -17,10 +17,8 @@ public sealed class TabOperationGate
 
     public bool IsBusy(TabId tabId) => _busy.Contains(tabId);
 
-    public void Begin(TabId tabId) => _busy.Add(tabId);
-
     /// <summary>Begins the operation unless one already runs for the tab; false when it does.</summary>
-    public bool TryBegin(TabId tabId) => _busy.Add(tabId);
+    public bool Begin(TabId tabId) => _busy.Add(tabId);
 
     public void End(TabId tabId) => _busy.Remove(tabId);
 }

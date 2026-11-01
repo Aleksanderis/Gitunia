@@ -1,4 +1,3 @@
-using Gitunia.Tui.App.Tabs;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Mouse;
@@ -21,6 +20,7 @@ using Gitunia.Git.Tests.Fixtures;
 using Gitunia.Tui.App;
 using Gitunia.Tui.App.Branches;
 using Gitunia.Tui.App.Rebase;
+using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Views;
 using Xunit;

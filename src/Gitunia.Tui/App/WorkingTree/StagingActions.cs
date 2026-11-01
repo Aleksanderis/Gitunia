@@ -1,4 +1,3 @@
-using Gitunia.Tui.App.Tabs;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Lists;
@@ -13,6 +12,7 @@ using Gitunia.Git.Refs.Models;
 using Gitunia.Git.Staging;
 using Gitunia.Git.Staging.Models;
 using Gitunia.Git.Status.Models;
+using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.Rendering.WorkingTree;
 
 namespace Gitunia.Tui.App.WorkingTree;

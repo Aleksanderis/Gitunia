@@ -924,6 +924,7 @@ public sealed class TuiApplication(
         InvokeOnUi,
         _effects.RefreshStatus,
         tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None,
+        _activity.CreateGate(),
         ShowOutput,
         () => _keys.Mode,
         SetMode,

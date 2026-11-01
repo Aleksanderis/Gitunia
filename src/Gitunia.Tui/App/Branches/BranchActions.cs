@@ -814,7 +814,7 @@ public sealed class BranchActions(
 
     private void StartDelete(TabId tabId, GitRef branch)
     {
-        if (host.Workspace.FindTab(tabId) is not { } tab || !busy.TryBegin(tabId))
+        if (host.Workspace.FindTab(tabId) is not { } tab || !busy.Begin(tabId))
         {
             statuses.Warning($"{BusyNotice}; nothing was deleted");
             return;
@@ -870,7 +870,7 @@ public sealed class BranchActions(
 
     private void StartForceDelete(RepositoryState tab, GitRef branch)
     {
-        if (!busy.TryBegin(tab.Id))
+        if (!busy.Begin(tab.Id))
         {
             statuses.Warning($"{BusyNotice}; nothing was deleted");
             return;

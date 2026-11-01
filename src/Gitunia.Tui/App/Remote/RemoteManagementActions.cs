@@ -1,4 +1,3 @@
-using Gitunia.Tui.App.Tabs;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Overlays;
@@ -11,6 +10,7 @@ using Gitunia.Git.Refs.Models;
 using Gitunia.Git.Remotes;
 using Gitunia.Git.Remotes.Models;
 using Gitunia.Tui.App.Branches;
+using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.App.WorkingTree;
 using Gitunia.Tui.Input;
 
@@ -527,7 +527,7 @@ public sealed class RemoteManagementActions(
         });
     }
 
-    // Own busy set, not the shared operation gate: remote config changes never take the index lock.
+    // Own gate, not the staging one: remote config changes never take the index lock.
     private void Start(RepositoryState tab, string failure, Func<CancellationToken, Task<string>> work)
     {
         busy.Begin(tab.Id);

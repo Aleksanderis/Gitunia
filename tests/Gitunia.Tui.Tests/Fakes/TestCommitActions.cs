@@ -1,6 +1,7 @@
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Status;
 using Gitunia.Tui.App;
+using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.App.WorkingTree;
 
 namespace Gitunia.Tui.Tests.Fakes;
@@ -20,6 +21,7 @@ public static class TestCommitActions
             return true;
         },
         _ => CancellationToken.None,
+        new TabOperationGate(),
         (_, _, _) => { },
         () => KeyMode.Normal,
         _ => { },

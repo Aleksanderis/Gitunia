@@ -4,6 +4,7 @@ using Xunit;
 
 namespace Gitunia.Tui.Tests.App.Tabs;
 
+[Trait("Os", "Independent")]
 public sealed class TabActivityTests
 {
     [Fact]
@@ -37,13 +38,13 @@ public sealed class TabActivityTests
     }
 
     [Fact]
-    public void GivenARunningOperation_WhenTryingToBeginAnother_ThenItIsRefused()
+    public void GivenARunningOperation_WhenBeginningAnother_ThenItIsRefused()
     {
         var gate = new TabActivity().CreateGate();
         var tabId = new TabId(1);
 
-        var first = gate.TryBegin(tabId);
-        var second = gate.TryBegin(tabId);
+        var first = gate.Begin(tabId);
+        var second = gate.Begin(tabId);
 
         Assert.True(first);
         Assert.False(second);

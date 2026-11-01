@@ -1,4 +1,3 @@
-using Gitunia.Tui.App.Tabs;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Overlays;
@@ -15,6 +14,7 @@ using Gitunia.Git.Stash;
 using Gitunia.Git.Stash.Models;
 using Gitunia.Tui.App;
 using Gitunia.Tui.App.Stash;
+using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.Tests.Fakes;
 using Xunit;
 

@@ -1,4 +1,3 @@
-using Gitunia.Tui.App.Tabs;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Overlays;
@@ -12,6 +11,7 @@ using Gitunia.Git.Refs.Models;
 using Gitunia.Git.Remotes;
 using Gitunia.Git.Tags;
 using Gitunia.Tui.App.Branches;
+using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.App.WorkingTree;
 using Gitunia.Tui.Input;
 
@@ -447,7 +447,7 @@ public sealed class TagActions(
         }, new TerminalRetry("Remote tag delete", RemoteCommands.BuildTagDelete(remote, name, false)));
     }
 
-    // Own busy set, not the shared operation gate: tag writes take ref locks, never the index lock.
+    // Own gate, not the staging one: tag writes take ref locks, never the index lock.
     private void Start(
         RepositoryState tab,
         string failure,
