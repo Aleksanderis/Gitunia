@@ -60,12 +60,19 @@ Status: in progress (tracking issue #893; the open issues are the source of trut
 Backlog of reviewed owner items, release and packaging: help search and wording, stash file restore, older-console readability, release version stamp and packaging flow, idle CPU measurement, conflict editor tests, manual and Windows checks, macOS CI and binary (#455), package managers (#62).
 Done when: the first `v*` tag produces verified release archives (#517) and the listed owner checks are done.
 
-## M8 - Effects-as-data architecture
+## M7 - Effects-as-data architecture
 
 Status: planned (tracking issue #990; the open issues are the source of truth). Owner decision 2026-11-01, grand code review.
 
 Goal: all app logic in pure Core reducers (state + command -> state + effects), git and file work run by one effect runner in a new `Gitunia.App` project, `Gitunia.Tui` limited to views, rendering and input translation. Removes delegate dependencies (#965), `ActionRouter`, the `TuiApplication` god class and the largest controllers. The design spec (#967) is approved by the owner before migration starts.
-Done when: every M8 issue is closed; feature logic is covered by synchronous Core tests; no delegate dependencies, late `null!` wiring, constructors over five parameters or files over ~500 lines in `Tui`/`App`; startup and key latency unchanged.
+Done when: every M7 issue is closed; feature logic is covered by synchronous Core tests; no delegate dependencies, late `null!` wiring, constructors over five parameters or files over ~500 lines in `Tui`/`App`; startup and key latency unchanged.
+
+## M8 - Going public
+
+Status: in progress (tracking issue #903; the open issues are the source of truth). Comes after M7 (owner, 2026-11-01): the code is reworked before it is published.
+
+Publishing the repository and the release: pre-publication check and contributor docs (#902, done), landing page (#900), package managers (#62: winget #943, AUR #944, Arch package #966, Homebrew #945), macOS signing (#952), the release plan (#749, blocked by M7's tracking issue #990).
+Done when: the repository is public and the first release is installable through the listed package managers.
 
 ## Post-MVP candidates
 
