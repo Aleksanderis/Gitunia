@@ -49,6 +49,7 @@ public class StashPipelineTests
     {
         using var repository = TestRepositories.WithStash();
         using var pipeline = await Pipeline.OpenAsync(repository);
+        await pipeline.Pump.RunUntilAsync(() => !pipeline.Host.Workspace.FindTab(pipeline.TabId)!.Stashes.IsEmpty);
         var entry = pipeline.Host.Workspace.FindTab(pipeline.TabId)!.Stashes[0];
 
         pipeline.Dispatch(new StashDropRequested(pipeline.TabId, entry.CommitHash));
@@ -68,6 +69,7 @@ public class StashPipelineTests
         using var repository = TestRepositories.WithStash();
         using var pipeline = await Pipeline.OpenAsync(repository);
         var tabId = pipeline.TabId;
+        await pipeline.Pump.RunUntilAsync(() => !pipeline.Host.Workspace.FindTab(tabId)!.Stashes.IsEmpty);
         var entry = pipeline.Host.Workspace.FindTab(tabId)!.Stashes[0];
         pipeline.Dispatch(new StashDropRequested(tabId, entry.CommitHash));
         Assert.NotNull(pipeline.Host.State.Shell.Confirm);
