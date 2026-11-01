@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Gitunia.App.Background;
 using Gitunia.App.Settings;
 using Gitunia.App.Status;
@@ -11,6 +12,8 @@ using Gitunia.Core.FileTree;
 using Gitunia.Core.Config.Models;
 using Gitunia.Core.Effects;
 using Gitunia.Core.ExternalTools;
+using Gitunia.Core.Jump;
+using Gitunia.Core.Jump.Models;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Overlays;
@@ -26,6 +29,7 @@ using Gitunia.Core.Settings.Models;
 using Gitunia.Core.Tags;
 using Gitunia.Core.Tests.Fixtures;
 using Gitunia.Core.Workspaces;
+using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.ExternalTools;
@@ -175,6 +179,66 @@ public class EffectPipelineTests
         var launch = Assert.Single(pipeline.Shell.Tools);
         Assert.Equal(pipeline.TabId, launch.TabId);
         Assert.Equal(ExternalToolKind.Mergetool, launch.Kind);
+    }
+
+    [Fact]
+    public async Task GivenAnOpenQuickJump_WhenALabelIsPressed_ThenTheShellIsAskedToJumpToThatRow()
+    {
+        using var repository = TestRepositories.Linear();
+        using var pipeline = await Pipeline.OpenAsync(TestGit.Services, repository);
+        pipeline.Dispatch(new QuickJumpOpenRequested(pipeline.TabId, PaneKind.Graph, true, null));
+        ImmutableArray<JumpLabel> labels = [new(1, 0, 1, 'q')];
+        pipeline.Dispatch(new QuickJumpKeyPressed(new KeyEvent("m"), labels));
+
+        pipeline.Dispatch(new QuickJumpKeyPressed(new KeyEvent("q"), labels));
+
+        Assert.Equal([1], pipeline.Shell.Jumps);
+        Assert.Equal(KeyMode.Normal, pipeline.Host.State.Shell.Mode);
+    }
+
+    [Fact]
+    public async Task GivenABranchRow_WhenActivatingIt_ThenTheStashViewEndsAndTheGraphCursorMovesToItsCommit()
+    {
+        using var repository = TestRepositories.Linear();
+        using var pipeline = await Pipeline.OpenAsync(TestGit.Services, repository);
+        pipeline.Dispatch(new TabCommand(pipeline.TabId, new FocusPaneCommand(PaneKind.Sidebar)));
+        pipeline.Dispatch(new TabCommand(pipeline.TabId, new SetSidebarFilterCommand("main")));
+        pipeline.Dispatch(new TabCommand(pipeline.TabId, new SetSidebarCursorCommand(1)));
+
+        pipeline.Dispatch(new SidebarActionPressed(pipeline.TabId, ActionIds.SidebarActivate, null, [PaneKind.Sidebar], 10));
+
+        await pipeline.Pump.RunUntilAsync(() => pipeline.Shell.SelectedGraphIndexes.Count > 0);
+        Assert.Equal(1, pipeline.Shell.StashLeft);
+        Assert.Equal([0], pipeline.Shell.SelectedGraphIndexes);
+    }
+
+    [Fact]
+    public async Task GivenAStashRow_WhenActivatingIt_ThenTheShellIsAskedToShowThatStash()
+    {
+        using var repository = TestRepositories.WithStash();
+        using var pipeline = await Pipeline.OpenAsync(TestGit.Services, repository);
+        await pipeline.Pump.RunUntilAsync(() => pipeline.Tab.Stashes.Length > 0);
+        pipeline.Dispatch(new TabCommand(pipeline.TabId, new FocusPaneCommand(PaneKind.Sidebar)));
+        pipeline.Dispatch(new TabCommand(pipeline.TabId, new SetSidebarFilterCommand("stash@")));
+        pipeline.Dispatch(new TabCommand(pipeline.TabId, new SetSidebarCursorCommand(1)));
+
+        pipeline.Dispatch(new SidebarActionPressed(pipeline.TabId, ActionIds.SidebarActivate, null, [PaneKind.Sidebar], 10));
+
+        Assert.Equal("stash@{0}", Assert.Single(pipeline.Shell.ShownStashes).Label);
+        Assert.Empty(pipeline.Shell.SelectedGraphIndexes);
+    }
+
+    [Fact]
+    public async Task GivenTheCursorMoves_WhenPressingAListMotionInTheSidebar_ThenTheShellMayFollowAShownStash()
+    {
+        using var repository = TestRepositories.Linear();
+        using var pipeline = await Pipeline.OpenAsync(TestGit.Services, repository);
+        pipeline.Dispatch(new TabCommand(pipeline.TabId, new FocusPaneCommand(PaneKind.Sidebar)));
+
+        pipeline.Dispatch(new SidebarActionPressed(pipeline.TabId, ActionIds.ListDown, null, [PaneKind.Sidebar], 10));
+
+        Assert.Equal(1, pipeline.Shell.StashFollowed);
+        Assert.Equal(1, pipeline.Tab.Sidebar.Cursor);
     }
 
     [Fact]

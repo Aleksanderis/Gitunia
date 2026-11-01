@@ -5,6 +5,7 @@ using Gitunia.Core.FileTree;
 using Gitunia.Core.ExternalTools;
 using Gitunia.Core.Picker;
 using Gitunia.Core.Reflog;
+using Gitunia.Core.Sidebar;
 using Gitunia.Core.Staging;
 using Gitunia.Core.Workspaces.Tabs;
 
@@ -38,6 +39,16 @@ public sealed class RecordingShell : IShellEffects
     public bool FlushSucceeds { get; set; } = true;
 
     public int Quits { get; private set; }
+
+    public List<int> Jumps { get; } = [];
+
+    public List<int> SelectedGraphIndexes { get; } = [];
+
+    public List<SidebarRow> ShownStashes { get; } = [];
+
+    public int StashLeft { get; private set; }
+
+    public int StashFollowed { get; private set; }
 
     public List<int> CursorMoves { get; } = [];
 
@@ -83,4 +94,14 @@ public sealed class RecordingShell : IShellEffects
     public void OpenFileContent(FileTreeRow row) => OpenedFiles.Add(row.Path);
 
     public void Quit() => Quits++;
+
+    public void JumpToRow(int row) => Jumps.Add(row);
+
+    public void SelectGraphIndex(int index) => SelectedGraphIndexes.Add(index);
+
+    public void ShowStash(SidebarRow row) => ShownStashes.Add(row);
+
+    public void LeaveStash() => StashLeft++;
+
+    public void FollowStashCursor() => StashFollowed++;
 }
