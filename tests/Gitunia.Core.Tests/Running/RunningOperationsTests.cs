@@ -1,3 +1,4 @@
+using Gitunia.Core.Integration;
 using Gitunia.Core.Running;
 using Gitunia.Core.Remotes;
 using Gitunia.Core.Stash;
@@ -5,7 +6,10 @@ using Gitunia.Core.Tags;
 using Gitunia.Core.Tests.Fixtures;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Commits.Models;
+using Gitunia.Git.Merge;
+using Gitunia.Git.Operations.Models;
 using Gitunia.Git.Repositories.Models;
+using Gitunia.Git.Reset;
 using Gitunia.Git.Stash;
 using Gitunia.Git.Stash.Models;
 using Xunit;
@@ -149,6 +153,39 @@ public class RunningOperationsTests
 
         Assert.Equal(4, results.Length);
         Assert.All(results, result => Assert.Equal(RunningOperationKind.Stash, result.Kind));
+    }
+
+    [Fact]
+    public void GivenEveryConcreteIntegrationEffect_WhenInspectingIt_ThenItIsAnOperationEffectOfKindIntegration()
+    {
+        var effects = ConcreteSubtypes.InstancesOf<IntegrationEffect>();
+        var location = Location();
+        var target = new ResetTarget("abc", "main", ResetMode.Soft);
+        var info = new OperationInfo(RepositoryOperation.Merge, null, null, null, null, null, null, null);
+
+        // Instances are uninitialised (the constructor does not run), so one built per type shows the kind.
+        Assert.NotEmpty(effects);
+        Assert.All(effects, effect => Assert.IsAssignableFrom<OperationEffect>(effect));
+        IntegrationEffect[] built =
+        [
+            new PrepareResetEffect(Tab, location, target),
+            new ResetBranchEffect(Tab, location, target),
+            new MergeBranchEffect(Tab, location, "main", new MergeTarget("t", "t"), MergeMode.Default),
+            new ContinueOperationEffect(Tab, location, info, "main"),
+            new AbortOperationEffect(Tab, location, info, "main"),
+            new SkipOperationEffect(Tab, location, info),
+        ];
+        Assert.Equal(effects.Count, built.Length);
+        Assert.All(built, effect => Assert.Equal(RunningOperationKind.Integration, effect.Kind));
+    }
+
+    [Fact]
+    public void GivenEveryConcreteIntegrationResultCommand_WhenInspectingIt_ThenItEndsTheKindIntegration()
+    {
+        var results = ConcreteSubtypes.InstancesOf<IntegrationCommand>().OfType<IOperationResult>().ToArray();
+
+        Assert.Equal(4, results.Length);
+        Assert.All(results, result => Assert.Equal(RunningOperationKind.Integration, result.Kind));
     }
 
     private static DeleteTagEffect Delete(TabId tab) => new(tab, Location(), "v1", "x");

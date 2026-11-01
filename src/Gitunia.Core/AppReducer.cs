@@ -1,4 +1,6 @@
 using Gitunia.Core.Effects;
+using Gitunia.Core.Integration;
+using Gitunia.Core.Operations;
 using Gitunia.Core.Prompts;
 using Gitunia.Core.Remotes;
 using Gitunia.Core.Shell;
@@ -22,6 +24,7 @@ public static class AppReducer
     public static AppUpdate Reduce(AppState state, AppCommand command) => command switch
     {
         EffectFailedCommand failed => EffectFailed(state, failed),
+        IntegrationCommand integration => ReduceIntegration(state, integration),
         RemoteCommand remote => ReduceRemote(state, remote),
         ShellCommand shell => ReduceShell(state, shell),
         StashCommand stash => ReduceStash(state, stash),
@@ -57,6 +60,27 @@ public static class AppReducer
         }
 
         return new AppUpdate(new AppState(update.Workspace, shell), [.. update.Effects]);
+    }
+
+    // A result or answer for a tab that was closed meanwhile is dropped, like a late TabCommand.
+    private static AppUpdate ReduceIntegration(AppState state, IntegrationCommand command)
+    {
+        if (state.Workspace.FindTab(command.TabId) is not { } tab)
+        {
+            return new AppUpdate(state, []);
+        }
+
+        var busy = tab.Running.IsRunning(RunningOperationKind.Integration);
+        var conflicts = OperationBannerBuilder.ConflictCount(tab.WorkingTree);
+        var context = new IntegrationContext(tab.Id, tab.Location, tab.Head, tab.Operation, conflicts, busy);
+        var effects = IntegrationReducer.Reduce(command, context);
+        var running = tab.Running.Apply(tab.Id, command, effects);
+        if (Equals(running, tab.Running))
+        {
+            return new AppUpdate(state, effects);
+        }
+
+        return new AppUpdate(WithTab(state, tab with { Running = running }), effects);
     }
 
     // A result or answer for a tab that was closed meanwhile is dropped, like a late TabCommand.

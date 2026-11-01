@@ -3,6 +3,7 @@ using Gitunia.App.Loading.Commits;
 using Gitunia.App.Loading.Diff;
 using Gitunia.App.Loading.Stash;
 using Gitunia.App.Loading.Trees;
+using Gitunia.App.Integration;
 using Gitunia.App.Remotes;
 using Gitunia.App.Stash;
 using Gitunia.App.Status;
@@ -12,6 +13,7 @@ using Gitunia.App.Tags;
 using Gitunia.Core;
 using Gitunia.Core.Clipboard;
 using Gitunia.Core.Effects;
+using Gitunia.Core.Integration;
 using Gitunia.Core.Prompts;
 using Gitunia.Core.Remotes;
 using Gitunia.Core.Stash;
@@ -48,6 +50,7 @@ public sealed class EffectRunner<TSession> : IDisposable
     private readonly IShellEffects _shell;
     private readonly TabCancellation _cancellation = new();
     private readonly BackgroundWork _background = new();
+    private readonly IntegrationEffectHandler _integration;
     private readonly RemoteEffectHandler _remotes;
     private readonly StashEffectHandler _stash;
     private readonly TagEffectHandler _tags;
@@ -79,6 +82,7 @@ public sealed class EffectRunner<TSession> : IDisposable
         IShellEffects? shell = null)
     {
         _shell = shell ?? NoShellEffects.Instance;
+        _integration = IntegrationEffectHandler.Create(services, host);
         _remotes = new RemoteEffectHandler(services.RemoteManager, host);
         _stash = new StashEffectHandler(services.StashWriter, host);
         _tags = new TagEffectHandler(services.Tags, host);
@@ -196,6 +200,7 @@ public sealed class EffectRunner<TSession> : IDisposable
     // A feature's effect fails with that feature's result command, so its running flag is cleared.
     private static AppCommand FailureOf(AppEffect effect, string text) => effect switch
     {
+        IntegrationEffect integration => new IntegrationFailed(integration.TabId, text),
         RemoteEffect remote => new RemoteOperationFailed(remote.TabId, text),
         StashEffect stash => new StashOperationFailed(stash.TabId, text),
         TagEffect tag => new TagOperationFailed(tag.TabId, text, null),
@@ -211,6 +216,9 @@ public sealed class EffectRunner<TSession> : IDisposable
                 break;
             case CopyToClipboardEffect copy:
                 _shell.CopyToClipboard(copy);
+                break;
+            case IntegrationEffect integration:
+                _integration.Handle(integration, _cancellation.TokenOf(integration.TabId));
                 break;
             case LoadRepositoryEffect load:
                 StartLoad(load);

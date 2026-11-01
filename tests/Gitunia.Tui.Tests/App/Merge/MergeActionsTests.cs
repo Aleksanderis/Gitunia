@@ -1,356 +1,133 @@
-using Gitunia.App.Status;
-using Gitunia.Core;
 using Gitunia.App;
-using Gitunia.App.Loading.Commits;
-using Gitunia.App.Tabs;
-using Gitunia.Core.Graph;
+using Gitunia.Core;
+using Gitunia.Core.Effects;
+using Gitunia.Core.Integration;
 using Gitunia.Core.Keymap;
-using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Sidebar;
-using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Repositories;
-using Gitunia.Core.Workspaces.Tabs;
-using Gitunia.Git.Repositories;
-using Gitunia.Git.Tests.Fixtures;
+using Gitunia.Git.Merge;
+using Gitunia.Git.Refs.Models;
+using Gitunia.Git.Repositories.Models;
 using Gitunia.Tui.App.Branches;
 using Gitunia.Tui.App.Merge;
-using Gitunia.Tui.App.Tabs;
-using Gitunia.Tui.Rendering.Graph;
+using Gitunia.Tui.Tests.Fakes;
 using Xunit;
 
 namespace Gitunia.Tui.Tests.App.Merge;
 
+// The actions only turn the keys into a command that carries what is selected; the decisions are in
+// MergeReducerTests and the work on the repository in the App tests.
 public class MergeActionsTests
 {
-    [Fact]
-    public async Task GivenABranchRow_WhenMerging_ThenItFastForwardsAndNamesTheOldTipForTheUndo()
+    private const string Commit = "2222222222222222222222222222222222222222";
+
+    private readonly Dispatcher _host = new TestShell().Host;
+    private readonly FixedSelection _selection = new();
+    private readonly List<AppEffect> _effects = [];
+    private readonly MergeActions _actions;
+
+    public MergeActionsTests()
     {
-        using var repository = AheadBranch();
-        var old = repository.Head;
-        var topic = repository.Git("rev-parse", "topic").Trim();
-        using var harness = await Harness.LoadAsync(repository);
-        harness.SelectRow(SidebarRowKind.LocalBranch, "topic", topic);
-
-        harness.Run(ActionIds.MergeBranch);
-        await harness.FinishAsync();
-
-        Assert.Equal(topic, repository.Head);
-        var text = harness.Statuses.Log.Latest!.Text;
-        Assert.StartsWith("Fast-forwarded main", text, StringComparison.Ordinal);
-        Assert.Contains($"git reset --hard {old[..7]}", text, StringComparison.Ordinal);
-        Assert.Equal(1, harness.Refreshes);
-        Assert.False(harness.Gate.IsBusy(harness.TabId));
+        _host.Dispatch(new OpenRepositoryCommand(Location()));
+        var tabId = _host.Workspace.ActiveTabId!.Value;
+        _host.Dispatch(new TabCommand(tabId, new HeadLoadedCommand(new HeadState(HeadKind.Branch, "main", "abc"))));
+        _host.EffectRaised += _effects.Add;
+        _actions = new MergeActions(_host, _selection);
     }
 
     [Fact]
-    public async Task GivenAGraphCommit_WhenMergingWithNoFastForward_ThenAMergeCommitIsMade()
+    public void GivenACommit_WhenPressingTheMergeKeys_ThenEachKeyStartsItsModeByHash()
     {
-        using var repository = AheadBranch();
-        var topic = repository.Git("rev-parse", "topic").Trim();
-        using var harness = await Harness.LoadAsync(repository);
-        harness.Select(topic);
+        _selection.Current = new BranchSelection(null, null, Commit);
 
-        harness.Run(ActionIds.MergeBranchNoFastForward);
-        await harness.FinishAsync();
+        Assert.True(_actions.TryExecute(ActionIds.MergeBranch, null));
+        Complete();
+        Assert.True(_actions.TryExecute(ActionIds.MergeBranchNoFastForward, null));
+        Complete();
+        Assert.True(_actions.TryExecute(ActionIds.MergeBranchSquash, null));
 
-        Assert.Equal(2, repository.Git("rev-list", "--parents", "-n", "1", "HEAD").Trim().Split(' ').Length - 1);
-        Assert.StartsWith("Merged ", harness.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
+        var merges = _effects.OfType<MergeBranchEffect>().ToArray();
+        Assert.Equal([MergeMode.Default, MergeMode.NoFastForward, MergeMode.Squash], merges.Select(merge => merge.Mode));
+        Assert.All(merges, merge => Assert.Equal(new MergeTarget(Commit, "2222222"), merge.Target));
     }
 
     [Fact]
-    public async Task GivenABranch_WhenSquashing_ThenTheChangesAreStagedAndTheStatusSaysNothingIsCommitted()
+    public void GivenALocalBranchRow_WhenMerging_ThenTheFullRefIsPassedSoATagOfTheSameNameCannotWin()
     {
-        using var repository = AheadBranch();
-        var old = repository.Head;
-        using var harness = await Harness.LoadAsync(repository);
-        harness.SelectRow(SidebarRowKind.LocalBranch, "topic", repository.Git("rev-parse", "topic").Trim());
+        _selection.Current = new BranchSelection(SidebarRowKind.LocalBranch, "topic", Commit);
 
-        harness.Run(ActionIds.MergeBranchSquash);
-        await harness.FinishAsync();
+        _actions.TryExecute(ActionIds.MergeBranch, null);
 
-        Assert.Equal(old, repository.Head);
-        Assert.Contains("A  b.txt", repository.Git("status", "--porcelain"), StringComparison.Ordinal);
-        Assert.Contains("nothing is committed", harness.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
+        var merge = Assert.IsType<MergeBranchEffect>(Assert.Single(_effects));
+        Assert.Equal(new MergeTarget("refs/heads/topic", "topic"), merge.Target);
     }
 
     [Fact]
-    public async Task GivenConflictingBranches_WhenMerging_ThenAWarningPointsToContinueAndAbort()
+    public void GivenARemoteBranchRow_WhenMerging_ThenTheRemoteRefIsPassed()
     {
-        using var repository = TestRepositories.ConflictingBranches();
-        using var harness = await Harness.LoadAsync(repository);
-        harness.SelectRow(SidebarRowKind.LocalBranch, "other", repository.Git("rev-parse", "other").Trim());
+        _selection.Current = new BranchSelection(SidebarRowKind.RemoteBranch, "origin/topic", Commit);
 
-        harness.Run(ActionIds.MergeBranch);
-        await harness.FinishAsync();
+        _actions.TryExecute(ActionIds.MergeBranch, null);
 
-        var latest = harness.Statuses.Log.Latest!;
-        Assert.Equal(StatusSeverity.Warning, latest.Severity);
-        Assert.Contains("<space>gc", latest.Text, StringComparison.Ordinal);
-        Assert.Contains("<space>ga", latest.Text, StringComparison.Ordinal);
-        Assert.Contains("UU conflict.txt", repository.Git("status", "--porcelain"), StringComparison.Ordinal);
+        var merge = Assert.IsType<MergeBranchEffect>(Assert.Single(_effects));
+        Assert.Equal(new MergeTarget("refs/remotes/origin/topic", "origin/topic"), merge.Target);
     }
 
     [Fact]
-    public async Task GivenConflictingBranches_WhenSquashing_ThenTheWarningSaysNoOperationIsInProgress()
+    public void GivenATagRow_WhenMerging_ThenTheTagCommitIsMergedAndNamedByTheTag()
     {
-        using var repository = TestRepositories.ConflictingBranches();
-        using var harness = await Harness.LoadAsync(repository);
-        harness.SelectRow(SidebarRowKind.LocalBranch, "other", repository.Git("rev-parse", "other").Trim());
+        _selection.Current = new BranchSelection(SidebarRowKind.Tag, "v1", Commit);
 
-        harness.Run(ActionIds.MergeBranchSquash);
-        await harness.FinishAsync();
+        _actions.TryExecute(ActionIds.MergeBranch, null);
 
-        var latest = harness.Statuses.Log.Latest!;
-        Assert.Equal(StatusSeverity.Warning, latest.Severity);
-        Assert.Contains("no operation is in progress", latest.Text, StringComparison.Ordinal);
-    }
-
-    [Theory]
-    [InlineData("conflicted")]
-    [InlineData("rebase")]
-    [InlineData("cherry-pick")]
-    [InlineData("revert")]
-    public async Task GivenAnOperationInProgress_WhenMerging_ThenItIsRefusedByNameAndNothingRuns(string kind)
-    {
-        using var repository = kind switch
-        {
-            "conflicted" => TestRepositories.Conflicted(),
-            "rebase" => TestRepositories.RebaseConflicted(),
-            "cherry-pick" => TestRepositories.CherryPickConflicted(),
-            _ => TestRepositories.RevertConflicted(),
-        };
-        var head = repository.Head;
-        using var harness = await Harness.LoadAsync(repository);
-        harness.Select(head);
-
-        harness.Run(ActionIds.MergeBranch);
-
-        var name = kind == "conflicted" ? "merge" : kind;
-        Assert.Contains($"finish or abort the {name} first", harness.Merge.Notice, StringComparison.Ordinal);
-        Assert.Contains("<space>gc", harness.Merge.Notice, StringComparison.Ordinal);
-        Assert.False(harness.Gate.IsBusy(harness.TabId));
-        Assert.Equal(0, harness.Refreshes);
-        Assert.Equal(head, repository.Head);
-    }
-
-    [Fact]
-    public async Task GivenADetachedHead_WhenMerging_ThenItIsRefused()
-    {
-        using var repository = AheadBranch();
-        repository.Checkout(repository.Head);
-        using var harness = await Harness.LoadAsync(repository);
-        harness.Select(repository.Git("rev-parse", "topic").Trim());
-
-        harness.Run(ActionIds.MergeBranch);
-
-        Assert.Contains("detached", harness.Merge.Notice, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public async Task GivenAnUnbornBranch_WhenMerging_ThenItIsRefused()
-    {
-        using var repository = TestRepository.Create();
-        using var harness = await Harness.LoadAsync(repository);
-        harness.Select(new string('a', 40));
-
-        harness.Run(ActionIds.MergeBranch);
-
-        Assert.Contains("no commits yet", harness.Merge.Notice, StringComparison.Ordinal);
-        Assert.False(harness.Gate.IsBusy(harness.TabId));
+        Assert.Equal(new MergeTarget(Commit, "v1"), Assert.IsType<MergeBranchEffect>(Assert.Single(_effects)).Target);
     }
 
     [Theory]
     [InlineData(SidebarRowKind.Stash)]
     [InlineData(SidebarRowKind.Worktree)]
     [InlineData(SidebarRowKind.Section)]
-    public async Task GivenASidebarRowThatIsNotARef_WhenMerging_ThenNothingRuns(SidebarRowKind kind)
+    public void GivenARowThatIsNotARef_WhenMerging_ThenNothingRunsAndTheUserIsTold(SidebarRowKind kind)
     {
-        using var repository = AheadBranch();
-        var old = repository.Head;
-        using var harness = await Harness.LoadAsync(repository);
-        harness.SelectRow(kind, "row", repository.Git("rev-parse", "topic").Trim());
+        _selection.Current = new BranchSelection(kind, "row", Commit);
 
-        harness.Run(ActionIds.MergeBranch);
+        _actions.TryExecute(ActionIds.MergeBranch, null);
 
-        Assert.Contains("Select a commit", harness.Merge.Notice, StringComparison.Ordinal);
-        Assert.Equal(old, repository.Head);
+        var post = Assert.IsType<PostStatusEffect>(Assert.Single(_effects));
+        Assert.StartsWith("Select a commit", post.Text, StringComparison.Ordinal);
     }
 
     [Fact]
-    public async Task GivenATagRow_WhenMerging_ThenTheTagCommitIsMerged()
+    public void GivenNothingSelected_WhenMerging_ThenNothingRuns()
     {
-        using var repository = AheadBranch();
-        repository.Git("tag", "v1", "topic");
-        var topic = repository.Git("rev-parse", "topic").Trim();
-        using var harness = await Harness.LoadAsync(repository);
-        harness.SelectRow(SidebarRowKind.Tag, "v1", topic);
+        _actions.TryExecute(ActionIds.MergeBranch, null);
 
-        harness.Run(ActionIds.MergeBranch);
-        await harness.FinishAsync();
-
-        Assert.Equal(topic, repository.Head);
+        Assert.IsType<PostStatusEffect>(Assert.Single(_effects));
     }
 
     [Fact]
-    public async Task GivenATagWithTheNameOfTheBranch_WhenMergingTheBranchRow_ThenTheBranchIsMergedWithItsName()
+    public void GivenAnUnrelatedAction_WhenExecuting_ThenItIsNotHandled()
     {
-        using var repository = AheadBranch();
-        var old = repository.Head;
-        var topic = repository.Git("rev-parse", "refs/heads/topic").Trim();
-        repository.Git("tag", "topic", old);
-        using var harness = await Harness.LoadAsync(repository);
-        harness.SelectRow(SidebarRowKind.LocalBranch, "topic", topic);
-
-        harness.Run(ActionIds.MergeBranchNoFastForward);
-        await harness.FinishAsync();
-
-        Assert.Equal(2, repository.Git("rev-list", "--parents", "-n", "1", "HEAD").Trim().Split(' ').Length - 1);
-        Assert.Equal("Merge branch 'topic'", repository.Git("log", "-1", "--format=%s").Trim());
-        Assert.StartsWith("Merged topic into main", harness.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
+        Assert.False(_actions.TryExecute(ActionIds.TagCreate, null));
+        Assert.Empty(_effects);
     }
 
-    [Fact]
-    public async Task GivenAnotherOperationOfTheTab_WhenMerging_ThenItIsBusyAndTheGateIsKept()
+    // The merge result that frees the tab for the next key.
+    private void Complete() =>
+        _host.Dispatch(new IntegrationCancelled(_host.Workspace.ActiveTabId!.Value));
+
+    private static RepositoryLocation Location()
     {
-        using var repository = AheadBranch();
-        var old = repository.Head;
-        using var harness = await Harness.LoadAsync(repository);
-        harness.SelectRow(SidebarRowKind.LocalBranch, "topic", repository.Git("rev-parse", "topic").Trim());
-        harness.Gate.Begin(harness.TabId);
-
-        harness.Run(ActionIds.MergeBranch);
-
-        Assert.Contains("Busy", harness.Merge.Notice, StringComparison.Ordinal);
-        Assert.Equal(old, repository.Head);
-        Assert.True(harness.Gate.IsBusy(harness.TabId));
+        var root = Path.Combine(Path.GetTempPath(), "gitunia-merge-actions-tests");
+        var gitDirectory = Path.Combine(root, ".git");
+        return new RepositoryLocation(root, gitDirectory, gitDirectory, false, false);
     }
 
-    [Fact]
-    public async Task GivenADirtyTreeGitCannotMergeOver_WhenMerging_ThenGitsMessageIsShownAsAnError()
+    private sealed class FixedSelection : IBranchSelectionSource
     {
-        using var repository = TestRepository.Create()
-            .Commit("one", new TestFile("a.txt", "1"))
-            .CheckoutNewBranch("topic")
-            .Commit("two", new TestFile("a.txt", "topic"))
-            .Checkout("main")
-            .WriteFile("a.txt", "dirty");
-        using var harness = await Harness.LoadAsync(repository);
-        harness.SelectRow(SidebarRowKind.LocalBranch, "topic", repository.Git("rev-parse", "topic").Trim());
+        public BranchSelection Current { get; set; } = new(null, null, null);
 
-        harness.Run(ActionIds.MergeBranch);
-        await harness.PumpUntilAsync(() => harness.Statuses.Log.Latest is not null);
-
-        Assert.Equal(StatusSeverity.Error, harness.Statuses.Log.Latest!.Severity);
-        Assert.StartsWith(
-            "Could not merge topic into main:",
-            harness.Statuses.Log.Latest.Text,
-            StringComparison.Ordinal);
-        Assert.False(harness.Gate.IsBusy(harness.TabId));
-    }
-
-    [Fact]
-    public async Task GivenAnUnrelatedAction_WhenExecuting_ThenItIsNotHandled()
-    {
-        using var repository = AheadBranch();
-        using var harness = await Harness.LoadAsync(repository);
-
-        Assert.False(harness.Merge.TryExecute(ActionIds.Cancel, null));
-    }
-
-    private static TestRepository AheadBranch() =>
-        TestRepository.Create()
-            .Commit("one", new TestFile("a.txt", "1"))
-            .CheckoutNewBranch("topic")
-            .Commit("two", new TestFile("b.txt", "2"))
-            .Checkout("main");
-
-    private sealed class Harness : IDisposable
-    {
-        private readonly Dispatcher _host = new(AppState.Empty);
-        private readonly List<TerminalTabSession> _sessions = [];
-        private BranchSelection _selection = new(null, null, null);
-
-        private Harness(GitServices services)
-        {
-            Pump = new UiPump(TestContext.Current.CancellationToken);
-            Merge = new MergeActions(
-                _host,
-                services.Merge,
-                Statuses,
-                Pump.Post,
-                _ => TestContext.Current.CancellationToken,
-                _ =>
-                {
-                    Refreshes++;
-                    return true;
-                },
-                () => _selection,
-                Gate);
-        }
-
-        public MergeActions Merge { get; }
-
-        public StatusReporter Statuses { get; } = new(new Dispatcher(AppState.Empty));
-
-        public int Refreshes { get; private set; }
-
-        public TabOperationGate Gate { get; } = new();
-
-        public TabId TabId => _host.Workspace.ActiveTabId!.Value;
-
-        private UiPump Pump { get; }
-
-        public static async Task<Harness> LoadAsync(TestRepository repository)
-        {
-            var services = GitServices.Create(repository.CreateIsolatedRunner(), static () => BranchColors.SlotCount);
-            var harness = new Harness(services);
-            var location = await services.Discovery.DiscoverAsync(
-                repository.WorkingTreePath,
-                TestContext.Current.CancellationToken);
-            harness._host.Dispatch(new OpenRepositoryCommand(location));
-            var session = new TerminalTabSession(
-                new TabSessionParts(
-                    harness.TabId,
-                    new CommitDetailsStore(services.CommitDetails, location, action => action(), TimeSpan.Zero)),
-                GraphGlyphSet.Unicode);
-            harness._sessions.Add(session);
-            await services.RepositoryLoader.RunAsync(
-                location,
-                session,
-                harness._host,
-                new StatusReporter(new Dispatcher(AppState.Empty)),
-                InlineUi.Post,
-                session.Cancellation.Token);
-
-            // What the tab refresher does for the banner: read the stopped operation, if any.
-            var operation = new RepositoryOperationDetector().Detect(location);
-            var info = await services.OperationInfo.ReadAsync(
-                location,
-                operation,
-                TestContext.Current.CancellationToken);
-            harness._host.Dispatch(new TabCommand(harness.TabId, new OperationLoadedCommand(info)));
-            return harness;
-        }
-
-        public void Select(string? commitHash) => _selection = new BranchSelection(null, null, commitHash);
-
-        public void SelectRow(SidebarRowKind kind, string name, string commitHash) =>
-            _selection = new BranchSelection(kind, name, commitHash);
-
-        public void Run(ActionId action) => Assert.True(Merge.TryExecute(action, null), action.Value);
-
-        public Task FinishAsync() => PumpUntilAsync(() => Statuses.Log.Latest is not null && Refreshes > 0
-            || Statuses.Log.Latest?.Severity == StatusSeverity.Error);
-
-        public Task PumpUntilAsync(Func<bool> condition) => Pump.RunUntilAsync(condition);
-
-        public void Dispose()
-        {
-            foreach (var session in _sessions)
-            {
-                session.Dispose();
-            }
-        }
+        BranchSelection IBranchSelectionSource.Current() => Current;
     }
 }

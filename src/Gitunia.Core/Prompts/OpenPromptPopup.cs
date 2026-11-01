@@ -8,6 +8,14 @@ public static class OpenPromptPopup
     /// <summary>The popup for an open prompt: a text field, or a field with the candidate list under it.</summary>
     public static PromptPopup Of(OpenPrompt prompt)
     {
+        if (prompt.KeyChoices is { } keys)
+        {
+            return PromptPopup.ForChoice(
+                prompt.Title,
+                prompt.Context,
+                [.. keys.Select(choice => $"{choice.Key}  {choice.Text}")]);
+        }
+
         if (prompt.Picker is not { } picker)
         {
             return PromptPopup.ForText(prompt.Title, prompt.Context, prompt.Text, prompt.AcceptLabel);

@@ -1,3 +1,8 @@
+using Gitunia.Core;
+using Gitunia.Core.Effects;
+using Gitunia.Core.Integration;
+using Gitunia.Core.Prompts;
+using Gitunia.Git.Reset;
 using Gitunia.App.Status;
 using Gitunia.App.Loading.Commits;
 using Gitunia.App.Tabs;
@@ -12,7 +17,6 @@ using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git;
 using Gitunia.Git.Reflog;
 using Gitunia.Git.Reflog.Models;
-using Gitunia.Git.Repositories;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Tests.Fixtures;
 using Gitunia.Tui.App.Branches;
@@ -62,10 +66,10 @@ public class ReflogControllerTests
         harness.Run(ActionIds.ResetBranch);
         Assert.False(harness.Reflog.IsOpen);
         await harness.PumpUntilAsync(() => harness.Mode == KeyMode.Insert);
-        harness.Reset.HandleTextKey(new KeyEvent("s"));
-        await harness.PumpUntilAsync(() => harness.Refreshes > 0);
+        harness.PressInPrompt("s");
 
-        Assert.Equal(lost, repository.Head);
+        var prepare = Assert.Single(harness.Effects.OfType<PrepareResetEffect>());
+        Assert.Equal(new ResetTarget(lost, "main", ResetMode.Soft), prepare.Target);
     }
 
     [Fact]
@@ -496,7 +500,7 @@ public class ReflogControllerTests
             Task.FromResult(new ParseResult<ReflogEntry>([], []));
     }
 
-    private sealed class Harness : IDisposable
+    private sealed class Harness : IDisposable, IBranchSelectionSource
     {
         private readonly TestShell _shell = new();
         private readonly UiPump _pump = new(TestContext.Current.CancellationToken);
@@ -504,18 +508,9 @@ public class ReflogControllerTests
 
         private Harness(IReflogReader? reader)
         {
-            Reset = new ResetActions(
-                _shell.Host,
-                TestGit.Services.Reset,
-                TestGit.Services.Status,
-                new RepositoryOperationDetector(),
-                Statuses,
-                _pump.Post,
-                _ => TestContext.Current.CancellationToken,
-                CountRefresh,
-                () => { },
-                () => Selection,
-                new TabOperationGate());
+            _shell.Host.EffectRaised += Effects.Add;
+            _shell.Host.EffectRaised += PostStatus;
+            Reset = new ResetActions(_shell.Host, this);
             Branches = new BranchActions(
                 _shell.Host,
                 TestGit.Services.Branches,
@@ -544,6 +539,8 @@ public class ReflogControllerTests
         public ReflogController Reflog { get; }
 
         public ResetActions Reset { get; }
+
+        public List<AppEffect> Effects { get; } = [];
 
         public BranchActions Branches { get; }
 
@@ -613,11 +610,24 @@ public class ReflogControllerTests
         // The frame line of the nth action row under the entries.
         public int ActionLine(int index) => 1 + Reflog.State!.Entries.Count + index;
 
+        public void PressInPrompt(string key) => _shell.Host.Dispatch(new PromptKeyPressedCommand(new KeyEvent(key)));
+
         public void Run(ActionId action) => Assert.True(Reflog.TryExecute(action, null), action.Value);
 
         public Task PumpUntilAsync(Func<bool> condition) => _pump.RunUntilAsync(condition);
 
         public void Dispose() => _session?.Dispose();
+
+        BranchSelection IBranchSelectionSource.Current() => Selection;
+
+        // The runner posts the status of a refusal; the test shell does not run that effect.
+        private void PostStatus(AppEffect effect)
+        {
+            if (effect is PostStatusEffect post)
+            {
+                Statuses.Post(post.Text, post.Severity);
+            }
+        }
 
         private string SelectCommit(TabId tabId, string hash)
         {

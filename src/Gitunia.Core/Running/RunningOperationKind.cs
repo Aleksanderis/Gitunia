@@ -6,6 +6,9 @@ namespace Gitunia.Core.Running;
 /// </summary>
 public enum RunningOperationKind
 {
+    /// <summary>A reset, a merge, or continuing, aborting or skipping the operation in progress.</summary>
+    Integration,
+
     /// <summary>A remote management operation: add, remove, rename, set the URL, or reading the remotes for the prompt.</summary>
     Remotes,
 
