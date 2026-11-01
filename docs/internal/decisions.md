@@ -1,5 +1,7 @@
 # Decisions
 
+*Internal design note for maintainers and agents. Not needed to use or contribute to Gitunia.*
+
 Short dated log of live, non-obvious settled choices that cut across docs. Add an entry only when the choice is not already evident from `ux.md` and its parts (`ux-*.md`), `architecture.md` or the code, or when it overrides an earlier decision; a behaviour change documented in `ux.md` needs none. Agents follow these without asking. Open questions live in `roadmap.md`. Superseded, closed and purely historical entries are archived word for word in `history/decisions.md` (not required reading).
 
 Format: dated heading, entries appended at the end, each starting with a bold topic tag (**Stack**, **Git layer**, **UI**, **Testing**, **Process**, **Code structure**), one or two lines (decision and why), a blank line between entries. The full text of long entries, implementation detail, measurements and limits live in `docs/history/` (moved there, same wording), the area docs (`architecture.md`, `git-layer.md`, `ux.md`, `testing.md`), or the issue or PR. When a decision changes, append a new entry that supersedes the old one; archive the old entry once the new one states the outcome (see 2026-10-30).

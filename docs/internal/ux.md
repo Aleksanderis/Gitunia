@@ -1,5 +1,7 @@
 # UX
 
+*Internal design note for maintainers and agents. Not needed to use or contribute to Gitunia.*
+
 Spec for workflows and keys.
 Keyboard and mouse are both fully supported: every action is reachable with either.
 Bindings live in the keymap and mouse tables; the other sections give the behaviour the tables cannot.

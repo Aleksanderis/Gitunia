@@ -1,5 +1,7 @@
 # UX: look, colours and config file
 
+*Internal design note for maintainers and agents. Not needed to use or contribute to Gitunia.*
+
 Part of the UX spec; start at [ux.md](ux.md).
 
 ## Look and colours

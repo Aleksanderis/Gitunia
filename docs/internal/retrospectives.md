@@ -1,5 +1,7 @@
 # Retrospectives
 
+*Internal design note for maintainers and agents. Not needed to use or contribute to Gitunia.*
+
 Log of `/retrospective` runs: date, PR range, recurring groups, proposals applied or declined, instruction line counts.
 
 ## 2026-10-17 (PRs #324-#406, 40 PRs)

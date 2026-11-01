@@ -1,5 +1,7 @@
 # UX: Settings screen
 
+*Internal design note for maintainers and agents. Not needed to use or contribute to Gitunia.*
+
 Part of the UX spec; start at [ux.md](ux.md).
 
 ## Settings screen (design #465; the screen is implemented in #523, the theme in #524, the key reference in #525)

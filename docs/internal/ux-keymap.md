@@ -1,5 +1,7 @@
 # UX: keymap
 
+*Internal design note for maintainers and agents. Not needed to use or contribute to Gitunia.*
+
 Part of the UX spec; start at [ux.md](ux.md). The key tables are generated: [keymap.md](keymap.md) lists every default binding per view.
 
 ## Keymap
