@@ -23,6 +23,10 @@ public sealed record ReadSettingsEffect(SettingsReadIntent Intent) : SettingsEff
 public sealed record WriteSettingEffect(SettingsCommit Commit, string Json, ConfigSnapshot Snapshot)
     : SettingsEffect;
 
+/// <summary>Check on disk that a folder exists. Posts <see cref="SettingsFolderChecked"/>.</summary>
+/// <param name="Check">The folder and the change to write when it exists.</param>
+public sealed record CheckSettingsFolderEffect(SettingsFolderCheck Check) : SettingsEffect;
+
 /// <summary>What only the terminal layer can do for the settings screen: change the running app, open the
 /// editor.</summary>
 public abstract record SettingsShellEffect : AppEffect

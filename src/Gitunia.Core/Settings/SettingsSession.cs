@@ -9,7 +9,7 @@ namespace Gitunia.Core.Settings;
 /// theme preview need between commands. Changed only by <see cref="SettingsScreenReducer"/>.
 /// </summary>
 /// <param name="Screen">The open screen, null while it is closed.</param>
-/// <param name="Environment">The machine facts the folder check needs (set when the app starts).</param>
+/// <param name="HomeDirectory">What a leading <c>~</c> in a folder stands for (set when the app starts).</param>
 /// <param name="Viewport">What the terminal layer reported about the room the screen has.</param>
 /// <param name="Snapshot">The file as last read, for the stale check of the next write.</param>
 /// <param name="IsBusy">True while the file is read or written; reads and writes never overlap.</param>
@@ -20,7 +20,7 @@ namespace Gitunia.Core.Settings;
 /// <param name="Shown">The theme on screen.</param>
 public sealed record SettingsSession(
     SettingsState? Screen,
-    SettingsEnvironment Environment,
+    string HomeDirectory,
     SettingsViewport Viewport,
     ConfigSnapshot Snapshot,
     bool IsBusy,
@@ -31,7 +31,7 @@ public sealed record SettingsSession(
 {
     public static SettingsSession Empty { get; } = new(
         null,
-        new SettingsEnvironment(string.Empty, static _ => false),
+        string.Empty,
         new SettingsViewport(1, false),
         new ConfigSnapshot(false, string.Empty, string.Empty),
         false,

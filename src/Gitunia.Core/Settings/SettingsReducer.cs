@@ -7,7 +7,8 @@ namespace Gitunia.Core.Settings;
 
 /// <summary>
 /// The transitions of the settings screen: <c>(state, command) -> state</c> plus at most one effect for the caller
-/// (a change to write, the editor to open, the screen to close). Pure: the folder check comes from the environment.
+/// (a change to write, the editor to open, the screen to close). Pure: a folder is only checked for shape and
+/// duplicates here; that it exists is an effect.
 /// </summary>
 public static class SettingsReducer
 {
@@ -16,11 +17,11 @@ public static class SettingsReducer
     /// <summary>Applies one command.</summary>
     /// <param name="state">The state before.</param>
     /// <param name="command">What was asked.</param>
-    /// <param name="environment">The machine facts the folder check needs.</param>
+    /// <param name="homeDirectory">What a leading <c>~</c> stands for.</param>
     public static SettingsOutcome Reduce(
         SettingsState state,
         SettingsCommandKind command,
-        SettingsEnvironment environment)
+        string homeDirectory)
     {
         return command switch
         {
@@ -35,7 +36,7 @@ public static class SettingsReducer
             SettingsCommandKind.Increase => Step(state, 1),
             SettingsCommandKind.Decrease => Step(state, -1),
             SettingsCommandKind.FilterOpen => FilterOpen(state),
-            SettingsCommandKind.InputAccept => InputAccept(state, environment),
+            SettingsCommandKind.InputAccept => InputAccept(state, homeDirectory),
             SettingsCommandKind.ConfirmYes => ConfirmYes(state),
             SettingsCommandKind.ConfirmNo => ConfirmNo(state),
             _ => new SettingsOutcome(state),
@@ -332,7 +333,7 @@ public static class SettingsReducer
         return new SettingsOutcome(opened);
     }
 
-    private static SettingsOutcome InputAccept(SettingsState state, SettingsEnvironment environment)
+    private static SettingsOutcome InputAccept(SettingsState state, string homeDirectory)
     {
         if (state.IsEditingFilter)
         {
@@ -349,7 +350,7 @@ public static class SettingsReducer
             return AcceptNumber(state, definition, input);
         }
 
-        return AcceptPath(state, definition, input, environment);
+        return AcceptPath(state, definition, input, homeDirectory);
     }
 
     private static SettingsOutcome AcceptNumber(SettingsState state, SettingDefinition definition, SettingsInput input)
@@ -368,12 +369,12 @@ public static class SettingsReducer
         SettingsState state,
         SettingDefinition definition,
         SettingsInput input,
-        SettingsEnvironment environment)
+        string homeDirectory)
     {
         var paths = state.ValueOf(definition).Paths;
         var ignored = input.Kind == SettingsInputKind.PathEdit ? input.ItemIndex : -1;
         var typed = input.Text.Trim();
-        var error = CheckPath(typed, paths, ignored, environment);
+        var error = CheckPath(typed, paths, ignored, homeDirectory, out var expanded);
         if (error.Length > 0)
         {
             return Refuse(state, error);
@@ -382,37 +383,35 @@ public static class SettingsReducer
         var isEdit = input.Kind == SettingsInputKind.PathEdit;
         var changed = isEdit ? paths.SetItem(input.ItemIndex, typed) : paths.Add(typed);
         var select = isEdit ? input.ItemIndex : changed.Length - 1;
+        var commit = new SettingsCommit(definition, SettingValue.OfPaths(changed), select);
 
-        return new SettingsOutcome(state, new SettingsCommit(definition, SettingValue.OfPaths(changed), select));
+        return new SettingsOutcome(state, CheckFolder: new SettingsFolderCheck(expanded, typed, commit));
     }
 
-    // Empty string when the folder can be added; else why not.
+    // Empty string when the folder passes the checks that need no disk; else why not.
     private static string CheckPath(
         string typed,
         ImmutableArray<string> existing,
         int ignoredIndex,
-        SettingsEnvironment environment)
+        string homeDirectory,
+        out string expanded)
     {
+        expanded = string.Empty;
         if (typed.Length == 0)
         {
             return NoFolder;
         }
 
-        var expanded = Normalize(typed, environment);
+        expanded = Normalize(typed, homeDirectory);
         if (!Path.IsPathFullyQualified(expanded))
         {
             var starts = OperatingSystem.IsWindows() ? @"~ or C:\" : "~ or /";
             return $"\"{typed}\" is not an absolute path (start it with {starts})";
         }
 
-        if (!environment.DirectoryExists(expanded))
-        {
-            return $"\"{typed}\" is not an existing folder";
-        }
-
         for (var index = 0; index < existing.Length; index++)
         {
-            if (index != ignoredIndex && Normalize(existing[index], environment) == expanded)
+            if (index != ignoredIndex && Normalize(existing[index], homeDirectory) == expanded)
             {
                 return $"\"{typed}\" is already in the list";
             }
@@ -421,14 +420,14 @@ public static class SettingsReducer
         return string.Empty;
     }
 
-    private static string Normalize(string text, SettingsEnvironment environment)
+    private static string Normalize(string text, string homeDirectory)
     {
         if (text.Length == 0)
         {
             return text;
         }
 
-        return Path.TrimEndingDirectorySeparator(OptionsConfigurator.ExpandHome(text, environment.HomeDirectory));
+        return Path.TrimEndingDirectorySeparator(OptionsConfigurator.ExpandHome(text, homeDirectory));
     }
 
     private static SettingsOutcome Commit(SettingsState state, SettingDefinition definition, SettingValue value) =>

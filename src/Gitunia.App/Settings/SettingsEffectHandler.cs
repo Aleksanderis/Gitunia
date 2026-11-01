@@ -5,7 +5,8 @@ using Gitunia.Core.Settings.Models;
 namespace Gitunia.App.Settings;
 
 /// <summary>
-/// Reads and writes the config file off the UI thread (a scan root on a slow mount must not freeze the UI) and posts
+/// Reads and writes the config file and looks folders up off the UI thread (a scan root on a slow mount must not
+/// freeze the UI) and posts
 /// exactly one result command for each effect. It never reads or changes state; the reducer never lets two run at once.
 /// </summary>
 /// <param name="services">The config file, the machine facts, the settings on offer and the key bindings.</param>
@@ -24,6 +25,9 @@ public sealed class SettingsEffectHandler(SettingsServices services, IDispatcher
                 break;
             case WriteSettingEffect write:
                 Start(() => WriteAsync(write, cancellationToken));
+                break;
+            case CheckSettingsFolderEffect check:
+                Start(() => CheckFolderAsync(check));
                 break;
             default:
                 throw new UnhandledEffectException(effect);
@@ -66,6 +70,21 @@ public sealed class SettingsEffectHandler(SettingsServices services, IDispatcher
         {
             return new SettingsOperationFailed(ReadFailure(exception));
         }
+    }
+
+    private Task<SettingsCommand> CheckFolderAsync(CheckSettingsFolderEffect effect)
+    {
+        SettingsCommand result;
+        try
+        {
+            result = new SettingsFolderChecked(effect.Check, services.Environment.DirectoryExists(effect.Check.Path));
+        }
+        catch (Exception exception) when (exception is not (OperationCanceledException or OutOfMemoryException))
+        {
+            result = new SettingsOperationFailed($"Could not check the folder: {exception.Message}");
+        }
+
+        return Task.FromResult(result);
     }
 
     private async Task<SettingsCommand> WriteAsync(WriteSettingEffect effect, CancellationToken token)
