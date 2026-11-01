@@ -7,6 +7,7 @@ using Xunit;
 
 namespace Gitunia.Core.Tests.Stash;
 
+[Trait("Os", "Independent")]
 public class StashReportsTests
 {
     private static readonly StashEntry Entry = new(0, "stash@{0}", "abc123", "On main: \"quoted\" work");

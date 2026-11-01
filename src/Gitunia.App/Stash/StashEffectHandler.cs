@@ -26,7 +26,7 @@ public sealed class StashEffectHandler(IStashWriter writer, IDispatcher dispatch
         {
             result = await PerformAsync(effect, token).ConfigureAwait(false);
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (token.IsCancellationRequested)
         {
             result = new StashOperationCancelled(effect.TabId);
         }

@@ -24,6 +24,7 @@ using Gitunia.Core.Picker;
 using Gitunia.Core.Settings;
 using Gitunia.Core.Settings.Models;
 using Gitunia.Core.Sidebar;
+using Gitunia.Core.Stash;
 using Gitunia.Core.Status;
 using Gitunia.Core.Text;
 using Gitunia.Core.Workspaces;
@@ -61,7 +62,6 @@ using Gitunia.Tui.App.Remote;
 using Gitunia.Tui.App.Reset;
 using Gitunia.Tui.App.Settings;
 using Gitunia.Tui.App.Sidebar;
-using Gitunia.Core.Stash;
 using Gitunia.Tui.App.Stash;
 using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.App.Tags;
@@ -142,7 +142,6 @@ public sealed class TuiApplication(
     private ConsoleCapabilities _capabilities = detectedCapabilities;
     private CommitActions _commits = null!;
     private BranchActions _branches = null!;
-    private StashActions _stashActions = null!;
     private TagActions _tags = null!;
     private PromptInputHandler _openPrompt = null!;
     private ClipboardCopier _clipboard = null!;
@@ -254,7 +253,6 @@ public sealed class TuiApplication(
 
         _commits = CreateCommits();
         _branches = CreateBranches();
-        _stashActions = new StashActions(_host, this);
         _tags = new TagActions(_host, this);
         _view.ActiveDraft = () => _host.Workspace.ActiveTabId is { } tabId ? _commits.DraftOf(tabId) : null;
         _view.IsEditingMessage = () => _commits.ShowsCursor;
@@ -305,7 +303,7 @@ public sealed class TuiApplication(
             Discard = CreateDiscard(operationGate),
         };
         _router.Branches = _branches;
-        _router.Stash = _stashActions;
+        _router.Stash = new StashActions(_host, this);
         _router.Tags = _tags;
         _openPrompt = new PromptInputHandler(_host);
         _router.OpenPrompt = _openPrompt;
