@@ -1,8 +1,8 @@
 using Gitunia.Core.Graph;
 using Gitunia.Git.Commits.Models;
 using Gitunia.Git.Tests.Fixtures;
-using Gitunia.Tui.Rendering.Styling;
 using Gitunia.Tui.Rendering.Graph;
+using Gitunia.Tui.Rendering.Styling;
 using Xunit;
 
 namespace Gitunia.Tui.Tests.Loading.Graph;

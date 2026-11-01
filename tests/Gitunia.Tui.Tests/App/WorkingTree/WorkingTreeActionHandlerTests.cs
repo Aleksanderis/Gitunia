@@ -1,3 +1,4 @@
+using Gitunia.App;
 using Gitunia.Core.Clipboard;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Status;
@@ -8,7 +9,6 @@ using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Staging;
 using Gitunia.Git.Status.Models;
-using Gitunia.Tui.App;
 using Gitunia.Tui.App.Clipboard;
 using Gitunia.Tui.App.WorkingTree;
 using Gitunia.Tui.Tests.Fakes;

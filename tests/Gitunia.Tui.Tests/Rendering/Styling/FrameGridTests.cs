@@ -1,6 +1,6 @@
 using Gitunia.Core.Diff;
-using Gitunia.Tui.Rendering.Diff;
 using Gitunia.Core.Workspaces.Panes;
+using Gitunia.Tui.Rendering.Diff;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Panes;
 using Gitunia.Tui.Rendering.Screen;

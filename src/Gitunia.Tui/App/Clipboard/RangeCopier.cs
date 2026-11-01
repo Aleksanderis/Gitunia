@@ -1,8 +1,8 @@
 using Gitunia.Core.Lists;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Repositories;
-using Gitunia.Tui.Rendering.WorkingTree;
 using Gitunia.Tui.App.Tabs;
+using Gitunia.Tui.Rendering.WorkingTree;
 
 namespace Gitunia.Tui.App.Clipboard;
 

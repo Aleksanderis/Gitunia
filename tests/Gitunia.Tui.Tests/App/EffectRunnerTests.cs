@@ -1,8 +1,9 @@
+using Gitunia.App;
+using Gitunia.App.Tabs.Models;
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
 using Gitunia.Git.Tests.Fixtures;
 using Gitunia.Tui.App;
-using Gitunia.Tui.App.Tabs.Models;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Tests.Fakes;
 using Xunit;

@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- The UI-free runtime: stores, loaders, pollers, session persistence. No Terminal.Gui reference, so the compiler keeps it terminal-free. -->
+  <PropertyGroup>
+    <RootNamespace>Gitunia.App</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Gitunia.Core\Gitunia.Core.csproj" />
+    <ProjectReference Include="..\Gitunia.Git\Gitunia.Git.csproj" />
+    <ProjectReference Include="..\Gitunia.Platform\Gitunia.Platform.csproj" />
+  </ItemGroup>
+</Project>

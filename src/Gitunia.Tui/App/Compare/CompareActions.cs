@@ -1,3 +1,5 @@
+using Gitunia.App;
+using Gitunia.App.Loading.Commits;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Workspaces;
@@ -6,7 +8,6 @@ using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git;
 using Gitunia.Tui.App.Tabs;
-using Gitunia.Tui.Loading.Commits;
 
 namespace Gitunia.Tui.App.Compare;
 

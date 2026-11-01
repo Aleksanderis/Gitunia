@@ -1,3 +1,4 @@
+using Gitunia.App;
 using Gitunia.Core;
 using Gitunia.Git.Execution;
 using Gitunia.Git.Execution.Exceptions;
@@ -9,6 +10,7 @@ using Gitunia.Tui.App.CommandLine;
 using Gitunia.Tui.App.Config;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Panes;
+using Gitunia.Tui.Views.Theme;
 
 namespace Gitunia.Tui;
 
@@ -45,7 +47,7 @@ public static class Program
             return 0;
         }
 
-        var services = GitServices.Create(new GitRunner());
+        var services = GitServices.Create(new GitRunner(), static () => Palette.LaneColorCount);
         RepositoryLocation? location = null;
         if (options.RepositoryPath is not null)
         {

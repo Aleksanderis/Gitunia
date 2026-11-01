@@ -1,3 +1,4 @@
+using Gitunia.App;
 using Gitunia.Core.Graph;
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;

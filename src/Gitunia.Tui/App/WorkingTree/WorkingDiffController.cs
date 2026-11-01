@@ -1,3 +1,5 @@
+using Gitunia.App;
+using Gitunia.App.Loading.Diff;
 using Gitunia.Core.Diff;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
@@ -11,7 +13,6 @@ using Gitunia.Tui.App.Clipboard;
 using Gitunia.Tui.App.Panes;
 using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.Input;
-using Gitunia.Tui.Loading.Diff;
 using Gitunia.Tui.Rendering.Diff;
 using Gitunia.Tui.Rendering.WorkingTree;
 using Gitunia.Tui.Search;

@@ -1,3 +1,5 @@
+using Gitunia.App;
+using Gitunia.App.Loading.Commits;
 using Gitunia.Core.Graph;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Workspaces;
@@ -6,10 +8,8 @@ using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git;
 using Gitunia.Git.Repositories.Models;
-using Gitunia.Tui.App;
 using Gitunia.Tui.App.Compare;
 using Gitunia.Tui.App.Tabs;
-using Gitunia.Tui.Loading.Commits;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Tests.Fakes;
 using Xunit;

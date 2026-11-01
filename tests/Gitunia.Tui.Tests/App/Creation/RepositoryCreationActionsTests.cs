@@ -1,3 +1,4 @@
+using Gitunia.App;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Status;
@@ -8,7 +9,6 @@ using Gitunia.Git.Remotes;
 using Gitunia.Git.Repositories;
 using Gitunia.Git.Tests.Execution;
 using Gitunia.Git.Tests.Fixtures;
-using Gitunia.Tui.App;
 using Gitunia.Tui.App.Creation;
 using Gitunia.Tui.App.Overlays;
 using Gitunia.Tui.Tests.Fakes;

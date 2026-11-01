@@ -1,10 +1,10 @@
+using System.Runtime.Versioning;
 using Gitunia.Git.Execution.Exceptions;
 using Gitunia.Git.Operations;
 using Gitunia.Git.Operations.Models;
 using Gitunia.Git.Repositories;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Tests.Fixtures;
-using System.Runtime.Versioning;
 using Xunit;
 
 namespace Gitunia.Git.Tests.Operations;

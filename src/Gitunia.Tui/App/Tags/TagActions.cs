@@ -1,3 +1,5 @@
+using Gitunia.App;
+using Gitunia.App.Tabs;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Overlays;
@@ -12,10 +14,8 @@ using Gitunia.Git.Refs.Models;
 using Gitunia.Git.Remotes;
 using Gitunia.Git.Tags;
 using Gitunia.Tui.App.Branches;
-using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.App.WorkingTree;
 using Gitunia.Tui.Input;
-
 // Core.Overlays has a FuzzyMatcher too (ConfirmPrompt lives there); the remote picker uses the Search one.
 using RemoteMatcher = Gitunia.Core.Search.FuzzyMatcher;
 

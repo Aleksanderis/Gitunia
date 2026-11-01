@@ -1,4 +1,6 @@
 using System.Collections.Frozen;
+using Gitunia.App;
+using Gitunia.App.Tabs;
 using Gitunia.Core.Editing;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
@@ -16,7 +18,6 @@ using Gitunia.Git.Execution.Exceptions;
 using Gitunia.Git.Repositories;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Status.Models;
-using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.Rendering.Panes;
 
 namespace Gitunia.Tui.App.WorkingTree;

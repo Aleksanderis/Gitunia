@@ -7,8 +7,8 @@ using Gitunia.Core.Search.Models;
 using Gitunia.Git;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Panes;
-using Gitunia.Tui.Rendering.Styling;
 using Gitunia.Tui.Rendering.Screen;
+using Gitunia.Tui.Rendering.Styling;
 using Gitunia.Tui.Views.Theme;
 using Terminal.Gui.Views;
 

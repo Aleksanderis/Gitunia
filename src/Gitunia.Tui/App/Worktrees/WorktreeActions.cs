@@ -1,3 +1,5 @@
+using Gitunia.App;
+using Gitunia.App.Tabs;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Overlays;
@@ -11,7 +13,6 @@ using Gitunia.Git;
 using Gitunia.Git.Refs.Models;
 using Gitunia.Git.Worktrees;
 using Gitunia.Git.Worktrees.Models;
-using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.App.WorkingTree;
 using Gitunia.Tui.Input;
 

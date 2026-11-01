@@ -1,3 +1,4 @@
+using Gitunia.App;
 using Gitunia.Core.Sidebar;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Panes;

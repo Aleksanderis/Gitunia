@@ -1,4 +1,5 @@
-using Gitunia.Tui.App.Tabs;
+using Gitunia.App;
+using Gitunia.App.Tabs;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Sidebar;
@@ -6,8 +7,8 @@ using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
-using Gitunia.Git.Repositories;
 using Gitunia.Git.Refs.Models;
+using Gitunia.Git.Repositories;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Worktrees;
 using Gitunia.Tui.App.WorkingTree;

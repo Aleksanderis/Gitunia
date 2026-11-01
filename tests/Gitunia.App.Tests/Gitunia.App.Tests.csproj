@@ -1,0 +1,45 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsTestProject>true</IsTestProject>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit.v3" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Shared fixture builder: one source file, linked instead of a project reference between test projects. -->
+    <Compile Include="..\Gitunia.Git.Tests\Fixtures\TestRepository.cs" Link="Fixtures\TestRepository.cs" />
+    <Compile Include="..\Gitunia.Git.Tests\Fixtures\IsolatedGit.cs" Link="Fixtures\IsolatedGit.cs" />
+    <Compile Include="..\Gitunia.Git.Tests\Fixtures\TestFile.cs" Link="Fixtures\TestFile.cs" />
+    <Compile Include="..\Gitunia.Git.Tests\Fixtures\RealTempDirectory.cs" Link="Fixtures\RealTempDirectory.cs" />
+    <Compile Include="..\Gitunia.Git.Tests\Fixtures\TestGitSpeed.cs" Link="Fixtures\TestGitSpeed.cs" />
+    <Compile Include="..\Gitunia.Git.Tests\Fixtures\TestRepositories.cs" Link="Fixtures\TestRepositories.cs" />
+    <Compile Include="..\Gitunia.Git.Tests\Execution\FakeGitExecutable.cs" Link="Fixtures\FakeGitExecutable.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Test helpers shared with Gitunia.Tui.Tests, which owns them (a new fake there that needs Terminal.Gui must be excluded here too): the fakes (the two that need the terminal layer excluded), the services and pump helpers. -->
+    <Compile Include="..\Gitunia.Tui.Tests\Fakes\*.cs" Exclude="..\Gitunia.Tui.Tests\Fakes\PopupText.cs;..\Gitunia.Tui.Tests\Fakes\TestCommitActions.cs" Link="Fakes\%(Filename)%(Extension)" />
+    <Compile Include="..\Gitunia.Tui.Tests\TestGit.cs" Link="Shared\TestGit.cs" />
+    <Compile Include="..\Gitunia.Tui.Tests\RunWatchdog.cs" Link="Shared\RunWatchdog.cs" />
+    <Compile Include="..\Gitunia.Tui.Tests\App\UiPump.cs" Link="Shared\UiPump.cs" />
+    <Compile Include="..\Gitunia.Tui.Tests\App\InlineUi.cs" Link="Shared\InlineUi.cs" />
+    <Compile Include="..\Gitunia.Tui.Tests\Loading\ManualTimeProvider.cs" Link="Shared\ManualTimeProvider.cs" />
+    <Compile Include="..\Gitunia.Tui.Tests\Rendering\WorkingTree\WorkingTreeEntries.cs" Link="Shared\WorkingTreeEntries.cs" />
+    <Compile Include="..\Gitunia.Tui.Tests\Rendering\Graph\CommitFactory.cs" Link="Shared\CommitFactory.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- The shared helpers keep the namespaces of their owner, Gitunia.Tui.Tests. -->
+    <Using Include="Gitunia.Tui.Tests" />
+    <Using Include="Gitunia.Tui.Tests.App" />
+    <Using Include="Gitunia.Tui.Tests.Loading" />
+    <Using Include="Gitunia.Tui.Tests.Fakes" />
+    <Using Include="Gitunia.Tui.Tests.Rendering.Graph" />
+    <Using Include="Gitunia.Tui.Tests.Rendering.WorkingTree" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Gitunia.App\Gitunia.App.csproj" />
+  </ItemGroup>
+</Project>

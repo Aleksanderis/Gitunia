@@ -1,3 +1,6 @@
+using Gitunia.App;
+using Gitunia.App.Loading.Commits;
+using Gitunia.App.Loading.Trees;
 using Gitunia.Core.FileTree;
 using Gitunia.Core.Graph;
 using Gitunia.Core.Keymap;
@@ -7,11 +10,8 @@ using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Repositories.Models;
-using Gitunia.Tui.App;
 using Gitunia.Tui.App.Details;
 using Gitunia.Tui.App.Tabs;
-using Gitunia.Tui.Loading.Commits;
-using Gitunia.Tui.Loading.Trees;
 using Gitunia.Tui.Rendering.Details;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Sidebar;

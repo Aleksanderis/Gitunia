@@ -1,7 +1,7 @@
+using Gitunia.App;
+using Gitunia.App.Loading;
+using Gitunia.App.Loading.Graph;
 using Gitunia.Git.Repositories;
-using Gitunia.Tui.App;
-using Gitunia.Tui.Loading;
-using Gitunia.Tui.Loading.Graph;
 
 namespace Gitunia.Tui.Tests.Fakes;
 

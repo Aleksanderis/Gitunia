@@ -1,8 +1,8 @@
+using Gitunia.App.Loading.Diff;
+using Gitunia.App.Loading.Trees;
 using Gitunia.Core.Diff;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Git;
-using Gitunia.Tui.Loading.Diff;
-using Gitunia.Tui.Loading.Trees;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Views.Lists;
 

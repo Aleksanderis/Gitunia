@@ -1,13 +1,14 @@
 using System.Globalization;
+using Gitunia.App.Loading.Commits;
 using Gitunia.Core.Diff;
 using Gitunia.Core.FileTree;
 using Gitunia.Core.Graph;
 using Gitunia.Core.IssueTracker;
+using Gitunia.Core.Text;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git;
 using Gitunia.Git.Commits.Models;
 using Gitunia.Git.Refs.Models;
-using Gitunia.Tui.Loading.Commits;
 using Gitunia.Tui.Rendering.Files;
 using Gitunia.Tui.Rendering.Styling;
 

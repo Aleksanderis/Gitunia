@@ -1,9 +1,11 @@
-using Gitunia.Core.Text;
-using Gitunia.Tui.App.Tabs;
+using Gitunia.App;
+using Gitunia.App.Tabs;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Overlays;
+using Gitunia.Core.Search;
 using Gitunia.Core.Status;
+using Gitunia.Core.Text;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Execution.Exceptions;
@@ -12,10 +14,8 @@ using Gitunia.Git.Refs.Models;
 using Gitunia.Git.Remotes;
 using Gitunia.Git.Remotes.Models;
 using Gitunia.Git.Repositories.Models;
-using Gitunia.Core.Search;
 using Gitunia.Tui.App.Branches;
 using Gitunia.Tui.Input;
-
 // Core.Overlays has a FuzzyMatcher too (ConfirmPrompt lives there); the pickers use the Search one.
 using PickerMatcher = Gitunia.Core.Search.FuzzyMatcher;
 

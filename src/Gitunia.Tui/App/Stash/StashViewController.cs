@@ -1,3 +1,4 @@
+using Gitunia.App;
 using Gitunia.Core.Graph;
 using Gitunia.Core.Sidebar;
 using Gitunia.Core.Status;

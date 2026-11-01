@@ -1,9 +1,9 @@
-using Gitunia.Platform.FileSystem;
 using System.Text;
 using Gitunia.Git.Diff.Models;
 using Gitunia.Git.Discard;
 using Gitunia.Git.Staging.Models;
 using Gitunia.Git.Tests.Fixtures;
+using Gitunia.Platform.FileSystem;
 using Xunit;
 using static Gitunia.Git.Tests.Discard.DiscardSupport;
 

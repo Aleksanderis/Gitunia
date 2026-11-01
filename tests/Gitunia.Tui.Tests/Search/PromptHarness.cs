@@ -1,3 +1,4 @@
+using Gitunia.App.Loading.Commits;
 using Gitunia.Core.Graph;
 using Gitunia.Core.Jump;
 using Gitunia.Core.Jump.Models;
@@ -10,7 +11,6 @@ using Gitunia.Git.Refs.Models;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.Input;
-using Gitunia.Tui.Loading.Commits;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Search;
 using Terminal.Gui.Input;

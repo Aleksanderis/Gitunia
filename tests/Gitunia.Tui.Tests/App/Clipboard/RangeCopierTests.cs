@@ -1,16 +1,16 @@
 using System.Text;
+using Gitunia.App.Loading.Commits;
 using Gitunia.Core.Clipboard;
 using Gitunia.Core.Lists;
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces.Panes;
-using Gitunia.Tui.Tests.Rendering.WorkingTree;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Tests.Fixtures;
 using Gitunia.Tui.App.Clipboard;
 using Gitunia.Tui.App.Tabs;
-using Gitunia.Tui.Loading.Commits;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Tests.Rendering.Graph;
+using Gitunia.Tui.Tests.Rendering.WorkingTree;
 using Xunit;
 
 namespace Gitunia.Tui.Tests.App.Clipboard;

@@ -1,10 +1,10 @@
+using Gitunia.App.Loading.Commits;
+using Gitunia.App.Loading.Trees;
 using Gitunia.Core.FileTree;
 using Gitunia.Core.Graph;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Commits.Models;
 using Gitunia.Git.Trees.Models;
-using Gitunia.Tui.Loading.Commits;
-using Gitunia.Tui.Loading.Trees;
 using Gitunia.Tui.Rendering.Details;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Screen;

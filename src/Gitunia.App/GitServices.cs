@@ -1,0 +1,181 @@
+using Gitunia.App.Loading;
+using Gitunia.App.Loading.Graph;
+using Gitunia.Core;
+using Gitunia.Git.Blobs;
+using Gitunia.Git.Branches;
+using Gitunia.Git.Commits;
+using Gitunia.Git.Config;
+using Gitunia.Git.Conflicts;
+using Gitunia.Git.Diff;
+using Gitunia.Git.Discard;
+using Gitunia.Git.Execution;
+using Gitunia.Git.IssueTracker;
+using Gitunia.Git.Merge;
+using Gitunia.Git.Operations;
+using Gitunia.Git.Pick;
+using Gitunia.Git.Rebase;
+using Gitunia.Git.Reflog;
+using Gitunia.Git.Refs;
+using Gitunia.Git.Remotes;
+using Gitunia.Git.Repositories;
+using Gitunia.Git.Reset;
+using Gitunia.Git.Staging;
+using Gitunia.Git.Stash;
+using Gitunia.Git.Status;
+using Gitunia.Git.Tags;
+using Gitunia.Git.Trees;
+using Gitunia.Git.Watching;
+using Gitunia.Git.Worktrees;
+using Gitunia.Platform.FileSystem;
+
+namespace Gitunia.App;
+
+/// <summary>
+/// The git readers and the loaders built on them, created once by the composition root and handed to the parts of the app that
+/// read a repository. Consumers see interfaces, so tests replace git with fakes (use <c>with</c> to swap one part).
+/// </summary>
+/// <param name="Discovery">Resolves a path to its repository.</param>
+/// <param name="CommitLog">Reads the commit log.</param>
+/// <param name="CommitMessages">Finds commits by their whole message (graph search <c>body:</c>).</param>
+/// <param name="CommitDetails">Reads one commit's details.</param>
+/// <param name="CommitTree">Lists the files of a commit's tree.</param>
+/// <param name="Blob">Reads the content of a file of a commit (Files tab).</param>
+/// <param name="Diff">Reads diffs.</param>
+/// <param name="Refs">Reads HEAD, refs and worktrees.</param>
+/// <param name="Status">Reads the working tree status.</param>
+/// <param name="IndexWriter">Stages and unstages files.</param>
+/// <param name="Discarder">Throws working-tree changes away (always behind a confirm dialog).</param>
+/// <param name="CommitWriter">Creates commits.</param>
+/// <param name="Branches">Creates, switches, renames and deletes branches.</param>
+/// <param name="RemoteManager">Adds, removes, renames and re-points remotes.</param>
+/// <param name="Creator">Clones and initialises repositories.</param>
+/// <param name="Merge">Merges a branch or commit into the current branch.</param>
+/// <param name="Pick">Cherry-picks or reverts commits onto the current branch.</param>
+/// <param name="PickCommits">Reads the commits a cherry-pick or revert acts on.</param>
+/// <param name="Reset">Moves the current branch to a commit (soft, mixed, hard).</param>
+/// <param name="Rebase">Rebases the current branch onto a commit (non-interactive).</param>
+/// <param name="InteractiveRebase">
+/// Rebases with a todo (pick, reword, squash, fixup, drop, reorder) prepared by the app.
+/// </param>
+/// <param name="QuickRebase">Fixup, reword and drop of one commit through the interactive rebase.</param>
+/// <param name="Reflog">Reads the reflog of HEAD or of a branch.</param>
+/// <param name="Stashes">Reads the stash stack.</param>
+/// <param name="StashWriter">Pushes, applies, pops and drops stashes.</param>
+/// <param name="StashDetails">Reads the files and diff of a stash.</param>
+/// <param name="OperationWriter">Continues, aborts and skips a stopped merge, rebase, cherry-pick or revert.</param>
+/// <param name="OperationInfo">Reads the details of the stopped operation for the banner.</param>
+/// <param name="Conflicts">Reads a conflicted file into hunks for the conflict editor.</param>
+/// <param name="ConflictWriter">Writes the conflict editor's result into the working tree.</param>
+/// <param name="ConflictRecreator">Re-creates the conflict of a file for the conflict editor.</param>
+/// <param name="Refresher">Recomputes a tab's snapshot.</param>
+/// <param name="WatchedDirectories">Lists the non-ignored working tree directories a tab watches.</param>
+/// <param name="GraphLoader">Streams the graph rows.</param>
+/// <param name="IncrementalGraphLoader">Reloads a graph after a change.</param>
+/// <param name="RepositoryLoader">Loads everything a freshly opened tab shows.</param>
+public sealed record GitServices(
+    RepositoryDiscovery Discovery,
+    ICommitLogReader CommitLog,
+    ICommitMessageSearcher CommitMessages,
+    ICommitDetailsReader CommitDetails,
+    ICommitTreeReader CommitTree,
+    IBlobReader Blob,
+    IDiffReader Diff,
+    IRefReader Refs,
+    IAncestryReader Ancestry,
+    IStatusReader Status,
+    IIndexWriter IndexWriter,
+    IWorkingTreeDiscarder Discarder,
+    ICommitWriter CommitWriter,
+    IBranchWriter Branches,
+    ITagWriter Tags,
+    IRemoteWriter Remote,
+    IRemoteManager RemoteManager,
+    IRepositoryCreator Creator,
+    IMergeWriter Merge,
+    IPickWriter Pick,
+    IPickCommitReader PickCommits,
+    IResetWriter Reset,
+    IRebaseWriter Rebase,
+    IInteractiveRebaseWriter InteractiveRebase,
+    IQuickRebaseWriter QuickRebase,
+    IReflogReader Reflog,
+    IStashReader Stashes,
+    IStashWriter StashWriter,
+    IStashDetailsReader StashDetails,
+    IWorktreeWriter Worktrees,
+    IOperationWriter OperationWriter,
+    IOperationInfoReader OperationInfo,
+    IConflictReader Conflicts,
+    IConflictWriter ConflictWriter,
+    IConflictRecreator ConflictRecreator,
+    IGitConfigReader Config,
+    IIssueTrackerReader IssueTracker,
+    IRepositoryRefresher Refresher,
+    IWorkingTreeDirectoryLister WatchedDirectories,
+    GraphLoader GraphLoader,
+    IncrementalGraphLoader IncrementalGraphLoader,
+    RepositoryLoader RepositoryLoader)
+{
+    /// <summary>The real services: every reader runs the git CLI through <paramref name="runner"/>. Hand-wired, no container.</summary>
+    public static GitServices Create(GitRunner runner, Func<int> laneColorCount)
+    {
+        var commitLog = new CommitLogReader(runner);
+        var refs = new RefReader(runner);
+        var status = new StatusReader(runner);
+        var stashes = new StashReader(runner);
+        var graphLoader = new GraphLoader(commitLog, colorCount: laneColorCount);
+        var operationDetector = new RepositoryOperationDetector();
+        var operationRunner = new OperationRunner(runner, operationDetector);
+        var remoteRunner = new RemoteRunner(runner);
+        var interactiveRebase = new InteractiveRebaseWriter(
+            operationRunner,
+            runner,
+            operationDetector,
+            new SequenceEditorCommand(
+                [Environment.ProcessPath ?? AppInfo.Name, SequenceEditorCommand.ModeArgument]),
+            Environment.GetEnvironmentVariable);
+        return new GitServices(
+            new RepositoryDiscovery(runner),
+            commitLog,
+            new CommitMessageSearcher(runner),
+            new CommitDetailsReader(runner),
+            new CommitTreeReader(runner),
+            new BlobReader(runner),
+            new DiffReader(runner),
+            refs,
+            new AncestryReader(runner),
+            status,
+            new IndexWriter(runner),
+            new WorkingTreeDiscarder(runner, ByteExactFileSystems.ForCurrentOs()),
+            new CommitWriter(runner),
+            new BranchWriter(runner),
+            new TagWriter(runner, remoteRunner),
+            new RemoteWriter(remoteRunner),
+            new RemoteManager(runner),
+            new RepositoryCreator(remoteRunner, runner, new RepositoryDiscovery(runner)),
+            new MergeWriter(runner, operationRunner),
+            new PickWriter(runner, operationRunner, operationDetector),
+            new PickCommitReader(runner),
+            new ResetWriter(runner),
+            new RebaseWriter(operationRunner, runner),
+            interactiveRebase,
+            new QuickRebaseWriter(runner, interactiveRebase),
+            new ReflogReader(runner),
+            stashes,
+            new StashWriter(runner),
+            new StashDetailsReader(runner),
+            new WorktreeWriter(runner),
+            new OperationWriter(operationRunner),
+            new OperationInfoReader(),
+            new ConflictReader(runner),
+            new ConflictWriter(),
+            new ConflictRecreator(runner),
+            new GitConfigReader(runner),
+            new IssueTrackerReader(runner),
+            new RepositoryRefresher(refs, status, operationDetector),
+            new WorkingTreeDirectoryLister(runner),
+            graphLoader,
+            new IncrementalGraphLoader(commitLog, graphLoader),
+            new RepositoryLoader(refs, status, graphLoader, new SidebarDataLoader(refs, stashes)));
+    }
+}

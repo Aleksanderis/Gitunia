@@ -1,4 +1,6 @@
-using Gitunia.Tui.App.Tabs;
+using Gitunia.App;
+using Gitunia.App.Loading.Diff;
+using Gitunia.App.Tabs;
 using Gitunia.Core.Lists;
 using Gitunia.Core.Overlays;
 using Gitunia.Core.Status;
@@ -11,9 +13,7 @@ using Gitunia.Git.Diff.Models;
 using Gitunia.Git.Discard;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Status.Models;
-using Gitunia.Tui.App;
 using Gitunia.Tui.App.WorkingTree;
-using Gitunia.Tui.Loading.Diff;
 using Gitunia.Tui.Tests.Fakes;
 using Xunit;
 using static Gitunia.Tui.Tests.Rendering.WorkingTree.WorkingTreeEntries;

@@ -1,3 +1,4 @@
+using Gitunia.App;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Picker;
 using Gitunia.Core.Workspaces;

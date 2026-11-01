@@ -1,5 +1,5 @@
+using Gitunia.App.Loading.Diff;
 using Gitunia.Git.Diff.Models;
-using Gitunia.Tui.Loading.Diff;
 
 namespace Gitunia.Tui.App.WorkingTree;
 

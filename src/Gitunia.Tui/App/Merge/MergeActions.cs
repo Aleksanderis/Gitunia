@@ -1,3 +1,5 @@
+using Gitunia.App;
+using Gitunia.App.Tabs;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Operations;
@@ -10,7 +12,6 @@ using Gitunia.Git.Merge;
 using Gitunia.Git.Refs;
 using Gitunia.Git.Refs.Models;
 using Gitunia.Tui.App.Branches;
-using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.App.WorkingTree;
 
 namespace Gitunia.Tui.App.Merge;
