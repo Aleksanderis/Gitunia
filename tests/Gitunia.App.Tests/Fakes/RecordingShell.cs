@@ -6,6 +6,7 @@ using Gitunia.Core.ExternalTools;
 using Gitunia.Core.Picker;
 using Gitunia.Core.Reflog;
 using Gitunia.Core.Staging;
+using Gitunia.Core.Visual;
 using Gitunia.Core.Workspaces.Tabs;
 
 namespace Gitunia.App.Tests.Fakes;
@@ -46,6 +47,10 @@ public sealed class RecordingShell : IShellEffects
     public void CopyToClipboard(CopyToClipboardEffect effect)
     {
     }
+
+    public List<CopyVisualRangeEffect> RangeCopies { get; } = [];
+
+    public void CopyVisualRange(CopyVisualRangeEffect effect) => RangeCopies.Add(effect);
 
     public void OfferTerminalRetry(TabId tabId, string noun, IReadOnlyList<string> arguments) =>
         Retries.Add($"{noun}|{string.Join(' ', arguments)}");

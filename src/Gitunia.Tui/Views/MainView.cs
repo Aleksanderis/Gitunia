@@ -20,12 +20,13 @@ using Gitunia.Tui.Views.Lists;
 using Gitunia.Tui.Views.Theme;
 using Terminal.Gui.Drawing;
 using Terminal.Gui.ViewBase;
+using Terminal.Gui.Views;
 using Window = Terminal.Gui.Views.Window;
 
 namespace Gitunia.Tui.Views;
 
 /// <summary>The first screen: tab row, the framed panes and the status bar, laid out like <see cref="ScreenLayout"/>.</summary>
-public sealed class MainView : IDisposable
+public sealed class MainView : IDisposable, IPaneLists
 {
     private readonly TabBarView _tabs;
     private readonly PickerView _picker;
@@ -402,6 +403,19 @@ public sealed class MainView : IDisposable
 
     /// <summary>The rows of the Staged list of the Changes view.</summary>
     public WorkingTreeListSource StagedSource { get; }
+
+    /// <summary>The list that shows a pane; the graph's for a pane without a list of its own.</summary>
+    public ListView ListOf(PaneKind pane) => pane switch
+    {
+        PaneKind.Sidebar => Sidebar,
+        PaneKind.Detail => Detail,
+        PaneKind.Diff => Diff,
+        PaneKind.WorkingUnstaged => WorkingUnstaged,
+        PaneKind.WorkingStaged => WorkingStaged,
+        PaneKind.WorkingUnstagedDiff or PaneKind.WorkingStagedDiff => WorkingDiff,
+        PaneKind.WorkingMessage => WorkingMessage,
+        _ => Graph,
+    };
 
     /// <summary>The Unstaged file list of the Changes view.</summary>
     public PaneListView WorkingUnstaged { get; }

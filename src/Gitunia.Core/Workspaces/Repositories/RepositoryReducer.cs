@@ -1,4 +1,5 @@
 using Gitunia.Core.Details;
+using Gitunia.Core.DiffPane;
 using Gitunia.Core.Sidebar;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Tabs;
@@ -19,6 +20,7 @@ public static class RepositoryReducer
         LeaveWorkingTreeCommand => state with { View = state.View with { Mode = TabViewMode.History, FocusedPane = PaneKind.Graph } },
         SetPaneSizesCommand sizes => state with { View = state.View with { SidebarWidth = sizes.SidebarWidth, BottomHeight = sizes.BottomHeight, DetailWidth = sizes.DetailWidth } },
         SetDetailTreeCommand tree => state with { View = state.View with { FileTree = tree.Tree } },
+        SetDiffPaneCommand diff => state with { View = state.View with { Diff = diff.Pane } },
         SetBottomTabCommand bottomTab => state with { View = state.View with { BottomTab = bottomTab.Tab } },
         SetCompareMarkCommand mark => state with { View = state.View with { CompareMark = mark.Commit } },
         TogglePathStyleCommand => WithStyle(

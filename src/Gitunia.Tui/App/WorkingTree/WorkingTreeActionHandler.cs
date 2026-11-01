@@ -48,7 +48,7 @@ public sealed class WorkingTreeActionHandler(
     public WorkingDiffController? Diff { get; set; }
 
     /// <summary>Visual mode, which the diff box uses for line ranges; null in tests that do not need it.</summary>
-    public VisualRangeController? Visual { get; set; }
+    public VisualRangeInput? Visual { get; set; }
 
     /// <summary>Discards files, hunks and lines after a confirm dialog; null in tests that do not need it.</summary>
     public DiscardActions? Discard { get; set; }
@@ -91,7 +91,7 @@ public sealed class WorkingTreeActionHandler(
 
         if (TryVisual(tab, action, count))
         {
-            Message = Visual!.Notice;
+            Message = string.Empty;
         }
         else if (action == ActionIds.AppQuit)
         {

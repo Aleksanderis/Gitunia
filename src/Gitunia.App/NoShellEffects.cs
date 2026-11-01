@@ -5,6 +5,7 @@ using Gitunia.Core.FileTree;
 using Gitunia.Core.ExternalTools;
 using Gitunia.Core.Reflog;
 using Gitunia.Core.Staging;
+using Gitunia.Core.Visual;
 using Gitunia.Core.Workspaces.Tabs;
 
 namespace Gitunia.App;
@@ -35,6 +36,10 @@ public sealed class NoShellEffects : IShellEffects
     }
 
     public void ApplyTheme(ThemeChoice theme)
+    {
+    }
+
+    public void CopyVisualRange(CopyVisualRangeEffect effect)
     {
     }
 

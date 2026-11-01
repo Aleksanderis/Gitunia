@@ -3,6 +3,7 @@ using Gitunia.App.Loading.Diff;
 using Gitunia.App.Loading.Stash;
 using Gitunia.App.Loading.Trees;
 using Gitunia.App.Tabs;
+using Gitunia.Core.DiffPane;
 using Gitunia.Core.IssueTracker;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Tabs;
@@ -40,6 +41,11 @@ public sealed partial class EffectRunner<TSession>
         if (_sessions.Remove(load.TabId, out var previous))
         {
             previous.Dispose();
+            if (tab.View.DiffPane != DiffPaneState.Empty)
+            {
+                // The new stores are empty: the pane starts over with them.
+                _host.Dispatch(new DiffPaneReset(load.TabId));
+            }
         }
 
         var stashView = new StashViewSession();

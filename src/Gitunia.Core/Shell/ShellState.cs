@@ -8,6 +8,7 @@ using Gitunia.Core.Rebase;
 using Gitunia.Core.Reflog;
 using Gitunia.Core.Settings;
 using Gitunia.Core.Status;
+using Gitunia.Core.Visual;
 using Gitunia.Core.Workspaces;
 
 namespace Gitunia.Core.Shell;
@@ -50,7 +51,8 @@ public sealed record ShellState(
     PickerSession Picker,
     bool QuitWarned,
     WorkspaceActionSession TabActions,
-    ScreenExtent? Screen)
+    ScreenExtent? Screen,
+    VisualSelection? Visual = null)
 {
     public static ShellState Empty { get; } = new(
         KeyMode.Normal,

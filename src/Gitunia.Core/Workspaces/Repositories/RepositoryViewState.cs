@@ -1,4 +1,5 @@
 using Gitunia.Core.Details;
+using Gitunia.Core.DiffPane;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git;
@@ -21,6 +22,8 @@ namespace Gitunia.Core.Workspaces.Repositories;
 /// session.</param>
 /// <param name="FileTree">The filter and the opened directories of the Files tab and the closed folders of the Changes
 /// tab's tree style, null for none. Not saved with the session; read it through <see cref="DetailTree"/>.</param>
+/// <param name="Diff">What the diff pane shows and how it is laid out, null for a pane never used. Not saved with the
+/// session; read it through <see cref="DiffPane"/>.</param>
 public sealed record RepositoryViewState(
     ObjectId? SelectedCommit,
     int ScrollOffset,
@@ -33,10 +36,14 @@ public sealed record RepositoryViewState(
     TabViewMode Mode = TabViewMode.History,
     FilePathStyle PathStyle = FilePathStyle.NameFirst,
     ObjectId? CompareMark = null,
-    DetailTreeState? FileTree = null)
+    DetailTreeState? FileTree = null,
+    DiffPaneState? Diff = null)
 {
     /// <summary>The tab's file tree state, empty when none was set.</summary>
     public DetailTreeState DetailTree => FileTree ?? DetailTreeState.Empty;
+
+    /// <summary>The tab's diff pane state, empty when none was set.</summary>
+    public DiffPaneState DiffPane => Diff ?? DiffPaneState.Empty;
 
     /// <summary>A fresh view: nothing selected, top of the graph, no filter, graph focused.</summary>
     public static RepositoryViewState Initial { get; } = new(null, 0, string.Empty, PaneKind.Graph);

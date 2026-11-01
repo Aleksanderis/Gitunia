@@ -777,7 +777,7 @@ public class WorkingDiffControllerTests
                 ReadStatus = ReadAndApplyStatusAsync,
                 OnCursorMove = move => Controller.MoveAfterReload(move.Move),
             };
-            Visual = new VisualRangeController(() => Tab.View.FocusedPane, _ => DiffList, host);
+            Visual = new VisualRangeInput(host, new FakePaneLists(DiffList));
             Handler = new WorkingTreeActionHandler(host, () => 10, copier, Staging, TestCommitActions.Create(host, Statuses)) { Diff = Controller, Visual = Visual };
             Handler.Discard = new DiscardActions(
                 host,
@@ -800,7 +800,7 @@ public class WorkingDiffControllerTests
         /// <summary>The confirm dialogs the actions asked for, oldest first.</summary>
         public List<ConfirmPrompt> Prompts => _shell.Prompts;
 
-        public VisualRangeController Visual { get; }
+        public VisualRangeInput Visual { get; }
 
         public Dispatcher Host { get; }
 

@@ -5,6 +5,7 @@ using Gitunia.Core.FileTree;
 using Gitunia.Core.ExternalTools;
 using Gitunia.Core.Reflog;
 using Gitunia.Core.Staging;
+using Gitunia.Core.Visual;
 using Gitunia.Core.Workspaces.Tabs;
 
 namespace Gitunia.App;
@@ -19,6 +20,9 @@ public interface IShellEffects
 {
     /// <summary>Copies the text to the clipboard and reports the outcome.</summary>
     void CopyToClipboard(CopyToClipboardEffect effect);
+
+    /// <summary>Copies the rows of a Visual range and answers with <c>VisualCopied</c>.</summary>
+    void CopyVisualRange(CopyVisualRangeEffect effect);
 
     /// <summary>Offers to run the same git arguments in the real terminal (credentials are needed).</summary>
     void OfferTerminalRetry(TabId tabId, string noun, IReadOnlyList<string> arguments);

@@ -1,3 +1,5 @@
+using Gitunia.Core.Workspaces.Tabs;
+
 namespace Gitunia.Core.Workspaces.Panes;
 
 /// <summary>
@@ -58,6 +60,18 @@ public static class PaneSizing
     /// <summary>Rows of the automatic bottom strip including its title row; 0 when the screen is too short.</summary>
     public static int AutomaticBottomHeight(int screenHeight) =>
         screenHeight < MinimumScreenHeight ? 0 : Math.Clamp(screenHeight / 3, MinimumPaneHeight, MaximumPaneHeight);
+
+    /// <summary>The diff shares the detail pane's strip, so screens too short for that strip cannot open it.</summary>
+    public static bool CanOpenDiff(int screenHeight) => AutomaticBottomHeight(screenHeight) > 0;
+
+    /// <summary>
+    /// The Changes tab always shows the diff of the selected file beside its file list, and the Files tab the content of
+    /// the file under its cursor, as long as the screen has room for both and for the bottom strip.
+    /// </summary>
+    public static bool ShowsDiffWithChanges(int screenWidth, int screenHeight, BottomTab tab) =>
+        tab is BottomTab.Changes or BottomTab.Files
+        && screenWidth >= MinimumWidthForSideBySide
+        && CanOpenDiff(screenHeight);
 
     /// <summary>Columns of the automatic detail pane next to an open diff, the whole width without one, 0 when the diff replaces it.</summary>
     public static int AutomaticDetailWidth(int screenWidth, bool isDiffOpen)

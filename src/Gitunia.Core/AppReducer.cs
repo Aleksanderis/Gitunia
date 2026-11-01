@@ -2,6 +2,7 @@ using Gitunia.Core.Branches;
 using Gitunia.Core.Conflicts;
 using Gitunia.Core.Creation;
 using Gitunia.Core.Details;
+using Gitunia.Core.DiffPane;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Picker;
 using Gitunia.Core.Effects;
@@ -22,6 +23,7 @@ using Gitunia.Core.Stash;
 using Gitunia.Core.Running;
 using Gitunia.Core.Sync;
 using Gitunia.Core.Tags;
+using Gitunia.Core.Visual;
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Repositories;
@@ -38,12 +40,24 @@ namespace Gitunia.Core;
 public static partial class AppReducer
 {
     /// <summary>Applies a command and returns the new state and the effects to run.</summary>
-    public static AppUpdate Reduce(AppState state, AppCommand command) => command switch
+    public static AppUpdate Reduce(AppState state, AppCommand command)
+    {
+        var update = ReduceCommand(state, command);
+        var ranged = VisualReducer.EndIfFocusMoved(update.State);
+        var settled = DiffPaneReducer.Settle(ranged);
+
+        return settled.Effects.IsEmpty && ReferenceEquals(settled.State, update.State)
+            ? update
+            : new AppUpdate(settled.State, [.. update.Effects, .. settled.Effects]);
+    }
+
+    private static AppUpdate ReduceCommand(AppState state, AppCommand command) => command switch
     {
         BranchCommand branch => ReduceBranch(state, branch),
         ConflictCommand conflict => ReduceConflict(state, conflict),
         CreationCommand creation => ReduceCreation(state, creation),
         DetailCommand detail => DetailReducer.Reduce(state, detail),
+        DiffPaneCommand diffPane => DiffPaneReducer.Reduce(state, diffPane),
         EffectFailedCommand failed => EffectFailed(state, failed),
         ExternalToolCommand tool => new AppUpdate(state, ExternalToolReducer.Reduce(tool, state.Workspace.ActiveTab)),
         IssueLinkCommand link => new AppUpdate(state, IssueLinkReducer.Reduce(link)),
@@ -63,6 +77,7 @@ public static partial class AppReducer
         SyncCommand sync => ReduceSync(state, sync),
         TabRenameCommand rename => ReduceTabRename(state, rename),
         TagCommand tag => ReduceTag(state, tag),
+        VisualCommand visual => VisualReducer.Reduce(state, visual),
         WorkspaceActionPressed action => ReduceWorkspaceAction(state, action),
         WorkspaceCommand workspace => ReduceWorkspace(state, workspace),
         WorktreeCommand worktree => ReduceWorktree(state, worktree),
