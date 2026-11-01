@@ -38,6 +38,25 @@ public class RemoteReducerTests
     }
 
     [Fact]
+    public void GivenAFetchRuns_WhenManagingRemotes_ThenItIsRefusedWithoutReadingAnything()
+    {
+        var effects = Reduce(new RemoteActionRequested(Tab, RemoteAction.Remove, Nothing), syncing: true);
+
+        Assert.Equal(RemoteReducer.SyncRunsNotice, Warning(effects));
+        Assert.DoesNotContain(effects, effect => effect is RemoteEffect);
+    }
+
+    [Fact]
+    public void GivenAFetchStartedWhileTheRemoveDialogWasOpen_WhenConfirmed_ThenTheRemoteStays()
+    {
+        var effects = Reduce(new RemoteRemoveConfirmed(Tab, "origin", "https://example.com/o.git"), syncing: true);
+
+        Assert.StartsWith(RemoteReducer.SyncRunsNotice, Warning(effects), StringComparison.Ordinal);
+        Assert.EndsWith("nothing was removed", Warning(effects), StringComparison.Ordinal);
+        Assert.DoesNotContain(effects, effect => effect is RemoteEffect);
+    }
+
+    [Fact]
     public void GivenTheRemotesRead_WhenAdding_ThenTheNamePromptOpensForTheTab()
     {
         var effects = Reduce(new RemotesListed(Tab, RemoteAction.Add, Nothing, Origin));
@@ -347,11 +366,12 @@ public class RemoteReducerTests
         RemoteCommand command,
         ImmutableArray<GitRef>? refs = null,
         bool active = true,
-        bool busy = false) =>
-        RemoteReducer.Reduce(command, Context(refs ?? [], active, busy));
+        bool busy = false,
+        bool syncing = false) =>
+        RemoteReducer.Reduce(command, Context(refs ?? [], active, busy, syncing));
 
-    private static RemoteContext Context(ImmutableArray<GitRef> refs, bool active, bool busy) =>
-        new(Tab, Location(), refs, active, busy);
+    private static RemoteContext Context(ImmutableArray<GitRef> refs, bool active, bool busy, bool syncing = false) =>
+        new(Tab, Location(), refs, active, busy, syncing);
 
     private static RepositoryLocation Location()
     {

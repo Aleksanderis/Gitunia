@@ -1,8 +1,8 @@
 using Gitunia.Git.Execution.Exceptions;
-using Gitunia.Tui.App.Remote;
+using Gitunia.Core.Text;
 using Xunit;
 
-namespace Gitunia.Tui.Tests.App.Remote;
+namespace Gitunia.Core.Tests.Text;
 
 public class RemoteFailureTextTests
 {

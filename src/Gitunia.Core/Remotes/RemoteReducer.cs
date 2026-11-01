@@ -22,6 +22,9 @@ public static class RemoteReducer
     /// <summary>Shown when a second operation is asked for while one runs.</summary>
     public const string BusyNotice = "Busy: the last remote change is still running";
 
+    /// <summary>Shown when remotes are to change while a fetch, pull or push of the tab runs.</summary>
+    public const string SyncRunsNotice = "Busy: a fetch, pull or push of this tab is still running";
+
     /// <summary>The row (and the notice on Enter) of the remote picker when nothing matches.</summary>
     public const string NoRemoteMatch = "No matching remote";
 
@@ -56,6 +59,11 @@ public static class RemoteReducer
         if (context.IsBusy)
         {
             return [Post(BusyNotice)];
+        }
+
+        if (context.IsSyncing)
+        {
+            return [Post(SyncRunsNotice)];
         }
 
         return [new ListRemotesEffect(context.TabId, context.Location, request.Action, request.Target)];
@@ -277,6 +285,12 @@ public static class RemoteReducer
         if (context.IsBusy)
         {
             return [Post($"{BusyNotice}; nothing was removed")];
+        }
+
+        // A fetch may have started while the dialog was open; it must not race the removal of its remote.
+        if (context.IsSyncing)
+        {
+            return [Post($"{SyncRunsNotice}; nothing was removed")];
         }
 
         return [new RemoveRemoteEffect(context.TabId, context.Location, confirmed.Name, confirmed.Url)];

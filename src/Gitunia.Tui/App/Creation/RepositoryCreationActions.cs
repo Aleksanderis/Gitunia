@@ -12,7 +12,7 @@ using Gitunia.Git.Remotes.Models;
 using Gitunia.Git.Repositories;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Tui.App.Overlays;
-using Gitunia.Tui.App.Remote;
+using Gitunia.Core.Text;
 using Gitunia.Tui.Input;
 
 namespace Gitunia.Tui.App.Creation;

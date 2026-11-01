@@ -1,6 +1,6 @@
 using Gitunia.Git.Execution.Exceptions;
 
-namespace Gitunia.Tui.App.Remote;
+namespace Gitunia.Core.Text;
 
 /// <summary>
 /// The one line that tells why a fetch, pull or push failed. Git's stderr holds progress lines (ending in a carriage
