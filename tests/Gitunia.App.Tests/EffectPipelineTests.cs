@@ -8,6 +8,7 @@ using Gitunia.Core;
 using Gitunia.Core.Config;
 using Gitunia.Core.Config.Models;
 using Gitunia.Core.Effects;
+using Gitunia.Core.ExternalTools;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Overlays;
@@ -25,6 +26,7 @@ using Gitunia.Core.Tests.Fixtures;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
+using Gitunia.Git.ExternalTools;
 using Gitunia.Git.Tests.Fixtures;
 using Xunit;
 
@@ -158,6 +160,19 @@ public class EffectPipelineTests
 
         Assert.StartsWith("Internal error (InvalidOperationException):", pipeline.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
         Assert.Equal(StatusSeverity.Error, pipeline.Statuses.Log.Latest.Severity);
+    }
+
+    [Fact]
+    public async Task GivenATab_WhenAskingForTheMergetool_ThenTheShellIsHandedTheLaunchForThatTab()
+    {
+        using var repository = TestRepositories.Linear();
+        using var pipeline = await Pipeline.OpenAsync(TestGit.Services, repository);
+
+        pipeline.Dispatch(new ExternalToolRequested(ExternalToolKind.Mergetool, null));
+
+        var launch = Assert.Single(pipeline.Shell.Tools);
+        Assert.Equal(pipeline.TabId, launch.TabId);
+        Assert.Equal(ExternalToolKind.Mergetool, launch.Kind);
     }
 
     [Fact]

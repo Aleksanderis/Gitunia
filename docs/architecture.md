@@ -144,6 +144,15 @@ All four are slices of `ShellState` (`Picker`, `Creation`, `TabActions`, `QuitWa
 
 Tests: `PickerSessionReducerTests`, `CreationReducerTests`, `WorkspaceActionReducerTests` and `QuitReducerTests` (Core, synchronous), `PathCandidatesTests`, `PickerEffectHandlerTests`, `CreationEffectHandlerTests` and `QuitEffectTests` (App, real directories and repositories through the real runner, via `PickerPipeline`), `WorkspaceActionsTests` (Tui).
 
+### Issue links and external tools (#997)
+
+`IssueLinkActions` and `ExternalToolActions` are gone; `Tui/App/Details/IssueLinkInput` and `Tui/App/ExternalTools/ExternalToolInput` only turn keys into commands.
+
+- **Issue links** (`Core/IssueLinks/`). `IssueLinkReducer` turns `IssueLinkOpenRequested` (the links of the selected message line, read through `IIssueLinkView`, the typed number, and whether the key was `gx` or Enter) into the warnings (no link, no such number) or `OpenUrlEffect`; Enter on a line without a link is not handled at all (the input returns false). `IssueLinkOpenFinished` ends in the "Opened" status or, when the opener failed, `CopyToClipboardEffect` plus a warning. Handler `App/IssueLinks/IssueLinkEffectHandler` runs the `IUrlOpener` off the UI thread and posts exactly one result.
+- **External tools** (`Core/ExternalTools/`). `ExternalToolReducer` turns `ExternalToolRequested` (kind and the selected commit) into `LaunchExternalToolEffect` for the active tab, or a status notice (no repository, no commit for the difftool). The runner hands the effect to `IShellEffects.LaunchExternalTool`, because suspending the terminal belongs to the terminal layer (`ExternalToolRunner` is unchanged). Its own refusals (already running, unsupported OS) are status warnings.
+
+Tests: `IssueLinkReducerTests`, `ExternalToolReducerTests` (Core), `IssueLinkEffectHandlerTests` and `EffectPipelineTests` (App), `IssueLinkInputTests` (Tui).
+
 ### Pick and rebase (#977)
 
 - **Pick** (`Core/Pick/`). `PickReducer` turns `PickRequested` (the selection as the user saw it, newest first) into `ReadPickCommitsEffect`, then the commits read (`PickCommitsRead`) into `RunPickEffect` or, when a merge commit is among them, into the mainline question. The question is `ShellState.Mainline` (`MainlineQuestion`, an overlay with its own digit keys and row clicks, so it is not the shared prompt); the reducer returns it in `PickUpdate` and `AppReducer.ReducePick` stores it. Leaving or closing its tab drops it (`ReduceWorkspace`). `Tui/App/Pick/PickActions` only turns keys, digits, Esc and parent-row clicks into commands and builds the overlay model from state; `TuiApplication` redraws the overlay when `Shell.Mainline` or the screen size changes.

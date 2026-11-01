@@ -1,6 +1,7 @@
 using Gitunia.Core.Clipboard;
 using Gitunia.Core.Config.Models;
 using Gitunia.Core.Conflicts;
+using Gitunia.Core.ExternalTools;
 using Gitunia.Core.Picker;
 using Gitunia.Core.Reflog;
 using Gitunia.Core.Workspaces.Tabs;
@@ -21,6 +22,8 @@ public sealed class RecordingShell : IShellEffects
     public List<ThemeChoice> AppliedThemes { get; } = [];
 
     public int EditorOpened { get; private set; }
+
+    public List<LaunchExternalToolEffect> Tools { get; } = [];
 
     public List<MoveCommitDraftEffect> DraftMoves { get; } = [];
 
@@ -48,6 +51,8 @@ public sealed class RecordingShell : IShellEffects
     public void ApplyTheme(ThemeChoice theme) => AppliedThemes.Add(theme);
 
     public void OpenConfigEditor() => EditorOpened++;
+
+    public void LaunchExternalTool(LaunchExternalToolEffect effect) => Tools.Add(effect);
 
     public bool MoveCommitDraft(TabId missing, TabId target)
     {

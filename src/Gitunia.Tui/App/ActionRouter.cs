@@ -62,7 +62,7 @@ public sealed class ActionRouter(Dispatcher host, ListView graphList, ListView d
     public Func<bool>? Refresh { get; set; }
 
     /// <summary>The external tool hand-offs (difftool, mergetool, editor).</summary>
-    public ExternalToolActions? ExternalTools { get; set; }
+    public ExternalToolInput? ExternalTools { get; set; }
 
     /// <summary>Modal prompts (search box, jump-to-ref) that get the first try at every action.</summary>
     public IReadOnlyList<IPromptHandler> Prompts { get; set; } = [];
@@ -126,7 +126,7 @@ public sealed class ActionRouter(Dispatcher host, ListView graphList, ListView d
     public FileTreeController? FileTree { get; set; }
 
     /// <summary>Opening the tracker link of a commit message line.</summary>
-    public IssueLinkActions? IssueLinks { get; set; }
+    public IssueLinkInput? IssueLinks { get; set; }
 
     /// <summary>The bottom pane tab keys.</summary>
     public DetailTabController? DetailTabs { get; set; }
@@ -243,7 +243,6 @@ public sealed class ActionRouter(Dispatcher host, ListView graphList, ListView d
 
         if (ExternalTools?.TryExecute(action) == true)
         {
-            Message = ExternalTools.Notice;
             return;
         }
 
