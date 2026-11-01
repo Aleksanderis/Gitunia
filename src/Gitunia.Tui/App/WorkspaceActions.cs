@@ -72,6 +72,10 @@ public sealed class WorkspaceActions(
         {
             CloseActiveTab();
         }
+        else if (action == ActionIds.TabRename && host.Workspace.ActiveTabId is { } renamed)
+        {
+            host.Dispatch(new TabRenameRequested(renamed));
+        }
         else if (action == ActionIds.RepositoryPin)
         {
             PinActiveRepository();

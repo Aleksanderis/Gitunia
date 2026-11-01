@@ -1,222 +1,142 @@
 using System.Collections.Immutable;
 using Gitunia.Core.Effects;
-using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Overlays;
+using Gitunia.Core.Prompts;
 using Gitunia.Core.Sidebar;
 using Gitunia.Core.Status;
 using Gitunia.Core.Text;
 using Gitunia.Git.Refs.Models;
-using RemoteMatcher = Gitunia.Core.Search.FuzzyMatcher;
 
 namespace Gitunia.Core.Tags;
 
 /// <summary>
 /// Create, delete and push tags, and delete one on a remote (ux-workflows.md, workflow 3, "Tags"), as pure transitions
-/// <c>(TagState, TagCommand) -> (TagState, Effects)</c>. A name and an optional message are typed in prompt popups (an
-/// empty message makes a lightweight tag), a remote is chosen in a type-to-filter prompt, and both deletes go through
-/// the confirm dialog. Refusals that need no git are decided here from the tab refs. One operation runs per tab.
+/// <c>(TagCommand, TagContext) -> Effects</c>. A name and an optional message are typed in prompts (an empty message
+/// makes a lightweight tag), a remote is chosen in a picker prompt, and both deletes go through the confirm dialog. The
+/// prompts are the shared prompt model (<see cref="ShowPromptEffect"/>, #971): the feature keeps no prompt state, only
+/// the results it is given back. Refusals that need no git are decided here from the tab refs. One operation runs per
+/// tab.
 /// </summary>
 public static class TagReducer
 {
     /// <summary>Shown when a second operation is asked for while one runs.</summary>
     public const string BusyNotice = "Busy: the last tag operation is still running";
 
+    /// <summary>The row (and the notice on Enter) of the remote picker when nothing matches.</summary>
+    public const string NoRemoteMatch = "No matching remote";
+
     private const string TooSmallNotice = "The screen is too small to ask: nothing was changed";
     private const string SelectNotice = "Select a tag (sidebar) or a commit with one tag on it";
 
-    private static readonly TagPrompt BlankPrompt = new(
-        TagPromptKind.CreateName,
-        string.Empty,
-        string.Empty,
-        string.Empty,
-        string.Empty,
-        string.Empty,
-        [],
-        [],
-        0);
-
-    /// <summary>Applies a command to the tag slice of a tab.</summary>
-    public static TagUpdate Reduce(TagState state, TagCommand command, TagContext context) => command switch
+    /// <summary>Applies a command and returns the effects to run.</summary>
+    public static ImmutableArray<AppEffect> Reduce(TagCommand command, TagContext context) => command switch
     {
-        TagCreateRequested create => Create(state, create.Target, context),
-        TagDeleteConfirmed confirmed => DeleteConfirmed(state, confirmed, context),
-        TagDeleteOnRemoteConfirmed confirmed => DeleteOnRemoteConfirmed(state, confirmed, context),
-        TagDeleteOnRemoteRequested request => LoadRemotes(state, request.Target, false, context),
-        TagDeleteRequested request => AskDelete(state, request.Target, context),
-        TagOperationCancelled => Update(state),
-        TagOperationFailed failed => Failed(state, failed, context),
-        TagOperationSucceeded succeeded => Succeeded(state, succeeded, context),
-        TagPromptAccepted => Accept(state, context),
-        TagPromptCancelled => Close(state),
-        TagPromptMoved moved => Move(state, moved.Step),
-        TagPromptTextChanged changed => TextChanged(state, changed.Text),
-        TagPushRequested request => LoadRemotes(state, request.Target, true, context),
-        TagRemotesFailed failed => Update(state, Post(failed.Text, StatusSeverity.Error)),
-        TagRemotesLoaded loaded => RemotesLoaded(state, loaded, context),
+        TagCreateRequested create => Create(create.Target, context),
+        TagDeleteConfirmed confirmed => DeleteConfirmed(confirmed, context),
+        TagDeleteOnRemoteConfirmed confirmed => DeleteOnRemoteConfirmed(confirmed, context),
+        TagDeleteOnRemoteRequested request => LoadRemotes(request.Target, false, context),
+        TagDeleteRequested request => AskDelete(request.Target, context),
+        TagMessageAccepted accepted => MessageAccepted(accepted, context),
+        TagNameAccepted accepted => NameAccepted(accepted, context),
+        TagOperationCancelled => [],
+        TagOperationFailed failed => Failed(failed, context),
+        TagOperationSucceeded succeeded => Succeeded(succeeded, context),
+        TagPushRequested request => LoadRemotes(request.Target, true, context),
+        TagRemoteChosen chosen => RemoteChosen(chosen, context),
+        TagRemotesFailed failed => [Post(failed.Text, StatusSeverity.Error)],
+        TagRemotesLoaded loaded => RemotesLoaded(loaded, context),
         _ => throw new UnhandledCommandException(command),
     };
-
-    /// <summary>The effects a closed tab leaves behind: an open prompt held the key mode in Insert.</summary>
-    public static ImmutableArray<AppEffect> OnTabClosed(TagState state) =>
-        state.Prompt is null ? [] : [new SetKeyModeEffect(KeyMode.Normal)];
-
-    private static TagUpdate Update(TagState state, params AppEffect[] effects) => new(state, [.. effects]);
 
     private static PostStatusEffect Post(string text, StatusSeverity severity = StatusSeverity.Warning) =>
         new(text, severity);
 
-    private static TagUpdate Create(TagState state, TagTarget target, TagContext context)
+    private static ImmutableArray<AppEffect> Create(TagTarget target, TagContext context)
     {
-        if (state.Prompt is not null)
-        {
-            return Update(state);
-        }
-
         if (context.IsBusy)
         {
-            return Update(state, Post(BusyNotice));
+            return [Post(BusyNotice)];
         }
 
         if (target.CommitHash is not { } hash)
         {
-            return Update(state, Post("Select a commit or a ref first"));
+            return [Post("Select a commit or a ref first")];
         }
 
-        var prompt = BlankPrompt with { StartPoint = hash, Label = target.Name ?? ShortHash.Of(hash) };
-        return Open(prompt);
+        var label = target.Name ?? ShortHash.Of(hash);
+        var request = new PromptRequest(
+            "New tag",
+            $"At {label}",
+            "next",
+            new TagNameAnswer(context.TabId, hash, label),
+            Owner: context.TabId);
+
+        return [new ShowPromptEffect(request)];
     }
 
-    private static TagUpdate Open(TagPrompt prompt) =>
-        Update(new TagState(prompt), new SetKeyModeEffect(KeyMode.Insert));
-
-    private static TagUpdate Close(TagState state)
+    private static ImmutableArray<AppEffect> NameAccepted(TagNameAccepted accepted, TagContext context)
     {
-        if (state.Prompt is null)
-        {
-            return Update(state);
-        }
-
-        return Update(TagState.Empty, new SetKeyModeEffect(KeyMode.Normal));
-    }
-
-    private static TagUpdate CloseWith(TagState state, params AppEffect[] effects)
-    {
-        var closed = Close(state);
-        return new TagUpdate(closed.State, [.. closed.Effects, .. effects]);
-    }
-
-    private static TagUpdate Accept(TagState state, TagContext context)
-    {
-        if (state.Prompt is not { } prompt)
-        {
-            return Update(state);
-        }
-
-        return prompt.Kind switch
-        {
-            TagPromptKind.CreateName => AcceptName(state, prompt, context),
-            TagPromptKind.CreateMessage => AcceptMessage(state, prompt, context),
-            _ => AcceptRemote(state, prompt, context),
-        };
-    }
-
-    private static TagUpdate AcceptName(TagState state, TagPrompt prompt, TagContext context)
-    {
-        var name = prompt.Text.Trim();
+        var name = accepted.Name.Trim();
         if (name.Length == 0)
         {
-            return CloseWith(state, Post("No name: nothing was created"));
+            return [Post("No name: nothing was created")];
         }
 
         if (context.Refs.Any(reference => reference.Kind == RefKind.Tag && reference.Name == name))
         {
-            return CloseWith(state, Post($"Tag {name} already exists"));
+            return [Post($"Tag {name} already exists")];
         }
 
-        var next = prompt with { Kind = TagPromptKind.CreateMessage, NewName = name, Text = string.Empty };
-        return Open(next);
+        var request = new PromptRequest(
+            "Tag message",
+            $"{name}: empty makes a lightweight tag",
+            "create",
+            new TagMessageAnswer(context.TabId, accepted.StartPoint, accepted.Label, name),
+            Owner: context.TabId);
+
+        return [new ShowPromptEffect(request)];
     }
 
-    private static TagUpdate AcceptMessage(TagState state, TagPrompt prompt, TagContext context)
+    private static ImmutableArray<AppEffect> MessageAccepted(TagMessageAccepted accepted, TagContext context)
     {
         var effect = new CreateTagEffect(
             context.TabId,
             context.Location,
-            prompt.NewName,
-            prompt.StartPoint,
-            prompt.Text.Trim(),
-            prompt.Label);
-        return CloseWith(state, effect);
+            accepted.Name,
+            accepted.StartPoint,
+            accepted.Message.Trim(),
+            accepted.Label);
+
+        return [effect];
     }
 
-    private static TagUpdate AcceptRemote(TagState state, TagPrompt prompt, TagContext context)
+    private static ImmutableArray<AppEffect> RemoteChosen(TagRemoteChosen chosen, TagContext context)
     {
-        if (!prompt.TryGetSelected(out var remote))
+        if (chosen.Push)
         {
-            return Update(state, Post("No matching remote"));
-        }
-
-        if (prompt.Kind == TagPromptKind.PushRemote)
-        {
-            return CloseWith(
-                state,
-                new PushTagEffect(context.TabId, context.Location, remote, prompt.TagName));
+            return [new PushTagEffect(context.TabId, context.Location, chosen.Remote, chosen.TagName)];
         }
 
         var confirm = new ConfirmPrompt(
             "Delete tag on remote",
-            [$"Delete the tag {prompt.TagName} on the remote {remote}?", "The local tag stays."],
-            $"Undo: git push {remote} refs/tags/{prompt.TagName}",
+            [$"Delete the tag {chosen.TagName} on the remote {chosen.Remote}?", "The local tag stays."],
+            $"Undo: git push {chosen.Remote} refs/tags/{chosen.TagName}",
             "Delete on remote");
-        var accepted = new TagDeleteOnRemoteConfirmed(context.TabId, remote, prompt.TagName);
-        return CloseWith(state, new ShowConfirmEffect(confirm, accepted, TooSmallNotice));
+        var accepted = new TagDeleteOnRemoteConfirmed(context.TabId, chosen.Remote, chosen.TagName);
+
+        return [new ShowConfirmEffect(confirm, accepted, TooSmallNotice)];
     }
 
-    private static TagUpdate TextChanged(TagState state, string text)
+    private static ImmutableArray<AppEffect> AskDelete(TagTarget target, TagContext context)
     {
-        if (state.Prompt is not { } prompt || prompt.Text == text)
-        {
-            return Update(state);
-        }
-
-        var edited = prompt with { Text = text };
-        return Update(new TagState(prompt.IsPicker ? Filtered(edited) : edited));
-    }
-
-    private static TagPrompt Filtered(TagPrompt prompt)
-    {
-        var picker = new FilterPicker<string>();
-        picker.Filter(prompt.Remotes, prompt.Text, remote => remote, RemoteMatcher.Score);
-        return prompt with { Candidates = [.. picker.Candidates], Index = 0 };
-    }
-
-    private static TagUpdate Move(TagState state, int step)
-    {
-        if (state.Prompt is not { IsPicker: true } prompt)
-        {
-            return Update(state);
-        }
-
-        var count = prompt.Candidates.Length;
-        var index = count == 0 ? 0 : (((prompt.Index + step) % count) + count) % count;
-        return Update(new TagState(prompt with { Index = index }));
-    }
-
-    private static TagUpdate AskDelete(TagState state, TagTarget target, TagContext context)
-    {
-        if (state.Prompt is not null)
-        {
-            return Update(state);
-        }
-
         if (context.IsBusy)
         {
-            return Update(state, Post(BusyNotice));
+            return [Post(BusyNotice)];
         }
 
         if (ResolveTag(target, context.Refs, out var tag) is { } refusal)
         {
-            return Update(state, Post(refusal));
+            return [Post(refusal)];
         }
 
         var confirm = new ConfirmPrompt(
@@ -228,79 +148,78 @@ public static class TagReducer
             $"Undo: git tag {tag.Name} {tag.ObjectHash}",
             "Delete tag");
         var accepted = new TagDeleteConfirmed(context.TabId, tag.Name, tag.ObjectHash);
-        return Update(state, new ShowConfirmEffect(confirm, accepted, TooSmallNotice));
+
+        return [new ShowConfirmEffect(confirm, accepted, TooSmallNotice)];
     }
 
-    private static TagUpdate DeleteConfirmed(TagState state, TagDeleteConfirmed confirmed, TagContext context)
+    private static ImmutableArray<AppEffect> DeleteConfirmed(TagDeleteConfirmed confirmed, TagContext context)
     {
         if (context.IsBusy)
         {
-            return Update(state, Post($"{BusyNotice}; nothing was deleted"));
+            return [Post($"{BusyNotice}; nothing was deleted")];
         }
 
-        var effect = new DeleteTagEffect(context.TabId, context.Location, confirmed.Name, confirmed.ObjectHash);
-        return Update(state, effect);
+        return [new DeleteTagEffect(context.TabId, context.Location, confirmed.Name, confirmed.ObjectHash)];
     }
 
-    private static TagUpdate DeleteOnRemoteConfirmed(
-        TagState state,
+    private static ImmutableArray<AppEffect> DeleteOnRemoteConfirmed(
         TagDeleteOnRemoteConfirmed confirmed,
         TagContext context)
     {
         if (context.IsBusy)
         {
-            return Update(state, Post($"{BusyNotice}; nothing was deleted"));
+            return [Post($"{BusyNotice}; nothing was deleted")];
         }
 
-        var effect = new DeleteTagOnRemoteEffect(context.TabId, context.Location, confirmed.Remote, confirmed.Name);
-        return Update(state, effect);
+        return [new DeleteTagOnRemoteEffect(context.TabId, context.Location, confirmed.Remote, confirmed.Name)];
     }
 
-    private static TagUpdate LoadRemotes(TagState state, TagTarget target, bool push, TagContext context)
+    private static ImmutableArray<AppEffect> LoadRemotes(TagTarget target, bool push, TagContext context)
     {
-        if (state.Prompt is not null)
-        {
-            return Update(state);
-        }
-
         if (context.IsBusy)
         {
-            return Update(state, Post(BusyNotice));
+            return [Post(BusyNotice)];
         }
 
         if (ResolveTag(target, context.Refs, out var tag) is { } refusal)
         {
-            return Update(state, Post(refusal));
+            return [Post(refusal)];
         }
 
-        var effect = new ListTagRemotesEffect(context.TabId, context.Location, tag!.Name, push);
-        return Update(state, effect);
+        return [new ListTagRemotesEffect(context.TabId, context.Location, tag!.Name, push)];
     }
 
-    private static TagUpdate RemotesLoaded(TagState state, TagRemotesLoaded loaded, TagContext context)
+    private static ImmutableArray<AppEffect> RemotesLoaded(TagRemotesLoaded loaded, TagContext context)
     {
         if (loaded.Remotes.Length == 0)
         {
-            return Update(state, Post("There is no remote: add one first"));
+            return [Post("There is no remote: add one first")];
         }
 
-        if (!context.IsActive || state.Prompt is not null)
+        if (!context.IsActive)
         {
-            return Update(state);
+            return [];
         }
 
-        var kind = loaded.Push ? TagPromptKind.PushRemote : TagPromptKind.DeleteRemote;
-        var prompt = Filtered(BlankPrompt with { Kind = kind, TagName = loaded.Name, Remotes = loaded.Remotes });
-        return Open(prompt);
+        var title = loaded.Push ? "Push tag" : "Delete tag on remote";
+        var verb = loaded.Push ? "push" : "delete";
+        var preposition = loaded.Push ? "to" : "from";
+        var request = new PromptRequest(
+            title,
+            $"Remote to {verb} {loaded.Name} {preposition}",
+            "choose",
+            new TagRemoteAnswer(context.TabId, loaded.Name, loaded.Push),
+            Choices: [.. loaded.Remotes.Select(remote => new PromptChoice(remote, remote))],
+            NoMatch: NoRemoteMatch,
+            Owner: context.TabId);
+
+        return [new ShowPromptEffect(request)];
     }
 
-    private static TagUpdate Succeeded(TagState state, TagOperationSucceeded succeeded, TagContext context) =>
-        Update(
-            state,
-            Post(succeeded.Text, StatusSeverity.Info),
-            new RefreshTabEffect(context.TabId));
+    private static ImmutableArray<AppEffect> Succeeded(TagOperationSucceeded succeeded, TagContext context) =>
+        [Post(succeeded.Text, StatusSeverity.Info), new RefreshTabEffect(context.TabId)];
 
-    private static TagUpdate Failed(TagState state, TagOperationFailed failed, TagContext context)
+    private static ImmutableArray<AppEffect> Failed(TagOperationFailed failed, TagContext context)
     {
         var effects = new List<AppEffect>
         {
@@ -312,7 +231,7 @@ public static class TagReducer
             effects.Add(new OfferTerminalRetryEffect(context.TabId, retry.Noun, retry.Arguments));
         }
 
-        return new TagUpdate(state, [.. effects]);
+        return [.. effects];
     }
 
     // Finds the local tag a delete or a push acts on, or returns why there is none.

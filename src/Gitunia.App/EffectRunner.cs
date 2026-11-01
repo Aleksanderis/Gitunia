@@ -10,6 +10,7 @@ using Gitunia.App.Tags;
 using Gitunia.Core;
 using Gitunia.Core.Clipboard;
 using Gitunia.Core.Effects;
+using Gitunia.Core.Prompts;
 using Gitunia.Core.Tags;
 using Gitunia.Core.IssueTracker;
 using Gitunia.Core.Shell;
@@ -224,6 +225,9 @@ public sealed class EffectRunner<TSession> : IDisposable
                 break;
             case ShowConfirmEffect confirm:
                 ShowConfirm(confirm);
+                break;
+            case ShowPromptEffect prompt:
+                _host.Dispatch(new PromptRequestedCommand(prompt.Request));
                 break;
             case TagEffect tag:
                 _tags.Handle(tag, _cancellation.TokenOf(tag.TabId));

@@ -1,12 +1,13 @@
-using Gitunia.Core;
-using Gitunia.App;
 using Gitunia.Core.Keymap;
+using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Picker;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Tui.App;
 using Gitunia.Tui.App.Overlays;
+using Gitunia.Tui.App.Prompts;
+using Gitunia.Tui.Tests.Fakes;
 using Xunit;
 
 namespace Gitunia.Tui.Tests.App;
@@ -107,9 +108,76 @@ public class WorkspaceActionsTests
         Assert.Single(host.Workspace.Tabs);
     }
 
+    [Fact]
+    public void GivenATab_WhenRenamingAndAccepting_ThenTheTypedNameIsTheTabTitle()
+    {
+        var (actions, host, _) = Create(1);
+        var prompt = new PromptInputHandler(host);
+        var tab = host.Workspace.ActiveTab!;
+
+        Assert.True(actions.TryExecute(ActionIds.TabRename, null));
+        Assert.Equal(KeyMode.Insert, host.State.Shell.Mode);
+        Assert.Contains("repo0_", PopupText.Of(prompt), StringComparison.Ordinal);
+        Type(prompt, "-2");
+        prompt.TryExecute(ActionIds.InputAccept, null);
+
+        Assert.Equal("repo0-2", host.Workspace.FindTab(tab.Id)!.Title);
+        Assert.Equal("repo0", host.Workspace.FindTab(tab.Id)!.DisplayName);
+        Assert.Equal(KeyMode.Normal, host.State.Shell.Mode);
+        Assert.Equal(string.Empty, PopupText.Of(prompt));
+    }
+
+    [Fact]
+    public void GivenARenamedTab_WhenAcceptingAnEmptyName_ThenTheRepositoryNameIsBack()
+    {
+        var (actions, host, _) = Create(1);
+        var prompt = new PromptInputHandler(host);
+        actions.TryExecute(ActionIds.TabRename, null);
+        Type(prompt, "x");
+        prompt.TryExecute(ActionIds.InputAccept, null);
+
+        actions.TryExecute(ActionIds.TabRename, null);
+        prompt.HandleTextKey(new KeyEvent("u", KeyModifiers.Ctrl));
+        prompt.TryExecute(ActionIds.InputAccept, null);
+
+        Assert.Null(host.Workspace.ActiveTab!.CustomName);
+        Assert.Equal("repo0", host.Workspace.ActiveTab.Title);
+    }
+
+    [Fact]
+    public void GivenTheRenamePrompt_WhenCancelling_ThenTheNameIsUnchanged()
+    {
+        var (actions, host, _) = Create(1);
+        var prompt = new PromptInputHandler(host);
+        actions.TryExecute(ActionIds.TabRename, null);
+        Type(prompt, "zzz");
+
+        prompt.TryExecute(ActionIds.Cancel, null);
+
+        Assert.Null(host.Workspace.ActiveTab!.CustomName);
+        Assert.Equal(KeyMode.Normal, host.State.Shell.Mode);
+    }
+
+    [Fact]
+    public void GivenNoTab_WhenRenaming_ThenNoPromptOpens()
+    {
+        var (actions, host, _) = Create(0);
+
+        Assert.False(actions.TryExecute(ActionIds.TabRename, null));
+        Assert.Null(host.State.Shell.Prompt);
+    }
+
+    private static void Type(PromptInputHandler prompt, string text)
+    {
+        foreach (var character in text)
+        {
+            prompt.HandleTextKey(new KeyEvent(character.ToString()));
+        }
+    }
+
     private static WorkspaceActionsHarness Create(int tabCount, Func<TabId, bool>? hasUnsentMessage = null)
     {
-        var host = new Dispatcher(AppState.Empty);
+        var host = new TestShell().Host;
         for (var index = 0; index < tabCount; index++)
         {
             var root = Path.Combine(Path.GetTempPath(), "gitunia-workspace-actions", $"repo{index}");

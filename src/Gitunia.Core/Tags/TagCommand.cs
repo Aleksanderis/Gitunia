@@ -34,23 +34,28 @@ public sealed record TagPushRequested(TabId TabId, TagTarget Target) : TagComman
 /// <param name="Target">What is selected.</param>
 public sealed record TagDeleteOnRemoteRequested(TabId TabId, TagTarget Target) : TagCommand(TabId);
 
-/// <summary>The text of the open prompt was edited.</summary>
+/// <summary>The name prompt was accepted: check the name and ask for the message.</summary>
 /// <param name="TabId">The tab.</param>
-/// <param name="Text">The whole new text.</param>
-public sealed record TagPromptTextChanged(TabId TabId, string Text) : TagCommand(TabId);
+/// <param name="StartPoint">The commit the tag is made at, fixed when the prompt opened.</param>
+/// <param name="Label">How the start point is named for the user.</param>
+/// <param name="Name">The typed name.</param>
+public sealed record TagNameAccepted(TabId TabId, string StartPoint, string Label, string Name) : TagCommand(TabId);
 
-/// <summary>The highlight of the remote prompt moved (wraps around).</summary>
+/// <summary>The message prompt was accepted: create the tag (lightweight when the message is empty).</summary>
 /// <param name="TabId">The tab.</param>
-/// <param name="Step">Rows to move, negative goes up.</param>
-public sealed record TagPromptMoved(TabId TabId, int Step) : TagCommand(TabId);
+/// <param name="StartPoint">The commit the tag is made at.</param>
+/// <param name="Label">How the start point is named for the user.</param>
+/// <param name="Name">The accepted name of the new tag.</param>
+/// <param name="Message">The typed message.</param>
+public sealed record TagMessageAccepted(TabId TabId, string StartPoint, string Label, string Name, string Message)
+    : TagCommand(TabId);
 
-/// <summary>Enter in the open prompt.</summary>
+/// <summary>A remote was chosen in the picker: push the tag to it, or ask before deleting the tag on it.</summary>
 /// <param name="TabId">The tab.</param>
-public sealed record TagPromptAccepted(TabId TabId) : TagCommand(TabId);
-
-/// <summary>Esc in the open prompt, or the prompt's tab was left.</summary>
-/// <param name="TabId">The tab.</param>
-public sealed record TagPromptCancelled(TabId TabId) : TagCommand(TabId);
+/// <param name="TagName">The tag the prompt was opened for.</param>
+/// <param name="Push">True to push, false to delete on the remote.</param>
+/// <param name="Remote">The chosen remote.</param>
+public sealed record TagRemoteChosen(TabId TabId, string TagName, bool Push, string Remote) : TagCommand(TabId);
 
 /// <summary><c>y</c> in the delete confirm; the tag is named by what the user saw.</summary>
 /// <param name="TabId">The tab.</param>

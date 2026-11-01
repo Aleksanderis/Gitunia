@@ -69,6 +69,9 @@ public sealed class ActionRouter(Dispatcher host, ListView graphList, ListView d
     /// <summary>The quick jump prompt, which sees every action first: it works in every pane that has it and owns Esc and Enter while open.</summary>
     public IPromptHandler? QuickJump { get; set; }
 
+    /// <summary>The prompt that lives in state (#971): it sees Enter and Esc before every other handler.</summary>
+    public IPromptHandler? OpenPrompt { get; set; }
+
     /// <summary>Visual mode (range selection), which sees the actions before every pane handler.</summary>
     public VisualRangeController? Visual { get; set; }
 
@@ -76,7 +79,7 @@ public sealed class ActionRouter(Dispatcher host, ListView graphList, ListView d
     public BranchActions? Branches { get; set; }
 
     /// <summary>The tag actions (create, delete, push, remote delete), which own their prompts in every pane.</summary>
-    public TagPromptHandler? Tags { get; set; }
+    public TagActions? Tags { get; set; }
 
     /// <summary>The remote management actions (add, remove, rename, set URL); they own their prompts.</summary>
     public RemoteManagementActions? RemoteManagement { get; set; }
@@ -164,6 +167,11 @@ public sealed class ActionRouter(Dispatcher host, ListView graphList, ListView d
     public void Execute(ActionId action, int? count)
     {
         Message = string.Empty;
+        if (OpenPrompt?.TryExecute(action, count) == true)
+        {
+            return;
+        }
+
         if (QuickJump?.TryExecute(action, count) == true)
         {
             Message = QuickJump.Notice;
@@ -190,7 +198,6 @@ public sealed class ActionRouter(Dispatcher host, ListView graphList, ListView d
 
         if (Tags?.TryExecute(action, count) == true)
         {
-            Refuse(Tags.Notice);
             return;
         }
 
@@ -425,7 +432,7 @@ public sealed class ActionRouter(Dispatcher host, ListView graphList, ListView d
     // Search and jump-to-ref work on the graph; in other panes only the accept/cancel actions of an open prompt apply,
     // and the stash file restore, which acts on the detail pane.
     private bool OffersToPrompts(ActionId action) =>
-        FocusedPane == PaneKind.Graph || action == ActionIds.InputAccept || action == ActionIds.Cancel || action == ActionIds.TabRename
+        FocusedPane == PaneKind.Graph || action == ActionIds.InputAccept || action == ActionIds.Cancel
         || action == ActionIds.StashRestoreFile;
 
     private static void Select(ListView list, int item)
