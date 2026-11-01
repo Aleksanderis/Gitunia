@@ -63,7 +63,7 @@ public interface IShellEffects
     /// <summary>Shows the content of a file row of the Files tab in the diff pane's place; reports why it cannot.</summary>
     void OpenFileContent(FileTreeRow row);
 
-    /// <summary>Offers an action to its handlers in order (the terminal layer owns the lists and views they read).</summary>
+    /// <summary>Offers an action to its handlers in order (the terminal layer owns the lists they read).</summary>
     void RouteAction(RouteActionEffect effect);
 
     /// <summary>Saves the session now; false when the save failed.</summary>

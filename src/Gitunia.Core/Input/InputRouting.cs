@@ -138,7 +138,7 @@ public static class InputRouting
     /// <summary>What a click on an overlay line may hit, in order.</summary>
     public static ImmutableArray<OverlayClickTarget> ClickTargets() => Clicks;
 
-    /// <summary>True for the handlers of the focused pane and the prompts, which run only when no screen took the action.</summary>
+    /// <summary>True for the handlers of the prompts and the panes, asked only when no screen took the action.</summary>
     public static bool IsPaneLayer(InputHandler handler) => !ScreenLayer.Contains(handler);
 
     // The settings do not open over another overlay, and <space>em (global, #742) must not start git mergetool under

@@ -112,7 +112,8 @@ public class NavigationActionsTests
         using var harness = new NavigationHarness(isLoading: true);
         var handlers = new InputHandlers();
         handlers.Add(InputHandler.Navigation, harness.Actions);
-        var executor = new ActionExecutor(handlers, new NoRepeat(), () => harness.Session);
+        var session = harness.Session;
+        var executor = new ActionExecutor(handlers, new NoRepeat(), () => session);
         executor.Run(new RouteActionEffect(ActionIds.ListBottom, null, [InputHandler.Navigation]));
         Assert.Equal(NavigationActions.StillLoadingNotice, executor.Message);
 

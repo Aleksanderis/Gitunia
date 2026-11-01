@@ -21,8 +21,7 @@ public sealed class ActionExecutor(
     private string _message = string.Empty;
 
     /// <summary>A short notice for the status bar from the last action, empty when none.</summary>
-    public string Message =>
-        _message == NavigationActions.StillLoadingNotice && activeSession()?.IsLoading != true ? string.Empty : _message;
+    public string Message => IsStaleLoadingNotice() ? string.Empty : _message;
 
     /// <summary>Runs the effect on the UI thread.</summary>
     /// <param name="effect">The action and the handlers that may take it.</param>
@@ -57,4 +56,8 @@ public sealed class ActionExecutor(
             repeat.AfterPaneAction(effect.Action);
         }
     }
+
+    // The hint that the log is still streaming in ends with the load.
+    private bool IsStaleLoadingNotice() =>
+        _message == NavigationActions.StillLoadingNotice && activeSession()?.IsLoading != true;
 }

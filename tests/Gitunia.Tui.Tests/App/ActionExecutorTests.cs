@@ -11,7 +11,7 @@ using Xunit;
 
 namespace Gitunia.Tui.Tests.App;
 
-/// <summary>A key through the real reducer and executor: the first handler of the order that takes the action wins.</summary>
+/// <summary>A key through the real reducer and executor: the first handler in the order that takes it wins.</summary>
 public class ActionExecutorTests : IInputFocusSource
 {
     private readonly Dispatcher _host = new(AppState.Empty);
@@ -73,7 +73,8 @@ public class ActionExecutorTests : IInputFocusSource
     [Fact]
     public void GivenAPaneTakesTheActionWithANotice_WhenInvoked_ThenTheNoticeIsTheMessageUntilTheNextAction()
     {
-        _handlers.Add(InputHandler.Diff, new Recorder(InputHandler.Diff, _asked) { Takes = true, Notice = "No next file" });
+        var diff = new Recorder(InputHandler.Diff, _asked) { Takes = true, Notice = "No next file" };
+        _handlers.Add(InputHandler.Diff, diff);
 
         _input.Route(ActionIds.ListDown, null);
 
@@ -89,7 +90,8 @@ public class ActionExecutorTests : IInputFocusSource
     [Fact]
     public void GivenAScreenTakesTheActionWithANotice_WhenInvoked_ThenTheMessageIsNotChanged()
     {
-        _handlers.Add(InputHandler.Settings, new Recorder(InputHandler.Settings, _asked) { Takes = true, Notice = "x" });
+        var settings = new Recorder(InputHandler.Settings, _asked) { Takes = true, Notice = "opened" };
+        _handlers.Add(InputHandler.Settings, settings);
 
         _input.Route(ActionIds.ListDown, null);
 

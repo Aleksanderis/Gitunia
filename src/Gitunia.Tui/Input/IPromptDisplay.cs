@@ -8,6 +8,6 @@ public interface IPromptDisplay
     /// <summary>What the prompt shows in the status bar while it is open, empty when it is not.</summary>
     string StatusLine { get; }
 
-    /// <summary>The prompt as a centred popup while it asks for text or a choice, null when it is closed or a bar.</summary>
+    /// <summary>The prompt as a centred popup while it asks for text or a choice, null when closed or a bar.</summary>
     PromptPopup? Popup => null;
 }

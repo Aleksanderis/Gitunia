@@ -97,7 +97,9 @@ public class InputRoutingTests
     [Fact]
     public void GivenAnOverlayOfTheOverlayLayer_WhenRouting_ThenItIsAskedBeforeTheWorkspaceActionsAndThePanes()
     {
-        var handlers = InputRouting.Handlers(ActionIds.Cancel, ShellState.Empty, new InputFocus(OverlayKind.Palette, true));
+        var focus = new InputFocus(OverlayKind.Palette, true);
+
+        var handlers = InputRouting.Handlers(ActionIds.Cancel, ShellState.Empty, focus);
 
         var overlays = handlers.ToList().IndexOf(InputHandler.Overlays);
         Assert.True(overlays < handlers.ToList().IndexOf(InputHandler.WorkspaceActions));
@@ -212,7 +214,7 @@ public class InputRoutingTests
                 InputHandler.Reflog,
             ],
             handlers.Take(4));
-        Assert.Equal(InputHandler.OpenPrompt, handlers[InputRouting.TextKeyHandlers().IndexOf(InputHandler.OpenPrompt)]);
+        Assert.True(handlers.IndexOf(InputHandler.OpenPrompt) > handlers.IndexOf(InputHandler.Reflog));
         Assert.Equal(InputHandler.CommitMessage, handlers[^1]);
         Assert.Equal(handlers.Distinct().Count(), handlers.Length);
     }

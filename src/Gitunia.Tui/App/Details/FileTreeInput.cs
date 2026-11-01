@@ -21,7 +21,8 @@ namespace Gitunia.Tui.App.Details;
 /// </summary>
 /// <param name="host">The state and the commands.</param>
 /// <param name="detailList">The list of the detail pane: it owns the cursor and shows the rows of the active tab.</param>
-public sealed class FileTreeInput(Dispatcher host, ListView detailList) : IActionHandler, ITextKeyHandler, IPromptDisplay
+public sealed class FileTreeInput(Dispatcher host, ListView detailList)
+    : IActionHandler, ITextKeyHandler, IPromptDisplay
 {
     private const string FilterLabel = "/";
     private const string AppliedFilterLabel = "filter: ";

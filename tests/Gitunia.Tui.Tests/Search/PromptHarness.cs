@@ -113,7 +113,9 @@ public sealed class PromptHarness : IDisposable, IQuickJumpHost
 
     public KeyMode Mode => _keys.Mode;
 
-    public string StatusLine => _prompts.OfType<IPromptDisplay>().Select(prompt => prompt.StatusLine).FirstOrDefault(line => line.Length > 0) ?? string.Empty;
+    public string StatusLine => _prompts.OfType<IPromptDisplay>()
+        .Select(prompt => prompt.StatusLine)
+        .FirstOrDefault(line => line.Length > 0) ?? string.Empty;
 
     /// <summary>Opens a second tab and makes it the active one, like a tab switch.</summary>
     public void SwitchTab() =>

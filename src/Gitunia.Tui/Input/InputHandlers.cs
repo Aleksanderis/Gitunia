@@ -11,7 +11,7 @@ public sealed class InputHandlers
     private readonly Dictionary<InputHandler, IActionHandler> _actions = [];
     private readonly Dictionary<InputHandler, ITextKeyHandler> _textKeys = [];
 
-    /// <summary>Registers the object for a case: as an action handler, a text key handler or both, by what it implements.</summary>
+    /// <summary>Registers the object for a case, as an action handler, a text key handler or both.</summary>
     /// <param name="handler">The case.</param>
     /// <param name="target">The object that does the work.</param>
     public void Add(InputHandler handler, object target)

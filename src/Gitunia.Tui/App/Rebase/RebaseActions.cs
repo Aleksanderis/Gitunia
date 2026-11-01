@@ -19,7 +19,8 @@ namespace Gitunia.Tui.App.Rebase;
 /// <param name="host">Holds the active tab and takes the commands.</param>
 /// <param name="selection">What a rebase onto a ref acts on.</param>
 /// <param name="graph">The commit the quick rebase acts on.</param>
-public sealed class RebaseActions(Dispatcher host, IBranchSelectionSource selection, IGraphSelectionSource graph) : IActionHandler
+public sealed class RebaseActions(Dispatcher host, IBranchSelectionSource selection, IGraphSelectionSource graph)
+    : IActionHandler
 {
     /// <summary>Runs the action when it is a rebase action; false lets the next handler try.</summary>
     public bool TryExecute(ActionId action, int? count)

@@ -1,6 +1,6 @@
 namespace Gitunia.Core.Input;
 
-/// <summary>What a click on an overlay line may hit, in the order <see cref="InputRouting.ClickTargets"/> tries them.</summary>
+/// <summary>What a click on an overlay line may hit, in the order of <see cref="InputRouting.ClickTargets"/>.</summary>
 public enum OverlayClickTarget
 {
     /// <summary>The settings screen.</summary>

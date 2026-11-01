@@ -40,7 +40,7 @@ public sealed class NavigationActions(
     StatusActionHandler statuses,
     ClipboardCopier clipboard) : IActionHandler, IActionNotice
 {
-    /// <summary>The notice shown when <c>G</c> stops at the last loaded commit because the log is still streaming in.</summary>
+    /// <summary>The notice shown when <c>G</c> stops at the last loaded commit while the log is still streaming in.</summary>
     public const string StillLoadingNotice = "Still loading: at the last loaded commit";
 
     private readonly DetailPathCopier _pathCopier = new(clipboard);
@@ -100,7 +100,8 @@ public sealed class NavigationActions(
         return true;
     }
 
-    // The toolkit's focus is the truth (a mouse click moves it without us), the tab's FocusedPane is kept in step by FocusPane.
+    // The toolkit's focus is the truth (a mouse click moves it without us), the tab's FocusedPane is kept in step by
+    // FocusPane.
     private PaneKind FocusedPane => detailList.HasFocus ? PaneKind.Detail : PaneKind.Graph;
 
     // A count targets a line, so only a plain G (jump to the end) is hinted; the hint ends with the load.
@@ -138,7 +139,8 @@ public sealed class NavigationActions(
             host.Dispatch(new TabCommand(tabId, new FocusPaneCommand(pane)));
         }
 
-        if (pane == PaneKind.Detail && list.Source is DetailListSource { Content: { Tab: BottomTab.Changes, Files.Count: > 0 } } source)
+        if (pane == PaneKind.Detail
+            && list.Source is DetailListSource { Content: { Tab: BottomTab.Changes, Files.Count: > 0 } } source)
         {
             // Land on the first file: the row above it only counts them.
             Select(list, source.Content.FirstFileRow);

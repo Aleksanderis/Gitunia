@@ -701,8 +701,8 @@ public sealed class TuiApplication(
         }
     }
 
-    // A click on an overlay line goes to the first overlay under it, in the order InputRouting.ClickTargets gives; a click
-    // on a palette row highlights it and runs it (the palette is the menu of every action).
+    // A click on an overlay line goes to the first overlay under it, in the order InputRouting.ClickTargets gives; a
+    // click on a palette row highlights it and runs it (the palette is the menu of every action).
     private void OnOverlayLineClicked(int line)
     {
         foreach (var target in InputRouting.ClickTargets())
@@ -788,7 +788,9 @@ public sealed class TuiApplication(
             return null;
         }
 
-        return new OverlayClick(answer == ConfirmAnswer.Yes ? DefaultMouseMap.ConfirmYesButton : DefaultMouseMap.ConfirmNoButton);
+        var view = answer == ConfirmAnswer.Yes ? DefaultMouseMap.ConfirmYesButton : DefaultMouseMap.ConfirmNoButton;
+
+        return new OverlayClick(view);
     }
 
     private void RefreshOverlay()
@@ -1192,7 +1194,11 @@ public sealed class TuiApplication(
             ActiveSession(),
             _keys.Mode,
             _keys.PendingText,
-            FirstNotEmpty(_workspaceActions.Message, _actions.Message, RemoteProgressNow(), _statuses.Current?.Text ?? string.Empty),
+            FirstNotEmpty(
+                _workspaceActions.Message,
+                _actions.Message,
+                RemoteProgressNow(),
+                _statuses.Current?.Text ?? string.Empty),
             _view.Graph.SelectedItem,
             TabLabelFactory.Create(
                 _host.Workspace,
@@ -1211,8 +1217,8 @@ public sealed class TuiApplication(
                 MessageIsFresh = _statuses.IsFresh,
                 Hints = CurrentHints(),
                 RepeatPane = _repeat.Active?.Pane,
-                SearchLine = _promptDisplays.Select(prompt => prompt.StatusLine).FirstOrDefault(line => line.Length > 0) ??
-                             PopupFallbackLine(),
+                SearchLine = _promptDisplays.Select(prompt => prompt.StatusLine).FirstOrDefault(line => line.Length > 0)
+                    ?? PopupFallbackLine(),
             };
 
         return newScreenModel;
