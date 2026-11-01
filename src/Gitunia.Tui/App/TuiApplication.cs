@@ -125,6 +125,7 @@ public sealed class TuiApplication(
     private GraphTabBinder _binder = null!;
     private string _homeDirectory = string.Empty;
     private readonly StatusChannel _statuses = new();
+    private readonly TabActivity _activity = new();
     private StartupConfig _startupConfig = null!;
     private ChipKeys _chipKeys = null!;
     private ConsoleCapabilities _capabilities = detectedCapabilities;
@@ -280,7 +281,7 @@ public sealed class TuiApplication(
             new RangeCopier(clipboard, ActiveSession, () => _host.Workspace.ActiveTab?.WorkingTree).Copy,
             text => _statuses.Post(text));
         _router.Visual = _visual;
-        var operationGate = new TabOperationGate();
+        var operationGate = _activity.CreateGate();
         var staging = CreateStaging(operationGate);
         _commits.StageAllThen = staging.StageAllThen;
         _router.WorkingTree = new WorkingTreeActionHandler(_host, FocusedPageHeight, clipboard, staging, _commits)
@@ -301,7 +302,7 @@ public sealed class TuiApplication(
 
         // The remote actions come first: remote management reads their running state through a method group.
         _remote = CreateRemote(operationGate);
-        _effects.IsTabBusy = tabId => operationGate.IsBusy(tabId) || _remote.IsRunning(tabId);
+        _effects.IsTabBusy = tabId => _activity.IsBusy(tabId) || _remote.IsRunning(tabId);
         _router.Remote = _remote;
         _remoteManagement = CreateRemoteManagement();
         _router.RemoteManagement = _remoteManagement;
@@ -923,6 +924,7 @@ public sealed class TuiApplication(
         InvokeOnUi,
         _effects.RefreshStatus,
         tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None,
+        _activity.CreateGate(),
         ShowOutput,
         () => _keys.Mode,
         SetMode,
@@ -944,6 +946,7 @@ public sealed class TuiApplication(
         _statuses,
         InvokeOnUi,
         tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None,
+        _activity.CreateGate(),
         ShowConfirm,
         tabId => _effects.Refresh(tabId, false),
         SetMode,
@@ -956,6 +959,7 @@ public sealed class TuiApplication(
         _statuses,
         InvokeOnUi,
         tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None,
+        _activity.CreateGate(),
         ShowConfirm,
         tabId => _effects.Refresh(tabId, false),
         SetMode,
@@ -1086,6 +1090,7 @@ public sealed class TuiApplication(
         _statuses,
         InvokeOnUi,
         tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None,
+        _activity.CreateGate(),
         ShowConfirm,
         tabId => _effects.Refresh(tabId, false),
         SetMode,
@@ -1115,6 +1120,7 @@ public sealed class TuiApplication(
         _statuses,
         InvokeOnUi,
         tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None,
+        _activity.CreateGate(),
         ShowConfirm,
         tabId => _effects.Refresh(tabId, false),
         SetMode,

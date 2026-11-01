@@ -293,6 +293,7 @@ public class RemoteManagementActionsTests
                 Statuses,
                 Pump.Post,
                 _ => TestContext.Current.CancellationToken,
+                new TabOperationGate(),
                 Confirm,
                 _ =>
                 {

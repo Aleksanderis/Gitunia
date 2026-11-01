@@ -11,7 +11,7 @@ using Gitunia.Git.Remotes.Models;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Tui.App;
 using Gitunia.Tui.App.Remote;
-using Gitunia.Tui.App.WorkingTree;
+using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.Tests.Fakes;
 using Xunit;
 

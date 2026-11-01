@@ -12,6 +12,7 @@ using Gitunia.Git.Execution.Exceptions;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Status.Models;
 using Gitunia.Tui.App;
+using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.App.WorkingTree;
 using Gitunia.Tui.Tests.Fakes;
 using Xunit;
@@ -115,6 +116,21 @@ public class CommitActionsTests
         Assert.Equal(PaneKind.WorkingStaged, harness.Tab.View.FocusedPane);
         Assert.Equal(KeyMode.Normal, harness.Mode);
         Assert.Equal(1, harness.Refreshes);
+    }
+
+    [Fact]
+    public async Task GivenARunningCommit_WhenItRuns_ThenTheGateMarksTheTabUntilItEnds()
+    {
+        using var harness = new Harness(StagedModified("a.txt"));
+        harness.Run(ActionIds.WorkingTreeWriteMessage);
+        harness.Type("Gated");
+
+        harness.Run(ActionIds.WorkingTreeCommit);
+        var busyWhileRunning = harness.Busy.IsBusy(harness.Tab.Id);
+        await harness.Pump.RunUntilAsync(() => !harness.Busy.IsAnyBusy);
+
+        Assert.True(busyWhileRunning);
+        Assert.False(harness.Draft.IsCommitting);
     }
 
     [Fact]
@@ -695,6 +711,7 @@ public class CommitActionsTests
                 Pump.Post,
                 RefreshStatus,
                 _ => TestContext.Current.CancellationToken,
+                Busy,
                 (title, heading, lines) => Outputs.Add(new Output(title, heading, lines)),
                 () => Mode,
                 mode => Mode = mode,
@@ -713,6 +730,8 @@ public class CommitActionsTests
         public FakeOperationDetector Operations { get; } = new();
 
         public StatusChannel Statuses { get; } = new();
+
+        public TabOperationGate Busy { get; } = new();
 
         public CommitActions Commits { get; }
 

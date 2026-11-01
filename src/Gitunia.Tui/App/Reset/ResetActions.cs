@@ -12,6 +12,7 @@ using Gitunia.Git.Reset;
 using Gitunia.Git.Status;
 using Gitunia.Git.Status.Models;
 using Gitunia.Tui.App.Branches;
+using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.App.WorkingTree;
 using Gitunia.Tui.Input;
 

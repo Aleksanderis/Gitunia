@@ -15,6 +15,7 @@ using Gitunia.Git.Execution.Exceptions;
 using Gitunia.Git.Repositories;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Status.Models;
+using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.Rendering.Panes;
 
 namespace Gitunia.Tui.App.WorkingTree;
@@ -33,6 +34,7 @@ namespace Gitunia.Tui.App.WorkingTree;
 /// <param name="postToUi">Runs an action on the UI thread.</param>
 /// <param name="refreshStatus">Asks a tab to re-read its status and calls back when the new state is in; false when it cannot.</param>
 /// <param name="cancellationOf">The token that ends the work of a tab (the tab was closed).</param>
+/// <param name="busy">Marks the tab while a commit runs (tab eviction waits for it).</param>
 /// <param name="showOutput">Shows a failed command's output (title, heading, lines).</param>
 /// <param name="keyMode">The current input mode.</param>
 /// <param name="setMode">Switches the input mode.</param>
@@ -49,6 +51,7 @@ public sealed class CommitActions(
     Action<Action> postToUi,
     Func<TabId, Action, bool> refreshStatus,
     Func<TabId, CancellationToken> cancellationOf,
+    TabOperationGate busy,
     Action<string, string, IReadOnlyList<string>> showOutput,
     Func<KeyMode> keyMode,
     Action<KeyMode> setMode,
@@ -694,6 +697,7 @@ public sealed class CommitActions(
         var upstream = needsForcePush ? tab.WorkingTree?.Snapshot.Branch.UpstreamName : null;
         var source = CancellationTokenSource.CreateLinkedTokenSource(cancellationOf(tab.Id));
         _running[tab.Id] = source;
+        busy.Begin(tab.Id);
         draft.IsCommitting = true;
         var location = tab.Location;
         var tabId = tab.Id;
@@ -828,6 +832,7 @@ public sealed class CommitActions(
     {
         if (_running.Remove(tabId, out var source))
         {
+            busy.End(tabId);
             source.Dispose();
         }
     }

@@ -16,7 +16,7 @@ using Gitunia.Git.Status.Models;
 using Gitunia.Git.Tests.Fixtures;
 using Gitunia.Tui.App;
 using Gitunia.Tui.App.Operations;
-using Gitunia.Tui.App.WorkingTree;
+using Gitunia.Tui.App.Tabs;
 using Xunit;
 
 namespace Gitunia.Tui.Tests.App.Operations;

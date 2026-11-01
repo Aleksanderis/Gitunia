@@ -10,6 +10,7 @@ using Gitunia.Git.Refs;
 using Gitunia.Git.Refs.Models;
 using Gitunia.Tui.App.Branches;
 using Gitunia.Tui.App.Operations;
+using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.App.WorkingTree;
 
 namespace Gitunia.Tui.App.Merge;
