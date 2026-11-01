@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-# TEMPORARY diagnostics for #959: while a test host runs, report the process tree and stack samples of anything stuck.
+# CI diagnostics for a stalled macOS test host (#959). Runs in the background of the test step; when no line was added
+# to /tmp/test-out.log for 45 s (the step tees the test output there) or a child of the host lives over 25 s, it prints
+# the process tree, open files and `sample` stacks (at most 3 reports). Silent otherwise. macOS only (ps, stat -f, sample).
 # Usage: scripts/ci-hang-watch.sh &   (prints to stdout, which is the CI step log)
 set -u
 

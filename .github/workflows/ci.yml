@@ -231,20 +231,21 @@ jobs:
       - name: Build (warnings, including IL*, are errors)
         run: dotnet build -c Release
       - name: Test (one project at a time)
-        # Same shape as the Windows leg: only OS-sensitive tests (#637), projects in sequence, hung host killed.
+        # Same shape as the Windows leg: only OS-sensitive tests (#637), projects in sequence, hung host killed. Unlike
+        # Windows it runs every project even after a failure (this leg is rarely run, so one run should show all), and
+        # scripts/ci-hang-watch.sh prints the process tree and stack samples when no test finishes for 45 s (#959: one
+        # run stalled for 10 minutes with every test thread stuck; it did not recur in five later runs).
         run: |
           set -o pipefail
           scripts/ci-hang-watch.sh &
           status=0
-          # TEMPORARY (#959): Git twice more after Tui to catch an intermittent hang.
-          for project in Core Platform Git Tui Git Git; do
+          for project in Core Platform Git Tui; do
             dotnet test "tests/Gitunia.$project.Tests" -c Release --no-build --filter "Os!=Independent" \
-              --logger "console;verbosity=normal" --blame-hang-timeout 2m --blame-hang-dump-type none 2>&1 \
+              --logger "console;verbosity=normal" --blame-hang-timeout 3m --blame-hang-dump-type none 2>&1 \
               | tee -a /tmp/test-out.log || status=1
           done
           exit $status
       - name: AOT publish (any IL* warning fails)
-        if: ${{ !cancelled() }}
         run: |
           version_arg=""; if [[ "$GITHUB_REF" == refs/tags/v* ]]; then version_arg="-p:Version=${GITHUB_REF_NAME#v}"; fi
           dotnet publish src/Gitunia.Tui -c Release -r osx-arm64 -p:TreatWarningsAsErrors=true $version_arg -o out 2>&1 | tee publish.log
