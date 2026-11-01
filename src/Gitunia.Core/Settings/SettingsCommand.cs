@@ -17,7 +17,8 @@ public sealed record SettingsActionPressed(ActionId Action, int? Count) : Settin
 /// <param name="Key">The key.</param>
 public sealed record SettingsKeyTyped(KeyEvent Key) : SettingsCommand;
 
-/// <summary>The terminal size changed: the lists have another page size and the layout may collapse or expand.</summary>
+/// <summary>The terminal size changed: the lists have another page size and the layout may collapse or
+/// expand.</summary>
 /// <param name="Viewport">The new room.</param>
 public sealed record SettingsViewportChanged(SettingsViewport Viewport) : SettingsCommand;
 

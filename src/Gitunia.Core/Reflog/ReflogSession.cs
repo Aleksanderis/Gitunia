@@ -8,7 +8,8 @@ namespace Gitunia.Core.Reflog;
 /// </summary>
 /// <param name="List">The open list, null while it is closed.</param>
 /// <param name="Generation">Counts reads and closes; a read result with another number is stale and dropped.</param>
-/// <param name="IsReading">True from the read effect until its result arrives; a second read is refused meanwhile.</param>
+/// <param name="IsReading">True from the read effect until its result arrives; a second read is refused
+/// meanwhile.</param>
 public sealed record ReflogSession(ReflogState? List, long Generation, bool IsReading)
 {
     public static ReflogSession Empty { get; } = new(null, 0, false);

@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using Gitunia.App.Settings;
 using Gitunia.App.Shell;
 using Gitunia.App.Status;
 using Gitunia.App;
@@ -61,7 +62,6 @@ using Gitunia.Tui.App.Reflog;
 using Gitunia.Tui.App.Remote;
 using Gitunia.Tui.App.Reset;
 using Gitunia.Tui.App.Settings;
-using Gitunia.App.Settings;
 using Gitunia.Tui.App.Sidebar;
 using Gitunia.Tui.App.Stash;
 using Gitunia.Tui.App.Tabs;

@@ -32,7 +32,16 @@ public sealed record ShellState(
     SettingsSession Settings,
     ScreenExtent? Screen)
 {
-    public static ShellState Empty { get; } = new(KeyMode.Normal, 0, StatusLog.Empty, null, null, null, ReflogSession.Empty, SettingsSession.Empty, null);
+    public static ShellState Empty { get; } = new(
+        KeyMode.Normal,
+        0,
+        StatusLog.Empty,
+        null,
+        null,
+        null,
+        ReflogSession.Empty,
+        SettingsSession.Empty,
+        null);
 
     /// <summary>
     /// The key mode to return to when a dialog or box opened now closes: an open dialog or box replaced by a newer one

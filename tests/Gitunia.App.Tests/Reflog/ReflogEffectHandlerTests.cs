@@ -27,7 +27,8 @@ public class ReflogEffectHandlerTests
         repository.CheckoutNewBranch("topic");
         var location = await LocateAsync(repository);
 
-        var result = await RunAsync(new ReadReflogEffect(Tab, location, "HEAD", "HEAD", 7, false), null, TestContext.Current.CancellationToken);
+        var result = await RunAsync(new ReadReflogEffect(Tab, location, "HEAD", "HEAD", 7, false), null,
+            TestContext.Current.CancellationToken);
 
         var loaded = Assert.IsType<ReflogLoaded>(result);
         Assert.Equal(Tab, loaded.TabId);
@@ -48,7 +49,8 @@ public class ReflogEffectHandlerTests
         repository.Git("checkout", "-");
         var location = await LocateAsync(repository);
 
-        var result = await RunAsync(new ReadReflogEffect(Tab, location, "refs/heads/topic", "topic", 1, true), null, TestContext.Current.CancellationToken);
+        var result = await RunAsync(new ReadReflogEffect(Tab, location, "refs/heads/topic", "topic", 1, true), null,
+            TestContext.Current.CancellationToken);
 
         var loaded = Assert.IsType<ReflogLoaded>(result);
         Assert.Equal("topic", loaded.Title);
@@ -62,7 +64,8 @@ public class ReflogEffectHandlerTests
         using var repository = TestRepositories.Linear();
         var location = await LocateAsync(repository);
 
-        var result = await RunAsync(new ReadReflogEffect(Tab, location, "HEAD", "HEAD", 1, false), new FailingReader(), TestContext.Current.CancellationToken);
+        var result = await RunAsync(new ReadReflogEffect(Tab, location, "HEAD", "HEAD", 1, false), new FailingReader(),
+            TestContext.Current.CancellationToken);
 
         var failed = Assert.IsType<ReflogReadFailed>(result);
         Assert.StartsWith("Could not read the reflog of HEAD:", failed.Text, StringComparison.Ordinal);

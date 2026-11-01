@@ -363,7 +363,8 @@ public class ReflogReducerTests
     [Fact]
     public void GivenBranches_WhenOpeningThePicker_ThenHeadAndTheLocalBranchesAreOfferedInInsertMode()
     {
-        var state = WithRefs(OpenList(Opened("alpha"), 3), Branch("main"), Branch("topic"), Tag("v1"), Remote("origin/main"));
+        var state = WithRefs(OpenList(Opened("alpha"), 3), Branch("main"), Branch("topic"), Tag("v1"),
+            Remote("origin/main"));
 
         var update = AppReducer.Reduce(state, Pressed(ActionIds.ReflogOpen));
 
@@ -524,7 +525,8 @@ public class ReflogReducerTests
     }
 
     private static List<ReflogEntry> Entries(int count, Func<int, string>? message = null) =>
-        [.. Enumerable.Range(0, count).Select(index => new ReflogEntry(index, Hash(index), "commit", message?.Invoke(index) ?? "msg", "now"))];
+        [.. Enumerable.Range(0, count).Select(index => new ReflogEntry(index, Hash(index), "commit",
+            message?.Invoke(index) ?? "msg", "now"))];
 
     private static string Hash(int index) => new((char)('a' + index), 40);
 

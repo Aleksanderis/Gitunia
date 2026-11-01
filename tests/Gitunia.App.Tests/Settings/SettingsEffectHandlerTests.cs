@@ -20,7 +20,8 @@ public sealed class SettingsEffectHandlerTests : IDisposable
     [Fact]
     public async Task GivenNoFile_WhenReadingToOpen_ThenTheDefaultsAreParsedAndTheKeyReferenceIsBuilt()
     {
-        var result = await RunAsync(new ReadSettingsEffect(SettingsReadIntent.Open), TestContext.Current.CancellationToken);
+        var result = await RunAsync(new ReadSettingsEffect(SettingsReadIntent.Open),
+            TestContext.Current.CancellationToken);
 
         var read = Assert.IsType<SettingsFileRead>(result);
         Assert.False(read.Read.Snapshot.Exists);
@@ -35,7 +36,8 @@ public sealed class SettingsEffectHandlerTests : IDisposable
     {
         WriteConfig("{ \"tabs\": { \"showBranch\": true } }");
 
-        var result = await RunAsync(new ReadSettingsEffect(SettingsReadIntent.Reload), TestContext.Current.CancellationToken);
+        var result = await RunAsync(new ReadSettingsEffect(SettingsReadIntent.Reload),
+            TestContext.Current.CancellationToken);
 
         var read = Assert.IsType<SettingsFileRead>(result);
         Assert.True(read.Read.Load.Options.ShowBranchInTab);
@@ -47,7 +49,8 @@ public sealed class SettingsEffectHandlerTests : IDisposable
     {
         WriteConfig("{ not json");
 
-        var result = await RunAsync(new ReadSettingsEffect(SettingsReadIntent.Open), TestContext.Current.CancellationToken);
+        var result = await RunAsync(new ReadSettingsEffect(SettingsReadIntent.Open),
+            TestContext.Current.CancellationToken);
 
         Assert.NotEqual(string.Empty, Assert.IsType<SettingsFileRead>(result).Read.Load.Banner);
     }
@@ -58,7 +61,8 @@ public sealed class SettingsEffectHandlerTests : IDisposable
         var commit = Commit(SettingsRegistry.ShowBranchId, SettingValue.OfFlag(true));
         var snapshot = new ConfigSnapshot(false, string.Empty, string.Empty);
 
-        var result = await RunAsync(new WriteSettingEffect(commit, "true", snapshot), TestContext.Current.CancellationToken);
+        var result = await RunAsync(new WriteSettingEffect(commit, "true", snapshot),
+            TestContext.Current.CancellationToken);
 
         var written = Assert.IsType<SettingsWritten>(result);
         Assert.Equal(ConfigWriteStatus.Written, written.Result.Status);

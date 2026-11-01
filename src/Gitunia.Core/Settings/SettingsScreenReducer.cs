@@ -43,8 +43,8 @@ public static class SettingsScreenReducer
         [ActionIds.ConfirmNo] = SettingsCommandKind.ConfirmNo,
     };
 
-    /// <summary>True when the action is the settings' to handle: any action while the screen is open, else the three that
-    /// open it or toggle the command level.</summary>
+    /// <summary>True when the action is the settings' to handle: any action while the screen is open, else the
+    /// three that open it or toggle the command level.</summary>
     /// <param name="action">The bound action.</param>
     /// <param name="isOpen">The screen is open.</param>
     public static bool Consumes(ActionId action, bool isOpen) =>
@@ -82,7 +82,10 @@ public static class SettingsScreenReducer
             _ => throw new UnhandledCommandException(command),
         };
 
-    private static SettingsSession Press(SettingsSession session, SettingsActionPressed pressed, List<AppEffect> effects)
+    private static SettingsSession Press(
+        SettingsSession session,
+        SettingsActionPressed pressed,
+        List<AppEffect> effects)
     {
         var action = pressed.Action;
         if (session.Screen is null)
@@ -138,7 +141,14 @@ public static class SettingsScreenReducer
         }
 
         var page = Math.Max(1, session.Viewport.PageRows);
-        if (ListMotion.TryMove(pressed.Action, pressed.Count, screen.ActiveIndex, screen.ActiveCount, page, out var target))
+        var moved = ListMotion.TryMove(
+            pressed.Action,
+            pressed.Count,
+            screen.ActiveIndex,
+            screen.ActiveCount,
+            page,
+            out var target);
+        if (moved)
         {
             return session with { Screen = screen.MoveTo(target) };
         }
@@ -250,7 +260,12 @@ public static class SettingsScreenReducer
     {
         var resized = session with { Viewport = viewport };
 
-        return session.Screen is { } screen ? resized with { Screen = screen.WithLayout(viewport.IsCollapsed) } : resized;
+        if (session.Screen is not { } screen)
+        {
+            return resized;
+        }
+
+        return resized with { Screen = screen.WithLayout(viewport.IsCollapsed) };
     }
 
     private static SettingsSession Reload(SettingsSession session, List<AppEffect> effects)
@@ -272,7 +287,7 @@ public static class SettingsScreenReducer
 
         return file.Intent switch
         {
-            SettingsReadIntent.CycleCommandLevel => WriteNextCommandLevel(idle, read, effects),
+            SettingsReadIntent.CycleCommandLevel => WriteNextCommandLevel(idle, file, effects),
             SettingsReadIntent.Reload => Reloaded(idle, read, effects),
             _ => Show(idle, file, effects),
         };
@@ -302,12 +317,17 @@ public static class SettingsScreenReducer
     }
 
     // The fast toggle (#839): writes the next level and applies it like the settings row does.
-    private static SettingsSession WriteNextCommandLevel(SettingsSession session, SettingsRead read, List<AppEffect> effects)
+    private static SettingsSession WriteNextCommandLevel(
+        SettingsSession session,
+        SettingsFileRead file,
+        List<AppEffect> effects)
     {
-        var next = CommandLevels.Next(read.Load.Options.CommandLevel);
-        var definition = SettingsRegistry.All.First(candidate => candidate.Id == SettingsRegistry.CommandLevelId);
+        var next = CommandLevels.Next(file.Read.Load.Options.CommandLevel);
+        var definition = file.Definitions.FirstOrDefault(candidate => candidate.Id == SettingsRegistry.CommandLevelId)
+            ?? SettingsRegistry.All.First(candidate => candidate.Id == SettingsRegistry.CommandLevelId);
+        var commit = new SettingsCommit(definition, SettingValue.OfChoice(CommandLevels.NameOf(next)));
 
-        return Write(session, new SettingsCommit(definition, SettingValue.OfChoice(CommandLevels.NameOf(next))), effects);
+        return Write(session, commit, effects);
     }
 
     private static SettingsSession Write(SettingsSession session, SettingsCommit commit, List<AppEffect> effects)

@@ -13,7 +13,7 @@ namespace Gitunia.Core.Tests.Settings;
 // The settings overlay around its edits: file work as effects, never two at once, the key mode and the theme on screen.
 public class SettingsScreenReducerTests
 {
-    private static readonly SettingsEnvironment Environment = new("/home/user", static _ => true);
+    private static readonly SettingsEnvironment Environment = new(Path.Combine(Path.GetPathRoot(Path.GetTempPath())!, "home", "user"), static _ => true);
 
     [Fact]
     public void GivenTheScreenIsClosed_WhenTheOpenKeyIsPressed_ThenTheFileIsReadAndNothingElseHappens()
@@ -31,7 +31,8 @@ public class SettingsScreenReducerTests
     {
         var update = Reduce(Closed(), new SettingsActionPressed(ActionIds.SettingsOpenTheme, null));
 
-        Assert.Equal(SettingsReadIntent.OpenAtTheme, Assert.IsType<ReadSettingsEffect>(Assert.Single(update.Effects)).Intent);
+        Assert.Equal(SettingsReadIntent.OpenAtTheme,
+            Assert.IsType<ReadSettingsEffect>(Assert.Single(update.Effects)).Intent);
     }
 
     [Fact]
@@ -115,7 +116,8 @@ public class SettingsScreenReducerTests
     [Fact]
     public void GivenASaveInFlight_WhenCyclingTheCommandLevel_ThenItIsRefusedWithAMessage()
     {
-        var update = Reduce(Closed() with { IsBusy = true }, new SettingsActionPressed(ActionIds.ViewCycleCommandLevel, null));
+        var update = Reduce(Closed() with { IsBusy = true },
+            new SettingsActionPressed(ActionIds.ViewCycleCommandLevel, null));
 
         var post = Assert.IsType<PostStatusEffect>(Assert.Single(update.Effects));
         Assert.Equal(SettingsScreenReducer.StillSavingNotice, post.Text);
@@ -142,12 +144,15 @@ public class SettingsScreenReducerTests
         var read = Read(SettingsReadIntent.CycleCommandLevel, "{ \"commandLevel\": \"advanced\" }");
         var writing = Reduce(Busy(), read);
         var write = writing.Effects.OfType<WriteSettingEffect>().Single();
-        var after = new SettingsRead(read.Read.Snapshot, read.Read.Load with { Options = read.Read.Load.Options with { CommandLevel = CommandLevel.AdvancedPlus } });
+        var after = new SettingsRead(read.Read.Snapshot,
+            read.Read.Load with { Options = read.Read.Load.Options with { CommandLevel = CommandLevel.AdvancedPlus } });
 
         var update = Reduce(writing.Session, Written(write, ConfigWriteStatus.Written, after));
 
-        Assert.Equal(CommandLevel.AdvancedPlus, update.Effects.OfType<ApplySettingsOptionsEffect>().Single().Options.CommandLevel);
-        Assert.Equal("Command level: Advanced+", Posts(update).Single(post => post.Severity == StatusSeverity.Info).Text);
+        Assert.Equal(CommandLevel.AdvancedPlus,
+            update.Effects.OfType<ApplySettingsOptionsEffect>().Single().Options.CommandLevel);
+        Assert.Equal("Command level: Advanced+",
+            Posts(update).Single(post => post.Severity == StatusSeverity.Info).Text);
         Assert.False(update.Session.IsBusy);
     }
 
@@ -172,10 +177,12 @@ public class SettingsScreenReducerTests
     public void GivenAWriteThatFinds_TheFileChanged_ThenTheNewValuesShowAndTheWarningIsPosted()
     {
         var open = Open();
-        var write = new WriteSettingEffect(new SettingsCommit(SettingsRegistry.All[3], SettingValue.OfFlag(true)), "true", open.Snapshot);
-        var fresh = new SettingsRead(open.Snapshot, open.Screen is null ? throw new InvalidOperationException() : Parse("{ \"tabs\": { \"showBranch\": true } }").Load);
+        var write = new WriteSettingEffect(new SettingsCommit(SettingsRegistry.All[3], SettingValue.OfFlag(true)),
+            "true", open.Snapshot);
+        var fresh = new SettingsRead(open.Snapshot, Parse("{ \"tabs\": { \"showBranch\": true } }").Load);
 
-        var update = Reduce(open with { IsBusy = true }, new SettingsWritten(write.Commit, Result(ConfigWriteStatus.Stale, "changed on disk"), fresh));
+        var update = Reduce(open with { IsBusy = true }, new SettingsWritten(write.Commit,
+            Result(ConfigWriteStatus.Stale, "changed on disk"), fresh));
 
         Assert.Equal("changed on disk", Assert.Single(Posts(update)).Text);
         Assert.True(update.Session.Screen!.ValueOf(SettingsRegistry.All[3]).Flag);
@@ -188,7 +195,8 @@ public class SettingsScreenReducerTests
         var open = Open();
         var commit = new SettingsCommit(SettingsRegistry.All[3], SettingValue.OfFlag(true));
 
-        var update = Reduce(open with { IsBusy = true }, new SettingsWritten(commit, Result(ConfigWriteStatus.Refused, "cannot edit"), null));
+        var update = Reduce(open with { IsBusy = true }, new SettingsWritten(commit, Result(ConfigWriteStatus.Refused,
+            "cannot edit"), null));
 
         var post = Assert.Single(Posts(update));
         Assert.Equal(StatusSeverity.Warning, post.Severity);
@@ -198,7 +206,8 @@ public class SettingsScreenReducerTests
     [Fact]
     public void GivenAFailedFileOperation_WhenItsResultArrives_ThenTheErrorIsPostedAndTheNextOneCanRun()
     {
-        var update = Reduce(Busy() with { Pending = ThemeChoice.Light }, new SettingsOperationFailed("Could not read config.json: boom"));
+        var update = Reduce(Busy() with { Pending = ThemeChoice.Light },
+            new SettingsOperationFailed("Could not read config.json: boom"));
 
         var post = Assert.IsType<PostStatusEffect>(Assert.Single(update.Effects));
         Assert.Equal(StatusSeverity.Error, post.Severity);
@@ -248,7 +257,8 @@ public class SettingsScreenReducerTests
 
         var kept = Reduce(themes, new SettingsActionPressed(ActionIds.SettingsActivate, null));
         var write = kept.Effects.OfType<WriteSettingEffect>().Single();
-        var refused = Reduce(kept.Session, new SettingsWritten(write.Commit, Result(ConfigWriteStatus.Stale, "changed on disk"), null));
+        var refused = Reduce(kept.Session, new SettingsWritten(write.Commit, Result(ConfigWriteStatus.Stale,
+            "changed on disk"), null));
 
         Assert.Equal("\"catppuccin-mocha\"", write.Json);
         Assert.Equal(kept.Session.Pending, ThemeChoice.FromText("catppuccin-mocha"));
@@ -293,7 +303,8 @@ public class SettingsScreenReducerTests
         var returned = Reduce(opened.Session, new SettingsEditorClosed());
 
         Assert.IsType<OpenConfigEditorEffect>(Assert.Single(opened.Effects));
-        Assert.Equal(SettingsReadIntent.Reload, Assert.IsType<ReadSettingsEffect>(Assert.Single(returned.Effects)).Intent);
+        Assert.Equal(SettingsReadIntent.Reload,
+            Assert.IsType<ReadSettingsEffect>(Assert.Single(returned.Effects)).Intent);
         Assert.True(returned.Session.IsBusy);
     }
 
@@ -308,7 +319,8 @@ public class SettingsScreenReducerTests
     [Fact]
     public void GivenTheReloadedFile_WhenItIsRead_ThenTheValuesAndOptionsAreAppliedAndTheNoticeIsPosted()
     {
-        var update = Reduce(Open() with { IsBusy = true }, Read(SettingsReadIntent.Reload, "{ \"tabs\": { \"showBranch\": true } }"));
+        var update = Reduce(Open() with { IsBusy = true }, Read(SettingsReadIntent.Reload,
+            "{ \"tabs\": { \"showBranch\": true } }"));
 
         Assert.True(update.Effects.OfType<ApplySettingsOptionsEffect>().Single().Options.ShowBranchInTab);
         Assert.Equal(SettingsScreenReducer.ReloadedNotice, Assert.Single(Posts(update)).Text);
@@ -394,7 +406,8 @@ public class SettingsScreenReducerTests
     private static SettingsRead Parse(string text)
     {
         var snapshot = new ConfigSnapshot(text.Length > 0, text, text.Length > 0 ? "hash" : string.Empty);
-        var load = SettingsValueReader.Read(snapshot, Environment.HomeDirectory, Environment.DirectoryExists, null, LabelCapStyle.Rounded);
+        var load = SettingsValueReader.Read(snapshot, Environment.HomeDirectory, Environment.DirectoryExists, null,
+            LabelCapStyle.Rounded);
 
         return new SettingsRead(snapshot, load);
     }

@@ -12,8 +12,8 @@ namespace Gitunia.Tui.App.Settings;
 
 /// <summary>
 /// The view side of the settings screen (ux-settings.md, "Settings screen"): draws the screen that lives in the shell
-/// state and turns keys, typed text, clicks and resizes into <see cref="SettingsCommand"/>s. It owns no state; while the
-/// screen is open it consumes every action, so nothing behind it moves.
+/// state and turns keys, typed text, clicks and resizes into <see cref="SettingsCommand"/>s. It owns no state;
+/// while the screen is open it consumes every action, so nothing behind it moves.
 /// </summary>
 /// <param name="host">The dispatcher that holds the state.</param>
 /// <param name="glyphs">The characters the overlay is drawn with.</param>
@@ -120,7 +120,8 @@ public sealed class SettingsScreenInput(Dispatcher host, GraphGlyphSet glyphs)
         host.Dispatch(new SettingsColumnFocused(target));
     }
 
-    /// <summary>Call when the terminal size changed: the layout may collapse or expand and the pages change size.</summary>
+    /// <summary>Call when the terminal size changed: the layout may collapse or expand and the pages change
+    /// size.</summary>
     public void OnScreenResized()
     {
         var screen = Screen;

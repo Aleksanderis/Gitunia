@@ -162,7 +162,14 @@ public static class ReflogReducer
     private static ReflogUpdate Move(ReflogSession session, ReflogState list, ReflogActionPressed pressed)
     {
         var rows = Math.Max(1, pressed.PageRows);
-        if (ListMotion.TryMove(pressed.Action, pressed.Count, list.SelectedIndex, list.Entries.Count, rows, out var target))
+        var moved = ListMotion.TryMove(
+            pressed.Action,
+            pressed.Count,
+            list.SelectedIndex,
+            list.Entries.Count,
+            rows,
+            out var target);
+        if (moved)
         {
             return With(session, list.MoveTo(target));
         }

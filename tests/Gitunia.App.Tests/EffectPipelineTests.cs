@@ -199,7 +199,7 @@ public class EffectPipelineTests
     }
 
     [Fact]
-    public async Task GivenTheTabIsClosedWhileTheReflogIsRead_WhenTheResultArrives_ThenNoListOpensAndNewReadsWork()
+    public async Task GivenTheTabIsClosedWhileTheReflogIsRead_WhenTheResultArrives_ThenNoListOpensForTheClosedTab()
     {
         using var repository = TestRepositories.Linear();
         using var pipeline = await Pipeline.OpenAsync(TestGit.Services, repository);
