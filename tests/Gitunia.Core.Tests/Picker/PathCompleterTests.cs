@@ -30,11 +30,8 @@ public class PathCompleterTests
             var candidates = PathCompleter.Candidates("~/projects/myrepo/al", context);
 
             Assert.Equal(["Alpha", "alpine"], candidates.Select(candidate => candidate.Name));
-            // A case-insensitive file system lists a wrongly cased directory as typed; that path is as valid.
-            Assert.Equal(
-                Path.Combine(root, "Projects", "MyRepo", "Alpha"),
-                candidates[0].Path,
-                ignoreCase: OperatingSystem.IsWindows());
+            // Real file system check: on macOS and Windows the directory lists as typed, the completer must correct it.
+            Assert.Equal(Path.Combine(root, "Projects", "MyRepo", "Alpha"), candidates[0].Path);
         }
         finally
         {
@@ -75,21 +72,17 @@ public class PathCompleterTests
     }
 
     [Fact]
-    public void GivenCorrectlyCasedDirectory_WhenListingCandidates_ThenAncestorsAreNotListed()
+    public void GivenCaseInsensitiveFileSystem_WhenTypingWrongCaseDirectory_ThenRealCaseIsListed()
     {
-        var listed = new List<string>();
         var context = PickerFixtures.Context() with
         {
-            ListDirectories = directory =>
-            {
-                listed.Add(directory);
-                return Path.TrimEndingDirectorySeparator(directory) == PickerFixtures.PathOf("code") ? [PickerFixtures.PathOf("code", "alpha")] : [];
-            },
+            // A case-insensitive file system answers for the typed spelling and echoes it back.
+            ListDirectories = ListIgnoringCase,
         };
 
-        PathCompleter.Candidates("~/code/a", context);
+        var candidates = PathCompleter.Candidates("~/CODE/a", context);
 
-        Assert.All(listed, directory => Assert.Equal(PickerFixtures.PathOf("code"), Path.TrimEndingDirectorySeparator(directory)));
+        Assert.Equal(PickerFixtures.PathOf("code", "alpha"), candidates[0].Path);
     }
 
     [Fact]
@@ -216,5 +209,19 @@ public class PathCompleterTests
         var context = PickerFixtures.Context(directories: new Dictionary<string, string[]> { [PickerFixtures.Home] = ["code"] });
 
         Assert.Equal(["code"], PathCompleter.Candidates("~", context).Select(candidate => candidate.Name));
+    }
+
+    // Models a case-insensitive file system: the home directory holds "code", and any spelling of it lists as typed.
+    private static string[] ListIgnoringCase(string directory)
+    {
+        var trimmed = Path.TrimEndingDirectorySeparator(directory);
+        if (trimmed == Path.TrimEndingDirectorySeparator(PickerFixtures.Home))
+        {
+            return [PickerFixtures.PathOf("code")];
+        }
+
+        return string.Equals(trimmed, PickerFixtures.PathOf("code"), StringComparison.OrdinalIgnoreCase)
+            ? [Path.Combine(trimmed, "alpha")]
+            : [];
     }
 }

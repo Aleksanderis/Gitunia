@@ -82,12 +82,8 @@ public static class PathCompleter
 
     private static string ResolveCaseInsensitive(string fullPath, PickerContext context, CancellationToken cancellationToken)
     {
-        // Fast path: a correctly cased directory lists as is, no ancestor is listed.
-        if (context.ListDirectories(fullPath).Count > 0)
-        {
-            return fullPath;
-        }
-
+        // No fast path: a case-insensitive file system (macOS, Windows) lists a wrongly cased directory as typed,
+        // so every segment below home / base is checked against the real names.
         var current = Path.GetPathRoot(fullPath) ?? string.Empty;
         foreach (var knownDirectory in new[] { context.HomeDirectory, context.BaseDirectory })
         {
