@@ -6,8 +6,17 @@ Needs `git` 2.43 or newer on your `PATH`. Any terminal works. Truecolor looks be
 
 - **Package (linux-x64):** `sudo apt install ./gitunia_<version>_amd64.deb` or `sudo dnf install ./gitunia-<version>-1.x86_64.rpm`. Installs `/usr/bin/gitunia`.
 - **Archive (linux-x64, win-x64):** unpack and put `gitunia` on your `PATH`. Check the download with the `.sha256` file.
-- **Arch Linux / Omarchy:** no package yet. Use the archive (`sudo pacman -S git`, then put `gitunia` in `~/.local/bin`) or build from source.
-- **Source:** install the .NET SDK from `global.json` and the Native AOT prerequisites (Linux: `clang` and `zlib1g-dev`. Arch: `sudo pacman -S --needed git clang zlib dotnet-sdk`. Windows: "Desktop development with C++"). Then `dotnet publish src/Gitunia.Tui -c Release -o publish` and run `publish/gitunia`.
+- **Arch Linux / Omarchy:** Gitunia is not in the Arch repositories or the AUR yet.
+  - Install the requirement with `sudo pacman -S git`.
+  - Download the linux-x64 archive and put `gitunia` in `~/.local/bin` (make sure it is on your `PATH`).
+  - Or build from source.
+- **Source:**
+  - Prerequisites: the .NET SDK from `global.json` and the Native AOT prerequisites.
+    - Linux (Debian/Ubuntu): `clang` and `zlib1g-dev`.
+    - Arch: `sudo pacman -S --needed git clang zlib dotnet-sdk`.
+    - Windows: "Desktop development with C++".
+  - Build: `dotnet publish src/Gitunia.Tui -c Release -o publish`.
+  - Run: `publish/gitunia`.
 
 ## Start and open a repository
 

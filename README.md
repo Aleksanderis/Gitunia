@@ -12,26 +12,27 @@ Terminal Git tools are great for quick staging and commits but awkward for many 
 
 ## Features
 
-- Standalone multi-repository client: tabs, repository picker, session restore
 - Commit graph that scrolls and searches through 100k+ commits
 - Stage files, hunks and single lines, then commit or amend
-- Built-in conflict editor with base, ours and theirs side by side
+- Branches, merge, rebase, reset, cherry-pick and revert
+- Fetch, pull and push with progress
 - Unified and side-by-side diffs, also between any two commits
-- Branches, tags, merge, rebase, reset, cherry-pick and revert
+- Standalone multi-repository client: tabs, repository picker, session restore
+- Stashes as a first-class view
+- 3-way merge conflict resolution
+- Worktrees as a first-class view
+- Tags, clone, init and remotes
 - Interactive rebase editor
-- Worktrees and stashes as first-class views
-- Fetch, pull and push with progress, clone, init and remotes
 - Reflog browser as the undo path for destructive actions
-- Command palette and configurable vim-style keys
+- Command palette, configurable vim-style keys and full mouse support
 
 Not included: submodules, LFS UI, blame, hosting-provider integration, plugins.
 
 ## Install
 
-Needs `git` 2.43 or newer on your `PATH`.
+Needs Git 2.43 or newer on your `PATH`.
 
-- Release archives (linux-x64, win-x64) and Linux packages are attached to the releases: unpack and put `gitunia` on your `PATH`.
-- From source: install the .NET SDK pinned in `global.json` and the Native AOT prerequisites, then `dotnet publish src/Gitunia.Tui -c Release -o publish`. Details: [user guide](docs/user-guide.md).
+Ways to install: Linux `.deb`/`.rpm`, Arch/Omarchy archive, Windows and Linux archive, or from source. Commands are in the [user guide](docs/user-guide.md#install).
 
 ## Quick start
 
@@ -44,8 +45,7 @@ In the picker type to filter or type a path. `Enter` opens it in a tab. `?` show
 
 ## Docs
 
-- [User guide](docs/user-guide.md) and [customising keys](docs/customising-keys.md)
-- [Key reference](docs/keymap.md)
+- [Customising keys](docs/customising-keys.md) and [key reference](docs/keymap.md)
 - Design documents are in `docs/`
 - Project conventions are in [CLAUDE.md](CLAUDE.md)
 
