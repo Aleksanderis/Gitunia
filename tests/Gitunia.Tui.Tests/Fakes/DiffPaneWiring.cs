@@ -70,7 +70,7 @@ public sealed class DiffPaneWiring : IActiveSessions, IPaneChrome, ITabSessions,
             new ScreenResizedCommand(new ScreenExtent(screen.Width, screen.Height), _host.Clock.GetUtcNow()));
     }
 
-    public TerminalTabSession? ActiveSession() => _session;
+    TerminalTabSession? IActiveSessions.ActiveSession() => _session;
 
     public TabSession? FindSession(TabId tabId) => tabId == _session.TabId ? _session : null;
 

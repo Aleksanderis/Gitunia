@@ -380,7 +380,7 @@ public class DiffPaneInputTests
         using var harness = await DiffHarness.LoadAsync(screenWidth: 60);
         harness.SelectFirstFile();
 
-        harness.ScreenWidth = 100;
+        harness.ResizeWidth(100);
         harness.Controller.OnScreenResized();
         await harness.WaitForDiffAsync();
 
@@ -396,7 +396,7 @@ public class DiffPaneInputTests
         await harness.WaitForDiffAsync();
         harness.Execute(ActionIds.DetailOpenDiff);
 
-        harness.ScreenWidth = 60;
+        harness.ResizeWidth(60);
         harness.Controller.OnScreenResized();
 
         Assert.Equal(PaneKind.Detail, harness.Tab.View.FocusedPane);
@@ -1123,7 +1123,6 @@ public class DiffPaneInputTests
         private readonly UiPump _pump;
 
         private readonly DiffPaneWiring _wiring;
-        private int _screenWidth;
 
         private DiffHarness(Dispatcher host, TerminalTabSession session, UiPump pump, TestRepository? ownedRepository, int screenHeight, int screenWidth)
         {
@@ -1131,7 +1130,6 @@ public class DiffPaneInputTests
             Host = host;
             Session = session;
             _ownedRepository = ownedRepository;
-            _screenWidth = screenWidth;
             ScreenHeight = screenHeight;
             DetailList = new ListView { Source = session.DetailSource };
             DiffList = new ListView { X = 0, Y = 0, Width = 60, Height = 20 };
@@ -1140,16 +1138,8 @@ public class DiffPaneInputTests
             _wiring = new DiffPaneWiring(host, session, DetailList, DiffList, new ScreenSize(screenWidth, screenHeight), clipboard);
         }
 
-        /// <summary>The terminal width the pane sees; tests change it to simulate a resize (the terminal layer would report it).</summary>
-        public int ScreenWidth
-        {
-            get => _screenWidth;
-            set
-            {
-                _screenWidth = value;
-                _wiring.Resize(new ScreenSize(value, ScreenHeight));
-            }
-        }
+        /// <summary>The terminal width changes; the terminal layer would report it.</summary>
+        public void ResizeWidth(int width) => _wiring.Resize(new ScreenSize(width, ScreenHeight));
 
         public int ScreenHeight { get; }
 
