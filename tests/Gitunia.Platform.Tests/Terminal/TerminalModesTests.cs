@@ -7,6 +7,8 @@ namespace Gitunia.Platform.Tests.Terminal;
 public class TerminalModesTests
 {
     private const int BufferSize = 256;
+    private const int MacOsLocalFlagsHighByte = 27;
+    private const byte MacOsPendingInputBit = 0x20;
 
     [Fact]
     public void GivenAPseudoTerminalPutIntoRawMode_WhenRestoring_ThenTheCapturedModesAreBack()
@@ -55,9 +57,6 @@ public class TerminalModesTests
     // macOS: struct termios has four 8-byte flag words, then c_cc. Byte 3 of c_lflag (offset 27) holds PENDIN
     // (0x20000000), a status flag the kernel sets itself after tcsetattr when input is pending; it is not a mode the
     // restore code controls. Linux has no such bit, so nothing is masked there and the comparison stays exact.
-    private const int MacOsLocalFlagsHighByte = 27;
-    private const byte MacOsPendingInputBit = 0x20;
-
     private static byte[] Normalize(byte[] termios)
     {
         var copy = (byte[])termios.Clone();
