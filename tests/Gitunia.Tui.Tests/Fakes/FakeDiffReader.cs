@@ -20,7 +20,7 @@ public sealed class FakeDiffReader : IDiffReader
     /// <summary>The number of commit diffs started so far.</summary>
     public int ReadCount { get; private set; }
 
-    /// <summary>The number of working-tree file diffs started so far.</summary>
+    /// <summary>The number of Changes view file diffs started so far.</summary>
     public int WorkingReadCount { get; private set; }
 
     /// <summary>The files a working-tree read of <paramref name="path"/> on <paramref name="side"/> returns from now on.</summary>

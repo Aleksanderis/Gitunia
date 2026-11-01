@@ -17,7 +17,7 @@ using Gitunia.Tui.Rendering.WorkingTree;
 namespace Gitunia.Tui.App.WorkingTree;
 
 /// <summary>
-/// Stages and unstages whole files from the working-tree lists, and hunks or lines from its diff (ux-workflows.md, workflow 2, "Stage and unstage"). The git call runs off the UI
+/// Stages and unstages whole files from the Changes view lists, and hunks or lines from its diff (ux-workflows.md, workflow 2, "Stage and unstage"). The git call runs off the UI
 /// thread; when it is done the tab re-reads its status, and only then is the next action accepted, so the list the cursor sits in is
 /// current and the same key can be repeated (the state keeps the cursor at the same index). One operation per tab at a time.
 /// </summary>

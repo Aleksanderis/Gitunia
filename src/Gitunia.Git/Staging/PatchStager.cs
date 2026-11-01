@@ -23,7 +23,7 @@ public sealed class PatchStager(IDiffReader reader, IIndexWriter writer)
 
     /// <summary>Stages (<see cref="WorkingDiffSide.Unstaged"/>) or unstages (<see cref="WorkingDiffSide.Staged"/>) the chosen lines.</summary>
     /// <param name="location">The repository or worktree.</param>
-    /// <param name="side">The list the file is in: its working-tree diff is staged, its index diff is unstaged.</param>
+    /// <param name="side">The list the file is in: its Changes view diff is staged, its index diff is unstaged.</param>
     /// <param name="entry">The status entry of the file.</param>
     /// <param name="chosen">The changed lines picked in the diff; empty stages the whole file.</param>
     /// <param name="allowWholeFile">

@@ -9,9 +9,9 @@ using Terminal.Gui.Views;
 namespace Gitunia.Tui.App.Panes;
 
 /// <summary>
-/// Visual mode: <c>v</c> (or a mouse drag) anchors a range at the cursor row of the graph, detail, diff or working-tree diff pane, the motions (or the
+/// Visual mode: <c>v</c> (or a mouse drag) anchors a range at the cursor row of the graph, detail, diff or Changes view diff pane, the motions (or the
 /// pointer) move the other end, and <c>v</c>, <c>Esc</c> or <c>q</c> (or a click) ends it. The range is drawn stronger than the selected row;
-/// <c>y</c> copies it and ends it when the copy worked (a failed copy keeps it; in the working-tree diff the staging keys act on the selected lines). The sidebar has no ranges.
+/// <c>y</c> copies it and ends it when the copy worked (a failed copy keeps it; in the Changes view diff the staging keys act on the selected lines). The sidebar has no ranges.
 /// </summary>
 /// <param name="focusedPane">The pane that has focus.</param>
 /// <param name="listOf">The list of a pane.</param>

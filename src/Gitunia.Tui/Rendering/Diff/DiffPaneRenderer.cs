@@ -60,7 +60,7 @@ public static class DiffPaneRenderer
     }
 
     /// <summary>
-    /// The title row of the working-tree diff: <paramref name="title"/> as the pane's chip, then the buttons at the right end
+    /// The title row of the Changes view diff: <paramref name="title"/> as the pane's chip, then the buttons at the right end
     /// (<see cref="DiffTitleButtons.Layout(int, WorkingTreeButtons, ChipKeys, bool)"/>) when the row is wide enough.
     /// </summary>
     public static StyledLine RenderWorkingTitle(

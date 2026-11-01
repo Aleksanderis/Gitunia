@@ -6,14 +6,14 @@ Part of the UX spec; start at [ux.md](ux.md).
 
 Mouse input is optional and goes through the same action path as keys: the mouse map (`DefaultMouseMap`) turns a gesture on a view into the action id a key would produce, and the same handler runs it.
 A test parses the table below and checks it against the defaults, so add a row in the same change that adds a mouse path.
-Views inherit like in the keymap: `Lists` covers Graph, Detail, Sidebar, Diff and the two working-tree lists.
+Views inherit like in the keymap: `Lists` covers Graph, Detail, Sidebar, Diff and the two Changes view lists.
 `CommandsButton`, `NewTabButton`, `Tabs`, `Picker`, the banner chips (`BannerButton.*`), the overlays (`Help`, `Messages`, `Palette`, `Reflog`, `Settings` and `Backdrop` for everything outside an open one) and the buttons (`DiffButton.*`, `DetailTab.*`, `PickerButton.*`, `ListButton.*`, one view per button or label) are views of their own.
 
 | View | Gesture | Action | Effect |
 |---|---|---|---|
 | Lists | Wheel up | `list.up` | Moves the selection up 3 rows (like `3k`) in the pane under the pointer, which gets focus |
 | Lists | Wheel down | `list.down` | Moves the selection down 3 rows (like `3j`) |
-| Lists | Drag start | `visual.toggle` | Pressing a row and moving the pointer starts Visual mode (range selection, like `v`) at the pressed row; graph, detail, diff, the working-tree diff and the two working-tree file lists (to stage the files or lines, press `<space>a` / `<space>u`, or run the action from the palette, `:`) |
+| Lists | Drag start | `visual.toggle` | Pressing a row and moving the pointer starts Visual mode (range selection, like `v`) at the pressed row; graph, detail, diff, the Changes view diff and the two Changes view file lists (to stage the files or lines, press `<space>a` / `<space>u`, or run the action from the palette, `:`) |
 | Lists | Drag up | `list.up` | While dragging, the cursor follows the pointer: moves up by as many rows as the pointer is above it |
 | Lists | Drag down | `list.down` | The same downwards |
 | Graph | Double-click | `menu.open-for-row` | Same as `<space>.`: open the actions menu of the row (the first click selected it); a double-click on blank space below the last row does nothing; the details pane is reached by a click on it, `Enter`, `Ctrl-j` or the menu's Open details row |
@@ -107,9 +107,9 @@ Views inherit like in the keymap: `Lists` covers Graph, Detail, Sidebar, Diff an
 | DiffButton.Wrap | Click | `diff.toggle-wrap` | Button `wrap` (a file's content only; the diff has it in the `view ▾` dropdown), same as `<space>vw` |
 | DiffButton.Zoom | Click | `pane.zoom` | Button `zoom` of a file's content (the diff has the entry in the `view ▾` dropdown instead, #758), same as `<space>z` |
 | DiffButton.View | Click | `diff.open-view-options` | Button `view ▾`, same as `<space>vv`: opens the dropdown of context, whole file, ignore space, split, wrap, whitespace marks and zoom |
-| DiffButton.Stage | Click | `working-tree.stage` | Working-tree diff, Unstaged side: button `stage`, same as `<space>a` (the change group under the cursor, or the Visual range); also a chip at the right end of the group's first line (same view, same action) |
-| DiffButton.Unstage | Click | `working-tree.unstage` | Working-tree diff, Staged side: button `unstage`, same as `<space>u`; also a chip on the group's first line |
-| DiffButton.Discard | Click | `working-tree.discard` | Working-tree diff, Unstaged side: button `discard`, same as `<space>d`; opens the Confirm dialog, nothing is discarded before `y`; also a chip on the group's first line |
+| DiffButton.Stage | Click | `working-tree.stage` | Changes view diff, Unstaged side: button `stage`, same as `<space>a` (the change group under the cursor, or the Visual range); also a chip at the right end of the group's first line (same view, same action) |
+| DiffButton.Unstage | Click | `working-tree.unstage` | Changes view diff, Staged side: button `unstage`, same as `<space>u`; also a chip on the group's first line |
+| DiffButton.Discard | Click | `working-tree.discard` | Changes view diff, Unstaged side: button `discard`, same as `<space>d`; opens the Confirm dialog, nothing is discarded before `y`; also a chip on the group's first line |
 | DetailTab.Details | Click | `detail.tab-details` | The `Details` label in the detail pane's title row, same as `gd` (also focuses the pane) |
 | DetailTab.Changes | Click | `detail.tab-changes` | The `Changes` label, same as `gc` |
 | DetailTab.Files | Click | `detail.tab-files` | The `Files` label, same as `gf` |
@@ -147,7 +147,7 @@ While the help, palette or status history is open, panes and the picker ignore e
 Drag to select: press a row of the graph, detail, diff or file-list pane and move the pointer; the pane takes focus, the pressed row becomes the anchor, Visual mode starts (status bar `VISUAL`) and the cursor follows the pointer, also above or below the pane while the button is held: while the pointer rests outside the pane the cursor keeps moving every 80 ms, 1 row just outside, 1 more per 2 rows of distance, at most 6, until the pointer is back inside, the list ends or the button is released.
 The range is drawn stronger than the selected row (bolder and a brighter tint, reverse video where there are no colours), and its moving end, the cursor row, is underlined as well.
 The release leaves the range active; a click on a row, `Esc`, `q`, `v` or moving focus to another pane or tab ends it.
-`y` copies the range (the drag plus `y`, or `visual.copy` from the palette) and ends it; staging acts on it too (lines in the working-tree diff, files in its lists).
+`y` copies the range (the drag plus `y`, or `visual.copy` from the palette) and ends it; staging acts on it too (lines in the Changes view diff, files in its lists).
 The sidebar and the message box have no ranges (a drag there only moves the selection); a drag also does not start a range while a prompt (search, filter, ref jump) or the picker is open.
 
 Drag to resize: the line between the sidebar and the graph, the line between the detail and diff panes, and the title rows of the detail and diff panes (the line between the graph and the bottom panes) follow the pointer while the button is held.
@@ -156,7 +156,7 @@ A single zoomed pane has no dividers to drag (the divider between the paired Cha
 
 Clickable titles and buttons: a click on the title row of the detail or diff pane focuses that pane.
 The detail title row starts with the three tab labels (`Details`, `Changes`, `Files`), drawn as buttons: the selected one is the accent chip (quieter when the pane has no focus), the others look exactly like the inactive repository tabs of the tab row (a chip on a subtle tinted background; underlined where the terminal tier has no background colours, `[Name]` in the ASCII tier from 29 columns, one padding column per side).
-The selected tab of an unfocused pane keeps the chip but in bold accent-coloured text (bold and underlined in the colourless tiers) so it still differs from the other tabs; the title of a pane with a single view (graph, sidebar, diff, working-tree lists) is drawn the same way when the pane has no focus, one column of line between them; below 29 columns the padding around the labels goes.
+The selected tab of an unfocused pane keeps the chip but in bold accent-coloured text (bold and underlined in the colourless tiers) so it still differs from the other tabs; the title of a pane with a single view (graph, sidebar, diff, Changes view lists) is drawn the same way when the pane has no focus, one column of line between them; below 29 columns the padding around the labels goes.
 The content of the detail pane has the same background as the other panes; the frame line and the buttons separate it.
 A click on a label selects the tab.
 The diff title row ends in buttons (see the table), chips like the inactive repository tabs (with the key in bold before the label when the pane is wide enough; the chips on a change group's first line stay label-only) with one column of line between them and `<`/`>` arrows and brackets in the ASCII tier, when the pane is at least 30 columns wider than the buttons need; narrower panes drop buttons in this order, last to go first: `view ▾`, the two hunk buttons, the two file buttons, the keys stay available.

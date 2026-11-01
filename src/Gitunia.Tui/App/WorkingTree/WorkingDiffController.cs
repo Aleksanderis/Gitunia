@@ -21,7 +21,7 @@ namespace Gitunia.Tui.App.WorkingTree;
 
 /// <summary>
 /// Runs the diff box of the Changes view of the active tab. It follows the file under the cursor of the focused list (the
-/// working-tree diff for a file in Unstaged, the index diff for one in Staged), loads it off the UI thread through the tab's
+/// Changes view diff for a file in Unstaged, the index diff for one in Staged), loads it off the UI thread through the tab's
 /// <see cref="WorkingDiffStore"/> and shows it in the same widget as the history diff: scrolling, hunk jumps, wrap, side by side,
 /// context, search and copy. It is also the diff's search prompt, so it plugs into the same prompt list as the graph search.
 /// Everything it changes about focus goes through workspace commands.

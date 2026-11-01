@@ -70,7 +70,7 @@ public sealed record LeaveWorkingTreeCommand : RepositoryCommand;
 /// <param name="Index">Row index; clamped to the list, ignored when the list is empty.</param>
 public sealed record SelectWorkingTreeFileCommand(WorkingTreeSection Section, int Index) : RepositoryCommand;
 
-/// <summary>Close or open a folder of a working-tree list in the tree style.</summary>
+/// <summary>Close or open a folder of a Changes view list in the tree style.</summary>
 /// <param name="Section">The list.</param>
 /// <param name="Folder">The folder path from the repository root.</param>
 /// <param name="Collapse">True to close, false to open, null to flip it.</param>

@@ -1,7 +1,7 @@
 namespace Gitunia.Core.FileTree;
 
 /// <summary>
-/// A list of paths laid out as a tree of folders, as the tree style of the Changes tab and of the working-tree lists
+/// A list of paths laid out as a tree of folders, as the tree style of the Changes tab and of the Changes view lists
 /// show it: folders before paths, each level in ordinal order. A folder in the collapsed set shows no rows below it.
 /// </summary>
 public static class PathTree

@@ -2,7 +2,7 @@ using Gitunia.Core.Workspaces.Repositories;
 
 namespace Gitunia.Core.Workspaces.Panes;
 
-/// <summary>Which working-tree pane belongs to which list: the two lists and the two sides of the diff.</summary>
+/// <summary>Which Changes view pane belongs to which list: the two lists and the two sides of the diff.</summary>
 public static class WorkingPanes
 {
     /// <summary>The panes of the Changes view that are file lists.</summary>

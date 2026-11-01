@@ -7,7 +7,7 @@ How decisions came about and which issue built what: `docs/history/ux.md` and th
 
 ## Parts
 
-- [ux-workflows.md](ux-workflows.md): the workflows (open a repository, graph, sidebar, diffs, working tree, branches, operations, remotes, worktrees, stashes).
+- [ux-workflows.md](ux-workflows.md): the workflows (open a repository, graph, sidebar, diffs, Changes view, branches, operations, remotes, worktrees, stashes).
 - [ux-keymap.md](ux-keymap.md): the keymap (design rules; the generated reference is [keymap.md](keymap.md)).
 - [ux-mouse.md](ux-mouse.md): the mouse table and gestures.
 - [ux-settings.md](ux-settings.md): the Settings screen.
@@ -17,7 +17,7 @@ How decisions came about and which issue built what: `docs/history/ux.md` and th
 
 - **Modal and discoverable.** Normal mode navigates, actions are short mnemonic chords, `?` shows the keys of the current view, `:` or `Ctrl-p` opens a command palette that lists every action with its binding.
 - **Vim-like motions everywhere:** `h j k l`, `gg`/`G`, `Ctrl-d`/`Ctrl-u`, `/` search, `n`/`N`, counts (`5j`). Arrow keys and PageUp/Down also work. Bindings are data (mode, view, key sequence, action id); remapping is done in the config file (see "Config file" in [ux-look.md](ux-look.md)).
-- **Layout.** History view: left sidebar (branches, remotes, tags, stashes, worktrees), centre commit graph, bottom detail pane (commit info, files, diff). The working tree is a separate view of the tab (workflow 2), not a graph row.
+- **Layout.** History view: left sidebar (branches, remotes, tags, stashes, worktrees), centre commit graph, bottom detail pane (commit info, files, diff). The Changes view is a separate view of the tab (workflow 2), not a graph row.
 - **Branches and worktrees are first-class:** always visible in the sidebar, and every branch shows which worktree holds it.
 - **Destructive actions confirm,** say what they will do and how to undo it.
 - **Mouse is optional but complete.** Click to focus/select, double-click to open, wheel to scroll, clickable tabs and buttons, drag to select ranges and resize panes. Nothing is keyboard-only or mouse-only.

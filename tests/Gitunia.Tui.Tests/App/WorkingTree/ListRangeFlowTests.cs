@@ -29,7 +29,7 @@ using static Gitunia.Tui.Tests.Rendering.WorkingTree.WorkingTreeEntries;
 
 namespace Gitunia.Tui.Tests.App.WorkingTree;
 
-/// <summary>The Visual range of files in the working-tree lists, from <c>v</c> to the stage, unstage and discard keys and the real confirm dialog.</summary>
+/// <summary>The Visual range of files in the Changes view lists, from <c>v</c> to the stage, unstage and discard keys and the real confirm dialog.</summary>
 public sealed class ListRangeFlowTests : IDisposable
 {
     private readonly Flow _flow = new();

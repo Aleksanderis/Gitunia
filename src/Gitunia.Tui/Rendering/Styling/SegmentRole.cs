@@ -130,7 +130,7 @@ public enum SegmentRole
     /// <summary>The <c>@@</c> line of a hunk.</summary>
     DiffHunk,
 
-    /// <summary>The bar in the left margin beside the change group under the cursor of the working-tree diff.</summary>
+    /// <summary>The bar in the left margin beside the change group under the cursor of the Changes view diff.</summary>
     DiffGroupBar,
 
     /// <summary>The line that starts a file in a diff.</summary>

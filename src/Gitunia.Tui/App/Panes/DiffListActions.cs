@@ -18,7 +18,7 @@ namespace Gitunia.Tui.App.Panes;
 
 /// <summary>
 /// The part of the diff pane that does not depend on where the diff comes from: cursor and viewport handling,
-/// scrolling, wrap, side by side, hunk jumps, search and copy. The history diff pane and the working-tree diff box
+/// scrolling, wrap, side by side, hunk jumps, search and copy. The history diff pane and the Changes view diff box
 /// both run on one instance each and keep to themselves what loads the diff and what leaving it means. UI thread only.
 /// </summary>
 public sealed class DiffListActions
@@ -36,7 +36,7 @@ public sealed class DiffListActions
     /// <param name="clipboard">Copies diff text.</param>
     /// <param name="active">The active tab's diff, null while it has none.</param>
     /// <param name="sideBySideHint">Appended to the notice when side by side is on but the pane is too narrow.</param>
-    /// <param name="anchorName">What the next and previous anchors are called in notices: "hunk", or "change" in the working-tree diff.</param>
+    /// <param name="anchorName">What the next and previous anchors are called in notices: "hunk", or "change" in the Changes view diff.</param>
     public DiffListActions(
         ListView diffList,
         Action<KeyMode> setMode,

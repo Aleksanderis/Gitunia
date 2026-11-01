@@ -44,7 +44,7 @@ public static class RowActions
     /// <summary>The title of the dropdown of a file list's view options (#646).</summary>
     public const string ListViewOptionsTitle = "View";
 
-    /// <summary>The view options of the Changes tab and of both working-tree lists (#646): the path style.</summary>
+    /// <summary>The view options of the Changes tab and of both Changes view lists (#646): the path style.</summary>
     public static IReadOnlyList<ActionId> PathStyleOptions { get; } =
     [
         ActionIds.FilesPathNameFirst,

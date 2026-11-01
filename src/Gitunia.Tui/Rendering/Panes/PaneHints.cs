@@ -49,7 +49,7 @@ public static class PaneHints
     [
         .. Pinned,
         new("j/k", "move", [ActionIds.ListDown, ActionIds.ListUp]),
-        new("<space>s", "working tree", [ActionIds.WorkingTreeToggle]),
+        new("<space>s", "Changes view", [ActionIds.WorkingTreeToggle]),
         new("gg/G", "top/end", [ActionIds.ListTop, ActionIds.ListBottom]),
         new("Ctrl-d/u", "page", [ActionIds.ListHalfPageDown, ActionIds.ListHalfPageUp]),
         new("<space>h", "HEAD", [ActionIds.GraphJumpToHead]),
@@ -70,7 +70,7 @@ public static class PaneHints
     [
         .. Pinned,
         new("j/k", "move", [ActionIds.ListDown, ActionIds.ListUp]),
-        new("<space>s", "working tree", [ActionIds.WorkingTreeToggle]),
+        new("<space>s", "Changes view", [ActionIds.WorkingTreeToggle]),
         new("l/Enter", "expand", [ActionIds.SidebarExpand, ActionIds.SidebarActivate]),
         new("h", "collapse", [ActionIds.SidebarCollapse]),
         new("/", "filter", [ActionIds.SidebarFilter]),
@@ -82,7 +82,7 @@ public static class PaneHints
     [
         .. Pinned,
         new("j/k", "move", [ActionIds.ListDown, ActionIds.ListUp]),
-        new("<space>s", "working tree", [ActionIds.WorkingTreeToggle]),
+        new("<space>s", "Changes view", [ActionIds.WorkingTreeToggle]),
         new("]/[", "tabs", [ActionIds.DetailNextTab, ActionIds.DetailPreviousTab]),
         new("Enter", "open", [ActionIds.DetailOpenDiff]),
         new("<space>j", "quick jump", [ActionIds.QuickJump]),

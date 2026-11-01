@@ -60,7 +60,7 @@ public static class DefaultMouseMap
     /// <summary>The <c>view ▾</c> dropdown: context, whole file, ignore space, split and wrap (#645).</summary>
     public const string DiffViewButton = "DiffButton.View";
 
-    /// <summary>The staging buttons of the working-tree diff's title row (#343): stage or unstage the hunk, discard it.</summary>
+    /// <summary>The staging buttons of the Changes view diff's title row (#343): stage or unstage the hunk, discard it.</summary>
     public const string DiffStageButton = "DiffButton.Stage";
 
     public const string DiffUnstageButton = "DiffButton.Unstage";
@@ -96,15 +96,15 @@ public static class DefaultMouseMap
 
     public const string MessageCommitButton = "MessageButton.Commit";
 
-    /// <summary>The buttons in the title rows of the two working-tree file lists: <c>stage all</c> (Unstaged) and <c>unstage all</c> (Staged).</summary>
+    /// <summary>The buttons in the title rows of the two Changes view file lists: <c>stage all</c> (Unstaged) and <c>unstage all</c> (Staged).</summary>
     public const string StageAllButton = "ListButton.StageAll";
 
     public const string UnstageAllButton = "ListButton.UnstageAll";
 
-    /// <summary>The <c>view ▾</c> dropdown in the title row of both working-tree file lists (#646).</summary>
+    /// <summary>The <c>view ▾</c> dropdown in the title row of both Changes view file lists (#646).</summary>
     public const string ListViewButton = "ListButton.View";
 
-    /// <summary>The <c>diff ›</c> chip in the title row of both working-tree file lists, shown on screens under 80
+    /// <summary>The <c>diff ›</c> chip in the title row of both Changes view file lists, shown on screens under 80
     /// columns where the diff is not beside the list (#376).</summary>
     public const string ListDiffButton = "ListButton.Diff";
 

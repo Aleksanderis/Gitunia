@@ -1,6 +1,6 @@
 namespace Gitunia.Tui.Rendering.Files;
 
-/// <summary>Text shared by the tree style of the Changes tab and of the working-tree lists.</summary>
+/// <summary>Text shared by the tree style of the Changes tab and of the Changes view lists.</summary>
 public static class TreeRowText
 {
     private const int IndentColumns = 2;

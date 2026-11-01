@@ -101,7 +101,7 @@ public sealed class TabSession : IDisposable
     /// <summary>The tab's diff pane; null in sessions built without a diff store (tests).</summary>
     public DiffSession? Diff { get; }
 
-    /// <summary>The tab's working-tree diff; null in sessions built without a working diff store (tests).</summary>
+    /// <summary>The tab's Changes view diff; null in sessions built without a working diff store (tests).</summary>
     public WorkingDiffSession? WorkingDiff { get; }
 
     /// <summary>The list source of the detail pane.</summary>
@@ -137,7 +137,7 @@ public sealed class TabSession : IDisposable
     /// <summary>Why loading stopped early, empty when it did not.</summary>
     public string LoadError { get; private set; } = string.Empty;
 
-    /// <summary>A refresh read the status and it did not change: the working-tree diff of the shown file is read again.</summary>
+    /// <summary>A refresh read the status and it did not change: the Changes view diff of the shown file is read again.</summary>
     public void NotifyStatusRead()
     {
         WorkingDiff?.Invalidate();

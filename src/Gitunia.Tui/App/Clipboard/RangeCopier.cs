@@ -6,7 +6,7 @@ using Gitunia.Tui.App.Tabs;
 
 namespace Gitunia.Tui.App.Clipboard;
 
-/// <summary>Copies the rows of a Visual-mode range of the graph, detail, diff or working-tree file list pane through the clipboard.</summary>
+/// <summary>Copies the rows of a Visual-mode range of the graph, detail, diff or Changes view file list pane through the clipboard.</summary>
 /// <param name="clipboard">Copies the text.</param>
 /// <param name="activeSession">The active tab's session, null when there is none.</param>
 /// <param name="workingTree">The active tab's working tree for the file lists, null when it has none; omitted where the lists have no ranges.</param>

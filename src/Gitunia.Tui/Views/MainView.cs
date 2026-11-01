@@ -560,7 +560,7 @@ public sealed class MainView : IDisposable
         _ => WorkingUnstaged,
     };
 
-    // The history panes and the working-tree panes never show together; the picker covers either one. The panes that appear are
+    // The history panes and the Changes view panes never show together; the picker covers either one. The panes that appear are
     // shown before the others are hidden, so the toolkit never hands the focus of a hiding pane to a pane that is about to hide too.
     private void ApplyVisibility()
     {
@@ -804,7 +804,7 @@ public sealed class MainView : IDisposable
     /// Where the <c>view ▾</c> dropdown hangs: under its title button, or under the right end of the title row when
     /// the row is too narrow for the button (the keys still open the menu).
     /// </summary>
-    /// <param name="isWorking">The working-tree diff rather than the history diff.</param>
+    /// <param name="isWorking">The Changes view diff rather than the history diff.</param>
     public MenuAnchor ViewMenuAnchor(bool isWorking)
     {
         var rect = isWorking ? WorkingRects().Diff : Rects().DiffTitle;
@@ -825,7 +825,7 @@ public sealed class MainView : IDisposable
     /// Where the <c>view ▾</c> dropdown of a file list hangs: under its title chip, or under the right end of the
     /// title row when the row is too narrow for the chip (the keys still open the menu).
     /// </summary>
-    /// <param name="view">The keymap view of the list: the Changes or Files tab, or a working-tree list.</param>
+    /// <param name="view">The keymap view of the list: the Changes or Files tab, or a Changes view list.</param>
     public MenuAnchor ListViewMenuAnchor(string view)
     {
         if (view == DefaultKeymap.WorkingUnstagedView || view == DefaultKeymap.WorkingStagedView)

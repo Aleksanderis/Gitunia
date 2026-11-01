@@ -3,7 +3,7 @@ using Gitunia.Core.FileTree;
 namespace Gitunia.Core.Workspaces.Repositories;
 
 /// <summary>
-/// The rows of one working-tree list. In the flat styles a row is a file and the row index is the index in the list; in
+/// The rows of one Changes view list. In the flat styles a row is a file and the row index is the index in the list; in
 /// the tree style a row is a folder or a file, and everything that acts on rows (stage, unstage, discard, ranges, the
 /// diff) goes through this map from rows to files.
 /// </summary>
