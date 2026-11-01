@@ -102,8 +102,8 @@ public sealed class TuiApplication(
     ConsoleCapabilities detectedCapabilities,
     IPlatform platform) : IDisposable, ITerminalSuspender, IShellEffects, IBranchSelectionSource,
     IGraphCommitSelector, IGraphSelectionSource, IOverlayCover, IPickSelectionSource,
-    IIssueLinkView, IStashSelectionSource, IStashViewHost, ITerminalRetryHost, IWorktreeSelectionSource, IActiveSessions,
-    IPaneChrome
+    IIssueLinkView, IStashSelectionSource, IStashViewHost, ITerminalRetryHost, IWorktreeSelectionSource,
+    ICompareSource, IQuickJumpHost, ISidebarLayout, IActiveSessions, IPaneChrome
 {
     // Terminal.Gui's default of 25 iterations per second gave ~34 ms key latency (docs/internal/history/decisions.md); the idle rate saves CPU (#909).
     private const ushort ActiveIterationsPerSecond = 100;
@@ -132,7 +132,7 @@ public sealed class TuiApplication(
     private VisualRangeInput _visual = null!;
     private RangeCopier _rangeCopier = null!;
     private IReadOnlyList<IPromptHandler> _prompts = [];
-    private SidebarActionHandler _sidebar = null!;
+    private SidebarInput _sidebar = null!;
     private StashViewController _stashView = null!;
     private PaneKind _appliedFocus = PaneKind.Graph;
     private OverlayController _overlays = null!;
@@ -141,7 +141,7 @@ public sealed class TuiApplication(
     private DiffPaneInput _diffPane = null!;
     private DiffPaneView _diffView = null!;
     private WorkingDiffController _workingDiff = null!;
-    private QuickJumpController _quickJump = null!;
+    private QuickJumpInput _quickJump = null!;
     private WorkspaceActions _workspaceActions = null!;
     private CreationInput _creation = null!;
     private GraphTabBinder _binder = null!;
@@ -257,28 +257,17 @@ public sealed class TuiApplication(
         var clipboard = _clipboard;
         var sidebarSource = new SidebarListSource(glyphs);
         _sidebarSource = sidebarSource;
-        _sidebar = new SidebarActionHandler(
-            _host,
-            sidebarSource,
-            ActiveSession,
-            () => _view.Sidebar.Viewport.Height,
-            () => !CurrentPaneRects().Sidebar.IsEmpty,
-            () => !CurrentPaneRects().Detail.IsEmpty,
-            SelectGraphItem,
-            clipboard);
+        _sidebar = new SidebarInput(_host, this);
         _stashView = new StashViewController(_host, this, _statuses);
-        _sidebar.StashView = _stashView;
         _host.Changed += _stashView.Reconcile;
         _host.Changed += RefreshOverlaysOnStateChange;
-        _sidebar.IsGraphVisible = () => !CurrentPaneRects().Graph.IsEmpty;
-        _sidebar.IsDiffVisible = () => !CurrentPaneRects().Diff.IsEmpty;
 
         _view = new MainView(
             CreateModel,
             width => DetailTitle(width, glyphs),
             glyphs,
             sidebarSource,
-            () => _sidebar.Chrome,
+            () => SidebarChrome.Of(_host.State),
             () => _diffView.Arrangement(),
             width => _diffView.TitleLine(width, glyphs, _chipKeys, _repeat.Active?.Pane == PaneKind.Diff),
             new DiffListSource(glyphs));
@@ -347,10 +336,7 @@ public sealed class TuiApplication(
         _router.Rebase = new RebaseActions(_host, this, this);
         _pick = new PickActions(_host, this);
         _router.Pick = _pick;
-        _router.Compare = new CompareActions(
-            _host,
-            ActiveSession,
-            () => SelectedCommitHash() is { } hash && ObjectId.TryParse(hash, out var id) ? id : null);
+        _router.Compare = new CompareInput(_host, this);
         _reflog = new ReflogInput(_host, this, glyphs);
         _reflogEntries = new ReflogEntryStarter(_host, _reset, this);
         _rebaseEditor = new RebaseEditorInput(_host, this, this, glyphs, _chipKeys);
@@ -925,6 +911,46 @@ public sealed class TuiApplication(
 
     bool IShellEffects.MoveCommitDraft(TabId missing, TabId target) => _commits.MoveDraft(missing, target);
 
+    void IShellEffects.JumpToRow(int row) => _quickJump.JumpTo(row);
+
+    void IShellEffects.SelectGraphIndex(int index) => SelectGraphItem(index + ScreenLayout.ReservedLeadingRows);
+
+    void IShellEffects.ShowStash(SidebarRow row) => _stashView.Show(row);
+
+    void IShellEffects.LeaveStash() => _stashView.Leave();
+
+    void IShellEffects.FollowStashCursor() => _stashView.FollowCursor(SidebarCursorRow());
+
+    ObjectId? ICompareSource.SelectedCommitId() =>
+        SelectedCommitHash() is { } hash && ObjectId.TryParse(hash, out var id) ? id : null;
+
+    TerminalTabSession? ICompareSource.ActiveSession() => ActiveSession();
+
+    int ISidebarLayout.SidebarPageHeight => _view.Sidebar.Viewport.Height;
+
+    ImmutableArray<PaneKind> ISidebarLayout.OpenPanes()
+    {
+        var rects = CurrentPaneRects();
+        var panes = ImmutableArray.CreateBuilder<PaneKind>();
+        AddIfShown(panes, PaneKind.Sidebar, rects.Sidebar);
+        AddIfShown(panes, PaneKind.Graph, rects.Graph);
+        AddIfShown(panes, PaneKind.Detail, rects.Detail);
+        AddIfShown(panes, PaneKind.Diff, rects.Diff);
+
+        return panes.ToImmutable();
+    }
+
+    private static void AddIfShown(ImmutableArray<PaneKind>.Builder panes, PaneKind pane, PaneRect rect)
+    {
+        if (!rect.IsEmpty)
+        {
+            panes.Add(pane);
+        }
+    }
+
+    private SidebarRow? SidebarCursorRow() =>
+        _host.Workspace.ActiveTab is { } tab ? SidebarActionReducer.CursorRow(tab) : null;
+
     void IShellEffects.LaunchExternalTool(LaunchExternalToolEffect effect)
     {
         var notice = _externalToolRunner.Launch(effect.Kind, effect.Location, effect.Commit);
@@ -1042,7 +1068,7 @@ public sealed class TuiApplication(
     {
         var inSidebar = _host.Workspace.ActiveTab?.View.FocusedPane == PaneKind.Sidebar;
 
-        return BranchSelection.Of(inSidebar ? _sidebar.CursorRow : null, SelectedCommitHash);
+        return BranchSelection.Of(inSidebar ? SidebarCursorRow() : null, SelectedCommitHash);
     }
 
     // The sidebar row under the cursor (whichever pane has focus) and the commit selected in the graph.
@@ -1756,7 +1782,7 @@ public sealed class TuiApplication(
     }
 
     string? IStashSelectionSource.CursorStashCommit() =>
-        _sidebar.CursorRow is { Kind: SidebarRowKind.Stash } row ? row.CommitHash : null;
+        SidebarCursorRow() is { Kind: SidebarRowKind.Stash } row ? row.CommitHash : null;
 
     StashFileTarget? IStashSelectionSource.FileUnderCursor() =>
         _host.Workspace.ActiveTab is { } tab ? StashFileUnderCursor(tab) : null;
@@ -1799,14 +1825,13 @@ public sealed class TuiApplication(
         ];
     }
 
-    private QuickJumpController CreateQuickJump() => new(new QuickJumpHost(
-        ActiveSession,
-        () => _host.Workspace.ActiveTab?.View.FocusedPane ?? PaneKind.Graph,
-        OpenJumpTarget,
-        _host,
-        _view.RefreshChrome));
+    private QuickJumpInput CreateQuickJump() => new(_host, this);
 
     // The target of the focused list, null for a pane without a quick jump (the sidebar, the message box).
+    IJumpTarget? IQuickJumpHost.OpenTarget() => OpenJumpTarget();
+
+    void IQuickJumpHost.Redraw() => _view.RefreshChrome();
+
     private IJumpTarget? OpenJumpTarget()
     {
         if (ActiveSession() is not { } session)

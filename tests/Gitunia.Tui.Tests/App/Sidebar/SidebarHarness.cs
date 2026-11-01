@@ -8,6 +8,7 @@ using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Sidebar;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Panes;
+using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Tui.App.Clipboard;
@@ -19,7 +20,7 @@ using Gitunia.Tui.Views.Lists;
 namespace Gitunia.Tui.Tests.App.Sidebar;
 
 /// <summary>A loaded tab with a sidebar handler wired to recorders instead of views.</summary>
-public sealed class SidebarHarness : IDisposable
+public sealed class SidebarHarness : IDisposable, ITabSessions
 {
     private readonly TerminalTabSession _session;
     private readonly TerminalTabSession _emptySession;
@@ -35,15 +36,14 @@ public sealed class SidebarHarness : IDisposable
             GraphGlyphSet.Unicode);
         _emptySession.Complete();
         Source = source;
-        Handler = new SidebarActionHandler(
+        Layout = new FixedSidebarLayout();
+        Effects = new SidebarEffects(
             host,
-            source,
-            () => HideGraph ? _emptySession : session,
-            () => 10,
-            () => SidebarVisible,
-            () => DetailVisible,
-            item => SelectedGraphItem = item,
-            new ClipboardCopier(new ClipboardWriter(Clipboard, new Osc52Options(Osc52Mode.Direct, 100_000)), new StatusReporter(new Dispatcher(AppState.Empty))));
+            this,
+            new ClipboardCopier(
+                new ClipboardWriter(Clipboard, new Osc52Options(Osc52Mode.Direct, 100_000)),
+                new StatusReporter(new Dispatcher(AppState.Empty))));
+        Input = new SidebarInput(host, Layout);
         host.Changed += () => source.Update(host.Workspace.ActiveTab);
         source.Update(host.Workspace.ActiveTab);
     }
@@ -55,16 +55,28 @@ public sealed class SidebarHarness : IDisposable
 
     public SidebarListSource Source { get; }
 
-    public SidebarActionHandler Handler { get; }
+    public SidebarInput Input { get; }
 
-    public bool SidebarVisible { get; set; } = true;
+    public SidebarEffects Effects { get; }
 
-    public bool DetailVisible { get; set; }
+    public FixedSidebarLayout Layout { get; }
 
     /// <summary>Makes the handler see a session whose graph has no commits.</summary>
     public bool HideGraph { get; set; }
 
-    public int? SelectedGraphItem { get; private set; }
+    public int? SelectedGraphItem => Effects.SelectedGraphItem;
+
+    public string Message => Effects.Message;
+
+    /// <summary>Presses an action the way the router does; false when the sidebar does not handle it.</summary>
+    public bool Press(ActionId action, int? count = null)
+    {
+        Effects.Reset();
+
+        return Input.TryHandle(action, count);
+    }
+
+    public TabSession Find(TabId tabId) => HideGraph ? _emptySession : _session;
 
     public KeyMode Mode => Host.State.Shell.Mode;
 

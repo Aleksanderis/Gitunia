@@ -72,7 +72,7 @@ public sealed class DiffPaneWiring : IActiveSessions, IPaneChrome, ITabSessions,
 
     TerminalTabSession? IActiveSessions.ActiveSession() => _session;
 
-    public TabSession? FindSession(TabId tabId) => tabId == _session.TabId ? _session : null;
+    public TabSession? Find(TabId tabId) => tabId == _session.TabId ? _session : null;
 
     public ListView ListOf(PaneKind pane) => pane == PaneKind.Detail ? _detailList : _diffList;
 

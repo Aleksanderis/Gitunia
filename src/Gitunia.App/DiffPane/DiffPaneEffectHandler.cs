@@ -18,7 +18,7 @@ public sealed class DiffPaneEffectHandler(ITabSessions sessions)
     /// <param name="effect">The effect.</param>
     public void Handle(DiffPaneEffect effect)
     {
-        if (sessions.FindSession(effect.TabId) is not { } session)
+        if (sessions.Find(effect.TabId) is not { } session)
         {
             return;
         }

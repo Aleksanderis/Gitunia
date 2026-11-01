@@ -1,6 +1,7 @@
 using Gitunia.Git.Staging;
 using Gitunia.App.Background;
 using Gitunia.App.Branches;
+using Gitunia.App.Compare;
 using Gitunia.App.Conflicts;
 using Gitunia.App.Creation;
 using Gitunia.App.DiffPane;
@@ -11,6 +12,7 @@ using Gitunia.App.IssueLinks;
 using Gitunia.App.Picker;
 using Gitunia.App.Reflog;
 using Gitunia.App.Settings;
+using Gitunia.App.Sidebar;
 using Gitunia.App.Remotes;
 using Gitunia.App.Staging;
 using Gitunia.App.Stash;
@@ -23,6 +25,7 @@ using Gitunia.App.Worktrees;
 using Gitunia.Core;
 using Gitunia.Core.Branches;
 using Gitunia.Core.Clipboard;
+using Gitunia.Core.Compare;
 using Gitunia.Core.Conflicts;
 using Gitunia.Core.Creation;
 using Gitunia.Core.Details;
@@ -30,6 +33,7 @@ using Gitunia.Core.DiffPane;
 using Gitunia.Core.Effects;
 using Gitunia.Core.ExternalTools;
 using Gitunia.Core.IssueLinks;
+using Gitunia.Core.Jump;
 using Gitunia.Core.Pick;
 using Gitunia.Core.Integration;
 using Gitunia.Core.Picker;
@@ -37,6 +41,7 @@ using Gitunia.Core.Prompts;
 using Gitunia.Core.Rebase;
 using Gitunia.Core.Reflog;
 using Gitunia.Core.Settings;
+using Gitunia.Core.Sidebar;
 using Gitunia.Core.Remotes;
 using Gitunia.Core.Staging;
 using Gitunia.Core.Stash;
@@ -60,7 +65,7 @@ namespace Gitunia.App;
 /// dispatcher. The switch ends in a throw, and a test checks that every concrete effect type has a case.
 /// </summary>
 /// <typeparam name="TSession">The session type the factory builds; the terminal layer adds its views to it.</typeparam>
-public sealed partial class EffectRunner<TSession> : IDisposable, IStatusRefresher, ITabSessions
+public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, IStatusRefresher
     where TSession : TabSession
 {
     /// <summary>
@@ -79,6 +84,7 @@ public sealed partial class EffectRunner<TSession> : IDisposable, IStatusRefresh
     private readonly IntegrationEffectHandler _integration;
     private readonly IssueLinkEffectHandler _issueLinks;
     private readonly BranchEffectHandler _branches;
+    private readonly CompareEffectHandler _compare;
     private readonly ConflictEffectHandler _conflicts;
     private readonly PickerEffectHandler _picker;
     private readonly PickEffectHandler _pick;
@@ -86,6 +92,7 @@ public sealed partial class EffectRunner<TSession> : IDisposable, IStatusRefresh
     private readonly RebaseEditorEffectHandler _rebaseEditor;
     private readonly ReflogEffectHandler _reflog;
     private readonly SettingsEffectHandler? _settings;
+    private readonly SidebarEffectHandler _sidebar;
     private readonly CancellationTokenSource _shutdown = new();
     private readonly RemoteEffectHandler _remotes;
     private readonly StagingEffectHandler _staging;
@@ -126,6 +133,7 @@ public sealed partial class EffectRunner<TSession> : IDisposable, IStatusRefresh
         var pickerServices = picker ?? PickerServices.Default;
         _shell = shell ?? NoShellEffects.Instance;
         _branches = new BranchEffectHandler(services.Branches, host);
+        _compare = new CompareEffectHandler(this, host);
         _conflicts = new ConflictEffectHandler(
             services.Conflicts,
             services.ConflictWriter,
@@ -139,6 +147,7 @@ public sealed partial class EffectRunner<TSession> : IDisposable, IStatusRefresh
         _rebaseEditor = new RebaseEditorEffectHandler(services.InteractiveRebase, services.CommitDetails, host);
         _reflog = new ReflogEffectHandler(services.Reflog, host);
         _settings = settings is null ? null : new SettingsEffectHandler(settings, host);
+        _sidebar = new SidebarEffectHandler(this, host);
         _integration = IntegrationEffectHandler.Create(services, host);
         _issueLinks = new IssueLinkEffectHandler(urlOpener ?? new UrlOpener(), host);
         _remotes = new RemoteEffectHandler(services.RemoteManager, host);
@@ -194,7 +203,7 @@ public sealed partial class EffectRunner<TSession> : IDisposable, IStatusRefresh
     /// <summary>The runtime session of an open tab, or null.</summary>
     public TSession? SessionOf(TabId tabId) => _sessions.GetValueOrDefault(tabId);
 
-    TabSession? ITabSessions.FindSession(TabId tabId) => SessionOf(tabId);
+    TabSession? ITabSessions.Find(TabId tabId) => SessionOf(tabId);
 
     /// <summary>Manual refresh of a tab: reads everything again and reloads its graph. False when the tab has no watcher yet (not loaded).</summary>
     public bool Refresh(TabId tabId, bool announce = true)
@@ -318,6 +327,9 @@ public sealed partial class EffectRunner<TSession> : IDisposable, IStatusRefresh
             case CancelSyncEffect cancelSync:
                 _sync.Cancel(cancelSync.TabId);
                 break;
+            case CompareEffect compare:
+                _compare.Handle(compare);
+                break;
             case ConflictEffect conflict:
                 _conflicts.Handle(conflict, _cancellation.TokenOf(conflict.TabId));
                 break;
@@ -336,11 +348,20 @@ public sealed partial class EffectRunner<TSession> : IDisposable, IStatusRefresh
             case FlushSessionEffect flush:
                 _host.Dispatch(new SessionFlushed(_shell.FlushSession(), flush.Force));
                 break;
+            case FollowStashCursorEffect:
+                _shell.FollowStashCursor();
+                break;
+            case JumpToRowEffect jump:
+                _shell.JumpToRow(jump.Row);
+                break;
             case LaunchExternalToolEffect tool:
                 _shell.LaunchExternalTool(tool);
                 break;
             case IntegrationEffect integration:
                 _integration.Handle(integration, _cancellation.TokenOf(integration.TabId));
+                break;
+            case LeaveStashEffect:
+                _shell.LeaveStash();
                 break;
             case LoadRepositoryEffect load:
                 StartLoad(load);
@@ -410,6 +431,9 @@ public sealed partial class EffectRunner<TSession> : IDisposable, IStatusRefresh
             case SettingsShellEffect settingsShell:
                 PerformSettingsShell(settingsShell);
                 break;
+            case SelectGraphIndexEffect select:
+                _shell.SelectGraphIndex(select.Index);
+                break;
             case SetKeyModeEffect mode:
                 _host.Dispatch(new SetKeyModeCommand(mode.Mode));
                 break;
@@ -418,6 +442,9 @@ public sealed partial class EffectRunner<TSession> : IDisposable, IStatusRefresh
                 break;
             case ShowPromptEffect prompt:
                 _host.Dispatch(new PromptRequestedCommand(prompt.Request));
+                break;
+            case ShowStashEffect showStash:
+                _shell.ShowStash(showStash.Row);
                 break;
             case StageResolvedConflictEffect stage:
                 _shell.StageResolvedConflict(stage);
@@ -433,6 +460,9 @@ public sealed partial class EffectRunner<TSession> : IDisposable, IStatusRefresh
                 break;
             case TagEffect tag:
                 _tags.Handle(tag, _cancellation.TokenOf(tag.TabId));
+                break;
+            case LocateGraphCommitEffect locateCommit:
+                _sidebar.Locate(locateCommit);
                 break;
             case LocateWorktreeEffect locate:
                 _worktrees.Locate(locate, _cancellation.TokenOf(locate.TabId));

@@ -72,6 +72,16 @@ public sealed class StashViewController(
     /// <param name="binderMovedSelection">The graph tab binder is moving the selection itself.</param>
     public bool KeepsViewOnSelectionChange(bool binderMovedSelection) => binderMovedSelection && IsShowing;
 
+    /// <summary>While a stash is shown, a cursor on another stash shows that one (#699).</summary>
+    /// <param name="row">The sidebar row under the cursor, null when none.</param>
+    public void FollowCursor(SidebarRow? row)
+    {
+        if (IsShowing && row is { Kind: SidebarRowKind.Stash })
+        {
+            Show(row);
+        }
+    }
+
     /// <summary>Ends the stash view and puts the graph selection back in the pane; no-op without one.</summary>
     public void Leave()
     {

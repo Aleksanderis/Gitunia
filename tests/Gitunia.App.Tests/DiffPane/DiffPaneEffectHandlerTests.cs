@@ -167,7 +167,7 @@ public class DiffPaneEffectHandlerTests
             return new FileTreeRow(FileTreeRowKind.File, path, path, 0, false, 8, 0, BlobOf(path));
         }
 
-        public TabSession? FindSession(TabId tabId) => tabId == TabId ? Session : null;
+        public TabSession? Find(TabId tabId) => tabId == TabId ? Session : null;
 
         public void Dispose()
         {
