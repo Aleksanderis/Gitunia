@@ -36,6 +36,7 @@ public static class AppReducer
         EffectFailedCommand failed => EffectFailed(state, failed),
         PickCommand pick => ReducePick(state, pick),
         RebaseCommand rebase => ReduceRebase(state, rebase),
+        RebaseEditorCommand editor => ReduceRebaseEditor(state, editor),
         IntegrationCommand integration => ReduceIntegration(state, integration),
         ReflogCommand reflog => ReduceReflog(state, reflog),
         SettingsCommand settings => ReduceSettings(state, settings),
@@ -81,15 +82,23 @@ public static class AppReducer
             shell = (shell with { Mainline = null }).WithMode(KeyMode.Normal);
         }
 
+        List<AppEffect> effects = [.. update.Effects];
+        if (shell.RebaseEditor.Editor is { } todo && update.Workspace.FindTab(todo.TabId) is null)
+        {
+            var closedTodo = RebaseEditorReducer.Closed(shell.RebaseEditor);
+            shell = shell with { RebaseEditor = closedTodo.Session };
+            effects.AddRange(closedTodo.Effects);
+        }
+
         var changed = new AppState(update.Workspace, shell);
         if (shell.Reflog.List is { } list && update.Workspace.FindTab(list.TabId) is null)
         {
             var closed = ReduceReflog(changed, new ReflogTabClosed());
 
-            return new AppUpdate(closed.State, [.. update.Effects, .. closed.Effects]);
+            return new AppUpdate(closed.State, [.. effects, .. closed.Effects]);
         }
 
-        return new AppUpdate(changed, [.. update.Effects]);
+        return new AppUpdate(changed, [.. effects]);
     }
 
     // A result for a tab that was closed meanwhile only ends the read.
@@ -174,12 +183,45 @@ public static class AppReducer
         return new AppUpdate(WithTab(state, tab with { Running = running }), effects);
     }
 
+    // A result or answer for a tab that was closed meanwhile is dropped, like a late TabCommand; a read result only
+    // ends the read, or the next one would be refused for good.
+    private static AppUpdate ReduceRebaseEditor(AppState state, RebaseEditorCommand command)
+    {
+        var workspace = state.Workspace;
+        var session = state.Shell.RebaseEditor;
+        if (workspace.FindTab(command.TabId) is not { } tab)
+        {
+            var ended = command is RebaseEditorReadResult ? session with { IsReading = false } : session;
+
+            return new AppUpdate(state with { Shell = state.Shell with { RebaseEditor = ended } }, []);
+        }
+
+        var busy = tab.Running.IsRunning(RunningOperationKind.Rebase);
+        var overlay = IsOverlayOpen(state.Shell with { RebaseEditor = RebaseEditorSession.Empty });
+        var context = new RebaseEditorContext(tab, workspace.ActiveTabId == tab.Id, busy, overlay);
+        var update = RebaseEditorReducer.Reduce(session, command, context);
+        var running = tab.Running.Apply(tab.Id, command, update.Effects);
+        var next = state;
+        if (!Equals(running, tab.Running))
+        {
+            next = WithTab(state, tab with { Running = running });
+        }
+
+        if (!ReferenceEquals(update.Session, session))
+        {
+            next = next with { Shell = next.Shell with { RebaseEditor = update.Session } };
+        }
+
+        return new AppUpdate(next, update.Effects);
+    }
+
     // A late question must not replace what the user is looking at.
     private static bool IsOverlayOpen(ShellState shell) =>
         shell.Confirm is not null
         || shell.Output is not null
         || shell.Prompt is not null
         || shell.Mainline is not null
+        || shell.RebaseEditor.IsOpen
         || shell.Reflog.IsOpen
         || shell.Settings.IsOpen;
 

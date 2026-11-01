@@ -31,13 +31,11 @@ using Gitunia.Core.Remotes;
 using Gitunia.Core.Stash;
 using Gitunia.Core.Sync;
 using Gitunia.Core.Tags;
-using Gitunia.Core.IssueTracker;
 using Gitunia.Core.Shell;
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Core.Worktrees;
-using Gitunia.Git.Execution.Exceptions;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Watching;
 using Gitunia.Git.Watching.Models;
@@ -50,7 +48,7 @@ namespace Gitunia.App;
 /// dispatcher. The switch ends in a throw, and a test checks that every concrete effect type has a case.
 /// </summary>
 /// <typeparam name="TSession">The session type the factory builds; the terminal layer adds its views to it.</typeparam>
-public sealed class EffectRunner<TSession> : IDisposable
+public sealed partial class EffectRunner<TSession> : IDisposable
     where TSession : TabSession
 {
     /// <summary>
@@ -68,6 +66,7 @@ public sealed class EffectRunner<TSession> : IDisposable
     private readonly BranchEffectHandler _branches;
     private readonly PickEffectHandler _pick;
     private readonly RebaseEffectHandler _rebase;
+    private readonly RebaseEditorEffectHandler _rebaseEditor;
     private readonly ReflogEffectHandler _reflog;
     private readonly SettingsEffectHandler? _settings;
     private readonly CancellationTokenSource _shutdown = new();
@@ -108,6 +107,7 @@ public sealed class EffectRunner<TSession> : IDisposable
         _branches = new BranchEffectHandler(services.Branches, host);
         _pick = new PickEffectHandler(services.Pick, services.PickCommits, host);
         _rebase = new RebaseEffectHandler(services.Rebase, services.QuickRebase, host);
+        _rebaseEditor = new RebaseEditorEffectHandler(services.InteractiveRebase, services.CommitDetails, host);
         _reflog = new ReflogEffectHandler(services.Reflog, host);
         _settings = settings is null ? null : new SettingsEffectHandler(settings, host);
         _integration = IntegrationEffectHandler.Create(services, host);
@@ -236,6 +236,8 @@ public sealed class EffectRunner<TSession> : IDisposable
         BranchEffect branch => new BranchOperationFailed(branch.TabId, text),
         PickEffect pick => new PickFailed(pick.TabId, text),
         RebaseEffect rebase => new RebaseFailed(rebase.TabId, text),
+        RunInteractiveRebaseEffect run => new RebaseFailed(run.TabId, text),
+        RebaseEditorEffect editor => new RebaseEditorReadFailed(editor.TabId, text, StatusSeverity.Error),
         ReadReflogEffect => new ReflogReadFailed(text),
         SettingsEffect => new SettingsOperationFailed(text),
         RemoteEffect remote => new RemoteOperationFailed(remote.TabId, text),
@@ -280,6 +282,9 @@ public sealed class EffectRunner<TSession> : IDisposable
                 break;
             case RebaseEffect rebase:
                 _rebase.Handle(rebase, _cancellation.TokenOf(rebase.TabId));
+                break;
+            case RebaseEditorEffect editor:
+                _rebaseEditor.Handle(editor, _cancellation.TokenOf(editor.TabId));
                 break;
             case ReadReflogEffect read:
                 _reflog.Handle(read, _cancellation.TokenOf(read.TabId));
@@ -383,22 +388,6 @@ public sealed class EffectRunner<TSession> : IDisposable
         }
     }
 
-    // A tab runs an operation when its state says so or a legacy gate does; such a tab is never evicted.
-    private bool IsBusy(TabId tabId) => IsTabBusy(tabId) || _host.Workspace.FindTab(tabId)?.Running.IsBusy == true;
-
-    private void ReloadIssueLinks(TabId tabId)
-    {
-        var tab = _host.Workspace.FindTab(tabId);
-        if (tab is null || !_sessions.TryGetValue(tabId, out var session))
-        {
-            return;
-        }
-
-        var location = tab.Location;
-        var token = session.Cancellation.Token;
-        _ = Task.Run(() => QueueIssueLinksAsync(session, location, token), CancellationToken.None);
-    }
-
     private void StartLoad(LoadRepositoryEffect load)
     {
         var tab = _host.Workspace.FindTab(load.TabId);
@@ -478,38 +467,6 @@ public sealed class EffectRunner<TSession> : IDisposable
         }
     }
 
-    private async Task QueueIssueLinksAsync(TSession session, RepositoryLocation location, CancellationToken token)
-    {
-        try
-        {
-            await _background.RunAsync(() => LoadIssueLinksAsync(session, location, token), token).ConfigureAwait(false);
-        }
-        catch (OperationCanceledException)
-        {
-            // The tab closed while the read waited for a background slot.
-        }
-    }
-
-    // The tracker file and git config are read on load and on a manual refresh; a missing or bad one means no links.
-    private async Task LoadIssueLinksAsync(TSession session, RepositoryLocation location, CancellationToken token)
-    {
-        try
-        {
-            var rules = await _services.IssueTracker.ReadAsync(location, token).ConfigureAwait(false);
-            if (token.IsCancellationRequested)
-            {
-                return;
-            }
-
-            var links = rules.Count > 0 ? new IssueTrackerLinks(rules) : IssueTrackerLinks.None;
-            _postToUi(() => session.SetIssueLinks(links));
-        }
-        catch (Exception exception) when (exception is OperationCanceledException or GitException)
-        {
-            // Cancelled with the tab, or git is unavailable: the detail pane shows no links.
-        }
-    }
-
     // Runs on the UI thread (the session asked for it), so the graph can be read here.
     private void ExpandGraph(TSession session, RepositoryLocation location, CancellationToken token)
     {
@@ -534,49 +491,6 @@ public sealed class EffectRunner<TSession> : IDisposable
         if (_refreshers.Remove(tabId, out var refresher))
         {
             refresher.Dispose();
-        }
-    }
-
-    private void OnHostChanged()
-    {
-        StartActiveTabLoad();
-        var activeId = _host.Workspace.ActiveTabId;
-        if (activeId is { } shownId)
-        {
-            _recent.Remove(shownId);
-            _recent.Insert(0, shownId);
-            EvictColdTabs();
-        }
-
-        foreach (var (tabId, refresher) in _refreshers)
-        {
-            refresher.SetActive(tabId == activeId);
-        }
-    }
-
-    private void StartActiveTabLoad()
-    {
-        if (_pendingLoads.Count > 0 && _host.Workspace.ActiveTabId is { } active && _pendingLoads.Remove(active, out var start))
-        {
-            start();
-        }
-    }
-
-    // A tab beyond the most recently used ones drops its rows, caches and watcher and goes back to the pending state:
-    // its cursor, scroll and selected commit live in the workspace state, so activating it again reloads in the
-    // background and puts them back. A tab still loading or running an operation stays.
-    // The tab's search and diff positions are not kept.
-    private void EvictColdTabs()
-    {
-        for (var index = _warmTabLimit; index < _recent.Count; index++)
-        {
-            var tabId = _recent[index];
-            if (_sessions.TryGetValue(tabId, out var session) && !session.IsPending && !session.IsLoading
-                && !IsBusy(tabId)
-                && _host.Workspace.FindTab(tabId) is { } tab)
-            {
-                StartLoad(new LoadRepositoryEffect(tabId, tab.CommandPath));
-            }
         }
     }
 }

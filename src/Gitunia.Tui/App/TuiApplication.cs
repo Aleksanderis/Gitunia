@@ -22,6 +22,7 @@ using Gitunia.Core.Overlays;
 using Gitunia.Core.Persistence;
 using Gitunia.Core.Pick;
 using Gitunia.Core.Picker;
+using Gitunia.Core.Rebase;
 using Gitunia.Core.Reflog;
 using Gitunia.Core.Settings;
 using Gitunia.Core.Settings.Models;
@@ -97,7 +98,7 @@ public sealed class TuiApplication(
     GitServices services,
     ConsoleCapabilities detectedCapabilities,
     IPlatform platform) : IDisposable, ITerminalSuspender, IShellEffects, IBranchSelectionSource,
-    IGraphCommitSelector, IGraphSelectionSource, IPickSelectionSource,
+    IGraphCommitSelector, IGraphSelectionSource, IOverlayCover, IPickSelectionSource,
     IStashSelectionSource, IStashViewHost, ITerminalRetryHost, IWorktreeSelectionSource
 {
     // Terminal.Gui's default of 25 iterations per second gave ~34 ms key latency (docs/internal/history/decisions.md); the idle rate saves CPU (#909).
@@ -156,12 +157,13 @@ public sealed class TuiApplication(
     private FileTreeController _fileTree = null!;
     private ResetActions _reset = null!;
     private ReflogSession? _drawnReflog;
+    private RebaseEditorSession? _drawnRebaseEditor;
     private MainlineQuestion? _drawnMainline;
     private ScreenExtent? _drawnScreen;
     private SettingsSession? _drawnSettings;
     private ReflogInput _reflog = null!;
     private ReflogEntryStarter _reflogEntries = null!;
-    private RebaseEditorController _rebaseEditor = null!;
+    private RebaseEditorInput _rebaseEditor = null!;
     private ConflictEditorController _conflictEditor = null!;
     private SettingsScreenInput _settings = null!;
     private ConfigWriter _configWriter = null!;
@@ -352,7 +354,7 @@ public sealed class TuiApplication(
             () => SelectedCommitHash() is { } hash && ObjectId.TryParse(hash, out var id) ? id : null);
         _reflog = new ReflogInput(_host, this, glyphs);
         _reflogEntries = new ReflogEntryStarter(_host, _reset, this);
-        _rebaseEditor = CreateRebaseEditor(glyphs, operationGate);
+        _rebaseEditor = new RebaseEditorInput(_host, this, this, glyphs, _chipKeys);
         _conflictEditor = CreateConflictEditor(glyphs, operationGate, staging);
         _settings = new SettingsScreenInput(_host, glyphs);
         _configEditor = new ConfigEditorLauncher(
@@ -1468,6 +1470,8 @@ public sealed class TuiApplication(
     private bool IsAnyOverlayOpen() => _rebaseEditor.IsOpen || _conflictEditor.IsOpen || IsOtherThanRebaseEditorOpen();
 
     // The rebase editor is covered by these (its Confirm above all) and must not take their keys.
+    bool IOverlayCover.IsOtherOverlayOpen() => IsOtherThanRebaseEditorOpen();
+
     private bool IsOtherThanRebaseEditorOpen() =>
         _overlays.State.IsOpen
         || _reflog.IsOpen
@@ -1571,22 +1575,6 @@ public sealed class TuiApplication(
         _view.RefreshPalette();
     }
 
-    private RebaseEditorController CreateRebaseEditor(GraphGlyphSet glyphs, TabOperationGate gate) => new(
-        _host,
-        services.InteractiveRebase,
-        services.CommitDetails,
-        _statuses,
-        InvokeOnUi,
-        tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None,
-        tabId => _effects.Refresh(tabId, false),
-        BranchSelectionNow,
-        IsOtherThanRebaseEditorOpen,
-        () => _view.ScreenSize,
-        glyphs,
-        RefreshOverlay,
-        gate,
-        _chipKeys);
-
     private ConflictEditorController CreateConflictEditor(
         GraphGlyphSet glyphs,
         TabOperationGate gate,
@@ -1675,12 +1663,14 @@ public sealed class TuiApplication(
     {
         var shell = _host.State.Shell;
         if (ReferenceEquals(shell.Reflog, _drawnReflog) && ReferenceEquals(shell.Settings, _drawnSettings)
+            && ReferenceEquals(shell.RebaseEditor, _drawnRebaseEditor)
             && ReferenceEquals(shell.Mainline, _drawnMainline) && !MainlineNeedsLayout(shell))
         {
             return;
         }
 
         _drawnReflog = shell.Reflog;
+        _drawnRebaseEditor = shell.RebaseEditor;
         _drawnSettings = shell.Settings;
         _drawnMainline = shell.Mainline;
         _drawnScreen = shell.Screen;
