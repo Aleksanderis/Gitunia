@@ -678,4 +678,18 @@ public class CommitReducerTests
 
         Assert.False(harness.State.Shell.QuitWarned);
     }
+
+    [Fact]
+    public void GivenInsertModeInTheBox_WhenItsTabIsClosed_ThenInsertModeEnds()
+    {
+        var harness = new CommitHarness(StagedModified("a.txt"));
+        harness.OpenOtherTab();
+        harness.Activate(harness.TabId);
+        harness.Run(ActionIds.WorkingTreeWriteMessage);
+        Assert.Equal(KeyMode.Insert, harness.Mode);
+
+        harness.Send(new CloseTabCommand(harness.TabId));
+
+        Assert.Equal(KeyMode.Normal, harness.Mode);
+    }
 }

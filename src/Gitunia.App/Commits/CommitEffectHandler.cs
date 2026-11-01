@@ -8,9 +8,12 @@ using Gitunia.Git.Execution.Exceptions;
 namespace Gitunia.App.Commits;
 
 /// <summary>
-/// Runs the commit effects off the UI thread and posts exactly one result command for each: the commit (success, or failure
-/// with the output of the hooks, or the cancel notice) and the reads of the messages the box starts from. The cancel of a
-/// running commit cancels its own token and the process is killed. It never reads or changes state. Timeouts stay in the
+/// Runs the commit effects off the UI thread and posts exactly one result command for each: the commit (success, or
+/// failure
+/// with the output of the hooks, or the cancel notice) and the reads of the messages the box starts from. The cancel
+/// of a
+/// running commit cancels its own token and the process is killed. It never reads or changes state. Timeouts stay in
+/// the
 /// Git layer.
 /// </summary>
 /// <param name="writer">Creates the commit and reads the messages.</param>
@@ -33,7 +36,8 @@ public sealed class CommitEffectHandler(ICommitWriter writer, IDispatcher dispat
         _ = Task.Run(() => ReadAsync(effect, cancellationToken), CancellationToken.None);
     }
 
-    /// <summary>Stops the running commit of the tab; its result is the cancel result. Nothing happens when none runs.</summary>
+    /// <summary>Stops the running commit of the tab; its result is the cancel result. Nothing happens when none
+    /// runs.</summary>
     public void Cancel(TabId tabId)
     {
         if (!_running.TryGetValue(tabId, out var running))
@@ -65,7 +69,8 @@ public sealed class CommitEffectHandler(ICommitWriter writer, IDispatcher dispat
         }
         catch (GitCommandFailedException exception)
         {
-            var notice = $"Commit failed: {CommitFailureReport.Notice(exception.StandardError, exception.StandardOutput)}";
+            var reason = CommitFailureReport.Notice(exception.StandardError, exception.StandardOutput);
+            var notice = $"Commit failed: {reason}";
             var lines = CommitFailureReport.Lines(exception.StandardError, exception.StandardOutput);
             result = new CommitFailed(effect.TabId, notice, lines);
         }

@@ -19,9 +19,12 @@ namespace Gitunia.Core.Commits;
 
 /// <summary>
 /// The commit part of the Changes view (ux-workflows.md, workflow 2, "Message and commit") as pure transitions
-/// <c>(command, context) -> (state, effects)</c>: the draft of the tab (message, options, amend), the message box's Normal and
-/// Insert behaviour, and the commit itself. A refused commit says why without running git, a failed one keeps the draft and
-/// shows the output of git and the hooks, a successful one clears the draft, reads the status again and returns the focus to
+/// <c>(command, context) -> (state, effects)</c>: the draft of the tab (message, options, amend), the message box's
+/// Normal and
+/// Insert behaviour, and the commit itself. A refused commit says why without running git, a failed one keeps the
+/// draft and
+/// shows the output of git and the hooks, a successful one clears the draft, reads the status again and returns the
+/// focus to
 /// the lists. The keys of the box's Normal mode are in <see cref="CommitMessageKeys"/>.
 /// </summary>
 public static class CommitReducer
@@ -40,7 +43,7 @@ public static class CommitReducer
         CommitStageAllConfirmed confirmed => StageAllConfirmed(confirmed, context),
         CommitSucceeded succeeded => Succeeded(succeeded, context),
         HeadMessageRead read => HeadRead(read, context),
-        HeadMessageReadFailed failed => Same(context, Post($"{CommitTexts.HeadMessageFailure}: {failed.Notice}", StatusSeverity.Error)),
+        HeadMessageReadFailed failed => HeadFailed(failed, context),
         MergeMessageRead read => MergeRead(read.Message, context),
         _ => throw new UnhandledCommandException(command),
     };
@@ -57,7 +60,8 @@ public static class CommitReducer
     internal static PostStatusEffect Post(string text, StatusSeverity severity = StatusSeverity.Info) =>
         new(text, severity);
 
-    internal static CommitDraft DraftOf(CommitContext context) => context.Tab.Commit.Draft?.Clone() ?? new CommitDraft();
+    internal static CommitDraft DraftOf(CommitContext context) =>
+        context.Tab.Commit.Draft?.Clone() ?? new CommitDraft();
 
     internal static CommitRequest Snapshot(CommitDraft draft) =>
         new(draft.Editor.Text, draft.SignOff, draft.NoVerify, draft.Amend);
@@ -83,10 +87,20 @@ public static class CommitReducer
             effects = [new ReadMergeMessageEffect(tab.Id, tab.Location)];
         }
 
-        return new CommitUpdate(tab.Commit with { Draft = draft, IsInserting = true }, KeyMode.Insert, null, effects, next);
+        var state = tab.Commit with { Draft = draft, IsInserting = true };
+
+        return new CommitUpdate(state, KeyMode.Insert, null, effects, next);
     }
 
-    private static TabCommand Focus(RepositoryState tab, PaneKind pane) => new TabCommand(tab.Id, new FocusPaneCommand(pane));
+    private static TabCommand Focus(RepositoryState tab, PaneKind pane) =>
+        new(tab.Id, new FocusPaneCommand(pane));
+
+    private static CommitUpdate HeadFailed(HeadMessageReadFailed failed, CommitContext context)
+    {
+        var text = $"{CommitTexts.HeadMessageFailure}: {failed.Notice}";
+
+        return Same(context, Post(text, StatusSeverity.Error));
+    }
 
     private static CommitUpdate Press(ActionId action, CommitContext context)
     {
@@ -177,7 +191,8 @@ public static class CommitReducer
         return ToggleAmend(context, draft);
     }
 
-    // Enter in the box adds a line; Enter in another prompt's Insert mode is that prompt's accept, which the input layer
+    // Enter in the box adds a line; Enter in another prompt's Insert mode is that prompt's accept, which the input
+    // layer
     // routes before it gets here.
     private static CommitUpdate NewLine(CommitContext context)
     {
@@ -285,7 +300,12 @@ public static class CommitReducer
         var draft = DraftOf(context);
         var operation = tab.Operation?.Kind ?? RepositoryOperation.None;
         var refusal = CommitCheck.Refusal(draft, tab.WorkingTree, operation);
-        if (refusal == CommitCheck.NothingStaged && OffersStageAll(tab) && !context.IsBlocked)
+        if (context.IsBlocked && refusal is null or CommitCheck.NothingStaged)
+        {
+            return Same(context, Post(StagingReducer.BlockedNotice, StatusSeverity.Warning));
+        }
+
+        if (refusal == CommitCheck.NothingStaged && OffersStageAll(tab))
         {
             var confirm = new ShowConfirmEffect(
                 CommitTexts.StageAll,
@@ -316,7 +336,7 @@ public static class CommitReducer
         tab.WorkingTree is { Staged.Count: 0 } tree
         && tree.Unstaged.Any(entry => entry.Kind != StatusEntryKind.Unmerged);
 
-    // The message and options are those of the answer: later edits cannot change what the confirmed commit does. The
+    // The message and options are those of the question: later edits cannot change what the confirmed commit does. The
     // staging reducer refuses when the tab is busy and posts why; the commit follows once the status shows the result.
     private static CommitUpdate StageAllConfirmed(CommitStageAllConfirmed confirmed, CommitContext context)
     {
@@ -359,7 +379,8 @@ public static class CommitReducer
         return Same(context, new RunCommitEffect(tab.Id, tab.Location, request, upstream));
     }
 
-    // The message and Amend are gone, SignOff and No-Verify stay; the focus goes back to a list (which ends Insert mode).
+    // The message and Amend are gone, SignOff and No-Verify stay; the focus goes back to a list (which ends Insert
+    // mode).
     private static CommitUpdate Succeeded(CommitSucceeded succeeded, CommitContext context)
     {
         var tab = context.Tab;
@@ -378,7 +399,8 @@ public static class CommitReducer
     }
 
     // The draft stays. The output opens now when the tab is shown, else when it is (the root reducer settles that);
-    // a hook may have changed files and a cancelled commit may have got as far as the index, so the status is read again.
+    // a hook may have changed files and a cancelled commit may have got as far as the index, so the status is read
+    // again.
     private static CommitUpdate Failed(CommitFailed failed, CommitContext context)
     {
         var tab = context.Tab;

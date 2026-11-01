@@ -10,8 +10,10 @@ using Gitunia.Tui.Rendering.Panes;
 namespace Gitunia.Tui.App.WorkingTree;
 
 /// <summary>
-/// Turns the keys and clicks of the commit message box into commands (ux-workflows.md, workflow 2, "Message and commit"). The
-/// state decides what they do (<c>Core/Commits</c>); this class only asks whether the box takes an action, dispatches it, and
+/// Turns the keys and clicks of the commit message box into commands (ux-workflows.md, workflow 2, "Message and
+/// commit"). The
+/// state decides what they do (<c>Core/Commits</c>); this class only asks whether the box takes an action, dispatches
+/// it, and
 /// gives the box the keys typed in Insert mode next to the other prompts.
 /// </summary>
 /// <param name="host">The state and where commands go.</param>
@@ -28,7 +30,8 @@ public sealed class CommitMessageInput(Dispatcher host, IActionRoute route) : IP
     /// <summary>True while the focused message box shows its cursor: Insert mode, and the box's Normal mode.</summary>
     public bool ShowsCursor => CommitRules.ShowsCursor(host.State);
 
-    /// <summary>The box does not run the actions of the palette or other prompts; they reach it through the Changes view.</summary>
+    /// <summary>The box does not run the actions of the palette or other prompts; they reach it through the Changes
+    /// view.</summary>
     public bool TryExecute(ActionId action, int? count) => false;
 
     /// <summary>Runs the action when it concerns the message box; false lets the other handlers have it.</summary>
@@ -54,7 +57,8 @@ public sealed class CommitMessageInput(Dispatcher host, IActionRoute route) : IP
         return true;
     }
 
-    /// <summary>Gives a key typed in Insert mode to the editor when the box owns Insert mode; true when it took the key.</summary>
+    /// <summary>Gives a key typed in Insert mode to the editor when the box owns Insert mode; true when it took the
+    /// key.</summary>
     /// <param name="key">The key.</param>
     public bool HandleTextKey(KeyEvent key)
     {

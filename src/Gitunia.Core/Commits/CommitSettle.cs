@@ -34,6 +34,13 @@ public static class CommitSettle
         return current;
     }
 
+    /// <summary>True when a tab whose message box owned Insert mode is gone from the workspace after a change, so the
+    /// mode it held has no owner.</summary>
+    /// <param name="before">The workspace before.</param>
+    /// <param name="after">The workspace after.</param>
+    public static bool OwnerClosed(Workspace before, Workspace after) =>
+        before.Tabs.Any(tab => tab.Commit.IsInserting && after.FindTab(tab.Id) is null);
+
     // The box owned Insert mode: it keeps it only while it is focused in the active tab and the mode is still Insert.
     private static AppState LeaveInsert(AppState state, RepositoryState tab, RepositoryState? active)
     {

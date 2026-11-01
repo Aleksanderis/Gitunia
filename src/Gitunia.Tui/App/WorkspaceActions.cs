@@ -26,7 +26,8 @@ public sealed class WorkspaceActions(Dispatcher host)
         }
 
         // The notice and the close warning end with the next action, also one that is not ours.
-        var activeHasUnsent = host.Workspace.ActiveTabId is { } active && CommitRules.HasUnsentMessage(host.Workspace, active);
+        var activeHasUnsent = host.Workspace.ActiveTabId is { } active
+            && CommitRules.HasUnsentMessage(host.Workspace, active);
         host.Dispatch(
             new WorkspaceActionPressed(
                 action,

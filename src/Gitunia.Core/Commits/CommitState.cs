@@ -3,7 +3,8 @@ using Gitunia.Core.Editing;
 namespace Gitunia.Core.Commits;
 
 /// <summary>
-/// The commit message box of one tab: the draft (message, options, amend bookkeeping) and what the box is doing. The draft
+/// The commit message box of one tab: the draft (message, options, amend bookkeeping) and what the box is doing. The
+/// draft
 /// is never changed once it is in the state: <see cref="CommitReducer"/> clones it, changes the clone and stores that.
 /// </summary>
 /// <param name="Draft">The tab's draft, null while the tab never had one.</param>

@@ -96,8 +96,10 @@ public static class CommitRules
     /// <param name="state">The state.</param>
     public static bool ShowsCursor(AppState state) =>
         IsEditing(state)
-        || (state.Workspace.ActiveTab is { View: { Mode: TabViewMode.WorkingTree, FocusedPane: PaneKind.WorkingMessage } }
-            && state.Shell.Mode == KeyMode.Normal);
+        || (IsBoxShown(state.Workspace.ActiveTab) && state.Shell.Mode == KeyMode.Normal);
+
+    private static bool IsBoxShown(RepositoryState? tab) =>
+        tab is { View: { Mode: TabViewMode.WorkingTree, FocusedPane: PaneKind.WorkingMessage } };
 
     /// <summary>True when the tab holds a message that was typed or edited and not committed.</summary>
     /// <param name="workspace">The workspace.</param>
@@ -126,7 +128,8 @@ public static class CommitRules
     }
 
     /// <summary>
-    /// What a restart (or a move to the tab that replaces a missing one) keeps of a draft: never Amend, which belongs to the
+    /// What a restart (or a move to the tab that replaces a missing one) keeps of a draft: never Amend, which belongs
+    /// to the
     /// old HEAD, so an amend message (HEAD's, maybe edited) must not come back as a plain new draft.
     /// </summary>
     /// <param name="draft">The draft.</param>

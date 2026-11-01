@@ -48,8 +48,10 @@ public sealed record CommitAfterStaging(TabId TabId, CommitRequest Request) : Co
 /// <param name="Saved">The draft read from the session file.</param>
 public sealed record CommitDraftRestored(TabId TabId, SessionDraft Saved) : CommitCommand(TabId);
 
-/// <summary>The unsent draft of a tab that is about to be replaced (a located missing tab) moves to its replacement; the
-/// root reducer reduces <c>PickerDraftMoved</c> right after. Touches two tabs, so it is no <see cref="CommitCommand"/>.</summary>
+/// <summary>The unsent draft of a tab that is about to be replaced (a located missing tab) moves to its replacement;
+/// the
+/// root reducer reduces <c>PickerDraftMoved</c> right after. Touches two tabs, so it is no <see
+/// cref="CommitCommand"/>.</summary>
 /// <param name="Missing">The tab that is replaced.</param>
 /// <param name="Target">The tab that replaces it.</param>
 public sealed record CommitDraftMoveRequested(TabId Missing, TabId Target) : AppCommand;

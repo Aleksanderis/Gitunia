@@ -5,7 +5,8 @@ using Gitunia.Core.Workspaces.Panes;
 
 namespace Gitunia.Core.Commits;
 
-/// <summary>The Normal mode of the message box (a vim subset). The keys only act while the box has the focus (the palette
+/// <summary>The Normal mode of the message box (a vim subset). The keys only act while the box has the focus (the
+/// palette
 /// can run them from elsewhere).</summary>
 internal static class CommitMessageKeys
 {

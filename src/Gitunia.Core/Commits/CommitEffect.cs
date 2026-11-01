@@ -16,11 +16,13 @@ public sealed record RunCommitEffect(
     CommitRequest Request,
     string? ForcePushUpstream) : OperationEffect(TabId, RunningOperationKind.Commit);
 
-/// <summary>Stop the commit of the tab that runs; its result is the cancel result. Nothing happens when none runs.</summary>
+/// <summary>Stop the commit of the tab that runs; its result is the cancel result. Nothing happens when none
+/// runs.</summary>
 /// <param name="TabId">The tab.</param>
 public sealed record CancelCommitEffect(TabId TabId) : AppEffect;
 
-/// <summary>A read for the message box. It is not an operation of the tab: it ends with its own result command.</summary>
+/// <summary>A read for the message box. It is not an operation of the tab: it ends with its own result
+/// command.</summary>
 public abstract record CommitReadEffect : AppEffect
 {
     private protected CommitReadEffect(TabId tabId, RepositoryLocation location)
@@ -44,7 +46,8 @@ public abstract record CommitReadEffect : AppEffect
 public sealed record ReadHeadMessageEffect(TabId TabId, RepositoryLocation Location, string? Hash)
     : CommitReadEffect(TabId, Location);
 
-/// <summary>Read the message prepared for finishing a merge. Posts <see cref="MergeMessageRead"/> when there is one.</summary>
+/// <summary>Read the message prepared for finishing a merge. Posts <see cref="MergeMessageRead"/> when there is
+/// one.</summary>
 /// <param name="TabId">The tab.</param>
 /// <param name="Location">Where the merge is.</param>
 public sealed record ReadMergeMessageEffect(TabId TabId, RepositoryLocation Location)

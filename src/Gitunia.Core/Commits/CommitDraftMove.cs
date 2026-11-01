@@ -12,7 +12,8 @@ public sealed record CommitDraftMoved(CommitState From, CommitState To, bool Mov
 public static class CommitDraftMove
 {
     /// <summary>
-    /// Moves what a restart would keep (message, SignOff, No-Verify), never Amend, which belongs to the old repository's
+    /// Moves what a restart would keep (message, SignOff, No-Verify), never Amend, which belongs to the old
+    /// repository's
     /// HEAD. Nothing moves when the replacement has an unsent message of its own, so the caller keeps both tabs.
     /// </summary>
     /// <param name="missing">The box of the tab that is replaced.</param>

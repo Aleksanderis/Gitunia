@@ -120,6 +120,11 @@ public static partial class AppReducer
     {
         var update = WorkspaceReducer.Reduce(state.Workspace, command);
         var shell = EndFilterOutsideTab(state.Shell, update.Workspace);
+        if (shell.Mode == KeyMode.Insert && CommitSettle.OwnerClosed(state.Workspace, update.Workspace))
+        {
+            shell = shell.WithMode(KeyMode.Normal);
+        }
+
         if (shell.Prompt is { Owner: { } owner } && update.Workspace.ActiveTabId != owner)
         {
             shell = ShellReducer.Reduce(shell, new PromptCancelledCommand()).State;
