@@ -11,7 +11,6 @@ using Gitunia.Core.Status;
 using Gitunia.Git.Tests.Fixtures;
 using Gitunia.Tui.App;
 using Gitunia.Tui.App.Tabs;
-using Gitunia.Tui.App.WorkingTree;
 using Gitunia.Tui.App.Worktrees;
 using Gitunia.Tui.Loading.Commits;
 using Gitunia.Tui.Rendering.Graph;

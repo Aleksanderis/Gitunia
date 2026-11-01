@@ -1,3 +1,4 @@
+using Gitunia.Tui.App.Tabs;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Overlays;
@@ -9,7 +10,6 @@ using Gitunia.Git.Refs.Models;
 using Gitunia.Git.Remotes;
 using Gitunia.Git.Remotes.Models;
 using Gitunia.Git.Repositories.Models;
-using Gitunia.Tui.App.WorkingTree;
 
 namespace Gitunia.Tui.App.Remote;
 

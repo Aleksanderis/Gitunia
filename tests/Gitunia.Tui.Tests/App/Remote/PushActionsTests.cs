@@ -14,7 +14,6 @@ using Gitunia.Tui.App.Branches;
 using Gitunia.Git.Refs.Models;
 using Gitunia.Tui.App.Remote;
 using Gitunia.Tui.App.Tabs;
-using Gitunia.Tui.App.WorkingTree;
 using Gitunia.Tui.Loading.Commits;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Tests.Fakes;
@@ -451,6 +450,7 @@ public class PushActionsTests
                 Statuses,
                 Pump.Post,
                 _ => TestContext.Current.CancellationToken,
+                new TabOperationGate(),
                 Confirm,
                 CountRefresh,
                 mode => Mode = mode,

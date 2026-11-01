@@ -1,3 +1,4 @@
+using Gitunia.Tui.App.Tabs;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Overlays;
 using Gitunia.Core.Sidebar;
@@ -19,7 +20,6 @@ using Gitunia.Git.Tests.Fixtures;
 using Gitunia.Tui.App;
 using Gitunia.Tui.App.Branches;
 using Gitunia.Tui.App.Rebase;
-using Gitunia.Tui.App.WorkingTree;
 using Xunit;
 
 namespace Gitunia.Tui.Tests.App.Rebase;

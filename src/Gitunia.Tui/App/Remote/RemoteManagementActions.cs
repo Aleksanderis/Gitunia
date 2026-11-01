@@ -1,3 +1,4 @@
+using Gitunia.Tui.App.Tabs;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Overlays;
@@ -30,6 +31,7 @@ namespace Gitunia.Tui.App.Remote;
 /// <param name="statuses">Where the outcome is reported.</param>
 /// <param name="postToUi">Runs an action on the UI thread.</param>
 /// <param name="cancellationOf">The token that ends the work of a tab (the tab was closed).</param>
+/// <param name="busy">Marks the tab while an operation of this kind runs (one at a time; tab eviction waits for it).</param>
 /// <param name="confirm">Shows the confirm dialog and runs the callback on <c>y</c>; false when it cannot show.</param>
 /// <param name="refresh">Reads a tab again (refs, graph, status); false when it cannot.</param>
 /// <param name="setMode">Switches the keymap mode (Insert while a prompt is open).</param>
@@ -42,6 +44,7 @@ public sealed class RemoteManagementActions(
     StatusChannel statuses,
     Action<Action> postToUi,
     Func<TabId, CancellationToken> cancellationOf,
+    TabOperationGate busy,
     Func<ConfirmPrompt, Action, bool> confirm,
     Func<TabId, bool> refresh,
     Action<KeyMode> setMode,
@@ -56,7 +59,6 @@ public sealed class RemoteManagementActions(
     private const string NoRemoteNotice = "There is no remote: add one first";
     private const char RemoteSeparator = '/';
 
-    private readonly HashSet<TabId> _busy = [];
     private RemotePromptKind _kind;
     private RemotePromptKind _afterPick;
     private TabId _tabId;
@@ -220,7 +222,7 @@ public sealed class RemoteManagementActions(
 
     private string? BeginOperation(RepositoryState tab)
     {
-        if (_busy.Contains(tab.Id))
+        if (busy.IsBusy(tab.Id))
         {
             return BusyNotice;
         }
@@ -275,7 +277,7 @@ public sealed class RemoteManagementActions(
 
     private string LoadRemotes(RepositoryState tab, RemotePromptKind first)
     {
-        _busy.Add(tab.Id);
+        busy.Begin(tab.Id);
         var token = cancellationOf(tab.Id);
         var chosen = selection();
         _ = Task.Run(() => ReadRemotesAsync(tab, first, chosen, token), CancellationToken.None);
@@ -295,7 +297,7 @@ public sealed class RemoteManagementActions(
         }
         catch (OperationCanceledException)
         {
-            postToUi(() => _busy.Remove(tab.Id));
+            postToUi(() => busy.End(tab.Id));
         }
         catch (Exception exception)
         {
@@ -310,7 +312,7 @@ public sealed class RemoteManagementActions(
         BranchSelection chosen,
         IReadOnlyList<RemoteInfo> remotes)
     {
-        _busy.Remove(tab.Id);
+        busy.End(tab.Id);
         if (host.Workspace.ActiveTabId != tab.Id || _kind != RemotePromptKind.None)
         {
             return;
@@ -512,7 +514,7 @@ public sealed class RemoteManagementActions(
 
     private void StartRemove(TabId tabId, RemoteInfo remote)
     {
-        if (host.Workspace.FindTab(tabId) is not { } tab || _busy.Contains(tabId) || remoteOperationRuns(tabId))
+        if (host.Workspace.FindTab(tabId) is not { } tab || busy.IsBusy(tabId) || remoteOperationRuns(tabId))
         {
             statuses.Warning($"{BusyNotice}; nothing was removed");
             return;
@@ -528,7 +530,7 @@ public sealed class RemoteManagementActions(
     // Own busy set, not the shared operation gate: remote config changes never take the index lock.
     private void Start(RepositoryState tab, string failure, Func<CancellationToken, Task<string>> work)
     {
-        _busy.Add(tab.Id);
+        busy.Begin(tab.Id);
         var token = cancellationOf(tab.Id);
         _ = Task.Run(() => RunAsync(tab.Id, failure, work, token), CancellationToken.None);
     }
@@ -547,7 +549,7 @@ public sealed class RemoteManagementActions(
         catch (OperationCanceledException)
         {
             // Only the closing of the tab cancels; there is nothing left to refresh or report.
-            postToUi(() => _busy.Remove(tabId));
+            postToUi(() => busy.End(tabId));
         }
         catch (Exception exception)
         {
@@ -558,7 +560,7 @@ public sealed class RemoteManagementActions(
 
     private void Finish(TabId tabId, string text, StatusSeverity severity, bool refreshTab)
     {
-        _busy.Remove(tabId);
+        busy.End(tabId);
         statuses.Post(text, severity);
         if (refreshTab)
         {
