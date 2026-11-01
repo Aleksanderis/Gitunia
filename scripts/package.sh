@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Packs an AOT publish directory into a release archive plus a SHA-256 file.
 # Usage: scripts/package.sh <rid> <publish-dir> <version> <out-dir>
-# Non-Windows rids give gitunia-<version>-<rid>.tar.gz, win-* rids give .zip. Used by the release job in ci.yml.
+# Non-Windows rids give gitunia-<version>-<rid>.tar.gz, win-* rids give .zip
+# plus the bare gitunia-<version>-<rid>.exe and its .sha256 for a portable winget package (#941). Used by the release job in ci.yml.
 # Needs sha256sum (macOS will need a shasum fallback with #455).
 set -euo pipefail
 
@@ -39,4 +40,11 @@ case "$rid" in
 esac
 
 (cd "$out" && sha256sum "$archive" > "$archive.sha256")
+case "$rid" in
+  win-*)
+    # Bare binary for a portable winget package (#941).
+    bare="$name.exe"
+    cp "$src/$exe" "$out/$bare"
+    (cd "$out" && sha256sum "$bare" > "$bare.sha256") ;;
+esac
 echo "$out/$archive"
