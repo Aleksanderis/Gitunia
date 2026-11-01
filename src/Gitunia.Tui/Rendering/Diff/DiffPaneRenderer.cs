@@ -24,7 +24,7 @@ public static class DiffPaneRenderer
         return lines;
     }
 
-    /// <summary>The rows only, starting at <see cref="DiffPaneModel.TopRow"/>, padded (<see cref="PanePadding"/>); the working-tree view draws its own title on the frame.</summary>
+    /// <summary>The rows only, starting at <see cref="DiffPaneModel.TopRow"/>, padded (<see cref="PanePadding"/>); the Changes view draws its own title on the frame.</summary>
     public static IReadOnlyList<StyledLine> RenderRows(DiffPaneModel pane, int width, int contentHeight, GraphGlyphSet glyphs, int paddingColumns = PanePadding.Columns)
     {
         var lines = new List<StyledLine>(contentHeight);

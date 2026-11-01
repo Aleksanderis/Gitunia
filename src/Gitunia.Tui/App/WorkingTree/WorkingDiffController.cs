@@ -20,7 +20,7 @@ using Terminal.Gui.Views;
 namespace Gitunia.Tui.App.WorkingTree;
 
 /// <summary>
-/// Runs the diff box of the working-tree view of the active tab. It follows the file under the cursor of the focused list (the
+/// Runs the diff box of the Changes view of the active tab. It follows the file under the cursor of the focused list (the
 /// working-tree diff for a file in Unstaged, the index diff for one in Staged), loads it off the UI thread through the tab's
 /// <see cref="WorkingDiffStore"/> and shows it in the same widget as the history diff: scrolling, hunk jumps, wrap, side by side,
 /// context, search and copy. It is also the diff's search prompt, so it plugs into the same prompt list as the graph search.
@@ -69,7 +69,7 @@ public sealed class WorkingDiffController : IPromptHandler
         private set => _actions.Notice = value;
     }
 
-    /// <summary>True while the diff of the shown tab fills the whole working-tree view (the diff has focus and was zoomed).</summary>
+    /// <summary>True while the diff of the shown tab fills the whole Changes view (the diff has focus and was zoomed).</summary>
     public bool IsZoomed =>
         _activeSession()?.WorkingDiff is { IsZoomed: true }
         && WorkingPanes.IsDiff(_host.Workspace.ActiveTab?.View.FocusedPane ?? PaneKind.Graph);
@@ -286,7 +286,7 @@ public sealed class WorkingDiffController : IPromptHandler
     }
 
     /// <summary>
-    /// Asks the store for the diff of the file under the cursor of the working-tree view (or a remark when there is none). Does
+    /// Asks the store for the diff of the file under the cursor of the Changes view (or a remark when there is none). Does
     /// nothing while the view is not shown. Cheap when the same file is shown already.
     /// </summary>
     public void Sync()

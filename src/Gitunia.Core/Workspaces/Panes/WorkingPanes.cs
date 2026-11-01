@@ -5,10 +5,10 @@ namespace Gitunia.Core.Workspaces.Panes;
 /// <summary>Which working-tree pane belongs to which list: the two lists and the two sides of the diff.</summary>
 public static class WorkingPanes
 {
-    /// <summary>The panes of the working-tree view that are file lists.</summary>
+    /// <summary>The panes of the Changes view that are file lists.</summary>
     public static readonly PaneKind[] Lists = [PaneKind.WorkingUnstaged, PaneKind.WorkingStaged];
 
-    /// <summary>The panes of the working-tree view that show a diff.</summary>
+    /// <summary>The panes of the Changes view that show a diff.</summary>
     public static readonly PaneKind[] Diffs = [PaneKind.WorkingUnstagedDiff, PaneKind.WorkingStagedDiff];
 
     /// <summary>The pane is the Unstaged or Staged file list.</summary>
@@ -20,7 +20,7 @@ public static class WorkingPanes
     /// <summary>The pane is the commit message box.</summary>
     public static bool IsMessage(PaneKind pane) => pane == PaneKind.WorkingMessage;
 
-    /// <summary>The pane belongs to the working-tree view.</summary>
+    /// <summary>The pane belongs to the Changes view.</summary>
     public static bool IsWorking(PaneKind pane) => IsList(pane) || IsDiff(pane) || IsMessage(pane);
 
     /// <summary>The file list of a section.</summary>

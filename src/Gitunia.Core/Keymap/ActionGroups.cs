@@ -15,7 +15,7 @@ public static class ActionGroups
 
     public static ActionGroup Stash { get; } = new("Stash", 6);
 
-    public static ActionGroup WorkingTree { get; } = new("Working tree", 7);
+    public static ActionGroup WorkingTree { get; } = new("Changes", 7);
 
     public static ActionGroup Copy { get; } = new("Copy", 8);
 

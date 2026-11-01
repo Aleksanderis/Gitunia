@@ -22,7 +22,7 @@ Needs `git` 2.43 or newer on your `PATH`. Any terminal works; truecolor looks be
 
 - Sidebar (branches, remotes, tags, stashes, worktrees), commit graph, detail pane (Details, Changes, Files).
 - `Tab` or `Ctrl-w h/j/k/l` moves between panes; `<space>z` zooms one.
-- `<space>s` toggles the working-tree view.
+- `<space>s` toggles the Changes view.
 
 | Key | Does |
 |---|---|

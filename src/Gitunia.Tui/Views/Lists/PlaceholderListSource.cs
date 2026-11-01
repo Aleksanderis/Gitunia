@@ -8,7 +8,7 @@ using Terminal.Gui.Views;
 
 namespace Gitunia.Tui.Views.Lists;
 
-/// <summary>List source of a pane that only holds a note in its first row (a part of the working-tree view that is not built yet).</summary>
+/// <summary>List source of a pane that only holds a note in its first row (a part of the Changes view that is not built yet).</summary>
 public sealed class PlaceholderListSource(string text, GraphGlyphSet glyphs) : IListDataSource
 {
     public event NotifyCollectionChangedEventHandler? CollectionChanged

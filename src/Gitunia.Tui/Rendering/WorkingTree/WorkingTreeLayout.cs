@@ -6,7 +6,7 @@ using Gitunia.Tui.Rendering.Screen;
 namespace Gitunia.Tui.Rendering.WorkingTree;
 
 /// <summary>
-/// Lays out the working-tree view inside the frame (docs/ux-workflows.md, workflow 2): the Unstaged and Staged lists stacked on the left, the
+/// Lays out the Changes view inside the frame (docs/ux-workflows.md, workflow 2): the Unstaged and Staged lists stacked on the left, the
 /// diff on top of the message box on the right; the sidebar is hidden, so the view gets the whole width. Screens narrower than
 /// <see cref="MinimumWidthForSideBySide"/> columns show one pane at a time: the focused list, or the diff once it has focus. Boxes share their edges
 /// (one line between two panes), as in <see cref="PaneLayout"/>.

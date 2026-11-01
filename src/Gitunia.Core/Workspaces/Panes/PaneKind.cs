@@ -8,10 +8,10 @@ public enum PaneKind
     Detail,
     Diff,
 
-    /// <summary>The Unstaged file list of the working-tree view (that view only).</summary>
+    /// <summary>The Unstaged file list of the Changes view (that view only).</summary>
     WorkingUnstaged,
 
-    /// <summary>The Staged file list of the working-tree view (that view only).</summary>
+    /// <summary>The Staged file list of the Changes view (that view only).</summary>
     WorkingStaged,
 
     /// <summary>The diff of the file selected in the Unstaged list (that view only).</summary>
@@ -20,6 +20,6 @@ public enum PaneKind
     /// <summary>The diff of the file selected in the Staged list (that view only).</summary>
     WorkingStagedDiff,
 
-    /// <summary>The commit message box of the working-tree view (that view only).</summary>
+    /// <summary>The commit message box of the Changes view (that view only).</summary>
     WorkingMessage,
 }

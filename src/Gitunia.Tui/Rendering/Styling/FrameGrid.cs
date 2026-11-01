@@ -50,7 +50,7 @@ public sealed class FrameGrid
         return grid;
     }
 
-    /// <summary>The grid of a screen made of free boxes (the working-tree view), which share the edge between neighbours.</summary>
+    /// <summary>The grid of a screen made of free boxes (the Changes view), which share the edge between neighbours.</summary>
     /// <param name="width">Terminal columns.</param>
     /// <param name="height">Terminal rows.</param>
     /// <param name="boxes">The panes.</param>

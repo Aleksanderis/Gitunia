@@ -67,7 +67,7 @@ All take the repository location, are never `ReadOnly`, and run one at a time pe
 
 Rules: `.claude/rules/git-layer.md`.
 
-- **Diffs.** `DiffReader.ReadAsync(location, ["diff", ...])` streams `DiffFile` > `DiffHunk` > `DiffLine`, addressed by file, hunk and line index with old/new line numbers. Headers and hunk lines are kept verbatim so patches reproduce git's text. Binary files carry no hunks, only header lines. `IDiffReader.ReadWorkingFileAsync` reads one file of the working-tree view (unstaged, staged, untracked via `--no-index`, conflicted via `DiffParser(readsCombined: true)`); paths go as `:(literal)` pathspecs after `--`. Limits, combined diffs and non-UTF-8 handling: `docs/history/git-layer.md`.
+- **Diffs.** `DiffReader.ReadAsync(location, ["diff", ...])` streams `DiffFile` > `DiffHunk` > `DiffLine`, addressed by file, hunk and line index with old/new line numbers. Headers and hunk lines are kept verbatim so patches reproduce git's text. Binary files carry no hunks, only header lines. `IDiffReader.ReadWorkingFileAsync` reads one file of the Changes view (unstaged, staged, untracked via `--no-index`, conflicted via `DiffParser(readsCombined: true)`); paths go as `:(literal)` pathspecs after `--`. Limits, combined diffs and non-UTF-8 handling: `docs/history/git-layer.md`.
 
 ## Models
 

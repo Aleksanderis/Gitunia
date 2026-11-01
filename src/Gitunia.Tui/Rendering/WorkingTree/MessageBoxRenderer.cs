@@ -9,7 +9,7 @@ using Gitunia.Tui.Rendering.Styling;
 namespace Gitunia.Tui.Rendering.WorkingTree;
 
 /// <summary>
-/// Draws the commit message box of the working-tree view: the editor rows and the option row below them with the SignOff,
+/// Draws the commit message box of the Changes view: the editor rows and the option row below them with the SignOff,
 /// No-Verify and Amend checkboxes and the Commit button (ux-workflows.md, workflow 2). The checkboxes and the button are the mouse path of
 /// <c>Alt-s</c>, <c>Alt-n</c>, <c>Alt-a</c> and the commit key; <see cref="Buttons"/> says where they are for clicks.
 /// The Commit button is a <see cref="KeyedChip"/> showing the key the keymap gives it in Insert mode (where the box is

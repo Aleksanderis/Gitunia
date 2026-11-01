@@ -17,7 +17,7 @@ public sealed class WorkingDiffSession(WorkingDiffStore store, GraphGlyphSet gly
 
     public DiffSearchState Search { get; set; } = DiffSearchState.Idle;
 
-    /// <summary>The diff fills the whole working-tree view (<c>&lt;space&gt;z</c>); ends when focus leaves the diff.</summary>
+    /// <summary>The diff fills the whole Changes view (<c>&lt;space&gt;z</c>); ends when focus leaves the diff.</summary>
     public bool IsZoomed { get; set; }
 
     /// <summary>The cursor row, remembered so switching tabs and back keeps the place.</summary>

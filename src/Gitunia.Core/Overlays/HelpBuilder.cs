@@ -54,7 +54,7 @@ public static class HelpBuilder
             [DefaultKeymap.DetailView, DefaultKeymap.DetailChangesView, DefaultKeymap.DetailFilesView]),
         new("Diff", [DefaultKeymap.DiffView]),
         new(
-            "Working tree",
+            "Changes",
             [
                 DefaultKeymap.WorkingUnstagedView,
                 DefaultKeymap.WorkingStagedView,

@@ -297,7 +297,7 @@ public class WorkingTreeActionHandlerTests
 
         Assert.True(harness.Handler.TryExecute(ActionIds.SearchOpen, null));
 
-        Assert.Contains("not available in the working-tree view", harness.Handler.Message, StringComparison.Ordinal);
+        Assert.Contains("not available in the Changes view", harness.Handler.Message, StringComparison.Ordinal);
     }
 
     [Theory]

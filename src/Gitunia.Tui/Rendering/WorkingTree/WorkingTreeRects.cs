@@ -2,7 +2,7 @@ using Gitunia.Tui.Rendering.Panes;
 
 namespace Gitunia.Tui.Rendering.WorkingTree;
 
-/// <summary>Where the panes of the working-tree view sit (content rectangles; a pane that is not shown is empty).</summary>
+/// <summary>Where the panes of the Changes view sit (content rectangles; a pane that is not shown is empty).</summary>
 /// <param name="Unstaged">The Unstaged file list.</param>
 /// <param name="Staged">The Staged file list.</param>
 /// <param name="Diff">The diff of the selected file (a placeholder until the diff pane arrives).</param>

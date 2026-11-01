@@ -166,8 +166,8 @@ public static class SessionDocumentMapper
         return new RepositoryViewState(selected, Math.Max(0, tab.ScrollOffset), tab.FilterText ?? string.Empty, pane, PositiveOrNull(tab.SidebarWidth), PositiveOrNull(tab.BottomHeight), PositiveOrNull(tab.DetailWidth), bottomTab);
     }
 
-    // Neither the diff pane nor the working-tree view is open after a restart: a tab that had the diff focused comes back on the
-    // file list, and one that was in the working-tree view comes back on the graph.
+    // Neither the diff pane nor the Changes view is open after a restart: a tab that had the diff focused comes back on the
+    // file list, and one that was in the Changes view comes back on the graph.
     private static PaneKind SavedPane(PaneKind pane) => pane switch
     {
         PaneKind.Diff => PaneKind.Detail,

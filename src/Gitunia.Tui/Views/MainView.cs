@@ -383,7 +383,7 @@ public sealed class MainView : IDisposable
     /// <summary>True while panes are shown or hidden: the toolkit moves the focus on its own then, which is not the user's choice.</summary>
     public bool IsChangingVisibility { get; private set; }
 
-    /// <summary>The pane that has focus in the working-tree view, from the tab's state; the layout of a narrow screen follows it.</summary>
+    /// <summary>The pane that has focus in the Changes view, from the tab's state; the layout of a narrow screen follows it.</summary>
     public Func<PaneKind> WorkingFocus { get; set; } = () => PaneKind.WorkingUnstaged;
 
     /// <summary>The keymap view of the diff box (the side of the selected file), for the mouse map.</summary>
@@ -392,28 +392,28 @@ public sealed class MainView : IDisposable
     /// <summary>The staging buttons of the diff box's title row: those of the selected file's side.</summary>
     public Func<WorkingTreeButtons> WorkingDiffButtons { get; set; } = () => WorkingTreeButtons.None;
 
-    /// <summary>True while the diff box fills the whole working-tree view (<c>&lt;space&gt;z</c>).</summary>
+    /// <summary>True while the diff box fills the whole Changes view (<c>&lt;space&gt;z</c>).</summary>
     public Func<bool> IsWorkingDiffZoomed { get; set; } = () => false;
 
-    /// <summary>The title of the diff box of the working-tree view: side, hunk and file.</summary>
+    /// <summary>The title of the diff box of the Changes view: side, hunk and file.</summary>
     public Func<string> WorkingDiffTitle { get; set; } = () => WorkingTreePaneRenderer.DiffTitleName;
 
-    /// <summary>The rows of the Unstaged list of the working-tree view.</summary>
+    /// <summary>The rows of the Unstaged list of the Changes view.</summary>
     public WorkingTreeListSource UnstagedSource { get; }
 
-    /// <summary>The rows of the Staged list of the working-tree view.</summary>
+    /// <summary>The rows of the Staged list of the Changes view.</summary>
     public WorkingTreeListSource StagedSource { get; }
 
-    /// <summary>The Unstaged file list of the working-tree view.</summary>
+    /// <summary>The Unstaged file list of the Changes view.</summary>
     public PaneListView WorkingUnstaged { get; }
 
-    /// <summary>The Staged file list of the working-tree view.</summary>
+    /// <summary>The Staged file list of the Changes view.</summary>
     public PaneListView WorkingStaged { get; }
 
-    /// <summary>The diff box of the working-tree view.</summary>
+    /// <summary>The diff box of the Changes view.</summary>
     public PaneListView WorkingDiff { get; }
 
-    /// <summary>The editor rows of the commit message box of the working-tree view (the option row below them is a separate row).</summary>
+    /// <summary>The editor rows of the commit message box of the Changes view (the option row below them is a separate row).</summary>
     public PaneListView WorkingMessage { get; }
 
     /// <summary>The commit draft of the active tab, null when it has none; the message box and its option row show it.</summary>
@@ -474,7 +474,7 @@ public sealed class MainView : IDisposable
         Graph.SetNeedsDraw();
     }
 
-    /// <summary>Shows the working-tree view in place of the sidebar, graph and detail panes, or those again.</summary>
+    /// <summary>Shows the Changes view in place of the sidebar, graph and detail panes, or those again.</summary>
     public void ShowWorkingTree(bool isShown)
     {
         if (_isWorkingMode == isShown)

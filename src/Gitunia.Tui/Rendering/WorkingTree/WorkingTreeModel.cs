@@ -5,7 +5,7 @@ using Gitunia.Tui.Rendering.Diff;
 
 namespace Gitunia.Tui.Rendering.WorkingTree;
 
-/// <summary>What the working-tree view shows. Plain data, so a frame renders without a terminal.</summary>
+/// <summary>What the Changes view shows. Plain data, so a frame renders without a terminal.</summary>
 /// <param name="Tree">The status and the selection, null while the tab has not read its status.</param>
 /// <param name="Focused">The focused pane: one of the two lists, one of the two diffs or the message box.</param>
 /// <param name="UnstagedTop">Index of the first visible Unstaged row.</param>

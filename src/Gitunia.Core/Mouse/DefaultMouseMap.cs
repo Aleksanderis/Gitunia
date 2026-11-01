@@ -8,7 +8,7 @@ public static class DefaultMouseMap
     /// <summary>The view of the tab row.</summary>
     public const string TabsView = "Tabs";
 
-    /// <summary>The <c>*</c> of a dirty tab chip; a click activates that tab and opens its working-tree view (#331).</summary>
+    /// <summary>The <c>*</c> of a dirty tab chip; a click activates that tab and opens its Changes view (#331).</summary>
     public const string TabDirtyMarker = "TabDirtyMarker";
 
     /// <summary>The commands button at the right end of the tab row; a click opens the command palette, the menu of every action.</summary>

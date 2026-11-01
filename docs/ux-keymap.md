@@ -53,7 +53,7 @@ The Changes tab, both working-tree lists and the Files tab use the same componen
 Changes and the working-tree lists offer the path style (`name first`, `full path`, `tree`, set directly; `<space>vn` still cycles), the Files tab the path filter (its only display option; the same as `/`).
 A tab without options (Details) has no chip and `<space>vv` is not bound there.
 
-**Grouped actions (#483).** The palette and the actions menu list actions under non-selectable subheaders (`Branch`, `Merge and rebase`, `Tag`, `Worktree`, `Stash`, `Working tree`, `Copy`, `Diff`, `Details`, `External tools`, `Navigate`, `View`, `Tabs`, `General`).
+**Grouped actions (#483).** The palette and the actions menu list actions under non-selectable subheaders (`Branch`, `Merge and rebase`, `Tag`, `Worktree`, `Stash`, `Changes`, `Copy`, `Diff`, `Details`, `External tools`, `Navigate`, `View`, `Tabs`, `General`).
 The group of an action comes from `ActionCatalog.GroupOf` (metadata, not a per-list hand-written list; a test fails when a bound action has none) and the which-key popup names its chord groups by noun (`WhichKeyBuilder`, one name per prefix).
 `j`/`k`, the wheel and clicks only ever land on actions: a click on a subheader or a gap does nothing.
 A blank gap line precedes every subheader except the first (#489), like the help overlay's sections, so it is visible in every colour tier and the ASCII set; on a short screen the gaps are dropped before any row (the menu when gaps plus rows exceed its height, the scrolling palette when it has fewer than 8 list rows).
@@ -247,7 +247,7 @@ Grouped as the palette groups them (`ActionCatalog.GroupOf`). "Old" lists every 
 | `stash.push-untracked` | Stash the tracked and untracked changes (asks for a message) | `<space>Su` | `<space>ku` | Advanced+ |  |
 | `stash.restore-file` | Restore the selected file of the shown stash into the working tree (asks first) | (new, #710) | `<space>kr` | Advanced+ | detail pane, Changes tab |
 
-**Working tree**
+**Changes view**
 
 | Action | What | Old | New | Level | Note |
 |---|---|---|---|---|---|

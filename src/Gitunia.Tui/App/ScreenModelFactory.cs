@@ -40,7 +40,7 @@ public static class ScreenModelFactory
         var position = selectedItem is { } item && loaded > 0 ? Math.Clamp(item - ScreenLayout.ReservedLeadingRows, 0, loaded - 1) + 1 : 0;
         if (tab is { View.Mode: TabViewMode.WorkingTree })
         {
-            // The working-tree view counts the files of the list the cursor is in.
+            // The Changes view counts the files of the list the cursor is in.
             var place = WorkingTreePosition.From(tab.WorkingTree);
             position = place.Selected;
             loaded = place.Count;

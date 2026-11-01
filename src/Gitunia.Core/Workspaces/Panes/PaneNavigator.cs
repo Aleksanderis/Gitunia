@@ -56,7 +56,7 @@ public static class PaneNavigator
 
         if (current is PaneKind.WorkingUnstaged or PaneKind.WorkingStaged)
         {
-            // The working-tree view stacks the lists: Unstaged above Staged.
+            // The Changes view stacks the lists: Unstaged above Staged.
             var listTarget = down ? PaneKind.WorkingStaged : PaneKind.WorkingUnstaged;
             return available.Contains(listTarget) ? listTarget : current;
         }

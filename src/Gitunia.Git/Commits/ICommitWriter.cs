@@ -3,7 +3,7 @@ using Gitunia.Git.Repositories.Models;
 
 namespace Gitunia.Git.Commits;
 
-/// <summary>Creates commits; the seam the working-tree view uses so tests can replace git.</summary>
+/// <summary>Creates commits; the seam the Changes view uses so tests can replace git.</summary>
 public interface ICommitWriter
 {
     /// <summary>

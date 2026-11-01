@@ -6,6 +6,6 @@ public enum TabViewMode
     /// <summary>The graph with the sidebar and the commit detail pane.</summary>
     History,
 
-    /// <summary>The working-tree view: Unstaged and Staged lists, the diff and the commit message box.</summary>
+    /// <summary>The Changes view: Unstaged and Staged lists, the diff and the commit message box.</summary>
     WorkingTree,
 }

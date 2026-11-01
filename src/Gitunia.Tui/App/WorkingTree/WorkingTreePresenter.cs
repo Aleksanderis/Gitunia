@@ -9,7 +9,7 @@ using Terminal.Gui.Views;
 namespace Gitunia.Tui.App.WorkingTree;
 
 /// <summary>
-/// Keeps the working-tree view in step with the active tab's state: shows or hides it, gives the two lists their rows and moves
+/// Keeps the Changes view in step with the active tab's state: shows or hides it, gives the two lists their rows and moves
 /// each list's cursor to the state's selection. A row the user clicked is sent back as a command.
 /// </summary>
 public sealed class WorkingTreePresenter
@@ -30,7 +30,7 @@ public sealed class WorkingTreePresenter
         view.WorkingDiffView = DiffView;
     }
 
-    /// <summary>The pane of the active tab that has focus in the working-tree view: a list, a diff or the message box, the Unstaged list when the focus is elsewhere.</summary>
+    /// <summary>The pane of the active tab that has focus in the Changes view: a list, a diff or the message box, the Unstaged list when the focus is elsewhere.</summary>
     public PaneKind FocusedPane() =>
         _host.Workspace.ActiveTab?.View.FocusedPane is { } pane && WorkingPanes.IsWorking(pane) ? pane : PaneKind.WorkingUnstaged;
 

@@ -7,7 +7,7 @@ using Gitunia.Git.Status.Models;
 namespace Gitunia.Tui.Loading.Diff;
 
 /// <summary>
-/// The diff of the file under the cursor of the working-tree view of one tab, read off the UI thread and flattened into a
+/// The diff of the file under the cursor of the Changes view of one tab, read off the UI thread and flattened into a
 /// <see cref="DiffDocument"/>. Asking again for the same file in the same status generation costs nothing; asking for another
 /// one cancels the load in flight. A new generation (the status was read again, so the file may have changed even though its status
 /// letters did not) drops the cache and reloads the shown file; while it loads the old rows stay, so a refresh never blanks the pane.
