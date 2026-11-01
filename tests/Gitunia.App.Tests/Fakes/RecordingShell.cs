@@ -1,5 +1,8 @@
 using Gitunia.Core.Clipboard;
 using Gitunia.Core.Config.Models;
+using Gitunia.Core.Conflicts;
+using Gitunia.Core.FileTree;
+using Gitunia.Core.ExternalTools;
 using Gitunia.Core.Picker;
 using Gitunia.Core.Reflog;
 using Gitunia.Core.Staging;
@@ -14,23 +17,31 @@ public sealed class RecordingShell : IShellEffects
 
     public List<ReflogEntryActionEffect> EntryActions { get; } = [];
 
+    public List<StageResolvedConflictEffect> StagedConflicts { get; } = [];
+
     public List<ConfigOptions> AppliedOptions { get; } = [];
 
     public List<ThemeChoice> AppliedThemes { get; } = [];
 
     public int EditorOpened { get; private set; }
 
+    public List<LaunchExternalToolEffect> Tools { get; } = [];
+
     public List<MoveCommitDraftEffect> DraftMoves { get; } = [];
 
     public bool DraftMoveResult { get; set; } = true;
 
-    public List<MoveDiffCursorEffect> CursorMoves { get; } = [];
+    public List<MoveDiffCursorEffect> DiffCursorMoves { get; } = [];
 
     public int Flushed { get; private set; }
 
     public bool FlushSucceeds { get; set; } = true;
 
     public int Quits { get; private set; }
+
+    public List<int> CursorMoves { get; } = [];
+
+    public List<string> OpenedFiles { get; } = [];
 
     public void CopyToClipboard(CopyToClipboardEffect effect)
     {
@@ -41,13 +52,17 @@ public sealed class RecordingShell : IShellEffects
 
     public void StartReflogEntryAction(ReflogEntryActionEffect effect) => EntryActions.Add(effect);
 
+    public void StageResolvedConflict(StageResolvedConflictEffect effect) => StagedConflicts.Add(effect);
+
     public void ApplyOptions(ConfigOptions options) => AppliedOptions.Add(options);
 
     public void ApplyTheme(ThemeChoice theme) => AppliedThemes.Add(theme);
 
     public void OpenConfigEditor() => EditorOpened++;
 
-    public void MoveDiffCursor(MoveDiffCursorEffect effect) => CursorMoves.Add(effect);
+    public void MoveDiffCursor(MoveDiffCursorEffect effect) => DiffCursorMoves.Add(effect);
+
+    public void LaunchExternalTool(LaunchExternalToolEffect effect) => Tools.Add(effect);
 
     public bool MoveCommitDraft(TabId missing, TabId target)
     {
@@ -62,6 +77,10 @@ public sealed class RecordingShell : IShellEffects
 
         return FlushSucceeds;
     }
+
+    public void MoveDetailCursor(int row) => CursorMoves.Add(row);
+
+    public void OpenFileContent(FileTreeRow row) => OpenedFiles.Add(row.Path);
 
     public void Quit() => Quits++;
 }

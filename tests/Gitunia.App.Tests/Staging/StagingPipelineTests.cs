@@ -98,7 +98,7 @@ public class StagingPipelineTests
         pipeline.Dispatch(
             new StagingSucceeded(pipeline.TabId, "Staged change", StatusSeverity.Info, new StagingFollow(Move: move)));
 
-        Assert.Equal(new MoveDiffCursorEffect(pipeline.TabId, move), Assert.Single(shell.CursorMoves));
+        Assert.Equal(new MoveDiffCursorEffect(pipeline.TabId, move), Assert.Single(shell.DiffCursorMoves));
     }
 
     private static bool IsStaging(FeaturePipeline pipeline) =>

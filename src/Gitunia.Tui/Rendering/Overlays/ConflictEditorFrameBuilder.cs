@@ -100,12 +100,50 @@ public static class ConflictEditorFrameBuilder
         int frameHeight,
         ChipKeys? keys = null)
     {
+        if (Measure(ChipSetOf(state), screenWidth, frameHeight, keys) is not { } measure)
+        {
+            return null;
+        }
+
+        var firstChipLine = ConflictEditorLayout.VersionStartLine + measure.VersionRows + 2 + measure.ResultRows + 1;
+
+        return new ConflictEditorLayout(
+            screenWidth,
+            PanesFor(state, screenWidth),
+            measure.VersionRows,
+            measure.ResultRows,
+            measure.ChipRows,
+            firstChipLine);
+    }
+
+    /// <summary>
+    /// The pane rows for every set of hint chips the editor shows, or null when the screen is too small to draw the
+    /// editor. The reducer scrolls the panes to the cursor with the set that fits the state it computed.
+    /// </summary>
+    /// <param name="screenWidth">Columns of the terminal.</param>
+    /// <param name="frameHeight">Rows available to the frame: the terminal height minus the status bar.</param>
+    /// <param name="keys">Where the chips take their key text from; null uses the default keymap.</param>
+    public static ConflictViewports? ViewportsFor(int screenWidth, int frameHeight, ChipKeys? keys = null)
+    {
+        if (Measure(ChipSetKind.Versions, screenWidth, frameHeight, keys) is not { } versions
+            || Measure(ChipSetKind.Result, screenWidth, frameHeight, keys) is not { } result
+            || Measure(ChipSetKind.Visual, screenWidth, frameHeight, keys) is not { } visual
+            || Measure(ChipSetKind.Editing, screenWidth, frameHeight, keys) is not { } editing)
+        {
+            return null;
+        }
+
+        return new ConflictViewports(versions.Viewport, result.Viewport, visual.Viewport, editing.Viewport);
+    }
+
+    private static PaneMeasure? Measure(ChipSetKind kind, int screenWidth, int frameHeight, ChipKeys? keys)
+    {
         if (screenWidth < MinimumWidth || frameHeight < MinimumHeight)
         {
             return null;
         }
 
-        var chipRows = ChipRowsFor(state, screenWidth, frameHeight, keys);
+        var chipRows = ChipRowsFor(kind, screenWidth, frameHeight, keys);
         var available = frameHeight - ChromeRows - ChipBlock(chipRows);
         if (available < MinimumPaneRows * 2)
         {
@@ -114,16 +152,8 @@ public static class ConflictEditorFrameBuilder
         }
 
         var versionRows = Math.Max(MinimumPaneRows, available * VersionShare / VersionShareOf);
-        var resultRows = available - versionRows;
-        var firstChipLine = ConflictEditorLayout.VersionStartLine + versionRows + 2 + resultRows + 1;
 
-        return new ConflictEditorLayout(
-            screenWidth,
-            PanesFor(state, screenWidth),
-            versionRows,
-            resultRows,
-            chipRows,
-            firstChipLine);
+        return new PaneMeasure(versionRows, available - versionRows, chipRows);
     }
 
     /// <summary>The frame for a screen, or null when the screen is too small to show it.</summary>
@@ -304,7 +334,7 @@ public static class ConflictEditorFrameBuilder
     private static int ChipBlock(List<List<HintChip>> chipRows) => chipRows.Count == 0 ? 0 : chipRows.Count + 1;
 
     private static List<List<HintChip>> ChipRowsFor(
-        ConflictEditorState state,
+        ChipSetKind kind,
         int screenWidth,
         int frameHeight,
         ChipKeys? keys)
@@ -319,28 +349,24 @@ public static class ConflictEditorFrameBuilder
             maximum = 2;
         }
 
-        return [.. HintChipRows.Flow(ChipSetFor(state, keys), screenWidth).Take(maximum)];
+        return [.. HintChipRows.Flow(ChipSetFor(kind, keys), screenWidth).Take(maximum)];
     }
 
-    private static HintChip[] ChipSetFor(ConflictEditorState state, ChipKeys? keys)
+    private static HintChip[] ChipSetFor(ChipSetKind kind, ChipKeys? keys) => kind switch
     {
-        if (state.IsEditing)
-        {
-            return HintChipRows.WithKeys(EditingChips, keys, DefaultKeymap.ConflictResultView, KeyMode.Insert);
-        }
-
-        if (state.IsVisual)
-        {
-            return HintChipRows.WithKeys(VisualChips, keys, DefaultKeymap.ConflictSideView, KeyMode.Visual);
-        }
-
-        if (state.IsVersionPane)
-        {
-            return HintChipRows.WithKeys(VersionChips, keys, DefaultKeymap.ConflictSideView);
-        }
-
-        return HintChipRows.WithKeys(ResultChips, keys, DefaultKeymap.ConflictResultView);
-    }
+        ChipSetKind.Editing => HintChipRows.WithKeys(
+            EditingChips,
+            keys,
+            DefaultKeymap.ConflictResultView,
+            KeyMode.Insert),
+        ChipSetKind.Visual => HintChipRows.WithKeys(
+            VisualChips,
+            keys,
+            DefaultKeymap.ConflictSideView,
+            KeyMode.Visual),
+        ChipSetKind.Versions => HintChipRows.WithKeys(VersionChips, keys, DefaultKeymap.ConflictSideView),
+        _ => HintChipRows.WithKeys(ResultChips, keys, DefaultKeymap.ConflictResultView),
+    };
 
     private static List<ConflictPane> PanesFor(ConflictEditorState state, int screenWidth)
     {
@@ -586,4 +612,32 @@ public static class ConflictEditorFrameBuilder
     // Corners and junctions are a plus sign in the ASCII set, as in the other overlays.
     private static char Joint(GraphGlyphSet glyphs, LineDirections directions) =>
         glyphs.IsAscii ? '+' : glyphs.For(directions);
+
+    private static ChipSetKind ChipSetOf(ConflictEditorState state)
+    {
+        if (state.IsEditing)
+        {
+            return ChipSetKind.Editing;
+        }
+
+        if (state.IsVisual)
+        {
+            return ChipSetKind.Visual;
+        }
+
+        return state.IsVersionPane ? ChipSetKind.Versions : ChipSetKind.Result;
+    }
+
+    private enum ChipSetKind
+    {
+        Versions,
+        Result,
+        Visual,
+        Editing,
+    }
+
+    private sealed record PaneMeasure(int VersionRows, int ResultRows, List<List<HintChip>> ChipRows)
+    {
+        public ConflictViewport Viewport => new(VersionRows, ResultRows);
+    }
 }

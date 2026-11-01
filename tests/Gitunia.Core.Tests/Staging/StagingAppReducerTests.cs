@@ -18,7 +18,6 @@ using static Gitunia.Tui.Tests.Rendering.WorkingTree.WorkingTreeEntries;
 namespace Gitunia.Core.Tests.Staging;
 
 // The staging reducer inside the root reducer: running marks, exclusion, dropped late commands and the open dialog.
-[Trait("Os", "Independent")]
 public class StagingAppReducerTests
 {
     [Fact]

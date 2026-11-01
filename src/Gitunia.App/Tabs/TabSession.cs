@@ -74,13 +74,9 @@ public class TabSession : IGraphSession, IDisposable
     /// <summary>The details of the commit selected in the graph, loaded on demand.</summary>
     public CommitDetailsStore Details { get; }
 
-    /// <summary>The tab's Files tab (tree store, opened directories, filter); null in sessions built without a tree
+    /// <summary>The tab's Files tab (the tree store and the cache of its rows); null in sessions built without a tree
     /// store (tests).</summary>
     public FileTreeSession? Tree { get; }
-
-    /// <summary>The folders of the Changes tab's tree style that are closed (paths from the repository root); kept for
-    /// the tab's lifetime, not saved with the session.</summary>
-    public HashSet<string> CollapsedFolders { get; } = new(StringComparer.Ordinal);
 
     /// <summary>The detail row last selected on each bottom tab for the commit shown; cleared when another commit is selected.</summary>
     public DetailCursorMemory DetailCursor { get; } = new();

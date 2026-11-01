@@ -1,3 +1,4 @@
+using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Tui.Rendering.Panes;
 using Gitunia.Tui.Rendering.Styling;
 
@@ -16,10 +17,10 @@ public static class ScreenLayout
     public const int FrameTop = 1;
 
     /// <summary>The first row of the panes below the frame's top edge.</summary>
-    public const int GraphTop = 2;
+    public const int GraphTop = PaneSizing.GraphTop;
 
     /// <summary>Columns taken by the frame's left and right edges.</summary>
-    public const int FrameColumns = 2;
+    public const int FrameColumns = PaneSizing.FrameColumns;
 
     /// <summary>Rows of the graph list that precede the first commit: the slot reserved for the working-tree pseudo-row (none yet).</summary>
     public const int ReservedLeadingRows = 0;
@@ -29,19 +30,19 @@ public static class ScreenLayout
     public const int MinimumHeightWithBanner = 10;
 
     /// <summary>Narrowest terminal that still shows the sidebar; below it the graph gets the whole width.</summary>
-    public const int MinimumWidthWithSidebar = 60;
+    public const int MinimumWidthWithSidebar = PaneSizing.MinimumWidthWithSidebar;
 
     /// <summary>Columns of the sidebar (between the left edge and the divider) on a screen of <paramref name="screenWidth"/> columns, 0 when it is hidden.</summary>
-    public static int SidebarWidth(int screenWidth) => screenWidth < MinimumWidthWithSidebar ? 0 : Math.Clamp(screenWidth / 4, 20, 36);
+    public static int SidebarWidth(int screenWidth) => PaneSizing.AutomaticSidebarWidth(screenWidth);
 
     /// <summary>First column of the graph: after the left edge, the sidebar and its divider.</summary>
     public static int GraphLeft(int screenWidth) => SidebarWidth(screenWidth) is var sidebar and > 0 ? sidebar + 2 : 1;
 
     /// <summary>Columns between the frame's left and right edges.</summary>
-    public static int InnerWidth(int screenWidth) => Math.Max(0, screenWidth - FrameColumns);
+    public static int InnerWidth(int screenWidth) => PaneSizing.InnerWidth(screenWidth);
 
     /// <summary>Rows for the graph in a screen of <paramref name="screenHeight"/> rows: below the top edge and above the bottom edge and the status bar.</summary>
-    public static int GraphHeight(int screenHeight) => Math.Max(0, screenHeight - GraphTop - 2);
+    public static int GraphHeight(int screenHeight) => PaneSizing.AreaHeight(screenHeight);
 
     /// <summary>The row of the frame's bottom edge.</summary>
     public static int FrameBottom(int screenHeight) => Math.Max(0, screenHeight - 2);

@@ -1,5 +1,8 @@
 using Gitunia.Core.Clipboard;
 using Gitunia.Core.Config.Models;
+using Gitunia.Core.Conflicts;
+using Gitunia.Core.FileTree;
+using Gitunia.Core.ExternalTools;
 using Gitunia.Core.Reflog;
 using Gitunia.Core.Staging;
 using Gitunia.Core.Workspaces.Tabs;
@@ -23,6 +26,10 @@ public sealed class NoShellEffects : IShellEffects
     {
     }
 
+    public void StageResolvedConflict(StageResolvedConflictEffect effect)
+    {
+    }
+
     public void ApplyOptions(ConfigOptions options)
     {
     }
@@ -35,9 +42,21 @@ public sealed class NoShellEffects : IShellEffects
     {
     }
 
+    public void LaunchExternalTool(LaunchExternalToolEffect effect)
+    {
+    }
+
     public bool MoveCommitDraft(TabId missing, TabId target) => true;
 
     public void MoveDiffCursor(MoveDiffCursorEffect effect)
+    {
+    }
+
+    public void MoveDetailCursor(int row)
+    {
+    }
+
+    public void OpenFileContent(FileTreeRow row)
     {
     }
 

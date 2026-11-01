@@ -1,5 +1,8 @@
 using Gitunia.Core.Clipboard;
 using Gitunia.Core.Config.Models;
+using Gitunia.Core.Conflicts;
+using Gitunia.Core.FileTree;
+using Gitunia.Core.ExternalTools;
 using Gitunia.Core.Reflog;
 using Gitunia.Core.Staging;
 using Gitunia.Core.Workspaces.Tabs;
@@ -26,6 +29,12 @@ public interface IShellEffects
     /// </summary>
     void StartReflogEntryAction(ReflogEntryActionEffect effect);
 
+    /// <summary>
+    /// Marks a saved, fully resolved conflicted file as resolved (stages it) and reports; staging has not moved to
+    /// commands yet.
+    /// </summary>
+    void StageResolvedConflict(StageResolvedConflictEffect effect);
+
     /// <summary>Makes the options of the config file take effect in the running app.</summary>
     void ApplyOptions(ConfigOptions options);
 
@@ -35,6 +44,9 @@ public interface IShellEffects
     /// <summary>Opens the config file in the editor; <c>SettingsEditorClosed</c> follows when it closes.</summary>
     void OpenConfigEditor();
 
+    /// <summary>Suspends the UI, runs the git tool on the real terminal and refreshes the tab afterwards.</summary>
+    void LaunchExternalTool(LaunchExternalToolEffect effect);
+
     /// <summary>Moves the unsent commit message of a missing tab to the tab that replaces it. False when the other tab
     /// holds its own message and nothing moved.</summary>
     bool MoveCommitDraft(TabId missing, TabId target);
@@ -42,6 +54,12 @@ public interface IShellEffects
     /// <summary>Moves the cursor of the Changes view diff of the tab after a staged hunk or range was read again; does
     /// nothing when the tab is not the one shown.</summary>
     void MoveDiffCursor(MoveDiffCursorEffect effect);
+
+    /// <summary>Moves the cursor of the detail list to a row.</summary>
+    void MoveDetailCursor(int row);
+
+    /// <summary>Shows the content of a file row of the Files tab in the diff pane's place; reports why it cannot.</summary>
+    void OpenFileContent(FileTreeRow row);
 
     /// <summary>Saves the session now; false when the save failed.</summary>
     bool FlushSession();

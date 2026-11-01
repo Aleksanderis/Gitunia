@@ -22,6 +22,21 @@ public class MessageEditorTests
     }
 
     [Fact]
+    public void GivenAnEditor_WhenCloned_ThenTheCopyHasTheTextCursorAndRememberedColumnAndEditsApartFromIt()
+    {
+        var editor = Type("a long first line", KeyNames.Enter, "short");
+        editor.Apply(new KeyEvent(KeyNames.Up));
+
+        var copy = editor.Clone();
+        copy.Apply(new KeyEvent("!"));
+
+        Assert.Equal("a long first line\nshort", editor.Text);
+        Assert.Equal("a long first line\nshort", copy.Text.Replace("!", string.Empty, StringComparison.Ordinal));
+        Assert.Equal(0, copy.CursorRow);
+        Assert.Equal(editor.CursorColumn + 1, copy.CursorColumn);
+    }
+
+    [Fact]
     public void GivenBackspace_WhenAtLineStart_ThenLinesJoinAndCursorStaysAtTheJoin()
     {
         var editor = Editor("ab\ncd");

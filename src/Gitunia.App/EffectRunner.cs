@@ -1,9 +1,12 @@
+using Gitunia.Git.Staging;
 using Gitunia.App.Background;
 using Gitunia.App.Branches;
+using Gitunia.App.Conflicts;
 using Gitunia.App.Creation;
 using Gitunia.App.Pick;
 using Gitunia.App.Rebase;
 using Gitunia.App.Integration;
+using Gitunia.App.IssueLinks;
 using Gitunia.App.Picker;
 using Gitunia.App.Reflog;
 using Gitunia.App.Settings;
@@ -19,8 +22,12 @@ using Gitunia.App.Worktrees;
 using Gitunia.Core;
 using Gitunia.Core.Branches;
 using Gitunia.Core.Clipboard;
+using Gitunia.Core.Conflicts;
 using Gitunia.Core.Creation;
+using Gitunia.Core.Details;
 using Gitunia.Core.Effects;
+using Gitunia.Core.ExternalTools;
+using Gitunia.Core.IssueLinks;
 using Gitunia.Core.Pick;
 using Gitunia.Core.Integration;
 using Gitunia.Core.Picker;
@@ -38,9 +45,9 @@ using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Core.Worktrees;
-using Gitunia.Git.Staging;
 using Gitunia.Git.Watching;
 using Gitunia.Git.Watching.Models;
+using Gitunia.Platform.Urls;
 
 namespace Gitunia.App;
 
@@ -66,10 +73,13 @@ public sealed partial class EffectRunner<TSession> : IDisposable, IStatusRefresh
     private readonly BackgroundWork _background = new();
     private readonly CreationEffectHandler _creation;
     private readonly IntegrationEffectHandler _integration;
+    private readonly IssueLinkEffectHandler _issueLinks;
     private readonly BranchEffectHandler _branches;
+    private readonly ConflictEffectHandler _conflicts;
     private readonly PickerEffectHandler _picker;
     private readonly PickEffectHandler _pick;
     private readonly RebaseEffectHandler _rebase;
+    private readonly RebaseEditorEffectHandler _rebaseEditor;
     private readonly ReflogEffectHandler _reflog;
     private readonly SettingsEffectHandler? _settings;
     private readonly CancellationTokenSource _shutdown = new();
@@ -106,18 +116,26 @@ public sealed partial class EffectRunner<TSession> : IDisposable, IStatusRefresh
         PollOptions? pollOptions = null,
         IShellEffects? shell = null,
         SettingsServices? settings = null,
-        PickerServices? picker = null)
+        PickerServices? picker = null,
+        IUrlOpener? urlOpener = null)
     {
         var pickerServices = picker ?? PickerServices.Default;
         _shell = shell ?? NoShellEffects.Instance;
         _branches = new BranchEffectHandler(services.Branches, host);
+        _conflicts = new ConflictEffectHandler(
+            services.Conflicts,
+            services.ConflictWriter,
+            services.ConflictRecreator,
+            host);
         _creation = new CreationEffectHandler(services.Creator, pickerServices.Files, host);
         _picker = new PickerEffectHandler(services.Discovery, pickerServices.Files, host, pickerServices.Timings);
         _pick = new PickEffectHandler(services.Pick, services.PickCommits, host);
         _rebase = new RebaseEffectHandler(services.Rebase, services.QuickRebase, host);
+        _rebaseEditor = new RebaseEditorEffectHandler(services.InteractiveRebase, services.CommitDetails, host);
         _reflog = new ReflogEffectHandler(services.Reflog, host);
         _settings = settings is null ? null : new SettingsEffectHandler(settings, host);
         _integration = IntegrationEffectHandler.Create(services, host);
+        _issueLinks = new IssueLinkEffectHandler(urlOpener ?? new UrlOpener(), host);
         _remotes = new RemoteEffectHandler(services.RemoteManager, host);
         _staging = new StagingEffectHandler(
             services.IndexWriter,
@@ -262,8 +280,11 @@ public sealed partial class EffectRunner<TSession> : IDisposable, IStatusRefresh
         InitRepositoryEffect => new InitFailed(text),
         IntegrationEffect integration => new IntegrationFailed(integration.TabId, text),
         BranchEffect branch => new BranchOperationFailed(branch.TabId, text),
+        ConflictEffect conflict => new ConflictOperationFailed(conflict.TabId, text, StatusSeverity.Error),
         PickEffect pick => new PickFailed(pick.TabId, text),
         RebaseEffect rebase => new RebaseFailed(rebase.TabId, text),
+        RunInteractiveRebaseEffect run => new RebaseFailed(run.TabId, text),
+        RebaseEditorEffect editor => new RebaseEditorReadFailed(editor.TabId, text, StatusSeverity.Error),
         ReadReflogEffect => new ReflogReadFailed(text),
         ScanRepositoriesEffect => new PickerScanFinished([]),
         SettingsEffect => new SettingsOperationFailed(text),
@@ -290,6 +311,9 @@ public sealed partial class EffectRunner<TSession> : IDisposable, IStatusRefresh
             case CancelSyncEffect cancelSync:
                 _sync.Cancel(cancelSync.TabId);
                 break;
+            case ConflictEffect conflict:
+                _conflicts.Handle(conflict, _cancellation.TokenOf(conflict.TabId));
+                break;
             case CopyToClipboardEffect copy:
                 _shell.CopyToClipboard(copy);
                 break;
@@ -298,6 +322,9 @@ public sealed partial class EffectRunner<TSession> : IDisposable, IStatusRefresh
                 break;
             case FlushSessionEffect flush:
                 _host.Dispatch(new SessionFlushed(_shell.FlushSession(), flush.Force));
+                break;
+            case LaunchExternalToolEffect tool:
+                _shell.LaunchExternalTool(tool);
                 break;
             case IntegrationEffect integration:
                 _integration.Handle(integration, _cancellation.TokenOf(integration.TabId));
@@ -308,11 +335,20 @@ public sealed partial class EffectRunner<TSession> : IDisposable, IStatusRefresh
             case MoveCommitDraftEffect move:
                 _host.Dispatch(new PickerDraftMoved(move.Missing, _shell.MoveCommitDraft(move.Missing, move.Target)));
                 break;
+            case MoveDetailCursorEffect cursor:
+                _shell.MoveDetailCursor(cursor.Row);
+                break;
             case MoveDiffCursorEffect moveCursor:
                 _shell.MoveDiffCursor(moveCursor);
                 break;
             case OfferTerminalRetryEffect offer:
                 _shell.OfferTerminalRetry(offer.TabId, offer.Noun, offer.Arguments);
+                break;
+            case OpenFileContentEffect open:
+                _shell.OpenFileContent(open.Row);
+                break;
+            case OpenUrlEffect openUrl:
+                _issueLinks.Handle(openUrl);
                 break;
             case PickerEffect picker:
                 _picker.Handle(picker, _shutdown.Token);
@@ -333,6 +369,9 @@ public sealed partial class EffectRunner<TSession> : IDisposable, IStatusRefresh
                 break;
             case RebaseEffect rebase:
                 _rebase.Handle(rebase, _cancellation.TokenOf(rebase.TabId));
+                break;
+            case RebaseEditorEffect editor:
+                _rebaseEditor.Handle(editor, _cancellation.TokenOf(editor.TabId));
                 break;
             case ReadReflogEffect read:
                 _reflog.Handle(read, _cancellation.TokenOf(read.TabId));
@@ -366,6 +405,9 @@ public sealed partial class EffectRunner<TSession> : IDisposable, IStatusRefresh
                 break;
             case ShowPromptEffect prompt:
                 _host.Dispatch(new PromptRequestedCommand(prompt.Request));
+                break;
+            case StageResolvedConflictEffect stage:
+                _shell.StageResolvedConflict(stage);
                 break;
             case StagingEffect staging:
                 _staging.Handle(staging, _cancellation.TokenOf(staging.TabId));
@@ -438,4 +480,8 @@ public sealed partial class EffectRunner<TSession> : IDisposable, IStatusRefresh
             closed.Dispose();
         }
     }
+
+    // A tab runs an operation when its state says so or a legacy gate does; such a tab is never evicted.
+    private bool IsBusy(TabId tabId) => IsTabBusy(tabId) || _host.Workspace.FindTab(tabId)?.Running.IsBusy == true;
+
 }

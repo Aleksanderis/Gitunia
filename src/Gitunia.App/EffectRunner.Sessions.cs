@@ -11,14 +11,9 @@ using Gitunia.Git.Repositories.Models;
 
 namespace Gitunia.App;
 
-// The sessions of the open tabs: loading, the lazy start of background tabs, eviction of cold ones and the reads that
-// belong to a session (issue links, expanding the graph).
+// The per-tab sessions: loading a tab, the issue links, the graph expansion and the eviction of cold tabs.
 public sealed partial class EffectRunner<TSession>
-    where TSession : TabSession
 {
-    // A tab runs an operation when its state says so or a legacy gate does; such a tab is never evicted.
-    private bool IsBusy(TabId tabId) => IsTabBusy(tabId) || _host.Workspace.FindTab(tabId)?.Running.IsBusy == true;
-
     private void ReloadIssueLinks(TabId tabId)
     {
         var tab = _host.Workspace.FindTab(tabId);
@@ -74,48 +69,54 @@ public sealed partial class EffectRunner<TSession>
         var token = session.Cancellation.Token;
         var location = tab.Location;
         session.ExpandRequested += () => ExpandGraph(session, location, token);
-        void Start()
-        {
-            session.MarkStarted();
-            var refresher = new TabRefresher(
-                _services.Refresher,
-                _services.Stashes,
-                _services.IncrementalGraphLoader,
-                _host,
-                session,
-                tab.Location,
-                _statuses,
-                _postToUi,
-                _watchBudget,
-                _watcherOptions,
-                operations: _services.OperationInfo,
-                config: _services.Config,
-                directoryLister: OperatingSystem.IsLinux() ? _services.WatchedDirectories : null,
-                poll: _pollOptions,
-                isBusy: () => IsBusy(load.TabId));
-            _refreshers[load.TabId] = refresher;
-            refresher.Start();
-            refresher.SetActive(_host.Workspace.ActiveTabId == load.TabId);
-            _ = Task.Run(() => QueueIssueLinksAsync(session, location, token), CancellationToken.None);
-            _ = Task.Run(() => _services.RepositoryLoader.RunAsync(location, session, _host, _statuses, _postToUi, token), CancellationToken.None);
-        }
 
-        // Only the active tab loads now; background tabs keep an empty session until first activated (docs/internal/performance.md, "Many tabs").
+        // Only the active tab loads now; background tabs keep an empty session until first activated
+        // (docs/internal/performance.md, "Many tabs").
         if (_host.Workspace.ActiveTabId == load.TabId)
         {
-            Start();
+            StartSession(load.TabId, session, location, token);
         }
         else
         {
-            _pendingLoads[load.TabId] = Start;
+            _pendingLoads[load.TabId] = () => StartSession(load.TabId, session, location, token);
         }
+    }
+
+    private void StartSession(TabId tabId, TSession session, RepositoryLocation location, CancellationToken token)
+    {
+        session.MarkStarted();
+        var refresher = new TabRefresher(
+            _services.Refresher,
+            _services.Stashes,
+            _services.IncrementalGraphLoader,
+            _host,
+            session,
+            location,
+            _statuses,
+            _postToUi,
+            _watchBudget,
+            _watcherOptions,
+            operations: _services.OperationInfo,
+            config: _services.Config,
+            directoryLister: OperatingSystem.IsLinux() ? _services.WatchedDirectories : null,
+            poll: _pollOptions,
+            isBusy: () => IsBusy(tabId));
+        _refreshers[tabId] = refresher;
+        refresher.Start();
+        refresher.SetActive(_host.Workspace.ActiveTabId == tabId);
+        _ = Task.Run(() => QueueIssueLinksAsync(session, location, token), CancellationToken.None);
+        _ = Task.Run(
+            () => _services.RepositoryLoader.RunAsync(location, session, _host, _statuses, _postToUi, token),
+            CancellationToken.None);
     }
 
     private async Task QueueIssueLinksAsync(TSession session, RepositoryLocation location, CancellationToken token)
     {
         try
         {
-            await _background.RunAsync(() => LoadIssueLinksAsync(session, location, token), token).ConfigureAwait(false);
+            await _background
+                .RunAsync(() => LoadIssueLinksAsync(session, location, token), token)
+                .ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
@@ -189,7 +190,9 @@ public sealed partial class EffectRunner<TSession>
 
     private void StartActiveTabLoad()
     {
-        if (_pendingLoads.Count > 0 && _host.Workspace.ActiveTabId is { } active && _pendingLoads.Remove(active, out var start))
+        if (_pendingLoads.Count > 0
+            && _host.Workspace.ActiveTabId is { } active
+            && _pendingLoads.Remove(active, out var start))
         {
             start();
         }

@@ -1,3 +1,4 @@
+using Gitunia.Core.Details;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git;
@@ -18,6 +19,8 @@ namespace Gitunia.Core.Workspaces.Repositories;
 /// session.</param>
 /// <param name="CompareMark">The commit marked as one end of a comparison (#535), null when none. Not saved with the
 /// session.</param>
+/// <param name="FileTree">The filter and the opened directories of the Files tab and the closed folders of the Changes
+/// tab's tree style, null for none. Not saved with the session; read it through <see cref="DetailTree"/>.</param>
 public sealed record RepositoryViewState(
     ObjectId? SelectedCommit,
     int ScrollOffset,
@@ -29,8 +32,12 @@ public sealed record RepositoryViewState(
     BottomTab BottomTab = BottomTab.Changes,
     TabViewMode Mode = TabViewMode.History,
     FilePathStyle PathStyle = FilePathStyle.NameFirst,
-    ObjectId? CompareMark = null)
+    ObjectId? CompareMark = null,
+    DetailTreeState? FileTree = null)
 {
+    /// <summary>The tab's file tree state, empty when none was set.</summary>
+    public DetailTreeState DetailTree => FileTree ?? DetailTreeState.Empty;
+
     /// <summary>A fresh view: nothing selected, top of the graph, no filter, graph focused.</summary>
     public static RepositoryViewState Initial { get; } = new(null, 0, string.Empty, PaneKind.Graph);
 }

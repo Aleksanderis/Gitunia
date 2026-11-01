@@ -1,7 +1,12 @@
 using Gitunia.Core.Branches;
+using Gitunia.Core.Conflicts;
 using Gitunia.Core.Creation;
+using Gitunia.Core.Details;
+using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Picker;
 using Gitunia.Core.Effects;
+using Gitunia.Core.ExternalTools;
+using Gitunia.Core.IssueLinks;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Pick;
 using Gitunia.Core.Integration;
@@ -36,10 +41,16 @@ public static partial class AppReducer
     public static AppUpdate Reduce(AppState state, AppCommand command) => command switch
     {
         BranchCommand branch => ReduceBranch(state, branch),
+        ConflictCommand conflict => ReduceConflict(state, conflict),
         CreationCommand creation => ReduceCreation(state, creation),
+        DetailCommand detail => DetailReducer.Reduce(state, detail),
         EffectFailedCommand failed => EffectFailed(state, failed),
+        ExternalToolCommand tool => new AppUpdate(state, ExternalToolReducer.Reduce(tool, state.Workspace.ActiveTab)),
+        IssueLinkCommand link => new AppUpdate(state, IssueLinkReducer.Reduce(link)),
+        PaneSizeCommand paneSize => PaneSizeReducer.Reduce(state, paneSize),
         PickCommand pick => ReducePick(state, pick),
         RebaseCommand rebase => ReduceRebase(state, rebase),
+        RebaseEditorCommand editor => ReduceRebaseEditor(state, editor),
         IntegrationCommand integration => ReduceIntegration(state, integration),
         PickerCommand picker => ReducePicker(state, picker),
         QuitCommand quit => ReduceQuit(state, quit),
@@ -89,15 +100,64 @@ public static partial class AppReducer
             shell = (shell with { Mainline = null }).WithMode(KeyMode.Normal);
         }
 
-        var changed = new AppState(update.Workspace, shell);
+        List<AppEffect> effects = [.. update.Effects];
+        if (shell.RebaseEditor.Editor is { } todo && update.Workspace.FindTab(todo.TabId) is null)
+        {
+            var closedTodo = RebaseEditorReducer.Closed(shell.RebaseEditor);
+            shell = shell with { RebaseEditor = closedTodo.Session };
+            effects.AddRange(closedTodo.Effects);
+        }
+
+        var changed = DetailReducer.CloseFilterOfLeftTab(state.Workspace, new AppState(update.Workspace, shell));
+        shell = changed.Shell;
         if (shell.Reflog.List is { } list && update.Workspace.FindTab(list.TabId) is null)
         {
             var closed = ReduceReflog(changed, new ReflogTabClosed());
 
-            return new AppUpdate(closed.State, [.. update.Effects, .. closed.Effects]);
+            return new AppUpdate(closed.State, [.. effects, .. closed.Effects]);
         }
 
-        return new AppUpdate(changed, [.. update.Effects]);
+        if (shell.Conflict.Editor is { } editor && update.Workspace.FindTab(editor.TabId) is null)
+        {
+            var closed = ReduceConflict(changed, new ConflictTabClosed());
+
+            return new AppUpdate(closed.State, [.. effects, .. closed.Effects]);
+        }
+
+        return new AppUpdate(changed, [.. effects]);
+    }
+
+    // The editor belongs to the tab it was opened in. A result for a tab that was closed meanwhile reaches the reducer
+    // without a tab: it reports what is left to report and the running mark is gone with the tab.
+    private static AppUpdate ReduceConflict(AppState state, ConflictCommand command)
+    {
+        var workspace = state.Workspace;
+        var session = state.Shell.Conflict;
+        var tab = ConflictTabOf(workspace, session, command);
+        var covered = IsOverlayOpen(state.Shell with { Conflict = ConflictSession.Empty });
+        var busy = tab?.Running.IsRunning(RunningOperationKind.Conflicts) == true;
+        var update = ConflictReducer.Reduce(session, command, new ConflictContext(tab, busy, covered));
+        var next = state with { Shell = state.Shell with { Conflict = update.Session } };
+        if (tab is not null)
+        {
+            var running = tab.Running.Apply(tab.Id, command, update.Effects);
+            if (!Equals(running, tab.Running))
+            {
+                next = WithTab(next, tab with { Running = running });
+            }
+        }
+
+        return new AppUpdate(next, update.Effects);
+    }
+
+    private static RepositoryState? ConflictTabOf(Workspace workspace, ConflictSession session, ConflictCommand command)
+    {
+        if (command is ConflictTabCommand tabCommand)
+        {
+            return workspace.FindTab(tabCommand.TabId);
+        }
+
+        return session.Editor is { } editor ? workspace.FindTab(editor.TabId) : workspace.ActiveTab;
     }
 
     // A result for a tab that was closed meanwhile only ends the read.
@@ -182,12 +242,46 @@ public static partial class AppReducer
         return new AppUpdate(WithTab(state, tab with { Running = running }), effects);
     }
 
+    // A result or answer for a tab that was closed meanwhile is dropped, like a late TabCommand; a read result only
+    // ends the read, or the next one would be refused for good.
+    private static AppUpdate ReduceRebaseEditor(AppState state, RebaseEditorCommand command)
+    {
+        var workspace = state.Workspace;
+        var session = state.Shell.RebaseEditor;
+        if (workspace.FindTab(command.TabId) is not { } tab)
+        {
+            var ended = command is RebaseEditorReadResult ? session with { IsReading = false } : session;
+
+            return new AppUpdate(state with { Shell = state.Shell with { RebaseEditor = ended } }, []);
+        }
+
+        var busy = tab.Running.IsRunning(RunningOperationKind.Rebase);
+        var overlay = IsOverlayOpen(state.Shell with { RebaseEditor = RebaseEditorSession.Empty });
+        var context = new RebaseEditorContext(tab, workspace.ActiveTabId == tab.Id, busy, overlay);
+        var update = RebaseEditorReducer.Reduce(session, command, context);
+        var running = tab.Running.Apply(tab.Id, command, update.Effects);
+        var next = state;
+        if (!Equals(running, tab.Running))
+        {
+            next = WithTab(state, tab with { Running = running });
+        }
+
+        if (!ReferenceEquals(update.Session, session))
+        {
+            next = next with { Shell = next.Shell with { RebaseEditor = update.Session } };
+        }
+
+        return new AppUpdate(next, update.Effects);
+    }
+
     // A late question must not replace what the user is looking at.
     private static bool IsOverlayOpen(ShellState shell) =>
         shell.Confirm is not null
         || shell.Output is not null
         || shell.Prompt is not null
         || shell.Mainline is not null
+        || shell.RebaseEditor.IsOpen
+        || shell.Conflict.IsOpen
         || shell.Reflog.IsOpen
         || shell.Settings.IsOpen;
 

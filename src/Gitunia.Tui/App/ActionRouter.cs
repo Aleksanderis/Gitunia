@@ -62,7 +62,7 @@ public sealed class ActionRouter(Dispatcher host, ListView graphList, ListView d
     public Func<bool>? Refresh { get; set; }
 
     /// <summary>The external tool hand-offs (difftool, mergetool, editor).</summary>
-    public ExternalToolActions? ExternalTools { get; set; }
+    public ExternalToolInput? ExternalTools { get; set; }
 
     /// <summary>Modal prompts (search box, jump-to-ref) that get the first try at every action.</summary>
     public IReadOnlyList<IPromptHandler> Prompts { get; set; } = [];
@@ -120,16 +120,16 @@ public sealed class ActionRouter(Dispatcher host, ListView graphList, ListView d
     public OperationActions? Operations { get; set; }
 
     /// <summary>The pane resize keys.</summary>
-    public PaneSizeController? PaneSizes { get; set; }
+    public PaneSizeInput? PaneSizes { get; set; }
 
     /// <summary>The keys of the Files tab (open, close, filter).</summary>
-    public FileTreeController? FileTree { get; set; }
+    public FileTreeInput? FileTree { get; set; }
 
     /// <summary>Opening the tracker link of a commit message line.</summary>
-    public IssueLinkActions? IssueLinks { get; set; }
+    public IssueLinkInput? IssueLinks { get; set; }
 
     /// <summary>The bottom pane tab keys.</summary>
-    public DetailTabController? DetailTabs { get; set; }
+    public DetailTabInput? DetailTabs { get; set; }
 
     /// <summary>The diff pane's controller, which gets the actions after the sidebar and before the graph and detail lists.</summary>
     public DiffPaneController? Diff { get; set; }
@@ -243,7 +243,6 @@ public sealed class ActionRouter(Dispatcher host, ListView graphList, ListView d
 
         if (ExternalTools?.TryExecute(action) == true)
         {
-            Message = ExternalTools.Notice;
             return;
         }
 
@@ -255,7 +254,6 @@ public sealed class ActionRouter(Dispatcher host, ListView graphList, ListView d
 
         if (PaneSizes?.TryExecute(action, count) == true)
         {
-            Message = PaneSizes.Notice;
             return;
         }
 
@@ -266,17 +264,11 @@ public sealed class ActionRouter(Dispatcher host, ListView graphList, ListView d
 
         if (FileTree?.TryExecute(action, count) == true)
         {
-            Message = FileTree.Notice;
             return;
         }
 
         if (DetailTabs?.TryExecute(action) == true)
         {
-            if (DetailTabs.Notice.Length > 0)
-            {
-                Message = DetailTabs.Notice;
-            }
-
             return;
         }
 

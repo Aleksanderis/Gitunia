@@ -6,8 +6,11 @@ using Gitunia.App.Tests.Fakes;
 using Gitunia.App.Tests.Tags;
 using Gitunia.Core;
 using Gitunia.Core.Config;
+using Gitunia.Core.Details;
+using Gitunia.Core.FileTree;
 using Gitunia.Core.Config.Models;
 using Gitunia.Core.Effects;
+using Gitunia.Core.ExternalTools;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Overlays;
@@ -16,13 +19,16 @@ using Gitunia.Core.Running;
 using Gitunia.Core.Sidebar;
 using Gitunia.Core.Status;
 using Gitunia.Core.Prompts;
+using Gitunia.Core.Conflicts;
 using Gitunia.Core.Reflog;
 using Gitunia.Core.Settings;
 using Gitunia.Core.Settings.Models;
 using Gitunia.Core.Tags;
 using Gitunia.Core.Tests.Fixtures;
 using Gitunia.Core.Workspaces;
+using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
+using Gitunia.Git.ExternalTools;
 using Gitunia.Git.Tests.Fixtures;
 using Xunit;
 
@@ -159,6 +165,19 @@ public class EffectPipelineTests
     }
 
     [Fact]
+    public async Task GivenATab_WhenAskingForTheMergetool_ThenTheShellIsHandedTheLaunchForThatTab()
+    {
+        using var repository = TestRepositories.Linear();
+        using var pipeline = await Pipeline.OpenAsync(TestGit.Services, repository);
+
+        pipeline.Dispatch(new ExternalToolRequested(ExternalToolKind.Mergetool, null));
+
+        var launch = Assert.Single(pipeline.Shell.Tools);
+        Assert.Equal(pipeline.TabId, launch.TabId);
+        Assert.Equal(ExternalToolKind.Mergetool, launch.Kind);
+    }
+
+    [Fact]
     public void GivenEveryConcreteEffect_WhenRunning_ThenTheRunnerHasACaseForIt()
     {
         var effects = ConcreteSubtypes.InstancesOf<AppEffect>();
@@ -179,6 +198,31 @@ public class EffectPipelineTests
             // An empty effect may fail inside its handler (that becomes a failure command); only a missing case is a bug.
             Assert.False(MissesItsCase(runner, effect), $"{effect.GetType().Name} has no case in EffectRunner");
         }
+    }
+
+    [Fact]
+    public async Task GivenAConflictedFile_WhenSavedThroughTheRunner_ThenTheFileIsWrittenAndHandedToStaging()
+    {
+        using var repository = TestRepositories.Conflicted();
+        using var pipeline = await Pipeline.OpenAsync(TestGit.Services, repository);
+        await pipeline.Pump.RunUntilAsync(() => pipeline.Tab.WorkingTree is not null);
+        var viewport = new ConflictViewport(10, 6);
+        var viewports = new ConflictViewports(viewport, viewport, viewport, viewport);
+
+        pipeline.Dispatch(new ConflictOpenRequested(true, viewports));
+        await pipeline.Pump.RunUntilAsync(() => pipeline.Conflict.IsOpen);
+        pipeline.Dispatch(new ConflictActionPressed(ActionIds.ConflictEditorTheirs, null, viewports));
+        pipeline.Dispatch(new ConflictActionPressed(ActionIds.ConflictEditorSave, null, viewports));
+        await pipeline.Pump.RunUntilAsync(() => !pipeline.Conflict.IsOpen);
+
+        var staged = Assert.Single(pipeline.Shell.StagedConflicts);
+        Assert.Equal("conflict.txt", staged.Path);
+        Assert.Equal(pipeline.TabId, staged.TabId);
+        Assert.DoesNotContain(
+            "<<<<<<<",
+            File.ReadAllText(Path.Combine(repository.WorkingTreePath, "conflict.txt")),
+            StringComparison.Ordinal);
+        Assert.False(pipeline.Tab.Running.IsRunning(RunningOperationKind.Conflicts));
     }
 
     [Fact]
@@ -305,6 +349,20 @@ public class EffectPipelineTests
         return false;
     }
 
+    [Fact]
+    public async Task GivenTheFilesTab_WhenKeysOpenAFileAndClimbToTheParent_ThenTheRunnerAsksTheShell()
+    {
+        using var repository = TestRepositories.Linear();
+        using var pipeline = await Pipeline.OpenAsync(TestGit.Services, repository);
+        var file = new FileTreeRow(FileTreeRowKind.File, "src/a.cs", "a.cs", 1, false, null, 0);
+
+        pipeline.Dispatch(new FileTreeOpened(pipeline.TabId, new FileTreeCursor(file, 2)));
+        pipeline.Dispatch(new FileTreeCollapsed(pipeline.TabId, new FileTreeCursor(file, 2)));
+
+        Assert.Equal(["src/a.cs"], pipeline.Shell.OpenedFiles);
+        Assert.Equal([2], pipeline.Shell.CursorMoves);
+    }
+
     private sealed class Pipeline : IDisposable
     {
         private readonly EffectRunner<TabSession> _runner;
@@ -336,6 +394,10 @@ public class EffectPipelineTests
         public ReflogSession Reflog => Host.State.Shell.Reflog;
 
         public SettingsSession Settings => Host.State.Shell.Settings;
+
+        public ConflictSession Conflict => Host.State.Shell.Conflict;
+
+        public RepositoryState Tab => Host.Workspace.FindTab(TabId)!;
 
         public bool HasRefs => Host.Workspace.FindTab(TabId)!.Refs.Length > 0;
 
