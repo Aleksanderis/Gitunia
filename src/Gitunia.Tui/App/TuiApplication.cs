@@ -146,7 +146,6 @@ public sealed class TuiApplication(
     private RemoteActions _remote = null!;
     private ExternalToolRunner _externalToolRunner = null!;
     private PushActions _push = null!;
-    private RemoteManagementActions _remoteManagement = null!;
     private PickActions _pick = null!;
     private MainlineOverlayTracker _mainline = null!;
     private PromptPopupTracker _popups = null!;
@@ -313,12 +312,11 @@ public sealed class TuiApplication(
             RefreshAfterTool,
             PauseForEnter);
 
-        // The remote actions come first: remote management reads their running state through a method group.
+        // The remote actions come first: remote management asks them whether a fetch, pull or push runs.
         _remote = CreateRemote(operationGate);
         _effects.IsTabBusy = tabId => _activity.IsBusy(tabId) || _remote.IsRunning(tabId);
         _router.Remote = _remote;
-        _remoteManagement = CreateRemoteManagement();
-        _router.RemoteManagement = _remoteManagement;
+        _router.RemoteManagement = new RemoteManagementActions(_host, this, _remote);
         _reset = CreateReset(operationGate);
         _router.Reset = _reset;
         _router.Merge = CreateMerge(operationGate);
@@ -1065,18 +1063,6 @@ public sealed class TuiApplication(
         _effects.RefreshStatus,
         tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None,
         gate);
-
-    private RemoteManagementActions CreateRemoteManagement() => new(
-        _host,
-        services.RemoteManager,
-        _statuses,
-        InvokeOnUi,
-        tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None,
-        _activity.CreateGate(),
-        tabId => _effects.Refresh(tabId, false),
-        _view.RefreshChrome,
-        BranchSelectionNow,
-        _remote.IsRunning);
 
     private RemoteActions CreateRemote(TabOperationGate gate) => new(
         _host,
@@ -1877,7 +1863,6 @@ public sealed class TuiApplication(
             CreateQuickRebase(gate),
             _branches,
             _push,
-            _remoteManagement,
             _reset,
             _pick,
             new RefJumpController(handle, () => _host.Workspace.ActiveTab?.Refs ?? []),

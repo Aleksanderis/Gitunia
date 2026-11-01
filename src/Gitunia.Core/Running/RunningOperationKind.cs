@@ -6,6 +6,9 @@ namespace Gitunia.Core.Running;
 /// </summary>
 public enum RunningOperationKind
 {
+    /// <summary>A remote management operation: add, remove, rename, set the URL, or reading the remotes for the prompt.</summary>
+    Remotes,
+
     /// <summary>A tag operation: create, delete, push, delete on a remote, or reading the remotes for the prompt.</summary>
     Tags,
 }
