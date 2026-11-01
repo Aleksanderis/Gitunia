@@ -62,4 +62,8 @@ In the picker type to filter repositories or type a path, `Enter` opens it in a 
 
 ## Docs
 
-Start with `CLAUDE.md` (rules and routing table), then `docs/`.
+The design documents are in `docs/`; `CLAUDE.md` holds the project conventions (the project is developed with AI coding agents, see `CONTRIBUTING.md`).
+
+## Contributing, security, license
+
+Issues go through the templates; pull requests are welcome after discussion. See `CONTRIBUTING.md`. Report vulnerabilities privately as described in `SECURITY.md`. Licensed under the MIT License (`LICENSE`).
