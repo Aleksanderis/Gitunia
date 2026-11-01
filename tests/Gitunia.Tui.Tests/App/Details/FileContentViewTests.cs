@@ -1,5 +1,6 @@
 using Gitunia.App.Status;
 using Gitunia.Core;
+using Gitunia.Core.Details;
 using Gitunia.App.Tabs;
 using System.Drawing;
 using System.Text;
@@ -479,8 +480,7 @@ public class FileContentViewTests
     {
         private readonly TestRepository _repository;
         private readonly UiPump _pump;
-        private readonly FileTreeController _fileTree;
-        private int _cursor;
+        private readonly FileTreeInput _fileTree;
 
         private Harness(
             Dispatcher host,
@@ -515,13 +515,8 @@ public class FileContentViewTests
 
             Controller.OnTabSwitched(null, session);
             DetailList.ValueChanged += (_, _) => Controller.OnDetailCursorMoved();
-            _fileTree = new FileTreeController(
-                host,
-                () => Session,
-                () => _cursor,
-                row => _cursor = row,
-                RefreshDetail,
-                Controller.OpenFileContent);
+            _fileTree = new FileTreeInput(host, DetailList);
+            host.EffectRaised += OnEffect;
         }
 
         public Dispatcher Host { get; }
@@ -538,7 +533,7 @@ public class FileContentViewTests
 
         public RepositoryState Tab => Host.Workspace.ActiveTab!;
 
-        public string FileTreeNotice => _fileTree.Notice;
+        public string FileTreeNotice { get; private set; } = string.Empty;
 
         public static async Task<Harness> LoadAsync(int width = 60)
         {
@@ -577,7 +572,10 @@ public class FileContentViewTests
             await harness.SelectCommitAsync(head);
             session.Tree!.Store.Select(head);
             await pump.RunUntilAsync(() => session.Tree.Store.Current.Status == CommitDetailsStatus.Loaded);
-            session.Tree.Expand(session.Tree.Rows.Single(row => row.Path == "docs"));
+            host.Dispatch(
+                new TabCommand(
+                    tabId,
+                    new SetDetailTreeCommand(DetailTreeState.Empty with { OpenDirectories = ["docs"] })));
             harness.RefreshDetail();
             harness.Send(new FocusPaneCommand(PaneKind.Detail));
 
@@ -599,7 +597,6 @@ public class FileContentViewTests
             var rows = Session.DetailSource.Content.Tree;
             var index = rows.ToList().FindIndex(row => row.Path == path);
             Assert.True(index >= 0, $"{path} is not listed");
-            _cursor = index;
             DetailList.SelectedItem = index;
         }
 
@@ -649,7 +646,8 @@ public class FileContentViewTests
         public void RefreshDetail()
         {
             var tree = Session.Tree!;
-            var view = new FileTreeView(tree.Store.Current, tree.Rows, tree.Filter, SidebarGlyphs.Unicode);
+            var state = Host.Workspace.ActiveTab!.View.DetailTree;
+            var view = new FileTreeView(tree.Store.Current, tree.RowsFor(state), state.Filter, SidebarGlyphs.Unicode);
             Session.DetailSource.Update(
                 DetailContentBuilder.Build(Session.Graph[0], CommitDetailsState.Empty, BottomTab.Files, view));
         }
@@ -658,6 +656,14 @@ public class FileContentViewTests
         {
             Session.Dispose();
             _repository.Dispose();
+        }
+
+        private void OnEffect(AppEffect effect)
+        {
+            if (effect is OpenFileContentEffect open)
+            {
+                FileTreeNotice = Controller.OpenFileContent(open.Row);
+            }
         }
     }
 }

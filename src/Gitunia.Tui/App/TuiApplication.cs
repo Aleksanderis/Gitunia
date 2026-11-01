@@ -1,6 +1,5 @@
 using System.Collections.Immutable;
 using Gitunia.App.Settings;
-using Gitunia.App.Shell;
 using Gitunia.App.Status;
 using Gitunia.App;
 using Gitunia.App.Loading.Commits;
@@ -12,6 +11,8 @@ using Gitunia.Core.Clipboard;
 using Gitunia.Core.Config;
 using Gitunia.Core.Config.Models;
 using Gitunia.Core.Conflicts;
+using Gitunia.Core.Details;
+using Gitunia.Core.FileTree;
 using Gitunia.Core.Graph;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
@@ -153,7 +154,9 @@ public sealed class TuiApplication(
     private PickActions _pick = null!;
     private PromptPopupTracker _popups = null!;
     private GraphGlyphSet _glyphs = null!;
-    private FileTreeController _fileTree = null!;
+    private FileTreeInput _fileTree = null!;
+    private DetailTreeState? _builtTree;
+    private PaneSizes? _laidOutSizes;
     private ResetActions _reset = null!;
     private ConflictSession? _drawnConflict;
     private ReflogSession? _drawnReflog;
@@ -366,13 +369,8 @@ public sealed class TuiApplication(
             PauseForEnter);
         _router.Worktrees = new WorktreeActions(_host, this);
         _router.Operations = new OperationActions(_host);
-        _router.DetailTabs = new DetailTabController(_host);
-        _router.PaneSizes = new PaneSizeController(
-            () => _diffPane.Arrangement(),
-            () => _host.Workspace.ActiveTab?.View.FocusedPane ?? PaneKind.Graph,
-            () => _view.ScreenSize,
-            ApplyPaneSizes,
-            () => _workingDiff.IsZoomed);
+        _router.DetailTabs = new DetailTabInput(_host);
+        _router.PaneSizes = new PaneSizeInput(_host, _diffPane, _workingDiff);
         _router.ExternalTools = new ExternalToolActions(
             _externalToolRunner,
             () => _host.Workspace.ActiveTab?.Location,
@@ -401,13 +399,7 @@ public sealed class TuiApplication(
             () => IsAnyOverlayOpen() || _picker.IsOpen,
             RouteAction);
         _keys.Interceptor = _repeat.TryHandle;
-        _fileTree = new FileTreeController(
-            _host,
-            ActiveSession,
-            () => _view.Detail.SelectedItem,
-            MoveDetailCursor,
-            RefreshDetail,
-            _diffPane.OpenFileContent);
+        _fileTree = new FileTreeInput(_host, _view.Detail);
         _router.FileTree = _fileTree;
         _router.IssueLinks = new IssueLinkActions(
             new UrlOpener(),
@@ -461,6 +453,7 @@ public sealed class TuiApplication(
         _host.Changed += _commits.ForgetClosedTabs;
         _host.Changed += _commits.ShowPendingFailure;
         _host.Changed += OnBottomTabMaybeChanged;
+        _host.Changed += OnPaneSizesMaybeChanged;
         _host.Changed += _visual.EndIfFocusMoved;
         _host.Changed += _quickJump.CloseIfStale;
         _keys.PendingChanged += _view.RefreshChrome;
@@ -618,7 +611,7 @@ public sealed class TuiApplication(
     // A step that took effect (the resize did not refuse, the context belongs to a diff) starts the sticky repeat mode.
     private void StartRepeat(ActionId action)
     {
-        var isRefused = RepeatMode.IsResizeStep(action) && _router.PaneSizes?.Notice.Length > 0;
+        var isRefused = RepeatMode.IsResizeStep(action) && _router.PaneSizes?.WasRefused == true;
         var isHistoryDiff = _host.Workspace.ActiveTab?.View.FocusedPane == PaneKind.Diff;
         var hasNoDiffOptions = RepeatMode.IsContextStep(action)
             && isHistoryDiff
@@ -716,6 +709,16 @@ public sealed class TuiApplication(
         if (_host.Workspace.ActiveTabId is { } tabId && _diffPane.SizesOfActiveTab() != sizes)
         {
             _host.Dispatch(new TabCommand(tabId, new SetPaneSizesCommand(sizes.SidebarWidth, sizes.BottomHeight, sizes.DetailWidth)));
+        }
+    }
+
+    // The pane sizes are repository tab state: whoever changed them (the resize keys, a divider drag), the panes follow.
+    private void OnPaneSizesMaybeChanged()
+    {
+        var sizes = _diffPane.SizesOfActiveTab();
+        if (sizes != _laidOutSizes)
+        {
+            _laidOutSizes = sizes;
             Relayout();
         }
     }
@@ -933,6 +936,16 @@ public sealed class TuiApplication(
     bool IShellEffects.FlushSession() => _persistence?.FlushSucceeded() ?? true;
 
     void IShellEffects.Quit() => RequestStop();
+
+    void IShellEffects.MoveDetailCursor(int row) => MoveDetailCursor(row);
+
+    void IShellEffects.OpenFileContent(FileTreeRow row)
+    {
+        if (_diffPane.OpenFileContent(row) is { Length: > 0 } notice)
+        {
+            _statuses.Post(notice);
+        }
+    }
 
     private CommitActions CreateCommits() => new(
         _host,
@@ -1884,13 +1897,6 @@ public sealed class TuiApplication(
             previous.Details.Changed -= RefreshDetail;
             previous.Details.Changed -= _router.Compare!.Follow;
             previous.IssueLinksChanged -= RefreshDetail;
-            if (previous.Tree is { IsEditingFilter: true } editing)
-            {
-                // A filter typed in the tab left behind must not keep owning Insert mode.
-                editing.IsEditingFilter = false;
-                _host.SetKeyMode(KeyMode.Normal);
-            }
-
             if (previous.Tree is { } previousTree)
             {
                 previousTree.Store.Changed -= RefreshDetail;
@@ -2084,7 +2090,8 @@ public sealed class TuiApplication(
         if (ActiveSession() is { } session
             && _host.Workspace.ActiveTab is { } tab
             && (session.DetailSource.Content.Tab != tab.View.BottomTab
-                || session.DetailSource.Content.PathStyle != tab.View.PathStyle))
+                || session.DetailSource.Content.PathStyle != tab.View.PathStyle
+                || tab.View.DetailTree != _builtTree))
         {
             RefreshDetail();
         }
@@ -2109,7 +2116,9 @@ public sealed class TuiApplication(
 
         tree.Store.Select(entry.Id);
 
-        return new FileTreeView(tree.Store.Current, tree.Rows, tree.Filter, SidebarGlyphs.For(_glyphs));
+        var state = _host.Workspace.FindTab(session.TabId)?.View.DetailTree ?? DetailTreeState.Empty;
+
+        return new FileTreeView(tree.Store.Current, tree.RowsFor(state), state.Filter, SidebarGlyphs.For(_glyphs));
     }
 
     private void RefreshDetail()
@@ -2125,6 +2134,7 @@ public sealed class TuiApplication(
         var entry = StashViewController.ShownEntry(session)
             ?? (commitIndex >= 0 && commitIndex < session.Graph.Count ? session.Graph[commitIndex] : null);
         var previous = session.DetailSource.Content;
+        _builtTree = _host.Workspace.ActiveTab?.View.DetailTree;
         var tab = _host.Workspace.ActiveTab?.View.BottomTab ?? BottomTab.Changes;
         var content = DetailContentBuilder.Build(
             entry,
@@ -2133,7 +2143,7 @@ public sealed class TuiApplication(
             stashName is null ? FileTreeViewOf(session, entry, tab) : null,
             _host.Workspace.ActiveTab?.View.PathStyle ?? FilePathStyle.NameFirst,
             session.IssueLinks,
-            session.CollapsedFolders,
+            _host.Workspace.ActiveTab?.View.DetailTree.ClosedFolders ?? DetailTreeState.Empty.ClosedFolders,
             stashName);
         var previousCursor = _view.Detail.SelectedItem;
         session.DetailSource.Update(content);

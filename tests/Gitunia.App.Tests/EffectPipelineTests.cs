@@ -6,6 +6,8 @@ using Gitunia.App.Tests.Fakes;
 using Gitunia.App.Tests.Tags;
 using Gitunia.Core;
 using Gitunia.Core.Config;
+using Gitunia.Core.Details;
+using Gitunia.Core.FileTree;
 using Gitunia.Core.Config.Models;
 using Gitunia.Core.Effects;
 using Gitunia.Core.Keymap;
@@ -330,6 +332,20 @@ public class EffectPipelineTests
         }
 
         return false;
+    }
+
+    [Fact]
+    public async Task GivenTheFilesTab_WhenKeysOpenAFileAndClimbToTheParent_ThenTheRunnerAsksTheShell()
+    {
+        using var repository = TestRepositories.Linear();
+        using var pipeline = await Pipeline.OpenAsync(TestGit.Services, repository);
+        var file = new FileTreeRow(FileTreeRowKind.File, "src/a.cs", "a.cs", 1, false, null, 0);
+
+        pipeline.Dispatch(new FileTreeOpened(pipeline.TabId, new FileTreeCursor(file, 2)));
+        pipeline.Dispatch(new FileTreeCollapsed(pipeline.TabId, new FileTreeCursor(file, 2)));
+
+        Assert.Equal(["src/a.cs"], pipeline.Shell.OpenedFiles);
+        Assert.Equal([2], pipeline.Shell.CursorMoves);
     }
 
     private sealed class Pipeline : IDisposable

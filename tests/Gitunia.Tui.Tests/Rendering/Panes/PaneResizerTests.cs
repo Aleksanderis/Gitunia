@@ -96,7 +96,7 @@ public class PaneResizerTests
     [InlineData(PaneKind.Graph, "pane.narrower", 32)]
     public void GivenTheSidebarOrGraphFocused_WhenResizingByKey_ThenTheSidebarDividerMovesTwoColumns(PaneKind focused, string action, int expectedSidebar)
     {
-        var sizes = PaneResizer.Apply(PaneSizes.Automatic, new ActionId(action), null, focused, Width, Height, false);
+        var sizes = PaneResizeRules.Apply(PaneSizes.Automatic, new ActionId(action), null, focused, Width, Height, false);
 
         Assert.NotNull(sizes);
         Assert.Equal(expectedSidebar, PaneLayout.Compute(Width, Height, false, null, sizes).Sidebar.Width);
@@ -105,7 +105,7 @@ public class PaneResizerTests
     [Fact]
     public void GivenACount_WhenResizingByKey_ThenTheStepIsMultiplied()
     {
-        var sizes = PaneResizer.Apply(PaneSizes.Automatic, ActionIds.PaneWider, 3, PaneKind.Sidebar, Width, Height, false);
+        var sizes = PaneResizeRules.Apply(PaneSizes.Automatic, ActionIds.PaneWider, 3, PaneKind.Sidebar, Width, Height, false);
 
         Assert.Equal(36, PaneLayout.Compute(Width, Height, false, null, sizes).Sidebar.Width);
     }
@@ -117,7 +117,7 @@ public class PaneResizerTests
     [InlineData(PaneKind.Diff, "pane.narrower", 42)]
     public void GivenTheBottomPanesFocusedWithADiff_WhenResizingByKey_ThenTheDetailDividerMoves(PaneKind focused, string action, int expectedDetail)
     {
-        var sizes = PaneResizer.Apply(PaneSizes.Automatic, new ActionId(action), null, focused, Width, Height, true);
+        var sizes = PaneResizeRules.Apply(PaneSizes.Automatic, new ActionId(action), null, focused, Width, Height, true);
 
         Assert.Equal(expectedDetail, PaneLayout.Compute(Width, Height, true, null, sizes).Detail.Width);
     }
@@ -125,7 +125,7 @@ public class PaneResizerTests
     [Fact]
     public void GivenTheDetailPaneSpanningTheScreen_WhenWidening_ThenThereIsNothingToResize()
     {
-        Assert.Null(PaneResizer.Apply(PaneSizes.Automatic, ActionIds.PaneWider, null, PaneKind.Detail, Width, Height, false));
+        Assert.Null(PaneResizeRules.Apply(PaneSizes.Automatic, ActionIds.PaneWider, null, PaneKind.Detail, Width, Height, false));
     }
 
     [Theory]
@@ -135,7 +135,7 @@ public class PaneResizerTests
     [InlineData(PaneKind.Sidebar, "pane.shorter", 14)]
     public void GivenAPaneFocused_WhenResizingHeightByKey_ThenTheBottomEdgeMovesOneRow(PaneKind focused, string action, int expectedBottomHeight)
     {
-        var sizes = PaneResizer.Apply(PaneSizes.Automatic, new ActionId(action), null, focused, Width, Height, false);
+        var sizes = PaneResizeRules.Apply(PaneSizes.Automatic, new ActionId(action), null, focused, Width, Height, false);
 
         Assert.Equal(expectedBottomHeight, PaneLayout.BottomHeight(Height, sizes));
     }
@@ -145,13 +145,13 @@ public class PaneResizerTests
     {
         var sizes = new PaneSizes(BottomHeight: PaneLayout.MinimumBottomHeight);
 
-        Assert.Null(PaneResizer.Apply(sizes, ActionIds.PaneShorter, null, PaneKind.Detail, Width, Height, false));
+        Assert.Null(PaneResizeRules.Apply(sizes, ActionIds.PaneShorter, null, PaneKind.Detail, Width, Height, false));
     }
 
     [Fact]
     public void GivenATooShortScreen_WhenResizingHeight_ThenThereIsNothingToResize()
     {
-        Assert.Null(PaneResizer.Apply(PaneSizes.Automatic, ActionIds.PaneTaller, null, PaneKind.Detail, Width, 10, false));
+        Assert.Null(PaneResizeRules.Apply(PaneSizes.Automatic, ActionIds.PaneTaller, null, PaneKind.Detail, Width, 10, false));
     }
 
     [Fact]
@@ -159,13 +159,13 @@ public class PaneResizerTests
     {
         var changed = new PaneSizes(20, 9);
 
-        Assert.Equal(PaneSizes.Automatic, PaneResizer.Apply(changed, ActionIds.PaneResetSizes, null, PaneKind.Graph, Width, Height, false));
-        Assert.Null(PaneResizer.Apply(PaneSizes.Automatic, ActionIds.PaneResetSizes, null, PaneKind.Graph, Width, Height, false));
+        Assert.Equal(PaneSizes.Automatic, PaneResizeRules.Apply(changed, ActionIds.PaneResetSizes, null, PaneKind.Graph, Width, Height, false));
+        Assert.Null(PaneResizeRules.Apply(PaneSizes.Automatic, ActionIds.PaneResetSizes, null, PaneKind.Graph, Width, Height, false));
     }
 
     [Fact]
     public void GivenANarrowScreenWithoutASidebar_WhenWidening_ThenThereIsNothingToResize()
     {
-        Assert.Null(PaneResizer.Apply(PaneSizes.Automatic, ActionIds.PaneWider, null, PaneKind.Sidebar, 50, Height, false));
+        Assert.Null(PaneResizeRules.Apply(PaneSizes.Automatic, ActionIds.PaneWider, null, PaneKind.Sidebar, 50, Height, false));
     }
 }
