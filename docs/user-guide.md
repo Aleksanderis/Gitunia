@@ -37,7 +37,7 @@ Full table: [keymap.md](keymap.md). To rebind: [customising-keys.md](customising
 ## Everyday tasks
 
 - **Browse:** `Enter` focuses details, `]` / `[` cycle tabs, `<space>h` jumps to HEAD, `/` searches.
-- **Read a diff:** `Enter` on a file; `]c` / `[c` jump hunks. `<space>vs` side-by-side.
+- **Read a diff:** `Enter` on a file, `]c` / `[c` jump hunks. `<space>vs` side-by-side.
 - **Commit:** `<space>s`, stage with `<space>a` (file, hunk or selected lines), message `<space>c`, commit `Ctrl-g`, `Alt-a` amend.
 - **Conflicts:** `Enter` on a `!` file opens the conflict editor. Press `?` there for its keys.
 - **Branches, tags, worktrees, stashes:** select in the sidebar, then `<space>b`, `t`, `w`, `k`, or `<space>.` for a menu.
