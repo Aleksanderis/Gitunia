@@ -13,7 +13,7 @@ Open an issue first and wait for a reply that the change fits. Unsolicited large
 
 - Branch from `main`, one issue per PR, reference it (`Closes #<n>`).
 - Use Conventional Commits (`feat:`, `fix:`, `docs:`, `test:`, `refactor:`, `chore:`).
-- `dotnet build` and `dotnet test` must pass. Warnings are errors. CI does not run automatically on PRs: the maintainer starts it.
+- `dotnet build` and `dotnet test` must pass. Warnings are errors.
 - Add tests for behaviour you change or add. Git code is tested against real temporary repos, not mocks. See `docs/testing.md`.
 - Code style is enforced by `.editorconfig` during the build, so there is nothing separate to run.
 - Keep the PR focused and describe what changed and why. Expect review comments. The maintainer merges.
