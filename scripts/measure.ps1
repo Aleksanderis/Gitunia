@@ -21,10 +21,15 @@ $Binary = (Resolve-Path $Binary).Path
 $Repo = (Resolve-Path $Repo).Path
 $cols, $rows = $Size -split 'x' | ForEach-Object { [int]$_ }
 
-# The app truncates long subjects with an ellipsis, so defaults are 20-char prefixes of the HEAD and root subjects.
+# The app truncates long subjects with an ellipsis, so defaults are short prefixes of the HEAD and root subjects: up to the first colon (at most 12 chars when there is none).
+# The newest row also carries ref decorations, which cut a subject earlier than the older rows (#1001).
 $emptyConfig = [System.IO.Path]::GetTempFileName()
 $env:GIT_CONFIG_GLOBAL = $emptyConfig; $env:GIT_CONFIG_SYSTEM = $emptyConfig
-function Get-Prefix([string]$text) { $text.Substring(0, [Math]::Min(20, $text.Length)) }
+function Get-Prefix([string]$text) {
+    $i = $text.IndexOf(':')
+    if ($i -gt 0 -and $i -le 20) { return $text.Substring(0, $i) }
+    $text.Substring(0, [Math]::Min(12, $text.Length))
+}
 if (-not $Marker) { $Marker = Get-Prefix ((git -C $Repo log -1 --format=%s HEAD) | Select-Object -First 1) }
 if (-not $Oldest) { $Oldest = Get-Prefix ((git -C $Repo log --max-parents=0 -1 --format=%s HEAD) | Select-Object -First 1) }
 
