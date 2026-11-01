@@ -1,6 +1,7 @@
 using Gitunia.Core.Clipboard;
 using Gitunia.Core.Config.Models;
 using Gitunia.Core.Conflicts;
+using Gitunia.Core.FileTree;
 using Gitunia.Core.ExternalTools;
 using Gitunia.Core.Picker;
 using Gitunia.Core.Reflog;
@@ -35,6 +36,10 @@ public sealed class RecordingShell : IShellEffects
 
     public int Quits { get; private set; }
 
+    public List<int> CursorMoves { get; } = [];
+
+    public List<string> OpenedFiles { get; } = [];
+
     public void CopyToClipboard(CopyToClipboardEffect effect)
     {
     }
@@ -67,6 +72,10 @@ public sealed class RecordingShell : IShellEffects
 
         return FlushSucceeds;
     }
+
+    public void MoveDetailCursor(int row) => CursorMoves.Add(row);
+
+    public void OpenFileContent(FileTreeRow row) => OpenedFiles.Add(row.Path);
 
     public void Quit() => Quits++;
 }

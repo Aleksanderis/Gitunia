@@ -1,6 +1,8 @@
 using Gitunia.Core.Branches;
 using Gitunia.Core.Conflicts;
 using Gitunia.Core.Creation;
+using Gitunia.Core.Details;
+using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Picker;
 using Gitunia.Core.Effects;
 using Gitunia.Core.ExternalTools;
@@ -40,9 +42,11 @@ public static partial class AppReducer
         BranchCommand branch => ReduceBranch(state, branch),
         ConflictCommand conflict => ReduceConflict(state, conflict),
         CreationCommand creation => ReduceCreation(state, creation),
+        DetailCommand detail => DetailReducer.Reduce(state, detail),
         EffectFailedCommand failed => EffectFailed(state, failed),
         ExternalToolCommand tool => new AppUpdate(state, ExternalToolReducer.Reduce(tool, state.Workspace.ActiveTab)),
         IssueLinkCommand link => new AppUpdate(state, IssueLinkReducer.Reduce(link)),
+        PaneSizeCommand paneSize => PaneSizeReducer.Reduce(state, paneSize),
         PickCommand pick => ReducePick(state, pick),
         RebaseCommand rebase => ReduceRebase(state, rebase),
         RebaseEditorCommand editor => ReduceRebaseEditor(state, editor),
@@ -102,7 +106,8 @@ public static partial class AppReducer
             effects.AddRange(closedTodo.Effects);
         }
 
-        var changed = new AppState(update.Workspace, shell);
+        var changed = DetailReducer.CloseFilterOfLeftTab(state.Workspace, new AppState(update.Workspace, shell));
+        shell = changed.Shell;
         if (shell.Reflog.List is { } list && update.Workspace.FindTab(list.TabId) is null)
         {
             var closed = ReduceReflog(changed, new ReflogTabClosed());

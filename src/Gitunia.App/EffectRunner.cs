@@ -22,6 +22,7 @@ using Gitunia.Core.Branches;
 using Gitunia.Core.Clipboard;
 using Gitunia.Core.Conflicts;
 using Gitunia.Core.Creation;
+using Gitunia.Core.Details;
 using Gitunia.Core.Effects;
 using Gitunia.Core.ExternalTools;
 using Gitunia.Core.IssueLinks;
@@ -312,8 +313,14 @@ public sealed partial class EffectRunner<TSession> : IDisposable
             case MoveCommitDraftEffect move:
                 _host.Dispatch(new PickerDraftMoved(move.Missing, _shell.MoveCommitDraft(move.Missing, move.Target)));
                 break;
+            case MoveDetailCursorEffect cursor:
+                _shell.MoveDetailCursor(cursor.Row);
+                break;
             case OfferTerminalRetryEffect offer:
                 _shell.OfferTerminalRetry(offer.TabId, offer.Noun, offer.Arguments);
+                break;
+            case OpenFileContentEffect open:
+                _shell.OpenFileContent(open.Row);
                 break;
             case OpenUrlEffect openUrl:
                 _issueLinks.Handle(openUrl);
