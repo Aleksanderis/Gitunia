@@ -203,7 +203,7 @@ public class StashViewTests
         Assert.Equal(1, harness.Reselects);
     }
 
-    private sealed class Harness : IDisposable
+    private sealed class Harness : IDisposable, IStashViewHost
     {
         private readonly SidebarListSource _source = new(GraphGlyphSet.Unicode);
 
@@ -229,7 +229,7 @@ public class StashViewTests
                     TimeSpan.Zero),
                     StashView: view),
                 GraphGlyphSet.Unicode);
-            Controller = new StashViewController(host, () => Session, () => Reselects++, () => { }, Statuses);
+            Controller = new StashViewController(host, this, Statuses);
             Handler = new SidebarActionHandler(
                 host,
                 _source,
@@ -311,6 +311,14 @@ public class StashViewTests
                 stashName: StashViewController.ShownName(Session));
 
             return [.. content.Rows.Select(row => string.Concat(row.Segments.Select(segment => segment.Text)))];
+        }
+
+        public TerminalTabSession ActiveSession() => Session;
+
+        public void ReselectGraphCommit() => Reselects++;
+
+        public void RefreshDetail()
+        {
         }
 
         public void Dispose()

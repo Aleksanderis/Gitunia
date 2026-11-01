@@ -5,10 +5,11 @@ using Gitunia.App.Loading.Stash;
 using Gitunia.App.Loading.Trees;
 using Gitunia.App.Reflog;
 using Gitunia.App.Settings;
+using Gitunia.App.Remotes;
+using Gitunia.App.Stash;
 using Gitunia.App.Status;
 using Gitunia.App.Tabs;
 using Gitunia.App.Tabs.Models;
-using Gitunia.App.Remotes;
 using Gitunia.App.Tags;
 using Gitunia.Core;
 using Gitunia.Core.Clipboard;
@@ -17,6 +18,7 @@ using Gitunia.Core.Prompts;
 using Gitunia.Core.Reflog;
 using Gitunia.Core.Settings;
 using Gitunia.Core.Remotes;
+using Gitunia.Core.Stash;
 using Gitunia.Core.Tags;
 using Gitunia.Core.IssueTracker;
 using Gitunia.Core.Shell;
@@ -54,6 +56,7 @@ public sealed class EffectRunner<TSession> : IDisposable
     private readonly SettingsEffectHandler? _settings;
     private readonly CancellationTokenSource _shutdown = new();
     private readonly RemoteEffectHandler _remotes;
+    private readonly StashEffectHandler _stash;
     private readonly TagEffectHandler _tags;
     private readonly Action<Action> _postToUi;
     private readonly StatusReporter _statuses;
@@ -87,6 +90,7 @@ public sealed class EffectRunner<TSession> : IDisposable
         _reflog = new ReflogEffectHandler(services.Reflog, host);
         _settings = settings is null ? null : new SettingsEffectHandler(settings, host);
         _remotes = new RemoteEffectHandler(services.RemoteManager, host);
+        _stash = new StashEffectHandler(services.StashWriter, host);
         _tags = new TagEffectHandler(services.Tags, host);
         _pollOptions = pollOptions ?? PollOptions.Default;
         _warmTabLimit = Math.Max(1, warmTabLimit);
@@ -207,6 +211,7 @@ public sealed class EffectRunner<TSession> : IDisposable
         ReadReflogEffect => new ReflogReadFailed(text),
         SettingsEffect => new SettingsOperationFailed(text),
         RemoteEffect remote => new RemoteOperationFailed(remote.TabId, text),
+        StashEffect stash => new StashOperationFailed(stash.TabId, text),
         TagEffect tag => new TagOperationFailed(tag.TabId, text, null),
         _ => new EffectFailedCommand(text),
     };
@@ -262,6 +267,9 @@ public sealed class EffectRunner<TSession> : IDisposable
                 break;
             case ShowPromptEffect prompt:
                 _host.Dispatch(new PromptRequestedCommand(prompt.Request));
+                break;
+            case StashEffect stash:
+                _stash.Handle(stash, _cancellation.TokenOf(stash.TabId));
                 break;
             case TagEffect tag:
                 _tags.Handle(tag, _cancellation.TokenOf(tag.TabId));
