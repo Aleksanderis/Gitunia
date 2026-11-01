@@ -39,4 +39,11 @@ case "$rid" in
 esac
 
 (cd "$out" && sha256sum "$archive" > "$archive.sha256")
+case "$rid" in
+  win-*)
+    # Bare binary for a portable winget package (#941).
+    bare="$name.exe"
+    cp "$src/$exe" "$out/$bare"
+    (cd "$out" && sha256sum "$bare" > "$bare.sha256") ;;
+esac
 echo "$out/$archive"
