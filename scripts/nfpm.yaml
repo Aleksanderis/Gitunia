@@ -1,0 +1,23 @@
+# nfpm config for the .deb and .rpm packages (#942); used by scripts/package-linux.sh, which sets VERSION and BINARY.
+# Smallest install: the binary and the licence. git is declared, not bundled.
+name: gitunia
+arch: amd64
+platform: linux
+version: ${VERSION}
+section: vcs
+priority: optional
+maintainer: Gitunia maintainers <noreply@users.noreply.github.com>
+description: Keyboard-first terminal Git client (graph, branches, worktrees, vim-style keys).
+homepage: https://github.com/Aleksanderis/Gitunia
+license: MIT
+depends:
+  - git
+contents:
+  - src: ${BINARY}
+    dst: /usr/bin/gitunia
+    file_info:
+      mode: 0755
+  - src: LICENSE
+    dst: /usr/share/doc/gitunia/LICENSE
+    file_info:
+      mode: 0644

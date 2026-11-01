@@ -215,3 +215,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **UI:** The main loop runs 100 iterations per second while the user works and 50 after 2 s without input (#909). Why: Terminal.Gui wakes three threads per iteration even when idle (idle CPU ~2.4% at 100, ~1.5% at 50) and the first key after a pause costs about 9 ms more; the full rate stays for key latency. Numbers: `docs/performance.md`, "Idle CPU".
 
 **Process:** The release guard is replaced by a `check` job (#937, owner): on a `v*` tag it only looks for a green full run for the tagged commit. Green: the legs only package; not green or lookup error: the same tag run builds and tests first. It never starts or awaits a run. Supersedes the #921 entry. Why: `gh run watch` billed runner minutes while waiting.
+
+**Process:** Linux packages (#942): `.deb` and `.rpm` are built by nfpm (`scripts/package-linux.sh`, `scripts/nfpm.yaml`) in the Linux leg on tags, nfpm installed with `go install` at a pinned version. Why: one config for both formats, no distro tooling or container on the runner; building from source avoids trusting an unverified download.
