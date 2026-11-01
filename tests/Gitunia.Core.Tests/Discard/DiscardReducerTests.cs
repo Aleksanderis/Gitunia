@@ -33,6 +33,7 @@ public class DiscardReducerTests
         Assert.Equal("Discard changes", confirm.Prompt.Title);
         Assert.Equal(["Discard all unstaged changes to a.txt?"], confirm.Prompt.Lines);
         Assert.Contains("cannot be undone", confirm.Prompt.Consequence, StringComparison.Ordinal);
+        Assert.Equal("The screen is too small to ask: nothing was discarded", confirm.UnavailableNotice);
         var accepted = Assert.IsType<DiscardConfirmed>(confirm.OnAccepted);
         Assert.Equal(new DiscardFile(Modified("a.txt")), accepted.Target);
         Assert.False(accepted.EndsRange);
