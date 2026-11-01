@@ -11,10 +11,10 @@ using Terminal.Gui.ViewBase;
 namespace Gitunia.Tui.Views;
 
 /// <summary>The repository picker area: draws the composed picker and reports clicks on rows (a click highlights) and the gestures the mouse map decides on.</summary>
-public sealed class PickerView(Func<ScreenModel> model, GraphGlyphSet glyphs) : View
+public sealed class PickerView(IScreenContent content, GraphGlyphSet glyphs) : View
 {
     /// <summary>True while something modal owns the screen: mouse input is swallowed.</summary>
-    public Func<bool> IsSuppressed { get; set; } = () => false;
+    public IMouseGate Gate { get; init; } = new MouseGate();
 
     /// <summary>Raised with the row index when a row is clicked (a double-click raises it before <see cref="GestureRaised"/>).</summary>
     public event Action<int>? RowClicked;
@@ -27,18 +27,18 @@ public sealed class PickerView(Func<ScreenModel> model, GraphGlyphSet glyphs) : 
 
     protected override bool OnDrawingContent(DrawContext? context)
     {
-        if (model().Picker is not { } picker)
+        if (content.Model().Picker is not { } picker)
         {
             return true;
         }
 
         var lines = PickerComposer.Compose(
             picker,
-            model().HomeDirectory,
+            content.Model().HomeDirectory,
             Viewport.Width,
             Viewport.Height,
             glyphs,
-            model().Keys);
+            content.Model().Keys);
         var layout = PickerLayout.Compute(picker, Viewport.Width, Viewport.Height);
         for (var row = 0; row < lines.Count; row++)
         {
@@ -55,7 +55,7 @@ public sealed class PickerView(Func<ScreenModel> model, GraphGlyphSet glyphs) : 
             return base.OnMouseEvent(mouse);
         }
 
-        if (IsSuppressed())
+        if (Gate.IsSuppressed)
         {
             return true;
         }
@@ -66,7 +66,7 @@ public sealed class PickerView(Func<ScreenModel> model, GraphGlyphSet glyphs) : 
             return true;
         }
 
-        if (mouse.Position is not { } position || model().Picker is not { } picker)
+        if (mouse.Position is not { } position || content.Model().Picker is not { } picker)
         {
             return base.OnMouseEvent(mouse);
         }
@@ -85,7 +85,7 @@ public sealed class PickerView(Func<ScreenModel> model, GraphGlyphSet glyphs) : 
                 picker.HighlightedRow,
                 layout.InnerWidth,
                 picker.LocatingTabId is not null,
-                model().Keys);
+                content.Model().Keys);
             if (TitleButton.ViewAt(buttons, column - 1) is { } buttonView)
             {
                 ButtonClicked?.Invoke(buttonView);

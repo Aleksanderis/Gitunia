@@ -1,4 +1,6 @@
+using Gitunia.App;
 using Gitunia.Core.Keymap;
+using Gitunia.Tui.Input;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Keymap.Repeat;
 using Gitunia.Core.Workspaces.Panes;
@@ -12,16 +14,11 @@ namespace Gitunia.Tui.App.Panes;
 /// a focus change or an overlay ends it.
 /// </summary>
 /// <param name="table">The key bindings, which hold the keys of the repeat views.</param>
-/// <param name="activeTab">The active tab.</param>
-/// <param name="focusedPane">The pane that has focus.</param>
-/// <param name="isBlocked">An overlay, prompt or search owns the keys.</param>
-/// <param name="execute">Runs a step action, as the key binding would.</param>
-public sealed class RepeatController(
-    KeyBindingTable table,
-    Func<TabId?> activeTab,
-    Func<PaneKind> focusedPane,
-    Func<bool> isBlocked,
-    Action<ActionId, int?> execute)
+/// <param name="host">Holds the active tab and its focused pane.</param>
+/// <param name="blocker">Tells when an overlay, prompt or search owns the keys.</param>
+/// <param name="route">Runs a step action, as the key binding would.</param>
+public sealed class RepeatController(KeyBindingTable table, Dispatcher host, IInputBlocker blocker, IActionRoute route)
+    : IKeyInterceptor
 {
     private RepeatMode? _mode;
 
@@ -30,7 +27,7 @@ public sealed class RepeatController(
     {
         get
         {
-            if (_mode is { } mode && (!mode.AppliesTo(activeTab(), focusedPane()) || isBlocked()))
+            if (_mode is { } mode && (!mode.AppliesTo(host.Workspace.ActiveTabId, FocusedPane()) || blocker.IsBlocked))
             {
                 _mode = null;
             }
@@ -43,7 +40,7 @@ public sealed class RepeatController(
     /// <param name="action">The action that just ran.</param>
     public void Started(ActionId action)
     {
-        if (activeTab() is { } tab && RepeatMode.Start(action, tab, focusedPane()) is { } started)
+        if (host.Workspace.ActiveTabId is { } tab && RepeatMode.Start(action, tab, FocusedPane()) is { } started)
         {
             _mode = started;
         }
@@ -90,8 +87,10 @@ public sealed class RepeatController(
             return true;
         }
 
-        execute(binding.Action, null);
+        route.Route(binding.Action, null);
 
         return true;
     }
+
+    private PaneKind FocusedPane() => host.Workspace.ActiveTab?.View.FocusedPane ?? PaneKind.Graph;
 }

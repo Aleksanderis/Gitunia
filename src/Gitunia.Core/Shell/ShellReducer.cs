@@ -30,6 +30,7 @@ public static class ShellReducer
         StatusAgedCommand aged => new ShellUpdate(state, Schedule(state, aged.At)),
         StatusDismissedCommand dismissed => Dismiss(state, dismissed.At),
         StatusPostedCommand posted => Post(state, posted),
+        TabRefreshRequested refresh => new ShellUpdate(state, [new RefreshTabEffect(refresh.TabId, refresh.Announce)]),
         _ => throw new UnhandledCommandException(command),
     };
 

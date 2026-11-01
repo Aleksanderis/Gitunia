@@ -1,4 +1,6 @@
+using Gitunia.App;
 using Gitunia.App.Status;
+using Gitunia.Core.Shell;
 using Gitunia.Git.ExternalTools;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Platform.ExternalTools;
@@ -13,10 +15,11 @@ public sealed class ExternalToolRunner(
     IExternalToolLauncher launcher,
     ITerminalSuspender terminal,
     StatusReporter statuses,
-    Action<RepositoryLocation> refresh,
-    Action pauseForUser,
-    string gitExecutable = "git")
+    Dispatcher host,
+    IUserPause pause)
 {
+    private const string GitExecutable = "git";
+
     private bool _running;
     private ExternalToolResult _result = new(ExternalToolResult.NotStartedExitCode, "did not run");
 
@@ -46,7 +49,7 @@ public sealed class ExternalToolRunner(
             return "External tools are not supported on this operating system";
         }
 
-        var request = new ExternalToolRequest(gitExecutable, arguments, location.CommandPath);
+        var request = new ExternalToolRequest(GitExecutable, arguments, location.CommandPath);
         _running = true;
         try
         {
@@ -72,7 +75,7 @@ public sealed class ExternalToolRunner(
                 Console.Error.WriteLine(error);
             }
 
-            pauseForUser();
+            pause.Wait();
         }
     }
 
@@ -89,6 +92,9 @@ public sealed class ExternalToolRunner(
             statuses.Error(result.Describe(name));
         }
 
-        refresh(location);
+        if (host.Workspace.ActiveTabId is { } tabId && host.Workspace.FindTab(tabId)?.Location == location)
+        {
+            host.Dispatch(new TabRefreshRequested(tabId, false));
+        }
     }
 }

@@ -10,6 +10,7 @@ using Gitunia.Git;
 using Gitunia.Tui.App.Clipboard;
 using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.Input;
+using Gitunia.Tui.Views;
 using Gitunia.Tui.Rendering.Details;
 using Gitunia.Tui.Rendering.Screen;
 using Gitunia.Tui.Views.Lists;
@@ -22,28 +23,22 @@ namespace Gitunia.Tui.App;
 /// stepping back and quitting. It is the last one asked, so it also takes what nobody claimed: Esc clears the status
 /// message and any other action says it is not implemented yet.
 /// </summary>
-/// <param name="host">Holds the state and takes the commands.</param>
-/// <param name="graphList">The graph list.</param>
-/// <param name="detailList">The detail list.</param>
-/// <param name="activeSession">The active tab's session, null when there is none.</param>
-/// <param name="quit">Asks the application to quit.</param>
-/// <param name="screenHeight">The screen height in rows; screens under 14 rows have no details pane.</param>
-/// <param name="statuses">The status actions, whose fallback takes Esc.</param>
-/// <param name="clipboard">Copies a commit hash.</param>
+/// <param name="host">Holds the active tab and its focused pane.</param>
+/// <param name="lists">The graph and detail lists.</param>
+/// <param name="sessions">The active tab's session, null when there is none.</param>
+/// <param name="services">Quitting, the screen height, the status actions and the clipboard.</param>
 public sealed class NavigationActions(
     Dispatcher host,
-    ListView graphList,
-    ListView detailList,
-    Func<TerminalTabSession?> activeSession,
-    Action quit,
-    Func<int> screenHeight,
-    StatusActionHandler statuses,
-    ClipboardCopier clipboard) : IActionHandler, IActionNotice
+    IPaneLists lists,
+    IActiveSessions sessions,
+    NavigationServices services) : IActionHandler, IActionNotice
 {
     /// <summary>The notice shown when <c>G</c> stops at the last loaded commit while the log is still streaming in.</summary>
     public const string StillLoadingNotice = "Still loading: at the last loaded commit";
 
-    private readonly DetailPathCopier _pathCopier = new(clipboard);
+    private readonly ListView _graphList = lists.ListOf(PaneKind.Graph);
+    private readonly ListView _detailList = lists.ListOf(PaneKind.Detail);
+    private readonly DetailPathCopier _pathCopier = new(services.Clipboard);
 
     /// <summary>A short notice for the status bar from the last action, empty when none.</summary>
     public string Notice { get; private set; } = string.Empty;
@@ -52,7 +47,7 @@ public sealed class NavigationActions(
     public bool TryExecute(ActionId action, int? count)
     {
         Notice = string.Empty;
-        var list = FocusedPane == PaneKind.Detail ? detailList : graphList;
+        var list = FocusedPane == PaneKind.Detail ? _detailList : _graphList;
         var itemCount = list.Source?.Count ?? 0;
         if (ListMotion.TryMove(action, count, list.SelectedItem ?? 0, itemCount, list.Viewport.Height, out var target))
         {
@@ -77,21 +72,21 @@ public sealed class NavigationActions(
         }
         else if (action == ActionIds.AppQuit)
         {
-            quit();
+            services.Quit.Request();
         }
         else if (action == ActionIds.NavigateBack)
         {
             // Only the Detail pane steps back here; the graph is the root, and quitting is app.quit (q).
             if (FocusedPane == PaneKind.Detail)
             {
-                FocusPane(PaneKind.Graph, graphList);
+                FocusPane(PaneKind.Graph, _graphList);
             }
         }
         else if (action == ActionIds.DetailCollapse || action == ActionIds.DetailExpand)
         {
             // Bare h and l stay inside the pane: with no directory or folder to fold they do nothing.
         }
-        else if (!statuses.TryHandleFallback(action))
+        else if (!services.Statuses.TryHandleFallback(action))
         {
             // Esc that nothing else claimed was handled above: it clears the status message.
             Notice = $"{ActionCatalog.Describe(action)}: not implemented yet";
@@ -102,7 +97,7 @@ public sealed class NavigationActions(
 
     // The toolkit's focus is the truth (a mouse click moves it without us), the tab's FocusedPane is kept in step by
     // FocusPane.
-    private PaneKind FocusedPane => detailList.HasFocus ? PaneKind.Detail : PaneKind.Graph;
+    private PaneKind FocusedPane => _detailList.HasFocus ? PaneKind.Detail : PaneKind.Graph;
 
     // A count targets a line, so only a plain G (jump to the end) is hinted; the hint ends with the load.
     private void MarkLoadingEnd(ActionId action, int? count)
@@ -113,8 +108,8 @@ public sealed class NavigationActions(
         }
 
         // Past the soft row limit the end is not loaded: G starts loading the rest (#515).
-        activeSession()?.RequestExpand(true);
-        if (activeSession()?.IsLoading == true)
+        sessions.ActiveSession()?.RequestExpand(true);
+        if (sessions.ActiveSession()?.IsLoading == true)
         {
             Notice = StillLoadingNotice;
         }
@@ -122,14 +117,14 @@ public sealed class NavigationActions(
 
     private void OpenDetails()
     {
-        if (DetailLayout.PaneHeight(screenHeight()) == 0)
+        if (DetailLayout.PaneHeight(services.Chrome.ScreenSize.Height) == 0)
         {
             Notice = "The details pane needs a taller screen";
 
             return;
         }
 
-        FocusPane(PaneKind.Detail, detailList);
+        FocusPane(PaneKind.Detail, _detailList);
     }
 
     private void FocusPane(PaneKind pane, ListView list)
@@ -148,7 +143,7 @@ public sealed class NavigationActions(
 
         list.SetFocus();
         list.SetNeedsDraw();
-        graphList.SetNeedsDraw();
+        _graphList.SetNeedsDraw();
     }
 
     private static void Select(ListView list, int item)
@@ -164,8 +159,8 @@ public sealed class NavigationActions(
 
     private void CopySelectedHash()
     {
-        var session = activeSession();
-        var commitIndex = graphList.SelectedItem is { } item ? GraphListSource.CommitIndexOf(item) : -1;
+        var session = sessions.ActiveSession();
+        var commitIndex = _graphList.SelectedItem is { } item ? GraphListSource.CommitIndexOf(item) : -1;
         if (session is null || commitIndex < 0 || commitIndex >= session.Graph.Count)
         {
             Notice = "No commit selected";
@@ -174,15 +169,15 @@ public sealed class NavigationActions(
         }
 
         var hash = session.Graph[commitIndex].Id.ToString();
-        clipboard.Copy(hash, $"commit hash {hash[..Math.Min(7, hash.Length)]}");
+        services.Clipboard.Copy(hash, $"commit hash {hash[..Math.Min(7, hash.Length)]}");
     }
 
     private void CopySelectedPath() =>
-        Notice = _pathCopier.Copy(activeSession()?.DetailSource, detailList.SelectedItem);
+        Notice = _pathCopier.Copy(sessions.ActiveSession()?.DetailSource, _detailList.SelectedItem);
 
     private void JumpToHead()
     {
-        var session = activeSession();
+        var session = sessions.ActiveSession();
         var headHash = host.Workspace.ActiveTab?.Head?.CommitHash;
         if (session is null || headHash is null || !ObjectId.TryParse(headHash, out var headId))
         {
@@ -201,6 +196,6 @@ public sealed class NavigationActions(
             return;
         }
 
-        Select(graphList, index + ScreenLayout.ReservedLeadingRows);
+        Select(_graphList, index + ScreenLayout.ReservedLeadingRows);
     }
 }

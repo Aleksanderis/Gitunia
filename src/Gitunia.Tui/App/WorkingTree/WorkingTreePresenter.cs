@@ -16,24 +16,26 @@ namespace Gitunia.Tui.App.WorkingTree;
 public sealed class WorkingTreePresenter
 {
     private readonly Dispatcher _host;
+    private readonly PaneViews _panes;
     private readonly MainView _view;
+    private readonly IWorkingTreeFocus _focus;
     private PaneKind _lastFocus = PaneKind.WorkingUnstaged;
     private bool _isSyncing;
 
-    public WorkingTreePresenter(Dispatcher host, MainView view)
+    /// <param name="host">The state.</param>
+    /// <param name="panes">The lists of the Changes view.</param>
+    /// <param name="view">Shows and hides the Changes view.</param>
+    /// <param name="focus">The focused pane of the Changes view.</param>
+    public WorkingTreePresenter(Dispatcher host, PaneViews panes, MainView view, IWorkingTreeFocus focus)
     {
         _host = host;
+        _panes = panes;
         _view = view;
+        _focus = focus;
         host.Changed += Sync;
-        view.WorkingUnstaged.ValueChanged += (_, _) => OnSelected(view.WorkingUnstaged, WorkingTreeSection.Unstaged);
-        view.WorkingStaged.ValueChanged += (_, _) => OnSelected(view.WorkingStaged, WorkingTreeSection.Staged);
-        view.WorkingFocus = FocusedPane;
-        view.WorkingDiffView = DiffView;
+        panes.WorkingUnstaged.ValueChanged += (_, _) => OnSelected(panes.WorkingUnstaged, WorkingTreeSection.Unstaged);
+        panes.WorkingStaged.ValueChanged += (_, _) => OnSelected(panes.WorkingStaged, WorkingTreeSection.Staged);
     }
-
-    /// <summary>The pane of the active tab that has focus in the Changes view: a list, a diff or the message box, the Unstaged list when the focus is elsewhere.</summary>
-    public PaneKind FocusedPane() =>
-        _host.Workspace.ActiveTab?.View.FocusedPane is { } pane && WorkingPanes.IsWorking(pane) ? pane : PaneKind.WorkingUnstaged;
 
     private void Sync()
     {
@@ -43,14 +45,14 @@ public sealed class WorkingTreePresenter
         try
         {
             var pathStyle = tab?.View.PathStyle ?? FilePathStyle.NameFirst;
-            _view.UnstagedSource.SetPathStyle(pathStyle);
-            _view.StagedSource.SetPathStyle(pathStyle);
-            _view.UnstagedSource.Update(tab?.WorkingTree);
-            _view.StagedSource.Update(tab?.WorkingTree);
+            _panes.UnstagedSource.SetPathStyle(pathStyle);
+            _panes.StagedSource.SetPathStyle(pathStyle);
+            _panes.UnstagedSource.Update(tab?.WorkingTree);
+            _panes.StagedSource.Update(tab?.WorkingTree);
             _view.ShowWorkingTree(isShown);
             var selection = tab?.WorkingTree?.Selection;
-            Select(_view.WorkingUnstaged, selection is { Section: WorkingTreeSection.Unstaged } ? selection.Index : null);
-            Select(_view.WorkingStaged, selection is { Section: WorkingTreeSection.Staged } ? selection.Index : null);
+            Select(_panes.WorkingUnstaged, selection is { Section: WorkingTreeSection.Unstaged } ? selection.Index : null);
+            Select(_panes.WorkingStaged, selection is { Section: WorkingTreeSection.Staged } ? selection.Index : null);
         }
         finally
         {
@@ -58,24 +60,13 @@ public sealed class WorkingTreePresenter
         }
 
         // A narrow screen shows only the focused list or the diff, so the layout depends on the focus.
-        var focus = FocusedPane();
+        var focus = _focus.FocusedPane();
         if (isShown && focus != _lastFocus)
         {
-            _view.Window.SetNeedsLayout();
+            _panes.Window.SetNeedsLayout();
         }
 
         _lastFocus = focus;
-    }
-
-    // The side of the selected file names the diff's view for the mouse map.
-    private string DiffView()
-    {
-        if (_host.Workspace.ActiveTab?.WorkingTree?.Selection?.Section == WorkingTreeSection.Staged)
-        {
-            return DefaultKeymap.WorkingStagedDiffView;
-        }
-
-        return DefaultKeymap.WorkingUnstagedDiffView;
     }
 
     private static void Select(ListView list, int? index)

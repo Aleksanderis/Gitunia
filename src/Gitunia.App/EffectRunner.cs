@@ -113,7 +113,7 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
     private readonly StatusAgingTimer _statusAging;
     private readonly ITabSessionFactory<TSession> _sessionFactory;
     private readonly TimeSpan _detailDebounce;
-    private readonly Dictionary<TabId, TSession> _sessions = [];
+    private readonly TabSessionRegistry<TSession> _sessions;
     private readonly Dictionary<TabId, Action> _pendingLoads = [];
     private readonly Dictionary<TabId, TabRefresher> _refreshers = [];
     private readonly List<TabId> _recent = [];
@@ -136,8 +136,10 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
         IShellEffects? shell = null,
         SettingsServices? settings = null,
         PickerServices? picker = null,
-        IUrlOpener? urlOpener = null)
+        IUrlOpener? urlOpener = null,
+        TabSessionRegistry<TSession>? sessions = null)
     {
+        _sessions = sessions ?? new TabSessionRegistry<TSession>();
         var pickerServices = picker ?? PickerServices.Default;
         _shell = shell ?? NoShellEffects.Instance;
         _branches = new BranchEffectHandler(services.Branches, host);
@@ -430,7 +432,7 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
                 _reflog.Handle(read, _cancellation.TokenOf(read.TabId));
                 break;
             case RefreshTabEffect refresh:
-                Refresh(refresh.TabId, false);
+                Refresh(refresh.TabId, refresh.Announce);
                 break;
             case ReflogEntryActionEffect entry:
                 _shell.StartReflogEntryAction(entry);

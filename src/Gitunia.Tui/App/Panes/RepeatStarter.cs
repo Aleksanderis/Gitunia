@@ -11,10 +11,10 @@ namespace Gitunia.Tui.App.Panes;
 /// A step that took effect (the resize did not refuse, the context belongs to a diff) starts the sticky repeat mode.
 /// </summary>
 /// <param name="host">Holds the active tab.</param>
-/// <param name="view">The window, whose diff pane tells whether the diff has options.</param>
+/// <param name="panes">The panes, whose diff pane tells whether the diff has options.</param>
 /// <param name="repeat">The sticky repeat mode.</param>
 /// <param name="paneSizes">Says whether the last resize step was refused.</param>
-public sealed class RepeatStarter(Dispatcher host, MainView view, RepeatController repeat, PaneSizeInput paneSizes)
+public sealed class RepeatStarter(Dispatcher host, PaneViews panes, RepeatController repeat, PaneSizeInput paneSizes)
     : IRepeatStarter
 {
     public void AfterPaneAction(ActionId action)
@@ -23,7 +23,7 @@ public sealed class RepeatStarter(Dispatcher host, MainView view, RepeatControll
         var isHistoryDiff = host.Workspace.ActiveTab?.View.FocusedPane == PaneKind.Diff;
         var hasNoDiffOptions = RepeatMode.IsContextStep(action)
             && isHistoryDiff
-            && view.Diff.Source is DiffListSource { Document.IsFileContent: true };
+            && panes.Diff.Source is DiffListSource { Document.IsFileContent: true };
         if (!isRefused && !hasNoDiffOptions)
         {
             repeat.Started(action);

@@ -12,8 +12,8 @@ namespace Gitunia.Tui.App;
 /// terminal.
 /// </summary>
 /// <param name="statuses">The channel whose latest message is dismissed.</param>
-/// <param name="activeSession">The active tab's session, null when there is none.</param>
-public sealed class StatusActionHandler(StatusReporter statuses, Func<TerminalTabSession?> activeSession)
+/// <param name="sessions">The active tab's session, null when there is none.</param>
+public sealed class StatusActionHandler(StatusReporter statuses, IActiveSessions sessions)
     : IActionHandler, IActionNotice
 {
     /// <summary>A short notice for the status bar from the last handled action, empty when none.</summary>
@@ -35,7 +35,7 @@ public sealed class StatusActionHandler(StatusReporter statuses, Func<TerminalTa
 
         if (action == ActionIds.DetailRetry)
         {
-            var session = activeSession();
+            var session = sessions.ActiveSession();
             var retried = session?.Details.Retry() == true;
             retried |= session?.Tree?.Store.Retry() == true;
             Message = retried ? "retrying..." : "nothing to retry";
@@ -44,7 +44,7 @@ public sealed class StatusActionHandler(StatusReporter statuses, Func<TerminalTa
 
         if (action == ActionIds.DiffMergeParent)
         {
-            var details = activeSession()?.Details;
+            var details = sessions.ActiveSession()?.Details;
             var parents = details?.Current.Details?.Parents.Count ?? 0;
             Message = "Not a merge commit (or still loading)";
             if (details?.CycleParent() is { } index)
