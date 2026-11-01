@@ -233,10 +233,13 @@ jobs:
       - name: Test (one project at a time)
         # Same shape as the Windows leg: only OS-sensitive tests (#637), projects in sequence, hung host killed.
         run: |
+          scripts/ci-hang-watch.sh &
+          status=0
           for project in Core Platform Git Tui; do
             dotnet test "tests/Gitunia.$project.Tests" -c Release --no-build --filter "Os!=Independent" \
-              --blame-hang-timeout 10m --blame-hang-dump-type none || exit 1
+              --logger "console;verbosity=normal" --blame-hang-timeout 4m --blame-hang-dump-type none || status=1
           done
+          exit $status
       - name: AOT publish (any IL* warning fails)
         run: |
           version_arg=""; if [[ "$GITHUB_REF" == refs/tags/v* ]]; then version_arg="-p:Version=${GITHUB_REF_NAME#v}"; fi
