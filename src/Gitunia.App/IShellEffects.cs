@@ -40,4 +40,14 @@ public interface IShellEffects
 
     /// <summary>Opens the config file in the editor; <c>SettingsEditorClosed</c> follows when it closes.</summary>
     void OpenConfigEditor();
+
+    /// <summary>Moves the unsent commit message of a missing tab to the tab that replaces it. False when the other tab
+    /// holds its own message and nothing moved.</summary>
+    bool MoveCommitDraft(TabId missing, TabId target);
+
+    /// <summary>Saves the session now; false when the save failed.</summary>
+    bool FlushSession();
+
+    /// <summary>Stops the program: the main loop ends, the session is saved on the way out.</summary>
+    void Quit();
 }

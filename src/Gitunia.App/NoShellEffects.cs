@@ -38,4 +38,12 @@ public sealed class NoShellEffects : IShellEffects
     public void OpenConfigEditor()
     {
     }
+
+    public bool MoveCommitDraft(TabId missing, TabId target) => true;
+
+    public bool FlushSession() => true;
+
+    public void Quit()
+    {
+    }
 }

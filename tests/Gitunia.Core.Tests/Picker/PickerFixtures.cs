@@ -1,10 +1,11 @@
+using System.Collections.Immutable;
 using Gitunia.Core.Picker;
 using Gitunia.Core.Workspaces;
 using Gitunia.Git.Repositories.Models;
 
 namespace Gitunia.Core.Tests.Picker;
 
-/// <summary>A fake file system and workspace for picker tests: paths under one root, no disk access.</summary>
+/// <summary>A workspace and paths for picker tests: paths under one root, no disk access.</summary>
 public static class PickerFixtures
 {
     // Under the drive root: a Windows temp path ("...\AppData\Local\Temp") would match short queries.
@@ -31,22 +32,17 @@ public static class PickerFixtures
 
     /// <param name="workspace">The workspace; empty when null.</param>
     /// <param name="discovered">Root paths the scanner found.</param>
-    /// <param name="directories">Maps a directory to the names of its subdirectories.</param>
-    /// <param name="repositories">Directories that count as repositories.</param>
     public static PickerContext Context(
         Workspace? workspace = null,
-        IEnumerable<string>? discovered = null,
-        IReadOnlyDictionary<string, string[]>? directories = null,
-        IEnumerable<string>? repositories = null)
+        IEnumerable<string>? discovered = null)
     {
-        var map = directories ?? new Dictionary<string, string[]>();
-        var repositorySet = (repositories ?? []).ToHashSet();
         return new PickerContext(
             workspace ?? Workspace.Empty,
             [.. discovered ?? []],
-            Home,
-            PathOf("code", "current"),
-            directory => map.TryGetValue(Path.TrimEndingDirectorySeparator(directory), out var names) ? [.. names.Select(name => Path.Combine(Path.TrimEndingDirectorySeparator(directory), name))] : [],
-            repositorySet.Contains);
+            PathOf("code", "current"));
     }
+
+    /// <summary>The rows a listing of a directory under the code folder would deliver.</summary>
+    public static ImmutableArray<PickerRow> Listed(params string[] names) =>
+        [.. names.Select(name => new PickerRow(PathOf("code", name), name, PickerTags.Directory))];
 }

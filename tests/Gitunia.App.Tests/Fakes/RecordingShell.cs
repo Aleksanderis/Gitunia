@@ -1,6 +1,7 @@
 using Gitunia.Core.Clipboard;
 using Gitunia.Core.Config.Models;
 using Gitunia.Core.Conflicts;
+using Gitunia.Core.Picker;
 using Gitunia.Core.Reflog;
 using Gitunia.Core.Workspaces.Tabs;
 
@@ -21,6 +22,16 @@ public sealed class RecordingShell : IShellEffects
 
     public int EditorOpened { get; private set; }
 
+    public List<MoveCommitDraftEffect> DraftMoves { get; } = [];
+
+    public bool DraftMoveResult { get; set; } = true;
+
+    public int Flushed { get; private set; }
+
+    public bool FlushSucceeds { get; set; } = true;
+
+    public int Quits { get; private set; }
+
     public void CopyToClipboard(CopyToClipboardEffect effect)
     {
     }
@@ -37,4 +48,20 @@ public sealed class RecordingShell : IShellEffects
     public void ApplyTheme(ThemeChoice theme) => AppliedThemes.Add(theme);
 
     public void OpenConfigEditor() => EditorOpened++;
+
+    public bool MoveCommitDraft(TabId missing, TabId target)
+    {
+        DraftMoves.Add(new MoveCommitDraftEffect(missing, target));
+
+        return DraftMoveResult;
+    }
+
+    public bool FlushSession()
+    {
+        Flushed++;
+
+        return FlushSucceeds;
+    }
+
+    public void Quit() => Quits++;
 }
