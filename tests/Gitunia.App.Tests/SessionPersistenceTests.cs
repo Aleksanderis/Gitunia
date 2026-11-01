@@ -1,3 +1,4 @@
+using Gitunia.Core;
 using Gitunia.Core.Persistence;
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
@@ -20,7 +21,7 @@ public class SessionPersistenceTests
         try
         {
             var store = new SessionStore(directory);
-            var host = new WorkspaceHost(Workspace.Empty);
+            var host = new Dispatcher(AppState.Empty);
             using var persistence = new SessionPersistence(store, host, TimeSpan.FromHours(1), new StatusChannel(), action => action());
             persistence.Start();
             host.Dispatch(new OpenRepositoryCommand(Location(Path.Combine(directory, "alpha"))));
@@ -47,7 +48,7 @@ public class SessionPersistenceTests
         try
         {
             var store = new SessionStore(directory);
-            var host = new WorkspaceHost(Workspace.Empty);
+            var host = new Dispatcher(AppState.Empty);
             host.Dispatch(new OpenRepositoryCommand(Location(Path.Combine(directory, "alpha"))));
             var drafts = new Dictionary<TabId, SessionDraft>();
             using var persistence = new SessionPersistence(store, host, TimeSpan.FromHours(1), new StatusChannel(), action => action(), () => new Dictionary<TabId, SessionDraft>(drafts));
@@ -74,7 +75,7 @@ public class SessionPersistenceTests
     {
         var directory = Path.Combine(Path.GetTempPath(), $"gitunia-session-{Guid.NewGuid().ToString("N")}");
         var store = new SessionStore(directory);
-        var host = new WorkspaceHost(Workspace.Empty);
+        var host = new Dispatcher(AppState.Empty);
         using var persistence = new SessionPersistence(store, host, TimeSpan.FromHours(1), new StatusChannel(), action => action());
         persistence.Start();
 
@@ -90,7 +91,7 @@ public class SessionPersistenceTests
         File.WriteAllText(blocker, "not a directory");
         try
         {
-            var host = new WorkspaceHost(Workspace.Empty);
+            var host = new Dispatcher(AppState.Empty);
             using var persistence = new SessionPersistence(new SessionStore(blocker), host, TimeSpan.FromHours(1), new StatusChannel(), action => action());
             persistence.Start();
             host.Dispatch(new OpenRepositoryCommand(Location(Path.Combine(blocker, "alpha"))));
@@ -109,7 +110,7 @@ public class SessionPersistenceTests
         var directory = Path.Combine(Path.GetTempPath(), $"gitunia-session-{Guid.NewGuid().ToString("N")}");
         try
         {
-            var host = new WorkspaceHost(Workspace.Empty);
+            var host = new Dispatcher(AppState.Empty);
             using var persistence = new SessionPersistence(new SessionStore(directory), host, TimeSpan.FromHours(1), new StatusChannel(), action => action());
             persistence.Start();
             host.Dispatch(new OpenRepositoryCommand(Location(Path.Combine(directory, "alpha"))));
@@ -133,7 +134,7 @@ public class SessionPersistenceTests
         try
         {
             var statuses = new StatusChannel();
-            var host = new WorkspaceHost(Workspace.Empty);
+            var host = new Dispatcher(AppState.Empty);
             using var persistence = new SessionPersistence(new SessionStore(blocker), host, TimeSpan.FromHours(1), statuses, action => action());
             persistence.Start();
 
@@ -166,7 +167,7 @@ public class SessionPersistenceTests
             watcher.Renamed += (_, _) => { if (File.Exists(store.FilePath)) { saved.TrySetResult(); } };
             watcher.Changed += (_, _) => { if (File.Exists(store.FilePath)) { saved.TrySetResult(); } };
             watcher.EnableRaisingEvents = true;
-            var host = new WorkspaceHost(Workspace.Empty);
+            var host = new Dispatcher(AppState.Empty);
             using var persistence = new SessionPersistence(store, host, TimeSpan.FromMilliseconds(30), new StatusChannel(), action => action());
             persistence.Start();
 
@@ -191,7 +192,7 @@ public class SessionPersistenceTests
         try
         {
             var store = new SessionStore(directory, _ => true);
-            var host = new WorkspaceHost(Workspace.Empty);
+            var host = new Dispatcher(AppState.Empty);
             using var persistence = new SessionPersistence(store, host, TimeSpan.FromHours(1), new StatusChannel(), action => action());
             persistence.Start();
             host.Dispatch(new OpenRepositoryCommand(Location(Path.Combine(directory, "alpha"))));

@@ -8,4 +8,4 @@ namespace Gitunia.Tui.Tests.App;
 /// <param name="Actions">The actions under test.</param>
 /// <param name="Host">The workspace host.</param>
 /// <param name="Picker">The picker controller.</param>
-public sealed record WorkspaceActionsHarness(WorkspaceActions Actions, WorkspaceHost Host, PickerController Picker);
+public sealed record WorkspaceActionsHarness(WorkspaceActions Actions, Dispatcher Host, PickerController Picker);

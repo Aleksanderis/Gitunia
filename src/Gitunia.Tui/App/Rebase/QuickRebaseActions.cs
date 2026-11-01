@@ -40,7 +40,7 @@ namespace Gitunia.Tui.App.Rebase;
 /// <param name="redraw">Redraws the status bar.</param>
 /// <param name="gate">The one-operation-per-tab gate, shared with staging, discard, reset and stash.</param>
 public sealed class QuickRebaseActions(
-    WorkspaceHost host,
+    Dispatcher host,
     IQuickRebaseWriter writer,
     StatusChannel statuses,
     Action<Action> postToUi,

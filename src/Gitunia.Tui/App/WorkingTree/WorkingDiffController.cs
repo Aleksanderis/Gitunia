@@ -29,7 +29,7 @@ namespace Gitunia.Tui.App.WorkingTree;
 /// </summary>
 public sealed class WorkingDiffController : IPromptHandler
 {
-    private readonly WorkspaceHost _host;
+    private readonly Dispatcher _host;
     private readonly Func<TerminalTabSession?> _activeSession;
     private readonly ListView _diffList;
     private readonly Action _refreshChrome;
@@ -47,7 +47,7 @@ public sealed class WorkingDiffController : IPromptHandler
     /// <param name="clipboard">Copies diff text.</param>
     /// <param name="relayout">Lays the panes out again after the zoom changed; null in tests without a screen.</param>
     public WorkingDiffController(
-        WorkspaceHost host,
+        Dispatcher host,
         Func<TerminalTabSession?> activeSession,
         ListView diffList,
         Action<KeyMode> setMode,

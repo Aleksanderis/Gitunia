@@ -1,3 +1,4 @@
+using Gitunia.Core;
 using Gitunia.App;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
@@ -62,7 +63,7 @@ public class DetailTabControllerTests
     [Fact]
     public void GivenNoOpenTab_WhenExecutingATabAction_ThenItIsHandledAsANoOp()
     {
-        var controller = new DetailTabController(new WorkspaceHost(Workspace.Empty));
+        var controller = new DetailTabController(new Dispatcher(AppState.Empty));
 
         Assert.True(controller.TryExecute(ActionIds.DetailNextTab));
     }
@@ -121,7 +122,7 @@ public class DetailTabControllerTests
     [Fact]
     public void GivenNoOpenTab_WhenSettingAPathStyle_ThenItIsHandledAsANoOp()
     {
-        var controller = new DetailTabController(new WorkspaceHost(Workspace.Empty));
+        var controller = new DetailTabController(new Dispatcher(AppState.Empty));
 
         Assert.True(controller.TryExecute(ActionIds.FilesPathTree));
         Assert.Equal(string.Empty, controller.Notice);
@@ -158,15 +159,15 @@ public class DetailTabControllerTests
     [Fact]
     public void GivenNoOpenTab_WhenTogglingThePathStyle_ThenItIsHandledAsANoOp()
     {
-        var controller = new DetailTabController(new WorkspaceHost(Workspace.Empty));
+        var controller = new DetailTabController(new Dispatcher(AppState.Empty));
 
         Assert.True(controller.TryExecute(ActionIds.FilesTogglePathStyle));
         Assert.Equal(string.Empty, controller.Notice);
     }
 
-    private static WorkspaceHost HostWithTab(BottomTab tab)
+    private static Dispatcher HostWithTab(BottomTab tab)
     {
-        var host = new WorkspaceHost(Workspace.Empty);
+        var host = new Dispatcher(AppState.Empty);
         var root = Path.Combine(Path.GetTempPath(), "gitunia-detail-tab-tests");
         var gitDirectory = Path.Combine(root, ".git");
         host.Dispatch(new OpenRepositoryCommand(new RepositoryLocation(root, gitDirectory, gitDirectory, false, false)));

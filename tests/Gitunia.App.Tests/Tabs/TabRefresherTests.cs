@@ -1,3 +1,4 @@
+using Gitunia.Core;
 using Gitunia.App.Loading;
 using Gitunia.App.Loading.Commits;
 using Gitunia.App.Loading.Graph;
@@ -362,7 +363,7 @@ public class TabRefresherTests
     {
         private readonly Func<int> _runCount;
 
-        private Harness(WorkspaceHost host, TabId tabId, TabSession session, TabRefresher refresher, UiPump pump, List<GraphReload> reloads, Func<int> runCount, Func<Task> finishLoad)
+        private Harness(Dispatcher host, TabId tabId, TabSession session, TabRefresher refresher, UiPump pump, List<GraphReload> reloads, Func<int> runCount, Func<Task> finishLoad)
         {
             _runCount = runCount;
             FinishLoadAsync = finishLoad;
@@ -383,7 +384,7 @@ public class TabRefresherTests
 
         public List<GraphReload> Reloads { get; }
 
-        public WorkspaceHost Host { get; }
+        public Dispatcher Host { get; }
 
         public TabId TabId { get; }
 
@@ -409,7 +410,7 @@ public class TabRefresherTests
             Session.Dispose();
         }
 
-        private static Task RunInitialLoadAsync(RepositoryLocation location, TabSession session, WorkspaceHost host, StatusChannel statuses) =>
+        private static Task RunInitialLoadAsync(RepositoryLocation location, TabSession session, Dispatcher host, StatusChannel statuses) =>
             TestGit.Services.RepositoryLoader.RunAsync(location, session, host, statuses, InlineUi.Post, session.Cancellation.Token);
 
         private static async Task<Harness> CreateAsync(
@@ -420,7 +421,7 @@ public class TabRefresherTests
             RepositoryWatcherOptions? watcher = null)
         {
             var location = await TestGit.Services.Discovery.DiscoverAsync(repository.WorkingTreePath, CancellationToken.None);
-            var host = new WorkspaceHost(Workspace.Empty);
+            var host = new Dispatcher(AppState.Empty);
             host.Dispatch(new OpenRepositoryCommand(location));
             var tabId = host.Workspace.ActiveTabId!.Value;
             var statuses = new StatusChannel();
@@ -458,7 +459,7 @@ public class TabRefresherTests
 
     private sealed class FakeHarness : IDisposable
     {
-        private FakeHarness(WorkspaceHost host, TabId tabId, TabSession session, TabRefresher refresher, FakeRepositoryRefresher repositoryRefresher, StatusChannel statuses, UiPump pump)
+        private FakeHarness(Dispatcher host, TabId tabId, TabSession session, TabRefresher refresher, FakeRepositoryRefresher repositoryRefresher, StatusChannel statuses, UiPump pump)
         {
             Host = host;
             TabId = tabId;
@@ -471,7 +472,7 @@ public class TabRefresherTests
 
         public UiPump Pump { get; }
 
-        public WorkspaceHost Host { get; }
+        public Dispatcher Host { get; }
 
         public TabId TabId { get; }
 
@@ -494,7 +495,7 @@ public class TabRefresherTests
             var commitLog = FakeCommitLogReader.Chain(commits);
             var refs = new FakeRefReader();
             var stashes = new FakeStashReader();
-            var host = new WorkspaceHost(Workspace.Empty);
+            var host = new Dispatcher(AppState.Empty);
             host.Dispatch(new OpenRepositoryCommand(location));
             var tabId = host.Workspace.ActiveTabId!.Value;
             var statuses = new StatusChannel();

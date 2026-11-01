@@ -49,7 +49,7 @@ namespace Gitunia.Tui.App.Rebase;
 /// <param name="gate">The one-operation-per-tab gate, shared with staging, discard, reset and stash.</param>
 /// <param name="keys">Where the chips take their key text from; null uses the default keymap.</param>
 public sealed class RebaseEditorController(
-    WorkspaceHost host,
+    Dispatcher host,
     IInteractiveRebaseWriter writer,
     ICommitDetailsReader details,
     StatusChannel statuses,

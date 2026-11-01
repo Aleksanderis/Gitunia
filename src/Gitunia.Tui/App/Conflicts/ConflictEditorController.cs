@@ -55,7 +55,7 @@ namespace Gitunia.Tui.App.Conflicts;
 /// <param name="gate">The one-operation-per-tab gate, shared with staging, discard, reset and stash.</param>
 /// <param name="keys">Where the chips take their key text from; null uses the default keymap.</param>
 public sealed class ConflictEditorController(
-    WorkspaceHost host,
+    Dispatcher host,
     IConflictReader reader,
     IConflictWriter writer,
     IConflictRecreator recreator,

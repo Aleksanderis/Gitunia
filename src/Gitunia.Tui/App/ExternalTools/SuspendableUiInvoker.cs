@@ -1,3 +1,5 @@
+using Gitunia.App;
+
 namespace Gitunia.Tui.App.ExternalTools;
 
 /// <summary>
@@ -5,7 +7,7 @@ namespace Gitunia.Tui.App.ExternalTools;
 /// to an external tool there is no UI application to post to, so the work waits in a queue and runs, in order, on the
 /// next application once the UI is back. Thread-safe.
 /// </summary>
-public sealed class SuspendableUiInvoker
+public sealed class SuspendableUiInvoker : IUiInvoker
 {
     private readonly Lock _gate = new();
     private readonly Queue<Action> _waiting = new();
@@ -27,6 +29,8 @@ public sealed class SuspendableUiInvoker
             }
         }
     }
+
+    void IUiInvoker.Post(Action action) => Invoke(action);
 
     /// <summary>Posts the action now, or queues it while suspended.</summary>
     public void Invoke(Action action)

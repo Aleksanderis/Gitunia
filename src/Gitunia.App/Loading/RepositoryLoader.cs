@@ -37,7 +37,7 @@ public sealed class RepositoryLoader
     /// <param name="statuses">Told when a part of the load fails.</param>
     /// <param name="postToUi">Runs an action on the UI thread.</param>
     /// <param name="token">Cancelled when the tab closes; taken by the caller because the session disposes its source.</param>
-    public async Task RunAsync(RepositoryLocation location, IGraphSession session, WorkspaceHost host, StatusChannel statuses, Action<Action> postToUi, CancellationToken token)
+    public async Task RunAsync(RepositoryLocation location, IGraphSession session, Dispatcher host, StatusChannel statuses, Action<Action> postToUi, CancellationToken token)
     {
         var metadata = LoadMetadataAsync(location, session.TabId, host, statuses, postToUi, token);
         var sidebarData = _sidebarLoader.LoadAsync(location, session.TabId, host, statuses, postToUi, token);
@@ -170,7 +170,7 @@ public sealed class RepositoryLoader
         session.EndExpansion();
     }
 
-    private async Task LoadMetadataAsync(RepositoryLocation location, TabId tabId, WorkspaceHost host, StatusChannel statuses, Action<Action> postToUi, CancellationToken token)
+    private async Task LoadMetadataAsync(RepositoryLocation location, TabId tabId, Dispatcher host, StatusChannel statuses, Action<Action> postToUi, CancellationToken token)
     {
         try
         {

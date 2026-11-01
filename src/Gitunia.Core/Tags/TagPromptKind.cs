@@ -1,10 +1,8 @@
-namespace Gitunia.Tui.App.Tags;
+namespace Gitunia.Core.Tags;
 
 /// <summary>Which prompt popup of the tag actions is open.</summary>
 public enum TagPromptKind
 {
-    None,
-
     /// <summary>Typing the name of a new tag.</summary>
     CreateName,
 

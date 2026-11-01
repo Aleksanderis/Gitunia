@@ -1,3 +1,4 @@
+using Gitunia.Core;
 using Gitunia.App;
 using Gitunia.App.Loading.Diff;
 using Gitunia.Core.Keymap;
@@ -433,7 +434,7 @@ public class StagingActionsTests
 
     private sealed class Harness : IDisposable
     {
-        private readonly WorkspaceHost _host = new(Workspace.Empty);
+        private readonly Dispatcher _host = new(AppState.Empty);
 
         public Harness(params StatusEntry[] entries)
         {

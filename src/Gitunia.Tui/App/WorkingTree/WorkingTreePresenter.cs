@@ -15,12 +15,12 @@ namespace Gitunia.Tui.App.WorkingTree;
 /// </summary>
 public sealed class WorkingTreePresenter
 {
-    private readonly WorkspaceHost _host;
+    private readonly Dispatcher _host;
     private readonly MainView _view;
     private PaneKind _lastFocus = PaneKind.WorkingUnstaged;
     private bool _isSyncing;
 
-    public WorkingTreePresenter(WorkspaceHost host, MainView view)
+    public WorkingTreePresenter(Dispatcher host, MainView view)
     {
         _host = host;
         _view = view;

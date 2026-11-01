@@ -1,3 +1,4 @@
+using Gitunia.Core;
 using Gitunia.App;
 using Gitunia.App.Loading.Commits;
 using Gitunia.App.Tabs;
@@ -21,7 +22,7 @@ public sealed class CompareActionsTests : IDisposable
 {
     private readonly FakeCommitDetailsReader _reader = FakeCommitDetailsReader.Chain(3);
     private readonly UiPump _pump = new(TestContext.Current.CancellationToken);
-    private readonly WorkspaceHost _host = new(Workspace.Empty);
+    private readonly Dispatcher _host = new(AppState.Empty);
     private readonly TerminalTabSession _session;
     private ObjectId? _selected;
 

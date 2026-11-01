@@ -1,3 +1,4 @@
+using Gitunia.Core;
 using Gitunia.App;
 using Gitunia.Core.Graph;
 using Gitunia.Core.Status;
@@ -130,7 +131,7 @@ public class GraphTabBinderTests
     private sealed class Harness : IDisposable
     {
         private Harness(
-            WorkspaceHost host,
+            Dispatcher host,
             EffectRunner<TerminalTabSession> effects,
             TabId tabId,
             ListView graph,
@@ -147,7 +148,7 @@ public class GraphTabBinderTests
 
         public UiPump Pump { get; }
 
-        public WorkspaceHost Host { get; }
+        public Dispatcher Host { get; }
 
         public EffectRunner<TerminalTabSession> Effects { get; }
 
@@ -165,7 +166,7 @@ public class GraphTabBinderTests
             var update = WorkspaceReducer.Reduce(Workspace.Empty, new OpenRepositoryCommand(location));
             var tabId = update.Workspace.Tabs[0].Id;
             var pump = new UiPump(TestContext.Current.CancellationToken);
-            var host = new WorkspaceHost(Workspace.Empty);
+            var host = new Dispatcher(AppState.Empty);
             var effects = new EffectRunner<TerminalTabSession>(TestGit.Services, host, pump.Post, new TerminalTabSessionFactory(GraphGlyphSet.Unicode), new StatusChannel());
             var graph = new ListView { Width = 40, Height = 10 };
             var binder = new GraphTabBinder(host, effects, graph, new GraphListSource(new CommitGraph(), GraphGlyphSet.Unicode), () => { });

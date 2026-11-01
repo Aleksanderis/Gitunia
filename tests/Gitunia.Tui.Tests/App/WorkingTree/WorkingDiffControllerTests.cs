@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Drawing;
+using Gitunia.Core;
 using Gitunia.App;
 using Gitunia.App.Loading.Commits;
 using Gitunia.App.Loading.Diff;
@@ -756,7 +757,7 @@ public class WorkingDiffControllerTests
         private readonly List<Action> _pendingAnswers = [];
         private KeyMode _mode = KeyMode.Normal;
 
-        private Harness(TestRepository repository, WorkspaceHost host, TerminalTabSession session, UiPump pump)
+        private Harness(TestRepository repository, Dispatcher host, TerminalTabSession session, UiPump pump)
         {
             _repository = repository;
             _pump = pump;
@@ -808,7 +809,7 @@ public class WorkingDiffControllerTests
 
         public VisualRangeController Visual { get; }
 
-        public WorkspaceHost Host { get; }
+        public Dispatcher Host { get; }
 
         public TerminalTabSession Session { get; }
 
@@ -827,7 +828,7 @@ public class WorkingDiffControllerTests
         public static async Task<Harness> OpenAsync(TestRepository repository)
         {
             var location = await TestGit.Services.Discovery.DiscoverAsync(repository.WorkingTreePath, Token);
-            var host = new WorkspaceHost(Workspace.Empty);
+            var host = new Dispatcher(AppState.Empty);
             host.Dispatch(new OpenRepositoryCommand(location));
             var pump = new UiPump(Token);
             var session = new TerminalTabSession(

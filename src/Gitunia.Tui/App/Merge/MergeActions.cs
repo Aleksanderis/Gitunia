@@ -32,7 +32,7 @@ namespace Gitunia.Tui.App.Merge;
 /// <param name="selection">What is selected now: a sidebar row or the graph commit.</param>
 /// <param name="gate">The one-operation-per-tab gate, shared with staging, discard and reset.</param>
 public sealed class MergeActions(
-    WorkspaceHost host,
+    Dispatcher host,
     IMergeWriter writer,
     StatusChannel statuses,
     Action<Action> postToUi,

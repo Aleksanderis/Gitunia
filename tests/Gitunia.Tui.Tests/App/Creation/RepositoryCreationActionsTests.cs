@@ -1,8 +1,8 @@
+using Gitunia.Core;
 using Gitunia.App;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Status;
-using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Execution;
 using Gitunia.Git.Remotes;
@@ -358,7 +358,7 @@ public class RepositoryCreationActionsTests
 
         private Harness(IRepositoryCreator creator)
         {
-            Host = new WorkspaceHost(Workspace.Empty);
+            Host = new Dispatcher(AppState.Empty);
             Pump = new UiPump(TestContext.Current.CancellationToken);
             Picker = new PickerController(
                 TestGit.Services.Discovery,
@@ -381,7 +381,7 @@ public class RepositoryCreationActionsTests
             Mode = KeyMode.Insert;
         }
 
-        public WorkspaceHost Host { get; }
+        public Dispatcher Host { get; }
 
         public UiPump Pump { get; }
 

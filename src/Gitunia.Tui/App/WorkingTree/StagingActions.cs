@@ -33,7 +33,7 @@ namespace Gitunia.Tui.App.WorkingTree;
 /// <param name="gate">The one-operation-per-tab gate, shared with the discard actions; null gives this instance its own.</param>
 /// <param name="confirm">Shows the confirm dialog and runs the callback on <c>y</c>; false when it cannot be shown. Without it a conflicted file is refused.</param>
 public sealed class StagingActions(
-    WorkspaceHost host,
+    Dispatcher host,
     IIndexWriter writer,
     PatchStager patchStager,
     StatusChannel statuses,

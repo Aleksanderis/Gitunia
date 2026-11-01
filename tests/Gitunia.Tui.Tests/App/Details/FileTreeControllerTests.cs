@@ -1,3 +1,4 @@
+using Gitunia.Core;
 using Gitunia.App;
 using Gitunia.App.Loading.Commits;
 using Gitunia.App.Loading.Trees;
@@ -27,7 +28,7 @@ public class FileTreeControllerTests : IDisposable
     private static readonly string[] Paths =
         ["README", "docs/guide.md", "src/lib/core.cs", "src/lib/util.cs", "src/main.cs"];
 
-    private readonly WorkspaceHost _host = new(Workspace.Empty);
+    private readonly Dispatcher _host = new(AppState.Empty);
     private readonly GraphEntry _entry = CommitFactory.Graph(CommitFactory.Commit(1, "root", []))[0];
     private readonly FakeCommitTreeReader _reader = new();
     private readonly List<KeyMode> _modes = [];

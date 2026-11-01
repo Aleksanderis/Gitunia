@@ -39,7 +39,7 @@ public sealed class DiffPaneController : IPromptHandler
     // Long enough that a cursor held down the tree reads only where it rests, short enough not to be felt.
     private static readonly TimeSpan ContentFollowDelay = TimeSpan.FromMilliseconds(40);
 
-    private readonly WorkspaceHost _host;
+    private readonly Dispatcher _host;
     private readonly Func<TerminalTabSession?> _activeSession;
     private readonly ListView _detailList;
     private readonly ListView _diffList;
@@ -58,7 +58,7 @@ public sealed class DiffPaneController : IPromptHandler
     /// <param name="refreshChrome">Redraws the pane titles and the status bar after the diff changed on its own (it finished loading).</param>
     /// <param name="clipboard">Copies diff text.</param>
     public DiffPaneController(
-        WorkspaceHost host,
+        Dispatcher host,
         Func<TerminalTabSession?> activeSession,
         ListView detailList,
         ListView diffList,

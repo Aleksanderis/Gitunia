@@ -1,4 +1,5 @@
 using System.Threading.Channels;
+using Gitunia.App;
 
 namespace Gitunia.Tui.Tests.App;
 
@@ -6,7 +7,7 @@ namespace Gitunia.Tui.Tests.App;
 /// Stands in for the UI thread in tests: background work posts its callbacks here and the test thread runs them,
 /// so state is only touched from one thread and tests wait on posted work instead of sleeping.
 /// </summary>
-public sealed class UiPump(CancellationToken cancellationToken)
+public sealed class UiPump(CancellationToken cancellationToken) : IUiInvoker
 {
     private static readonly TimeSpan GuardTimeout = TimeSpan.FromSeconds(30);
 

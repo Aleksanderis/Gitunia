@@ -1,3 +1,4 @@
+using Gitunia.Core;
 using Gitunia.App.Tabs;
 using System.Drawing;
 using System.Text;
@@ -1135,7 +1136,7 @@ public class DiffPaneControllerTests
         private readonly UiPump _pump;
         private readonly KeyHolder _keys = new();
 
-        private DiffHarness(WorkspaceHost host, TerminalTabSession session, UiPump pump, TestRepository? ownedRepository, int screenHeight, int screenWidth)
+        private DiffHarness(Dispatcher host, TerminalTabSession session, UiPump pump, TestRepository? ownedRepository, int screenHeight, int screenWidth)
         {
             _pump = pump;
             Host = host;
@@ -1153,7 +1154,7 @@ public class DiffPaneControllerTests
         /// <summary>The terminal width the controller sees; tests change it to simulate a resize.</summary>
         public int ScreenWidth { get; set; }
 
-        public WorkspaceHost Host { get; }
+        public Dispatcher Host { get; }
 
         public TerminalTabSession Session { get; }
 
@@ -1175,7 +1176,7 @@ public class DiffPaneControllerTests
             var owned = testRepository is null ? CreateDefaultRepository() : null;
             var path = (testRepository ?? owned)!.WorkingTreePath;
             var location = await TestGit.Services.Discovery.DiscoverAsync(path, Token);
-            var host = new WorkspaceHost(Workspace.Empty);
+            var host = new Dispatcher(AppState.Empty);
             host.Dispatch(new OpenRepositoryCommand(location));
             var tabId = host.Workspace.ActiveTabId!.Value;
             var pump = new UiPump(Token);

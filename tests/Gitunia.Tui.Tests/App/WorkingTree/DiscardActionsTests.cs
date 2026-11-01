@@ -1,3 +1,4 @@
+using Gitunia.Core;
 using Gitunia.App;
 using Gitunia.App.Loading.Diff;
 using Gitunia.App.Tabs;
@@ -420,7 +421,7 @@ public class DiscardActionsTests
 
     private sealed class Harness : IDisposable
     {
-        private readonly WorkspaceHost _host = new(Workspace.Empty);
+        private readonly Dispatcher _host = new(AppState.Empty);
         private readonly List<Action> _answers = [];
 
         public Harness(params StatusEntry[] entries)

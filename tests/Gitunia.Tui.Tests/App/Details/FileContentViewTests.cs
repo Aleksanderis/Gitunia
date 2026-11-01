@@ -1,3 +1,4 @@
+using Gitunia.Core;
 using Gitunia.App.Tabs;
 using System.Drawing;
 using System.Text;
@@ -482,7 +483,7 @@ public class FileContentViewTests
         private int _cursor;
 
         private Harness(
-            WorkspaceHost host,
+            Dispatcher host,
             TerminalTabSession session,
             UiPump pump,
             TestRepository repository,
@@ -525,7 +526,7 @@ public class FileContentViewTests
                 Controller.OpenFileContent);
         }
 
-        public WorkspaceHost Host { get; }
+        public Dispatcher Host { get; }
 
         public ListView DetailList { get; }
 
@@ -552,7 +553,7 @@ public class FileContentViewTests
                     new TestFile("big.txt", new string('x', BlobReader.MaximumBytes + 1)),
                     new TestFile("empty.txt", string.Empty));
             var location = await TestGit.Services.Discovery.DiscoverAsync(repository.WorkingTreePath, Token);
-            var host = new WorkspaceHost(Workspace.Empty);
+            var host = new Dispatcher(AppState.Empty);
             host.Dispatch(new OpenRepositoryCommand(location));
             var tabId = host.Workspace.ActiveTabId!.Value;
             var pump = new UiPump(Token);

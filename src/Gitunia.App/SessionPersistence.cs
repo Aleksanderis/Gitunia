@@ -12,7 +12,7 @@ namespace Gitunia.App;
 public sealed class SessionPersistence : IDisposable
 {
     private readonly SessionStore _store;
-    private readonly WorkspaceHost _host;
+    private readonly Dispatcher _host;
     private readonly TimeSpan _debounce;
     private readonly StatusChannel _statuses;
     private readonly Action<Action> _postToUi;
@@ -29,7 +29,7 @@ public sealed class SessionPersistence : IDisposable
     /// <param name="captureDrafts">Reads the commit drafts of the tabs; called on the UI thread only (null keeps none).</param>
     public SessionPersistence(
         SessionStore store,
-        WorkspaceHost host,
+        Dispatcher host,
         TimeSpan debounce,
         StatusChannel statuses,
         Action<Action> postToUi,

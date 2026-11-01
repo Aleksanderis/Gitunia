@@ -44,7 +44,7 @@ namespace Gitunia.Tui.App.Branches;
 /// <param name="redraw">Redraws the status bar.</param>
 /// <param name="selection">What is selected now: a sidebar row or the graph commit.</param>
 public sealed class BranchActions(
-    WorkspaceHost host,
+    Dispatcher host,
     IBranchWriter writer,
     StatusChannel statuses,
     Action<Action> postToUi,

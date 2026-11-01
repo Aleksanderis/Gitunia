@@ -1,3 +1,4 @@
+using Gitunia.Core;
 using Gitunia.App;
 using Gitunia.App.Loading.Commits;
 using Gitunia.App.Tabs;
@@ -371,7 +372,7 @@ public sealed class WorktreeActionsTests
     private sealed class Harness : IDisposable
     {
         private readonly RepositoryLocation _location;
-        private readonly WorkspaceHost _host = new(Workspace.Empty);
+        private readonly Dispatcher _host = new(AppState.Empty);
         private readonly List<Action> _callbacks = [];
         private readonly TestSignal _refreshed = new();
 

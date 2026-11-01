@@ -1,3 +1,4 @@
+using Gitunia.Core;
 using Gitunia.App;
 using Gitunia.Core.Clipboard;
 using Gitunia.Core.Keymap;
@@ -412,7 +413,7 @@ public class WorkingTreeActionHandlerTests
 
     private sealed class Harness
     {
-        private readonly WorkspaceHost _host = new(Workspace.Empty);
+        private readonly Dispatcher _host = new(AppState.Empty);
 
         public Harness(params StatusEntry[] entries)
         {

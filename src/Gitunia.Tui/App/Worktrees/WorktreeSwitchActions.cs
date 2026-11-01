@@ -30,7 +30,7 @@ namespace Gitunia.Tui.App.Worktrees;
 /// <param name="gate">The one-operation-per-tab gate; a switch waits for a running operation to end.</param>
 /// <param name="selectedRow">The sidebar row under the cursor of the active tab.</param>
 public sealed class WorktreeSwitchActions(
-    WorkspaceHost host,
+    Dispatcher host,
     RepositoryDiscovery discovery,
     StatusChannel statuses,
     Action<Action> postToUi,

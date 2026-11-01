@@ -22,7 +22,7 @@ namespace Gitunia.Tui.App.Sidebar;
 /// name filter and jumping from a ref to its commit in the graph. Everything it changes goes through commands.
 /// </summary>
 public sealed class SidebarActionHandler(
-    WorkspaceHost host,
+    Dispatcher host,
     SidebarListSource source,
     Func<TerminalTabSession?> activeSession,
     Func<int> pageHeight,

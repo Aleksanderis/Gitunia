@@ -36,9 +36,9 @@ namespace Gitunia.Tui.App;
 
 /// <summary>
 /// Maps the action ids the keymap produces to what they do in the graph view. Actions the first shell does not
-/// implement yet are ignored; an action's effects go through the <see cref="WorkspaceHost"/> as commands.
+/// implement yet are ignored; an action's effects go through the <see cref="Dispatcher"/> as commands.
 /// </summary>
-public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListView detailList, Func<TerminalTabSession?> activeSession, Action quit, SidebarActionHandler sidebar, StatusChannel statuses, ClipboardCopier clipboard)
+public sealed class ActionRouter(Dispatcher host, ListView graphList, ListView detailList, Func<TerminalTabSession?> activeSession, Action quit, SidebarActionHandler sidebar, StatusChannel statuses, ClipboardCopier clipboard)
 {
     /// <summary>The notice shown when <c>G</c> stops at the last loaded commit because the log is still streaming in.</summary>
     public const string StillLoadingNotice = "Still loading: at the last loaded commit";
@@ -76,7 +76,7 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
     public BranchActions? Branches { get; set; }
 
     /// <summary>The tag actions (create, delete, push, remote delete), which own their prompts in every pane.</summary>
-    public TagActions? Tags { get; set; }
+    public TagPromptHandler? Tags { get; set; }
 
     /// <summary>The remote management actions (add, remove, rename, set URL); they own their prompts.</summary>
     public RemoteManagementActions? RemoteManagement { get; set; }

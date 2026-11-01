@@ -32,7 +32,7 @@ namespace Gitunia.Tui.App.WorkingTree;
 /// <param name="confirm">Shows the confirm dialog and runs the callback on <c>y</c>; false when the dialog cannot be shown.</param>
 /// <param name="gate">The one-operation-per-tab gate, shared with the staging actions.</param>
 public sealed class DiscardActions(
-    WorkspaceHost host,
+    Dispatcher host,
     PatchDiscarder patchDiscarder,
     StatusChannel statuses,
     Action<Action> postToUi,

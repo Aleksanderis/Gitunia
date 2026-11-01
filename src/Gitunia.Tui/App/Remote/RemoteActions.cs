@@ -42,7 +42,7 @@ namespace Gitunia.Tui.App.Remote;
 /// notice when it cannot start, empty otherwise.
 /// </param>
 public sealed class RemoteActions(
-    WorkspaceHost host,
+    Dispatcher host,
     IRemoteWriter writer,
     StatusChannel statuses,
     Action<Action> postToUi,

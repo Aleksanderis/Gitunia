@@ -4,6 +4,11 @@ using Gitunia.App.Loading.Stash;
 using Gitunia.App.Loading.Trees;
 using Gitunia.App.Tabs;
 using Gitunia.App.Tabs.Models;
+using Gitunia.App.Tags;
+using Gitunia.Core;
+using Gitunia.Core.Clipboard;
+using Gitunia.Core.Effects;
+using Gitunia.Core.Tags;
 using Gitunia.Core.IssueTracker;
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
@@ -16,8 +21,9 @@ using Gitunia.Git.Watching.Models;
 namespace Gitunia.App;
 
 /// <summary>
-/// Executes the effects the reducer returns and owns the per-tab sessions they create. New effects (clipboard,
-/// file watching, ...) get a case in <see cref="Run"/>; results come back as commands through the host.
+/// Executes the effects the reducer returns and owns the per-tab sessions they create. A new feature adds one case
+/// to <see cref="Run"/> that hands its effects to the feature's handler; results come back as commands through the
+/// dispatcher. The switch ends in a throw, and a test checks that every concrete effect type has a case.
 /// </summary>
 /// <typeparam name="TSession">The session type the factory builds; the terminal layer adds its views to it.</typeparam>
 public sealed class EffectRunner<TSession> : IDisposable
@@ -30,7 +36,10 @@ public sealed class EffectRunner<TSession> : IDisposable
     public const int DefaultWarmTabLimit = 5;
 
     private readonly GitServices _services;
-    private readonly WorkspaceHost _host;
+    private readonly Dispatcher _host;
+    private readonly IShellEffects _shell;
+    private readonly TabCancellation _cancellation = new();
+    private readonly TagEffectHandler _tags;
     private readonly Action<Action> _postToUi;
     private readonly StatusChannel _statuses;
     private readonly ITabSessionFactory<TSession> _sessionFactory;
@@ -46,7 +55,7 @@ public sealed class EffectRunner<TSession> : IDisposable
 
     public EffectRunner(
         GitServices services,
-        WorkspaceHost host,
+        Dispatcher host,
         Action<Action> postToUi,
         ITabSessionFactory<TSession> sessionFactory,
         StatusChannel statuses,
@@ -54,8 +63,11 @@ public sealed class EffectRunner<TSession> : IDisposable
         RepositoryWatcherOptions? watcherOptions = null,
         WatchBudget? watchBudget = null,
         int warmTabLimit = DefaultWarmTabLimit,
-        PollOptions? pollOptions = null)
+        PollOptions? pollOptions = null,
+        IShellEffects? shell = null)
     {
+        _shell = shell ?? NoShellEffects.Instance;
+        _tags = new TagEffectHandler(services.Tags, host);
         _pollOptions = pollOptions ?? PollOptions.Default;
         _warmTabLimit = Math.Max(1, warmTabLimit);
         _watcherOptions = watcherOptions ?? RepositoryWatcherOptions.Default;
@@ -82,6 +94,7 @@ public sealed class EffectRunner<TSession> : IDisposable
     /// <summary>Cancels the running git work of every tab (a forced quit, #856).</summary>
     public void CancelAll()
     {
+        _cancellation.CancelAll();
         foreach (var session in _sessions.Values)
         {
             session.Cancellation.Cancel(throwOnFirstException: false);
@@ -137,27 +150,87 @@ public sealed class EffectRunner<TSession> : IDisposable
         }
 
         _refreshers.Clear();
+        _cancellation.Dispose();
     }
 
-    private void Run(WorkspaceEffect effect)
+    /// <summary>
+    /// Performs one effect. An exception a handler lets escape becomes an <see cref="EffectFailedCommand"/> so state
+    /// never stays "running"; an effect type without a case is a programming error and is not swallowed.
+    /// </summary>
+    public void Run(AppEffect effect)
+    {
+        try
+        {
+            Perform(effect);
+        }
+        catch (Exception exception) when (exception is not UnhandledEffectException)
+        {
+            var text = $"Internal error ({exception.GetType().Name}): {exception.Message}";
+            _host.Dispatch(FailureOf(effect, text));
+        }
+    }
+
+    // A feature's effect fails with that feature's result command, so its running flag is cleared.
+    private static AppCommand FailureOf(AppEffect effect, string text) => effect switch
+    {
+        TagEffect tag => new TagOperationFailed(tag.TabId, text, null),
+        _ => new EffectFailedCommand(text),
+    };
+
+    private void Perform(AppEffect effect)
     {
         switch (effect)
         {
+            case CancelLoadEffect cancel:
+                Cancel(cancel);
+                break;
+            case CopyToClipboardEffect copy:
+                _shell.CopyToClipboard(copy);
+                break;
             case LoadRepositoryEffect load:
                 StartLoad(load);
                 break;
-            case CancelLoadEffect cancel:
-                _pendingLoads.Remove(cancel.TabId);
-                _recent.Remove(cancel.TabId);
-                DisposeRefresher(cancel.TabId);
-                if (_sessions.Remove(cancel.TabId, out var closed))
+            case OfferTerminalRetryEffect offer:
+                _shell.OfferTerminalRetry(offer.TabId, offer.Noun, offer.Arguments);
+                break;
+            case PostStatusEffect post:
+                _statuses.Post(post.Text, post.Severity);
+                break;
+            case RefreshTabEffect refresh:
+                Refresh(refresh.TabId, false);
+                break;
+            case SetKeyModeEffect mode:
+                _shell.SetKeyMode(mode.Mode);
+                break;
+            case ShowConfirmEffect confirm:
+                if (!_shell.ShowConfirm(confirm.Prompt, confirm.OnAccepted))
                 {
-                    closed.Dispose();
+                    _statuses.Warning(confirm.UnavailableNotice);
                 }
 
                 break;
+            case TagEffect tag:
+                _tags.Handle(tag, _cancellation.TokenOf(tag.TabId));
+                break;
+            default:
+                throw new UnhandledEffectException(effect);
         }
     }
+
+    private void Cancel(CancelLoadEffect cancel)
+    {
+        _cancellation.Cancel(cancel.TabId);
+        _pendingLoads.Remove(cancel.TabId);
+        _recent.Remove(cancel.TabId);
+        DisposeRefresher(cancel.TabId);
+        if (_sessions.Remove(cancel.TabId, out var closed))
+        {
+            closed.Dispose();
+        }
+    }
+
+    // A tab runs an operation when a gate says so or its tag slice does; such a tab is never evicted.
+    private bool IsBusy(TabId tabId) => IsTabBusy(tabId) || _host.Workspace.FindTab(tabId)?.Tags.Running == true;
 
     private void ReloadIssueLinks(TabId tabId)
     {
@@ -230,7 +303,7 @@ public sealed class EffectRunner<TSession> : IDisposable
                 config: _services.Config,
                 directoryLister: OperatingSystem.IsLinux() ? _services.WatchedDirectories : null,
                 poll: _pollOptions,
-                isBusy: () => IsTabBusy(load.TabId));
+                isBusy: () => IsBusy(load.TabId));
             _refreshers[load.TabId] = refresher;
             refresher.Start();
             refresher.SetActive(_host.Workspace.ActiveTabId == load.TabId);
@@ -331,7 +404,7 @@ public sealed class EffectRunner<TSession> : IDisposable
         {
             var tabId = _recent[index];
             if (_sessions.TryGetValue(tabId, out var session) && !session.IsPending && !session.IsLoading
-                && !IsTabBusy(tabId)
+                && !IsBusy(tabId)
                 && _host.Workspace.FindTab(tabId) is { } tab)
             {
                 StartLoad(new LoadRepositoryEffect(tabId, tab.CommandPath));

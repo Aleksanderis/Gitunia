@@ -13,7 +13,7 @@ namespace Gitunia.Tui.App.Overlays;
 /// Owns the open repository picker: applies picker commands through the pure reducer, scans for repositories in the background
 /// and resolves what the user chose into workspace commands. UI thread only; results of background work are posted back.
 /// </summary>
-public sealed class PickerController(RepositoryDiscovery discovery, WorkspaceHost host, string homeDirectory, Action<Action> postToUi,
+public sealed class PickerController(RepositoryDiscovery discovery, Dispatcher host, string homeDirectory, Action<Action> postToUi,
     TimeSpan? listingTimeout = null,
     Func<string, IReadOnlyList<string>>? listDirectories = null,
     TimeSpan? scanningDelay = null,

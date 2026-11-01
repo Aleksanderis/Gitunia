@@ -1,3 +1,4 @@
+using Gitunia.Core;
 using Gitunia.App;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Picker;
@@ -108,7 +109,7 @@ public class WorkspaceActionsTests
 
     private static WorkspaceActionsHarness Create(int tabCount, Func<TabId, bool>? hasUnsentMessage = null)
     {
-        var host = new WorkspaceHost(Workspace.Empty);
+        var host = new Dispatcher(AppState.Empty);
         for (var index = 0; index < tabCount; index++)
         {
             var root = Path.Combine(Path.GetTempPath(), "gitunia-workspace-actions", $"repo{index}");

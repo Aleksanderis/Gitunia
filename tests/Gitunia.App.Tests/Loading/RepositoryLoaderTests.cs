@@ -1,3 +1,4 @@
+using Gitunia.Core;
 using Gitunia.App.Tabs;
 using Gitunia.App.Loading;
 using Gitunia.App.Loading.Commits;
@@ -263,7 +264,7 @@ public class RepositoryLoaderTests
         public Harness(int softRowLimit = GraphLoader.DefaultSoftRowLimit)
         {
             Location = FakeStatusReader.LocationOf("loader");
-            Host = new WorkspaceHost(Workspace.Empty);
+            Host = new Dispatcher(AppState.Empty);
             Host.Dispatch(new OpenRepositoryCommand(Location));
             TabId = Host.Workspace.ActiveTabId!.Value;
             Session = new TabSession(
@@ -287,7 +288,7 @@ public class RepositoryLoaderTests
 
         public StatusChannel Statuses { get; } = new();
 
-        public WorkspaceHost Host { get; }
+        public Dispatcher Host { get; }
 
         public TabId TabId { get; }
 

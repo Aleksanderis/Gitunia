@@ -37,7 +37,7 @@ namespace Gitunia.Tui.App.Rebase;
 /// <param name="isOverlayOpen">True while an overlay is open; a late Confirm must not replace it.</param>
 /// <param name="gate">The one-operation-per-tab gate, shared with staging, discard, reset and stash.</param>
 public sealed class RebaseActions(
-    WorkspaceHost host,
+    Dispatcher host,
     IRebaseWriter writer,
     StatusChannel statuses,
     Action<Action> postToUi,

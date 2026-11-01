@@ -26,6 +26,7 @@
     <Compile Include="..\Gitunia.Tui.Tests\RunWatchdog.cs" Link="Shared\RunWatchdog.cs" />
     <Compile Include="..\Gitunia.Tui.Tests\App\UiPump.cs" Link="Shared\UiPump.cs" />
     <Compile Include="..\Gitunia.Tui.Tests\App\InlineUi.cs" Link="Shared\InlineUi.cs" />
+    <Compile Include="..\Gitunia.Core.Tests\Fixtures\ConcreteSubtypes.cs" Link="Shared\ConcreteSubtypes.cs" />
     <Compile Include="..\Gitunia.Tui.Tests\Loading\ManualTimeProvider.cs" Link="Shared\ManualTimeProvider.cs" />
     <Compile Include="..\Gitunia.Tui.Tests\Rendering\WorkingTree\WorkingTreeEntries.cs" Link="Shared\WorkingTreeEntries.cs" />
     <Compile Include="..\Gitunia.Tui.Tests\Rendering\Graph\CommitFactory.cs" Link="Shared\CommitFactory.cs" />

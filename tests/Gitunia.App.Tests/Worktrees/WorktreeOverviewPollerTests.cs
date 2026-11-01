@@ -1,3 +1,4 @@
+using Gitunia.Core;
 using Gitunia.App.Tests.Fakes;
 using Gitunia.App.Worktrees;
 using Gitunia.Core.Status;
@@ -63,9 +64,9 @@ public sealed class WorktreeOverviewPollerTests
         Assert.Null(host.Workspace.ActiveTab!.WorktreeStatuses);
     }
 
-    private static async Task<WorkspaceHost> OpenAsync(string path)
+    private static async Task<Dispatcher> OpenAsync(string path)
     {
-        var host = new WorkspaceHost(Workspace.Empty);
+        var host = new Dispatcher(AppState.Empty);
         var location = await TestGit.Services.Discovery.DiscoverAsync(path, Token);
         host.Dispatch(new OpenRepositoryCommand(location));
         using var session = new FakeGraphSession(host.Workspace.ActiveTabId!.Value);

@@ -42,7 +42,7 @@ namespace Gitunia.Tui.App.Reflog;
 /// <param name="setMode">Switches the keymap mode (Insert while the search box or the ref picker takes text).</param>
 /// <param name="redraw">Redraws the overlay layer and the status bar.</param>
 public sealed class ReflogController(
-    WorkspaceHost host,
+    Dispatcher host,
     IReflogReader reader,
     ResetActions reset,
     BranchActions branches,

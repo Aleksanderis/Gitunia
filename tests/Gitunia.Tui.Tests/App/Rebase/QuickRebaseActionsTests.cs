@@ -1,3 +1,4 @@
+using Gitunia.Core;
 using Gitunia.App;
 using Gitunia.App.Tabs;
 using Gitunia.Core.Keymap;
@@ -276,7 +277,7 @@ public class QuickRebaseActionsTests
 
     private sealed class Harness : IDisposable
     {
-        private readonly WorkspaceHost _host = new(Workspace.Empty);
+        private readonly Dispatcher _host = new(AppState.Empty);
         private readonly List<Action> _answers = [];
         private string? _selection;
 

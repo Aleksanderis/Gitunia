@@ -21,7 +21,7 @@ namespace Gitunia.Tui.App.Compare;
 /// <param name="host">The workspace, which holds the mark of each tab.</param>
 /// <param name="activeSession">The active tab's session, null when there is none.</param>
 /// <param name="selectedCommit">The commit under the graph cursor, null when none.</param>
-public sealed class CompareActions(WorkspaceHost host, Func<TerminalTabSession?> activeSession, Func<ObjectId?> selectedCommit)
+public sealed class CompareActions(Dispatcher host, Func<TerminalTabSession?> activeSession, Func<ObjectId?> selectedCommit)
 {
     private const int HashLength = 7;
 

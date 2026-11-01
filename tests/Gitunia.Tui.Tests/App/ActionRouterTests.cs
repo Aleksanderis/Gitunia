@@ -1,10 +1,10 @@
+using Gitunia.Core;
 using Gitunia.App;
 using Gitunia.App.Loading.Commits;
 using Gitunia.App.Tabs;
 using Gitunia.Core.Clipboard;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Status;
-using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Tui.App;
@@ -160,7 +160,7 @@ public class ActionRouterTests
             GraphList = new ListView { Source = _session.Source, Width = 40, Height = 10 };
             var detailList = new ListView { Source = _session.DetailSource };
             var statuses = new StatusChannel();
-            var host = new WorkspaceHost(Workspace.Empty);
+            var host = new Dispatcher(AppState.Empty);
             var copier = new ClipboardCopier(new ClipboardWriter(new StringWriter(), new Osc52Options(Osc52Mode.Direct, 100_000)), statuses);
             var sidebar = new SidebarActionHandler(host, new SidebarListSource(GraphGlyphSet.Unicode), () => _session, () => 10, () => false, () => false, _ => { }, _ => { }, copier);
             Router = new ActionRouter(host, GraphList, detailList, () => _session, () => QuitCount++, sidebar, statuses, copier);

@@ -1,3 +1,4 @@
+using Gitunia.Core;
 using Gitunia.App;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
@@ -11,7 +12,7 @@ namespace Gitunia.Tui.Tests.App.Tabs;
 
 public class TabRenameControllerTests
 {
-    private readonly WorkspaceHost _host = new(Workspace.Empty);
+    private readonly Dispatcher _host = new(AppState.Empty);
     private KeyMode _mode = KeyMode.Normal;
 
     [Fact]
