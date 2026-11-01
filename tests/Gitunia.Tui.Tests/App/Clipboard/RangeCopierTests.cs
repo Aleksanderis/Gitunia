@@ -1,11 +1,14 @@
+using Gitunia.App.Status;
 using Gitunia.App.Tabs;
 using System.Text;
 using Gitunia.App.Loading.Commits;
+using Gitunia.App;
 using Gitunia.Core.Clipboard;
 using Gitunia.Core.Lists;
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Tabs;
+using Gitunia.Core;
 using Gitunia.Git.Tests.Fixtures;
 using Gitunia.Tui.App.Clipboard;
 using Gitunia.Tui.App.Tabs;
@@ -53,7 +56,7 @@ public class RangeCopierTests : IDisposable
         var copier = new RangeCopier(
             new ClipboardCopier(
                 new ClipboardWriter(_terminal, new Osc52Options(Osc52Mode.Direct, 100_000)),
-                new StatusChannel()),
+                new StatusReporter(new Dispatcher(AppState.Empty))),
             () => null,
             () => tree);
 
@@ -81,7 +84,7 @@ public class RangeCopierTests : IDisposable
     {
         using var testRepository = TestRepository.Create().Commit("one", new TestFile("a.txt", "a\n"));
         _session = await CreateSessionAsync(testRepository);
-        var statuses = new StatusChannel();
+        var statuses = new StatusReporter(new Dispatcher(AppState.Empty));
         var writer = new ClipboardWriter(_terminal, new Osc52Options(Osc52Mode.Direct, 10));
         var copier = new RangeCopier(new ClipboardCopier(writer, statuses), () => _session);
 
@@ -112,5 +115,5 @@ public class RangeCopierTests : IDisposable
     }
 
     private RangeCopier CreateCopier(TerminalTabSession? session) =>
-        new(new ClipboardCopier(new ClipboardWriter(_terminal, new Osc52Options(Osc52Mode.Direct, 100_000)), new StatusChannel()), () => session);
+        new(new ClipboardCopier(new ClipboardWriter(_terminal, new Osc52Options(Osc52Mode.Direct, 100_000)), new StatusReporter(new Dispatcher(AppState.Empty))), () => session);
 }

@@ -1,5 +1,4 @@
-using Gitunia.Core;
-using Gitunia.App;
+using Gitunia.App.Status;
 using Gitunia.App.Loading.Diff;
 using Gitunia.App.Tabs;
 using Gitunia.Core.Lists;
@@ -421,25 +420,23 @@ public class DiscardActionsTests
 
     private sealed class Harness : IDisposable
     {
-        private readonly Dispatcher _host = new(AppState.Empty);
-        private readonly List<Action> _answers = [];
+        private readonly TestShell _shell = new();
 
         public Harness(params StatusEntry[] entries)
         {
             var root = Path.Combine(Path.GetTempPath(), "gitunia-discard-actions-tests");
             var location = new RepositoryLocation(root, Path.Combine(root, ".git"), Path.Combine(root, ".git"), false, false);
-            _host.Dispatch(new OpenRepositoryCommand(location));
+            _shell.Host.Dispatch(new OpenRepositoryCommand(location));
             Send(new WorkingTreeLoadedCommand(Snapshot(entries)));
             Send(new OpenWorkingTreeCommand());
             Pump = new UiPump(TestContext.Current.CancellationToken);
             Discard = new DiscardActions(
-                _host,
+                _shell.Host,
                 new PatchDiscarder(Reader, Discarder),
                 Statuses,
                 Pump.Post,
                 RefreshStatus,
                 _ => TestContext.Current.CancellationToken,
-                Confirm,
                 Gate);
         }
 
@@ -451,18 +448,22 @@ public class DiscardActionsTests
 
         public FakeDiffReader Reader { get; } = new();
 
-        public StatusChannel Statuses { get; } = new();
+        public StatusReporter Statuses => _shell.Statuses;
 
         public DiscardActions Discard { get; }
 
-        public List<ConfirmPrompt> Prompts { get; } = [];
+        public List<ConfirmPrompt> Prompts => _shell.Prompts;
 
-        public bool CanShowDialog { get; init; } = true;
+        public bool CanShowDialog
+        {
+            get => _shell.CanShowDialog;
+            init => _shell.CanShowDialog = value;
+        }
 
         /// <summary>Stands in for the tab refresher: runs when a status read is requested, before the completion callback.</summary>
         public Action OnRefresh { get; set; } = () => { };
 
-        private RepositoryState Tab => _host.Workspace.ActiveTab!;
+        private RepositoryState Tab => _shell.Host.Workspace.ActiveTab!;
 
         public string Execute() => Discard.Execute(Tab);
 
@@ -481,15 +482,8 @@ public class DiscardActionsTests
         }
 
         /// <summary>Presses <c>y</c> in the open dialog.</summary>
-        public void Answer()
-        {
-            foreach (var answer in _answers)
-            {
-                answer();
-            }
+        public void Answer() => _shell.Answer();
 
-            _answers.Clear();
-        }
 
         public Task WaitAsync() => Pump.RunUntilAsync(() => !Gate.IsAnyBusy && Statuses.Log.Latest is not null);
 
@@ -502,20 +496,7 @@ public class DiscardActionsTests
             Send(new SelectWorkingTreeFileCommand(WorkingTreeSection.Unstaged, row));
         }
 
-        public void Dispose() => _host.Dispatch(new TabCommand(_host.Workspace.ActiveTabId!.Value, new LeaveWorkingTreeCommand()));
-
-        private bool Confirm(ConfirmPrompt prompt, Action onYes)
-        {
-            if (!CanShowDialog)
-            {
-                return false;
-            }
-
-            Prompts.Add(prompt);
-            _answers.Add(onYes);
-            return true;
-        }
-
+        public void Dispose() => _shell.Host.Dispatch(new TabCommand(_shell.Host.Workspace.ActiveTabId!.Value, new LeaveWorkingTreeCommand()));
         private bool RefreshStatus(TabId tabId, Action done)
         {
             Pump.Post(() =>
@@ -527,6 +508,6 @@ public class DiscardActionsTests
         }
 
         private void Send(RepositoryCommand command) =>
-            _host.Dispatch(new TabCommand(_host.Workspace.ActiveTabId!.Value, command));
+            _shell.Host.Dispatch(new TabCommand(_shell.Host.Workspace.ActiveTabId!.Value, command));
     }
 }

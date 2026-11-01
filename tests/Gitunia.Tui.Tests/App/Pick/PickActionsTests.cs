@@ -1,4 +1,4 @@
-using Gitunia.Core;
+using Gitunia.App.Status;
 using Gitunia.App;
 using Gitunia.App.Loading.Commits;
 using Gitunia.App.Tabs;
@@ -16,6 +16,7 @@ using Gitunia.Git.Tests.Fixtures;
 using Gitunia.Tui.App.Pick;
 using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.Rendering.Graph;
+using Gitunia.Tui.Tests.Fakes;
 using Xunit;
 
 namespace Gitunia.Tui.Tests.App.Pick;
@@ -489,7 +490,7 @@ public class PickActionsTests
 
     private sealed class Harness : IDisposable
     {
-        private readonly Dispatcher _host = new(AppState.Empty);
+        private readonly TestShell _shell = new();
         private readonly List<TerminalTabSession> _sessions = [];
         private PickSelection _selection = new(null, []);
 
@@ -497,7 +498,7 @@ public class PickActionsTests
         {
             Pump = new UiPump(TestContext.Current.CancellationToken);
             Pick = new PickActions(
-                _host,
+                _shell.Host,
                 services.Pick,
                 services.PickCommits,
                 Statuses,
@@ -508,7 +509,6 @@ public class PickActionsTests
                     Refreshes++;
                     return true;
                 },
-                mode => Mode = mode,
                 () => { },
                 () => RangeEnds++,
                 () => _selection,
@@ -517,19 +517,19 @@ public class PickActionsTests
 
         public PickActions Pick { get; }
 
-        public StatusChannel Statuses { get; } = new();
+        public StatusReporter Statuses => _shell.Statuses;
 
         public int Refreshes { get; private set; }
 
         public int RangeEnds { get; private set; }
 
-        public KeyMode Mode { get; private set; } = KeyMode.Normal;
+        public KeyMode Mode => _shell.Mode;
 
         public TabOperationGate Gate { get; } = new();
 
         public RepositoryLocation Location { get; private set; } = null!;
 
-        public TabId TabId => _host.Workspace.ActiveTabId!.Value;
+        public TabId TabId => _shell.Host.Workspace.ActiveTabId!.Value;
 
         private UiPump Pump { get; }
 
@@ -541,7 +541,7 @@ public class PickActionsTests
                 repository.WorkingTreePath,
                 TestContext.Current.CancellationToken);
             harness.Location = location;
-            harness._host.Dispatch(new OpenRepositoryCommand(location));
+            harness._shell.Host.Dispatch(new OpenRepositoryCommand(location));
             var session = new TerminalTabSession(
                 new TabSessionParts(
                     harness.TabId,
@@ -551,8 +551,8 @@ public class PickActionsTests
             await services.RepositoryLoader.RunAsync(
                 location,
                 session,
-                harness._host,
-                new StatusChannel(),
+                harness._shell.Host,
+                harness.Statuses,
                 InlineUi.Post,
                 session.Cancellation.Token);
 
@@ -562,7 +562,7 @@ public class PickActionsTests
                 location,
                 operation,
                 TestContext.Current.CancellationToken);
-            harness._host.Dispatch(new TabCommand(harness.TabId, new OperationLoadedCommand(info)));
+            harness._shell.Host.Dispatch(new TabCommand(harness.TabId, new OperationLoadedCommand(info)));
             return harness;
         }
 

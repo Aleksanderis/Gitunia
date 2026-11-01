@@ -1,5 +1,4 @@
-using Gitunia.Core;
-using Gitunia.App;
+using Gitunia.App.Status;
 using Gitunia.App.Tabs;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
@@ -240,21 +239,20 @@ public class OperationControllerTests
 
     private sealed class Harness : IDisposable
     {
-        private readonly Dispatcher _host = new(AppState.Empty);
-        private readonly List<Action> _answers = [];
+        private readonly TestShell _shell = new();
 
         public Harness(OperationInfo? info)
         {
             var root = Path.Combine(Path.GetTempPath(), "gitunia-operation-controller-tests");
             var gitDirectory = Path.Combine(root, ".git");
             var location = new RepositoryLocation(root, gitDirectory, gitDirectory, false, false);
-            _host.Dispatch(new OpenRepositoryCommand(location));
-            TabId = _host.Workspace.ActiveTabId!.Value;
+            _shell.Host.Dispatch(new OpenRepositoryCommand(location));
+            TabId = _shell.Host.Workspace.ActiveTabId!.Value;
             Send(new HeadLoadedCommand(new HeadState(HeadKind.Branch, "main", FullHash)));
             Send(new OperationLoadedCommand(info));
             Pump = new UiPump(TestContext.Current.CancellationToken);
             Controller = new OperationController(
-                _host,
+                _shell.Host,
                 Writer,
                 Statuses,
                 Pump.Post,
@@ -264,7 +262,6 @@ public class OperationControllerTests
                     return true;
                 },
                 _ => TestContext.Current.CancellationToken,
-                Confirm,
                 Gate);
         }
 
@@ -274,41 +271,26 @@ public class OperationControllerTests
 
         public FakeOperationWriter Writer { get; } = new();
 
-        public StatusChannel Statuses { get; } = new();
+        public StatusReporter Statuses => _shell.Statuses;
 
         public TabOperationGate Gate { get; } = new();
 
         public OperationController Controller { get; }
 
-        public List<ConfirmPrompt> Prompts { get; } = [];
+        public List<ConfirmPrompt> Prompts => _shell.Prompts;
 
         public int Refreshes { get; private set; }
 
         public void Execute(ActionId action) => Controller.TryExecute(action, null);
 
-        public void Send(RepositoryCommand command) => _host.Dispatch(new TabCommand(TabId, command));
+        public void Send(RepositoryCommand command) => _shell.Host.Dispatch(new TabCommand(TabId, command));
+        public void Answer() => _shell.Answer();
 
-        public void Answer()
-        {
-            foreach (var answer in _answers)
-            {
-                answer();
-            }
-
-            _answers.Clear();
-        }
 
         public Task WaitAsync() => Pump.RunUntilAsync(() => !Gate.IsAnyBusy && Statuses.Log.Latest is not null);
 
         public void Dispose()
         {
-        }
-
-        private bool Confirm(ConfirmPrompt prompt, Action onConfirmed)
-        {
-            Prompts.Add(prompt);
-            _answers.Add(onConfirmed);
-            return true;
         }
     }
 }

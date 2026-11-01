@@ -1,3 +1,4 @@
+using Gitunia.App.Status;
 using Gitunia.Core;
 using Gitunia.App.Tabs;
 using System.Drawing;
@@ -9,7 +10,6 @@ using Gitunia.Core.Clipboard;
 using Gitunia.Core.Diff;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
-using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Repositories;
@@ -1134,7 +1134,6 @@ public class DiffPaneControllerTests
     {
         private readonly TestRepository? _ownedRepository;
         private readonly UiPump _pump;
-        private readonly KeyHolder _keys = new();
 
         private DiffHarness(Dispatcher host, TerminalTabSession session, UiPump pump, TestRepository? ownedRepository, int screenHeight, int screenWidth)
         {
@@ -1146,7 +1145,7 @@ public class DiffPaneControllerTests
             DetailList = new ListView { Source = session.DetailSource };
             DiffList = new ListView { X = 0, Y = 0, Width = 60, Height = 20 };
             DiffList.SetRelativeLayout(new Size(80, 24));
-            Controller = new DiffPaneController(host, () => Session, DetailList, DiffList, mode => _keys.Mode = mode, () => new ScreenSize(ScreenWidth, screenHeight), () => { }, () => { }, new ClipboardCopier(new ClipboardWriter(Clipboard, new Osc52Options(Osc52Mode.Direct, 100_000)), new StatusChannel()));
+            Controller = new DiffPaneController(host, () => Session, DetailList, DiffList, () => new ScreenSize(ScreenWidth, screenHeight), () => { }, () => { }, new ClipboardCopier(new ClipboardWriter(Clipboard, new Osc52Options(Osc52Mode.Direct, 100_000)), new StatusReporter(new Dispatcher(AppState.Empty))));
             Controller.OnTabSwitched(null, session);
             DetailList.ValueChanged += (_, _) => Controller.OnDetailCursorMoved();
         }
@@ -1167,7 +1166,7 @@ public class DiffPaneControllerTests
         /// <summary>What the controller wrote to the terminal (OSC 52 sequences).</summary>
         public StringWriter Clipboard { get; } = new();
 
-        public KeyMode Mode => _keys.Mode;
+        public KeyMode Mode => Host.State.Shell.Mode;
 
         public RepositoryState Tab => Host.Workspace.ActiveTab!;
 
@@ -1186,7 +1185,7 @@ public class DiffPaneControllerTests
                     new CommitDetailsStore(TestGit.Services.CommitDetails, location, pump.Post, TimeSpan.Zero),
                     new DiffStore(TestGit.Services.Diff, location, pump.Post, rowLimit)),
                 GraphGlyphSet.Unicode);
-            await TestGit.Services.RepositoryLoader.RunAsync(location, session, host, new StatusChannel(), InlineUi.Post, session.Cancellation.Token);
+            await TestGit.Services.RepositoryLoader.RunAsync(location, session, host, new StatusReporter(new Dispatcher(AppState.Empty)), InlineUi.Post, session.Cancellation.Token);
             var harness = new DiffHarness(host, session, pump, owned, screenHeight, screenWidth);
             await harness.ShowDetailsOfAsync(session.Graph[0].Id);
             return harness;
@@ -1348,10 +1347,5 @@ public class DiffPaneControllerTests
             Session.DetailSource.Update(DetailContentBuilder.Build(entry, Session.Details.Current, BottomTab.Changes));
             Send(new FocusPaneCommand(PaneKind.Detail));
         }
-    }
-
-    private sealed class KeyHolder
-    {
-        public KeyMode Mode { get; set; } = KeyMode.Normal;
     }
 }

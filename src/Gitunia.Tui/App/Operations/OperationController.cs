@@ -1,9 +1,10 @@
+using Gitunia.App.Shell;
+using Gitunia.App.Status;
 using Gitunia.App;
 using Gitunia.App.Tabs;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Operations;
-using Gitunia.Core.Overlays;
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
@@ -31,16 +32,14 @@ namespace Gitunia.Tui.App.Operations;
 /// <param name="postToUi">Runs an action on the UI thread.</param>
 /// <param name="refresh">Asks a tab to read everything again; false when it cannot.</param>
 /// <param name="cancellationOf">The token that ends the work of a tab (the tab was closed).</param>
-/// <param name="confirm">Shows the confirm dialog, runs the callback on <c>y</c>; false if it cannot show.</param>
 /// <param name="gate">The one-operation-per-tab gate, shared with the staging actions.</param>
 public sealed class OperationController(
     Dispatcher host,
     IOperationWriter writer,
-    StatusChannel statuses,
+    StatusReporter statuses,
     Action<Action> postToUi,
     Func<TabId, bool> refresh,
     Func<TabId, CancellationToken> cancellationOf,
-    Func<ConfirmPrompt, Action, bool> confirm,
     TabOperationGate gate)
 {
     private const string BusyNotice = "Busy: another operation of this tab is still running";
@@ -84,7 +83,7 @@ public sealed class OperationController(
         {
             var oldTip = info.OriginalHead ?? tab.Head?.CommitHash;
             var prompt = OperationTexts.AbortPrompt(info, branch, oldTip);
-            var asked = confirm(prompt, () => StartAbort(tab.Id, tab.Location, info, branch));
+            var asked = host.Confirm(prompt, () => StartAbort(tab.Id, tab.Location, info, branch));
             return asked ? string.Empty : TooSmallNotice;
         }
 
@@ -93,7 +92,7 @@ public sealed class OperationController(
             return OperationTexts.CannotSkipMerge;
         }
 
-        if (confirm(OperationTexts.SkipPrompt(info), () => StartSkip(tab.Id, tab.Location, info)))
+        if (host.Confirm(OperationTexts.SkipPrompt(info), () => StartSkip(tab.Id, tab.Location, info)))
         {
             return string.Empty;
         }

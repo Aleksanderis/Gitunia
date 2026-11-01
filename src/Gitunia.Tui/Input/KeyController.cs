@@ -1,4 +1,5 @@
 using System.Globalization;
+using Gitunia.App;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Terminal.Gui.Input;
@@ -7,11 +8,30 @@ namespace Gitunia.Tui.Input;
 
 /// <summary>
 /// Application-level key handling: every Terminal.Gui key press goes through the keymap engine, and a completed
-/// binding is handed to <paramref name="execute"/> as an action id with its count. Views never see keys the keymap uses.
+/// binding is handed to the execute callback as an action id with its count. Views never see keys the keymap uses.
+/// The input mode is app state (<c>ShellState.Mode</c>): it changes by dispatching a mode command, and this controller
+/// follows it, dropping the pending chord and count on every switch.
 /// </summary>
-public sealed class KeyController(KeymapEngine engine, Action<ActionId, int?> execute)
+public sealed class KeyController
 {
+    private readonly KeymapEngine _engine;
+    private readonly Action<ActionId, int?> _execute;
+    private readonly Dispatcher _host;
     private KeymapState _state = KeymapState.Initial;
+    private long _seenModeChanges;
+
+    /// <param name="engine">The keymap engine.</param>
+    /// <param name="execute">Receives a completed binding as an action id with its count.</param>
+    /// <param name="host">Holds the input mode.</param>
+    public KeyController(KeymapEngine engine, Action<ActionId, int?> execute, Dispatcher host)
+    {
+        _engine = engine;
+        _execute = execute;
+        _host = host;
+        _seenModeChanges = host.State.Shell.ModeChanges;
+        _state = _state.WithMode(host.State.Shell.Mode);
+        host.Changed += FollowMode;
+    }
 
     /// <summary>Raised after every key the keymap looked at, so the status bar can show the pending chord.</summary>
     public event Action? PendingChanged;
@@ -33,13 +53,6 @@ public sealed class KeyController(KeymapEngine engine, Action<ActionId, int?> ex
 
     /// <summary>Gets every key before the keymap does (the repeat mode); true means it consumed the key.</summary>
     public Func<KeyEvent, KeymapState, bool>? Interceptor { get; set; }
-
-    /// <summary>Switches the input mode, dropping any pending chord or count.</summary>
-    public void SetMode(KeyMode mode)
-    {
-        _state = _state.WithMode(mode);
-        PendingChanged?.Invoke();
-    }
 
     /// <summary>The unfinished count and chord, such as <c>5g</c>; empty when nothing is pending.</summary>
     public string PendingText => (_state.Count?.ToString(CultureInfo.InvariantCulture) ?? string.Empty)
@@ -94,11 +107,11 @@ public sealed class KeyController(KeymapEngine engine, Action<ActionId, int?> ex
             return true;
         }
 
-        var result = engine.Process(_state, keyEvent, view);
+        var result = _engine.Process(_state, keyEvent, view);
         _state = result.State;
         if (result is { Outcome: KeyOutcome.Action, Action: { } action })
         {
-            execute(action, result.Count);
+            _execute(action, result.Count);
         }
         else if (result.Outcome is KeyOutcome.TextInput or KeyOutcome.Unbound
             && _state.Mode is KeyMode.Insert or KeyMode.Command
@@ -117,5 +130,19 @@ public sealed class KeyController(KeymapEngine engine, Action<ActionId, int?> ex
 
         // A confirm dialog swallows every key, so a stray one (Enter, an arrow) reaches nothing behind it.
         return result.Outcome != KeyOutcome.Unbound || _state.Mode is KeyMode.Command or KeyMode.Insert or KeyMode.Confirm;
+    }
+
+    // Every mode switch (also to the same mode) drops the pending chord or count.
+    private void FollowMode()
+    {
+        var shell = _host.State.Shell;
+        if (shell.ModeChanges == _seenModeChanges)
+        {
+            return;
+        }
+
+        _seenModeChanges = shell.ModeChanges;
+        _state = _state.WithMode(shell.Mode);
+        PendingChanged?.Invoke();
     }
 }

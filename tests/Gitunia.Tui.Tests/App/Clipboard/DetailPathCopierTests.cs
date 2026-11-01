@@ -1,10 +1,12 @@
 using System.Text;
 using Gitunia.App.Loading.Commits;
 using Gitunia.App.Loading.Trees;
+using Gitunia.App.Status;
+using Gitunia.App;
 using Gitunia.Core.Clipboard;
 using Gitunia.Core.FileTree;
-using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces.Tabs;
+using Gitunia.Core;
 using Gitunia.Git.Commits.Models;
 using Gitunia.Git.Trees.Models;
 using Gitunia.Tui.App.Clipboard;
@@ -144,5 +146,5 @@ public class DetailPathCopierTests : IDisposable
     private static string Osc52Sequence(string text) => $"\u001b]52;c;{Convert.ToBase64String(Encoding.UTF8.GetBytes(text))}\u001b\\";
 
     private DetailPathCopier CreateCopier() =>
-        new(new ClipboardCopier(new ClipboardWriter(_terminal, new Osc52Options(Osc52Mode.Direct, 100_000)), new StatusChannel()));
+        new(new ClipboardCopier(new ClipboardWriter(_terminal, new Osc52Options(Osc52Mode.Direct, 100_000)), new StatusReporter(new Dispatcher(AppState.Empty))));
 }

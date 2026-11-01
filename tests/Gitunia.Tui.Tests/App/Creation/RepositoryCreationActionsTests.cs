@@ -1,3 +1,5 @@
+using Gitunia.App.Shell;
+using Gitunia.App.Status;
 using Gitunia.Core;
 using Gitunia.App;
 using Gitunia.Core.Keymap;
@@ -374,11 +376,11 @@ public class RepositoryCreationActionsTests
                 Picker,
                 Statuses,
                 Pump.Post,
-                mode => Mode = mode,
+                Host,
                 () => { },
                 _root,
                 () => DefaultParent);
-            Mode = KeyMode.Insert;
+            Host.SetKeyMode(KeyMode.Insert);
         }
 
         public Dispatcher Host { get; }
@@ -389,9 +391,9 @@ public class RepositoryCreationActionsTests
 
         public RepositoryCreationActions Actions { get; }
 
-        public StatusChannel Statuses { get; } = new();
+        public StatusReporter Statuses { get; } = new(new Dispatcher(AppState.Empty));
 
-        public KeyMode Mode { get; private set; }
+        public KeyMode Mode => Host.State.Shell.Mode;
 
         public string DefaultParent { get; }
 

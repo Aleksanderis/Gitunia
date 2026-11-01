@@ -1,7 +1,7 @@
+using Gitunia.App.Status;
 using Gitunia.Core;
 using Gitunia.App.Tests.Fakes;
 using Gitunia.App.Worktrees;
-using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
 using Gitunia.Git.Tests.Fixtures;
 using Xunit;
@@ -71,7 +71,7 @@ public sealed class WorktreeOverviewPollerTests
         host.Dispatch(new OpenRepositoryCommand(location));
         using var session = new FakeGraphSession(host.Workspace.ActiveTabId!.Value);
         await TestGit.Services.RepositoryLoader
-            .RunAsync(location, session, host, new StatusChannel(), InlineUi.Post, Token);
+            .RunAsync(location, session, host, new StatusReporter(host), InlineUi.Post, Token);
         return host;
     }
 }

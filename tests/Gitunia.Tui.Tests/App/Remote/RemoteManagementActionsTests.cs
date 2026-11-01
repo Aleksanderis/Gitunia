@@ -1,5 +1,4 @@
-using Gitunia.Core;
-using Gitunia.App;
+using Gitunia.App.Status;
 using Gitunia.App.Loading.Commits;
 using Gitunia.App.Tabs;
 using Gitunia.Core.Keymap;
@@ -281,8 +280,7 @@ public class RemoteManagementActionsTests
 
     private sealed class Harness : IDisposable
     {
-        private readonly Dispatcher _host = new(AppState.Empty);
-        private readonly List<Action> _answers = [];
+        private readonly TestShell _shell = new();
         private readonly List<TerminalTabSession> _sessions = [];
         private BranchSelection _selection = new(null, null, null);
 
@@ -290,19 +288,17 @@ public class RemoteManagementActionsTests
         {
             Pump = new UiPump(TestContext.Current.CancellationToken);
             Actions = new RemoteManagementActions(
-                _host,
+                _shell.Host,
                 TestGit.Services.RemoteManager,
                 Statuses,
                 Pump.Post,
                 _ => TestContext.Current.CancellationToken,
                 new TabOperationGate(),
-                Confirm,
                 _ =>
                 {
                     Refreshes++;
                     return true;
                 },
-                mode => Mode = mode,
                 () => { },
                 () => _selection,
                 _ => RemoteRuns);
@@ -310,15 +306,15 @@ public class RemoteManagementActionsTests
 
         public RemoteManagementActions Actions { get; }
 
-        public StatusChannel Statuses { get; } = new();
+        public StatusReporter Statuses => _shell.Statuses;
 
-        public List<ConfirmPrompt> Prompts { get; } = [];
+        public List<ConfirmPrompt> Prompts => _shell.Prompts;
 
         public bool RemoteRuns { get; set; }
 
         public int Refreshes { get; private set; }
 
-        public KeyMode Mode { get; private set; } = KeyMode.Normal;
+        public KeyMode Mode => _shell.Mode;
 
         public bool HasPopup => Actions.Popup is not null;
 
@@ -344,15 +340,8 @@ public class RemoteManagementActionsTests
         }
 
         /// <summary>Presses <c>y</c> in the open dialog.</summary>
-        public void Answer()
-        {
-            var answers = _answers.ToList();
-            _answers.Clear();
-            foreach (var answer in answers)
-            {
-                answer();
-            }
-        }
+        public void Answer() => _shell.Answer();
+
 
         public Task FinishAsync() => PumpUntilAsync(() => Statuses.Log.Latest is not null && Refreshes > 0
             || Statuses.Log.Latest?.Severity == StatusSeverity.Error);
@@ -372,8 +361,8 @@ public class RemoteManagementActionsTests
             var location = await TestGit.Services.Discovery.DiscoverAsync(
                 repository.WorkingTreePath,
                 TestContext.Current.CancellationToken);
-            _host.Dispatch(new OpenRepositoryCommand(location));
-            var tabId = _host.Workspace.ActiveTabId!.Value;
+            _shell.Host.Dispatch(new OpenRepositoryCommand(location));
+            var tabId = _shell.Host.Workspace.ActiveTabId!.Value;
             var session = new TerminalTabSession(
                 new TabSessionParts(
                     tabId,
@@ -383,17 +372,10 @@ public class RemoteManagementActionsTests
             await TestGit.Services.RepositoryLoader.RunAsync(
                 location,
                 session,
-                _host,
-                new StatusChannel(),
+                _shell.Host,
+                new StatusReporter(_shell.Host),
                 InlineUi.Post,
                 session.Cancellation.Token);
-        }
-
-        private bool Confirm(ConfirmPrompt prompt, Action onYes)
-        {
-            Prompts.Add(prompt);
-            _answers.Add(onYes);
-            return true;
         }
     }
 }

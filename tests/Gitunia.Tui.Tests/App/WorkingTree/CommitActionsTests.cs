@@ -1,5 +1,5 @@
-using Gitunia.Core;
-using Gitunia.App;
+using Gitunia.App.Shell;
+using Gitunia.App.Status;
 using Gitunia.App.Tabs;
 using Gitunia.Core.Editing;
 using Gitunia.Core.Keymap;
@@ -692,20 +692,20 @@ public class CommitActionsTests
 
     private sealed class Harness : IDisposable
     {
-        private readonly Dispatcher _host = new(AppState.Empty);
+        private readonly TestShell _shell = new();
 
         public Harness(params StatusEntry[] entries)
         {
             GitDirectory = Path.Combine(Path.GetTempPath(), $"gitunia-commit-actions-{Guid.NewGuid():N}");
             Directory.CreateDirectory(GitDirectory);
             var location = new RepositoryLocation(GitDirectory, GitDirectory, GitDirectory, false, false);
-            _host.Dispatch(new OpenRepositoryCommand(location));
+            _shell.Host.Dispatch(new OpenRepositoryCommand(location));
             Entries = entries;
             Load();
             Send(new OpenWorkingTreeCommand());
             Pump = new UiPump(TestContext.Current.CancellationToken);
             Commits = new CommitActions(
-                _host,
+                _shell.Host,
                 Writer,
                 Operations,
                 Statuses,
@@ -713,9 +713,7 @@ public class CommitActionsTests
                 RefreshStatus,
                 _ => TestContext.Current.CancellationToken,
                 Busy,
-                (title, heading, lines) => Outputs.Add(new Output(title, heading, lines)),
                 () => Mode,
-                mode => Mode = mode,
                 (action, _) => Routed.Add(action),
                 () => { });
         }
@@ -730,21 +728,26 @@ public class CommitActionsTests
 
         public FakeOperationDetector Operations { get; } = new();
 
-        public StatusChannel Statuses { get; } = new();
+        public StatusReporter Statuses => _shell.Statuses;
 
         public TabOperationGate Busy { get; } = new();
 
         public CommitActions Commits { get; }
 
-        public KeyMode Mode { get; set; } = KeyMode.Normal;
+        public KeyMode Mode
+        {
+            get => _shell.Mode;
+            set => _shell.Host.SetKeyMode(value);
+        }
 
-        public List<Output> Outputs { get; } = [];
+        public List<Output> Outputs =>
+            [.. _shell.Outputs.Select(output => new Output(output.Title, output.Heading, output.Lines))];
 
         public List<ActionId> Routed { get; } = [];
 
         public int Refreshes { get; private set; }
 
-        public RepositoryState Tab => _host.Workspace.ActiveTab!;
+        public RepositoryState Tab => _shell.Host.Workspace.ActiveTab!;
 
         public CommitDraft Draft => Commits.DraftFor(Tab.Id);
 
@@ -763,7 +766,7 @@ public class CommitActionsTests
         }
 
         public void Send(RepositoryCommand command) =>
-            _host.Dispatch(new TabCommand(_host.Workspace.ActiveTabId!.Value, command));
+            _shell.Host.Dispatch(new TabCommand(_shell.Host.Workspace.ActiveTabId!.Value, command));
 
         public void Load(string? upstream = null, int? ahead = null)
         {
@@ -776,12 +779,12 @@ public class CommitActionsTests
         {
             var other = Path.Combine(GitDirectory, "other");
             Directory.CreateDirectory(other);
-            _host.Dispatch(new OpenRepositoryCommand(new RepositoryLocation(other, other, other, false, false)));
+            _shell.Host.Dispatch(new OpenRepositoryCommand(new RepositoryLocation(other, other, other, false, false)));
         }
 
-        public void Activate(TabId tabId) => _host.Dispatch(new ActivateTabCommand(tabId));
+        public void Activate(TabId tabId) => _shell.Host.Dispatch(new ActivateTabCommand(tabId));
 
-        public void CloseTab() => _host.Dispatch(new CloseTabCommand(_host.Workspace.ActiveTabId!.Value));
+        public void CloseTab() => _shell.Host.Dispatch(new CloseTabCommand(_shell.Host.Workspace.ActiveTabId!.Value));
 
         public void Dispose()
         {

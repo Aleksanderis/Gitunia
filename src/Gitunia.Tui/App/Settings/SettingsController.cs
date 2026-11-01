@@ -1,3 +1,6 @@
+using Gitunia.App.Shell;
+using Gitunia.App.Status;
+using Gitunia.App;
 using Gitunia.Core.Config;
 using Gitunia.Core.Config.Models;
 using Gitunia.Core.Keymap;
@@ -7,7 +10,6 @@ using Gitunia.Core.Mouse;
 using Gitunia.Core.Search;
 using Gitunia.Core.Settings;
 using Gitunia.Core.Settings.Models;
-using Gitunia.Core.Status;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Overlays;
 using Gitunia.Tui.Views;
@@ -26,7 +28,7 @@ namespace Gitunia.Tui.App.Settings;
 /// <param name="postToUi">Runs an action on the UI thread.</param>
 /// <param name="screenSize">The current terminal size.</param>
 /// <param name="glyphs">The characters the overlay is drawn with.</param>
-/// <param name="setMode">Switches the keymap mode (Insert while typing, Confirm for the removal question).</param>
+/// <param name="host">Switches the keymap mode (Insert while typing, Confirm for the removal question).</param>
 /// <param name="redraw">Redraws the overlay layer and the status bar.</param>
 /// <param name="applyOptions">Applies the options of the file to the running app.</param>
 /// <param name="applyTheme">Shows a theme in the running app: the one under the cursor, else the kept one.</param>
@@ -37,11 +39,11 @@ namespace Gitunia.Tui.App.Settings;
 public sealed class SettingsController(
     ConfigWriter writer,
     SettingsEnvironment environment,
-    StatusChannel statuses,
+    StatusReporter statuses,
     Action<Action> postToUi,
     Func<ScreenSize> screenSize,
     GraphGlyphSet glyphs,
-    Action<KeyMode> setMode,
+    Dispatcher host,
     Action redraw,
     Action<ConfigOptions> applyOptions,
     Action<ThemeChoice> applyTheme,
@@ -389,7 +391,7 @@ public sealed class SettingsController(
         if (wanted != _mode)
         {
             _mode = wanted;
-            setMode(wanted);
+            host.SetKeyMode(wanted);
         }
     }
 

@@ -1,8 +1,11 @@
+using Gitunia.App.Status;
+using Gitunia.App;
 using Gitunia.Core.Config;
 using Gitunia.Core.Config.Models;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Status;
+using Gitunia.Core;
 using Gitunia.Platform;
 using Gitunia.Tui.App.Config;
 using Xunit;
@@ -55,7 +58,7 @@ public sealed class ConfigStartupTests : IDisposable
     [Fact]
     public void GivenMoreProblemsThanTheLimit_WhenReporting_ThenTheFirstShowsLastWithACount()
     {
-        var statuses = new StatusChannel();
+        var statuses = new StatusReporter(new Dispatcher(AppState.Empty));
         var problems = Enumerable.Range(0, 8).Select(index => new ConfigProblem($"keys[{index}]", "bad")).ToList();
 
         ConfigStartup.Report(problems, statuses);
@@ -67,7 +70,7 @@ public sealed class ConfigStartupTests : IDisposable
     [Fact]
     public void GivenOneProblem_WhenReporting_ThenOneWarningWithoutACountIsPosted()
     {
-        var statuses = new StatusChannel();
+        var statuses = new StatusReporter(new Dispatcher(AppState.Empty));
 
         ConfigStartup.Report([new ConfigProblem(string.Empty, "config.json is not valid")], statuses);
 

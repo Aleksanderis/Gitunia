@@ -1,3 +1,4 @@
+using Gitunia.App.Status;
 using Gitunia.Core;
 using Gitunia.App.Loading;
 using Gitunia.App.Loading.Commits;
@@ -410,7 +411,7 @@ public class TabRefresherTests
             Session.Dispose();
         }
 
-        private static Task RunInitialLoadAsync(RepositoryLocation location, TabSession session, Dispatcher host, StatusChannel statuses) =>
+        private static Task RunInitialLoadAsync(RepositoryLocation location, TabSession session, Dispatcher host, StatusReporter statuses) =>
             TestGit.Services.RepositoryLoader.RunAsync(location, session, host, statuses, InlineUi.Post, session.Cancellation.Token);
 
         private static async Task<Harness> CreateAsync(
@@ -424,7 +425,7 @@ public class TabRefresherTests
             var host = new Dispatcher(AppState.Empty);
             host.Dispatch(new OpenRepositoryCommand(location));
             var tabId = host.Workspace.ActiveTabId!.Value;
-            var statuses = new StatusChannel();
+            var statuses = new StatusReporter(host);
             var session = new TabSession(
                 new TabSessionParts(
                     tabId,
@@ -459,7 +460,7 @@ public class TabRefresherTests
 
     private sealed class FakeHarness : IDisposable
     {
-        private FakeHarness(Dispatcher host, TabId tabId, TabSession session, TabRefresher refresher, FakeRepositoryRefresher repositoryRefresher, StatusChannel statuses, UiPump pump)
+        private FakeHarness(Dispatcher host, TabId tabId, TabSession session, TabRefresher refresher, FakeRepositoryRefresher repositoryRefresher, StatusReporter statuses, UiPump pump)
         {
             Host = host;
             TabId = tabId;
@@ -482,7 +483,7 @@ public class TabRefresherTests
 
         public FakeRepositoryRefresher RepositoryRefresher { get; }
 
-        public StatusChannel Statuses { get; }
+        public StatusReporter Statuses { get; }
 
         public RepositoryState Tab => Host.Workspace.FindTab(TabId)!;
 
@@ -498,7 +499,7 @@ public class TabRefresherTests
             var host = new Dispatcher(AppState.Empty);
             host.Dispatch(new OpenRepositoryCommand(location));
             var tabId = host.Workspace.ActiveTabId!.Value;
-            var statuses = new StatusChannel();
+            var statuses = new StatusReporter(host);
             var session = new TabSession(
                 new TabSessionParts(
                     tabId,

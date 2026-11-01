@@ -1,5 +1,5 @@
+using Gitunia.App.Status;
 using Gitunia.Core.Clipboard;
-using Gitunia.Core.Status;
 
 namespace Gitunia.Tui.App.Clipboard;
 
@@ -9,7 +9,7 @@ namespace Gitunia.Tui.App.Clipboard;
 /// </summary>
 /// <param name="writer">The writer, or null when the console is not interactive (nothing is copied then).</param>
 /// <param name="statuses">Where the confirmation or failure message goes.</param>
-public sealed class ClipboardCopier(ClipboardWriter? writer, StatusChannel statuses)
+public sealed class ClipboardCopier(ClipboardWriter? writer, StatusReporter statuses)
 {
     public const string NotInteractiveMessage = "Cannot copy: the console is not interactive.";
 

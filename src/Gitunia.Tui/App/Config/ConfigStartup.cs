@@ -1,7 +1,7 @@
+using Gitunia.App.Status;
 using Gitunia.Core.Config;
 using Gitunia.Core.Config.Models;
 using Gitunia.Core.Keymap;
-using Gitunia.Core.Status;
 using Gitunia.Core.Themes;
 using Gitunia.Platform;
 
@@ -50,7 +50,7 @@ public sealed class ConfigStartup(string configDirectory, string homeDirectory, 
     /// </summary>
     /// <param name="problems">The problems found while loading.</param>
     /// <param name="statuses">Where the warnings go.</param>
-    public static void Report(IReadOnlyList<ConfigProblem> problems, StatusChannel statuses)
+    public static void Report(IReadOnlyList<ConfigProblem> problems, StatusReporter statuses)
     {
         var posted = Math.Min(problems.Count, MaximumReportedProblems);
         for (var index = posted - 1; index > 0; index--)

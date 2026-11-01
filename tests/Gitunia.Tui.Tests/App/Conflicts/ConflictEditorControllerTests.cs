@@ -1,5 +1,4 @@
-using Gitunia.Core;
-using Gitunia.App;
+using Gitunia.App.Status;
 using Gitunia.App.Tabs;
 using Gitunia.Core.Conflicts;
 using Gitunia.Core.Keymap;
@@ -24,6 +23,7 @@ using Gitunia.Tui.App.Conflicts;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Overlays;
 using Gitunia.Tui.Views;
+using Gitunia.Tui.Tests.Fakes;
 using Xunit;
 
 namespace Gitunia.Tui.Tests.App.Conflicts;
@@ -1406,8 +1406,7 @@ public class ConflictEditorControllerTests
 
     private sealed class Harness : IDisposable
     {
-        private readonly Dispatcher _host = new(AppState.Empty);
-        private readonly List<Action> _answers = [];
+        private readonly TestShell _shell = new();
 
         private Harness(TestRepository repository, RepositoryLocation location, IConflictRecreator? recreator)
         {
@@ -1415,18 +1414,17 @@ public class ConflictEditorControllerTests
             Location = location;
             FullPath = Path.Combine(repository.WorkingTreePath, ConflictPath);
             OriginalText = File.Exists(FullPath) ? File.ReadAllText(FullPath) : string.Empty;
-            _host.Dispatch(new OpenRepositoryCommand(location));
-            TabId = _host.Workspace.ActiveTabId!.Value;
+            _shell.Host.Dispatch(new OpenRepositoryCommand(location));
+            TabId = _shell.Host.Workspace.ActiveTabId!.Value;
             Pump = new UiPump(TestContext.Current.CancellationToken);
             Controller = new ConflictEditorController(
-                _host,
+                _shell.Host,
                 new ConflictReader(Runner),
                 new ConflictWriter(),
                 recreator ?? new ConflictRecreator(Runner),
                 Statuses,
                 Pump.Post,
                 _ => TestContext.Current.CancellationToken,
-                Confirm,
                 StageResolved,
                 _ =>
                 {
@@ -1437,7 +1435,6 @@ public class ConflictEditorControllerTests
                 () => IsOtherOverlayOpen,
                 () => Screen,
                 GraphGlyphSet.Unicode,
-                SetMode,
                 () => { },
                 Gate);
         }
@@ -1448,11 +1445,11 @@ public class ConflictEditorControllerTests
 
         public ConflictEditorController Controller { get; }
 
-        public StatusChannel Statuses { get; } = new();
+        public StatusReporter Statuses => _shell.Statuses;
 
         public TabOperationGate Gate { get; } = new();
 
-        public List<ConfirmPrompt> Prompts { get; } = [];
+        public List<ConfirmPrompt> Prompts => _shell.Prompts;
 
         public List<string> StageRequested { get; } = [];
 
@@ -1462,7 +1459,7 @@ public class ConflictEditorControllerTests
 
         public bool IsOtherOverlayOpen { get; set; }
 
-        public KeyMode Mode { get; private set; } = KeyMode.Normal;
+        public KeyMode Mode => _shell.Mode;
 
         public TabId TabId { get; }
 
@@ -1499,9 +1496,9 @@ public class ConflictEditorControllerTests
             && Statuses.Log.Latest is { } latest
             && latest.Text.StartsWith(prefix, StringComparison.Ordinal));
 
-        public void CloseTab() => _host.Dispatch(new CloseTabCommand(TabId));
+        public void CloseTab() => _shell.Host.Dispatch(new CloseTabCommand(TabId));
 
-        public void Send(RepositoryCommand command) => _host.Dispatch(new TabCommand(TabId, command));
+        public void Send(RepositoryCommand command) => _shell.Host.Dispatch(new TabCommand(TabId, command));
 
         // Opening reads the file on a worker: wait until the editor shows or the status reported a refusal.
         public async Task OpenAsync()
@@ -1596,35 +1593,16 @@ public class ConflictEditorControllerTests
 
             Click(1, 1 + (((int)pane - (int)ConflictPane.Base) * (Screen.Width / 3)) + 4);
         }
+        public void Answer() => _shell.Answer();
 
-        public void Answer()
-        {
-            var answers = _answers.ToList();
-            _answers.Clear();
-            foreach (var answer in answers)
-            {
-                answer();
-            }
-        }
 
-        public void Decline() => _answers.Clear();
+        public void Decline() => _shell.Decline();
 
         public Task WaitAsync() => Pump.RunUntilAsync(() => !Gate.IsAnyBusy && Statuses.Log.Latest is not null);
 
         public void Dispose()
         {
         }
-
-        private void SetMode(KeyMode mode) => Mode = mode;
-
-        private bool Confirm(ConfirmPrompt prompt, Action onConfirmed)
-        {
-            Prompts.Add(prompt);
-            _answers.Add(onConfirmed);
-
-            return true;
-        }
-
         private string StageResolved(RepositoryState tab, string path)
         {
             StageRequested.Add(path);

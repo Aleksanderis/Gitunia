@@ -1,3 +1,4 @@
+using Gitunia.App.Status;
 using Gitunia.Core;
 using Gitunia.App;
 using Gitunia.App.Loading.Commits;
@@ -290,7 +291,7 @@ public class MergeActionsTests
 
         public MergeActions Merge { get; }
 
-        public StatusChannel Statuses { get; } = new();
+        public StatusReporter Statuses { get; } = new(new Dispatcher(AppState.Empty));
 
         public int Refreshes { get; private set; }
 
@@ -318,7 +319,7 @@ public class MergeActionsTests
                 location,
                 session,
                 harness._host,
-                new StatusChannel(),
+                new StatusReporter(new Dispatcher(AppState.Empty)),
                 InlineUi.Post,
                 session.Cancellation.Token);
 

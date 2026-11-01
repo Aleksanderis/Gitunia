@@ -1,3 +1,4 @@
+using Gitunia.App.Status;
 using Gitunia.Core;
 using Gitunia.Core.Persistence;
 using Gitunia.Core.Status;
@@ -22,7 +23,7 @@ public class SessionPersistenceTests
         {
             var store = new SessionStore(directory);
             var host = new Dispatcher(AppState.Empty);
-            using var persistence = new SessionPersistence(store, host, TimeSpan.FromHours(1), new StatusChannel(), action => action());
+            using var persistence = new SessionPersistence(store, host, TimeSpan.FromHours(1), new StatusReporter(host), action => action());
             persistence.Start();
             host.Dispatch(new OpenRepositoryCommand(Location(Path.Combine(directory, "alpha"))));
 
@@ -51,7 +52,7 @@ public class SessionPersistenceTests
             var host = new Dispatcher(AppState.Empty);
             host.Dispatch(new OpenRepositoryCommand(Location(Path.Combine(directory, "alpha"))));
             var drafts = new Dictionary<TabId, SessionDraft>();
-            using var persistence = new SessionPersistence(store, host, TimeSpan.FromHours(1), new StatusChannel(), action => action(), () => new Dictionary<TabId, SessionDraft>(drafts));
+            using var persistence = new SessionPersistence(store, host, TimeSpan.FromHours(1), new StatusReporter(host), action => action(), () => new Dictionary<TabId, SessionDraft>(drafts));
             persistence.Start();
             drafts[host.Workspace.Tabs[0].Id] = new SessionDraft("Unsent", true, false);
             persistence.NotifyDraftChanged();
@@ -76,7 +77,7 @@ public class SessionPersistenceTests
         var directory = Path.Combine(Path.GetTempPath(), $"gitunia-session-{Guid.NewGuid().ToString("N")}");
         var store = new SessionStore(directory);
         var host = new Dispatcher(AppState.Empty);
-        using var persistence = new SessionPersistence(store, host, TimeSpan.FromHours(1), new StatusChannel(), action => action());
+        using var persistence = new SessionPersistence(store, host, TimeSpan.FromHours(1), new StatusReporter(host), action => action());
         persistence.Start();
 
         persistence.Flush();
@@ -92,7 +93,7 @@ public class SessionPersistenceTests
         try
         {
             var host = new Dispatcher(AppState.Empty);
-            using var persistence = new SessionPersistence(new SessionStore(blocker), host, TimeSpan.FromHours(1), new StatusChannel(), action => action());
+            using var persistence = new SessionPersistence(new SessionStore(blocker), host, TimeSpan.FromHours(1), new StatusReporter(host), action => action());
             persistence.Start();
             host.Dispatch(new OpenRepositoryCommand(Location(Path.Combine(blocker, "alpha"))));
 
@@ -111,7 +112,7 @@ public class SessionPersistenceTests
         try
         {
             var host = new Dispatcher(AppState.Empty);
-            using var persistence = new SessionPersistence(new SessionStore(directory), host, TimeSpan.FromHours(1), new StatusChannel(), action => action());
+            using var persistence = new SessionPersistence(new SessionStore(directory), host, TimeSpan.FromHours(1), new StatusReporter(host), action => action());
             persistence.Start();
             host.Dispatch(new OpenRepositoryCommand(Location(Path.Combine(directory, "alpha"))));
 
@@ -133,8 +134,8 @@ public class SessionPersistenceTests
         File.WriteAllText(blocker, "not a directory");
         try
         {
-            var statuses = new StatusChannel();
             var host = new Dispatcher(AppState.Empty);
+            var statuses = new StatusReporter(host);
             using var persistence = new SessionPersistence(new SessionStore(blocker), host, TimeSpan.FromHours(1), statuses, action => action());
             persistence.Start();
 
@@ -168,7 +169,7 @@ public class SessionPersistenceTests
             watcher.Changed += (_, _) => { if (File.Exists(store.FilePath)) { saved.TrySetResult(); } };
             watcher.EnableRaisingEvents = true;
             var host = new Dispatcher(AppState.Empty);
-            using var persistence = new SessionPersistence(store, host, TimeSpan.FromMilliseconds(30), new StatusChannel(), action => action());
+            using var persistence = new SessionPersistence(store, host, TimeSpan.FromMilliseconds(30), new StatusReporter(host), action => action());
             persistence.Start();
 
             host.Dispatch(new OpenRepositoryCommand(Location(Path.Combine(directory, "alpha"))));
@@ -193,7 +194,7 @@ public class SessionPersistenceTests
         {
             var store = new SessionStore(directory, _ => true);
             var host = new Dispatcher(AppState.Empty);
-            using var persistence = new SessionPersistence(store, host, TimeSpan.FromHours(1), new StatusChannel(), action => action());
+            using var persistence = new SessionPersistence(store, host, TimeSpan.FromHours(1), new StatusReporter(host), action => action());
             persistence.Start();
             host.Dispatch(new OpenRepositoryCommand(Location(Path.Combine(directory, "alpha"))));
             host.Dispatch(new TabCommand(host.Workspace.ActiveTabId!.Value, new SetPaneSizesCommand(30, 12, 40)));

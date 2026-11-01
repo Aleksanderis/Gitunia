@@ -3,6 +3,7 @@ using Gitunia.App.Loading.Commits;
 using Gitunia.App.Loading.Diff;
 using Gitunia.App.Loading.Stash;
 using Gitunia.App.Loading.Trees;
+using Gitunia.App.Status;
 using Gitunia.App.Tabs;
 using Gitunia.App.Tabs.Models;
 using Gitunia.App.Tags;
@@ -11,6 +12,7 @@ using Gitunia.Core.Clipboard;
 using Gitunia.Core.Effects;
 using Gitunia.Core.Tags;
 using Gitunia.Core.IssueTracker;
+using Gitunia.Core.Shell;
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Tabs;
@@ -43,7 +45,8 @@ public sealed class EffectRunner<TSession> : IDisposable
     private readonly BackgroundWork _background = new();
     private readonly TagEffectHandler _tags;
     private readonly Action<Action> _postToUi;
-    private readonly StatusChannel _statuses;
+    private readonly StatusReporter _statuses;
+    private readonly StatusAgingTimer _statusAging;
     private readonly ITabSessionFactory<TSession> _sessionFactory;
     private readonly TimeSpan _detailDebounce;
     private readonly Dictionary<TabId, TSession> _sessions = [];
@@ -60,7 +63,7 @@ public sealed class EffectRunner<TSession> : IDisposable
         Dispatcher host,
         Action<Action> postToUi,
         ITabSessionFactory<TSession> sessionFactory,
-        StatusChannel statuses,
+        StatusReporter statuses,
         TimeSpan? detailDebounce = null,
         RepositoryWatcherOptions? watcherOptions = null,
         WatchBudget? watchBudget = null,
@@ -80,6 +83,7 @@ public sealed class EffectRunner<TSession> : IDisposable
         _postToUi = postToUi;
         _sessionFactory = sessionFactory;
         _statuses = statuses;
+        _statusAging = new StatusAgingTimer(host);
         host.EffectRaised += Run;
         host.Changed += OnHostChanged;
     }
@@ -159,6 +163,7 @@ public sealed class EffectRunner<TSession> : IDisposable
 
         _refreshers.Clear();
         _cancellation.Dispose();
+        _statusAging.Dispose();
         _background.Dispose();
     }
 
@@ -203,20 +208,22 @@ public sealed class EffectRunner<TSession> : IDisposable
                 _shell.OfferTerminalRetry(offer.TabId, offer.Noun, offer.Arguments);
                 break;
             case PostStatusEffect post:
-                _statuses.Post(post.Text, post.Severity);
+                _host.Dispatch(new StatusPostedCommand(post.Text, post.Severity, _host.Clock.GetUtcNow()));
                 break;
             case RefreshTabEffect refresh:
                 Refresh(refresh.TabId, false);
                 break;
+            case RunActionEffect run:
+                run.Run();
+                break;
+            case ScheduleStatusAgingEffect aging:
+                _statusAging.Schedule(aging.After);
+                break;
             case SetKeyModeEffect mode:
-                _shell.SetKeyMode(mode.Mode);
+                _host.Dispatch(new SetKeyModeCommand(mode.Mode));
                 break;
             case ShowConfirmEffect confirm:
-                if (!_shell.ShowConfirm(confirm.Prompt, confirm.OnAccepted))
-                {
-                    _statuses.Warning(confirm.UnavailableNotice);
-                }
-
+                ShowConfirm(confirm);
                 break;
             case TagEffect tag:
                 _tags.Handle(tag, _cancellation.TokenOf(tag.TabId));
@@ -224,6 +231,12 @@ public sealed class EffectRunner<TSession> : IDisposable
             default:
                 throw new UnhandledEffectException(effect);
         }
+    }
+
+    private void ShowConfirm(ShowConfirmEffect confirm)
+    {
+        var refusal = new StatusPostedCommand(confirm.UnavailableNotice, StatusSeverity.Warning, _host.Clock.GetUtcNow());
+        _host.Dispatch(new ConfirmRequestedCommand(confirm.Prompt, confirm.OnAccepted, refusal));
     }
 
     private void Cancel(CancelLoadEffect cancel)

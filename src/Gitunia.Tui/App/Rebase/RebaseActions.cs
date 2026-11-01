@@ -1,3 +1,5 @@
+using Gitunia.App.Shell;
+using Gitunia.App.Status;
 using Gitunia.App;
 using Gitunia.App.Tabs;
 using Gitunia.Core.Keymap;
@@ -31,7 +33,6 @@ namespace Gitunia.Tui.App.Rebase;
 /// <param name="statuses">Where the outcome is reported.</param>
 /// <param name="postToUi">Runs an action on the UI thread.</param>
 /// <param name="cancellationOf">The token that ends the work of a tab (the tab was closed).</param>
-/// <param name="confirm">Shows the confirm dialog and runs the callback on <c>y</c>; false when it cannot show.</param>
 /// <param name="refresh">Reads a tab again (refs, graph, status, operation); false when it cannot.</param>
 /// <param name="selection">What is selected now: a sidebar row or the graph commit.</param>
 /// <param name="isOverlayOpen">True while an overlay is open; a late Confirm must not replace it.</param>
@@ -39,10 +40,9 @@ namespace Gitunia.Tui.App.Rebase;
 public sealed class RebaseActions(
     Dispatcher host,
     IRebaseWriter writer,
-    StatusChannel statuses,
+    StatusReporter statuses,
     Action<Action> postToUi,
     Func<TabId, CancellationToken> cancellationOf,
-    Func<ConfirmPrompt, Action, bool> confirm,
     Func<TabId, bool> refresh,
     Func<BranchSelection> selection,
     Func<bool> isOverlayOpen,
@@ -210,7 +210,7 @@ public sealed class RebaseActions(
             return;
         }
 
-        if (!confirm(PromptFor(target, current, merges, RebaseGuard.AutoStashNote(tab)), () => Start(target)))
+        if (!host.Confirm(PromptFor(target, current, merges, RebaseGuard.AutoStashNote(tab)), () => Start(target)))
         {
             statuses.Warning(TooSmallNotice);
         }

@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Drawing;
+using Gitunia.App.Status;
 using Gitunia.Core;
 using Gitunia.App;
 using Gitunia.App.Loading.Commits;
@@ -10,7 +11,6 @@ using Gitunia.Core.Diff;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Overlays;
-using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Repositories;
@@ -754,20 +754,20 @@ public class WorkingDiffControllerTests
     {
         private readonly UiPump _pump;
         private readonly TestRepository _repository;
-        private readonly List<Action> _pendingAnswers = [];
-        private KeyMode _mode = KeyMode.Normal;
+        private readonly TestShell _shell;
 
         private Harness(TestRepository repository, Dispatcher host, TerminalTabSession session, UiPump pump)
         {
             _repository = repository;
             _pump = pump;
+            _shell = new TestShell(host);
             Host = host;
             Session = session;
-            Statuses = new StatusChannel();
+            Statuses = _shell.Statuses;
             DiffList = new ListView { X = 0, Y = 0, Width = 60, Height = 20 };
             DiffList.SetRelativeLayout(new Size(80, 24));
             var copier = new ClipboardCopier(new ClipboardWriter(new StringWriter(), new Osc52Options(Osc52Mode.Direct, 100_000)), Statuses);
-            Controller = new WorkingDiffController(host, () => Session, DiffList, mode => _mode = mode, () => { }, copier);
+            Controller = new WorkingDiffController(host, () => Session, DiffList, () => { }, copier);
             Controller.OnTabSwitched(null, session);
             var indexWriter = TestGit.Services.IndexWriter;
             Staging = new StagingActions(
@@ -783,7 +783,7 @@ public class WorkingDiffControllerTests
                 },
                 _ => Token,
                 Gate);
-            Visual = new VisualRangeController(() => Tab.View.FocusedPane, _ => DiffList, () => _mode, mode => _mode = mode);
+            Visual = new VisualRangeController(() => Tab.View.FocusedPane, _ => DiffList, host);
             Handler = new WorkingTreeActionHandler(host, () => 10, copier, Staging, TestCommitActions.Create(host, Statuses)) { Diff = Controller, Visual = Visual };
             Handler.Discard = new DiscardActions(
                 host,
@@ -796,7 +796,6 @@ public class WorkingDiffControllerTests
                     return true;
                 },
                 _ => Token,
-                AskConfirm,
                 Gate);
         }
 
@@ -805,7 +804,7 @@ public class WorkingDiffControllerTests
         public TabOperationGate Gate { get; } = new();
 
         /// <summary>The confirm dialogs the actions asked for, oldest first.</summary>
-        public List<ConfirmPrompt> Prompts { get; } = [];
+        public List<ConfirmPrompt> Prompts => _shell.Prompts;
 
         public VisualRangeController Visual { get; }
 
@@ -813,7 +812,7 @@ public class WorkingDiffControllerTests
 
         public TerminalTabSession Session { get; }
 
-        public StatusChannel Statuses { get; }
+        public StatusReporter Statuses { get; }
 
         public ListView DiffList { get; }
 
@@ -821,7 +820,7 @@ public class WorkingDiffControllerTests
 
         public WorkingTreeActionHandler Handler { get; }
 
-        public KeyMode Mode => _mode;
+        public KeyMode Mode => _shell.Mode;
 
         public RepositoryState Tab => Host.Workspace.ActiveTab!;
 
@@ -867,15 +866,13 @@ public class WorkingDiffControllerTests
         /// <summary>Answers <c>y</c> in the open dialog, waits for the discard, then re-reads the status like the tab refresher does.</summary>
         public async Task ConfirmAsync()
         {
-            var answer = Assert.Single(_pendingAnswers);
-            _pendingAnswers.Clear();
-            answer();
+            Assert.True(_shell.Answer());
             await _pump.RunUntilAsync(() => !Gate.IsAnyBusy);
             await RefreshStatusAsync();
         }
 
         /// <summary>Answers <c>n</c> or <c>Esc</c>: the callback is dropped, as the overlay does.</summary>
-        public void DropDialog() => _pendingAnswers.Clear();
+        public void DropDialog() => _shell.Decline();
 
         public string Git(params string[] arguments) => _repository.Git(arguments);
 
@@ -906,12 +903,6 @@ public class WorkingDiffControllerTests
             _repository.Dispose();
         }
 
-        private bool AskConfirm(ConfirmPrompt prompt, Action onYes)
-        {
-            Prompts.Add(prompt);
-            _pendingAnswers.Add(onYes);
-            return true;
-        }
 
         private async Task LoadStatusAsync()
         {

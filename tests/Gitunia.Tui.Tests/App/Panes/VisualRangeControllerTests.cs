@@ -1,9 +1,13 @@
 using System.Collections;
 using System.Collections.Specialized;
+using Gitunia.App.Shell;
+using Gitunia.App.Status;
+using Gitunia.App;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Lists;
 using Gitunia.Core.Workspaces.Panes;
+using Gitunia.Core;
 using Gitunia.Tui.App.Clipboard;
 using Gitunia.Tui.App.Panes;
 using Gitunia.Tui.Views.Lists;
@@ -22,25 +26,25 @@ public sealed class VisualRangeControllerTests : IDisposable
     private readonly VisualRangeController _controller;
     private PaneKind _focused = PaneKind.Graph;
     private CopiedRange? _copied;
-    private readonly List<string> _notices = [];
-    private KeyMode _mode = KeyMode.Normal;
+    private readonly Dispatcher _host = new(AppState.Empty);
+    private readonly StatusReporter _statuses;
     private bool _copySucceeds = true;
 
     public VisualRangeControllerTests()
     {
+        _statuses = new StatusReporter(_host);
         _list = new ListView { Source = _source };
         _emptyList = new ListView { Source = _emptySource };
         _controller = new VisualRangeController(
             () => _focused,
             pane => pane == PaneKind.Sidebar ? _sidebarList : _list,
-            () => _mode,
-            newMode => _mode = newMode,
+            _host,
             (pane, range) =>
             {
                 _copied = new CopiedRange(pane, range);
                 return new RangeCopyResult(_copySucceeds, "copy notice");
             },
-            _notices.Add);
+            _statuses);
     }
 
     public void Dispose()
@@ -62,7 +66,7 @@ public sealed class VisualRangeControllerTests : IDisposable
         Assert.True(handled);
         Assert.True(_controller.IsActive);
         Assert.Equal(new RowRange(4, 4), _source.Range);
-        Assert.Equal(KeyMode.Visual, _mode);
+        Assert.Equal(KeyMode.Visual, _host.State.Shell.Mode);
     }
 
     [Fact]
@@ -95,7 +99,7 @@ public sealed class VisualRangeControllerTests : IDisposable
         Assert.True(handled);
         Assert.False(_controller.IsActive);
         Assert.Null(_source.Range);
-        Assert.Equal(KeyMode.Normal, _mode);
+        Assert.Equal(KeyMode.Normal, _host.State.Shell.Mode);
     }
 
     [Fact]
@@ -112,7 +116,7 @@ public sealed class VisualRangeControllerTests : IDisposable
         Assert.Equal(new CopiedRange(PaneKind.Graph, new RowRange(4, 6)), _copied);
         Assert.Equal("copy notice", _controller.Notice);
         Assert.False(_controller.IsActive);
-        Assert.Equal(KeyMode.Normal, _mode);
+        Assert.Equal(KeyMode.Normal, _host.State.Shell.Mode);
     }
 
     [Fact]
@@ -128,7 +132,7 @@ public sealed class VisualRangeControllerTests : IDisposable
         Assert.Equal(new CopiedRange(PaneKind.Graph, new RowRange(4, 4)), _copied);
         Assert.True(_controller.IsActive);
         Assert.Equal(new RowRange(4, 4), _source.Range);
-        Assert.Equal(KeyMode.Visual, _mode);
+        Assert.Equal(KeyMode.Visual, _host.State.Shell.Mode);
     }
 
     [Fact]
@@ -165,7 +169,7 @@ public sealed class VisualRangeControllerTests : IDisposable
 
         Assert.True(handled);
         Assert.False(_controller.IsActive);
-        Assert.Equal(KeyMode.Normal, _mode);
+        Assert.Equal(KeyMode.Normal, _host.State.Shell.Mode);
         Assert.Equal("No range selection in the sidebar", _controller.Notice);
     }
 
@@ -175,8 +179,7 @@ public sealed class VisualRangeControllerTests : IDisposable
         var emptyController = new VisualRangeController(
             () => PaneKind.Graph,
             _ => _emptyList,
-            () => _mode,
-            newMode => _mode = newMode);
+            _host);
 
         emptyController.TryExecute(ActionIds.VisualToggle, null);
 
@@ -193,8 +196,8 @@ public sealed class VisualRangeControllerTests : IDisposable
         _source.Invalidate();
 
         Assert.False(_controller.IsActive);
-        Assert.Equal(KeyMode.Normal, _mode);
-        Assert.Equal([VisualRangeController.InvalidatedNotice], _notices);
+        Assert.Equal(KeyMode.Normal, _host.State.Shell.Mode);
+        Assert.Equal([VisualRangeController.InvalidatedNotice], Notices);
     }
 
     [Fact]
@@ -205,7 +208,7 @@ public sealed class VisualRangeControllerTests : IDisposable
 
         _controller.TryExecute(ActionIds.Cancel, null);
 
-        Assert.Empty(_notices);
+        Assert.Empty(Notices);
     }
 
     [Fact]
@@ -239,13 +242,13 @@ public sealed class VisualRangeControllerTests : IDisposable
     public void GivenAPromptOwnsTheKeys_WhenTogglingVisual_ThenNoRangeStartsAndTheModeStays(KeyMode promptMode)
     {
         _list.SelectedItem = 4;
-        _mode = promptMode;
+        _host.SetKeyMode(promptMode);
 
         _controller.TryExecute(ActionIds.VisualToggle, null);
 
         Assert.False(_controller.IsActive);
         Assert.Null(_source.Range);
-        Assert.Equal(promptMode, _mode);
+        Assert.Equal(promptMode, _host.State.Shell.Mode);
     }
 
     [Fact]
@@ -258,7 +261,7 @@ public sealed class VisualRangeControllerTests : IDisposable
 
         Assert.False(_controller.IsActive);
         Assert.Null(_source.Range);
-        Assert.Equal(KeyMode.Normal, _mode);
+        Assert.Equal(KeyMode.Normal, _host.State.Shell.Mode);
     }
 
     [Fact]
@@ -267,11 +270,11 @@ public sealed class VisualRangeControllerTests : IDisposable
         _list.SelectedItem = 4;
         _controller.TryExecute(ActionIds.VisualToggle, null);
         _controller.End();
-        _mode = KeyMode.Insert;
+        _host.SetKeyMode(KeyMode.Insert);
 
         _source.Invalidate();
 
-        Assert.Equal(KeyMode.Insert, _mode);
+        Assert.Equal(KeyMode.Insert, _host.State.Shell.Mode);
     }
 
     [Fact]
@@ -279,11 +282,11 @@ public sealed class VisualRangeControllerTests : IDisposable
     {
         _list.SelectedItem = 4;
         _controller.TryExecute(ActionIds.VisualToggle, null);
-        _mode = KeyMode.Insert;
+        _host.SetKeyMode(KeyMode.Insert);
 
         _controller.End();
 
-        Assert.Equal(KeyMode.Insert, _mode);
+        Assert.Equal(KeyMode.Insert, _host.State.Shell.Mode);
     }
 
     private sealed class RangeSource(int count) : IListDataSource, IRangeSource
@@ -322,4 +325,6 @@ public sealed class VisualRangeControllerTests : IDisposable
         {
         }
     }
+
+    private List<string> Notices => [.. _statuses.Log.History.Select(message => message.Text)];
 }

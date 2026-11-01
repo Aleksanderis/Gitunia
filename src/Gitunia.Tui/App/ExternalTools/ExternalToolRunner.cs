@@ -1,4 +1,4 @@
-using Gitunia.Core.Status;
+using Gitunia.App.Status;
 using Gitunia.Git.ExternalTools;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Platform.ExternalTools;
@@ -12,7 +12,7 @@ namespace Gitunia.Tui.App.ExternalTools;
 public sealed class ExternalToolRunner(
     IExternalToolLauncher launcher,
     ITerminalSuspender terminal,
-    StatusChannel statuses,
+    StatusReporter statuses,
     Action<RepositoryLocation> refresh,
     Action pauseForUser,
     string gitExecutable = "git")

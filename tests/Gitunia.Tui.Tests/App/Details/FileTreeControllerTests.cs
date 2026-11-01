@@ -1,5 +1,3 @@
-using Gitunia.Core;
-using Gitunia.App;
 using Gitunia.App.Loading.Commits;
 using Gitunia.App.Loading.Trees;
 using Gitunia.App.Tabs;
@@ -28,11 +26,10 @@ public class FileTreeControllerTests : IDisposable
     private static readonly string[] Paths =
         ["README", "docs/guide.md", "src/lib/core.cs", "src/lib/util.cs", "src/main.cs"];
 
-    private readonly Dispatcher _host = new(AppState.Empty);
+    private readonly TestShell _shell = new();
     private readonly GraphEntry _entry = CommitFactory.Graph(CommitFactory.Commit(1, "root", []))[0];
     private readonly FakeCommitTreeReader _reader = new();
-    private readonly List<KeyMode> _modes = [];
-    private readonly List<string> _opened = [];
+        private readonly List<string> _opened = [];
     private readonly UiPump _pump = new(TestContext.Current.CancellationToken);
     private readonly TerminalTabSession _session;
     private readonly FileTreeController _controller;
@@ -43,10 +40,10 @@ public class FileTreeControllerTests : IDisposable
         var root = Path.Combine(Path.GetTempPath(), "gitunia-file-tree-tests");
         var gitDirectory = Path.Combine(root, ".git");
         var location = new RepositoryLocation(root, gitDirectory, gitDirectory, false, false);
-        _host.Dispatch(new OpenRepositoryCommand(location));
-        var tabId = _host.Workspace.ActiveTabId!.Value;
-        _host.Dispatch(new TabCommand(tabId, new SetBottomTabCommand(BottomTab.Files)));
-        _host.Dispatch(new TabCommand(tabId, new FocusPaneCommand(PaneKind.Detail)));
+        _shell.Host.Dispatch(new OpenRepositoryCommand(location));
+        var tabId = _shell.Host.Workspace.ActiveTabId!.Value;
+        _shell.Host.Dispatch(new TabCommand(tabId, new SetBottomTabCommand(BottomTab.Files)));
+        _shell.Host.Dispatch(new TabCommand(tabId, new FocusPaneCommand(PaneKind.Detail)));
         _reader.Add(_entry.Id, Paths);
         var debounce = TimeSpan.FromMilliseconds(1);
         var store = new CommitTreeStore(_reader, FakeCommitDetailsReader.Location, _pump.Post, debounce);
@@ -61,11 +58,10 @@ public class FileTreeControllerTests : IDisposable
                 Tree: new FileTreeSession(store)),
             GraphGlyphSet.Unicode);
         _controller = new FileTreeController(
-            _host,
+            _shell.Host,
             () => _session,
             () => _cursor,
             row => _cursor = row,
-            _modes.Add,
             Refresh,
             row =>
             {
@@ -161,7 +157,7 @@ public class FileTreeControllerTests : IDisposable
         _controller.TryExecute(ActionIds.DetailCollapse, null);
 
         Assert.Equal(0, _cursor);
-        Assert.Equal(PaneKind.Detail, _host.Workspace.ActiveTab!.View.FocusedPane);
+        Assert.Equal(PaneKind.Detail, _shell.Host.Workspace.ActiveTab!.View.FocusedPane);
         Assert.Equal(["docs/", "src/", "README"], Labels());
     }
 
@@ -177,7 +173,7 @@ public class FileTreeControllerTests : IDisposable
 
         Assert.Equal(["docs/", "src/", "  lib/", "  main.cs", "README"], afterFirst);
         Assert.Equal(afterFirst, Labels());
-        Assert.Equal(PaneKind.Detail, _host.Workspace.ActiveTab!.View.FocusedPane);
+        Assert.Equal(PaneKind.Detail, _shell.Host.Workspace.ActiveTab!.View.FocusedPane);
     }
 
     [Fact]
@@ -197,7 +193,7 @@ public class FileTreeControllerTests : IDisposable
     public async Task GivenAnotherTab_WhenTheFilesActionsRun_ThenTheyAreNotHandled(BottomTab tab)
     {
         await LoadAsync();
-        _host.Dispatch(new TabCommand(_session.TabId, new SetBottomTabCommand(tab)));
+        _shell.Host.Dispatch(new TabCommand(_session.TabId, new SetBottomTabCommand(tab)));
 
         Assert.False(_controller.TryExecute(ActionIds.DetailOpenDiff, null));
         Assert.False(_controller.TryExecute(ActionIds.DetailExpand, null));
@@ -218,7 +214,7 @@ public class FileTreeControllerTests : IDisposable
         _cursor = 2;
 
         _controller.TryExecute(ActionIds.DetailFilter, null);
-        Assert.Equal([KeyMode.Insert], _modes);
+        Assert.Equal([KeyMode.Insert], _shell.Modes);
         TypeText("LIB");
 
         Assert.Equal(["src/lib/", "  core.cs", "  util.cs"], Labels());
@@ -235,7 +231,7 @@ public class FileTreeControllerTests : IDisposable
 
         _controller.TryExecute(ActionIds.InputAccept, null);
 
-        Assert.Equal([KeyMode.Insert, KeyMode.Normal], _modes);
+        Assert.Equal([KeyMode.Insert, KeyMode.Normal], _shell.Modes);
         Assert.Equal(["src/", "  main.cs"], Labels());
         Assert.Equal("filter: main", _controller.StatusLine);
         Assert.False(_session.Tree!.IsEditingFilter);
@@ -250,7 +246,7 @@ public class FileTreeControllerTests : IDisposable
 
         _controller.TryExecute(ActionIds.Cancel, null);
 
-        Assert.Equal([KeyMode.Insert, KeyMode.Normal], _modes);
+        Assert.Equal([KeyMode.Insert, KeyMode.Normal], _shell.Modes);
         Assert.Equal(["docs/", "src/", "README"], Labels());
         Assert.Equal(string.Empty, _controller.StatusLine);
     }
@@ -301,13 +297,13 @@ public class FileTreeControllerTests : IDisposable
     public async Task GivenAFilterOnAnotherTab_WhenPressingTheFilterKey_ThenItOnlyExplains()
     {
         await LoadAsync();
-        _host.Dispatch(new TabCommand(_session.TabId, new SetBottomTabCommand(BottomTab.Changes)));
+        _shell.Host.Dispatch(new TabCommand(_session.TabId, new SetBottomTabCommand(BottomTab.Changes)));
 
         var handled = _controller.TryExecute(ActionIds.DetailFilter, null);
 
         Assert.True(handled);
         Assert.False(_session.Tree!.IsEditingFilter);
-        Assert.Empty(_modes);
+        Assert.Empty(_shell.Modes);
         Assert.Contains("Files tab", _controller.Notice, StringComparison.Ordinal);
     }
 
@@ -316,7 +312,7 @@ public class FileTreeControllerTests : IDisposable
     {
         await LoadAsync();
         _controller.TryExecute(ActionIds.DetailFilter, null);
-        _host.Dispatch(new TabCommand(_session.TabId, new SetBottomTabCommand(BottomTab.Changes)));
+        _shell.Host.Dispatch(new TabCommand(_session.TabId, new SetBottomTabCommand(BottomTab.Changes)));
 
         Assert.False(_controller.HandleTextKey(new KeyEvent("a")));
         Assert.False(_controller.TryExecute(ActionIds.InputAccept, null));
@@ -364,7 +360,7 @@ public class FileTreeControllerTests : IDisposable
     {
         var tree = _session.Tree!;
         var view = new FileTreeView(tree.Store.Current, tree.Rows, tree.Filter, SidebarGlyphs.Unicode);
-        var tab = _host.Workspace.ActiveTab!.View.BottomTab;
+        var tab = _shell.Host.Workspace.ActiveTab!.View.BottomTab;
         _session.DetailSource.Update(DetailContentBuilder.Build(_entry, CommitDetailsState.Empty, tab, view));
     }
 

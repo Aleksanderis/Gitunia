@@ -1,5 +1,4 @@
-using Gitunia.Core;
-using Gitunia.App;
+using Gitunia.App.Status;
 using Gitunia.App.Tabs;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
@@ -18,6 +17,7 @@ using Gitunia.Git.Status;
 using Gitunia.Git.Status.Models;
 using Gitunia.Git.Tests.Fixtures;
 using Gitunia.Tui.App.Rebase;
+using Gitunia.Tui.Tests.Fakes;
 using Xunit;
 
 namespace Gitunia.Tui.Tests.App.Rebase;
@@ -102,7 +102,7 @@ public class QuickRebaseActionsTests
         harness.Type("\u0015Third");
         Assert.True(harness.Actions.TryExecute(ActionIds.InputAccept, null));
 
-        Assert.Equal(KeyMode.Normal, harness.Mode);
+        Assert.Equal(KeyMode.Confirm, harness.Mode);
         Assert.Null(harness.Actions.Popup);
         var prompt = Assert.Single(harness.Prompts);
         Assert.Contains("\"Third\"", prompt.Lines[0], StringComparison.Ordinal);
@@ -277,16 +277,15 @@ public class QuickRebaseActionsTests
 
     private sealed class Harness : IDisposable
     {
-        private readonly Dispatcher _host = new(AppState.Empty);
-        private readonly List<Action> _answers = [];
+        private readonly TestShell _shell = new();
         private string? _selection;
 
         private Harness(TestRepository repository, RepositoryLocation location)
         {
             Runner = repository.CreateIsolatedRunner();
             Location = location;
-            _host.Dispatch(new OpenRepositoryCommand(location));
-            TabId = _host.Workspace.ActiveTabId!.Value;
+            _shell.Host.Dispatch(new OpenRepositoryCommand(location));
+            TabId = _shell.Host.Workspace.ActiveTabId!.Value;
             Pump = new UiPump(TestContext.Current.CancellationToken);
             var detector = new RepositoryOperationDetector();
             var interactive = new InteractiveRebaseWriter(
@@ -296,12 +295,11 @@ public class QuickRebaseActionsTests
                 new SequenceEditorCommand(["cp"]),
                 _ => null);
             Actions = new QuickRebaseActions(
-                _host,
+                _shell.Host,
                 new QuickRebaseWriter(Runner, interactive),
                 Statuses,
                 Pump.Post,
                 _ => TestContext.Current.CancellationToken,
-                Confirm,
                 _ =>
                 {
                     Refreshes++;
@@ -309,7 +307,6 @@ public class QuickRebaseActionsTests
                 },
                 () => _selection,
                 () => IsOverlayOpen,
-                mode => Mode = mode,
                 () => { },
                 Gate);
         }
@@ -320,17 +317,17 @@ public class QuickRebaseActionsTests
 
         public QuickRebaseActions Actions { get; }
 
-        public StatusChannel Statuses { get; } = new();
+        public StatusReporter Statuses => _shell.Statuses;
 
         public TabOperationGate Gate { get; } = new();
 
-        public List<ConfirmPrompt> Prompts { get; } = [];
+        public List<ConfirmPrompt> Prompts => _shell.Prompts;
 
         public int Refreshes { get; private set; }
 
         public bool IsOverlayOpen { get; set; }
 
-        public KeyMode Mode { get; private set; } = KeyMode.Normal;
+        public KeyMode Mode => _shell.Mode;
 
         public string Notice => Actions.Notice;
 
@@ -395,32 +392,16 @@ public class QuickRebaseActionsTests
                 Assert.True(Actions.HandleTextKey(key));
             }
         }
+        public void Answer() => _shell.Answer();
 
-        public void Answer()
-        {
-            var answers = _answers.ToList();
-            _answers.Clear();
-            foreach (var answer in answers)
-            {
-                answer();
-            }
-        }
 
-        public void Decline() => _answers.Clear();
+        public void Decline() => _shell.Decline();
 
         public Task WaitAsync() => Pump.RunUntilAsync(() => !Gate.IsAnyBusy && Statuses.Log.Latest is not null);
 
         public void Dispose()
         {
         }
-
-        private bool Confirm(ConfirmPrompt prompt, Action onConfirmed)
-        {
-            Prompts.Add(prompt);
-            _answers.Add(onConfirmed);
-            return true;
-        }
-
-        private void Send(RepositoryCommand command) => _host.Dispatch(new TabCommand(TabId, command));
+        private void Send(RepositoryCommand command) => _shell.Host.Dispatch(new TabCommand(TabId, command));
     }
 }

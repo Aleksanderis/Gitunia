@@ -1,3 +1,5 @@
+using Gitunia.App.Shell;
+using Gitunia.App.Status;
 using Gitunia.App;
 using Gitunia.App.Tabs;
 using Gitunia.Core.Keymap;
@@ -34,9 +36,7 @@ namespace Gitunia.Tui.App.Reset;
 /// <param name="statuses">Where the outcome is reported.</param>
 /// <param name="postToUi">Runs an action on the UI thread.</param>
 /// <param name="cancellationOf">The token that ends the work of a tab (the tab was closed).</param>
-/// <param name="confirm">Shows the confirm dialog and runs the callback on <c>y</c>; false when it cannot show.</param>
 /// <param name="refresh">Reads a tab again (refs, graph, status); false when it cannot.</param>
-/// <param name="setMode">Switches the keymap mode (Insert while the mode prompt is open).</param>
 /// <param name="redraw">Redraws the status bar.</param>
 /// <param name="selection">What is selected now: a sidebar row or the graph commit.</param>
 /// <param name="gate">The one-operation-per-tab gate, shared with staging, discard and stash.</param>
@@ -45,12 +45,10 @@ public sealed class ResetActions(
     IResetWriter writer,
     IStatusReader statusReader,
     IRepositoryOperationDetector operations,
-    StatusChannel statuses,
+    StatusReporter statuses,
     Action<Action> postToUi,
     Func<TabId, CancellationToken> cancellationOf,
-    Func<ConfirmPrompt, Action, bool> confirm,
     Func<TabId, bool> refresh,
-    Action<KeyMode> setMode,
     Action redraw,
     Func<BranchSelection> selection,
     TabOperationGate gate) : IPromptHandler
@@ -168,7 +166,7 @@ public sealed class ResetActions(
         _targetHash = commitHash;
         _branchName = tab.Head!.BranchName!;
         _isOpen = true;
-        setMode(KeyMode.Insert);
+        host.SetKeyMode(KeyMode.Insert);
         return string.Empty;
     }
 
@@ -229,7 +227,7 @@ public sealed class ResetActions(
     private void Close()
     {
         _isOpen = false;
-        setMode(KeyMode.Normal);
+        host.SetKeyMode(KeyMode.Normal);
     }
 
     // Why a reset must not start in this tab, or null. Reads the operation files, which is a few file checks.
@@ -319,7 +317,7 @@ public sealed class ResetActions(
         {
             Start(tab, target);
         }
-        else if (!confirm(prompt, () => Start(tab.Id, target)))
+        else if (!host.Confirm(prompt, () => Start(tab.Id, target)))
         {
             statuses.Warning(TooSmallNotice);
         }

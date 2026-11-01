@@ -1,3 +1,4 @@
+using Gitunia.App.Status;
 using Gitunia.Core.Config;
 using Gitunia.Core.Config.Models;
 using Gitunia.Core.Keymap;
@@ -11,6 +12,7 @@ using Gitunia.Tui.App.Settings;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Overlays;
 using Gitunia.Tui.Views;
+using Gitunia.Tui.Tests.Fakes;
 using Xunit;
 
 namespace Gitunia.Tui.Tests.App.Settings;
@@ -754,6 +756,7 @@ public sealed class SettingsControllerTests : IDisposable
     private sealed class Harness : IDisposable
     {
         private readonly UiPump _pump = new(TestContext.Current.CancellationToken);
+        private readonly TestShell _shell = new();
         private int _pending;
 
         public Harness()
@@ -767,7 +770,7 @@ public sealed class SettingsControllerTests : IDisposable
                 Post,
                 () => Size,
                 GraphGlyphSet.Unicode,
-                mode => Mode = mode,
+                _shell.Host,
                 () => { },
                 Applied.Add,
                 Themes.Add,
@@ -786,13 +789,13 @@ public sealed class SettingsControllerTests : IDisposable
 
         public SettingsController Settings { get; }
 
-        public StatusChannel Statuses { get; } = new();
+        public StatusReporter Statuses => _shell.Statuses;
 
         public List<ConfigOptions> Applied { get; } = [];
 
         public List<ThemeChoice> Themes { get; } = [];
 
-        public KeyMode Mode { get; private set; } = KeyMode.Normal;
+        public KeyMode Mode => _shell.Mode;
 
         public ScreenSize Size { get; set; } = new(100, 30);
 

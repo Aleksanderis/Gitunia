@@ -12,8 +12,12 @@ namespace Gitunia.App;
 /// <param name="initial">The state to start from.</param>
 /// <param name="ui">Moves a posted command to the UI thread; null runs it at once (tests, single-threaded
 /// callers).</param>
-public sealed class Dispatcher(AppState initial, IUiInvoker? ui = null) : IDispatcher
+/// <param name="clock">The time source commands are stamped with (the reducers read no clock).</param>
+public sealed class Dispatcher(AppState initial, IUiInvoker? ui = null, TimeProvider? clock = null) : IDispatcher
 {
+    /// <summary>The clock for the time a command carries.</summary>
+    public TimeProvider Clock { get; } = clock ?? TimeProvider.System;
+
     public event Action<AppEffect>? EffectRaised;
 
     /// <summary>Raised after every command, once the new state is in place.</summary>
@@ -27,7 +31,7 @@ public sealed class Dispatcher(AppState initial, IUiInvoker? ui = null) : IDispa
     /// load of every restored tab.</summary>
     public void Restore(WorkspaceUpdate update)
     {
-        State = new AppState(update.Workspace);
+        State = State with { Workspace = update.Workspace };
         foreach (var effect in update.Effects)
         {
             EffectRaised?.Invoke(effect);

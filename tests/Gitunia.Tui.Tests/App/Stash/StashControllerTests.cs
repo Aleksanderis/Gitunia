@@ -1,5 +1,4 @@
-using Gitunia.Core;
-using Gitunia.App;
+using Gitunia.App.Status;
 using Gitunia.App.Tabs;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
@@ -330,16 +329,15 @@ public class StashControllerTests
 
     private sealed class Harness : IDisposable
     {
-        private readonly Dispatcher _host = new(AppState.Empty);
-        private readonly List<Action> _answers = [];
+        private readonly TestShell _shell = new();
 
         public Harness()
         {
             var root = Path.Combine(Path.GetTempPath(), "gitunia-stash-controller-tests");
             var gitDirectory = Path.Combine(root, ".git");
             var location = new RepositoryLocation(root, gitDirectory, gitDirectory, false, false);
-            _host.Dispatch(new OpenRepositoryCommand(location));
-            TabId = _host.Workspace.ActiveTabId!.Value;
+            _shell.Host.Dispatch(new OpenRepositoryCommand(location));
+            TabId = _shell.Host.Workspace.ActiveTabId!.Value;
             Entry = new StashEntry(0, "stash@{0}", "abc123", "On main: \"quoted\" work");
             Send(new StashesLoadedCommand([Entry]));
             Send(new FocusPaneCommand(PaneKind.Sidebar));
@@ -356,7 +354,7 @@ public class StashControllerTests
                 null);
             Pump = new UiPump(TestContext.Current.CancellationToken);
             Controller = new StashController(
-                _host,
+                _shell.Host,
                 Writer,
                 Statuses,
                 Pump.Post,
@@ -366,10 +364,8 @@ public class StashControllerTests
                     return true;
                 },
                 _ => TestContext.Current.CancellationToken,
-                Confirm,
                 _ => Row,
                 _ => FileTarget,
-                mode => Mode = mode,
                 () => { },
                 Gate);
         }
@@ -382,13 +378,13 @@ public class StashControllerTests
 
         public FakeStashWriter Writer { get; } = new();
 
-        public StatusChannel Statuses { get; } = new();
+        public StatusReporter Statuses => _shell.Statuses;
 
         public TabOperationGate Gate { get; } = new();
 
         public StashController Controller { get; }
 
-        public List<ConfirmPrompt> Prompts { get; } = [];
+        public List<ConfirmPrompt> Prompts => _shell.Prompts;
 
         public SidebarRow? Row { get; init; }
 
@@ -398,7 +394,7 @@ public class StashControllerTests
                 new CommitFileChange("src/a.txt", null, FileChangeKind.Modified, null),
                 StashFileOrigin.Tracked));
 
-        public KeyMode Mode { get; private set; } = KeyMode.Normal;
+        public KeyMode Mode => _shell.Mode;
 
         public int Refreshes { get; private set; }
 
@@ -415,29 +411,14 @@ public class StashControllerTests
         public void Focus(PaneKind pane) => Send(new FocusPaneCommand(pane));
 
         /// <summary>Presses <c>y</c> in the open dialog.</summary>
-        public void Answer()
-        {
-            foreach (var answer in _answers)
-            {
-                answer();
-            }
+        public void Answer() => _shell.Answer();
 
-            _answers.Clear();
-        }
 
         public Task WaitAsync() => Pump.RunUntilAsync(() => !Gate.IsAnyBusy && Statuses.Log.Latest is not null);
 
         public void Dispose()
         {
         }
-
-        private bool Confirm(ConfirmPrompt prompt, Action onConfirmed)
-        {
-            Prompts.Add(prompt);
-            _answers.Add(onConfirmed);
-            return true;
-        }
-
-        private void Send(RepositoryCommand command) => _host.Dispatch(new TabCommand(TabId, command));
+        private void Send(RepositoryCommand command) => _shell.Host.Dispatch(new TabCommand(TabId, command));
     }
 }

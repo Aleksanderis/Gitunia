@@ -1,5 +1,4 @@
-using Gitunia.Core;
-using Gitunia.App;
+using Gitunia.App.Status;
 using Gitunia.App.Loading.Commits;
 using Gitunia.App.Tabs;
 using Gitunia.Core.Keymap;
@@ -298,7 +297,7 @@ public class PushActionsTests
         var prompt = Assert.Single(harness.Prompts);
         Assert.Contains("topic", prompt.Lines[0], StringComparison.Ordinal);
         Assert.Contains("origin", prompt.Lines[0], StringComparison.Ordinal);
-        Assert.Equal(KeyMode.Normal, harness.Mode);
+        Assert.Equal(KeyMode.Confirm, harness.Mode);
     }
 
     [Theory]
@@ -319,7 +318,7 @@ public class PushActionsTests
 
         var prompt = Assert.Single(harness.Prompts);
         Assert.Contains("topic", prompt.Lines[0], StringComparison.Ordinal);
-        Assert.Equal(KeyMode.Normal, harness.Mode);
+        Assert.Equal(KeyMode.Confirm, harness.Mode);
     }
 
     [Fact]
@@ -359,7 +358,7 @@ public class PushActionsTests
         Assert.Contains($"Runs: git {expected}", retry.Consequence, StringComparison.Ordinal);
         Assert.Empty(harness.TerminalCalls);
 
-        harness.Answer(0);
+        harness.Answer();
 
         Assert.Equal([$"remote branch delete|{expected}"], harness.TerminalCalls);
     }
@@ -424,15 +423,14 @@ public class PushActionsTests
 
     private sealed class Harness : IDisposable
     {
-        private readonly Dispatcher _host = new(AppState.Empty);
-        private readonly List<Action> _answers = [];
+        private readonly TestShell _shell = new();
         private readonly List<TerminalTabSession> _sessions = [];
 
         private Harness(IRemoteWriter writer)
         {
             Pump = new UiPump(TestContext.Current.CancellationToken);
             Remote = new RemoteActions(
-                _host,
+                _shell.Host,
                 TestGit.Services.Remote,
                 Statuses,
                 Pump.Post,
@@ -440,11 +438,10 @@ public class PushActionsTests
                 CountRefresh,
                 () => { },
                 new TabOperationGate(),
-                Confirm,
                 () => false,
                 RunInTerminal);
             Push = new PushActions(
-                _host,
+                _shell.Host,
                 Remote,
                 writer,
                 TestGit.Services.Tags.ListRemotesAsync,
@@ -453,9 +450,7 @@ public class PushActionsTests
                 Pump.Post,
                 _ => TestContext.Current.CancellationToken,
                 new TabOperationGate(),
-                Confirm,
                 CountRefresh,
-                mode => Mode = mode,
                 () => { },
                 () => Selection);
             Remote.PushRejected = Push.OfferForce;
@@ -468,13 +463,13 @@ public class PushActionsTests
 
         public PushActions Push { get; }
 
-        public StatusChannel Statuses { get; } = new();
+        public StatusReporter Statuses => _shell.Statuses;
 
-        public List<ConfirmPrompt> Prompts { get; } = [];
+        public List<ConfirmPrompt> Prompts => _shell.Prompts;
 
         public int Refreshes { get; private set; }
 
-        public KeyMode Mode { get; private set; } = KeyMode.Normal;
+        public KeyMode Mode => _shell.Mode;
 
         private UiPump Pump { get; }
 
@@ -506,23 +501,12 @@ public class PushActionsTests
             Answer();
         }
 
-        /// <summary>Presses <c>y</c> of the pending dialog number <paramref name="index"/> (the first is 0).</summary>
-        public void Answer(int index) => _answers[index]();
-
         /// <summary>Presses <c>y</c> in the open dialog.</summary>
-        public void Answer()
-        {
-            var answers = _answers.ToList();
-            _answers.Clear();
-            foreach (var answer in answers)
-            {
-                answer();
-            }
-        }
+        public void Answer() => _shell.Answer();
 
         /// <summary>Waits until a remote operation reported and finished.</summary>
         public Task FinishAsync() => PumpUntilAsync(
-            () => Statuses.Log.Latest is not null && !Remote.IsRunning(_host.Workspace.ActiveTabId!.Value));
+            () => Statuses.Log.Latest is not null && !Remote.IsRunning(_shell.Host.Workspace.ActiveTabId!.Value));
 
         public Task PumpUntilAsync(Func<bool> condition) => Pump.RunUntilAsync(condition);
 
@@ -551,8 +535,8 @@ public class PushActionsTests
             var location = await TestGit.Services.Discovery.DiscoverAsync(
                 repository.WorkingTreePath,
                 TestContext.Current.CancellationToken);
-            _host.Dispatch(new OpenRepositoryCommand(location));
-            var tabId = _host.Workspace.ActiveTabId!.Value;
+            _shell.Host.Dispatch(new OpenRepositoryCommand(location));
+            var tabId = _shell.Host.Workspace.ActiveTabId!.Value;
             var session = new TerminalTabSession(
                 new TabSessionParts(
                     tabId,
@@ -562,17 +546,10 @@ public class PushActionsTests
             await TestGit.Services.RepositoryLoader.RunAsync(
                 location,
                 session,
-                _host,
-                new StatusChannel(),
+                _shell.Host,
+                new StatusReporter(_shell.Host),
                 InlineUi.Post,
                 session.Cancellation.Token);
-        }
-
-        private bool Confirm(ConfirmPrompt prompt, Action onYes)
-        {
-            Prompts.Add(prompt);
-            _answers.Add(onYes);
-            return true;
         }
     }
 }

@@ -1,9 +1,12 @@
 using Gitunia.App.Loading.Commits;
 using Gitunia.App.Loading.Trees;
+using Gitunia.App.Status;
 using Gitunia.App.Tabs;
+using Gitunia.App;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces.Tabs;
+using Gitunia.Core;
 using Gitunia.Git;
 using Gitunia.Git.Tests.Fixtures;
 using Gitunia.Tui.App;
@@ -24,7 +27,7 @@ public class StatusActionHandlerTests : IDisposable
     [Fact]
     public void GivenAMessage_WhenDismissing_ThenItIsHidden()
     {
-        var statuses = new StatusChannel();
+        var statuses = new StatusReporter(new Dispatcher(AppState.Empty));
         statuses.Error("boom");
         var handler = new StatusActionHandler(statuses, () => null);
 
@@ -38,7 +41,7 @@ public class StatusActionHandlerTests : IDisposable
     [Fact]
     public void GivenAMessage_WhenEscapeFallsThrough_ThenItIsDismissed()
     {
-        var statuses = new StatusChannel();
+        var statuses = new StatusReporter(new Dispatcher(AppState.Empty));
         statuses.Warning("careful");
         var handler = new StatusActionHandler(statuses, () => null);
 
@@ -51,11 +54,12 @@ public class StatusActionHandlerTests : IDisposable
     public void GivenAnExpiredMessage_WhenEscapeFallsThrough_ThenNothingIsDismissedOrRedrawn()
     {
         var clock = new ManualTimeProvider();
-        var statuses = new StatusChannel(clock);
+        var host = new Dispatcher(AppState.Empty, clock: clock);
+        var statuses = new StatusReporter(host);
         statuses.Post("done");
         clock.Advance(StatusLifetime.Of(StatusSeverity.Info));
         var changes = 0;
-        statuses.Changed += () => changes++;
+        host.Changed += () => changes++;
         var handler = new StatusActionHandler(statuses, () => null);
 
         handler.TryHandleFallback(ActionIds.Cancel);
@@ -67,7 +71,7 @@ public class StatusActionHandlerTests : IDisposable
     public void GivenAShowingMessage_WhenEscapeFallsThrough_ThenItIsDismissedBeforeItExpires()
     {
         var clock = new ManualTimeProvider();
-        var statuses = new StatusChannel(clock);
+        var statuses = new StatusReporter(new Dispatcher(AppState.Empty, clock: clock));
         statuses.Error("boom");
         clock.Advance(TimeSpan.FromSeconds(10));
         var handler = new StatusActionHandler(statuses, () => null);
@@ -80,7 +84,7 @@ public class StatusActionHandlerTests : IDisposable
     [Fact]
     public void GivenEscape_WhenHandlingBeforeThePanes_ThenItIsNotClaimed()
     {
-        var statuses = new StatusChannel();
+        var statuses = new StatusReporter(new Dispatcher(AppState.Empty));
         statuses.Warning("careful");
         var handler = new StatusActionHandler(statuses, () => null);
 
@@ -92,7 +96,7 @@ public class StatusActionHandlerTests : IDisposable
     [Fact]
     public void GivenAnotherAction_WhenFallingThrough_ThenItIsNotClaimed()
     {
-        var statuses = new StatusChannel();
+        var statuses = new StatusReporter(new Dispatcher(AppState.Empty));
         statuses.Warning("careful");
         var handler = new StatusActionHandler(statuses, () => null);
 
@@ -104,7 +108,7 @@ public class StatusActionHandlerTests : IDisposable
     [Fact]
     public void GivenAnUnrelatedAction_WhenHandling_ThenItIsNotClaimed()
     {
-        var handler = new StatusActionHandler(new StatusChannel(), () => null);
+        var handler = new StatusActionHandler(new StatusReporter(new Dispatcher(AppState.Empty)), () => null);
 
         Assert.False(handler.TryHandle(ActionIds.RepositoryRefresh));
     }
@@ -112,7 +116,7 @@ public class StatusActionHandlerTests : IDisposable
     [Fact]
     public void GivenNoSession_WhenRetrying_ThenNothingToRetry()
     {
-        var handler = new StatusActionHandler(new StatusChannel(), () => null);
+        var handler = new StatusActionHandler(new StatusReporter(new Dispatcher(AppState.Empty)), () => null);
 
         Assert.True(handler.TryHandle(ActionIds.DetailRetry));
 
@@ -125,7 +129,7 @@ public class StatusActionHandlerTests : IDisposable
         using var testRepository = TestRepository.Create().Commit("one", new TestFile("a.txt", "1"));
         var pump = new UiPump(Token);
         _session = await CreateSessionAsync(pump, testRepository);
-        var handler = new StatusActionHandler(new StatusChannel(), () => _session);
+        var handler = new StatusActionHandler(new StatusReporter(new Dispatcher(AppState.Empty)), () => _session);
 
         handler.TryHandle(ActionIds.DetailRetry);
 
@@ -141,7 +145,7 @@ public class StatusActionHandlerTests : IDisposable
         Assert.True(ObjectId.TryParse(new string('1', 40), out var missing));
         _session.Details.Select(missing);
         await pump.RunUntilAsync(() => _session.Details.Current.Status == CommitDetailsStatus.Failed);
-        var handler = new StatusActionHandler(new StatusChannel(), () => _session);
+        var handler = new StatusActionHandler(new StatusReporter(new Dispatcher(AppState.Empty)), () => _session);
 
         handler.TryHandle(ActionIds.DetailRetry);
 
@@ -152,7 +156,7 @@ public class StatusActionHandlerTests : IDisposable
     [Fact]
     public void GivenNoSession_WhenSwitchingTheMergeParent_ThenItSaysThereIsNoMerge()
     {
-        var handler = new StatusActionHandler(new StatusChannel(), () => null);
+        var handler = new StatusActionHandler(new StatusReporter(new Dispatcher(AppState.Empty)), () => null);
 
         Assert.True(handler.TryHandle(ActionIds.DiffMergeParent));
 
@@ -174,7 +178,7 @@ public class StatusActionHandlerTests : IDisposable
         Assert.True(ObjectId.TryParse(testRepository.Git("rev-parse", "HEAD").Trim(), out var merge));
         _session.Details.Select(merge);
         await pump.RunUntilAsync(() => _session.Details.Current.Status == CommitDetailsStatus.Loaded);
-        var handler = new StatusActionHandler(new StatusChannel(), () => _session);
+        var handler = new StatusActionHandler(new StatusReporter(new Dispatcher(AppState.Empty)), () => _session);
 
         handler.TryHandle(ActionIds.DiffMergeParent);
         await pump.RunUntilAsync(() => _session.Details.Current.Details!.ParentIndex == 1);
@@ -203,7 +207,7 @@ public class StatusActionHandlerTests : IDisposable
         var missing = FakeCommitDetailsReader.MissingId();
         store.Select(missing);
         await pump.RunUntilAsync(() => store.Current.Status == CommitDetailsStatus.Failed);
-        var handler = new StatusActionHandler(new StatusChannel(), () => _session);
+        var handler = new StatusActionHandler(new StatusReporter(new Dispatcher(AppState.Empty)), () => _session);
 
         handler.TryHandle(ActionIds.DetailRetry);
 

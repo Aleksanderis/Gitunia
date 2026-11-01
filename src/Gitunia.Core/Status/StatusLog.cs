@@ -2,7 +2,7 @@ namespace Gitunia.Core.Status;
 
 /// <summary>
 /// The status messages of the window as an immutable value: a bounded history plus which message is still showing in
-/// the status bar. Transitions return a new log; <see cref="StatusChannel"/> holds the current one.
+/// the status bar. Transitions return a new log; the shell state holds the current one.
 /// </summary>
 public sealed record StatusLog
 {

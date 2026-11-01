@@ -1,5 +1,7 @@
 using System.Globalization;
 using Gitunia.App.Loading.Trees;
+using Gitunia.App.Shell;
+using Gitunia.App;
 using Gitunia.Core.Diff;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
@@ -24,7 +26,7 @@ namespace Gitunia.Tui.App.Panes;
 public sealed class DiffListActions
 {
     private readonly ListView _diffList;
-    private readonly Action<KeyMode> _setMode;
+    private readonly Dispatcher _host;
     private readonly ClipboardCopier _clipboard;
     private readonly Func<IDiffViewState?> _active;
     private readonly string _sideBySideHint;
@@ -32,21 +34,21 @@ public sealed class DiffListActions
     private bool _isSyncing;
 
     /// <param name="diffList">The list of the diff pane.</param>
-    /// <param name="setMode">Switches the input mode (Insert while the search box is open).</param>
+    /// <param name="host">Switches the input mode (Insert while the search box is open).</param>
     /// <param name="clipboard">Copies diff text.</param>
     /// <param name="active">The active tab's diff, null while it has none.</param>
     /// <param name="sideBySideHint">Appended to the notice when side by side is on but the pane is too narrow.</param>
     /// <param name="anchorName">What the next and previous anchors are called in notices: "hunk", or "change" in the Changes view diff.</param>
     public DiffListActions(
         ListView diffList,
-        Action<KeyMode> setMode,
+        Dispatcher host,
         ClipboardCopier clipboard,
         Func<IDiffViewState?> active,
         string sideBySideHint,
         string anchorName = "hunk")
     {
         _diffList = diffList;
-        _setMode = setMode;
+        _host = host;
         _clipboard = clipboard;
         _active = active;
         _sideBySideHint = sideBySideHint;
@@ -157,7 +159,7 @@ public sealed class DiffListActions
         else if (action == ActionIds.DiffSearchOpen)
         {
             ApplySearch(diff, DiffSearch.Open());
-            _setMode(KeyMode.Insert);
+            _host.SetKeyMode(KeyMode.Insert);
         }
         else if (action == ActionIds.DiffSearchNext || action == ActionIds.DiffSearchPrevious)
         {
@@ -204,7 +206,7 @@ public sealed class DiffListActions
             return false;
         }
 
-        _setMode(KeyMode.Normal);
+        _host.SetKeyMode(KeyMode.Normal);
         return true;
     }
 
@@ -236,7 +238,7 @@ public sealed class DiffListActions
 
         diff.Search = DiffSearchState.Idle;
         diff.Source.Highlight = null;
-        _setMode(KeyMode.Normal);
+        _host.SetKeyMode(KeyMode.Normal);
         _diffList.SetNeedsDraw();
     }
 
@@ -247,7 +249,7 @@ public sealed class DiffListActions
     {
         if (diff.Search.Phase == DiffSearchPhase.Editing)
         {
-            _setMode(KeyMode.Normal);
+            _host.SetKeyMode(KeyMode.Normal);
         }
 
         diff.Search = DiffSearchState.Idle;

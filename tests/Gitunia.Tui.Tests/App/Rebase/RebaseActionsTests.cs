@@ -1,5 +1,4 @@
-using Gitunia.Core;
-using Gitunia.App;
+using Gitunia.App.Status;
 using Gitunia.App.Tabs;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Overlays;
@@ -21,6 +20,7 @@ using Gitunia.Git.Status.Models;
 using Gitunia.Git.Tests.Fixtures;
 using Gitunia.Tui.App.Branches;
 using Gitunia.Tui.App.Rebase;
+using Gitunia.Tui.Tests.Fakes;
 using Xunit;
 
 namespace Gitunia.Tui.Tests.App.Rebase;
@@ -433,8 +433,7 @@ public class RebaseActionsTests
 
     private sealed class Harness : IDisposable
     {
-        private readonly Dispatcher _host = new(AppState.Empty);
-        private readonly List<Action> _answers = [];
+        private readonly TestShell _shell = new();
         private BranchSelection _selection = new(null, null, null);
         private readonly TabId _tabId;
 
@@ -442,17 +441,16 @@ public class RebaseActionsTests
         {
             Runner = repository.CreateIsolatedRunner();
             Location = location;
-            _host.Dispatch(new OpenRepositoryCommand(location));
-            _tabId = _host.Workspace.ActiveTabId!.Value;
+            _shell.Host.Dispatch(new OpenRepositoryCommand(location));
+            _tabId = _shell.Host.Workspace.ActiveTabId!.Value;
             Pump = new UiPump(TestContext.Current.CancellationToken);
             var writer = new RebaseWriter(new OperationRunner(Runner, new RepositoryOperationDetector()), Runner);
             Actions = new RebaseActions(
-                _host,
+                _shell.Host,
                 writer,
                 Statuses,
                 Pump.Post,
                 _ => TestContext.Current.CancellationToken,
-                Confirm,
                 _ =>
                 {
                     Refreshes++;
@@ -469,15 +467,19 @@ public class RebaseActionsTests
 
         public RebaseActions Actions { get; }
 
-        public StatusChannel Statuses { get; } = new();
+        public StatusReporter Statuses => _shell.Statuses;
 
         public TabOperationGate Gate { get; } = new();
 
-        public List<ConfirmPrompt> Prompts { get; } = [];
+        public List<ConfirmPrompt> Prompts => _shell.Prompts;
 
         public int Refreshes { get; private set; }
 
-        public bool CanShowDialog { get; set; } = true;
+        public bool CanShowDialog
+        {
+            get => _shell.CanShowDialog;
+            set => _shell.CanShowDialog = value;
+        }
 
         public bool IsOverlayOpen { get; set; }
 
@@ -485,7 +487,7 @@ public class RebaseActionsTests
 
         public TabId TabId => _tabId;
 
-        public RepositoryState Tab => _host.Workspace.FindTab(_tabId)!;
+        public RepositoryState Tab => _shell.Host.Workspace.FindTab(_tabId)!;
 
         private UiPump Pump { get; }
 
@@ -532,37 +534,16 @@ public class RebaseActionsTests
                 await Pump.RunUntilAsync(() => Prompts.Count > 0 || Statuses.Log.Latest is not null);
             }
         }
+        public void Answer() => _shell.Answer();
 
-        public void Answer()
-        {
-            var answers = _answers.ToList();
-            _answers.Clear();
-            foreach (var answer in answers)
-            {
-                answer();
-            }
-        }
 
-        public void Decline() => _answers.Clear();
+        public void Decline() => _shell.Decline();
 
         public Task WaitAsync() => Pump.RunUntilAsync(() => !Gate.IsAnyBusy && Statuses.Log.Latest is not null);
 
         public void Dispose()
         {
         }
-
-        private bool Confirm(ConfirmPrompt prompt, Action onConfirmed)
-        {
-            if (!CanShowDialog)
-            {
-                return false;
-            }
-
-            Prompts.Add(prompt);
-            _answers.Add(onConfirmed);
-            return true;
-        }
-
-        private void Send(RepositoryCommand command) => _host.Dispatch(new TabCommand(_tabId, command));
+        private void Send(RepositoryCommand command) => _shell.Host.Dispatch(new TabCommand(_tabId, command));
     }
 }

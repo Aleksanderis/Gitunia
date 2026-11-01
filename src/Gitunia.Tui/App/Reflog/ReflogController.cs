@@ -1,3 +1,5 @@
+using Gitunia.App.Shell;
+using Gitunia.App.Status;
 using Gitunia.App;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
@@ -6,7 +8,6 @@ using Gitunia.Core.Mouse;
 using Gitunia.Core.Reflog;
 using Gitunia.Core.Search;
 using Gitunia.Core.Sidebar;
-using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Reflog;
 using Gitunia.Git.Reflog.Models;
@@ -39,21 +40,19 @@ namespace Gitunia.Tui.App.Reflog;
 /// <param name="selection">What the sidebar cursor is on, to pick the branch whose reflog opens.</param>
 /// <param name="screenSize">The current terminal size.</param>
 /// <param name="glyphs">The characters the list is drawn with.</param>
-/// <param name="setMode">Switches the keymap mode (Insert while the search box or the ref picker takes text).</param>
 /// <param name="redraw">Redraws the overlay layer and the status bar.</param>
 public sealed class ReflogController(
     Dispatcher host,
     IReflogReader reader,
     ResetActions reset,
     BranchActions branches,
-    StatusChannel statuses,
+    StatusReporter statuses,
     Action<Action> postToUi,
     Func<TabId, CancellationToken> cancellationOf,
     Func<TabId, string, string> selectCommit,
     Func<BranchSelection> selection,
     Func<ScreenSize> screenSize,
     GraphGlyphSet glyphs,
-    Action<KeyMode> setMode,
     Action redraw)
 {
     /// <summary>Entries read per open; older ones are not listed.</summary>
@@ -127,7 +126,7 @@ public sealed class ReflogController(
         else if (action == ActionIds.SearchOpen)
         {
             State = state.OpenSearch();
-            setMode(KeyMode.Insert);
+            host.SetKeyMode(KeyMode.Insert);
             redraw();
         }
         else if (action == ActionIds.SearchNext || action == ActionIds.SearchPrevious)
@@ -251,7 +250,7 @@ public sealed class ReflogController(
         _generation++;
         if (State is { IsEditingSearch: true } or { Picker: not null })
         {
-            setMode(KeyMode.Normal);
+            host.SetKeyMode(KeyMode.Normal);
         }
 
         State = null;
@@ -267,7 +266,7 @@ public sealed class ReflogController(
         else if (action == ActionIds.Cancel || action == ActionIds.NavigateBack)
         {
             State = state with { Picker = null };
-            setMode(KeyMode.Normal);
+            host.SetKeyMode(KeyMode.Normal);
             redraw();
         }
         else if (action == ActionIds.AppQuit)
@@ -281,13 +280,13 @@ public sealed class ReflogController(
         if (action == ActionIds.InputAccept)
         {
             State = state.AcceptSearch();
-            setMode(KeyMode.Normal);
+            host.SetKeyMode(KeyMode.Normal);
             redraw();
         }
         else if (action == ActionIds.Cancel || action == ActionIds.NavigateBack)
         {
             State = state.ClearSearch();
-            setMode(KeyMode.Normal);
+            host.SetKeyMode(KeyMode.Normal);
             redraw();
         }
         else if (action == ActionIds.AppQuit)
@@ -319,7 +318,7 @@ public sealed class ReflogController(
         }
 
         State = state with { Picker = new ReflogRefPicker(names) };
-        setMode(KeyMode.Insert);
+        host.SetKeyMode(KeyMode.Insert);
         redraw();
     }
 
@@ -336,7 +335,7 @@ public sealed class ReflogController(
             return;
         }
 
-        setMode(KeyMode.Normal);
+        host.SetKeyMode(KeyMode.Normal);
         State = state with { Picker = null };
         var isHead = name == HeadName;
         Read(state.TabId, isHead ? HeadName : $"{GitRefPrefixes.Heads}{name}", name, null);

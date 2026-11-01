@@ -1,3 +1,4 @@
+using Gitunia.App.Status;
 using Gitunia.Core;
 using Gitunia.App;
 using Gitunia.App.Loading.Commits;
@@ -5,7 +6,6 @@ using Gitunia.App.Tabs;
 using Gitunia.Core.Clipboard;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Sidebar;
-using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Repositories;
@@ -43,8 +43,7 @@ public sealed class SidebarHarness : IDisposable
             () => SidebarVisible,
             () => DetailVisible,
             item => SelectedGraphItem = item,
-            mode => Mode = mode,
-            new ClipboardCopier(new ClipboardWriter(Clipboard, new Osc52Options(Osc52Mode.Direct, 100_000)), new StatusChannel()));
+            new ClipboardCopier(new ClipboardWriter(Clipboard, new Osc52Options(Osc52Mode.Direct, 100_000)), new StatusReporter(new Dispatcher(AppState.Empty))));
         host.Changed += () => source.Update(host.Workspace.ActiveTab);
         source.Update(host.Workspace.ActiveTab);
     }
@@ -67,7 +66,7 @@ public sealed class SidebarHarness : IDisposable
 
     public int? SelectedGraphItem { get; private set; }
 
-    public KeyMode Mode { get; private set; } = KeyMode.Normal;
+    public KeyMode Mode => Host.State.Shell.Mode;
 
     public RepositoryState Tab => Host.Workspace.ActiveTab!;
 
@@ -84,7 +83,7 @@ public sealed class SidebarHarness : IDisposable
             GraphGlyphSet.Unicode);
 
         // Posting runs the action inline (serialized, like the UI thread would).
-        await TestGit.Services.RepositoryLoader.RunAsync(location, session, host, new StatusChannel(), InlineUi.Post, session.Cancellation.Token);
+        await TestGit.Services.RepositoryLoader.RunAsync(location, session, host, new StatusReporter(new Dispatcher(AppState.Empty)), InlineUi.Post, session.Cancellation.Token);
         return new SidebarHarness(host, session, new SidebarListSource(GraphGlyphSet.Unicode), location);
     }
 

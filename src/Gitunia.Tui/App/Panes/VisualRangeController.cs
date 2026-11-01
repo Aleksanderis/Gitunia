@@ -1,3 +1,6 @@
+using Gitunia.App.Shell;
+using Gitunia.App;
+using Gitunia.App.Status;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Lists;
@@ -15,17 +18,15 @@ namespace Gitunia.Tui.App.Panes;
 /// </summary>
 /// <param name="focusedPane">The pane that has focus.</param>
 /// <param name="listOf">The list of a pane.</param>
-/// <param name="currentMode">The input mode now.</param>
-/// <param name="setMode">Switches the input mode (Visual while a range is active).</param>
+/// <param name="host">Holds the input mode, which this controller switches (Visual while a range is active).</param>
 /// <param name="copyRange">Copies the rows of a range, the range ends only when it was copied; null disables <c>y</c>.</param>
-/// <param name="postNotice">Shows a status message when the pane ends the range by itself (new rows); null shows none.</param>
+/// <param name="statuses">Where the pane tells that it ended the range by itself (new rows); null tells nothing.</param>
 public sealed class VisualRangeController(
     Func<PaneKind> focusedPane,
     Func<PaneKind, ListView> listOf,
-    Func<KeyMode> currentMode,
-    Action<KeyMode> setMode,
+    Dispatcher host,
     Func<PaneKind, RowRange, RangeCopyResult>? copyRange = null,
-    Action<string>? postNotice = null)
+    StatusReporter? statuses = null)
 {
     /// <summary>The status message when the pane ended the range (new rows, or a wrap, width or view change).</summary>
     public const string InvalidatedNotice = "Selection ended: the rows changed";
@@ -128,21 +129,21 @@ public sealed class VisualRangeController(
         IsActive = false;
         Range = null;
         listOf(_pane).SetNeedsDraw();
-        if (currentMode() == KeyMode.Visual)
+        if (host.State.Shell.Mode == KeyMode.Visual)
         {
-            setMode(KeyMode.Normal);
+            host.SetKeyMode(KeyMode.Normal);
         }
     }
 
     private void OnInvalidated()
     {
         End();
-        postNotice?.Invoke(InvalidatedNotice);
+        statuses?.Post(InvalidatedNotice);
     }
 
     private void Begin()
     {
-        if (currentMode() != KeyMode.Normal)
+        if (host.State.Shell.Mode != KeyMode.Normal)
         {
             // A prompt or another modal state owns the keys: a range would strand it.
             return;
@@ -167,7 +168,7 @@ public sealed class VisualRangeController(
         rangeSource.RangeInvalidated += OnInvalidated;
         IsActive = true;
         Show(list, new RowRange(item, item));
-        setMode(KeyMode.Visual);
+        host.SetKeyMode(KeyMode.Visual);
     }
 
     private void Show(ListView list, RowRange range)

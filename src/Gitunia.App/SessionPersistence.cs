@@ -1,5 +1,5 @@
+using Gitunia.App.Status;
 using Gitunia.Core.Persistence;
-using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Tabs;
 
@@ -14,7 +14,7 @@ public sealed class SessionPersistence : IDisposable
     private readonly SessionStore _store;
     private readonly Dispatcher _host;
     private readonly TimeSpan _debounce;
-    private readonly StatusChannel _statuses;
+    private readonly StatusReporter _statuses;
     private readonly Action<Action> _postToUi;
     private readonly Timer _timer;
     private readonly Lock _saveLock = new();
@@ -31,7 +31,7 @@ public sealed class SessionPersistence : IDisposable
         SessionStore store,
         Dispatcher host,
         TimeSpan debounce,
-        StatusChannel statuses,
+        StatusReporter statuses,
         Action<Action> postToUi,
         Func<IReadOnlyDictionary<TabId, SessionDraft>>? captureDrafts = null)
     {

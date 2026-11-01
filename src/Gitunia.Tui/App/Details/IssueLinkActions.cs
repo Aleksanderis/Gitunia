@@ -1,7 +1,7 @@
+using Gitunia.App.Status;
 using Gitunia.Core.IssueTracker.Models;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
-using Gitunia.Core.Status;
 using Gitunia.Platform.Urls;
 using Gitunia.Tui.App.Clipboard;
 using Gitunia.Tui.Views.Lists;
@@ -22,7 +22,7 @@ namespace Gitunia.Tui.App.Details;
 public sealed class IssueLinkActions(
     IUrlOpener opener,
     ClipboardCopier clipboard,
-    StatusChannel statuses,
+    StatusReporter statuses,
     Func<DetailListSource?> source,
     Func<int?> selectedRow,
     Func<bool> isMessageFocused,

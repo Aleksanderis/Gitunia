@@ -1,3 +1,5 @@
+using Gitunia.App.Shell;
+using Gitunia.App.Status;
 using Gitunia.App;
 using Gitunia.App.Tabs;
 using Gitunia.Core.Branches;
@@ -38,21 +40,17 @@ namespace Gitunia.Tui.App.Branches;
 /// <param name="postToUi">Runs an action on the UI thread.</param>
 /// <param name="cancellationOf">The token that ends the work of a tab (the tab was closed).</param>
 /// <param name="busy">Marks the tab while an operation of this kind runs (one at a time; tab eviction waits for it).</param>
-/// <param name="confirm">Shows the confirm dialog and runs the callback on <c>y</c>; false when it cannot show.</param>
 /// <param name="refresh">Reads a tab again (refs, graph, status); false when it cannot.</param>
-/// <param name="setMode">Switches the keymap mode (Insert while a prompt is open).</param>
 /// <param name="redraw">Redraws the status bar.</param>
 /// <param name="selection">What is selected now: a sidebar row or the graph commit.</param>
 public sealed class BranchActions(
     Dispatcher host,
     IBranchWriter writer,
-    StatusChannel statuses,
+    StatusReporter statuses,
     Action<Action> postToUi,
     Func<TabId, CancellationToken> cancellationOf,
     TabOperationGate busy,
-    Func<ConfirmPrompt, Action, bool> confirm,
     Func<TabId, bool> refresh,
-    Action<KeyMode> setMode,
     Action redraw,
     Func<BranchSelection> selection) : IPromptHandler
 {
@@ -311,7 +309,7 @@ public sealed class BranchActions(
     private void Close()
     {
         _kind = BranchPromptKind.None;
-        setMode(KeyMode.Normal);
+        host.SetKeyMode(KeyMode.Normal);
     }
 
     private void Open(BranchPromptKind kind, RepositoryState tab, string text)
@@ -319,7 +317,7 @@ public sealed class BranchActions(
         _kind = kind;
         _tabId = tab.Id;
         _text = text;
-        setMode(KeyMode.Insert);
+        host.SetKeyMode(KeyMode.Insert);
     }
 
     private string OpenCreate(RepositoryState tab, bool checkout)
@@ -809,7 +807,7 @@ public sealed class BranchActions(
             [$"Delete the branch {branch.Name} (at {ShortHash.Of(branch.CommitHash)})?"],
             $"Undo: git branch {branch.Name} {branch.CommitHash}",
             "Delete branch");
-        return confirm(prompt, () => StartDelete(tab.Id, branch)) ? string.Empty : TooSmallNotice;
+        return host.Confirm(prompt, () => StartDelete(tab.Id, branch)) ? string.Empty : TooSmallNotice;
     }
 
     private void StartDelete(TabId tabId, GitRef branch)
@@ -862,7 +860,7 @@ public sealed class BranchActions(
             ],
             $"Undo: git branch {branch.Name} {branch.CommitHash}",
             "Delete anyway");
-        if (!confirm(prompt, () => StartForceDelete(tab, branch)))
+        if (!host.Confirm(prompt, () => StartForceDelete(tab, branch)))
         {
             statuses.Warning($"{branch.Name} is unmerged and the screen is too small to ask: nothing was deleted");
         }

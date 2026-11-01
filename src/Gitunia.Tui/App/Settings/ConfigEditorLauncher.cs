@@ -1,4 +1,4 @@
-using Gitunia.Core.Status;
+using Gitunia.App.Status;
 using Gitunia.Platform.ExternalTools;
 using Gitunia.Tui.App.ExternalTools;
 
@@ -18,7 +18,7 @@ namespace Gitunia.Tui.App.Settings;
 public sealed class ConfigEditorLauncher(
     IExternalToolLauncher launcher,
     ITerminalSuspender terminal,
-    StatusChannel statuses,
+    StatusReporter statuses,
     Func<string, string?> environment,
     Action pauseForUser)
 {

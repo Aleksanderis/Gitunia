@@ -1,5 +1,6 @@
 using Gitunia.App.Loading.Commits;
 using Gitunia.App.Tabs;
+using Gitunia.App;
 using Gitunia.Core.Graph;
 using Gitunia.Core.Jump;
 using Gitunia.Core.Jump.Models;
@@ -7,6 +8,7 @@ using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Tabs;
+using Gitunia.Core;
 using Gitunia.Git.Commits;
 using Gitunia.Git.Refs.Models;
 using Gitunia.Git.Repositories.Models;
@@ -24,6 +26,7 @@ namespace Gitunia.Tui.Tests.Search;
 /// </summary>
 public sealed class PromptHarness : IDisposable
 {
+    private readonly Dispatcher _host = new(AppState.Empty);
     private readonly KeyController _keys;
     private readonly List<IPromptHandler> _prompts = [];
 
@@ -52,7 +55,7 @@ public sealed class PromptHarness : IDisposable
             () => ActiveSession ?? Session,
             () => SelectedRow,
             row => SelectedRow = row,
-            mode => _keys!.SetMode(mode),
+            _host,
             () => Redraws++);
         _prompts.Add(new QuickJumpController(new QuickJumpHost(
             () => ActiveSession ?? Session,
@@ -65,7 +68,7 @@ public sealed class PromptHarness : IDisposable
                     new JumpWindow(FirstVisibleRow, VisibleRowCount, SelectedRow)),
                 text => Session.Source.JumpText = text,
                 row => SelectedRow = row),
-            mode => _keys!.SetMode(mode),
+            _host,
             () => Redraws++)));
         _prompts.Add(new RefJumpController(handle, () => references));
         Search = new SearchController(
@@ -90,7 +93,8 @@ public sealed class PromptHarness : IDisposable
                         return;
                     }
                 }
-            })
+            },
+            _host)
         {
             TextKeyHandler = key => _prompts.Any(prompt => prompt.HandleTextKey(key)),
         };

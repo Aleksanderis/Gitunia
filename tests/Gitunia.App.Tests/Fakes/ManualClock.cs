@@ -1,4 +1,4 @@
-namespace Gitunia.Core.Tests.Status;
+namespace Gitunia.App.Tests.Fakes;
 
 /// <summary>A clock tests move by hand.</summary>
 public sealed class ManualClock : TimeProvider

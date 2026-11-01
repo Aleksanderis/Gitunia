@@ -158,14 +158,17 @@ public sealed class WorktreeOverviewPoller : IDisposable
     private void OnHostChanged()
     {
         var tab = _host.Workspace.ActiveTab;
-        if (tab?.Id == _watchedTabId && tab?.Worktrees == _watchedWorktrees && tab.CommandPath == _watchedPath)
+        var tabId = tab?.Id;
+        var worktrees = tab?.Worktrees ?? default;
+        var path = tab?.CommandPath;
+        if (tabId == _watchedTabId && worktrees == _watchedWorktrees && path == _watchedPath)
         {
             return;
         }
 
-        _watchedTabId = tab?.Id;
-        _watchedWorktrees = tab?.Worktrees ?? default;
-        _watchedPath = tab?.CommandPath;
+        _watchedTabId = tabId;
+        _watchedWorktrees = worktrees;
+        _watchedPath = path;
         WakeLoop();
     }
 

@@ -1,3 +1,4 @@
+using Gitunia.Core.Overlays;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Styling;
 
@@ -7,16 +8,16 @@ namespace Gitunia.Tui.Rendering.Overlays;
 public static class OverlayBox
 {
     /// <summary>Columns the side rules take.</summary>
-    public const int BorderWidth = 2;
+    public const int BorderWidth = OverlayMetrics.BorderWidth;
 
     /// <summary>Columns of padding a text row keeps inside the side rules.</summary>
-    public const int TextPadding = 2;
+    public const int TextPadding = OverlayMetrics.TextPadding;
 
     /// <summary>The text between two hints of a footer row.</summary>
     public const string HintGap = "  ";
 
     /// <summary>The smallest outer width an overlay is drawn at.</summary>
-    public const int MinimumWidth = 16;
+    public const int MinimumWidth = OverlayMetrics.MinimumWidth;
 
     public static int InnerWidth(int width) => width - BorderWidth;
 
@@ -25,11 +26,8 @@ public static class OverlayBox
     /// <paramref name="floor"/>, at most <paramref name="cap"/>, and never wider than the screen minus
     /// <paramref name="margin"/>.
     /// </summary>
-    public static int FitWidth(int contentWidth, int floor, int cap, int screenWidth, int margin)
-    {
-        var available = screenWidth - margin;
-        return Math.Min(Math.Min(cap, available), Math.Max(floor, contentWidth + BorderWidth + TextPadding));
-    }
+    public static int FitWidth(int contentWidth, int floor, int cap, int screenWidth, int margin) =>
+        OverlayMetrics.FitWidth(contentWidth, floor, cap, screenWidth, margin);
 
     public static StyledLine Title(string text, int width, GraphGlyphSet glyphs) =>
         new LineBuilder(width, glyphs.Ellipsis).Append($" {text}", SegmentRole.OverlayTitle).Build(SegmentRole.OverlayTitle);

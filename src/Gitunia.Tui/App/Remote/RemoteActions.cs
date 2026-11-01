@@ -1,3 +1,5 @@
+using Gitunia.App.Shell;
+using Gitunia.App.Status;
 using Gitunia.App;
 using Gitunia.App.Tabs;
 using Gitunia.Core.Keymap;
@@ -33,7 +35,6 @@ namespace Gitunia.Tui.App.Remote;
 /// <param name="refresh">Asks a tab to read everything again; false when it cannot.</param>
 /// <param name="redraw">Redraws the chrome (progress line, chips).</param>
 /// <param name="gate">The one-operation-per-tab gate, shared with the staging actions; a pull holds it.</param>
-/// <param name="confirm">Shows the retry Confirm and runs the callback on <c>y</c>; false when it cannot show.</param>
 /// <param name="isOverlayOpen">
 /// Whether a prompt, picker or other overlay is open; the retry Confirm never replaces one (a stray <c>y</c>).
 /// </param>
@@ -44,13 +45,12 @@ namespace Gitunia.Tui.App.Remote;
 public sealed class RemoteActions(
     Dispatcher host,
     IRemoteWriter writer,
-    StatusChannel statuses,
+    StatusReporter statuses,
     Action<Action> postToUi,
     Func<TabId, CancellationToken> cancellationOf,
     Func<TabId, bool> refresh,
     Action redraw,
     TabOperationGate gate,
-    Func<ConfirmPrompt, Action, bool> confirm,
     Func<bool> isOverlayOpen,
     Func<string, IReadOnlyList<string>, RepositoryLocation, string> runInTerminal)
 {
@@ -347,7 +347,7 @@ public sealed class RemoteActions(
             ],
             $"Runs: {command} (the same command as the one that failed).",
             "Retry in terminal");
-        if (!canAsk || !confirm(prompt, () => RetryInTerminal(tabId, noun, arguments, isCallerBusy)))
+        if (!canAsk || !host.Confirm(prompt, () => RetryInTerminal(tabId, noun, arguments, isCallerBusy)))
         {
             statuses.Warning(
                 $"{noun} in {repository} needs credentials: run `{command}` in a terminal");

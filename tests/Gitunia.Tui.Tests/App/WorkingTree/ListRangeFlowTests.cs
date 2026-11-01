@@ -1,12 +1,10 @@
-using Gitunia.Core;
-using Gitunia.App;
+using Gitunia.App.Status;
 using Gitunia.App.Tabs;
 using Gitunia.Core.Clipboard;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Lists;
 using Gitunia.Core.Overlays;
-using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Repositories;
@@ -224,7 +222,7 @@ public sealed class ListRangeFlowTests : IDisposable
 
     private sealed class Flow : IDisposable
     {
-        private readonly Dispatcher _host = new(AppState.Empty);
+        private readonly TestShell _shell = new();
         private readonly ListView _list;
         private readonly ListView _stagedList;
         private readonly WhichKeyTimer _timer = new(TimeSpan.FromHours(1), action => action());
@@ -233,7 +231,7 @@ public sealed class ListRangeFlowTests : IDisposable
         {
             var root = Path.Combine(Path.GetTempPath(), "gitunia-list-range-flow-tests");
             var location = new RepositoryLocation(root, Path.Combine(root, ".git"), Path.Combine(root, ".git"), false, false);
-            _host.Dispatch(new OpenRepositoryCommand(location));
+            _shell.Host.Dispatch(new OpenRepositoryCommand(location));
             Source = new WorkingTreeListSource(WorkingTreeSection.Unstaged, GraphGlyphSet.Unicode);
             _list = new ListView { Source = Source };
             StagedSource = new WorkingTreeListSource(WorkingTreeSection.Staged, GraphGlyphSet.Unicode);
@@ -241,22 +239,21 @@ public sealed class ListRangeFlowTests : IDisposable
             Pump = new UiPump(TestContext.Current.CancellationToken);
 
             var engine = new KeymapEngine(DefaultKeymap.Create());
-            Keys = new KeyController(engine, Route);
+            Keys = new KeyController(engine, Route, _shell.Host);
             Overlays = new OverlayController(
-                engine, Keys, _timer, Route, () => new ScreenSize(100, 30), GraphGlyphSet.Unicode, () => DefaultKeymap.WorkingUnstagedView, Statuses);
+                engine, Keys, _timer, Route, () => new ScreenSize(100, 30), GraphGlyphSet.Unicode, () => DefaultKeymap.WorkingUnstagedView, Statuses, _shell.Host);
 
             Gate = new TabOperationGate();
-            var staging = new StagingActions(_host, Index, new PatchStager(new FakeDiffReader(), Index), Statuses, Pump.Post, Refresh, _ => CancellationToken.None, Gate, Overlays.ShowConfirm);
-            var discard = new DiscardActions(_host, new PatchDiscarder(new FakeDiffReader(), Discarder), Statuses, Pump.Post, Refresh, _ => CancellationToken.None, Overlays.ShowConfirm, Gate);
+            var staging = new StagingActions(_shell.Host, Index, new PatchStager(new FakeDiffReader(), Index), Statuses, Pump.Post, Refresh, _ => CancellationToken.None, Gate);
+            var discard = new DiscardActions(_shell.Host, new PatchDiscarder(new FakeDiffReader(), Discarder), Statuses, Pump.Post, Refresh, _ => CancellationToken.None, Gate);
             var clipboard = new ClipboardWriter(ClipboardOutput, new Osc52Options(Osc52Mode.Direct, 100_000));
             Visual = new VisualRangeController(
-                () => _host.Workspace.ActiveTab?.View.FocusedPane ?? PaneKind.Graph,
+                () => _shell.Host.Workspace.ActiveTab?.View.FocusedPane ?? PaneKind.Graph,
                 pane => pane == PaneKind.WorkingStaged ? _stagedList : _list,
-                () => Keys.Mode,
-                Keys.SetMode,
-                new RangeCopier(new ClipboardCopier(clipboard, Statuses), () => null, () => _host.Workspace.ActiveTab?.WorkingTree).Copy);
+                _shell.Host,
+                new RangeCopier(new ClipboardCopier(clipboard, Statuses), () => null, () => _shell.Host.Workspace.ActiveTab?.WorkingTree).Copy);
             Handler = new WorkingTreeActionHandler(
-                _host, () => 10, new ClipboardCopier(clipboard, Statuses), staging, TestCommitActions.Create(_host, Statuses))
+                _shell.Host, () => 10, new ClipboardCopier(clipboard, Statuses), staging, TestCommitActions.Create(_shell.Host, Statuses))
             {
                 Visual = Visual,
                 Discard = discard,
@@ -279,7 +276,7 @@ public sealed class ListRangeFlowTests : IDisposable
 
         public TabOperationGate Gate { get; }
 
-        public StatusChannel Statuses { get; } = new();
+        public StatusReporter Statuses => _shell.Statuses;
 
         public FakeIndexWriter Index { get; } = new();
 
@@ -287,7 +284,7 @@ public sealed class ListRangeFlowTests : IDisposable
 
         public StringWriter ClipboardOutput { get; } = new();
 
-        private RepositoryState Tab => _host.Workspace.ActiveTab!;
+        private RepositoryState Tab => _shell.Host.Workspace.ActiveTab!;
 
         public void Load(params StatusEntry[] entries)
         {
@@ -347,6 +344,6 @@ public sealed class ListRangeFlowTests : IDisposable
         }
 
         private void Send(RepositoryCommand command) =>
-            _host.Dispatch(new TabCommand(_host.Workspace.ActiveTabId!.Value, command));
+            _shell.Host.Dispatch(new TabCommand(_shell.Host.Workspace.ActiveTabId!.Value, command));
     }
 }

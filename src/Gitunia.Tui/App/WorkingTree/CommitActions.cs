@@ -1,4 +1,6 @@
 using System.Collections.Frozen;
+using Gitunia.App.Shell;
+using Gitunia.App.Status;
 using Gitunia.App;
 using Gitunia.App.Tabs;
 using Gitunia.Core.Editing;
@@ -6,7 +8,6 @@ using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Overlays;
 using Gitunia.Core.Persistence;
-using Gitunia.Core.Status;
 using Gitunia.Core.Text;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Panes;
@@ -37,29 +38,21 @@ namespace Gitunia.Tui.App.WorkingTree;
 /// <param name="refreshStatus">Asks a tab to re-read its status and calls back when the new state is in; false when it cannot.</param>
 /// <param name="cancellationOf">The token that ends the work of a tab (the tab was closed).</param>
 /// <param name="busy">Marks the tab while a commit runs (tab eviction waits for it).</param>
-/// <param name="showOutput">Shows a failed command's output (title, heading, lines).</param>
 /// <param name="keyMode">The current input mode.</param>
-/// <param name="setMode">Switches the input mode.</param>
 /// <param name="route">Runs an action as if its key had been pressed (for keys this class passes on).</param>
 /// <param name="redraw">Redraws the screen.</param>
-/// <param name="showConfirm">
-/// Shows a Confirm dialog and runs the callback on <c>y</c>; false when it does not fit. Null never asks.
-/// </param>
 public sealed class CommitActions(
     Dispatcher host,
     ICommitWriter writer,
     IRepositoryOperationDetector operations,
-    StatusChannel statuses,
+    StatusReporter statuses,
     Action<Action> postToUi,
     Func<TabId, Action, bool> refreshStatus,
     Func<TabId, CancellationToken> cancellationOf,
     TabOperationGate busy,
-    Action<string, string, IReadOnlyList<string>> showOutput,
     Func<KeyMode> keyMode,
-    Action<KeyMode> setMode,
     Action<ActionId, int?> route,
-    Action redraw,
-    Func<ConfirmPrompt, Action, bool>? showConfirm = null)
+    Action redraw)
 {
     private const string StageAllQuestion = "Nothing is staged. Stage all changes and commit?";
     private const string CancelledNotice = "Commit cancelled: check the history, git may have finished first";
@@ -249,7 +242,7 @@ public sealed class CommitActions(
             return;
         }
 
-        showOutput(CommitFailureReport.Title, CommitFailureReport.Heading, lines);
+        host.ShowOutput(CommitFailureReport.Title, CommitFailureReport.Heading, lines);
     }
 
     /// <summary>Ends Insert mode when the box that owned it lost focus (a click, <c>Tab</c> or a tab switch).</summary>
@@ -268,7 +261,7 @@ public sealed class CommitActions(
             DraftOf(_insertTab)?.Editor.DropUndoPointIfUnchanged();
             if (keyMode() == KeyMode.Insert)
             {
-                setMode(KeyMode.Normal);
+                host.SetKeyMode(KeyMode.Normal);
             }
         }
         else if (keyMode() != KeyMode.Insert)
@@ -501,7 +494,7 @@ public sealed class CommitActions(
         StartMergeMessageRead(tab, draft);
         _ownsInsert = true;
         _insertTab = tab.Id;
-        setMode(KeyMode.Insert);
+        host.SetKeyMode(KeyMode.Insert);
         return string.Empty;
     }
 
@@ -628,8 +621,7 @@ public sealed class CommitActions(
 
     // Nothing staged but unstaged changes exist: ask before staging them (the draft stays as it is on no).
     private bool ShouldOfferStageAll(RepositoryState tab) =>
-        showConfirm is not null
-        && StageAllThen is not null
+        StageAllThen is not null
         && tab.WorkingTree is { Staged.Count: 0 } tree
         && tree.Unstaged.Any(entry => entry.Kind != StatusEntryKind.Unmerged);
 
@@ -641,7 +633,7 @@ public sealed class CommitActions(
             [StageAllQuestion],
             "Untracked files are included; conflicted files are skipped. Unstage them again with <space>U.",
             "Stage all and commit");
-        if (!showConfirm!(prompt, () => StageAllAndCommit(tabId, draft)))
+        if (!host.Confirm(prompt, () => StageAllAndCommit(tabId, draft)))
         {
             return CommitCheck.NothingStaged;
         }
@@ -766,7 +758,7 @@ public sealed class CommitActions(
         statuses.Error(message);
         if (output is not null && host.Workspace.ActiveTabId == tabId)
         {
-            showOutput(CommitFailureReport.Title, CommitFailureReport.Heading, output);
+            host.ShowOutput(CommitFailureReport.Title, CommitFailureReport.Heading, output);
         }
         else if (output is not null && host.Workspace.FindTab(tabId) is not null)
         {
@@ -823,7 +815,7 @@ public sealed class CommitActions(
         DraftFor(tab.Id).Editor.DropUndoPointIfUnchanged();
 
         _ownsInsert = false;
-        setMode(KeyMode.Normal);
+        host.SetKeyMode(KeyMode.Normal);
         redraw();
         return true;
     }
