@@ -1,6 +1,6 @@
 # Gitunia
 
-Keyboard-first terminal Git client (graph, branches, worktrees, vim-style keys). See README.md for goal and MVP scope.
+Keyboard-first terminal Git client (graph, branches, worktrees, vim-style keys). See README.md for goal and features.
 
 Design docs are in `docs/` (architecture, git-layer, ux, testing, roadmap, decisions). Work is tracked as GitHub issues grouped by milestone M0-M4 (goals in `docs/roadmap.md`).
 
@@ -14,7 +14,7 @@ Design docs are in `docs/` (architecture, git-layer, ux, testing, roadmap, decis
 
 - Gitunia is a standalone multi-repo client with tabs. Never depend on the process working directory: every git call takes an explicit repo/worktree path, and all repo state is scoped to a tab. No static or global "current repo".
 - Cross-platform (Linux, Windows, macOS; macOS lowest priority, Linux is built and tested first). No platform-specific APIs outside the platform abstraction; anything platform-specific gets a branch for every supported OS or an explicit "unsupported" path. Paths via `Path` APIs, no hardcoded separators, `/dev/null` or `/tmp`. Details: `docs/architecture.md`.
-- Keep to the MVP scope in README.md. Don't add features beyond it without asking.
+- Keep to the Features and "Not included" lists in README.md. Don't add features beyond it without asking.
 - Native AOT from day one: no reflection or runtime codegen, every dependency AOT/trimming-compatible; run the AOT publish after adding one (rules in `.claude/rules/csharp-style.md`).
 - The Git layer returns typed results and never touches the UI. The state layer is pure (`(State, Command) -> State` plus effects) and runs without a terminal. Only the rendering layer touches the console. Layering details: `docs/architecture.md`.
 - Never block the UI thread on a git process. Every git call is async, cancellable and has a timeout.

@@ -9,7 +9,7 @@ effort: high
 
 Improve the instructions from evidence. Never runs unattended; nothing changes until the owner approves it by id.
 
-**Fenced, never propose changes (only report a problem you see):** safety and destructive-operation rules, pushing and merge rules, MVP scope, agent identity, model choice, the autonomy invariants in `CLAUDE.md`. Only the owner edits these.
+**Fenced, never propose changes (only report a problem you see):** safety and destructive-operation rules, pushing and merge rules, agent identity, model choice, the autonomy invariants in `CLAUDE.md`. Only the owner edits these.
 
 ## 1. Collect
 
