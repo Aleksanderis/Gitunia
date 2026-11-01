@@ -6,6 +6,9 @@ namespace Gitunia.Core.Running;
 /// </summary>
 public enum RunningOperationKind
 {
+    /// <summary>A branch operation: create, switch, rename, delete, upstream or fast-forward.</summary>
+    Branches,
+
     /// <summary>A remote management operation: add, remove, rename, set the URL, or reading the remotes for the prompt.</summary>
     Remotes,
 
