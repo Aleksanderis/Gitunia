@@ -2,6 +2,7 @@ using Gitunia.Core.Clipboard;
 using Gitunia.Core.Config.Models;
 using Gitunia.Core.Picker;
 using Gitunia.Core.Reflog;
+using Gitunia.Core.Staging;
 using Gitunia.Core.Workspaces.Tabs;
 
 namespace Gitunia.App.Tests.Fakes;
@@ -23,6 +24,8 @@ public sealed class RecordingShell : IShellEffects
 
     public bool DraftMoveResult { get; set; } = true;
 
+    public List<MoveDiffCursorEffect> CursorMoves { get; } = [];
+
     public int Flushed { get; private set; }
 
     public bool FlushSucceeds { get; set; } = true;
@@ -43,6 +46,8 @@ public sealed class RecordingShell : IShellEffects
     public void ApplyTheme(ThemeChoice theme) => AppliedThemes.Add(theme);
 
     public void OpenConfigEditor() => EditorOpened++;
+
+    public void MoveDiffCursor(MoveDiffCursorEffect effect) => CursorMoves.Add(effect);
 
     public bool MoveCommitDraft(TabId missing, TabId target)
     {

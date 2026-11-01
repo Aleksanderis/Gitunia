@@ -44,7 +44,10 @@ public sealed class FeaturePipeline : IDisposable
 
     public bool IsBusy => Host.Workspace.FindTab(TabId)!.Running.IsBusy;
 
-    public static async Task<FeaturePipeline> OpenAsync(GitServices services, TestRepository repository)
+    public static async Task<FeaturePipeline> OpenAsync(
+        GitServices services,
+        TestRepository repository,
+        IShellEffects? shell = null)
     {
         var pump = new UiPump(TestContext.Current.CancellationToken);
         var host = new Dispatcher(AppState.Empty, pump);
@@ -55,7 +58,8 @@ public sealed class FeaturePipeline : IDisposable
             pump.Post,
             new TabSessionFactory(),
             statuses,
-            watcherOptions: TestGit.QuietWatcherOptions);
+            watcherOptions: TestGit.QuietWatcherOptions,
+            shell: shell);
         var location = await services.Discovery.DiscoverAsync(
             repository.WorkingTreePath,
             TestContext.Current.CancellationToken);

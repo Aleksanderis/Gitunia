@@ -270,14 +270,14 @@ public class CommitScriptTests
                 (_, _) => { },
                 () => { });
             var indexWriter = new IndexWriter(runner);
-            var staging = new StagingActions(
-                _shell.Host,
-                indexWriter,
-                new PatchStager(new FakeDiffReader(), indexWriter),
-                Statuses,
-                Pump.Post,
-                RefreshStatus,
-                _ => Token);
+
+            // Wires itself to the dispatcher: runs the staging effects like the effect runner does.
+            _ = new StagingWiring(_shell.Host, indexWriter, new PatchStager(new FakeDiffReader(), indexWriter), Pump)
+            {
+                ReadStatus = ReadStatusAsync,
+            };
+
+            var staging = new StagingActions(_shell.Host, new TabOperationGate());
             Commits.StageAllThen = staging.StageAllThen;
         }
 
@@ -341,6 +341,14 @@ public class CommitScriptTests
         {
             var snapshot = await new StatusReader(_runner).ReadStatusAsync(_location, false, UntrackedFilesMode.All, Token);
             Send(new WorkingTreeLoadedCommand(snapshot));
+        }
+
+        // The staging half of the tab refresher: reads the status off the UI thread, applying it is left to the pump.
+        private async Task<Action> ReadStatusAsync()
+        {
+            var snapshot = await new StatusReader(_runner).ReadStatusAsync(_location, false, UntrackedFilesMode.All, Token);
+
+            return () => Send(new WorkingTreeLoadedCommand(snapshot));
         }
 
         // Stands in for the tab refresher: reads the status of the real repository, then reports back on the "UI thread".

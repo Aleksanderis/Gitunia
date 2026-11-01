@@ -20,6 +20,9 @@ public enum RunningOperationKind
     /// <summary>A remote management operation: add, remove, rename, set the URL, or reading the remotes for the prompt.</summary>
     Remotes,
 
+    /// <summary>Staging or unstaging files, a hunk or lines; ends when the status has been read again.</summary>
+    Staging,
+
     /// <summary>A stash operation: push, apply, pop, drop, or restoring one file of a stash.</summary>
     Stash,
 

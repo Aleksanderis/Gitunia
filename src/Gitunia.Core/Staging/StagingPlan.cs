@@ -1,4 +1,4 @@
-namespace Gitunia.Tui.App.WorkingTree;
+namespace Gitunia.Core.Staging;
 
 /// <summary>What a stage or unstage will do, or why it will not.</summary>
 /// <param name="Paths">Paths to hand to git; empty when refused.</param>
@@ -14,8 +14,10 @@ public sealed record StagingPlan(IReadOnlyList<string> Paths, string Name, int C
     /// <summary>The plan stages a file the conflict editor just saved with every conflict resolved.</summary>
     public bool IsSavedResolve { get; init; }
 
+    /// <summary>A plan that refuses with <paramref name="notice"/>.</summary>
     public static StagingPlan Refused(string notice) => new([], string.Empty, 0, 0, notice);
 
+    /// <summary>A plan that runs.</summary>
     public static StagingPlan For(IReadOnlyList<string> paths, string name, int count, int skipped) =>
         new(paths, name, count, skipped, string.Empty);
 }

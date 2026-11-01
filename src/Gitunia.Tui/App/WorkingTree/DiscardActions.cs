@@ -4,6 +4,7 @@ using Gitunia.App;
 using Gitunia.App.Tabs;
 using Gitunia.Core.Lists;
 using Gitunia.Core.Overlays;
+using Gitunia.Core.Running;
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Repositories;
@@ -23,7 +24,7 @@ namespace Gitunia.Tui.App.WorkingTree;
 /// Nothing is undoable, so nothing runs before the user answers <c>y</c> in a confirm dialog that names what is lost (and says that
 /// untracked files are deleted); there is no stash copy. What will be discarded is fixed when the dialog opens, from the cursor at
 /// that time, and the git call runs off the UI thread afterwards. When it is done the tab re-reads its status. One operation per
-/// tab at a time, shared with staging.
+/// tab at a time, shared with staging (a running stage or unstage also refuses it).
 /// </summary>
 /// <param name="host">The workspace.</param>
 /// <param name="patchDiscarder">Discards whole files and chosen lines.</param>
@@ -31,7 +32,7 @@ namespace Gitunia.Tui.App.WorkingTree;
 /// <param name="postToUi">Runs an action on the UI thread.</param>
 /// <param name="refreshStatus">Asks a tab to re-read its status and calls back when the new state is in; false when it cannot.</param>
 /// <param name="cancellationOf">The token that ends the work of a tab (the tab was closed).</param>
-/// <param name="gate">The one-operation-per-tab gate, shared with the staging actions.</param>
+/// <param name="gate">The one-operation-per-tab gate, shared with the editors.</param>
 public sealed class DiscardActions(
     Dispatcher host,
     PatchDiscarder patchDiscarder,
@@ -74,7 +75,7 @@ public sealed class DiscardActions(
             return "The status is not loaded yet";
         }
 
-        if (gate.IsBusy(tab.Id))
+        if (IsBusy(tab))
         {
             return BusyNotice;
         }
@@ -129,7 +130,7 @@ public sealed class DiscardActions(
             return "The status is not loaded yet";
         }
 
-        if (gate.IsBusy(tab.Id))
+        if (IsBusy(tab))
         {
             return BusyNotice;
         }
@@ -151,7 +152,7 @@ public sealed class DiscardActions(
     // folder included.
     private string AskFolder(RepositoryState tab, WorkingTreeState tree, string folder)
     {
-        if (gate.IsBusy(tab.Id))
+        if (IsBusy(tab))
         {
             return BusyNotice;
         }
@@ -228,7 +229,7 @@ public sealed class DiscardActions(
 
     private void StartRange(RepositoryState tab, List<StatusEntry> files, int skipped)
     {
-        if (gate.IsBusy(tab.Id))
+        if (IsBusy(tab))
         {
             statuses.Warning($"{BusyNotice}; nothing was discarded");
             return;
@@ -293,7 +294,7 @@ public sealed class DiscardActions(
             return "Discard works in the Unstaged diff: unstage the changes first";
         }
 
-        if (gate.IsBusy(tab.Id))
+        if (IsBusy(tab))
         {
             return BusyNotice;
         }
@@ -407,12 +408,16 @@ public sealed class DiscardActions(
             "Discard change");
     }
 
+    // A stage or unstage of the tab (migrated: it is a running operation of the tab, not a gate) excludes a discard too.
+    private bool IsBusy(RepositoryState tab) =>
+        gate.IsBusy(tab.Id) || host.Workspace.FindTab(tab.Id)?.Running.IsRunning(RunningOperationKind.Staging) == true;
+
     private string Ask(ConfirmPrompt prompt, Action onConfirmed) =>
         host.Confirm(prompt, onConfirmed) ? string.Empty : TooSmallNotice;
 
     private void StartFile(RepositoryState tab, StatusEntry entry)
     {
-        if (gate.IsBusy(tab.Id))
+        if (IsBusy(tab))
         {
             statuses.Warning($"{BusyNotice}; nothing was discarded");
             return;
@@ -425,7 +430,7 @@ public sealed class DiscardActions(
 
     private void StartSelection(RepositoryState tab, DiffStagingRequest request, Action? onDiscarded)
     {
-        if (gate.IsBusy(tab.Id))
+        if (IsBusy(tab))
         {
             statuses.Warning($"{BusyNotice}; nothing was discarded");
             return;
