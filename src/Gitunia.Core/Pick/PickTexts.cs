@@ -1,10 +1,9 @@
+using Gitunia.Core.Rebase;
 using Gitunia.Core.Status;
 using Gitunia.Core.Text;
 using Gitunia.Git.Pick;
-using Gitunia.Tui.App.Operations;
-using Gitunia.Tui.App.WorkingTree;
 
-namespace Gitunia.Tui.App.Pick;
+namespace Gitunia.Core.Pick;
 
 /// <summary>The words of cherry-pick and revert. Pure, so every text is testable without a terminal.</summary>
 public static class PickTexts
@@ -18,7 +17,7 @@ public static class PickTexts
     {
         if (commits.Count != 1)
         {
-            return OperationText.Plural(commits.Count, "commit");
+            return RebaseCounts.Plural(commits.Count, "commit");
         }
 
         var commit = commits[0];
@@ -40,21 +39,21 @@ public static class PickTexts
     /// <summary>The rows of the mainline overlay, one per parent of the merge commit.</summary>
     public static IReadOnlyList<string> MainlineRows(PickCommit merge) => merge.Parents.Select(Parent).ToList();
 
-    public static OperationReport Report(PickResult result, PickKind kind, string target, string what)
+    public static PostedText Report(PickResult result, PickKind kind, string target, string what)
     {
         var tip = ShortHash.Of(result.Head);
         var was = ShortHash.Of(result.OldHead);
         var verb = Verb(kind);
         return result.Outcome switch
         {
-            PickOutcome.Completed => new OperationReport(
+            PickOutcome.Completed => new PostedText(
                 $"{PastTense(kind)} {what} onto {target} ({tip}), was {was}; undo: git reset --hard {was} " +
                 "(the reflog has it)",
                 StatusSeverity.Info),
-            PickOutcome.NothingToApply => new OperationReport(
+            PickOutcome.NothingToApply => new PostedText(
                 $"Nothing to {verb}: {target} already has the changes of {what}",
                 StatusSeverity.Info),
-            _ => new OperationReport(
+            _ => new PostedText(
                 $"The {verb} of {what} stopped on conflicts: resolve the files marked !, then <space>gc to " +
                 "continue, <space>ga to abort or <space>gs to skip the commit",
                 StatusSeverity.Warning),

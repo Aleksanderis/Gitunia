@@ -1,4 +1,5 @@
 using Gitunia.Core.Keymap.Models;
+using Gitunia.Core.Pick;
 using Gitunia.Core.Prompts;
 using Gitunia.Core.Reflog;
 using Gitunia.Core.Settings;
@@ -17,6 +18,7 @@ namespace Gitunia.Core.Shell;
 /// <param name="Confirm">The open confirm dialog, or null.</param>
 /// <param name="Output">The open output overlay, or null.</param>
 /// <param name="Prompt">The open prompt (text field or picker), or null.</param>
+/// <param name="Mainline">The open mainline question of a cherry-pick or revert of a merge commit (#977), or null.</param>
 /// <param name="Reflog">The reflog overlay (#984).</param>
 /// <param name="Settings">The settings overlay (#984).</param>
 /// <param name="Screen">The terminal size, or null until the terminal layer reported it (a dialog then counts as
@@ -28,6 +30,7 @@ public sealed record ShellState(
     ConfirmDialog? Confirm,
     OutputOverlay? Output,
     OpenPrompt? Prompt,
+    MainlineQuestion? Mainline,
     ReflogSession Reflog,
     SettingsSession Settings,
     ScreenExtent? Screen)
@@ -36,6 +39,7 @@ public sealed record ShellState(
         KeyMode.Normal,
         0,
         StatusLog.Empty,
+        null,
         null,
         null,
         null,
