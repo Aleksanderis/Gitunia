@@ -32,7 +32,7 @@ Not included: submodules, LFS UI, blame, hosting-provider integration, plugins.
 
 Needs Git 2.43 or newer on your `PATH`.
 
-Ways to install: Linux `.deb`/`.rpm`, Arch/Omarchy archive, Windows and Linux archive, or from source. Commands are in the [user guide](docs/user-guide.md#install).
+Ways to install: Linux `.deb`/`.rpm`, Arch/Omarchy archive, Windows and Linux archive, or from source. For more details look in the [user guide](docs/user-guide.md#install).
 
 ## Quick start
 
