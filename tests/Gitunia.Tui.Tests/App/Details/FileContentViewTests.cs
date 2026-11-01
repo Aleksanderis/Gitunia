@@ -1,3 +1,4 @@
+using Gitunia.App.Tabs;
 using System.Drawing;
 using System.Text;
 using Gitunia.App;
@@ -482,7 +483,7 @@ public class FileContentViewTests
 
         private Harness(
             WorkspaceHost host,
-            TabSession session,
+            TerminalTabSession session,
             UiPump pump,
             TestRepository repository,
             ObjectId other,
@@ -528,7 +529,7 @@ public class FileContentViewTests
 
         public ListView DetailList { get; }
 
-        public TabSession Session { get; }
+        public TerminalTabSession Session { get; }
 
         public DiffPaneController Controller { get; }
 
@@ -555,14 +556,15 @@ public class FileContentViewTests
             host.Dispatch(new OpenRepositoryCommand(location));
             var tabId = host.Workspace.ActiveTabId!.Value;
             var pump = new UiPump(Token);
-            var session = new TabSession(
-                tabId,
-                GraphGlyphSet.Unicode,
-                new CommitDetailsStore(TestGit.Services.CommitDetails, location, pump.Post, TimeSpan.Zero),
-                new DiffStore(TestGit.Services.Diff, location, pump.Post),
-                tree: new FileTreeSession(
+            var session = new TerminalTabSession(
+                new TabSessionParts(
+                    tabId,
+                    new CommitDetailsStore(TestGit.Services.CommitDetails, location, pump.Post, TimeSpan.Zero),
+                    new DiffStore(TestGit.Services.Diff, location, pump.Post),
+                    Tree: new FileTreeSession(
                     new CommitTreeStore(TestGit.Services.CommitTree, location, pump.Post, TimeSpan.Zero)),
-                contentStore: new FileContentStore(TestGit.Services.Blob, location, pump.Post));
+                    ContentStore: new FileContentStore(TestGit.Services.Blob, location, pump.Post)),
+                GraphGlyphSet.Unicode);
             await TestGit.Services.RepositoryLoader.RunAsync(
                 location,
                 session,

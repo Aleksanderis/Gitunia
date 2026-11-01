@@ -1,4 +1,3 @@
-using Gitunia.App;
 using Gitunia.App.Loading.Commits;
 using Gitunia.App.Loading.Diff;
 using Gitunia.App.Loading.Stash;
@@ -13,18 +12,16 @@ using Gitunia.Git.Execution.Exceptions;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Watching;
 using Gitunia.Git.Watching.Models;
-using Gitunia.Tui.App.Details;
-using Gitunia.Tui.App.Stash;
-using Gitunia.Tui.App.Tabs;
-using Gitunia.Tui.Rendering.Graph;
 
-namespace Gitunia.Tui.App;
+namespace Gitunia.App;
 
 /// <summary>
 /// Executes the effects the reducer returns and owns the per-tab sessions they create. New effects (clipboard,
 /// file watching, ...) get a case in <see cref="Run"/>; results come back as commands through the host.
 /// </summary>
-public sealed class EffectRunner : IDisposable
+/// <typeparam name="TSession">The session type the factory builds; the terminal layer adds its views to it.</typeparam>
+public sealed class EffectRunner<TSession> : IDisposable
+    where TSession : TabSession
 {
     /// <summary>
     /// How many tabs, the active one included, keep their loaded graph; older tabs are evicted
@@ -36,9 +33,9 @@ public sealed class EffectRunner : IDisposable
     private readonly WorkspaceHost _host;
     private readonly Action<Action> _postToUi;
     private readonly StatusChannel _statuses;
-    private GraphGlyphSet _glyphs;
+    private readonly ITabSessionFactory<TSession> _sessionFactory;
     private readonly TimeSpan _detailDebounce;
-    private readonly Dictionary<TabId, TabSession> _sessions = [];
+    private readonly Dictionary<TabId, TSession> _sessions = [];
     private readonly Dictionary<TabId, Action> _pendingLoads = [];
     private readonly Dictionary<TabId, TabRefresher> _refreshers = [];
     private readonly List<TabId> _recent = [];
@@ -51,7 +48,7 @@ public sealed class EffectRunner : IDisposable
         GitServices services,
         WorkspaceHost host,
         Action<Action> postToUi,
-        GraphGlyphSet glyphs,
+        ITabSessionFactory<TSession> sessionFactory,
         StatusChannel statuses,
         TimeSpan? detailDebounce = null,
         RepositoryWatcherOptions? watcherOptions = null,
@@ -67,7 +64,7 @@ public sealed class EffectRunner : IDisposable
         _services = services;
         _host = host;
         _postToUi = postToUi;
-        _glyphs = glyphs;
+        _sessionFactory = sessionFactory;
         _statuses = statuses;
         host.EffectRaised += Run;
         host.Changed += OnHostChanged;
@@ -79,16 +76,8 @@ public sealed class EffectRunner : IDisposable
     /// </summary>
     public Func<TabId, bool> IsTabBusy { get; set; } = static _ => false;
 
-    /// <summary>Draws every tab's graph with a new glyph set (the label caps setting changed); later tabs take it too.</summary>
-    /// <param name="glyphs">The new set.</param>
-    public void ReplaceGlyphs(GraphGlyphSet glyphs)
-    {
-        _glyphs = glyphs;
-        foreach (var session in _sessions.Values)
-        {
-            session.Source.Glyphs = glyphs;
-        }
-    }
+    /// <summary>The sessions of the open tabs.</summary>
+    public IEnumerable<TSession> Sessions => _sessions.Values;
 
     /// <summary>Cancels the running git work of every tab (a forced quit, #856).</summary>
     public void CancelAll()
@@ -100,7 +89,7 @@ public sealed class EffectRunner : IDisposable
     }
 
     /// <summary>The runtime session of an open tab, or null.</summary>
-    public TabSession? SessionOf(TabId tabId) => _sessions.GetValueOrDefault(tabId);
+    public TSession? SessionOf(TabId tabId) => _sessions.GetValueOrDefault(tabId);
 
     /// <summary>Manual refresh of a tab: reads everything again and reloads its graph. False when the tab has no watcher yet (not loaded).</summary>
     public bool Refresh(TabId tabId, bool announce = true)
@@ -199,22 +188,26 @@ public sealed class EffectRunner : IDisposable
         }
 
         var stashView = new StashViewSession();
-        var session = new TabSession(
-            load.TabId,
-            _glyphs,
-            new CommitDetailsStore(
-                new StashAwareCommitDetailsReader(_services.CommitDetails, _services.StashDetails, stashView.Registry),
-                tab.Location,
-                _postToUi,
-                _detailDebounce),
-            new DiffStore(
-                new StashAwareDiffReader(_services.Diff, _services.StashDetails, stashView.Registry),
-                tab.Location,
-                _postToUi),
-            new WorkingDiffStore(_services.Diff, tab.Location, _postToUi),
-            new FileTreeSession(new CommitTreeStore(_services.CommitTree, tab.Location, _postToUi, _detailDebounce)),
-            new FileContentStore(_services.Blob, tab.Location, _postToUi),
-            stashView);
+        var session = _sessionFactory.Create(
+            new TabSessionParts(
+                load.TabId,
+                new CommitDetailsStore(
+                    new StashAwareCommitDetailsReader(
+                        _services.CommitDetails,
+                        _services.StashDetails,
+                        stashView.Registry),
+                    tab.Location,
+                    _postToUi,
+                    _detailDebounce),
+                new DiffStore(
+                    new StashAwareDiffReader(_services.Diff, _services.StashDetails, stashView.Registry),
+                    tab.Location,
+                    _postToUi),
+                new WorkingDiffStore(_services.Diff, tab.Location, _postToUi),
+                new FileTreeSession(
+                    new CommitTreeStore(_services.CommitTree, tab.Location, _postToUi, _detailDebounce)),
+                new FileContentStore(_services.Blob, tab.Location, _postToUi),
+                stashView));
         _sessions[load.TabId] = session;
         var token = session.Cancellation.Token;
         var location = tab.Location;
@@ -257,7 +250,7 @@ public sealed class EffectRunner : IDisposable
     }
 
     // The tracker file and git config are read on load and on a manual refresh; a missing or bad one means no links.
-    private async Task LoadIssueLinksAsync(TabSession session, RepositoryLocation location, CancellationToken token)
+    private async Task LoadIssueLinksAsync(TSession session, RepositoryLocation location, CancellationToken token)
     {
         try
         {
@@ -277,7 +270,7 @@ public sealed class EffectRunner : IDisposable
     }
 
     // Runs on the UI thread (the session asked for it), so the graph can be read here.
-    private void ExpandGraph(TabSession session, RepositoryLocation location, CancellationToken token)
+    private void ExpandGraph(TSession session, RepositoryLocation location, CancellationToken token)
     {
         var shownCount = session.Graph.Count;
         var lastShown = session.Graph[shownCount - 1].Id;

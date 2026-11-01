@@ -1,12 +1,12 @@
 using Gitunia.App.Loading.Commits;
 using Gitunia.App.Loading.Trees;
+using Gitunia.App.Tabs;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git;
 using Gitunia.Git.Tests.Fixtures;
 using Gitunia.Tui.App;
-using Gitunia.Tui.App.Details;
 using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Tests.Fakes;
@@ -17,7 +17,7 @@ namespace Gitunia.Tui.Tests.App;
 
 public class StatusActionHandlerTests : IDisposable
 {
-    private TabSession? _session;
+    private TerminalTabSession? _session;
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
@@ -190,15 +190,16 @@ public class StatusActionHandlerTests : IDisposable
         var debounce = TimeSpan.FromMilliseconds(1);
         var reader = new FakeCommitTreeReader();
         var store = new CommitTreeStore(reader, FakeCommitDetailsReader.Location, pump.Post, debounce);
-        _session = new TabSession(
-            new TabId(1),
-            GraphGlyphSet.Unicode,
-            new CommitDetailsStore(
+        _session = new TerminalTabSession(
+            new TabSessionParts(
+                new TabId(1),
+                new CommitDetailsStore(
                 new FakeCommitDetailsReader(),
                 FakeCommitDetailsReader.Location,
                 pump.Post,
                 debounce),
-            tree: new FileTreeSession(store));
+                Tree: new FileTreeSession(store)),
+            GraphGlyphSet.Unicode);
         var missing = FakeCommitDetailsReader.MissingId();
         store.Select(missing);
         await pump.RunUntilAsync(() => store.Current.Status == CommitDetailsStatus.Failed);
@@ -216,9 +217,13 @@ public class StatusActionHandlerTests : IDisposable
         GC.SuppressFinalize(this);
     }
 
-    private static async Task<TabSession> CreateSessionAsync(UiPump pump, TestRepository testRepository)
+    private static async Task<TerminalTabSession> CreateSessionAsync(UiPump pump, TestRepository testRepository)
     {
         var location = await TestGit.Services.Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
-        return new TabSession(new TabId(1), GraphGlyphSet.Unicode, new CommitDetailsStore(TestGit.Services.CommitDetails, location, pump.Post, TimeSpan.FromMilliseconds(1)));
+        return new TerminalTabSession(
+            new TabSessionParts(
+                new TabId(1),
+                new CommitDetailsStore(TestGit.Services.CommitDetails, location, pump.Post, TimeSpan.FromMilliseconds(1))),
+            GraphGlyphSet.Unicode);
     }
 }

@@ -1,6 +1,6 @@
 using Gitunia.Core.Workspaces.Tabs;
 
-namespace Gitunia.Tui.App.Details;
+namespace Gitunia.App.Tabs;
 
 /// <summary>
 /// Decides the cursor row of the detail pane and remembers, per bottom tab, the row last used for the commit shown. A different commit

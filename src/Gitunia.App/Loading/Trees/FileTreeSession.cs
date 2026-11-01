@@ -1,7 +1,6 @@
-using Gitunia.App.Loading.Trees;
 using Gitunia.Core.FileTree;
 
-namespace Gitunia.Tui.App.Details;
+namespace Gitunia.App.Loading.Trees;
 
 /// <summary>
 /// The Files tab of one repository tab: the store that lists the tree of the selected commit, the directories the

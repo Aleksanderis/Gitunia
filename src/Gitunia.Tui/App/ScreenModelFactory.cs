@@ -25,7 +25,7 @@ public static class ScreenModelFactory
     /// <param name="homeDirectory">The home directory the picker abbreviates to <c>~</c>.</param>
     public static ScreenModel Create(
         Workspace workspace,
-        TabSession? session,
+        TerminalTabSession? session,
         KeyMode mode,
         string pendingKeys,
         string message,

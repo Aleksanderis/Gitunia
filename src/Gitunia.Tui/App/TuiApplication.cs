@@ -101,7 +101,8 @@ public sealed class TuiApplication(
         new(ActiveIterationsPerSecond, IdleIterationsPerSecond, IdleAfter);
     private IApplication _application = null!;
     private WorkspaceHost _host = null!;
-    private EffectRunner _effects = null!;
+    private TerminalTabSessionFactory _sessionFactory = null!;
+    private EffectRunner<TerminalTabSession> _effects = null!;
     private BackgroundStatusPoller? _statusPoller;
     private WorktreeOverviewPoller? _worktreePoller;
     private MainView _view = null!;
@@ -203,11 +204,12 @@ public sealed class TuiApplication(
         _uiInvoker = new SuspendableUiInvoker(_application.Invoke);
 
         _host = new WorkspaceHost(Workspace.Empty);
-        _effects = new EffectRunner(
+        _sessionFactory = new TerminalTabSessionFactory(glyphs);
+        _effects = new EffectRunner<TerminalTabSession>(
             services,
             _host,
             InvokeOnUi,
-            glyphs,
+            _sessionFactory,
             _statuses,
             watcherOptions: WatcherOptionsFor(_startupConfig.Options));
 
@@ -1256,7 +1258,7 @@ public sealed class TuiApplication(
         gate,
         ShowConfirm);
 
-    private TabSession? ActiveSession() => _host.Workspace.ActiveTabId is { } id ? _effects.SessionOf(id) : null;
+    private TerminalTabSession? ActiveSession() => _host.Workspace.ActiveTabId is { } id ? _effects.SessionOf(id) : null;
 
     // The state decides which pane has focus; the toolkit focus follows it (a click goes the other way, see OnPaneFocused).
     private void ApplyFocus()
@@ -1335,17 +1337,17 @@ public sealed class TuiApplication(
 
         var newScreenModel = screenModel
             with
-            {
-                RemoteBusy = RemoteIsBusy(),
-                Keys = _chipKeys,
-                SelectedName = FocusedSidebarName(),
-                MessageSeverity = CurrentMessageSeverity(),
-                MessageIsFresh = _statuses.IsFresh,
-                Hints = CurrentHints(),
-                RepeatPane = _repeat.Active?.Pane,
-                SearchLine = _prompts.Select(prompt => prompt.StatusLine).FirstOrDefault(line => line.Length > 0) ??
+        {
+            RemoteBusy = RemoteIsBusy(),
+            Keys = _chipKeys,
+            SelectedName = FocusedSidebarName(),
+            MessageSeverity = CurrentMessageSeverity(),
+            MessageIsFresh = _statuses.IsFresh,
+            Hints = CurrentHints(),
+            RepeatPane = _repeat.Active?.Pane,
+            SearchLine = _prompts.Select(prompt => prompt.StatusLine).FirstOrDefault(line => line.Length > 0) ??
                              PopupFallbackLine(),
-            };
+        };
 
         return newScreenModel;
     }
@@ -1698,7 +1700,12 @@ public sealed class TuiApplication(
         }
 
         _glyphs = glyphs;
-        _effects.ReplaceGlyphs(glyphs);
+        _sessionFactory.Glyphs = glyphs;
+        foreach (var session in _effects.Sessions)
+        {
+            session.Source.Glyphs = glyphs;
+        }
+
         _view.Graph.SetNeedsDraw();
     }
 
@@ -1981,7 +1988,7 @@ public sealed class TuiApplication(
         };
     }
 
-    private ListJumpTarget GraphJumpTarget(TabSession session) => new(
+    private ListJumpTarget GraphJumpTarget(TerminalTabSession session) => new(
         PaneKind.Graph,
         text => session.Source.JumpLabels(_view.Graph, text),
         text =>
@@ -1995,7 +2002,7 @@ public sealed class TuiApplication(
             _view.Graph.EnsureSelectedItemVisible();
         });
 
-    private ListJumpTarget DetailJumpTarget(TabSession session) => new(
+    private ListJumpTarget DetailJumpTarget(TerminalTabSession session) => new(
         PaneKind.Detail,
         text => session.DetailSource.JumpLabels(_view.Detail, text),
         text =>
@@ -2047,7 +2054,7 @@ public sealed class TuiApplication(
         }
     }
 
-    private void OnTabSwitched(TabSession? previous, TabSession? current)
+    private void OnTabSwitched(TerminalTabSession? previous, TerminalTabSession? current)
     {
         if (previous is not null)
         {
@@ -2280,7 +2287,7 @@ public sealed class TuiApplication(
     }
 
     // The tree is only listed while the Files tab is shown, so scrolling the graph on another tab starts no ls-tree.
-    private FileTreeView? FileTreeViewOf(TabSession session, GraphEntry? entry, BottomTab tab)
+    private FileTreeView? FileTreeViewOf(TerminalTabSession session, GraphEntry? entry, BottomTab tab)
     {
         if (tab != BottomTab.Files || entry is null || session.Tree is not { } tree)
         {

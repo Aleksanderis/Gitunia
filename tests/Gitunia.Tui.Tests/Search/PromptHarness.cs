@@ -1,4 +1,5 @@
 using Gitunia.App.Loading.Commits;
+using Gitunia.App.Tabs;
 using Gitunia.Core.Graph;
 using Gitunia.Core.Jump;
 using Gitunia.Core.Jump.Models;
@@ -18,7 +19,7 @@ using Terminal.Gui.Input;
 namespace Gitunia.Tui.Tests.Search;
 
 /// <summary>
-/// The graph prompts wired to a real keymap engine and a real <see cref="TabSession"/> but no terminal: keys go in,
+/// The graph prompts wired to a real keymap engine and a real <see cref="TerminalTabSession"/> but no terminal: keys go in,
 /// the selected row and the status line come out. Work posted to the "UI thread" runs at once.
 /// </summary>
 public sealed class PromptHarness : IDisposable
@@ -35,7 +36,11 @@ public sealed class PromptHarness : IDisposable
     {
         // Search never selects a commit, so the details store never runs a process in these tests.
         var location = new RepositoryLocation(Path.GetTempPath(), Path.GetTempPath(), Path.GetTempPath(), false, false);
-        Session = new TabSession(new TabId(1), GraphGlyphSet.Unicode, new CommitDetailsStore(TestGit.Services.CommitDetails, location, action => action(), TimeSpan.Zero));
+        Session = new TerminalTabSession(
+            new TabSessionParts(
+                new TabId(1),
+                new CommitDetailsStore(TestGit.Services.CommitDetails, location, action => action(), TimeSpan.Zero)),
+            GraphGlyphSet.Unicode);
         Session.Append([.. Enumerable.Range(0, graph.Count).Select(index => graph[index])]);
         if (!isLoading)
         {
@@ -91,12 +96,12 @@ public sealed class PromptHarness : IDisposable
         };
     }
 
-    public TabSession Session { get; }
+    public TerminalTabSession Session { get; }
 
     public SearchController Search { get; }
 
     /// <summary>When set, the session the shell reports as active instead of <see cref="Session"/> (a tab switch).</summary>
-    public TabSession? ActiveSession { get; set; }
+    public TerminalTabSession? ActiveSession { get; set; }
 
     public int SelectedRow { get; set; }
 

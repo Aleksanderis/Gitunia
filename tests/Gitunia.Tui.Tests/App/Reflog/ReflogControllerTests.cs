@@ -500,7 +500,7 @@ public class ReflogControllerTests
     {
         private readonly WorkspaceHost _host = new(Workspace.Empty);
         private readonly UiPump _pump = new(TestContext.Current.CancellationToken);
-        private TabSession? _session;
+        private TerminalTabSession? _session;
 
         private Harness(IReflogReader? reader)
         {
@@ -572,10 +572,11 @@ public class ReflogControllerTests
                 TestContext.Current.CancellationToken);
             harness._host.Dispatch(new OpenRepositoryCommand(location));
             var tabId = harness._host.Workspace.ActiveTabId!.Value;
-            harness._session = new TabSession(
-                tabId,
-                GraphGlyphSet.Unicode,
-                new CommitDetailsStore(TestGit.Services.CommitDetails, location, action => action(), TimeSpan.Zero));
+            harness._session = new TerminalTabSession(
+                new TabSessionParts(
+                    tabId,
+                    new CommitDetailsStore(TestGit.Services.CommitDetails, location, action => action(), TimeSpan.Zero)),
+                GraphGlyphSet.Unicode);
             await TestGit.Services.RepositoryLoader.RunAsync(
                 location,
                 harness._session,

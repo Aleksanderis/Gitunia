@@ -5,7 +5,6 @@ using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Tests.Fixtures;
-using Gitunia.Tui.App;
 using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Views.Lists;
@@ -132,7 +131,7 @@ public class GraphTabBinderTests
     {
         private Harness(
             WorkspaceHost host,
-            EffectRunner effects,
+            EffectRunner<TerminalTabSession> effects,
             TabId tabId,
             ListView graph,
             UiPump pump,
@@ -150,7 +149,7 @@ public class GraphTabBinderTests
 
         public WorkspaceHost Host { get; }
 
-        public EffectRunner Effects { get; }
+        public EffectRunner<TerminalTabSession> Effects { get; }
 
         public TabId TabId { get; }
 
@@ -158,7 +157,7 @@ public class GraphTabBinderTests
 
         public GraphTabBinder Binder { get; }
 
-        public TabSession Session => Effects.SessionOf(TabId)!;
+        public TerminalTabSession Session => Effects.SessionOf(TabId)!;
 
         public static async Task<Harness> LoadAsync(TestRepository repository)
         {
@@ -167,7 +166,7 @@ public class GraphTabBinderTests
             var tabId = update.Workspace.Tabs[0].Id;
             var pump = new UiPump(TestContext.Current.CancellationToken);
             var host = new WorkspaceHost(Workspace.Empty);
-            var effects = new EffectRunner(TestGit.Services, host, pump.Post, GraphGlyphSet.Unicode, new StatusChannel());
+            var effects = new EffectRunner<TerminalTabSession>(TestGit.Services, host, pump.Post, new TerminalTabSessionFactory(GraphGlyphSet.Unicode), new StatusChannel());
             var graph = new ListView { Width = 40, Height = 10 };
             var binder = new GraphTabBinder(host, effects, graph, new GraphListSource(new CommitGraph(), GraphGlyphSet.Unicode), () => { });
             host.Changed += binder.Sync;

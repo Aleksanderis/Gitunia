@@ -201,8 +201,8 @@ public sealed class MainView : IDisposable
             Visible = false,
         };
 
-        _workingLeftEdge = CreateWorkingEdge( () => WorkingEdgeRect(WorkingRects().Unstaged, WorkingRects().Staged, isLeft: true));
-        _workingRightEdge = CreateWorkingEdge( () => WorkingEdgeRect(WorkingRects().Diff, WorkingRects().Message, isLeft: false));
+        _workingLeftEdge = CreateWorkingEdge(() => WorkingEdgeRect(WorkingRects().Unstaged, WorkingRects().Staged, isLeft: true));
+        _workingRightEdge = CreateWorkingEdge(() => WorkingEdgeRect(WorkingRects().Diff, WorkingRects().Message, isLeft: false));
 
         _workingDiffTitle = new LineView(WorkingDiffTitleLine)
         {
@@ -264,7 +264,7 @@ public sealed class MainView : IDisposable
 
         ApplyPaneSchemes();
 
-        _status = new LineView(width => ChromeBuilder.Status( BannerRenderer.ForStatusBar(model(), ScreenHeight()), width, glyphs))
+        _status = new LineView(width => ChromeBuilder.Status(BannerRenderer.ForStatusBar(model(), ScreenHeight()), width, glyphs))
         {
             X = 0,
             Y = Pos.AnchorEnd(1),
@@ -342,7 +342,7 @@ public sealed class MainView : IDisposable
             _picker,
             _status,
             Overlay);
-        
+
         ApplyVisibility();
     }
 

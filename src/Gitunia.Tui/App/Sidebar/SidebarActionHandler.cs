@@ -24,7 +24,7 @@ namespace Gitunia.Tui.App.Sidebar;
 public sealed class SidebarActionHandler(
     WorkspaceHost host,
     SidebarListSource source,
-    Func<TabSession?> activeSession,
+    Func<TerminalTabSession?> activeSession,
     Func<int> pageHeight,
     Func<bool> isSidebarVisible,
     Func<bool> isDetailVisible,

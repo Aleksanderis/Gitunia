@@ -1,3 +1,4 @@
+using Gitunia.App.Tabs;
 using System.Text;
 using Gitunia.App.Loading.Commits;
 using Gitunia.Core.Clipboard;
@@ -18,7 +19,7 @@ namespace Gitunia.Tui.Tests.App.Clipboard;
 public class RangeCopierTests : IDisposable
 {
     private readonly StringWriter _terminal = new();
-    private TabSession? _session;
+    private TerminalTabSession? _session;
 
     [Fact]
     public void GivenNoSession_WhenCopying_ThenANoticeSaysNothingWasCopied()
@@ -98,14 +99,18 @@ public class RangeCopierTests : IDisposable
         GC.SuppressFinalize(this);
     }
 
-    private static async Task<TabSession> CreateSessionAsync(TestRepository testRepository)
+    private static async Task<TerminalTabSession> CreateSessionAsync(TestRepository testRepository)
     {
         var location = await TestGit.Services.Discovery.DiscoverAsync(testRepository.WorkingTreePath, TestContext.Current.CancellationToken);
-        var session = new TabSession(new TabId(1), GraphGlyphSet.Unicode, new CommitDetailsStore(TestGit.Services.CommitDetails, location, action => action(), TimeSpan.Zero));
+        var session = new TerminalTabSession(
+            new TabSessionParts(
+                new TabId(1),
+                new CommitDetailsStore(TestGit.Services.CommitDetails, location, action => action(), TimeSpan.Zero)),
+            GraphGlyphSet.Unicode);
         session.Append(CommitFactory.Graph(CommitFactory.Commit(2, "b", [1]), CommitFactory.Commit(1, "a", [])).ToArray());
         return session;
     }
 
-    private RangeCopier CreateCopier(TabSession? session) =>
+    private RangeCopier CreateCopier(TerminalTabSession? session) =>
         new(new ClipboardCopier(new ClipboardWriter(_terminal, new Osc52Options(Osc52Mode.Direct, 100_000)), new StatusChannel()), () => session);
 }

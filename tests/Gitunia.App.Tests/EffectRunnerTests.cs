@@ -1,14 +1,11 @@
-using Gitunia.App;
+using Gitunia.App.Tabs;
 using Gitunia.App.Tabs.Models;
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
 using Gitunia.Git.Tests.Fixtures;
-using Gitunia.Tui.App;
-using Gitunia.Tui.Rendering.Graph;
-using Gitunia.Tui.Tests.Fakes;
 using Xunit;
 
-namespace Gitunia.Tui.Tests.App;
+namespace Gitunia.App.Tests;
 
 // The restored-tab case runs on fakes: it is about which tabs load. The other cases are end-to-end checks of the wiring (real file system
 // watchers reacting to real git commands, and a manual refresh through the real refresher), so they keep real temporary repositories.
@@ -29,7 +26,7 @@ public class EffectRunnerTests
         var firstId = scratch.Tabs[0].Id;
         var secondId = scratch.Tabs[1].Id;
         var host = new WorkspaceHost(Workspace.Empty);
-        using var effects = new EffectRunner(fakes.Services, host, pump.Post, GraphGlyphSet.Unicode, new StatusChannel(), watcherOptions: TestGit.QuietWatcherOptions);
+        using var effects = new EffectRunner<TabSession>(fakes.Services, host, pump.Post, new TabSessionFactory(), new StatusChannel(), watcherOptions: TestGit.QuietWatcherOptions);
 
         host.Restore(new WorkspaceUpdate(
             scratch with { ActiveTabId = firstId },
@@ -62,7 +59,7 @@ public class EffectRunnerTests
         var firstId = scratch.Tabs[0].Id;
         var secondId = scratch.Tabs[1].Id;
         var host = new WorkspaceHost(Workspace.Empty);
-        using var effects = new EffectRunner(fakes.Services, host, pump.Post, GraphGlyphSet.Unicode, new StatusChannel(), watcherOptions: TestGit.QuietWatcherOptions);
+        using var effects = new EffectRunner<TabSession>(fakes.Services, host, pump.Post, new TabSessionFactory(), new StatusChannel(), watcherOptions: TestGit.QuietWatcherOptions);
         host.Restore(new WorkspaceUpdate(
             scratch with { ActiveTabId = firstId },
             [new LoadRepositoryEffect(firstId, scratch.Tabs[0].CommandPath), new LoadRepositoryEffect(secondId, scratch.Tabs[1].CommandPath)]));
@@ -90,11 +87,11 @@ public class EffectRunnerTests
 
         var ids = scratch.Tabs.Select(tab => tab.Id).ToArray();
         var host = new WorkspaceHost(Workspace.Empty);
-        using var effects = new EffectRunner(
+        using var effects = new EffectRunner<TabSession>(
             fakes.Services,
             host,
             pump.Post,
-            GraphGlyphSet.Unicode,
+            new TabSessionFactory(),
             new StatusChannel(),
             watcherOptions: TestGit.QuietWatcherOptions,
             warmTabLimit: 2);
@@ -138,11 +135,11 @@ public class EffectRunnerTests
 
         var ids = scratch.Tabs.Select(tab => tab.Id).ToArray();
         var host = new WorkspaceHost(Workspace.Empty);
-        using var effects = new EffectRunner(
+        using var effects = new EffectRunner<TabSession>(
             fakes.Services,
             host,
             pump.Post,
-            GraphGlyphSet.Unicode,
+            new TabSessionFactory(),
             new StatusChannel(),
             watcherOptions: TestGit.QuietWatcherOptions,
             warmTabLimit: 2);
@@ -177,8 +174,8 @@ public class EffectRunnerTests
         var host = new WorkspaceHost(Workspace.Empty);
         var interval = TimeSpan.FromMilliseconds(50);
         var poll = new PollOptions(interval, interval, TimeSpan.FromMilliseconds(200), 1);
-        using var effects = new EffectRunner(
-            TestGit.Services, host, pump.Post, GraphGlyphSet.Unicode, new StatusChannel(), pollOptions: poll);
+        using var effects = new EffectRunner<TabSession>(
+            TestGit.Services, host, pump.Post, new TabSessionFactory(), new StatusChannel(), pollOptions: poll);
         host.Restore(update);
         var session = effects.SessionOf(tabId)!;
         await pump.RunUntilAsync(() => !session.IsLoading);
@@ -210,7 +207,7 @@ public class EffectRunnerTests
         var update = WorkspaceReducer.Reduce(Workspace.Empty, new OpenRepositoryCommand(location));
         var tabId = update.Workspace.Tabs[0].Id;
         var host = new WorkspaceHost(Workspace.Empty);
-        using var effects = new EffectRunner(TestGit.Services, host, pump.Post, GraphGlyphSet.Unicode, new StatusChannel());
+        using var effects = new EffectRunner<TabSession>(TestGit.Services, host, pump.Post, new TabSessionFactory(), new StatusChannel());
         host.Restore(update);
         var session = effects.SessionOf(tabId)!;
         await pump.RunUntilAsync(() => !session.IsLoading);
@@ -233,11 +230,11 @@ public class EffectRunnerTests
         var update = WorkspaceReducer.Reduce(Workspace.Empty, new OpenRepositoryCommand(location));
         var tabId = update.Workspace.Tabs[0].Id;
         var host = new WorkspaceHost(Workspace.Empty);
-        using var effects = new EffectRunner(
+        using var effects = new EffectRunner<TabSession>(
             TestGit.Services,
             host,
             pump.Post,
-            GraphGlyphSet.Unicode,
+            new TabSessionFactory(),
             new StatusChannel());
         host.Restore(update);
         var session = effects.SessionOf(tabId)!;

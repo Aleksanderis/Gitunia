@@ -282,7 +282,7 @@ public class RemoteManagementActionsTests
     {
         private readonly WorkspaceHost _host = new(Workspace.Empty);
         private readonly List<Action> _answers = [];
-        private readonly List<TabSession> _sessions = [];
+        private readonly List<TerminalTabSession> _sessions = [];
         private BranchSelection _selection = new(null, null, null);
 
         private Harness()
@@ -373,10 +373,11 @@ public class RemoteManagementActionsTests
                 TestContext.Current.CancellationToken);
             _host.Dispatch(new OpenRepositoryCommand(location));
             var tabId = _host.Workspace.ActiveTabId!.Value;
-            var session = new TabSession(
-                tabId,
-                GraphGlyphSet.Unicode,
-                new CommitDetailsStore(TestGit.Services.CommitDetails, location, action => action(), TimeSpan.Zero));
+            var session = new TerminalTabSession(
+                new TabSessionParts(
+                    tabId,
+                    new CommitDetailsStore(TestGit.Services.CommitDetails, location, action => action(), TimeSpan.Zero)),
+                GraphGlyphSet.Unicode);
             _sessions.Add(session);
             await TestGit.Services.RepositoryLoader.RunAsync(
                 location,

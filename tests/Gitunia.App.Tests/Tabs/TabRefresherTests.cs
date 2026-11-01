@@ -1,4 +1,3 @@
-using Gitunia.App;
 using Gitunia.App.Loading;
 using Gitunia.App.Loading.Commits;
 using Gitunia.App.Loading.Graph;
@@ -14,12 +13,9 @@ using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Tests.Fixtures;
 using Gitunia.Git.Watching;
 using Gitunia.Git.Watching.Models;
-using Gitunia.Tui.App.Tabs;
-using Gitunia.Tui.Rendering.Graph;
-using Gitunia.Tui.Tests.Fakes;
 using Xunit;
 
-namespace Gitunia.Tui.Tests.App.Tabs;
+namespace Gitunia.App.Tests.Tabs;
 
 // The cases about the watcher (changes arriving from the file system, background tabs, the baseline racing a change) and the graph
 // topology the incremental reload reads keep real temporary repositories. The manual refresh, its failure reporting and applying the
@@ -428,7 +424,10 @@ public class TabRefresherTests
             host.Dispatch(new OpenRepositoryCommand(location));
             var tabId = host.Workspace.ActiveTabId!.Value;
             var statuses = new StatusChannel();
-            var session = new TabSession(tabId, GraphGlyphSet.Unicode, new CommitDetailsStore(TestGit.Services.CommitDetails, location, action => action(), TimeSpan.Zero));
+            var session = new TabSession(
+                new TabSessionParts(
+                    tabId,
+                    new CommitDetailsStore(TestGit.Services.CommitDetails, location, action => action(), TimeSpan.Zero)));
             session.MarkStarted();
 
             if (loadFirst)
@@ -499,7 +498,10 @@ public class TabRefresherTests
             host.Dispatch(new OpenRepositoryCommand(location));
             var tabId = host.Workspace.ActiveTabId!.Value;
             var statuses = new StatusChannel();
-            var session = new TabSession(tabId, GraphGlyphSet.Unicode, new CommitDetailsStore(new FakeCommitDetailsReader(), location, action => action(), TimeSpan.Zero));
+            var session = new TabSession(
+                new TabSessionParts(
+                    tabId,
+                    new CommitDetailsStore(new FakeCommitDetailsReader(), location, action => action(), TimeSpan.Zero)));
             session.MarkStarted();
             var graphLoader = new GraphLoader(commitLog, softRowLimit);
             await new RepositoryLoader(refs, new FakeStatusReader(), graphLoader, new SidebarDataLoader(refs, stashes))

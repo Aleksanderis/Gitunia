@@ -1,4 +1,4 @@
-using Gitunia.App;
+using Gitunia.App.Tabs;
 using Gitunia.App.Loading;
 using Gitunia.App.Loading.Commits;
 using Gitunia.App.Loading.Graph;
@@ -9,13 +9,9 @@ using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Execution.Exceptions;
 using Gitunia.Git.Refs.Models;
 using Gitunia.Git.Repositories.Models;
-using Gitunia.Tui.App.Tabs;
-using Gitunia.Tui.Rendering.Graph;
-using Gitunia.Tui.Tests.App;
-using Gitunia.Tui.Tests.Fakes;
 using Xunit;
 
-namespace Gitunia.Tui.Tests.Loading;
+namespace Gitunia.App.Tests.Loading;
 
 // Every test here runs on fakes of the readers: what is under test is how the loader hands results to the UI and reports failures,
 // not git. The wiring against real git is covered by EffectRunnerTests and TabRefresherTests.
@@ -37,7 +33,6 @@ public class RepositoryLoaderTests
         Assert.False(harness.Session.IsLoading);
         Assert.Equal(string.Empty, harness.Session.LoadError);
         Assert.Equal(2, harness.Session.Graph.Count);
-        Assert.Equal(2, harness.Session.Source.Count);
         Assert.True(changes >= 2);
         Assert.Equal("main", harness.Tab.Head!.BranchName);
         Assert.Contains(harness.Tab.Refs, reference => reference.Name == "v1");
@@ -271,7 +266,10 @@ public class RepositoryLoaderTests
             Host = new WorkspaceHost(Workspace.Empty);
             Host.Dispatch(new OpenRepositoryCommand(Location));
             TabId = Host.Workspace.ActiveTabId!.Value;
-            Session = new TabSession(TabId, GraphGlyphSet.Unicode, new CommitDetailsStore(new FakeCommitDetailsReader(), Location, action => action(), TimeSpan.Zero));
+            Session = new TabSession(
+                new TabSessionParts(
+                    TabId,
+                    new CommitDetailsStore(new FakeCommitDetailsReader(), Location, action => action(), TimeSpan.Zero)));
             var graphLoader = new GraphLoader(CommitLog, softRowLimit);
             Loader = new RepositoryLoader(Refs, Status, graphLoader, new SidebarDataLoader(Refs, Stashes));
             Session.ExpandRequested += OnExpandRequested;

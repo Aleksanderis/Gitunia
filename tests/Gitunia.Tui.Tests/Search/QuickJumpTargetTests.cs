@@ -1,4 +1,5 @@
 using Gitunia.App.Loading.Commits;
+using Gitunia.App.Tabs;
 using Gitunia.Core.Jump.Models;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
@@ -15,7 +16,7 @@ namespace Gitunia.Tui.Tests.Search;
 /// <summary>The quick jump prompt on lists other than the graph: it only knows the target it is given.</summary>
 public sealed class QuickJumpTargetTests : IDisposable
 {
-    private readonly TabSession _session;
+    private readonly TerminalTabSession _session;
     private readonly List<KeyMode> _modes = [];
     private readonly List<string?> _shown = [];
     private readonly List<int> _jumps = [];
@@ -26,7 +27,11 @@ public sealed class QuickJumpTargetTests : IDisposable
     public QuickJumpTargetTests()
     {
         var location = new RepositoryLocation(Path.GetTempPath(), Path.GetTempPath(), Path.GetTempPath(), false, false);
-        _session = new TabSession(new TabId(1), GraphGlyphSet.Unicode, new CommitDetailsStore(TestGit.Services.CommitDetails, location, action => action(), TimeSpan.Zero));
+        _session = new TerminalTabSession(
+            new TabSessionParts(
+                new TabId(1),
+                new CommitDetailsStore(TestGit.Services.CommitDetails, location, action => action(), TimeSpan.Zero)),
+            GraphGlyphSet.Unicode);
         Controller = new QuickJumpController(new QuickJumpHost(
             () => _session,
             () => _focused,

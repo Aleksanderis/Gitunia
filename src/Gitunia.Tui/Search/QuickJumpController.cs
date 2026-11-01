@@ -17,7 +17,7 @@ public sealed class QuickJumpController(QuickJumpHost host) : IPromptHandler
 {
     private const string Prefix = "jump ";
 
-    private TabSession? _session;
+    private TerminalTabSession? _session;
     private IJumpTarget? _target;
     private string _text = string.Empty;
 

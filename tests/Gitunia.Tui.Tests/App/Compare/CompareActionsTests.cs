@@ -1,5 +1,6 @@
 using Gitunia.App;
 using Gitunia.App.Loading.Commits;
+using Gitunia.App.Tabs;
 using Gitunia.Core.Graph;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Workspaces;
@@ -21,7 +22,7 @@ public sealed class CompareActionsTests : IDisposable
     private readonly FakeCommitDetailsReader _reader = FakeCommitDetailsReader.Chain(3);
     private readonly UiPump _pump = new(TestContext.Current.CancellationToken);
     private readonly WorkspaceHost _host = new(Workspace.Empty);
-    private readonly TabSession _session;
+    private readonly TerminalTabSession _session;
     private ObjectId? _selected;
 
     public CompareActionsTests()
@@ -30,14 +31,15 @@ public sealed class CompareActionsTests : IDisposable
         var gitDirectory = Path.Combine(root, ".git");
         _host.Dispatch(
             new OpenRepositoryCommand(new RepositoryLocation(root, gitDirectory, gitDirectory, false, false)));
-        _session = new TabSession(
-            _host.Workspace.ActiveTabId!.Value,
-            GraphGlyphSet.Unicode,
-            new CommitDetailsStore(
+        _session = new TerminalTabSession(
+            new TabSessionParts(
+                _host.Workspace.ActiveTabId!.Value,
+                new CommitDetailsStore(
                 _reader,
                 FakeCommitDetailsReader.Location,
                 _pump.Post,
-                TimeSpan.FromMilliseconds(1)));
+                TimeSpan.FromMilliseconds(1))),
+            GraphGlyphSet.Unicode);
         _session.Graph.AddRange(
             [.. Newest.Select(id => new GraphEntry(
                 id,

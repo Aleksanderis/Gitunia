@@ -347,7 +347,7 @@ public class IgnoreAwareWatchingTests
         }
     }
 
-    private sealed class FailingLister: IWorkingTreeDirectoryLister
+    private sealed class FailingLister : IWorkingTreeDirectoryLister
     {
         public Task<IReadOnlyList<string>?> ListAsync(string workingTreePath, CancellationToken cancellationToken) =>
             Task.FromResult<IReadOnlyList<string>?>(null);

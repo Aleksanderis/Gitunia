@@ -30,12 +30,12 @@ namespace Gitunia.Tui.App.WorkingTree;
 public sealed class WorkingDiffController : IPromptHandler
 {
     private readonly WorkspaceHost _host;
-    private readonly Func<TabSession?> _activeSession;
+    private readonly Func<TerminalTabSession?> _activeSession;
     private readonly ListView _diffList;
     private readonly Action _refreshChrome;
     private readonly Action _relayout;
     private readonly DiffListActions _actions;
-    private TabSession? _hooked;
+    private TerminalTabSession? _hooked;
     private int? _hunkAfterReload;
     private int? _changeAfterReload;
 
@@ -48,7 +48,7 @@ public sealed class WorkingDiffController : IPromptHandler
     /// <param name="relayout">Lays the panes out again after the zoom changed; null in tests without a screen.</param>
     public WorkingDiffController(
         WorkspaceHost host,
-        Func<TabSession?> activeSession,
+        Func<TerminalTabSession?> activeSession,
         ListView diffList,
         Action<KeyMode> setMode,
         Action refreshChrome,
@@ -251,7 +251,7 @@ public sealed class WorkingDiffController : IPromptHandler
     }
 
     /// <summary>Call when the shown tab changed: hooks the new tab's diff store and restores its cursor.</summary>
-    public void OnTabSwitched(TabSession? previous, TabSession? current)
+    public void OnTabSwitched(TerminalTabSession? previous, TerminalTabSession? current)
     {
         if (previous?.WorkingDiff is { } old)
         {

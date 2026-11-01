@@ -1,5 +1,6 @@
 using Gitunia.App;
 using Gitunia.App.Loading.Commits;
+using Gitunia.App.Tabs;
 using Gitunia.Core.Graph;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Workspaces;
@@ -32,7 +33,7 @@ public class ChangesTreeFoldTests : IDisposable
     private readonly WorkspaceHost _host = new(Workspace.Empty);
     private readonly GraphEntry _entry = CommitFactory.Graph(CommitFactory.Commit(1, "root", []))[0];
     private readonly UiPump _pump = new(TestContext.Current.CancellationToken);
-    private readonly TabSession _session;
+    private readonly TerminalTabSession _session;
     private readonly FileTreeController _controller;
     private int _cursor;
 
@@ -50,14 +51,15 @@ public class ChangesTreeFoldTests : IDisposable
             _host.Dispatch(new TabCommand(tabId, new TogglePathStyleCommand()));
         }
 
-        _session = new TabSession(
-            tabId,
-            GraphGlyphSet.Unicode,
-            new CommitDetailsStore(
+        _session = new TerminalTabSession(
+            new TabSessionParts(
+                tabId,
+                new CommitDetailsStore(
                 new FakeCommitDetailsReader(),
                 FakeCommitDetailsReader.Location,
                 _pump.Post,
-                TimeSpan.FromMilliseconds(1)));
+                TimeSpan.FromMilliseconds(1))),
+            GraphGlyphSet.Unicode);
         _controller = new FileTreeController(
             _host,
             () => _session,

@@ -12,7 +12,7 @@ namespace Gitunia.Tui.App;
 /// </summary>
 /// <param name="statuses">The channel whose latest message is dismissed.</param>
 /// <param name="activeSession">The active tab's session, null when there is none.</param>
-public sealed class StatusActionHandler(StatusChannel statuses, Func<TabSession?> activeSession)
+public sealed class StatusActionHandler(StatusChannel statuses, Func<TerminalTabSession?> activeSession)
 {
     /// <summary>A short notice for the status bar from the last handled action, empty when none.</summary>
     public string Message { get; private set; } = string.Empty;

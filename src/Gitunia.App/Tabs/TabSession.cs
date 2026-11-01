@@ -1,46 +1,27 @@
 using Gitunia.App.Loading.Commits;
-using Gitunia.App.Loading.Diff;
+using Gitunia.App.Loading.Stash;
 using Gitunia.App.Loading.Trees;
-using Gitunia.App.Tabs;
 using Gitunia.Core.Graph;
 using Gitunia.Core.IssueTracker;
 using Gitunia.Core.Search.Models;
-using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
-using Gitunia.Tui.App.Details;
-using Gitunia.Tui.App.Panes;
-using Gitunia.Tui.App.Stash;
-using Gitunia.Tui.App.WorkingTree;
-using Gitunia.Tui.Rendering.Graph;
-using Gitunia.Tui.Views.Lists;
 
-namespace Gitunia.Tui.App.Tabs;
+namespace Gitunia.App.Tabs;
 
 /// <summary>
-/// The runtime side of one tab that the immutable <see cref="RepositoryState"/> does not hold: the streamed graph rows,
-/// the list source drawing them and the load in flight. Touched from the UI thread only.
+/// The runtime side of one tab that the immutable repository state does not hold: the streamed graph rows, the load in
+/// flight and the stores. The terminal side (list sources, glyphs, diff views) lives in a derived class in
+/// <c>Gitunia.Tui</c> that reacts to the protected hooks. Touched from the UI thread only.
 /// </summary>
-public sealed class TabSession : IGraphSession, IDisposable
+public class TabSession : IGraphSession, IDisposable
 {
-    public TabSession(
-        TabId tabId,
-        GraphGlyphSet glyphs,
-        CommitDetailsStore details,
-        DiffStore? diffStore = null,
-        WorkingDiffStore? workingDiffStore = null,
-        FileTreeSession? tree = null,
-        FileContentStore? contentStore = null,
-        StashViewSession? stashView = null)
+    public TabSession(TabSessionParts parts)
     {
-        Tree = tree;
-        StashView = stashView ?? new StashViewSession();
-        TabId = tabId;
-        Details = details;
-        Diff = diffStore is null ? null : new DiffSession(diffStore, glyphs, contentStore);
-        WorkingDiff = workingDiffStore is null ? null : new WorkingDiffSession(workingDiffStore, glyphs);
-        DetailSource = new DetailListSource(glyphs);
+        TabId = parts.TabId;
+        Details = parts.Details;
+        Tree = parts.Tree;
+        StashView = parts.StashView ?? new StashViewSession();
         Graph = new CommitGraph();
-        Source = new GraphListSource(Graph, glyphs);
     }
 
     /// <summary>Raised after rows were appended or the load state changed.</summary>
@@ -87,8 +68,6 @@ public sealed class TabSession : IGraphSession, IDisposable
 
     public CommitGraph Graph { get; }
 
-    public GraphListSource Source { get; }
-
     /// <summary>The tab's graph search (the typed query, its matches and scan progress).</summary>
     public GraphSearchState Search { get; set; } = GraphSearchState.Initial;
 
@@ -98,15 +77,6 @@ public sealed class TabSession : IGraphSession, IDisposable
     /// <summary>The tab's Files tab (tree store, opened directories, filter); null in sessions built without a tree
     /// store (tests).</summary>
     public FileTreeSession? Tree { get; }
-
-    /// <summary>The tab's diff pane; null in sessions built without a diff store (tests).</summary>
-    public DiffSession? Diff { get; }
-
-    /// <summary>The tab's Changes view diff; null in sessions built without a working diff store (tests).</summary>
-    public WorkingDiffSession? WorkingDiff { get; }
-
-    /// <summary>The list source of the detail pane.</summary>
-    public DetailListSource DetailSource { get; }
 
     /// <summary>The folders of the Changes tab's tree style that are closed (paths from the repository root); kept for
     /// the tab's lifetime, not saved with the session.</summary>
@@ -138,10 +108,13 @@ public sealed class TabSession : IGraphSession, IDisposable
     /// <summary>Why loading stopped early, empty when it did not.</summary>
     public string LoadError { get; private set; } = string.Empty;
 
+    /// <summary>The cut marker row shows: the log is cut and nothing loads.</summary>
+    public bool ShowsCutMarker { get; private set; }
+
     /// <summary>A refresh read the status and it did not change: the Changes view diff of the shown file is read again.</summary>
     public void NotifyStatusRead()
     {
-        WorkingDiff?.Invalidate();
+        OnStatusRead();
         StatusRead?.Invoke();
     }
 
@@ -154,7 +127,7 @@ public sealed class TabSession : IGraphSession, IDisposable
     public void Append(IReadOnlyList<GraphEntry> batch)
     {
         Graph.AddRange(batch);
-        Source.NotifyAppended();
+        OnGraphRowsChanged();
         Changed?.Invoke();
     }
 
@@ -163,17 +136,6 @@ public sealed class TabSession : IGraphSession, IDisposable
     {
         TruncatedTotal = total;
         RefreshCutMarker();
-    }
-
-    // The marker shows while the log is cut and nothing loads; the item count changes with it.
-    private void RefreshCutMarker()
-    {
-        var shown = IsTruncated && !IsLoading;
-        if (shown != Source.ShowsCutMarker)
-        {
-            Source.ShowsCutMarker = shown;
-            Source.NotifyAppended();
-        }
     }
 
     /// <summary>
@@ -227,8 +189,8 @@ public sealed class TabSession : IGraphSession, IDisposable
         IsLoading = false;
         Graph.Replace(entries);
         GraphVersion++;
-        Source.ShowsCutMarker = IsTruncated;
-        Source.NotifyAppended();
+        ShowsCutMarker = IsTruncated;
+        OnGraphRowsChanged();
         GraphReplaced?.Invoke();
         Changed?.Invoke();
     }
@@ -251,11 +213,42 @@ public sealed class TabSession : IGraphSession, IDisposable
 
     public void Dispose()
     {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    /// <summary>Called after the rows changed or the cut marker appeared or went, so a terminal side redraws.</summary>
+    protected virtual void OnGraphRowsChanged()
+    {
+    }
+
+    /// <summary>Called when a refresh read the status and found it unchanged.</summary>
+    protected virtual void OnStatusRead()
+    {
+    }
+
+    /// <summary>Releases the stores; a derived class releases its own views too and calls this.</summary>
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!disposing)
+        {
+            return;
+        }
+
         Details.Dispose();
         Tree?.Dispose();
-        Diff?.Dispose();
-        WorkingDiff?.Dispose();
         Cancellation.Cancel();
         Cancellation.Dispose();
+    }
+
+    // The marker shows while the log is cut and nothing loads; the item count changes with it.
+    private void RefreshCutMarker()
+    {
+        var shown = IsTruncated && !IsLoading;
+        if (shown != ShowsCutMarker)
+        {
+            ShowsCutMarker = shown;
+            OnGraphRowsChanged();
+        }
     }
 }

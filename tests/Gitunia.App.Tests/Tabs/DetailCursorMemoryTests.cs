@@ -1,8 +1,8 @@
+using Gitunia.App.Tabs;
 using Gitunia.Core.Workspaces.Tabs;
-using Gitunia.Tui.App.Details;
 using Xunit;
 
-namespace Gitunia.Tui.Tests.App.Details;
+namespace Gitunia.App.Tests.Tabs;
 
 [Trait("Os", "Independent")]
 public sealed class DetailCursorMemoryTests

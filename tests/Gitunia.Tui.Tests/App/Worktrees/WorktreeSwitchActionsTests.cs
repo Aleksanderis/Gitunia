@@ -280,7 +280,7 @@ public sealed class WorktreeSwitchActionsTests
                 location,
                 action => action(),
                 TimeSpan.Zero);
-            var session = new TabSession(tabId, GraphGlyphSet.Unicode, details);
+            var session = new TerminalTabSession(new TabSessionParts(tabId, details), GraphGlyphSet.Unicode);
             await TestGit.Services.RepositoryLoader
                 .RunAsync(location, session, Host, new StatusChannel(), InlineUi.Post, Token);
         }

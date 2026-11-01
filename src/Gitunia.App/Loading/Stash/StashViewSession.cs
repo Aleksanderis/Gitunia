@@ -1,7 +1,6 @@
-using Gitunia.App.Loading.Stash;
 using Gitunia.Git.Stash;
 
-namespace Gitunia.Tui.App.Stash;
+namespace Gitunia.App.Loading.Stash;
 
 /// <summary>
 /// The runtime side of one tab's stash view: the stashes the tab can read like commits and the one the detail pane
@@ -14,7 +13,7 @@ public sealed class StashViewSession
 
     /// <summary>
     /// The stash the detail pane was asked to show, null for none. It only counts while the tab's details still
-    /// select its commit (see <see cref="StashViewController"/>).
+    /// select its commit.
     /// </summary>
     public StashEntry? Shown { get; set; }
 }

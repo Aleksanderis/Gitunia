@@ -1,4 +1,5 @@
 using Gitunia.App;
+using Gitunia.App.Loading.Trees;
 using Gitunia.Core.FileTree;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
@@ -29,7 +30,7 @@ namespace Gitunia.Tui.App.Details;
 /// <param name="openFile">Shows the content of a file row in the diff pane; returns a notice when it cannot.</param>
 public sealed class FileTreeController(
     WorkspaceHost host,
-    Func<TabSession?> activeSession,
+    Func<TerminalTabSession?> activeSession,
     Func<int?> selectedRow,
     Action<int> moveCursor,
     Action<KeyMode> setMode,

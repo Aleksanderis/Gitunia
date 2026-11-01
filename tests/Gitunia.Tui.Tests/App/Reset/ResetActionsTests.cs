@@ -386,7 +386,7 @@ public class ResetActionsTests
     {
         private readonly WorkspaceHost _host = new(Workspace.Empty);
         private readonly List<Action> _answers = [];
-        private readonly List<TabSession> _sessions = [];
+        private readonly List<TerminalTabSession> _sessions = [];
         private BranchSelection _selection = new(null, null, null);
 
         private Harness()
@@ -437,10 +437,11 @@ public class ResetActionsTests
                 repository.WorkingTreePath,
                 TestContext.Current.CancellationToken);
             harness._host.Dispatch(new OpenRepositoryCommand(location));
-            var session = new TabSession(
-                harness.TabId,
-                GraphGlyphSet.Unicode,
-                new CommitDetailsStore(TestGit.Services.CommitDetails, location, action => action(), TimeSpan.Zero));
+            var session = new TerminalTabSession(
+                new TabSessionParts(
+                    harness.TabId,
+                    new CommitDetailsStore(TestGit.Services.CommitDetails, location, action => action(), TimeSpan.Zero)),
+                GraphGlyphSet.Unicode);
             harness._sessions.Add(session);
             await TestGit.Services.RepositoryLoader.RunAsync(
                 location,

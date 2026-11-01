@@ -444,11 +444,11 @@ public static class PaneHints
         IReadOnlyList<KeyHint> hints,
         StatusBarHintMode mode,
         CommandLevel level = CommandLevel.AdvancedPlus) => mode switch
-    {
-        StatusBarHintMode.Minimal => Pinned,
-        StatusBarHintMode.Off => [],
-        _ => Listed(hints, level),
-    };
+        {
+            StatusBarHintMode.Minimal => Pinned,
+            StatusBarHintMode.Off => [],
+            _ => Listed(hints, level),
+        };
 
     /// <summary>
     /// True when the hint names a chord group (no actions) or at least one of its actions is listed at <paramref

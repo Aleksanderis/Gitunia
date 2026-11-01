@@ -32,7 +32,7 @@ public class CommitScriptTests
     {
         using var repository = TestRepository.Create().Commit("Initial", new TestFile("a.txt", "a\n"));
         repository.WriteFile("a.txt", "changed\n");
-        var session =await Session.OpenAsync(repository);
+        var session = await Session.OpenAsync(repository);
 
         await session.StageAllAsync();
         session.Run(ActionIds.WorkingTreeWriteMessage);
@@ -59,7 +59,7 @@ public class CommitScriptTests
         var before = repository.Head;
         repository.WriteFile("b.txt", "b\n");
         repository.Git("add", "b.txt");
-        var session =await Session.OpenAsync(repository);
+        var session = await Session.OpenAsync(repository);
 
         session.Run(ActionIds.WorkingTreeToggleAmend);
         await session.WaitForHeadMessageAsync();
@@ -83,7 +83,7 @@ public class CommitScriptTests
         repository.WriteFile("a.txt", "changed\n");
         repository.Git("add", "a.txt");
         var before = repository.Head;
-        var session =await Session.OpenAsync(repository);
+        var session = await Session.OpenAsync(repository);
         session.Draft.Editor.SetText("Will be blocked");
 
         session.Run(ActionIds.WorkingTreeCommit);
@@ -105,7 +105,7 @@ public class CommitScriptTests
         WriteHook(repository, "exit 1\n");
         repository.WriteFile("a.txt", "changed\n");
         repository.Git("add", "a.txt");
-        var session =await Session.OpenAsync(repository);
+        var session = await Session.OpenAsync(repository);
         session.Draft.Editor.SetText("Skip the hook");
 
         session.Run(ActionIds.WorkingTreeToggleNoVerify);
@@ -124,7 +124,7 @@ public class CommitScriptTests
         WriteHook(repository, "printf 'Really commit? [y/N] ' >&2\nif ! read -r answer; then echo 'no answer: stdin is closed' >&2; exit 1; fi\n");
         repository.WriteFile("a.txt", "changed\n");
         repository.Git("add", "a.txt");
-        var session =await Session.OpenAsync(repository);
+        var session = await Session.OpenAsync(repository);
         session.Draft.Editor.SetText("Prompted");
 
         session.Run(ActionIds.WorkingTreeCommit);

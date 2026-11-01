@@ -1,6 +1,7 @@
 using Gitunia.App;
 using Gitunia.App.Loading.Commits;
 using Gitunia.App.Loading.Trees;
+using Gitunia.App.Tabs;
 using Gitunia.Core.FileTree;
 using Gitunia.Core.Graph;
 using Gitunia.Core.Keymap;
@@ -32,7 +33,7 @@ public class FileTreeControllerTests : IDisposable
     private readonly List<KeyMode> _modes = [];
     private readonly List<string> _opened = [];
     private readonly UiPump _pump = new(TestContext.Current.CancellationToken);
-    private readonly TabSession _session;
+    private readonly TerminalTabSession _session;
     private readonly FileTreeController _controller;
     private int _cursor;
 
@@ -48,15 +49,16 @@ public class FileTreeControllerTests : IDisposable
         _reader.Add(_entry.Id, Paths);
         var debounce = TimeSpan.FromMilliseconds(1);
         var store = new CommitTreeStore(_reader, FakeCommitDetailsReader.Location, _pump.Post, debounce);
-        _session = new TabSession(
-            tabId,
-            GraphGlyphSet.Unicode,
-            new CommitDetailsStore(
+        _session = new TerminalTabSession(
+            new TabSessionParts(
+                tabId,
+                new CommitDetailsStore(
                 new FakeCommitDetailsReader(),
                 FakeCommitDetailsReader.Location,
                 _pump.Post,
                 debounce),
-            tree: new FileTreeSession(store));
+                Tree: new FileTreeSession(store)),
+            GraphGlyphSet.Unicode);
         _controller = new FileTreeController(
             _host,
             () => _session,
