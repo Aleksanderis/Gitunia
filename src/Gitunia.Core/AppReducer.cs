@@ -1,4 +1,6 @@
 using Gitunia.Core.Branches;
+using Gitunia.Core.Creation;
+using Gitunia.Core.Picker;
 using Gitunia.Core.Effects;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Pick;
@@ -27,17 +29,20 @@ namespace Gitunia.Core;
 /// The root reducer <c>(AppState, AppCommand) -> (AppState, Effects)</c>: pure, no I/O, no clock. A case here holds no
 /// logic; it delegates to the feature's reducer. Cases are in alphabetical order by feature.
 /// </summary>
-public static class AppReducer
+public static partial class AppReducer
 {
     /// <summary>Applies a command and returns the new state and the effects to run.</summary>
     public static AppUpdate Reduce(AppState state, AppCommand command) => command switch
     {
         BranchCommand branch => ReduceBranch(state, branch),
+        CreationCommand creation => ReduceCreation(state, creation),
         EffectFailedCommand failed => EffectFailed(state, failed),
         PickCommand pick => ReducePick(state, pick),
         RebaseCommand rebase => ReduceRebase(state, rebase),
         RebaseEditorCommand editor => ReduceRebaseEditor(state, editor),
         IntegrationCommand integration => ReduceIntegration(state, integration),
+        PickerCommand picker => ReducePicker(state, picker),
+        QuitCommand quit => ReduceQuit(state, quit),
         ReflogCommand reflog => ReduceReflog(state, reflog),
         SettingsCommand settings => ReduceSettings(state, settings),
         RemoteCommand remote => ReduceRemote(state, remote),
@@ -46,6 +51,7 @@ public static class AppReducer
         SyncCommand sync => ReduceSync(state, sync),
         TabRenameCommand rename => ReduceTabRename(state, rename),
         TagCommand tag => ReduceTag(state, tag),
+        WorkspaceActionPressed action => ReduceWorkspaceAction(state, action),
         WorkspaceCommand workspace => ReduceWorkspace(state, workspace),
         WorktreeCommand worktree => ReduceWorktree(state, worktree),
         _ => throw new UnhandledCommandException(command),

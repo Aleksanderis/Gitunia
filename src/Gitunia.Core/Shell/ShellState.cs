@@ -1,10 +1,13 @@
+using Gitunia.Core.Creation;
 using Gitunia.Core.Keymap.Models;
+using Gitunia.Core.Picker;
 using Gitunia.Core.Pick;
 using Gitunia.Core.Prompts;
 using Gitunia.Core.Rebase;
 using Gitunia.Core.Reflog;
 using Gitunia.Core.Settings;
 using Gitunia.Core.Status;
+using Gitunia.Core.Workspaces;
 
 namespace Gitunia.Core.Shell;
 
@@ -23,6 +26,10 @@ namespace Gitunia.Core.Shell;
 /// <param name="RebaseEditor">The interactive rebase editor (#983).</param>
 /// <param name="Reflog">The reflog overlay (#984).</param>
 /// <param name="Settings">The settings overlay (#984).</param>
+/// <param name="Creation">Clone and init from the repository picker (#985).</param>
+/// <param name="Picker">The repository picker (#985).</param>
+/// <param name="QuitWarned">The first quit after a failed save warned; the next one leaves.</param>
+/// <param name="TabActions">What the tab and pin actions keep between presses (#985).</param>
 /// <param name="Screen">The terminal size, or null until the terminal layer reported it (a dialog then counts as
 /// fitting).</param>
 public sealed record ShellState(
@@ -36,6 +43,10 @@ public sealed record ShellState(
     RebaseEditorSession RebaseEditor,
     ReflogSession Reflog,
     SettingsSession Settings,
+    CreationSession Creation,
+    PickerSession Picker,
+    bool QuitWarned,
+    WorkspaceActionSession TabActions,
     ScreenExtent? Screen)
 {
     public static ShellState Empty { get; } = new(
@@ -49,6 +60,10 @@ public sealed record ShellState(
         RebaseEditorSession.Empty,
         ReflogSession.Empty,
         SettingsSession.Empty,
+        CreationSession.Empty,
+        PickerSession.Empty,
+        false,
+        WorkspaceActionSession.Empty,
         null);
 
     /// <summary>
