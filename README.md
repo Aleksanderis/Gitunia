@@ -1,4 +1,6 @@
-# Gitunia
+<p align="center"><img src="docs/assets/logo.svg" width="96" alt="Gitunia logo"></p>
+
+<h1 align="center">Gitunia</h1>
 
 A keyboard-first terminal Git client in the spirit of graphical Git clients: a real commit graph, first-class branches and worktrees, vim-style modal navigation, mouse optional.
 

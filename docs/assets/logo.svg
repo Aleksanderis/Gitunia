@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Gitunia logo">
+  <title>Gitunia</title>
+  <rect x="3" y="7" width="58" height="50" rx="8" fill="#1e1e2e" stroke="#89b4fa" stroke-width="3"/>
+  <rect x="3" y="7" width="58" height="14" rx="8" fill="#89b4fa"/>
+  <rect x="3" y="14" width="58" height="7" fill="#89b4fa"/>
+  <g fill="#1e1e2e">
+    <circle cx="11" cy="14" r="2.2"/>
+    <circle cx="18" cy="14" r="2.2"/>
+    <circle cx="25" cy="14" r="2.2"/>
+  </g>
+  <g transform="translate(32 38.5) scale(1.1) translate(-39 -39)">
+    <g fill="none" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M32 29V49" stroke="#cdd6f4"/>
+      <path d="M32 45C32 38 46 40 46 31" stroke="#a6e3a1"/>
+    </g>
+    <circle cx="32" cy="29" r="3.6" fill="#cdd6f4"/>
+    <circle cx="32" cy="49" r="3.6" fill="#cdd6f4"/>
+    <circle cx="46" cy="31" r="3.6" fill="#a6e3a1"/>
+  </g>
+</svg>
