@@ -43,12 +43,16 @@ public sealed class ResetActions(Dispatcher host, IBranchSelectionSource selecti
     /// </summary>
     public string Begin(TabId tabId, string commitHash)
     {
+        var before = host.State.Shell.Status.Latest?.Sequence;
         host.Dispatch(new ResetRequested(tabId, commitHash));
         if (host.State.Shell.Prompt is not null)
         {
             return string.Empty;
         }
 
-        return host.State.Shell.Status.Latest?.Text ?? string.Empty;
+        // Only a message this request posted is its refusal, not an older one still on the status bar.
+        var latest = host.State.Shell.Status.Latest;
+
+        return latest is not null && latest.Sequence != before ? latest.Text : string.Empty;
     }
 }

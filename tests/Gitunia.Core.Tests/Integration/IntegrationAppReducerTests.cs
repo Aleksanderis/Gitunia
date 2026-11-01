@@ -196,7 +196,9 @@ public class IntegrationAppReducerTests
         var asked = AppReducer.Reduce(state, command);
         var dialog = Assert.IsType<ShowConfirmEffect>(Assert.Single(asked.Effects));
 
-        return AppReducer.Reduce(asked.State, new ConfirmRequestedCommand(dialog.Prompt, dialog.OnAccepted, null)).State;
+        var requested = new ConfirmRequestedCommand(dialog.Prompt, dialog.OnAccepted, null);
+
+        return AppReducer.Reduce(asked.State, requested).State;
     }
 
     private static AppState OpenPrompt(AppState state, IntegrationCommand command)

@@ -14,7 +14,7 @@ namespace Gitunia.App.Integration;
 /// <param name="operations">Tells whether a merge, rebase or similar is stopped.</param>
 public sealed class ResetWork(IResetWriter writer, IStatusReader statusReader, IRepositoryOperationDetector operations)
 {
-    /// <summary>Reads the stopped operation and, for mixed and hard, the tracked changes the reset would drop.</summary>
+    /// <summary>Reads the stopped operation and, for mixed and hard, the tracked changes the reset drops.</summary>
     public async Task<IntegrationCommand> PrepareAsync(PrepareResetEffect effect, CancellationToken cancellationToken)
     {
         var operation = operations.Detect(effect.Location);

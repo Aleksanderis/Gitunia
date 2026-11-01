@@ -21,7 +21,8 @@ public static class IntegrationReducer
             MergeRequested merge => MergeReducer.Reduce(merge, context),
             OperationAbortConfirmed or OperationRequested or OperationSkipConfirmed =>
                 OperationReducer.Reduce(command, context),
-            ResetConfirmed or ResetModeChosen or ResetPrepared or ResetRequested => ResetReducer.Reduce(command, context),
+            ResetConfirmed or ResetModeChosen or ResetPrepared or ResetRequested =>
+                ResetReducer.Reduce(command, context),
             _ => throw new UnhandledCommandException(command),
         };
 

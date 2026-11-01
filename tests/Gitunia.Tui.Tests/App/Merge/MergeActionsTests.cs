@@ -48,7 +48,8 @@ public class MergeActionsTests
         Assert.True(_actions.TryExecute(ActionIds.MergeBranchSquash, null));
 
         var merges = _effects.OfType<MergeBranchEffect>().ToArray();
-        Assert.Equal([MergeMode.Default, MergeMode.NoFastForward, MergeMode.Squash], merges.Select(merge => merge.Mode));
+        var modes = merges.Select(merge => merge.Mode);
+        Assert.Equal([MergeMode.Default, MergeMode.NoFastForward, MergeMode.Squash], modes);
         Assert.All(merges, merge => Assert.Equal(new MergeTarget(Commit, "2222222"), merge.Target));
     }
 

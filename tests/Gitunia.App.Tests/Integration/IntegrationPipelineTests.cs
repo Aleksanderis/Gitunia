@@ -125,7 +125,9 @@ public class IntegrationPipelineTests
         var topic = repository.Git("rev-parse", "topic").Trim();
         using var pipeline = await Pipeline.OpenAsync(repository);
 
-        pipeline.Dispatch(new MergeRequested(pipeline.TabId, MergeMode.Default, new MergeTarget("refs/heads/topic", "topic")));
+        var target = new MergeTarget("refs/heads/topic", "topic");
+
+        pipeline.Dispatch(new MergeRequested(pipeline.TabId, MergeMode.Default, target));
         Assert.True(pipeline.IsRunning);
         await pipeline.Pump.RunUntilAsync(() => !pipeline.IsRunning);
         await pipeline.Pump.RunUntilAsync(() => pipeline.Tab.Head?.CommitHash == topic);
@@ -173,7 +175,8 @@ public class IntegrationPipelineTests
     {
         using var repository = TestRepositories.Conflicted();
         using var pipeline = await Pipeline.OpenAsync(repository);
-        await pipeline.Pump.RunUntilAsync(() => pipeline.Tab.Operation is not null && pipeline.Tab.WorkingTree is not null);
+        await pipeline.Pump.RunUntilAsync(
+            () => pipeline.Tab.Operation is not null && pipeline.Tab.WorkingTree is not null);
 
         pipeline.Dispatch(new OperationRequested(pipeline.TabId, OperationAction.Continue));
 
@@ -239,7 +242,8 @@ public class IntegrationPipelineTests
             host.Dispatch(new OpenRepositoryCommand(location));
             var pipeline = new Pipeline(host, runner, pump, statuses);
             var session = runner.SessionOf(pipeline.TabId)!;
-            await pump.RunUntilAsync(() => !session.IsLoading && pipeline.Tab.Refs.Length > 0 && pipeline.Tab.Head is not null);
+            await pump.RunUntilAsync(
+                () => !session.IsLoading && pipeline.Tab.Refs.Length > 0 && pipeline.Tab.Head is not null);
 
             return pipeline;
         }

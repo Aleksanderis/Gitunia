@@ -87,7 +87,8 @@ public static class PromptReducer
         ImmutableArray<PromptKeyChoice> keys,
         KeyEvent key)
     {
-        if (key.Modifiers != KeyModifiers.None || keys.FirstOrDefault(choice => choice.Key == key.Name) is not { } chosen)
+        var listed = keys.FirstOrDefault(choice => choice.Key == key.Name);
+        if (key.Modifiers != KeyModifiers.None || listed is not { } chosen)
         {
             return new ShellUpdate(state, []);
         }

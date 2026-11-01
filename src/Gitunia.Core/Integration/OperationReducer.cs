@@ -68,7 +68,9 @@ public static class OperationReducer
         var oldTip = info.OriginalHead ?? context.Head?.CommitHash;
         var prompt = OperationTexts.AbortPrompt(info, branch, oldTip);
 
-        return [new ShowConfirmEffect(prompt, new OperationAbortConfirmed(context.TabId, info, branch), TooSmallNotice)];
+        var accepted = new OperationAbortConfirmed(context.TabId, info, branch);
+
+        return [new ShowConfirmEffect(prompt, accepted, TooSmallNotice)];
     }
 
     private static ImmutableArray<AppEffect> AskSkip(OperationInfo info, IntegrationContext context)
@@ -83,7 +85,9 @@ public static class OperationReducer
         return [new ShowConfirmEffect(prompt, new OperationSkipConfirmed(context.TabId, info), TooSmallNotice)];
     }
 
-    private static ImmutableArray<AppEffect> AbortConfirmed(OperationAbortConfirmed confirmed, IntegrationContext context)
+    private static ImmutableArray<AppEffect> AbortConfirmed(
+        OperationAbortConfirmed confirmed,
+        IntegrationContext context)
     {
         if (context.IsBusy)
         {
@@ -94,7 +98,9 @@ public static class OperationReducer
     }
 
     // The dialog can outlive the state it was opened in: the tab may have started something else meanwhile.
-    private static ImmutableArray<AppEffect> SkipConfirmed(OperationSkipConfirmed confirmed, IntegrationContext context)
+    private static ImmutableArray<AppEffect> SkipConfirmed(
+        OperationSkipConfirmed confirmed,
+        IntegrationContext context)
     {
         if (context.IsBusy)
         {

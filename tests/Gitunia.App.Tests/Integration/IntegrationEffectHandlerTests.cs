@@ -6,6 +6,7 @@ using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Merge;
 using Gitunia.Git.Operations.Models;
+using Gitunia.Git.Repositories;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Reset;
 using Gitunia.Git.Tests.Fixtures;
@@ -92,7 +93,9 @@ public class IntegrationEffectHandlerTests
         repository.WriteFile("untracked.txt", "x");
         var location = await LocateAsync(repository);
 
-        var result = await RunAsync(new PrepareResetEffect(Tab, location, Target(FirstCommit(repository), ResetMode.Hard)));
+        var target = Target(FirstCommit(repository), ResetMode.Hard);
+
+        var result = await RunAsync(new PrepareResetEffect(Tab, location, target));
 
         var prepared = Assert.IsType<ResetPrepared>(result);
         var entry = Assert.Single(prepared.Changes);
@@ -108,7 +111,9 @@ public class IntegrationEffectHandlerTests
         repository.WriteFile("a.txt", "dirty");
         var location = await LocateAsync(repository);
 
-        var result = await RunAsync(new PrepareResetEffect(Tab, location, Target(FirstCommit(repository), ResetMode.Soft)));
+        var target = Target(FirstCommit(repository), ResetMode.Soft);
+
+        var result = await RunAsync(new PrepareResetEffect(Tab, location, target));
 
         Assert.Empty(Assert.IsType<ResetPrepared>(result).Changes);
     }
@@ -119,7 +124,9 @@ public class IntegrationEffectHandlerTests
         using var repository = TestRepositories.Conflicted();
         var location = await LocateAsync(repository);
 
-        var result = await RunAsync(new PrepareResetEffect(Tab, location, Target(FirstCommit(repository), ResetMode.Soft)));
+        var target = Target(FirstCommit(repository), ResetMode.Soft);
+
+        var result = await RunAsync(new PrepareResetEffect(Tab, location, target));
 
         Assert.Equal(RepositoryOperation.Merge, Assert.IsType<ResetPrepared>(result).Operation);
     }
@@ -176,7 +183,8 @@ public class IntegrationEffectHandlerTests
 
         var result = await RunAsync(Merge(location, "refs/heads/topic", "topic", MergeMode.Squash));
 
-        Assert.Contains("nothing is committed", Assert.IsType<IntegrationSucceeded>(result).Text, StringComparison.Ordinal);
+        var text = Assert.IsType<IntegrationSucceeded>(result).Text;
+        Assert.Contains("nothing is committed", text, StringComparison.Ordinal);
         Assert.Equal(old, repository.Head);
         Assert.Contains("A  b.txt", repository.Git("status", "--porcelain"), StringComparison.Ordinal);
     }
@@ -237,7 +245,9 @@ public class IntegrationEffectHandlerTests
         using var source = new CancellationTokenSource();
         await source.CancelAsync();
 
-        var result = await RunWithTokenAsync(Merge(location, "refs/heads/topic", "topic", MergeMode.Default), source.Token);
+        var effect = Merge(location, "refs/heads/topic", "topic", MergeMode.Default);
+
+        var result = await RunWithTokenAsync(effect, source.Token);
 
         Assert.IsType<IntegrationCancelled>(result);
         Assert.Equal(old, repository.Head);
@@ -307,10 +317,12 @@ public class IntegrationEffectHandlerTests
     [InlineData(RepositoryOperation.Rebase)]
     [InlineData(RepositoryOperation.CherryPick)]
     [InlineData(RepositoryOperation.Revert)]
-    public async Task GivenEachOperationStoppedOnAConflict_WhenAborted_ThenTheOldTipReturns(RepositoryOperation operation)
+    public async Task GivenEachOperationStoppedOnAConflict_WhenAborted_ThenTheOldTipReturns(
+        RepositoryOperation operation)
     {
         using var repository = Fixture(operation);
-        var before = operation == RepositoryOperation.Rebase ? repository.Git("rev-parse", "other").Trim() : repository.Head;
+        var rebased = operation == RepositoryOperation.Rebase;
+        var before = rebased ? repository.Git("rev-parse", "other").Trim() : repository.Head;
         var location = await LocateAsync(repository);
 
         var result = await RunAsync(new AbortOperationEffect(Tab, location, await InfoAsync(location), "main"));
@@ -350,7 +362,11 @@ public class IntegrationEffectHandlerTests
         Assert.IsType<IntegrationCancelled>(result);
     }
 
-    private static MergeBranchEffect Merge(RepositoryLocation location, string revision, string label, MergeMode mode) =>
+    private static MergeBranchEffect Merge(
+        RepositoryLocation location,
+        string revision,
+        string label,
+        MergeMode mode) =>
         new(Tab, location, "main", new MergeTarget(revision, label), mode);
 
     private static ResetTarget Target(string commit, ResetMode mode) => new(commit, "main", mode);
@@ -379,7 +395,7 @@ public class IntegrationEffectHandlerTests
     };
 
     private static RepositoryOperation Detect(RepositoryLocation location) =>
-        new Gitunia.Git.Repositories.RepositoryOperationDetector().Detect(location);
+        new RepositoryOperationDetector().Detect(location);
 
     private static async Task<OperationInfo> InfoAsync(RepositoryLocation location)
     {
@@ -399,7 +415,9 @@ public class IntegrationEffectHandlerTests
     private static Task<AppCommand> RunAsync(IntegrationEffect effect) =>
         RunWithTokenAsync(effect, TestContext.Current.CancellationToken);
 
-    private static async Task<AppCommand> RunWithTokenAsync(IntegrationEffect effect, CancellationToken cancellationToken)
+    private static async Task<AppCommand> RunWithTokenAsync(
+        IntegrationEffect effect,
+        CancellationToken cancellationToken)
     {
         var dispatcher = new RecordingDispatcher();
         IntegrationEffectHandler.Create(TestGit.Services, dispatcher).Handle(effect, cancellationToken);

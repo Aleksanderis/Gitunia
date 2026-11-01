@@ -15,8 +15,8 @@ namespace Gitunia.Core.Prompts;
 /// <param name="Choices">The candidates of a type-to-filter picker; null for a prompt that only asks for text.</param>
 /// <param name="NoMatch">The row (and the notice on Enter) when nothing matches; used by pickers.</param>
 /// <param name="Owner">The tab the prompt belongs to; the prompt closes when that tab is no longer the active one.</param>
-/// <param name="KeyChoices">The options of a prompt answered by one key; null for a text or picker prompt. Any other key
-/// is ignored and Enter does nothing; Esc cancels.</param>
+/// <param name="KeyChoices">The options of a prompt answered by one key; null for a text or picker prompt. Any other
+/// key is ignored and Enter does nothing; Esc cancels.</param>
 public sealed record PromptRequest(
     string Title,
     string Context,
