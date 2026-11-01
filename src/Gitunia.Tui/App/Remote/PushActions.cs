@@ -1,3 +1,4 @@
+using Gitunia.Git;
 using Gitunia.Tui.App.Tabs;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
@@ -59,7 +60,6 @@ public sealed class PushActions(
     Action redraw,
     Func<BranchSelection> selection) : IPromptHandler
 {
-    private const int ShortHashLength = 7;
     private const string DefaultRemote = "origin";
     private const string BusyNotice = "Busy: the last push operation is still running";
     private const string TooSmallNotice = "The screen is too small to ask: nothing was changed";
@@ -227,7 +227,6 @@ public sealed class PushActions(
 
     private static bool HasUpstream(GitRef branch) => branch.UpstreamFullName is not null && !branch.IsUpstreamGone;
 
-    private static string ShortHash(string hash) => hash[..Math.Min(ShortHashLength, hash.Length)];
 
     private async Task CheckAheadAsync(
         RepositoryState tab,
@@ -418,7 +417,7 @@ public sealed class PushActions(
         var prompt = new ConfirmPrompt(
             "Force push",
             [
-                $"Force push {branch.Name} to {name}, overwriting it (now at {ShortHash(upstream.CommitHash)})?",
+                $"Force push {branch.Name} to {name}, overwriting it (now at {ShortHash.Of(upstream.CommitHash)})?",
                 "A lease: refused when the remote moved since your last fetch.",
                 "Commits that are only on the remote branch are no longer on it afterwards.",
             ],
@@ -426,7 +425,7 @@ public sealed class PushActions(
             "Force push");
         var lease = new PushLease(target.Branch, upstream.CommitHash);
         var request = new PushRequest(target.Remote, branch.Name, setUpstream, lease);
-        var done = $"Force pushed {branch.Name} to {name} (was {ShortHash(upstream.CommitHash)})";
+        var done = $"Force pushed {branch.Name} to {name} (was {ShortHash.Of(upstream.CommitHash)})";
         if (!confirm(prompt, () => StartForce(tab.Id, request, done)))
         {
             statuses.Warning(TooSmallNotice);
@@ -557,7 +556,7 @@ public sealed class PushActions(
         var prompt = new ConfirmPrompt(
             "Delete branch on remote",
             [
-                $"Delete the branch {branch} on the remote {remoteName} (at {ShortHash(target.CommitHash)})?",
+                $"Delete the branch {branch} on the remote {remoteName} (at {ShortHash.Of(target.CommitHash)})?",
                 "Local branches are not touched.",
             ],
             $"Undo: git push {remoteName} {target.CommitHash}:{GitRefPrefixes.Heads}{branch}",

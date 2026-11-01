@@ -188,7 +188,7 @@ public sealed class DiffReader : IDiffReader
                 .StreamAsync(location.CommandPath, arguments, run, cancellationToken)
                 .ConfigureAwait(false))
             {
-                parser.Feed(chunk, completed);
+                parser.Feed(chunk.Span, completed);
                 foreach (var file in completed)
                 {
                     yield return file;

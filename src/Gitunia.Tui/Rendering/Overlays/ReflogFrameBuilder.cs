@@ -1,6 +1,7 @@
 using System.Globalization;
 using Gitunia.Core.Mouse;
 using Gitunia.Core.Reflog;
+using Gitunia.Git;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Styling;
 
@@ -14,7 +15,6 @@ public static class ReflogFrameBuilder
     private const int ChromeRows = 3 + ActionRows;
     private const int ActionRows = 4;
     private const int ScreenMargin = 2;
-    private const int ShortHashLength = 7;
 
     private static readonly HintItem[] PickerHints = [new("Enter", "open"), new("Esc", "back")];
 
@@ -52,7 +52,7 @@ public static class ReflogFrameBuilder
         for (var offset = 0; offset < window.RowCount && window.Top + offset < state.Entries.Count; offset++)
         {
             var entry = state.Entries[window.Top + offset];
-            var hash = entry.Hash[..Math.Min(ShortHashLength, entry.Hash.Length)];
+            var hash = ShortHash.Of(entry.Hash);
             var message = entry.Message.Length == 0 ? entry.Action : $"{entry.Action}: {entry.Message}";
             var selector = $"{state.Title}@{{{entry.Index.ToString(CultureInfo.InvariantCulture)}}}";
             lines.Add(OverlayBox.TwoColumns(

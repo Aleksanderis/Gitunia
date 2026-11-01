@@ -1,4 +1,5 @@
 using Gitunia.Core.Overlays;
+using Gitunia.Git;
 using Gitunia.Git.Refs;
 using Gitunia.Git.Worktrees;
 using Gitunia.Tui.App.WorkingTree;
@@ -10,7 +11,6 @@ namespace Gitunia.Tui.App.Worktrees;
 public static class WorktreeTexts
 {
     private const int NamedChangeLimit = 5;
-    private const int ShortHashLength = 7;
 
     private const string DirtyConsequence =
         "The uncommitted changes are deleted with the directory (--force). Git keeps no copy: this cannot be undone.";
@@ -111,7 +111,7 @@ public static class WorktreeTexts
             return $"Undo: git worktree add <path> {ShortName(branch)} checks the branch out again.";
         }
 
-        var hash = worktree.HeadHash is { Length: >= ShortHashLength } head ? head[..ShortHashLength] : "<hash>";
+        var hash = worktree.HeadHash is { Length: >= ShortHash.Length } head ? head[..ShortHash.Length] : "<hash>";
         return $"Undo: git worktree add <path> {hash} checks that commit out again.";
     }
 }

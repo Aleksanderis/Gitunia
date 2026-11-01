@@ -1,4 +1,5 @@
 using Gitunia.Core.Status;
+using Gitunia.Git;
 using Gitunia.Git.Merge;
 using Gitunia.Tui.App.Operations;
 
@@ -9,8 +10,8 @@ public static class MergeTexts
 {
     public static OperationReport Report(MergeResult result, MergeMode mode, string branch, string target)
     {
-        var tip = OperationTexts.ShortHash(result.Head);
-        var was = OperationTexts.ShortHash(result.OldHead);
+        var tip = ShortHash.Of(result.Head);
+        var was = ShortHash.Of(result.OldHead);
         var undo = $"undo: git reset --hard {was} (or ORIG_HEAD, the reflog)";
         return result.Kind switch
         {

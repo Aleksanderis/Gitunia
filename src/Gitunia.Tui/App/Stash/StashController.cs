@@ -7,6 +7,7 @@ using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
+using Gitunia.Git;
 using Gitunia.Git.Stash;
 using Gitunia.Git.Stash.Models;
 using Gitunia.Tui.App.Tabs;
@@ -53,7 +54,6 @@ public sealed class StashController(
     private const string NoFileNotice = "Select a file of a shown stash first (Enter on the stash, Ctrl-j to its files)";
     private const string TooSmallNoRestoreNotice = "The screen is too small to ask: nothing was restored";
     private const string TooSmallNotice = "The screen is too small to ask: nothing was dropped";
-    private const int ShortHashLength = 8;
 
     private TabId? _pushing;
     private bool _includeUntracked;
@@ -418,7 +418,7 @@ public sealed class StashController(
         }
 
         var named = message.Length > 0 ? $" \"{message}\"" : string.Empty;
-        return new StashReport($"Stashed{named} as {Short(result.CommitHash)}", StatusSeverity.Info);
+        return new StashReport($"Stashed{named} as {ShortHash.Of(result.CommitHash)}", StatusSeverity.Info);
     }
 
     private static StashReport ApplyReport(StashResult result, StashEntry entry, bool pop)
@@ -457,9 +457,6 @@ public sealed class StashController(
 
     private static StashReport Gone(StashEntry entry) =>
         new($"{entry.Name} is no longer in the stash list: nothing was changed", StatusSeverity.Warning);
-
-    private static string Short(string? hash) =>
-        hash is null ? string.Empty : hash[..Math.Min(ShortHashLength, hash.Length)];
 
     private void Finish(TabId tabId, string message, StatusSeverity severity)
     {

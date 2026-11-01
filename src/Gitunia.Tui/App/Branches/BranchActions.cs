@@ -54,7 +54,6 @@ public sealed class BranchActions(
     Action redraw,
     Func<BranchSelection> selection) : IPromptHandler
 {
-    private const int ShortHashLength = 7;
     private const string BusyNotice = "Busy: the last branch operation is still running";
     private const string TooSmallNotice = "The screen is too small to ask: nothing was deleted";
     private const string SelectNotice = "Select a local branch (sidebar) or a commit with one branch on it";
@@ -228,7 +227,7 @@ public sealed class BranchActions(
         }
 
         _startPoint = commitHash;
-        _label = ShortHash(commitHash);
+        _label = ShortHash.Of(commitHash);
         _checkout = checkout;
         Open(BranchPromptKind.Create, tab, string.Empty);
         redraw();
@@ -254,7 +253,7 @@ public sealed class BranchActions(
         Start(tab, "Could not check out", async token =>
         {
             await writer.SwitchDetachedAsync(tab.Location, commitHash, token).ConfigureAwait(false);
-            return $"HEAD is detached at {ShortHash(commitHash)}";
+            return $"HEAD is detached at {ShortHash.Of(commitHash)}";
         }, CommitOf(tab, commitHash));
         return string.Empty;
     }
@@ -270,7 +269,6 @@ public sealed class BranchActions(
         return step != 0;
     }
 
-    private static string ShortHash(string hash) => hash[..Math.Min(ShortHashLength, hash.Length)];
 
     private bool TryHandleOpenPrompt(ActionId action)
     {
@@ -339,7 +337,7 @@ public sealed class BranchActions(
         else if (chosen.CommitHash is { } hash)
         {
             _startPoint = hash;
-            _label = ShortHash(hash);
+            _label = ShortHash.Of(hash);
         }
         else
         {
@@ -492,7 +490,7 @@ public sealed class BranchActions(
         Start(tab, "Could not fast-forward", async token =>
         {
             await writer.FastForwardAsync(tab.Location, name, upstream, token).ConfigureAwait(false);
-            return $"Fast-forwarded {name} from {ShortHash(old)} to {ShortHash(upstreamRef.CommitHash)} "
+            return $"Fast-forwarded {name} from {ShortHash.Of(old)} to {ShortHash.Of(upstreamRef.CommitHash)} "
                 + $"(undo: git update-ref {GitRefPrefixes.Heads}{name} {old})";
         });
         return string.Empty;
@@ -683,7 +681,7 @@ public sealed class BranchActions(
                 Start(tab, "Could not check out", async token =>
                 {
                     await writer.SwitchDetachedAsync(tab.Location, target, token).ConfigureAwait(false);
-                    return $"HEAD is detached at {ShortHash(target)}";
+                    return $"HEAD is detached at {ShortHash.Of(target)}";
                 }, CommitOf(tab, target));
                 break;
         }
@@ -728,7 +726,7 @@ public sealed class BranchActions(
         {
             _deleteNames = names;
             _deleteIndex = 0;
-            _label = ShortHash(chosen.CommitHash ?? string.Empty);
+            _label = ShortHash.Of(chosen.CommitHash ?? string.Empty);
             if (chosen.RowKind == SidebarRowKind.Folder)
             {
                 _label = $"{chosen.Name}/";
@@ -806,7 +804,7 @@ public sealed class BranchActions(
 
         var prompt = new ConfirmPrompt(
             "Delete branch",
-            [$"Delete the branch {branch.Name} (at {ShortHash(branch.CommitHash)})?"],
+            [$"Delete the branch {branch.Name} (at {ShortHash.Of(branch.CommitHash)})?"],
             $"Undo: git branch {branch.Name} {branch.CommitHash}",
             "Delete branch");
         return confirm(prompt, () => StartDelete(tab.Id, branch)) ? string.Empty : TooSmallNotice;
@@ -899,7 +897,7 @@ public sealed class BranchActions(
     }
 
     private static string DeletedText(GitRef branch) =>
-        $"Deleted branch {branch.Name} (was {ShortHash(branch.CommitHash)}; restore: " +
+        $"Deleted branch {branch.Name} (was {ShortHash.Of(branch.CommitHash)}; restore: " +
         $"git branch {branch.Name} {branch.CommitHash})";
 
     private void Start(

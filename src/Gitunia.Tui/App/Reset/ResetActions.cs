@@ -5,6 +5,7 @@ using Gitunia.Core.Sidebar;
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
+using Gitunia.Git;
 using Gitunia.Git.Refs.Models;
 using Gitunia.Git.Repositories;
 using Gitunia.Git.Repositories.Models;
@@ -53,7 +54,6 @@ public sealed class ResetActions(
     Func<BranchSelection> selection,
     TabOperationGate gate) : IPromptHandler
 {
-    private const int ShortHashLength = 7;
     private const int ListedFiles = 6;
     private const string BusyNotice = "Busy: the last reset is still running";
     private const string TooSmallNotice = "The screen is too small to ask: nothing was reset";
@@ -80,7 +80,7 @@ public sealed class ResetActions(
 
             return PromptPopup.ForChoice(
                 "Reset",
-                $"Move {_branchName} to {ShortHash(_targetHash)}",
+                $"Move {_branchName} to {ShortHash.Of(_targetHash)}",
                 [
                     "s  soft: keep the index and the files",
                     "m  mixed: keep the files, clear the index",
@@ -171,7 +171,6 @@ public sealed class ResetActions(
         return string.Empty;
     }
 
-    private static string ShortHash(string hash) => hash[..Math.Min(ShortHashLength, hash.Length)];
 
     private static ResetMode? ModeOf(string name) => name switch
     {
@@ -332,7 +331,7 @@ public sealed class ResetActions(
         var oldHash = tab.Head!.CommitHash!;
         List<string> lines =
         [
-            $"Reset {target.BranchName} to {ShortHash(target.CommitHash)} with --hard: " +
+            $"Reset {target.BranchName} to {ShortHash.Of(target.CommitHash)} with --hard: " +
             "HEAD, the index and the tracked files move to that commit.",
         ];
         if (changes.Count == 0)
@@ -370,7 +369,7 @@ public sealed class ResetActions(
         return new ConfirmPrompt(
             "Mixed reset",
             [
-                $"Reset {target.BranchName} to {ShortHash(target.CommitHash)} with --mixed: the index is cleared; " +
+                $"Reset {target.BranchName} to {ShortHash.Of(target.CommitHash)} with --mixed: the index is cleared; " +
                 "the files in the working tree stay.",
                 $"{OperationText.Plural(staged, "file")} {(staged == 1 ? "loses" : "lose")} the staged state{detail}.",
             ],
@@ -408,8 +407,8 @@ public sealed class ResetActions(
             var oldHash = await writer
                 .ResetAsync(tab.Location, target.Mode, target.CommitHash, token)
                 .ConfigureAwait(false);
-            var done = $"Reset {target.BranchName} to {ShortHash(target.CommitHash)} ({ModeName(target.Mode)}), " +
-                $"was {ShortHash(oldHash)}; undo: {UndoCommand(target.Mode, oldHash)} (or ORIG_HEAD, the reflog)";
+            var done = $"Reset {target.BranchName} to {ShortHash.Of(target.CommitHash)} ({ModeName(target.Mode)}), " +
+                $"was {ShortHash.Of(oldHash)}; undo: {UndoCommand(target.Mode, oldHash)} (or ORIG_HEAD, the reflog)";
             postToUi(() => Finish(tab.Id, done, StatusSeverity.Info, true));
         }
         catch (OperationCanceledException)

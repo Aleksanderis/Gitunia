@@ -1,6 +1,7 @@
 using Gitunia.Core.Overlays;
 using Gitunia.Core.Rebase;
 using Gitunia.Core.Status;
+using Gitunia.Git;
 using Gitunia.Git.Operations.Models;
 using Gitunia.Git.Rebase;
 using Gitunia.Git.Refs.Models;
@@ -12,7 +13,6 @@ namespace Gitunia.Tui.App.Rebase;
 /// <summary>The words of the interactive rebase: its Confirm and the report after it ran. Pure.</summary>
 public static class RebaseEditorTexts
 {
-    private const int ShortHashLength = 7;
     private const int NamedDropLimit = 5;
 
     /// <summary>The Confirm before the rebase starts: what is kept, which commits are dropped, the undo.</summary>
@@ -31,7 +31,7 @@ public static class RebaseEditorTexts
         if (dropped.Count > 0)
         {
             lines.Add($"Dropped from {state.BranchName}:");
-            lines.AddRange(dropped.Take(NamedDropLimit).Select(row => $"  {ShortHash(row.Hash)} {row.Subject}"));
+            lines.AddRange(dropped.Take(NamedDropLimit).Select(row => $"  {ShortHash.Of(row.Hash)} {row.Subject}"));
             if (dropped.Count > NamedDropLimit)
             {
                 lines.Add($"  and {dropped.Count - NamedDropLimit} more");
@@ -63,13 +63,13 @@ public static class RebaseEditorTexts
         {
             return new OperationReport(
                 $"Rebase of {state.BranchName} onto {state.TargetLabel} stopped on conflicts: resolve the files " +
-                $"marked !, then <space>gc (continue), <space>ga (abort, back to {ShortHash(result.OriginalHead)})",
+                $"marked !, then <space>gc (continue), <space>ga (abort, back to {ShortHash.Of(result.OriginalHead)})",
                 StatusSeverity.Warning);
         }
 
         return new OperationReport(
             $"Rebased {state.BranchName} onto {state.TargetLabel} interactively " +
-            $"({ShortHash(result.Head ?? string.Empty)}), was {ShortHash(result.OriginalHead)}; " +
+            $"({ShortHash.Of(result.Head ?? string.Empty)}), was {ShortHash.Of(result.OriginalHead)}; " +
             $"undo: git reset --keep {result.OriginalHead} (or ORIG_HEAD, the reflog)",
             StatusSeverity.Info);
     }
@@ -98,5 +98,4 @@ public static class RebaseEditorTexts
         }
     }
 
-    private static string ShortHash(string hash) => hash[..Math.Min(ShortHashLength, hash.Length)];
 }

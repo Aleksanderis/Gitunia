@@ -168,7 +168,7 @@ public class GitRunnerTests
 
         await foreach (var chunk in RunnerFor(fake).StreamAsync(AnyDirectory, ["log"], cancellationToken: TestContext.Current.CancellationToken))
         {
-            collected.AddRange(chunk);
+            collected.AddRange(chunk.Span);
         }
 
         Assert.Equal("hello", Encoding.UTF8.GetString([.. collected]));
@@ -183,7 +183,7 @@ public class GitRunnerTests
         {
             await foreach (var unused in RunnerFor(fake).StreamAsync(AnyDirectory, ["log"], cancellationToken: TestContext.Current.CancellationToken))
             {
-                Assert.NotNull(unused);
+                Assert.False(unused.IsEmpty);
             }
         });
     }
@@ -219,7 +219,7 @@ public class GitRunnerTests
 
         await foreach (var unused in RunnerFor(fake).StreamAsync(AnyDirectory, ["log"], cancellationToken: TestContext.Current.CancellationToken))
         {
-            Assert.NotEmpty(unused);
+            Assert.False(unused.IsEmpty);
             break;
         }
 
@@ -307,6 +307,37 @@ public class GitRunnerTests
         var result = await runner.RunAsync(testRepository.WorkingTreePath, ["config", "--get", "no.such.key"], GitRunOptions.ReadOnlyRunAllowingNoMatch, TestContext.Current.CancellationToken);
 
         Assert.Equal(GitRunOptions.NoMatchExitCode, result.ExitCode);
+    }
+
+    [Fact]
+    public async Task GivenOneReadSlot_WhenASecondReadStartsWhileTheFirstRuns_ThenItWaitsButAWriteDoesNot()
+    {
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "The cmd fake cannot record its process id.");
+        var marker = MarkerPath();
+        using var fake = FakeGitExecutable.SlowOnRequest(marker);
+        using var runner = new GitRunner(new GitRunnerOptions(fake.ExecutablePath, MaximumConcurrentReads: 1));
+        using var signal = ProcessIdSignal.Watch(marker);
+        using var holder = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+        var token = TestContext.Current.CancellationToken;
+
+        var slow = runner.RunAsync(AnyDirectory, ["slow"], GitRunOptions.ReadOnlyRun, holder.Token);
+        await signal.Recorded.WaitAsync(token);
+        var queued = runner.RunAsync(AnyDirectory, ["fast"], GitRunOptions.ReadOnlyRun, token);
+        var write = await runner.RunAsync(AnyDirectory, ["fast"], cancellationToken: token);
+        var queuedBeforeRelease = queued.IsCompleted;
+        await holder.CancelAsync();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => slow);
+        var read = await queued;
+
+        Assert.Equal("fast", write.StandardOutputText);
+        Assert.False(queuedBeforeRelease);
+        Assert.Equal("fast", read.StandardOutputText);
+    }
+
+    [Fact]
+    public void GivenNoReadSlots_WhenCreatingTheRunner_ThenItThrows()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() => new GitRunner(new GitRunnerOptions(MaximumConcurrentReads: 0)));
     }
 
     private static GitRunner RunnerFor(FakeGitExecutable fake) => new(new GitRunnerOptions(fake.ExecutablePath));

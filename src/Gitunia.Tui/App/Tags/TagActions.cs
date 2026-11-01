@@ -6,6 +6,7 @@ using Gitunia.Core.Sidebar;
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
+using Gitunia.Git;
 using Gitunia.Git.Execution.Exceptions;
 using Gitunia.Git.Refs.Models;
 using Gitunia.Git.Remotes;
@@ -57,7 +58,6 @@ public sealed class TagActions(
     Func<BranchSelection> selection,
     Action<TabId, string, IReadOnlyList<string>, Func<bool>> offerTerminal) : IPromptHandler
 {
-    private const int ShortHashLength = 7;
     private const string BusyNotice = "Busy: the last tag operation is still running";
     private const string TooSmallNotice = "The screen is too small to ask: nothing was changed";
     private const string SelectNotice = "Select a tag (sidebar) or a commit with one tag on it";
@@ -166,7 +166,6 @@ public sealed class TagActions(
     {
     }
 
-    private static string ShortHash(string hash) => hash[..Math.Min(ShortHashLength, hash.Length)];
 
     private static bool HasTag(RepositoryState tab, string name) =>
         tab.Refs.Any(reference => reference.Kind == RefKind.Tag && reference.Name == name);
@@ -215,7 +214,7 @@ public sealed class TagActions(
         }
 
         _startPoint = hash;
-        _label = chosen.Name ?? ShortHash(hash);
+        _label = chosen.Name ?? ShortHash.Of(hash);
         Open(TagPromptKind.CreateName, tab, string.Empty);
         return string.Empty;
     }
@@ -321,7 +320,7 @@ public sealed class TagActions(
         var prompt = new ConfirmPrompt(
             "Delete tag",
             [
-                $"Delete the local tag {tag!.Name} (at {ShortHash(tag.CommitHash)})?",
+                $"Delete the local tag {tag!.Name} (at {ShortHash.Of(tag.CommitHash)})?",
                 "A copy on a remote is not touched.",
             ],
             $"Undo: git tag {tag.Name} {tag.ObjectHash}",
@@ -341,7 +340,7 @@ public sealed class TagActions(
         Start(tab, "Could not delete the tag", async token =>
         {
             await writer.DeleteAsync(tab.Location, name, token).ConfigureAwait(false);
-            return $"Deleted tag {name} (was {ShortHash(tag.ObjectHash)}; restore: git tag {name} {tag.ObjectHash})";
+            return $"Deleted tag {name} (was {ShortHash.Of(tag.ObjectHash)}; restore: git tag {name} {tag.ObjectHash})";
         });
     }
 
