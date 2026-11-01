@@ -1,5 +1,4 @@
 using Gitunia.Core.Conflicts;
-using Gitunia.Core.Editing;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Repeat;
 using Gitunia.Core.Mouse;
@@ -61,6 +60,7 @@ public sealed class MainView : IDisposable, IPaneLists
 
     private readonly Func<ScreenModel> _model;
     private readonly GraphGlyphSet _glyphs;
+    private readonly IMessageBoxPort _messageBox;
     private readonly Func<PaneArrangement> _arrangement;
     private Func<bool> _suppressed = () => false;
     private GridKey? _gridKey;
@@ -74,8 +74,10 @@ public sealed class MainView : IDisposable, IPaneLists
         Func<SidebarChrome> sidebarChrome,
         Func<PaneArrangement> arrangement,
         Func<int, StyledLine> diffTitleLine,
-        DiffListSource diffSource)
+        DiffListSource diffSource,
+        IMessageBoxPort messageBox)
     {
+        _messageBox = messageBox;
         _arrangement = arrangement;
         _model = model;
         _glyphs = glyphs;
@@ -231,7 +233,7 @@ public sealed class MainView : IDisposable, IPaneLists
             Width = Dim.Func(_ => WorkingRects().MessageEditor.Width),
             Height = Dim.Func(_ => WorkingRects().MessageEditor.Height),
             CanFocus = true,
-            Source = new MessageBoxListSource(() => ActiveDraft(), () => IsEditingMessage(), () => IsCommitting(), glyphs),
+            Source = new MessageBoxListSource(messageBox, glyphs),
             Visible = false,
         };
 
@@ -428,15 +430,6 @@ public sealed class MainView : IDisposable, IPaneLists
 
     /// <summary>The editor rows of the commit message box of the Changes view (the option row below them is a separate row).</summary>
     public PaneListView WorkingMessage { get; }
-
-    /// <summary>The commit draft of the active tab, null when it has none; the message box and its option row show it.</summary>
-    public Func<CommitDraft?> ActiveDraft { get; set; } = () => null;
-
-    /// <summary>True while the message box is in Insert mode, so it shows the text cursor.</summary>
-    public Func<bool> IsEditingMessage { get; set; } = () => false;
-
-    /// <summary>True while a commit of the active tab runs, so the message box is read-only.</summary>
-    public Func<bool> IsCommitting { get; set; } = () => false;
 
     public Window Window { get; }
 
@@ -946,7 +939,7 @@ public sealed class MainView : IDisposable, IPaneLists
         var rects = WorkingRects();
         var unstagedTitle = WorkingTreePaneRenderer.ListTitle(UnstagedSource.Tree, WorkingTreeSection.Unstaged);
         var stagedTitle = WorkingTreePaneRenderer.ListTitle(StagedSource.Tree, WorkingTreeSection.Staged);
-        var messageTitle = ActiveDraft()?.Title ?? WorkingTreePaneRenderer.MessageTitle;
+        var messageTitle = _messageBox.Draft?.Title ?? WorkingTreePaneRenderer.MessageTitle;
         var key = new WorkingGridKey(
             ScreenWidth,
             ScreenHeight(),
@@ -1043,12 +1036,12 @@ public sealed class MainView : IDisposable, IPaneLists
 
     private StyledLine OptionsLine(int width) =>
         MessageBoxRenderer.OptionsLine(
-            ActiveDraft(),
+            _messageBox.Draft,
             width,
             PanePadding.ColumnsFor(ScreenWidth),
             _glyphs,
             _model().Keys,
-            IsCommitting());
+            _messageBox.IsCommitting);
 
     // The checkboxes and the Commit button of the option row are the mouse path of the Alt- chords and the commit key.
     private void OnMessageOptionsClicked(int column)
