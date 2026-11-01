@@ -1,10 +1,7 @@
 using Gitunia.App.Background;
 using Gitunia.App.Branches;
+using Gitunia.App.Conflicts;
 using Gitunia.App.Creation;
-using Gitunia.App.Loading.Commits;
-using Gitunia.App.Loading.Diff;
-using Gitunia.App.Loading.Stash;
-using Gitunia.App.Loading.Trees;
 using Gitunia.App.Pick;
 using Gitunia.App.Rebase;
 using Gitunia.App.Integration;
@@ -22,6 +19,7 @@ using Gitunia.App.Worktrees;
 using Gitunia.Core;
 using Gitunia.Core.Branches;
 using Gitunia.Core.Clipboard;
+using Gitunia.Core.Conflicts;
 using Gitunia.Core.Creation;
 using Gitunia.Core.Effects;
 using Gitunia.Core.Pick;
@@ -40,7 +38,6 @@ using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Core.Worktrees;
-using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Watching;
 using Gitunia.Git.Watching.Models;
 
@@ -69,6 +66,7 @@ public sealed partial class EffectRunner<TSession> : IDisposable
     private readonly CreationEffectHandler _creation;
     private readonly IntegrationEffectHandler _integration;
     private readonly BranchEffectHandler _branches;
+    private readonly ConflictEffectHandler _conflicts;
     private readonly PickerEffectHandler _picker;
     private readonly PickEffectHandler _pick;
     private readonly RebaseEffectHandler _rebase;
@@ -113,6 +111,11 @@ public sealed partial class EffectRunner<TSession> : IDisposable
         var pickerServices = picker ?? PickerServices.Default;
         _shell = shell ?? NoShellEffects.Instance;
         _branches = new BranchEffectHandler(services.Branches, host);
+        _conflicts = new ConflictEffectHandler(
+            services.Conflicts,
+            services.ConflictWriter,
+            services.ConflictRecreator,
+            host);
         _creation = new CreationEffectHandler(services.Creator, pickerServices.Files, host);
         _picker = new PickerEffectHandler(services.Discovery, pickerServices.Files, host, pickerServices.Timings);
         _pick = new PickEffectHandler(services.Pick, services.PickCommits, host);
@@ -248,6 +251,7 @@ public sealed partial class EffectRunner<TSession> : IDisposable
         InitRepositoryEffect => new InitFailed(text),
         IntegrationEffect integration => new IntegrationFailed(integration.TabId, text),
         BranchEffect branch => new BranchOperationFailed(branch.TabId, text),
+        ConflictEffect conflict => new ConflictOperationFailed(conflict.TabId, text, StatusSeverity.Error),
         PickEffect pick => new PickFailed(pick.TabId, text),
         RebaseEffect rebase => new RebaseFailed(rebase.TabId, text),
         RunInteractiveRebaseEffect run => new RebaseFailed(run.TabId, text),
@@ -276,6 +280,9 @@ public sealed partial class EffectRunner<TSession> : IDisposable
                 break;
             case CancelSyncEffect cancelSync:
                 _sync.Cancel(cancelSync.TabId);
+                break;
+            case ConflictEffect conflict:
+                _conflicts.Handle(conflict, _cancellation.TokenOf(conflict.TabId));
                 break;
             case CopyToClipboardEffect copy:
                 _shell.CopyToClipboard(copy);
@@ -354,6 +361,9 @@ public sealed partial class EffectRunner<TSession> : IDisposable
             case ShowPromptEffect prompt:
                 _host.Dispatch(new PromptRequestedCommand(prompt.Request));
                 break;
+            case StageResolvedConflictEffect stage:
+                _shell.StageResolvedConflict(stage);
+                break;
             case StashEffect stash:
                 _stash.Handle(stash, _cancellation.TokenOf(stash.TabId));
                 break;
@@ -368,6 +378,37 @@ public sealed partial class EffectRunner<TSession> : IDisposable
                 break;
             case WorktreeEffect worktree:
                 _worktrees.Handle(worktree, _cancellation.TokenOf(worktree.TabId));
+                break;
+            default:
+                throw new UnhandledEffectException(effect);
+        }
+    }
+
+    // Without settings services (a runner without a config file) the file work fails at once, so nothing stays busy.
+    private void PerformSettings(SettingsEffect effect)
+    {
+        if (_settings is null)
+        {
+            _host.Dispatch(new SettingsOperationFailed("The config file is not available"));
+
+            return;
+        }
+
+        _settings.Handle(effect, _shutdown.Token);
+    }
+
+    private void PerformSettingsShell(SettingsShellEffect effect)
+    {
+        switch (effect)
+        {
+            case ApplySettingsOptionsEffect options:
+                _shell.ApplyOptions(options.Options);
+                break;
+            case ApplySettingsThemeEffect theme:
+                _shell.ApplyTheme(theme.Theme);
+                break;
+            case OpenConfigEditorEffect:
+                _shell.OpenConfigEditor();
                 break;
             default:
                 throw new UnhandledEffectException(effect);
@@ -392,109 +433,7 @@ public sealed partial class EffectRunner<TSession> : IDisposable
         }
     }
 
-    private void StartLoad(LoadRepositoryEffect load)
-    {
-        var tab = _host.Workspace.FindTab(load.TabId);
-        if (tab is null)
-        {
-            return;
-        }
+    // A tab runs an operation when its state says so or a legacy gate does; such a tab is never evicted.
+    private bool IsBusy(TabId tabId) => IsTabBusy(tabId) || _host.Workspace.FindTab(tabId)?.Running.IsBusy == true;
 
-        _pendingLoads.Remove(load.TabId);
-        DisposeRefresher(load.TabId);
-        if (_sessions.Remove(load.TabId, out var previous))
-        {
-            previous.Dispose();
-        }
-
-        var stashView = new StashViewSession();
-        var session = _sessionFactory.Create(
-            new TabSessionParts(
-                load.TabId,
-                new CommitDetailsStore(
-                    new StashAwareCommitDetailsReader(
-                        _services.CommitDetails,
-                        _services.StashDetails,
-                        stashView.Registry),
-                    tab.Location,
-                    _postToUi,
-                    _detailDebounce,
-                    background: _background),
-                new DiffStore(
-                    new StashAwareDiffReader(_services.Diff, _services.StashDetails, stashView.Registry),
-                    tab.Location,
-                    _postToUi,
-                    background: _background),
-                new WorkingDiffStore(_services.Diff, tab.Location, _postToUi),
-                new FileTreeSession(
-                    new CommitTreeStore(_services.CommitTree, tab.Location, _postToUi, _detailDebounce)),
-                new FileContentStore(_services.Blob, tab.Location, _postToUi),
-                stashView));
-        _sessions[load.TabId] = session;
-        var token = session.Cancellation.Token;
-        var location = tab.Location;
-        session.ExpandRequested += () => ExpandGraph(session, location, token);
-        void Start()
-        {
-            session.MarkStarted();
-            var refresher = new TabRefresher(
-                _services.Refresher,
-                _services.Stashes,
-                _services.IncrementalGraphLoader,
-                _host,
-                session,
-                tab.Location,
-                _statuses,
-                _postToUi,
-                _watchBudget,
-                _watcherOptions,
-                operations: _services.OperationInfo,
-                config: _services.Config,
-                directoryLister: OperatingSystem.IsLinux() ? _services.WatchedDirectories : null,
-                poll: _pollOptions,
-                isBusy: () => IsBusy(load.TabId));
-            _refreshers[load.TabId] = refresher;
-            refresher.Start();
-            refresher.SetActive(_host.Workspace.ActiveTabId == load.TabId);
-            _ = Task.Run(() => QueueIssueLinksAsync(session, location, token), CancellationToken.None);
-            _ = Task.Run(() => _services.RepositoryLoader.RunAsync(location, session, _host, _statuses, _postToUi, token), CancellationToken.None);
-        }
-
-        // Only the active tab loads now; background tabs keep an empty session until first activated (docs/internal/performance.md, "Many tabs").
-        if (_host.Workspace.ActiveTabId == load.TabId)
-        {
-            Start();
-        }
-        else
-        {
-            _pendingLoads[load.TabId] = Start;
-        }
-    }
-
-    // Runs on the UI thread (the session asked for it), so the graph can be read here.
-    private void ExpandGraph(TSession session, RepositoryLocation location, CancellationToken token)
-    {
-        var shownCount = session.Graph.Count;
-        var lastShown = session.Graph[shownCount - 1].Id;
-        var version = session.GraphVersion;
-        _ = Task.Run(
-            () => _services.RepositoryLoader.ExpandAsync(
-                location,
-                session,
-                _statuses,
-                _postToUi,
-                shownCount,
-                lastShown,
-                version,
-                token),
-            CancellationToken.None);
-    }
-
-    private void DisposeRefresher(TabId tabId)
-    {
-        if (_refreshers.Remove(tabId, out var refresher))
-        {
-            refresher.Dispose();
-        }
-    }
 }

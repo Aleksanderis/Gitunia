@@ -1,5 +1,6 @@
 using Gitunia.Core.Clipboard;
 using Gitunia.Core.Config.Models;
+using Gitunia.Core.Conflicts;
 using Gitunia.Core.Reflog;
 using Gitunia.Core.Workspaces.Tabs;
 
@@ -24,6 +25,12 @@ public interface IShellEffects
     /// cursor) and answers with <c>ReflogEntryActionStarted</c> or <c>ReflogEntryActionRefused</c>.
     /// </summary>
     void StartReflogEntryAction(ReflogEntryActionEffect effect);
+
+    /// <summary>
+    /// Marks a saved, fully resolved conflicted file as resolved (stages it) and reports; staging has not moved to
+    /// commands yet.
+    /// </summary>
+    void StageResolvedConflict(StageResolvedConflictEffect effect);
 
     /// <summary>Makes the options of the config file take effect in the running app.</summary>
     void ApplyOptions(ConfigOptions options);

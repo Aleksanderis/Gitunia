@@ -1,5 +1,10 @@
+using Gitunia.App;
+using Gitunia.App.Conflicts;
 using Gitunia.App.Status;
-using Gitunia.App.Tabs;
+using Gitunia.Core;
+using Gitunia.Core.Effects;
+using Gitunia.Core.Running;
+using Gitunia.Core.Shell;
 using Gitunia.Core.Conflicts;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
@@ -28,8 +33,8 @@ using Xunit;
 
 namespace Gitunia.Tui.Tests.App.Conflicts;
 
-// Real git on temp repositories through the controller, the real reader and writer.
-public class ConflictEditorControllerTests
+// Real git on temp repositories through the input, the reducers and the effect handler, the real reader and writer.
+public class ConflictEditorInputTests
 {
     private const string ConflictPath = "conflict.txt";
 
@@ -121,7 +126,7 @@ public class ConflictEditorControllerTests
         Assert.Equal(harness.OriginalText, File.ReadAllText(harness.FullPath));
         Assert.True(harness.Controller.IsOpen);
         Assert.Equal(1, harness.Controller.State!.ResolvedCount);
-        Assert.False(harness.Gate.IsBusy(harness.TabId));
+        Assert.False(harness.IsBusy);
     }
 
     [Fact]
@@ -426,7 +431,7 @@ public class ConflictEditorControllerTests
     {
         using var repository = TestRepositories.Conflicted();
         using var harness = await Harness.CreateAsync(repository);
-        harness.Gate.Begin(harness.TabId);
+        harness.StartHeldRead();
 
         Assert.True(harness.Controller.TryExecute(ActionIds.ConflictOpen, null));
 
@@ -958,7 +963,7 @@ public class ConflictEditorControllerTests
         var state = harness.Controller.State!;
         Assert.Equal(1, state.UnresolvedCount);
         Assert.False(state.CanUndo);
-        Assert.False(harness.Gate.IsBusy(harness.TabId));
+        Assert.False(harness.IsBusy);
         Assert.True(harness.Refreshes > 0);
     }
 
@@ -975,7 +980,7 @@ public class ConflictEditorControllerTests
 
         Assert.Equal(harness.OriginalText, File.ReadAllText(harness.FullPath));
         Assert.Equal(ConflictPick.Ours, harness.Controller.State!.SelectedPick);
-        Assert.False(harness.Gate.IsBusy(harness.TabId));
+        Assert.False(harness.IsBusy);
     }
 
     [Fact]
@@ -995,7 +1000,7 @@ public class ConflictEditorControllerTests
         Assert.Equal(StatusSeverity.Error, harness.Statuses.Log.Latest!.Severity);
         Assert.Contains("Could not re-create", harness.Statuses.Log.Latest.Text, StringComparison.Ordinal);
         Assert.Contains("refused", harness.Statuses.Log.Latest.Text, StringComparison.Ordinal);
-        Assert.False(harness.Gate.IsBusy(harness.TabId));
+        Assert.False(harness.IsBusy);
     }
 
     [Fact]
@@ -1406,7 +1411,13 @@ public class ConflictEditorControllerTests
 
     private sealed class Harness : IDisposable
     {
-        private readonly TestShell _shell = new();
+        private readonly UiPump _pump = new(TestContext.Current.CancellationToken);
+        private readonly Dispatcher _host;
+        private readonly TestShell _shell;
+        private readonly ConflictEffectHandler _handler;
+        private readonly List<ConflictEffect> _held = [];
+        private ScreenSize _screen = new(120, 36);
+        private bool _isHolding;
 
         private Harness(TestRepository repository, RepositoryLocation location, IConflictRecreator? recreator)
         {
@@ -1414,40 +1425,27 @@ public class ConflictEditorControllerTests
             Location = location;
             FullPath = Path.Combine(repository.WorkingTreePath, ConflictPath);
             OriginalText = File.Exists(FullPath) ? File.ReadAllText(FullPath) : string.Empty;
-            _shell.Host.Dispatch(new OpenRepositoryCommand(location));
-            TabId = _shell.Host.Workspace.ActiveTabId!.Value;
-            Pump = new UiPump(TestContext.Current.CancellationToken);
-            Controller = new ConflictEditorController(
-                _shell.Host,
+            _host = new Dispatcher(AppState.Empty, _pump);
+            _shell = new TestShell(_host);
+            _handler = new ConflictEffectHandler(
                 new ConflictReader(Runner),
                 new ConflictWriter(),
                 recreator ?? new ConflictRecreator(Runner),
-                Statuses,
-                Pump.Post,
-                _ => TestContext.Current.CancellationToken,
-                StageResolved,
-                _ =>
-                {
-                    Refreshes++;
-
-                    return true;
-                },
-                () => IsOtherOverlayOpen,
-                () => Screen,
-                GraphGlyphSet.Unicode,
-                () => { },
-                Gate);
+                _host);
+            Controller = new ConflictFacade(this, _host, new ConflictEditorInput(_host, GraphGlyphSet.Unicode));
+            _host.EffectRaised += Route;
+            _host.Dispatch(new ScreenResizedCommand(new ScreenExtent(_screen.Width, _screen.Height), Now));
+            _host.Dispatch(new OpenRepositoryCommand(location));
+            TabId = _host.Workspace.ActiveTabId!.Value;
         }
 
         public GitRunner Runner { get; }
 
         public RepositoryLocation Location { get; }
 
-        public ConflictEditorController Controller { get; }
+        public ConflictFacade Controller { get; }
 
         public StatusReporter Statuses => _shell.Statuses;
-
-        public TabOperationGate Gate { get; } = new();
 
         public List<ConfirmPrompt> Prompts => _shell.Prompts;
 
@@ -1455,7 +1453,15 @@ public class ConflictEditorControllerTests
 
         public int Refreshes { get; private set; }
 
-        public ScreenSize Screen { get; set; } = new(120, 36);
+        public ScreenSize Screen
+        {
+            get => _screen;
+            set
+            {
+                _screen = value;
+                _host.Dispatch(new ScreenResizedCommand(new ScreenExtent(value.Width, value.Height), Now));
+            }
+        }
 
         public bool IsOtherOverlayOpen { get; set; }
 
@@ -1463,11 +1469,17 @@ public class ConflictEditorControllerTests
 
         public TabId TabId { get; }
 
-        public UiPump Pump { get; }
+        public UiPump Pump => _pump;
 
         public string FullPath { get; }
 
         public string OriginalText { get; }
+
+        public bool IsBusy => _host.Workspace.FindTab(TabId)?.Running.IsRunning(RunningOperationKind.Conflicts) == true;
+
+        public bool LastClickHandled { get; private set; }
+
+        private DateTimeOffset Now => _host.Clock.GetUtcNow();
 
         public static async Task<Harness> CreateAsync(TestRepository repository, IConflictRecreator? recreator = null)
         {
@@ -1492,13 +1504,21 @@ public class ConflictEditorControllerTests
         }
 
         public Task WaitForStatusAsync(string prefix) => Pump.RunUntilAsync(() =>
-            !Gate.IsAnyBusy
+            !IsBusy
             && Statuses.Log.Latest is { } latest
             && latest.Text.StartsWith(prefix, StringComparison.Ordinal));
 
-        public void CloseTab() => _shell.Host.Dispatch(new CloseTabCommand(TabId));
+        public void CloseTab() => _host.Dispatch(new CloseTabCommand(TabId));
 
-        public void Send(RepositoryCommand command) => _shell.Host.Dispatch(new TabCommand(TabId, command));
+        public void Send(RepositoryCommand command) => _host.Dispatch(new TabCommand(TabId, command));
+
+        // Opens the editor and keeps the read: the tab stays busy, as while a worker runs.
+        public void StartHeldRead()
+        {
+            _isHolding = true;
+            Assert.True(Controller.TryExecute(ActionIds.ConflictOpen, null));
+            Assert.Single(_held);
+        }
 
         // Opening reads the file on a worker: wait until the editor shows or the status reported a refusal.
         public async Task OpenAsync()
@@ -1517,8 +1537,6 @@ public class ConflictEditorControllerTests
         }
 
         public void Run(ActionId action) => Assert.True(Controller.TryExecute(action, null));
-
-        public bool LastClickHandled { get; private set; }
 
         public string? Click(int line, int column, bool isDoubleClick = false)
         {
@@ -1593,21 +1611,78 @@ public class ConflictEditorControllerTests
 
             Click(1, 1 + (((int)pane - (int)ConflictPane.Base) * (Screen.Width / 3)) + 4);
         }
-        public void Answer() => _shell.Answer();
 
+        public void Answer() => _shell.Answer();
 
         public void Decline() => _shell.Decline();
 
-        public Task WaitAsync() => Pump.RunUntilAsync(() => !Gate.IsAnyBusy && Statuses.Log.Latest is not null);
+        public Task WaitAsync() => Pump.RunUntilAsync(() => !IsBusy && Statuses.Log.Latest is not null);
 
         public void Dispose()
         {
         }
-        private string StageResolved(RepositoryState tab, string path)
-        {
-            StageRequested.Add(path);
 
-            return string.Empty;
+        // What the effect runner does in the app, for the effects of this feature.
+        private void Route(AppEffect effect)
+        {
+            switch (effect)
+            {
+                case ConflictEffect conflict when _isHolding:
+                    _held.Add(conflict);
+                    break;
+                case ConflictEffect conflict:
+                    _handler.Handle(conflict, TestContext.Current.CancellationToken);
+                    break;
+                case PostStatusEffect post:
+                    _host.Dispatch(new StatusPostedCommand(post.Text, post.Severity, Now));
+                    break;
+                case RefreshTabEffect:
+                    Refreshes++;
+                    break;
+                case SetKeyModeEffect mode:
+                    _host.Dispatch(new SetKeyModeCommand(mode.Mode));
+                    break;
+                case ShowConfirmEffect confirm:
+                    var refusal = new StatusPostedCommand(confirm.UnavailableNotice, StatusSeverity.Warning, Now);
+                    _host.Dispatch(new ConfirmRequestedCommand(confirm.Prompt, confirm.OnAccepted, refusal));
+                    break;
+                case StageResolvedConflictEffect stage:
+                    StageRequested.Add(stage.Path);
+                    break;
+            }
         }
+    }
+
+    // The input as the tests drive it: an overlay on top of the editor is a flag of the harness.
+    private sealed class ConflictFacade(Harness harness, Dispatcher host, ConflictEditorInput input)
+    {
+        public bool IsOpen => input.IsOpen;
+
+        public ConflictEditorState? State => input.State;
+
+        public bool IsEditing => input.IsEditing;
+
+        public bool IsResultActive => input.IsResultActive;
+
+        public bool IsVisual => input.IsVisual;
+
+        public string ViewName => input.ViewName;
+
+        public OverlayFrame? CurrentFrame() => input.CurrentFrame(harness.IsOtherOverlayOpen);
+
+        public bool TryExecute(ActionId action, int? count) =>
+            input.TryExecute(action, count, harness.IsOtherOverlayOpen);
+
+        public bool HandleTextKey(KeyEvent key) => input.HandleTextKey(key);
+
+        public string? OnLineClicked(int line, int column, out bool handled, bool isDoubleClick = false) =>
+            input.OnLineClicked(harness.IsOtherOverlayOpen, line, column, out handled, isDoubleClick);
+
+        public string? OnDragStarted(int line, int column) =>
+            input.OnDragStarted(harness.IsOtherOverlayOpen, line, column);
+
+        public void OnDragged(int line) => input.OnDragged(harness.IsOtherOverlayOpen, line);
+
+        public void Close() => host.Dispatch(new ConflictTabClosed());
     }
 }

@@ -1,8 +1,6 @@
-using Gitunia.Core.Conflicts;
+namespace Gitunia.Core.Conflicts;
 
-namespace Gitunia.Tui.Rendering.Overlays;
-
-/// <summary>What a click on the conflict editor hit (see <see cref="ConflictEditorFrameBuilder.TargetAt"/>).</summary>
+/// <summary>What a click on the conflict editor hit (found by the frame builder of the terminal layer).</summary>
 /// <param name="Kind">The kind of target.</param>
 /// <param name="Pane">The pane of a header or a version row.</param>
 /// <param name="Index">The aligned row of a version row, the result line of a result line.</param>
@@ -23,20 +21,4 @@ public sealed record ConflictTarget(ConflictTargetKind Kind, ConflictPane Pane, 
     /// <summary>A line of the result.</summary>
     public static ConflictTarget OfResultLine(int line, int column = 0) =>
         new(ConflictTargetKind.ResultLine, ConflictPane.Result, line, null, column);
-}
-
-/// <summary>The kinds of <see cref="ConflictTarget"/>.</summary>
-public enum ConflictTargetKind
-{
-    /// <summary>A hint chip.</summary>
-    Chip,
-
-    /// <summary>The header line of a pane.</summary>
-    Header,
-
-    /// <summary>A row of a version pane.</summary>
-    VersionRow,
-
-    /// <summary>A line of the result.</summary>
-    ResultLine,
 }

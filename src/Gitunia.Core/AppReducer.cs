@@ -1,4 +1,5 @@
 using Gitunia.Core.Branches;
+using Gitunia.Core.Conflicts;
 using Gitunia.Core.Creation;
 using Gitunia.Core.Picker;
 using Gitunia.Core.Effects;
@@ -35,6 +36,7 @@ public static partial class AppReducer
     public static AppUpdate Reduce(AppState state, AppCommand command) => command switch
     {
         BranchCommand branch => ReduceBranch(state, branch),
+        ConflictCommand conflict => ReduceConflict(state, conflict),
         CreationCommand creation => ReduceCreation(state, creation),
         EffectFailedCommand failed => EffectFailed(state, failed),
         PickCommand pick => ReducePick(state, pick),
@@ -104,7 +106,47 @@ public static partial class AppReducer
             return new AppUpdate(closed.State, [.. effects, .. closed.Effects]);
         }
 
+        if (shell.Conflict.Editor is { } editor && update.Workspace.FindTab(editor.TabId) is null)
+        {
+            var closed = ReduceConflict(changed, new ConflictTabClosed());
+
+            return new AppUpdate(closed.State, [.. effects, .. closed.Effects]);
+        }
+
         return new AppUpdate(changed, [.. effects]);
+    }
+
+    // The editor belongs to the tab it was opened in. A result for a tab that was closed meanwhile reaches the reducer
+    // without a tab: it reports what is left to report and the running mark is gone with the tab.
+    private static AppUpdate ReduceConflict(AppState state, ConflictCommand command)
+    {
+        var workspace = state.Workspace;
+        var session = state.Shell.Conflict;
+        var tab = ConflictTabOf(workspace, session, command);
+        var covered = IsOverlayOpen(state.Shell with { Conflict = ConflictSession.Empty });
+        var busy = tab?.Running.IsRunning(RunningOperationKind.Conflicts) == true;
+        var update = ConflictReducer.Reduce(session, command, new ConflictContext(tab, busy, covered));
+        var next = state with { Shell = state.Shell with { Conflict = update.Session } };
+        if (tab is not null)
+        {
+            var running = tab.Running.Apply(tab.Id, command, update.Effects);
+            if (!Equals(running, tab.Running))
+            {
+                next = WithTab(next, tab with { Running = running });
+            }
+        }
+
+        return new AppUpdate(next, update.Effects);
+    }
+
+    private static RepositoryState? ConflictTabOf(Workspace workspace, ConflictSession session, ConflictCommand command)
+    {
+        if (command is ConflictTabCommand tabCommand)
+        {
+            return workspace.FindTab(tabCommand.TabId);
+        }
+
+        return session.Editor is { } editor ? workspace.FindTab(editor.TabId) : workspace.ActiveTab;
     }
 
     // A result for a tab that was closed meanwhile only ends the read.
@@ -228,6 +270,7 @@ public static partial class AppReducer
         || shell.Prompt is not null
         || shell.Mainline is not null
         || shell.RebaseEditor.IsOpen
+        || shell.Conflict.IsOpen
         || shell.Reflog.IsOpen
         || shell.Settings.IsOpen;
 

@@ -1,8 +1,8 @@
-using Gitunia.Core.Conflicts;
+using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Git.Status.Models;
 
-namespace Gitunia.Tui.App.Conflicts;
+namespace Gitunia.Core.Conflicts;
 
 /// <summary>Which file the conflict editor would open: the selected Unstaged row when it is a conflicted file, else the
 /// first conflicted file of the working tree (one the editor takes, else any).</summary>
@@ -30,5 +30,23 @@ public static class ConflictedSelection
 
         return conflicted?.FirstOrDefault(entry => ConflictEditorSupport.CanOpen(entry.Conflict))
             ?? conflicted?.FirstOrDefault();
+    }
+
+    /// <summary>The file the editor key opens in the tab: the one under the Unstaged cursor, else the first conflicted
+    /// one.</summary>
+    /// <param name="tab">The tab.</param>
+    public static StatusEntry? ToOpen(RepositoryState tab) => UnderCursor(tab) ?? FindFirst(tab.WorkingTree);
+
+    /// <summary>The conflicted file under the cursor when the Unstaged list or its diff has the focus, else
+    /// null.</summary>
+    /// <param name="tab">The tab.</param>
+    public static StatusEntry? UnderCursor(RepositoryState tab)
+    {
+        if (tab.View.FocusedPane is PaneKind.WorkingUnstaged or PaneKind.WorkingUnstagedDiff)
+        {
+            return Find(tab.WorkingTree);
+        }
+
+        return null;
     }
 }
