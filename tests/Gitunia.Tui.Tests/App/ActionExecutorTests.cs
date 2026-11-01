@@ -148,10 +148,10 @@ public class ActionExecutorTests : IInputFocusSource
     [Fact]
     public void GivenNoHandlerIsRegisteredForACase_WhenTheTableIsBuilt_ThenItIsAProgrammingError()
     {
-        var empty = new Dictionary<InputHandler, IActionHandler>();
-
         Assert.Throws<InvalidOperationException>(
-            () => new InputHandlers(empty, new Dictionary<InputHandler, ITextKeyHandler>()));
+            () => new InputHandlers(
+                new Dictionary<InputHandler, IActionHandler>(),
+                new Dictionary<InputHandler, ITextKeyHandler>()));
     }
 
     private sealed class Recorder(InputHandler handler, List<string> asked) : IActionHandler, IActionNotice

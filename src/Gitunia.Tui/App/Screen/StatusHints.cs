@@ -102,18 +102,21 @@ public sealed class StatusHints(
 
     private IReadOnlyList<KeyHint> PaneHintsOfFocus()
     {
-        if (host.Workspace.ActiveTab?.View is { FocusedPane: PaneKind.Detail, BottomTab: BottomTab.Changes })
+        var view = host.Workspace.ActiveTab?.View;
+        if (view is { FocusedPane: PaneKind.Detail, BottomTab: BottomTab.Changes })
         {
             return PaneHints.ForDetailChanges();
         }
 
-        if (host.Workspace.ActiveTab?.View is { FocusedPane: PaneKind.Graph, CompareMark: not null })
+        if (view is { FocusedPane: PaneKind.Graph, CompareMark: not null })
         {
             return PaneHints.ForGraphComparing();
         }
 
+        var focused = view?.FocusedPane ?? PaneKind.Graph;
+
         return PaneHints.For(
-            host.Workspace.ActiveTab?.View.FocusedPane ?? PaneKind.Graph,
+            focused,
             context.DiffView.IsShowingContent,
             OnConflictedFile(),
             OnRefusedConflictedFile());

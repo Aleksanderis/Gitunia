@@ -47,7 +47,7 @@ public sealed class ScreenModelSource(ScreenModelParts parts)
         var source = parts.Panes.Content.SidebarSource;
         if (parts.Host.Workspace.ActiveTab is { View.FocusedPane: PaneKind.Sidebar } tab && !source.Rows.IsEmpty)
         {
-            return source.Rows[SidebarBuilder.ClampCursor(tab.Sidebar.Cursor, source.Rows.Length)].FullName ?? string.Empty;
+            return source.Rows[SidebarBuilder.ClampCursor(tab.Sidebar.Cursor, source.Rows.Length)].FullName;
         }
 
         return string.Empty;

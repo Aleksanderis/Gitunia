@@ -1,3 +1,4 @@
+using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Core.Effects;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Overlays;
@@ -15,6 +16,19 @@ public class ShellReducerTests
     private static readonly ConfirmPrompt Prompt = new("Delete", ["Delete branch x?"], "Cannot be undone.", "Delete");
 
     private static readonly AppCommand Accepted = new RunActionCommand(() => { });
+
+    [Fact]
+    public void GivenARefreshRequest_WhenReducing_ThenTheStateIsUntouchedAndTheTabIsRefreshedAsAsked()
+    {
+        var tab = new TabId(7);
+
+        var announced = ShellReducer.Reduce(ShellState.Empty, new TabRefreshRequested(tab, true));
+        var silent = ShellReducer.Reduce(ShellState.Empty, new TabRefreshRequested(tab, false));
+
+        Assert.Equal(ShellState.Empty, announced.State);
+        Assert.Equal(new RefreshTabEffect(tab, true), Assert.Single(announced.Effects));
+        Assert.Equal(new RefreshTabEffect(tab), Assert.Single(silent.Effects));
+    }
 
     [Fact]
     public void GivenAModeSwitch_WhenReducing_ThenTheModeIsStoredAndTheSwitchIsCounted()

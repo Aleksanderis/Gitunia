@@ -33,13 +33,11 @@ public sealed class HandlerParts
     private readonly Dispatcher _host;
 
     /// <param name="foundation">The configuration, the state and the widgets.</param>
-    /// <param name="route">Turns a key into an action.</param>
     /// <param name="panes">The controllers of the panes.</param>
     /// <param name="overlays">The prompts, editors and screens.</param>
     /// <param name="keys">The key controller and the overlay controller.</param>
     public HandlerParts(
         ShellFoundation foundation,
-        RouteParts route,
         PaneParts panes,
         OverlayParts overlays,
         KeyParts keys)
@@ -64,7 +62,7 @@ public sealed class HandlerParts
             pause);
         PaneSizes = new PaneSizeInput(host, panes.DiffView, panes.WorkingDiff);
         RangeCopier = new RangeCopier(foundation.Clipboard, foundation.Sessions.ActiveSession, WorkingTreeOfActiveTab);
-        Handlers = Register(foundation, route, panes, overlays, keys).Build();
+        Handlers = Register(foundation, panes, overlays, keys).Build();
         Actions = new ActionExecutor(
             Handlers,
             new RepeatStarter(host, foundation.Panes, keys.Repeat, PaneSizes),
@@ -106,7 +104,6 @@ public sealed class HandlerParts
 
     private InputHandlersBuilder Register(
         ShellFoundation foundation,
-        RouteParts route,
         PaneParts panes,
         OverlayParts overlays,
         KeyParts keys)

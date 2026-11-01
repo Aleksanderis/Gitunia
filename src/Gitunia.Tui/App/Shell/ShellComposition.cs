@@ -20,7 +20,7 @@ public sealed class ShellComposition : IDisposable
         Panes = new PaneParts(Foundation, Route);
         Overlays = new OverlayParts(Foundation, Route, Panes);
         Keys = new KeyParts(Foundation, Route, Panes, Overlays);
-        Handlers = new HandlerParts(Foundation, Route, Panes, Overlays, Keys);
+        Handlers = new HandlerParts(Foundation, Panes, Overlays, Keys);
         Screen = new ScreenParts(Foundation, Panes, Overlays, Keys, Handlers);
         Effects = new EffectParts(Foundation, Panes, Keys, Handlers, Screen);
     }
