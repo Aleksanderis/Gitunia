@@ -1,4 +1,5 @@
 using Gitunia.Core.Discard;
+using Gitunia.Core.Running;
 using Gitunia.Core.Visual;
 using Gitunia.Platform.FileSystem;
 
@@ -20,8 +21,8 @@ public static partial class AppReducer
             tab.Location,
             tab.View.FocusedPane,
             tab.WorkingTree,
-            IsStaging(tab),
-            BlocksIndexWriters(tab),
+            tab.Running.IsRunning(RunningOperationKind.Discard) || tab.Running.IsRunning(RunningOperationKind.Staging),
+            tab.Running.Excludes(RunningOperationKind.Discard),
             ByteExactFileSystems.IsSupportedHere);
         var effects = DiscardReducer.Reduce(command, context);
         var running = tab.Running.Apply(tab.Id, command, effects);

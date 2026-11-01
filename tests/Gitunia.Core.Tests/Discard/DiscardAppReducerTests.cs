@@ -108,6 +108,8 @@ public class DiscardAppReducerTests
     }
 
     [Theory]
+    [InlineData(RunningOperationKind.Conflicts)]
+    [InlineData(RunningOperationKind.Sync)]
     [InlineData(RunningOperationKind.Branches)]
     [InlineData(RunningOperationKind.Integration)]
     [InlineData(RunningOperationKind.Pick)]
@@ -123,7 +125,6 @@ public class DiscardAppReducerTests
     }
 
     [Theory]
-    [InlineData(RunningOperationKind.Sync)]
     [InlineData(RunningOperationKind.Tags)]
     [InlineData(RunningOperationKind.Remotes)]
     public void GivenAnOperationThatLeavesTheTreeAlone_WhenDiscarding_ThenTheDialogOpens(RunningOperationKind kind)

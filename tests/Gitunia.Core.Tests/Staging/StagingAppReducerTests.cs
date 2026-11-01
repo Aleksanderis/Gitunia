@@ -77,6 +77,8 @@ public class StagingAppReducerTests
     }
 
     [Theory]
+    [InlineData(RunningOperationKind.Conflicts)]
+    [InlineData(RunningOperationKind.Sync)]
     [InlineData(RunningOperationKind.Integration)]
     [InlineData(RunningOperationKind.Pick)]
     [InlineData(RunningOperationKind.Rebase)]
@@ -91,7 +93,6 @@ public class StagingAppReducerTests
     }
 
     [Theory]
-    [InlineData(RunningOperationKind.Sync)]
     [InlineData(RunningOperationKind.Tags)]
     [InlineData(RunningOperationKind.Remotes)]
     public void GivenAnOperationThatLeavesTheIndexAlone_WhenStaging_ThenItRuns(RunningOperationKind kind)

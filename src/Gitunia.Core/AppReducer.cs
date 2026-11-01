@@ -170,7 +170,7 @@ public static partial class AppReducer
         var session = state.Shell.Conflict;
         var tab = ConflictTabOf(workspace, session, command);
         var covered = IsOverlayOpen(state.Shell with { Conflict = ConflictSession.Empty });
-        var busy = tab?.Running.IsRunning(RunningOperationKind.Conflicts) == true;
+        var busy = tab is not null && IsBusy(tab, RunningOperationKind.Conflicts);
         var update = ConflictReducer.Reduce(session, command, new ConflictContext(tab, busy, covered));
         var next = state with { Shell = state.Shell with { Conflict = update.Session } };
         if (tab is not null)
@@ -230,7 +230,7 @@ public static partial class AppReducer
             return new AppUpdate(state, []);
         }
 
-        var busy = tab.Running.IsRunning(RunningOperationKind.Pick) || IsStaging(tab);
+        var busy = IsBusy(tab, RunningOperationKind.Pick);
         var question = state.Shell.Mainline is { } open && open.TabId == tab.Id ? open : null;
         var context = new PickContext(
             tab.Id,
@@ -265,7 +265,7 @@ public static partial class AppReducer
             return new AppUpdate(state, []);
         }
 
-        var busy = tab.Running.IsRunning(RunningOperationKind.Rebase) || IsStaging(tab);
+        var busy = IsBusy(tab, RunningOperationKind.Rebase);
         var context = new RebaseContext(tab, workspace.ActiveTabId == tab.Id, busy, IsOverlayOpen(state.Shell));
         var effects = RebaseReducer.Reduce(command, context);
         var running = tab.Running.Apply(tab.Id, command, effects);
@@ -290,7 +290,7 @@ public static partial class AppReducer
             return new AppUpdate(state with { Shell = state.Shell with { RebaseEditor = ended } }, []);
         }
 
-        var busy = tab.Running.IsRunning(RunningOperationKind.Rebase);
+        var busy = IsBusy(tab, RunningOperationKind.Rebase);
         var overlay = IsOverlayOpen(state.Shell with { RebaseEditor = RebaseEditorSession.Empty });
         var context = new RebaseEditorContext(tab, workspace.ActiveTabId == tab.Id, busy, overlay);
         var update = RebaseEditorReducer.Reduce(session, command, context);
@@ -328,7 +328,7 @@ public static partial class AppReducer
             return new AppUpdate(state, []);
         }
 
-        var busy = tab.Running.IsRunning(RunningOperationKind.Integration) || IsStaging(tab);
+        var busy = IsBusy(tab, RunningOperationKind.Integration);
         var conflicts = OperationBannerBuilder.ConflictCount(tab.WorkingTree);
         var context = new IntegrationContext(tab.Id, tab.Location, tab.Head, tab.Operation, conflicts, busy);
         var effects = IntegrationReducer.Reduce(command, context);
@@ -351,7 +351,7 @@ public static partial class AppReducer
         }
 
         var busy = tab.Running.IsRunning(RunningOperationKind.Remotes);
-        var syncing = tab.Running.IsRunning(RunningOperationKind.Sync);
+        var syncing = tab.Running.Excludes(RunningOperationKind.Remotes);
         var context = new RemoteContext(tab.Id, tab.Location, tab.Refs, workspace.ActiveTabId == tab.Id, busy, syncing);
         var effects = RemoteReducer.Reduce(command, context);
         var running = tab.Running.Apply(tab.Id, command, effects);
@@ -372,7 +372,7 @@ public static partial class AppReducer
             return new AppUpdate(state, []);
         }
 
-        var busy = tab.Running.IsRunning(RunningOperationKind.Stash) || IsStaging(tab);
+        var busy = IsBusy(tab, RunningOperationKind.Stash);
         var context = new StashContext(tab.Id, tab.Location, tab.Stashes, tab.View.FocusedPane, busy);
         var effects = StashReducer.Reduce(command, context);
         var running = tab.Running.Apply(tab.Id, command, effects);
@@ -396,7 +396,7 @@ public static partial class AppReducer
         var shell = state.Shell;
         var overlay = shell.Confirm is not null || shell.Prompt is not null || shell.Output is not null;
         var busy = tab.Running.IsRunning(RunningOperationKind.Sync);
-        var other = tab.Running.Items.Any(item => item.Kind != RunningOperationKind.Sync);
+        var other = tab.Running.Excludes(RunningOperationKind.Sync);
         var context = new SyncContext(
             tab.Id,
             tab.Location,
@@ -439,7 +439,7 @@ public static partial class AppReducer
             return new AppUpdate(state, []);
         }
 
-        var busy = tab.Running.IsRunning(RunningOperationKind.Branches) || IsStaging(tab);
+        var busy = IsBusy(tab, RunningOperationKind.Branches);
         var context = new BranchContext(tab.Id, tab.Location, tab.Refs, tab.Operation, busy);
         var effects = BranchReducer.Reduce(command, context);
         var running = tab.Running.Apply(tab.Id, command, effects);
@@ -470,7 +470,7 @@ public static partial class AppReducer
             return new AppUpdate(state, []);
         }
 
-        var busy = tab.Running.IsRunning(RunningOperationKind.Tags);
+        var busy = IsBusy(tab, RunningOperationKind.Tags);
         var context = new TagContext(tab.Id, tab.Location, tab.Refs, workspace.ActiveTabId == tab.Id, busy);
         var effects = TagReducer.Reduce(command, context);
         var running = tab.Running.Apply(tab.Id, command, effects);
@@ -508,6 +508,10 @@ public static partial class AppReducer
 
     private static AppUpdate EffectFailed(AppState state, EffectFailedCommand failed) =>
         new(state, [new PostStatusEffect(failed.Message, StatusSeverity.Error)]);
+
+    // The kind runs on the tab, or another running operation excludes it (the table is OperationExclusion).
+    private static bool IsBusy(RepositoryState tab, RunningOperationKind kind) =>
+        tab.Running.IsRunning(kind) || tab.Running.Excludes(kind);
 
     private static AppState WithTab(AppState state, RepositoryState tab)
     {

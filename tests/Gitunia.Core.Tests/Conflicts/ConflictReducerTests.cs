@@ -4,6 +4,7 @@ using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Overlays;
 using Gitunia.Core.Running;
+using Gitunia.Core.Tests.Running;
 using Gitunia.Core.Shell;
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
@@ -43,6 +44,29 @@ public class ConflictReducerTests
         Assert.Equal(ConflictKind.BothModified, read.Conflict);
         Assert.True(update.State.Workspace.ActiveTab!.Running.IsRunning(RunningOperationKind.Conflicts));
         Assert.False(update.State.Shell.Conflict.IsOpen);
+    }
+
+    [Theory]
+    [InlineData(RunningOperationKind.Staging)]
+    [InlineData(RunningOperationKind.Discard)]
+    [InlineData(RunningOperationKind.Commit)]
+    [InlineData(RunningOperationKind.Stash)]
+    [InlineData(RunningOperationKind.Integration)]
+    [InlineData(RunningOperationKind.Pick)]
+    [InlineData(RunningOperationKind.Rebase)]
+    [InlineData(RunningOperationKind.Branches)]
+    [InlineData(RunningOperationKind.Sync)]
+    public void GivenAnotherWorkingTreeOperationRuns_WhenOpeningTheEditor_ThenItIsRefusedAsBusy(
+        RunningOperationKind running)
+    {
+        var state = Loaded(Entry(Path, ConflictKind.BothModified));
+        var tab = state.Workspace.ActiveTab!;
+        var busy = AppReducerTestState.WithRunning(state, tab.Id, running);
+
+        var update = AppReducer.Reduce(busy, new ConflictOpenRequested(true, Tall));
+
+        Assert.Equal(ConflictNotices.Busy, Assert.Single(update.Effects.OfType<PostStatusEffect>()).Text);
+        Assert.DoesNotContain(update.Effects, effect => effect is OperationEffect);
     }
 
     [Fact]
