@@ -2,7 +2,6 @@ using System.Collections.Immutable;
 using Gitunia.App.Settings;
 using Gitunia.App.Status;
 using Gitunia.App;
-using Gitunia.Core.Running;
 using Gitunia.Core.Commits;
 using Gitunia.App.Loading.Commits;
 using Gitunia.App.Tabs;
@@ -150,7 +149,6 @@ public sealed class TuiApplication(
     private StartupConfig _startupConfig = null!;
     private ChipKeys _chipKeys = null!;
     private ConsoleCapabilities _capabilities = detectedCapabilities;
-    private CommitMessageInput _commits = null!;
     private TagActions _tags = null!;
     private PromptInputHandler _openPrompt = null!;
     private ClipboardCopier _clipboard = null!;
@@ -269,14 +267,12 @@ public sealed class TuiApplication(
             () => SidebarChrome.Of(_host.State),
             () => _diffView.Arrangement(),
             width => _diffView.TitleLine(width, glyphs, _chipKeys, _repeat.Active?.Pane == PaneKind.Diff),
-            new DiffListSource(glyphs));
+            new DiffListSource(glyphs),
+            new StateMessageBoxPort(_host));
 
-        _commits = new CommitMessageInput(_host, this);
+        var commits = new CommitMessageInput(_host, this);
         var branches = new BranchActions(_host, this);
         _tags = new TagActions(_host, this);
-        _view.ActiveDraft = () => _host.Workspace.ActiveTab?.Commit.Draft;
-        _view.IsCommitting = () => _host.Workspace.ActiveTab?.Running.IsRunning(RunningOperationKind.Commit) == true;
-        _view.IsEditingMessage = () => _commits.ShowsCursor;
         _router = new ActionRouter(
             _host,
             _view.Graph,
@@ -305,7 +301,7 @@ public sealed class TuiApplication(
         _router.Visual = _visual;
         var staging = new StagingActions(_host);
         _staging = staging;
-        _router.WorkingTree = new WorkingTreeActionHandler(_host, _view, clipboard, staging, _commits)
+        _router.WorkingTree = new WorkingTreeActionHandler(_host, _view, clipboard, staging, commits)
         {
             Diff = _workingDiff,
             Visual = _visual,
@@ -403,7 +399,7 @@ public sealed class TuiApplication(
             _workingDiff,
             _quickJump,
             fileTree,
-            .. CreatePrompts(),
+            .. CreatePrompts(commits),
         ];
         _router.Prompts = _prompts;
         _keys.TextKeyHandler = HandleTextKey;
@@ -436,7 +432,7 @@ public sealed class TuiApplication(
         _mouse = new MouseController(DefaultMouseMap.Create(), RouteAction, IsAnyOverlayOpen);
         _view.SuppressMouseWhen(IsAnyOverlayOpen);
         _view.Gestured += OnGestured;
-        _view.MessageClicked += _commits.PlaceCursor;
+        _view.MessageClicked += commits.PlaceCursor;
         _view.Window.ViewportChanged += (_, _) => DeferToNextIteration(_diffPane.OnScreenResized);
         _view.Window.ViewportChanged += (_, _) => ReportScreenSize();
         _view.Window.ViewportChanged += (_, _) => _overlays.OnScreenResized();
@@ -1279,7 +1275,7 @@ public sealed class TuiApplication(
             return PaneHints.ForReflog();
         }
 
-        if (_commits.IsEditing)
+        if (CommitRules.IsEditing(_host.State))
         {
             return PaneHints.ForMessageEditing();
         }
@@ -1753,7 +1749,7 @@ public sealed class TuiApplication(
 
     void IStashViewHost.RefreshDetail() => RefreshDetail();
 
-    private IReadOnlyList<IPromptHandler> CreatePrompts()
+    private IReadOnlyList<IPromptHandler> CreatePrompts(CommitMessageInput commits)
     {
         var handle = new GraphViewHandle(
             ActiveSession,
@@ -1781,7 +1777,7 @@ public sealed class TuiApplication(
                 services.CommitMessages,
                 tabId => _host.Workspace.FindTab(tabId)?.Location,
                 InvokeOnUi),
-            _commits,
+            commits,
         ];
     }
 
@@ -1965,7 +1961,7 @@ public sealed class TuiApplication(
             return;
         }
 
-        var multiLine = _commits.IsEditing || _rebaseEditor.IsEditingMessage || _conflictEditor.IsEditing;
+        var multiLine = CommitRules.IsEditing(_host.State) || _rebaseEditor.IsEditingMessage || _conflictEditor.IsEditing;
         paste.Handled = _keys.Paste(paste.Text, multiLine, FocusedViewName);
     }
 
