@@ -10,6 +10,7 @@ using Gitunia.App.Loading.Diff;
 using Gitunia.App.Loading.Trees;
 using Gitunia.Core.Clipboard;
 using Gitunia.Core.Diff;
+using Gitunia.Core.DiffPane;
 using Gitunia.Core.FileTree;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
@@ -27,6 +28,7 @@ using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.Rendering.Details;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Sidebar;
+using Gitunia.Tui.Tests.Fakes;
 using Gitunia.Tui.Views;
 using Terminal.Gui.Views;
 using Xunit;
@@ -48,12 +50,12 @@ public class FileContentViewTests
         await harness.WaitForContentAsync();
 
         var diff = harness.Session.Diff!;
-        Assert.True(diff.IsOpen);
+        Assert.True(harness.Tab.View.DiffPane.IsOpen);
         Assert.Equal(PaneKind.Diff, harness.Tab.View.FocusedPane);
         Assert.Equal(["one", "two", "three"], diff.Source.Document.Rows.Select(row => row.Text));
         Assert.True(diff.Source.Document.IsFileContent);
-        Assert.Equal(string.Empty, harness.FileTreeNotice);
-        var title = harness.Controller.TitleLine(80, GraphGlyphSet.Unicode).Text;
+        Assert.Empty(harness.Notices);
+        var title = harness.View.TitleLine(80, GraphGlyphSet.Unicode).Text;
         Assert.Contains("File", title, StringComparison.Ordinal);
         Assert.Contains("3 lines", title, StringComparison.Ordinal);
         Assert.Contains("a.txt", title, StringComparison.Ordinal);
@@ -68,7 +70,7 @@ public class FileContentViewTests
         harness.Enter();
         await harness.WaitForContentAsync();
 
-        var title = harness.Controller.TitleLine(80, GraphGlyphSet.Unicode).Text;
+        var title = harness.View.TitleLine(80, GraphGlyphSet.Unicode).Text;
         Assert.Contains("docs/guide.md", title, StringComparison.Ordinal);
     }
 
@@ -121,8 +123,8 @@ public class FileContentViewTests
         harness.Execute(ActionIds.NavigateBack);
 
         var diff = harness.Session.Diff!;
-        Assert.False(diff.IsOpen);
-        Assert.False(diff.IsShowingContent);
+        Assert.False(harness.Tab.View.DiffPane.IsOpen);
+        Assert.False(harness.Tab.View.DiffPane.IsShowingContent);
         Assert.Equal(PaneKind.Detail, harness.Tab.View.FocusedPane);
         Assert.Empty(diff.Source.Document.Rows);
     }
@@ -137,7 +139,7 @@ public class FileContentViewTests
         harness.Execute(ActionIds.DiffNextFile);
 
         Assert.Same(document, harness.Session.Diff.Source.Document);
-        Assert.Null(harness.Session.Diff.PendingFilePath);
+        Assert.Null(harness.Tab.View.DiffPane.PendingFile);
     }
 
     [Fact]
@@ -150,9 +152,9 @@ public class FileContentViewTests
         await harness.SelectCommitAsync(harness.OtherCommit);
         harness.Controller.FollowSelection();
 
-        Assert.False(harness.Session.Diff!.IsOpen);
-        Assert.False(harness.Session.Diff.IsShowingContent);
-        Assert.Empty(harness.Session.Diff.Source.Document.Rows);
+        Assert.False(harness.Tab.View.DiffPane.IsOpen);
+        Assert.False(harness.Tab.View.DiffPane.IsShowingContent);
+        Assert.Empty(harness.Session.Diff!.Source.Document.Rows);
     }
 
     [Fact]
@@ -163,8 +165,8 @@ public class FileContentViewTests
 
         harness.Controller.FollowSelection();
 
-        Assert.True(harness.Session.Diff!.IsShowingContent);
-        Assert.Equal(3, harness.Session.Diff.Source.Document.Rows.Count);
+        Assert.True(harness.Tab.View.DiffPane.IsShowingContent);
+        Assert.Equal(3, harness.Session.Diff!.Source.Document.Rows.Count);
     }
 
     [Fact]
@@ -175,8 +177,8 @@ public class FileContentViewTests
 
         harness.Send(new SetBottomTabCommand(BottomTab.Changes));
 
-        Assert.False(harness.Session.Diff!.IsShowingContent);
-        Assert.False(harness.Session.Diff.IsOpen);
+        Assert.False(harness.Tab.View.DiffPane.IsShowingContent);
+        Assert.False(harness.Tab.View.DiffPane.IsOpen);
         Assert.Equal(PaneKind.Detail, harness.Tab.View.FocusedPane);
     }
 
@@ -224,7 +226,7 @@ public class FileContentViewTests
 
         harness.Execute(ActionIds.DiffMoreContext);
 
-        Assert.Equal("The file content has no diff options", harness.Controller.Notice);
+        Assert.Equal("The file content has no diff options", Assert.Single(harness.Notices));
         Assert.Same(document, harness.Session.Diff.Source.Document);
     }
 
@@ -254,11 +256,11 @@ public class FileContentViewTests
     public async Task GivenAnOpenFile_WhenAsked_ThenThePaneReportsItShowsContent()
     {
         using var harness = await Harness.LoadAsync();
-        Assert.False(harness.Controller.IsShowingContent);
+        Assert.False(harness.View.IsShowingContent);
 
         await harness.OpenAsync("a.txt");
 
-        Assert.True(harness.Controller.IsShowingContent);
+        Assert.True(harness.View.IsShowingContent);
     }
 
     [Fact]
@@ -307,10 +309,10 @@ public class FileContentViewTests
         using var harness = await Harness.LoadAsync();
         var row = new FileTreeRow(FileTreeRowKind.Submodule, "mod", "mod", 0, false, null, 0);
 
-        var notice = harness.Controller.OpenFileContent(row);
+        harness.Controller.OpenFileContent(row);
 
-        Assert.Equal("A submodule has no content to show", notice);
-        Assert.False(harness.Session.Diff!.IsOpen);
+        Assert.Equal("A submodule has no content to show", Assert.Single(harness.Notices));
+        Assert.False(harness.Tab.View.DiffPane.IsOpen);
     }
 
     [Fact]
@@ -321,8 +323,8 @@ public class FileContentViewTests
 
         var diff = harness.Session.Diff!;
         Assert.Equal(["Select a file to view its contents"], diff.Source.Document.Rows.Select(row => row.Text));
-        Assert.True(harness.Controller.Arrangement().IsDiffOpen);
-        Assert.False(diff.IsOpen);
+        Assert.True(harness.View.Arrangement().IsDiffOpen);
+        Assert.False(harness.Tab.View.DiffPane.IsOpen);
         Assert.Equal(PaneKind.Detail, harness.Tab.View.FocusedPane);
     }
 
@@ -351,8 +353,8 @@ public class FileContentViewTests
         harness.SelectFile("docs");
 
         var diff = harness.Session.Diff!;
-        Assert.True(diff.IsContentPlaceholder);
-        Assert.Null(diff.ShownContentPath);
+        Assert.NotEqual(DiffPlaceholder.None, harness.Tab.View.DiffPane.Placeholder);
+        Assert.Null(harness.Tab.View.DiffPane.ContentPath);
         Assert.Equal("Select a file to view its contents", diff.Source.Document.Rows[0].Text);
     }
 
@@ -416,7 +418,7 @@ public class FileContentViewTests
 
         Assert.Equal(PaneKind.Detail, harness.Tab.View.FocusedPane);
         Assert.Equal(3, harness.Session.Diff!.Source.Document.Rows.Count);
-        Assert.True(harness.Controller.Arrangement().IsDiffOpen);
+        Assert.True(harness.View.Arrangement().IsDiffOpen);
     }
 
     [Fact]
@@ -433,7 +435,7 @@ public class FileContentViewTests
         var rows = harness.Session.DetailSource.Content.Tree;
         Assert.NotEqual("a.txt", rows[harness.DetailList.SelectedItem!.Value].Path);
         Assert.NotEqual(FileTreeRowKind.Directory, rows[harness.DetailList.SelectedItem.Value].Kind);
-        Assert.Equal(rows[harness.DetailList.SelectedItem.Value].Path, harness.Session.Diff!.ShownContentPath);
+        Assert.Equal(rows[harness.DetailList.SelectedItem.Value].Path, harness.Tab.View.DiffPane.ContentPath);
     }
 
     [Fact]
@@ -459,7 +461,7 @@ public class FileContentViewTests
         harness.Send(new SetBottomTabCommand(BottomTab.Changes));
 
         var diff = harness.Session.Diff!;
-        Assert.False(diff.ShowsFilesPane);
+        Assert.False(harness.Tab.View.DiffPane.ShowsFilesPane);
         Assert.False(diff.Source.Document.IsFileContent);
     }
 
@@ -473,7 +475,7 @@ public class FileContentViewTests
         await harness.SelectCommitAsync(harness.OtherCommit);
         harness.Controller.FollowSelection();
 
-        Assert.True(harness.Session.Diff!.IsContentPlaceholder);
+        Assert.NotEqual(DiffPlaceholder.None, harness.Tab.View.DiffPane.Placeholder);
     }
 
     private sealed class Harness : IDisposable
@@ -481,6 +483,7 @@ public class FileContentViewTests
         private readonly TestRepository _repository;
         private readonly UiPump _pump;
         private readonly FileTreeInput _fileTree;
+        private readonly DiffPaneWiring _wiring;
 
         private Harness(
             Dispatcher host,
@@ -501,20 +504,15 @@ public class FileContentViewTests
             diffList.SetRelativeLayout(new Size(80, 24));
             DiffList = diffList;
 
-            Controller = new DiffPaneController(
+            _wiring = new DiffPaneWiring(
                 host,
-                () => Session,
+                session,
                 detailList,
                 diffList,
-                () => new ScreenSize(width, 40),
-                () => { },
-                () => { },
+                new ScreenSize(width, 40),
                 new ClipboardCopier(
                     new ClipboardWriter(Clipboard, new Osc52Options(Osc52Mode.Direct, 100_000)),
                     new StatusReporter(new Dispatcher(AppState.Empty))));
-
-            Controller.OnTabSwitched(null, session);
-            DetailList.ValueChanged += (_, _) => Controller.OnDetailCursorMoved();
             _fileTree = new FileTreeInput(host, DetailList);
             host.EffectRaised += OnEffect;
         }
@@ -525,7 +523,11 @@ public class FileContentViewTests
 
         public TerminalTabSession Session { get; }
 
-        public DiffPaneController Controller { get; }
+        public DiffPaneInput Controller => _wiring.Input;
+
+        public DiffPaneView View => _wiring.View;
+
+        public List<string> Notices => _wiring.Notices;
 
         public ObjectId OtherCommit { get; }
 
@@ -533,9 +535,7 @@ public class FileContentViewTests
 
         public RepositoryState Tab => Host.Workspace.ActiveTab!;
 
-        public string FileTreeNotice { get; private set; } = string.Empty;
-
-        public static async Task<Harness> LoadAsync(int width = 60)
+                public static async Task<Harness> LoadAsync(int width = 60)
         {
             var repository = TestRepository.Create()
                 .Commit("root", new TestFile("a.txt", "one\ntwo\nthree\n"))
@@ -662,7 +662,7 @@ public class FileContentViewTests
         {
             if (effect is OpenFileContentEffect open)
             {
-                FileTreeNotice = Controller.OpenFileContent(open.Row);
+                Controller.OpenFileContent(open.Row);
             }
         }
     }

@@ -30,6 +30,7 @@ using Gitunia.Core.Settings.Models;
 using Gitunia.Core.Sidebar;
 using Gitunia.Core.Stash;
 using Gitunia.Core.Staging;
+using Gitunia.Core.Visual;
 using Gitunia.Core.Status;
 using Gitunia.Core.Text;
 using Gitunia.Core.Workspaces;
@@ -102,7 +103,7 @@ public sealed class TuiApplication(
     IPlatform platform) : IDisposable, ITerminalSuspender, IShellEffects, IBranchSelectionSource,
     IGraphCommitSelector, IGraphSelectionSource, IOverlayCover, IPickSelectionSource,
     IIssueLinkView, IStashSelectionSource, IStashViewHost, ITerminalRetryHost, IWorktreeSelectionSource,
-    ICompareSource, IQuickJumpHost, ISidebarLayout
+    ICompareSource, IQuickJumpHost, ISidebarLayout, IActiveSessions, IPaneChrome
 {
     // Terminal.Gui's default of 25 iterations per second gave ~34 ms key latency (docs/internal/history/decisions.md); the idle rate saves CPU (#909).
     private const ushort ActiveIterationsPerSecond = 100;
@@ -128,7 +129,8 @@ public sealed class TuiApplication(
     private RepeatController _repeat = null!;
     private MouseController _mouse = null!;
     private long _overlayClickTicks = long.MinValue / 2;
-    private VisualRangeController _visual = null!;
+    private VisualRangeInput _visual = null!;
+    private RangeCopier _rangeCopier = null!;
     private IReadOnlyList<IPromptHandler> _prompts = [];
     private SidebarInput _sidebar = null!;
     private StashViewController _stashView = null!;
@@ -136,7 +138,8 @@ public sealed class TuiApplication(
     private OverlayController _overlays = null!;
     private WhichKeyTimer _whichKeyTimer = null!;
     private PickerInput _picker = null!;
-    private DiffPaneController _diffPane = null!;
+    private DiffPaneInput _diffPane = null!;
+    private DiffPaneView _diffView = null!;
     private WorkingDiffController _workingDiff = null!;
     private QuickJumpInput _quickJump = null!;
     private WorkspaceActions _workspaceActions = null!;
@@ -265,8 +268,8 @@ public sealed class TuiApplication(
             glyphs,
             sidebarSource,
             () => SidebarChrome.Of(_host.State),
-            () => _diffPane.Arrangement(),
-            width => _diffPane.TitleLine(width, glyphs, _chipKeys, _repeat.Active?.Pane == PaneKind.Diff),
+            () => _diffView.Arrangement(),
+            width => _diffView.TitleLine(width, glyphs, _chipKeys, _repeat.Active?.Pane == PaneKind.Diff),
             new DiffListSource(glyphs));
 
         _commits = CreateCommits();
@@ -284,15 +287,8 @@ public sealed class TuiApplication(
             _statuses,
             clipboard);
         _router.ScreenHeight = () => _view.ScreenSize.Height;
-        _diffPane = new DiffPaneController(
-            _host,
-            ActiveSession,
-            _view.Detail,
-            _view.Diff,
-            () => _view.ScreenSize,
-            Relayout,
-            _view.RefreshChrome,
-            clipboard);
+        _diffView = new DiffPaneView(_host, this, _view, this, clipboard);
+        _diffPane = new DiffPaneInput(_host, this, _view, _diffView);
         _router.Diff = _diffPane;
         _workingDiff = new WorkingDiffController(
             _host,
@@ -304,12 +300,8 @@ public sealed class TuiApplication(
         _view.WorkingDiffTitle = () => _workingDiff.TitleText(IsWorkingDiffRepeating());
         _view.IsWorkingDiffZoomed = () => _workingDiff.IsZoomed;
         _view.WorkingDiffButtons = () => WorkingTreePaneRenderer.StagingButtons(_host.Workspace.ActiveTab?.WorkingTree);
-        _visual = new VisualRangeController(
-            () => _host.Workspace.ActiveTab?.View.FocusedPane ?? PaneKind.Graph,
-            PaneView,
-            _host,
-            new RangeCopier(clipboard, ActiveSession, () => _host.Workspace.ActiveTab?.WorkingTree).Copy,
-            _statuses);
+        _visual = new VisualRangeInput(_host, _view);
+        _rangeCopier = new RangeCopier(clipboard, ActiveSession, () => _host.Workspace.ActiveTab?.WorkingTree);
         _router.Visual = _visual;
         var operationGate = _activity.CreateGate();
         var staging = CreateStaging(operationGate);
@@ -359,7 +351,7 @@ public sealed class TuiApplication(
         _router.Worktrees = new WorktreeActions(_host, this);
         _router.Operations = new OperationActions(_host);
         _router.DetailTabs = new DetailTabInput(_host);
-        _router.PaneSizes = new PaneSizeInput(_host, _diffPane, _workingDiff);
+        _router.PaneSizes = new PaneSizeInput(_host, _diffView, _workingDiff);
         _router.ExternalTools = new ExternalToolInput(_host, this);
         _router.Refresh = () => _host.Workspace.ActiveTabId is { } activeId && _effects.Refresh(activeId);
 
@@ -433,7 +425,6 @@ public sealed class TuiApplication(
         _host.Changed += _commits.ShowPendingFailure;
         _host.Changed += OnBottomTabMaybeChanged;
         _host.Changed += OnPaneSizesMaybeChanged;
-        _host.Changed += _visual.EndIfFocusMoved;
         _host.Changed += _quickJump.CloseIfStale;
         _keys.PendingChanged += _view.RefreshChrome;
         _keys.TextKeyPressed += OnTextKey;
@@ -675,17 +666,17 @@ public sealed class TuiApplication(
         if (IsAnyOverlayOpen()
             || _picker.IsOpen
             || ActiveSession()?.Diff is null
-            || _diffPane.Arrangement().Zoomed is not null)
+            || _diffView.Arrangement().Zoomed is not null)
         {
             return;
         }
 
-        ApplyPaneSizes(PaneResizer.Drag(_diffPane.SizesOfActiveTab(), edge, column, row, _view.Window.Viewport.Height));
+        ApplyPaneSizes(PaneResizer.Drag(_diffView.SizesOfActiveTab(), edge, column, row, _view.Window.Viewport.Height));
     }
 
     private void ApplyPaneSizes(PaneSizes sizes)
     {
-        if (_host.Workspace.ActiveTabId is { } tabId && _diffPane.SizesOfActiveTab() != sizes)
+        if (_host.Workspace.ActiveTabId is { } tabId && _diffView.SizesOfActiveTab() != sizes)
         {
             _host.Dispatch(new TabCommand(tabId, new SetPaneSizesCommand(sizes.SidebarWidth, sizes.BottomHeight, sizes.DetailWidth)));
         }
@@ -694,7 +685,7 @@ public sealed class TuiApplication(
     // The pane sizes are repository tab state: whoever changed them (the resize keys, a divider drag), the panes follow.
     private void OnPaneSizesMaybeChanged()
     {
-        var sizes = _diffPane.SizesOfActiveTab();
+        var sizes = _diffView.SizesOfActiveTab();
         if (sizes != _laidOutSizes)
         {
             _laidOutSizes = sizes;
@@ -875,7 +866,7 @@ public sealed class TuiApplication(
 
     private PaneRects CurrentPaneRects()
     {
-        var arrangement = _diffPane.Arrangement();
+        var arrangement = _diffView.Arrangement();
         return PaneLayout.Compute(
             _view.Window.Viewport.Width,
             _view.Window.Viewport.Height,
@@ -986,15 +977,23 @@ public sealed class TuiApplication(
 
     void IShellEffects.Quit() => RequestStop();
 
+    void IShellEffects.CopyVisualRange(CopyVisualRangeEffect effect)
+    {
+        var result = _rangeCopier.Copy(effect.Pane, effect.Range);
+        _host.Dispatch(new VisualCopied(result.Copied, result.Notice));
+    }
+
     void IShellEffects.MoveDetailCursor(int row) => MoveDetailCursor(row);
 
-    void IShellEffects.OpenFileContent(FileTreeRow row)
-    {
-        if (_diffPane.OpenFileContent(row) is { Length: > 0 } notice)
-        {
-            _statuses.Post(notice);
-        }
-    }
+    TerminalTabSession? IActiveSessions.ActiveSession() => ActiveSession();
+
+    ScreenSize IPaneChrome.ScreenSize => _view.ScreenSize;
+
+    void IPaneChrome.Relayout() => Relayout();
+
+    void IPaneChrome.RefreshChrome() => _view.RefreshChrome();
+
+    void IShellEffects.OpenFileContent(FileTreeRow row) => _diffPane.OpenFileContent(row);
 
     private CommitActions CreateCommits() => new(
         _host,
@@ -1368,7 +1367,7 @@ public sealed class TuiApplication(
 
         return PaneHints.For(
             _host.Workspace.ActiveTab?.View.FocusedPane ?? PaneKind.Graph,
-            _diffPane.IsShowingContent,
+            _diffView.IsShowingContent,
             OnConflictedFile(),
             OnRefusedConflictedFile());
     }
@@ -1933,7 +1932,8 @@ public sealed class TuiApplication(
 
         _visual.End();
         _view.Detail.Source = current?.DetailSource;
-        _diffPane.OnTabSwitched(previous, current);
+        _diffView.OnTabSwitched(previous, current);
+        _diffPane.FollowSelection();
         _workingDiff.OnTabSwitched(previous, current);
         if (current is not null)
         {

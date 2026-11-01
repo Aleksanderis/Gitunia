@@ -4,6 +4,7 @@ using Gitunia.App.Branches;
 using Gitunia.App.Compare;
 using Gitunia.App.Conflicts;
 using Gitunia.App.Creation;
+using Gitunia.App.DiffPane;
 using Gitunia.App.Pick;
 using Gitunia.App.Rebase;
 using Gitunia.App.Integration;
@@ -28,6 +29,7 @@ using Gitunia.Core.Compare;
 using Gitunia.Core.Conflicts;
 using Gitunia.Core.Creation;
 using Gitunia.Core.Details;
+using Gitunia.Core.DiffPane;
 using Gitunia.Core.Effects;
 using Gitunia.Core.ExternalTools;
 using Gitunia.Core.IssueLinks;
@@ -45,6 +47,7 @@ using Gitunia.Core.Staging;
 using Gitunia.Core.Stash;
 using Gitunia.Core.Sync;
 using Gitunia.Core.Tags;
+using Gitunia.Core.Visual;
 using Gitunia.Core.Shell;
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
@@ -77,6 +80,7 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
     private readonly TabCancellation _cancellation = new();
     private readonly BackgroundWork _background = new();
     private readonly CreationEffectHandler _creation;
+    private readonly DiffPaneEffectHandler _diffPane;
     private readonly IntegrationEffectHandler _integration;
     private readonly IssueLinkEffectHandler _issueLinks;
     private readonly BranchEffectHandler _branches;
@@ -136,6 +140,7 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
             services.ConflictRecreator,
             host);
         _creation = new CreationEffectHandler(services.Creator, pickerServices.Files, host);
+        _diffPane = new DiffPaneEffectHandler(this);
         _picker = new PickerEffectHandler(services.Discovery, pickerServices.Files, host, pickerServices.Timings);
         _pick = new PickEffectHandler(services.Pick, services.PickCommits, host);
         _rebase = new RebaseEffectHandler(services.Rebase, services.QuickRebase, host);
@@ -331,8 +336,14 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
             case CopyToClipboardEffect copy:
                 _shell.CopyToClipboard(copy);
                 break;
+            case CopyVisualRangeEffect copyRange:
+                _shell.CopyVisualRange(copyRange);
+                break;
             case CreationEffect creation:
                 _creation.Handle(creation, _shutdown.Token);
+                break;
+            case DiffPaneEffect diffPane:
+                _diffPane.Handle(diffPane);
                 break;
             case FlushSessionEffect flush:
                 _host.Dispatch(new SessionFlushed(_shell.FlushSession(), flush.Force));

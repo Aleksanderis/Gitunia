@@ -82,7 +82,7 @@ public sealed class ActionRouter(
     public IPromptHandler? OpenPrompt { get; set; }
 
     /// <summary>Visual mode (range selection), which sees the actions before every pane handler.</summary>
-    public VisualRangeController? Visual { get; set; }
+    public VisualRangeInput? Visual { get; set; }
 
     /// <summary>The branch actions (create, switch, rename, delete), which own their prompts in every pane.</summary>
     public BranchActions? Branches { get; set; }
@@ -140,7 +140,7 @@ public sealed class ActionRouter(
     public DetailTabInput? DetailTabs { get; set; }
 
     /// <summary>The diff pane's controller, which gets the actions after the sidebar and before the graph and detail lists.</summary>
-    public DiffPaneController? Diff { get; set; }
+    public DiffPaneInput? Diff { get; set; }
 
     /// <summary>The keymap view of the focused pane (<c>Graph</c>, <c>Detail</c>, <c>Sidebar</c> or <c>Diff</c>).</summary>
     public string ViewName => host.Workspace.ActiveTab?.View.FocusedPane switch
@@ -255,7 +255,7 @@ public sealed class ActionRouter(
 
         if (Visual?.TryExecute(action, count) == true)
         {
-            Message = Visual.Notice;
+            Message = string.Empty;
             return;
         }
 

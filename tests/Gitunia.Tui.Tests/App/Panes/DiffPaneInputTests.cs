@@ -22,13 +22,14 @@ using Gitunia.Tui.App.Panes;
 using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.Rendering.Details;
 using Gitunia.Tui.Rendering.Graph;
+using Gitunia.Tui.Tests.Fakes;
 using Gitunia.Tui.Views;
 using Terminal.Gui.Views;
 using Xunit;
 
 namespace Gitunia.Tui.Tests.App.Panes;
 
-public class DiffPaneControllerTests
+public class DiffPaneInputTests
 {
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
@@ -41,9 +42,9 @@ public class DiffPaneControllerTests
         harness.Execute(ActionIds.DetailOpenDiff);
         await harness.WaitForDiffAsync();
 
-        Assert.True(harness.Session.Diff!.IsOpen);
+        Assert.True(harness.Tab.View.DiffPane.IsOpen);
         Assert.Equal(PaneKind.Diff, harness.Tab.View.FocusedPane);
-        var document = harness.Session.Diff.Source.Document;
+        var document = harness.Session.Diff!.Source.Document;
         Assert.Equal(document.FileRows[document.FileIndexOf("b.txt")], harness.DiffList.SelectedItem);
     }
 
@@ -55,8 +56,8 @@ public class DiffPaneControllerTests
 
         harness.Execute(ActionIds.DetailOpenDiff);
 
-        Assert.False(harness.Session.Diff!.IsOpen);
-        Assert.Equal("Select a file or folder to see its diff", harness.Controller.Notice);
+        Assert.False(harness.Tab.View.DiffPane.IsOpen);
+        Assert.Equal("Select a file or folder to see its diff", Assert.Single(harness.Notices));
     }
 
     [Theory]
@@ -70,8 +71,8 @@ public class DiffPaneControllerTests
 
         harness.Execute(ActionIds.DetailOpenDiff);
 
-        Assert.False(harness.Session.Diff!.IsOpen);
-        Assert.Equal("Open the Changes tab (gc) to pick a file", harness.Controller.Notice);
+        Assert.False(harness.Tab.View.DiffPane.IsOpen);
+        Assert.Equal("Open the Changes tab (gc) to pick a file", Assert.Single(harness.Notices));
     }
 
     [Fact]
@@ -120,9 +121,9 @@ public class DiffPaneControllerTests
         harness.SelectFile("b.txt");
         harness.Execute(ActionIds.DetailOpenDiff);
 
-        var before = harness.Controller.TitleLine(80, GraphGlyphSet.Unicode).Text;
+        var before = harness.View.TitleLine(80, GraphGlyphSet.Unicode).Text;
         harness.Execute(ActionIds.DiffNextHunk);
-        var after = harness.Controller.TitleLine(80, GraphGlyphSet.Unicode).Text;
+        var after = harness.View.TitleLine(80, GraphGlyphSet.Unicode).Text;
         Assert.Contains("hunk 0/1", before, StringComparison.Ordinal);
         Assert.Contains("file 2/2", before, StringComparison.Ordinal);
         Assert.Contains("hunk 1/1", after, StringComparison.Ordinal);
@@ -175,10 +176,10 @@ public class DiffPaneControllerTests
 
         harness.Execute(ActionIds.NavigateBack);
 
-        Assert.True(harness.Session.Diff!.IsOpen);
-        Assert.Null(harness.Session.Diff.Source.Highlight);
+        Assert.True(harness.Tab.View.DiffPane.IsOpen);
+        Assert.Null(harness.Session.Diff!.Source.Highlight);
         harness.Execute(ActionIds.NavigateBack);
-        Assert.False(harness.Session.Diff.IsOpen);
+        Assert.False(harness.Tab.View.DiffPane.IsOpen);
         Assert.Equal(PaneKind.Detail, harness.Tab.View.FocusedPane);
         Assert.Empty(harness.Session.Diff.Source.Document.Rows);
     }
@@ -195,7 +196,7 @@ public class DiffPaneControllerTests
 
         Assert.Equal(KeyMode.Normal, harness.Mode);
         Assert.Equal(string.Empty, harness.Controller.StatusLine);
-        Assert.True(harness.Session.Diff!.IsOpen);
+        Assert.True(harness.Tab.View.DiffPane.IsOpen);
     }
 
     [Fact]
@@ -205,11 +206,11 @@ public class DiffPaneControllerTests
 
         await harness.OpenAsync("a.txt");
 
-        Assert.Equal(PaneKind.Diff, harness.Controller.Arrangement().Zoomed);
+        Assert.Equal(PaneKind.Diff, harness.View.Arrangement().Zoomed);
         harness.Send(new FocusPaneCommand(PaneKind.Detail));
-        Assert.Null(harness.Controller.Arrangement().Zoomed);
+        Assert.Null(harness.View.Arrangement().Zoomed);
         harness.Send(new FocusPaneCommand(PaneKind.Diff));
-        Assert.Null(harness.Controller.Arrangement().Zoomed);
+        Assert.Null(harness.View.Arrangement().Zoomed);
     }
 
     [Fact]
@@ -219,7 +220,7 @@ public class DiffPaneControllerTests
 
         await harness.OpenAsync("a.txt");
 
-        Assert.Null(harness.Controller.Arrangement().Zoomed);
+        Assert.Null(harness.View.Arrangement().Zoomed);
     }
 
     [Fact]
@@ -231,9 +232,9 @@ public class DiffPaneControllerTests
         harness.Controller.FollowSelection();
         await harness.WaitForDiffAsync();
 
-        Assert.True(harness.Controller.Arrangement().IsDiffOpen);
-        Assert.False(harness.Session.Diff!.IsOpen);
-        var document = harness.Session.Diff.Source.Document;
+        Assert.True(harness.View.Arrangement().IsDiffOpen);
+        Assert.False(harness.Tab.View.DiffPane.IsOpen);
+        var document = harness.Session.Diff!.Source.Document;
         Assert.Equal(document.FileRows[0], harness.DiffList.SelectedItem);
     }
 
@@ -265,7 +266,7 @@ public class DiffPaneControllerTests
 
         harness.Send(new SetBottomTabCommand(BottomTab.Details));
 
-        Assert.False(harness.Controller.Arrangement().IsDiffOpen);
+        Assert.False(harness.View.Arrangement().IsDiffOpen);
     }
 
     [Fact]
@@ -276,7 +277,7 @@ public class DiffPaneControllerTests
 
         harness.Controller.FollowSelection();
 
-        Assert.False(harness.Controller.Arrangement().IsDiffOpen);
+        Assert.False(harness.View.Arrangement().IsDiffOpen);
         Assert.Equal(DiffStatus.None, harness.Session.Diff!.Store.Status);
     }
 
@@ -291,11 +292,11 @@ public class DiffPaneControllerTests
         harness.Execute(ActionIds.DetailOpenDiff);
 
         Assert.Equal(PaneKind.Diff, harness.Tab.View.FocusedPane);
-        Assert.False(harness.Session.Diff!.IsOpen);
+        Assert.False(harness.Tab.View.DiffPane.IsOpen);
         harness.Execute(ActionIds.NavigateBack);
         Assert.Equal(PaneKind.Detail, harness.Tab.View.FocusedPane);
-        Assert.True(harness.Controller.Arrangement().IsDiffOpen);
-        Assert.Equal(DiffStatus.Loaded, harness.Session.Diff.Store.Status);
+        Assert.True(harness.View.Arrangement().IsDiffOpen);
+        Assert.Equal(DiffStatus.Loaded, harness.Session.Diff!.Store.Status);
     }
 
     [Fact]
@@ -318,7 +319,7 @@ public class DiffPaneControllerTests
         Assert.Single(second.FilePaths);
         Assert.NotEqual(firstFile, second.FilePaths[0]);
         Assert.NotEqual(firstCursor, harness.DetailList.SelectedItem);
-        var title = harness.Controller.TitleLine(80, GraphGlyphSet.Unicode).Text;
+        var title = harness.View.TitleLine(80, GraphGlyphSet.Unicode).Text;
         Assert.Contains("file 2/2", title, StringComparison.Ordinal);
         harness.Execute(ActionIds.DiffNextFile);
         Assert.Equal("No next file", harness.Controller.Notice);
@@ -379,11 +380,11 @@ public class DiffPaneControllerTests
         using var harness = await DiffHarness.LoadAsync(screenWidth: 60);
         harness.SelectFirstFile();
 
-        harness.ScreenWidth = 100;
+        harness.ResizeWidth(100);
         harness.Controller.OnScreenResized();
         await harness.WaitForDiffAsync();
 
-        Assert.True(harness.Controller.Arrangement().IsDiffOpen);
+        Assert.True(harness.View.Arrangement().IsDiffOpen);
     }
 
     [Fact]
@@ -395,7 +396,7 @@ public class DiffPaneControllerTests
         await harness.WaitForDiffAsync();
         harness.Execute(ActionIds.DetailOpenDiff);
 
-        harness.ScreenWidth = 60;
+        harness.ResizeWidth(60);
         harness.Controller.OnScreenResized();
 
         Assert.Equal(PaneKind.Detail, harness.Tab.View.FocusedPane);
@@ -408,26 +409,12 @@ public class DiffPaneControllerTests
         harness.SelectFirstFile();
         harness.Controller.FollowSelection();
         await harness.WaitForDiffAsync();
-        harness.Controller.OnTabSwitched(harness.Session, null);
+        harness.View.OnTabSwitched(harness.Session, null);
         harness.Session.Diff!.Source.Update(DiffDocument.Empty);
 
-        harness.Controller.OnTabSwitched(null, harness.Session);
+        harness.View.OnTabSwitched(null, harness.Session);
 
         Assert.Equal(harness.Session.Diff.Store.Document.ForFile(0).Rows, harness.Session.Diff.Source.Document.Rows);
-    }
-
-    [Fact]
-    public async Task GivenAZoomedPane_WhenAskingForTheArrangement_ThenNothingChanges()
-    {
-        using var harness = await DiffHarness.LoadAsync();
-        await harness.OpenAsync("a.txt");
-        harness.Execute(ActionIds.PaneZoom);
-
-        // A zoom that does not match the focus is hidden by the arrangement but only released by the workspace change.
-        harness.Session.Diff!.ZoomedPane = PaneKind.Graph;
-
-        Assert.Null(harness.Controller.Arrangement().Zoomed);
-        Assert.Equal(PaneKind.Graph, harness.Session.Diff.ZoomedPane);
     }
 
     [Fact]
@@ -468,7 +455,7 @@ public class DiffPaneControllerTests
         harness.Execute(ActionIds.DiffSearchOpen);
         harness.Type("line");
 
-        harness.Controller.OnTabSwitched(harness.Session, null);
+        harness.View.OnTabSwitched(harness.Session, null);
 
         Assert.Equal(KeyMode.Normal, harness.Mode);
         Assert.False(harness.Session.Diff!.Search.IsOpen);
@@ -516,14 +503,14 @@ public class DiffPaneControllerTests
         await harness.OpenAsync("a.txt");
 
         harness.Execute(ActionIds.PaneZoom);
-        Assert.Equal(PaneKind.Diff, harness.Controller.Arrangement().Zoomed);
+        Assert.Equal(PaneKind.Diff, harness.View.Arrangement().Zoomed);
         harness.Execute(ActionIds.PaneZoom);
-        Assert.Null(harness.Controller.Arrangement().Zoomed);
+        Assert.Null(harness.View.Arrangement().Zoomed);
         harness.Execute(ActionIds.PaneZoom);
         harness.Send(new FocusPaneCommand(PaneKind.Graph));
 
-        Assert.Null(harness.Controller.Arrangement().Zoomed);
-        Assert.True(harness.Controller.Arrangement().IsDiffOpen);
+        Assert.Null(harness.View.Arrangement().Zoomed);
+        Assert.True(harness.View.Arrangement().IsDiffOpen);
     }
 
     [Fact]
@@ -533,21 +520,21 @@ public class DiffPaneControllerTests
         harness.Send(new FocusPaneCommand(PaneKind.Detail));
 
         harness.Execute(ActionIds.PaneZoom);
-        Assert.True(harness.Controller.Arrangement().ZoomBoth);
-        Assert.Equal(PaneKind.Detail, harness.Controller.Arrangement().Zoomed);
+        Assert.True(harness.View.Arrangement().ZoomBoth);
+        Assert.Equal(PaneKind.Detail, harness.View.Arrangement().Zoomed);
         harness.Send(new FocusPaneCommand(PaneKind.Diff));
-        Assert.True(harness.Controller.Arrangement().ZoomBoth);
+        Assert.True(harness.View.Arrangement().ZoomBoth);
         harness.Send(new FocusPaneCommand(PaneKind.Detail));
-        Assert.True(harness.Controller.Arrangement().ZoomBoth);
+        Assert.True(harness.View.Arrangement().ZoomBoth);
         harness.Execute(ActionIds.PaneZoom);
-        Assert.Null(harness.Controller.Arrangement().Zoomed);
-        Assert.False(harness.Controller.Arrangement().ZoomBoth);
+        Assert.Null(harness.View.Arrangement().Zoomed);
+        Assert.False(harness.View.Arrangement().ZoomBoth);
 
         harness.Send(new FocusPaneCommand(PaneKind.Diff));
         harness.Execute(ActionIds.PaneZoom);
-        Assert.True(harness.Controller.Arrangement().ZoomBoth);
+        Assert.True(harness.View.Arrangement().ZoomBoth);
         harness.Execute(ActionIds.PaneZoom);
-        Assert.Null(harness.Controller.Arrangement().Zoomed);
+        Assert.Null(harness.View.Arrangement().Zoomed);
     }
 
     [Fact]
@@ -558,11 +545,11 @@ public class DiffPaneControllerTests
         harness.Execute(ActionIds.PaneZoom);
 
         harness.Send(new FocusPaneCommand(PaneKind.Graph));
-        Assert.Null(harness.Controller.Arrangement().Zoomed);
+        Assert.Null(harness.View.Arrangement().Zoomed);
         harness.Send(new FocusPaneCommand(PaneKind.Diff));
 
-        Assert.Null(harness.Controller.Arrangement().Zoomed);
-        Assert.False(harness.Controller.Arrangement().ZoomBoth);
+        Assert.Null(harness.View.Arrangement().Zoomed);
+        Assert.False(harness.View.Arrangement().ZoomBoth);
     }
 
     [Fact]
@@ -573,12 +560,12 @@ public class DiffPaneControllerTests
         harness.Execute(ActionIds.PaneZoom);
 
         await harness.OpenAsync("a.txt");
-        Assert.True(harness.Controller.Arrangement().ZoomBoth);
-        Assert.Equal(PaneKind.Diff, harness.Controller.Arrangement().Zoomed);
+        Assert.True(harness.View.Arrangement().ZoomBoth);
+        Assert.Equal(PaneKind.Diff, harness.View.Arrangement().Zoomed);
         harness.Execute(ActionIds.NavigateBack);
 
-        Assert.True(harness.Controller.Arrangement().ZoomBoth);
-        Assert.Equal(PaneKind.Detail, harness.Controller.Arrangement().Zoomed);
+        Assert.True(harness.View.Arrangement().ZoomBoth);
+        Assert.Equal(PaneKind.Detail, harness.View.Arrangement().Zoomed);
     }
 
     [Fact]
@@ -591,8 +578,8 @@ public class DiffPaneControllerTests
 
         harness.Execute(ActionIds.PaneZoom);
 
-        Assert.NotNull(harness.Controller.Arrangement().Zoomed);
-        Assert.False(harness.Controller.Arrangement().ZoomBoth);
+        Assert.NotNull(harness.View.Arrangement().Zoomed);
+        Assert.False(harness.View.Arrangement().ZoomBoth);
     }
 
     [Fact]
@@ -603,8 +590,8 @@ public class DiffPaneControllerTests
 
         harness.Execute(ActionIds.PaneZoom);
 
-        Assert.Equal("The sidebar cannot be zoomed", harness.Controller.Notice);
-        Assert.Null(harness.Controller.Arrangement().Zoomed);
+        Assert.Equal("The sidebar cannot be zoomed", Assert.Single(harness.Notices));
+        Assert.Null(harness.View.Arrangement().Zoomed);
     }
 
     [Fact]
@@ -673,9 +660,9 @@ public class DiffPaneControllerTests
         harness.Execute(ActionIds.DiffNextHunk);
         var row = harness.DiffList.SelectedItem;
 
-        harness.Controller.OnTabSwitched(harness.Session, null);
+        harness.View.OnTabSwitched(harness.Session, null);
         Assert.Null(harness.DiffList.Source);
-        harness.Controller.OnTabSwitched(null, harness.Session);
+        harness.View.OnTabSwitched(null, harness.Session);
 
         Assert.Equal(row, harness.DiffList.SelectedItem);
         Assert.Same(harness.Session.Diff!.Source, harness.DiffList.Source);
@@ -687,10 +674,10 @@ public class DiffPaneControllerTests
         using var harness = await DiffHarness.LoadAsync();
         harness.SelectFile("b.txt");
         harness.Execute(ActionIds.DetailOpenDiff);
-        harness.Controller.OnTabSwitched(harness.Session, null);
+        harness.View.OnTabSwitched(harness.Session, null);
         await harness.WaitForDiffAsync();
 
-        harness.Controller.OnTabSwitched(null, harness.Session);
+        harness.View.OnTabSwitched(null, harness.Session);
 
         var document = harness.Session.Diff!.Source.Document;
         Assert.Equal(DiffStatus.Loaded, harness.Session.Diff.Store.Status);
@@ -793,7 +780,7 @@ public class DiffPaneControllerTests
 
         Assert.Equal(new DiffOptions(DiffOptions.DefaultContextLines + DiffOptions.ContextStep, true, true), store.Options);
         Assert.Equal(DiffStatus.Loaded, store.Status);
-        Assert.Equal("Diff: whole files, whitespace ignored", harness.Controller.Notice);
+        Assert.Equal("Diff: whole files, whitespace ignored", harness.Notices[^1]);
 
         harness.Execute(ActionIds.DiffToggleWholeFile);
         await harness.WaitForDiffAsync();
@@ -902,7 +889,7 @@ public class DiffPaneControllerTests
         await harness.WaitForDiffAsync();
         harness.Execute(ActionIds.DiffLessContext);
 
-        Assert.Equal("Context is already at its limit", harness.Controller.Notice);
+        Assert.Equal("Context is already at its limit", harness.Notices[^1]);
     }
 
     [Fact]
@@ -913,7 +900,7 @@ public class DiffPaneControllerTests
 
         harness.Execute(ActionIds.DiffLoadAnyway);
 
-        Assert.Equal("Nothing was cut short", harness.Controller.Notice);
+        Assert.Equal("Nothing was cut short", Assert.Single(harness.Notices));
     }
 
     [Fact]
@@ -1135,23 +1122,29 @@ public class DiffPaneControllerTests
         private readonly TestRepository? _ownedRepository;
         private readonly UiPump _pump;
 
+        private readonly DiffPaneWiring _wiring;
+
         private DiffHarness(Dispatcher host, TerminalTabSession session, UiPump pump, TestRepository? ownedRepository, int screenHeight, int screenWidth)
         {
             _pump = pump;
             Host = host;
             Session = session;
             _ownedRepository = ownedRepository;
-            ScreenWidth = screenWidth;
+            ScreenHeight = screenHeight;
             DetailList = new ListView { Source = session.DetailSource };
             DiffList = new ListView { X = 0, Y = 0, Width = 60, Height = 20 };
             DiffList.SetRelativeLayout(new Size(80, 24));
-            Controller = new DiffPaneController(host, () => Session, DetailList, DiffList, () => new ScreenSize(ScreenWidth, screenHeight), () => { }, () => { }, new ClipboardCopier(new ClipboardWriter(Clipboard, new Osc52Options(Osc52Mode.Direct, 100_000)), new StatusReporter(new Dispatcher(AppState.Empty))));
-            Controller.OnTabSwitched(null, session);
-            DetailList.ValueChanged += (_, _) => Controller.OnDetailCursorMoved();
+            var clipboard = new ClipboardCopier(new ClipboardWriter(Clipboard, new Osc52Options(Osc52Mode.Direct, 100_000)), new StatusReporter(new Dispatcher(AppState.Empty)));
+            _wiring = new DiffPaneWiring(host, session, DetailList, DiffList, new ScreenSize(screenWidth, screenHeight), clipboard);
         }
 
-        /// <summary>The terminal width the controller sees; tests change it to simulate a resize.</summary>
-        public int ScreenWidth { get; set; }
+        /// <summary>The terminal width changes; the terminal layer would report it.</summary>
+        public void ResizeWidth(int width) => _wiring.Resize(new ScreenSize(width, ScreenHeight));
+
+        public int ScreenHeight { get; }
+
+        /// <summary>The status notices the reducers asked for.</summary>
+        public List<string> Notices => _wiring.Notices;
 
         public Dispatcher Host { get; }
 
@@ -1161,7 +1154,9 @@ public class DiffPaneControllerTests
 
         public ListView DiffList { get; }
 
-        public DiffPaneController Controller { get; }
+        public DiffPaneInput Controller => _wiring.Input;
+
+        public DiffPaneView View => _wiring.View;
 
         /// <summary>What the controller wrote to the terminal (OSC 52 sequences).</summary>
         public StringWriter Clipboard { get; } = new();

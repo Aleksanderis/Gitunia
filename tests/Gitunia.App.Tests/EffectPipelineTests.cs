@@ -8,7 +8,12 @@ using Gitunia.App.Tests.Tags;
 using Gitunia.Core;
 using Gitunia.Core.Config;
 using Gitunia.Core.Details;
+using Gitunia.Core.DiffPane;
 using Gitunia.Core.FileTree;
+using Gitunia.Core.Lists;
+using Gitunia.Core.Visual;
+using Gitunia.Core.Workspaces.Panes;
+using Gitunia.App.Loading.Diff;
 using Gitunia.Core.Config.Models;
 using Gitunia.Core.Effects;
 using Gitunia.Core.ExternalTools;
@@ -29,10 +34,10 @@ using Gitunia.Core.Settings.Models;
 using Gitunia.Core.Tags;
 using Gitunia.Core.Tests.Fixtures;
 using Gitunia.Core.Workspaces;
-using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.ExternalTools;
+using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Tests.Fixtures;
 using Xunit;
 
@@ -427,6 +432,54 @@ public class EffectPipelineTests
         Assert.Equal([2], pipeline.Shell.CursorMoves);
     }
 
+    [Fact]
+    public async Task GivenARangeInTheGraph_WhenCopyingIt_ThenTheRunnerAsksTheShellToCopyTheRows()
+    {
+        using var repository = TestRepositories.Linear();
+        using var pipeline = await Pipeline.OpenAsync(TestGit.Services, repository);
+        pipeline.Dispatch(new VisualToggled(1, true));
+        pipeline.Dispatch(new VisualCursorMoved(2));
+
+        pipeline.Dispatch(new VisualCopyRequested());
+
+        var copy = Assert.Single(pipeline.Shell.RangeCopies);
+        Assert.Equal(new RowRange(1, 2), copy.Range);
+        Assert.Equal(PaneKind.Graph, copy.Pane);
+    }
+
+    [Fact]
+    public async Task GivenAWideScreen_WhenAFileIsOpenedInTheDiff_ThenTheRunnerLoadsThatCommitInTheTabsStore()
+    {
+        using var repository = TestRepositories.Linear();
+        using var pipeline = await Pipeline.OpenAsync(TestGit.Services, repository);
+        var store = pipeline.Session.DiffStore!;
+        var target = new DiffTarget(pipeline.Session.Graph[0].Id, pipeline.Session.Graph[1].Id, false, false);
+        pipeline.Dispatch(new ScreenResizedCommand(new ScreenExtent(100, 40), pipeline.Host.Clock.GetUtcNow()));
+
+        pipeline.Dispatch(new DiffFileOpened(pipeline.TabId, new DiffOpenFacts(target, true, new DiffCursor(null, "file.txt"))));
+        await pipeline.Pump.RunUntilAsync(() => store.Status == DiffStatus.Loaded);
+
+        Assert.Equal(target.Commit, store.Commit);
+        Assert.Equal("file.txt", pipeline.Tab.View.DiffPane.PendingFile);
+        Assert.Equal(PaneKind.Diff, pipeline.Tab.View.FocusedPane);
+    }
+
+    [Fact]
+    public async Task GivenAPaneWithState_WhenTheTabReloads_ThenThePaneStartsOverWithTheNewStores()
+    {
+        using var repository = TestRepositories.Linear();
+        using var other = TestRepositories.Linear();
+        using var pipeline = await Pipeline.OpenAsync(TestGit.Services, repository);
+        pipeline.Dispatch(new TabCommand(pipeline.TabId, new SetDiffPaneCommand(new DiffPaneState(ShownPath: "a.txt"))));
+        var location = await TestGit.Services.Discovery.DiscoverAsync(
+            other.WorkingTreePath,
+            TestContext.Current.CancellationToken);
+
+        pipeline.Reload(location);
+
+        Assert.Equal(DiffPaneState.Empty, pipeline.Tab.View.DiffPane);
+    }
+
     private sealed class Pipeline : IDisposable
     {
         private readonly EffectRunner<TabSession> _runner;
@@ -470,6 +523,11 @@ public class EffectPipelineTests
         public bool IsTagRunning => Host.Workspace.FindTab(TabId)!.Running.IsRunning(RunningOperationKind.Tags);
 
         public BackgroundWork Background => _runner.Background;
+
+        public TabSession Session => _runner.SessionOf(TabId)!;
+
+        /// <summary>Builds the tab's session again, as switching to another worktree does.</summary>
+        public void Reload(RepositoryLocation location) => Host.Dispatch(new SwitchWorktreeCommand(TabId, location));
 
         public static async Task<Pipeline> OpenAsync(
             GitServices services,

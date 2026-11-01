@@ -63,34 +63,6 @@ public sealed class DiffListActions
     /// <summary>True while the list is being moved by code, so the cursor is not remembered.</summary>
     public bool IsRestoring { get; set; }
 
-    /// <summary>Reads the options a key changes, false when the key is not an option key.</summary>
-    public static bool TryResolveOptions(DiffOptions options, ActionId action, out DiffOptions changed)
-    {
-        if (action == ActionIds.DiffMoreContext)
-        {
-            changed = options.MoreContext();
-        }
-        else if (action == ActionIds.DiffLessContext)
-        {
-            changed = options.LessContext();
-        }
-        else if (action == ActionIds.DiffToggleWholeFile)
-        {
-            changed = options with { WholeFile = !options.WholeFile };
-        }
-        else if (action == ActionIds.DiffToggleIgnoreWhitespace)
-        {
-            changed = options with { IgnoreWhitespace = !options.IgnoreWhitespace };
-        }
-        else
-        {
-            changed = options;
-            return false;
-        }
-
-        return true;
-    }
-
     /// <summary>The quick-jump target of a diff shown in this list: the rows in view are labelled, a label moves the cursor to its row.</summary>
     /// <param name="pane">The pane the diff is.</param>
     /// <param name="diff">The diff to jump in.</param>

@@ -1,12 +1,13 @@
 using Gitunia.App.Status;
 using Gitunia.App.Tabs;
+using Gitunia.Core;
 using Gitunia.Core.Clipboard;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Lists;
 using Gitunia.Core.Overlays;
+using Gitunia.Core.Visual;
 using Gitunia.Core.Workspaces;
-using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Discard;
@@ -249,11 +250,12 @@ public sealed class ListRangeFlowTests : IDisposable
             _wiring = new StagingWiring(_shell.Host, Index, new PatchStager(new FakeDiffReader(), Index), Pump);
             var discard = new DiscardActions(_shell.Host, new PatchDiscarder(new FakeDiffReader(), Discarder), Statuses, Pump.Post, Refresh, _ => CancellationToken.None, Gate);
             var clipboard = new ClipboardWriter(ClipboardOutput, new Osc52Options(Osc52Mode.Direct, 100_000));
-            Visual = new VisualRangeController(
-                () => _shell.Host.Workspace.ActiveTab?.View.FocusedPane ?? PaneKind.Graph,
-                pane => pane == PaneKind.WorkingStaged ? _stagedList : _list,
-                _shell.Host,
-                new RangeCopier(new ClipboardCopier(clipboard, Statuses), () => null, () => _shell.Host.Workspace.ActiveTab?.WorkingTree).Copy);
+            Visual = new VisualRangeInput(_shell.Host, new FakePaneLists(_list, _stagedList));
+            _copier = new RangeCopier(
+                new ClipboardCopier(clipboard, Statuses),
+                () => null,
+                () => _shell.Host.Workspace.ActiveTab?.WorkingTree);
+            _shell.Host.EffectRaised += CopyRange;
             Handler = new WorkingTreeActionHandler(
                 _shell.Host, () => 10, new ClipboardCopier(clipboard, Statuses), staging, TestCommitActions.Create(_shell.Host, Statuses))
             {
@@ -261,6 +263,8 @@ public sealed class ListRangeFlowTests : IDisposable
                 Discard = discard,
             };
         }
+
+        private readonly RangeCopier _copier;
 
         public WorkingTreeListSource Source { get; }
 
@@ -272,7 +276,7 @@ public sealed class ListRangeFlowTests : IDisposable
 
         public OverlayController Overlays { get; }
 
-        public VisualRangeController Visual { get; }
+        public VisualRangeInput Visual { get; }
 
         public WorkingTreeActionHandler Handler { get; }
 
@@ -318,6 +322,16 @@ public sealed class ListRangeFlowTests : IDisposable
             _stagedList.Dispose();
             Source.Dispose();
             StagedSource.Dispose();
+        }
+
+        // The terminal layer copies the rows of a range and answers (the application's shell does the same).
+        private void CopyRange(AppEffect effect)
+        {
+            if (effect is CopyVisualRangeEffect copy)
+            {
+                var result = _copier.Copy(copy.Pane, copy.Range);
+                _shell.Host.Dispatch(new VisualCopied(result.Copied, result.Notice));
+            }
         }
 
         private void Route(ActionId action, int? count)

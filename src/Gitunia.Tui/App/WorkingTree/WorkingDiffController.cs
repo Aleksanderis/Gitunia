@@ -1,6 +1,7 @@
 using Gitunia.App;
 using Gitunia.App.Loading.Diff;
 using Gitunia.Core.Diff;
+using Gitunia.Core.DiffPane;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Lists;
@@ -421,12 +422,12 @@ public sealed class WorkingDiffController : IPromptHandler
 
     private bool TryChangeOptions(WorkingDiffSession diff, ActionId action)
     {
-        if (!DiffListActions.TryResolveOptions(diff.Store.Options, action, out var changed))
+        if (!DiffOptionKeys.TryResolve(diff.Store.Options, action, out var changed))
         {
             return false;
         }
 
-        Notice = diff.Store.SetOptions(changed) ? DiffOptionsLabel.Describe(changed) : "Context is already at its limit";
+        Notice = diff.Store.SetOptions(changed) ? DiffOptionKeys.Describe(changed) : "Context is already at its limit";
         return true;
     }
 

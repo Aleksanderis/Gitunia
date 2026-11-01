@@ -1,4 +1,5 @@
 using Gitunia.App.Loading.Commits;
+using Gitunia.App.Loading.Diff;
 using Gitunia.App.Loading.Stash;
 using Gitunia.App.Loading.Trees;
 using Gitunia.Core.Graph;
@@ -20,6 +21,8 @@ public class TabSession : IGraphSession, IDisposable
         TabId = parts.TabId;
         Details = parts.Details;
         Tree = parts.Tree;
+        DiffStore = parts.DiffStore;
+        ContentStore = parts.ContentStore;
         StashView = parts.StashView ?? new StashViewSession();
         Graph = new CommitGraph();
     }
@@ -46,6 +49,12 @@ public class TabSession : IGraphSession, IDisposable
     public event Action? IssueLinksChanged;
 
     public TabId TabId { get; }
+
+    /// <summary>The diff of the commit shown in the diff pane; null in sessions built without it (tests).</summary>
+    public DiffStore? DiffStore { get; }
+
+    /// <summary>Reads the file the Files tab opened; null in sessions built without one (tests).</summary>
+    public FileContentStore? ContentStore { get; }
 
     /// <summary>The stash the detail pane shows and the stashes the readers can read like commits.</summary>
     public StashViewSession StashView { get; }
