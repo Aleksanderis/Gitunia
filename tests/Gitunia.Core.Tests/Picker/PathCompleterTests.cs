@@ -30,11 +30,7 @@ public class PathCompleterTests
             var candidates = PathCompleter.Candidates("~/projects/myrepo/al", context);
 
             Assert.Equal(["Alpha", "alpine"], candidates.Select(candidate => candidate.Name));
-            // A case-insensitive file system lists a wrongly cased directory as typed; that path is as valid.
-            Assert.Equal(
-                Path.Combine(root, "Projects", "MyRepo", "Alpha"),
-                candidates[0].Path,
-                ignoreCase: OperatingSystem.IsWindows());
+            Assert.Equal(Path.Combine(root, "Projects", "MyRepo", "Alpha"), candidates[0].Path);
         }
         finally
         {
@@ -75,21 +71,17 @@ public class PathCompleterTests
     }
 
     [Fact]
-    public void GivenCorrectlyCasedDirectory_WhenListingCandidates_ThenAncestorsAreNotListed()
+    public void GivenCaseInsensitiveFileSystem_WhenTypingWrongCaseDirectory_ThenRealCaseIsListed()
     {
-        var listed = new List<string>();
         var context = PickerFixtures.Context() with
         {
-            ListDirectories = directory =>
-            {
-                listed.Add(directory);
-                return Path.TrimEndingDirectorySeparator(directory) == PickerFixtures.PathOf("code") ? [PickerFixtures.PathOf("code", "alpha")] : [];
-            },
+            // A case-insensitive file system answers for the typed spelling and echoes it back.
+            ListDirectories = directory => ListIgnoringCase(directory, PickerFixtures.PathOf("code")),
         };
 
-        PathCompleter.Candidates("~/code/a", context);
+        var candidates = PathCompleter.Candidates("~/CODE/a", context);
 
-        Assert.All(listed, directory => Assert.Equal(PickerFixtures.PathOf("code"), Path.TrimEndingDirectorySeparator(directory)));
+        Assert.Equal(Path.Combine(PickerFixtures.PathOf("code"), "alpha"), candidates[0].Path, ignoreCase: true);
     }
 
     [Fact]
@@ -217,4 +209,9 @@ public class PathCompleterTests
 
         Assert.Equal(["code"], PathCompleter.Candidates("~", context).Select(candidate => candidate.Name));
     }
+
+    private static string[] ListIgnoringCase(string directory, string existing) =>
+        string.Equals(Path.TrimEndingDirectorySeparator(directory), existing, StringComparison.OrdinalIgnoreCase)
+            ? [Path.Combine(directory, "alpha")]
+            : [];
 }
