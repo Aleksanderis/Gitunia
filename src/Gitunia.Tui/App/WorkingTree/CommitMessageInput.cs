@@ -18,21 +18,13 @@ namespace Gitunia.Tui.App.WorkingTree;
 /// </summary>
 /// <param name="host">The state and where commands go.</param>
 /// <param name="route">Runs an action as if its key had been pressed (for the Enter this class passes on).</param>
-public sealed class CommitMessageInput(Dispatcher host, IActionRoute route) : IPromptHandler
+public sealed class CommitMessageInput(Dispatcher host, IActionRoute route) : ITextKeyHandler
 {
-    public string StatusLine => string.Empty;
-
-    public string Notice => string.Empty;
-
     /// <summary>True while the message box of the active tab takes typed keys.</summary>
     public bool IsEditing => CommitRules.IsEditing(host.State);
 
     /// <summary>True while the focused message box shows its cursor: Insert mode, and the box's Normal mode.</summary>
     public bool ShowsCursor => CommitRules.ShowsCursor(host.State);
-
-    /// <summary>The box does not run the actions of the palette or other prompts; they reach it through the Changes
-    /// view.</summary>
-    public bool TryExecute(ActionId action, int? count) => false;
 
     /// <summary>Runs the action when it concerns the message box; false lets the other handlers have it.</summary>
     /// <param name="tab">The active tab, showing the Changes view.</param>
@@ -94,9 +86,5 @@ public sealed class CommitMessageInput(Dispatcher host, IActionRoute route) : IP
         var shows = CommitRules.ShowsCursor(host.State);
         var offset = shows && line == editor.CursorRow ? MessageEditorRenderer.ScrollOffset(editor, textWidth) : 0;
         host.Dispatch(new CommitCursorPlaced(tab.Id, line, Math.Max(0, textColumn) + offset));
-    }
-
-    public void OnGraphChanged()
-    {
     }
 }

@@ -1,3 +1,4 @@
+using Gitunia.Tui.Input;
 using Gitunia.App;
 using Gitunia.Core.Branches;
 using Gitunia.Core.Keymap;
@@ -14,7 +15,7 @@ namespace Gitunia.Tui.App.Branches;
 /// </summary>
 /// <param name="host">Holds the active tab and takes the commands.</param>
 /// <param name="selection">What the actions act on.</param>
-public sealed class BranchActions(Dispatcher host, IBranchSelectionSource selection)
+public sealed class BranchActions(Dispatcher host, IBranchSelectionSource selection) : IActionHandler
 {
     /// <summary>Runs the action when it is a branch action; false lets the next handler try.</summary>
     public bool TryExecute(ActionId action, int? count)

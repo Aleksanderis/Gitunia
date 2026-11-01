@@ -14,9 +14,8 @@ namespace Gitunia.Tui.App.Prompts;
 /// and knows no feature: what a prompt means is its result command, reduced in Core.
 /// </summary>
 /// <param name="host">Holds the state the popup is drawn from and takes the commands.</param>
-public sealed class PromptInputHandler(Dispatcher host) : IPromptHandler
+public sealed class PromptInputHandler(Dispatcher host) : IActionHandler, ITextKeyHandler, IPromptDisplay
 {
-    public string Notice => string.Empty;
 
     public string StatusLine => string.Empty;
 
@@ -57,7 +56,4 @@ public sealed class PromptInputHandler(Dispatcher host) : IPromptHandler
         return true;
     }
 
-    public void OnGraphChanged()
-    {
-    }
 }

@@ -1,6 +1,7 @@
 using Gitunia.App;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Sidebar;
+using Gitunia.Tui.Input;
 
 namespace Gitunia.Tui.App.Sidebar;
 
@@ -11,10 +12,10 @@ namespace Gitunia.Tui.App.Sidebar;
 /// </summary>
 /// <param name="host">Takes the commands and holds the state.</param>
 /// <param name="layout">The open panes and the height of the sidebar.</param>
-public sealed class SidebarInput(Dispatcher host, ISidebarLayout layout)
+public sealed class SidebarInput(Dispatcher host, ISidebarLayout layout) : IActionHandler
 {
     /// <summary>Returns true when the action was handled here and the graph view must not act on it.</summary>
-    public bool TryHandle(ActionId action, int? count)
+    public bool TryExecute(ActionId action, int? count)
     {
         if (host.Workspace.ActiveTab is not { } tab)
         {

@@ -73,7 +73,7 @@ public sealed class SidebarHarness : IDisposable, ITabSessions
     {
         Effects.Reset();
 
-        return Input.TryHandle(action, count);
+        return Input.TryExecute(action, count);
     }
 
     public TabSession Find(TabId tabId) => HideGraph ? _emptySession : _session;

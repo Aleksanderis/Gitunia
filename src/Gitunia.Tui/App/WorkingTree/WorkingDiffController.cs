@@ -29,7 +29,7 @@ namespace Gitunia.Tui.App.WorkingTree;
 /// context, search and copy. It is also the diff's search prompt, so it plugs into the same prompt list as the graph search.
 /// Everything it changes about focus goes through workspace commands.
 /// </summary>
-public sealed class WorkingDiffController : IPromptHandler
+public sealed class WorkingDiffController : IActionHandler, ITextKeyHandler, IActionNotice, IPromptDisplay
 {
     private readonly Dispatcher _host;
     private readonly Func<TerminalTabSession?> _activeSession;
@@ -259,9 +259,6 @@ public sealed class WorkingDiffController : IPromptHandler
         return _actions.HandleTextKey(diff, diff?.Source.Document ?? DiffDocument.Empty, key);
     }
 
-    public void OnGraphChanged()
-    {
-    }
 
     /// <summary>Call when the shown tab changed: hooks the new tab's diff store and restores its cursor.</summary>
     public void OnTabSwitched(TerminalTabSession? previous, TerminalTabSession? current)

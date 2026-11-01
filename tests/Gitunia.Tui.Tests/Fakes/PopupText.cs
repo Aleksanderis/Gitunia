@@ -5,7 +5,7 @@ namespace Gitunia.Tui.Tests.Fakes;
 /// <summary>The text of a prompt's popup as one string for assertions; empty when no popup is open.</summary>
 public static class PopupText
 {
-    public static string Of(IPromptHandler prompt)
+    public static string Of(IPromptDisplay prompt)
     {
         if (prompt.Popup is not { } popup)
         {

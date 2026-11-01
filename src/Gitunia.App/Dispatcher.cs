@@ -1,4 +1,5 @@
 using Gitunia.Core;
+using Gitunia.Core.Input;
 using Gitunia.Core.Workspaces;
 
 namespace Gitunia.App;
@@ -44,10 +45,18 @@ public sealed class Dispatcher(AppState initial, IUiInvoker? ui = null, TimeProv
     public void Dispatch(AppCommand command)
     {
         var update = AppReducer.Reduce(State, command);
+        var previous = State;
         State = update.State;
         foreach (var effect in update.Effects)
         {
             EffectRaised?.Invoke(effect);
+        }
+
+        // An input command only picks handlers, which dispatch their own commands; a key that changes nothing in the
+        // state must not redraw every subscriber of the state.
+        if (command is InputCommand && ReferenceEquals(previous, update.State))
+        {
+            return;
         }
 
         Changed?.Invoke();

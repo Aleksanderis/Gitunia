@@ -55,7 +55,6 @@ public sealed class CommitMessageInputTests : IDisposable
         Assert.False(_input.TryExecute(Tab, ActionIds.ListDown));
         Assert.False(_input.TryExecute(Tab, ActionIds.Cancel));
         Assert.False(_input.TryExecute(Tab, ActionIds.NavigateBack));
-        Assert.False(_input.TryExecute(ActionIds.WorkingTreeCommit, null));
     }
 
     [Fact]

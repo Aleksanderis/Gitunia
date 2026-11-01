@@ -10,6 +10,7 @@ using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Picker;
 using Gitunia.Core.Effects;
 using Gitunia.Core.ExternalTools;
+using Gitunia.Core.Input;
 using Gitunia.Core.IssueLinks;
 using Gitunia.Core.Jump;
 using Gitunia.Core.Keymap.Models;
@@ -73,6 +74,7 @@ public static partial class AppReducer
         DiscardCommand discard => ReduceDiscard(state, discard),
         EffectFailedCommand failed => EffectFailed(state, failed),
         ExternalToolCommand tool => new AppUpdate(state, ExternalToolReducer.Reduce(tool, state.Workspace.ActiveTab)),
+        InputCommand input => InputReducer.Reduce(state, input),
         IssueLinkCommand link => new AppUpdate(state, IssueLinkReducer.Reduce(link)),
         PaneSizeCommand paneSize => PaneSizeReducer.Reduce(state, paneSize),
         PickCommand pick => ReducePick(state, pick),

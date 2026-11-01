@@ -1,3 +1,4 @@
+using Gitunia.Tui.Input;
 using Gitunia.App;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
@@ -14,7 +15,7 @@ namespace Gitunia.Tui.App.Panes;
 /// <param name="host">Holds the active tab and takes the commands.</param>
 /// <param name="diffPane">The diff pane, which knows the arrangement.</param>
 /// <param name="workingDiff">The Changes view diff, which may fill the view.</param>
-public sealed class PaneSizeInput(Dispatcher host, DiffPaneView diffPane, WorkingDiffController workingDiff)
+public sealed class PaneSizeInput(Dispatcher host, DiffPaneView diffPane, WorkingDiffController workingDiff) : IActionHandler
 {
     /// <summary>The last resize key changed nothing (a pane is zoomed, or the size is at its limit).</summary>
     public bool WasRefused { get; private set; }

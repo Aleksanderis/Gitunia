@@ -1,3 +1,4 @@
+using Gitunia.Tui.Input;
 using Gitunia.App;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
@@ -14,7 +15,7 @@ namespace Gitunia.Tui.App.Remote;
 /// </summary>
 /// <param name="host">Holds the active tab and takes the commands.</param>
 /// <param name="selection">What the remote branch delete acts on.</param>
-public sealed class SyncActions(Dispatcher host, IBranchSelectionSource selection)
+public sealed class SyncActions(Dispatcher host, IBranchSelectionSource selection) : IActionHandler
 {
     /// <summary>Runs the action when it is one of ours; false lets the next handler try.</summary>
     public bool TryExecute(ActionId action, int? count)

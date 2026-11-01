@@ -1,3 +1,4 @@
+using Gitunia.Tui.Input;
 using Gitunia.App;
 using Gitunia.Core.ExternalTools;
 using Gitunia.Core.Keymap;
@@ -13,7 +14,7 @@ namespace Gitunia.Tui.App.ExternalTools;
 /// </summary>
 /// <param name="host">Takes the commands.</param>
 /// <param name="selection">The commit selected in the view, which the difftool needs.</param>
-public sealed class ExternalToolInput(Dispatcher host, IGraphSelectionSource selection)
+public sealed class ExternalToolInput(Dispatcher host, IGraphSelectionSource selection) : IActionHandler
 {
     public bool TryExecute(ActionId action)
     {
@@ -39,4 +40,6 @@ public sealed class ExternalToolInput(Dispatcher host, IGraphSelectionSource sel
 
         return true;
     }
+
+    bool IActionHandler.TryExecute(ActionId action, int? count) => TryExecute(action);
 }

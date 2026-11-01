@@ -1,3 +1,4 @@
+using Gitunia.Tui.Input;
 using Gitunia.App;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
@@ -19,7 +20,7 @@ namespace Gitunia.Tui.App.Reflog;
 /// <param name="host">The dispatcher that holds the state.</param>
 /// <param name="selection">What the sidebar cursor is on, to pick the branch whose reflog opens.</param>
 /// <param name="glyphs">The characters the list is drawn with.</param>
-public sealed class ReflogInput(Dispatcher host, IBranchSelectionSource selection, GraphGlyphSet glyphs)
+public sealed class ReflogInput(Dispatcher host, IBranchSelectionSource selection, GraphGlyphSet glyphs) : IActionHandler, ITextKeyHandler
 {
     private ReflogSession Session => host.State.Shell.Reflog;
 

@@ -1,3 +1,4 @@
+using Gitunia.Tui.Input;
 using Gitunia.App;
 using Gitunia.Core.Conflicts;
 using Gitunia.Core.Keymap;
@@ -18,7 +19,7 @@ namespace Gitunia.Tui.App.Conflicts;
 /// <param name="host">The dispatcher that holds the state.</param>
 /// <param name="glyphs">The characters the editor is drawn with.</param>
 /// <param name="keys">Where the chips take their key text from; null uses the default keymap.</param>
-public sealed class ConflictEditorInput(Dispatcher host, GraphGlyphSet glyphs, ChipKeys? keys = null)
+public sealed class ConflictEditorInput(Dispatcher host, GraphGlyphSet glyphs, ChipKeys? keys = null) : ITextKeyHandler
 {
     private const int StatusBarRows = 1;
 

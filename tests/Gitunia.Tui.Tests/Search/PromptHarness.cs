@@ -29,7 +29,7 @@ public sealed class PromptHarness : IDisposable, IQuickJumpHost
 {
     private readonly Dispatcher _host = new(AppState.Empty);
     private readonly KeyController _keys;
-    private readonly List<IPromptHandler> _prompts = [];
+    private readonly List<object> _prompts = [];
     private readonly QuickJumpInput _quickJump;
 
     public PromptHarness(
@@ -72,19 +72,19 @@ public sealed class PromptHarness : IDisposable, IQuickJumpHost
             action => action(),
             TimeSpan.Zero);
         _prompts.Add(Search);
-        Session.Changed += () => _prompts.ForEach(prompt => prompt.OnGraphChanged());
+        Session.Changed += () => _prompts.OfType<IGraphObserver>().ToList().ForEach(prompt => prompt.OnGraphChanged());
         _keys = new KeyController(
             new KeymapEngine(DefaultKeymap.Create()),
             (action, count) =>
             {
                 Notice = string.Empty;
-                foreach (var prompt in _prompts)
+                foreach (var prompt in _prompts.OfType<IActionHandler>())
                 {
                     if (prompt.TryExecute(action, count))
                     {
-                        if (prompt.Notice.Length > 0)
+                        if (prompt is IActionNotice { Notice.Length: > 0 } noticed)
                         {
-                            Notice = prompt.Notice;
+                            Notice = noticed.Notice;
                         }
 
                         return;
@@ -93,7 +93,7 @@ public sealed class PromptHarness : IDisposable, IQuickJumpHost
             },
             _host)
         {
-            TextKeyHandler = key => _prompts.Any(prompt => prompt.HandleTextKey(key)),
+            TextKeyHandler = key => _prompts.OfType<ITextKeyHandler>().Any(prompt => prompt.HandleTextKey(key)),
         };
     }
 
@@ -113,7 +113,7 @@ public sealed class PromptHarness : IDisposable, IQuickJumpHost
 
     public KeyMode Mode => _keys.Mode;
 
-    public string StatusLine => _prompts.Select(prompt => prompt.StatusLine).FirstOrDefault(line => line.Length > 0) ?? string.Empty;
+    public string StatusLine => _prompts.OfType<IPromptDisplay>().Select(prompt => prompt.StatusLine).FirstOrDefault(line => line.Length > 0) ?? string.Empty;
 
     /// <summary>Opens a second tab and makes it the active one, like a tab switch.</summary>
     public void SwitchTab() =>

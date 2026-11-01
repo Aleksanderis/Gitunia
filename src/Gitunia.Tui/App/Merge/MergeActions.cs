@@ -1,3 +1,4 @@
+using Gitunia.Tui.Input;
 using Gitunia.App;
 using Gitunia.Core.Integration;
 using Gitunia.Core.Keymap;
@@ -17,7 +18,7 @@ namespace Gitunia.Tui.App.Merge;
 /// </summary>
 /// <param name="host">Holds the active tab and takes the commands.</param>
 /// <param name="selection">What the merge acts on: a sidebar row or the graph commit.</param>
-public sealed class MergeActions(Dispatcher host, IBranchSelectionSource selection)
+public sealed class MergeActions(Dispatcher host, IBranchSelectionSource selection) : IActionHandler
 {
     /// <summary>Runs the action when it is a merge key; false lets the next handler try.</summary>
     public bool TryExecute(ActionId action, int? count)

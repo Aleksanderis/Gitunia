@@ -11,7 +11,7 @@ using Gitunia.Tui.Input;
 namespace Gitunia.Tui.Search;
 
 /// <summary>The ref jump prompt (<c>&lt;space&gt;f</c>): type to filter refs (fuzzy) or a hash prefix, <c>Up</c>/<c>Down</c> or <c>Tab</c> to choose, <c>Enter</c> to select that commit.</summary>
-public sealed class RefJumpController(GraphViewHandle view, Func<IEnumerable<GitRef>> refs) : IPromptHandler
+public sealed class RefJumpController(GraphViewHandle view, Func<IEnumerable<GitRef>> refs) : IActionHandler, ITextKeyHandler, IActionNotice, IPromptDisplay, IGraphObserver
 {
     private RefJumpState? _prompt;
     private ObjectId? _pendingCommit;

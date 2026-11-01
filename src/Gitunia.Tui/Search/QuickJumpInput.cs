@@ -17,12 +17,10 @@ namespace Gitunia.Tui.Search;
 /// </summary>
 /// <param name="host">Takes the commands and holds the state.</param>
 /// <param name="view">Creates the target of the focused list and redraws the status bar.</param>
-public sealed class QuickJumpInput(Dispatcher host, IQuickJumpHost view) : IPromptHandler
+public sealed class QuickJumpInput(Dispatcher host, IQuickJumpHost view) : IActionHandler, ITextKeyHandler, IPromptDisplay, IGraphObserver
 {
     private IJumpTarget? _target;
 
-    /// <summary>The prompt reports through status messages (effects), not through a notice.</summary>
-    public string Notice => string.Empty;
 
     public string StatusLine
     {

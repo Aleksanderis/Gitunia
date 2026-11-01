@@ -1,3 +1,4 @@
+using Gitunia.Tui.Input;
 using Gitunia.App;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
@@ -17,7 +18,7 @@ namespace Gitunia.Tui.App.Settings;
 /// </summary>
 /// <param name="host">The dispatcher that holds the state.</param>
 /// <param name="glyphs">The characters the overlay is drawn with.</param>
-public sealed class SettingsScreenInput(Dispatcher host, GraphGlyphSet glyphs)
+public sealed class SettingsScreenInput(Dispatcher host, GraphGlyphSet glyphs) : IActionHandler, ITextKeyHandler
 {
     private SettingsSession Session => host.State.Shell.Settings;
 

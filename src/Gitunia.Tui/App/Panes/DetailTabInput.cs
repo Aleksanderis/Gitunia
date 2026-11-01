@@ -1,3 +1,4 @@
+using Gitunia.Tui.Input;
 using Gitunia.App;
 using Gitunia.Core.Details;
 using Gitunia.Core.Keymap;
@@ -11,7 +12,7 @@ namespace Gitunia.Tui.App.Panes;
 /// action into a <see cref="DetailCommand"/> for the active tab. The reducer decides what changes.
 /// </summary>
 /// <param name="host">Holds the active tab and takes the commands.</param>
-public sealed class DetailTabInput(Dispatcher host)
+public sealed class DetailTabInput(Dispatcher host) : IActionHandler
 {
     /// <summary>Runs the action when it is one of the tab actions or the path style keys.</summary>
     /// <returns>True when the action was one of them.</returns>
@@ -34,6 +35,8 @@ public sealed class DetailTabInput(Dispatcher host)
 
         return true;
     }
+
+    bool IActionHandler.TryExecute(ActionId action, int? count) => TryExecute(action);
 
     private static DetailTabMove? MoveOf(ActionId action)
     {

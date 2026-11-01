@@ -1,3 +1,4 @@
+using Gitunia.Tui.Input;
 using Gitunia.App;
 using Gitunia.App.Loading.Commits;
 using Gitunia.Core.Compare;
@@ -13,7 +14,7 @@ namespace Gitunia.Tui.App.Compare;
 /// </summary>
 /// <param name="host">Takes the commands and holds the state.</param>
 /// <param name="source">The active session and the graph cursor.</param>
-public sealed class CompareInput(Dispatcher host, ICompareSource source)
+public sealed class CompareInput(Dispatcher host, ICompareSource source) : IActionHandler
 {
     /// <summary>Handles the compare key and the Esc that clears the mark; false for every other action.</summary>
     public bool TryExecute(ActionId action)
@@ -39,6 +40,8 @@ public sealed class CompareInput(Dispatcher host, ICompareSource source)
 
         return false;
     }
+
+    bool IActionHandler.TryExecute(ActionId action, int? count) => TryExecute(action);
 
     /// <summary>
     /// Reports what the details store of the active tab shows, so the commit under the cursor is compared with the
