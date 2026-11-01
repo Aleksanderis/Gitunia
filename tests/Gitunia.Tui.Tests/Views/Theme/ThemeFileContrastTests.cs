@@ -301,6 +301,26 @@ public sealed class ThemeFileContrastTests
     }
 
     [Theory]
+    [MemberData(nameof(FocusedBarThemeNames))]
+    public void GivenAFixedBuiltInTheme_WhenSelectingARow_ThenTheFocusedBarIsClearlyApartFromThePage(string name)
+    {
+        var (colors, definition) = TableOf(name);
+        var baseBackground = Resolve(Color.None, definition, false);
+
+        var ratio = Contrast(ToRgb(colors.SelectionFocused), baseBackground);
+        var minimum = definition.IsLight ? 1.35 : 1.55;
+
+        Assert.True(ratio >= minimum, $"{name}: focused bar {ratio:F2}, wanted at least {minimum:F2}");
+    }
+
+    // The themes whose bar was raised (#934, #935); the other built-in themes are still faint (follow-up issue).
+    public static TheoryData<string> FocusedBarThemeNames =>
+    [
+        "catppuccin-mocha", "catppuccin-latte", "catppuccin-frappe", "tokyo-night-storm", "tokyo-night-moon",
+        "tokyo-night-day", "solarized-dark",
+    ];
+
+    [Theory]
     [MemberData(nameof(Names))]
     public void GivenABuiltInTheme_WhenDrawingARangeRow_ThenItIsApartFromTheBaseMoreThanTheSelectedRow(string name)
     {
