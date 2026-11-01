@@ -434,6 +434,20 @@ public class SettingsScreenReducerTests
     }
 
     [Fact]
+    public void GivenAnotherBoxOpenedMeanwhile_WhenTheCheckIsAnswered_ThenTheAnswerIsDropped()
+    {
+        var check = AcceptedCheck(out var busy);
+        var closed = Reduce(busy, new SettingsActionPressed(ActionIds.Cancel, null)).Session;
+        var reopened = Reduce(closed, new SettingsActionPressed(ActionIds.SettingsAdd, null)).Session;
+        var other = Typed(reopened, Path.Combine(Environment.HomeDirectory, "other"));
+
+        var update = Reduce(other, new SettingsFolderChecked(check, false));
+
+        Assert.Empty(update.Effects.OfType<WriteSettingEffect>());
+        Assert.Empty(Posts(update));
+    }
+
+    [Fact]
     public void GivenEveryConcreteSettingsCommand_WhenReducing_ThenTheReducerHasACaseForIt()
     {
         var commands = ConcreteSubtypes.InstancesOf<SettingsCommand>();

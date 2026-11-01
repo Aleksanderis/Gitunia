@@ -23,6 +23,8 @@ public static class SettingsScreenReducer
     /// <summary>The notice after the editor closed and the file was read again.</summary>
     public const string ReloadedNotice = "Read config.json again; key bindings apply after a restart";
 
+    private const string MissingFolderReason = "is not an existing folder";
+
     private static readonly Dictionary<ActionId, SettingsCommandKind> Commands = new()
     {
         [ActionIds.Cancel] = SettingsCommandKind.Back,
@@ -213,21 +215,22 @@ public static class SettingsScreenReducer
         return session with { IsBusy = true };
     }
 
-    // Esc while the check ran closes the box: the answer is dropped then.
+    // Esc while the check ran closes the box, and a new box may hold other text by now: the answer is dropped then.
     private static SettingsSession FolderChecked(
         SettingsSession session,
         SettingsFolderChecked answer,
         List<AppEffect> effects)
     {
         var idle = session with { IsBusy = false };
-        if (idle.Screen is not { Input: not null })
+        if (idle.Screen is not { Input: { } input } || input.Text.Trim() != answer.Check.Typed)
         {
             return idle;
         }
 
         if (!answer.Exists)
         {
-            effects.Add(new PostStatusEffect($"\"{answer.Check.Typed}\" is not an existing folder", StatusSeverity.Warning));
+            var message = $"\"{answer.Check.Typed}\" {MissingFolderReason}";
+            effects.Add(new PostStatusEffect(message, StatusSeverity.Warning));
 
             return idle;
         }

@@ -5,7 +5,8 @@ using Gitunia.Core.Settings.Models;
 namespace Gitunia.App.Settings;
 
 /// <summary>
-/// Reads and writes the config file and looks folders up off the UI thread (a scan root on a slow mount must not freeze the UI) and posts
+/// Reads and writes the config file and looks folders up off the UI thread (a scan root on a slow mount must not
+/// freeze the UI) and posts
 /// exactly one result command for each effect. It never reads or changes state; the reducer never lets two run at once.
 /// </summary>
 /// <param name="services">The config file, the machine facts, the settings on offer and the key bindings.</param>

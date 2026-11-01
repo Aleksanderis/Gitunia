@@ -7,7 +7,8 @@ namespace Gitunia.Core.Settings;
 
 /// <summary>
 /// The transitions of the settings screen: <c>(state, command) -> state</c> plus at most one effect for the caller
-/// (a change to write, the editor to open, the screen to close). Pure: a folder is only checked for shape and duplicates here; that it exists is an effect.
+/// (a change to write, the editor to open, the screen to close). Pure: a folder is only checked for shape and
+/// duplicates here; that it exists is an effect.
 /// </summary>
 public static class SettingsReducer
 {
