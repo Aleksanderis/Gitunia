@@ -1,14 +1,11 @@
 using Gitunia.Core.Overlays;
-using Gitunia.Core.Rebase;
 using Gitunia.Core.Status;
 using Gitunia.Core.Text;
 using Gitunia.Git.Operations.Models;
 using Gitunia.Git.Rebase;
 using Gitunia.Git.Refs.Models;
-using Gitunia.Tui.App.Operations;
-using Gitunia.Tui.App.WorkingTree;
 
-namespace Gitunia.Tui.App.Rebase;
+namespace Gitunia.Core.Rebase;
 
 /// <summary>The words of the interactive rebase: its Confirm and the report after it ran. Pure.</summary>
 public static class RebaseEditorTexts
@@ -57,17 +54,17 @@ public static class RebaseEditorTexts
     }
 
     /// <summary>The status line after the engine returned.</summary>
-    public static OperationReport ReportOf(RebaseEditorState state, InteractiveRebaseResult result)
+    public static PostedText ReportOf(RebaseEditorState state, InteractiveRebaseResult result)
     {
         if (result.Outcome == OperationOutcome.Conflicted)
         {
-            return new OperationReport(
+            return new PostedText(
                 $"Rebase of {state.BranchName} onto {state.TargetLabel} stopped on conflicts: resolve the files " +
                 $"marked !, then <space>gc (continue), <space>ga (abort, back to {ShortHash.Of(result.OriginalHead)})",
                 StatusSeverity.Warning);
         }
 
-        return new OperationReport(
+        return new PostedText(
             $"Rebased {state.BranchName} onto {state.TargetLabel} interactively " +
             $"({ShortHash.Of(result.Head)}), was {ShortHash.Of(result.OriginalHead)}; " +
             $"undo: git reset --keep {result.OriginalHead} (or ORIG_HEAD, the reflog)",
@@ -76,7 +73,7 @@ public static class RebaseEditorTexts
 
     private static string Summary(RebaseEditorState state)
     {
-        var total = OperationText.Plural(state.CommitCount, "commit");
+        var total = CountText.Plural(state.CommitCount, "commit");
         var parts = new List<string> { $"{state.KeptCount} of {total} kept" };
         AddCount(parts, state, RebaseTodoAction.Reword, "reworded");
         AddCount(parts, state, RebaseTodoAction.Squash, "squashed");
@@ -97,5 +94,4 @@ public static class RebaseEditorTexts
             parts.Add($"{count} {word}");
         }
     }
-
 }

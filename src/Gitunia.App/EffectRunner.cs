@@ -70,6 +70,7 @@ public sealed partial class EffectRunner<TSession> : IDisposable
     private readonly PickerEffectHandler _picker;
     private readonly PickEffectHandler _pick;
     private readonly RebaseEffectHandler _rebase;
+    private readonly RebaseEditorEffectHandler _rebaseEditor;
     private readonly ReflogEffectHandler _reflog;
     private readonly SettingsEffectHandler? _settings;
     private readonly CancellationTokenSource _shutdown = new();
@@ -119,6 +120,7 @@ public sealed partial class EffectRunner<TSession> : IDisposable
         _picker = new PickerEffectHandler(services.Discovery, pickerServices.Files, host, pickerServices.Timings);
         _pick = new PickEffectHandler(services.Pick, services.PickCommits, host);
         _rebase = new RebaseEffectHandler(services.Rebase, services.QuickRebase, host);
+        _rebaseEditor = new RebaseEditorEffectHandler(services.InteractiveRebase, services.CommitDetails, host);
         _reflog = new ReflogEffectHandler(services.Reflog, host);
         _settings = settings is null ? null : new SettingsEffectHandler(settings, host);
         _integration = IntegrationEffectHandler.Create(services, host);
@@ -252,6 +254,8 @@ public sealed partial class EffectRunner<TSession> : IDisposable
         ConflictEffect conflict => new ConflictOperationFailed(conflict.TabId, text, StatusSeverity.Error),
         PickEffect pick => new PickFailed(pick.TabId, text),
         RebaseEffect rebase => new RebaseFailed(rebase.TabId, text),
+        RunInteractiveRebaseEffect run => new RebaseFailed(run.TabId, text),
+        RebaseEditorEffect editor => new RebaseEditorReadFailed(editor.TabId, text, StatusSeverity.Error),
         ReadReflogEffect => new ReflogReadFailed(text),
         ScanRepositoriesEffect => new PickerScanFinished([]),
         SettingsEffect => new SettingsOperationFailed(text),
@@ -320,6 +324,9 @@ public sealed partial class EffectRunner<TSession> : IDisposable
                 break;
             case RebaseEffect rebase:
                 _rebase.Handle(rebase, _cancellation.TokenOf(rebase.TabId));
+                break;
+            case RebaseEditorEffect editor:
+                _rebaseEditor.Handle(editor, _cancellation.TokenOf(editor.TabId));
                 break;
             case ReadReflogEffect read:
                 _reflog.Handle(read, _cancellation.TokenOf(read.TabId));
