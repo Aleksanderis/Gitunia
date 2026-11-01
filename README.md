@@ -14,7 +14,7 @@ Terminal Git tools are great for quick staging and commits but awkward for many 
 
 - Standalone multi-repository client: tabs, repository picker, session restore
 - Commit graph that scrolls and searches through 100k+ commits
-- Stage files, hunks and single lines; then commit or amend
+- Stage files, hunks and single lines, then commit or amend
 - Built-in conflict editor with base, ours and theirs side by side
 - Unified and side-by-side diffs, also between any two commits
 - Branches, tags, merge, rebase, reset, cherry-pick and revert
@@ -40,7 +40,7 @@ gitunia                 # restore the last session, or show the repository picke
 gitunia ~/Projects/foo  # open a repository (any subfolder resolves to its root)
 ```
 
-In the picker type to filter or type a path; `Enter` opens it in a tab. `?` shows the keys of the current view, `:` opens the command palette, `q` quits.
+In the picker type to filter or type a path. `Enter` opens it in a tab. `?` shows the keys of the current view, `:` opens the command palette, `q` quits.
 
 ## Docs
 
