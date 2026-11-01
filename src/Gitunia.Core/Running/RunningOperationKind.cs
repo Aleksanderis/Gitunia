@@ -28,4 +28,7 @@ public enum RunningOperationKind
 
     /// <summary>A tag operation: create, delete, push, delete on a remote, or reading the remotes for the prompt.</summary>
     Tags,
+
+    /// <summary>A worktree operation: add, remove, lock, unlock or prune.</summary>
+    Worktrees,
 }

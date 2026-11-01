@@ -18,6 +18,7 @@ using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
+using Gitunia.Core.Worktrees;
 using Gitunia.Git;
 
 namespace Gitunia.Core;
@@ -45,6 +46,7 @@ public static class AppReducer
         TabRenameCommand rename => ReduceTabRename(state, rename),
         TagCommand tag => ReduceTag(state, tag),
         WorkspaceCommand workspace => ReduceWorkspace(state, workspace),
+        WorktreeCommand worktree => ReduceWorktree(state, worktree),
         _ => throw new UnhandledCommandException(command),
     };
 
@@ -341,6 +343,30 @@ public static class AppReducer
         }
 
         return new AppUpdate(WithTab(state, tab with { Running = running }), effects);
+    }
+
+    // A result or answer for a tab that was closed meanwhile is dropped, like a late TabCommand. A located worktree or a
+    // read overview is applied to the workspace after the feature has decided.
+    private static AppUpdate ReduceWorktree(AppState state, WorktreeCommand command)
+    {
+        var workspace = state.Workspace;
+        if (workspace.FindTab(command.TabId) is not { } tab)
+        {
+            return new AppUpdate(state, []);
+        }
+
+        var busy = tab.Running.IsRunning(RunningOperationKind.Worktrees);
+        var update = WorktreeReducer.Reduce(command, new WorktreeContext(tab, workspace.Tabs, busy));
+        var running = tab.Running.Apply(tab.Id, command, update.Effects);
+        var next = Equals(running, tab.Running) ? state : WithTab(state, tab with { Running = running });
+        if (update.Workspace is not { } then)
+        {
+            return new AppUpdate(next, update.Effects);
+        }
+
+        var applied = ReduceWorkspace(next, then);
+
+        return new AppUpdate(applied.State, [.. update.Effects, .. applied.Effects]);
     }
 
     private static AppUpdate EffectFailed(AppState state, EffectFailedCommand failed) =>
