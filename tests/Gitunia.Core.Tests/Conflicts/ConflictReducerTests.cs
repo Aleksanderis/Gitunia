@@ -336,6 +336,18 @@ public class ConflictReducerTests
     }
 
     [Fact]
+    public void GivenTheSaveResultOfAnotherTab_WhenItArrives_ThenTheOpenEditorStaysOpen()
+    {
+        var state = Opened(Text);
+        var other = new TabId(state.Shell.Conflict.Editor!.TabId.Value + 100);
+
+        var update = AppReducer.Reduce(state, new ConflictSaved(other, Path, "Saved", false));
+
+        Assert.True(update.State.Shell.Conflict.IsOpen);
+        Assert.Contains(update.Effects, effect => effect is RefreshTabEffect);
+    }
+
+    [Fact]
     public void GivenAFailedSave_WhenItsResultArrives_ThenTheEditorStaysWithItsPicksAndTheReasonShows()
     {
         var picked = Press(Opened(Single), ActionIds.ConflictEditorTheirs).State;

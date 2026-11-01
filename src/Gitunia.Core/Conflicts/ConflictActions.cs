@@ -149,9 +149,12 @@ internal static class ConflictActions
             return ConflictFlow.ShowCentered(session, editor.NextConflict());
         }
 
-        return action == ActionIds.ConflictEditorPrevious
-            ? ConflictFlow.ShowCentered(session, editor.PreviousConflict())
-            : null;
+        if (action == ActionIds.ConflictEditorPrevious)
+        {
+            return ConflictFlow.ShowCentered(session, editor.PreviousConflict());
+        }
+
+        return null;
     }
 
     private static ConflictUpdate? Pane(ConflictSession session, ConflictEditorState editor, ActionId action)
@@ -286,9 +289,12 @@ internal static class ConflictActions
     {
         var taken = ConflictFlow.Show(session, editor.TakeSelectedLines());
 
-        return editor.SelectedLines().Count == 0
-            ? ConflictFlow.Then(ConflictFlow.Warn(session, ConflictNotices.NoLines), taken)
-            : taken;
+        if (editor.SelectedLines().Count == 0)
+        {
+            return ConflictFlow.Then(ConflictFlow.Warn(session, ConflictNotices.NoLines), taken);
+        }
+
+        return taken;
     }
 
     // The inverse of the take key: the whole conflict goes back to unresolved, in a Visual selection only the selected
@@ -299,9 +305,12 @@ internal static class ConflictActions
         {
             var untaken = ConflictFlow.Show(session, editor.UntakeSelectedLines());
 
-            return editor.UntakeableLineCount == 0
-                ? ConflictFlow.Then(ConflictFlow.Warn(session, ConflictNotices.NoLinesToUntake), untaken)
-                : untaken;
+            if (editor.UntakeableLineCount == 0)
+            {
+                return ConflictFlow.Then(ConflictFlow.Warn(session, ConflictNotices.NoLinesToUntake), untaken);
+            }
+
+            return untaken;
         }
 
         if (!editor.CanUntake)
@@ -319,9 +328,12 @@ internal static class ConflictActions
             return BeginEdit(session, editor);
         }
 
-        return ResultCommands.TryGetValue(action, out var command)
-            ? ConflictFlow.Show(session, editor.ApplyResultCommand(command))
-            : null;
+        if (ResultCommands.TryGetValue(action, out var command))
+        {
+            return ConflictFlow.Show(session, editor.ApplyResultCommand(command));
+        }
+
+        return null;
     }
 
     private static ConflictUpdate BeginEdit(ConflictSession session, ConflictEditorState editor)
@@ -332,9 +344,11 @@ internal static class ConflictActions
             return ConflictFlow.Done(session);
         }
 
-        var text = edited.Hunks.Count == 0
-            ? ConflictNotices.TypingInResult
-            : $"Typing in the result at conflict {edited.Index + 1}: Esc or Ctrl-g keeps the text";
+        var text = ConflictNotices.TypingInResult;
+        if (edited.Hunks.Count > 0)
+        {
+            text = $"Typing in the result at conflict {edited.Index + 1}: Esc or Ctrl-g keeps the text";
+        }
 
         return ConflictFlow.Show(session, edited, ConflictFlow.Post(text));
     }

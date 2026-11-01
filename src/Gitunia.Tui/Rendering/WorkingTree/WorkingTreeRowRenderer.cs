@@ -1,7 +1,7 @@
 using Gitunia.Core.Jump.Models;
+using Gitunia.Core.Text;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
-using Gitunia.Core.Text;
 using Gitunia.Git.Commits.Models;
 using Gitunia.Git.Status.Models;
 using Gitunia.Tui.Rendering.Files;

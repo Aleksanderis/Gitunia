@@ -164,7 +164,7 @@ public sealed class TuiApplication(
     private ReflogEntryStarter _reflogEntries = null!;
     private RebaseEditorController _rebaseEditor = null!;
     private ConflictEditorInput _conflictEditor = null!;
-    private StagingActions _staging = null!;
+    private StagingActions? _staging;
     private SettingsScreenInput _settings = null!;
     private ConfigWriter _configWriter = null!;
     private ConfigEditorLauncher _configEditor = null!;
@@ -1604,7 +1604,7 @@ public sealed class TuiApplication(
     // A saved conflicted file with no conflict left is marked resolved; the editor closed already.
     private void StageResolvedConflict(StageResolvedConflictEffect effect)
     {
-        if (_host.Workspace.FindTab(effect.TabId) is not { } tab)
+        if (_staging is null || _host.Workspace.FindTab(effect.TabId) is not { } tab)
         {
             return;
         }

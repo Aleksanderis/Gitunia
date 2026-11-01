@@ -1,6 +1,7 @@
 using Gitunia.Core.Effects;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Overlays;
+using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Conflicts.Models;
 using Gitunia.Git.Status.Models;
 
@@ -146,9 +147,12 @@ public static class ConflictReducer
         var action = pressed.Action;
         if (editor.IsEditing)
         {
-            return action == ActionIds.ConflictEditorSave
-                ? SaveWhileTyping(session, editor, context)
-                : ConflictActions.ExecuteInEdit(session, editor, action) ?? ConflictFlow.Done(session);
+            if (action == ActionIds.ConflictEditorSave)
+            {
+                return SaveWhileTyping(session, editor, context);
+            }
+
+            return ConflictActions.ExecuteInEdit(session, editor, action) ?? ConflictFlow.Done(session);
         }
 
         var executed = ConflictActions.Execute(session, editor, action, pressed.Count);
@@ -289,18 +293,20 @@ public static class ConflictReducer
     private static ConflictUpdate Saved(ConflictSession session, ConflictSaved saved, ConflictContext context)
     {
         var message = ConflictFlow.Post(saved.Message);
-        if (context.Tab is null)
+        AppEffect next = new RefreshTabEffect(saved.TabId);
+        if (context.Tab is not null && saved.IsComplete)
         {
-            return ConflictFlow.Close(session, message);
+            // Staging reads the status itself, so the lists and the banner count are current when it reports.
+            next = new StageResolvedConflictEffect(saved.TabId, saved.Path);
         }
 
-        if (!saved.IsComplete)
+        // The editor of another tab (opened while this write ran) is not this save's to close.
+        if (!OwnsEditor(session, saved.TabId))
         {
-            return ConflictFlow.Close(session, message, new RefreshTabEffect(saved.TabId));
+            return ConflictFlow.Done(session, message, next);
         }
 
-        // Staging reads the status itself, so the lists and the banner count are current when it reports.
-        return ConflictFlow.Close(session, message, new StageResolvedConflictEffect(saved.TabId, saved.Path));
+        return ConflictFlow.Close(session, message, next);
     }
 
     private static ConflictUpdate Failed(
@@ -310,7 +316,12 @@ public static class ConflictReducer
     {
         var message = ConflictFlow.Post(failed.Text, failed.Severity);
 
-        return context.Tab is null ? ConflictFlow.Close(session, message) : ConflictFlow.Done(session, message);
+        if (context.Tab is null && OwnsEditor(session, failed.TabId))
+        {
+            return ConflictFlow.Close(session, message);
+        }
+
+        return ConflictFlow.Done(session, message);
     }
 
     private static ConflictUpdate AskRecreate(ConflictSession session, ConflictEditorState editor)
@@ -363,7 +374,7 @@ public static class ConflictReducer
         var name = ConflictFlow.Name(recreated.Path);
         var refresh = new RefreshTabEffect(recreated.TabId);
         var done = ConflictFlow.Post($"Re-created the conflict of {name}");
-        if (!session.IsOpen)
+        if (!OwnsEditor(session, recreated.TabId))
         {
             return ConflictFlow.Done(session, refresh, done);
         }
@@ -379,6 +390,8 @@ public static class ConflictReducer
 
         return ConflictFlow.ShowCentered(session, fresh, refresh, done);
     }
+
+    private static bool OwnsEditor(ConflictSession session, TabId tabId) => session.Editor?.TabId == tabId;
 
     private static string SavedMessage(string name, ConflictEditorState editor)
     {
