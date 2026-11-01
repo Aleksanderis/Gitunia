@@ -21,7 +21,7 @@ public static class OperationExclusion
         RunningOperationKind.Stash,
     ];
 
-    /// <summary>The kind writes the index or the working tree (a pull is counted by the sync rule).</summary>
+    /// <summary>The kind writes the index or the working tree (any sync is counted by the sync rule: the table cannot tell a pull from a fetch).</summary>
     public static bool WritesWorkingTree(RunningOperationKind kind) => _treeWriters.Contains(kind);
 
     /// <summary>
@@ -33,7 +33,7 @@ public static class OperationExclusion
     {
         foreach (var item in running.Items)
         {
-            if (item.Kind != kind && Excludes(kind, item.Kind))
+            if (item.Kind != kind && IsExcludedBy(kind, item.Kind))
             {
                 return true;
             }
@@ -43,7 +43,7 @@ public static class OperationExclusion
     }
 
     /// <summary>A running operation of kind <paramref name="running"/> keeps <paramref name="kind"/> from starting.</summary>
-    public static bool Excludes(RunningOperationKind kind, RunningOperationKind running)
+    public static bool IsExcludedBy(RunningOperationKind kind, RunningOperationKind running)
     {
         if (kind == RunningOperationKind.Sync)
         {

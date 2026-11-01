@@ -11,7 +11,7 @@ namespace Gitunia.Core.Sync;
 /// <param name="Refs">The refs the tab shows.</param>
 /// <param name="IsActive">The tab is the active one.</param>
 /// <param name="IsBusy">A fetch, pull, push or remote branch delete already runs for the tab.</param>
-/// <param name="IsOtherBusy">An operation of another kind runs for the tab (a pull moves the working tree).</param>
+/// <param name="IsOtherBusy">An operation of another kind runs for the tab (a pull moves the working tree, and a transfer does not run beside remote edits).</param>
 /// <param name="IsOverlayOpen">A prompt, confirm or output box is open; an unsolicited offer never replaces it.</param>
 /// <param name="State">The tab's running transfer, null when none.</param>
 public sealed record SyncContext(

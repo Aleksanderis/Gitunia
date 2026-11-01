@@ -1,4 +1,7 @@
 using Gitunia.Core.Effects;
+using Gitunia.Core.Branches;
+using Gitunia.Core.Integration;
+using Gitunia.Core.Pick;
 using Gitunia.Core.Rebase;
 using Gitunia.Core.Remotes;
 using Gitunia.Core.Running;
@@ -9,6 +12,8 @@ using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
+using Gitunia.Git.Merge;
+using Gitunia.Git.Pick;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Stash;
 using Xunit;
@@ -61,22 +66,30 @@ public class OperationExclusionTests
         return data;
     }
 
+    public static TheoryData<RunningOperationKind> WriterAndSyncKinds()
+    {
+        var data = WriterKinds();
+        data.Add(RunningOperationKind.Sync);
+
+        return data;
+    }
+
     [Theory]
     [MemberData(nameof(WriterPairs))]
     public void GivenTwoWorkingTreeWriters_WhenAskingTheTable_ThenEachExcludesTheOther(
         RunningOperationKind first,
         RunningOperationKind second)
     {
-        Assert.True(OperationExclusion.Excludes(first, second));
-        Assert.True(OperationExclusion.Excludes(second, first));
+        Assert.True(OperationExclusion.IsExcludedBy(first, second));
+        Assert.True(OperationExclusion.IsExcludedBy(second, first));
     }
 
     [Theory]
     [MemberData(nameof(WriterKinds))]
     public void GivenAWriterOrSync_WhenAskingTheTable_ThenSyncAndTheWriterExcludeEachOther(RunningOperationKind writer)
     {
-        Assert.True(OperationExclusion.Excludes(RunningOperationKind.Sync, writer));
-        Assert.True(OperationExclusion.Excludes(writer, RunningOperationKind.Sync));
+        Assert.True(OperationExclusion.IsExcludedBy(RunningOperationKind.Sync, writer));
+        Assert.True(OperationExclusion.IsExcludedBy(writer, RunningOperationKind.Sync));
     }
 
     [Theory]
@@ -84,8 +97,8 @@ public class OperationExclusionTests
     [InlineData(RunningOperationKind.Tags)]
     public void GivenRemoteManagementOrTags_WhenAskingTheTable_ThenSyncAndItExcludeEachOther(RunningOperationKind kind)
     {
-        Assert.True(OperationExclusion.Excludes(RunningOperationKind.Sync, kind));
-        Assert.True(OperationExclusion.Excludes(kind, RunningOperationKind.Sync));
+        Assert.True(OperationExclusion.IsExcludedBy(RunningOperationKind.Sync, kind));
+        Assert.True(OperationExclusion.IsExcludedBy(kind, RunningOperationKind.Sync));
     }
 
     [Theory]
@@ -95,8 +108,8 @@ public class OperationExclusionTests
     public void GivenAnOperationThatLeavesTheTreeAlone_WhenAskingAboutAWriter_ThenNoneExcludesTheOther(
         RunningOperationKind other)
     {
-        Assert.All(Writers, writer => Assert.False(OperationExclusion.Excludes(writer, other)));
-        Assert.All(Writers, writer => Assert.False(OperationExclusion.Excludes(other, writer)));
+        Assert.All(Writers, writer => Assert.False(OperationExclusion.IsExcludedBy(writer, other)));
+        Assert.All(Writers, writer => Assert.False(OperationExclusion.IsExcludedBy(other, writer)));
     }
 
     [Fact]
@@ -199,6 +212,91 @@ public class OperationExclusionTests
 
         Assert.DoesNotContain(update.Effects, effect => effect is OperationEffect);
         Assert.Equal(BusyNotice, Assert.Single(update.Effects.OfType<PostStatusEffect>()).Text);
+    }
+
+    [Theory]
+    [MemberData(nameof(WriterAndSyncKinds))]
+    public void GivenAnotherOperationRuns_WhenACherryPickIsRequested_ThenItIsRefusedAndNothingStarts(
+        RunningOperationKind running)
+    {
+        var (state, tabId) = Opened();
+        var busy = AppReducerTestState.WithRunning(state, tabId, running);
+
+        var update = AppReducer.Reduce(
+            busy,
+            new PickRequested(tabId, PickKind.CherryPick, new PickTarget(null, ["abc"])));
+
+        Assert.DoesNotContain(update.Effects, effect => effect is OperationEffect);
+        Assert.Single(update.Effects.OfType<PostStatusEffect>());
+    }
+
+    [Theory]
+    [MemberData(nameof(WriterAndSyncKinds))]
+    public void GivenAnotherOperationRuns_WhenARebaseIsRequested_ThenItIsRefusedAndNothingStarts(
+        RunningOperationKind running)
+    {
+        var (state, tabId) = Opened();
+        var busy = AppReducerTestState.WithRunning(state, tabId, running);
+
+        var update = AppReducer.Reduce(busy, new RebaseOntoRequested(tabId, new RebaseSelection(null, null, Target)));
+
+        Assert.DoesNotContain(update.Effects, effect => effect is OperationEffect);
+        Assert.Single(update.Effects.OfType<PostStatusEffect>());
+    }
+
+    [Theory]
+    [MemberData(nameof(WriterAndSyncKinds))]
+    public void GivenAnotherOperationRuns_WhenABranchIsCreatedAndCheckedOut_ThenItIsRefusedAndNothingStarts(
+        RunningOperationKind running)
+    {
+        var (state, tabId) = Opened();
+        var busy = AppReducerTestState.WithRunning(state, tabId, running);
+
+        var update = AppReducer.Reduce(busy, new BranchCreateAtRequested(tabId, Target, true));
+
+        Assert.DoesNotContain(update.Effects, effect => effect is OperationEffect);
+        Assert.Single(update.Effects.OfType<PostStatusEffect>());
+    }
+
+    [Theory]
+    [MemberData(nameof(WriterAndSyncKinds))]
+    public void GivenAnotherOperationRuns_WhenAMergeIsRequested_ThenItIsRefusedAndNothingStarts(
+        RunningOperationKind running)
+    {
+        var (state, tabId) = Opened();
+        var busy = AppReducerTestState.WithRunning(state, tabId, running);
+
+        var update = AppReducer.Reduce(
+            busy,
+            new MergeRequested(tabId, MergeMode.Default, new MergeTarget(Target, "topic")));
+
+        Assert.DoesNotContain(update.Effects, effect => effect is OperationEffect);
+        Assert.Single(update.Effects.OfType<PostStatusEffect>());
+    }
+
+    [Theory]
+    [MemberData(nameof(WriterAndSyncKinds))]
+    public void GivenAnotherOperationRuns_WhenAFetchIsRequested_ThenItIsRefusedAndNothingStarts(
+        RunningOperationKind running)
+    {
+        var (state, tabId) = Opened();
+        var busy = AppReducerTestState.WithRunning(state, tabId, running);
+
+        var update = AppReducer.Reduce(busy, new SyncRequested(tabId, SyncKind.Fetch));
+
+        Assert.DoesNotContain(update.Effects, effect => effect is OperationEffect);
+    }
+
+    [Fact]
+    public void GivenARunningRemoteOperation_WhenAPushIsRequested_ThenItIsRefused()
+    {
+        var (state, tabId) = Opened();
+        var busy = AppReducerTestState.WithRunning(state, tabId, RunningOperationKind.Remotes);
+
+        var update = AppReducer.Reduce(busy, new SyncRequested(tabId, SyncKind.Push));
+
+        Assert.DoesNotContain(update.Effects, effect => effect is OperationEffect);
+        Assert.Equal(SyncReducer.OtherBusyNotice, Assert.Single(update.Effects.OfType<PostStatusEffect>()).Text);
     }
 
     private static (AppState State, TabId TabId) Opened()
