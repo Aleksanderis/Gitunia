@@ -4,7 +4,7 @@
 
 Do not open a public issue. Use the repository's **Security** tab, choose **Report a vulnerability**, and include the version (`gitunia --version`) and steps to reproduce.
 
-You can expect an acknowledgement within a week. Gitunia is maintained by one person in spare time, so fixes are best effort; a confirmed issue is fixed in a following release and credited if you wish.
+You can expect an acknowledgement within a week. Gitunia is maintained by one person in spare time, so fixes are best effort. A confirmed issue is fixed in a following release and credited if you wish.
 
 ## Scope
 

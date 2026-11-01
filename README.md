@@ -2,7 +2,7 @@
 
 <h1 align="center">Gitunia</h1>
 
-A keyboard-first terminal Git client: a real commit graph, first-class branches and worktrees, vim-style modal navigation, mouse optional.
+A keyboard-first terminal Git client: a real commit graph, first-class branches and worktrees, vim-style modal navigation, the mouse is optional but fully functional.
 
 ![Gitunia demo: graph, branch switch, worktree, staging lines, commit](docs/media/demo.gif)
 
@@ -14,13 +14,13 @@ Terminal Git tools are great for quick staging and commits but awkward for many 
 
 - Standalone multi-repository client: tabs, repository picker, session restore
 - Commit graph that scrolls and searches through 100k+ commits
-- Stage files, hunks and single lines; commit and amend
+- Stage files, hunks and single lines; then commit or amend
 - Built-in conflict editor with base, ours and theirs side by side
 - Unified and side-by-side diffs, also between any two commits
 - Branches, tags, merge, rebase, reset, cherry-pick and revert
 - Interactive rebase editor
 - Worktrees and stashes as first-class views
-- Fetch, pull and push with progress; clone and init; remotes
+- Fetch, pull and push with progress, clone, init and remotes
 - Reflog browser as the undo path for destructive actions
 - Command palette and configurable vim-style keys
 
@@ -46,8 +46,9 @@ In the picker type to filter or type a path; `Enter` opens it in a tab. `?` show
 
 - [User guide](docs/user-guide.md) and [customising keys](docs/customising-keys.md)
 - [Key reference](docs/keymap.md)
-- Design documents are in `docs/`; project conventions are in [CLAUDE.md](CLAUDE.md)
+- Design documents are in `docs/`
+- Project conventions are in [CLAUDE.md](CLAUDE.md)
 
 ## Contributing, security, license
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) and [SECURITY.md](SECURITY.md). Licensed under the MIT License ([LICENSE](LICENSE)); this covers the logo too.
+See [CONTRIBUTING.md](CONTRIBUTING.md) and [SECURITY.md](SECURITY.md). Licensed under the MIT License ([LICENSE](LICENSE)). This covers the logo too.
