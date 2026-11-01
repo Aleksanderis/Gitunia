@@ -128,6 +128,47 @@ public class PaletteTests
     }
 
     [Theory]
+    [InlineData(false, 1.75, 2.1)]
+    [InlineData(true, 1.35, 1.6)]
+    public void GivenTrueColorScheme_WhenSelectingARow_ThenTheFocusedBarIsClearlyApartFromThePage(
+        bool isLight,
+        double minimum,
+        double maximum)
+    {
+        var colors = PaletteTable.For(new PaletteSettings(ColorDepth.TrueColor, isLight));
+        var page = isLight ? LightBackground : DarkBackground;
+
+        var ratio = Contrast(ToRgb(colors.SelectionFocused), page);
+
+        Assert.InRange(ratio, minimum, maximum);
+    }
+
+    [Theory]
+    [MemberData(nameof(Variants))]
+    public void GivenTrueColorScheme_WhenSelectingARow_ThenDimAndRangeRowsStayApartFromTheFocusedBar(bool isLight)
+    {
+        var colors = PaletteTable.For(new PaletteSettings(ColorDepth.TrueColor, isLight));
+        var focused = ToRgb(colors.SelectionFocused);
+
+        Assert.True(Contrast(ToRgb(colors.SelectionDim), focused) >= 1.2);
+        Assert.True(Contrast(ToRgb(colors.RangeBackground), focused) >= 1.1);
+        Assert.True(
+            Contrast(ToRgb(colors.RangeBackground), isLight ? LightBackground : DarkBackground)
+                > Contrast(focused, isLight ? LightBackground : DarkBackground));
+    }
+
+    [Theory]
+    [MemberData(nameof(Variants))]
+    public void GivenTrueColorScheme_WhenSelectingARow_ThenMutedAndSubtleTextStayReadableOnTheFocusedBar(bool isLight)
+    {
+        var colors = PaletteTable.For(new PaletteSettings(ColorDepth.TrueColor, isLight));
+        var focused = ToRgb(colors.SelectionFocused);
+
+        Assert.True(Contrast(ToRgb(colors.MutedOnSelection), focused) >= ReadableRatio);
+        Assert.True(Contrast(ToRgb(colors.SubtleOnSelection), focused) >= SubtleRatio);
+    }
+
+    [Theory]
     [MemberData(nameof(Variants))]
     public void GivenTrueColorScheme_WhenColouringAnyRole_ThenTextIsReadableOnItsBackground(bool isLight)
     {
@@ -143,7 +184,7 @@ public class PaletteTests
                 var attribute = Palette.For(new StyledSegment("x", role), highlight.IsSelected, highlight.IsFocused, colors);
                 var background = attribute.Background == Color.None ? terminalBackground : ToRgb(attribute.Background);
                 var foreground = attribute.Foreground == Color.None ? terminalText : ToRgb(attribute.Foreground);
-                var minimum = MinimumFor(role);
+                var minimum = SelectionContrast.Minimum(MinimumFor(role), highlight.IsSelected, foreground, colors);
                 if (role is SegmentRole.Border && highlight.IsSelected)
                 {
                     // A divider is never on a selected row.
@@ -436,7 +477,9 @@ public class PaletteTests
             {
                 var attribute = Palette.For(new StyledSegment("x", SegmentRole.Lane, lane), true, isFocused, colors);
 
-                Assert.True(Contrast(ToRgb(attribute.Foreground), ToRgb(attribute.Background)) >= ReadableRatio, $"lane {lane}, focused {isFocused}");
+                Assert.True(
+                    Contrast(ToRgb(attribute.Foreground), ToRgb(attribute.Background)) >= SelectionContrast.AccentOnSelectionRatio,
+                    $"lane {lane}, focused {isFocused}");
             }
         }
     }
