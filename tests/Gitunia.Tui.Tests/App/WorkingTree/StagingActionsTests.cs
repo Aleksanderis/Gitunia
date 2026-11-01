@@ -3,7 +3,6 @@ using Gitunia.Tui.Tests.Fakes;
 using Gitunia.Core;
 using Gitunia.Core.Effects;
 using Gitunia.Core.Lists;
-using Gitunia.Core.Shell;
 using Gitunia.Core.Staging;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Panes;
@@ -77,21 +76,6 @@ public class StagingActionsTests
 
         Assert.Empty(notice);
         Assert.Contains(StagingReducer.BusyNotice, harness.Statuses, StringComparer.Ordinal);
-    }
-
-    [Fact]
-    public void GivenACommitWaitsForStageAll_WhenAsked_ThenTheActionTravelsAsTheCommandThatFollows()
-    {
-        using var harness = new Harness(Modified("a.txt"));
-        var ran = false;
-
-        var notice = harness.Staging.StageAllThen(harness.Tab, () => ran = true);
-
-        Assert.Empty(notice);
-        var follow = Assert.IsType<StagePathsEffect>(Assert.Single(harness.Effects)).Follow;
-        Assert.False(ran);
-        Assert.IsType<RunActionCommand>(follow.Then).Run();
-        Assert.True(ran);
     }
 
     [Fact]

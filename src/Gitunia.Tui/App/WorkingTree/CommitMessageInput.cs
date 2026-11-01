@@ -1,22 +1,96 @@
+using Gitunia.App;
+using Gitunia.Core.Commits;
+using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
+using Gitunia.Core.Running;
+using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Tui.Input;
+using Gitunia.Tui.Rendering.Panes;
 
 namespace Gitunia.Tui.App.WorkingTree;
 
 /// <summary>
-/// Lets the commit message box receive the keys typed in Insert mode next to the other prompts. It owns no action: the box's actions
-/// reach <see cref="CommitActions"/> through the Changes view's handler, only the typed keys come through here.
+/// Turns the keys and clicks of the commit message box into commands (ux-workflows.md, workflow 2, "Message and commit"). The
+/// state decides what they do (<c>Core/Commits</c>); this class only asks whether the box takes an action, dispatches it, and
+/// gives the box the keys typed in Insert mode next to the other prompts.
 /// </summary>
-/// <param name="commits">The commit actions that own the editor.</param>
-public sealed class CommitMessageInput(CommitActions commits) : IPromptHandler
+/// <param name="host">The state and where commands go.</param>
+/// <param name="route">Runs an action as if its key had been pressed (for the Enter this class passes on).</param>
+public sealed class CommitMessageInput(Dispatcher host, IActionRoute route) : IPromptHandler
 {
     public string StatusLine => string.Empty;
 
     public string Notice => string.Empty;
 
+    /// <summary>True while the message box of the active tab takes typed keys.</summary>
+    public bool IsEditing => CommitRules.IsEditing(host.State);
+
+    /// <summary>True while the focused message box shows its cursor: Insert mode, and the box's Normal mode.</summary>
+    public bool ShowsCursor => CommitRules.ShowsCursor(host.State);
+
+    /// <summary>The box does not run the actions of the palette or other prompts; they reach it through the Changes view.</summary>
     public bool TryExecute(ActionId action, int? count) => false;
 
-    public bool HandleTextKey(KeyEvent key) => commits.HandleTextKey(key);
+    /// <summary>Runs the action when it concerns the message box; false lets the other handlers have it.</summary>
+    /// <param name="tab">The active tab, showing the Changes view.</param>
+    /// <param name="action">The action.</param>
+    public bool TryExecute(RepositoryState tab, ActionId action)
+    {
+        if (!CommitRules.Takes(host.State, tab, action))
+        {
+            return false;
+        }
+
+        if (action == ActionIds.WorkingTreeMessageNewLine && !CommitRules.IsEditing(host.State, tab))
+        {
+            // Enter in another prompt's Insert mode (such as the search) is that prompt's accept.
+            route.Route(ActionIds.InputAccept, null);
+
+            return true;
+        }
+
+        host.Dispatch(new CommitActionPressed(tab.Id, action));
+
+        return true;
+    }
+
+    /// <summary>Gives a key typed in Insert mode to the editor when the box owns Insert mode; true when it took the key.</summary>
+    /// <param name="key">The key.</param>
+    public bool HandleTextKey(KeyEvent key)
+    {
+        if (host.Workspace.ActiveTab is not { } tab
+            || !CommitRules.IsEditing(host.State, tab)
+            || tab.Running.IsRunning(RunningOperationKind.Commit)
+            || tab.Commit.Draft is null)
+        {
+            return false;
+        }
+
+        host.Dispatch(new CommitKeyTyped(tab.Id, key));
+
+        return true;
+    }
+
+    /// <summary>
+    /// Puts the editor's cursor where a click on the message box landed. The click's own gesture (focus, Insert
+    /// mode) follows; lines are scrolled sideways only while the box is edited, so the offset is read before that.
+    /// </summary>
+    /// <param name="textColumn">The pointer's column in the text, left padding removed.</param>
+    /// <param name="row">The pointer's row in the box.</param>
+    /// <param name="textWidth">Text columns of the box.</param>
+    public void PlaceCursor(int textColumn, int row, int textWidth)
+    {
+        if (host.Workspace.ActiveTab is not { Commit.Draft: { } draft } tab)
+        {
+            return;
+        }
+
+        var editor = draft.Editor;
+        var line = Math.Clamp(draft.Top + row, 0, editor.Lines.Count - 1);
+        var shows = CommitRules.ShowsCursor(host.State);
+        var offset = shows && line == editor.CursorRow ? MessageEditorRenderer.ScrollOffset(editor, textWidth) : 0;
+        host.Dispatch(new CommitCursorPlaced(tab.Id, line, Math.Max(0, textColumn) + offset));
+    }
 
     public void OnGraphChanged()
     {

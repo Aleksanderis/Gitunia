@@ -52,8 +52,6 @@ public sealed class NoShellEffects : IShellEffects
     {
     }
 
-    public bool MoveCommitDraft(TabId missing, TabId target) => true;
-
     public void MoveDiffCursor(MoveDiffCursorEffect effect)
     {
     }

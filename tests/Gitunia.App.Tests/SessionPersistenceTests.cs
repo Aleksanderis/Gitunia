@@ -1,10 +1,10 @@
 using Gitunia.App.Status;
 using Gitunia.Core;
+using Gitunia.Core.Commits;
 using Gitunia.Core.Persistence;
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Repositories;
-using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Repositories.Models;
 using Xunit;
 
@@ -51,11 +51,9 @@ public class SessionPersistenceTests
             var store = new SessionStore(directory);
             var host = new Dispatcher(AppState.Empty);
             host.Dispatch(new OpenRepositoryCommand(Location(Path.Combine(directory, "alpha"))));
-            var drafts = new Dictionary<TabId, SessionDraft>();
-            using var persistence = new SessionPersistence(store, host, TimeSpan.FromHours(1), new StatusReporter(host), action => action(), () => new Dictionary<TabId, SessionDraft>(drafts));
+            using var persistence = new SessionPersistence(store, host, TimeSpan.FromHours(1), new StatusReporter(host), action => action());
             persistence.Start();
-            drafts[host.Workspace.Tabs[0].Id] = new SessionDraft("Unsent", true, false);
-            persistence.NotifyDraftChanged();
+            host.Dispatch(new CommitDraftRestored(host.Workspace.Tabs[0].Id, new SessionDraft("Unsent", true, false)));
 
             persistence.Flush();
 

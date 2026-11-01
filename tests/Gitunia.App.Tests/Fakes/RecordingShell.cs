@@ -3,7 +3,6 @@ using Gitunia.Core.Config.Models;
 using Gitunia.Core.Conflicts;
 using Gitunia.Core.FileTree;
 using Gitunia.Core.ExternalTools;
-using Gitunia.Core.Picker;
 using Gitunia.Core.Reflog;
 using Gitunia.Core.Sidebar;
 using Gitunia.Core.Staging;
@@ -28,10 +27,6 @@ public sealed class RecordingShell : IShellEffects
     public int EditorOpened { get; private set; }
 
     public List<LaunchExternalToolEffect> Tools { get; } = [];
-
-    public List<MoveCommitDraftEffect> DraftMoves { get; } = [];
-
-    public bool DraftMoveResult { get; set; } = true;
 
     public List<MoveDiffCursorEffect> DiffCursorMoves { get; } = [];
 
@@ -79,13 +74,6 @@ public sealed class RecordingShell : IShellEffects
     public void MoveDiffCursor(MoveDiffCursorEffect effect) => DiffCursorMoves.Add(effect);
 
     public void LaunchExternalTool(LaunchExternalToolEffect effect) => Tools.Add(effect);
-
-    public bool MoveCommitDraft(TabId missing, TabId target)
-    {
-        DraftMoves.Add(new MoveCommitDraftEffect(missing, target));
-
-        return DraftMoveResult;
-    }
 
     public bool FlushSession()
     {

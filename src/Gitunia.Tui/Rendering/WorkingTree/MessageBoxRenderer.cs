@@ -73,12 +73,14 @@ public static class MessageBoxRenderer
     /// <param name="padding">Blank columns on each side.</param>
     /// <param name="glyphs">The character set.</param>
     /// <param name="keys">Where the Commit key comes from; null uses the default keymap.</param>
+    /// <param name="isCommitting">A commit runs: the row says so instead of offering the Commit button.</param>
     public static StyledLine OptionsLine(
         CommitDraft? draft,
         int width,
         int padding,
         GraphGlyphSet glyphs,
-        ChipKeys? keys = null)
+        ChipKeys? keys = null,
+        bool isCommitting = false)
     {
         var textWidth = PanePadding.TextWidth(width, padding);
         var builder = new LineBuilder(textWidth, glyphs.Ellipsis);
@@ -88,7 +90,7 @@ public static class MessageBoxRenderer
             builder.Append($"{(states[index] ? Checked : Unchecked)} {Options[index].Name}{Gap}", SegmentRole.Plain);
         }
 
-        if (draft?.IsCommitting == true)
+        if (isCommitting)
         {
             var running = TextWidth.Fit(RunningText, Math.Max(0, builder.Remaining), glyphs.Ellipsis);
             builder.Append(new string(' ', Math.Max(0, builder.Remaining - TextWidth.Of(running))), SegmentRole.Plain);
@@ -132,12 +134,14 @@ public static class MessageBoxRenderer
     /// <param name="padding">Blank columns on each side.</param>
     /// <param name="showCursor">The box is being edited (focused, Insert mode).</param>
     /// <param name="glyphs">The character set.</param>
+    /// <param name="isCommitting">A commit runs: the box is read-only and shows no cursor.</param>
     public static IReadOnlyList<StyledLine> EditorLines(
         CommitDraft? draft,
         PaneRect rect,
         int padding,
         bool showCursor,
-        GraphGlyphSet glyphs)
+        GraphGlyphSet glyphs,
+        bool isCommitting = false)
     {
         var textWidth = PanePadding.TextWidth(rect.Width, padding);
         if (draft is null || (draft.Editor.IsBlank && !showCursor && draft.Editor.Lines.Count <= 1))
@@ -147,7 +151,7 @@ public static class MessageBoxRenderer
 
         var top = MessageEditorRenderer.ScrollTop(draft.Editor.CursorRow, draft.Top, rect.Height);
         draft.Top = top;
-        var isCursorShown = showCursor && !draft.IsCommitting;
+        var isCursorShown = showCursor && !isCommitting;
         var lines = MessageEditorRenderer.Render(draft.Editor, textWidth, rect.Height, isCursorShown, top);
         return [.. lines.Select(line => PanePadding.Wrap(line, padding))];
     }

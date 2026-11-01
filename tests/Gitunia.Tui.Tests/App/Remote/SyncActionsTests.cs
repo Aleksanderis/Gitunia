@@ -1,5 +1,4 @@
 using Gitunia.App;
-using Gitunia.App.Tabs;
 using Gitunia.Core;
 using Gitunia.Core.Effects;
 using Gitunia.Core.Keymap;
@@ -25,7 +24,6 @@ public class SyncActionsTests
     private readonly Dispatcher _host;
     private readonly FixedSelection _selection = new(new BranchSelection(null, null, Commit));
     private readonly List<AppEffect> _effects = [];
-    private readonly TabActivity _activity = new();
     private readonly SyncActions _actions;
 
     public SyncActionsTests()
@@ -33,7 +31,7 @@ public class SyncActionsTests
         _host = new TestShell().Host;
         _host.Dispatch(new OpenRepositoryCommand(Location()));
         _host.EffectRaised += _effects.Add;
-        _actions = new SyncActions(_host, _selection, _activity);
+        _actions = new SyncActions(_host, _selection);
     }
 
     [Fact]
@@ -75,27 +73,6 @@ public class SyncActionsTests
 
         var post = Assert.IsType<PostStatusEffect>(Assert.Single(_effects));
         Assert.Equal("No branch is checked out: nothing to force push", post.Text);
-    }
-
-    [Fact]
-    public void GivenAnOperationOfTheSharedGateRuns_WhenPulling_ThenItIsRefusedWithoutGit()
-    {
-        _activity.CreateGate().Begin(_host.Workspace.ActiveTabId!.Value);
-
-        _actions.TryExecute(ActionIds.RemotePull, null);
-
-        var post = Assert.IsType<PostStatusEffect>(Assert.Single(_effects));
-        Assert.Equal("Busy: another operation of this tab is still running", post.Text);
-    }
-
-    [Fact]
-    public void GivenAnOperationOfTheSharedGateRuns_WhenFetching_ThenTheFetchStarts()
-    {
-        _activity.CreateGate().Begin(_host.Workspace.ActiveTabId!.Value);
-
-        _actions.TryExecute(ActionIds.RemoteFetch, null);
-
-        Assert.IsType<FetchEffect>(Assert.Single(_effects));
     }
 
     [Fact]
@@ -174,7 +151,7 @@ public class SyncActionsTests
     [Fact]
     public void GivenNoTab_WhenExecuted_ThenNothingIsHandled()
     {
-        var actions = new SyncActions(new TestShell().Host, _selection, _activity);
+        var actions = new SyncActions(new TestShell().Host, _selection);
 
         Assert.False(actions.TryExecute(ActionIds.RemoteFetch, null));
     }

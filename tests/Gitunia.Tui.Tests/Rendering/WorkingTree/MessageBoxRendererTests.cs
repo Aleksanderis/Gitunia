@@ -83,7 +83,12 @@ public class MessageBoxRendererTests
     [Fact]
     public void GivenACommitInProgress_WhenRenderingTheOptionRow_ThenItSaysSoInPlaceOfTheButton()
     {
-        var line = MessageBoxRenderer.OptionsLine(new CommitDraft { IsCommitting = true }, 60, Padding, GraphGlyphSet.Unicode);
+        var line = MessageBoxRenderer.OptionsLine(
+            new CommitDraft(),
+            60,
+            Padding,
+            GraphGlyphSet.Unicode,
+            isCommitting: true);
 
         Assert.Contains("committing...", Text(line), StringComparison.Ordinal);
         Assert.DoesNotContain(line.Segments, segment => segment.Role == SegmentRole.Button);
@@ -168,10 +173,16 @@ public class MessageBoxRendererTests
     [Fact]
     public void GivenACommitInProgress_WhenRenderingTheEditorRows_ThenThereIsNoCursor()
     {
-        var draft = new CommitDraft { IsCommitting = true };
+        var draft = new CommitDraft();
         draft.Editor.SetText("Subject");
 
-        var rows = MessageBoxRenderer.EditorLines(draft, new PaneRect(0, 0, 30, 3), Padding, true, GraphGlyphSet.Unicode);
+        var rows = MessageBoxRenderer.EditorLines(
+            draft,
+            new PaneRect(0, 0, 30, 3),
+            Padding,
+            true,
+            GraphGlyphSet.Unicode,
+            isCommitting: true);
 
         Assert.DoesNotContain(rows.SelectMany(row => row.Segments), segment => segment.Role == SegmentRole.Cursor);
     }

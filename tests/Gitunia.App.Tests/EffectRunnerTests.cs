@@ -125,48 +125,6 @@ public class EffectRunnerTests
     }
 
     [Fact]
-    public async Task GivenColdTabRunningOperation_WhenSwitching_ThenTabIsNotEvicted()
-    {
-        var fakes = new FakeGitServices();
-        fakes.CommitLog.AddOnTop("root");
-        var pump = new UiPump(TestContext.Current.CancellationToken);
-        var scratch = Workspace.Empty;
-        foreach (var name in new[] { "first", "second", "third" })
-        {
-            var location = FakeStatusReader.LocationOf(name);
-            scratch = WorkspaceReducer.Reduce(scratch, new OpenRepositoryCommand(location)).Workspace;
-        }
-
-        var ids = scratch.Tabs.Select(tab => tab.Id).ToArray();
-        var host = new Dispatcher(AppState.Empty);
-        using var effects = new EffectRunner<TabSession>(
-            fakes.Services,
-            host,
-            pump.Post,
-            new TabSessionFactory(),
-            new StatusReporter(host),
-            watcherOptions: TestGit.QuietWatcherOptions,
-            warmTabLimit: 2);
-        effects.IsTabBusy = tabId => tabId == ids[0];
-        host.Restore(new WorkspaceUpdate(
-            scratch with { ActiveTabId = ids[0] },
-            [.. scratch.Tabs.Select(tab => new LoadRepositoryEffect(tab.Id, tab.CommandPath))]));
-        await pump.RunUntilAsync(() => !effects.SessionOf(ids[0])!.IsLoading);
-        var firstSession = effects.SessionOf(ids[0])!;
-
-        host.Dispatch(new ActivateTabCommand(ids[1]));
-        await pump.RunUntilAsync(() => !effects.SessionOf(ids[1])!.IsLoading);
-        Assert.Same(firstSession, effects.SessionOf(ids[0]));
-        Assert.Equal(1, firstSession.Graph.Count);
-
-        host.Dispatch(new ActivateTabCommand(ids[2]));
-        await pump.RunUntilAsync(() => !effects.SessionOf(ids[2])!.IsLoading);
-
-        Assert.Same(firstSession, effects.SessionOf(ids[0]));
-        Assert.Equal(1, firstSession.Graph.Count);
-    }
-
-    [Fact]
     public async Task GivenColdTabWithAnOperationInState_WhenSwitching_ThenTabIsNotEvictedAndItsWorkIsNotCancelled()
     {
         var fakes = new FakeGitServices();

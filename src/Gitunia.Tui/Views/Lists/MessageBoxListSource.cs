@@ -17,8 +17,13 @@ namespace Gitunia.Tui.Views.Lists;
 /// </summary>
 /// <param name="draft">The active tab's draft, null when it has none.</param>
 /// <param name="isEditing">The box is in Insert mode.</param>
+/// <param name="isCommitting">A commit runs, so the box is read-only.</param>
 /// <param name="glyphs">The character set.</param>
-public sealed class MessageBoxListSource(Func<CommitDraft?> draft, Func<bool> isEditing, GraphGlyphSet glyphs) : IListDataSource
+public sealed class MessageBoxListSource(
+    Func<CommitDraft?> draft,
+    Func<bool> isEditing,
+    Func<bool> isCommitting,
+    GraphGlyphSet glyphs) : IListDataSource
 {
     // More rows than any terminal shows; the view only draws the visible ones.
     private const int RowCount = 512;
@@ -51,7 +56,7 @@ public sealed class MessageBoxListSource(Func<CommitDraft?> draft, Func<bool> is
         if (item == 0)
         {
             var rect = new PaneRect(0, 0, width, listView.Viewport.Height);
-            _window = MessageBoxRenderer.EditorLines(draft(), rect, padding, listView.HasFocus && isEditing(), glyphs);
+            _window = MessageBoxRenderer.EditorLines(draft(), rect, padding, listView.HasFocus && isEditing(), glyphs, isCommitting());
         }
 
         if (item >= 0 && item < _window.Count)

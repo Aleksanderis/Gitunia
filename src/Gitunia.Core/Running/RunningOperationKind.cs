@@ -9,6 +9,9 @@ public enum RunningOperationKind
     /// <summary>A branch operation: create, switch, rename, delete, upstream or fast-forward.</summary>
     Branches,
 
+    /// <summary>Creating a commit (an amend included); the message box is read-only meanwhile.</summary>
+    Commit,
+
     /// <summary>The conflict editor: reading a file, saving the result or re-creating the conflict.</summary>
     Conflicts,
 

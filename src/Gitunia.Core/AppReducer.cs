@@ -1,4 +1,5 @@
 using Gitunia.Core.Branches;
+using Gitunia.Core.Commits;
 using Gitunia.Core.Compare;
 using Gitunia.Core.Conflicts;
 using Gitunia.Core.Creation;
@@ -47,7 +48,7 @@ public static partial class AppReducer
     public static AppUpdate Reduce(AppState state, AppCommand command)
     {
         var update = ReduceCommand(state, command);
-        var settled = DiffPaneReducer.Settle(update.State);
+        var settled = DiffPaneReducer.Settle(CommitSettle.Settle(update.State));
 
         // Settling may move the focus too, so the range is checked last.
         var ranged = VisualReducer.EndIfFocusMoved(settled.State);
@@ -62,6 +63,8 @@ public static partial class AppReducer
     private static AppUpdate ReduceCommand(AppState state, AppCommand command) => command switch
     {
         BranchCommand branch => ReduceBranch(state, branch),
+        CommitCommand commit => ReduceCommit(state, commit),
+        CommitDraftMoveRequested move => ReduceCommitDraftMove(state, move),
         CompareCommand compare => ReduceCompare(state, compare),
         ConflictCommand conflict => ReduceConflict(state, conflict),
         CreationCommand creation => ReduceCreation(state, creation),

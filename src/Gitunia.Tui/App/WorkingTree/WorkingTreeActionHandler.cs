@@ -31,7 +31,7 @@ public sealed class WorkingTreeActionHandler(
     IPaneLists lists,
     ClipboardCopier clipboard,
     StagingActions staging,
-    CommitActions commits)
+    CommitMessageInput commits)
 {
     private static readonly HashSet<ActionId> LeftToOthers =
     [
@@ -79,7 +79,6 @@ public sealed class WorkingTreeActionHandler(
 
         if (isShown && commits.TryExecute(tab, action))
         {
-            Message = commits.Notice;
             return true;
         }
 

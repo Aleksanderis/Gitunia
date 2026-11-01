@@ -258,7 +258,7 @@ public sealed class ListRangeFlowTests : IDisposable
                 () => _shell.Host.Workspace.ActiveTab?.WorkingTree);
             _shell.Host.EffectRaised += CopyRange;
             Handler = new WorkingTreeActionHandler(
-                _shell.Host, new FakePaneLists(_list, _stagedList), new ClipboardCopier(clipboard, Statuses), staging, TestCommitActions.Create(_shell.Host, Statuses))
+                _shell.Host, new FakePaneLists(_list, _stagedList), new ClipboardCopier(clipboard, Statuses), staging, TestCommitInput.Create(_shell.Host))
             {
                 Visual = Visual,
             };

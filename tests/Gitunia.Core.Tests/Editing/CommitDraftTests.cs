@@ -125,4 +125,38 @@ public class CommitDraftTests
 
         Assert.False(draft.HasUnsentText);
     }
+
+    [Fact]
+    public void GivenADraftWithAmendBookkeeping_WhenCloned_ThenTheCopyIsIndependentAndKeepsEverything()
+    {
+        var draft = new CommitDraft { SignOff = true, NoVerify = true, Top = 3 };
+        draft.SetAmend(true);
+        draft.ApplyHeadMessage("abc1234", "Old subject");
+
+        var copy = draft.Clone();
+        copy.Editor.SetText("changed");
+        copy.SetAmend(false);
+
+        Assert.Equal("Old subject", draft.Editor.Text);
+        Assert.True(draft.Amend);
+        Assert.Equal("abc1234 Old subject", draft.AmendTarget);
+        Assert.True(copy.SignOff);
+        Assert.True(copy.NoVerify);
+        Assert.Equal(3, copy.Top);
+        Assert.False(copy.Amend);
+    }
+
+    [Fact]
+    public void GivenAPrefilledDraft_WhenCloned_ThenTheUntouchedMessageIsStillNotUnsent()
+    {
+        var draft = new CommitDraft();
+        draft.Prefill("Merge branch 'x'");
+
+        var copy = draft.Clone();
+
+        Assert.False(copy.HasUnsentText);
+        copy.Editor.Insert("!");
+        Assert.True(copy.HasUnsentText);
+        Assert.False(draft.HasUnsentText);
+    }
 }

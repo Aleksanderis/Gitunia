@@ -52,10 +52,6 @@ public interface IShellEffects
     /// <summary>Suspends the UI, runs the git tool on the real terminal and refreshes the tab afterwards.</summary>
     void LaunchExternalTool(LaunchExternalToolEffect effect);
 
-    /// <summary>Moves the unsent commit message of a missing tab to the tab that replaces it. False when the other tab
-    /// holds its own message and nothing moved.</summary>
-    bool MoveCommitDraft(TabId missing, TabId target);
-
     /// <summary>Moves the cursor of the Changes view diff of the tab after a staged hunk or range was read again; does
     /// nothing when the tab is not the one shown.</summary>
     void MoveDiffCursor(MoveDiffCursorEffect effect);
