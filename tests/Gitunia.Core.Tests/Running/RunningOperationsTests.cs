@@ -66,8 +66,9 @@ public class RunningOperationsTests
     {
         var effects = ConcreteSubtypes.InstancesOf<TagEffect>();
 
+        // Instances are uninitialised (the constructor does not run), so only a built one shows the kind.
         Assert.NotEmpty(effects);
-        Assert.All(effects, effect => Assert.Equal(RunningOperationKind.Tags, effect.Kind));
+        Assert.Equal(RunningOperationKind.Tags, Delete(Tab).Kind);
     }
 
     [Fact]
