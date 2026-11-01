@@ -4,7 +4,7 @@
 #   --binary  the AOT binary (default: publishes src/Gitunia.Tui into a temp dir first)
 #   --out     output directory (default: docs/media): demo.gif (README) and demo.webm (landing page)
 # Needs vhs, ttyd, ffmpeg, git (and dotnet unless --binary). Nothing here runs in CI.
-# See docs/user-guide.md, "Regenerating the README demo". Separate from the screenshots flow (scripts/screenshot.sh).
+# See docs/testing.md, "Regenerating the README demo". Separate from the screenshots flow (scripts/screenshot.sh).
 set -euo pipefail
 
 case "$(uname -s)" in
@@ -28,8 +28,17 @@ while [ $# -gt 0 ]; do
   esac
 done
 
-work="$(mktemp -d)"
-trap 'rm -rf "$work"' EXIT
+# A fixed, short work dir keeps the paths visible in the GIF (the worktree path dialog, the status line) identical on every run.
+work="/tmp/gitunia-demo"
+# Only one recording at a time: the fixed dir is shared. Paths passed to --binary/--out must live outside it.
+case "$binary $out_dir" in *"$work"*) echo "--binary and --out must not point inside $work" >&2; exit 2 ;; esac
+mkdir /tmp/gitunia-demo.lock 2>/dev/null || { echo "another demo recording is running (or remove /tmp/gitunia-demo.lock)" >&2; exit 3; }
+trap 'rmdir /tmp/gitunia-demo.lock' EXIT
+[ ! -e "$work" ] || [ -e "$work/.gitunia-demo" ] || { echo "$work exists and is not a demo work dir; remove it first" >&2; exit 3; }
+rm -rf "$work"
+mkdir -p "$work"
+touch "$work/.gitunia-demo"
+trap 'rm -rf "$work"; rmdir /tmp/gitunia-demo.lock' EXIT
 if [ -z "$binary" ]; then
   command -v dotnet >/dev/null 2>&1 || { echo "missing tool 'dotnet' (or pass --binary)" >&2; exit 3; }
   dotnet publish "$repo_root/src/Gitunia.Tui" -c Release -o "$work/bin" -nologo -v quiet >&2
