@@ -174,7 +174,10 @@ public static class Palette
                     Color.None, colors.TabButtonBackground, colors.SelectionDimStyle | TextStyle.Bold, true),
             SegmentRole.SelectedTab =>
                 new RoleAppearance(
-                    colors.Accent, colors.SelectionFocused, colors.SelectionDimStyle | TextStyle.Bold, true),
+                    colors.Accent,
+                    colors.SelectedTabBackground == Color.None ? colors.SelectionFocused : colors.SelectedTabBackground,
+                    colors.SelectionDimStyle | TextStyle.Bold,
+                    true),
             SegmentRole.Error => new RoleAppearance(colors.Bad, Color.None, TextStyle.Bold, false),
             SegmentRole.SearchMatch => new RoleAppearance(colors.MatchForeground, colors.MatchBackground, colors.MatchStyle, true),
             SegmentRole.SectionTitle => new RoleAppearance(colors.Accent, Color.None, TextStyle.Bold, false),

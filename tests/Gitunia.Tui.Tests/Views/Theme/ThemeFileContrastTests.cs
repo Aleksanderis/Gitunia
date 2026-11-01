@@ -18,6 +18,9 @@ public sealed class ThemeFileContrastTests
     // After a 256-colour terminal rounds every colour to the nearest of the xterm cube and grey ramp.
     private const double QuantizedRatio = 3.0;
 
+    // Accent text on the selection bar, after rounding to the 256-colour palette.
+    private const double QuantizedAccentOnSelectionRatio = 2.5;
+
     // Whitespace marks: readable but far dimmer than text; rounding to 256 colours may cost them some of the 2:1.
     private const double SubtleRatio = 2.0;
     private const double SubtleQuantizedRatio = 1.6;
@@ -46,7 +49,8 @@ public sealed class ThemeFileContrastTests
                 }
 
                 var ratio = RatioOf(role, highlight, colors, definition, 0);
-                var minimum = MinimumFor(role);
+                var foreground = ForegroundOf(role, highlight, colors, definition);
+                var minimum = SelectionContrast.Minimum(MinimumFor(role), highlight.IsSelected, foreground, colors);
                 if (ratio < minimum)
                 {
                     var state = $"selected={highlight.IsSelected}, focused={highlight.IsFocused}, range={highlight.IsRange}";
@@ -183,6 +187,13 @@ public sealed class ThemeFileContrastTests
                 var isMark = role is SegmentRole.WhitespaceMark
                     or SegmentRole.WhitespaceMarkAddedWord or SegmentRole.WhitespaceMarkRemovedWord;
                 var minimum = isMark ? SubtleQuantizedRatio : QuantizedRatio;
+                var rawForeground = Resolve(attribute.Foreground, definition, true);
+                var accentMinimum = SelectionContrast.Minimum(ReadableRatio, highlight.IsSelected, rawForeground, colors);
+                if (accentMinimum < ReadableRatio)
+                {
+                    minimum = QuantizedAccentOnSelectionRatio;
+                }
+
                 if (ratio < minimum && role is not SegmentRole.Border)
                 {
                     failures.Add($"{role} (selected={highlight.IsSelected}): {ratio:F2}");
@@ -301,6 +312,13 @@ public sealed class ThemeFileContrastTests
 
         Assert.True(range > selected, $"{name}: range {range:F2}, selected {selected:F2}");
     }
+
+    private static int ForegroundOf(
+        SegmentRole role,
+        SegmentHighlight highlight,
+        PaletteTable colors,
+        ThemeDefinition definition) =>
+        Resolve(Palette.For(new StyledSegment("x", role), highlight, colors).Foreground, definition, true);
 
     private static double RatioOf(
         SegmentRole role,

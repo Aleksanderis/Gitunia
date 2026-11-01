@@ -80,6 +80,12 @@ public sealed class PaletteTable
     /// <summary>The background of an inactive repository tab (a button on the bar), visibly apart from <see cref="BarBackground"/> (#240).</summary>
     public required Color TabButtonBackground { get; init; }
 
+    /// <summary>
+    /// The background of the selected bottom-pane tab (Details, Files); <see cref="Color.None"/> falls back to
+    /// <see cref="SelectionFocused"/>. Kept apart from the bar so the tab keeps its look when the bar gets stronger (#934).
+    /// </summary>
+    public Color SelectedTabBackground { get; init; } = Color.None;
+
     /// <summary>Text on a <see cref="ChipBackground"/> (status mode, active tab, overlay title).</summary>
     public required Color ChipForeground { get; init; }
 
@@ -152,6 +158,9 @@ public sealed class PaletteTable
     private const double ReadableStep = 0.05;
     private const double RangeAccentShare = 0.2;
 
+    // A light selection bar is darker than its page, so the same share would sink text below the readable ratio.
+    private const double RangeAccentShareLight = 0.08;
+
     // Shared by every table and never changed.
     private static readonly Color[] DarkLanes = Rgbs(
         0x89b4fa, 0xa6e3a1, 0xf9e2af, 0xcba6f7, 0xf38ba8, 0x94e2d5,
@@ -210,24 +219,25 @@ public sealed class PaletteTable
         Warn = Rgb(0xf9e2af),
         Info = Rgb(0x89dceb),
         Muted = Rgb(0x9399b2),
-        MutedOnSelection = Rgb(0xa6adc8),
+        MutedOnSelection = Rgb(0xbac2de),
         Subtle = Rgb(0x5e6277),
         SubtleOnSelection = Rgb(0x8388a0),
         AddedWord = Rgb(0x323c3f),
         RemovedWord = Rgb(0x3e2e40),
         Border = Rgb(0x6c7086),
         BarBackground = Rgb(0x181825),
-        SelectionFocused = Rgb(0x313244),
+        SelectionFocused = Rgb(0x45475a),
         SelectionDim = Rgb(0x262637),
         GroupBackground = Rgb(0x222232),
         TabButtonBackground = Rgb(0x313244),
+        SelectedTabBackground = Rgb(0x313244),
         ChipForeground = Rgb(0x11111b),
         ChipBackground = Rgb(0x89b4fa),
         MatchForeground = Rgb(0x11111b),
         MatchBackground = Rgb(0xf9e2af),
         BaseForeground = paintsBase ? Rgb(0xcdd6f4) : Color.None,
         BaseBackground = paintsBase ? Rgb(0x1e1e2e) : Color.None,
-        RangeBackground = Blend(Rgb(0x313244), Rgb(0x89b4fa), RangeAccentShare),
+        RangeBackground = Blend(Rgb(0x45475a), Rgb(0x89b4fa), RangeAccentShare),
         Lanes = DarkLanes,
         LaneLabelForegrounds = ReadableOn(DarkLanes, Rgb(0x11111b)),
     };
@@ -241,24 +251,25 @@ public sealed class PaletteTable
         Warn = Rgb(0x8a5811),
         Info = Rgb(0x116d72),
         Muted = Rgb(0x5f6175),
-        MutedOnSelection = Rgb(0x5f6175),
+        MutedOnSelection = Rgb(0x535670),
         Subtle = Rgb(0xa0a2af),
         SubtleOnSelection = Rgb(0x848798),
         AddedWord = Rgb(0xdde5e2),
         RemovedWord = Rgb(0xece1e8),
         Border = Rgb(0x7c7f93),
         BarBackground = Rgb(0xe6e9ef),
-        SelectionFocused = Rgb(0xdce0e8),
+        SelectionFocused = Rgb(0xc9ced9),
         SelectionDim = Rgb(0xe9ecf1),
         GroupBackground = Rgb(0xebedf2),
         TabButtonBackground = Rgb(0xccd0da),
+        SelectedTabBackground = Rgb(0xdce0e8),
         ChipForeground = Rgb(0xeff1f5),
         ChipBackground = Rgb(0x1a59d7),
         MatchForeground = Rgb(0x232634),
         MatchBackground = Rgb(0xf2c97a),
         BaseForeground = paintsBase ? Rgb(0x4c4f69) : Color.None,
         BaseBackground = paintsBase ? Rgb(0xeff1f5) : Color.None,
-        RangeBackground = Blend(Rgb(0xdce0e8), Rgb(0x1a59d7), RangeAccentShare),
+        RangeBackground = Blend(Rgb(0xc9ced9), Rgb(0x1a59d7), RangeAccentShareLight),
         Lanes = LightLanes,
         LaneLabelForegrounds = ReadableOn(LightLanes, Rgb(0xeff1f5)),
     };
@@ -408,6 +419,7 @@ public sealed class PaletteTable
         SelectionDim = Role(definition, ThemeRoles.SelectionDim),
         GroupBackground = Role(definition, ThemeRoles.GroupBackground),
         TabButtonBackground = Role(definition, ThemeRoles.TabButtonBackground),
+        SelectedTabBackground = Role(definition, ThemeRoles.TabButtonBackground),
         ChipForeground = Role(definition, ThemeRoles.ChipForeground),
         ChipBackground = Role(definition, ThemeRoles.ChipBackground),
         MatchForeground = Role(definition, ThemeRoles.MatchForeground),
@@ -416,7 +428,10 @@ public sealed class PaletteTable
         BaseBackground = Role(definition, ThemeRoles.BaseBackground),
         Lanes = [.. definition.Lanes.Select(Rgb)],
         LaneLabelForegrounds = LabelForegrounds(definition),
-        RangeBackground = Blend(Role(definition, ThemeRoles.SelectionFocused), Role(definition, ThemeRoles.Accent), RangeAccentShare),
+        RangeBackground = Blend(
+            Role(definition, ThemeRoles.SelectionFocused),
+            Role(definition, ThemeRoles.Accent),
+            definition.IsLight ? RangeAccentShareLight : RangeAccentShare),
     };
 
     /// <summary>

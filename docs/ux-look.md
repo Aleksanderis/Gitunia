@@ -25,7 +25,7 @@ Colours are decided in one place: `PaletteTable` (`Gitunia.Tui.Views`) holds the
 - Focus: the focused pane's whole box is drawn in the accent colour (bold), every other line in the quiet border colour, and its title chip is the filled accent chip (the others are dim chips). Focus never relies on colour alone: with `NO_COLOR` the focused box is bold.
 - Layout numbers: the sidebar (clamped 20-36 columns, shown from 60 columns) and the detail/diff split are widths including the padding; drag and the `Ctrl-w` size keys move the shared line.
 
-**Selection and focus.** The selected row is a background tint, never inverse video, so the row keeps its own colours. The focused pane's selection uses the full tint (blue), a pane without focus a quieter grey tint. The rows of a Visual range are drawn stronger than the selected row: a background one step further towards the accent at 24-bit colour, bold text in every tier, plus reverse video at 16 colours and `NO_COLOR`; the moving end (the cursor row) is also underlined, and a range looks the same whether the pane has focus or not. The active tab, the status mode (`NORMAL`, `INSERT`...) and an overlay's title bar are the same accent chip; the tab row and the status bar sit on a slightly lighter bar; an overlay's frame is accent.
+**Selection and focus.** The selected row is a background tint, never inverse video, so the row keeps its own colours. The focused pane's selection uses the full tint (blue), a pane without focus a quieter grey tint. At 24-bit the focused bar is a clear step from the page (#934): about 1.8:1 against the dark base (`#45475a` on `#1e1e2e`) and about 1.4:1 against the light base (`#c9ced9` on `#eff1f5`); the unfocused tint stays near the page. Text, muted and subtle text keep their ratios on it (4.5 and 4.5/2.0), refs, lanes and other accent-coloured text need 3.5 there (a bar that visible cannot also give accents 4.5), and a test checks all of it. The Visual range tint is blended from the bar, so it stays the strongest of the three (a smaller accent share in light themes keeps text readable). The rows of a Visual range are drawn stronger than the selected row: a background one step further towards the accent at 24-bit colour, bold text in every tier, plus reverse video at 16 colours and `NO_COLOR`; the moving end (the cursor row) is also underlined, and a range looks the same whether the pane has focus or not. The active tab, the status mode (`NORMAL`, `INSERT`...) and an overlay's title bar are the same accent chip; the tab row and the status bar sit on a slightly lighter bar; an overlay's frame is accent.
 
 **Repository picker (#880).** A framed overlay like the palette: accent title chip (`Open repository` / `Locate repository`), a query line with a cursor cell, the hint line, the rows, the error notice, and a footer row of chips (`Alt-c clone`, `Alt-i init`, then `Alt-p pin`/`unpin` and `Alt-d remove` for the highlighted row; a chip that does not fit is left out). The box is at most 100 columns and 14 list rows, centred, and shrinks with the list; below 30 columns or 6 rows it is drawn without a frame (query, rows, notice). Unfiltered lists with more than one source get group headers (`Open`, `Pinned`, `Recent`, `Found`, section-title role). Row: repository name (plain), kind words each in their own existing role (`open` local-branch green, `pinned` current-branch cyan, `recent` remote purple, `found`/`dir` muted, `missing` warning yellow for an open tab whose directory is gone), and the path muted, home as `~`, cut in the middle (`~/…/aa2`) when it does not fit. No new palette roles.
 
@@ -50,15 +50,15 @@ The files are read and parsed once, at startup; edits show after a restart.
     // required
     "accent": "#89b4fa", "good": "#a6e3a1", "bad": "#f38ba8", "remote": "#cba6f7", "warn": "#f9e2af", "info": "#89dceb",
     "muted": "#9399b2", "border": "#6c7086", "barBackground": "#181825",
-    "selectionFocused": "#313244", "selectionDim": "#262637",
+    "selectionFocused": "#45475a", "selectionDim": "#262637",
     "chipForeground": "#11111b", "baseForeground": "#cdd6f4", "baseBackground": "#1e1e2e",
     "lanes": ["#89b4fa", "#a6e3a1", "#f9e2af"],            // the branch colours of the graph, by slot; at least one
     // optional (the default is in parentheses)
-    "mutedOnSelection": "#a6adc8",    // (muted)
+    "mutedOnSelection": "#bac2de",    // (muted)
     "subtle": "#5e6277",              // (muted blended 55% into baseBackground: diff whitespace marks)
     "subtleOnSelection": "#8388a0",   // (mutedOnSelection blended 70% into selectionFocused)
     "groupBackground": "#222232",     // (none: the cursor group is marked by its bar only)
-    "tabButtonBackground": "#313244", // (selectionFocused)
+    "tabButtonBackground": "#313244", // (selectionFocused; also the background of the selected bottom-pane tab)
     "chipBackground": "#89b4fa",      // (accent)
     "matchForeground": "#11111b",     // (chipForeground)
     "matchBackground": "#f9e2af",     // (warn)
