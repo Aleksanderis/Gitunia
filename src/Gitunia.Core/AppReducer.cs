@@ -2,9 +2,12 @@ using Gitunia.Core.Branches;
 using Gitunia.Core.Creation;
 using Gitunia.Core.Picker;
 using Gitunia.Core.Effects;
+using Gitunia.Core.Keymap.Models;
+using Gitunia.Core.Pick;
 using Gitunia.Core.Integration;
 using Gitunia.Core.Operations;
 using Gitunia.Core.Prompts;
+using Gitunia.Core.Rebase;
 using Gitunia.Core.Reflog;
 using Gitunia.Core.Settings;
 using Gitunia.Core.Remotes;
@@ -17,6 +20,7 @@ using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
+using Gitunia.Core.Worktrees;
 using Gitunia.Git;
 
 namespace Gitunia.Core;
@@ -33,6 +37,8 @@ public static partial class AppReducer
         BranchCommand branch => ReduceBranch(state, branch),
         CreationCommand creation => ReduceCreation(state, creation),
         EffectFailedCommand failed => EffectFailed(state, failed),
+        PickCommand pick => ReducePick(state, pick),
+        RebaseCommand rebase => ReduceRebase(state, rebase),
         IntegrationCommand integration => ReduceIntegration(state, integration),
         PickerCommand picker => ReducePicker(state, picker),
         QuitCommand quit => ReduceQuit(state, quit),
@@ -46,6 +52,7 @@ public static partial class AppReducer
         TagCommand tag => ReduceTag(state, tag),
         WorkspaceActionPressed action => ReduceWorkspaceAction(state, action),
         WorkspaceCommand workspace => ReduceWorkspace(state, workspace),
+        WorktreeCommand worktree => ReduceWorktree(state, worktree),
         _ => throw new UnhandledCommandException(command),
     };
 
@@ -73,6 +80,11 @@ public static partial class AppReducer
         if (shell.Prompt is { Owner: { } owner } && update.Workspace.ActiveTabId != owner)
         {
             shell = ShellReducer.Reduce(shell, new PromptCancelledCommand()).State;
+        }
+
+        if (shell.Mainline is { } question && update.Workspace.ActiveTabId != question.TabId)
+        {
+            shell = (shell with { Mainline = null }).WithMode(KeyMode.Normal);
         }
 
         var changed = new AppState(update.Workspace, shell);
@@ -110,6 +122,72 @@ public static partial class AppReducer
 
         return new AppUpdate(state with { Shell = shell }, update.Effects);
     }
+
+    // A result or answer for a tab that was closed meanwhile is dropped, like a late TabCommand. The mainline question
+    // lives in the shell state because it is an overlay; the reducer returns it after each command.
+    private static AppUpdate ReducePick(AppState state, PickCommand command)
+    {
+        var workspace = state.Workspace;
+        if (workspace.FindTab(command.TabId) is not { } tab)
+        {
+            return new AppUpdate(state, []);
+        }
+
+        var busy = tab.Running.IsRunning(RunningOperationKind.Pick);
+        var question = state.Shell.Mainline is { } open && open.TabId == tab.Id ? open : null;
+        var context = new PickContext(
+            tab.Id,
+            tab.Location,
+            tab.Head,
+            tab.Operation,
+            workspace.ActiveTabId == tab.Id,
+            busy,
+            question);
+        var update = PickReducer.Reduce(command, context);
+        var running = tab.Running.Apply(tab.Id, command, update.Effects);
+        var next = state;
+        if (!Equals(running, tab.Running))
+        {
+            next = WithTab(state, tab with { Running = running });
+        }
+
+        if (!Equals(update.Question, question))
+        {
+            next = next with { Shell = next.Shell with { Mainline = update.Question } };
+        }
+
+        return new AppUpdate(next, update.Effects);
+    }
+
+    // A result or answer for a tab that was closed meanwhile is dropped, like a late TabCommand.
+    private static AppUpdate ReduceRebase(AppState state, RebaseCommand command)
+    {
+        var workspace = state.Workspace;
+        if (workspace.FindTab(command.TabId) is not { } tab)
+        {
+            return new AppUpdate(state, []);
+        }
+
+        var busy = tab.Running.IsRunning(RunningOperationKind.Rebase);
+        var context = new RebaseContext(tab, workspace.ActiveTabId == tab.Id, busy, IsOverlayOpen(state.Shell));
+        var effects = RebaseReducer.Reduce(command, context);
+        var running = tab.Running.Apply(tab.Id, command, effects);
+        if (Equals(running, tab.Running))
+        {
+            return new AppUpdate(state, effects);
+        }
+
+        return new AppUpdate(WithTab(state, tab with { Running = running }), effects);
+    }
+
+    // A late question must not replace what the user is looking at.
+    private static bool IsOverlayOpen(ShellState shell) =>
+        shell.Confirm is not null
+        || shell.Output is not null
+        || shell.Prompt is not null
+        || shell.Mainline is not null
+        || shell.Reflog.IsOpen
+        || shell.Settings.IsOpen;
 
     // A result or answer for a tab that was closed meanwhile is dropped, like a late TabCommand.
     private static AppUpdate ReduceIntegration(AppState state, IntegrationCommand command)
@@ -271,6 +349,30 @@ public static partial class AppReducer
         }
 
         return new AppUpdate(WithTab(state, tab with { Running = running }), effects);
+    }
+
+    // A result or answer for a tab that was closed meanwhile is dropped, like a late TabCommand. A located worktree or a
+    // read overview is applied to the workspace after the feature has decided.
+    private static AppUpdate ReduceWorktree(AppState state, WorktreeCommand command)
+    {
+        var workspace = state.Workspace;
+        if (workspace.FindTab(command.TabId) is not { } tab)
+        {
+            return new AppUpdate(state, []);
+        }
+
+        var busy = tab.Running.IsRunning(RunningOperationKind.Worktrees);
+        var update = WorktreeReducer.Reduce(command, new WorktreeContext(tab, workspace.Tabs, busy));
+        var running = tab.Running.Apply(tab.Id, command, update.Effects);
+        var next = Equals(running, tab.Running) ? state : WithTab(state, tab with { Running = running });
+        if (update.Workspace is not { } then)
+        {
+            return new AppUpdate(next, update.Effects);
+        }
+
+        var applied = ReduceWorkspace(next, then);
+
+        return new AppUpdate(applied.State, [.. update.Effects, .. applied.Effects]);
     }
 
     private static AppUpdate EffectFailed(AppState state, EffectFailedCommand failed) =>

@@ -113,11 +113,8 @@ public sealed class ActionRouter(Dispatcher host, ListView graphList, ListView d
     /// <summary>The Changes view's actions, which see the actions before every history pane handler.</summary>
     public WorkingTreeActionHandler? WorkingTree { get; set; }
 
-    /// <summary>The worktree operations and their prompts, ahead of the sidebar's own keys.</summary>
+    /// <summary>The worktree operations, ahead of the sidebar's own keys.</summary>
     public WorktreeActions? Worktrees { get; set; }
-
-    /// <summary>Switching to a worktree and opening one as a tab, next to the worktree operations.</summary>
-    public WorktreeSwitchActions? WorktreeSwitch { get; set; }
 
     /// <summary>Continue, abort and skip of the operation in progress (works in every view).</summary>
     public OperationActions? Operations { get; set; }
@@ -235,7 +232,6 @@ public sealed class ActionRouter(Dispatcher host, ListView graphList, ListView d
 
         if (Rebase?.TryExecute(action, count) == true)
         {
-            Refuse(Rebase.Notice);
             return;
         }
 
@@ -284,20 +280,13 @@ public sealed class ActionRouter(Dispatcher host, ListView graphList, ListView d
             return;
         }
 
-        if (WorktreeSwitch?.TryExecute(action) == true)
-        {
-            Refuse(WorktreeSwitch.Notice);
-            return;
-        }
-
         if (Operations?.TryExecute(action, count) == true)
         {
             return;
         }
 
-        if (Worktrees?.TryExecute(action, count) == true)
+        if (Worktrees?.TryExecute(action) == true)
         {
-            Message = Worktrees.Notice;
             return;
         }
 

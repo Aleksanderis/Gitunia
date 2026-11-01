@@ -21,7 +21,7 @@ public sealed class WorktreeOverviewPollerTests
             out var dirtyPath);
         repository.WriteFile("main-new.txt", "x");
         var host = await OpenAsync(repository.WorkingTreePath);
-        using var poller = new WorktreeOverviewPoller(TestGit.Services.Status, host, InlineUi.Post);
+        using var poller = new WorktreeOverviewPoller(TestGit.Services.Status, host);
 
         await poller.PollOnceAsync(Token);
 
@@ -42,7 +42,7 @@ public sealed class WorktreeOverviewPollerTests
     {
         using var repository = TestRepositories.WithWorktree(out var path);
         var host = await OpenAsync(repository.WorkingTreePath);
-        using var poller = new WorktreeOverviewPoller(TestGit.Services.Status, host, InlineUi.Post);
+        using var poller = new WorktreeOverviewPoller(TestGit.Services.Status, host);
         await poller.PollOnceAsync(Token);
         Assert.False(host.Workspace.ActiveTab!.WorktreeStatuses![path].IsDirty);
 
@@ -57,7 +57,7 @@ public sealed class WorktreeOverviewPollerTests
     {
         using var repository = TestRepositories.Linear(2);
         var host = await OpenAsync(repository.WorkingTreePath);
-        using var poller = new WorktreeOverviewPoller(TestGit.Services.Status, host, InlineUi.Post);
+        using var poller = new WorktreeOverviewPoller(TestGit.Services.Status, host);
 
         await poller.PollOnceAsync(Token);
 

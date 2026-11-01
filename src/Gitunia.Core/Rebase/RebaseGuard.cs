@@ -3,9 +3,8 @@ using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Git.Refs;
 using Gitunia.Git.Refs.Models;
 using Gitunia.Git.Status.Models;
-using Gitunia.Tui.App.WorkingTree;
 
-namespace Gitunia.Tui.App.Rebase;
+namespace Gitunia.Core.Rebase;
 
 /// <summary>
 /// The refusals and warnings every history-rewriting rebase of the graph shares (the rebase onto a commit and the quick
@@ -52,7 +51,7 @@ public static class RebaseGuard
             return null;
         }
 
-        var files = OperationText.Plural(changed, "file");
+        var files = RebaseCounts.Plural(changed, "file");
         return $"{files} with uncommitted changes: commit or stash them before a rebase";
     }
 
@@ -68,7 +67,7 @@ public static class RebaseGuard
             return null;
         }
 
-        var files = OperationText.Plural(changed, "file");
+        var files = RebaseCounts.Plural(changed, "file");
         return $"{files} with uncommitted changes: git stashes them (rebase.autoStash) " +
             "and restores them afterwards; if that conflicts, the stash is kept.";
     }

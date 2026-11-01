@@ -5,6 +5,8 @@ using Gitunia.App.Loading.Commits;
 using Gitunia.App.Loading.Diff;
 using Gitunia.App.Loading.Stash;
 using Gitunia.App.Loading.Trees;
+using Gitunia.App.Pick;
+using Gitunia.App.Rebase;
 using Gitunia.App.Integration;
 using Gitunia.App.Picker;
 using Gitunia.App.Reflog;
@@ -16,14 +18,17 @@ using Gitunia.App.Sync;
 using Gitunia.App.Tabs;
 using Gitunia.App.Tabs.Models;
 using Gitunia.App.Tags;
+using Gitunia.App.Worktrees;
 using Gitunia.Core;
 using Gitunia.Core.Branches;
 using Gitunia.Core.Clipboard;
 using Gitunia.Core.Creation;
 using Gitunia.Core.Effects;
+using Gitunia.Core.Pick;
 using Gitunia.Core.Integration;
 using Gitunia.Core.Picker;
 using Gitunia.Core.Prompts;
+using Gitunia.Core.Rebase;
 using Gitunia.Core.Reflog;
 using Gitunia.Core.Settings;
 using Gitunia.Core.Remotes;
@@ -35,6 +40,7 @@ using Gitunia.Core.Shell;
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Tabs;
+using Gitunia.Core.Worktrees;
 using Gitunia.Git.Execution.Exceptions;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Watching;
@@ -66,6 +72,8 @@ public sealed class EffectRunner<TSession> : IDisposable
     private readonly IntegrationEffectHandler _integration;
     private readonly BranchEffectHandler _branches;
     private readonly PickerEffectHandler _picker;
+    private readonly PickEffectHandler _pick;
+    private readonly RebaseEffectHandler _rebase;
     private readonly ReflogEffectHandler _reflog;
     private readonly SettingsEffectHandler? _settings;
     private readonly CancellationTokenSource _shutdown = new();
@@ -73,6 +81,7 @@ public sealed class EffectRunner<TSession> : IDisposable
     private readonly StashEffectHandler _stash;
     private readonly SyncEffectHandler _sync;
     private readonly TagEffectHandler _tags;
+    private readonly WorktreeEffectHandler _worktrees;
     private readonly Action<Action> _postToUi;
     private readonly StatusReporter _statuses;
     private readonly StatusAgingTimer _statusAging;
@@ -107,6 +116,8 @@ public sealed class EffectRunner<TSession> : IDisposable
         _branches = new BranchEffectHandler(services.Branches, host);
         _creation = new CreationEffectHandler(services.Creator, pickerServices.Files, host);
         _picker = new PickerEffectHandler(services.Discovery, pickerServices.Files, host, pickerServices.Timings);
+        _pick = new PickEffectHandler(services.Pick, services.PickCommits, host);
+        _rebase = new RebaseEffectHandler(services.Rebase, services.QuickRebase, host);
         _reflog = new ReflogEffectHandler(services.Reflog, host);
         _settings = settings is null ? null : new SettingsEffectHandler(settings, host);
         _integration = IntegrationEffectHandler.Create(services, host);
@@ -114,6 +125,7 @@ public sealed class EffectRunner<TSession> : IDisposable
         _stash = new StashEffectHandler(services.StashWriter, host);
         _sync = new SyncEffectHandler(services.Remote, services.RemoteManager, services.Ancestry, host);
         _tags = new TagEffectHandler(services.Tags, host);
+        _worktrees = new WorktreeEffectHandler(services.Worktrees, services.Discovery, host);
         _pollOptions = pollOptions ?? PollOptions.Default;
         _warmTabLimit = Math.Max(1, warmTabLimit);
         _watcherOptions = watcherOptions ?? RepositoryWatcherOptions.Default;
@@ -236,6 +248,8 @@ public sealed class EffectRunner<TSession> : IDisposable
         InitRepositoryEffect => new InitFailed(text),
         IntegrationEffect integration => new IntegrationFailed(integration.TabId, text),
         BranchEffect branch => new BranchOperationFailed(branch.TabId, text),
+        PickEffect pick => new PickFailed(pick.TabId, text),
+        RebaseEffect rebase => new RebaseFailed(rebase.TabId, text),
         ReadReflogEffect => new ReflogReadFailed(text),
         ScanRepositoriesEffect => new PickerScanFinished([]),
         SettingsEffect => new SettingsOperationFailed(text),
@@ -243,6 +257,8 @@ public sealed class EffectRunner<TSession> : IDisposable
         StashEffect stash => new StashOperationFailed(stash.TabId, text),
         SyncEffect sync => new SyncFailed(sync.TabId, text, null, null),
         TagEffect tag => new TagOperationFailed(tag.TabId, text, null),
+        LocateWorktreeEffect locate => new WorktreeLocateFailed(locate.TabId, text),
+        WorktreeEffect worktree => new WorktreeOperationFailed(worktree.TabId, text),
         _ => new EffectFailedCommand(text),
     };
 
@@ -283,6 +299,9 @@ public sealed class EffectRunner<TSession> : IDisposable
             case PickerEffect picker:
                 _picker.Handle(picker, _shutdown.Token);
                 break;
+            case PickEffect pick:
+                _pick.Handle(pick, _cancellation.TokenOf(pick.TabId));
+                break;
             case PostStatusEffect post:
                 _host.Dispatch(new StatusPostedCommand(post.Text, post.Severity, _host.Clock.GetUtcNow()));
                 break;
@@ -293,6 +312,9 @@ public sealed class EffectRunner<TSession> : IDisposable
                 }
 
                 _shell.Quit();
+                break;
+            case RebaseEffect rebase:
+                _rebase.Handle(rebase, _cancellation.TokenOf(rebase.TabId));
                 break;
             case ReadReflogEffect read:
                 _reflog.Handle(read, _cancellation.TokenOf(read.TabId));
@@ -335,6 +357,12 @@ public sealed class EffectRunner<TSession> : IDisposable
                 break;
             case TagEffect tag:
                 _tags.Handle(tag, _cancellation.TokenOf(tag.TabId));
+                break;
+            case LocateWorktreeEffect locate:
+                _worktrees.Locate(locate, _cancellation.TokenOf(locate.TabId));
+                break;
+            case WorktreeEffect worktree:
+                _worktrees.Handle(worktree, _cancellation.TokenOf(worktree.TabId));
                 break;
             default:
                 throw new UnhandledEffectException(effect);

@@ -1,8 +1,8 @@
 using Gitunia.App.Background;
 using System.Collections.Immutable;
-using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
+using Gitunia.Core.Worktrees;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Status;
 using Gitunia.Git.Status.Models;
@@ -21,7 +21,6 @@ public sealed class WorktreeOverviewPoller : IDisposable
 {
     private readonly IStatusReader _status;
     private readonly Dispatcher _host;
-    private readonly Action<Action> _postToUi;
     private readonly TimeSpan _interval;
     private readonly IBackgroundWork _background;
     private readonly CancellationTokenSource _cancellation = new();
@@ -34,14 +33,12 @@ public sealed class WorktreeOverviewPoller : IDisposable
     public WorktreeOverviewPoller(
         IStatusReader status,
         Dispatcher host,
-        Action<Action> postToUi,
         TimeSpan? interval = null,
         IBackgroundWork? background = null)
     {
         _background = background ?? UnboundedBackgroundWork.Instance;
         _status = status;
         _host = host;
-        _postToUi = postToUi;
         _interval = interval ?? TimeSpan.FromSeconds(30);
     }
 
@@ -94,8 +91,12 @@ public sealed class WorktreeOverviewPoller : IDisposable
         }
 
         var statuses = builder.ToImmutable();
-        var tabId = tab.Id;
-        _postToUi(() => Apply(tabId, tab.Location, statuses));
+        if (cancellationToken.IsCancellationRequested)
+        {
+            return;
+        }
+
+        _host.Post(new WorktreeStatusesRead(tab.Id, tab.Location, statuses));
     }
 
     public void Dispose()
@@ -185,25 +186,4 @@ public sealed class WorktreeOverviewPoller : IDisposable
             // A wake is already pending; the loop will see the latest state when it runs.
         }
     }
-
-    // The tab may have been closed, moved to another worktree or have its list changed while the reads ran.
-    private void Apply(TabId tabId, RepositoryLocation location, ImmutableDictionary<string, WorktreeStatus> statuses)
-    {
-        if (_cancellation.IsCancellationRequested
-            || _host.Workspace.FindTab(tabId) is not { } tab
-            || tab.Location != location
-            || SameStatuses(tab.WorktreeStatuses, statuses))
-        {
-            return;
-        }
-
-        _host.Dispatch(new TabCommand(tabId, new WorktreeStatusesLoadedCommand(statuses)));
-    }
-
-    private static bool SameStatuses(
-        ImmutableDictionary<string, WorktreeStatus>? current,
-        ImmutableDictionary<string, WorktreeStatus> next) =>
-        current is not null
-        && current.Count == next.Count
-        && next.All(pair => current.TryGetValue(pair.Key, out var existing) && existing == pair.Value);
 }
