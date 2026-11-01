@@ -918,13 +918,7 @@ public sealed class TuiApplication(
 
     void IShellEffects.LeaveStash() => _stashView.Leave();
 
-    void IShellEffects.FollowStashCursor()
-    {
-        if (_stashView.IsShowing && SidebarCursorRow() is { Kind: SidebarRowKind.Stash } row)
-        {
-            _stashView.Show(row);
-        }
-    }
+    void IShellEffects.FollowStashCursor() => _stashView.FollowCursor(SidebarCursorRow());
 
     ObjectId? ICompareSource.SelectedCommitId() =>
         SelectedCommitHash() is { } hash && ObjectId.TryParse(hash, out var id) ? id : null;

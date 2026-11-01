@@ -47,7 +47,8 @@ public sealed class CompareInput(Dispatcher host, ICompareSource source)
     /// </summary>
     public void Follow()
     {
-        if (host.Workspace.ActiveTab is not { View.CompareMark: { } mark } tab || source.ActiveSession() is not { } session)
+        if (host.Workspace.ActiveTab is not { View.CompareMark: { } mark } tab
+            || source.ActiveSession() is not { } session)
         {
             return;
         }

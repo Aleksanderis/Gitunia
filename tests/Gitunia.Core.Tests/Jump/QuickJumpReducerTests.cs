@@ -9,6 +9,7 @@ using Xunit;
 
 namespace Gitunia.Core.Tests.Jump;
 
+[Trait("Os", "Independent")]
 public class QuickJumpReducerTests
 {
     private static readonly TabId Tab = new(1);

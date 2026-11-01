@@ -49,7 +49,7 @@ public sealed class SidebarEffects
                 _copier.Copy(copy.Text, copy.Description);
                 break;
             case FollowStashCursorEffect:
-                FollowStashCursor();
+                StashView?.FollowCursor(_host.Workspace.ActiveTab is { } tab ? SidebarActionReducer.CursorRow(tab) : null);
                 break;
             case LeaveStashEffect:
                 StashView?.Leave();
@@ -69,13 +69,4 @@ public sealed class SidebarEffects
         }
     }
 
-    private void FollowStashCursor()
-    {
-        if (StashView is { IsShowing: true } view
-            && _host.Workspace.ActiveTab is { } tab
-            && SidebarActionReducer.CursorRow(tab) is { Kind: SidebarRowKind.Stash } row)
-        {
-            view.Show(row);
-        }
-    }
 }

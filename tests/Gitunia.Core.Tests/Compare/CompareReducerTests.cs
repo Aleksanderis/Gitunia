@@ -9,6 +9,7 @@ using Xunit;
 
 namespace Gitunia.Core.Tests.Compare;
 
+[Trait("Os", "Independent")]
 public class CompareReducerTests
 {
     private static readonly TabId Tab = new(1);

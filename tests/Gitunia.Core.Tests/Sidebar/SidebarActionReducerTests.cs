@@ -12,6 +12,7 @@ using static Gitunia.Core.Tests.Sidebar.SidebarFixtures;
 
 namespace Gitunia.Core.Tests.Sidebar;
 
+[Trait("Os", "Independent")]
 public class SidebarActionReducerTests
 {
     private static readonly ImmutableArray<PaneKind> SidebarAndGraph = [PaneKind.Sidebar, PaneKind.Graph];
@@ -157,7 +158,7 @@ public class SidebarActionReducerTests
 
         var copy = Assert.IsType<CopyToClipboardEffect>(Assert.Single(update.Effects));
         Assert.Equal("worktree path", copy.Description);
-        Assert.Equal(Path.GetFullPath("/work/wt-feature"), Path.GetFullPath(copy.Text));
+        Assert.Equal("/work/wt-feature", copy.Text);
     }
 
     [Fact]

@@ -16,6 +16,7 @@ using Xunit;
 namespace Gitunia.Core.Tests;
 
 /// <summary>The root reducer's cases for the comparison, the quick jump and the sidebar keys (#996).</summary>
+[Trait("Os", "Independent")]
 public class AppReducerSidebarJumpCompareTests
 {
     private static readonly ImmutableArray<PaneKind> Panes = [PaneKind.Sidebar, PaneKind.Graph];
@@ -194,8 +195,8 @@ public class AppReducerSidebarJumpCompareTests
 
     private static RepositoryLocation Location(string name)
     {
-        var root = Path.Combine(Path.GetTempPath(), "gitunia-core-tests", name);
-        var gitDirectory = Path.Combine(root, ".git");
+        var root = $"/work/{name}";
+        var gitDirectory = $"{root}/.git";
 
         return new RepositoryLocation(root, gitDirectory, gitDirectory, false, false);
     }

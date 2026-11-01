@@ -151,7 +151,7 @@ public sealed class QuickJumpInput(Dispatcher host, IQuickJumpHost view) : IProm
     private bool IsStale(QuickJumpSession session) =>
         _target is not null
         && (host.Workspace.ActiveTabId != session.TabId
-            || host.Workspace.ActiveTab?.View.FocusedPane != _target.Pane);
+            || host.Workspace.ActiveTab?.View.FocusedPane != session.Pane);
 
     private void Close()
     {

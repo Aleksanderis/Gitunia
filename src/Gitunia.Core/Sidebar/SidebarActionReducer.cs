@@ -51,7 +51,10 @@ public static class SidebarActionReducer
     }
 
     /// <summary>Applies a command for <paramref name="tab"/>.</summary>
-    public static SidebarActionUpdate Reduce(SidebarSession session, SidebarActionCommand command, RepositoryState tab) =>
+    public static SidebarActionUpdate Reduce(
+        SidebarSession session,
+        SidebarActionCommand command,
+        RepositoryState tab) =>
         command switch
         {
             SidebarActionPressed pressed => Pressed(session, pressed, tab),
@@ -87,7 +90,10 @@ public static class SidebarActionReducer
         || action == ActionIds.NavigateBack
         || action == ActionIds.Cancel;
 
-    private static SidebarActionUpdate Pressed(SidebarSession session, SidebarActionPressed pressed, RepositoryState tab)
+    private static SidebarActionUpdate Pressed(
+        SidebarSession session,
+        SidebarActionPressed pressed,
+        RepositoryState tab)
     {
         var action = pressed.Action;
         var focused = tab.View.FocusedPane;
@@ -126,7 +132,10 @@ public static class SidebarActionReducer
         return new SidebarActionUpdate(SidebarSession.Empty, [], []);
     }
 
-    private static SidebarActionUpdate OnSidebar(SidebarSession session, SidebarActionPressed pressed, RepositoryState tab)
+    private static SidebarActionUpdate OnSidebar(
+        SidebarSession session,
+        SidebarActionPressed pressed,
+        RepositoryState tab)
     {
         var action = pressed.Action;
         if (ListMotion.TryMove(action, pressed.Count, 0, 1, 1, out _))
