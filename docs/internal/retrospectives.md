@@ -140,13 +140,13 @@ Baseline `468de95` against `main` at `25ca3af` (all M7 follow-ups merged, includ
 | Cold start median (ms) | 59.4 (55.1-60.7) | 58.1 (56.8-61.6) | inside noise (-2%) |
 | Cold start p95 (ms) | 74.2 (68.4-95.4) | 72.7 (67.6-78.3) | inside noise |
 | `j` key latency median (ms) | 16.5 (15.3-17.0) | 16.6 (16.5-16.7) | 0% |
-| `j` key latency p95 (ms) | 29.0 (26.7-34.3) | 32.5 (24.8-35.8) | +12%, ranges overlap, noise |
+| `j` key latency p95 (ms) | 29.0 (26.7-34.3) | 32.5 (24.8-35.8) | +12%, ranges overlap, unresolved (see #1086) |
 | Page scroll median (ms) | 16.6 (16.6-16.8) | 16.6 (16.5-16.8) | 0% |
 | Commit details step median (ms) | 26.2 (22.9-30.5) | 24.9 (22.9-27.9) | -5%, inside noise |
 | Commit details step p95 (ms) | 43.6 (38.8-52.6) | 38.3 (33.2-45.5) | inside noise |
-| 200 queued `j` settle (ms) | 18.2 (16.9-25.0) | 26.5 (16.1-35.8) | ranges overlap, noise |
-| Jump to end (ms) | 29.1 (8.0-29.7) | 19.2 (10.1-28.4) | inside noise |
+| 200 queued `j` settle (ms) | 18.2 (16.9-25.0) | 26.5 (16.1-35.8) | +46%, unresolved at six rounds, follow-up #1086 |
+| Jump to end (ms) | 29.1 (8.0-29.7) | 19.2 (10.1-28.4) | inside noise (baseline values are bimodal) |
 | RSS after load (MiB) | 50.8 (49.8-51.2) | 48.7 (47.8-49.1) | -4% |
 | AOT binary (`gitunia`, bytes) | 16,037,320 | 17,385,032 | +8.4% (+1.3 MiB) |
 
-Verdict on #1071: the +26% commit details step did not hold. With six rounds the baseline details step ranges 22.9-30.5 ms and main 22.9-27.9 ms, the same minimum, and main's median is lower. The three-round gap was harness noise (tmux polling, about 3 ms per poll, plus the 30-sample medians moving by up to 7 ms between rounds). No code change; the suspected extra hop through the effect runner and `BackgroundWork` is not visible at this resolution. Every latency metric is within noise of the baseline; only the binary size (+8.4%) is a stable difference.
+Verdict on #1071: the +26% commit details step did not hold. With six rounds the baseline details step ranges 22.9-30.5 ms and main 22.9-27.9 ms, the same minimum, and main's median is lower. The three-round gap was harness noise (tmux polling costs 1-3 ms per poll, and the 30-sample medians move by about 8 ms between rounds). No code change; the suspected extra hop through the effect runner and `BackgroundWork` is not visible at this resolution. Cold start, median key latency, page scroll and the details step are within noise; the 200-`j` settle and the `j` p95 are unresolved at this resolution (#1086); the binary size (+8.4%) is a stable difference.
