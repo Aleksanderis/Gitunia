@@ -64,7 +64,11 @@ public sealed class OverlayStore
             return _state;
         }
 
-        set => _state = value;
+        set
+        {
+            _state = value;
+            TellShell();
+        }
     }
 
     /// <summary>The keymap view that is focused when no overlay is open.</summary>
@@ -133,6 +137,16 @@ public sealed class OverlayStore
         }
 
         return new HelpSection("Newest first", rows);
+    }
+
+    // The state learns which overlay of this layer is open (#1020); confirm and output are shell state already.
+    private void TellShell()
+    {
+        var kind = _state.Kind is OverlayKind.Confirm or OverlayKind.Output ? OverlayKind.None : _state.Kind;
+        if (_host.State.Shell.Overlay != kind)
+        {
+            _host.Dispatch(new OverlayChangedCommand(kind));
+        }
     }
 
     // The confirm dialog and the output box are shell state: this store follows them and keeps the scroll of the box.

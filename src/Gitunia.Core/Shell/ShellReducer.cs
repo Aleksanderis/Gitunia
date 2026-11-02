@@ -23,6 +23,7 @@ public static class ShellReducer
         ConfirmRequestedCommand request => Ask(state, request),
         OutputClosedCommand => CloseOutput(state),
         OutputShownCommand shown => ShowOutput(state, shown),
+        OverlayChangedCommand changed => new ShellUpdate(state with { Overlay = changed.Kind }, []),
         PromptCommand prompt => PromptReducer.Reduce(state, prompt),
         RunActionCommand run => new ShellUpdate(state, [new RunActionEffect(run.Run)]),
         ScreenResizedCommand resized => Resize(state, resized),
@@ -42,7 +43,8 @@ public static class ShellReducer
         }
 
         var dialog = new ConfirmDialog(request.Prompt, request.OnAccepted, state.ReturnMode);
-        var opened = (state with { Confirm = dialog, Output = null }).WithMode(KeyMode.Confirm);
+        var replaced = state with { Confirm = dialog, Output = null, Overlay = OverlayKind.None };
+        var opened = replaced.WithMode(KeyMode.Confirm);
 
         return new ShellUpdate(opened, []);
     }
@@ -80,7 +82,8 @@ public static class ShellReducer
     private static ShellUpdate ShowOutput(ShellState state, OutputShownCommand shown)
     {
         var output = new OutputOverlay(shown.Title, shown.Heading, shown.Lines, state.ReturnMode);
-        var opened = (state with { Output = output, Confirm = null }).WithMode(KeyMode.Normal);
+        var replaced = state with { Output = output, Confirm = null, Overlay = OverlayKind.None };
+        var opened = replaced.WithMode(KeyMode.Normal);
 
         return new ShellUpdate(opened, []);
     }
