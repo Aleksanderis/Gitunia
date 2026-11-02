@@ -14,7 +14,7 @@ namespace Gitunia.Tui.App.Screen;
 /// <param name="host">Holds the active tab.</param>
 /// <param name="store">The confirm dialog.</param>
 /// <param name="editors">The settings screen and the two editors.</param>
-/// <param name="screens">The reflog list and the file history.</param>
+/// <param name="screens">The reflog list, the blame view and the file history.</param>
 /// <param name="context">The repeat mode, the diff pane and the hint options.</param>
 public sealed class StatusHints(
     Dispatcher host,
@@ -49,6 +49,11 @@ public sealed class StatusHints(
         if (screens.FileHistory.IsOpen)
         {
             return PaneHints.ForFileHistory();
+        }
+
+        if (screens.Blame.IsOpen)
+        {
+            return PaneHints.ForBlame();
         }
 
         if (screens.Reflog.IsOpen)

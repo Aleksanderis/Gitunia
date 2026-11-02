@@ -313,6 +313,9 @@ public static class ActionIds
     public static ActionId FileHistoryOpen { get; } = new("file-history.open");
 
     public static ActionId FileHistorySelectCommit { get; } = new("file-history.select-commit");
+    public static ActionId BlameOpen { get; } = new("blame.open");
+
+    public static ActionId BlameShowCommit { get; } = new("blame.show-commit");
 
     public static ActionId ReflogOpen { get; } = new("reflog.open");
 

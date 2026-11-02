@@ -377,6 +377,8 @@ Grouped as the palette groups them (`ActionCatalog.GroupOf`). "Old" lists every 
 | `navigate.back` | Go back | `h` `Esc` | same | Everyday |  |
 | `file-history.open` | Open the history of the selected file, renames followed | `<space>H` | same | Advanced |  |
 | `file-history.select-commit` | Select the file history commit in the graph | `Enter` | same | Advanced |  |
+| `blame.open` | Blame the selected file (at the shown commit, or the working tree file) | `<space>gb` | same | Advanced |  |
+| `blame.show-commit` | Select the blame line's commit in the graph | `Enter` | same | Advanced |  |
 | `reflog.open` | Open the reflog of HEAD (of the branch under the sidebar cursor) | `<space>l` | same | Advanced+ |  |
 | `reflog.select-commit` | Select the reflog entry's commit in the graph | `Enter` | same | Advanced+ |  |
 | `search.next` | Next search match | `n` | same | Everyday |  |

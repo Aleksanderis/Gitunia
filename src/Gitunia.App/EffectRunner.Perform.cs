@@ -3,6 +3,7 @@ using Gitunia.Core.Worktrees;
 using Gitunia.Core.Status;
 using Gitunia.Core.Shell;
 using Gitunia.Core.FileHistory;
+using Gitunia.Core.Blame;
 using Gitunia.Core.Reflog;
 using Gitunia.Core.Picker;
 using Gitunia.Core.Creation;
@@ -29,6 +30,7 @@ public sealed partial class EffectRunner<TSession>
         ReadFileHistoryDiffEffect diff => new FileHistoryDiffFailed(diff.Generation, text),
         ReadFileHistoryEffect => new FileHistoryReadFailed(text),
         ReadReflogEffect => new ReflogReadFailed(text),
+        StartBlameEffect blame => new BlameFailed(blame.Generation, text),
         ScanRepositoriesEffect => new PickerScanFinished([]),
         SettingsEffect => new SettingsOperationFailed(text),
         LocateWorktreeEffect locate => new WorktreeLocateFailed(locate.TabId, text),

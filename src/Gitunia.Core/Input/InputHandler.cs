@@ -20,6 +20,8 @@ public enum InputHandler
 
     /// <summary>The file history.</summary>
     FileHistory,
+    /// <summary>The blame view.</summary>
+    Blame,
 
     /// <summary>The help, the palette, the actions menu, the message history and the which-key popup.</summary>
     Overlays,

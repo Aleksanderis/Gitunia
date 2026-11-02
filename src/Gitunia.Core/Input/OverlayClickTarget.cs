@@ -17,6 +17,8 @@ public enum OverlayClickTarget
 
     /// <summary>The file history.</summary>
     FileHistory,
+    /// <summary>The blame view.</summary>
+    Blame,
 
     /// <summary>A tab label of the help.</summary>
     HelpTab,

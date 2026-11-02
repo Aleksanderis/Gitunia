@@ -33,6 +33,7 @@ public class InputRoutingTests
                 InputHandler.RebaseEditor,
                 InputHandler.Reflog,
                 InputHandler.FileHistory,
+                InputHandler.Blame,
                 InputHandler.Overlays,
                 InputHandler.Creation,
                 InputHandler.WorkspaceActions,

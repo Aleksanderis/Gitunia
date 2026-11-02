@@ -126,6 +126,8 @@ public static class DefaultMouseMap
 
     /// <summary>The row under the file history that selects the highlighted commit in the graph (#1115).</summary>
     public const string FileHistorySelectButton = "FileHistoryButton.Select";
+    /// <summary>The action row under the blame view: a click runs the action its key runs on the highlighted line.</summary>
+    public const string BlameShowButton = "BlameButton.Show";
 
     /// <summary>The chips under the rebase todo editor (#458): each is a view of its own, a click runs the action
     /// its key runs on the highlighted commit.</summary>
@@ -237,6 +239,8 @@ public static class DefaultMouseMap
         DefaultKeymap.ReflogView,
         DefaultKeymap.FileHistoryView,
         FileHistorySelectButton,
+        DefaultKeymap.BlameView,
+        BlameShowButton,
         DefaultKeymap.RebaseEditorView,
         RebasePickButton,
         RebaseRewordButton,
@@ -336,6 +340,9 @@ public static class DefaultMouseMap
         new(DefaultKeymap.FileHistoryView, MouseGesture.WheelUp, ActionIds.ListUp, WheelLines),
         new(DefaultKeymap.FileHistoryView, MouseGesture.WheelDown, ActionIds.ListDown, WheelLines),
         new(FileHistorySelectButton, MouseGesture.Click, ActionIds.FileHistorySelectCommit),
+        new(DefaultKeymap.BlameView, MouseGesture.WheelUp, ActionIds.ListUp, WheelLines),
+        new(DefaultKeymap.BlameView, MouseGesture.WheelDown, ActionIds.ListDown, WheelLines),
+        new(BlameShowButton, MouseGesture.Click, ActionIds.BlameShowCommit),
         new(DefaultKeymap.RebaseEditorView, MouseGesture.WheelUp, ActionIds.ListUp, WheelLines),
         new(DefaultKeymap.RebaseEditorView, MouseGesture.WheelDown, ActionIds.ListDown, WheelLines),
         new(RebasePickButton, MouseGesture.Click, ActionIds.RebaseEditorPick),

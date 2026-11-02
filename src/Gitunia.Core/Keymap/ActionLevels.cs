@@ -156,6 +156,8 @@ internal static class ActionLevels
             ["rebase.reword"] = CommandLevel.Advanced,
             ["file-history.open"] = CommandLevel.Advanced,
             ["file-history.select-commit"] = CommandLevel.Advanced,
+            ["blame.open"] = CommandLevel.Advanced,
+            ["blame.show-commit"] = CommandLevel.Advanced,
             ["reflog.open"] = CommandLevel.AdvancedPlus,
             ["reflog.select-commit"] = CommandLevel.AdvancedPlus,
             ["remote.add"] = CommandLevel.Advanced,

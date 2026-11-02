@@ -10,6 +10,7 @@ Mouse input is optional and goes through the same action path as keys: the mouse
 A test parses the table below and checks it against the defaults, so add a row in the same change that adds a mouse path.
 Views inherit like in the keymap: `Lists` covers Graph, Detail, Sidebar, Diff and the two Changes view lists.
 `CommandsButton`, `NewTabButton`, `Tabs`, `Picker`, the banner chips (`BannerButton.*`), the overlays (`Help`, `Messages`, `Palette`, `Reflog`, `FileHistory`, `Settings` and `Backdrop` for everything outside an open one) and the buttons (`DiffButton.*`, `DetailTab.*`, `PickerButton.*`, `ListButton.*`, one view per button or label) are views of their own.
+`CommandsButton`, `NewTabButton`, `Tabs`, `Picker`, the banner chips (`BannerButton.*`), the overlays (`Help`, `Messages`, `Palette`, `Reflog`, `Blame`, `Settings` and `Backdrop` for everything outside an open one) and the buttons (`DiffButton.*`, `DetailTab.*`, `PickerButton.*`, `ListButton.*`, one view per button or label) are views of their own.
 
 | View | Gesture | Action | Effect |
 |---|---|---|---|
@@ -57,6 +58,9 @@ Views inherit like in the keymap: `Lists` covers Graph, Detail, Sidebar, Diff an
 | FileHistory | Wheel up | `list.up` | Move the highlighted commit of the file history up 3 rows; the diff follows |
 | FileHistory | Wheel down | `list.down` | Move the highlighted commit of the file history down 3 rows; the diff follows |
 | FileHistoryButton.Select | Click | `file-history.select-commit` | Action row `Enter` under the file history: select the highlighted commit in the graph (closes the history); a click on a commit row itself only highlights it |
+| Blame | Wheel up | `list.up` | Scroll the blame view up 3 lines |
+| Blame | Wheel down | `list.down` | Scroll the blame view down 3 lines |
+| BlameButton.Show | Click | `blame.show-commit` | Action row `Enter` under the blame view: select the highlighted line's commit in the graph (the view closes); a click on a line itself only highlights it |
 | ReflogPicker | Click | `input.accept` | A row of the reflog ref picker: highlights it and opens that ref's reflog, like `Enter` |
 | RebaseEditor | Wheel up | `list.up` | Scroll the todo up 3 commits |
 | RebaseEditor | Wheel down | `list.down` | Scroll the todo down 3 commits |

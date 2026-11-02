@@ -409,6 +409,12 @@ A commit before a rename is listed under the name the file had then.
 A file with no commits (untracked, never committed) opens an empty screen that says so.
 Mouse: a click on a commit row highlights it, the wheel moves the highlight, the action row `Enter` below the list selects the commit in the graph; opening is the palette entry (the `: commands` button in the tab row lists it) or the key, like the other file actions (a row menu for the file lists is #1132).
 Limits: the list is read in one go (up to 1000 commits), not streamed; a staged rename in the Changes view opens at `HEAD` under its new name, so it shows no history until the rename is committed; a path that is not valid UTF-8 cannot be matched; in a repository with no commit yet the screen is empty.
+**Blame** (`<space>gb`; #1117): a full-screen view of one file with a gutter per line: short hash (`^` before a boundary commit), author, age (`3d ago`), line number, then the line.
+`<space>gb` acts on the file row under the cursor of the details pane (Changes or Files tab: the file is read at the commit shown in the graph; a file the commit deletes, a folder or a heading is refused with a status message) and on the file under the cursor of the Changes view's Unstaged or Staged list (the working tree file; uncommitted lines show `uncommitted`).
+The lines appear at once and the gutter fills in while the blame runs (`blaming 40%` in the footer); `j`/`k`/`gg`/`G`/`Ctrl-d`/`Ctrl-u` and a counted motion move, the wheel scrolls, a click highlights a line.
+`Enter` (or the action row under the lines) selects the highlighted line's commit in the graph, which also shows it in the details, and closes the view; a line not blamed yet or an uncommitted line says so and the view stays.
+`/` searches the lines, the authors and the subjects (case-insensitive; `Enter` runs it and moves to the first match from the cursor line (included), `n`/`N` step with counts and wrap around, `Esc` in the box cancels and `Esc` in the view clears the search before it closes the view).
+`Esc` or `h` closes. A binary file, a file missing from the working tree or a failure close the view with a status message; bytes that are not UTF-8 show as Latin-1, CRLF endings are not shown. Renamed files are followed. Not done yet: blame at the parent of a line's commit, and opening the file history from a line (waits for the file history view).
 
 ### 4. In-progress operations: banner, continue, abort, skip (M3; banner, continue, abort and skip done, the blocking of item 5 comes with each blocked feature)
 

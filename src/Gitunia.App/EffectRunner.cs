@@ -14,6 +14,7 @@ using Gitunia.App.Integration;
 using Gitunia.App.IssueLinks;
 using Gitunia.App.Picker;
 using Gitunia.App.FileHistory;
+using Gitunia.App.Blame;
 using Gitunia.App.Reflog;
 using Gitunia.App.Settings;
 using Gitunia.App.Sidebar;
@@ -47,6 +48,7 @@ using Gitunia.Core.Picker;
 using Gitunia.Core.Prompts;
 using Gitunia.Core.Rebase;
 using Gitunia.Core.FileHistory;
+using Gitunia.Core.Blame;
 using Gitunia.Core.Reflog;
 using Gitunia.Core.Settings;
 using Gitunia.Core.Sidebar;
@@ -100,6 +102,7 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
     private readonly RebaseEffectHandler _rebase;
     private readonly RebaseEditorEffectHandler _rebaseEditor;
     private readonly FileHistoryEffectHandler _fileHistory;
+    private readonly BlameEffectHandler _blame;
     private readonly ReflogEffectHandler _reflog;
     private readonly SettingsEffectHandler? _settings;
     private readonly SidebarEffectHandler _sidebar;
@@ -153,6 +156,7 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
         _rebase = new RebaseEffectHandler(services.Rebase, services.QuickRebase, host);
         _rebaseEditor = new RebaseEditorEffectHandler(services.InteractiveRebase, services.CommitDetails, host);
         _fileHistory = new FileHistoryEffectHandler(services.FileHistory, services.Diff, host);
+        _blame = new BlameEffectHandler(services.Blame, services.BlameStore, host);
         _reflog = new ReflogEffectHandler(services.Reflog, host);
         _settings = settings is null ? null : new SettingsEffectHandler(settings, host);
         _sidebar = new SidebarEffectHandler(this, host);
@@ -404,6 +408,15 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
                 break;
             case ReadFileHistoryEffect history:
                 _fileHistory.Handle(history, _cancellation.TokenOf(history.TabId));
+                break;
+            case StartBlameEffect blame:
+                _blame.Start(blame, _cancellation.TokenOf(blame.TabId));
+                break;
+            case StopBlameEffect stopBlame:
+                _blame.Stop(stopBlame);
+                break;
+            case FindBlameMatchEffect findBlame:
+                _blame.Find(findBlame);
                 break;
             case ReadReflogEffect read:
                 _reflog.Handle(read, _cancellation.TokenOf(read.TabId));

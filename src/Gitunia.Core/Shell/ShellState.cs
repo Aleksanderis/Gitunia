@@ -9,6 +9,7 @@ using Gitunia.Core.Picker;
 using Gitunia.Core.Pick;
 using Gitunia.Core.Prompts;
 using Gitunia.Core.Rebase;
+using Gitunia.Core.Blame;
 using Gitunia.Core.Reflog;
 using Gitunia.Core.Settings;
 using Gitunia.Core.Sidebar;
@@ -120,8 +121,12 @@ public sealed record ShellState(
     /// <summary>A dialog, prompt or output box is open (the confirm dialog, the prompt, the output overlay).</summary>
     public bool HasModal => Confirm is not null || Prompt is not null || Output is not null;
 
-    /// <summary>An editor or list screen with its own session is open: the reflog, the file history, the rebase editor or the conflict editor.</summary>
-    public bool HasEditor => Reflog.IsOpen || FileHistory.IsOpen || RebaseEditor.IsOpen || Conflict.IsOpen;
+    /// <summary>
+    /// An editor or list screen with its own session is open: the reflog, the blame view, the file history, the
+    /// rebase editor or the conflict editor.
+    /// </summary>
+    public bool HasEditor =>
+        Reflog.IsOpen || Blame.IsOpen || FileHistory.IsOpen || RebaseEditor.IsOpen || Conflict.IsOpen;
 
     /// <summary>
     /// Anything the user is looking at that a late question must not replace: a modal, the mainline question, an editor,
@@ -139,8 +144,12 @@ public sealed record ShellState(
         || Overlay != OverlayKind.None
         || (own != ShellSession.Reflog && Reflog.IsOpen)
         || (own != ShellSession.FileHistory && FileHistory.IsOpen)
+        || (own != ShellSession.Blame && Blame.IsOpen)
         || (own != ShellSession.RebaseEditor && RebaseEditor.IsOpen)
         || (own != ShellSession.Conflict && Conflict.IsOpen);
+
+    /// <summary>The blame view (#1117).</summary>
+    public BlameSession Blame { get; init; } = BlameSession.Empty;
 
     /// <summary>Switches the key mode and counts the switch.</summary>
     public ShellState WithMode(KeyMode mode) => this with { Mode = mode, ModeChanges = ModeChanges + 1 };

@@ -7,6 +7,9 @@ using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Mouse;
 using Gitunia.Core.Overlays;
 using Gitunia.Tui.App;
+using Gitunia.App.Blame;
+using Gitunia.Tui.App.Blame;
+using Gitunia.Tui.Tests.App.Blame;
 using Gitunia.Tui.App.Branches;
 using Gitunia.Tui.App.Conflicts;
 using Gitunia.Tui.App.Overlays;
@@ -44,6 +47,7 @@ public sealed class GestureRouterTests : IDisposable, IActionRoute
             _store,
             new ListScreens(
                 new ReflogInput(host, new NoSelection(), GraphGlyphSet.Unicode),
+                new BlameInput(host, new BlameStore(), new NoBlameTargets(), GraphGlyphSet.Unicode),
                 new FileHistoryInput(host, GraphGlyphSet.Unicode)),
             settings,
             new PickActions(host, new NoPicks()),

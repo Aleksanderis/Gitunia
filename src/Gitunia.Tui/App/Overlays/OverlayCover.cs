@@ -74,6 +74,11 @@ public sealed class OverlayCover : IConflictCover, IOverlayCover
             return DefaultKeymap.FileHistoryView;
         }
 
+        if (_others.IsBlameOpen)
+        {
+            return DefaultKeymap.BlameView;
+        }
+
         return _others.IsReflogOpen ? DefaultKeymap.ReflogView : _store.ViewName;
     }
 

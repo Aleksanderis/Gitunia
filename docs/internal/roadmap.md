@@ -76,7 +76,7 @@ Done when: the repository is public and the first release is installable through
 
 ## Post-MVP candidates
 
-Blame, submodules, PR/issue integration.
+Submodules, PR/issue integration (blame shipped in #1117).
 
 ## Open questions
 
