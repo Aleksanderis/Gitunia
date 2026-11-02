@@ -1,3 +1,4 @@
+using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Shell;
 using Gitunia.Core.Sidebar;
@@ -9,13 +10,8 @@ namespace Gitunia.Core;
 public static partial class AppReducer
 {
     // A command for a tab that was closed meanwhile is dropped, like a late TabCommand.
-    private static AppUpdate ReduceSidebarAction(AppState state, SidebarActionCommand command)
+    private static AppUpdate ReduceSidebarAction(AppState state, RepositoryState tab, SidebarActionCommand command)
     {
-        if (state.Workspace.FindTab(command.TabId) is not { } tab)
-        {
-            return new AppUpdate(state, []);
-        }
-
         var before = state.Shell.Sidebar;
         var update = SidebarActionReducer.Reduce(before, command, tab);
         var shell = state.Shell with { Sidebar = update.Session };
