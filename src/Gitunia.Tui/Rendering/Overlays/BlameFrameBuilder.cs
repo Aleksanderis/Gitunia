@@ -16,7 +16,7 @@ namespace Gitunia.Tui.Rendering.Overlays;
 /// </summary>
 public static class BlameFrameBuilder
 {
-    private const int ChromeRows = 5;
+    private const int ChromeRows = 6;
     private const int StatusRows = 1;
     private const int IdWidth = 9;
     private const int AuthorWidth = 14;
@@ -86,6 +86,13 @@ public static class BlameFrameBuilder
             glyphs,
             SegmentRole.OverlayKey,
             SegmentRole.Faint));
+        lines.Add(OverlayBox.TwoColumns(
+            "<space>H",
+            "history of the file at this revision",
+            screenWidth,
+            glyphs,
+            SegmentRole.OverlayKey,
+            SegmentRole.Faint));
         lines.Add(OverlayBox.Hints(FooterHints(state), screenWidth, glyphs, FooterLead(state)));
         lines.Add(OverlayBox.Bottom(screenWidth, glyphs));
 
@@ -115,6 +122,7 @@ public static class BlameFrameBuilder
         {
             1 => DefaultMouseMap.BlameShowButton,
             2 => DefaultMouseMap.BlameParentButton,
+            3 => DefaultMouseMap.BlameHistoryButton,
             _ => null,
         };
 

@@ -266,6 +266,7 @@ public static partial class PaneHints
     [
         new("Enter", "commit", [ActionIds.BlameShowCommit]),
         new("Alt-p", "parent", [ActionIds.BlameParent]),
+        new("<space>H", "history", [ActionIds.FileHistoryOpen]),
         new(
             "Alt-w/m/c",
             "-w -M -C",

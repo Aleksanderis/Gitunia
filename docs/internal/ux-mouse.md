@@ -61,6 +61,7 @@ Views inherit like in the keymap: `Lists` covers Graph, Detail, Sidebar, Diff an
 | Blame | Wheel up | `list.up` | Scroll the blame view up 3 lines |
 | Blame | Wheel down | `list.down` | Scroll the blame view down 3 lines |
 | BlameButton.Show | Click | `blame.show-commit` | Action row `Enter` under the blame view: select the highlighted line's commit in the graph (the view closes); a click on a line itself only highlights it |
+| BlameButton.History | Click | `file-history.open` | Action row `<space>H` under the blame view: close the view and open the history of the blamed file at the blamed revision (`HEAD` for the working tree file) |
 | BlameButton.Parent | Click | `blame.parent` | Action row `Alt-p` under the blame view: blame the file again at the parent of the highlighted line's commit (Esc steps back); the `-w`, `-M` and `-C` toggles are keys only (`Alt-w`, `Alt-m`, `Alt-c`), their state shows in the footer |
 | ReflogPicker | Click | `input.accept` | A row of the reflog ref picker: highlights it and opens that ref's reflog, like `Enter` |
 | RebaseEditor | Wheel up | `list.up` | Scroll the todo up 3 commits |

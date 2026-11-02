@@ -127,6 +127,7 @@
   { "action": "blame.open", "view": "WorkingStaged", "modes": ["Normal"], "keys": ["<space>gb"] },
   { "action": "blame.show-commit", "view": "Blame", "modes": ["Normal"], "keys": ["Enter"] },
   { "action": "blame.parent", "view": "Blame", "modes": ["Normal"], "keys": ["Alt-p"] },
+  { "action": "file-history.open", "view": "Blame", "modes": ["Normal"], "keys": ["<space>H"] },
   { "action": "blame.toggle-whitespace", "view": "Blame", "modes": ["Normal"], "keys": ["Alt-w"] },
   { "action": "blame.toggle-moves", "view": "Blame", "modes": ["Normal"], "keys": ["Alt-m"] },
   { "action": "blame.toggle-copies", "view": "Blame", "modes": ["Normal"], "keys": ["Alt-c"] },

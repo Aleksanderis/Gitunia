@@ -125,6 +125,11 @@ public static class BlameReducer
             return Parent(session, view, pressed, context);
         }
 
+        if (action == ActionIds.FileHistoryOpen)
+        {
+            return Close(session);
+        }
+
         if (ToggledOptions(view.ActiveOptions, action) is { } options)
         {
             return Restart(session, view, view with { Options = options }, context);
@@ -132,6 +137,11 @@ public static class BlameReducer
 
         return Move(session, view, pressed);
     }
+
+    /// <summary>The revision the file history starts from for a blame view: the blamed revision (with any parent
+    /// suffix), or <c>HEAD</c> for the working tree file.</summary>
+    /// <param name="view">The blame view.</param>
+    public static string HistoryRevisionOf(BlameState view) => view.Revision ?? "HEAD";
 
     /// <summary>The title of a view: the path and where it is read from.</summary>
     /// <param name="path">The file.</param>

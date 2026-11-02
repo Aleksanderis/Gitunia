@@ -306,6 +306,7 @@ Every default key binding, one table per view. The design rules, notation and mo
 |---|---|---|---|
 | `Enter` | Normal | `blame.show-commit` | Select the blame line's commit in the graph |
 | `Alt-p` | Normal | `blame.parent` | Blame the file at the parent of the highlighted line's commit (Esc steps back) |
+| `<space>H` | Normal | `file-history.open` | Open the history of the selected file, renames followed |
 | `Alt-w` | Normal | `blame.toggle-whitespace` | Blame: ignore whitespace changes (-w) |
 | `Alt-m` | Normal | `blame.toggle-moves` | Blame: detect lines moved inside the file (-M) |
 | `Alt-c` | Normal | `blame.toggle-copies` | Blame: detect lines copied from other files (-C) |
