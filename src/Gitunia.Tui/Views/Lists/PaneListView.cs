@@ -74,7 +74,10 @@ public sealed class PaneListView : ListView
             return base.OnMouseEvent(mouse);
         }
 
-        if (gesture is MouseGesture.Click or MouseGesture.DoubleClick
+        // A file row's double-click is the row's own action (open the diff, stage): only a single click hits its marker.
+        var hitsMarker = gesture == MouseGesture.Click
+            || (gesture == MouseGesture.DoubleClick && Source is not IRowMenuSource);
+        if (hitsMarker
             && mouse.Position is { } at
             && IsOnRowMenuMarker(at.X, at.Y))
         {

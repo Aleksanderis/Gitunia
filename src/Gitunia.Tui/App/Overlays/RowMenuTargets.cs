@@ -81,17 +81,15 @@ public sealed class RowMenuTargets(PaneViews panes, MenuAnchors anchors, GraphSe
     // Hangs at the selected file row; a folder row or an empty list has no menu.
     private RowMenuTarget? FileTarget(string view)
     {
-        var list = panes.Detail;
-        if (view == DefaultKeymap.WorkingUnstagedView)
+        var list = view switch
         {
-            list = panes.WorkingUnstaged;
-        }
-        else if (view == DefaultKeymap.WorkingStagedView)
-        {
-            list = panes.WorkingStaged;
-        }
-
-        if (list.Source is not IRowMenuSource menus || list.SelectedItem is not { } selected || !menus.HasRowMenu(selected))
+            DefaultKeymap.WorkingUnstagedView => panes.WorkingUnstaged,
+            DefaultKeymap.WorkingStagedView => panes.WorkingStaged,
+            _ => panes.Detail,
+        };
+        if (list.Source is not IRowMenuSource menus
+            || list.SelectedItem is not { } selected
+            || !menus.HasRowMenu(selected))
         {
             return null;
         }

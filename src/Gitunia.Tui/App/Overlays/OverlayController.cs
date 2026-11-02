@@ -210,6 +210,10 @@ public sealed class OverlayController : IActionHandler
             {
                 _services.Statuses.Post("No view options for this tab");
             }
+            else if (action == ActionIds.MenuOpenForRow)
+            {
+                _services.Statuses.Post("No actions for this row");
+            }
 
             return;
         }

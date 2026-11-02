@@ -35,7 +35,7 @@ The same holds for the other popups (#597): Help and which-key take up to 96 col
 A resize closes it.
 There is no right-, middle- or Ctrl-click binding (they feel like a desktop app and multiplexers may swallow them, #479): the mouse path is a double-click on a graph row (the first click selects it) or a plain left click on the `...` marker that the selected sidebar row shows in its last three columns (not shown in panes narrower than 20 columns; a first click on another row only selects it, as before).
 Graph rows have no marker and use their full width (#482).
-The selected file row of the commit Changes and Files tabs and of both Changes view lists shows the same marker (#1132, no folder rows) over the end of its line, without reserving columns; its menu, titled `File`, offers the file history (`<space>H`) and the blame (`<space>gb`). `<space>vv` keeps opening the view options of those lists.
+The selected file row of the commit Changes and Files tabs and of both Changes view lists shows the same marker (#1132, no folder rows) in the last three columns of its line (every row of those lists keeps them free, like the sidebar); a double-click there keeps its own action (open the diff, stage); its menu, titled `File`, offers the file history (`<space>H`) and the blame (`<space>gb`). `<space>vv` keeps opening the view options of those lists.
 Actions without a key in the pane are not listed.
 The list depends on the row:
 

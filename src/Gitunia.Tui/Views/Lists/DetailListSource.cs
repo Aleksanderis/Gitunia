@@ -75,14 +75,15 @@ public sealed class DetailListSource(GraphGlyphSet glyphs) : IListDataSource, IR
     {
         var columns = ScreenPadding.Columns(listView);
         var paneWidth = width;
-        width = PanePadding.TextWidth(width, columns);
+        var reserved = RowMenuMarker.ReservedColumns(paneWidth, columns);
+        width = PanePadding.TextWidth(width, columns) - reserved;
         var isRange = Range?.Contains(item) == true;
         var isSelected = selected || isRange;
         var isRangeCursor = isRange && selected;
         var jump = JumpLabelOf(listView, item);
         var line = LineAt(item, isSelected, width, jump);
         var shown = RowMenuMarker.Apply(
-            PanePadding.Wrap(line, columns),
+            PanePadding.Wrap(RowMenuMarker.WithReserve(line, reserved), columns),
             paneWidth,
             item == listView.SelectedItem && HasRowMenu(item));
         LinePainter.Paint(listView, shown, col, row, listView.HasFocus, isRange, isRangeCursor);

@@ -120,7 +120,8 @@ public sealed class WorkingTreeListSource(WorkingTreeSection section, GraphGlyph
     {
         var padding = ScreenPadding.Columns(listView);
         var paneWidth = width;
-        var textWidth = PanePadding.TextWidth(width, padding);
+        var reserved = RowMenuMarker.ReservedColumns(paneWidth, padding);
+        var textWidth = PanePadding.TextWidth(width, padding) - reserved;
         var isRange = Range?.Contains(item) == true;
         var isSelected = selected || isRange;
         var isRangeCursor = isRange && selected;
@@ -134,7 +135,7 @@ public sealed class WorkingTreeListSource(WorkingTreeSection section, GraphGlyph
             JumpLabelOf(listView, item),
             _pathStyle);
         var shown = RowMenuMarker.Apply(
-            PanePadding.Wrap(line, padding),
+            PanePadding.Wrap(RowMenuMarker.WithReserve(line, reserved), padding),
             paneWidth,
             item == listView.SelectedItem && HasRowMenu(item));
         LinePainter.Paint(listView, shown, col, row, listView.HasFocus, isRange, isRangeCursor);
