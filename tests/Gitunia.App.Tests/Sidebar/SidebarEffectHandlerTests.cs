@@ -23,7 +23,7 @@ public sealed class SidebarEffectHandlerTests : IDisposable, ITabSessions
         _session = new TabSession(
             new TabSessionParts(
                 Tab,
-                new CommitDetailsStore(_reader, FakeCommitDetailsReader.Location, action => action(), TimeSpan.Zero)));
+                new CommitDetailsStore(_reader, FakeCommitDetailsReader.Location, InlineUi.Instance, TimeSpan.Zero)));
         _session.Append(
             [.. _reader.Commits.Select(id => new GraphEntry(
                 id,

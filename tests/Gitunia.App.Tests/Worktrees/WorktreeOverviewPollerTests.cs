@@ -71,7 +71,7 @@ public sealed class WorktreeOverviewPollerTests
         host.Dispatch(new OpenRepositoryCommand(location));
         using var session = new FakeGraphSession(host.Workspace.ActiveTabId!.Value);
         await TestGit.Services.RepositoryLoader
-            .RunAsync(location, session, host, new StatusReporter(host), InlineUi.Post, Token);
+            .RunAsync(location, session, host, new StatusReporter(host), InlineUi.Instance, Token);
         return host;
     }
 }

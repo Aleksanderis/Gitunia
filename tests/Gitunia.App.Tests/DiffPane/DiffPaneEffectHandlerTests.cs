@@ -135,12 +135,12 @@ public class DiffPaneEffectHandlerTests
             host.Dispatch(new OpenRepositoryCommand(location));
             var tabId = host.Workspace.ActiveTabId!.Value;
             var pump = new UiPump(Token);
-            var store = new DiffStore(TestGit.Services.Diff, location, pump.Post);
-            var content = new FileContentStore(TestGit.Services.Blob, location, pump.Post);
+            var store = new DiffStore(TestGit.Services.Diff, location, pump);
+            var content = new FileContentStore(TestGit.Services.Blob, location, pump);
             var session = new TabSession(
                 new TabSessionParts(
                     tabId,
-                    new CommitDetailsStore(TestGit.Services.CommitDetails, location, pump.Post, TimeSpan.Zero),
+                    new CommitDetailsStore(TestGit.Services.CommitDetails, location, pump, TimeSpan.Zero),
                     store,
                     ContentStore: content));
             await TestGit.Services.RepositoryLoader.RunAsync(
@@ -148,7 +148,7 @@ public class DiffPaneEffectHandlerTests
                 session,
                 host,
                 new StatusReporter(new Dispatcher(AppState.Empty)),
-                InlineUi.Post,
+                InlineUi.Instance,
                 session.Cancellation.Token);
 
             return new Rig(repository, session, pump, store, content);

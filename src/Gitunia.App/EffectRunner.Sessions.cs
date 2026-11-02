@@ -1,3 +1,4 @@
+using Gitunia.App.Loading;
 using Gitunia.App.Loading.Commits;
 using Gitunia.App.Loading.Diff;
 using Gitunia.App.Loading.Stash;
@@ -58,18 +59,18 @@ public sealed partial class EffectRunner<TSession>
                         _services.StashDetails,
                         stashView.Registry),
                     tab.Location,
-                    _postToUi,
+                    _ui,
                     _detailDebounce,
-                    background: _background),
+                    new CommitDetailsStoreOptions(Background: _background)),
                 new DiffStore(
                     new StashAwareDiffReader(_services.Diff, _services.StashDetails, stashView.Registry),
                     tab.Location,
-                    _postToUi,
-                    background: _background),
-                new WorkingDiffStore(_services.Diff, tab.Location, _postToUi),
+                    _ui,
+                    new DiffStoreOptions(Background: _background)),
+                new WorkingDiffStore(_services.Diff, tab.Location, _ui),
                 new FileTreeSession(
-                    new CommitTreeStore(_services.CommitTree, tab.Location, _postToUi, _detailDebounce)),
-                new FileContentStore(_services.Blob, tab.Location, _postToUi),
+                    new CommitTreeStore(_services.CommitTree, tab.Location, _ui, _detailDebounce)),
+                new FileContentStore(_services.Blob, tab.Location, _ui),
                 stashView));
         _sessions[load.TabId] = session;
         var token = session.Cancellation.Token;
@@ -92,27 +93,21 @@ public sealed partial class EffectRunner<TSession>
     {
         session.MarkStarted();
         var refresher = new TabRefresher(
-            _services.Refresher,
-            _services.Stashes,
-            _services.IncrementalGraphLoader,
-            _host,
-            session,
-            location,
-            _statuses,
-            _postToUi,
-            _watchBudget,
-            _watcherOptions,
-            operations: _services.OperationInfo,
-            config: _services.Config,
-            directoryLister: OperatingSystem.IsLinux() ? _services.WatchedDirectories : null,
-            poll: _pollOptions,
-            isBusy: () => IsBusy(tabId));
+            new TabRefreshServices(
+                _services.Refresher,
+                _services.Stashes,
+                _services.IncrementalGraphLoader,
+                _services.OperationInfo,
+                OperatingSystem.IsLinux() ? _services.WatchedDirectories : null,
+                _services.Config),
+            new TabContext(_host, session, location, _statuses, _ui),
+            new TabWatching(_watchBudget, _watcherOptions, _pollOptions, _busy));
         _refreshers[tabId] = refresher;
         refresher.Start();
         refresher.SetActive(_host.Workspace.ActiveTabId == tabId);
         _ = Task.Run(() => QueueIssueLinksAsync(session, location, token), CancellationToken.None);
         _ = Task.Run(
-            () => _services.RepositoryLoader.RunAsync(location, session, _host, _statuses, _postToUi, token),
+            () => _services.RepositoryLoader.RunAsync(location, session, _host, _statuses, _ui, token),
             CancellationToken.None);
     }
 
@@ -142,7 +137,7 @@ public sealed partial class EffectRunner<TSession>
             }
 
             var links = rules.Count > 0 ? new IssueTrackerLinks(rules) : IssueTrackerLinks.None;
-            _postToUi(() => session.SetIssueLinks(links));
+            _ui.Post(() => session.SetIssueLinks(links));
         }
         catch (Exception exception) when (exception is OperationCanceledException or GitException)
         {
@@ -161,7 +156,7 @@ public sealed partial class EffectRunner<TSession>
                 location,
                 session,
                 _statuses,
-                _postToUi,
+                _ui,
                 shownCount,
                 lastShown,
                 version,
@@ -214,7 +209,7 @@ public sealed partial class EffectRunner<TSession>
         {
             var tabId = _recent[index];
             if (_sessions.TryGetValue(tabId, out var session) && !session.IsPending && !session.IsLoading
-                && !IsBusy(tabId)
+                && !_busy.IsBusy(tabId)
                 && _host.Workspace.FindTab(tabId) is { } tab)
             {
                 StartLoad(new LoadRepositoryEffect(tabId, tab.CommandPath));

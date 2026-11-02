@@ -16,7 +16,7 @@ public class TabSessionTests
     public void GivenCutLog_WhenLoadedExpandedAndRefreshed_ThenMarkerItemFollowsTheCutState()
     {
         var location = new RepositoryLocation(Path.GetTempPath(), Path.GetTempPath(), Path.GetTempPath(), false, false);
-        var store = new CommitDetailsStore(TestGit.Services.CommitDetails, location, action => action(), TimeSpan.Zero);
+        var store = new CommitDetailsStore(TestGit.Services.CommitDetails, location, InlineUi.Instance, TimeSpan.Zero);
         using var session = new TerminalTabSession(new TabSessionParts(new TabId(1), store), GraphGlyphSet.Unicode);
         session.ExpandRequested += () => { };
 
@@ -43,8 +43,8 @@ public class TabSessionTests
     public void GivenWorkingDiff_WhenStatusReadUnchanged_ThenTheWorkingDiffIsInvalidated()
     {
         var location = new RepositoryLocation(Path.GetTempPath(), Path.GetTempPath(), Path.GetTempPath(), false, false);
-        var details = new CommitDetailsStore(TestGit.Services.CommitDetails, location, action => action(), TimeSpan.Zero);
-        var workingDiffStore = new WorkingDiffStore(TestGit.Services.Diff, location, action => action());
+        var details = new CommitDetailsStore(TestGit.Services.CommitDetails, location, InlineUi.Instance, TimeSpan.Zero);
+        var workingDiffStore = new WorkingDiffStore(TestGit.Services.Diff, location, InlineUi.Instance);
         using var session = new TerminalTabSession(
             new TabSessionParts(new TabId(1), details, WorkingDiffStore: workingDiffStore),
             GraphGlyphSet.Unicode);
@@ -59,8 +59,8 @@ public class TabSessionTests
     public void GivenTerminalSession_WhenDisposed_ThenTheBaseCancellationIsCancelled()
     {
         var location = new RepositoryLocation(Path.GetTempPath(), Path.GetTempPath(), Path.GetTempPath(), false, false);
-        var details = new CommitDetailsStore(TestGit.Services.CommitDetails, location, action => action(), TimeSpan.Zero);
-        var diffStore = new DiffStore(TestGit.Services.Diff, location, action => action());
+        var details = new CommitDetailsStore(TestGit.Services.CommitDetails, location, InlineUi.Instance, TimeSpan.Zero);
+        var diffStore = new DiffStore(TestGit.Services.Diff, location, InlineUi.Instance);
         var session = new TerminalTabSession(
             new TabSessionParts(new TabId(1), details, diffStore),
             GraphGlyphSet.Unicode);

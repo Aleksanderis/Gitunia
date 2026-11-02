@@ -43,7 +43,7 @@ public sealed class CompareInputTests : IDisposable, ICompareSource, ITabSession
                 new CommitDetailsStore(
                 _reader,
                 FakeCommitDetailsReader.Location,
-                _pump.Post,
+                _pump,
                 TimeSpan.FromMilliseconds(1))),
             GraphGlyphSet.Unicode);
         _handler = new CompareEffectHandler(this, _host);

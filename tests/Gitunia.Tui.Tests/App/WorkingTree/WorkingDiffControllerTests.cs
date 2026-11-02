@@ -824,8 +824,8 @@ public class WorkingDiffControllerTests
             var session = new TerminalTabSession(
                 new TabSessionParts(
                     host.Workspace.ActiveTabId!.Value,
-                    new CommitDetailsStore(TestGit.Services.CommitDetails, location, pump.Post, TimeSpan.Zero),
-                    WorkingDiffStore: new WorkingDiffStore(TestGit.Services.Diff, location, pump.Post)),
+                    new CommitDetailsStore(TestGit.Services.CommitDetails, location, pump, TimeSpan.Zero),
+                    WorkingDiffStore: new WorkingDiffStore(TestGit.Services.Diff, location, pump)),
                 GraphGlyphSet.Unicode);
             var harness = new Harness(repository, host, session, pump);
             await harness.LoadStatusAsync();

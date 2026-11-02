@@ -53,7 +53,7 @@ public sealed class EffectParts : IDisposable
         Runner = new EffectRunner<TerminalTabSession>(
             foundation.Services,
             host,
-            terminal.InvokeOnUi,
+            terminal.Invoker,
             foundation.SessionFactory,
             statuses,
             watcherOptions: WatcherOptionsFor(foundation.Config.Options),

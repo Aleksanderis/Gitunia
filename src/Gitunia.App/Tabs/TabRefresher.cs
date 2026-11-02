@@ -24,11 +24,8 @@ namespace Gitunia.App.Tabs;
 /// automatic reload reads the log only down to the first row it shares with the old graph
 /// (<see cref="IncrementalGraphLoader"/>), and the view puts selection and scroll back. Runs one refresh at a time;
 /// changes arriving meanwhile are merged into the next.
-/// Touched from the UI thread only; the watcher and poller callbacks post to it. The optional <c>graphReloaded</c>
-/// callback runs on the UI thread after each graph replacement, so tests can tell an incremental reload
-/// (<see cref="GraphReload.ReusedCount"/> above 0) from a full read.
-/// </summary>
-public sealed class TabRefresher : IDisposable
+/// Touched from the UI thread only; the watcher and poller callbacks post to it. /// </summary>
+public sealed class TabRefresher : IDisposable, IPollTarget
 {
     private const RepositoryChangeKinds StatusKinds = RepositoryChangeKinds.Head
         | RepositoryChangeKinds.Refs
@@ -45,11 +42,11 @@ public sealed class TabRefresher : IDisposable
     private readonly IGraphSession _session;
     private readonly RepositoryLocation _location;
     private readonly StatusReporter _statuses;
-    private readonly Action<Action> _postToUi;
+    private readonly IUiInvoker _ui;
     private readonly RepositoryWatcher? _watcher;
     private readonly TabPoller? _poller;
+    private readonly ITabBusySource _busy = NeverBusy.Instance;
     private long _refreshStartedAt;
-    private readonly Action<GraphReload>? _graphReloaded;
     private RepositorySnapshot? _snapshot;
     private RepositoryChangeKinds _pending;
     private bool _forceGraph;
@@ -62,51 +59,41 @@ public sealed class TabRefresher : IDisposable
     private List<Action> _waiting = [];
     private List<Action> _inFlight = [];
 
-    public TabRefresher(
-        IRepositoryRefresher refresher,
-        IStashReader stashes,
-        IncrementalGraphLoader graphLoader,
-        Dispatcher host,
-        IGraphSession session,
-        RepositoryLocation location,
-        StatusReporter statuses,
-        Action<Action> postToUi,
-        WatchBudget budget,
-        RepositoryWatcherOptions options,
-        Action<GraphReload>? graphReloaded = null,
-        IOperationInfoReader? operations = null,
-        IWorkingTreeDirectoryLister? directoryLister = null,
-        IGitConfigReader? config = null,
-        PollOptions? poll = null,
-        Func<bool>? isBusy = null)
+    public TabRefresher(TabRefreshServices services, TabContext context, TabWatching watching)
     {
-        _config = config;
-        _operations = operations ?? new OperationInfoReader();
-        _graphReloaded = graphReloaded;
-        _refresher = refresher;
-        _stashes = stashes;
-        _graphLoader = graphLoader;
-        _host = host;
-        _session = session;
-        _location = location;
-        _statuses = statuses;
-        _postToUi = postToUi;
-        if (options.UseFileWatchers)
+        _config = services.Config;
+        _operations = services.Operations ?? new OperationInfoReader();
+        _refresher = services.Refresher;
+        _stashes = services.Stashes;
+        _graphLoader = services.GraphLoader;
+        _host = context.Host;
+        _session = context.Session;
+        _location = context.Location;
+        _statuses = context.Statuses;
+        _ui = context.Ui;
+        if (watching.Options.UseFileWatchers)
         {
-            _watcher = new RepositoryWatcher(location, budget, options, kinds => postToUi(() => Request(kinds, false)),
-                directoryLister: directoryLister);
+            _watcher = new RepositoryWatcher(
+                _location,
+                watching.Budget,
+                watching.Options,
+                kinds => _ui.Post(() => Request(kinds, false)),
+                directoryLister: services.DirectoryLister);
         }
         else
         {
-            var busy = isBusy ?? (static () => false);
-            _poller = new TabPoller(
-                location,
-                poll ?? PollOptions.Default,
-                postToUi,
-                () => _isReady && !_isRunning && _snapshot is not null && !busy(),
-                kinds => Request(kinds, false));
+            _busy = watching.Busy ?? NeverBusy.Instance;
+            _poller = new TabPoller(_location, watching.Poll ?? PollOptions.Default, _ui, this);
         }
     }
+
+    /// <summary>Runs on the UI thread after each graph replacement, so tests can tell an incremental reload
+    /// (<see cref="GraphReload.ReusedCount"/> above 0) from a full read.</summary>
+    public event Action<GraphReload>? GraphReloaded;
+
+    bool IPollTarget.CanPoll => _isReady && !_isRunning && _snapshot is not null && !_busy.IsBusy(_session.TabId);
+
+    void IPollTarget.Request(RepositoryChangeKinds kinds) => Request(kinds, false);
 
     /// <summary>The wait between automatic status refreshes (longer after a slow one); null when watching.</summary>
     public TimeSpan? StatusPollInterval => _poller?.StatusInterval;
@@ -265,7 +252,7 @@ public sealed class TabRefresher : IDisposable
                 reload = await _graphLoader.ReloadAsync(_location, previousRows, isCapped, token).ConfigureAwait(false);
             }
 
-            _postToUi(() => Apply(previous is null, isManual, result, stashes, reload, ReadsStatus(kinds), operation, autoStash));
+            _ui.Post(() => Apply(previous is null, isManual, result, stashes, reload, ReadsStatus(kinds), operation, autoStash));
         }
         catch (OperationCanceledException)
         {
@@ -273,7 +260,7 @@ public sealed class TabRefresher : IDisposable
         }
         catch (Exception exception)
         {
-            _postToUi(() => Fail(exception, kinds, reloadGraph, isManual));
+            _ui.Post(() => Fail(exception, kinds, reloadGraph, isManual));
         }
     }
 
@@ -349,7 +336,7 @@ public sealed class TabRefresher : IDisposable
         if (reload is not null)
         {
             _session.ReplaceGraph(reload.Entries, reload.TruncatedTotal);
-            _graphReloaded?.Invoke(reload);
+            GraphReloaded?.Invoke(reload);
         }
 
         if (isManual)

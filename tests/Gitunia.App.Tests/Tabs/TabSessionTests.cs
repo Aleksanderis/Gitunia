@@ -86,7 +86,7 @@ public class TabSessionTests
     private static TabSessionParts NewParts()
     {
         var location = new RepositoryLocation(Path.GetTempPath(), Path.GetTempPath(), Path.GetTempPath(), false, false);
-        var store = new CommitDetailsStore(TestGit.Services.CommitDetails, location, action => action(), TimeSpan.Zero);
+        var store = new CommitDetailsStore(TestGit.Services.CommitDetails, location, InlineUi.Instance, TimeSpan.Zero);
 
         return new TabSessionParts(new TabId(1), store);
     }

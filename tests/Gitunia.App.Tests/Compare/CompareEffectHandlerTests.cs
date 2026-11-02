@@ -26,7 +26,7 @@ public sealed class CompareEffectHandlerTests : IDisposable, ITabSessions
                 new CommitDetailsStore(
                     _reader,
                     FakeCommitDetailsReader.Location,
-                    _pump.Post,
+                    _pump,
                     TimeSpan.FromMilliseconds(1))));
     }
 

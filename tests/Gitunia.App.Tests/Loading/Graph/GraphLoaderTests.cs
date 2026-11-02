@@ -74,7 +74,7 @@ public class GraphLoaderTests
             commitLog.Commits.Insert(0, Tip(number, $"tip {number}", root, Branch($"branch-{number}")));
         }
 
-        var loader = new GraphLoader(commitLog, colorCount: () => 3);
+        var loader = new GraphLoader(commitLog, laneColors: new FixedLaneColors(3));
         var entries = new List<GraphEntry>();
         await foreach (var batch in loader.StreamAsync(
             FakeStatusReader.LocationOf("graph"), CommitOrder.ByDate, null, CancellationToken.None))

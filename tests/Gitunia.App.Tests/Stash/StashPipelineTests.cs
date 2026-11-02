@@ -111,7 +111,7 @@ public class StashPipelineTests
             var runner = new EffectRunner<TabSession>(
                 TestGit.Services,
                 host,
-                pump.Post,
+                pump,
                 new TabSessionFactory(),
                 statuses,
                 watcherOptions: TestGit.QuietWatcherOptions,

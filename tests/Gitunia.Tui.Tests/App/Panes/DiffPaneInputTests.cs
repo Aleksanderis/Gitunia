@@ -1,3 +1,4 @@
+using Gitunia.App.Loading;
 using Gitunia.App.Status;
 using Gitunia.Core;
 using Gitunia.App.Tabs;
@@ -1177,10 +1178,10 @@ public class DiffPaneInputTests
             var session = new TerminalTabSession(
                 new TabSessionParts(
                     tabId,
-                    new CommitDetailsStore(TestGit.Services.CommitDetails, location, pump.Post, TimeSpan.Zero),
-                    new DiffStore(TestGit.Services.Diff, location, pump.Post, rowLimit)),
+                    new CommitDetailsStore(TestGit.Services.CommitDetails, location, pump, TimeSpan.Zero),
+                    new DiffStore(TestGit.Services.Diff, location, pump, new DiffStoreOptions(rowLimit))),
                 GraphGlyphSet.Unicode);
-            await TestGit.Services.RepositoryLoader.RunAsync(location, session, host, new StatusReporter(new Dispatcher(AppState.Empty)), InlineUi.Post, session.Cancellation.Token);
+            await TestGit.Services.RepositoryLoader.RunAsync(location, session, host, new StatusReporter(new Dispatcher(AppState.Empty)), InlineUi.Instance, session.Cancellation.Token);
             var harness = new DiffHarness(host, session, pump, owned, screenHeight, screenWidth);
             await harness.ShowDetailsOfAsync(session.Graph[0].Id);
             return harness;

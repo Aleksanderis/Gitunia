@@ -11,19 +11,18 @@ namespace Gitunia.App.Loading.Diff;
 /// <see cref="DiffDocument"/>. Asking again for the same file in the same status generation costs nothing; asking for another
 /// one cancels the load in flight. A new generation (the status was read again, so the file may have changed even though its status
 /// letters did not) drops the cache and reloads the shown file; while it loads the old rows stay, so a refresh never blanks the pane.
-/// UI thread only; results come back through <c>postToUi</c>.
+/// UI thread only; results come back through <c>ui</c>.
 /// </summary>
 public sealed class WorkingDiffStore(
     IDiffReader reader,
     RepositoryLocation location,
-    Action<Action> postToUi,
-    int rowLimit = DiffStore.DefaultRowLimit,
-    int fileLineLimit = DiffStore.DefaultFileLineLimit,
-    int folderFileLimit = WorkingDiffStore.DefaultFolderFileLimit) : IDisposable
+    IUiInvoker ui,
+    WorkingDiffLimits? limits = null) : IDisposable
 {
     /// <summary>Files of a folder diff read before the rest is left out (one git process each, #625).</summary>
     public const int DefaultFolderFileLimit = 200;
 
+    private readonly WorkingDiffLimits _limits = limits ?? new WorkingDiffLimits();
     private readonly KeyedDiffCache<WorkingDiffRequest> _cache = new();
     private CancellationTokenSource? _pending;
     private int _generation;
@@ -256,12 +255,12 @@ public sealed class WorkingDiffStore(
         {
             var read = await ReadAsync(
                     request,
-                    limited ? rowLimit : int.MaxValue,
-                    limited ? fileLineLimit : int.MaxValue,
-                    limited ? folderFileLimit : int.MaxValue,
+                    limited ? _limits.RowLimit : int.MaxValue,
+                    limited ? _limits.FileLineLimit : int.MaxValue,
+                    limited ? _limits.FolderFileLimit : int.MaxValue,
                     token)
                 .ConfigureAwait(false);
-            postToUi(() => Complete(request, read.Document, string.Empty, read.IsCut, token));
+            ui.Post(() => Complete(request, read.Document, string.Empty, read.IsCut, token));
         }
         catch (OperationCanceledException)
         {
@@ -269,7 +268,7 @@ public sealed class WorkingDiffStore(
         }
         catch (Exception exception)
         {
-            postToUi(() => Complete(request, null, exception.Message, false, token));
+            ui.Post(() => Complete(request, null, exception.Message, false, token));
         }
     }
 

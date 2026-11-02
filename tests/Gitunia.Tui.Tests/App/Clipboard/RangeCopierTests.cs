@@ -108,7 +108,7 @@ public class RangeCopierTests : IDisposable
         var session = new TerminalTabSession(
             new TabSessionParts(
                 new TabId(1),
-                new CommitDetailsStore(TestGit.Services.CommitDetails, location, action => action(), TimeSpan.Zero)),
+                new CommitDetailsStore(TestGit.Services.CommitDetails, location, InlineUi.Instance, TimeSpan.Zero)),
             GraphGlyphSet.Unicode);
         session.Append(CommitFactory.Graph(CommitFactory.Commit(2, "b", [1]), CommitFactory.Commit(1, "a", [])).ToArray());
         return session;

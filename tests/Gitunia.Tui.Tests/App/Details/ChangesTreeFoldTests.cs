@@ -60,7 +60,7 @@ public class ChangesTreeFoldTests : IDisposable
                 new CommitDetailsStore(
                 new FakeCommitDetailsReader(),
                 FakeCommitDetailsReader.Location,
-                _pump.Post,
+                _pump,
                 TimeSpan.FromMilliseconds(1))),
             GraphGlyphSet.Unicode);
         _list = new ListView { Source = _session.DetailSource };

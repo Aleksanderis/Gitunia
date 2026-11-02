@@ -1,3 +1,4 @@
+using Gitunia.App.Loading;
 using System.Runtime.CompilerServices;
 using Gitunia.App.Loading.Commits;
 using Gitunia.App.Loading.Trees;
@@ -19,7 +20,7 @@ public class CommitTreeStoreTests
         var commit = FakeObjectIds.Of(1);
         reader.Add(commit, "a.txt", "dir/b.txt");
         var pump = new UiPump(Token);
-        using var store = new CommitTreeStore(reader, FakeCommitDetailsReader.Location, pump.Post, Debounce);
+        using var store = new CommitTreeStore(reader, FakeCommitDetailsReader.Location, pump, Debounce);
 
         store.Select(commit);
 
@@ -45,9 +46,9 @@ public class CommitTreeStoreTests
         using var store = new CommitTreeStore(
             reader,
             FakeCommitDetailsReader.Location,
-            pump.Post,
+            pump,
             Debounce,
-            async (_, token) => await gate.Task.WaitAsync(token));
+            new CommitTreeStoreOptions(new DelegateDelayer(async (_, token) => await gate.Task.WaitAsync(token))));
 
         store.Select(first);
         store.Select(second);
@@ -68,7 +69,7 @@ public class CommitTreeStoreTests
         reader.Add(first, "1");
         reader.Add(second, "2");
         var pump = new UiPump(Token);
-        using var store = new CommitTreeStore(reader, FakeCommitDetailsReader.Location, pump.Post, Debounce);
+        using var store = new CommitTreeStore(reader, FakeCommitDetailsReader.Location, pump, Debounce);
         store.Select(first);
         await WaitForSettledAsync(pump, store, first);
         store.Select(second);
@@ -85,7 +86,7 @@ public class CommitTreeStoreTests
     {
         var reader = new FakeCommitTreeReader();
         var pump = new UiPump(Token);
-        using var store = new CommitTreeStore(reader, FakeCommitDetailsReader.Location, pump.Post, Debounce);
+        using var store = new CommitTreeStore(reader, FakeCommitDetailsReader.Location, pump, Debounce);
         var commits = Enumerable.Range(1, CommitTreeStore.CacheCapacity + 1).Select(FakeObjectIds.Of).ToArray();
         foreach (var commit in commits)
         {
@@ -106,7 +107,7 @@ public class CommitTreeStoreTests
     {
         var reader = new FakeCommitTreeReader();
         var pump = new UiPump(Token);
-        using var store = new CommitTreeStore(reader, FakeCommitDetailsReader.Location, pump.Post, Debounce);
+        using var store = new CommitTreeStore(reader, FakeCommitDetailsReader.Location, pump, Debounce);
         var missing = FakeCommitDetailsReader.MissingId();
 
         store.Select(missing);
@@ -121,7 +122,7 @@ public class CommitTreeStoreTests
     {
         var reader = new FakeCommitTreeReader();
         var pump = new UiPump(Token);
-        using var store = new CommitTreeStore(reader, FakeCommitDetailsReader.Location, pump.Post, Debounce);
+        using var store = new CommitTreeStore(reader, FakeCommitDetailsReader.Location, pump, Debounce);
         var commit = FakeObjectIds.Of(1);
         store.Select(commit);
         await WaitForSettledAsync(pump, store, commit);
@@ -141,7 +142,7 @@ public class CommitTreeStoreTests
         var commit = FakeObjectIds.Of(1);
         reader.Add(commit, "a.txt");
         var pump = new UiPump(Token);
-        using var store = new CommitTreeStore(reader, FakeCommitDetailsReader.Location, pump.Post, Debounce);
+        using var store = new CommitTreeStore(reader, FakeCommitDetailsReader.Location, pump, Debounce);
         store.Select(commit);
         await WaitForSettledAsync(pump, store, commit);
 
@@ -161,13 +162,13 @@ public class CommitTreeStoreTests
         var store = new CommitTreeStore(
             reader,
             FakeCommitDetailsReader.Location,
-            action =>
+            new DelegateUi(action =>
             {
                 Interlocked.Increment(ref posted.Value);
                 action();
-            },
+            }),
             TimeSpan.FromMilliseconds(200),
-            async (_, token) =>
+            new CommitTreeStoreOptions(new DelegateDelayer(async (_, token) =>
             {
                 waiting.TrySetResult();
                 try
@@ -178,7 +179,7 @@ public class CommitTreeStoreTests
                 {
                     cancelled.TrySetResult();
                 }
-            });
+            })));
         store.Select(commit);
         await waiting.Task.WaitAsync(TimeSpan.FromSeconds(30), Token);
 

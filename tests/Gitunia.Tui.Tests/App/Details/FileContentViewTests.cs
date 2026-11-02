@@ -553,18 +553,18 @@ public class FileContentViewTests
             var session = new TerminalTabSession(
                 new TabSessionParts(
                     tabId,
-                    new CommitDetailsStore(TestGit.Services.CommitDetails, location, pump.Post, TimeSpan.Zero),
-                    new DiffStore(TestGit.Services.Diff, location, pump.Post),
+                    new CommitDetailsStore(TestGit.Services.CommitDetails, location, pump, TimeSpan.Zero),
+                    new DiffStore(TestGit.Services.Diff, location, pump),
                     Tree: new FileTreeSession(
-                    new CommitTreeStore(TestGit.Services.CommitTree, location, pump.Post, TimeSpan.Zero)),
-                    ContentStore: new FileContentStore(TestGit.Services.Blob, location, pump.Post)),
+                    new CommitTreeStore(TestGit.Services.CommitTree, location, pump, TimeSpan.Zero)),
+                    ContentStore: new FileContentStore(TestGit.Services.Blob, location, pump)),
                 GraphGlyphSet.Unicode);
             await TestGit.Services.RepositoryLoader.RunAsync(
                 location,
                 session,
                 host,
                 new StatusReporter(new Dispatcher(AppState.Empty)),
-                InlineUi.Post,
+                InlineUi.Instance,
                 session.Cancellation.Token);
             var head = session.Graph[0].Id;
             var harness = new Harness(host, session, pump, repository, session.Graph[1].Id, width);

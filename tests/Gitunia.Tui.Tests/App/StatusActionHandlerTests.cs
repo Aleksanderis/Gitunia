@@ -193,14 +193,14 @@ public class StatusActionHandlerTests : IDisposable
         var pump = new UiPump(Token);
         var debounce = TimeSpan.FromMilliseconds(1);
         var reader = new FakeCommitTreeReader();
-        var store = new CommitTreeStore(reader, FakeCommitDetailsReader.Location, pump.Post, debounce);
+        var store = new CommitTreeStore(reader, FakeCommitDetailsReader.Location, pump, debounce);
         _session = new TerminalTabSession(
             new TabSessionParts(
                 new TabId(1),
                 new CommitDetailsStore(
                 new FakeCommitDetailsReader(),
                 FakeCommitDetailsReader.Location,
-                pump.Post,
+                pump,
                 debounce),
                 Tree: new FileTreeSession(store)),
             GraphGlyphSet.Unicode);
@@ -227,7 +227,7 @@ public class StatusActionHandlerTests : IDisposable
         return new TerminalTabSession(
             new TabSessionParts(
                 new TabId(1),
-                new CommitDetailsStore(TestGit.Services.CommitDetails, location, pump.Post, TimeSpan.FromMilliseconds(1))),
+                new CommitDetailsStore(TestGit.Services.CommitDetails, location, pump, TimeSpan.FromMilliseconds(1))),
             GraphGlyphSet.Unicode);
     }
 }

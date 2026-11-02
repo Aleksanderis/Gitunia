@@ -1,3 +1,4 @@
+using Gitunia.App.Loading;
 using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
 using Gitunia.App.Loading.Commits;
@@ -14,7 +15,7 @@ public class CommitDetailsPrefetchTests
     {
         var reader = FakeCommitDetailsReader.Chain(4);
         var pump = new UiPump(Token);
-        using var store = new CommitDetailsStore(reader, FakeCommitDetailsReader.Location, pump.Post, TimeSpan.FromMilliseconds(1));
+        using var store = new CommitDetailsStore(reader, FakeCommitDetailsReader.Location, pump, TimeSpan.FromMilliseconds(1));
         var head = reader.Commits[0];
         var parent = reader.Commits[1];
         var grandparent = reader.Commits[2];
@@ -33,7 +34,7 @@ public class CommitDetailsPrefetchTests
     {
         var reader = FakeCommitDetailsReader.Chain(3);
         var pump = new UiPump(Token);
-        using var store = new CommitDetailsStore(reader, FakeCommitDetailsReader.Location, pump.Post, TimeSpan.FromMilliseconds(1));
+        using var store = new CommitDetailsStore(reader, FakeCommitDetailsReader.Location, pump, TimeSpan.FromMilliseconds(1));
         var head = reader.Commits[0];
         var parent = reader.Commits[1];
         store.Select(head);
@@ -61,9 +62,9 @@ public class CommitDetailsPrefetchTests
         var cancelled = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         using var store = new CommitDetailsStore(
             reader, FakeCommitDetailsReader.Location,
-            pump.Post,
+            pump,
             TimeSpan.FromMilliseconds(200),
-            async (_, token) =>
+            new CommitDetailsStoreOptions(new DelegateDelayer(async (_, token) =>
             {
                 if (!Volatile.Read(ref blocking.Value))
                 {
@@ -79,7 +80,7 @@ public class CommitDetailsPrefetchTests
                 {
                     cancelled.TrySetResult();
                 }
-            });
+            })));
         store.Select(head);
         await pump.RunPostsAsync(1);
         store.Select(parent);
@@ -99,7 +100,7 @@ public class CommitDetailsPrefetchTests
     {
         var reader = FakeCommitDetailsReader.Chain(5);
         var pump = new UiPump(Token);
-        using var store = new CommitDetailsStore(reader, FakeCommitDetailsReader.Location, pump.Post, TimeSpan.FromMilliseconds(1), cache: new CommitDetailsCache(capacity: 2));
+        using var store = new CommitDetailsStore(reader, FakeCommitDetailsReader.Location, pump, TimeSpan.FromMilliseconds(1), new CommitDetailsStoreOptions(Cache: new CommitDetailsCache(capacity: 2)));
 
         store.Select(reader.Commits[0], [reader.Commits[1], reader.Commits[2], reader.Commits[3]]);
         await pump.RunPostsAsync(4);
@@ -112,7 +113,7 @@ public class CommitDetailsPrefetchTests
     {
         var reader = FakeCommitDetailsReader.Chain(2);
         var pump = new UiPump(Token);
-        using var store = new CommitDetailsStore(reader, FakeCommitDetailsReader.Location, pump.Post, TimeSpan.FromMilliseconds(1));
+        using var store = new CommitDetailsStore(reader, FakeCommitDetailsReader.Location, pump, TimeSpan.FromMilliseconds(1));
         var missing = FakeCommitDetailsReader.MissingId();
 
         store.Select(reader.Commits[0], [missing, reader.Commits[1]]);
@@ -132,9 +133,10 @@ public class CommitDetailsPrefetchTests
         var clock = new ManualTimeProvider();
         using var store = new CommitDetailsStore(
             reader, FakeCommitDetailsReader.Location,
-            pump.Post,
+            pump,
             debounce,
-            (wait, _) =>
+            new CommitDetailsStoreOptions(
+            new DelegateDelayer((wait, _) =>
             {
                 lock (waits)
                 {
@@ -142,8 +144,8 @@ public class CommitDetailsPrefetchTests
                 }
 
                 return Task.CompletedTask;
-            },
-            timeProvider: clock);
+            }),
+            TimeProvider: clock));
 
         store.Select(reader.Commits[0]);
         await pump.RunPostsAsync(1);
@@ -169,9 +171,9 @@ public class CommitDetailsPrefetchTests
         var pump = new UiPump(Token);
         using var store = new CommitDetailsStore(
             reader, FakeCommitDetailsReader.Location,
-            pump.Post,
+            pump,
             debounce,
-            (wait, _) =>
+            new CommitDetailsStoreOptions(new DelegateDelayer((wait, _) =>
             {
                 lock (waits)
                 {
@@ -179,7 +181,7 @@ public class CommitDetailsPrefetchTests
                 }
 
                 return Task.CompletedTask;
-            });
+            })));
 
         store.Select(reader.Commits[0], [reader.Commits[1]]);
         await pump.RunPostsAsync(2);
@@ -196,7 +198,7 @@ public class CommitDetailsPrefetchTests
         var reader = FakeCommitDetailsReader.Chain(3);
         var queued = new ConcurrentQueue<Action>();
         var posted = new SemaphoreSlim(0);
-        using var store = new CommitDetailsStore(reader, FakeCommitDetailsReader.Location, action => { queued.Enqueue(action); posted.Release(); }, TimeSpan.FromMilliseconds(1));
+        using var store = new CommitDetailsStore(reader, FakeCommitDetailsReader.Location, new DelegateUi(action => { queued.Enqueue(action); posted.Release(); }), TimeSpan.FromMilliseconds(1));
 
         store.Select(reader.Commits[0], [reader.Commits[1]]);
         await WaitForPostsAsync(posted, 2);
@@ -225,7 +227,7 @@ public class CommitDetailsPrefetchTests
         var reader = FakeCommitDetailsReader.Chain(3);
         var queued = new ConcurrentQueue<Action>();
         var posted = new SemaphoreSlim(0);
-        using var store = new CommitDetailsStore(reader, FakeCommitDetailsReader.Location, action => { queued.Enqueue(action); posted.Release(); }, TimeSpan.FromMilliseconds(1));
+        using var store = new CommitDetailsStore(reader, FakeCommitDetailsReader.Location, new DelegateUi(action => { queued.Enqueue(action); posted.Release(); }), TimeSpan.FromMilliseconds(1));
         store.Select(reader.Commits[0], [reader.Commits[1]]);
         await WaitForPostsAsync(posted, 2);
         while (queued.TryDequeue(out var action))

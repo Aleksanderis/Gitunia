@@ -47,7 +47,7 @@ public static class Program
             return 0;
         }
 
-        var services = GitServices.Create(new GitRunner(), static () => Palette.LaneColorCount);
+        var services = GitServices.Create(new GitRunner(), new PaletteLaneColors());
         RepositoryLocation? location = null;
         if (options.RepositoryPath is not null)
         {

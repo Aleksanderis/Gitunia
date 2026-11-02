@@ -55,7 +55,7 @@ public sealed class FeaturePipeline : IDisposable
         var runner = new EffectRunner<TabSession>(
             services,
             host,
-            pump.Post,
+            pump,
             new TabSessionFactory(),
             statuses,
             watcherOptions: TestGit.QuietWatcherOptions,

@@ -174,7 +174,7 @@ public class GraphTabBinderTests
             var effects = new EffectRunner<TerminalTabSession>(
                 TestGit.Services,
                 host,
-                pump.Post,
+                pump,
                 new TerminalTabSessionFactory(GraphGlyphSet.Unicode),
                 new StatusReporter(new Dispatcher(AppState.Empty)),
                 sessions: registry);

@@ -1,3 +1,4 @@
+using Gitunia.App.Loading;
 using System.Runtime.CompilerServices;
 using Gitunia.App.Loading.Commits;
 using Gitunia.Git;
@@ -19,7 +20,7 @@ public class CommitDetailsStoreTests
         var reader = new FakeCommitDetailsReader();
         var head = reader.Add("second", reader.Add("root"));
         var pump = new UiPump(Token);
-        using var store = new CommitDetailsStore(reader, FakeCommitDetailsReader.Location, pump.Post, TimeSpan.FromMilliseconds(1));
+        using var store = new CommitDetailsStore(reader, FakeCommitDetailsReader.Location, pump, TimeSpan.FromMilliseconds(1));
 
         store.Select(head);
 
@@ -38,7 +39,7 @@ public class CommitDetailsStoreTests
         var second = reader.Add("two", first);
         var last = reader.Add("three", second);
         var pump = new UiPump(Token);
-        using var store = new CommitDetailsStore(reader, FakeCommitDetailsReader.Location, pump.Post, TimeSpan.FromMilliseconds(300));
+        using var store = new CommitDetailsStore(reader, FakeCommitDetailsReader.Location, pump, TimeSpan.FromMilliseconds(300));
         var recorder = new ChangeRecorder(store);
 
         store.Select(first);
@@ -58,7 +59,7 @@ public class CommitDetailsStoreTests
         var first = reader.Add("one");
         var second = reader.Add("two", first);
         var pump = new UiPump(Token);
-        using var store = new CommitDetailsStore(reader, FakeCommitDetailsReader.Location, pump.Post, TimeSpan.FromMilliseconds(1));
+        using var store = new CommitDetailsStore(reader, FakeCommitDetailsReader.Location, pump, TimeSpan.FromMilliseconds(1));
         store.Select(first);
         await WaitForSettledAsync(pump, store, first);
         store.Select(second);
@@ -75,7 +76,7 @@ public class CommitDetailsStoreTests
     {
         var reader = new FakeCommitDetailsReader();
         var pump = new UiPump(Token);
-        using var store = new CommitDetailsStore(reader, FakeCommitDetailsReader.Location, pump.Post, TimeSpan.FromMilliseconds(1));
+        using var store = new CommitDetailsStore(reader, FakeCommitDetailsReader.Location, pump, TimeSpan.FromMilliseconds(1));
         var missing = FakeCommitDetailsReader.MissingId();
 
         store.Select(missing);
@@ -90,7 +91,7 @@ public class CommitDetailsStoreTests
     {
         var reader = new FakeCommitDetailsReader();
         var pump = new UiPump(Token);
-        using var store = new CommitDetailsStore(reader, FakeCommitDetailsReader.Location, pump.Post, TimeSpan.FromMilliseconds(1));
+        using var store = new CommitDetailsStore(reader, FakeCommitDetailsReader.Location, pump, TimeSpan.FromMilliseconds(1));
         var missing = FakeCommitDetailsReader.MissingId();
         store.Select(missing);
         await WaitForSettledAsync(pump, store, missing);
@@ -108,7 +109,7 @@ public class CommitDetailsStoreTests
         var reader = new FakeCommitDetailsReader();
         var head = reader.Add("one");
         var pump = new UiPump(Token);
-        using var store = new CommitDetailsStore(reader, FakeCommitDetailsReader.Location, pump.Post, TimeSpan.FromMilliseconds(1));
+        using var store = new CommitDetailsStore(reader, FakeCommitDetailsReader.Location, pump, TimeSpan.FromMilliseconds(1));
         store.Select(head);
         await WaitForSettledAsync(pump, store, head);
 
@@ -126,9 +127,9 @@ public class CommitDetailsStoreTests
         var cancelled = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var store = new CommitDetailsStore(
             reader, FakeCommitDetailsReader.Location,
-            action => { Interlocked.Increment(ref posted.Value); action(); },
+            new DelegateUi(action => { Interlocked.Increment(ref posted.Value); action(); }),
             TimeSpan.FromMilliseconds(200),
-            async (_, token) =>
+            new CommitDetailsStoreOptions(new DelegateDelayer(async (_, token) =>
             {
                 waiting.TrySetResult();
                 try
@@ -139,7 +140,7 @@ public class CommitDetailsStoreTests
                 {
                     cancelled.TrySetResult();
                 }
-            });
+            })));
         store.Select(head);
         await waiting.Task.WaitAsync(TimeSpan.FromSeconds(30), Token);
 
@@ -162,7 +163,7 @@ public class CommitDetailsStoreTests
         using var store = new CommitDetailsStore(
             reader,
             FakeCommitDetailsReader.Location,
-            pump.Post,
+            pump,
             TimeSpan.FromMilliseconds(1));
         store.Select(merge);
         await WaitForSettledAsync(pump, store, merge);
@@ -185,7 +186,7 @@ public class CommitDetailsStoreTests
         using var store = new CommitDetailsStore(
             reader,
             FakeCommitDetailsReader.Location,
-            pump.Post,
+            pump,
             TimeSpan.FromMilliseconds(1));
 
         Assert.Null(store.CycleParent());
@@ -208,7 +209,7 @@ public class CommitDetailsStoreTests
         using var store = new CommitDetailsStore(
             reader,
             FakeCommitDetailsReader.Location,
-            pump.Post,
+            pump,
             TimeSpan.FromMilliseconds(1));
         store.Select(merge);
         await WaitForSettledAsync(pump, store, merge);
@@ -239,7 +240,7 @@ public class CommitDetailsStoreTests
         using var store = new CommitDetailsStore(
             TestGit.Services.CommitDetails,
             location,
-            pump.Post,
+            pump,
             TimeSpan.FromMilliseconds(1));
         store.Select(merge);
         await WaitForSettledAsync(pump, store, merge);
@@ -281,7 +282,7 @@ public class CommitDetailsStoreTests
         using var store = new CommitDetailsStore(
             blocking,
             FakeCommitDetailsReader.Location,
-            pump.Post,
+            pump,
             TimeSpan.FromMilliseconds(1));
         store.Select(merge);
         await WaitForSettledAsync(pump, store, merge);
@@ -319,7 +320,7 @@ public class CommitDetailsStoreTests
         using var store = new CommitDetailsStore(
             blocking,
             FakeCommitDetailsReader.Location,
-            pump.Post,
+            pump,
             TimeSpan.FromMilliseconds(1));
         store.Select(merge);
         await WaitForSettledAsync(pump, store, merge);
@@ -359,7 +360,7 @@ public class CommitDetailsStoreTests
         using var store = new CommitDetailsStore(
             blocking,
             FakeCommitDetailsReader.Location,
-            pump.Post,
+            pump,
             TimeSpan.FromMilliseconds(1));
         store.Select(merge);
         await WaitForSettledAsync(pump, store, merge);
@@ -388,7 +389,7 @@ public class CommitDetailsStoreTests
         using var store = new CommitDetailsStore(
             reader,
             FakeCommitDetailsReader.Location,
-            pump.Post,
+            pump,
             TimeSpan.FromMilliseconds(1));
         store.Select(older);
         await WaitForSettledAsync(pump, store, older);
@@ -411,7 +412,7 @@ public class CommitDetailsStoreTests
         using var store = new CommitDetailsStore(
             reader,
             FakeCommitDetailsReader.Location,
-            pump.Post,
+            pump,
             TimeSpan.FromMilliseconds(1));
         Assert.False(store.Compare(first, second));
         store.Select(third);
@@ -432,7 +433,7 @@ public class CommitDetailsStoreTests
         using var store = new CommitDetailsStore(
             reader,
             FakeCommitDetailsReader.Location,
-            pump.Post,
+            pump,
             TimeSpan.FromMilliseconds(1));
         store.Select(newer);
         await WaitForSettledAsync(pump, store, newer);
@@ -463,7 +464,7 @@ public class CommitDetailsStoreTests
         using var store = new CommitDetailsStore(
             blocking,
             FakeCommitDetailsReader.Location,
-            pump.Post,
+            pump,
             TimeSpan.FromMilliseconds(1));
         store.Select(newer);
         await WaitForSettledAsync(pump, store, newer);
@@ -489,7 +490,7 @@ public class CommitDetailsStoreTests
         using var store = new CommitDetailsStore(
             reader,
             FakeCommitDetailsReader.Location,
-            pump.Post,
+            pump,
             TimeSpan.FromMilliseconds(1));
         store.Select(merge);
         await WaitForSettledAsync(pump, store, merge);
@@ -515,7 +516,7 @@ public class CommitDetailsStoreTests
         using var store = new CommitDetailsStore(
             TestGit.Services.CommitDetails,
             location,
-            pump.Post,
+            pump,
             TimeSpan.FromMilliseconds(1));
         store.Select(main);
         await WaitForSettledAsync(pump, store, main);

@@ -32,7 +32,7 @@ public sealed class SidebarHarness : IDisposable, ITabSessions
         _emptySession = new TerminalTabSession(
             new TabSessionParts(
                 session.TabId,
-                new CommitDetailsStore(TestGit.Services.CommitDetails, location, action => action(), TimeSpan.Zero)),
+                new CommitDetailsStore(TestGit.Services.CommitDetails, location, InlineUi.Instance, TimeSpan.Zero)),
             GraphGlyphSet.Unicode);
         _emptySession.Complete();
         Source = source;
@@ -91,11 +91,11 @@ public sealed class SidebarHarness : IDisposable, ITabSessions
         var session = new TerminalTabSession(
             new TabSessionParts(
                 tabId,
-                new CommitDetailsStore(TestGit.Services.CommitDetails, location, action => action(), TimeSpan.Zero)),
+                new CommitDetailsStore(TestGit.Services.CommitDetails, location, InlineUi.Instance, TimeSpan.Zero)),
             GraphGlyphSet.Unicode);
 
         // Posting runs the action inline (serialized, like the UI thread would).
-        await TestGit.Services.RepositoryLoader.RunAsync(location, session, host, new StatusReporter(new Dispatcher(AppState.Empty)), InlineUi.Post, session.Cancellation.Token);
+        await TestGit.Services.RepositoryLoader.RunAsync(location, session, host, new StatusReporter(new Dispatcher(AppState.Empty)), InlineUi.Instance, session.Cancellation.Token);
         return new SidebarHarness(host, session, new SidebarListSource(GraphGlyphSet.Unicode), location);
     }
 

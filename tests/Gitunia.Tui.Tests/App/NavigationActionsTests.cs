@@ -174,7 +174,7 @@ public class NavigationActionsTests
             _session = new TerminalTabSession(
                 new TabSessionParts(
                     new TabId(1),
-                    new CommitDetailsStore(TestGit.Services.CommitDetails, location, action => action(), TimeSpan.Zero)),
+                    new CommitDetailsStore(TestGit.Services.CommitDetails, location, InlineUi.Instance, TimeSpan.Zero)),
                 GraphGlyphSet.Unicode);
             var commits = Enumerable.Range(1, CommitCount).Select(number => CommitFactory.Commit(number, $"commit {number}", number == CommitCount ? [] : [number + 1])).ToArray();
             var graph = CommitFactory.Graph(commits);

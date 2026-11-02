@@ -574,14 +574,14 @@ public class ReflogInputTests
             harness._session = new TerminalTabSession(
                 new TabSessionParts(
                     tabId,
-                    new CommitDetailsStore(TestGit.Services.CommitDetails, location, action => action(), TimeSpan.Zero)),
+                    new CommitDetailsStore(TestGit.Services.CommitDetails, location, InlineUi.Instance, TimeSpan.Zero)),
                 GraphGlyphSet.Unicode);
             await TestGit.Services.RepositoryLoader.RunAsync(
                 location,
                 harness._session,
                 harness._host,
                 harness.Statuses,
-                InlineUi.Post,
+                InlineUi.Instance,
                 harness._session.Cancellation.Token);
             return harness;
         }

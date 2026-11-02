@@ -1,3 +1,4 @@
+using Gitunia.App.Loading;
 using Gitunia.App.Loading.Diff;
 using Gitunia.Core.Diff;
 using Gitunia.Git.Diff.Models;
@@ -252,8 +253,8 @@ public class WorkingDiffStoreTests
         using var store = new WorkingDiffStore(
             reader,
             FakeCommitDetailsReader.Location,
-            pump.Post,
-            folderFileLimit: 10);
+            pump,
+            new WorkingDiffLimits(FolderFileLimit: 10));
         var folder = new WorkingDiffFolder("src", entries);
 
         store.Show(new WorkingDiffRequest(WorkingDiffSide.Unstaged, entries[0], folder), 0);
@@ -273,5 +274,5 @@ public class WorkingDiffStoreTests
     private static WorkingDiffRequest Unstaged(string path) => new(WorkingDiffSide.Unstaged, Modified(path));
 
     private static WorkingDiffStore CreateStore(UiPump pump, FakeDiffReader reader, int rowLimit = DiffStore.DefaultRowLimit) =>
-        new(reader, FakeCommitDetailsReader.Location, pump.Post, rowLimit);
+        new(reader, FakeCommitDetailsReader.Location, pump, new WorkingDiffLimits(rowLimit));
 }

@@ -412,7 +412,7 @@ public class TabRefresherTests
         }
 
         private static Task RunInitialLoadAsync(RepositoryLocation location, TabSession session, Dispatcher host, StatusReporter statuses) =>
-            TestGit.Services.RepositoryLoader.RunAsync(location, session, host, statuses, InlineUi.Post, session.Cancellation.Token);
+            TestGit.Services.RepositoryLoader.RunAsync(location, session, host, statuses, InlineUi.Instance, session.Cancellation.Token);
 
         private static async Task<Harness> CreateAsync(
             TestRepository repository,
@@ -429,7 +429,7 @@ public class TabRefresherTests
             var session = new TabSession(
                 new TabSessionParts(
                     tabId,
-                    new CommitDetailsStore(TestGit.Services.CommitDetails, location, action => action(), TimeSpan.Zero)));
+                    new CommitDetailsStore(TestGit.Services.CommitDetails, location, InlineUi.Instance, TimeSpan.Zero)));
             session.MarkStarted();
 
             if (loadFirst)
@@ -441,14 +441,19 @@ public class TabRefresherTests
             var options = watcher ?? (polling ? FastOptions with { UseFileWatchers = false } : FastOptions);
             var reloads = new List<GraphReload>();
             var ran = 0;
-            var refresher = new TabRefresher(TestGit.Services.Refresher, TestGit.Services.Stashes, TestGit.Services.IncrementalGraphLoader, host, session, location, statuses, action =>
+            var ui = new DelegateUi(action =>
             {
                 pump.Post(() =>
                 {
                     action();
                     Interlocked.Increment(ref ran);
                 });
-            }, new WatchBudget(), options, reloads.Add, poll: FastPoll);
+            });
+            var refresher = new TabRefresher(
+                new TabRefreshServices(TestGit.Services.Refresher, TestGit.Services.Stashes, TestGit.Services.IncrementalGraphLoader),
+                new TabContext(host, session, location, statuses, ui),
+                new TabWatching(new WatchBudget(), options, FastPoll));
+            refresher.GraphReloaded += reloads.Add;
             if (start)
             {
                 refresher.Start();
@@ -503,25 +508,17 @@ public class TabRefresherTests
             var session = new TabSession(
                 new TabSessionParts(
                     tabId,
-                    new CommitDetailsStore(new FakeCommitDetailsReader(), location, action => action(), TimeSpan.Zero)));
+                    new CommitDetailsStore(new FakeCommitDetailsReader(), location, InlineUi.Instance, TimeSpan.Zero)));
             session.MarkStarted();
             var graphLoader = new GraphLoader(commitLog, softRowLimit);
             await new RepositoryLoader(refs, new FakeStatusReader(), graphLoader, new SidebarDataLoader(refs, stashes))
-                .RunAsync(location, session, host, statuses, InlineUi.Post, session.Cancellation.Token);
+                .RunAsync(location, session, host, statuses, InlineUi.Instance, session.Cancellation.Token);
             var pump = new UiPump(TestContext.Current.CancellationToken);
             var repositoryRefresher = new FakeRepositoryRefresher();
             var refresher = new TabRefresher(
-                repositoryRefresher,
-                stashes,
-                new IncrementalGraphLoader(commitLog, graphLoader),
-                host,
-                session,
-                location,
-                statuses,
-                pump.Post,
-                new WatchBudget(),
-                TestGit.QuietWatcherOptions,
-                poll: FastPoll);
+                new TabRefreshServices(repositoryRefresher, stashes, new IncrementalGraphLoader(commitLog, graphLoader)),
+                new TabContext(host, session, location, statuses, pump),
+                new TabWatching(new WatchBudget(), TestGit.QuietWatcherOptions, FastPoll));
             refresher.Start();
             await pump.RunUntilAsync(() => repositoryRefresher.RefreshCount > 0 && !refresher.IsRefreshing);
             return new FakeHarness(host, tabId, session, refresher, repositoryRefresher, statuses, pump);

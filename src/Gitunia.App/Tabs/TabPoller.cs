@@ -16,9 +16,8 @@ public sealed class TabPoller : IDisposable
 {
     private readonly RepositoryLocation _location;
     private readonly PollOptions _options;
-    private readonly Action<Action> _postToUi;
-    private readonly Func<bool> _canPoll;
-    private readonly Action<RepositoryChangeKinds> _request;
+    private readonly IUiInvoker _ui;
+    private readonly IPollTarget _target;
     private readonly TimeProvider _time;
     private readonly Timer _timer;
     private int? _baseline;
@@ -32,19 +31,17 @@ public sealed class TabPoller : IDisposable
     public TabPoller(
         RepositoryLocation location,
         PollOptions options,
-        Action<Action> postToUi,
-        Func<bool> canPoll,
-        Action<RepositoryChangeKinds> request,
+        IUiInvoker ui,
+        IPollTarget target,
         TimeProvider? time = null)
     {
         _location = location;
         _options = options;
-        _postToUi = postToUi;
-        _canPoll = canPoll;
-        _request = request;
+        _ui = ui;
+        _target = target;
         _time = time ?? TimeProvider.System;
         _statusInterval = options.StatusInterval;
-        _timer = new Timer(_ => _postToUi(Tick));
+        _timer = new Timer(_ => _ui.Post(Tick));
     }
 
     /// <summary>The wait between status refreshes right now (above the configured one after a slow refresh).</summary>
@@ -111,12 +108,12 @@ public sealed class TabPoller : IDisposable
     private void ReadBaseline()
     {
         var value = RepositoryFingerprint.Compute(_location);
-        _postToUi(() => _baseline ??= value);
+        _ui.Post(() => _baseline ??= value);
     }
 
     private void Tick()
     {
-        if (_isDisposed || !_isActive || _isReading || !_canPoll())
+        if (_isDisposed || !_isActive || _isReading || !_target.CanPoll)
         {
             return;
         }
@@ -129,7 +126,7 @@ public sealed class TabPoller : IDisposable
     private void ReadFingerprint(int epoch)
     {
         var value = RepositoryFingerprint.Compute(_location);
-        _postToUi(() => Compare(value, epoch));
+        _ui.Post(() => Compare(value, epoch));
     }
 
     private void Compare(int value, int epoch)
@@ -141,7 +138,7 @@ public sealed class TabPoller : IDisposable
         }
 
         _isReading = false;
-        if (!_canPoll())
+        if (!_target.CanPoll)
         {
             return;
         }
@@ -152,12 +149,12 @@ public sealed class TabPoller : IDisposable
         if (changed)
         {
             _statusDueAt = now + ToTimestampTicks(_statusInterval);
-            _request(RepositoryChangeKinds.All);
+            _target.Request(RepositoryChangeKinds.All);
         }
         else if (now >= _statusDueAt)
         {
             _statusDueAt = now + ToTimestampTicks(_statusInterval);
-            _request(RepositoryChangeKinds.Index | RepositoryChangeKinds.WorkingTree);
+            _target.Request(RepositoryChangeKinds.Index | RepositoryChangeKinds.WorkingTree);
         }
     }
 
