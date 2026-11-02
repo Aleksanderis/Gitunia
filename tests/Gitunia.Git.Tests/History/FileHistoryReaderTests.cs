@@ -238,7 +238,7 @@ public class FileHistoryReaderTests
     }
 
     [Fact]
-    public async Task GivenLinesThatMoved_WhenReadingTheirHistory_ThenTheWalkFollowsThemToWhereTheyWere()
+    public async Task GivenLinesThatShifted_WhenReadingTheirHistory_ThenTheWalkFollowsThemToWhereTheyWere()
     {
         using var repository = TestRepository.Create().Commit("add", new TestFile("f.txt", "a\nb\nc\nd\n"));
         repository.Commit("edit c", new TestFile("f.txt", "a\nb\nC\nd\n"));
@@ -325,6 +325,50 @@ public class FileHistoryReaderTests
             .ReadRangeAsync(location, Head, "f.txt", new LineRange(1, 1), 10, Token);
 
         Assert.Empty(result.Items);
+    }
+
+    [Fact]
+    public async Task GivenACommitThatDeletedTheRange_WhenReadingFromBeforeIt_ThenThatCommitShowsOnlyRemovedLines()
+    {
+        using var repository = TestRepository.Create().Commit("add", new TestFile("f.txt", "a\nb\nc\nd\n"));
+        repository.Commit("drop b and c", new TestFile("f.txt", "a\nd\n"));
+        var runner = repository.CreateIsolatedRunner();
+        var location = await new RepositoryDiscovery(runner).DiscoverAsync(repository.WorkingTreePath, Token);
+
+        var result = await new FileHistoryReader(runner)
+            .ReadRangeAsync(location, repository.Git("rev-parse", "HEAD~1").Trim(), "f.txt", new LineRange(2, 3), 10, Token);
+
+        var entry = Assert.Single(result.Items);
+        Assert.Equal("add", entry.Subject);
+    }
+
+    [Fact]
+    public async Task GivenARangeChangedOnBothSidesOfAMerge_WhenReadingItsHistory_ThenBothBranchesCommitsAreListed()
+    {
+        using var repository = TestRepository.Create().Commit("base", new TestFile("f.txt", "1\n2\n3\n4\n5\n6\n7\n"));
+        repository.CheckoutNewBranch("side");
+        repository.Commit("side edit 2", new TestFile("f.txt", "1\nS2\n3\n4\n5\n6\n7\n"));
+        repository.Checkout("main");
+        repository.Commit("main edit 6", new TestFile("f.txt", "1\n2\n3\n4\n5\nM6\n7\n"));
+        repository.Merge("side");
+
+        var entries = await ReadRangeAsync(repository, "f.txt", new LineRange(1, 7));
+
+        var subjects = entries.Select(entry => entry.Subject).ToList();
+        Assert.Contains("side edit 2", subjects);
+        Assert.Contains("main edit 6", subjects);
+        Assert.Equal("base", subjects[^1]);
+    }
+
+    [Fact]
+    public async Task GivenUserConfigThatDropsThePathPrefixes_WhenReadingARange_ThenThePathsAreStillThoseOfTheFile()
+    {
+        using var repository = TestRepository.Create().Commit("add", new TestFile("a/b.txt", "x\ny\n"));
+        repository.Git("config", "diff.noprefix", "true");
+
+        var entries = await ReadRangeAsync(repository, "a/b.txt", new LineRange(1, 1));
+
+        Assert.Equal("a/b.txt", Assert.Single(entries).Path);
     }
 
     private static async Task<IReadOnlyList<FileHistoryEntry>> ReadRangeAsync(

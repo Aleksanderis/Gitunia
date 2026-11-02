@@ -32,6 +32,9 @@ public sealed class FileHistoryReader(GitRunner runner) : IFileHistoryReader
         FileHistoryParser.DateOption,
         GitOptions.NoColor,
         "--no-ext-diff",
+        "--no-textconv",
+        "--src-prefix=a/",
+        "--dst-prefix=b/",
         "--no-show-signature",
         "--encoding=UTF-8",
     ];

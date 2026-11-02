@@ -66,8 +66,13 @@ public sealed class FileHistoryOpener(
         }
 
         Notice = target.Notice;
-        visual.End();
         host.Dispatch(new FileHistoryOpenRequested(tabId, path, target.Revision, target.Range));
+
+        // A refused open (a read still running) keeps the range.
+        if (host.State.Shell.FileHistory.IsReading)
+        {
+            visual.End();
+        }
 
         return true;
     }

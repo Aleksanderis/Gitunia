@@ -1,8 +1,10 @@
+using System.Text;
 using Gitunia.Core.Diff;
 using Gitunia.Core.FileHistory;
 using Gitunia.Core.Text;
-using Gitunia.Git.Diff;
 using Gitunia.Git;
+using Gitunia.Git.Diff;
+using Gitunia.Git.Diff.Models;
 using Gitunia.Git.History;
 using Gitunia.Git.History.Models;
 
@@ -116,9 +118,12 @@ public sealed class FileHistoryEffectHandler(IFileHistoryReader reader, IDiffRea
         if (effect.Entry.Patch is { } patch)
         {
             // A line history read every patch with the list: nothing more to run.
-            var parsed = DiffParser.Parse(patch);
-            warnings.AddRange(parsed.Warnings);
-            foreach (var file in parsed.Items)
+            var parser = new DiffParser(MaximumDiffLines);
+            var files = new List<DiffFile>();
+            parser.Feed(Encoding.UTF8.GetBytes(patch), files);
+            parser.Complete(files);
+            warnings.AddRange(parser.Warnings);
+            foreach (var file in files)
             {
                 builder.Add(file);
             }

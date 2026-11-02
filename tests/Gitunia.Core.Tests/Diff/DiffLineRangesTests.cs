@@ -1,10 +1,14 @@
 using Gitunia.Core.Diff;
 using Gitunia.Git.Diff;
+using Gitunia.Git.Commits.Models;
+using Gitunia.Git.Diff.Models;
 using Gitunia.Git.History.Models;
+using Gitunia.Git.Status.Models;
 using Xunit;
 
 namespace Gitunia.Core.Tests.Diff;
 
+[Trait("Os", "Independent")]
 public class DiffLineRangesTests
 {
     // Rows: 0 header, 1 hunk, 2 context a (1/1), 3 removed b (2/-), 4 added B (-/2), 5 added C (-/3), 6 context d (3/4).
@@ -78,6 +82,40 @@ public class DiffLineRangesTests
         Assert.Equal(0, picked.FileIndex);
         Assert.Equal(new LineRange(1, 4), picked.Range);
         Assert.Equal(DiffLineRanges.FirstFileNotice, picked.Notice);
+    }
+
+    [Theory]
+    [InlineData(StatusEntryKind.Untracked, WorkingDiffSide.Unstaged, false, DiffLineRanges.UntrackedNotice)]
+    [InlineData(StatusEntryKind.Unmerged, WorkingDiffSide.Unstaged, false, DiffLineRanges.ConflictedNotice)]
+    [InlineData(StatusEntryKind.Ordinary, WorkingDiffSide.Unstaged, true, DiffLineRanges.FolderNotice)]
+    public void GivenAFileThatHasNoHeadHistory_WhenAskingForTheRefusal_ThenTheNoticeNamesWhy(
+        StatusEntryKind kind,
+        WorkingDiffSide side,
+        bool isFolder,
+        string expected)
+    {
+        var entry = new StatusEntry(kind, "f.txt", null, FileChangeKind.Unmodified, FileChangeKind.Modified, null, ConflictKind.None, null);
+
+        Assert.Equal(expected, DiffLineRanges.RefusalFor(entry, side, isFolder));
+    }
+
+    [Fact]
+    public void GivenAnUnstagedDiffOfAFileWithStagedChanges_WhenAskingForTheRefusal_ThenOnlyTheStagedDiffIsOffered()
+    {
+        var entry = new StatusEntry(
+            StatusEntryKind.Ordinary, "f.txt", null, FileChangeKind.Modified, FileChangeKind.Modified, null, ConflictKind.None, null);
+
+        Assert.Equal(DiffLineRanges.StagedTooNotice, DiffLineRanges.RefusalFor(entry, WorkingDiffSide.Unstaged, false));
+        Assert.Null(DiffLineRanges.RefusalFor(entry, WorkingDiffSide.Staged, false));
+    }
+
+    [Fact]
+    public void GivenAStagedRename_WhenAskingForTheHeadPath_ThenTheOldNameIsUsed()
+    {
+        var entry = new StatusEntry(
+            StatusEntryKind.Renamed, "new.txt", "old.txt", FileChangeKind.Renamed, FileChangeKind.Unmodified, 100, ConflictKind.None, null);
+
+        Assert.Equal("old.txt", DiffLineRanges.HeadPathOf(entry));
     }
 
     private static DiffDocument Build(string patch)

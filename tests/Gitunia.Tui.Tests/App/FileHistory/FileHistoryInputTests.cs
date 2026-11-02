@@ -12,8 +12,8 @@ using Gitunia.Git.Repositories.Models;
 using Gitunia.Tui.App.FileHistory;
 using Gitunia.Tui.App.Panes;
 using Gitunia.Tui.Tests.Fakes;
-using Terminal.Gui.Views;
 using Gitunia.Tui.Rendering.Graph;
+using Terminal.Gui.Views;
 using Xunit;
 
 namespace Gitunia.Tui.Tests.App.FileHistory;

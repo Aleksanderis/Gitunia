@@ -1,4 +1,6 @@
+using Gitunia.Git.Diff.Models;
 using Gitunia.Git.History.Models;
+using Gitunia.Git.Status.Models;
 
 namespace Gitunia.Core.Diff;
 
@@ -20,6 +22,47 @@ public static class DiffLineRanges
 
     /// <summary>The notice when the selection reaches into a second file.</summary>
     public const string FirstFileNotice = "Only the lines of the first file in the selection are followed";
+
+    /// <summary>The notice for a file that was never committed.</summary>
+    public const string UntrackedNotice = "This file is not committed: it has no history yet";
+
+    /// <summary>The notice for an unstaged diff of a file that also has staged changes.</summary>
+    public const string StagedTooNotice = "This file has staged changes too: open the line history from its Staged diff";
+
+    /// <summary>The notice for the diff of a folder.</summary>
+    public const string FolderNotice = "This is the diff of a folder: pick one of its files for a line history";
+
+    /// <summary>The notice for a conflicted file.</summary>
+    public const string ConflictedNotice = "This file is conflicted: resolve it first";
+
+    /// <summary>Why the Changes view diff of a file cannot give a line history, null when it can.</summary>
+    /// <param name="entry">The status entry of the file.</param>
+    /// <param name="side">The list the file is in.</param>
+    /// <param name="isFolder">The diff shows a folder, not one file.</param>
+    public static string? RefusalFor(StatusEntry entry, WorkingDiffSide side, bool isFolder)
+    {
+        if (isFolder)
+        {
+            return FolderNotice;
+        }
+
+        if (entry.Kind is StatusEntryKind.Untracked or StatusEntryKind.Ignored)
+        {
+            return UntrackedNotice;
+        }
+
+        if (entry.Kind == StatusEntryKind.Unmerged)
+        {
+            return ConflictedNotice;
+        }
+
+        // The old side of an unstaged diff is the index: with staged changes its numbers are not those of HEAD.
+        return side == WorkingDiffSide.Unstaged && entry.IsStaged ? StagedTooNotice : null;
+    }
+
+    /// <summary>The path HEAD knows the file by: a staged rename is followed under its old name.</summary>
+    /// <param name="entry">The status entry of the file.</param>
+    public static string HeadPathOf(StatusEntry entry) => entry.OriginalPath ?? entry.Path;
 
     /// <summary>Picks the lines of rows <paramref name="firstRow"/> to <paramref name="lastRow"/>.</summary>
     /// <param name="document">The shown diff.</param>
@@ -89,6 +132,8 @@ public static class DiffLineRanges
             return string.Empty;
         }
 
-        return leftOut == 1 ? "1 uncommitted line is not in the history" : $"{leftOut} uncommitted lines are not in the history";
+        var noun = leftOut == 1 ? "1 uncommitted line is" : $"{leftOut} uncommitted lines are";
+
+        return $"{noun} not in the history";
     }
 }
