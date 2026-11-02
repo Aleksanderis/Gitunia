@@ -1,3 +1,5 @@
+using System.Reflection;
+using Gitunia.App;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Git.Repositories.Models;
@@ -8,11 +10,12 @@ using Xunit;
 
 namespace Gitunia.Tui.Tests.App.Startup;
 
-/// <summary>A composed and wired shell on a headless driver reacting to a state change (the order of the subscribers is not pinned, see #1042).</summary>
+/// <summary>A composed and wired shell on a headless driver reacting to a state change; the order the state subscribers run in is pinned too.</summary>
 public sealed class ShellWiringTests : IDisposable
 {
     private readonly string _root = Directory.CreateTempSubdirectory("gitunia-wiring-").FullName;
     private readonly ShellComposition _shell;
+    private readonly List<string> _wired;
 
     public ShellWiringTests()
     {
@@ -22,13 +25,47 @@ public sealed class ShellWiringTests : IDisposable
             new TestPlatform(_root, capabilities),
             capabilities,
             new TuiLaunch(DriverRegistry.Names.ANSI, _root));
+        var before = Subscribers();
         new ShellWiring(_shell).Connect();
+        _wired = [.. Subscribers().Skip(before.Count)];
     }
 
     public void Dispose()
     {
         _shell.Dispose();
         Directory.Delete(_root, true);
+    }
+
+    [Fact]
+    public void WhenWired_ThenTheStateSubscribersRunInTheDocumentedOrder()
+    {
+        // Presenters subscribe in their constructors, the views one by one: the Changes presenter must run before
+        // ApplyFocus, which needs the panes it shows. Swapping any two entries changes what the user sees.
+        string[] expected =
+        [
+            "StashViewController.Reconcile",
+            "OverlayPresenter.RefreshOnStateChange",
+            "SidebarPresenter.Sync",
+            "WorkingTreePresenter.Sync",
+            "MainView.RefreshChrome",
+            "GraphTabBinder.Sync",
+            "PaneFocusCoordinator.ApplyFocus",
+            "DetailPresenter.Follow",
+            "PaneSizeDragger.OnStateChanged",
+            "QuickJumpInput.CloseIfStale",
+            "PickerPresenter.OnStateChanged",
+        ];
+
+        Assert.Equal(expected, _wired);
+    }
+
+    private List<string> Subscribers()
+    {
+        var field = typeof(Dispatcher).GetField("Changed", BindingFlags.Instance | BindingFlags.NonPublic)!;
+        var handler = (Delegate?)field.GetValue(_shell.Foundation.Host);
+        return handler is null
+            ? []
+            : [.. handler.GetInvocationList().Select(d => $"{d.Target!.GetType().Name}.{d.Method.Name}")];
     }
 
     [Fact]

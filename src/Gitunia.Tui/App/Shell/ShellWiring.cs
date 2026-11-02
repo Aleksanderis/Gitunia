@@ -6,7 +6,7 @@ namespace Gitunia.Tui.App.Shell;
 /// <summary>
 /// Subscribes the objects of the composition to each other's events: the state to the views, the widgets to the
 /// controllers, the terminal's keys to the keymap. The order of the state subscriptions is the order they run in after
-/// every command.
+/// every command; `ShellWiringTests` pins it.
 /// </summary>
 /// <param name="shell">The composed shell.</param>
 public sealed class ShellWiring(ShellComposition shell)
@@ -45,7 +45,6 @@ public sealed class ShellWiring(ShellComposition shell)
             shell.Foundation.Terminal,
             new ResizeTargets(panes.DiffPane, shell.Overlays.Settings, shell.Keys.Overlays, screen.PopupTracker));
 
-        // The Changes view presenter must run before the focus is applied, which needs the panes it shows.
         host.Changed += screen.View.RefreshChrome;
         host.Changed += screen.Binder.Sync;
         host.Changed += screen.Focus.ApplyFocus;
