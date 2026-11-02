@@ -4,21 +4,44 @@ using Gitunia.Git.Commits.Models;
 using Gitunia.Git.Refs.Models;
 using Gitunia.Git.Status.Models;
 using Xunit;
+using Xunit.Sdk;
 
 namespace Gitunia.Core.Tests.Conflicts;
 
 [Trait("Os", "Independent")]
 public class ConflictEditorSupportTests
 {
-    [Theory]
-    [InlineData(ConflictKind.BothModified, true)]
-    [InlineData(ConflictKind.BothAdded, true)]
-    [InlineData(ConflictKind.DeletedByUs, false)]
-    [InlineData(ConflictKind.DeletedByThem, false)]
-    [InlineData(ConflictKind.BothDeleted, false)]
-    [InlineData(ConflictKind.AddedByUs, false)]
-    [InlineData(ConflictKind.AddedByThem, false)]
-    public void GivenAConflictKind_WhenAsking_ThenOnlyBothModifiedAndBothAddedOpen(ConflictKind kind, bool opens)
+    [Fact]
+    public void GivenAConflictKind_WhenAsking_ThenOnlyBothModifiedAndBothAddedOpen()
+    {
+        var failures = new List<string>();
+        (ConflictKind kind, bool opens)[] rows =
+        [
+            (ConflictKind.BothModified, true),
+            (ConflictKind.BothAdded, true),
+            (ConflictKind.DeletedByUs, false),
+            (ConflictKind.DeletedByThem, false),
+            (ConflictKind.BothDeleted, false),
+            (ConflictKind.AddedByUs, false),
+            (ConflictKind.AddedByThem, false),
+        ];
+
+        foreach (var (kind, opens) in rows)
+        {
+            try
+            {
+                CheckOnlyBothModifiedAndBothAddedOpen(kind, opens);
+            }
+            catch (XunitException exception)
+            {
+                failures.Add($"{kind}, {opens}: {exception.Message}");
+            }
+        }
+
+        Assert.Empty(failures);
+    }
+
+    private static void CheckOnlyBothModifiedAndBothAddedOpen(ConflictKind kind, bool opens)
     {
         Assert.Equal(opens, ConflictEditorSupport.CanOpen(kind));
     }

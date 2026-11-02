@@ -3,6 +3,7 @@ using Gitunia.Tui.Rendering.Panes;
 using Gitunia.Tui.Rendering.Screen;
 using Gitunia.Tui.Rendering.WorkingTree;
 using Xunit;
+using Xunit.Sdk;
 
 namespace Gitunia.Tui.Tests.Rendering.WorkingTree;
 
@@ -116,13 +117,35 @@ public class WorkingTreeLayoutTests
         Assert.True(rects.Diff.Width >= 40);
     }
 
-    [Theory]
-    [InlineData(0, 0)]
-    [InlineData(1, 1)]
-    [InlineData(3, 4)]
-    [InlineData(10, 3)]
-    [InlineData(200, 80)]
-    public void GivenTinyAndHugeScreens_WhenComputing_ThenItNeverThrowsAndNeverHasNegativeSizes(int width, int height)
+    [Fact]
+    public void GivenTinyAndHugeScreens_WhenComputing_ThenItNeverThrowsAndNeverHasNegativeSizes()
+    {
+        var failures = new List<string>();
+        (int width, int height)[] rows =
+        [
+            (0, 0),
+            (1, 1),
+            (3, 4),
+            (10, 3),
+            (200, 80),
+        ];
+
+        foreach (var (width, height) in rows)
+        {
+            try
+            {
+                CheckItNeverThrowsAndNeverHasNegativeSizes(width, height);
+            }
+            catch (XunitException exception)
+            {
+                failures.Add($"{width}, {height}: {exception.Message}");
+            }
+        }
+
+        Assert.Empty(failures);
+    }
+
+    private static void CheckItNeverThrowsAndNeverHasNegativeSizes(int width, int height)
     {
         var rects = WorkingTreeLayout.Compute(width, height, PaneKind.WorkingStaged);
 

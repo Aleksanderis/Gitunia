@@ -9,6 +9,7 @@ using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Overlays;
 using Gitunia.Tui.Rendering.Styling;
 using Xunit;
+using Xunit.Sdk;
 
 namespace Gitunia.Tui.Tests.Rendering.Overlays;
 
@@ -314,12 +315,34 @@ public class ConflictEditorFrameBuilderTests
         Assert.Contains(frame.Lines, line => line.Text.Contains('v', StringComparison.Ordinal));
     }
 
-    [Theory]
-    [InlineData(39, 30)]
-    [InlineData(120, 10)]
-    [InlineData(0, 0)]
-    [InlineData(10, 3)]
-    public void GivenAScreenTooSmall_WhenRendering_ThenNothingIsDrawnAndNothingThrows(int width, int height)
+    [Fact]
+    public void GivenAScreenTooSmall_WhenRendering_ThenNothingIsDrawnAndNothingThrows()
+    {
+        var failures = new List<string>();
+        (int width, int height)[] rows =
+        [
+            (39, 30),
+            (120, 10),
+            (0, 0),
+            (10, 3),
+        ];
+
+        foreach (var (width, height) in rows)
+        {
+            try
+            {
+                CheckNothingIsDrawnAndNothingThrows(width, height);
+            }
+            catch (XunitException exception)
+            {
+                failures.Add($"{width}, {height}: {exception.Message}");
+            }
+        }
+
+        Assert.Empty(failures);
+    }
+
+    private static void CheckNothingIsDrawnAndNothingThrows(int width, int height)
     {
         Assert.Null(ConflictEditorFrameBuilder.Build(State(Text), width, height, GraphGlyphSet.Unicode));
         Assert.Null(ConflictEditorFrameBuilder.ChipAt(State(Text), 1, 1, width, height));

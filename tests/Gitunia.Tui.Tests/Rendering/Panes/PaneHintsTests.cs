@@ -7,6 +7,7 @@ using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Panes;
 using Gitunia.Tui.Rendering.Screen;
 using Xunit;
+using Xunit.Sdk;
 
 namespace Gitunia.Tui.Tests.Rendering.Panes;
 
@@ -14,9 +15,30 @@ public class PaneHintsTests
 {
     public static TheoryData<PaneKind> Panes() => [.. Enum.GetValues<PaneKind>()];
 
-    [Theory]
-    [MemberData(nameof(Panes))]
-    public void GivenMinimalMode_WhenLimitingAPanesHints_ThenOnlyHelpCommandsAndQuitRemain(PaneKind pane)
+    // One fact walks every pane (or hint set) and names the ones that fail, instead of one test row each.
+    private static void ForEvery<T>(IEnumerable<T> items, Action<T> check)
+    {
+        var failures = new List<string>();
+        foreach (var item in items)
+        {
+            try
+            {
+                check(item);
+            }
+            catch (XunitException exception)
+            {
+                failures.Add($"{item}: {exception.Message}");
+            }
+        }
+
+        Assert.Empty(failures);
+    }
+
+    [Fact]
+    public void GivenMinimalMode_WhenLimitingAPanesHints_ThenOnlyHelpCommandsAndQuitRemain()
+        => ForEvery(Enum.GetValues<PaneKind>(), CheckOnlyHelpCommandsAndQuitRemain);
+
+    private static void CheckOnlyHelpCommandsAndQuitRemain(PaneKind pane)
     {
         var limited = PaneHints.Limit(PaneHints.For(pane), StatusBarHintMode.Minimal);
 
@@ -24,10 +46,11 @@ public class PaneHintsTests
         Assert.All(limited, hint => Assert.Contains(PaneHints.For(pane), other => other == hint));
     }
 
-    [Theory]
-    [MemberData(nameof(Panes))]
-    public void GivenFullMode_WhenLimitingAtEachLevel_ThenOnlyHintsWithAListedActionRemainAndEveryoneKeepsThePinnedOnes(
-        PaneKind pane)
+    [Fact]
+    public void GivenFullMode_WhenLimitingAtEachLevel_ThenOnlyHintsWithAListedActionRemainAndEveryoneKeepsThePinnedOnes()
+        => ForEvery(Enum.GetValues<PaneKind>(), CheckOnlyHintsWithAListedActionRemainAndEveryoneKeepsThePinnedOnes);
+
+    private static void CheckOnlyHintsWithAListedActionRemainAndEveryoneKeepsThePinnedOnes(PaneKind pane)
     {
         var hints = PaneHints.For(pane);
 
@@ -79,29 +102,73 @@ public class PaneHintsTests
         Assert.Same(hints, PaneHints.Limit(hints, StatusBarHintMode.Full));
     }
 
-    [Theory]
-    [InlineData(PaneKind.Graph, "gg/G")]
-    [InlineData(PaneKind.Sidebar, "/")]
-    [InlineData(PaneKind.Detail, "Enter")]
-    [InlineData(PaneKind.Diff, "<space>v")]
-    [InlineData(PaneKind.WorkingUnstaged, "<space>c")]
-    [InlineData(PaneKind.WorkingStaged, "<space>c")]
-    [InlineData(PaneKind.WorkingUnstagedDiff, "]c/[c")]
-    [InlineData(PaneKind.WorkingStagedDiff, "<space>v")]
-    public void GivenAPane_WhenAskingForHints_ThenTheyMentionThatPanesKeys(PaneKind pane, string expectedKeys)
+    [Fact]
+    public void GivenAPane_WhenAskingForHints_ThenTheyMentionThatPanesKeys()
+    {
+        var failures = new List<string>();
+        (PaneKind pane, string expectedKeys)[] rows =
+        [
+            (PaneKind.Graph, "gg/G"),
+            (PaneKind.Sidebar, "/"),
+            (PaneKind.Detail, "Enter"),
+            (PaneKind.Diff, "<space>v"),
+            (PaneKind.WorkingUnstaged, "<space>c"),
+            (PaneKind.WorkingStaged, "<space>c"),
+            (PaneKind.WorkingUnstagedDiff, "]c/[c"),
+            (PaneKind.WorkingStagedDiff, "<space>v"),
+        ];
+
+        foreach (var (pane, expectedKeys) in rows)
+        {
+            try
+            {
+                CheckTheyMentionThatPanesKeys(pane, expectedKeys);
+            }
+            catch (XunitException exception)
+            {
+                failures.Add($"{pane}, {expectedKeys}: {exception.Message}");
+            }
+        }
+
+        Assert.Empty(failures);
+    }
+
+    private static void CheckTheyMentionThatPanesKeys(PaneKind pane, string expectedKeys)
     {
         Assert.Contains(PaneHints.For(pane), hint => hint.Keys == expectedKeys);
     }
 
-    [Theory]
-    [InlineData(PaneKind.Graph)]
-    [InlineData(PaneKind.Diff)]
-    [InlineData(PaneKind.Detail)]
-    [InlineData(PaneKind.WorkingUnstaged)]
-    [InlineData(PaneKind.WorkingStaged)]
-    [InlineData(PaneKind.WorkingUnstagedDiff)]
-    [InlineData(PaneKind.WorkingStagedDiff)]
-    public void GivenAPaneWithTheQuickJump_WhenAskingForHints_ThenTheyOfferIt(PaneKind pane)
+    [Fact]
+    public void GivenAPaneWithTheQuickJump_WhenAskingForHints_ThenTheyOfferIt()
+    {
+        var failures = new List<string>();
+        PaneKind[] rows =
+        [
+            PaneKind.Graph,
+            PaneKind.Diff,
+            PaneKind.Detail,
+            PaneKind.WorkingUnstaged,
+            PaneKind.WorkingStaged,
+            PaneKind.WorkingUnstagedDiff,
+            PaneKind.WorkingStagedDiff,
+        ];
+
+        foreach (var pane in rows)
+        {
+            try
+            {
+                CheckTheyOfferIt(pane);
+            }
+            catch (XunitException exception)
+            {
+                failures.Add($"{pane}: {exception.Message}");
+            }
+        }
+
+        Assert.Empty(failures);
+    }
+
+    private static void CheckTheyOfferIt(PaneKind pane)
     {
         Assert.Contains(PaneHints.For(pane), hint => hint.Keys == "<space>j" && hint.Actions.Contains(ActionIds.QuickJump));
     }
@@ -115,9 +182,11 @@ public class PaneHintsTests
         Assert.Contains(PaneHints.For(pane), hint => hint.Keys == "<space>s" && hint.Description == "Changes view");
     }
 
-    [Theory]
-    [MemberData(nameof(Panes))]
-    public void GivenAPane_WhenAskingForHints_ThenEveryHintHasKeysAndADescription(PaneKind pane)
+    [Fact]
+    public void GivenAPane_WhenAskingForHints_ThenEveryHintHasKeysAndADescription()
+        => ForEvery(Enum.GetValues<PaneKind>(), CheckEveryHintHasKeysAndADescription);
+
+    private static void CheckEveryHintHasKeysAndADescription(PaneKind pane)
     {
         Assert.NotEmpty(PaneHints.For(pane));
 
@@ -248,9 +317,11 @@ public class PaneHintsTests
         }
     }
 
-    [Theory]
-    [MemberData(nameof(Panes))]
-    public void GivenAPane_WhenAskingForHints_ThenNoKeyUsesTheCaretNotation(PaneKind pane)
+    [Fact]
+    public void GivenAPane_WhenAskingForHints_ThenNoKeyUsesTheCaretNotation()
+        => ForEvery(Enum.GetValues<PaneKind>(), CheckNoKeyUsesTheCaretNotation);
+
+    private static void CheckNoKeyUsesTheCaretNotation(PaneKind pane)
     {
         Assert.All(PaneHints.For(pane), hint => Assert.DoesNotContain('^', hint.Keys));
     }
@@ -304,9 +375,11 @@ public class PaneHintsTests
         Assert.DoesNotContain('^', text);
     }
 
-    [Theory]
-    [MemberData(nameof(Panes))]
-    public void GivenAPaneAt80Columns_WhenBuildingTheStatusBar_ThenHelpAndCommandsStayVisible(PaneKind pane)
+    [Fact]
+    public void GivenAPaneAt80Columns_WhenBuildingTheStatusBar_ThenHelpAndCommandsStayVisible()
+        => ForEvery(Enum.GetValues<PaneKind>(), CheckHelpAndCommandsStayVisible);
+
+    private static void CheckHelpAndCommandsStayVisible(PaneKind pane)
     {
         var model = new ScreenModel("repo", null, 1, 1, "NORMAL", string.Empty, 1, 1, false, "Could not read the stashes: boom", Hints: PaneHints.For(pane));
 
@@ -315,9 +388,11 @@ public class PaneHintsTests
         Assert.Contains("? help  : commands", text, StringComparison.Ordinal);
     }
 
-    [Theory]
-    [MemberData(nameof(Panes))]
-    public void GivenAPane_WhenCheckingItsHints_ThenEveryKeyTriggersItsActionInTheDefaultKeymapForThatPane(PaneKind pane)
+    [Fact]
+    public void GivenAPane_WhenCheckingItsHints_ThenEveryKeyTriggersItsActionInTheDefaultKeymapForThatPane()
+        => ForEvery(Enum.GetValues<PaneKind>(), CheckEveryKeyTriggersItsActionInTheDefaultKeymapForThatPane);
+
+    private static void CheckEveryKeyTriggersItsActionInTheDefaultKeymapForThatPane(PaneKind pane)
     {
         var view = ViewFor(pane);
 
@@ -362,9 +437,11 @@ public class PaneHintsTests
             "Palette",
         ];
 
-    [Theory]
-    [MemberData(nameof(ModalHintSets))]
-    public void GivenAModalHintSet_WhenCheckingItsHints_ThenEveryKeyTriggersItsActionInItsView(string set)
+    [Fact]
+    public void GivenAModalHintSet_WhenCheckingItsHints_ThenEveryKeyTriggersItsActionInItsView()
+        => ForEvery(ModalHintSets().Select(row => row.Data), CheckEveryKeyTriggersItsActionInItsView);
+
+    private static void CheckEveryKeyTriggersItsActionInItsView(string set)
     {
         switch (set)
         {

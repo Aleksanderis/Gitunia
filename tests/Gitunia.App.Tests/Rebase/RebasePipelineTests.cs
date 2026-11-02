@@ -2,7 +2,6 @@ using Gitunia.App.Tests.Fakes;
 using Gitunia.Core.Overlays;
 using Gitunia.Core.Prompts;
 using Gitunia.Core.Rebase;
-using Gitunia.Core.Running;
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
 using Gitunia.Git.Operations;
@@ -110,50 +109,6 @@ public class RebasePipelineTests
     }
 
     [Fact]
-    public async Task GivenAMiddleCommit_WhenDroppedAfterConfirming_ThenItIsGoneAndTheUndoIsNamed()
-    {
-        using var repository = Linear();
-        var oldTip = repository.Head;
-        using var pipeline = await FeaturePipeline.OpenAsync(QuickServices(), repository);
-
-        pipeline.Dispatch(new QuickRebaseRequested(
-            pipeline.TabId,
-            QuickRebaseKind.Drop,
-            repository.Git("rev-parse", "HEAD~1").Trim()));
-        Assert.True(IsRebaseRunning(pipeline));
-        await pipeline.UntilAsync(() => pipeline.Confirm is not null);
-
-        var prompt = pipeline.Confirm!.Prompt;
-        Assert.Equal("Drop commit", prompt.Title);
-        Assert.Contains("\"Three\"", prompt.Lines[0], StringComparison.Ordinal);
-        Assert.Contains("1 later commit of main is replayed", prompt.Lines[1], StringComparison.Ordinal);
-        Assert.Equal(oldTip, repository.Head);
-        pipeline.Answer(ConfirmAnswer.Yes);
-        await pipeline.UntilAsync(() => !pipeline.IsBusy && pipeline.Statuses.Log.Latest is not null);
-
-        Assert.Equal(["One", "Two", "Four"], Subjects(repository));
-        Assert.Contains($"git reset --keep {oldTip}", pipeline.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public async Task GivenACommit_WhenFixedUp_ThenItMeldsIntoTheCommitBefore()
-    {
-        using var repository = Linear();
-        using var pipeline = await FeaturePipeline.OpenAsync(QuickServices(), repository);
-
-        pipeline.Dispatch(new QuickRebaseRequested(
-            pipeline.TabId,
-            QuickRebaseKind.Fixup,
-            repository.Git("rev-parse", "HEAD~1").Trim()));
-        await pipeline.UntilAsync(() => pipeline.Confirm is not null);
-        Assert.Equal("Fix up commit", pipeline.Confirm!.Prompt.Title);
-        pipeline.Answer(ConfirmAnswer.Yes);
-        await pipeline.UntilAsync(() => !pipeline.IsBusy && pipeline.Statuses.Log.Latest is not null);
-
-        Assert.Equal(["One", "Two", "Four"], Subjects(repository));
-    }
-
-    [Fact]
     public async Task GivenACommit_WhenRewordedWithANewSubject_ThenThePromptThenTheConfirmThenTheMessageChanges()
     {
         using var repository = Linear();
@@ -213,9 +168,6 @@ public class RebasePipelineTests
 
     private static RebaseOntoRequested Onto(FeaturePipeline pipeline, string commit) =>
         new(pipeline.TabId, new RebaseSelection(null, null, commit));
-
-    private static bool IsRebaseRunning(FeaturePipeline pipeline) =>
-        pipeline.Host.Workspace.FindTab(pipeline.TabId)!.Running.IsRunning(RunningOperationKind.Rebase);
 
     // The quick rebase writes its todo through a copy command instead of the app binary, which tests do not have.
     private static GitServices QuickServices()

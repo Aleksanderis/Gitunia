@@ -5,6 +5,7 @@ using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Overlays;
 using Gitunia.Tui.Rendering.Styling;
 using Xunit;
+using Xunit.Sdk;
 
 namespace Gitunia.Tui.Tests.Rendering.Overlays;
 
@@ -84,12 +85,34 @@ public class OverlayFrameTests
             Text(frame));
     }
 
-    [Theory]
-    [InlineData(18, 14)]
-    [InlineData(30, 16)]
-    [InlineData(40, 10)]
-    [InlineData(200, 50)]
-    public void GivenConfirmDialog_WhenRenderingAtOtherSizes_ThenEveryRowHasTheSameWidthAndFitsTheScreen(int width, int height)
+    [Fact]
+    public void GivenConfirmDialog_WhenRenderingAtOtherSizes_ThenEveryRowHasTheSameWidthAndFitsTheScreen()
+    {
+        var failures = new List<string>();
+        (int width, int height)[] rows =
+        [
+            (18, 14),
+            (30, 16),
+            (40, 10),
+            (200, 50),
+        ];
+
+        foreach (var (width, height) in rows)
+        {
+            try
+            {
+                CheckEveryRowHasTheSameWidthAndFitsTheScreen(width, height);
+            }
+            catch (XunitException exception)
+            {
+                failures.Add($"{width}, {height}: {exception.Message}");
+            }
+        }
+
+        Assert.Empty(failures);
+    }
+
+    private static void CheckEveryRowHasTheSameWidthAndFitsTheScreen(int width, int height)
     {
         var state = OverlayState.OpenConfirm(DiscardPrompt(), KeyMode.Normal);
 
@@ -377,15 +400,37 @@ public class OverlayFrameTests
         Assert.Contains(visible[index.Value].Title, frame.Lines[2].Text, StringComparison.Ordinal);
     }
 
-    [Theory]
-    [InlineData(7)]
-    [InlineData(8)]
-    [InlineData(10)]
-    [InlineData(12)]
-    [InlineData(18)]
-    [InlineData(24)]
-    [InlineData(60)]
-    public void GivenAnyScreenHeight_WhenRenderingThePalette_ThenTheFooterIsDirectlyBelowTheLastEntryAndAboveTheStatusRow(int screenHeight)
+    [Fact]
+    public void GivenAnyScreenHeight_WhenRenderingThePalette_ThenTheFooterIsDirectlyBelowTheLastEntryAndAboveTheStatusRow()
+    {
+        var failures = new List<string>();
+        int[] rows =
+        [
+            7,
+            8,
+            10,
+            12,
+            18,
+            24,
+            60,
+        ];
+
+        foreach (var screenHeight in rows)
+        {
+            try
+            {
+                CheckTheFooterIsDirectlyBelowTheLastEntryAndAboveTheStatusRow(screenHeight);
+            }
+            catch (XunitException exception)
+            {
+                failures.Add($"{screenHeight}: {exception.Message}");
+            }
+        }
+
+        Assert.Empty(failures);
+    }
+
+    private static void CheckTheFooterIsDirectlyBelowTheLastEntryAndAboveTheStatusRow(int screenHeight)
     {
         var palette = Palette().Move(1000);
 
@@ -620,14 +665,36 @@ public class OverlayFrameTests
         Assert.True(frame.Row + frame.Height <= 6);
     }
 
-    [Theory]
-    [InlineData(80, 24)]
-    [InlineData(40, 12)]
-    [InlineData(30, 8)]
-    [InlineData(20, 6)]
-    [InlineData(10, 4)]
-    [InlineData(5, 2)]
-    public void GivenAnyScreenSize_WhenRenderingOverlays_ThenFramesFitTheScreenAndEveryLineIsTheSameWidth(int width, int height)
+    [Fact]
+    public void GivenAnyScreenSize_WhenRenderingOverlays_ThenFramesFitTheScreenAndEveryLineIsTheSameWidth()
+    {
+        var failures = new List<string>();
+        (int width, int height)[] rows =
+        [
+            (80, 24),
+            (40, 12),
+            (30, 8),
+            (20, 6),
+            (10, 4),
+            (5, 2),
+        ];
+
+        foreach (var (width, height) in rows)
+        {
+            try
+            {
+                CheckFramesFitTheScreenAndEveryLineIsTheSameWidth(width, height);
+            }
+            catch (XunitException exception)
+            {
+                failures.Add($"{width}, {height}: {exception.Message}");
+            }
+        }
+
+        Assert.Empty(failures);
+    }
+
+    private static void CheckFramesFitTheScreenAndEveryLineIsTheSameWidth(int width, int height)
     {
         var frames = new[]
         {

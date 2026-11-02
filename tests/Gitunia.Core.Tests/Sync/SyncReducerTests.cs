@@ -8,6 +8,7 @@ using Gitunia.Git.Refs.Models;
 using Gitunia.Git.Remotes.Models;
 using Gitunia.Git.Repositories.Models;
 using Xunit;
+using Xunit.Sdk;
 
 namespace Gitunia.Core.Tests.Sync;
 
@@ -49,13 +50,35 @@ public class SyncReducerTests
         Assert.Null(update.State);
     }
 
-    [Theory]
-    [InlineData(SyncKind.Fetch)]
-    [InlineData(SyncKind.FetchAll)]
-    [InlineData(SyncKind.Pull)]
-    [InlineData(SyncKind.Push)]
-    [InlineData(SyncKind.PushForce)]
-    public void GivenARunningTransfer_WhenAnotherIsRequested_ThenItIsRefusedAsBusyAndKeepsTheRunningOne(SyncKind kind)
+    [Fact]
+    public void GivenARunningTransfer_WhenAnotherIsRequested_ThenItIsRefusedAsBusyAndKeepsTheRunningOne()
+    {
+        var failures = new List<string>();
+        SyncKind[] rows =
+        [
+            SyncKind.Fetch,
+            SyncKind.FetchAll,
+            SyncKind.Pull,
+            SyncKind.Push,
+            SyncKind.PushForce,
+        ];
+
+        foreach (var kind in rows)
+        {
+            try
+            {
+                CheckItIsRefusedAsBusyAndKeepsTheRunningOne(kind);
+            }
+            catch (XunitException exception)
+            {
+                failures.Add($"{kind}: {exception.Message}");
+            }
+        }
+
+        Assert.Empty(failures);
+    }
+
+    private static void CheckItIsRefusedAsBusyAndKeepsTheRunningOne(SyncKind kind)
     {
         var running = new SyncState("Fetching", "Fetch", null, false);
 

@@ -18,6 +18,7 @@ using Gitunia.Git.Refs.Models;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Status.Models;
 using Xunit;
+using Xunit.Sdk;
 
 namespace Gitunia.Core.Tests.Conflicts;
 
@@ -46,18 +47,39 @@ public class ConflictReducerTests
         Assert.False(update.State.Shell.Conflict.IsOpen);
     }
 
-    [Theory]
-    [InlineData(RunningOperationKind.Staging)]
-    [InlineData(RunningOperationKind.Discard)]
-    [InlineData(RunningOperationKind.Commit)]
-    [InlineData(RunningOperationKind.Stash)]
-    [InlineData(RunningOperationKind.Integration)]
-    [InlineData(RunningOperationKind.Pick)]
-    [InlineData(RunningOperationKind.Rebase)]
-    [InlineData(RunningOperationKind.Branches)]
-    [InlineData(RunningOperationKind.Sync)]
-    public void GivenAnotherWorkingTreeOperationRuns_WhenOpeningTheEditor_ThenItIsRefusedAsBusy(
-        RunningOperationKind running)
+    [Fact]
+    public void GivenAnotherWorkingTreeOperationRuns_WhenOpeningTheEditor_ThenItIsRefusedAsBusy()
+    {
+        var failures = new List<string>();
+        RunningOperationKind[] rows =
+        [
+            RunningOperationKind.Staging,
+            RunningOperationKind.Discard,
+            RunningOperationKind.Commit,
+            RunningOperationKind.Stash,
+            RunningOperationKind.Integration,
+            RunningOperationKind.Pick,
+            RunningOperationKind.Rebase,
+            RunningOperationKind.Branches,
+            RunningOperationKind.Sync,
+        ];
+
+        foreach (var running in rows)
+        {
+            try
+            {
+                CheckItIsRefusedAsBusy(running);
+            }
+            catch (XunitException exception)
+            {
+                failures.Add($"{running}: {exception.Message}");
+            }
+        }
+
+        Assert.Empty(failures);
+    }
+
+    private static void CheckItIsRefusedAsBusy(RunningOperationKind running)
     {
         var state = Loaded(Entry(Path, ConflictKind.BothModified));
         var tab = state.Workspace.ActiveTab!;

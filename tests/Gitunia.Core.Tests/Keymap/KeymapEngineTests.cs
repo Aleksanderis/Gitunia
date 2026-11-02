@@ -1,6 +1,7 @@
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Xunit;
+using Xunit.Sdk;
 
 namespace Gitunia.Core.Tests.Keymap;
 
@@ -259,18 +260,40 @@ public class KeymapEngineTests
         Assert.Equal(ActionIds.DetailCollapse, CreateFeeder(DefaultKeymap.DetailChangesView).Feed("h").Action);
     }
 
-    [Theory]
-    [InlineData(DefaultKeymap.GraphView)]
-    [InlineData(DefaultKeymap.DetailView)]
-    [InlineData(DefaultKeymap.DetailChangesView)]
-    [InlineData(DefaultKeymap.DetailFilesView)]
-    [InlineData(DefaultKeymap.SidebarView)]
-    [InlineData(DefaultKeymap.DiffView)]
-    [InlineData(DefaultKeymap.WorkingUnstagedView)]
-    [InlineData(DefaultKeymap.WorkingStagedView)]
-    [InlineData(DefaultKeymap.WorkingUnstagedDiffView)]
-    [InlineData(DefaultKeymap.WorkingStagedDiffView)]
-    public void GivenAnyPane_WhenPressingBareHOrL_ThenNoPaneFocusActionRuns(string view)
+    [Fact]
+    public void GivenAnyPane_WhenPressingBareHOrL_ThenNoPaneFocusActionRuns()
+    {
+        var failures = new List<string>();
+        string[] rows =
+        [
+            DefaultKeymap.GraphView,
+            DefaultKeymap.DetailView,
+            DefaultKeymap.DetailChangesView,
+            DefaultKeymap.DetailFilesView,
+            DefaultKeymap.SidebarView,
+            DefaultKeymap.DiffView,
+            DefaultKeymap.WorkingUnstagedView,
+            DefaultKeymap.WorkingStagedView,
+            DefaultKeymap.WorkingUnstagedDiffView,
+            DefaultKeymap.WorkingStagedDiffView,
+        ];
+
+        foreach (var view in rows)
+        {
+            try
+            {
+                CheckNoPaneFocusActionRuns(view);
+            }
+            catch (XunitException exception)
+            {
+                failures.Add($"{view}: {exception.Message}");
+            }
+        }
+
+        Assert.Empty(failures);
+    }
+
+    private static void CheckNoPaneFocusActionRuns(string view)
     {
         List<ActionId?> crossing =
         [

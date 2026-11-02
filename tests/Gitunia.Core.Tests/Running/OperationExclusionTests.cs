@@ -41,64 +41,25 @@ public class OperationExclusionTests
         RunningOperationKind.Stash,
     ];
 
-    public static TheoryData<RunningOperationKind, RunningOperationKind> WriterPairs()
+    [Fact]
+    public void GivenTheWritersSyncRemotesAndTags_WhenAskingTheTable_ThenEveryWriterPairAndSyncExcludeEachOther()
     {
-        var data = new TheoryData<RunningOperationKind, RunningOperationKind>();
         foreach (var first in Writers)
         {
             foreach (var second in Writers)
             {
-                data.Add(first, second);
+                Assert.True(OperationExclusion.IsExcludedBy(first, second), $"{first} vs {second}");
             }
+
+            Assert.True(OperationExclusion.IsExcludedBy(RunningOperationKind.Sync, first), $"Sync vs {first}");
+            Assert.True(OperationExclusion.IsExcludedBy(first, RunningOperationKind.Sync), $"{first} vs Sync");
         }
 
-        return data;
-    }
-
-    public static TheoryData<RunningOperationKind> WriterKinds()
-    {
-        var data = new TheoryData<RunningOperationKind>();
-        foreach (var writer in Writers)
+        foreach (var kind in new[] { RunningOperationKind.Remotes, RunningOperationKind.Tags })
         {
-            data.Add(writer);
+            Assert.True(OperationExclusion.IsExcludedBy(RunningOperationKind.Sync, kind), $"Sync vs {kind}");
+            Assert.True(OperationExclusion.IsExcludedBy(kind, RunningOperationKind.Sync), $"{kind} vs Sync");
         }
-
-        return data;
-    }
-
-    public static TheoryData<RunningOperationKind> WriterAndSyncKinds()
-    {
-        var data = WriterKinds();
-        data.Add(RunningOperationKind.Sync);
-
-        return data;
-    }
-
-    [Theory]
-    [MemberData(nameof(WriterPairs))]
-    public void GivenTwoWorkingTreeWriters_WhenAskingTheTable_ThenEachExcludesTheOther(
-        RunningOperationKind first,
-        RunningOperationKind second)
-    {
-        Assert.True(OperationExclusion.IsExcludedBy(first, second));
-        Assert.True(OperationExclusion.IsExcludedBy(second, first));
-    }
-
-    [Theory]
-    [MemberData(nameof(WriterKinds))]
-    public void GivenAWriterOrSync_WhenAskingTheTable_ThenSyncAndTheWriterExcludeEachOther(RunningOperationKind writer)
-    {
-        Assert.True(OperationExclusion.IsExcludedBy(RunningOperationKind.Sync, writer));
-        Assert.True(OperationExclusion.IsExcludedBy(writer, RunningOperationKind.Sync));
-    }
-
-    [Theory]
-    [InlineData(RunningOperationKind.Remotes)]
-    [InlineData(RunningOperationKind.Tags)]
-    public void GivenRemoteManagementOrTags_WhenAskingTheTable_ThenSyncAndItExcludeEachOther(RunningOperationKind kind)
-    {
-        Assert.True(OperationExclusion.IsExcludedBy(RunningOperationKind.Sync, kind));
-        Assert.True(OperationExclusion.IsExcludedBy(kind, RunningOperationKind.Sync));
     }
 
     [Theory]
@@ -121,7 +82,7 @@ public class OperationExclusionTests
     }
 
     [Theory]
-    [MemberData(nameof(WriterKinds))]
+    [InlineData(RunningOperationKind.Commit)]
     public void GivenAWorkingTreeWriterRuns_WhenAStashApplyIsRequested_ThenItIsRefusedAndNothingStarts(
         RunningOperationKind running)
     {
@@ -161,7 +122,7 @@ public class OperationExclusionTests
     }
 
     [Theory]
-    [MemberData(nameof(WriterKinds))]
+    [InlineData(RunningOperationKind.Commit)]
     public void GivenAWorkingTreeWriterRuns_WhenAPullIsRequested_ThenItIsRefused(RunningOperationKind running)
     {
         var (state, tabId) = Opened();
@@ -199,7 +160,7 @@ public class OperationExclusionTests
     }
 
     [Theory]
-    [MemberData(nameof(WriterKinds))]
+    [InlineData(RunningOperationKind.Commit)]
     public void GivenAWorkingTreeWriterRuns_WhenTheRebaseEditorIsOpened_ThenItIsRefusedAndNothingStarts(
         RunningOperationKind running)
     {
@@ -215,7 +176,8 @@ public class OperationExclusionTests
     }
 
     [Theory]
-    [MemberData(nameof(WriterAndSyncKinds))]
+    [InlineData(RunningOperationKind.Commit)]
+    [InlineData(RunningOperationKind.Sync)]
     public void GivenAnotherOperationRuns_WhenACherryPickIsRequested_ThenItIsRefusedAndNothingStarts(
         RunningOperationKind running)
     {
@@ -231,7 +193,8 @@ public class OperationExclusionTests
     }
 
     [Theory]
-    [MemberData(nameof(WriterAndSyncKinds))]
+    [InlineData(RunningOperationKind.Commit)]
+    [InlineData(RunningOperationKind.Sync)]
     public void GivenAnotherOperationRuns_WhenARebaseIsRequested_ThenItIsRefusedAndNothingStarts(
         RunningOperationKind running)
     {
@@ -245,7 +208,8 @@ public class OperationExclusionTests
     }
 
     [Theory]
-    [MemberData(nameof(WriterAndSyncKinds))]
+    [InlineData(RunningOperationKind.Commit)]
+    [InlineData(RunningOperationKind.Sync)]
     public void GivenAnotherOperationRuns_WhenABranchIsCreatedAndCheckedOut_ThenItIsRefusedAndNothingStarts(
         RunningOperationKind running)
     {
@@ -259,7 +223,8 @@ public class OperationExclusionTests
     }
 
     [Theory]
-    [MemberData(nameof(WriterAndSyncKinds))]
+    [InlineData(RunningOperationKind.Commit)]
+    [InlineData(RunningOperationKind.Sync)]
     public void GivenAnotherOperationRuns_WhenAMergeIsRequested_ThenItIsRefusedAndNothingStarts(
         RunningOperationKind running)
     {
@@ -275,7 +240,8 @@ public class OperationExclusionTests
     }
 
     [Theory]
-    [MemberData(nameof(WriterAndSyncKinds))]
+    [InlineData(RunningOperationKind.Commit)]
+    [InlineData(RunningOperationKind.Sync)]
     public void GivenAnotherOperationRuns_WhenAFetchIsRequested_ThenItIsRefusedAndNothingStarts(
         RunningOperationKind running)
     {

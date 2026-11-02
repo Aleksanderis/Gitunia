@@ -1,20 +1,43 @@
 using Gitunia.Core.Picker;
 using Xunit;
+using Xunit.Sdk;
 
 namespace Gitunia.Core.Tests.Picker;
 
 public class PathQueryTests
 {
-    [Theory]
-    [InlineData("/usr/src")]
-    [InlineData("~")]
-    [InlineData("~/code")]
-    [InlineData("./app")]
-    [InlineData("../app")]
-    [InlineData("..")]
-    [InlineData("C:\\work")]
-    [InlineData("c:/work")]
-    public void GivenPathPrefix_WhenChecking_ThenItIsAPath(string text)
+    [Fact]
+    public void GivenPathPrefix_WhenChecking_ThenItIsAPath()
+    {
+        var failures = new List<string>();
+        string[] rows =
+        [
+            "/usr/src",
+            "~",
+            "~/code",
+            "./app",
+            "../app",
+            "..",
+            "C:\\work",
+            "c:/work",
+        ];
+
+        foreach (var text in rows)
+        {
+            try
+            {
+                CheckItIsAPath(text);
+            }
+            catch (XunitException exception)
+            {
+                failures.Add($"{text}: {exception.Message}");
+            }
+        }
+
+        Assert.Empty(failures);
+    }
+
+    private static void CheckItIsAPath(string text)
     {
         Assert.True(PathQuery.IsPath(text));
     }

@@ -7,6 +7,7 @@ using Gitunia.Tui.Rendering.Sidebar;
 using Gitunia.Tui.Rendering.Styling;
 using Gitunia.Tui.Tests.Rendering.Graph;
 using Xunit;
+using Xunit.Sdk;
 
 namespace Gitunia.Tui.Tests.Rendering.Sidebar;
 
@@ -264,13 +265,35 @@ public class SidebarFrameTests
         Assert.Equal(without.Select(line => line.Text), withSidebar.Select(line => line.Text));
     }
 
-    [Theory]
-    [InlineData(60, 8)]
-    [InlineData(80, 24)]
-    [InlineData(200, 60)]
-    [InlineData(61, 3)]
-    [InlineData(90, 1)]
-    public void GivenAnyTerminalSize_WhenComposingWithSidebar_ThenEveryLineFillsTheWidthExactly(int width, int height)
+    [Fact]
+    public void GivenAnyTerminalSize_WhenComposingWithSidebar_ThenEveryLineFillsTheWidthExactly()
+    {
+        var failures = new List<string>();
+        (int width, int height)[] rows =
+        [
+            (60, 8),
+            (80, 24),
+            (200, 60),
+            (61, 3),
+            (90, 1),
+        ];
+
+        foreach (var (width, height) in rows)
+        {
+            try
+            {
+                CheckEveryLineFillsTheWidthExactly(width, height);
+            }
+            catch (XunitException exception)
+            {
+                failures.Add($"{width}, {height}: {exception.Message}");
+            }
+        }
+
+        Assert.Empty(failures);
+    }
+
+    private static void CheckEveryLineFillsTheWidthExactly(int width, int height)
     {
         var sidebar = Sidebar(Section(SidebarSection.Branches, "Branches", 1, true), Branch("修正ブランチ", "ワークツリー", true, 1, 1));
 

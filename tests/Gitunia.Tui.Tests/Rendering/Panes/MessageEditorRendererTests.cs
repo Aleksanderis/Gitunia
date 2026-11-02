@@ -2,6 +2,7 @@ using Gitunia.Core.Editing;
 using Gitunia.Tui.Rendering.Panes;
 using Gitunia.Tui.Rendering.Styling;
 using Xunit;
+using Xunit.Sdk;
 
 namespace Gitunia.Tui.Tests.Rendering.Panes;
 
@@ -72,12 +73,34 @@ public class MessageEditorRendererTests
         Assert.Equal("bc", hint.Text);
     }
 
-    [Theory]
-    [InlineData(0, 0)]
-    [InlineData(0, 3)]
-    [InlineData(1, 1)]
-    [InlineData(-2, -2)]
-    public void GivenTinyBox_WhenRendering_ThenItNeverThrows(int width, int height)
+    [Fact]
+    public void GivenTinyBox_WhenRendering_ThenItNeverThrows()
+    {
+        var failures = new List<string>();
+        (int width, int height)[] rows =
+        [
+            (0, 0),
+            (0, 3),
+            (1, 1),
+            (-2, -2),
+        ];
+
+        foreach (var (width, height) in rows)
+        {
+            try
+            {
+                CheckItNeverThrows(width, height);
+            }
+            catch (XunitException exception)
+            {
+                failures.Add($"{width}, {height}: {exception.Message}");
+            }
+        }
+
+        Assert.Empty(failures);
+    }
+
+    private static void CheckItNeverThrows(int width, int height)
     {
         var editor = new MessageEditor();
         editor.SetText("中文\nx");

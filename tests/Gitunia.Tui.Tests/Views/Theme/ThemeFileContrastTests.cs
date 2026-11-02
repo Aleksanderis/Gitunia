@@ -6,6 +6,7 @@ using Gitunia.Tui.Rendering.Styling;
 using Gitunia.Tui.Views.Theme;
 using Terminal.Gui.Drawing;
 using Xunit;
+using Xunit.Sdk;
 using StyledSegment = Gitunia.Tui.Rendering.Styling.StyledSegment;
 
 namespace Gitunia.Tui.Tests.Views.Theme;
@@ -33,9 +34,31 @@ public sealed class ThemeFileContrastTests
 
     public static TheoryData<string> AnsiNames => [.. AnsiColorNames.All];
 
-    [Theory]
-    [MemberData(nameof(Names))]
-    public void GivenABuiltInTheme_WhenColouringAnyRole_ThenTextIsReadableOnItsBackground(string name)
+    // One fact walks every theme (or ANSI name) and reports all that fail, instead of one test row each.
+    private static void ForEvery(TheoryData<string> names, Action<string> check)
+    {
+        var failures = new List<string>();
+        foreach (var row in names)
+        {
+            var name = row.Data;
+            try
+            {
+                check(name);
+            }
+            catch (XunitException exception)
+            {
+                failures.Add($"{name}: {exception.Message}");
+            }
+        }
+
+        Assert.Empty(failures);
+    }
+
+    [Fact]
+    public void GivenABuiltInTheme_WhenColouringAnyRole_ThenTextIsReadableOnItsBackground()
+        => ForEvery(Names, CheckTextIsReadableOnItsBackground);
+
+    private static void CheckTextIsReadableOnItsBackground(string name)
     {
         var (colors, definition) = TableOf(name);
         var failures = new List<string>();
@@ -62,9 +85,11 @@ public sealed class ThemeFileContrastTests
         Assert.Empty(failures);
     }
 
-    [Theory]
-    [MemberData(nameof(Names))]
-    public void GivenABuiltInTheme_WhenDrawingWhitespaceMarks_ThenTheyAreDimmerThanFaintTextInEveryState(string name)
+    [Fact]
+    public void GivenABuiltInTheme_WhenDrawingWhitespaceMarks_ThenTheyAreDimmerThanFaintTextInEveryState()
+        => ForEvery(Names, CheckTheyAreDimmerThanFaintTextInEveryState);
+
+    private static void CheckTheyAreDimmerThanFaintTextInEveryState(string name)
     {
         var (colors, definition) = TableOf(name);
         var failures = new List<string>();
@@ -108,9 +133,11 @@ public sealed class ThemeFileContrastTests
         Assert.False(faint.Style.HasFlag(TextStyle.Faint));
     }
 
-    [Theory]
-    [MemberData(nameof(Names))]
-    public void GivenABuiltInTheme_WhenColouringTheCursorGroup_ThenTextIsReadableOnTheGroupTint(string name)
+    [Fact]
+    public void GivenABuiltInTheme_WhenColouringTheCursorGroup_ThenTextIsReadableOnTheGroupTint()
+        => ForEvery(Names, CheckTextIsReadableOnTheGroupTint);
+
+    private static void CheckTextIsReadableOnTheGroupTint(string name)
     {
         var (colors, definition) = TableOf(name);
         SegmentRole[] roles =
@@ -129,9 +156,11 @@ public sealed class ThemeFileContrastTests
         }
     }
 
-    [Theory]
-    [MemberData(nameof(Names))]
-    public void GivenABuiltInTheme_WhenColouringLanes_ThenEveryLaneIsReadableOnTheBase(string name)
+    [Fact]
+    public void GivenABuiltInTheme_WhenColouringLanes_ThenEveryLaneIsReadableOnTheBase()
+        => ForEvery(Names, CheckEveryLaneIsReadableOnTheBase);
+
+    private static void CheckEveryLaneIsReadableOnTheBase(string name)
     {
         var (colors, definition) = TableOf(name);
 
@@ -148,9 +177,11 @@ public sealed class ThemeFileContrastTests
         }
     }
 
-    [Theory]
-    [MemberData(nameof(Names))]
-    public void GivenABuiltInTheme_WhenRoundedTo256Colours_ThenEveryBranchLabelStaysReadable(string name)
+    [Fact]
+    public void GivenABuiltInTheme_WhenRoundedTo256Colours_ThenEveryBranchLabelStaysReadable()
+        => ForEvery(Names, CheckEveryBranchLabelStaysReadable);
+
+    private static void CheckEveryBranchLabelStaysReadable(string name)
     {
         var (colors, definition) = TableOf(name);
         var failures = new List<string>();
@@ -169,9 +200,11 @@ public sealed class ThemeFileContrastTests
         Assert.Empty(failures);
     }
 
-    [Theory]
-    [MemberData(nameof(Names))]
-    public void GivenABuiltInTheme_WhenRoundedTo256Colours_ThenRolesStayReadable(string name)
+    [Fact]
+    public void GivenABuiltInTheme_WhenRoundedTo256Colours_ThenRolesStayReadable()
+        => ForEvery(Names, CheckRolesStayReadable);
+
+    private static void CheckRolesStayReadable(string name)
     {
         var (colors, definition) = TableOf(name);
         var failures = new List<string>();
@@ -204,9 +237,11 @@ public sealed class ThemeFileContrastTests
         Assert.Empty(failures);
     }
 
-    [Theory]
-    [MemberData(nameof(Names))]
-    public void GivenABuiltInTheme_WhenAtSixteenColours_ThenRefsDifferAndNoTextMatchesItsBackground(string name)
+    [Fact]
+    public void GivenABuiltInTheme_WhenAtSixteenColours_ThenRefsDifferAndNoTextMatchesItsBackground()
+        => ForEvery(Names, CheckRefsDifferAndNoTextMatchesItsBackground);
+
+    private static void CheckRefsDifferAndNoTextMatchesItsBackground(string name)
     {
         var definition = DefinitionOf(name);
         var settings = new PaletteSettings(ColorDepth.Ansi16, definition.IsLight, false, definition);
@@ -228,9 +263,11 @@ public sealed class ThemeFileContrastTests
         }
     }
 
-    [Theory]
-    [MemberData(nameof(Names))]
-    public void GivenABuiltInTheme_WhenChosenByName_ThenItsVariantAndBaseColoursApply(string name)
+    [Fact]
+    public void GivenABuiltInTheme_WhenChosenByName_ThenItsVariantAndBaseColoursApply()
+        => ForEvery(Names, CheckItsVariantAndBaseColoursApply);
+
+    private static void CheckItsVariantAndBaseColoursApply(string name)
     {
         var definition = DefinitionOf(name);
 
@@ -258,9 +295,11 @@ public sealed class ThemeFileContrastTests
         Assert.Equal(new Color(ColorName16.BrightGreen), colors.Good);
     }
 
-    [Theory]
-    [MemberData(nameof(AnsiNames))]
-    public void GivenAnyAnsiColourName_WhenAtSixteenColours_ThenTheOverrideResolvesToThatColour(string ansiName)
+    [Fact]
+    public void GivenAnyAnsiColourName_WhenAtSixteenColours_ThenTheOverrideResolvesToThatColour()
+        => ForEvery(AnsiNames, CheckTheOverrideResolvesToThatColour);
+
+    private static void CheckTheOverrideResolvesToThatColour(string ansiName)
     {
         var definition = DefinitionOf("catppuccin-mocha") with
         {
@@ -300,9 +339,11 @@ public sealed class ThemeFileContrastTests
         return new LoadedTheme(PaletteTable.For(settings), definition);
     }
 
-    [Theory]
-    [MemberData(nameof(FocusedBarThemeNames))]
-    public void GivenAFixedBuiltInTheme_WhenSelectingARow_ThenTheFocusedBarIsClearlyApartFromThePage(string name)
+    [Fact]
+    public void GivenAFixedBuiltInTheme_WhenSelectingARow_ThenTheFocusedBarIsClearlyApartFromThePage()
+        => ForEvery(FocusedBarThemeNames, CheckTheFocusedBarIsClearlyApartFromThePage);
+
+    private static void CheckTheFocusedBarIsClearlyApartFromThePage(string name)
     {
         var (colors, definition) = TableOf(name);
         var baseBackground = Resolve(Color.None, definition, false);
@@ -320,9 +361,11 @@ public sealed class ThemeFileContrastTests
         "tokyo-night-day", "solarized-dark",
     ];
 
-    [Theory]
-    [MemberData(nameof(Names))]
-    public void GivenABuiltInTheme_WhenDrawingARangeRow_ThenItIsApartFromTheBaseMoreThanTheSelectedRow(string name)
+    [Fact]
+    public void GivenABuiltInTheme_WhenDrawingARangeRow_ThenItIsApartFromTheBaseMoreThanTheSelectedRow()
+        => ForEvery(Names, CheckItIsApartFromTheBaseMoreThanTheSelectedRow);
+
+    private static void CheckItIsApartFromTheBaseMoreThanTheSelectedRow(string name)
     {
         var (colors, definition) = TableOf(name);
         var baseBackground = Resolve(Color.None, definition, false);

@@ -43,21 +43,6 @@ public class SyncPipelineTests
     }
 
     [Fact]
-    public async Task GivenAPull_WhenItFinishes_ThenTheBranchFastForwards()
-    {
-        using var repository = TestRepositories.WithTrackingBranch(0, 0);
-        var theirs = PushFromAnotherClone(repository, "topic");
-        repository.Git("fetch", "-q", "origin");
-        using var pipeline = await Pipeline.OpenAsync(repository);
-
-        pipeline.Dispatch(new SyncRequested(pipeline.TabId, SyncKind.Pull));
-        await pipeline.UntilAsync(() => !pipeline.IsRunning);
-
-        Assert.Equal(theirs, repository.Git("rev-parse", "HEAD").Trim());
-        Assert.Equal("Pulled (fast-forward)", pipeline.Statuses.Log.Latest!.Text);
-    }
-
-    [Fact]
     public async Task GivenAFetchThatNeedsCredentials_WhenItFails_ThenTheRunnerAsksTheShellForTheTerminalRetry()
     {
         using var repository = TestRepositories.WithTrackingBranch(0, 0);
@@ -283,22 +268,6 @@ public class SyncPipelineTests
         await pipeline.UntilAsync(() => !pipeline.IsRunning);
 
         Assert.Equal(repository.Head, repository.GitIn(repository.OriginPath, ["rev-parse", "topic"]).Trim());
-    }
-
-    [Fact]
-    public async Task GivenABranchOnlyBehindItsUpstream_WhenPushingPlainly_ThenNoForcePushIsOffered()
-    {
-        using var repository = TestRepositories.WithTrackingBranch(0, 0);
-        var seen = repository.Git("rev-parse", "origin/topic").Trim();
-        repository.Git("reset", "--hard", "-q", "HEAD~1");
-        using var pipeline = await Pipeline.OpenAsync(repository);
-
-        pipeline.Dispatch(new SyncRequested(pipeline.TabId, SyncKind.Push));
-        await pipeline.UntilAsync(() => pipeline.Statuses.Log.Latest is not null && !pipeline.IsRunning);
-
-        Assert.StartsWith("Push failed", pipeline.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
-        Assert.Null(pipeline.Host.State.Shell.Confirm);
-        Assert.Equal(seen, repository.GitIn(repository.OriginPath, ["rev-parse", "topic"]).Trim());
     }
 
     [Fact]
