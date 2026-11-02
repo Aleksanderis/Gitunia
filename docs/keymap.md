@@ -181,7 +181,6 @@ Every default key binding, one table per view. The design rules, notation and mo
 | Keys | Modes | Action | What |
 |---|---|---|---|
 | `<space>.` | Normal | `menu.open-for-row` | Open the actions menu of the selected row |
-| `<space>H` | Normal | `file-history.open` | Open the history of the selected file, renames followed |
 | `za` | Normal | `detail.toggle-folder` | Open or close the folder under the cursor (Changes tab, tree style) |
 | `<space>vn` | Normal | `files.toggle-path-style` | Cycle the file paths: name first, full path, tree |
 | `<space>vv` | Normal | `files.open-view-options` | Open the view options menu of the file list |
@@ -200,7 +199,6 @@ Every default key binding, one table per view. The design rules, notation and mo
 | Keys | Modes | Action | What |
 |---|---|---|---|
 | `<space>.` | Normal | `menu.open-for-row` | Open the actions menu of the selected row |
-| `<space>H` | Normal | `file-history.open` | Open the history of the selected file, renames followed |
 | `<space>vv` | Normal | `files.open-view-options` | Open the view options menu of the file list |
 | `J` | Normal | `diff.scroll-down` | Scroll the diff down without focusing it |
 | `K` | Normal | `diff.scroll-up` | Scroll the diff up without focusing it |
@@ -285,6 +283,7 @@ Every default key binding, one table per view. The design rules, notation and mo
 | Keys | Modes | Action | What |
 |---|---|---|---|
 | `<space>gb` | Normal | `blame.open` | Blame the selected file (at the shown commit, or the working tree file) |
+| `<space>H` | Normal | `file-history.open` | Open the history of the selected file, renames followed |
 | `Enter` | Normal | `detail.open-diff` | Go to the file diff |
 | `l` | Normal | `detail.expand` | Open the directory or folder under the cursor |
 | `<space>od` | Normal | `detail.retry` | Retry loading the commit details |
