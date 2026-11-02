@@ -24,7 +24,7 @@ Owner-approved docs-reduction: (1) decisions entries only for non-obvious choice
 
 ## 2026-11-02 M7 impact report (effects-as-data, #990; issue #1031)
 
-Baseline `468de95` (main before the design spec PR #998, no `Gitunia.App`). End `d151844` (main after #1054). Numbers from `scripts/m7-impact.sh` (raw `find`/`grep`/`wc`, no `tokei`/`cloc` available) and `git diff`. Code lines = non-blank, not starting with `//`. Tests = `[Fact]`/`[Theory]` attributes (a Theory counts once, not per data row). Not measured, on purpose: `scripts/measure.sh` (startup, key latency), AOT binary size and `dotnet test` wall time; they were excluded by the run instructions for this task, so there is no performance verdict here and none is claimed; #1055 tracks them. Constructors with more than five parameters were not counted either (no cheap reliable counter).
+Baseline `468de95` (main before the design spec PR #998, no `Gitunia.App`). End `d151844` (main after #1054). Numbers from `scripts/m7-impact.sh` (raw `find`/`grep`/`wc`, no `tokei`/`cloc` available) and `git diff`. Code lines = non-blank, not starting with `//`. Tests = `[Fact]`/`[Theory]` attributes (a Theory counts once, not per data row). The performance, size, test-time and constructor numbers were first skipped and are in "Performance and constructor measurements" below (#1055).
 
 ### Totals (baseline..end)
 
@@ -83,7 +83,7 @@ Top 5 before: `TuiApplication` 2344, `MainView` 1064, `ConflictEditorController`
 | Core + App tests (no terminal) | 1099 (26%) | 2988 (54%) |
 | Tui tests | 2360 (56%) | 1759 (32%) |
 
-Core + App tests are counted as "no terminal" tests; I did not classify each App test as sync vs async, so the 54% is an upper bound for purely synchronous reducer tests. `dotnet test` wall time: not measured.
+Core + App tests are counted as "no terminal" tests; I did not classify each App test as sync vs async, so the 54% is an upper bound for purely synchronous reducer tests. `dotnet test` wall time: see the measurements section below.
 
 ### Verdict
 
@@ -103,6 +103,30 @@ Core + App tests are counted as "no terminal" tests; I did not classify each App
 | Feature logic covered by synchronous Core tests | Largely met (see tests table); not audited feature by feature. |
 | No delegate dependencies | Not met: 83 `Action<`/`Func<` tokens remain, 45 typed parameters by grep estimate (some are legitimate, e.g. callbacks inside pure helpers); #1047 and #1008 cover part. |
 | No late `null!` wiring | Met: the one left is an `out` default in `App/Loading/Commits/CommitDetailsCache.cs`, not late wiring. |
-| No constructors over five parameters | Not measured. |
+| No constructors over five parameters | Met for services: classes with more than five constructor parameters fell from 46 to 2 (`WorkingTreeActionHandler` and `DiffJumpRows`, 7 each). Not met for data: 82 records/structs (state, commands, effects, DTOs) have more than five, up from 52. See the measurements section. |
 | No files over ~500 lines in `src/` | Met in practice: one file at 504 lines, a constant list. |
-| Startup and key latency unchanged | Not measured here (excluded by the run instructions for this task); this report makes no claim. |
+| Startup and key latency unchanged | Met for cold start (+8%, 56.8 to 61.2 ms median, far under the 100 ms target), key latency and page scroll (equal); the commit details step is flagged at +26%, see #1071 and the measurements section. |
+
+### Performance and constructor measurements (#1055, #1042)
+
+Baseline `468de95` against `main` at `e062f2f` (after #1062). Both built as Native AOT linux-x64 Release (`dotnet publish src/Gitunia.Tui -c Release`), the baseline in a temporary worktree. Same machine (Linux, 14 threads), 5000-commit repository from `scripts/gen-big-repo.sh`, `scripts/measure.sh --runs 10 --keys 30`, 120x40, private `XDG_STATE_HOME`/`XDG_CONFIG_HOME`. Three rounds, baseline and main alternating; the table gives the median of the three round values (range in brackets). Tests: `dotnet build` then `dotnet test --no-build`, two runs each, alternating.
+
+| Measure | Baseline `468de95` | `main` `e062f2f` | Change |
+|---|---|---|---|
+| Cold start median (ms) | 56.8 (56.3-60.0) | 61.2 (58.5-65.7) | +8% |
+| Cold start p95 (ms) | 82.0 (67.0-83.1) | 77.1 (71.8-88.5) | inside noise |
+| `j` key latency median (ms) | 16.7 (16.4-20.7) | 16.7 (15.0-16.7) | 0% |
+| `j` key latency p95 (ms) | 35.4 (34.9-36.3) | 29.7 (26.5-33.3) | lower on main (-16%), ranges do not overlap |
+| Page scroll median (ms) | 17.4 (16.6-26.9) | 16.7 (15.7-17.2) | 0% |
+| Commit details step median (ms) | 22.2 (21.4-28.1) | 28.0 (25.5-28.6) | +26%, flagged |
+| 200 queued `j` settle (ms) | 24.9 (17.3-42.5) | 26.9 (25.4-33.3) | inside noise |
+| Jump to end (ms) | 25.0 (16.4-25.9) | 27.8 (12.7-30.0) | inside noise |
+| RSS after load (MiB) | 51.1 (50.5-51.2) | 55.1 (52.6-55.2) | +8% (+4.0 MiB) |
+| AOT binary (`gitunia`, bytes) | 16,037,320 | 17,400,904 | +8.5% (+1.3 MiB) |
+| `dotnet test` wall time, no build (s) | 10.7 / 9.7 | 12.1 / 10.3 | +10% on average; 7597 tests executed against 5987 (+27%) |
+| Classes with more than 5 constructor parameters | 46 (max 17) | 2 (max 7) | -96% |
+| Records/structs with more than 5 parameters (state, commands, effects, DTOs) | 52 | 82 | +30 |
+
+Counts of constructors come from `scripts/ctor-params.py` (a regex scan of primary and explicit constructors, not a parser; "class" means a class, "data" a record or struct). The classes that remain: `WorkingTreeActionHandler` (7, the issue #1042 late-wiring item) and `DiffJumpRows` (7, was 7). The 15 largest `src/` files by lines, baseline: `TuiApplication` 2344, `MainView` 1064, `ConflictEditorController` 1059, `DiffPaneController` 998, `BranchActions` 969, `RepositoryWatcher` 917, `CommitActions` 865, `ConflictEditorState` 809, `OverlayController` 664, `PushActions` 631, `SettingsController` 625, `DiffRowRenderer` 597, `MessageEditor` 591, `ConflictEditorFrameBuilder` 589, `RebaseEditorController` 577. Main: `ActionIds` 504, `SettingsFrameBuilder` 494, `DiffListSource` 491, `ActionCatalog` 485, `OverlayController` 480, `DetailContentBuilder` 479, `SettingsReducer` 472, `EffectRunner` 466, `PaneHints` 464, `PaletteTable` 455, `MainView` 454, `WorkingDiffController` 449, `DiffListActions` 446, `DiffPaneInput` 432, `CommitReducer` 422.
+
+Verdict: cold start and key latency are unchanged in practice. Key latency and page scroll are equal, cold start is about 4-5 ms slower (+8% by median, +7% by mean, rounds overlap), far under the 100 ms target. Flagged above 10%: the commit details step (+26%, 22 to 28 ms; the ranges overlap over 25.5-28.1 ms, but two of three baseline rounds (21.4, 22.2) are below every main round, so it is flagged; follow-up #1071 re-measures it and looks for the cause) and test wall time (+10%, but the two baseline runs differ by 10% themselves, so two runs cannot tell it from noise; 27% more tests executed). Memory and size grew moderately (RSS +4.0 MiB, binary +1.3 MiB), consistent with the added `Gitunia.App` layer and the effect/command types. The documented numbers in `docs/internal/performance.md` still hold, so it is unchanged. Single machine, three rounds: differences under ~10% are not distinguishable from harness noise.
