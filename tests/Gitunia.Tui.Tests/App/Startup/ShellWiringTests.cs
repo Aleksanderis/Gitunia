@@ -10,7 +10,7 @@ using Xunit;
 
 namespace Gitunia.Tui.Tests.App.Startup;
 
-/// <summary>A composed and wired shell on a headless driver reacting to a state change; the order the state subscribers run in is pinned too.</summary>
+/// <summary>A composed and wired shell on a headless driver reacting to a state change; the order of the state subscribers ShellWiring adds is pinned too.</summary>
 public sealed class ShellWiringTests : IDisposable
 {
     private readonly string _root = Directory.CreateTempSubdirectory("gitunia-wiring-").FullName;
@@ -61,7 +61,9 @@ public sealed class ShellWiringTests : IDisposable
 
     private List<string> Subscribers()
     {
-        var field = typeof(Dispatcher).GetField("Changed", BindingFlags.Instance | BindingFlags.NonPublic)!;
+        // Reads the backing field of the field-like event; it must stay one (the assert names it if it does not).
+        var field = typeof(Dispatcher).GetField("Changed", BindingFlags.Instance | BindingFlags.NonPublic);
+        Assert.NotNull(field);
         var handler = (Delegate?)field.GetValue(_shell.Foundation.Host);
         return handler is null
             ? []
