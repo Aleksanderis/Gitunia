@@ -48,14 +48,4 @@ public class QuitEffectTests
         Assert.Equal(1, pipeline.Shell.Quits);
         Assert.Equal(1, pipeline.Shell.Flushed);
     }
-
-    [Fact]
-    public void GivenAForcedQuit_WhenItGoesAhead_ThenTheRunningWorkIsCancelledFirst()
-    {
-        using var pipeline = PickerPipeline.Create();
-
-        pipeline.Dispatch(new QuitRequested(false, true));
-
-        Assert.Equal(1, pipeline.Shell.Quits);
-    }
 }

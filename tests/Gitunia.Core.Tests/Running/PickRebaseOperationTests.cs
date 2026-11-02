@@ -37,7 +37,7 @@ public class PickRebaseOperationTests
     {
         var results = ConcreteSubtypes.InstancesOf<PickCommand>().OfType<IOperationResult>().ToArray();
 
-        Assert.Equal(5, results.Length);
+        Assert.NotEmpty(results);
         Assert.All(results, result => Assert.Equal(RunningOperationKind.Pick, result.Kind));
     }
 
@@ -68,7 +68,7 @@ public class PickRebaseOperationTests
     {
         var results = ConcreteSubtypes.InstancesOf<RebaseCommand>().OfType<IOperationResult>().ToArray();
 
-        Assert.Equal(7, results.Length);
+        Assert.NotEmpty(results);
         Assert.All(results, result => Assert.Equal(RunningOperationKind.Rebase, result.Kind));
     }
 

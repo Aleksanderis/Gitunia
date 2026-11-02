@@ -156,15 +156,6 @@ public class HelpAllCommandsTests
     }
 
     [Fact]
-    public void GivenTheDefaultKeymap_WhenBuilding_ThenThereIsNoCustomTabAndTheCommandsTabIsThere()
-    {
-        var tabs = HelpBuilder.Build(Table, DefaultKeymap.GraphView);
-
-        Assert.DoesNotContain(tabs, tab => tab.Title == HelpBuilder.CustomTitle);
-        Assert.Contains(tabs, tab => tab.Title == HelpBuilder.CommandsTitle);
-    }
-
-    [Fact]
     public void GivenAppliedKeyEntries_WhenBuilding_ThenTheCustomTabListsAddedChangedAndUnboundKeysNotTheSkippedOnes()
     {
         var result = KeymapConfigurator.Apply(

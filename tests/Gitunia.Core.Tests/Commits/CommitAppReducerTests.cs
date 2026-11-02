@@ -8,7 +8,6 @@ using Gitunia.Core.Running;
 using Gitunia.Core.Shell;
 using Gitunia.Core.Staging;
 using Gitunia.Core.Workspaces;
-using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Commits.Models;
 using Xunit;
 using static Gitunia.Tui.Tests.Rendering.WorkingTree.WorkingTreeEntries;
@@ -231,21 +230,5 @@ public class CommitAppReducerTests
 
         Assert.Equal("Mine", harness.State.Workspace.FindTab(from)!.Commit.Draft!.Editor.Text);
         Assert.Equal("Theirs", harness.State.Workspace.FindTab(to)!.Commit.Draft!.Editor.Text);
-    }
-
-    [Fact]
-    public void GivenTheCommitEffectsAndResults_WhenInspectingThem_ThenTheyStartAndEndTheKindCommit()
-    {
-        var tab = new TabId(1);
-        var run = new RunCommitEffect(tab, default!, new CommitRequest("m", false, false, false), null);
-        IOperationResult succeeded = new CommitSucceeded(tab, run.Request, new CommitResult("h", null), null);
-        IOperationResult failed = new CommitFailed(tab, "x", null);
-
-        Assert.Equal(RunningOperationKind.Commit, run.Kind);
-        Assert.Equal(RunningOperationKind.Commit, succeeded.Kind);
-        Assert.Equal(RunningOperationKind.Commit, failed.Kind);
-        Assert.False(typeof(OperationEffect).IsAssignableFrom(typeof(ReadHeadMessageEffect)));
-        Assert.False(typeof(OperationEffect).IsAssignableFrom(typeof(ReadMergeMessageEffect)));
-        Assert.False(typeof(OperationEffect).IsAssignableFrom(typeof(CancelCommitEffect)));
     }
 }

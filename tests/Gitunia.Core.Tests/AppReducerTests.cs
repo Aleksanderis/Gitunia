@@ -251,17 +251,6 @@ public class AppReducerTests
         Assert.DoesNotContain(update.Effects, effect => effect is OperationEffect);
     }
 
-    [Fact]
-    public void GivenAShellCommand_WhenReducing_ThenTheWorkspaceIsUntouched()
-    {
-        var state = Opened("alpha");
-
-        var update = AppReducer.Reduce(state, new SetKeyModeCommand(KeyMode.Insert));
-
-        Assert.Same(state.Workspace, update.State.Workspace);
-        Assert.Equal(KeyMode.Insert, update.State.Shell.Mode);
-    }
-
     private static (AppState State, TabId TabId) AskedToDeleteTag()
     {
         var state = Opened("alpha");

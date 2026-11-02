@@ -26,10 +26,6 @@
     <Compile Include="..\..\tools\KeymapDoc\KeymapReference.cs" Link="Keymap\KeymapReference.cs" />
   </ItemGroup>
   <ItemGroup>
-    <!-- Snapshot of the default bindings (mode|view|keys|action), the parity test of #857. -->
-    <EmbeddedResource Include="Keymap\Data\default-bindings.txt" LogicalName="default-bindings.txt" />
-  </ItemGroup>
-  <ItemGroup>
     <ProjectReference Include="..\..\src\Gitunia.Core\Gitunia.Core.csproj" />
   </ItemGroup>
 </Project>

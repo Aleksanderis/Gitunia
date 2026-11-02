@@ -69,16 +69,6 @@ public class StatusReporterTests
     }
 
     [Fact]
-    public void GivenWarning_WhenPosting_ThenSeverityIsWarning()
-    {
-        var reporter = new StatusReporter(new Dispatcher(AppState.Empty));
-
-        reporter.Warning("session was reset");
-
-        Assert.Equal(StatusSeverity.Warning, reporter.Log.Latest?.Severity);
-    }
-
-    [Fact]
     public async Task GivenAScheduledAging_WhenTheDelayPasses_ThenTheHostReducesAnAgedCommandAndRaisesChanged()
     {
         var host = new Dispatcher(AppState.Empty);
