@@ -56,7 +56,6 @@ public sealed partial class EffectRunner<TSession>
         _ => new EffectFailedCommand(text),
     };
 
-
     // Without settings services (a runner without a config file) the file work fails at once, so nothing stays busy.
     private void PerformSettings(SettingsEffect effect)
     {
