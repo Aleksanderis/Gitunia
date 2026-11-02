@@ -181,7 +181,6 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
         _host = host;
         _ui = ui;
         _busy = new WorkspaceBusySource(host);
-        _busy = new WorkspaceBusySource(host);
         _sessionFactory = sessionFactory;
         _statuses = statuses;
         _statusAging = new StatusAgingTimer(host);

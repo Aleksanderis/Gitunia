@@ -26,6 +26,9 @@
     <Compile Include="..\Gitunia.Tui.Tests\RunWatchdog.cs" Link="Shared\RunWatchdog.cs" />
     <Compile Include="..\Gitunia.Tui.Tests\App\UiPump.cs" Link="Shared\UiPump.cs" />
     <Compile Include="..\Gitunia.Tui.Tests\App\InlineUi.cs" Link="Shared\InlineUi.cs" />
+    <Compile Include="..\Gitunia.Tui.Tests\App\DelegateUi.cs" Link="Shared\DelegateUi.cs" />
+    <Compile Include="..\Gitunia.Tui.Tests\App\DelegateDelayer.cs" Link="Shared\DelegateDelayer.cs" />
+    <Compile Include="..\Gitunia.Tui.Tests\App\FixedLaneColors.cs" Link="Shared\FixedLaneColors.cs" />
     <Compile Include="..\Gitunia.Core.Tests\Fixtures\ConcreteSubtypes.cs" Link="Shared\ConcreteSubtypes.cs" />
     <Compile Include="..\Gitunia.Tui.Tests\Loading\ManualTimeProvider.cs" Link="Shared\ManualTimeProvider.cs" />
     <Compile Include="..\Gitunia.Tui.Tests\Rendering\WorkingTree\WorkingTreeEntries.cs" Link="Shared\WorkingTreeEntries.cs" />

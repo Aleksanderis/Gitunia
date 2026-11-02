@@ -20,11 +20,11 @@ namespace Gitunia.App.Tabs;
 /// Keeps one tab current after its initial load: notices changes by polling (<see cref="TabPoller"/>, the default) or,
 /// when enabled, with the tab's <see cref="RepositoryWatcher"/>, re-reads only what a change can affect, and applies
 /// the sections that differ as commands. The graph is replaced only when HEAD or refs changed (or on a manual
-/// refresh); an
-/// automatic reload reads the log only down to the first row it shares with the old graph
+/// refresh); an automatic reload reads the log only down to the first row it shares with the old graph
 /// (<see cref="IncrementalGraphLoader"/>), and the view puts selection and scroll back. Runs one refresh at a time;
 /// changes arriving meanwhile are merged into the next.
-/// Touched from the UI thread only; the watcher and poller callbacks post to it. /// </summary>
+/// Touched from the UI thread only; the watcher and poller callbacks post to it.
+/// </summary>
 public sealed class TabRefresher : IDisposable, IPollTarget
 {
     private const RepositoryChangeKinds StatusKinds = RepositoryChangeKinds.Head
