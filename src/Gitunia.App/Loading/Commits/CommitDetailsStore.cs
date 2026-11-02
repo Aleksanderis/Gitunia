@@ -1,4 +1,5 @@
 using Gitunia.App.Background;
+using Gitunia.Core.Text;
 using Gitunia.Git;
 using Gitunia.Git.Commits;
 using Gitunia.Git.Commits.Models;
@@ -244,7 +245,7 @@ public sealed class CommitDetailsStore : IDisposable
         }
         catch (Exception exception)
         {
-            _ui.Post(() => FailComparison(commit, exception.Message, token));
+            _ui.Post(() => FailComparison(commit, FailureText.Reason(exception), token));
         }
     }
 
@@ -371,7 +372,7 @@ public sealed class CommitDetailsStore : IDisposable
         }
         catch (Exception exception)
         {
-            _ui.Post(() => Complete(commit, null, exception.Message, token));
+            _ui.Post(() => Complete(commit, null, FailureText.Reason(exception), token));
             return;
         }
 

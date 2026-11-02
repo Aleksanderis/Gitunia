@@ -42,7 +42,7 @@ public sealed class RebaseEditorEffectHandler(
         }
         catch (RebaseRangeException exception) when (effect is ReadRebaseRangeEffect)
         {
-            result = new RebaseEditorReadFailed(effect.TabId, exception.Message, StatusSeverity.Warning);
+            result = new RebaseEditorReadFailed(effect.TabId, FailureText.Reason(exception), StatusSeverity.Warning);
         }
         catch (Exception exception) when (effect is RunInteractiveRebaseEffect
             && exception is RebaseRangeException or RebaseEnvironmentException)
@@ -52,7 +52,7 @@ public sealed class RebaseEditorEffectHandler(
             result = new RebaseEditorNotStarted(
                 effect.TabId,
                 run.State,
-                $"Could not start the rebase: {exception.Message}");
+                $"Could not start the rebase: {FailureText.Reason(exception)}");
         }
         catch (Exception exception)
         {

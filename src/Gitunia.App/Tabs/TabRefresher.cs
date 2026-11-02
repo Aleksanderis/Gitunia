@@ -3,6 +3,7 @@ using Gitunia.App.Loading.Graph;
 using Gitunia.App.Status;
 using Gitunia.App.Tabs.Models;
 using Gitunia.Core.Graph;
+using Gitunia.Core.Text;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Git.Config;
@@ -379,7 +380,7 @@ public sealed class TabRefresher : IDisposable, IPollTarget
         }
 
         // A repository that keeps failing (polling every few seconds) is reported once, not on every tick.
-        var message = $"{RepositoryName()}: could not refresh: {exception.Message}";
+        var message = $"{RepositoryName()}: could not refresh: {FailureText.Reason(exception)}";
         if (isManual || message != _lastError)
         {
             _lastError = message;
