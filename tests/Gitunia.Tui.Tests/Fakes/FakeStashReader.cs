@@ -8,11 +8,11 @@ namespace Gitunia.Tui.Tests.Fakes;
 public sealed class FakeStashReader : IStashReader
 {
     /// <summary>The stash stack, newest first.</summary>
-    // ReSharper disable once CollectionNeverUpdated.Global : fake seed list for tests that need stashes
+    // ReSharper disable once CollectionNeverUpdated.Global : Fake seed list for tests that need stashes
     public List<StashEntry> Stashes { get; } = [];
 
     /// <summary>Thrown by every read.</summary>
-    // ReSharper disable once UnusedAutoPropertyAccessor.Global : fake shared with Gitunia.App.Tests by link: a member counts as unused when only the other project uses it
+    // ReSharper disable once UnusedAutoPropertyAccessor.Global : Fake shared with Gitunia.App.Tests by link: a member counts as unused when only the other project uses it
     public Exception? Failure { get; set; }
 
     public Task<ParseResult<StashEntry>> ReadStashesAsync(RepositoryLocation location, CancellationToken cancellationToken)

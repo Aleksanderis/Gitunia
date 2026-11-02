@@ -48,7 +48,7 @@ public sealed class PickerPipeline : IDisposable
             });
     }
 
-    // ReSharper disable once UnusedAutoPropertyAccessor.Global : test helper, members used by some tests only
+    // ReSharper disable once UnusedAutoPropertyAccessor.Global : Test helper, members used by some tests only
     public string Home { get; }
 
     public Dispatcher Host { get; }

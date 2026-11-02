@@ -30,15 +30,15 @@ public sealed class TestShell
 
     public Dispatcher Host { get; }
 
-    // ReSharper disable once UnusedAutoPropertyAccessor.Global : fake shared with Gitunia.App.Tests by link: a member counts as unused when only the other project uses it
+    // ReSharper disable once UnusedAutoPropertyAccessor.Global : Fake shared with Gitunia.App.Tests by link: a member counts as unused when only the other project uses it
     public StatusReporter Statuses { get; }
 
     /// <summary>Every confirm dialog that was shown, oldest first.</summary>
-    // ReSharper disable once CollectionNeverQueried.Global : fake shared with Gitunia.App.Tests by link: a member counts as unused when only the other project uses it
+    // ReSharper disable once CollectionNeverQueried.Global : Fake shared with Gitunia.App.Tests by link: a member counts as unused when only the other project uses it
     public List<ConfirmPrompt> Prompts { get; } = [];
 
     /// <summary>The key mode after every switch, oldest first (a switch to the same mode counts).</summary>
-    // ReSharper disable once CollectionNeverQueried.Global : fake shared with Gitunia.App.Tests by link: a member counts as unused when only the other project uses it
+    // ReSharper disable once CollectionNeverQueried.Global : Fake shared with Gitunia.App.Tests by link: a member counts as unused when only the other project uses it
     public List<KeyMode> Modes { get; } = [];
 
     /// <summary>The output boxes that were shown, oldest first.</summary>

@@ -154,7 +154,7 @@ public sealed class PromptHarness : IDisposable, IQuickJumpHost, IActionRoute, I
     {
         public Dispatcher Dispatcher => harness._host;
 
-        // ReSharper disable once ReturnTypeCanBeNotNullable : test helper, members used by some tests only
+        // ReSharper disable once ReturnTypeCanBeNotNullable : Test helper, members used by some tests only
         public TerminalTabSession? ActiveSession() => harness.Session;
 
         public int SelectedRow() => harness.SelectedRow;
@@ -165,7 +165,7 @@ public sealed class PromptHarness : IDisposable, IQuickJumpHost, IActionRoute, I
 
         public IEnumerable<GitRef> ActiveRefs() => references;
 
-        // ReSharper disable once ReturnTypeCanBeNotNullable : test helper, members used by some tests only
+        // ReSharper disable once ReturnTypeCanBeNotNullable : Test helper, members used by some tests only
         public RepositoryLocation? LocationOf(TabId tabId) => location;
     }
 

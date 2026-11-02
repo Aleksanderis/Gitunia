@@ -5,8 +5,7 @@ using Gitunia.Core.Shell;
 namespace Gitunia.App.Shell;
 
 /// <summary>
-/// What controllers that have not moved to commands yet use to reach the shell state: each call dispatches the
-/// matching shell command. A controller that has moved dispatches the command itself.
+/// What non-reducer code uses to reach the shell state: each call dispatches the matching shell command.
 /// </summary>
 public static class ShellDispatch
 {

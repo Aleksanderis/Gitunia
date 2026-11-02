@@ -9,6 +9,6 @@ public sealed class GitNotFoundException : GitException
         Executable = executable;
     }
 
-    // ReSharper disable once UnusedAutoPropertyAccessor.Global : public diagnostic data of the exception
+    // ReSharper disable once UnusedAutoPropertyAccessor.Global : Public diagnostic data of the exception
     public string Executable { get; }
 }

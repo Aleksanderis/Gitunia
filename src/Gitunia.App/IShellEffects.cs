@@ -36,8 +36,7 @@ public interface IShellEffects
     void StartReflogEntryAction(ReflogEntryActionEffect effect);
 
     /// <summary>
-    /// Marks a saved, fully resolved conflicted file as resolved (stages it) and reports; staging has not moved to
-    /// commands yet.
+    /// Marks a saved, fully resolved conflicted file as resolved (stages it) and reports.
     /// </summary>
     void StageResolvedConflict(StageResolvedConflictEffect effect);
 

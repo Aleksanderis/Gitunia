@@ -15,7 +15,7 @@ public sealed record SidebarGlyphs(
     string Ahead,
     string Behind,
     string UpstreamGone,
-    // ReSharper disable once NotAccessedPositionalProperty.Global : not drawn yet; part of the full set
+    // ReSharper disable once NotAccessedPositionalProperty.Global : Not drawn yet; part of the full set
     char Divider)
 {
     public static SidebarGlyphs Unicode { get; } = new('▾', '▸', "↑", "↓", "✗", '│');
