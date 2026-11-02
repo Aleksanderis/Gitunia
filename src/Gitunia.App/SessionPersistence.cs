@@ -71,7 +71,6 @@ public sealed class SessionPersistence : IDisposable
     {
         _host.Changed -= OnChanged;
         _timer.Dispose();
-        _saveLock.Dispose();
     }
 
     // Fire and forget: SaveAsync handles its own failures (a failed save is reported, never thrown).

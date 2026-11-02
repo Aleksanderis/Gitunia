@@ -18,7 +18,6 @@ public sealed class OperationRunner(GitRunner runner, IRepositoryOperationDetect
 
     private static readonly GitRunOptions WriteOptions = new(Timeout: OperationTimeout);
 
-
     private static readonly string[] HeadArguments = ["rev-parse", "--quiet", "--verify", GitOptions.HeadRevision];
 
     private static readonly GitRunOptions HeadOptions = new(

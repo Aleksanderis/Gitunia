@@ -7,7 +7,6 @@ namespace Gitunia.Git.Commits;
 /// <summary>Parses the output of <c>git log -1 -z</c> in <see cref="CommitDetailsFormat"/> into a <see cref="CommitDetails"/> without files.</summary>
 public static class CommitDetailsParser
 {
-
     /// <param name="output">Raw stdout.</param>
     /// <param name="warnings">Receives a message when something could not be understood.</param>
     /// <returns>The commit, or null when the output holds no usable record.</returns>

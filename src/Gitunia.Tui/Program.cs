@@ -71,7 +71,7 @@ public static class Program
                 PlatformInfo.Current.ConfigDirectory, home, ConfigStartup.DefaultLabelCaps(capabilities));
             var labelCaps = configured.Load().Options.LabelCaps;
             var hasColors = options.Colors is not null && options.Colors.Depth != ColorDepth.None;
-            // Same: the headless frame print is a one-shot command line path.
+            // The headless frame print is a one-shot command-line path; nothing else is running, so blocking is safe.
             new FramePrinter(services).PrintAsync(
                 location!,
                 options.FrameWidth!.Value,

@@ -1,6 +1,6 @@
 using Gitunia.Git.Execution;
-using Gitunia.Git.Operations;
 using Gitunia.Git.Execution.Exceptions;
+using Gitunia.Git.Operations;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Stash.Models;
 
@@ -19,7 +19,6 @@ public sealed class StashWriter(GitRunner runner) : IStashWriter
     private static readonly TimeSpan WriteTimeout = TimeSpan.FromMinutes(2);
 
     private static readonly string[] TopCommitArguments = ["rev-parse", "--quiet", "--verify", StashRef];
-
 
     private static readonly string[] ListArguments = ["stash", "list", $"--format={StashParser.Format}"];
 

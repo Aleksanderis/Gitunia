@@ -65,7 +65,7 @@ Done when: the first `v*` tag produces verified release archives (#517) and the 
 Status: planned (tracking issue #990; the open issues are the source of truth). Owner decision 2026-11-01, grand code review.
 
 Goal: all app logic in pure Core reducers (state + command -> state + effects), git and file work run by one effect runner in a new `Gitunia.App` project, `Gitunia.Tui` limited to views, rendering and input translation. Removes delegate dependencies (#965), `ActionRouter`, the `TuiApplication` god class and the largest controllers. The design spec (#967, `docs/architecture.md`, "Effects as data") writes down the architecture the owner approved and is merged before migration starts; no owner review gate on its PR.
-Done when: every M7 issue is closed; feature logic is covered by synchronous Core tests; no delegate dependencies, late `null!` wiring, constructors over five parameters or files over ~500 lines in `Tui`/`App`; startup and key latency unchanged.
+Done when: every M7 issue is closed; feature logic is covered by synchronous Core tests; no delegate dependencies, late `null!` wiring, constructors over five parameters or files over ~500 lines in `src/`; startup and key latency unchanged.
 
 ## M8 - Going public
 
