@@ -14,7 +14,11 @@ public sealed record RunCommitEffect(
     TabId TabId,
     RepositoryLocation Location,
     CommitRequest Request,
-    string? ForcePushUpstream) : OperationEffect(TabId, RunningOperationKind.Commit);
+    string? ForcePushUpstream) : OperationEffect(TabId, RunningOperationKind.Commit)
+{
+    /// <inheritdoc />
+    public override AppCommand FailedWith(string text) => new CommitFailed(TabId, text, null);
+}
 
 /// <summary>Stop the commit of the tab that runs; its result is the cancel result. Nothing happens when none
 /// runs.</summary>

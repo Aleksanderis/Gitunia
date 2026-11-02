@@ -17,7 +17,12 @@ public sealed class RebaseEffectHandler(IRebaseWriter rebase, IQuickRebaseWriter
     /// <summary>Starts the effect and returns at once; the result arrives through the dispatcher.</summary>
     public void Handle(RebaseEffect effect, CancellationToken cancellationToken)
     {
-        _ = Task.Run(() => RunAsync(effect, cancellationToken), CancellationToken.None);
+        EffectWork.Start(
+            dispatcher,
+            token => WorkAsync(effect, token),
+            () => new RebaseCancelled(effect.TabId),
+            exception => Failure(effect, FailureText.Reason(exception)),
+            cancellationToken);
     }
 
     private static RebaseCommand Failure(RebaseEffect effect, string reason) => effect switch
@@ -31,25 +36,6 @@ public sealed class RebaseEffectHandler(IRebaseWriter rebase, IQuickRebaseWriter
         CountRebaseMergesEffect count => new RebaseMergesCounted(effect.TabId, count.Target, 0),
         _ => throw new UnhandledEffectException(effect),
     };
-
-    private async Task RunAsync(RebaseEffect effect, CancellationToken token)
-    {
-        RebaseCommand result;
-        try
-        {
-            result = await WorkAsync(effect, token).ConfigureAwait(false);
-        }
-        catch (OperationCanceledException)
-        {
-            result = new RebaseCancelled(effect.TabId);
-        }
-        catch (Exception exception)
-        {
-            result = Failure(effect, FailureText.Reason(exception));
-        }
-
-        dispatcher.Post(result);
-    }
 
     private Task<RebaseCommand> WorkAsync(RebaseEffect effect, CancellationToken token) => effect switch
     {

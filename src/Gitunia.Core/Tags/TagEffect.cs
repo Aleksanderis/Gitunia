@@ -15,6 +15,9 @@ public abstract record TagEffect : OperationEffect
 
     /// <summary>Where the operation runs.</summary>
     public RepositoryLocation Location { get; }
+
+    /// <inheritdoc />
+    public override AppCommand FailedWith(string text) => new TagOperationFailed(TabId, text, null);
 }
 
 /// <summary>Create a tag: lightweight with an empty message, annotated otherwise.</summary>

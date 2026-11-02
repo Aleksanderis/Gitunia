@@ -54,22 +54,17 @@ public sealed class SyncEffectHandler(
         }
     }
 
-    private async Task RunAsync(SyncEffect effect, CancellationTokenSource linked)
-    {
-        SyncCommand result;
-        try
-        {
-            result = await PerformAsync(effect, linked.Token).ConfigureAwait(false);
-        }
-        catch (OperationCanceledException)
-        {
-            result = new SyncCancelled(effect.TabId);
-        }
-        catch (Exception exception)
-        {
-            result = Failure(effect, exception);
-        }
+    private Task RunAsync(SyncEffect effect, CancellationTokenSource linked) =>
+        EffectWork.RunAsync(
+            token => PerformAsync(effect, token),
+            () => new SyncCancelled(effect.TabId),
+            exception => Failure(effect, exception),
+            result => Finish(effect, linked, result),
+            linked.Token);
 
+    // The effect has ended: forget its token source, then post the result.
+    private void Finish(SyncEffect effect, CancellationTokenSource linked, SyncCommand result)
+    {
         _running.TryRemove(new KeyValuePair<TabId, CancellationTokenSource>(effect.TabId, linked));
         linked.Dispose();
         dispatcher.Post(result);

@@ -30,26 +30,12 @@ public sealed class IntegrationEffectHandler(
     /// <summary>Starts the effect and returns at once; the result arrives through the dispatcher.</summary>
     public void Handle(IntegrationEffect effect, CancellationToken cancellationToken)
     {
-        _ = Task.Run(() => RunAsync(effect, cancellationToken), CancellationToken.None);
-    }
-
-    private async Task RunAsync(IntegrationEffect effect, CancellationToken token)
-    {
-        IntegrationCommand result;
-        try
-        {
-            result = await PerformAsync(effect, token).ConfigureAwait(false);
-        }
-        catch (OperationCanceledException) when (token.IsCancellationRequested)
-        {
-            result = new IntegrationCancelled(effect.TabId);
-        }
-        catch (Exception exception)
-        {
-            result = Failure(effect, FailureText.Reason(exception));
-        }
-
-        dispatcher.Post(result);
+        EffectWork.Start(
+            dispatcher,
+            token => PerformAsync(effect, token),
+            () => new IntegrationCancelled(effect.TabId),
+            exception => Failure(effect, FailureText.Reason(exception)),
+            cancellationToken);
     }
 
     private Task<IntegrationCommand> PerformAsync(IntegrationEffect effect, CancellationToken token) => effect switch

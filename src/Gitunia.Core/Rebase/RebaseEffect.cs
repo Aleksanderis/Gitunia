@@ -16,6 +16,9 @@ public abstract record RebaseEffect : OperationEffect
 
     /// <summary>Where the operation runs.</summary>
     public RepositoryLocation Location { get; }
+
+    /// <inheritdoc />
+    public override AppCommand FailedWith(string text) => new RebaseFailed(TabId, text);
 }
 
 /// <summary>Count the merge commits a rebase onto the target would flatten, for the confirm dialog.</summary>

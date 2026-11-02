@@ -16,34 +16,26 @@ public sealed class ReflogEffectHandler(IReflogReader reader, IDispatcher dispat
     /// <param name="effect">What to read.</param>
     /// <param name="cancellationToken">Ends the read when the tab closes.</param>
     public void Handle(ReadReflogEffect effect, CancellationToken cancellationToken) =>
-        _ = Task.Run(() => RunAsync(effect, cancellationToken), CancellationToken.None);
+        EffectWork.Start(
+            dispatcher,
+            token => ReadAsync(effect, token),
+            () => new ReflogReadCancelled(),
+            exception => new ReflogReadFailed(
+                $"Could not read the reflog of {effect.Title}: {FailureText.Reason(exception)}"),
+            cancellationToken);
 
-    private async Task RunAsync(ReadReflogEffect effect, CancellationToken token)
+    private async Task<ReflogCommand> ReadAsync(ReadReflogEffect effect, CancellationToken token)
     {
-        ReflogCommand result;
-        try
-        {
-            var read = await reader
-                .ReadAsync(effect.Location, effect.Reference, ReflogReducer.EntryLimit, token)
-                .ConfigureAwait(false);
-            result = new ReflogLoaded(
-                effect.TabId,
-                effect.Generation,
-                effect.Reference,
-                effect.Title,
-                effect.Refresh,
-                read.Items);
-        }
-        catch (OperationCanceledException)
-        {
-            result = new ReflogReadCancelled();
-        }
-        catch (Exception exception) when (exception is not OutOfMemoryException)
-        {
-            result = new ReflogReadFailed(
-                $"Could not read the reflog of {effect.Title}: {FailureText.Reason(exception)}");
-        }
+        var read = await reader
+            .ReadAsync(effect.Location, effect.Reference, ReflogReducer.EntryLimit, token)
+            .ConfigureAwait(false);
 
-        dispatcher.Post(result);
+        return new ReflogLoaded(
+            effect.TabId,
+            effect.Generation,
+            effect.Reference,
+            effect.Title,
+            effect.Refresh,
+            read.Items);
     }
 }

@@ -1,6 +1,7 @@
 using Gitunia.Core.Effects;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Overlays;
+using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Conflicts.Models;
 using Gitunia.Git.Status.Models;
@@ -18,6 +19,12 @@ namespace Gitunia.Core.Conflicts;
 /// </summary>
 public static class ConflictReducer
 {
+    /// <summary>The tab-closed cleanup of the session: closes the editor when its tab is gone, else null.</summary>
+    /// <param name="session">The session before.</param>
+    /// <param name="workspace">The workspace after the tab command.</param>
+    public static ConflictUpdate? OnTabClosed(ConflictSession session, Workspace workspace) =>
+        session.Editor is { } editor && workspace.FindTab(editor.TabId) is null ? ConflictFlow.Close(session) : null;
+
     /// <summary>Applies a command.</summary>
     /// <param name="session">The session before.</param>
     /// <param name="command">What happened.</param>

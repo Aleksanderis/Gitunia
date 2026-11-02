@@ -24,26 +24,15 @@ public sealed class DiscardEffectHandler(PatchDiscarder discarder, IStatusRefres
         _ = Task.Run(() => RunAsync(effect, cancellationToken), CancellationToken.None);
     }
 
-    private async Task RunAsync(DiscardEffect effect, CancellationToken token)
-    {
-        DiscardCommand result;
-        try
-        {
-            result = await PerformAsync(effect, token).ConfigureAwait(false);
-        }
-        catch (OperationCanceledException) when (token.IsCancellationRequested)
-        {
-            dispatcher.Post(new DiscardCancelled(effect.TabId));
-
-            return;
-        }
-        catch (Exception exception)
-        {
-            result = new DiscardFailed(effect.TabId, FailureOf(effect, FailureText.Reason(exception)));
-        }
-
-        refresher.RefreshThen(effect.TabId, () => dispatcher.Post(result));
-    }
+    // Success and failure wait for the status refresh; a cancellation is posted at once.
+    private Task RunAsync(DiscardEffect effect, CancellationToken token) =>
+        EffectWork.RunAsync(
+            innerToken => PerformAsync(effect, innerToken),
+            () => new DiscardCancelled(effect.TabId),
+            exception => new DiscardFailed(effect.TabId, FailureOf(effect, FailureText.Reason(exception))),
+            result => refresher.RefreshThen(effect.TabId, () => dispatcher.Post(result)),
+            token,
+            dispatcher.Post);
 
     private async Task<DiscardCommand> PerformAsync(DiscardEffect effect, CancellationToken token)
     {
