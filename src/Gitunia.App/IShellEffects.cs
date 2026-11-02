@@ -1,4 +1,3 @@
-
 namespace Gitunia.App;
 
 /// <summary>

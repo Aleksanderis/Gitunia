@@ -1,7 +1,7 @@
 namespace Gitunia.App;
 
 /// <summary>The objects that perform the shell effects, one per role; the runner calls the role an effect belongs to.</summary>
-public sealed record ShellRoles
+public sealed class ShellRoles
 {
     /// <summary>Roles that do nothing, for a runner without a terminal.</summary>
     public static ShellRoles None { get; } = From(NoShellEffects.Instance);
