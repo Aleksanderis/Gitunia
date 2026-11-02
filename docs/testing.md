@@ -38,6 +38,8 @@ Test projects that compare paths with what git returns link `Fixtures/RealTempDi
 
 CI (`.github/workflows/ci.yml`) runs build, test, AOT publish and the smoke run on linux-x64 and windows-x64 on manual dispatch (macos-arm64 only with `-f platform=macos` or on a tag, never in `all`; it always builds and tests, so a green full dispatch does not skip it, and a red macOS leg does not block the Linux and Windows release; #455) (`gh workflow run ci.yml`), and, on release tags (`v*`), AOT publish, smoke run and packaging, plus build and test unless a green full dispatch run exists for the tagged commit (the seconds-long `check` job looks, never waits or starts a run; #937): never on PRs or branch pushes. Local `dotnet build` and `dotnet test` are the gate; dispatch CI before closing a milestone, and dispatch it and wait for green before tagging to skip the tag-run tests. Tests that need Linux-only file names (`*`, `:` or a tab) or shell-script fakes skip themselves on Windows. Why (free-plan minutes): `decisions.md` and `docs/internal/history/testing.md`.
 
+`packaging/aur/test.sh` tests the AUR update script (fake archive, push to a local bare repo; the `makepkg` parts run only on Arch) and is run by hand, no workflow runs it.
+
 Local verification and push rules for agents: `work-task` skill. A change to `ci.yml` that moves build or output paths is tried locally first with the same environment variables (`UseArtifactsOutput=true`, `ArtifactsPath=<dir outside the repo>`, then `dotnet test`); tests must not assume the binaries sit inside the repo (#663).
 
 ## Performance checks

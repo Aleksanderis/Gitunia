@@ -15,6 +15,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: aur
+  cancel-in-progress: false
+
 jobs:
   aur:
     # Pre-releases (v1.2.3-rc1) are not pushed: pkgver cannot contain '-'.

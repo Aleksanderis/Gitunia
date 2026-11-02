@@ -4,7 +4,8 @@
 #   <version>  without the leading v (1.2.3)
 #   --sha256   archive hash; default: downloaded from the release's .tar.gz.sha256 asset
 #   --push     commit and push <out-dir> to ssh://aur@aur.archlinux.org/gitunia-bin.git;
-#              the private key comes from $AUR_SSH_KEY_FILE (a file path)
+#              the private key comes from $AUR_SSH_KEY_FILE (a file path); $GITUNIA_AUR_URL overrides the remote (tests)
+# pkgrel is always 1: if the template changes for an already published version, bump pkgrel in PKGBUILD.in by hand.
 # Writes <out-dir>/PKGBUILD and, when makepkg exists (Arch), <out-dir>/.SRCINFO.
 set -euo pipefail
 
@@ -45,7 +46,7 @@ if [ "$push" -eq 1 ]; then
   fi
   work="$(mktemp -d)"; trap 'rm -rf "$work"' EXIT
   export GIT_SSH_COMMAND="ssh -i $AUR_SSH_KEY_FILE -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new"
-  git clone -q ssh://aur@aur.archlinux.org/gitunia-bin.git "$work/aur"
+  git clone -q "${GITUNIA_AUR_URL:-ssh://aur@aur.archlinux.org/gitunia-bin.git}" "$work/aur"
   cp "$out/PKGBUILD" "$out/.SRCINFO" "$work/aur/"
   cd "$work/aur"
   git add PKGBUILD .SRCINFO
