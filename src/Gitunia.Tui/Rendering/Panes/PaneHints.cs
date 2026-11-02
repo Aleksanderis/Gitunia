@@ -265,6 +265,11 @@ public static partial class PaneHints
     private static readonly ImmutableArray<KeyHint> Blame =
     [
         new("Enter", "commit", [ActionIds.BlameShowCommit]),
+        new("Alt-p", "parent", [ActionIds.BlameParent]),
+        new(
+            "Alt-w/m/c",
+            "-w -M -C",
+            [ActionIds.BlameIgnoreWhitespace, ActionIds.BlameDetectMoves, ActionIds.BlameDetectCopies]),
         new("/", "search", [ActionIds.SearchOpen]),
         new("n/N", "next/prev", [ActionIds.SearchNext, ActionIds.SearchPrevious]),
         new("Esc", "close", [ActionIds.NavigateBack]),

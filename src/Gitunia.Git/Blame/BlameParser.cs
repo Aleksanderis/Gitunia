@@ -21,6 +21,7 @@ public sealed class BlameParser
     private const string SummaryKey = "summary";
     private const string BoundaryKey = "boundary";
     private const string FilenameKey = "filename";
+    private const string PreviousKey = "previous";
     private const int MinutesPerHour = 60;
     private const int HundredMinutes = 100;
 
@@ -33,6 +34,7 @@ public sealed class BlameParser
     private long _authorTime;
     private TimeSpan _offset = TimeSpan.Zero;
     private bool _isBoundary;
+    private string? _previousPath;
 
     /// <summary>What the parser could not understand, once per skipped line.</summary>
     public IReadOnlyList<string> Warnings => _warnings;
@@ -103,6 +105,7 @@ public sealed class BlameParser
             _authorTime = 0;
             _offset = TimeSpan.Zero;
             _isBoundary = false;
+            _previousPath = null;
 
             return;
         }
@@ -129,10 +132,21 @@ public sealed class BlameParser
             case AuthorTimezoneKey:
                 _offset = Offset(value);
                 break;
+            case PreviousKey:
+                _previousPath = PathAfterId(value);
+                break;
             case BoundaryKey:
                 _isBoundary = true;
                 break;
         }
+    }
+
+    // The value is "<parent id> <path>".
+    private static string? PathAfterId(string value)
+    {
+        var separator = value.IndexOf(Space);
+
+        return separator < 0 ? null : value[(separator + 1)..];
     }
 
     // A timezone is written +HHMM or -HHMM.
@@ -156,7 +170,7 @@ public sealed class BlameParser
         if (!_commits.TryGetValue(header.Id, out var commit))
         {
             var time = DateTimeOffset.FromUnixTimeSeconds(_authorTime).ToOffset(_offset);
-            commit = new BlameCommit(header.Id, _author, time, _summary, _isBoundary, path);
+            commit = new BlameCommit(header.Id, _author, time, _summary, _isBoundary, path, _previousPath);
             _commits[header.Id] = commit;
         }
 

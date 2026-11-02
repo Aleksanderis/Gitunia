@@ -344,6 +344,151 @@ public class BlameReducerTests
         Assert.False(closed.Shell.Blame.IsOpen);
     }
 
+    [Fact]
+    public void GivenACommittedLine_WhenBlamingAtTheParent_ThenTheViewReadsTheParentRevisionAndKeepsAWayBack()
+    {
+        var state = Viewing(5);
+        state = Press(state, ActionIds.ListDown);
+        var before = state.Shell.Blame;
+
+        var update = AppReducer.Reduce(state, ParentPressed(Commit, "old/a.txt", 7));
+
+        var start = Assert.IsType<StartBlameEffect>(Assert.Single(update.Effects));
+        var view = update.State.Shell.Blame.View!;
+        Assert.Equal($"{Commit}^", start.Revision);
+        Assert.Equal("old/a.txt", start.Path);
+        Assert.Equal(before.Generation + 1, start.Generation);
+        Assert.Equal(start.Generation, update.State.Shell.Blame.Generation);
+        Assert.Equal("old/a.txt @ 1111111^", view.Title);
+        Assert.Equal(0, view.LineCount);
+        Assert.Equal(7, view.Cursor);
+        Assert.Equal(new BlameStep("a.txt", null, 1), Assert.Single(view.Steps));
+    }
+
+    [Fact]
+    public void GivenAParentBlameLoaded_WhenItsLinesAreFewerThanTheOriginalLine_ThenTheCursorIsClamped()
+    {
+        var state = AppReducer.Reduce(Viewing(5), ParentPressed(Commit, "a.txt", 40)).State;
+        var tab = state.Shell.Blame.View!.TabId;
+
+        state = AppReducer.Reduce(state, new BlameLoaded(tab, state.Shell.Blame.Generation, BlameContentKind.Text, 3))
+            .State;
+
+        Assert.Equal(2, Cursor(state));
+    }
+
+    [Fact]
+    public void GivenAParentBlame_WhenGoingBack_ThenEachEscStepsOneBlameBackThenTheViewCloses()
+    {
+        var first = Press(Viewing(5), ActionIds.ListDown);
+        var second = AppReducer.Reduce(first, ParentPressed(Commit, "a.txt", 3)).State;
+        var third = AppReducer.Reduce(second, ParentPressed("2222222222222222222222222222222222222222", "a.txt", 2)).State;
+
+        var back = AppReducer.Reduce(third, Pressed(ActionIds.NavigateBack, null));
+        var backAgain = AppReducer.Reduce(back.State, Pressed(ActionIds.NavigateBack, null));
+        var closed = AppReducer.Reduce(backAgain.State, Pressed(ActionIds.NavigateBack, null));
+
+        Assert.Equal($"{Commit}^", Assert.IsType<StartBlameEffect>(Assert.Single(back.Effects)).Revision);
+        Assert.Equal(3, back.State.Shell.Blame.View!.Cursor);
+        Assert.Null(Assert.IsType<StartBlameEffect>(Assert.Single(backAgain.Effects)).Revision);
+        Assert.Equal(1, backAgain.State.Shell.Blame.View!.Cursor);
+        Assert.Empty(backAgain.State.Shell.Blame.View!.Steps);
+        Assert.False(closed.State.Shell.Blame.IsOpen);
+    }
+
+    [Fact]
+    public void GivenUncommittedPendingAndRootLines_WhenBlamingAtTheParent_ThenTheViewStaysAndSaysWhy()
+    {
+        var state = Viewing(5);
+        var generation = state.Shell.Blame.Generation;
+
+        var uncommitted = AppReducer.Reduce(state, ParentPressed(BlameCommit.UncommittedId, "a.txt", 0));
+        var pending = AppReducer.Reduce(state, ParentPressed(null, null, 0));
+        var root = AppReducer.Reduce(state, ParentPressed(Commit, "a.txt", 0, isBoundary: true));
+
+        Assert.Equal(BlameReducer.UncommittedNotice, Assert.IsType<PostStatusEffect>(Assert.Single(uncommitted.Effects)).Text);
+        Assert.Equal(BlameReducer.NoCommitYetNotice, Assert.IsType<PostStatusEffect>(Assert.Single(pending.Effects)).Text);
+        Assert.Equal(BlameReducer.NoParentNotice, Assert.IsType<PostStatusEffect>(Assert.Single(root.Effects)).Text);
+        Assert.All([uncommitted, pending, root], update => Assert.Equal(generation, update.State.Shell.Blame.Generation));
+        Assert.All([uncommitted, pending, root], update => Assert.Empty(update.State.Shell.Blame.View!.Steps));
+    }
+
+    [Fact]
+    public void GivenAParentBlameThatFails_WhenTheFailureArrives_ThenTheViewGoesBackAndWarns()
+    {
+        var state = AppReducer.Reduce(Press(Viewing(5), ActionIds.ListDown), ParentPressed(Commit, "a.txt", 3)).State;
+        var generation = state.Shell.Blame.Generation;
+
+        var update = AppReducer.Reduce(state, new BlameFailed(generation, "Could not blame a.txt: not found"));
+
+        Assert.True(update.State.Shell.Blame.IsOpen);
+        Assert.Empty(update.State.Shell.Blame.View!.Steps);
+        Assert.Equal(1, update.State.Shell.Blame.View!.Cursor);
+        Assert.Contains(update.Effects, effect => effect is StartBlameEffect { Revision: null });
+        Assert.Contains(update.Effects, effect => effect is PostStatusEffect { Text: "Could not blame a.txt: not found" });
+    }
+
+    [Fact]
+    public void GivenTheToggles_WhenPressed_ThenTheBlameRunsAgainWithTheSwitchAndTheCursorAndStackStay()
+    {
+        var state = Press(Viewing(5), ActionIds.ListDown);
+
+        var whitespace = AppReducer.Reduce(state, Pressed(ActionIds.BlameIgnoreWhitespace, null));
+        var moves = AppReducer.Reduce(whitespace.State, Pressed(ActionIds.BlameDetectMoves, null));
+        var copies = AppReducer.Reduce(moves.State, Pressed(ActionIds.BlameDetectCopies, null));
+        var off = AppReducer.Reduce(copies.State, Pressed(ActionIds.BlameIgnoreWhitespace, null));
+
+        Assert.Equal(new BlameOptions(IgnoreWhitespace: true), Assert.IsType<StartBlameEffect>(Assert.Single(whitespace.Effects)).Options);
+        Assert.Equal(new BlameOptions(true, true), Assert.IsType<StartBlameEffect>(Assert.Single(moves.Effects)).Options);
+        Assert.Equal(new BlameOptions(true, true, true), Assert.IsType<StartBlameEffect>(Assert.Single(copies.Effects)).Options);
+        Assert.Equal(new BlameOptions(false, true, true), Assert.IsType<StartBlameEffect>(Assert.Single(off.Effects)).Options);
+        Assert.Equal(1, off.State.Shell.Blame.View!.Cursor);
+        Assert.Empty(off.State.Shell.Blame.View!.Steps);
+        Assert.Equal(state.Shell.Blame.Generation + 4, off.State.Shell.Blame.Generation);
+    }
+
+    [Fact]
+    public void GivenOptionsOnAParentBlame_WhenGoingBack_ThenTheOptionsStay()
+    {
+        var state = AppReducer.Reduce(Viewing(5), Pressed(ActionIds.BlameDetectMoves, null)).State;
+        state = AppReducer.Reduce(state, ParentPressed(Commit, "a.txt", 0)).State;
+
+        var back = AppReducer.Reduce(state, Pressed(ActionIds.NavigateBack, null));
+
+        Assert.True(Assert.IsType<StartBlameEffect>(Assert.Single(back.Effects)).Options!.DetectMoves);
+    }
+
+    [Fact]
+    public void GivenALoadedResultWithAnIgnoreRevsFile_WhenReduced_ThenTheViewKnowsTheFileIsInUse()
+    {
+        var opened = AppReducer.Reduce(Opened("alpha"), new BlameOpenRequested("a.txt", null)).State;
+        var tab = opened.Shell.Blame.View!.TabId;
+
+        var loaded = AppReducer.Reduce(
+            opened,
+            new BlameLoaded(tab, opened.Shell.Blame.Generation, BlameContentKind.Text, 2, ".git-blame-ignore-revs")).State;
+
+        Assert.Equal(".git-blame-ignore-revs", loaded.Shell.Blame.View!.IgnoreRevsFile);
+    }
+
+    [Fact]
+    public void GivenAnOpenSearchBox_WhenTogglingAnOption_ThenTheKeyIsTextAndNothingRuns()
+    {
+        var state = AppReducer.Reduce(Viewing(5), Pressed(ActionIds.SearchOpen, null)).State;
+
+        var update = AppReducer.Reduce(state, Pressed(ActionIds.BlameDetectMoves, null));
+
+        Assert.Empty(update.Effects);
+        Assert.Equal(state.Shell.Blame.Generation, update.State.Shell.Blame.Generation);
+    }
+
+    private static BlameActionPressed ParentPressed(
+        string? commit,
+        string? path,
+        int originalLine,
+        bool isBoundary = false) =>
+        new(ActionIds.BlameParent, null, Page, commit, path, originalLine, isBoundary);
+
     private static AppState Viewing(int lines)
     {
         var opened = AppReducer.Reduce(Opened("alpha"), new BlameOpenRequested("a.txt", null)).State;

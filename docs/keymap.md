@@ -272,6 +272,10 @@ Every default key binding, one table per view. The design rules, notation and mo
 | Keys | Modes | Action | What |
 |---|---|---|---|
 | `Enter` | Normal | `blame.show-commit` | Select the blame line's commit in the graph |
+| `Alt-p` | Normal | `blame.parent` | Blame the file at the parent of the highlighted line's commit (Esc steps back) |
+| `Alt-w` | Normal | `blame.toggle-whitespace` | Blame: ignore whitespace changes (-w) |
+| `Alt-m` | Normal | `blame.toggle-moves` | Blame: detect lines moved inside the file (-M) |
+| `Alt-c` | Normal | `blame.toggle-copies` | Blame: detect lines copied from other files (-C) |
 | `h` `Esc` | Normal | `navigate.back` | Go back |
 | `/` | Normal | `search.open` | Search |
 | `n` | Normal | `search.next` | Next search match |

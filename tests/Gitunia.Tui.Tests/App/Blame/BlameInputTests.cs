@@ -117,6 +117,85 @@ public sealed class BlameInputTests
     }
 
     [Fact]
+    public async Task GivenALineOfTheSecondCommit_WhenBlamingAtTheParentAndGoingBack_ThenTheOlderFileShowsAndEscReturns()
+    {
+        using var repository = TwoCommits();
+        using var harness = await Harness.LoadAsync(repository, new FixedTargets("a.txt", repository.Head));
+        await harness.OpenAsync();
+        harness.Input.TryExecute(ActionIds.ListDown, null);
+
+        harness.Input.TryExecute(ActionIds.BlameParent, null);
+        await harness.PumpUntilAsync(() => harness.View is { IsComplete: true, Revision: not null } view
+            && view.Revision.EndsWith('^'));
+
+        var frame = harness.Input.CurrentFrame()!;
+        Assert.Contains($"@ {repository.Head[..7]}^", frame.Lines[0].Text);
+        Assert.Equal(2, harness.View.LineCount);
+        Assert.Contains(frame.Lines, line => line.Text.Contains("three"));
+        Assert.DoesNotContain(frame.Lines, line => line.Text.Contains("TWO"));
+        Assert.Equal(1, harness.View.Cursor);
+
+        harness.Input.TryExecute(ActionIds.NavigateBack, null);
+        await harness.PumpUntilAsync(() => harness.View is { IsComplete: true, Revision: { } revision }
+            && revision == repository.Head);
+
+        Assert.Equal(3, harness.View.LineCount);
+        Assert.Contains(harness.Input.CurrentFrame()!.Lines, line => line.Text.Contains("TWO"));
+        Assert.True(harness.Input.IsOpen);
+    }
+
+    [Fact]
+    public async Task GivenALineEditedByARenameCommit_WhenBlamingAtTheParent_ThenTheOldPathIsBlamed()
+    {
+        using var repository = TestRepository.Create()
+            .Commit("add", new TestFile("a.txt", "one\ntwo\nthree\nfour\n"));
+        repository.Git("mv", "a.txt", "b.txt");
+        repository.WriteFile("b.txt", "one\ntwo\nthree\nFOUR\n");
+        repository.Git("commit", "-q", "-am", "rename and edit");
+        using var harness = await Harness.LoadAsync(repository, new FixedTargets("b.txt", repository.Head));
+        await harness.OpenAsync();
+        harness.Input.TryExecute(ActionIds.ListBottom, null);
+
+        harness.Input.TryExecute(ActionIds.BlameParent, null);
+        await harness.PumpUntilAsync(() => harness.View is { IsComplete: true, Revision: not null } view
+            && view.Revision.EndsWith('^'));
+
+        Assert.Equal("a.txt", harness.View.Path);
+        Assert.Equal(4, harness.View.LineCount);
+        Assert.Contains(harness.Input.CurrentFrame()!.Lines, line => line.Text.Contains("four"));
+    }
+
+    [Fact]
+    public async Task GivenALineOfTheFirstCommit_WhenBlamingAtTheParent_ThenTheStatusSaysThereIsNoParent()
+    {
+        using var repository = TwoCommits();
+        using var harness = await Harness.LoadAsync(repository, new FixedTargets("a.txt", repository.Head));
+        await harness.OpenAsync();
+
+        harness.Input.TryExecute(ActionIds.BlameParent, null);
+
+        Assert.Equal(BlameReducer.NoParentNotice, harness.Statuses.Log.Latest!.Text);
+        Assert.Equal(repository.Head, harness.View.Revision);
+    }
+
+    [Fact]
+    public async Task GivenWhitespaceAndIgnoreRevs_WhenBlaming_ThenTheFooterNamesTheSwitchesAndTheFileInUse()
+    {
+        using var repository = TwoCommits();
+        repository.WriteFile("ignore-revs.txt", $"{repository.Head}\n");
+        repository.Git("config", "blame.ignoreRevsFile", "ignore-revs.txt");
+        using var harness = await Harness.LoadAsync(repository, new FixedTargets("a.txt", repository.Head));
+        await harness.OpenAsync();
+
+        harness.Input.TryExecute(ActionIds.BlameIgnoreWhitespace, null);
+        await harness.PumpUntilAsync(() => harness.View is { IsComplete: true, Options.IgnoreWhitespace: true });
+
+        var footer = harness.Input.CurrentFrame()!.Lines[^2].Text;
+        Assert.Contains("-w", footer);
+        Assert.Contains("ignore-revs", footer);
+    }
+
+    [Fact]
     public async Task GivenTheView_WhenClickingALineAndTheActionRow_ThenTheLineIsHighlightedAndTheRowNamesItsMouseView()
     {
         using var repository = TwoCommits();
@@ -124,13 +203,17 @@ public sealed class BlameInputTests
         await harness.OpenAsync();
 
         var onLine = harness.Input.OnLineClicked(3, out var lineHandled);
-        var onAction = harness.Input.OnLineClicked(Height - 1 - 4 + 1, out var actionHandled);
+        var onAction = harness.Input.OnLineClicked(Height - 1 - 5 + 1, out var actionHandled);
+        var onParent = harness.Input.OnLineClicked(Height - 1 - 5 + 2, out var parentHandled);
 
         Assert.Null(onLine);
         Assert.True(lineHandled);
         Assert.Equal(2, harness.View.Cursor);
         Assert.Equal(DefaultMouseMap.BlameShowButton, onAction);
         Assert.True(actionHandled);
+        Assert.Equal(DefaultMouseMap.BlameParentButton, onParent);
+        Assert.True(parentHandled);
+        Assert.Equal(ActionIds.BlameParent, DefaultMouseMap.Create().Resolve(onParent!, MouseGesture.Click)!.Action);
         Assert.Equal(ActionIds.BlameShowCommit, DefaultMouseMap.Create().Resolve(onAction!, MouseGesture.Click)!.Action);
     }
 

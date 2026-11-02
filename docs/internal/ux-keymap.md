@@ -379,6 +379,10 @@ Grouped as the palette groups them (`ActionCatalog.GroupOf`). "Old" lists every 
 | `file-history.select-commit` | Select the file history commit in the graph | `Enter` | same | Advanced |  |
 | `blame.open` | Blame the selected file (at the shown commit, or the working tree file) | `<space>gb` | same | Advanced |  |
 | `blame.show-commit` | Select the blame line's commit in the graph | `Enter` | same | Advanced |  |
+| `blame.parent` | Blame the file at the parent of the highlighted line's commit (Esc steps back) | `Alt-p` | same | Advanced |  |
+| `blame.toggle-whitespace` | Blame: ignore whitespace changes (-w) | `Alt-w` | same | Advanced |  |
+| `blame.toggle-moves` | Blame: detect lines moved inside the file (-M) | `Alt-m` | same | Advanced |  |
+| `blame.toggle-copies` | Blame: detect lines copied from other files (-C) | `Alt-c` | same | Advanced |  |
 | `reflog.open` | Open the reflog of HEAD (of the branch under the sidebar cursor) | `<space>l` | same | Advanced+ |  |
 | `reflog.select-commit` | Select the reflog entry's commit in the graph | `Enter` | same | Advanced+ |  |
 | `search.next` | Next search match | `n` | same | Everyday |  |

@@ -100,22 +100,94 @@ public class BlameReaderTests
         await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
         {
             await foreach (var unused in new BlameReader(runner)
-                .BlameAsync(location, "a.txt", null, null, cancellation.Token))
+                .BlameAsync(location, "a.txt", null, null, null, cancellation.Token))
             {
             }
         });
     }
 
+    [Fact]
+    public async Task GivenAWhitespaceOnlyChange_WhenBlamingWithAndWithoutIgnoreWhitespace_ThenOnlyTheSwitchKeepsTheAuthor()
+    {
+        using var repository = TestRepository.Create()
+            .Commit("first", new TestFile("a.txt", "one\ntwo\n"))
+            .Commit("indent", new TestFile("a.txt", "one\n    two\n"));
+
+        var plain = await BlameAsync(repository, "a.txt", repository.Head);
+        var ignoring = await BlameAsync(repository, "a.txt", repository.Head, new BlameOptions(IgnoreWhitespace: true));
+
+        Assert.Equal("indent", plain.Owners[1].Summary);
+        Assert.Equal("first", ignoring.Owners[1].Summary);
+    }
+
+    [Fact]
+    public async Task GivenALineMovedInsideTheFile_WhenBlamingWithDetectMoves_ThenItKeepsItsFirstCommit()
+    {
+        const string before = "alpha unique line long enough to be detected as moved\nbeta other text\ngamma third part\ndelta last words\n";
+        const string moved = "beta other text\ngamma third part\ndelta last words\nalpha unique line long enough to be detected as moved\n";
+        using var repository = TestRepository.Create()
+            .Commit("first", new TestFile("a.txt", before))
+            .Commit("move", new TestFile("a.txt", moved));
+
+        var plain = await BlameAsync(repository, "a.txt", repository.Head);
+        var moves = await BlameAsync(repository, "a.txt", repository.Head, new BlameOptions(DetectMoves: true));
+
+        Assert.Equal("move", plain.Owners[3].Summary);
+        Assert.Equal("first", moves.Owners[3].Summary);
+    }
+
+    [Fact]
+    public async Task GivenLinesCopiedFromAnotherFile_WhenBlamingWithDetectCopies_ThenTheyKeepTheirFirstCommit()
+    {
+        const string block = "copy line one here\ncopy line two here\ncopy line three here\ncopy line four here\n";
+        using var repository = TestRepository.Create()
+            .Commit("source", new TestFile("src.txt", block))
+            .Commit("copy", new TestFile("src.txt", $"{block}extra\n"), new TestFile("dst.txt", block));
+
+        var plain = await BlameAsync(repository, "dst.txt", repository.Head);
+        var copies = await BlameAsync(repository, "dst.txt", repository.Head, new BlameOptions(DetectCopies: true));
+
+        Assert.All(plain.Owners, commit => Assert.Equal("copy", commit.Summary));
+        Assert.All(copies.Owners, commit => Assert.Equal("source", commit.Summary));
+    }
+
+    [Fact]
+    public async Task GivenAnIgnoreRevsFileInTheConfig_WhenBlaming_ThenIgnoredCommitsLinesGoToTheirPredecessor()
+    {
+        using var repository = TestRepository.Create()
+            .Commit("first", new TestFile("a.txt", "one\ntwo\n"))
+            .Commit("reformat", new TestFile("a.txt", "one\nTWO\n"));
+        repository.WriteFile("ignore-revs.txt", $"{repository.Head}\n");
+        var before = await BlameAsync(repository, "a.txt", repository.Head);
+        var unset = await IgnoreRevsAsync(repository);
+        repository.Git("config", "blame.ignoreRevsFile", "ignore-revs.txt");
+
+        var after = await BlameAsync(repository, "a.txt", repository.Head);
+
+        Assert.Null(unset);
+        Assert.Equal("reformat", before.Owners[1].Summary);
+        Assert.Equal("ignore-revs.txt", await IgnoreRevsAsync(repository));
+        Assert.Equal("first", after.Owners[1].Summary);
+    }
+
+    private static async Task<string?> IgnoreRevsAsync(TestRepository repository)
+    {
+        var (runner, location) = await OpenAsync(repository);
+
+        return await new BlameReader(runner).ReadIgnoreRevsFileAsync(location, Token);
+    }
+
     private static async Task<Blamed> BlameAsync(
         TestRepository repository,
         string path,
-        string? revision)
+        string? revision,
+        BlameOptions? options = null)
     {
         var (runner, location) = await OpenAsync(repository);
         var reader = new BlameReader(runner);
         var content = await reader.ReadContentAsync(location, path, revision, Token);
         var owners = new BlameCommit[content.Lines.Count];
-        await foreach (var chunk in reader.BlameAsync(location, path, revision, null, Token))
+        await foreach (var chunk in reader.BlameAsync(location, path, revision, options, null, Token))
         {
             for (var line = chunk.FirstLine; line < chunk.FirstLine + chunk.LineCount; line++)
             {

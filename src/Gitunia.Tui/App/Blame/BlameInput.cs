@@ -62,8 +62,16 @@ public sealed class BlameInput(
         // A view whose tab was closed meanwhile closes and lets the action pass on.
         var tabIsOpen = host.Workspace.FindTab(view.TabId) is not null;
         var rows = BlameFrameBuilder.VisibleRows(Screen.Height);
-        var commit = DataOf(Session)?.OwnerOf(view.Cursor)?.Id;
-        host.Dispatch(new BlameActionPressed(action, count, rows, commit));
+        var data = DataOf(Session);
+        var owner = data?.OwnerOf(view.Cursor);
+        host.Dispatch(new BlameActionPressed(
+            action,
+            count,
+            rows,
+            owner?.Id,
+            owner?.PreviousPath ?? owner?.Path,
+            data?.OriginalLineOf(view.Cursor) ?? 0,
+            owner?.IsBoundary ?? false));
 
         return tabIsOpen;
     }
