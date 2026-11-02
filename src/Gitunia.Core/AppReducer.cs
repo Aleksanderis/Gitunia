@@ -18,6 +18,7 @@ using Gitunia.Core.Pick;
 using Gitunia.Core.Integration;
 using Gitunia.Core.Prompts;
 using Gitunia.Core.Rebase;
+using Gitunia.Core.Blame;
 using Gitunia.Core.Reflog;
 using Gitunia.Core.Settings;
 using Gitunia.Core.Sidebar;
@@ -81,6 +82,7 @@ public static partial class AppReducer
         PickerCommand picker => ReducePicker(state, picker),
         QuickJumpCommand jump => ReduceQuickJump(state, jump),
         QuitCommand quit => ReduceQuit(state, quit),
+        BlameCommand blame => ReduceBlame(state, blame),
         ReflogCommand reflog => ReduceReflog(state, reflog),
         SettingsCommand settings => ReduceSettings(state, settings),
         RemoteCommand remote => ReduceRemote(state, remote),
@@ -149,6 +151,12 @@ public static partial class AppReducer
             effects.AddRange(reflog.Effects);
         }
 
+        if (BlameReducer.OnTabClosed(shell.Blame, workspace) is { } blame)
+        {
+            shell = shell with { Blame = blame.Session };
+            effects.AddRange(blame.Effects);
+        }
+
         if (ConflictReducer.OnTabClosed(shell.Conflict, workspace) is { } conflict)
         {
             shell = shell with { Conflict = conflict.Session };
@@ -202,6 +210,28 @@ public static partial class AppReducer
 
         var update = ReflogReducer.Reduce(session, command, new ReflogContext(workspace.ActiveTab, listTab));
         var shell = state.Shell with { Reflog = update.Session };
+
+        return new AppUpdate(state with { Shell = shell }, update.Effects);
+    }
+
+    // A result for a tab that was closed meanwhile only ends the read. A view opens only over nothing else.
+    private static AppUpdate ReduceBlame(AppState state, BlameCommand command)
+    {
+        var workspace = state.Workspace;
+        var session = state.Shell.Blame;
+        var viewTab = session.View is { } view ? workspace.FindTab(view.TabId) : null;
+        if (command is BlameOpenRequested && state.Shell.HasOverlay)
+        {
+            return new AppUpdate(state, []);
+        }
+
+        if (command is BlameLoaded loaded && workspace.FindTab(loaded.TabId) is null)
+        {
+            command = new BlameFailed(loaded.Generation, string.Empty);
+        }
+
+        var update = BlameReducer.Reduce(session, command, new BlameContext(workspace.ActiveTab, viewTab));
+        var shell = state.Shell with { Blame = update.Session };
 
         return new AppUpdate(state with { Shell = shell }, update.Effects);
     }

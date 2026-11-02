@@ -24,9 +24,10 @@ Terminal Git tools are great for quick staging and commits but awkward for many 
 - Tags, clone, init and remotes
 - Interactive rebase editor
 - Reflog browser as the undo path for destructive actions
+- Blame view: who last changed each line of a file, at a commit or in the working tree
 - Command palette, configurable vim-style keys and full mouse support
 
-Not included: submodules, LFS UI, blame, hosting-provider integration, plugins.
+Not included: submodules, LFS UI, hosting-provider integration, plugins.
 
 ## Install
 

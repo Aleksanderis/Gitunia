@@ -124,6 +124,9 @@ public static class DefaultMouseMap
 
     public const string ReflogPickerRow = "ReflogPicker";
 
+    /// <summary>The action row under the blame view: a click runs the action its key runs on the highlighted line.</summary>
+    public const string BlameShowButton = "BlameButton.Show";
+
     /// <summary>The chips under the rebase todo editor (#458): each is a view of its own, a click runs the action
     /// its key runs on the highlighted commit.</summary>
     public const string RebasePickButton = "RebaseButton.Pick";
@@ -232,6 +235,8 @@ public static class DefaultMouseMap
         DefaultKeymap.HelpView,
         DefaultKeymap.MessagesView,
         DefaultKeymap.ReflogView,
+        DefaultKeymap.BlameView,
+        BlameShowButton,
         DefaultKeymap.RebaseEditorView,
         RebasePickButton,
         RebaseRewordButton,
@@ -328,6 +333,9 @@ public static class DefaultMouseMap
         new(DefaultKeymap.MessagesView, MouseGesture.WheelDown, ActionIds.ListDown, WheelLines),
         new(DefaultKeymap.ReflogView, MouseGesture.WheelUp, ActionIds.ListUp, WheelLines),
         new(DefaultKeymap.ReflogView, MouseGesture.WheelDown, ActionIds.ListDown, WheelLines),
+        new(DefaultKeymap.BlameView, MouseGesture.WheelUp, ActionIds.ListUp, WheelLines),
+        new(DefaultKeymap.BlameView, MouseGesture.WheelDown, ActionIds.ListDown, WheelLines),
+        new(BlameShowButton, MouseGesture.Click, ActionIds.BlameShowCommit),
         new(DefaultKeymap.RebaseEditorView, MouseGesture.WheelUp, ActionIds.ListUp, WheelLines),
         new(DefaultKeymap.RebaseEditorView, MouseGesture.WheelDown, ActionIds.ListDown, WheelLines),
         new(RebasePickButton, MouseGesture.Click, ActionIds.RebaseEditorPick),

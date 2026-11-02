@@ -400,6 +400,13 @@ The list is read from git on open and on `<space>or`.
 Mouse: below the entries four action rows (`Enter` select, `<space>bx` reset, `<space>bc` branch, `<space>bs` checkout) run on the highlighted entry when clicked, so a click on an entry then a click on an action replaces the keys; in the picker a click on a row opens that reflog.
 The graph `<space>l` still opens HEAD's reflog directly; the picker is one key away.
 
+**Blame** (`<space>gb`; #1117): a full-screen view of one file with a gutter per line: short hash (`^` before a boundary commit), author, age (`3d ago`), line number, then the line.
+`<space>gb` acts on the file row under the cursor of the details pane (Changes or Files tab: the file is read at the commit shown in the graph; a file the commit deletes, a folder or a heading is refused with a status message) and on the file under the cursor of the Changes view's Unstaged or Staged list (the working tree file; uncommitted lines show `uncommitted`).
+The lines appear at once and the gutter fills in while the blame runs (`blaming 40%` in the footer); `j`/`k`/`gg`/`G`/`Ctrl-d`/`Ctrl-u` and a counted motion move, the wheel scrolls, a click highlights a line.
+`Enter` (or the action row under the lines) selects the highlighted line's commit in the graph, which also shows it in the details, and closes the view; a line not blamed yet or an uncommitted line says so and the view stays.
+`/` searches the lines, the authors and the subjects (case-insensitive; `Enter` runs it and moves to the first match from the cursor line (included), `n`/`N` step with counts and wrap around, `Esc` in the box cancels and `Esc` in the view clears the search before it closes the view).
+`Esc` or `h` closes. A binary file, a file missing from the working tree or a failure close the view with a status message; bytes that are not UTF-8 show as Latin-1, CRLF endings are not shown. Renamed files are followed. Not done yet: blame at the parent of a line's commit, and opening the file history from a line (waits for the file history view).
+
 ### 4. In-progress operations: banner, continue, abort, skip (M3; banner, continue, abort and skip done, the blocking of item 5 comes with each blocked feature)
 
 One flow serves merge, rebase, cherry-pick and revert, and the interactive rebase (#399, editor #458) reuses it. `RepositoryOperationDetector` names the operation from the git directory.

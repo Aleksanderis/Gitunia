@@ -18,6 +18,9 @@ public enum InputHandler
     /// <summary>The reflog list.</summary>
     Reflog,
 
+    /// <summary>The blame view.</summary>
+    Blame,
+
     /// <summary>The help, the palette, the actions menu, the message history and the which-key popup.</summary>
     Overlays,
 

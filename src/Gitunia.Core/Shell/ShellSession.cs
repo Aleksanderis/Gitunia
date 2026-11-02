@@ -4,6 +4,7 @@ namespace Gitunia.Core.Shell;
 public enum ShellSession
 {
     Reflog,
+    Blame,
     RebaseEditor,
     Conflict,
 }
