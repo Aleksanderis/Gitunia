@@ -105,7 +105,7 @@ Core + App tests are counted as "no terminal" tests; I did not classify each App
 | No late `null!` wiring | Met: the one left is an `out` default in `App/Loading/Commits/CommitDetailsCache.cs`, not late wiring. |
 | No constructors over five parameters | Met for services: classes with more than five constructor parameters fell from 46 to 2 (`WorkingTreeActionHandler` and `DiffJumpRows`, 7 each). Not met for data: 82 records/structs (state, commands, effects, DTOs) have more than five, up from 52. See the measurements section. |
 | No files over ~500 lines in `src/` | Met in practice: one file at 504 lines, a constant list. |
-| Startup and key latency unchanged | Met for cold start (+8%, 56.8 to 61.2 ms median, far under the 100 ms target), key latency and page scroll (equal); the commit details step is flagged at +26%, see #1071 and the measurements section. |
+| Startup and key latency unchanged | Met for cold start (+8%, 56.8 to 61.2 ms median, far under the 100 ms target), key latency and page scroll (equal); the commit details step looked +26% in three rounds but is noise in six (#1071, end-state section below). |
 
 ### Performance and constructor measurements (#1055, #1042)
 
@@ -129,4 +129,24 @@ Baseline `468de95` against `main` at `e062f2f` (after #1062). Both built as Nati
 
 Counts of constructors come from a one-off regex scan of primary and explicit constructors (not a parser, script not kept; "class" means a class, "data" a record or struct). The classes that remain: `WorkingTreeActionHandler` (7, the issue #1042 late-wiring item) and `DiffJumpRows` (7, was 7). The 15 largest `src/` files by lines, baseline: `TuiApplication` 2344, `MainView` 1064, `ConflictEditorController` 1059, `DiffPaneController` 998, `BranchActions` 969, `RepositoryWatcher` 917, `CommitActions` 865, `ConflictEditorState` 809, `OverlayController` 664, `PushActions` 631, `SettingsController` 625, `DiffRowRenderer` 597, `MessageEditor` 591, `ConflictEditorFrameBuilder` 589, `RebaseEditorController` 577. Main: `ActionIds` 504, `SettingsFrameBuilder` 494, `DiffListSource` 491, `ActionCatalog` 485, `OverlayController` 480, `DetailContentBuilder` 479, `SettingsReducer` 472, `EffectRunner` 466, `PaneHints` 464, `PaletteTable` 455, `MainView` 454, `WorkingDiffController` 449, `DiffListActions` 446, `DiffPaneInput` 432, `CommitReducer` 422.
 
-Verdict: cold start and key latency are unchanged in practice. Key latency and page scroll are equal, cold start is about 4-5 ms slower (+8% by median, +7% by mean, rounds overlap), far under the 100 ms target. Flagged above 10%: the commit details step (+26%, 22 to 28 ms; the ranges overlap over 25.5-28.1 ms, but two of three baseline rounds (21.4, 22.2) are below every main round, so it is flagged; follow-up #1071 re-measures it and looks for the cause) and test wall time (+10%, but the two baseline runs differ by 10% themselves, so two runs cannot tell it from noise; 27% more tests executed). Memory and size grew moderately (RSS +4.0 MiB, binary +1.3 MiB), consistent with the added `Gitunia.App` layer and the effect/command types. The documented numbers in `docs/internal/performance.md` still hold, so it is unchanged. Single machine, three rounds: differences under ~10% are not distinguishable from harness noise.
+Verdict: cold start and key latency are unchanged in practice. Key latency and page scroll are equal, cold start is about 4-5 ms slower (+8% by median, +7% by mean, rounds overlap), far under the 100 ms target. Flagged above 10%: the commit details step (+26%, 22 to 28 ms; the ranges overlap over 25.5-28.1 ms, but two of three baseline rounds (21.4, 22.2) are below every main round, so it is flagged; #1071 re-measured it: noise, see the end-state section below) and test wall time (+10%, but the two baseline runs differ by 10% themselves, so two runs cannot tell it from noise; 27% more tests executed). Memory and size grew moderately (RSS +4.0 MiB, binary +1.3 MiB), consistent with the added `Gitunia.App` layer and the effect/command types. The documented numbers in `docs/internal/performance.md` still hold, so it is unchanged. Single machine, three rounds: differences under ~10% are not distinguishable from harness noise.
+
+### End-state re-measurement (#1071)
+
+Baseline `468de95` against `main` at `25ca3af` (all M7 follow-ups merged, including #1082). Same method as above (Native AOT linux-x64 Release, baseline built in a temporary worktree, 5000-commit repo from `scripts/gen-big-repo.sh`, `scripts/measure.sh --runs 10 --keys 30`, 120x40, same machine, private state dirs), but six alternating rounds, baseline first. Median of the six round values (mean of the middle two), range in brackets. Test counts in the "Tests" table above are `[Fact]`/`[Theory]` attributes (a Theory counts once); later `dotnet test` totals count executed test methods including data rows, so the two numbers differ.
+
+| Measure | Baseline `468de95` | `main` `25ca3af` | Change |
+|---|---|---|---|
+| Cold start median (ms) | 59.4 (55.1-60.7) | 58.1 (56.8-61.6) | inside noise (-2%) |
+| Cold start p95 (ms) | 74.2 (68.4-95.4) | 72.7 (67.6-78.3) | inside noise |
+| `j` key latency median (ms) | 16.5 (15.3-17.0) | 16.6 (16.5-16.7) | 0% |
+| `j` key latency p95 (ms) | 29.0 (26.7-34.3) | 32.5 (24.8-35.8) | +12%, ranges overlap, noise |
+| Page scroll median (ms) | 16.6 (16.6-16.8) | 16.6 (16.5-16.8) | 0% |
+| Commit details step median (ms) | 26.2 (22.9-30.5) | 24.9 (22.9-27.9) | -5%, inside noise |
+| Commit details step p95 (ms) | 43.6 (38.8-52.6) | 38.3 (33.2-45.5) | inside noise |
+| 200 queued `j` settle (ms) | 18.2 (16.9-25.0) | 26.5 (16.1-35.8) | ranges overlap, noise |
+| Jump to end (ms) | 29.1 (8.0-29.7) | 19.2 (10.1-28.4) | inside noise |
+| RSS after load (MiB) | 50.8 (49.8-51.2) | 48.7 (47.8-49.1) | -4% |
+| AOT binary (`gitunia`, bytes) | 16,037,320 | 17,385,032 | +8.4% (+1.3 MiB) |
+
+Verdict on #1071: the +26% commit details step did not hold. With six rounds the baseline details step ranges 22.9-30.5 ms and main 22.9-27.9 ms, the same minimum, and main's median is lower. The three-round gap was harness noise (tmux polling, about 3 ms per poll, plus the 30-sample medians moving by up to 7 ms between rounds). No code change; the suspected extra hop through the effect runner and `BackgroundWork` is not visible at this resolution. Every latency metric is within noise of the baseline; only the binary size (+8.4%) is a stable difference.
