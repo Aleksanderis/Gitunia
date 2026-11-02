@@ -38,6 +38,23 @@ Native AOT linux-x64, 120x40 under tmux, medians (they include 1-3 ms of polling
 
 Known limit: at 80x24 the newest row is cut inside the harness marker; pass `--marker "Commit #97500"` there.
 
+## Blame and file history (#1125)
+
+Measured on Linux (Release build of the git readers and view code, JIT, one machine) with two throwaway repos: `scripts/gen-big-file-repo.sh` (`big.txt`, 50,000 lines, 501 commits) and `scripts/gen-big-repo.sh` (100,000 commits). Repeat with a throwaway xunit test (not committed) that times `BlameReader.ReadContentAsync` and `BlameAsync`, `FileHistoryReader.ReadAsync` (`src/file5.txt`, limit 1000), `BlameFrameBuilder.Build` and `BlameSearch.Find` in a loop, plus `git blame --incremental big.txt` by hand with `GIT_CONFIG_GLOBAL=/dev/null`.
+
+| Case | Result |
+|---|---|
+| Blame, 50k-line file: read the lines (working tree) | 1-6 ms, so the lines show at once |
+| Blame: first blamed chunk | ~10 ms (20 ms cold) |
+| Blame: all 50,000 lines blamed (git plus streaming parser, 6.5 MB of output) | ~190 ms; git alone ~200 ms, so the parser adds nothing visible; 0-27 MB allocated per run (noisy, one thread's counter) |
+| Blame view: one frame build while scrolling (120x40, 50k lines) | ~0.1 ms (visible rows only) |
+| Blame view: data held (50k lines of text, commit per line, original line numbers) | ~7 MB |
+| Blame search `/` over 50k lines (text, author, subject; whole file scanned, off the UI thread) | 9-12 ms |
+| File history, 100k-commit repository, file with 903 commits (`log --follow`, limit 1000) | ~0.5 s, off the UI thread |
+| File history, 100k commits, path without history | ~0.17 s |
+
+No hot spot was found, so no code changed. Caveat: with `diff.algorithm = histogram` in the owner's global git config, `git blame --incremental` of the same 50k-line file took ~7.9 s against ~0.2 s with the config ignored. Gitunia respects the user's config and the view stays usable meanwhile (lines first, commits as git finds them); registered as #1136. Not measured: Windows, macOS, the AOT binary end to end (the readers and view code are the code the binary runs; key latency of the real view was not timed under tmux).
+
 ## Idle CPU (#909)
 
 Cause: Terminal.Gui 2.5.0 runs its main loop unconditionally, `Application.MaximumIterationsPerSecond` times a second, each ending in `Task.Delay(..).Wait()` (a wakeup of the timer thread, a pool worker and the main thread, plus a size query and a draw check), and its input thread polls every 20 ms. The poller, the 2 s fingerprint and the UI timers are small next to this. Idle CPU is about proportional to the rate (Linux, AOT, 5000-commit repository, 8 refs, 45 s windows, whole process, threads summed from `/proc/<pid>/task/*/stat`): 100/s 2.56%, 50/s 1.44%, 25/s 1.04%, 10/s 0.91%; 230-390 voluntary context switches per second on each of five threads at 100/s. The rate stays 100/s while working for key latency (the default 25/s gave ~34 ms, `docs/history/decisions.md`).
