@@ -48,7 +48,9 @@ public sealed class StatusHints(
 
         if (screens.FileHistory.IsOpen)
         {
-            return PaneHints.ForFileHistory();
+            return screens.FileHistory.Range is { } range
+                ? PaneHints.ForLineHistory(range)
+                : PaneHints.ForFileHistory();
         }
 
         if (screens.Blame.IsOpen)

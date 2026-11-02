@@ -2,6 +2,7 @@ using Gitunia.App;
 using Gitunia.Core.FileHistory;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Shell;
+using Gitunia.Git.History.Models;
 using Gitunia.Tui.Input;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Overlays;
@@ -22,6 +23,9 @@ public sealed class FileHistoryInput(Dispatcher host, GraphGlyphSet glyphs) : IA
     private ScreenExtent Screen => host.State.Shell.Screen ?? new ScreenExtent(0, 0);
 
     public bool IsOpen => Session.IsOpen;
+
+    /// <summary>The lines the open history follows, null for a whole-file history or when none is open.</summary>
+    public LineRange? Range => Session.History?.Range;
 
     /// <summary>The frame to draw, or null when the history is closed or the screen is too small for it.</summary>
     public OverlayFrame? CurrentFrame()

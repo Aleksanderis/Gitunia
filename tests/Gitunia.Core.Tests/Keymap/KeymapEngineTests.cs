@@ -441,6 +441,37 @@ public class KeymapEngineTests
         Assert.All(continuations, continuation => Assert.False(continuation.HasMore));
     }
 
+    [Theory]
+    [InlineData(DefaultKeymap.DetailFilesView, "H", "g")]
+    [InlineData(DefaultKeymap.DetailChangesView, "H", "g")]
+    [InlineData(DefaultKeymap.WorkingUnstagedView, "H", "g")]
+    [InlineData(DefaultKeymap.WorkingStagedView, "H", "g")]
+    [InlineData(DefaultKeymap.DiffView, "L", "")]
+    [InlineData(DefaultKeymap.WorkingUnstagedDiffView, "L", "")]
+    [InlineData(DefaultKeymap.WorkingStagedDiffView, "L", "")]
+    public void GivenLeaderPressedAtDefaultLevel_WhenAskingForContinuations_ThenHistoryAndBlameKeysAreListed(
+        string view,
+        string key,
+        string group)
+    {
+        var engine = new KeymapEngine(DefaultKeymap.Create());
+        var feeder = new KeyFeeder(engine);
+        feeder.Feed("<space>");
+
+        var names = engine.Continuations(feeder.State, view, CommandLevels.Default)
+            .Select(continuation => continuation.Key.Name)
+            .ToList();
+
+        Assert.Contains(key, names);
+        if (group.Length > 0)
+        {
+            Assert.Contains(group, names);
+            feeder.Feed(group);
+            var inGroup = engine.Continuations(feeder.State, view, CommandLevels.Default);
+            Assert.Contains(inGroup, continuation => continuation.Action == ActionIds.BlameOpen);
+        }
+    }
+
     [Fact]
     public void GivenCtrlWPending_WhenAskingForContinuations_ThenDirectionResizeAndTabKeysAreListed()
     {

@@ -1,4 +1,5 @@
 using Gitunia.Core.Workspaces.Panes;
+using Gitunia.Git.History.Models;
 
 namespace Gitunia.Tui.Rendering.Panes;
 
@@ -37,6 +38,14 @@ public static partial class PaneHints
 
     /// <summary>The hints while the file history is open.</summary>
     public static IReadOnlyList<KeyHint> ForFileHistory() => FileHistory;
+
+    /// <summary>
+    /// The hints while the history of a line range is open: the file history set led by a hint naming the range, so
+    /// the view is not mistaken for the whole-file history.
+    /// </summary>
+    /// <param name="range">The lines the history follows.</param>
+    public static IReadOnlyList<KeyHint> ForLineHistory(LineRange range) =>
+        [new KeyHint($"Lines {range.Label}", "history", []), .. FileHistory];
 
     /// <summary>The hints while the reflog list is open.</summary>
     public static IReadOnlyList<KeyHint> ForReflog() => Reflog;
