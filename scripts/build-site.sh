@@ -3,6 +3,9 @@
 set -euo pipefail
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 out="${1:-$root/site-out}"
+case "$out" in
+  ""|/|"$HOME"|"$root"|.|..) echo "refusing to clear '$out'" >&2; exit 1 ;;
+esac
 rm -rf "$out"
 mkdir -p "$out/assets" "$out/media"
 cp "$root/site/index.html" "$out/"
