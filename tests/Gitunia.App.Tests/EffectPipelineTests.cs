@@ -390,8 +390,10 @@ public class EffectPipelineTests
         using var repository = TestRepositories.Linear();
         using var pipeline = await Pipeline.OpenAsync(TestGit.Services, repository);
         var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+
         // Jobs signal when they start: nothing posts to the pump while they block, so waiting on the pump would hang.
-        using var started = new SemaphoreSlim(0);
+        var started = new SemaphoreSlim(0);
+
         var blocked = Enumerable.Range(0, BackgroundWork.DefaultLimit + 2)
             .Select(_ => pipeline.Background.RunAsync(() =>
             {
@@ -399,6 +401,7 @@ public class EffectPipelineTests
                 return release.Task;
             }, CancellationToken.None))
             .ToArray();
+
         for (var i = 0; i < BackgroundWork.DefaultLimit; i++)
         {
             await started.WaitAsync(TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken);
