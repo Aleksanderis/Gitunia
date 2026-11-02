@@ -16,26 +16,14 @@ public sealed class StashEffectHandler(IStashWriter writer, IDispatcher dispatch
     /// <summary>Starts the effect and returns at once; the result arrives through the dispatcher.</summary>
     public void Handle(StashEffect effect, CancellationToken cancellationToken)
     {
-        _ = Task.Run(() => RunAsync(effect, cancellationToken), CancellationToken.None);
-    }
-
-    private async Task RunAsync(StashEffect effect, CancellationToken token)
-    {
-        StashCommand result;
-        try
-        {
-            result = await PerformAsync(effect, token).ConfigureAwait(false);
-        }
-        catch (OperationCanceledException) when (token.IsCancellationRequested)
-        {
-            result = new StashOperationCancelled(effect.TabId);
-        }
-        catch (Exception exception)
-        {
-            result = new StashOperationFailed(effect.TabId, $"{FailureLead(effect)}: {FailureText.Reason(exception)}");
-        }
-
-        dispatcher.Post(result);
+        EffectWork.Start(
+            dispatcher,
+            token => PerformAsync(effect, token),
+            () => new StashOperationCancelled(effect.TabId),
+            exception => new StashOperationFailed(
+                effect.TabId,
+                $"{FailureLead(effect)}: {FailureText.Reason(exception)}"),
+            cancellationToken);
     }
 
     private async Task<StashCommand> PerformAsync(StashEffect effect, CancellationToken token)

@@ -44,29 +44,12 @@ public sealed class TagEffectHandler(ITagWriter writer, IDispatcher dispatcher)
     }
 
     private void Start(TagEffect effect, Func<CancellationToken, Task<TagCommand>> work, CancellationToken token) =>
-        _ = Task.Run(() => RunAsync(effect, work, token), CancellationToken.None);
-
-    private async Task RunAsync(
-        TagEffect effect,
-        Func<CancellationToken, Task<TagCommand>> work,
-        CancellationToken token)
-    {
-        TagCommand result;
-        try
-        {
-            result = await work(token).ConfigureAwait(false);
-        }
-        catch (OperationCanceledException)
-        {
-            result = new TagOperationCancelled(effect.TabId);
-        }
-        catch (Exception exception)
-        {
-            result = Failure(effect, exception);
-        }
-
-        dispatcher.Post(result);
-    }
+        EffectWork.Start(
+            dispatcher,
+            work,
+            () => new TagOperationCancelled(effect.TabId),
+            exception => Failure(effect, exception),
+            token);
 
     private async Task<TagCommand> CreateAsync(CreateTagEffect effect, CancellationToken token)
     {

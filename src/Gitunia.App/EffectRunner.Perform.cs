@@ -1,21 +1,11 @@
+using Gitunia.Core.Running;
 using Gitunia.Core.Worktrees;
-using Gitunia.Core.Tags;
-using Gitunia.Core.Sync;
 using Gitunia.Core.Status;
-using Gitunia.Core.Stash;
-using Gitunia.Core.Staging;
 using Gitunia.Core.Shell;
-using Gitunia.Core.Remotes;
 using Gitunia.Core.Reflog;
-using Gitunia.Core.Rebase;
 using Gitunia.Core.Picker;
-using Gitunia.Core.Pick;
-using Gitunia.Core.Integration;
-using Gitunia.Core.Discard;
 using Gitunia.Core.Creation;
-using Gitunia.Core.Conflicts;
 using Gitunia.Core.Commits;
-using Gitunia.Core.Branches;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Settings;
 using Gitunia.Core.Effects;
@@ -26,32 +16,19 @@ namespace Gitunia.App;
 // Failure commands and the settings, confirm and cancel effects.
 public sealed partial class EffectRunner<TSession>
 {
-    // A feature's effect fails with that feature's result command, so its running flag is cleared.
+    // An operation effect names its own failure (OperationEffect.FailedWith), so its running mark always ends. Only
+    // effects that are not operations are mapped here, to the result command that ends their own busy flag.
     private static AppCommand FailureOf(AppEffect effect, string text) => effect switch
     {
+        OperationEffect operation => operation.FailedWith(text),
         CloneRepositoryEffect => new CloneFailed(text),
         DiscoverRepositoryEffect discover => new PickerDiscoveryFailed(discover.Request, text),
         InitRepositoryEffect => new InitFailed(text),
-        IntegrationEffect integration => new IntegrationFailed(integration.TabId, text),
-        BranchEffect branch => new BranchOperationFailed(branch.TabId, text),
         ReadHeadMessageEffect head => new HeadMessageReadFailed(head.TabId, text),
-        DiscardEffect discard => new DiscardFailed(discard.TabId, text),
-        RunCommitEffect commit => new CommitFailed(commit.TabId, text, null),
-        ConflictEffect conflict => new ConflictOperationFailed(conflict.TabId, text, StatusSeverity.Error),
-        PickEffect pick => new PickFailed(pick.TabId, text),
-        RebaseEffect rebase => new RebaseFailed(rebase.TabId, text),
-        RunInteractiveRebaseEffect run => new RebaseFailed(run.TabId, text),
-        RebaseEditorEffect editor => new RebaseEditorReadFailed(editor.TabId, text, StatusSeverity.Error),
         ReadReflogEffect => new ReflogReadFailed(text),
         ScanRepositoriesEffect => new PickerScanFinished([]),
         SettingsEffect => new SettingsOperationFailed(text),
-        RemoteEffect remote => new RemoteOperationFailed(remote.TabId, text),
-        StagingEffect staging => new StagingFailed(staging.TabId, text),
-        StashEffect stash => new StashOperationFailed(stash.TabId, text),
-        SyncEffect sync => new SyncFailed(sync.TabId, text, null, null),
-        TagEffect tag => new TagOperationFailed(tag.TabId, text, null),
         LocateWorktreeEffect locate => new WorktreeLocateFailed(locate.TabId, text),
-        WorktreeEffect worktree => new WorktreeOperationFailed(worktree.TabId, text),
         _ => new EffectFailedCommand(text),
     };
 

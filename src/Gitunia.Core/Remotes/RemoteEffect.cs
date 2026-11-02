@@ -15,6 +15,9 @@ public abstract record RemoteEffect : OperationEffect
 
     /// <summary>Where the operation runs.</summary>
     public RepositoryLocation Location { get; }
+
+    /// <inheritdoc />
+    public override AppCommand FailedWith(string text) => new RemoteOperationFailed(TabId, text);
 }
 
 /// <summary>Read the configured remotes before the first prompt of an action.</summary>

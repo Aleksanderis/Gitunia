@@ -56,32 +56,40 @@ public sealed class CommitEffectHandler(ICommitWriter writer, IDispatcher dispat
         }
     }
 
-    private async Task RunAsync(RunCommitEffect effect, CancellationTokenSource linked)
+    private Task RunAsync(RunCommitEffect effect, CancellationTokenSource linked) =>
+        EffectWork.RunAsync(
+            token => CommitAsync(effect, token),
+            () => new CommitFailed(effect.TabId, CommitTexts.CancelledNotice, null),
+            exception => Failed(effect, exception),
+            result => Finish(effect, linked, result),
+            linked.Token);
+
+    private static CommitFailed Failed(RunCommitEffect effect, Exception exception)
     {
-        CommitCommand result;
-        try
+        if (exception is GitCommandFailedException failed)
         {
-            var created = await writer.CommitAsync(effect.Location, effect.Request, linked.Token).ConfigureAwait(false);
-            result = new CommitSucceeded(effect.TabId, effect.Request, created, effect.ForcePushUpstream);
-        }
-        catch (OperationCanceledException)
-        {
-            result = new CommitFailed(effect.TabId, CommitTexts.CancelledNotice, null);
-        }
-        catch (GitCommandFailedException exception)
-        {
-            var reason = CommitFailureReport.Notice(exception.StandardError, exception.StandardOutput);
-            var notice = $"Commit failed: {reason}";
-            var lines = CommitFailureReport.Lines(exception.StandardError, exception.StandardOutput);
-            result = new CommitFailed(effect.TabId, notice, lines);
-        }
-        catch (Exception exception)
-        {
-            // Guard of the background run: anything else becomes a failed commit so the box never stays busy.
-            var notice = $"Commit failed: {CommitFailureReport.Notice(FailureText.Reason(exception))}";
-            result = new CommitFailed(effect.TabId, notice, null);
+            var reason = CommitFailureReport.Notice(failed.StandardError, failed.StandardOutput);
+            var lines = CommitFailureReport.Lines(failed.StandardError, failed.StandardOutput);
+
+            return new CommitFailed(effect.TabId, $"Commit failed: {reason}", lines);
         }
 
+        // Guard of the background run: anything else becomes a failed commit so the box never stays busy.
+        var notice = $"Commit failed: {CommitFailureReport.Notice(FailureText.Reason(exception))}";
+
+        return new CommitFailed(effect.TabId, notice, null);
+    }
+
+    private async Task<CommitCommand> CommitAsync(RunCommitEffect effect, CancellationToken token)
+    {
+        var created = await writer.CommitAsync(effect.Location, effect.Request, token).ConfigureAwait(false);
+
+        return new CommitSucceeded(effect.TabId, effect.Request, created, effect.ForcePushUpstream);
+    }
+
+    // The commit has ended: forget its token source, then post the result.
+    private void Finish(RunCommitEffect effect, CancellationTokenSource linked, CommitCommand result)
+    {
         _running.TryRemove(new KeyValuePair<TabId, CancellationTokenSource>(effect.TabId, linked));
         linked.Dispose();
         dispatcher.Post(result);

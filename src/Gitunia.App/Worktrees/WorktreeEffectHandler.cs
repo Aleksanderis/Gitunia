@@ -19,7 +19,14 @@ public sealed class WorktreeEffectHandler(IWorktreeWriter writer, RepositoryDisc
     /// <summary>Starts the effect and returns at once; the result arrives through the dispatcher.</summary>
     public void Handle(WorktreeEffect effect, CancellationToken cancellationToken)
     {
-        _ = Task.Run(() => RunAsync(effect, cancellationToken), CancellationToken.None);
+        EffectWork.Start(
+            dispatcher,
+            token => WorkAsync(effect, token),
+            () => new WorktreeOperationCancelled(effect.TabId),
+            exception => new WorktreeOperationFailed(
+                effect.TabId,
+                $"{FailureOf(effect)}: {FailureText.Reason(exception)}"),
+            cancellationToken);
     }
 
     /// <summary>Starts resolving a worktree path and returns at once. A cancelled read (the tab was closed) posts
@@ -46,26 +53,6 @@ public sealed class WorktreeEffectHandler(IWorktreeWriter writer, RepositoryDisc
             var verb = effect.IsSwitch ? "switch to" : "open";
             var text = $"Could not {verb} {effect.Path}: {FailureText.Reason(exception)}";
             result = new WorktreeLocateFailed(effect.TabId, text);
-        }
-
-        dispatcher.Post(result);
-    }
-
-    private async Task RunAsync(WorktreeEffect effect, CancellationToken token)
-    {
-        WorktreeCommand result;
-        try
-        {
-            result = await WorkAsync(effect, token).ConfigureAwait(false);
-        }
-        catch (OperationCanceledException)
-        {
-            result = new WorktreeOperationCancelled(effect.TabId);
-        }
-        catch (Exception exception)
-        {
-            var text = $"{FailureOf(effect)}: {FailureText.Reason(exception)}";
-            result = new WorktreeOperationFailed(effect.TabId, text);
         }
 
         dispatcher.Post(result);
