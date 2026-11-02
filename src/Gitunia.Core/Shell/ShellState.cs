@@ -121,13 +121,14 @@ public sealed record ShellState(
 
     /// <summary>
     /// Anything the user is looking at that a late question must not replace: a modal, the mainline question, an editor,
-    /// the settings or the overlay layer.
+    /// the settings or the overlay layer. The one list of overlays; a new one is added here and in
+    /// <see cref="HasModal"/> or <see cref="HasEditor"/>.
     /// </summary>
-    public bool HasOverlay => HasModal || Mainline is not null || HasEditor || Settings.IsOpen || Overlay != OverlayKind.None;
+    public bool HasOverlay => IsCoveredExcept(null);
 
     /// <summary><see cref="HasOverlay"/> without one editor session, for the reducer of that session.</summary>
-    /// <param name="own">The session whose own openness is ignored.</param>
-    public bool IsCoveredExcept(ShellSession own) =>
+    /// <param name="own">The session whose own openness is ignored, or null to ignore none.</param>
+    public bool IsCoveredExcept(ShellSession? own) =>
         HasModal
         || Mainline is not null
         || Settings.IsOpen

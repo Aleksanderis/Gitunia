@@ -11,6 +11,7 @@ using Xunit;
 
 namespace Gitunia.Core.Tests.Shell;
 
+[Trait("Os", "Independent")]
 public sealed class ShellStateTests
 {
     // Every session of the shell state is either listed in one of the meanings or named here as no overlay, so a new
@@ -71,8 +72,11 @@ public sealed class ShellStateTests
     public void IsCoveredExcept_ignores_only_its_own_session(ShellSession own, string open)
     {
         Assert.False(With(open).IsCoveredExcept(own));
-        Assert.True(With("Confirm").IsCoveredExcept(own));
-        Assert.True(With("Settings").IsCoveredExcept(own));
+
+        foreach (var covering in new[] { "Confirm", "Prompt", "Output", "Mainline", "Settings", "OverlayLayer" })
+        {
+            Assert.True(With(covering).IsCoveredExcept(own));
+        }
 
         foreach (var other in EditorSessions.Where(name => name != open))
         {
@@ -80,6 +84,8 @@ public sealed class ShellStateTests
         }
     }
 
+    // Guards the session types only; a plain overlay field (Confirm, Prompt, Output, Mainline) is covered by the
+    // theories above.
     [Fact]
     public void Every_session_of_the_shell_state_is_an_editor_or_named_as_no_overlay()
     {

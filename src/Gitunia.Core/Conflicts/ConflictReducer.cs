@@ -1,8 +1,8 @@
 using Gitunia.Core.Effects;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Overlays;
-using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Core.Workspaces;
+using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Conflicts.Models;
 using Gitunia.Git.Status.Models;
 

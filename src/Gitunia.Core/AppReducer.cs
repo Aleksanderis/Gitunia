@@ -113,8 +113,8 @@ public static partial class AppReducer
         return new AppUpdate(then.State, [.. update.Effects, .. then.Effects]);
     }
 
-    // A prompt belongs to the tab it was opened in and closes when that tab is closed or no longer the active one; the
-    // reflog list closes with its tab.
+    // The prompt, the mainline question and the sidebar filter belong to the active tab and end here; the editor
+    // sessions (rebase editor, reflog, conflict editor) close themselves with their tab (OnTabClosed).
     private static AppUpdate ReduceWorkspace(AppState state, WorkspaceCommand command)
     {
         var update = WorkspaceReducer.Reduce(state.Workspace, command);
