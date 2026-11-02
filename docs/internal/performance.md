@@ -55,7 +55,7 @@ Repeat: `scripts/gen-big-file-repo.sh` and `scripts/gen-big-repo.sh`, then by ha
 | File history, 100k-commit repository, file with 903 commits (`log --follow`, limit 1000) | ~0.5 s, off the UI thread |
 | File history, 100k commits, path without history | ~0.17 s |
 
-No hot spot was found, so no code changed. Caveat: with `diff.algorithm = histogram` in the owner's global git config, `git blame --incremental` of the same 50k-line file took ~7.9 s against ~0.2 s with the config ignored. Gitunia respects the user's config and the view stays usable meanwhile (lines first, commits as git finds them); registered as #1136, the end-to-end AOT measurement as #1137. Not measured there: Windows, macOS, the AOT binary end to end. The AOT run is below.
+No hot spot was found, so no code changed. Caveat: with `diff.algorithm = histogram` in the owner's global git config, `git blame --incremental` of the same 50k-line file took ~7.9 s against ~0.2 s with the config ignored. Gitunia respects the user's config and the view stays usable meanwhile (lines first, commits as git finds them). Decision (#1136, owner): keep the default, no `diff.algorithm` override; the footer shows `blaming N%` while git runs (tested) and the user guide names the effect. Registered: the end-to-end AOT measurement as #1137. Not measured there: Windows, macOS, the AOT binary end to end. The AOT run is below.
 
 ### Blame view, AOT binary under tmux (#1137)
 
