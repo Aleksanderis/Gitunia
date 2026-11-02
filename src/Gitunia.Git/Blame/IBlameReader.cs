@@ -30,12 +30,22 @@ public interface IBlameReader
     /// <param name="location">The repository.</param>
     /// <param name="path">The path relative to the repository root, with <c>/</c> separators.</param>
     /// <param name="revision">The commit to blame at, null for the working tree file.</param>
+    /// <param name="options">The -w, -M and -C switches; null for none. Git itself reads <c>blame.ignoreRevsFile</c>.</param>
     /// <param name="warnings">Receives the parser's warnings.</param>
     /// <param name="cancellationToken">Cancels the stream and kills git.</param>
     IAsyncEnumerable<BlameChunk> BlameAsync(
         RepositoryLocation location,
         string path,
         string? revision,
+        BlameOptions? options = null,
         ICollection<string>? warnings = null,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// The value of <c>blame.ignoreRevsFile</c> in the user's git config (which git blame honors by itself), null when
+    /// it is not set.
+    /// </summary>
+    /// <param name="location">The repository.</param>
+    /// <param name="cancellationToken">Cancels the read.</param>
+    Task<string?> ReadIgnoreRevsFileAsync(RepositoryLocation location, CancellationToken cancellationToken);
 }

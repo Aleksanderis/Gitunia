@@ -318,6 +318,14 @@ public static class ActionIds
 
     public static ActionId BlameOpen { get; } = new("blame.open");
 
+    public static ActionId BlameDetectCopies { get; } = new("blame.toggle-copies");
+
+    public static ActionId BlameDetectMoves { get; } = new("blame.toggle-moves");
+
+    public static ActionId BlameIgnoreWhitespace { get; } = new("blame.toggle-whitespace");
+
+    public static ActionId BlameParent { get; } = new("blame.parent");
+
     public static ActionId BlameShowCommit { get; } = new("blame.show-commit");
 
     public static ActionId ReflogOpen { get; } = new("reflog.open");

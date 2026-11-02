@@ -7,13 +7,16 @@ namespace Gitunia.Git.Blame.Models;
 /// <param name="Summary">The commit subject.</param>
 /// <param name="IsBoundary">True for a commit at the end of the walked history (git marks it with a caret).</param>
 /// <param name="Path">The file's path in that commit (differs from the asked path after a rename).</param>
+/// <param name="PreviousPath">The file's path in the commit's parent, null when none is named (the file is new in
+/// the commit).</param>
 public sealed record BlameCommit(
     string Id,
     string Author,
     DateTimeOffset AuthorTime,
     string Summary,
     bool IsBoundary,
-    string Path)
+    string Path,
+    string? PreviousPath = null)
 {
     /// <summary>The id git prints for lines of the working tree that are in no commit.</summary>
     public const string UncommittedId = "0000000000000000000000000000000000000000";

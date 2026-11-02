@@ -16,7 +16,7 @@ namespace Gitunia.Tui.Rendering.Overlays;
 /// </summary>
 public static class BlameFrameBuilder
 {
-    private const int ChromeRows = 4;
+    private const int ChromeRows = 5;
     private const int StatusRows = 1;
     private const int IdWidth = 9;
     private const int AuthorWidth = 14;
@@ -32,6 +32,8 @@ public static class BlameFrameBuilder
     private const int PercentScale = 100;
 
     private static readonly HintItem[] PlainHints = [new("/", "search"), new("Esc", "close")];
+
+    private static readonly HintItem[] SteppedHints = [new("/", "search"), new("Esc", "back")];
 
     /// <summary>The blame frame for a screen, or null when the screen is too small to show it.</summary>
     public static OverlayFrame? Build(
@@ -77,6 +79,13 @@ public static class BlameFrameBuilder
             glyphs,
             SegmentRole.OverlayKey,
             SegmentRole.Faint));
+        lines.Add(OverlayBox.TwoColumns(
+            "Alt-p",
+            "blame at the parent of the line's commit",
+            screenWidth,
+            glyphs,
+            SegmentRole.OverlayKey,
+            SegmentRole.Faint));
         lines.Add(OverlayBox.Hints(FooterHints(state), screenWidth, glyphs, FooterLead(state)));
         lines.Add(OverlayBox.Bottom(screenWidth, glyphs));
 
@@ -102,7 +111,12 @@ public static class BlameFrameBuilder
 
     /// <summary>The mouse view of the action row on a frame line; null when the line is none.</summary>
     public static string? ActionAt(int frameLine, int screenHeight) =>
-        frameLine == VisibleRows(screenHeight) + 1 ? DefaultMouseMap.BlameShowButton : null;
+        (frameLine - VisibleRows(screenHeight)) switch
+        {
+            1 => DefaultMouseMap.BlameShowButton,
+            2 => DefaultMouseMap.BlameParentButton,
+            _ => null,
+        };
 
     private static int TopOf(int cursor, int count, int rows)
     {
@@ -192,7 +206,19 @@ public static class BlameFrameBuilder
     }
 
     private static HintItem[] FooterHints(BlameState state) =>
-        state.HasSearch ? [new("Esc", state.IsEditingSearch ? "cancel" : "clear")] : PlainHints;
+        state.HasSearch ? [new("Esc", state.IsEditingSearch ? "cancel" : "clear")] : Plain(state);
+
+    private static HintItem[] Plain(BlameState state) => state.Steps.IsEmpty ? PlainHints : SteppedHints;
+
+    // The switches in force and the ignore-revs file, so the user sees what shaped the attribution.
+    private static string Flags(BlameState state)
+    {
+        var options = string.Join(' ', state.ActiveOptions.Arguments());
+        var ignore = state.IgnoreRevsFile is null ? string.Empty : " ignore-revs";
+        var switches = options.Length == 0 ? string.Empty : $"  {options}";
+
+        return $"{switches}{ignore}";
+    }
 
     private static string FooterLead(BlameState state)
     {
@@ -204,7 +230,7 @@ public static class BlameFrameBuilder
         }
 
         var position = state.LineCount == 0 ? 0 : state.Cursor + 1;
-        var text = string.Create(CultureInfo.InvariantCulture, $"{position}/{state.LineCount}");
+        var text = string.Create(CultureInfo.InvariantCulture, $"{position}/{state.LineCount}{Flags(state)}");
         if (state.IsComplete || state.LineCount == 0)
         {
             return text;

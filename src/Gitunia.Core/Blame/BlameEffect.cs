@@ -1,4 +1,5 @@
 using Gitunia.Core.Workspaces.Tabs;
+using Gitunia.Git.Blame.Models;
 using Gitunia.Git.Repositories.Models;
 
 namespace Gitunia.Core.Blame;
@@ -13,12 +14,14 @@ namespace Gitunia.Core.Blame;
 /// <param name="Path">The file, relative to the repository root.</param>
 /// <param name="Revision">The commit to read the file at, null for the working tree file.</param>
 /// <param name="Generation">The read number; the results echo it.</param>
+/// <param name="Options">The -w, -M and -C switches, null for none.</param>
 public sealed record StartBlameEffect(
     TabId TabId,
     RepositoryLocation Location,
     string Path,
     string? Revision,
-    long Generation) : AppEffect;
+    long Generation,
+    BlameOptions? Options = null) : AppEffect;
 
 /// <summary>Stop a running blame and free the lines it holds (the view closed or another was asked for).</summary>
 /// <param name="Generation">The read number the effect ends; a newer read is left alone.</param>

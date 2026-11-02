@@ -1,4 +1,6 @@
+using System.Collections.Immutable;
 using Gitunia.Core.Workspaces.Tabs;
+using Gitunia.Git.Blame.Models;
 
 namespace Gitunia.Core.Blame;
 
@@ -15,6 +17,11 @@ namespace Gitunia.Core.Blame;
 /// <param name="Cursor">The highlighted line (zero-based).</param>
 /// <param name="SearchText">The search text, empty when no search is active.</param>
 /// <param name="IsEditingSearch">True while the search box takes typed text.</param>
+/// <param name="Revision">The revision blamed, null for the working tree file; <c>&lt;id&gt;^</c> after a re-blame at a
+/// parent.</param>
+/// <param name="Options">The -w, -M and -C switches, null for none.</param>
+/// <param name="IgnoreRevsFile">The value of <c>blame.ignoreRevsFile</c> when git uses one, else null.</param>
+/// <param name="Back">The earlier blames; the last one is where Esc goes back to.</param>
 public sealed record BlameState(
     TabId TabId,
     string Path,
@@ -24,8 +31,18 @@ public sealed record BlameState(
     bool IsComplete = false,
     int Cursor = 0,
     string SearchText = "",
-    bool IsEditingSearch = false)
+    bool IsEditingSearch = false,
+    string? Revision = null,
+    BlameOptions? Options = null,
+    string? IgnoreRevsFile = null,
+    ImmutableArray<BlameStep> Back = default)
 {
+    /// <summary>The switches in force (none when not set).</summary>
+    public BlameOptions ActiveOptions => Options ?? BlameOptions.None;
+
+    /// <summary>The earlier blames, empty when the view shows the first.</summary>
+    public ImmutableArray<BlameStep> Steps => Back.IsDefault ? [] : Back;
+
     /// <summary>True when a search is active (being typed or accepted).</summary>
     public bool HasSearch => SearchText.Length > 0 || IsEditingSearch;
 

@@ -76,6 +76,7 @@ public sealed class BlameEffectHandler(IBlameReader reader, BlameStore store, ID
     {
         try
         {
+            var ignoreRevs = await reader.ReadIgnoreRevsFileAsync(effect.Location, token).ConfigureAwait(false);
             var content = await reader
                 .ReadContentAsync(effect.Location, effect.Path, effect.Revision, token)
                 .ConfigureAwait(false);
@@ -86,7 +87,7 @@ public sealed class BlameEffectHandler(IBlameReader reader, BlameStore store, ID
                 store.Publish(new BlameData(effect.Generation, content.Lines));
             }
 
-            dispatcher.Post(new BlameLoaded(effect.TabId, effect.Generation, content.Kind, count));
+            dispatcher.Post(new BlameLoaded(effect.TabId, effect.Generation, content.Kind, count, ignoreRevs));
             if (content.Kind == BlameContentKind.Text)
             {
                 await BlameLinesAsync(effect, token).ConfigureAwait(false);
@@ -115,7 +116,7 @@ public sealed class BlameEffectHandler(IBlameReader reader, BlameStore store, ID
         var clock = Stopwatch.StartNew();
         var lastAnnounced = TimeSpan.Zero;
         await foreach (var chunk in reader
-            .BlameAsync(effect.Location, effect.Path, effect.Revision, null, token)
+            .BlameAsync(effect.Location, effect.Path, effect.Revision, effect.Options, null, token)
             .ConfigureAwait(false))
         {
             blamed += data.Apply(chunk);
