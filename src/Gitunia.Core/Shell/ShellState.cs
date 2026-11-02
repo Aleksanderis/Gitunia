@@ -113,6 +113,29 @@ public sealed record ShellState(
         }
     }
 
+    /// <summary>A dialog, prompt or output box is open (the confirm dialog, the prompt, the output overlay).</summary>
+    public bool HasModal => Confirm is not null || Prompt is not null || Output is not null;
+
+    /// <summary>An editor or list screen with its own session is open: the reflog, the rebase editor or the conflict editor.</summary>
+    public bool HasEditor => Reflog.IsOpen || RebaseEditor.IsOpen || Conflict.IsOpen;
+
+    /// <summary>
+    /// Anything the user is looking at that a late question must not replace: a modal, the mainline question, an editor,
+    /// the settings or the overlay layer.
+    /// </summary>
+    public bool HasOverlay => HasModal || Mainline is not null || HasEditor || Settings.IsOpen || Overlay != OverlayKind.None;
+
+    /// <summary><see cref="HasOverlay"/> without one editor session, for the reducer of that session.</summary>
+    /// <param name="own">The session whose own openness is ignored.</param>
+    public bool IsCoveredExcept(ShellSession own) =>
+        HasModal
+        || Mainline is not null
+        || Settings.IsOpen
+        || Overlay != OverlayKind.None
+        || (own != ShellSession.Reflog && Reflog.IsOpen)
+        || (own != ShellSession.RebaseEditor && RebaseEditor.IsOpen)
+        || (own != ShellSession.Conflict && Conflict.IsOpen);
+
     /// <summary>Switches the key mode and counts the switch.</summary>
     public ShellState WithMode(KeyMode mode) => this with { Mode = mode, ModeChanges = ModeChanges + 1 };
 }

@@ -14,7 +14,6 @@ using Gitunia.Core.Input;
 using Gitunia.Core.IssueLinks;
 using Gitunia.Core.Jump;
 using Gitunia.Core.Keymap.Models;
-using Gitunia.Core.Overlays;
 using Gitunia.Core.Pick;
 using Gitunia.Core.Integration;
 using Gitunia.Core.Prompts;
@@ -135,29 +134,28 @@ public static partial class AppReducer
             shell = (shell with { Mainline = null }).WithMode(KeyMode.Normal);
         }
 
+        // Each session with an owning tab closes itself (OnTabClosed next to its reducer); a new one adds a line here.
         List<AppEffect> effects = [.. update.Effects];
-        if (shell.RebaseEditor.Editor is { } todo && update.Workspace.FindTab(todo.TabId) is null)
+        var workspace = update.Workspace;
+        if (RebaseEditorReducer.OnTabClosed(shell.RebaseEditor, workspace) is { } todo)
         {
-            var closedTodo = RebaseEditorReducer.Closed(shell.RebaseEditor);
-            shell = shell with { RebaseEditor = closedTodo.Session };
-            effects.AddRange(closedTodo.Effects);
+            shell = shell with { RebaseEditor = todo.Session };
+            effects.AddRange(todo.Effects);
         }
 
-        var changed = DetailReducer.CloseFilterOfLeftTab(state.Workspace, new AppState(update.Workspace, shell));
-        shell = changed.Shell;
-        if (shell.Reflog.List is { } list && update.Workspace.FindTab(list.TabId) is null)
+        if (ReflogReducer.OnTabClosed(shell.Reflog, workspace) is { } reflog)
         {
-            var closed = ReduceReflog(changed, new ReflogTabClosed());
-
-            return new AppUpdate(closed.State, [.. effects, .. closed.Effects]);
+            shell = shell with { Reflog = reflog.Session };
+            effects.AddRange(reflog.Effects);
         }
 
-        if (shell.Conflict.Editor is { } editor && update.Workspace.FindTab(editor.TabId) is null)
+        if (ConflictReducer.OnTabClosed(shell.Conflict, workspace) is { } conflict)
         {
-            var closed = ReduceConflict(changed, new ConflictTabClosed());
-
-            return new AppUpdate(closed.State, [.. effects, .. closed.Effects]);
+            shell = shell with { Conflict = conflict.Session };
+            effects.AddRange(conflict.Effects);
         }
+
+        var changed = DetailReducer.CloseFilterOfLeftTab(state.Workspace, new AppState(workspace, shell));
 
         return new AppUpdate(changed, [.. effects]);
     }
@@ -169,7 +167,7 @@ public static partial class AppReducer
         var workspace = state.Workspace;
         var session = state.Shell.Conflict;
         var tab = ConflictTabOf(workspace, session, command);
-        var covered = IsOverlayOpen(state.Shell with { Conflict = ConflictSession.Empty });
+        var covered = state.Shell.IsCoveredExcept(ShellSession.Conflict);
         var busy = tab is not null && IsBusy(tab, RunningOperationKind.Conflicts);
         var update = ConflictReducer.Reduce(session, command, new ConflictContext(tab, busy, covered));
         var next = state with { Shell = state.Shell with { Conflict = update.Session } };
@@ -248,7 +246,7 @@ public static partial class AppReducer
                 tab,
                 s.Workspace.ActiveTabId == tab.Id,
                 IsBusy(tab, RunningOperationKind.Rebase),
-                IsOverlayOpen(s.Shell))));
+                s.Shell.HasOverlay)));
 
     // A result or answer for a tab that was closed meanwhile is dropped, like a late TabCommand; a read result only
     // ends the read, or the next one would be refused for good.
@@ -264,7 +262,7 @@ public static partial class AppReducer
         }
 
         var busy = IsBusy(tab, RunningOperationKind.Rebase);
-        var overlay = IsOverlayOpen(state.Shell with { RebaseEditor = RebaseEditorSession.Empty });
+        var overlay = state.Shell.IsCoveredExcept(ShellSession.RebaseEditor);
         var context = new RebaseEditorContext(tab, state.Workspace.ActiveTabId == tab.Id, busy, overlay);
         var update = RebaseEditorReducer.Reduce(session, command, context);
         var next = ApplyRunning(state, tab, command, update.Effects);
@@ -276,16 +274,4 @@ public static partial class AppReducer
 
         return new AppUpdate(next, update.Effects);
     }
-
-    // A late question must not replace what the user is looking at.
-    private static bool IsOverlayOpen(ShellState shell) =>
-        shell.Confirm is not null
-        || shell.Output is not null
-        || shell.Prompt is not null
-        || shell.Mainline is not null
-        || shell.RebaseEditor.IsOpen
-        || shell.Conflict.IsOpen
-        || shell.Reflog.IsOpen
-        || shell.Settings.IsOpen
-        || shell.Overlay != OverlayKind.None;
 }

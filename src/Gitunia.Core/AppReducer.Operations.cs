@@ -65,7 +65,7 @@ public static partial class AppReducer
     private static AppUpdate ReduceSync(AppState state, RepositoryState tab, SyncCommand command)
     {
         var shell = state.Shell;
-        var overlay = shell.Confirm is not null || shell.Prompt is not null || shell.Output is not null;
+        var overlay = shell.HasModal;
         var busy = tab.Running.IsRunning(RunningOperationKind.Sync);
         var other = tab.Running.Excludes(RunningOperationKind.Sync);
         var context = new SyncContext(

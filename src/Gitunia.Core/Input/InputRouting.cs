@@ -151,10 +151,7 @@ public static class InputRouting
             return false;
         }
 
-        var isCovered = focus.IsOverlayOpen
-            || shell.Reflog.IsOpen
-            || shell.RebaseEditor.IsOpen
-            || shell.Conflict.IsOpen;
+        var isCovered = focus.IsOverlayOpen || shell.HasEditor;
 
         return isCovered || (action == ActionIds.ToolMergetool && shell.Settings.IsOpen);
     }
