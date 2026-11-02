@@ -122,7 +122,7 @@ public class NavigationActionsTests
         }
 
         var executor = new ActionExecutor(new InputHandlers(handlers, textKeys), new NoRepeat(), new FakeActiveSessions(() => session));
-        executor.Run(new RouteActionEffect(ActionIds.ListBottom, null, [InputHandler.Navigation]));
+        executor.RouteAction(new RouteActionEffect(ActionIds.ListBottom, null, [InputHandler.Navigation]));
         Assert.Equal(NavigationActions.StillLoadingNotice, executor.Message);
 
         harness.Session.Complete();

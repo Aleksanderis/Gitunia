@@ -43,13 +43,16 @@ public sealed class EffectParts : IDisposable
             foundation.SessionFactory,
             foundation.Registry,
             foundation.Panes);
-        var parts = new ShellEffectParts(
-            new CursorEffects(host, panes.WorkingDiff, panes.QuickJump, panes.Graph, panes.Detail),
-            new StashEffects(panes.StashView, panes.Rows),
-            new ToolEffects(handlers.Tools, handlers.ConfigEditor, configWriter, statuses, host),
-            new CopyEffects(foundation.Clipboard, handlers.RangeCopier, handlers.Retry, host),
-            new SessionEffects(Persistence, terminal, options),
-            new FlowEffects(handlers.ReflogEntries, handlers.Staging, host, statuses, panes.DiffPane));
+        var shell = new ShellRoles
+        {
+            Cursor = new CursorEffects(host, panes.WorkingDiff, panes.QuickJump, panes.Graph, panes.Detail),
+            Stash = new StashEffects(panes.StashView, panes.Rows),
+            Tools = new ToolEffects(handlers.Tools, handlers.ConfigEditor, configWriter, statuses, host),
+            Copy = new CopyEffects(foundation.Clipboard, handlers.RangeCopier, handlers.Retry, host),
+            Session = new SessionEffects(Persistence, terminal, options),
+            Flow = new FlowEffects(handlers.ReflogEntries, handlers.Staging, host, statuses, panes.DiffPane),
+            Route = handlers.Actions,
+        };
         Runner = new EffectRunner<TerminalTabSession>(
             foundation.Services,
             host,
@@ -59,7 +62,7 @@ public sealed class EffectParts : IDisposable
             {
                 Statuses = statuses,
                 Watcher = WatcherOptionsFor(foundation.Config.Options),
-                Shell = new ShellEffects(parts, handlers.Actions),
+                ShellParts = shell,
                 Settings = CreateSettingsServices(foundation, configWriter),
                 Sessions = foundation.Registry,
             });

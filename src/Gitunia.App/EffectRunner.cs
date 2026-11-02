@@ -81,7 +81,7 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
 
     private readonly GitServices _services;
     private readonly Dispatcher _host;
-    private readonly IShellEffects _shell;
+    private readonly ShellRoles _shell;
     private readonly TabCancellation _cancellation = new();
     private readonly BackgroundWork _background = new();
     private readonly CreationEffectHandler _creation;
@@ -133,7 +133,7 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
         _sessions = options.Sessions ?? new TabSessionRegistry<TSession>();
         var pickerServices = options.Picker ?? PickerServices.Default;
         var settings = options.Settings;
-        _shell = options.Shell ?? NoShellEffects.Instance;
+        _shell = options.ShellParts ?? (options.Shell is { } shell ? ShellRoles.From(shell) : ShellRoles.None);
         _branches = new BranchEffectHandler(services.Branches, host);
         _commits = new CommitEffectHandler(services.CommitWriter, host);
         _compare = new CompareEffectHandler(this, host);
@@ -313,10 +313,10 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
                 _conflicts.Handle(conflict, _cancellation.TokenOf(conflict.TabId));
                 break;
             case CopyToClipboardEffect copy:
-                _shell.CopyToClipboard(copy);
+                _shell.Copy.CopyToClipboard(copy);
                 break;
             case CopyVisualRangeEffect copyRange:
-                _shell.CopyVisualRange(copyRange);
+                _shell.Copy.CopyVisualRange(copyRange);
                 break;
             case CreationEffect creation:
                 _creation.Handle(creation, _shutdown.Token);
@@ -328,22 +328,22 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
                 _discard.Handle(discard, _cancellation.TokenOf(discard.TabId));
                 break;
             case FlushSessionEffect flush:
-                _host.Dispatch(new SessionFlushed(_shell.FlushSession(), flush.Force));
+                _host.Dispatch(new SessionFlushed(_shell.Session.FlushSession(), flush.Force));
                 break;
             case FollowStashCursorEffect:
-                _shell.FollowStashCursor();
+                _shell.Stash.FollowStashCursor();
                 break;
             case JumpToRowEffect jump:
-                _shell.JumpToRow(jump.Row);
+                _shell.Cursor.JumpToRow(jump.Row);
                 break;
             case LaunchExternalToolEffect tool:
-                _shell.LaunchExternalTool(tool);
+                _shell.Tools.LaunchExternalTool(tool);
                 break;
             case IntegrationEffect integration:
                 _integration.Handle(integration, _cancellation.TokenOf(integration.TabId));
                 break;
             case LeaveStashEffect:
-                _shell.LeaveStash();
+                _shell.Stash.LeaveStash();
                 break;
             case LoadRepositoryEffect load:
                 StartLoad(load);
@@ -352,16 +352,16 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
                 _host.Dispatch(new CommitDraftMoveRequested(move.Missing, move.Target));
                 break;
             case MoveDetailCursorEffect cursor:
-                _shell.MoveDetailCursor(cursor.Row);
+                _shell.Cursor.MoveDetailCursor(cursor.Row);
                 break;
             case MoveDiffCursorEffect moveCursor:
-                _shell.MoveDiffCursor(moveCursor);
+                _shell.Cursor.MoveDiffCursor(moveCursor);
                 break;
             case OfferTerminalRetryEffect offer:
-                _shell.OfferTerminalRetry(offer.TabId, offer.Noun, offer.Arguments);
+                _shell.Copy.OfferTerminalRetry(offer.TabId, offer.Noun, offer.Arguments);
                 break;
             case OpenFileContentEffect open:
-                _shell.OpenFileContent(open.Row);
+                _shell.Flow.OpenFileContent(open.Row);
                 break;
             case OpenUrlEffect openUrl:
                 _issueLinks.Handle(openUrl);
@@ -381,10 +381,10 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
                     CancelAll();
                 }
 
-                _shell.Quit();
+                _shell.Session.Quit();
                 break;
             case RouteActionEffect route:
-                _shell.RouteAction(route);
+                _shell.Route.RouteAction(route);
                 break;
             case RebaseEffect rebase:
                 _rebase.Handle(rebase, _cancellation.TokenOf(rebase.TabId));
@@ -399,7 +399,7 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
                 Refresh(refresh.TabId, refresh.Announce);
                 break;
             case ReflogEntryActionEffect entry:
-                _shell.StartReflogEntryAction(entry);
+                _shell.Flow.StartReflogEntryAction(entry);
                 break;
             case RemoteEffect remote:
                 _remotes.Handle(remote, _cancellation.TokenOf(remote.TabId));
@@ -408,7 +408,7 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
                 _commits.Handle(commit, _cancellation.TokenOf(commit.TabId));
                 break;
             case RunTerminalRetryEffect retry:
-                _shell.RunTerminalRetry(retry.TabId, retry.Noun, retry.Arguments);
+                _shell.Copy.RunTerminalRetry(retry.TabId, retry.Noun, retry.Arguments);
                 break;
             case ScheduleStatusAgingEffect aging:
                 _statusAging.Schedule(aging.After);
@@ -420,7 +420,7 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
                 PerformSettingsShell(settingsShell);
                 break;
             case SelectGraphIndexEffect select:
-                _shell.SelectGraphIndex(select.Index);
+                _shell.Cursor.SelectGraphIndex(select.Index);
                 break;
             case SetKeyModeEffect mode:
                 _host.Dispatch(new SetKeyModeCommand(mode.Mode));
@@ -432,10 +432,10 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
                 _host.Dispatch(new PromptRequestedCommand(prompt.Request));
                 break;
             case ShowStashEffect showStash:
-                _shell.ShowStash(showStash.Row);
+                _shell.Stash.ShowStash(showStash.Row);
                 break;
             case StageResolvedConflictEffect stage:
-                _shell.StageResolvedConflict(stage);
+                _shell.Flow.StageResolvedConflict(stage);
                 break;
             case StagingEffect staging:
                 _staging.Handle(staging, _cancellation.TokenOf(staging.TabId));

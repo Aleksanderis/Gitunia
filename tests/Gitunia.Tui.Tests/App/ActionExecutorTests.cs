@@ -35,7 +35,7 @@ public class ActionExecutorTests : IInputFocusSource
 
         // The table keeps the dictionary, so a test can put another handler in place of one.
         _executor = new ActionExecutor(new InputHandlers(_handlers, textKeys), _repeat, new NoSessions());
-        _host.EffectRaised += effect => _executor.Run((RouteActionEffect)effect);
+        _host.EffectRaised += effect => _executor.RouteAction((RouteActionEffect)effect);
         _input = new ActionInput(_host, this);
     }
 
