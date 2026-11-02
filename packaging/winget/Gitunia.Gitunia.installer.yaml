@@ -1,3 +1,4 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.1.9.0.schema.json
 # Winget installer manifest template (#943). A portable package: winget links the one exe into its PATH folder.
 PackageIdentifier: Gitunia.Gitunia
 PackageVersion: @VERSION@
