@@ -69,7 +69,7 @@ public sealed class BlameInput(
             count,
             rows,
             owner?.Id,
-            owner?.Path,
+            owner?.PreviousPath ?? owner?.Path,
             data?.OriginalLineOf(view.Cursor) ?? 0,
             owner?.IsBoundary ?? false));
 

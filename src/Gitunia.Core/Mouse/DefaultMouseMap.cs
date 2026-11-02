@@ -129,6 +129,7 @@ public static class DefaultMouseMap
     /// <summary>The action row under the blame view: a click runs the action its key runs on the highlighted line.</summary>
     public const string BlameShowButton = "BlameButton.Show";
 
+    /// <summary>The action row `Alt-p` under the blame view: blame at the parent of the highlighted line's commit.</summary>
     public const string BlameParentButton = "BlameButton.Parent";
 
     /// <summary>The chips under the rebase todo editor (#458): each is a view of its own, a click runs the action

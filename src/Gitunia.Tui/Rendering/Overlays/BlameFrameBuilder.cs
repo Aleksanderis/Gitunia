@@ -214,7 +214,7 @@ public static class BlameFrameBuilder
     private static string Flags(BlameState state)
     {
         var options = string.Join(' ', state.ActiveOptions.Arguments());
-        var ignore = state.IgnoreRevsFile is null ? string.Empty : " ignoreRevsFile in use";
+        var ignore = state.IgnoreRevsFile is null ? string.Empty : " ignore-revs";
         var switches = options.Length == 0 ? string.Empty : $"  {options}";
 
         return $"{switches}{ignore}";

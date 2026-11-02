@@ -22,7 +22,8 @@ public sealed record BlameOpenRefused(string Text) : BlameCommand;
 /// <param name="PageRows">How many lines the view shows, for page motions.</param>
 /// <param name="CursorCommit">The commit of the highlighted line as the user sees it, null while git has not found it
 /// yet (the view reads it from the store; the reducer cannot).</param>
-/// <param name="CursorPath">The file's path in that commit.</param>
+/// <param name="CursorPath">The file's path in the parent of that commit (its path in the commit when none other is
+/// named).</param>
 /// <param name="CursorOriginalLine">The line number in that commit's version of the file (zero-based).</param>
 /// <param name="CursorIsBoundary">True when that commit is a root of the walked history (it has no parent).</param>
 public sealed record BlameActionPressed(
@@ -33,6 +34,7 @@ public sealed record BlameActionPressed(
     string? CursorPath = null,
     int CursorOriginalLine = 0,
     bool CursorIsBoundary = false) : BlameCommand;
+
 /// <summary>A key typed into the search box.</summary>
 /// <param name="Key">The key.</param>
 public sealed record BlameKeyTyped(KeyEvent Key) : BlameCommand;

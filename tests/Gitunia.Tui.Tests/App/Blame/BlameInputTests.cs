@@ -145,6 +145,27 @@ public sealed class BlameInputTests
     }
 
     [Fact]
+    public async Task GivenALineEditedByARenameCommit_WhenBlamingAtTheParent_ThenTheOldPathIsBlamed()
+    {
+        using var repository = TestRepository.Create()
+            .Commit("add", new TestFile("a.txt", "one\ntwo\nthree\nfour\n"));
+        repository.Git("mv", "a.txt", "b.txt");
+        repository.WriteFile("b.txt", "one\ntwo\nthree\nFOUR\n");
+        repository.Git("commit", "-q", "-am", "rename and edit");
+        using var harness = await Harness.LoadAsync(repository, new FixedTargets("b.txt", repository.Head));
+        await harness.OpenAsync();
+        harness.Input.TryExecute(ActionIds.ListBottom, null);
+
+        harness.Input.TryExecute(ActionIds.BlameParent, null);
+        await harness.PumpUntilAsync(() => harness.View is { IsComplete: true, Revision: not null } view
+            && view.Revision.EndsWith('^'));
+
+        Assert.Equal("a.txt", harness.View.Path);
+        Assert.Equal(4, harness.View.LineCount);
+        Assert.Contains(harness.Input.CurrentFrame()!.Lines, line => line.Text.Contains("four"));
+    }
+
+    [Fact]
     public async Task GivenALineOfTheFirstCommit_WhenBlamingAtTheParent_ThenTheStatusSaysThereIsNoParent()
     {
         using var repository = TwoCommits();
@@ -171,7 +192,7 @@ public sealed class BlameInputTests
 
         var footer = harness.Input.CurrentFrame()!.Lines[^2].Text;
         Assert.Contains("-w", footer);
-        Assert.Contains("ignoreRevsFile in use", footer);
+        Assert.Contains("ignore-revs", footer);
     }
 
     [Fact]
