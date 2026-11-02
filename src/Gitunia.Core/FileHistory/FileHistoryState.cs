@@ -17,6 +17,7 @@ namespace Gitunia.Core.FileHistory;
 /// <param name="Diff">The diff of the highlighted commit, null while it is read or when there is no commit.</param>
 /// <param name="DiffFailure">Why the diff could not be read, empty when it could.</param>
 /// <param name="DiffScroll">The first diff row shown.</param>
+/// <param name="Range">The lines the history follows, null for the whole file.</param>
 public sealed record FileHistoryState(
     TabId TabId,
     string Path,
@@ -25,7 +26,8 @@ public sealed record FileHistoryState(
     int SelectedIndex = 0,
     DiffDocument? Diff = null,
     string DiffFailure = "",
-    int DiffScroll = 0)
+    int DiffScroll = 0,
+    LineRange? Range = null)
 {
     /// <summary>The highlighted commit, null when the history is empty.</summary>
     public FileHistoryEntry? Selected =>

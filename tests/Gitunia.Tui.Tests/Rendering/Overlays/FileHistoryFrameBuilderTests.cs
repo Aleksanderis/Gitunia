@@ -34,6 +34,20 @@ public class FileHistoryFrameBuilderTests
     }
 
     [Fact]
+    public void GivenALineRange_WhenRendering_ThenTheTitleNamesTheLinesAndNoCommitSaysSo()
+    {
+        var withRange = State(2) with { Range = new LineRange(4, 9) };
+        var empty = State(0) with { Range = new LineRange(7, 7) };
+
+        var frame = FileHistoryFrameBuilder.Build(withRange, 100, 24, GraphGlyphSet.Unicode);
+        var none = FileHistoryFrameBuilder.Build(empty, 100, 24, GraphGlyphSet.Unicode);
+
+        Assert.Contains("Line history: dir/a b.txt:4-9 (from HEAD)", frame!.Lines[0].Text, StringComparison.Ordinal);
+        Assert.Contains("Line history: dir/a b.txt:7 (from HEAD)", none!.Lines[0].Text, StringComparison.Ordinal);
+        Assert.Contains("No commit changed these", none.Lines[1].Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void GivenTheSelectedCommit_WhenRendering_ThenOnlyItsListCellCarriesTheCursorRole()
     {
         var state = State(3).MoveTo(1);

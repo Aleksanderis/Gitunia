@@ -10,6 +10,8 @@ namespace Gitunia.Git.History.Models;
 /// <param name="Path">The path the file had after this commit (before it, for a deletion).</param>
 /// <param name="OldPath">The path before a rename or copy, null otherwise.</param>
 /// <param name="Kind">What the commit did to the file.</param>
+/// <param name="Patch">For a line-range history: what the commit did to the range, as a unified diff; null for a
+/// whole-file history, whose diff is read per commit.</param>
 public sealed record FileHistoryEntry(
     string Hash,
     string AuthorName,
@@ -17,4 +19,5 @@ public sealed record FileHistoryEntry(
     string Subject,
     string Path,
     string? OldPath,
-    FileChangeKind Kind);
+    FileChangeKind Kind,
+    string? Patch = null);

@@ -11,12 +11,14 @@ namespace Gitunia.Core.FileHistory;
 /// <param name="Revision">Where the walk starts.</param>
 /// <param name="Path">The file.</param>
 /// <param name="Generation">The read number; the result echoes it.</param>
+/// <param name="Range">The lines to follow (<c>git log -L</c>), null for the whole file.</param>
 public sealed record ReadFileHistoryEffect(
     TabId TabId,
     RepositoryLocation Location,
     string Revision,
     string Path,
-    long Generation) : AppEffect;
+    long Generation,
+    LineRange? Range = null) : AppEffect;
 
 /// <summary>Read one commit's diff of the file. Posts <see cref="FileHistoryDiffLoaded"/>,
 /// <see cref="FileHistoryDiffFailed"/> or <see cref="FileHistoryDiffCancelled"/>; a newer request cancels the

@@ -110,7 +110,13 @@ public sealed class HandlerParts
     {
         var host = foundation.Host;
         var target = new FileHistorySelection(host, foundation.Sessions, foundation.Panes);
-        var fileHistory = new FileHistoryOpener(host, target);
+        var lines = new LineHistorySelection(
+            host,
+            foundation.Sessions,
+            panes.DiffView.Actions,
+            panes.WorkingDiff,
+            panes.Visual);
+        var fileHistory = new FileHistoryOpener(host, target, lines, panes.Visual);
         var navigation = new NavigationServices(keys.Quit, foundation.Chrome, Statuses, foundation.Clipboard);
 
         return overlays.Handlers

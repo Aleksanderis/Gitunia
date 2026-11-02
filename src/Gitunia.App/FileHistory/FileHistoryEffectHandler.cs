@@ -1,8 +1,12 @@
+using System.Text;
 using Gitunia.Core.Diff;
 using Gitunia.Core.FileHistory;
 using Gitunia.Core.Text;
+using Gitunia.Git;
 using Gitunia.Git.Diff;
+using Gitunia.Git.Diff.Models;
 using Gitunia.Git.History;
+using Gitunia.Git.History.Models;
 
 namespace Gitunia.App.FileHistory;
 
@@ -60,11 +64,37 @@ public sealed class FileHistoryEffectHandler(IFileHistoryReader reader, IDiffRea
 
     private async Task<FileHistoryCommand> ReadAsync(ReadFileHistoryEffect effect, CancellationToken token)
     {
-        var read = await reader
-            .ReadAsync(effect.Location, effect.Revision, effect.Path, FileHistoryReducer.EntryLimit, token)
-            .ConfigureAwait(false);
+        var read = await ReadEntriesAsync(effect, token).ConfigureAwait(false);
 
-        return new FileHistoryLoaded(effect.TabId, effect.Generation, effect.Path, effect.Revision, read.Items);
+        return new FileHistoryLoaded(
+            effect.TabId,
+            effect.Generation,
+            effect.Path,
+            effect.Revision,
+            read.Items,
+            effect.Range);
+    }
+
+    private async Task<ParseResult<FileHistoryEntry>> ReadEntriesAsync(
+        ReadFileHistoryEffect effect,
+        CancellationToken token)
+    {
+        if (effect.Range is not { } range)
+        {
+            return await reader
+                .ReadAsync(effect.Location, effect.Revision, effect.Path, FileHistoryReducer.EntryLimit, token)
+                .ConfigureAwait(false);
+        }
+
+        return await reader
+            .ReadRangeAsync(
+                effect.Location,
+                effect.Revision,
+                effect.Path,
+                range,
+                FileHistoryReducer.EntryLimit,
+                token)
+            .ConfigureAwait(false);
     }
 
     private async Task RunDiffAsync(ReadFileHistoryDiffEffect effect, CancellationTokenSource source)
@@ -85,12 +115,28 @@ public sealed class FileHistoryEffectHandler(IFileHistoryReader reader, IDiffRea
     {
         var warnings = new List<string>();
         var builder = new DiffDocumentBuilder();
-        var command = FileHistoryDiffCommand.For(effect.Entry);
-        await foreach (var file in diffs
-            .ReadAsync(effect.Location, command, warnings, MaximumDiffLines, token)
-            .ConfigureAwait(false))
+        if (effect.Entry.Patch is { } patch)
         {
-            builder.Add(file);
+            // A line history read every patch with the list: nothing more to run.
+            var parser = new DiffParser(MaximumDiffLines);
+            var files = new List<DiffFile>();
+            parser.Feed(Encoding.UTF8.GetBytes(patch), files);
+            parser.Complete(files);
+            warnings.AddRange(parser.Warnings);
+            foreach (var file in files)
+            {
+                builder.Add(file);
+            }
+        }
+        else
+        {
+            var command = FileHistoryDiffCommand.For(effect.Entry);
+            await foreach (var file in diffs
+                .ReadAsync(effect.Location, command, warnings, MaximumDiffLines, token)
+                .ConfigureAwait(false))
+            {
+                builder.Add(file);
+            }
         }
 
         var document = builder.RowCount == 0 ? DiffDocument.Message(NoChangesText) : builder.Build(warnings);

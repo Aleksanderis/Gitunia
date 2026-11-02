@@ -12,7 +12,13 @@ public abstract record FileHistoryCommand : AppCommand;
 /// <param name="TabId">The tab whose repository holds the file.</param>
 /// <param name="Path">The repository-relative path of the file.</param>
 /// <param name="Revision">Where the history starts: the shown commit, or <c>HEAD</c>.</param>
-public sealed record FileHistoryOpenRequested(TabId TabId, string Path, string Revision) : FileHistoryCommand;
+/// <param name="Range">The lines of the file (as they are at <paramref name="Revision"/>) to show the history of; null
+/// for the whole file.</param>
+public sealed record FileHistoryOpenRequested(
+    TabId TabId,
+    string Path,
+    string Revision,
+    LineRange? Range = null) : FileHistoryCommand;
 
 /// <summary>A bound action while the history is open (it consumes every action).</summary>
 /// <param name="Action">The action.</param>
@@ -33,12 +39,14 @@ public sealed record FileHistoryTabClosed : FileHistoryCommand;
 /// <param name="Path">The file.</param>
 /// <param name="Revision">Where the walk started.</param>
 /// <param name="Entries">The commits, newest first.</param>
+/// <param name="Range">The lines the walk was asked for, null for the whole file.</param>
 public sealed record FileHistoryLoaded(
     TabId TabId,
     long Generation,
     string Path,
     string Revision,
-    IReadOnlyList<FileHistoryEntry> Entries) : FileHistoryCommand;
+    IReadOnlyList<FileHistoryEntry> Entries,
+    LineRange? Range = null) : FileHistoryCommand;
 
 /// <summary>The list read failed.</summary>
 /// <param name="Text">What to tell the user.</param>
