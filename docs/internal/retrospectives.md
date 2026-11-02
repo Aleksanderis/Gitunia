@@ -105,7 +105,7 @@ Core + App tests are counted as "no terminal" tests; I did not classify each App
 | No late `null!` wiring | Met: the one left is an `out` default in `App/Loading/Commits/CommitDetailsCache.cs`, not late wiring. |
 | No constructors over five parameters | Met for services: classes with more than five constructor parameters fell from 46 to 2 (`WorkingTreeActionHandler` and `DiffJumpRows`, 7 each). Not met for data: 82 records/structs (state, commands, effects, DTOs) have more than five, up from 52. See the measurements section. |
 | No files over ~500 lines in `src/` | Met in practice: one file at 504 lines, a constant list. |
-| Startup and key latency unchanged | Met for cold start (+8%, 56.8 to 61.2 ms median, far under the 100 ms target), key latency and page scroll (equal); the commit details step looked +26% in three rounds but is noise in six (#1071, end-state section below). |
+| Startup and key latency unchanged | Met for cold start (+8%, 56.8 to 61.2 ms median, far under the 100 ms target), median key latency and page scroll (equal); the commit details step looked +26% in three rounds but is noise in six (#1071, end-state section below). The 200-`j` settle (+46%) and `j` p95 (+12%) are unresolved, #1086. |
 
 ### Performance and constructor measurements (#1055, #1042)
 
@@ -133,7 +133,7 @@ Verdict: cold start and key latency are unchanged in practice. Key latency and p
 
 ### End-state re-measurement (#1071)
 
-Baseline `468de95` against `main` at `25ca3af` (all M7 follow-ups merged, including #1082). Same method as above (Native AOT linux-x64 Release, baseline built in a temporary worktree, 5000-commit repo from `scripts/gen-big-repo.sh`, `scripts/measure.sh --runs 10 --keys 30`, 120x40, same machine, private state dirs), but six alternating rounds, baseline first. Median of the six round values (mean of the middle two), range in brackets. Test counts in the "Tests" table above are `[Fact]`/`[Theory]` attributes (a Theory counts once); later `dotnet test` totals count executed test methods including data rows, so the two numbers differ.
+Baseline `468de95` against `main` at `25ca3af` (after #1082, before #1083, which cut `WorkingTreeActionHandler` to 5 parameters; that change does not touch the measured paths). Same method as above (Native AOT linux-x64 Release, baseline built in a temporary worktree, 5000-commit repo from `scripts/gen-big-repo.sh`, `scripts/measure.sh --runs 10 --keys 30`, 120x40, same machine, private state dirs), but six alternating rounds, baseline first. Median of the six round values (mean of the middle two), range in brackets. Test counts in the "Tests" table above are `[Fact]`/`[Theory]` attributes (a Theory counts once); later `dotnet test` totals count executed test methods including data rows, so the two numbers differ.
 
 | Measure | Baseline `468de95` | `main` `25ca3af` | Change |
 |---|---|---|---|
@@ -149,4 +149,4 @@ Baseline `468de95` against `main` at `25ca3af` (all M7 follow-ups merged, includ
 | RSS after load (MiB) | 50.8 (49.8-51.2) | 48.7 (47.8-49.1) | -4% |
 | AOT binary (`gitunia`, bytes) | 16,037,320 | 17,385,032 | +8.4% (+1.3 MiB) |
 
-Verdict on #1071: the +26% commit details step did not hold. With six rounds the baseline details step ranges 22.9-30.5 ms and main 22.9-27.9 ms, the same minimum, and main's median is lower. The three-round gap was harness noise (tmux polling costs 1-3 ms per poll, and the 30-sample medians move by about 8 ms between rounds). No code change; the suspected extra hop through the effect runner and `BackgroundWork` is not visible at this resolution. Cold start, median key latency, page scroll and the details step are within noise; the 200-`j` settle and the `j` p95 are unresolved at this resolution (#1086); the binary size (+8.4%) is a stable difference.
+Verdict on #1071: the +26% commit details step did not hold. With six rounds the baseline details step ranges 22.9-30.5 ms and main 22.9-27.9 ms, the same minimum, and main's median is lower. The three-round gap was harness noise (assumed: tmux polling costs 1-3 ms per poll, not measured here, and the 30-sample medians move by about 8 ms between rounds). No code change; the suspected extra hop through the effect runner and `BackgroundWork` is not visible at this resolution. Cold start, median key latency, page scroll and the details step are within noise; the 200-`j` settle and the `j` p95 are unresolved at this resolution (#1086); the binary size (+8.4%) is a stable difference.
