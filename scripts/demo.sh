@@ -47,7 +47,7 @@ if [ -z "$binary" ]; then
 fi
 [ -x "$binary" ] || { echo "binary '$binary' not found" >&2; exit 3; }
 
-# Throwaway repo: about 450 commits over ten months, three authors, long-lived main/develop/release branches, parallel
+# Throwaway repo: about 350 commits over seven months, three authors, long-lived main/develop/release branches, parallel
 # feature and fix branches (most merged, some still open), tags, and a working-tree change in README.md.
 # Built with git fast-import from a generated stream: deterministic (no clock, no randomness) and fast.
 repo="$work/demo-repo"
@@ -113,7 +113,7 @@ repo="$work/demo-repo"
       # Every third fix stays open.
       if [ $((w % 3)) -ne 0 ]; then commit develop "Merge fix/crash-$w" "$dev_tip" "$fix_tip"; dev_tip=$last; fi
     fi
-    # Two of every five features stay open; the rest merge into main (or develop).
+    # One in five features stays open, one merges into develop, the rest into main.
     if [ $((w % 5)) -lt 3 ]; then
       commit main "Merge feature/$topic" "$main_tip" "$feat_tip"; main_tip=$last
     elif [ $((w % 5)) -eq 3 ]; then
@@ -139,6 +139,7 @@ repo="$work/demo-repo"
   sed -i 's/^Call the functions from src\.$/&\n\nDivide truncates toward zero.\nModulo keeps the sign of the dividend.\nPower is not implemented yet./' "$repo/README.md"
 )
 
+[ -d "$out_dir" ] || [ -d "$(dirname "$out_dir")" ] || { echo "output directory $out_dir not found: pass --out or set GITUNIA_LANDING_MEDIA to the landing page media folder" >&2; exit 2; }
 mkdir -p "$out_dir" "$work/config" "$work/state"
 export DEMO_BIN="$binary" DEMO_REPO="$repo"
 # Deliberate isolation of the recorded app from the owner config and git identity (the app itself sets none of these).
