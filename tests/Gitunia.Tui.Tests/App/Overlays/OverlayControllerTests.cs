@@ -180,7 +180,6 @@ public sealed class OverlayControllerTests : IDisposable, IActionRoute
     [Fact]
     public void GivenAConfirmDialog_WhenAnsweringNoOrEscape_ThenTheCallbackNeverRuns()
     {
-        var calls = 0;
         foreach (var answer in new[] { new Key('n'), Key.Esc })
         {
             _shell.Confirm(Prompt());
@@ -191,13 +190,12 @@ public sealed class OverlayControllerTests : IDisposable, IActionRoute
             Assert.Equal(KeyMode.Normal, _keys.Mode);
         }
 
-        Assert.Equal(0, calls);
+        Assert.Empty(_shell.Accepted);
     }
 
     [Fact]
     public void GivenAConfirmDialog_WhenOtherKeysArrive_ThenTheyAreSwallowedAndNothingConfirms()
     {
-        var calls = 0;
         _shell.Confirm(Prompt());
 
         foreach (var key in new[] { Key.Enter, new Key('j'), new Key('q'), Key.CursorDown, new Key(' ') })
@@ -205,7 +203,7 @@ public sealed class OverlayControllerTests : IDisposable, IActionRoute
             Assert.True(Press(key));
         }
 
-        Assert.Equal(0, calls);
+        Assert.Empty(_shell.Accepted);
         Assert.Equal(OverlayKind.Confirm, _overlays.State.Kind);
         Assert.Empty(_routed);
     }
@@ -236,13 +234,12 @@ public sealed class OverlayControllerTests : IDisposable, IActionRoute
     [Fact]
     public void GivenAConfirmDialog_WhenTheScreenShrinksBelowIt_ThenItClosesUnansweredAndAStrayYDoesNothing()
     {
-        var calls = 0;
         _shell.Confirm(Prompt());
         Resize(14, 24);
         _overlays.OnScreenResized();
         Press(new Key('y'));
 
-        Assert.Equal(0, calls);
+        Assert.Empty(_shell.Accepted);
         Assert.Equal(OverlayKind.None, _overlays.State.Kind);
         Assert.Equal(KeyMode.Normal, _keys.Mode);
         Assert.Contains("nothing was done", _shell.Statuses.Log.Latest!.Text, StringComparison.Ordinal);

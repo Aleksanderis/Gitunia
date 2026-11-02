@@ -1,6 +1,5 @@
 using Gitunia.Tui.App.Tabs;
 
-
 namespace Gitunia.Tui.App.Panes;
 
 /// <summary>The history diff pane's diff of the active tab.</summary>

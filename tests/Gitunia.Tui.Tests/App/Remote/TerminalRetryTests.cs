@@ -35,6 +35,10 @@ public class TerminalRetryTests
 
         AnswerYes();
 
+        var accepted = Assert.Single(_shell.Accepted);
+        Assert.Equal(_tabId, accepted.TabId);
+        Assert.Equal("Fetch", accepted.Noun);
+        Assert.Equal(FetchArguments, accepted.Arguments);
         Assert.Equal(["fetch|fetch --prune"], _terminal.Calls);
     }
 

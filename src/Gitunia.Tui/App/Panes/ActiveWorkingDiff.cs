@@ -1,6 +1,5 @@
 using Gitunia.Tui.App.Tabs;
 
-
 namespace Gitunia.Tui.App.Panes;
 
 /// <summary>The Changes view diff of the active tab.</summary>
