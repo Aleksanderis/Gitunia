@@ -128,7 +128,6 @@ public class CompareReducerTests
         Assert.Empty(Changed(facts, mark).Effects);
     }
 
-
     [Fact]
     public void GivenTheCommitWasAskedFor_WhenDetailsChangeAgain_ThenItIsNotAskedForTwice()
     {
