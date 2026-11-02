@@ -1,5 +1,6 @@
 using Gitunia.Core.Blame;
 using Gitunia.Core.Effects;
+using Gitunia.Core.FileHistory;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Overlays;
@@ -480,6 +481,54 @@ public class BlameReducerTests
 
         Assert.Empty(update.Effects);
         Assert.Equal(state.Shell.Blame.Generation, update.State.Shell.Blame.Generation);
+    }
+
+    [Fact]
+    public void GivenABlameAtARevision_WhenPressingFileHistory_ThenTheViewClosesAndTheHistoryOfThatPathAndRevisionIsRead()
+    {
+        var opened = AppReducer.Reduce(Opened("alpha"), new BlameOpenRequested("src/a.txt", Commit)).State;
+        var view = opened.Shell.Blame.View!;
+
+        var update = AppReducer.Reduce(opened, Pressed(ActionIds.FileHistoryOpen, null));
+
+        Assert.False(update.State.Shell.Blame.IsOpen);
+        Assert.Contains(update.Effects, effect => effect is StopBlameEffect);
+        var read = Assert.Single(update.Effects.OfType<ReadFileHistoryEffect>());
+        Assert.Equal(view.TabId, read.TabId);
+        Assert.Equal("src/a.txt", read.Path);
+        Assert.Equal(Commit, read.Revision);
+        Assert.True(update.State.Shell.FileHistory.IsReading);
+    }
+
+    [Fact]
+    public void GivenAWorkingTreeBlameAtAParent_WhenPressingFileHistory_ThenHeadAndTheParentRevisionAreUsed()
+    {
+        var working = AppReducer.Reduce(Opened("alpha"), new BlameOpenRequested("a.txt", null)).State;
+
+        var fromWorking = AppReducer.Reduce(working, Pressed(ActionIds.FileHistoryOpen, null));
+
+        Assert.Equal("HEAD", Assert.Single(fromWorking.Effects.OfType<ReadFileHistoryEffect>()).Revision);
+
+        var loaded = AppReducer.Reduce(
+            working,
+            new BlameLoaded(working.Shell.Blame.View!.TabId, working.Shell.Blame.Generation, BlameContentKind.Text, 3)).State;
+        var parent = AppReducer.Reduce(loaded, ParentPressed(Commit, "old.txt", 0)).State;
+        var fromParent = AppReducer.Reduce(parent, Pressed(ActionIds.FileHistoryOpen, null));
+
+        var read = Assert.Single(fromParent.Effects.OfType<ReadFileHistoryEffect>());
+        Assert.Equal($"{Commit}^", read.Revision);
+        Assert.Equal("old.txt", read.Path);
+    }
+
+    [Fact]
+    public void GivenAnOpenSearchBox_WhenPressingFileHistory_ThenTheViewStaysAndNothingOpens()
+    {
+        var state = AppReducer.Reduce(Viewing(5), Pressed(ActionIds.SearchOpen, null)).State;
+
+        var update = AppReducer.Reduce(state, Pressed(ActionIds.FileHistoryOpen, null));
+
+        Assert.True(update.State.Shell.Blame.IsOpen);
+        Assert.Empty(update.Effects.OfType<ReadFileHistoryEffect>());
     }
 
     private static BlameActionPressed ParentPressed(

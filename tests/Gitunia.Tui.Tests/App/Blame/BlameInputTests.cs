@@ -203,8 +203,8 @@ public sealed class BlameInputTests
         await harness.OpenAsync();
 
         var onLine = harness.Input.OnLineClicked(3, out var lineHandled);
-        var onAction = harness.Input.OnLineClicked(Height - 1 - 5 + 1, out var actionHandled);
-        var onParent = harness.Input.OnLineClicked(Height - 1 - 5 + 2, out var parentHandled);
+        var onAction = harness.Input.OnLineClicked(Height - 1 - 6 + 1, out var actionHandled);
+        var onParent = harness.Input.OnLineClicked(Height - 1 - 6 + 2, out var parentHandled);
 
         Assert.Null(onLine);
         Assert.True(lineHandled);
@@ -213,6 +213,10 @@ public sealed class BlameInputTests
         Assert.True(actionHandled);
         Assert.Equal(DefaultMouseMap.BlameParentButton, onParent);
         Assert.True(parentHandled);
+        var onHistory = harness.Input.OnLineClicked(Height - 1 - 6 + 3, out var historyHandled);
+        Assert.Equal(DefaultMouseMap.BlameHistoryButton, onHistory);
+        Assert.True(historyHandled);
+        Assert.Equal(ActionIds.FileHistoryOpen, DefaultMouseMap.Create().Resolve(onHistory!, MouseGesture.Click)!.Action);
         Assert.Equal(ActionIds.BlameParent, DefaultMouseMap.Create().Resolve(onParent!, MouseGesture.Click)!.Action);
         Assert.Equal(ActionIds.BlameShowCommit, DefaultMouseMap.Create().Resolve(onAction!, MouseGesture.Click)!.Action);
     }
