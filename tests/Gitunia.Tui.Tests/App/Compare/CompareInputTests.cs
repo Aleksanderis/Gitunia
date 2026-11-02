@@ -1,5 +1,6 @@
 using Gitunia.Core;
 using Gitunia.App;
+using Gitunia.App.Loading;
 using Gitunia.App.Loading.Commits;
 using Gitunia.App.Tabs;
 using Gitunia.Core.Graph;
@@ -17,6 +18,7 @@ using Gitunia.Tui.App.Compare;
 using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Tests.Fakes;
+using Gitunia.Tui.Tests.Loading;
 using Xunit;
 
 namespace Gitunia.Tui.Tests.App.Compare;
@@ -44,7 +46,9 @@ public sealed class CompareInputTests : IDisposable, ICompareSource, ITabSession
                 _reader,
                 FakeCommitDetailsReader.Location,
                 _pump,
-                TimeSpan.FromMilliseconds(1))),
+                TimeSpan.FromMilliseconds(1),
+                // A frozen clock: every select after the first counts as a rapid move, whatever the machine load.
+                new CommitDetailsStoreOptions(TimeProvider: new ManualTimeProvider()))),
             GraphGlyphSet.Unicode);
         _handler = new CompareEffectHandler(this, _host);
         _host.EffectRaised += Run;
