@@ -12,7 +12,7 @@ namespace Gitunia.Tui.App.Shell;
 /// <param name="ranges">Copies the rows of a Visual range.</param>
 /// <param name="retry">Offers to run a git command in the real terminal.</param>
 /// <param name="host">Takes the outcome of a copy.</param>
-public sealed class CopyEffects(ClipboardCopier clipboard, RangeCopier ranges, TerminalRetry retry, Dispatcher host)
+public sealed class CopyEffects(ClipboardCopier clipboard, RangeCopier ranges, TerminalRetry retry, Dispatcher host) : ICopyEffects
 {
     /// <summary>Copies the text to the clipboard and reports the outcome.</summary>
     /// <param name="effect">The text.</param>

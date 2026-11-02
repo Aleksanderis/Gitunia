@@ -1,3 +1,4 @@
+using Gitunia.App;
 using Gitunia.Core.Input;
 using Gitunia.Tui.App.Panes;
 using Gitunia.Tui.App.Tabs;
@@ -16,7 +17,7 @@ namespace Gitunia.Tui.App;
 public sealed class ActionExecutor(
     InputHandlers handlers,
     IRepeatStarter repeat,
-    IActiveSessions sessions)
+    IActiveSessions sessions) : IActionRouteEffects
 {
     private string _message = string.Empty;
 
@@ -25,7 +26,7 @@ public sealed class ActionExecutor(
 
     /// <summary>Runs the effect on the UI thread.</summary>
     /// <param name="effect">The action and the handlers that may take it.</param>
-    public void Run(RouteActionEffect effect)
+    public void RouteAction(RouteActionEffect effect)
     {
         var reachedPanes = false;
         foreach (var handler in effect.Handlers)

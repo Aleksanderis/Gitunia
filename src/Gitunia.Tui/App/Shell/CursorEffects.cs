@@ -18,7 +18,7 @@ public sealed class CursorEffects(
     WorkingDiffController workingDiff,
     QuickJumpInput quickJump,
     GraphSelection graph,
-    DetailPresenter detail)
+    DetailPresenter detail) : ICursorEffects
 {
     /// <summary>Moves the cursor of the Changes view diff of the tab; nothing when the tab is not the one shown.</summary>
     /// <param name="effect">The move.</param>

@@ -21,7 +21,7 @@ public sealed class FlowEffects(
     StagingActions staging,
     Dispatcher host,
     StatusReporter statuses,
-    DiffPaneInput diffPane)
+    DiffPaneInput diffPane) : IFlowEffects
 {
     /// <summary>Starts the flow a reflog entry stands for.</summary>
     /// <param name="effect">The entry and the flow.</param>
