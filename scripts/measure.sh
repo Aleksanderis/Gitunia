@@ -9,6 +9,8 @@
 #   --oldest TEXT     text of the oldest commit subject (default: root subject up to the first colon, else 12 chars)
 #   --size WxH        terminal size (default 120x40)
 #   --only-start      stop after cold start + size (for binaries without navigation)
+#   --blame           blame case (#1137): open the blame view of the file in the newest commit (`<space>gb`) and measure
+#                     open, `j`, Ctrl-d, G and RSS instead of the history cases; use a repo from gen-big-file-repo.sh
 #   --timeout SEC     per-wait timeout (default 10)
 # Output: `key=value` lines on stdout, human-readable progress on stderr.
 # Times are wall-clock milliseconds measured by polling `tmux capture-pane`; they
@@ -21,11 +23,11 @@ if [ -z "${EPOCHREALTIME:-}" ]; then
   exit 2
 fi
 if [ $# -lt 2 ]; then
-  sed -n '2,16p' "$0" >&2
+  sed -n '2,18p' "$0" >&2
   exit 2
 fi
 bin="$1"; repo="$2"; shift 2
-runs=5 keys=20 marker="" oldest="" cols=120 rows=40 only_start=0 timeout=10
+runs=5 keys=20 marker="" oldest="" cols=120 rows=40 only_start=0 blame=0 timeout=10
 while [ $# -gt 0 ]; do
   case "$1" in
     --runs) runs="$2"; shift 2 ;;
@@ -34,6 +36,7 @@ while [ $# -gt 0 ]; do
     --oldest) oldest="$2"; shift 2 ;;
     --size) cols="${2%x*}"; rows="${2#*x}"; shift 2 ;;
     --only-start) only_start=1; shift ;;
+    --blame) blame=1; shift ;;
     --timeout) timeout="$2"; shift 2 ;;
     *) echo "unknown option $1" >&2; exit 2 ;;
   esac
@@ -139,6 +142,49 @@ echo "cold_start_ms_max=$max"
 echo "cold_start_samples=$(printf '%s' "$vals" | grep -c . || true)"
 
 if [ "$only_start" -eq 1 ]; then exit 0; fi
+
+# --- blame case (#1137): open the blame view of the file shown in the newest commit, then key latency inside it
+if [ "$blame" -eq 1 ]; then
+  start_app
+  if ! wait_for "$marker"; then echo "app never showed marker; skipping blame" >&2; exit 1; fi
+  wait_stable || true
+  # a blamed row: a short hash in the first column, then the line number and `|`
+  blame_row='[0-9a-f]{7} .*[0-9]+ \| '
+  plain() { t capture-pane -t m -p; }
+  t send-keys -t m Tab  # focus the details pane (its file is the one blamed)
+  sleep 0.5
+  t0=$(now_us)
+  t send-keys -t m Space g b
+  until plain | grep -qE -- "$blame_row"; do
+    [ "$(now_us)" -gt $((t0 + timeout * 1000000)) ] && break
+  done
+  if plain | grep -qE -- "$blame_row"; then echo "blame_first_rows_ms=$(ms $(( $(now_us) - t0 )))"; else echo "blame_first_rows_ms=nan"; echo "blame view did not open" >&2; exit 1; fi
+  sleep 2; wait_stable || true
+  vals=""
+  for _ in $(seq "$keys"); do
+    base="$(pane)"; t0=$(now_us)
+    t send-keys -t m j
+    if wait_change "$base"; then vals+="$(ms $(( $(now_us) - t0 )))"$'\n'; fi
+  done
+  read -r med p95 max <<<"$(printf '%s' "$vals" | stats)"
+  echo "blame_j_ms_median=$med"; echo "blame_j_ms_p95=$p95"; echo "blame_j_ms_max=$max"
+  vals=""
+  for _ in $(seq "$keys"); do
+    base="$(pane)"; t0=$(now_us)
+    t send-keys -t m C-d
+    if wait_change "$base"; then vals+="$(ms $(( $(now_us) - t0 )))"$'\n'; fi
+  done
+  read -r med p95 max <<<"$(printf '%s' "$vals" | stats)"
+  echo "blame_page_ms_median=$med"; echo "blame_page_ms_p95=$p95"; echo "blame_page_ms_max=$max"
+  base="$(pane)"; t0=$(now_us)
+  t send-keys -t m G
+  if wait_change "$base"; then echo "blame_jump_end_ms=$(ms $(( $(now_us) - t0 )))"; else echo "blame_jump_end_ms=nan"; fi
+  wait_stable || true
+  pid="$(t display-message -t m -p '#{pane_pid}')"
+  rss=$(ps -o rss= -p "$pid" 2>/dev/null | tr -d ' ' || true)
+  echo "blame_rss_kib=${rss:-nan}"
+  exit 0
+fi
 
 # --- navigation measurements in one session
 start_app
