@@ -1,5 +1,5 @@
 using Gitunia.Tui.Input.Drag;
-using Gitunia.Tui.Rendering.Styling;
+using Gitunia.Tui.Views.Lines;
 using Gitunia.Tui.Views.Theme;
 using Terminal.Gui.Input;
 using Terminal.Gui.ViewBase;
@@ -10,7 +10,7 @@ namespace Gitunia.Tui.Views;
 /// A one-row view (header, tab row, status bar, pane titles) whose content is built for the current width on every draw.
 /// A title row can report clicks (with the column) and drags (with the pointer's screen position).
 /// </summary>
-public sealed class LineView(Func<int, StyledLine> build) : View
+public sealed class LineView(ILineSource source) : View
 {
     private readonly EdgeDragHandler _pointer = new();
 
@@ -30,7 +30,7 @@ public sealed class LineView(Func<int, StyledLine> build) : View
 
     protected override bool OnDrawingContent(DrawContext? context)
     {
-        LinePainter.Paint(this, build(Viewport.Width), 0, 0, isFocused: false);
+        LinePainter.Paint(this, source.Line(Viewport.Width), 0, 0, isFocused: false);
         return true;
     }
 
