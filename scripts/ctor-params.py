@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Count constructor parameters in src/ (M7 impact report, #1055).
 
+Needs Python 3 (a one-off measurement helper, not part of the build or CI).
 Usage: scripts/ctor-params.py <tree-root> [min-params]
 Finds primary constructors (class/struct/record declarations with a parameter list) and explicit
 constructors (a modifier, then a name equal to the enclosing type, then a parameter list). Records
@@ -45,7 +46,7 @@ ctor_re = re.compile(r'\b(?:public|internal|private|protected)\s+(?:static\s+)?(
 
 results = []
 for d, _, files in os.walk(os.path.join(root, "src")):
-    if "/obj" in d or "/bin" in d: continue
+    if {"obj", "bin"} & set(d.split(os.sep)): continue
     for f in files:
         if not f.endswith(".cs"): continue
         p = os.path.join(d, f)
