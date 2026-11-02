@@ -157,6 +157,8 @@ public sealed class WorkingTreeChrome : IDisposable
             Gestured?.Invoke(DefaultKeymap.WorkingUnstagedView, gesture, target);
         panes.WorkingStaged.GestureRaised += (gesture, target) =>
             Gestured?.Invoke(DefaultKeymap.WorkingStagedView, gesture, target);
+        panes.WorkingUnstaged.ButtonClicked += buttonView => Gestured?.Invoke(buttonView, MouseGesture.Click, null);
+        panes.WorkingStaged.ButtonClicked += buttonView => Gestured?.Invoke(buttonView, MouseGesture.Click, null);
         panes.WorkingDiff.GestureRaised += (gesture, target) =>
             Gestured?.Invoke(_parts.Geometry.WorkingDiffView, gesture, target);
         panes.WorkingDiff.ButtonClicked += buttonView => Gestured?.Invoke(buttonView, MouseGesture.Click, null);

@@ -200,7 +200,7 @@ public sealed class OverlayController : IActionHandler
     private void OpenContextMenu(ActionId action)
     {
         var view = BaseView;
-        if (_services.Menus.TargetOf(view) is not { } target)
+        if (_services.Menus.TargetOf(view, action) is not { } target)
         {
             if (action == ActionIds.DiffOpenViewOptions)
             {
@@ -209,6 +209,10 @@ public sealed class OverlayController : IActionHandler
             else if (action == ActionIds.ListOpenViewOptions)
             {
                 _services.Statuses.Post("No view options for this tab");
+            }
+            else if (action == ActionIds.MenuOpenForRow)
+            {
+                _services.Statuses.Post("No actions for this row");
             }
 
             return;

@@ -294,6 +294,7 @@ public sealed class MainView : IDisposable
         panes.Sidebar.GestureRaised += (gesture, target) => Gestured?.Invoke(DefaultKeymap.SidebarView, gesture, target);
         panes.Sidebar.ButtonClicked += buttonView => Gestured?.Invoke(buttonView, MouseGesture.Click, null);
         panes.Detail.GestureRaised += (gesture, target) => Gestured?.Invoke(DefaultKeymap.DetailView, gesture, target);
+        panes.Detail.ButtonClicked += buttonView => Gestured?.Invoke(buttonView, MouseGesture.Click, null);
         panes.Diff.GestureRaised += (gesture, target) => Gestured?.Invoke(DefaultKeymap.DiffView, gesture, target);
         _working.Gestured += (view, gesture, target) => Gestured?.Invoke(view, gesture, target);
         _divider.Dragged += (column, row) => EdgeDragged?.Invoke(PaneEdge.Sidebar, column, row);

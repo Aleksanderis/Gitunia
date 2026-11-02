@@ -25,7 +25,7 @@ Key notes that the tables cannot carry:
 - Changes view, `Enter` on a screen under 80 columns: the diff replaces the list until `Esc`.
 - Graph search prefixes: `author:`, `hash:`, `body:`.
 
-**Actions menu** (`<space>.` in the graph or sidebar, a double-click on a graph row, or a click on the `...` marker at the right edge of the selected sidebar row; #471, #479, #482).
+**Actions menu** (`<space>.` in the graph, the sidebar or a file list, a double-click on a graph row, or a click on the `...` marker at the right edge of the selected sidebar row or file row; #471, #479, #482, #1132).
 A small popup that hangs under the row (above it near the bottom of the screen), titled `Actions`, one line per action of that row with its key at the right edge, so the menu teaches the keyboard path.
 The menu is as wide as its longest title plus key needs, up to 96 columns, so no title is cut at 120 columns or more (a test renders every row menu at 100, 120 and 160; titles in `ActionCatalog` stay short, details belong in the Confirm; #573).
 It is not the command palette (`:`): no text field, no filter.
@@ -35,6 +35,7 @@ The same holds for the other popups (#597): Help and which-key take up to 96 col
 A resize closes it.
 There is no right-, middle- or Ctrl-click binding (they feel like a desktop app and multiplexers may swallow them, #479): the mouse path is a double-click on a graph row (the first click selects it) or a plain left click on the `...` marker that the selected sidebar row shows in its last three columns (not shown in panes narrower than 20 columns; a first click on another row only selects it, as before).
 Graph rows have no marker and use their full width (#482).
+The selected file row of the commit Changes and Files tabs and of both Changes view lists shows the same marker (#1132, no folder rows) in the last three columns of its line (every row of those lists keeps them free, like the sidebar); a double-click there keeps its own action (open the diff, stage); its menu, titled `File`, offers the file history (`<space>H`) and the blame (`<space>gb`). `<space>vv` keeps opening the view options of those lists.
 Actions without a key in the pane are not listed.
 The list depends on the row:
 

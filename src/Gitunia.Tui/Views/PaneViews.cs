@@ -48,6 +48,7 @@ public sealed class PaneViews : IPaneLists
         };
         Detail = new PaneListView
         {
+            OpensRowMenu = true,
             X = Pos.Func(_ => geometry.Rects().Detail.X),
             Y = Pos.Func(_ => geometry.Rects().Detail.Y),
             Width = Dim.Func(_ => geometry.Rects().Detail.Width),
@@ -172,6 +173,7 @@ public sealed class PaneViews : IPaneLists
         Y = Pos.Func(_ => rect().Y),
         Width = Dim.Func(_ => rect().Width),
         Height = Dim.Func(_ => rect().Height),
+        OpensRowMenu = true,
         CanFocus = true,
         Source = source,
         Visible = false,

@@ -34,7 +34,7 @@ Views inherit like in the keymap: `Lists` covers Graph, Detail, Sidebar, Diff an
 | BannerButton.Continue | Click | `operation.continue` | The `continue` chip of the in-progress operation banner: same as `<space>gc` |
 | BannerButton.Abort | Click | `operation.abort` | The `abort` chip of the banner: same as `<space>ga` (asks first) |
 | BannerButton.Skip | Click | `operation.skip` | The `skip` chip of the banner (not shown for a merge): same as `<space>gs` (asks first) |
-| RowMenuButton | Click | `menu.open-for-row` | The `...` marker in the last three columns of the selected sidebar row: opens the actions menu of that row without moving the cursor (see Actions menu); other rows only select on a click |
+| RowMenuButton | Click | `menu.open-for-row` | The `...` marker in the last three columns of the selected sidebar row, or of the selected file row of the commit Changes and Files tabs and of both Changes view lists (not on folder rows): opens the actions menu of that row without moving the cursor (see Actions menu); the file menu offers `<space>H` file history and `<space>gb` blame (#1132); other rows only select on a click; on file rows only a single click hits the marker, a double-click keeps its own action |
 | Backdrop | Click | `cancel` | While the help, palette or status history is open, a click on a pane or the tab row outside it closes it (like `Esc`); the double-click that follows is ignored |
 | Palette | Click | `command.execute` | Run the clicked entry (it is highlighted first) |
 | Palette | Wheel up | `palette.previous` | Move the highlight up one row |

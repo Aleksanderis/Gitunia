@@ -74,7 +74,10 @@ public sealed class PaneListView : ListView
             return base.OnMouseEvent(mouse);
         }
 
-        if (gesture is MouseGesture.Click or MouseGesture.DoubleClick
+        // A file row's double-click is the row's own action (open the diff, stage): only a single click hits its marker.
+        var hitsMarker = gesture == MouseGesture.Click
+            || (gesture == MouseGesture.DoubleClick && Source is not IRowMenuSource);
+        if (hitsMarker
             && mouse.Position is { } at
             && IsOnRowMenuMarker(at.X, at.Y))
         {
@@ -206,6 +209,7 @@ public sealed class PaneListView : ListView
         OpensRowMenu
         && SelectedItem is { } selected
         && selected < (Source?.Count ?? 0)
+        && (Source is not IRowMenuSource menus || menus.HasRowMenu(selected))
         && RowMenuMarker.IsHit(Viewport.Width, column, Viewport.Y + row == selected);
 
     // Blank space under the last row (#484): a double-click there must not open the menu of the selected row.

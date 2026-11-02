@@ -1,5 +1,4 @@
 using Gitunia.App;
-using Gitunia.Core.FileTree;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Tui.App.FileHistory;
@@ -78,16 +77,5 @@ public sealed class FileHistorySelection(Dispatcher host, IActiveSessions sessio
     /// <param name="content">What the detail pane lists.</param>
     /// <param name="row">The selected row.</param>
     public static string? PathOf(DetailContent content, int row)
-    {
-        if (content.Tree.Count > 0)
-        {
-            var isFile = row >= 0 && row < content.Tree.Count && content.Tree[row].Kind != FileTreeRowKind.Directory;
-
-            return isFile ? content.Tree[row].Path : null;
-        }
-
-        var index = content.FileIndexAt(row);
-
-        return index >= 0 && index < content.Files.Count ? content.Files[index].Path : null;
-    }
+        => content.FilePathAt(row);
 }

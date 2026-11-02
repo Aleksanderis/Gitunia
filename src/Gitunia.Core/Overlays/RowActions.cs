@@ -77,6 +77,20 @@ public static class RowActions
         ActionIds.GraphCompare,
     ];
 
+    /// <summary>The title of the actions menu of a file row (#1132).</summary>
+    public const string FileRowTitle = "File";
+
+    /// <summary>
+    /// The actions on a file row of the commit Changes and Files tabs and of the Changes view lists (#1132): the
+    /// mouse path to the file history and the blame, which the keys reach with <c>&lt;space&gt;H</c> and
+    /// <c>&lt;space&gt;gb</c>.
+    /// </summary>
+    public static IReadOnlyList<ActionId> OfFileRow { get; } =
+    [
+        ActionIds.FileHistoryOpen,
+        ActionIds.BlameOpen,
+    ];
+
     /// <summary>The graph row actions; Open details is left out while the details pane is hidden (#490).</summary>
     public static IReadOnlyList<ActionId> OfGraphRowFor(bool detailsVisible) => OfGraphRowFor(detailsVisible, false);
 
