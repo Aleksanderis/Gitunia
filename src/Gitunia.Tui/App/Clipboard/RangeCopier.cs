@@ -8,9 +8,12 @@ namespace Gitunia.Tui.App.Clipboard;
 
 /// <summary>Copies the rows of a Visual-mode range of the graph, detail, diff or Changes view file list pane through the clipboard.</summary>
 /// <param name="clipboard">Copies the text.</param>
-/// <param name="activeSession">The active tab's session, null when there is none.</param>
-/// <param name="workingTree">The active tab's working tree for the file lists, null when it has none; omitted where the lists have no ranges.</param>
-public sealed class RangeCopier(ClipboardCopier clipboard, Func<TerminalTabSession?> activeSession, Func<WorkingTreeState?>? workingTree = null)
+/// <param name="sessions">The active tab's session, none when there is no tab.</param>
+/// <param name="workingTree">The active tab's working tree for the file lists; omitted where the lists have no ranges.</param>
+public sealed class RangeCopier(
+    ClipboardCopier clipboard,
+    IActiveSessions sessions,
+    IActiveWorkingTree? workingTree = null)
 {
     private static readonly RangeCopyResult NothingToCopy = new(false, "Nothing to copy");
 
@@ -23,7 +26,7 @@ public sealed class RangeCopier(ClipboardCopier clipboard, Func<TerminalTabSessi
             return CopyFiles(pane, range);
         }
 
-        var session = activeSession();
+        var session = sessions.ActiveSession();
         if (session is null)
         {
             return NothingToCopy;
@@ -65,7 +68,7 @@ public sealed class RangeCopier(ClipboardCopier clipboard, Func<TerminalTabSessi
 
     private RangeCopyResult CopyFiles(PaneKind pane, RowRange range)
     {
-        if (workingTree?.Invoke() is not { } tree)
+        if (workingTree?.WorkingTree() is not { } tree)
         {
             return NothingToCopy;
         }

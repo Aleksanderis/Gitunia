@@ -11,7 +11,7 @@ namespace Gitunia.Tui.Views;
 /// at its place, so the lines, corners and junctions always agree with the text frame. Drawn strips are separate small views
 /// (not one view over the screen) so a redraw of the frame never wipes the panes. A line between two panes can be dragged to resize them.
 /// </summary>
-public sealed class FrameStripView(Func<FrameGrid> grid) : View
+public sealed class FrameStripView(FrameGrids grids) : View
 {
     private readonly EdgeDragHandler _pointer = new();
 
@@ -24,7 +24,7 @@ public sealed class FrameStripView(Func<FrameGrid> grid) : View
 
     protected override bool OnDrawingContent(DrawContext? context)
     {
-        var current = grid();
+        var current = grids.Current();
         var origin = Frame;
         for (var row = 0; row < Viewport.Height; row++)
         {

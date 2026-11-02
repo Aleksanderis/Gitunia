@@ -20,7 +20,7 @@ public class BackgroundStatusPollerTests
         var backgroundId = workspace.Tabs[1].Id;
         var host = new Dispatcher(AppState.Empty);
         host.Restore(new WorkspaceUpdate(workspace with { ActiveTabId = activeId }, []));
-        using var poller = new BackgroundStatusPoller(reader, host, InlineUi.Instance.Post);
+        using var poller = new BackgroundStatusPoller(reader, host, InlineUi.Instance);
 
         await poller.PollOnceAsync(CancellationToken.None);
 
@@ -41,7 +41,7 @@ public class BackgroundStatusPollerTests
         var backgroundId = workspace.Tabs[1].Id;
         var host = new Dispatcher(AppState.Empty);
         host.Restore(new WorkspaceUpdate(workspace with { ActiveTabId = workspace.Tabs[0].Id }, []));
-        using var poller = new BackgroundStatusPoller(reader, host, InlineUi.Instance.Post);
+        using var poller = new BackgroundStatusPoller(reader, host, InlineUi.Instance);
         await poller.PollOnceAsync(CancellationToken.None);
 
         reader.SetDirty(background, false);

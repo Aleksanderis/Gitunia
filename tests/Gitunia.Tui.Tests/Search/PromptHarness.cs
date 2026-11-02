@@ -10,6 +10,7 @@ using Gitunia.Core.Jump.Models;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Workspaces;
+using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core;
 using Gitunia.Git.Commits;
@@ -56,22 +57,16 @@ public sealed class PromptHarness : IDisposable, IQuickJumpHost, IActionRoute, I
         }
 
         var references = refs?.ToArray() ?? [];
-        var handle = new GraphViewHandle(
-            () => Session,
-            () => SelectedRow,
-            row => SelectedRow = row,
-            _host,
-            () => Redraws++);
+        var handle = new HarnessGraphView(this, location, references);
         _quickJump = new QuickJumpInput(_host, this);
         _prompts.Add(_quickJump);
         _host.EffectRaised += RunEffect;
-        _prompts.Add(new RefJumpController(handle, () => references));
+        _prompts.Add(new RefJumpController(handle));
         Search = new SearchController(
             handle,
-            action => (deferred is null ? action : () => deferred.Enqueue(action))(),
+            new HarnessDeferral(deferred),
+            InlineUi.Instance,
             messages,
-            _ => location,
-            action => action(),
             TimeSpan.Zero);
         _prompts.Add(Search);
         Session.Changed += () => _prompts.OfType<IGraphObserver>().ToList().ForEach(prompt => prompt.OnGraphChanged());
@@ -126,14 +121,7 @@ public sealed class PromptHarness : IDisposable, IQuickJumpHost, IActionRoute, I
             false,
             false)));
 
-    public IJumpTarget OpenTarget() => new ListJumpTarget(
-        PaneKind.Graph,
-        text => QuickJumpLabeler.Compute(
-            text,
-            new GraphJumpRows(Session.Graph, new GraphRowOptions(80, 2, GraphGlyphSet.Unicode)),
-            new JumpWindow(FirstVisibleRow, VisibleRowCount, SelectedRow)),
-        text => Session.Source.JumpText = text,
-        row => SelectedRow = row);
+    public IJumpTarget OpenTarget() => new HarnessJumpTarget(this);
 
     public void Redraw() => Redraws++;
 
@@ -159,5 +147,54 @@ public sealed class PromptHarness : IDisposable, IQuickJumpHost, IActionRoute, I
         {
             Notice = post.Text;
         }
+    }
+
+    private sealed class HarnessGraphView(PromptHarness harness, RepositoryLocation location, GitRef[] references)
+        : IGraphView
+    {
+        public Dispatcher Dispatcher => harness._host;
+
+        public TerminalTabSession? ActiveSession() => harness.Session;
+
+        public int SelectedRow() => harness.SelectedRow;
+
+        public void SelectRow(int row) => harness.SelectedRow = row;
+
+        public void Redraw() => harness.Redraws++;
+
+        public IEnumerable<GitRef> ActiveRefs() => references;
+
+        public RepositoryLocation? LocationOf(TabId tabId) => location;
+    }
+
+    private sealed class HarnessDeferral(Queue<Action>? deferred) : IUiDeferral
+    {
+        public void DeferToNextIteration(Action work)
+        {
+            if (deferred is null)
+            {
+                work();
+            }
+            else
+            {
+                deferred.Enqueue(work);
+            }
+        }
+    }
+
+    private sealed class HarnessJumpTarget(PromptHarness harness) : IJumpTarget
+    {
+        public PaneKind Pane => PaneKind.Graph;
+
+        public string? UnavailableReason => null;
+
+        public IReadOnlyList<JumpLabel> Labels(string text) => QuickJumpLabeler.Compute(
+            text,
+            new GraphJumpRows(harness.Session.Graph, new GraphRowOptions(80, 2, GraphGlyphSet.Unicode)),
+            new JumpWindow(harness.FirstVisibleRow, harness.VisibleRowCount, harness.SelectedRow));
+
+        public void ShowLabels(string? text) => harness.Session.Source.JumpText = text;
+
+        public void JumpTo(int row) => harness.SelectedRow = row;
     }
 }

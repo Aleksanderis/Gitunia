@@ -32,11 +32,11 @@ public sealed class OverlayControllerTests : IDisposable, IActionRoute
     {
         var engine = new KeymapEngine(DefaultKeymap.Create());
         _keys = new KeyController(engine, this, _shell.Host);
-        _timer = new WhichKeyTimer(TimeSpan.FromMilliseconds(1), action =>
+        _timer = new WhichKeyTimer(TimeSpan.FromMilliseconds(1), new DelegateUi(action =>
         {
             _posted.Enqueue(action);
             _postedSignal.Release();
-        });
+        }));
 
         _overlays = new OverlayHarness(
             engine,
@@ -1021,11 +1021,11 @@ public sealed class OverlayControllerTests : IDisposable, IActionRoute
         Press(new Key('g'));
 
         // A sentinel timer started after the chord with the same delay fires after any callback of a started wait.
-        using var sentinel = new WhichKeyTimer(TimeSpan.FromMilliseconds(1), action =>
+        using var sentinel = new WhichKeyTimer(TimeSpan.FromMilliseconds(1), new DelegateUi(action =>
         {
             _posted.Enqueue(action);
             _postedSignal.Release();
-        });
+        }));
         sentinel.Start(() => { });
         Assert.True(_postedSignal.Wait(TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken));
         RunPosted();
@@ -1056,11 +1056,11 @@ public sealed class OverlayControllerTests : IDisposable, IActionRoute
         Press(Key.Esc);
 
         // A sentinel timer started after the cancel and with the same delay fires after any late callback of the cancelled one.
-        using var sentinel = new WhichKeyTimer(TimeSpan.FromMilliseconds(1), action =>
+        using var sentinel = new WhichKeyTimer(TimeSpan.FromMilliseconds(1), new DelegateUi(action =>
         {
             _posted.Enqueue(action);
             _postedSignal.Release();
-        });
+        }));
         sentinel.Start(() => { });
         Assert.True(_postedSignal.Wait(TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken));
         RunPosted();

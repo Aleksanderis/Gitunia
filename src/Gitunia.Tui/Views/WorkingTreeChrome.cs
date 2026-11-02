@@ -41,7 +41,7 @@ public sealed class WorkingTreeChrome : IDisposable
         _buttons = buttons;
         var geometry = parts.Geometry;
         var panes = parts.Panes;
-        _divider = new FrameStripView(parts.Grids.Current)
+        _divider = new FrameStripView(parts.Grids)
         {
             X = Pos.Func(_ => geometry.WorkingDividerRect().X),
             Y = ScreenLayout.GraphTop,
@@ -191,7 +191,7 @@ public sealed class WorkingTreeChrome : IDisposable
         return view;
     }
 
-    private FrameStripView CreateEdge(Func<PaneRect> rect) => new(_parts.Grids.Current)
+    private FrameStripView CreateEdge(Func<PaneRect> rect) => new(_parts.Grids)
     {
         X = Pos.Func(_ => rect().X),
         Y = Pos.Func(_ => rect().Y),

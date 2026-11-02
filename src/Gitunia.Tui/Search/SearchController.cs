@@ -1,9 +1,9 @@
+using Gitunia.App;
 using Gitunia.App.Shell;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Search;
 using Gitunia.Core.Search.Models;
-using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Commits;
 using Gitunia.Git.Execution.Exceptions;
 using Gitunia.Git.Repositories.Models;
@@ -18,11 +18,10 @@ namespace Gitunia.Tui.Search;
 /// on a 100k-commit log and a newer query simply makes the older slices stop.
 /// </summary>
 public sealed class SearchController(
-    GraphViewHandle view,
-    Action<Action> postToUi,
+    IGraphView view,
+    IUiDeferral deferral,
+    IUiInvoker ui,
     ICommitMessageSearcher? messages = null,
-    Func<TabId, RepositoryLocation?>? locationOf = null,
-    Action<Action>? invokeOnUi = null,
     TimeSpan? bodyDebounce = null) : IActionHandler, ITextKeyHandler, IActionNotice, IPromptDisplay, IGraphObserver
 {
     private const int SliceSize = 5000;
@@ -153,7 +152,7 @@ public sealed class SearchController(
             switch (effect)
             {
                 case ScanSearchEffect scan:
-                    postToUi(() => ScanSlice(session, scan.Generation));
+                    deferral.DeferToNextIteration(() => ScanSlice(session, scan.Generation));
                     break;
                 case SearchBodiesEffect bodies:
                     StartBodySearch(session, bodies);
@@ -176,10 +175,11 @@ public sealed class SearchController(
     private void StartBodySearch(TerminalTabSession session, SearchBodiesEffect effect)
     {
         CancelBodySearch(session);
-        var location = locationOf?.Invoke(session.TabId);
+        var location = view.LocationOf(session.TabId);
         if (messages is null || location is null)
         {
-            postToUi(() => Dispatch(session, new BodyHitsCommand(effect.Generation, null, FailureText)));
+            deferral.DeferToNextIteration(
+                () => Dispatch(session, new BodyHitsCommand(effect.Generation, null, FailureText)));
             return;
         }
 
@@ -250,7 +250,7 @@ public sealed class SearchController(
 
         ForgetBodySearch(session, source);
 
-        (invokeOnUi ?? postToUi)(() =>
+        ui.Post(() =>
         {
             // The entry is gone once the run ended, so the generation check in the reducer is the real guard.
             if (!token.IsCancellationRequested)

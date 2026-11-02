@@ -3,6 +3,7 @@ using Gitunia.App.Loading.Trees;
 using Gitunia.App.Shell;
 using Gitunia.App;
 using Gitunia.Core.Diff;
+using Gitunia.Core.Jump.Models;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Lists;
@@ -66,11 +67,7 @@ public sealed class DiffListActions
     /// <summary>The quick-jump target of a diff shown in this list: the rows in view are labelled, a label moves the cursor to its row.</summary>
     /// <param name="pane">The pane the diff is.</param>
     /// <param name="diff">The diff to jump in.</param>
-    public IJumpTarget JumpTarget(PaneKind pane, IDiffViewState diff) => new ListJumpTarget(
-        pane,
-        text => diff.Source.JumpLabels(_diffList, text),
-        text => ShowJumpLabels(diff, text),
-        row => Select(diff, row, atTop: false));
+    public IJumpTarget JumpTarget(PaneKind pane, IDiffViewState diff) => new DiffJumpTarget(this, pane, diff);
 
     public string StatusLine(IDiffViewState? diff) =>
         diff is { Search.IsOpen: true } ? diff.Search.Describe(SearchRow(diff)) : string.Empty;
@@ -356,10 +353,21 @@ public sealed class DiffListActions
         }
     }
 
-    private void ShowJumpLabels(IDiffViewState diff, string? text)
+    private sealed class DiffJumpTarget(DiffListActions owner, PaneKind pane, IDiffViewState diff) : IJumpTarget
     {
-        diff.Source.JumpText = text;
-        _diffList.SetNeedsDraw();
+        public PaneKind Pane => pane;
+
+        public string? UnavailableReason => null;
+
+        public IReadOnlyList<JumpLabel> Labels(string text) => diff.Source.JumpLabels(owner._diffList, text);
+
+        public void ShowLabels(string? text)
+        {
+            diff.Source.JumpText = text;
+            owner._diffList.SetNeedsDraw();
+        }
+
+        public void JumpTo(int row) => owner.Select(diff, row, atTop: false);
     }
 
     private void SelectLine(int line)

@@ -76,11 +76,10 @@ public sealed class PaneViews : IPaneLists
             Width = Dim.Func(_ => geometry.WorkingRects().Diff.Width),
             Height = Dim.Func(_ => geometry.WorkingRects().Diff.Height),
             CanFocus = true,
-            Source = new DiffListSource(content.Glyphs) { GroupKeys = () => content.Keys },
+            Source = new DiffListSource(content.Glyphs) { GroupKeys = content.Keys },
             Visible = false,
             Gate = gate,
         };
-        WorkingDiff.ButtonAt = (column, row) => (WorkingDiff.Source as DiffListSource)?.ButtonAt(WorkingDiff, column, row);
         WorkingMessage = new PaneListView
         {
             X = Pos.Func(_ => geometry.WorkingRects().MessageEditor.X),

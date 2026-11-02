@@ -16,7 +16,7 @@ public sealed class SessionPersistence : IDisposable
     private readonly Dispatcher _host;
     private readonly TimeSpan _debounce;
     private readonly StatusReporter _statuses;
-    private readonly Action<Action> _postToUi;
+    private readonly IUiInvoker _ui;
     private readonly Timer _timer;
     private readonly Lock _saveLock = new();
     private Workspace? _lastSaved;
@@ -25,16 +25,16 @@ public sealed class SessionPersistence : IDisposable
     private bool _lastSaveFailed;
 
     /// <param name="statuses">Told when a save fails.</param>
-    /// <param name="postToUi">Runs an action on the UI thread; saves run on a timer thread.</param>
+    /// <param name="ui">Runs an action on the UI thread; saves run on a timer thread.</param>
     public SessionPersistence(
         SessionStore store,
         Dispatcher host,
         TimeSpan debounce,
         StatusReporter statuses,
-        Action<Action> postToUi)
+        IUiInvoker ui)
     {
         _statuses = statuses;
-        _postToUi = postToUi;
+        _ui = ui;
         _store = store;
         _host = host;
         _debounce = debounce;
@@ -107,7 +107,7 @@ public sealed class SessionPersistence : IDisposable
             {
                 // Once per failing streak: the next change retries silently, so the message does not repeat.
                 _lastSaveFailed = true;
-                _postToUi(() => _statuses.Error("Could not save the session; open tabs will not be restored (retried on the next change)"));
+                _ui.Post(() => _statuses.Error("Could not save the session; open tabs will not be restored (retried on the next change)"));
             }
         }
     }

@@ -30,7 +30,16 @@ public class EffectRunnerTests
         var firstId = scratch.Tabs[0].Id;
         var secondId = scratch.Tabs[1].Id;
         var host = new Dispatcher(AppState.Empty);
-        using var effects = new EffectRunner<TabSession>(fakes.Services, host, pump, new TabSessionFactory(), new StatusReporter(host), watcherOptions: TestGit.QuietWatcherOptions);
+        using var effects = new EffectRunner<TabSession>(
+            fakes.Services,
+            host,
+            pump,
+            new TabSessionFactory(),
+            new EffectRunnerOptions<TabSession>
+            {
+                Statuses = new StatusReporter(host),
+                Watcher = TestGit.QuietWatcherOptions,
+            });
 
         host.Restore(new WorkspaceUpdate(
             scratch with { ActiveTabId = firstId },
@@ -63,7 +72,16 @@ public class EffectRunnerTests
         var firstId = scratch.Tabs[0].Id;
         var secondId = scratch.Tabs[1].Id;
         var host = new Dispatcher(AppState.Empty);
-        using var effects = new EffectRunner<TabSession>(fakes.Services, host, pump, new TabSessionFactory(), new StatusReporter(host), watcherOptions: TestGit.QuietWatcherOptions);
+        using var effects = new EffectRunner<TabSession>(
+            fakes.Services,
+            host,
+            pump,
+            new TabSessionFactory(),
+            new EffectRunnerOptions<TabSession>
+            {
+                Statuses = new StatusReporter(host),
+                Watcher = TestGit.QuietWatcherOptions,
+            });
         host.Restore(new WorkspaceUpdate(
             scratch with { ActiveTabId = firstId },
             [new LoadRepositoryEffect(firstId, scratch.Tabs[0].CommandPath), new LoadRepositoryEffect(secondId, scratch.Tabs[1].CommandPath)]));
@@ -96,9 +114,12 @@ public class EffectRunnerTests
             host,
             pump,
             new TabSessionFactory(),
-            new StatusReporter(host),
-            watcherOptions: TestGit.QuietWatcherOptions,
-            warmTabLimit: 2);
+            new EffectRunnerOptions<TabSession>
+            {
+                Statuses = new StatusReporter(host),
+                Watcher = TestGit.QuietWatcherOptions,
+                WarmTabLimit = 2,
+            });
         host.Restore(new WorkspaceUpdate(
             scratch with { ActiveTabId = ids[0] },
             [.. scratch.Tabs.Select(tab => new LoadRepositoryEffect(tab.Id, tab.CommandPath))]));
@@ -145,9 +166,12 @@ public class EffectRunnerTests
             host,
             pump,
             new TabSessionFactory(),
-            new StatusReporter(host),
-            watcherOptions: TestGit.QuietWatcherOptions,
-            warmTabLimit: 2);
+            new EffectRunnerOptions<TabSession>
+            {
+                Statuses = new StatusReporter(host),
+                Watcher = TestGit.QuietWatcherOptions,
+                WarmTabLimit = 2,
+            });
         host.Restore(new WorkspaceUpdate(
             scratch with { ActiveTabId = ids[0] },
             [.. scratch.Tabs.Select(tab => new LoadRepositoryEffect(tab.Id, tab.CommandPath))]));
@@ -184,7 +208,15 @@ public class EffectRunnerTests
         var interval = TimeSpan.FromMilliseconds(50);
         var poll = new PollOptions(interval, interval, TimeSpan.FromMilliseconds(200), 1);
         using var effects = new EffectRunner<TabSession>(
-            TestGit.Services, host, pump, new TabSessionFactory(), new StatusReporter(host), pollOptions: poll);
+            TestGit.Services,
+            host,
+            pump,
+            new TabSessionFactory(),
+            new EffectRunnerOptions<TabSession>
+            {
+                Statuses = new StatusReporter(host),
+                Poll = poll,
+            });
         host.Restore(update);
         var session = effects.SessionOf(tabId)!;
         await pump.RunUntilAsync(() => !session.IsLoading);
@@ -216,7 +248,15 @@ public class EffectRunnerTests
         var update = WorkspaceReducer.Reduce(Workspace.Empty, new OpenRepositoryCommand(location));
         var tabId = update.Workspace.Tabs[0].Id;
         var host = new Dispatcher(AppState.Empty);
-        using var effects = new EffectRunner<TabSession>(TestGit.Services, host, pump, new TabSessionFactory(), new StatusReporter(host));
+        using var effects = new EffectRunner<TabSession>(
+            TestGit.Services,
+            host,
+            pump,
+            new TabSessionFactory(),
+            new EffectRunnerOptions<TabSession>
+            {
+                Statuses = new StatusReporter(host),
+            });
         host.Restore(update);
         var session = effects.SessionOf(tabId)!;
         await pump.RunUntilAsync(() => !session.IsLoading);
@@ -244,7 +284,10 @@ public class EffectRunnerTests
             host,
             pump,
             new TabSessionFactory(),
-            new StatusReporter(host));
+            new EffectRunnerOptions<TabSession>
+            {
+                Statuses = new StatusReporter(host),
+            });
         host.Restore(update);
         var session = effects.SessionOf(tabId)!;
         await pump.RunUntilAsync(() => !session.IsLoading);

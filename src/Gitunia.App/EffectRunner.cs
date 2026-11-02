@@ -127,21 +127,13 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
         Dispatcher host,
         IUiInvoker ui,
         ITabSessionFactory<TSession> sessionFactory,
-        StatusReporter statuses,
-        TimeSpan? detailDebounce = null,
-        RepositoryWatcherOptions? watcherOptions = null,
-        WatchBudget? watchBudget = null,
-        int warmTabLimit = DefaultWarmTabLimit,
-        PollOptions? pollOptions = null,
-        IShellEffects? shell = null,
-        SettingsServices? settings = null,
-        PickerServices? picker = null,
-        IUrlOpener? urlOpener = null,
-        TabSessionRegistry<TSession>? sessions = null)
+        EffectRunnerOptions<TSession>? options = null)
     {
-        _sessions = sessions ?? new TabSessionRegistry<TSession>();
-        var pickerServices = picker ?? PickerServices.Default;
-        _shell = shell ?? NoShellEffects.Instance;
+        options ??= new EffectRunnerOptions<TSession>();
+        _sessions = options.Sessions ?? new TabSessionRegistry<TSession>();
+        var pickerServices = options.Picker ?? PickerServices.Default;
+        var settings = options.Settings;
+        _shell = options.Shell ?? NoShellEffects.Instance;
         _branches = new BranchEffectHandler(services.Branches, host);
         _commits = new CommitEffectHandler(services.CommitWriter, host);
         _compare = new CompareEffectHandler(this, host);
@@ -161,7 +153,7 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
         _settings = settings is null ? null : new SettingsEffectHandler(settings, host);
         _sidebar = new SidebarEffectHandler(this, host);
         _integration = IntegrationEffectHandler.Create(services, host);
-        _issueLinks = new IssueLinkEffectHandler(urlOpener ?? new UrlOpener(), host);
+        _issueLinks = new IssueLinkEffectHandler(options.UrlOpener ?? new UrlOpener(), host);
         _remotes = new RemoteEffectHandler(services.RemoteManager, host);
         _staging = new StagingEffectHandler(
             services.IndexWriter,
@@ -172,17 +164,17 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
         _sync = new SyncEffectHandler(services.Remote, services.RemoteManager, services.Ancestry, host);
         _tags = new TagEffectHandler(services.Tags, host);
         _worktrees = new WorktreeEffectHandler(services.Worktrees, services.Discovery, host);
-        _pollOptions = pollOptions ?? PollOptions.Default;
-        _warmTabLimit = Math.Max(1, warmTabLimit);
-        _watcherOptions = watcherOptions ?? RepositoryWatcherOptions.Default;
-        _watchBudget = watchBudget ?? new WatchBudget();
-        _detailDebounce = detailDebounce ?? TimeSpan.FromMilliseconds(80);
+        _pollOptions = options.Poll ?? PollOptions.Default;
+        _warmTabLimit = Math.Max(1, options.WarmTabLimit);
+        _watcherOptions = options.Watcher ?? RepositoryWatcherOptions.Default;
+        _watchBudget = options.WatchBudget ?? new WatchBudget();
+        _detailDebounce = options.DetailDebounce ?? TimeSpan.FromMilliseconds(80);
         _services = services;
         _host = host;
         _ui = ui;
         _busy = new WorkspaceBusySource(host);
         _sessionFactory = sessionFactory;
-        _statuses = statuses;
+        _statuses = options.Statuses ?? new StatusReporter(host);
         _statusAging = new StatusAgingTimer(host);
         host.EffectRaised += Run;
         host.Changed += OnHostChanged;

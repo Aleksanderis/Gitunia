@@ -503,9 +503,12 @@ public class SyncPipelineTests
                 host,
                 pump,
                 new TabSessionFactory(),
-                statuses,
-                watcherOptions: TestGit.QuietWatcherOptions,
-                shell: shell);
+                new EffectRunnerOptions<TabSession>
+                {
+                    Statuses = statuses,
+                    Watcher = TestGit.QuietWatcherOptions,
+                    Shell = shell,
+                });
             var location = await TestGit.Services.Discovery.DiscoverAsync(
                 repository.WorkingTreePath,
                 TestContext.Current.CancellationToken);

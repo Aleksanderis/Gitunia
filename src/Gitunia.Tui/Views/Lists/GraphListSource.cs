@@ -18,7 +18,7 @@ namespace Gitunia.Tui.Views.Lists;
 /// Append-only list source over a <see cref="CommitGraph"/>: rows are drawn on demand for the visible range only,
 /// so the cost of a frame does not depend on how many commits are loaded. Appending raises one change event per batch.
 /// </summary>
-public sealed class GraphListSource(CommitGraph graph, GraphGlyphSet initialGlyphs) : IListDataSource, IRangeSource
+public sealed class GraphListSource(CommitGraph graph, GraphGlyphSet initialGlyphs) : IListDataSource, IRangeSource, IJumpSource
 {
     private readonly JumpLabelCache _jump = new();
     private GraphRowOptions? _cachedOptions;

@@ -39,10 +39,13 @@ public sealed class PickerPipeline : IDisposable
             Host,
             Pump,
             new TabSessionFactory(),
-            Statuses,
-            watcherOptions: TestGit.QuietWatcherOptions,
-            shell: Shell,
-            picker: picker);
+            new EffectRunnerOptions<TabSession>
+            {
+                Statuses = Statuses,
+                Watcher = TestGit.QuietWatcherOptions,
+                Shell = Shell,
+                Picker = picker,
+            });
     }
 
     public string Home { get; }

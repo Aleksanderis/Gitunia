@@ -1,3 +1,4 @@
+using Gitunia.Tui.Tests.Fakes;
 using System.Drawing;
 using Gitunia.Core.Diff;
 using Gitunia.Core.Lists;
@@ -167,7 +168,7 @@ public class DiffListSourceTests
         Assert.Null(source.ButtonAt(list, column, source.LineOf(0)));
 
         source.Range = null;
-        source.GroupButtons = () => WorkingTreeButtons.None;
+        source.GroupButtons = new FixedGroupButtons(WorkingTreeButtons.None);
 
         Assert.Null(source.ButtonAt(list, column, source.LineOf(0)));
     }
@@ -179,7 +180,7 @@ public class DiffListSourceTests
         var source = new DiffListSource(GraphGlyphSet.Unicode)
         {
             HighlightsGroup = true,
-            GroupButtons = () => WorkingTreeButtons.Unstaged,
+            GroupButtons = new FixedGroupButtons(WorkingTreeButtons.Unstaged),
         };
         source.Update(new DiffDocument(rows, [0], [], [["f"]], 5));
         var list = Sized(source, 80);
@@ -242,7 +243,7 @@ public class DiffListSourceTests
 
     private static DiffListSource NewSource(WorkingTreeButtons buttons = WorkingTreeButtons.None)
     {
-        var source = new DiffListSource(GraphGlyphSet.Unicode) { HighlightsGroup = true, GroupButtons = () => buttons };
+        var source = new DiffListSource(GraphGlyphSet.Unicode) { HighlightsGroup = true, GroupButtons = new FixedGroupButtons(buttons) };
         source.Update(new DiffDocument(Rows, [0, 4], [], [["f"]], 5));
 
         return source;

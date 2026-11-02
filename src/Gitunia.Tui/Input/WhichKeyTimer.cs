@@ -1,10 +1,12 @@
+using Gitunia.App;
+
 namespace Gitunia.Tui.Input;
 
 /// <summary>
 /// Runs an action on the UI thread once a chord has been pending for the which-key delay. Starting again or
 /// cancelling drops the earlier wait, so a late timer callback never shows a popup for a finished chord.
 /// </summary>
-public sealed class WhichKeyTimer(TimeSpan delay, Action<Action> postToUi) : IDisposable
+public sealed class WhichKeyTimer(TimeSpan delay, IUiInvoker ui) : IDisposable
 {
     private readonly object _gate = new();
     private Timer? _timer;
@@ -18,7 +20,7 @@ public sealed class WhichKeyTimer(TimeSpan delay, Action<Action> postToUi) : IDi
         {
             _timer?.Dispose();
             current = ++_generation;
-            _timer = new Timer(_ => postToUi(() => RunIfCurrent(current, elapsed)), null, delay, Timeout.InfiniteTimeSpan);
+            _timer = new Timer(_ => ui.Post(() => RunIfCurrent(current, elapsed)), null, delay, Timeout.InfiniteTimeSpan);
         }
     }
 

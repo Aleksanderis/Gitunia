@@ -12,7 +12,7 @@ public sealed class RouteParts
     /// <param name="foundation">The configuration, the state and the widgets.</param>
     public RouteParts(ShellFoundation foundation)
     {
-        WhichKeyTimer = new WhichKeyTimer(OverlayController.WhichKeyDelay, foundation.Terminal.InvokeOnUi);
+        WhichKeyTimer = new WhichKeyTimer(OverlayController.WhichKeyDelay, foundation.Terminal.Invoker);
         FocusedView = new FocusedKeymapView(foundation.Host, foundation.Panes.Detail);
         Overlays = new OverlayStore(foundation.Host, foundation.Statuses, WhichKeyTimer, FocusedView);
         FocusSource = new InputFocusSource(Overlays, foundation.Panes);
