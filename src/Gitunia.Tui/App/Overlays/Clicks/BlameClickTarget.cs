@@ -7,5 +7,5 @@ public sealed class BlameClickTarget(BlameInput blame) : IOverlayClickTarget
 {
     /// <inheritdoc />
     public OverlayClick? ClickAt(int line, int column) =>
-        OverlayClick.OfEditor(blame.OnLineClicked(line, out var handled), handled);
+        OverlayClick.OfEditor(blame.OnLineClicked(line, column, out var handled), handled);
 }

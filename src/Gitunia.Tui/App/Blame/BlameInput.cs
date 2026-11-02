@@ -95,8 +95,9 @@ public sealed class BlameInput(
     /// which the caller sends through the mouse map.
     /// </summary>
     /// <param name="frameLine">The frame line (0 is the title).</param>
+    /// <param name="frameColumn">The frame column.</param>
     /// <param name="handled">True when the view took the click.</param>
-    public string? OnLineClicked(int frameLine, out bool handled)
+    public string? OnLineClicked(int frameLine, int frameColumn, out bool handled)
     {
         handled = false;
         if (Session.View is not { } view)
@@ -112,7 +113,7 @@ public sealed class BlameInput(
             return null;
         }
 
-        if (view.IsEditingSearch || BlameFrameBuilder.ActionAt(frameLine, Screen.Height) is not { } mouseView)
+        if (view.IsEditingSearch || BlameFrameBuilder.ActionAt(frameLine, frameColumn, Screen.Height) is not { } mouseView)
         {
             return null;
         }

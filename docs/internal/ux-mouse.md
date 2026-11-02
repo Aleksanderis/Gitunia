@@ -62,7 +62,10 @@ Views inherit like in the keymap: `Lists` covers Graph, Detail, Sidebar, Diff an
 | Blame | Wheel down | `list.down` | Scroll the blame view down 3 lines |
 | BlameButton.Show | Click | `blame.show-commit` | Action row `Enter` under the blame view: select the highlighted line's commit in the graph (the view closes); a click on a line itself only highlights it |
 | BlameButton.History | Click | `file-history.open` | Action row `<space>H` under the blame view: close the view and open the history of the blamed file at the blamed revision (`HEAD` for the working tree file) |
-| BlameButton.Parent | Click | `blame.parent` | Action row `Alt-p` under the blame view: blame the file again at the parent of the highlighted line's commit (Esc steps back); the `-w`, `-M` and `-C` toggles are keys only (`Alt-w`, `Alt-m`, `Alt-c`), their state shows in the footer |
+| BlameButton.Parent | Click | `blame.parent` | Action row `Alt-p` under the blame view: blame the file again at the parent of the highlighted line's commit (Esc steps back) |
+| BlameButton.Whitespace | Click | `blame.toggle-whitespace` | Chip `-w` (`Alt-w`) in the chip row under the blame view: toggle ignoring whitespace changes and blame again; the switches in force show in the footer |
+| BlameButton.Moves | Click | `blame.toggle-moves` | Chip `-M` (`Alt-m`) in the same row: toggle detecting lines moved within the file and blame again |
+| BlameButton.Copies | Click | `blame.toggle-copies` | Chip `-C` (`Alt-c`) in the same row: toggle detecting lines copied from other files and blame again |
 | ReflogPicker | Click | `input.accept` | A row of the reflog ref picker: highlights it and opens that ref's reflog, like `Enter` |
 | RebaseEditor | Wheel up | `list.up` | Scroll the todo up 3 commits |
 | RebaseEditor | Wheel down | `list.down` | Scroll the todo down 3 commits |

@@ -135,6 +135,15 @@ public static class DefaultMouseMap
     /// <summary>The action row `space H` under the blame view: the history of the blamed file.</summary>
     public const string BlameHistoryButton = "BlameButton.History";
 
+    /// <summary>The chip `-w` under the blame view: ignore whitespace changes (`Alt-w`).</summary>
+    public const string BlameWhitespaceButton = "BlameButton.Whitespace";
+
+    /// <summary>The chip `-M` under the blame view: detect moved lines (`Alt-m`).</summary>
+    public const string BlameMovesButton = "BlameButton.Moves";
+
+    /// <summary>The chip `-C` under the blame view: detect copied lines (`Alt-c`).</summary>
+    public const string BlameCopiesButton = "BlameButton.Copies";
+
     /// <summary>The chips under the rebase todo editor (#458): each is a view of its own, a click runs the action
     /// its key runs on the highlighted commit.</summary>
     public const string RebasePickButton = "RebaseButton.Pick";
@@ -249,6 +258,9 @@ public static class DefaultMouseMap
         BlameShowButton,
         BlameParentButton,
         BlameHistoryButton,
+        BlameWhitespaceButton,
+        BlameMovesButton,
+        BlameCopiesButton,
         DefaultKeymap.RebaseEditorView,
         RebasePickButton,
         RebaseRewordButton,
@@ -353,6 +365,9 @@ public static class DefaultMouseMap
         new(BlameShowButton, MouseGesture.Click, ActionIds.BlameShowCommit),
         new(BlameParentButton, MouseGesture.Click, ActionIds.BlameParent),
         new(BlameHistoryButton, MouseGesture.Click, ActionIds.FileHistoryOpen),
+        new(BlameWhitespaceButton, MouseGesture.Click, ActionIds.BlameIgnoreWhitespace),
+        new(BlameMovesButton, MouseGesture.Click, ActionIds.BlameDetectMoves),
+        new(BlameCopiesButton, MouseGesture.Click, ActionIds.BlameDetectCopies),
         new(DefaultKeymap.RebaseEditorView, MouseGesture.WheelUp, ActionIds.ListUp, WheelLines),
         new(DefaultKeymap.RebaseEditorView, MouseGesture.WheelDown, ActionIds.ListDown, WheelLines),
         new(RebasePickButton, MouseGesture.Click, ActionIds.RebaseEditorPick),
