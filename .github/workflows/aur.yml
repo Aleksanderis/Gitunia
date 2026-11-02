@@ -1,0 +1,42 @@
+# Updates the AUR package gitunia-bin when the owner publishes a release (#944).
+# Needs the repository secret AUR_SSH_KEY (private key of the AUR account that maintains gitunia-bin).
+# Manual run for a version: `gh workflow run aur.yml -f version=1.2.3`.
+name: aur
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Release version without the leading v (1.2.3)
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  aur:
+    # Pre-releases (v1.2.3-rc1) are not pushed: pkgver cannot contain '-'.
+    if: ${{ github.event_name == 'workflow_dispatch' || !github.event.release.prerelease }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    container: archlinux:base-devel
+    steps:
+      - name: Install git and ssh
+        run: pacman -Syu --noconfirm --needed git openssh
+      - uses: actions/checkout@v4
+      - name: Update gitunia-bin on the AUR
+        env:
+          AUR_SSH_KEY: ${{ secrets.AUR_SSH_KEY }}
+          VERSION_INPUT: ${{ github.event.inputs.version }}
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          [ -n "$AUR_SSH_KEY" ] || { echo "::error::secret AUR_SSH_KEY is not set"; exit 1; }
+          version="${VERSION_INPUT:-${TAG#v}}"
+          key="$(mktemp)"; trap 'rm -f "$key"' EXIT
+          printf '%s\n' "$AUR_SSH_KEY" > "$key"; chmod 600 "$key"
+          # makepkg refuses to run as root: build as an unprivileged user.
+          useradd -m builder
+          chown -R builder "$GITHUB_WORKSPACE"; chown builder "$key"
+          su builder -c "git config --global --add safe.directory '$GITHUB_WORKSPACE'; cd '$GITHUB_WORKSPACE' && AUR_SSH_KEY_FILE='$key' packaging/aur/update.sh '$version' /tmp/aur --push"
