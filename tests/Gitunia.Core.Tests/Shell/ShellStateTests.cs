@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using Gitunia.Core.Blame;
 using Gitunia.Core.Conflicts;
 using Gitunia.Core.Overlays;
 using Gitunia.Core.Pick;
@@ -18,7 +19,7 @@ public sealed class ShellStateTests
     // session cannot be forgotten silently.
     private static readonly string[] NotOverlaySessions = ["Creation", "Picker", "Compare", "QuickJump", "Sidebar", "TabActions"];
 
-    private static readonly string[] EditorSessions = ["Reflog", "RebaseEditor", "Conflict"];
+    private static readonly string[] EditorSessions = ["Reflog", "Blame", "RebaseEditor", "Conflict"];
 
     [Theory]
     [InlineData("Confirm")]
@@ -67,6 +68,7 @@ public sealed class ShellStateTests
 
     [Theory]
     [InlineData(ShellSession.Reflog, "Reflog")]
+    [InlineData(ShellSession.Blame, "Blame")]
     [InlineData(ShellSession.RebaseEditor, "RebaseEditor")]
     [InlineData(ShellSession.Conflict, "Conflict")]
     public void IsCoveredExcept_ignores_only_its_own_session(ShellSession own, string open)
@@ -107,6 +109,10 @@ public sealed class ShellStateTests
         "Reflog" => ShellState.Empty with
         {
             Reflog = ReflogSession.Empty with { List = Uninitialised<ReflogState>() },
+        },
+        "Blame" => ShellState.Empty with
+        {
+            Blame = BlameSession.Empty with { View = Uninitialised<BlameState>() },
         },
         "RebaseEditor" => ShellState.Empty with
         {

@@ -262,6 +262,14 @@ public static partial class PaneHints
         new("n/Esc", "cancel", [ActionIds.ConfirmNo, ActionIds.Cancel]),
     ];
 
+    private static readonly ImmutableArray<KeyHint> Blame =
+    [
+        new("Enter", "commit", [ActionIds.BlameShowCommit]),
+        new("/", "search", [ActionIds.SearchOpen]),
+        new("n/N", "next/prev", [ActionIds.SearchNext, ActionIds.SearchPrevious]),
+        new("Esc", "close", [ActionIds.NavigateBack]),
+    ];
+
     private static readonly ImmutableArray<KeyHint> Reflog =
     [
         new("Enter", "select", [ActionIds.ReflogSelectCommit]),

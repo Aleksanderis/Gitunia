@@ -38,6 +38,7 @@ public sealed class ScreenParts
             overlays.Store,
             overlays.Editors,
             overlays.Reflog,
+            overlays.Blame,
             new HintContext(keys.Repeat, panes.DiffView, config));
         var lines = new StatusLines(hints, overlays.Prompts, Popups, keys.Repeat);
         Content = new ScreenContent(
@@ -70,7 +71,7 @@ public sealed class ScreenParts
         Frames = new OverlayPresenter(
             host,
             foundation.Panes,
-            new OverlayFrames(overlays.Editors, overlays.Reflog, keys.Overlays, Popups, overlays.Cover),
+            new OverlayFrames(overlays.Editors, overlays.Reflog, overlays.Blame, keys.Overlays, Popups, overlays.Cover),
             PopupTracker);
         SizeDragger = new PaneSizeDragger(
             host,

@@ -2,6 +2,7 @@ using Gitunia.Core.Settings;
 using Gitunia.App;
 using Gitunia.Core.Conflicts;
 using Gitunia.Core.Rebase;
+using Gitunia.Core.Blame;
 using Gitunia.Core.Reflog;
 using Gitunia.Core.Shell;
 using Gitunia.Core.Pick;
@@ -22,6 +23,7 @@ public sealed class OverlayPresenter
     private readonly PromptPopupTracker _popups;
     private ConflictSession? _drawnConflict;
     private ReflogSession? _drawnReflog;
+    private BlameSession? _drawnBlame;
     private RebaseEditorSession? _drawnRebaseEditor;
     private MainlineQuestion? _drawnMainline;
     private ScreenExtent? _drawnScreen;
@@ -60,7 +62,9 @@ public sealed class OverlayPresenter
     {
         var shell = _host.State.Shell;
         if (ReferenceEquals(shell.Conflict, _drawnConflict)
-            && ReferenceEquals(shell.Reflog, _drawnReflog) && ReferenceEquals(shell.Settings, _drawnSettings)
+            && ReferenceEquals(shell.Reflog, _drawnReflog)
+            && ReferenceEquals(shell.Blame, _drawnBlame)
+            && ReferenceEquals(shell.Settings, _drawnSettings)
             && ReferenceEquals(shell.RebaseEditor, _drawnRebaseEditor)
             && ReferenceEquals(shell.Mainline, _drawnMainline) && !MainlineNeedsLayout(shell))
         {
@@ -69,6 +73,7 @@ public sealed class OverlayPresenter
 
         _drawnConflict = shell.Conflict;
         _drawnReflog = shell.Reflog;
+        _drawnBlame = shell.Blame;
         _drawnRebaseEditor = shell.RebaseEditor;
         _drawnSettings = shell.Settings;
         _drawnMainline = shell.Mainline;

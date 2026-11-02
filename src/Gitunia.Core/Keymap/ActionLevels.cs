@@ -154,6 +154,8 @@ internal static class ActionLevels
             ["rebase.interactive-root"] = CommandLevel.AdvancedPlus,
             ["rebase.onto"] = CommandLevel.Everyday,
             ["rebase.reword"] = CommandLevel.Advanced,
+            ["blame.open"] = CommandLevel.Advanced,
+            ["blame.show-commit"] = CommandLevel.Advanced,
             ["reflog.open"] = CommandLevel.AdvancedPlus,
             ["reflog.select-commit"] = CommandLevel.AdvancedPlus,
             ["remote.add"] = CommandLevel.Advanced,

@@ -6,6 +6,7 @@ using Gitunia.Core.Overlays;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Tui.App.Overlays;
+using Gitunia.Tui.App.Blame;
 using Gitunia.Tui.App.Reflog;
 using Gitunia.Tui.Rendering.Panes;
 
@@ -16,12 +17,14 @@ namespace Gitunia.Tui.App.Screen;
 /// <param name="store">The confirm dialog.</param>
 /// <param name="editors">The settings screen and the two editors.</param>
 /// <param name="reflog">The reflog list.</param>
+/// <param name="blame">The blame view.</param>
 /// <param name="context">The repeat mode, the diff pane and the hint options.</param>
 public sealed class StatusHints(
     Dispatcher host,
     OverlayStore store,
     EditorOverlays editors,
     ReflogInput reflog,
+    BlameInput blame,
     HintContext context)
 {
     /// <summary>The hints to show now.</summary>
@@ -45,6 +48,11 @@ public sealed class StatusHints(
         if (editors.Rebase.IsOpen)
         {
             return editors.Rebase.IsEditingMessage ? PaneHints.ForRebaseMessage() : PaneHints.ForRebaseEditor();
+        }
+
+        if (blame.IsOpen)
+        {
+            return PaneHints.ForBlame();
         }
 
         if (reflog.IsOpen)

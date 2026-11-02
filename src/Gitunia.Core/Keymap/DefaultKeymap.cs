@@ -33,6 +33,7 @@ public static class DefaultKeymap
     public const string MessagesView = "Messages";
     public const string ConfirmView = "Confirm";
     public const string ReflogView = "Reflog";
+    public const string BlameView = "Blame";
     public const string RebaseEditorView = "RebaseEditor";
     public const string ConflictEditorView = "ConflictEditor";
     public const string ConflictSideView = "ConflictSide";
@@ -64,6 +65,7 @@ public static class DefaultKeymap
         [MessagesView] = ListsView,
         [ConfirmView] = KeyBindingTable.GlobalView,
         [ReflogView] = ListsView,
+        [BlameView] = ListsView,
         [RebaseEditorView] = ListsView,
         [ConflictEditorView] = ListsView,
         [ConflictSideView] = ConflictEditorView,
