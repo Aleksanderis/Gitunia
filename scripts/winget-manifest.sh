@@ -13,6 +13,8 @@ version="$1"; hash="$2"; out="$3"; date="${4:-$(date -u +%Y-%m-%d)}"
 root="$(cd "$(dirname "$0")/.." && pwd)"
 
 case "$version" in v*|"") echo "version must not start with v: $version" >&2; exit 1 ;; esac
+if ! printf '%s' "$version" | grep -Eq '^[0-9]+(\.[0-9]+)*(-[0-9A-Za-z.]+)?$'; then echo "bad version: $version" >&2; exit 1; fi
+if ! printf '%s' "$date" | grep -Eq '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'; then echo "bad date: $date" >&2; exit 1; fi
 if [ -f "$hash" ]; then hash="$(awk '{print $1; exit}' "$hash")"; fi
 hash="$(printf '%s' "$hash" | tr 'a-f' 'A-F')"
 case "$hash" in

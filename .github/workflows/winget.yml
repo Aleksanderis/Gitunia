@@ -22,15 +22,16 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ github.event.release.tag_name }}
+          PUBLISHED_AT: ${{ github.event.release.published_at }}
         run: |
           version="${TAG#v}"
           gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --pattern "gitunia-${version}-win-x64.exe.sha256" --dir dl
-          scripts/winget-manifest.sh "$version" "dl/gitunia-${version}-win-x64.exe.sha256" manifests
+          scripts/winget-manifest.sh "$version" "dl/gitunia-${version}-win-x64.exe.sha256" manifests "${PUBLISHED_AT%%T*}"
       - name: Submit to winget-pkgs
         shell: pwsh
         env:
-          WINGET_TOKEN: ${{ secrets.WINGET_TOKEN }}
+          WINGET_CREATE_GITHUB_TOKEN: ${{ secrets.WINGET_TOKEN }}
         run: |
-          if (-not $env:WINGET_TOKEN) { throw "Repo secret WINGET_TOKEN is not set" }
+          if (-not $env:WINGET_CREATE_GITHUB_TOKEN) { throw "Repo secret WINGET_TOKEN is not set" }
           Invoke-WebRequest https://aka.ms/wingetcreate/latest -OutFile wingetcreate.exe
-          .\wingetcreate.exe submit --token $env:WINGET_TOKEN manifests
+          .\wingetcreate.exe submit manifests
