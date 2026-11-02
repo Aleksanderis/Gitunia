@@ -61,29 +61,12 @@ public sealed class ConflictEffectHandler(
         ConflictEffect effect,
         Func<CancellationToken, Task<ConflictCommand>> work,
         CancellationToken token) =>
-        _ = Task.Run(() => RunAsync(effect, work, token), CancellationToken.None);
-
-    private async Task RunAsync(
-        ConflictEffect effect,
-        Func<CancellationToken, Task<ConflictCommand>> work,
-        CancellationToken token)
-    {
-        ConflictCommand result;
-        try
-        {
-            result = await work(token).ConfigureAwait(false);
-        }
-        catch (OperationCanceledException) when (token.IsCancellationRequested)
-        {
-            result = new ConflictOperationCancelled(effect.TabId);
-        }
-        catch (Exception exception) when (exception is not OutOfMemoryException)
-        {
-            result = Failure(effect, exception);
-        }
-
-        dispatcher.Post(result);
-    }
+        EffectWork.Start(
+            dispatcher,
+            work,
+            () => new ConflictOperationCancelled(effect.TabId),
+            exception => Failure(effect, exception),
+            token);
 
     private async Task<ConflictCommand> ReadAsync(ReadConflictEffect effect, CancellationToken token)
     {

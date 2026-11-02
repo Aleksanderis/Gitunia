@@ -27,26 +27,15 @@ public sealed class StagingEffectHandler(
         _ = Task.Run(() => RunAsync(effect, cancellationToken), CancellationToken.None);
     }
 
-    private async Task RunAsync(StagingEffect effect, CancellationToken token)
-    {
-        StagingCommand result;
-        try
-        {
-            result = await PerformAsync(effect, token).ConfigureAwait(false);
-        }
-        catch (OperationCanceledException) when (token.IsCancellationRequested)
-        {
-            dispatcher.Post(new StagingCancelled(effect.TabId));
-
-            return;
-        }
-        catch (Exception exception)
-        {
-            result = new StagingFailed(effect.TabId, FailureOf(effect, FailureText.Reason(exception)));
-        }
-
-        refresher.RefreshThen(effect.TabId, () => dispatcher.Post(result));
-    }
+    // Success and failure wait for the status refresh; a cancellation is posted at once.
+    private Task RunAsync(StagingEffect effect, CancellationToken token) =>
+        EffectWork.RunAsync(
+            innerToken => PerformAsync(effect, innerToken),
+            () => new StagingCancelled(effect.TabId),
+            exception => new StagingFailed(effect.TabId, FailureOf(effect, FailureText.Reason(exception))),
+            result => refresher.RefreshThen(effect.TabId, () => dispatcher.Post(result)),
+            token,
+            dispatcher.Post);
 
     private async Task<StagingCommand> PerformAsync(StagingEffect effect, CancellationToken token)
     {

@@ -125,26 +125,24 @@ public sealed class CreationEffectHandler(IRepositoryCreator creator, IDirectory
         }
     }
 
-    private async Task CloneAsync(CloneRepositoryEffect effect, CancellationTokenSource cancellation)
-    {
-        CreationCommand result;
-        try
-        {
-            var progress = new CloneProgress(dispatcher);
-            var location = await creator
-                .CloneAsync(effect.Request, progress, cancellation.Token)
-                .ConfigureAwait(false);
-            result = new CloneSucceeded(location);
-        }
-        catch (OperationCanceledException)
-        {
-            result = new CloneCancelled();
-        }
-        catch (Exception exception) when (exception is not OutOfMemoryException)
-        {
-            result = new CloneFailed($"Clone failed: {FailureText(exception)}");
-        }
+    private Task CloneAsync(CloneRepositoryEffect effect, CancellationTokenSource cancellation) =>
+        EffectWork.RunAsync(
+            token => CloneCoreAsync(effect, token),
+            () => new CloneCancelled(),
+            exception => new CloneFailed($"Clone failed: {FailureText(exception)}"),
+            result => Finish(cancellation, result),
+            cancellation.Token);
 
+    private async Task<CreationCommand> CloneCoreAsync(CloneRepositoryEffect effect, CancellationToken token)
+    {
+        var progress = new CloneProgress(dispatcher);
+        var location = await creator.CloneAsync(effect.Request, progress, token).ConfigureAwait(false);
+
+        return new CloneSucceeded(location);
+    }
+
+    private void Finish(CancellationTokenSource cancellation, CreationCommand result)
+    {
         cancellation.Dispose();
         dispatcher.Post(result);
     }

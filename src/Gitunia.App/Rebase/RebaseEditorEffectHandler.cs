@@ -23,43 +23,34 @@ public sealed class RebaseEditorEffectHandler(
     /// <summary>Starts the effect and returns at once; the result arrives through the dispatcher.</summary>
     public void Handle(RebaseEditorEffect effect, CancellationToken cancellationToken)
     {
-        _ = Task.Run(() => RunAsync(effect, cancellationToken), CancellationToken.None);
+        EffectWork.Start(
+            dispatcher,
+            token => WorkAsync(effect, token),
+            () => Cancelled(effect),
+            exception => Failed(effect, exception),
+            cancellationToken);
     }
 
     private static RebaseBase BaseOf(string? targetHash) =>
         (targetHash is null ? RebaseBase.Root : RebaseBase.OntoCommit(targetHash)).WithMerges();
 
-    private async Task RunAsync(RebaseEditorEffect effect, CancellationToken token)
+    private static AppCommand Failed(RebaseEditorEffect effect, Exception exception)
     {
-        AppCommand result;
-        try
+        if (effect is ReadRebaseRangeEffect && exception is RebaseRangeException)
         {
-            result = await WorkAsync(effect, token).ConfigureAwait(false);
+            return new RebaseEditorReadFailed(effect.TabId, FailureText.Reason(exception), StatusSeverity.Warning);
         }
-        catch (OperationCanceledException) when (token.IsCancellationRequested)
-        {
-            result = Cancelled(effect);
-        }
-        catch (RebaseRangeException exception) when (effect is ReadRebaseRangeEffect)
-        {
-            result = new RebaseEditorReadFailed(effect.TabId, FailureText.Reason(exception), StatusSeverity.Warning);
-        }
-        catch (Exception exception) when (effect is RunInteractiveRebaseEffect
-            && exception is RebaseRangeException or RebaseEnvironmentException)
+
+        if (effect is RunInteractiveRebaseEffect run && exception is RebaseRangeException or RebaseEnvironmentException)
         {
             // Nothing ran: the todo comes back so the work of editing it is not lost.
-            var run = (RunInteractiveRebaseEffect)effect;
-            result = new RebaseEditorNotStarted(
+            return new RebaseEditorNotStarted(
                 effect.TabId,
                 run.State,
                 $"Could not start the rebase: {FailureText.Reason(exception)}");
         }
-        catch (Exception exception)
-        {
-            result = Failure(effect, FailureText.Reason(exception));
-        }
 
-        dispatcher.Post(result);
+        return Failure(effect, FailureText.Reason(exception));
     }
 
     private static AppCommand Cancelled(RebaseEditorEffect effect) => effect is RunInteractiveRebaseEffect

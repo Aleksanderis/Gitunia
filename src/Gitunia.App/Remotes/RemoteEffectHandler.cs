@@ -16,26 +16,12 @@ public sealed class RemoteEffectHandler(IRemoteManager manager, IDispatcher disp
     /// <summary>Starts the effect and returns at once; the result arrives through the dispatcher.</summary>
     public void Handle(RemoteEffect effect, CancellationToken cancellationToken)
     {
-        _ = Task.Run(() => RunAsync(effect, cancellationToken), CancellationToken.None);
-    }
-
-    private async Task RunAsync(RemoteEffect effect, CancellationToken token)
-    {
-        RemoteCommand result;
-        try
-        {
-            result = await PerformAsync(effect, token).ConfigureAwait(false);
-        }
-        catch (OperationCanceledException)
-        {
-            result = new RemoteOperationCancelled(effect.TabId);
-        }
-        catch (Exception exception)
-        {
-            result = Failure(effect, exception);
-        }
-
-        dispatcher.Post(result);
+        EffectWork.Start(
+            dispatcher,
+            token => PerformAsync(effect, token),
+            () => new RemoteOperationCancelled(effect.TabId),
+            exception => Failure(effect, exception),
+            cancellationToken);
     }
 
     private async Task<RemoteCommand> PerformAsync(RemoteEffect effect, CancellationToken token)

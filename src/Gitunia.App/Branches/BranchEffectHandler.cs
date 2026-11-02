@@ -17,26 +17,14 @@ public sealed class BranchEffectHandler(IBranchWriter writer, IDispatcher dispat
     /// <summary>Starts the effect and returns at once; the result arrives through the dispatcher.</summary>
     public void Handle(BranchEffect effect, CancellationToken cancellationToken)
     {
-        _ = Task.Run(() => RunAsync(effect, cancellationToken), CancellationToken.None);
-    }
-
-    private async Task RunAsync(BranchEffect effect, CancellationToken token)
-    {
-        BranchCommand result;
-        try
-        {
-            result = await WorkAsync(effect, token).ConfigureAwait(false);
-        }
-        catch (OperationCanceledException)
-        {
-            result = new BranchOperationCancelled(effect.TabId);
-        }
-        catch (Exception exception)
-        {
-            result = new BranchOperationFailed(effect.TabId, $"{FailureOf(effect)}: {FailureText.Reason(exception)}");
-        }
-
-        dispatcher.Post(result);
+        EffectWork.Start(
+            dispatcher,
+            token => WorkAsync(effect, token),
+            () => new BranchOperationCancelled(effect.TabId),
+            exception => new BranchOperationFailed(
+                effect.TabId,
+                $"{FailureOf(effect)}: {FailureText.Reason(exception)}"),
+            cancellationToken);
     }
 
     private Task<BranchCommand> WorkAsync(BranchEffect effect, CancellationToken token) => effect switch
