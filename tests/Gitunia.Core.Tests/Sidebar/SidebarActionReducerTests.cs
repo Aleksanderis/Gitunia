@@ -17,43 +17,21 @@ public class SidebarActionReducerTests
 {
     private static readonly ImmutableArray<PaneKind> SidebarAndGraph = [PaneKind.Sidebar, PaneKind.Graph];
 
-    [Fact]
-    public void GivenAnActionAndTheFocus_WhenClassifying_ThenItIsTheSidebarsOnlyWhereItShouldBe()
-    {
-        var failures = new List<string>();
-        (string actionName, PaneKind focused, bool editing, SidebarActionKind expected)[] rows =
-        [
-            ("pane.next", PaneKind.Graph, false, SidebarActionKind.Pane),
-            ("pane.next", PaneKind.Graph, true, SidebarActionKind.Pane),
-            ("pane.focus-down", PaneKind.Sidebar, false, SidebarActionKind.Pane),
-            ("input.accept", PaneKind.Sidebar, true, SidebarActionKind.Filter),
-            ("cancel", PaneKind.Sidebar, true, SidebarActionKind.Filter),
-            ("list.down", PaneKind.Sidebar, true, SidebarActionKind.None),
-            ("list.down", PaneKind.Sidebar, false, SidebarActionKind.Sidebar),
-            ("list.down", PaneKind.Graph, false, SidebarActionKind.None),
-            ("sidebar.copy", PaneKind.Sidebar, false, SidebarActionKind.Sidebar),
-            ("sidebar.copy", PaneKind.Graph, false, SidebarActionKind.None),
-            ("navigate.back", PaneKind.Sidebar, false, SidebarActionKind.Sidebar),
-            ("navigate.back", PaneKind.Graph, false, SidebarActionKind.None),
-            ("graph.jump-to-head", PaneKind.Sidebar, false, SidebarActionKind.None),
-        ];
-
-        foreach (var (actionName, focused, editing, expected) in rows)
-        {
-            try
-            {
-                CheckItIsTheSidebarsOnlyWhereItShouldBe(actionName, focused, editing, expected);
-            }
-            catch (Exception exception)
-            {
-                failures.Add($"{actionName}, {focused}, {editing}, {expected}: {exception.Message}");
-            }
-        }
-
-        Assert.Empty(failures);
-    }
-
-    private static void CheckItIsTheSidebarsOnlyWhereItShouldBe(string actionName,
+    [Theory]
+    [InlineData("pane.next", PaneKind.Graph, false, SidebarActionKind.Pane)]
+    [InlineData("pane.next", PaneKind.Graph, true, SidebarActionKind.Pane)]
+    [InlineData("pane.focus-down", PaneKind.Sidebar, false, SidebarActionKind.Pane)]
+    [InlineData("input.accept", PaneKind.Sidebar, true, SidebarActionKind.Filter)]
+    [InlineData("cancel", PaneKind.Sidebar, true, SidebarActionKind.Filter)]
+    [InlineData("list.down", PaneKind.Sidebar, true, SidebarActionKind.None)]
+    [InlineData("list.down", PaneKind.Sidebar, false, SidebarActionKind.Sidebar)]
+    [InlineData("list.down", PaneKind.Graph, false, SidebarActionKind.None)]
+    [InlineData("sidebar.copy", PaneKind.Sidebar, false, SidebarActionKind.Sidebar)]
+    [InlineData("sidebar.copy", PaneKind.Graph, false, SidebarActionKind.None)]
+    [InlineData("navigate.back", PaneKind.Sidebar, false, SidebarActionKind.Sidebar)]
+    [InlineData("navigate.back", PaneKind.Graph, false, SidebarActionKind.None)]
+    [InlineData("graph.jump-to-head", PaneKind.Sidebar, false, SidebarActionKind.None)]
+    public void GivenAnActionAndTheFocus_WhenClassifying_ThenItIsTheSidebarsOnlyWhereItShouldBe(string actionName,
         PaneKind focused,
         bool editing,
         SidebarActionKind expected)

@@ -184,36 +184,14 @@ public class PickerComposerTests
         Assert.Equal(layout.BoxHeight, Compose(picker, 120, 40).Count);
     }
 
-    [Fact]
-    public void GivenAnySize_WhenComposing_ThenLinesFitTheAreaWithoutThrowing()
-    {
-        var failures = new List<string>();
-        (int width, int height)[] rows =
-        [
-            (80, 24),
-            (120, 40),
-            (40, 10),
-            (20, 5),
-            (10, 3),
-            (1, 1),
-        ];
-
-        foreach (var (width, height) in rows)
-        {
-            try
-            {
-                CheckLinesFitTheAreaWithoutThrowing(width, height);
-            }
-            catch (Exception exception)
-            {
-                failures.Add($"{width}, {height}: {exception.Message}");
-            }
-        }
-
-        Assert.Empty(failures);
-    }
-
-    private static void CheckLinesFitTheAreaWithoutThrowing(int width, int height)
+    [Theory]
+    [InlineData(80, 24)]
+    [InlineData(120, 40)]
+    [InlineData(40, 10)]
+    [InlineData(20, 5)]
+    [InlineData(10, 3)]
+    [InlineData(1, 1)]
+    public void GivenAnySize_WhenComposing_ThenLinesFitTheAreaWithoutThrowing(int width, int height)
     {
         var rows = Enumerable.Range(1, 30).Select(number => Row($"repo{number}", PickerTags.Recent)).ToImmutableArray();
         var picker = new PickerState("a", 12, rows, "oops", null);

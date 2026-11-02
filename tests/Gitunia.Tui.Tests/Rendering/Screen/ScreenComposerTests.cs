@@ -181,35 +181,13 @@ public class ScreenComposerTests
         Assert.Contains("0/0+ loading...", lines[^1].Text, StringComparison.Ordinal);
     }
 
-    [Fact]
-    public void GivenAnyTerminalSize_WhenComposing_ThenEveryLineFillsTheWidthExactly()
-    {
-        var failures = new List<string>();
-        (int width, int height)[] rows =
-        [
-            (20, 5),
-            (80, 24),
-            (200, 60),
-            (10, 3),
-            (5, 1),
-        ];
-
-        foreach (var (width, height) in rows)
-        {
-            try
-            {
-                CheckEveryLineFillsTheWidthExactly(width, height);
-            }
-            catch (Exception exception)
-            {
-                failures.Add($"{width}, {height}: {exception.Message}");
-            }
-        }
-
-        Assert.Empty(failures);
-    }
-
-    private static void CheckEveryLineFillsTheWidthExactly(int width, int height)
+    [Theory]
+    [InlineData(20, 5)]
+    [InlineData(80, 24)]
+    [InlineData(200, 60)]
+    [InlineData(10, 3)]
+    [InlineData(5, 1)]
+    public void GivenAnyTerminalSize_WhenComposing_ThenEveryLineFillsTheWidthExactly(int width, int height)
     {
         var lines = ScreenComposer.Compose(Model(1, 4), Diamond(), 0, 0, width, height, GraphGlyphSet.Unicode);
 
