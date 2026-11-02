@@ -2,6 +2,7 @@ using Gitunia.App;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.App.WorkingTree;
+using Gitunia.Tui.Rendering.Screen;
 using Gitunia.Tui.Search;
 using Gitunia.Tui.Views;
 
@@ -30,11 +31,15 @@ public sealed class JumpTargets(
 
         return (host.Workspace.ActiveTab?.View.FocusedPane ?? PaneKind.Graph) switch
         {
-            PaneKind.Graph => new ListJumpTarget(PaneKind.Graph, session.Source, panes.Graph),
+            PaneKind.Graph => new ListJumpTarget(
+                PaneKind.Graph,
+                session.Source,
+                panes.Graph,
+                ScreenLayout.ReservedLeadingRows),
             PaneKind.Diff => diffPane.JumpTarget(),
-            PaneKind.Detail => new ListJumpTarget(PaneKind.Detail, session.DetailSource, panes.Detail),
-            PaneKind.WorkingUnstaged => new ListJumpTarget(PaneKind.WorkingUnstaged, panes.UnstagedSource, panes.WorkingUnstaged),
-            PaneKind.WorkingStaged => new ListJumpTarget(PaneKind.WorkingStaged, panes.StagedSource, panes.WorkingStaged),
+            PaneKind.Detail => new ListJumpTarget(PaneKind.Detail, session.DetailSource, panes.Detail, 0),
+            PaneKind.WorkingUnstaged => new ListJumpTarget(PaneKind.WorkingUnstaged, panes.UnstagedSource, panes.WorkingUnstaged, 0),
+            PaneKind.WorkingStaged => new ListJumpTarget(PaneKind.WorkingStaged, panes.StagedSource, panes.WorkingStaged, 0),
             PaneKind.WorkingUnstagedDiff or PaneKind.WorkingStagedDiff => workingDiff.JumpTarget(),
             _ => null,
         };

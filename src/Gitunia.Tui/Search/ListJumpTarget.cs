@@ -9,7 +9,9 @@ namespace Gitunia.Tui.Search;
 /// <param name="pane">The pane the list is.</param>
 /// <param name="source">Labels the rows and draws the typed text.</param>
 /// <param name="list">The list that shows the rows.</param>
-public sealed class ListJumpTarget(PaneKind pane, IJumpSource source, ListView list) : IJumpTarget
+/// <param name="leadingRows">List items before the first jumpable row.</param>
+public sealed class ListJumpTarget(PaneKind pane, IJumpSource source, ListView list, int leadingRows)
+    : IJumpTarget
 {
     /// <inheritdoc />
     public PaneKind Pane => pane;
@@ -30,7 +32,7 @@ public sealed class ListJumpTarget(PaneKind pane, IJumpSource source, ListView l
     /// <inheritdoc />
     public void JumpTo(int row)
     {
-        list.SelectedItem = row;
+        list.SelectedItem = row + leadingRows;
         list.EnsureSelectedItemVisible();
     }
 }
