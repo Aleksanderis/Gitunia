@@ -55,5 +55,6 @@ public sealed class ShellComposition : IDisposable
         Effects.Dispose();
         Route.WhichKeyTimer.Dispose();
         Screen.View.Dispose();
+        Foundation.Terminal.Dispose();
     }
 }

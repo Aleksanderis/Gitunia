@@ -5,6 +5,7 @@ using Gitunia.App.Tests.Tags;
 using Gitunia.Core.Tags;
 using Gitunia.App.Tabs.Models;
 using Gitunia.App.Tests.Fakes;
+using Gitunia.Core.Shell;
 using Gitunia.Core.Workspaces;
 using Gitunia.Git.Tests.Fixtures;
 using Xunit;
@@ -303,5 +304,48 @@ public class EffectRunnerTests
         File.Delete(trackerFile);
         Assert.True(effects.Refresh(tabId));
         await pump.RunUntilAsync(() => session.IssueLinks.IsEmpty);
+    }
+
+    [Fact]
+    public async Task GivenARefreshRequest_WhenItIsAnnouncedOrNot_ThenOnlyTheAnnouncedOneReadsTheIssueLinksAgain()
+    {
+        using var repository = TestRepository.Create();
+        repository.Commit("root", new TestFile("a.txt", "1"));
+        var pump = new UiPump(TestContext.Current.CancellationToken);
+        var location = await TestGit.Services.Discovery
+            .DiscoverAsync(repository.WorkingTreePath, CancellationToken.None);
+        var update = WorkspaceReducer.Reduce(Workspace.Empty, new OpenRepositoryCommand(location));
+        var tabId = update.Workspace.Tabs[0].Id;
+        var host = new Dispatcher(AppState.Empty);
+        using var effects = new EffectRunner<TabSession>(
+            TestGit.Services,
+            host,
+            pump,
+            new TabSessionFactory(),
+            new EffectRunnerOptions<TabSession>
+            {
+                Statuses = new StatusReporter(host),
+            });
+        host.Restore(update);
+        var session = effects.SessionOf(tabId)!;
+        await pump.RunUntilAsync(() => !session.IsLoading);
+        var replaced = 0;
+        session.GraphReplaced += () => replaced++;
+        File.WriteAllText(
+            Path.Combine(repository.WorkingTreePath, ".issuetracker"),
+            "[issuetracker \"x\"]\n\tregex = \"#(\\\\d+)\"\n\turl = https://example.org/$1\n");
+
+        host.Dispatch(new TabRefreshRequested(tabId, false));
+        await pump.RunUntilAsync(() => replaced == 1);
+
+        // A wrong link read would post its result in the background; give it time, then drain the queue in order.
+        await Task.Delay(TimeSpan.FromMilliseconds(500), TestContext.Current.CancellationToken);
+        var isDrained = false;
+        pump.Post(() => isDrained = true);
+        await pump.RunUntilAsync(() => isDrained);
+        Assert.True(session.IssueLinks.IsEmpty);
+
+        host.Dispatch(new TabRefreshRequested(tabId, true));
+        await pump.RunUntilAsync(() => !session.IssueLinks.IsEmpty);
     }
 }

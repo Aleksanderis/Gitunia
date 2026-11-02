@@ -1,3 +1,6 @@
+using Gitunia.Core.Visual;
+using Gitunia.Core.Workspaces;
+using Gitunia.Git.Repositories.Models;
 using Gitunia.Tui.Views;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
@@ -27,15 +30,17 @@ public sealed class GestureRouterTests : IDisposable, IActionRoute
     private readonly MainViewFixture _screen = new();
     private readonly OverlayClickGuard _guard = new();
     private readonly List<ActionId> _routed = [];
+    private readonly OverlayStore _store;
+    private readonly VisualRangeInput _visual;
     private readonly GestureRouter _router;
 
     public GestureRouterTests()
     {
         var host = _shell.Host;
-        var store = new OverlayStore(host, _shell.Statuses, _timer, new TestFocusedView(() => DefaultKeymap.GraphView));
+        _store = new OverlayStore(host, _shell.Statuses, _timer, new TestFocusedView(() => DefaultKeymap.GraphView));
         var settings = new SettingsScreenInput(host, GraphGlyphSet.Unicode);
         var others = new OtherOverlays(
-            store,
+            _store,
             new ReflogInput(host, new NoSelection(), GraphGlyphSet.Unicode),
             settings,
             new PickActions(host, new NoPicks()),
@@ -44,11 +49,11 @@ public sealed class GestureRouterTests : IDisposable, IActionRoute
             new RebaseEditorInput(host, new NoSelection(), others, GraphGlyphSet.Unicode),
             new ConflictEditorInput(host, GraphGlyphSet.Unicode),
             settings);
-        var cover = new OverlayCover(store, others, editors, host, new MouseGate());
-        var visual = new VisualRangeInput(host, _screen.Panes);
+        var cover = new OverlayCover(_store, others, editors, host, new MouseGate());
+        _visual = new VisualRangeInput(host, _screen.Panes);
         _router = new GestureRouter(
             new MouseController(DefaultMouseMap.Create(), this, new MouseGate()),
-            visual,
+            _visual,
             new GestureServices(_guard, cover, editors, _screen.Panes));
     }
 
@@ -86,7 +91,64 @@ public sealed class GestureRouterTests : IDisposable, IActionRoute
         _router.OnGestured(DefaultKeymap.GraphView, MouseGesture.Click, null);
 
         Assert.True(_guard.IsGuarding);
-        Assert.DoesNotContain(ActionIds.MenuOpenForRow, _routed);
+        Assert.Equal([ActionIds.Cancel], _routed);
+    }
+
+    [Fact]
+    public void GivenAnOpenHelp_WhenScrollingTheWheelOverAPaneBehindIt_ThenTheHelpScrolls()
+    {
+        _store.Open(OverlayState.OpenHelp(DefaultKeymap.GraphView, KeyMode.Normal), KeyMode.Normal);
+
+        _router.OnGestured(DefaultKeymap.GraphView, MouseGesture.WheelUp, null);
+
+        Assert.Equal([ActionIds.ListUp], _routed);
+    }
+
+    [Fact]
+    public void GivenNoOverlay_WhenScrollingTheWheelOverTheGraph_ThenItIsNotRedirected()
+    {
+        _router.OnGestured(DefaultKeymap.GraphView, MouseGesture.WheelUp, null);
+
+        Assert.DoesNotContain(ActionIds.PalettePrevious, _routed);
+    }
+
+    [Theory]
+    [InlineData(DefaultKeymap.SidebarView)]
+    [InlineData(DefaultKeymap.WorkingMessageView)]
+    public void GivenAnActiveRange_WhenStartingADragOnAViewWithoutRanges_ThenTheRangeStays(string view)
+    {
+        OpenTabWithRange();
+
+        _router.OnGestured(view, MouseGesture.DragStart, null);
+
+        Assert.True(_visual.IsActive);
+    }
+
+    [Fact]
+    public void GivenAnActiveRange_WhenStartingADragOnAListPane_ThenTheOldRangeEnds()
+    {
+        OpenTabWithRange();
+
+        _router.OnGestured(DefaultKeymap.GraphView, MouseGesture.DragStart, null);
+
+        Assert.False(_visual.IsActive);
+    }
+
+    [Fact]
+    public void GivenTheDirtyMarkerOfATab_WhenClickingIt_ThenTheTabIsActivatedBeforeItsWorkingTreeOpens()
+    {
+        _router.OnGestured(DefaultMouseMap.TabDirtyMarker, MouseGesture.Click, 2);
+
+        Assert.Equal([ActionIds.TabNext, ActionIds.WorkingTreeOpen], _routed);
+    }
+
+    private void OpenTabWithRange()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "gitunia-gesture-router");
+        var gitDirectory = Path.Combine(root, ".git");
+        _shell.Host.Dispatch(new OpenRepositoryCommand(new RepositoryLocation(root, gitDirectory, gitDirectory, false, false)));
+        _shell.Host.Dispatch(new VisualToggled(0, true));
+        Assert.True(_visual.IsActive);
     }
 
     private sealed class NoSelection : IBranchSelectionSource
