@@ -109,12 +109,11 @@ public sealed class BlameInputTests
         Assert.Equal(BlameReducer.UncommittedHistoryNotice, harness.Statuses.Log.Latest!.Text);
 
         harness.Input.TryExecute(ActionIds.ListDown, null);
-        harness.Input.TryExecute(ActionIds.ListDown, null);
         harness.Input.TryExecute(ActionIds.LineHistoryOpen, null);
 
         var read = Assert.Single(harness.Effects.OfType<ReadFileHistoryEffect>());
-        Assert.Equal(repository.Head, read.Revision);
-        Assert.Equal(new LineRange(2, 2), read.Range);
+        Assert.Equal(repository.Git("rev-parse", "HEAD~1").Trim(), read.Revision);
+        Assert.Equal(new LineRange(1, 1), read.Range);
     }
 
     [Fact]
