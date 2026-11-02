@@ -328,7 +328,10 @@ public class EffectRunnerTests
             });
         host.Restore(update);
         var session = effects.SessionOf(tabId)!;
-        await pump.RunUntilAsync(() => !session.IsLoading);
+        // IsLoading does not wait for the initial issue-links read; wait for it before writing the tracker file.
+        var linkReads = 0;
+        session.IssueLinksChanged += () => linkReads++;
+        await pump.RunUntilAsync(() => !session.IsLoading && linkReads == 1);
         var replaced = 0;
         session.GraphReplaced += () => replaced++;
         File.WriteAllText(
