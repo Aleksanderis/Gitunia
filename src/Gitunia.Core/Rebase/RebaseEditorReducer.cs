@@ -5,6 +5,7 @@ using Gitunia.Core.Lists;
 using Gitunia.Core.Sidebar;
 using Gitunia.Core.Status;
 using Gitunia.Core.Text;
+using Gitunia.Core.Workspaces;
 using Gitunia.Git;
 using Gitunia.Git.Rebase;
 
@@ -65,6 +66,12 @@ public static class RebaseEditorReducer
     /// <summary>The tab of the open editor was closed: it closes and leaves the message mode.</summary>
     /// <param name="session">The session before.</param>
     public static RebaseEditorUpdate Closed(RebaseEditorSession session) => Close(session);
+
+    /// <summary>The tab-closed cleanup of the session: closes the editor when its tab is gone, else null.</summary>
+    /// <param name="session">The session before.</param>
+    /// <param name="workspace">The workspace after the tab command.</param>
+    public static RebaseEditorUpdate? OnTabClosed(RebaseEditorSession session, Workspace workspace) =>
+        session.Editor is { } todo && workspace.FindTab(todo.TabId) is null ? Close(session) : null;
 
     private static PostStatusEffect Post(string text, StatusSeverity severity = StatusSeverity.Warning) =>
         new(text, severity);
