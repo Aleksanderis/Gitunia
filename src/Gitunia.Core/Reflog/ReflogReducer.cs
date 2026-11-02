@@ -4,6 +4,7 @@ using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Lists;
 using Gitunia.Core.Search;
 using Gitunia.Core.Status;
+using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Git.Refs;
 using Gitunia.Git.Refs.Models;
@@ -52,6 +53,12 @@ public static class ReflogReducer
             ReflogTabClosed => Close(session),
             _ => throw new UnhandledCommandException(command),
         };
+
+    /// <summary>The tab-closed cleanup of the session: closes the list when its tab is gone, else null.</summary>
+    /// <param name="session">The session before.</param>
+    /// <param name="workspace">The workspace after the tab command.</param>
+    public static ReflogUpdate? OnTabClosed(ReflogSession session, Workspace workspace) =>
+        session.List is { } list && workspace.FindTab(list.TabId) is null ? Close(session) : null;
 
     private static ReflogUpdate Open(ReflogSession session, ReflogOpenRequested open, ReflogContext context)
     {
