@@ -5,8 +5,8 @@ namespace Gitunia.App;
 /// <summary>
 /// The one run, cancel and post skeleton of the effect handlers: do the work, turn the outcome into exactly one result
 /// command and post it. A handler keeps only its work and its failure text. A cancellation counts as the user's only
-/// when the token the handler was given requested it; any other <see cref="OperationCanceledException"/> (a git
-/// timeout, a cancelled inner token) is a failure.
+/// when the token the handler was given requested it; any other <see cref="OperationCanceledException"/> (for example
+/// an inner token cancelled while the handler's own was not) is a failure.
 /// </summary>
 public static class EffectWork
 {
