@@ -8,12 +8,17 @@ using Gitunia.Tui.Views.Lists;
 namespace Gitunia.Tui.App.WorkingTree;
 
 /// <summary>The runtime side of one tab's Changes view diff: the loaded diff, what the list shows and the search. UI thread only.</summary>
-public sealed class WorkingDiffSession(WorkingDiffStore store, GraphGlyphSet glyphs) : IDiffViewState, IDisposable
+public sealed class WorkingDiffSession(WorkingDiffStore store, GraphGlyphSet glyphs, IGroupButtonSource? buttons = null)
+    : IDiffViewState, IDisposable
 {
     public WorkingDiffStore Store { get; } = store;
 
     /// <summary>The list source of the diff pane.</summary>
-    public DiffListSource Source { get; } = new(glyphs) { HighlightsGroup = true };
+    public DiffListSource Source { get; } = new(glyphs)
+    {
+        HighlightsGroup = true,
+        GroupButtons = buttons ?? NoGroupButtons.Instance,
+    };
 
     public DiffSearchState Search { get; set; } = DiffSearchState.Idle;
 

@@ -27,12 +27,12 @@ public sealed partial class WorkingTreeActionHandler
         // A Visual range of files: stage and unstage act on all of them and the range ends once the operation started.
         var range = ListRange(tab);
         var isRangeAction = action == ActionIds.WorkingTreeStage || action == ActionIds.WorkingTreeUnstage;
-        Message = staging.Execute(tab, action, isRangeAction ? range : null);
+        Message = context.Staging.Execute(tab, action, isRangeAction ? range : null);
 
         // The range ends once the operation started; a refusal (posted by the reducer) keeps it.
-        if (Message.Length == 0 && isRangeAction && staging.IsRunning(tab.Id))
+        if (Message.Length == 0 && isRangeAction && context.Staging.IsRunning(tab.Id))
         {
-            visual?.End();
+            context.Visual?.End();
         }
 
         return true;
@@ -40,7 +40,7 @@ public sealed partial class WorkingTreeActionHandler
 
     // The Visual range of the focused file list, null when there is none.
     private RowRange? ListRange(RepositoryState tab) =>
-        visual is { IsActive: true, Range: { } range } && WorkingPanes.IsList(tab.View.FocusedPane) ? range : null;
+        context.Visual is { IsActive: true, Range: { } range } && WorkingPanes.IsList(tab.View.FocusedPane) ? range : null;
 
     // In the diff the same keys act on the hunk under the cursor, or on the Visual lines.
     private string StageFromDiff(RepositoryState tab, ActionId action)
@@ -58,21 +58,21 @@ public sealed partial class WorkingTreeActionHandler
             return isStage ? "Stage works in the Unstaged diff" : "Unstage works in the Staged diff";
         }
 
-        if (diff is null)
+        if (context.Diff is null)
         {
             return "The diff is not available";
         }
 
-        var capture = diff.CaptureStaging(visual?.Range);
+        var capture = context.Diff.CaptureStaging(context.Visual?.Range);
         if (capture.Request is not { } request)
         {
             return capture.Notice;
         }
 
-        var notice = staging.ExecuteSelection(tab, request, new DiffCursorMove(capture.HunkIndex, capture.ChangesBefore));
-        if (notice.Length == 0 && staging.IsRunning(tab.Id))
+        var notice = context.Staging.ExecuteSelection(tab, request, new DiffCursorMove(capture.HunkIndex, capture.ChangesBefore));
+        if (notice.Length == 0 && context.Staging.IsRunning(tab.Id))
         {
-            visual?.End();
+            context.Visual?.End();
         }
 
         return notice;
@@ -106,12 +106,12 @@ public sealed partial class WorkingTreeActionHandler
             return "Discard works in the Unstaged diff: unstage the changes first";
         }
 
-        if (diff is null)
+        if (context.Diff is null)
         {
             return "The diff is not available";
         }
 
-        var capture = diff.CaptureStaging(visual?.Range);
+        var capture = context.Diff.CaptureStaging(context.Visual?.Range);
         if (capture.Request is not { } request)
         {
             return capture.Notice;

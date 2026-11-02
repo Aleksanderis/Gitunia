@@ -119,10 +119,8 @@ public sealed class HandlerParts
                     host,
                     foundation.Panes,
                     foundation.Clipboard,
-                    Staging,
                     panes.Commits,
-                    panes.WorkingDiff,
-                    panes.Visual))
+                    new StagingContext(Staging, panes.WorkingDiff, panes.Visual)))
             .Add(InputHandler.Branches, new BranchActions(host, panes.Rows))
             .Add(InputHandler.Stash, new StashActions(host, panes.Stashes))
             .Add(InputHandler.Tags, new TagActions(host, panes.Rows))
