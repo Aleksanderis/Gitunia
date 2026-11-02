@@ -434,7 +434,7 @@ public sealed class MainView : IDisposable
         }
     }
 
-    // The frame's bottom edge, or the in-progress operation banner over it (ux-workflows.md, workflow 4).
+    // A click on the bottom edge acts on the in-progress operation banner drawn over it (ux-workflows.md, workflow 4).
     private void OnBottomEdgeClicked(int column)
     {
         var model = _parts.Content.Model();
