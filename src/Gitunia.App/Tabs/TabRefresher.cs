@@ -77,8 +77,10 @@ public sealed class TabRefresher : IDisposable, IPollTarget
                 _location,
                 watching.Budget,
                 watching.Options,
-                kinds => _ui.Post(() => Request(kinds, false)),
                 directoryLister: services.DirectoryLister);
+
+            // Subscribed before Start, so no change is reported to nobody.
+            _watcher.Changed += OnWatcherChanged;
         }
         else
         {
@@ -92,6 +94,8 @@ public sealed class TabRefresher : IDisposable, IPollTarget
     public event Action<GraphReload>? GraphReloaded;
 
     bool IPollTarget.CanPoll => _isReady && !_isRunning && _snapshot is not null && !_busy.IsBusy(_session.TabId);
+
+    private void OnWatcherChanged(RepositoryChangeKinds kinds) => _ui.Post(() => Request(kinds, false));
 
     void IPollTarget.Request(RepositoryChangeKinds kinds) => Request(kinds, false);
 

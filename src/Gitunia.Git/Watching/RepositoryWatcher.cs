@@ -5,10 +5,10 @@ namespace Gitunia.Git.Watching;
 
 /// <summary>
 /// The watcher set of one tab: file system watchers on the git directory, the common directory (when linked), refs, linked worktrees'
-/// git directories and the working tree. Events are classified, merged and debounced; the callback receives what may have changed.
-/// A background tab (<see cref="IsActive"/> false) does not call back: it keeps the pending changes and reports them when it is
+/// git directories and the working tree. Events are classified, merged and debounced; <see cref="Changed"/> reports what may have changed.
+/// A background tab (<see cref="IsActive"/> false) does not raise <see cref="Changed"/>: it keeps the pending changes and reports them when it is
 /// activated. When the shared <see cref="WatchBudget"/> is exhausted, or a watcher cannot be created or fails, the tab polls instead.
-/// <c>BecameStale</c> notifications go through an injectable queue (thread pool by default). The callback runs on a thread pool thread (on the caller's thread for the report made by <see cref="SetActive"/>) and must not throw.
+/// <c>BecameStale</c> notifications go through an injectable queue (thread pool by default).
 /// </summary>
 public sealed partial class RepositoryWatcher : IDisposable
 {
@@ -20,7 +20,6 @@ public sealed partial class RepositoryWatcher : IDisposable
     private readonly RepositoryLocation _location;
     private readonly WatchBudget _budget;
     private readonly RepositoryWatcherOptions _options;
-    private readonly Action<RepositoryChangeKinds> _onChanged;
     private readonly Action<Action> _queueNotification;
     private readonly object _gate = new();
     private readonly List<FileSystemWatcher> _watchers = [];
@@ -46,7 +45,6 @@ public sealed partial class RepositoryWatcher : IDisposable
         RepositoryLocation location,
         WatchBudget budget,
         RepositoryWatcherOptions options,
-        Action<RepositoryChangeKinds> onChanged,
         Action<Action>? queueNotification = null,
         IWorkingTreeDirectoryLister? directoryLister = null)
     {
@@ -54,10 +52,16 @@ public sealed partial class RepositoryWatcher : IDisposable
         _location = location;
         _budget = budget;
         _options = options;
-        _onChanged = onChanged;
         _queueNotification = queueNotification ?? (work => ThreadPool.QueueUserWorkItem(_ => work()));
         _debounceTimer = new Timer(_ => OnDebounceElapsed());
     }
+
+    /// <summary>
+    /// Raised with what may have changed (merged and debounced). Subscribe before <see cref="Start"/>: changes found
+    /// before the first subscriber are not replayed. Runs on a thread pool thread (on the caller's thread for the
+    /// report made by <see cref="SetActive"/>); handlers must not throw.
+    /// </summary>
+    public event Action<RepositoryChangeKinds>? Changed;
 
     /// <summary>The tab is visible: changes are reported as they happen.</summary>
     public bool IsActive
@@ -193,7 +197,7 @@ public sealed partial class RepositoryWatcher : IDisposable
             _debounceTimer.Change(Timeout.Infinite, Timeout.Infinite);
         }
 
-        _onChanged(report);
+        Changed?.Invoke(report);
     }
 
     /// <summary>

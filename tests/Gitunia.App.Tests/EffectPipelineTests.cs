@@ -162,9 +162,10 @@ public class EffectPipelineTests
     {
         using var repository = TestRepositories.Linear();
         using var pipeline = await Pipeline.OpenAsync(TestGit.Services, repository);
+        pipeline.Shell.RunRetryFailure = new InvalidOperationException("boom");
         pipeline.Dispatch(new ConfirmRequestedCommand(
             new ConfirmPrompt("Boom", ["Run it?"], "No undo.", "Run"),
-            new RunActionCommand(() => throw new InvalidOperationException("boom")),
+            new RetryInTerminalConfirmed(pipeline.TabId, "Boom", []),
             null));
 
         pipeline.Dispatch(new ConfirmAnsweredCommand(ConfirmAnswer.Yes));

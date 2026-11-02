@@ -29,6 +29,10 @@ public sealed class NoShellEffects : IShellEffects
     {
     }
 
+    public void RunTerminalRetry(TabId tabId, string noun, IReadOnlyList<string> arguments)
+    {
+    }
+
     public void StartReflogEntryAction(ReflogEntryActionEffect effect)
     {
     }

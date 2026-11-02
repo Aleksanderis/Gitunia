@@ -1,3 +1,4 @@
+using Gitunia.Core.Effects;
 using Gitunia.Core.Clipboard;
 using Gitunia.Core.Config.Models;
 using Gitunia.Core.Conflicts;
@@ -65,6 +66,19 @@ public sealed class RecordingShell : IShellEffects
 
     public void OfferTerminalRetry(TabId tabId, string noun, IReadOnlyList<string> arguments) =>
         Retries.Add($"{noun}|{string.Join(' ', arguments)}");
+
+    public Exception? RunRetryFailure { get; set; }
+
+    public List<RunTerminalRetryEffect> RunRetries { get; } = [];
+
+    public void RunTerminalRetry(TabId tabId, string noun, IReadOnlyList<string> arguments)
+    {
+        RunRetries.Add(new RunTerminalRetryEffect(tabId, noun, arguments));
+        if (RunRetryFailure is not null)
+        {
+            throw RunRetryFailure;
+        }
+    }
 
     public void StartReflogEntryAction(ReflogEntryActionEffect effect) => EntryActions.Add(effect);
 

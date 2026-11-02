@@ -1,7 +1,7 @@
 using Gitunia.App;
-using Gitunia.App.Shell;
 using Gitunia.App.Status;
 using Gitunia.Core.Overlays;
+using Gitunia.Core.Shell;
 using Gitunia.Core.Workspaces.Tabs;
 
 namespace Gitunia.Tui.App.Remote;
@@ -44,13 +44,22 @@ public sealed class TerminalRetry(Dispatcher host, StatusReporter statuses, ITer
             ],
             $"Runs: {command} (the same command as the one that failed).",
             "Retry in terminal");
-        if (!canAsk || !host.Confirm(prompt, () => Run(tabId, noun, arguments)))
+        var accepted = new RetryInTerminalConfirmed(tabId, noun, arguments);
+        if (!canAsk || !Ask(prompt, accepted))
         {
             statuses.Warning($"{noun} in {repository} needs credentials: run `{command}` in a terminal");
         }
     }
 
-    private void Run(TabId tabId, string noun, IReadOnlyList<string> arguments)
+    /// <summary>
+    /// Runs <paramref name="arguments"/> in the terminal once the user accepted the dialog (the reducer turns
+    /// <c>RetryInTerminalConfirmed</c> into the effect that calls this). Nothing happens for a closed tab or while
+    /// another operation of the tab runs.
+    /// </summary>
+    /// <param name="tabId">The tab.</param>
+    /// <param name="noun">What failed.</param>
+    /// <param name="arguments">The git arguments.</param>
+    public void Run(TabId tabId, string noun, IReadOnlyList<string> arguments)
     {
         if (host.Workspace.FindTab(tabId) is not { } tab)
         {
@@ -69,5 +78,13 @@ public sealed class TerminalRetry(Dispatcher host, StatusReporter statuses, ITer
         {
             statuses.Warning(notice);
         }
+    }
+
+    // False (and nothing shown) when the dialog does not fit the screen.
+    private bool Ask(ConfirmPrompt prompt, RetryInTerminalConfirmed accepted)
+    {
+        host.Dispatch(new ConfirmRequestedCommand(prompt, accepted, null));
+
+        return ReferenceEquals(host.State.Shell.Confirm?.Prompt, prompt);
     }
 }

@@ -407,8 +407,8 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
             case RunCommitEffect commit:
                 _commits.Handle(commit, _cancellation.TokenOf(commit.TabId));
                 break;
-            case RunActionEffect run:
-                run.Run();
+            case RunTerminalRetryEffect retry:
+                _shell.RunTerminalRetry(retry.TabId, retry.Noun, retry.Arguments);
                 break;
             case ScheduleStatusAgingEffect aging:
                 _statusAging.Schedule(aging.After);

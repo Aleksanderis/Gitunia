@@ -44,6 +44,14 @@ public sealed class TestShell
     /// <summary>The output boxes that were shown, oldest first.</summary>
     public List<OutputOverlay> Outputs { get; } = [];
 
+    /// <summary>The commands that accepted dialogs ran, oldest first (the terminal retry stands for any accepted command).</summary>
+    // ReSharper disable once CollectionNeverQueried.Global : Fake shared with Gitunia.App.Tests by link: a member counts as unused when only the other project uses it
+    public List<RunTerminalRetryEffect> Accepted { get; } = [];
+
+    /// <summary>Whether a dialog was still open when each accepted command ran, parallel to <see cref="Accepted"/>.</summary>
+    // ReSharper disable once CollectionNeverQueried.Global : Fake shared with Gitunia.App.Tests by link: a member counts as unused when only the other project uses it
+    public List<bool> AcceptedWhileAsking { get; } = [];
+
     public KeyMode Mode => Host.State.Shell.Mode;
 
     public bool IsAsking => Host.State.Shell.Confirm is not null;
@@ -59,6 +67,17 @@ public sealed class TestShell
             Host.Dispatch(new ScreenResizedCommand(size, Host.Clock.GetUtcNow()));
         }
     } = true;
+
+    /// <summary>
+    /// Asks a confirm dialog whose accepted command is a terminal retry (recorded in <see cref="Accepted"/>); false
+    /// when the dialog did not fit the screen and nothing was shown.
+    /// </summary>
+    public bool Confirm(ConfirmPrompt prompt)
+    {
+        Host.Dispatch(new ConfirmRequestedCommand(prompt, new RetryInTerminalConfirmed(default, "Test", []), null));
+
+        return ReferenceEquals(Host.State.Shell.Confirm?.Prompt, prompt);
+    }
 
     /// <summary>Answers the open dialog with <c>y</c>; false when none is open.</summary>
     public bool Answer() => Reply(ConfirmAnswer.Yes);
@@ -80,9 +99,10 @@ public sealed class TestShell
 
     private void RunCallback(AppEffect effect)
     {
-        if (effect is RunActionEffect run)
+        if (effect is RunTerminalRetryEffect retry)
         {
-            run.Run();
+            Accepted.Add(retry);
+            AcceptedWhileAsking.Add(IsAsking);
         }
         else if (effect is ShowPromptEffect prompt)
         {

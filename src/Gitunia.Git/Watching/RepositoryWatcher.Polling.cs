@@ -130,6 +130,6 @@ public sealed partial class RepositoryWatcher
             _pending = RepositoryChangeKinds.None;
         }
 
-        _onChanged(report);
+        Changed?.Invoke(report);
     }
 }

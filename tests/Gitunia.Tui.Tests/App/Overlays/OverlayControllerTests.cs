@@ -88,20 +88,14 @@ public sealed class OverlayControllerTests : IDisposable, IActionRoute
     [Fact]
     public void GivenAConfirmDialog_WhenPressingY_ThenItClosesAndThenRunsTheCallbackOnce()
     {
-        var calls = 0;
-        var stateWhenCalled = OverlayKind.Confirm;
-        _shell.Host.Confirm(Prompt(), () =>
-        {
-            calls++;
-            stateWhenCalled = _overlays.State.Kind;
-        });
+        _shell.Confirm(Prompt());
         Assert.Equal(KeyMode.Confirm, _keys.Mode);
         Assert.Equal(OverlayKind.Confirm, _overlays.State.Kind);
 
         Press(new Key('y'));
 
-        Assert.Equal(1, calls);
-        Assert.Equal(OverlayKind.None, stateWhenCalled);
+        Assert.Single(_shell.Accepted);
+        Assert.Equal([false], _shell.AcceptedWhileAsking);
         Assert.Equal(OverlayKind.None, _overlays.State.Kind);
         Assert.Equal(KeyMode.Normal, _keys.Mode);
     }
@@ -130,7 +124,7 @@ public sealed class OverlayControllerTests : IDisposable, IActionRoute
         Press(new Key('?'));
         Assert.Equal(OverlayKind.Help, _shell.Host.State.Shell.Overlay);
 
-        _shell.Host.Confirm(Prompt(), () => { });
+        _shell.Confirm(Prompt());
         Assert.Equal(OverlayKind.None, _shell.Host.State.Shell.Overlay);
 
         Press(new Key('n'));
@@ -155,7 +149,7 @@ public sealed class OverlayControllerTests : IDisposable, IActionRoute
     {
         Press(new Key('?'));
 
-        _shell.Host.Confirm(Prompt(), () => { });
+        _shell.Confirm(Prompt());
         Press(new Key('n'));
 
         Assert.Equal(OverlayKind.None, _overlays.State.Kind);
@@ -165,7 +159,7 @@ public sealed class OverlayControllerTests : IDisposable, IActionRoute
     [Fact]
     public void GivenAConfirmDialog_WhenYIsPressed_ThenTheShellStateHoldsNoDialogAndTheChangeIsAnnounced()
     {
-        _shell.Host.Confirm(Prompt(), () => { });
+        _shell.Confirm(Prompt());
         var changes = _changes;
 
         Press(new Key('y'));
@@ -177,7 +171,7 @@ public sealed class OverlayControllerTests : IDisposable, IActionRoute
     [Fact]
     public void GivenAConfirmDialog_WhenTheShellOpensIt_ThenTheViewIsTheConfirmViewAndTheFrameShowsIt()
     {
-        _shell.Host.Confirm(Prompt(), () => { });
+        _shell.Confirm(Prompt());
 
         Assert.Equal(DefaultKeymap.ConfirmView, _overlays.ViewName);
         Assert.Contains("Discard all unstaged changes", FrameText(), StringComparison.Ordinal);
@@ -189,7 +183,7 @@ public sealed class OverlayControllerTests : IDisposable, IActionRoute
         var calls = 0;
         foreach (var answer in new[] { new Key('n'), Key.Esc })
         {
-            _shell.Host.Confirm(Prompt(), () => calls++);
+            _shell.Confirm(Prompt());
 
             Press(answer);
 
@@ -204,7 +198,7 @@ public sealed class OverlayControllerTests : IDisposable, IActionRoute
     public void GivenAConfirmDialog_WhenOtherKeysArrive_ThenTheyAreSwallowedAndNothingConfirms()
     {
         var calls = 0;
-        _shell.Host.Confirm(Prompt(), () => calls++);
+        _shell.Confirm(Prompt());
 
         foreach (var key in new[] { Key.Enter, new Key('j'), new Key('q'), Key.CursorDown, new Key(' ') })
         {
@@ -220,7 +214,7 @@ public sealed class OverlayControllerTests : IDisposable, IActionRoute
     public void GivenAVisualRange_WhenAConfirmDialogCloses_ThenVisualModeIsRestored()
     {
         _shell.Host.SetKeyMode(KeyMode.Visual);
-        _shell.Host.Confirm(Prompt(), () => { });
+        _shell.Confirm(Prompt());
 
         Press(new Key('n'));
 
@@ -232,7 +226,7 @@ public sealed class OverlayControllerTests : IDisposable, IActionRoute
     {
         Resize(14, 24);
 
-        var shown = _shell.Host.Confirm(Prompt(), () => { });
+        var shown = _shell.Confirm(Prompt());
 
         Assert.False(shown);
         Assert.Equal(OverlayKind.None, _overlays.State.Kind);
@@ -243,7 +237,7 @@ public sealed class OverlayControllerTests : IDisposable, IActionRoute
     public void GivenAConfirmDialog_WhenTheScreenShrinksBelowIt_ThenItClosesUnansweredAndAStrayYDoesNothing()
     {
         var calls = 0;
-        _shell.Host.Confirm(Prompt(), () => calls++);
+        _shell.Confirm(Prompt());
         Resize(14, 24);
         _overlays.OnScreenResized();
         Press(new Key('y'));
@@ -257,7 +251,7 @@ public sealed class OverlayControllerTests : IDisposable, IActionRoute
     [Fact]
     public void GivenAConfirmDialog_WhenTheScreenResizesAndStillFits_ThenItStaysOpen()
     {
-        _shell.Host.Confirm(Prompt(), () => { });
+        _shell.Confirm(Prompt());
         Resize(100, 30);
         _overlays.OnScreenResized();
 
@@ -267,7 +261,7 @@ public sealed class OverlayControllerTests : IDisposable, IActionRoute
     [Fact]
     public void GivenAConfirmDialog_WhenTheYesAndNoRowsAreClicked_ThenTheyAnswerLikeTheKeys()
     {
-        _shell.Host.Confirm(Prompt(), () => { });
+        _shell.Confirm(Prompt());
         var height = _overlays.CurrentFrame()!.Height;
 
         Assert.Equal(ConfirmAnswer.Yes, _overlays.ConfirmAnswerAt(height - 3));

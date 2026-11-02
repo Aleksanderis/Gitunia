@@ -29,6 +29,9 @@ public interface IShellEffects
     /// <summary>Offers to run the same git arguments in the real terminal (credentials are needed).</summary>
     void OfferTerminalRetry(TabId tabId, string noun, IReadOnlyList<string> arguments);
 
+    /// <summary>Runs the same git arguments in the real terminal after the user accepted the retry dialog.</summary>
+    void RunTerminalRetry(TabId tabId, string noun, IReadOnlyList<string> arguments);
+
     /// <summary>
     /// Starts the flow a reflog entry stands for (the reset prompt, the branch prompt, a detached checkout, the graph
     /// cursor) and answers with <c>ReflogEntryActionStarted</c> or <c>ReflogEntryActionRefused</c>.

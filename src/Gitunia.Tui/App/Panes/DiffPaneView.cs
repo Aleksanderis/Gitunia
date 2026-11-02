@@ -49,7 +49,12 @@ public sealed class DiffPaneView
         _diffList = lists.ListOf(PaneKind.Diff);
         _chrome = chrome;
         _arrangements = new PaneArrangements(host, sessions);
-        Actions = new DiffListActions(_diffList, host, clipboard, () => sessions.ActiveSession()?.Diff, SideBySideHint);
+        Actions = new DiffListActions(
+            _diffList,
+            host,
+            clipboard,
+            new ActiveHistoryDiff(sessions),
+            new DiffListTexts(SideBySideHint));
         host.Changed += Reconcile;
     }
 
