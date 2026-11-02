@@ -1,3 +1,4 @@
+using Gitunia.Core.Status;
 using Gitunia.Core.Running;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git;
@@ -33,7 +34,11 @@ public sealed record ReadRebaseRangeEffect(
     string? TargetHash,
     string Label,
     string BranchName,
-    string OldTip) : RebaseEditorEffect(TabId, Location);
+    string OldTip) : RebaseEditorEffect(TabId, Location)
+{
+    /// <inheritdoc />
+    public override AppCommand FailedWith(string text) => new RebaseEditorReadFailed(TabId, text, StatusSeverity.Error);
+}
 
 /// <summary>Read the full message of a commit that is reworded.</summary>
 /// <param name="TabId">The tab.</param>
@@ -48,11 +53,19 @@ public sealed record ReadRebaseMessageEffect(
     long Generation,
     string Hash,
     ObjectId Id,
-    string Subject) : RebaseEditorEffect(TabId, Location);
+    string Subject) : RebaseEditorEffect(TabId, Location)
+{
+    /// <inheritdoc />
+    public override AppCommand FailedWith(string text) => new RebaseEditorReadFailed(TabId, text, StatusSeverity.Error);
+}
 
 /// <summary>Hand the todo to the engine and run the rebase.</summary>
 /// <param name="TabId">The tab.</param>
 /// <param name="Location">Where the operation runs.</param>
 /// <param name="State">The todo as the user confirmed it.</param>
 public sealed record RunInteractiveRebaseEffect(TabId TabId, RepositoryLocation Location, RebaseEditorState State)
-    : RebaseEditorEffect(TabId, Location);
+    : RebaseEditorEffect(TabId, Location)
+{
+    /// <inheritdoc />
+    public override AppCommand FailedWith(string text) => new RebaseFailed(TabId, text);
+}

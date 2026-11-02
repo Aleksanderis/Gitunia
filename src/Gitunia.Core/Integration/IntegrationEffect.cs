@@ -18,6 +18,9 @@ public abstract record IntegrationEffect : OperationEffect
 
     /// <summary>Where the call runs.</summary>
     public RepositoryLocation Location { get; }
+
+    /// <inheritdoc />
+    public override AppCommand FailedWith(string text) => new IntegrationFailed(TabId, text);
 }
 
 /// <summary>Read what a reset would drop (the tracked changes) and whether a stopped operation forbids it; writes

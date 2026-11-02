@@ -14,6 +14,9 @@ public abstract record WorktreeEffect : OperationEffect
 
     /// <summary>Where the operation runs.</summary>
     public RepositoryLocation Location { get; }
+
+    /// <inheritdoc />
+    public override AppCommand FailedWith(string text) => new WorktreeOperationFailed(TabId, text);
 }
 
 /// <summary>Add a worktree.</summary>
