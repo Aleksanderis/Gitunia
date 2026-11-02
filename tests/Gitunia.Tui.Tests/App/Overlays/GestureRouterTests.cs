@@ -21,7 +21,6 @@ using Xunit;
 
 namespace Gitunia.Tui.Tests.App.Overlays;
 
-[Trait("Os", "Independent")]
 public sealed class GestureRouterTests : IDisposable, IActionRoute
 {
     private readonly TestShell _shell = new();

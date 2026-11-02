@@ -31,6 +31,7 @@ public sealed class ConfigStartup(string configDirectory, string homeDirectory, 
     public StartupConfig Load()
     {
         var defaults = DefaultKeymap.Create();
+        // Startup, before any UI or async context exists: blocking once here is safe and keeps the shell constructor sync.
         var loaded = new ConfigLoader(configDirectory).LoadAsync(CancellationToken.None).GetAwaiter().GetResult();
         var built = KeymapConfigurator.Apply(defaults, loaded.Document.Keys);
         var themeProblems = new List<ConfigProblem>();

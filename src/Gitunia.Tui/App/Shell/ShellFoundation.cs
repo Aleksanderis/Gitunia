@@ -46,6 +46,7 @@ public sealed class ShellFoundation
         Keys = new ChipKeys(startup.Keymap.Table);
         Engine = new KeymapEngine(startup.Keymap.Table);
         Store = new SessionStore(platform.StateDirectory);
+        // Startup, before the UI runs: a one-off blocking read of the small session file.
         Restored = Store.LoadAsync(CancellationToken.None).GetAwaiter().GetResult();
         Terminal = new TerminalHost(launch.DriverName, Config, handOff);
         Host = new Dispatcher(InitialState(), Terminal.Invoker);

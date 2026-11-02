@@ -43,6 +43,7 @@ These are quality inspections, not style, so neither the compiler nor `.editorco
 
 ## Files and folders
 
+- No `.cs` file over about 500 lines in `src/`: split by responsibility (focused types, or `Type.Part.cs` partial files for one large stateful type).
 - One type per file, named after the type. Models (records, enums, plain data) and classes with logic live in separate files; unrelated models get separate files too, unless they are closely related or inherited from each other.
 - Folders group by domain first (`Commits/`, `Refs/`, `Status/`), technical kind second (`Models/` for records and enums); namespaces follow folders; a test file sits in the same relative folder as the type it tests. Don't leave dozens of files in one folder.
 - Member order: private methods come after all public/protected methods (fields, constructors and properties stay on top). Test classes too: test methods first, private helpers last.

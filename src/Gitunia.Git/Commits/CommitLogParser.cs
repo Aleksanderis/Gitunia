@@ -12,7 +12,6 @@ namespace Gitunia.Git.Commits;
 /// </summary>
 public sealed class CommitLogParser
 {
-    private static readonly ObjectId[] NoParents = [];
     private static readonly CommitDecoration[] NoDecorations = [];
 
     private readonly ArrayBufferWriter<byte> _carry = new();
@@ -164,7 +163,7 @@ public sealed class CommitLogParser
             return;
         }
 
-        var parents = ParseParents(record[fields[1]]);
+        var parents = ParentIds.Parse(record[fields[1]]);
         if (parents is null)
         {
             _warnings.Add($"Skipped commit {id} with an invalid parent list");
@@ -236,30 +235,6 @@ public sealed class CommitLogParser
         }
 
         return true;
-    }
-
-    private static ObjectId[]? ParseParents(ReadOnlySpan<byte> field)
-    {
-        if (field.Length == 0)
-        {
-            return NoParents;
-        }
-
-        var parents = new List<ObjectId>(2);
-        while (field.Length > 0)
-        {
-            var space = field.IndexOf((byte)' ');
-            var hash = space < 0 ? field : field[..space];
-            if (!ObjectId.TryParse(hash, out var parent))
-            {
-                return null;
-            }
-
-            parents.Add(parent);
-            field = space < 0 ? [] : field[(space + 1)..];
-        }
-
-        return [.. parents];
     }
 
     /// <summary>Author names and emails repeat across thousands of commits; share one string per distinct value.</summary>

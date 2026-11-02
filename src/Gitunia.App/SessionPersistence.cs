@@ -18,7 +18,7 @@ public sealed class SessionPersistence : IDisposable
     private readonly StatusReporter _statuses;
     private readonly IUiInvoker _ui;
     private readonly Timer _timer;
-    private readonly Lock _saveLock = new();
+    private readonly SemaphoreSlim _saveLock = new(1, 1);
     private Workspace? _lastSaved;
     private IReadOnlyDictionary<TabId, SessionDraft> _lastSavedDrafts = new Dictionary<TabId, SessionDraft>();
     private IReadOnlyDictionary<TabId, SessionDraft> _drafts = new Dictionary<TabId, SessionDraft>();
@@ -38,7 +38,7 @@ public sealed class SessionPersistence : IDisposable
         _store = store;
         _host = host;
         _debounce = debounce;
-        _timer = new Timer(_ => Save(), null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+        _timer = new Timer(OnTimerElapsed, null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
     }
 
     /// <summary>Starts saving after every workspace change. The workspace as it is now counts as saved (it was just loaded).</summary>
@@ -54,7 +54,10 @@ public sealed class SessionPersistence : IDisposable
     {
         CaptureDrafts();
         _timer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
-        Save();
+
+        // Blocking is deliberate: the quit path (and the Tui shell around it) is synchronous and the process must not
+        // exit before the file is written. Task.Run keeps the wait independent of any synchronization context.
+        Task.Run(SaveAsync).GetAwaiter().GetResult();
     }
 
     /// <summary>Saves now like <see cref="Flush"/> and tells whether the session file is up to date (false: the last save failed).</summary>
@@ -68,6 +71,13 @@ public sealed class SessionPersistence : IDisposable
     {
         _host.Changed -= OnChanged;
         _timer.Dispose();
+        _saveLock.Dispose();
+    }
+
+    // Fire and forget: SaveAsync handles its own failures (a failed save is reported, never thrown).
+    private void OnTimerElapsed(object? state)
+    {
+        _ = SaveAsync();
     }
 
     private void OnChanged()
@@ -86,9 +96,10 @@ public sealed class SessionPersistence : IDisposable
     private static bool SameDrafts(IReadOnlyDictionary<TabId, SessionDraft> left, IReadOnlyDictionary<TabId, SessionDraft> right) =>
         left.Count == right.Count && left.All(pair => right.TryGetValue(pair.Key, out var other) && other == pair.Value);
 
-    private void Save()
+    private async Task SaveAsync()
     {
-        lock (_saveLock)
+        await _saveLock.WaitAsync().ConfigureAwait(false);
+        try
         {
             var snapshot = _host.Workspace;
             var drafts = Volatile.Read(ref _drafts);
@@ -97,7 +108,7 @@ public sealed class SessionPersistence : IDisposable
                 return;
             }
 
-            if (_store.SaveAsync(snapshot, drafts, CancellationToken.None).GetAwaiter().GetResult())
+            if (await _store.SaveAsync(snapshot, drafts, CancellationToken.None).ConfigureAwait(false))
             {
                 _lastSaved = snapshot;
                 _lastSavedDrafts = drafts;
@@ -109,6 +120,10 @@ public sealed class SessionPersistence : IDisposable
                 _lastSaveFailed = true;
                 _ui.Post(() => _statuses.Error("Could not save the session; open tabs will not be restored (retried on the next change)"));
             }
+        }
+        finally
+        {
+            _saveLock.Release();
         }
     }
 }

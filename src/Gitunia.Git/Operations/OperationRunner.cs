@@ -18,7 +18,6 @@ public sealed class OperationRunner(GitRunner runner, IRepositoryOperationDetect
 
     private static readonly GitRunOptions WriteOptions = new(Timeout: OperationTimeout);
 
-    private static readonly string[] UnmergedArguments = ["ls-files", "--unmerged"];
 
     private static readonly string[] HeadArguments = ["rev-parse", "--quiet", "--verify", GitOptions.HeadRevision];
 
@@ -35,7 +34,7 @@ public sealed class OperationRunner(GitRunner runner, IRepositoryOperationDetect
         IReadOnlyList<string> arguments,
         CancellationToken cancellationToken)
     {
-        var unmergedBefore = await ReadUnmergedAsync(location, cancellationToken).ConfigureAwait(false);
+        var unmergedBefore = await UnmergedFiles.ReadAsync(runner, location, cancellationToken).ConfigureAwait(false);
         try
         {
             await runner.RunAsync(location.CommandPath, arguments, WriteOptions, cancellationToken)
@@ -82,16 +81,8 @@ public sealed class OperationRunner(GitRunner runner, IRepositoryOperationDetect
             return false;
         }
 
-        var unmergedAfter = await ReadUnmergedAsync(location, cancellationToken).ConfigureAwait(false);
-        return unmergedAfter.Length > 0 && unmergedAfter != unmergedBefore;
-    }
-
-    private async Task<string> ReadUnmergedAsync(RepositoryLocation location, CancellationToken cancellationToken)
-    {
-        var result = await runner
-            .RunAsync(location.CommandPath, UnmergedArguments, GitRunOptions.ReadOnlyRun, cancellationToken)
-            .ConfigureAwait(false);
-        return result.StandardOutputText;
+        var unmergedAfter = await UnmergedFiles.ReadAsync(runner, location, cancellationToken).ConfigureAwait(false);
+        return UnmergedFiles.MadeConflicts(unmergedBefore, unmergedAfter);
     }
 
     private async Task<string?> ReadHeadAsync(RepositoryLocation location, CancellationToken cancellationToken)

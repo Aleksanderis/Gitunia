@@ -53,6 +53,7 @@ public static class Program
         {
             try
             {
+                // Entry point of a synchronous Main, nothing else is running yet: blocking is safe.
                 location = services.Discovery.DiscoverAsync(options.RepositoryPath, CancellationToken.None).GetAwaiter().GetResult();
             }
             catch (GitException exception)
@@ -70,6 +71,7 @@ public static class Program
                 PlatformInfo.Current.ConfigDirectory, home, ConfigStartup.DefaultLabelCaps(capabilities));
             var labelCaps = configured.Load().Options.LabelCaps;
             var hasColors = options.Colors is not null && options.Colors.Depth != ColorDepth.None;
+            // Same: the headless frame print is a one-shot command line path.
             new FramePrinter(services).PrintAsync(
                 location!,
                 options.FrameWidth!.Value,
