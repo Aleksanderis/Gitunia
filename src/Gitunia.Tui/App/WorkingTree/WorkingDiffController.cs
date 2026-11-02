@@ -4,16 +4,14 @@ using Gitunia.Core.Diff;
 using Gitunia.Core.DiffPane;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
-using Gitunia.Core.Lists;
-using Gitunia.Core.Staging;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Git.Diff.Models;
-using Gitunia.Git.Status.Models;
 using Gitunia.Tui.App.Clipboard;
 using Gitunia.Tui.App.Panes;
 using Gitunia.Tui.App.Tabs;
+using Gitunia.Tui.Views;
 using Gitunia.Tui.Input;
 using Gitunia.Tui.Rendering.Diff;
 using Gitunia.Tui.Rendering.WorkingTree;
@@ -29,38 +27,34 @@ namespace Gitunia.Tui.App.WorkingTree;
 /// context, search and copy. It is also the diff's search prompt, so it plugs into the same prompt list as the graph search.
 /// Everything it changes about focus goes through workspace commands.
 /// </summary>
-public sealed class WorkingDiffController : IActionHandler, ITextKeyHandler, IActionNotice, IPromptDisplay
+public sealed partial class WorkingDiffController : IActionHandler, ITextKeyHandler, IActionNotice, IPromptDisplay
 {
     private readonly Dispatcher _host;
-    private readonly Func<TerminalTabSession?> _activeSession;
+    private readonly IActiveSessions _sessions;
     private readonly ListView _diffList;
-    private readonly Action _refreshChrome;
-    private readonly Action _relayout;
+    private readonly IPaneChrome _chrome;
     private readonly DiffListActions _actions;
     private TerminalTabSession? _hooked;
     private int? _hunkAfterReload;
     private int? _changeAfterReload;
 
     /// <param name="host">The workspace the focus commands go to.</param>
-    /// <param name="activeSession">The active tab's runtime session.</param>
-    /// <param name="diffList">The list of the diff box.</param>
-    /// <param name="refreshChrome">Redraws the frame titles and the status bar after the diff changed on its own (it finished loading).</param>
+    /// <param name="sessions">The active tab's runtime session.</param>
+    /// <param name="lists">The list of the diff box.</param>
+    /// <param name="chrome">Redraws the frame titles and the status bar after the diff changed on its own (it finished loading); lays the panes out again after the zoom changed.</param>
     /// <param name="clipboard">Copies diff text.</param>
-    /// <param name="relayout">Lays the panes out again after the zoom changed; null in tests without a screen.</param>
     public WorkingDiffController(
         Dispatcher host,
-        Func<TerminalTabSession?> activeSession,
-        ListView diffList,
-        Action refreshChrome,
-        ClipboardCopier clipboard,
-        Action? relayout = null)
+        IActiveSessions sessions,
+        IPaneLists lists,
+        IPaneChrome chrome,
+        ClipboardCopier clipboard)
     {
         _host = host;
-        _activeSession = activeSession;
-        _diffList = diffList;
-        _refreshChrome = refreshChrome;
-        _relayout = relayout ?? (() => { });
-        _actions = new DiffListActions(diffList, host, clipboard, () => activeSession()?.WorkingDiff, string.Empty, "change");
+        _sessions = sessions;
+        _diffList = lists.ListOf(PaneKind.WorkingUnstagedDiff);
+        _chrome = chrome;
+        _actions = new DiffListActions(_diffList, host, clipboard, () => sessions.ActiveSession()?.WorkingDiff, string.Empty, "change");
         host.Changed += OnWorkspaceChanged;
     }
 
@@ -72,10 +66,10 @@ public sealed class WorkingDiffController : IActionHandler, ITextKeyHandler, IAc
 
     /// <summary>True while the diff of the shown tab fills the whole Changes view (the diff has focus and was zoomed).</summary>
     public bool IsZoomed =>
-        _activeSession()?.WorkingDiff is { IsZoomed: true }
+        _sessions.ActiveSession()?.WorkingDiff is { IsZoomed: true }
         && WorkingPanes.IsDiff(_host.Workspace.ActiveTab?.View.FocusedPane ?? PaneKind.Graph);
 
-    public string StatusLine => _actions.StatusLine(_activeSession()?.WorkingDiff);
+    public string StatusLine => _actions.StatusLine(_sessions.ActiveSession()?.WorkingDiff);
 
     /// <summary>The title of the diff box: the side, the hunk the cursor is in and the file, plus the markers of the diff options.</summary>
     /// <param name="isRepeating">The repeat mode is on for the diff box: the title shows its marker.</param>
@@ -83,7 +77,7 @@ public sealed class WorkingDiffController : IActionHandler, ITextKeyHandler, IAc
     {
         var tab = _host.Workspace.ActiveTab;
         var model = default(DiffPaneModel);
-        if (_activeSession()?.WorkingDiff is { } diff)
+        if (_sessions.ActiveSession()?.WorkingDiff is { } diff)
         {
             model = ModelOf(diff, WorkingPanes.IsDiff(tab?.View.FocusedPane ?? PaneKind.Graph)) with
             {
@@ -97,7 +91,7 @@ public sealed class WorkingDiffController : IActionHandler, ITextKeyHandler, IAc
     /// <summary>The diff box as the frame composer draws it, null while the tab has no diff.</summary>
     public DiffPaneModel? Model()
     {
-        if (_activeSession()?.WorkingDiff is not { } diff)
+        if (_sessions.ActiveSession()?.WorkingDiff is not { } diff)
         {
             return null;
         }
@@ -108,7 +102,7 @@ public sealed class WorkingDiffController : IActionHandler, ITextKeyHandler, IAc
     /// <summary>The quick-jump target of the diff box of the shown tab, null while it has none.</summary>
     public IJumpTarget? JumpTarget()
     {
-        if (_activeSession()?.WorkingDiff is { } diff
+        if (_sessions.ActiveSession()?.WorkingDiff is { } diff
             && _host.Workspace.ActiveTab?.View.FocusedPane is { } pane
             && WorkingPanes.IsDiff(pane))
         {
@@ -121,7 +115,7 @@ public sealed class WorkingDiffController : IActionHandler, ITextKeyHandler, IAc
     public bool TryExecute(ActionId action, int? count)
     {
         Notice = string.Empty;
-        if (_activeSession()?.WorkingDiff is { } shown
+        if (_sessions.ActiveSession()?.WorkingDiff is { } shown
             && _host.Workspace.ActiveTab is { View.Mode: TabViewMode.WorkingTree } listTab
             && WorkingPanes.IsList(listTab.View.FocusedPane)
             && _actions.TryScroll(shown, action, count))
@@ -129,7 +123,7 @@ public sealed class WorkingDiffController : IActionHandler, ITextKeyHandler, IAc
             return true;
         }
 
-        if (_activeSession()?.WorkingDiff is not { } diff
+        if (_sessions.ActiveSession()?.WorkingDiff is not { } diff
             || _host.Workspace.ActiveTab is not { View.Mode: TabViewMode.WorkingTree } tab
             || (!WorkingPanes.IsDiff(tab.View.FocusedPane) && diff.Search.Phase != DiffSearchPhase.Editing))
         {
@@ -158,103 +152,9 @@ public sealed class WorkingDiffController : IActionHandler, ITextKeyHandler, IAc
         return isHandled;
     }
 
-    /// <summary>
-    /// Reads what to stage or unstage from the shown diff: the Visual range when there is one, else the hunk under the cursor (a
-    /// file without hunks, such as a binary one, goes whole). Refuses while the diff is loading or cut short, for a conflicted
-    /// file and for a diff that holds no file.
-    /// </summary>
-    /// <param name="range">The Visual range in list lines, null for the hunk under the cursor.</param>
-    public DiffStagingCapture CaptureStaging(RowRange? range)
-    {
-        if (_activeSession()?.WorkingDiff is not { } diff || diff.Store.Request is not { } target)
-        {
-            return DiffStagingCapture.Refused("There is no diff to stage from");
-        }
-
-        var document = diff.Source.Document;
-        if (diff.Store.Status != DiffStatus.Loaded)
-        {
-            return DiffStagingCapture.Refused("The diff is still loading");
-        }
-
-        if (diff.Store.IsCut)
-        {
-            return DiffStagingCapture.Refused("The diff is cut short: press <space>vl to load all of it first");
-        }
-
-        if (target.Folder is not null)
-        {
-            return DiffStagingCapture.Refused(
-                "This is the diff of a folder: pick one of its files to stage a hunk or lines");
-        }
-
-        if (target.Entry.Kind == StatusEntryKind.Unmerged)
-        {
-            return DiffStagingCapture.Refused($"{WorkingTreeRowRenderer.Printable(target.Entry.Path)} is conflicted: resolve it first");
-        }
-
-        if (document.FileRows.Count == 0)
-        {
-            return DiffStagingCapture.Refused("There is nothing to stage here");
-        }
-
-        var row = _actions.CursorRow(diff);
-        var hunkIndex = DiffSelection.HunkIndexAt(document, row);
-        if (range is { } selected)
-        {
-            var lines = DiffSelection.OfRows(document, diff.Source.RowOf(selected.First), diff.Source.LastRowOf(selected.Last));
-            if (lines.Count == 0)
-            {
-                return DiffStagingCapture.Refused("No added or removed line is selected");
-            }
-
-            var before = DiffSelection.ChangedRowsBefore(document, diff.Source.RowOf(selected.First));
-
-            return new DiffStagingCapture(new DiffStagingRequest(target, lines, true), hunkIndex, string.Empty, before);
-        }
-
-        var hunkLines = DiffSelection.OfHunk(document, row);
-        if (hunkIndex >= 0 && hunkLines.Count == 0)
-        {
-            return DiffStagingCapture.Refused("The change has no added or removed line");
-        }
-
-        return new DiffStagingCapture(new DiffStagingRequest(target, hunkLines, false), hunkIndex, string.Empty);
-    }
-
-    /// <summary>After the next reload of the same file the cursor goes to the hunk at <paramref name="hunkIndex"/> (the next one when that hunk was staged).</summary>
-    public void MoveToHunkAfterReload(int hunkIndex)
-    {
-        _hunkAfterReload = hunkIndex;
-        _changeAfterReload = null;
-    }
-
-    /// <summary>
-    /// After the next reload of the same file the cursor goes to the changed row with number <paramref name="changeNumber"/>
-    /// (the first change after a staged range, the last one when none follows), scrolling only when it is off screen.
-    /// </summary>
-    public void MoveToChangeAfterReload(int changeNumber)
-    {
-        _changeAfterReload = changeNumber;
-        _hunkAfterReload = null;
-    }
-
-    /// <summary>After the next reload of the same file the cursor goes where <paramref name="move"/> says (a staged or discarded hunk or range).</summary>
-    public void MoveAfterReload(DiffCursorMove move)
-    {
-        if (move.ChangesBefore >= 0)
-        {
-            MoveToChangeAfterReload(move.ChangesBefore);
-        }
-        else
-        {
-            MoveToHunkAfterReload(move.HunkIndex);
-        }
-    }
-
     public bool HandleTextKey(KeyEvent key)
     {
-        var diff = _activeSession()?.WorkingDiff;
+        var diff = _sessions.ActiveSession()?.WorkingDiff;
 
         return _actions.HandleTextKey(diff, diff?.Source.Document ?? DiffDocument.Empty, key);
     }
@@ -301,7 +201,7 @@ public sealed class WorkingDiffController : IActionHandler, ITextKeyHandler, IAc
     /// </summary>
     public void Sync()
     {
-        if (_activeSession()?.WorkingDiff is not { } diff
+        if (_sessions.ActiveSession()?.WorkingDiff is not { } diff
             || _host.Workspace.ActiveTab is not { View.Mode: TabViewMode.WorkingTree } tab)
         {
             return;
@@ -351,7 +251,7 @@ public sealed class WorkingDiffController : IActionHandler, ITextKeyHandler, IAc
     {
         Sync();
         ReleaseStaleZoom();
-        if (_activeSession()?.WorkingDiff is { Search.Phase: DiffSearchPhase.Editing } diff
+        if (_sessions.ActiveSession()?.WorkingDiff is { Search.Phase: DiffSearchPhase.Editing } diff
             && !WorkingPanes.IsDiff(_host.Workspace.ActiveTab?.View.FocusedPane ?? PaneKind.Graph))
         {
             // The pane lost focus (a click) while the search was being typed: keys no longer reach the box, so end it.
@@ -362,11 +262,11 @@ public sealed class WorkingDiffController : IActionHandler, ITextKeyHandler, IAc
     // Focus left the diff (Esc, a click on a list): the zoom ends, so returning to the diff does not zoom it again.
     private void ReleaseStaleZoom()
     {
-        if (_activeSession()?.WorkingDiff is { IsZoomed: true } diff
+        if (_sessions.ActiveSession()?.WorkingDiff is { IsZoomed: true } diff
             && !WorkingPanes.IsDiff(_host.Workspace.ActiveTab?.View.FocusedPane ?? PaneKind.Graph))
         {
             diff.IsZoomed = false;
-            _relayout();
+            _chrome.Relayout();
         }
     }
 
@@ -383,7 +283,7 @@ public sealed class WorkingDiffController : IActionHandler, ITextKeyHandler, IAc
         if (action == ActionIds.PaneZoom)
         {
             diff.IsZoomed = !diff.IsZoomed;
-            _relayout();
+            _chrome.Relayout();
         }
         else if (action == ActionIds.DiffLoadAnyway)
         {
@@ -429,7 +329,7 @@ public sealed class WorkingDiffController : IActionHandler, ITextKeyHandler, IAc
 
     private void OnStoreChanged()
     {
-        if (_activeSession()?.WorkingDiff is { } diff)
+        if (_sessions.ActiveSession()?.WorkingDiff is { } diff)
         {
             Refresh(diff);
         }
@@ -481,7 +381,7 @@ public sealed class WorkingDiffController : IActionHandler, ITextKeyHandler, IAc
         }
 
         _diffList.SetNeedsDraw();
-        _refreshChrome();
+        _chrome.RefreshChrome();
     }
 
     private static bool IsSamePath(WorkingDiffRequest? request, WorkingDiffRequest? other) =>

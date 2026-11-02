@@ -14,13 +14,13 @@ namespace Gitunia.Tui.App.Settings;
 /// <param name="terminal">Gives the terminal away for the duration.</param>
 /// <param name="statuses">Where the outcome is reported.</param>
 /// <param name="environment">Reads an environment variable (injected so tests need no real one).</param>
-/// <param name="pauseForUser">Waits for a key after a failure, so its message stays readable.</param>
+/// <param name="pause">Waits for a key after a failure, so its message stays readable.</param>
 public sealed class ConfigEditorLauncher(
     IExternalToolLauncher launcher,
     ITerminalSuspender terminal,
     StatusReporter statuses,
     Func<string, string?> environment,
-    Action pauseForUser)
+    IUserPause pause)
 {
     private const string VisualVariable = "VISUAL";
     private const string EditorVariable = "EDITOR";
@@ -98,7 +98,7 @@ public sealed class ConfigEditorLauncher(
                 Console.Error.WriteLine(error);
             }
 
-            pauseForUser();
+            pause.Wait();
         }
     }
 

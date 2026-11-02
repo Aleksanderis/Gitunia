@@ -9,9 +9,9 @@ namespace Gitunia.Tui.Input;
 /// <summary>The keymap view of the focused pane (<c>Graph</c>, <c>Detail</c>, <c>Sidebar</c>, <c>Diff</c>).</summary>
 /// <param name="host">Holds the active tab and its focused pane.</param>
 /// <param name="detailList">The detail list, whose toolkit focus tells the graph from the detail pane.</param>
-public sealed class FocusedKeymapView(Dispatcher host, ListView detailList)
+public sealed class FocusedKeymapView(Dispatcher host, ListView detailList) : IFocusedView
 {
-    /// <summary>The name of the view the keymap looks bindings up in.</summary>
+    /// <inheritdoc />
     public string Name => host.Workspace.ActiveTab?.View.FocusedPane switch
     {
         PaneKind.Sidebar => DefaultKeymap.SidebarView,

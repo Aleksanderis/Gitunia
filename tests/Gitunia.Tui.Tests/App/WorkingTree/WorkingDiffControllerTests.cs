@@ -1,3 +1,4 @@
+using Gitunia.Tui.Views;
 using System.Diagnostics;
 using System.Drawing;
 using Gitunia.App.Status;
@@ -767,7 +768,12 @@ public class WorkingDiffControllerTests
             DiffList = new ListView { X = 0, Y = 0, Width = 60, Height = 20 };
             DiffList.SetRelativeLayout(new Size(80, 24));
             var copier = new ClipboardCopier(new ClipboardWriter(new StringWriter(), new Osc52Options(Osc52Mode.Direct, 100_000)), Statuses);
-            Controller = new WorkingDiffController(host, () => Session, DiffList, () => { }, copier);
+            Controller = new WorkingDiffController(
+                host,
+                new FakeActiveSessions(() => Session),
+                new FakePaneLists(DiffList),
+                new FakePaneChrome(new ScreenSize(80, 24)),
+                copier);
             Controller.OnTabSwitched(null, session);
             var indexWriter = TestGit.Services.IndexWriter;
             Staging = new StagingActions(host);

@@ -4,7 +4,6 @@ using Gitunia.App.Loading.Trees;
 using Gitunia.Core.Diff;
 using Gitunia.Core.DiffPane;
 using Gitunia.Core.Workspaces.Panes;
-using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Tui.App.Clipboard;
 using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.Rendering.Diff;
@@ -30,6 +29,7 @@ public sealed class DiffPaneView
     private readonly IActiveSessions _sessions;
     private readonly ListView _diffList;
     private readonly IPaneChrome _chrome;
+    private readonly PaneArrangements _arrangements;
     private bool _showedWithChanges;
 
     /// <param name="host">The state.</param>
@@ -48,6 +48,7 @@ public sealed class DiffPaneView
         _sessions = sessions;
         _diffList = lists.ListOf(PaneKind.Diff);
         _chrome = chrome;
+        _arrangements = new PaneArrangements(host, sessions);
         Actions = new DiffListActions(_diffList, host, clipboard, () => sessions.ActiveSession()?.Diff, SideBySideHint);
         host.Changed += Reconcile;
     }
@@ -59,38 +60,19 @@ public sealed class DiffPaneView
     public bool IsShowingContent => ActiveState().IsShowingContent;
 
     /// <summary>The terminal shows the diff beside the file list (the Changes and Files tabs on a roomy screen).</summary>
-    public bool ShowsWithChanges() =>
-        _host.Workspace.ActiveTab is { } tab
-        && DiffPaneRules.ShowsWithChanges(_host.State.Shell.Screen, tab.View.BottomTab);
+    public bool ShowsWithChanges() => _arrangements.ShowsWithChanges();
 
     /// <summary>The Files tab is showing and the screen has room for its content beside the tree.</summary>
-    public bool IsFilesBeside() =>
-        _host.Workspace.ActiveTab?.View.BottomTab == BottomTab.Files && ShowsWithChanges();
+    public bool IsFilesBeside() => _arrangements.IsFilesBeside();
 
     /// <summary>The pane is on screen: opened on demand, or shown by the Changes tab.</summary>
-    public bool IsShown() => ActiveState().IsOpen || ShowsWithChanges();
+    public bool IsShown() => _arrangements.IsShown();
 
     /// <summary>The panes' arrangement for the active tab; a zoom that does not match the focused pane is not part of it.</summary>
-    public PaneArrangement Arrangement()
-    {
-        if (_sessions.ActiveSession()?.Diff is null)
-        {
-            return PaneArrangement.Normal with { Sizes = SizesOfActiveTab() };
-        }
-
-        var diff = ActiveState();
-        var focused = _host.Workspace.ActiveTab?.View.FocusedPane;
-        var shows = ShowsWithChanges();
-        var together = DiffPaneRules.KeepsZoomTogether(diff.Zoomed, focused, shows);
-        var zoomed = DiffPaneRules.EffectiveZoom(diff, focused, shows);
-
-        return new PaneArrangement(DiffPaneRules.IsShown(diff, shows), zoomed, SizesOfActiveTab(), together);
-    }
+    public PaneArrangement Arrangement() => _arrangements.Arrangement();
 
     /// <summary>The pane sizes saved in the active tab's view state.</summary>
-    public PaneSizes SizesOfActiveTab() => _host.Workspace.ActiveTab?.View is { } view
-        ? new PaneSizes(view.SidebarWidth, view.BottomHeight, view.DetailWidth)
-        : PaneSizes.Automatic;
+    public PaneSizes SizesOfActiveTab() => _arrangements.SizesOfActiveTab();
 
     /// <summary>The diff pane's title row for the active tab.</summary>
     public StyledLine TitleLine(int width, GraphGlyphSet glyphs, ChipKeys? keys = null, bool isRepeating = false) =>
@@ -201,7 +183,7 @@ public sealed class DiffPaneView
         }
     }
 
-    private DiffPaneState ActiveState() => _host.Workspace.ActiveTab?.View.DiffPane ?? DiffPaneState.Empty;
+    private DiffPaneState ActiveState() => _arrangements.ActiveState();
 
     private DiffPaneModel ModelOf(DiffSession? diff, bool isFocused)
     {

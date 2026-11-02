@@ -47,7 +47,7 @@ public class StartupSmokeTests
         var capabilities = new ConsoleCapabilities(IsInteractive: true, Color: ColorDepth.TrueColor, Unicode: true);
         var platform = new TestPlatform(directories, capabilities);
         var frame = string.Empty;
-        using var application = new TuiApplication(TestGit.Services, capabilities, platform)
+        var application = new TuiApplication(TestGit.Services, capabilities, platform)
         {
             HomeDirectory = directories.Root,
             DriverName = DriverRegistry.Names.ANSI,

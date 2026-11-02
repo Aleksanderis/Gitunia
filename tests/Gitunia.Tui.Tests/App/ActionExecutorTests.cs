@@ -6,6 +6,7 @@ using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Overlays;
 using Gitunia.Tui.App;
 using Gitunia.Tui.App.Panes;
+using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.Input;
 using Xunit;
 
@@ -16,7 +17,7 @@ namespace Gitunia.Tui.Tests.App;
 public class ActionExecutorTests : IInputFocusSource
 {
     private readonly Dispatcher _host = new(AppState.Empty);
-    private readonly InputHandlers _handlers = new();
+    private readonly Dictionary<InputHandler, IActionHandler> _handlers = [];
     private readonly RecordingRepeat _repeat = new();
     private readonly List<string> _asked = [];
     private readonly ActionExecutor _executor;
@@ -25,12 +26,15 @@ public class ActionExecutorTests : IInputFocusSource
 
     public ActionExecutorTests()
     {
+        var textKeys = new Dictionary<InputHandler, ITextKeyHandler>();
         foreach (var handler in Enum.GetValues<InputHandler>())
         {
-            _handlers.Add(handler, new Recorder(handler, _asked));
+            _handlers[handler] = new Recorder(handler, _asked);
+            textKeys[handler] = new IgnoringTextKeys();
         }
 
-        _executor = new ActionExecutor(_handlers, _repeat, () => null);
+        // The table keeps the dictionary, so a test can put another handler in place of one.
+        _executor = new ActionExecutor(new InputHandlers(_handlers, textKeys), _repeat, new NoSessions());
         _host.EffectRaised += effect => _executor.Run((RouteActionEffect)effect);
         _input = new ActionInput(_host, this);
     }
@@ -49,7 +53,7 @@ public class ActionExecutorTests : IInputFocusSource
     [Fact]
     public void GivenAnOpenPromptTakesTheAction_WhenInvoked_ThenNoPaneIsAskedAndNoRepeatStarts()
     {
-        _handlers.Add(InputHandler.OpenPrompt, new Recorder(InputHandler.OpenPrompt, _asked) { Takes = true });
+        _handlers[InputHandler.OpenPrompt] = new Recorder(InputHandler.OpenPrompt, _asked) { Takes = true };
 
         _input.Route(ActionIds.InputAccept, null);
 
@@ -62,7 +66,7 @@ public class ActionExecutorTests : IInputFocusSource
     [Fact]
     public void GivenAnOverlayTakesTheAction_WhenInvoked_ThenThePanesAreNotAskedAndNoRepeatStarts()
     {
-        _handlers.Add(InputHandler.Overlays, new Recorder(InputHandler.Overlays, _asked) { Takes = true });
+        _handlers[InputHandler.Overlays] = new Recorder(InputHandler.Overlays, _asked) { Takes = true };
 
         _input.Route(ActionIds.ListDown, null);
 
@@ -75,14 +79,14 @@ public class ActionExecutorTests : IInputFocusSource
     public void GivenAPaneTakesTheActionWithANotice_WhenInvoked_ThenTheNoticeIsTheMessageUntilTheNextAction()
     {
         var diff = new Recorder(InputHandler.Diff, _asked) { Takes = true, Notice = "No next file" };
-        _handlers.Add(InputHandler.Diff, diff);
+        _handlers[InputHandler.Diff] = diff;
 
         _input.Route(ActionIds.ListDown, null);
 
         Assert.Equal("No next file", _executor.Message);
         Assert.Equal([ActionIds.ListDown], _repeat.Started);
 
-        _handlers.Add(InputHandler.Diff, new Recorder(InputHandler.Diff, _asked) { Takes = true });
+        _handlers[InputHandler.Diff] = new Recorder(InputHandler.Diff, _asked) { Takes = true };
         _input.Route(ActionIds.ListUp, null);
 
         Assert.Equal(string.Empty, _executor.Message);
@@ -92,7 +96,7 @@ public class ActionExecutorTests : IInputFocusSource
     public void GivenAScreenTakesTheActionWithANotice_WhenInvoked_ThenTheMessageIsNotChanged()
     {
         var settings = new Recorder(InputHandler.Settings, _asked) { Takes = true, Notice = "opened" };
-        _handlers.Add(InputHandler.Settings, settings);
+        _handlers[InputHandler.Settings] = settings;
 
         _input.Route(ActionIds.ListDown, null);
 
@@ -134,7 +138,7 @@ public class ActionExecutorTests : IInputFocusSource
     public void GivenAnActionWithACount_WhenInvoked_ThenTheHandlerGetsTheCount()
     {
         var recorder = new Recorder(InputHandler.Navigation, _asked) { Takes = true };
-        _handlers.Add(InputHandler.Navigation, recorder);
+        _handlers[InputHandler.Navigation] = recorder;
 
         _input.Route(ActionIds.ListDown, 7);
 
@@ -142,12 +146,12 @@ public class ActionExecutorTests : IInputFocusSource
     }
 
     [Fact]
-    public void GivenNoHandlerIsRegisteredForACase_WhenInvoked_ThenItIsAProgrammingError()
+    public void GivenNoHandlerIsRegisteredForACase_WhenTheTableIsBuilt_ThenItIsAProgrammingError()
     {
-        var executor = new ActionExecutor(new InputHandlers(), _repeat, () => null);
-        var effect = new RouteActionEffect(ActionIds.ListDown, null, [InputHandler.Settings]);
-
-        Assert.Throws<InvalidOperationException>(() => executor.Run(effect));
+        Assert.Throws<InvalidOperationException>(
+            () => new InputHandlers(
+                new Dictionary<InputHandler, IActionHandler>(),
+                new Dictionary<InputHandler, ITextKeyHandler>()));
     }
 
     private sealed class Recorder(InputHandler handler, List<string> asked) : IActionHandler, IActionNotice
@@ -165,6 +169,16 @@ public class ActionExecutorTests : IInputFocusSource
 
             return Takes;
         }
+    }
+
+    private sealed class IgnoringTextKeys : ITextKeyHandler
+    {
+        public bool HandleTextKey(KeyEvent key) => false;
+    }
+
+    private sealed class NoSessions : IActiveSessions
+    {
+        public TerminalTabSession? ActiveSession() => null;
     }
 
     private sealed class RecordingRepeat : IRepeatStarter

@@ -1,5 +1,8 @@
 using System.Collections.Immutable;
 using Gitunia.App;
+using Gitunia.App.Tabs;
+using Gitunia.Core.Workspaces.Panes;
+using Gitunia.Tui.Views;
 using Gitunia.Core.Graph;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Repositories;
@@ -15,8 +18,14 @@ namespace Gitunia.Tui.App.Tabs;
 /// Keeps the graph list showing the active tab: swaps the list source when the active tab changes and restores the tab's
 /// own selection and scroll position, waiting for the streamed rows when the selected commit is not loaded yet.
 /// </summary>
-public sealed class GraphTabBinder(Dispatcher host, EffectRunner<TerminalTabSession> effects, ListView graph, GraphListSource emptySource, Action redraw)
+public sealed class GraphTabBinder(
+    Dispatcher host,
+    TabSessionRegistry<TerminalTabSession> registry,
+    IPaneLists lists,
+    GraphListSource emptySource,
+    IPaneChrome chrome)
 {
+    private readonly ListView _graph = lists.ListOf(PaneKind.Graph);
     private TerminalTabSession? _goneSession;
     private ImmutableArray<GitRef> _goneRefs;
     private bool _hasShown;
@@ -42,7 +51,7 @@ public sealed class GraphTabBinder(Dispatcher host, EffectRunner<TerminalTabSess
     public void Sync()
     {
         var activeId = host.Workspace.ActiveTabId;
-        var session = activeId is { } shownId ? effects.SessionOf(shownId) : null;
+        var session = activeId is { } shownId ? registry.GetValueOrDefault(shownId) : null;
         ShowUpstreamGone(session);
         ShowCompareMark(session);
 
@@ -62,12 +71,12 @@ public sealed class GraphTabBinder(Dispatcher host, EffectRunner<TerminalTabSess
             previousSession.GraphReplaced -= OnGraphReplaced;
         }
 
-        _shownSession = activeId is { } id ? effects.SessionOf(id) : null;
+        _shownSession = activeId is { } id ? registry.GetValueOrDefault(id) : null;
         IsSuspended = true;
         try
         {
-            graph.Source = _shownSession?.Source ?? emptySource;
-            graph.SelectedItem = null;
+            _graph.Source = _shownSession?.Source ?? emptySource;
+            _graph.SelectedItem = null;
             _restorePending = _shownSession is not null;
             Switched?.Invoke(previousSession, _shownSession);
             if (_shownSession is not null)
@@ -84,7 +93,7 @@ public sealed class GraphTabBinder(Dispatcher host, EffectRunner<TerminalTabSess
         }
 
         GraphChanged?.Invoke();
-        redraw();
+        chrome.RefreshChrome();
     }
 
     // The branches whose upstream is gone come from the tab's refs; rebuilt only when the refs were replaced.
@@ -100,7 +109,7 @@ public sealed class GraphTabBinder(Dispatcher host, EffectRunner<TerminalTabSess
         _goneSession = session;
         _goneRefs = tab.Refs;
         session.Source.UpstreamGoneBranches = UpstreamGoneBranches.Of(tab.Refs);
-        graph.SetNeedsDraw();
+        _graph.SetNeedsDraw();
     }
 
     // The mark is part of the tab's state; the list source only draws it.
@@ -114,13 +123,13 @@ public sealed class GraphTabBinder(Dispatcher host, EffectRunner<TerminalTabSess
         }
 
         session.Source.MarkedCommit = tab.View.CompareMark;
-        graph.SetNeedsDraw();
+        _graph.SetNeedsDraw();
     }
 
     private void OnGraphReplacing()
     {
-        _itemBeforeReplace = graph.SelectedItem ?? 0;
-        _rowBeforeReplace = Math.Max(0, _itemBeforeReplace - graph.Viewport.Y);
+        _itemBeforeReplace = _graph.SelectedItem ?? 0;
+        _rowBeforeReplace = Math.Max(0, _itemBeforeReplace - _graph.Viewport.Y);
     }
 
     // A refreshed log keeps the selected commit selected and on the same screen row; when the commit is gone the old position stays.
@@ -148,12 +157,12 @@ public sealed class GraphTabBinder(Dispatcher host, EffectRunner<TerminalTabSess
         var wanted = host.Workspace.ActiveTab?.View.SelectedCommit;
         var index = wanted is { } commit ? session.Graph.IndexOf(commit) : -1;
         var item = index >= 0 ? index + ScreenLayout.ReservedLeadingRows : Math.Min(_itemBeforeReplace, Math.Max(0, count - 1));
-        var top = Math.Clamp(item - _rowBeforeReplace, 0, Math.Max(0, count - graph.Viewport.Height));
+        var top = Math.Clamp(item - _rowBeforeReplace, 0, Math.Max(0, count - _graph.Viewport.Height));
         IsSuspended = index >= 0 || wanted is null;
         try
         {
-            graph.SelectedItem = item;
-            graph.Viewport = graph.Viewport with { Y = top };
+            _graph.SelectedItem = item;
+            _graph.Viewport = _graph.Viewport with { Y = top };
         }
         finally
         {
@@ -186,9 +195,9 @@ public sealed class GraphTabBinder(Dispatcher host, EffectRunner<TerminalTabSess
             }
         }
 
-        graph.SetNeedsDraw();
+        _graph.SetNeedsDraw();
         GraphChanged?.Invoke();
-        redraw();
+        chrome.RefreshChrome();
     }
 
     private void TryRestore()
@@ -217,13 +226,13 @@ public sealed class GraphTabBinder(Dispatcher host, EffectRunner<TerminalTabSess
         }
 
         var item = index >= 0 ? index + ScreenLayout.ReservedLeadingRows : 0;
-        graph.SelectedItem = item;
-        graph.EnsureSelectedItemVisible();
+        _graph.SelectedItem = item;
+        _graph.EnsureSelectedItemVisible();
         var offset = tab.View.ScrollOffset;
-        var height = graph.Viewport.Height;
-        if (index >= 0 && offset <= item && item < offset + height && offset != graph.Viewport.Y)
+        var height = _graph.Viewport.Height;
+        if (index >= 0 && offset <= item && item < offset + height && offset != _graph.Viewport.Y)
         {
-            graph.Viewport = graph.Viewport with { Y = Math.Min(offset, Math.Max(0, count - height)) };
+            _graph.Viewport = _graph.Viewport with { Y = Math.Min(offset, Math.Max(0, count - height)) };
         }
 
         _restorePending = false;

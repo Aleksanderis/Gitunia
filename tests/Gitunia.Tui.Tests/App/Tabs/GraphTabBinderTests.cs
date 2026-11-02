@@ -1,3 +1,6 @@
+using Gitunia.App.Tabs;
+using Gitunia.Tui.Views;
+using Gitunia.Tui.Tests.Fakes;
 using Gitunia.App.Status;
 using Gitunia.Core;
 using Gitunia.App;
@@ -167,9 +170,21 @@ public class GraphTabBinderTests
             var tabId = update.Workspace.Tabs[0].Id;
             var pump = new UiPump(TestContext.Current.CancellationToken);
             var host = new Dispatcher(AppState.Empty);
-            var effects = new EffectRunner<TerminalTabSession>(TestGit.Services, host, pump.Post, new TerminalTabSessionFactory(GraphGlyphSet.Unicode), new StatusReporter(new Dispatcher(AppState.Empty)));
+            var registry = new TabSessionRegistry<TerminalTabSession>();
+            var effects = new EffectRunner<TerminalTabSession>(
+                TestGit.Services,
+                host,
+                pump.Post,
+                new TerminalTabSessionFactory(GraphGlyphSet.Unicode),
+                new StatusReporter(new Dispatcher(AppState.Empty)),
+                sessions: registry);
             var graph = new ListView { Width = 40, Height = 10 };
-            var binder = new GraphTabBinder(host, effects, graph, new GraphListSource(new CommitGraph(), GraphGlyphSet.Unicode), () => { });
+            var binder = new GraphTabBinder(
+                host,
+                registry,
+                new FakePaneLists(graph),
+                new GraphListSource(new CommitGraph(), GraphGlyphSet.Unicode),
+                new FakePaneChrome(new ScreenSize(80, 24)));
             host.Changed += binder.Sync;
             host.Restore(update);
             binder.Sync();

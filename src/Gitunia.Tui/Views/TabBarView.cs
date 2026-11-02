@@ -9,7 +9,7 @@ using Terminal.Gui.ViewBase;
 namespace Gitunia.Tui.Views;
 
 /// <summary>The tab row: draws the tab labels and reports which tab was clicked.</summary>
-public sealed class TabBarView(Func<ScreenModel> model, GraphGlyphSet glyphs) : View
+public sealed class TabBarView(IScreenContent content, GraphGlyphSet glyphs) : View
 {
     /// <summary>Raised with the one-based tab number when a tab is clicked.</summary>
     public event Action<int>? TabClicked;
@@ -28,7 +28,7 @@ public sealed class TabBarView(Func<ScreenModel> model, GraphGlyphSet glyphs) : 
 
     protected override bool OnDrawingContent(DrawContext? context)
     {
-        LinePainter.Paint(this, ChromeBuilder.Tabs(model(), Viewport.Width, glyphs), 0, 0, isFocused: false);
+        LinePainter.Paint(this, ChromeBuilder.Tabs(content.Model(), Viewport.Width, glyphs), 0, 0, isFocused: false);
         return true;
     }
 
@@ -40,25 +40,25 @@ public sealed class TabBarView(Func<ScreenModel> model, GraphGlyphSet glyphs) : 
         }
 
         // The button only exists when the row shows tabs.
-        if (model().Tabs is not { Count: > 0 } labels)
+        if (content.Model().Tabs is not { Count: > 0 } labels)
         {
             return base.OnMouseEvent(mouse);
         }
 
-        if (TabBarLayout.IsOnCommands(Viewport.Width, position.X, model().Keys))
+        if (TabBarLayout.IsOnCommands(Viewport.Width, position.X, content.Model().Keys))
         {
             CommandsClicked?.Invoke();
             return true;
         }
 
-        if (model().Picker is null
-            && RemoteChips.ViewAt(Viewport.Width, model().RemoteBusy, position.X, model().Keys) is { } chipView)
+        if (content.Model().Picker is null
+            && RemoteChips.ViewAt(Viewport.Width, content.Model().RemoteBusy, position.X, content.Model().Keys) is { } chipView)
         {
             RemoteChipClicked?.Invoke(chipView);
             return true;
         }
 
-        var cells = TabBarLayout.Layout(labels, Viewport.Width, glyphs, model().Keys);
+        var cells = TabBarLayout.Layout(labels, Viewport.Width, glyphs, content.Model().Keys);
         if (TabBarLayout.IsOnNewTab(cells, position.X))
         {
             NewTabClicked?.Invoke();

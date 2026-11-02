@@ -12,11 +12,11 @@ namespace Gitunia.Tui.App;
 /// </summary>
 /// <param name="handlers">The object behind each handler case.</param>
 /// <param name="repeat">Starts the sticky repeat mode after a pane took a step.</param>
-/// <param name="activeSession">The active tab's session, null when there is none.</param>
+/// <param name="sessions">The active tab's session, null when there is none.</param>
 public sealed class ActionExecutor(
     InputHandlers handlers,
     IRepeatStarter repeat,
-    Func<TerminalTabSession?> activeSession)
+    IActiveSessions sessions)
 {
     private string _message = string.Empty;
 
@@ -59,5 +59,5 @@ public sealed class ActionExecutor(
 
     // The hint that the log is still streaming in ends with the load.
     private bool IsStaleLoadingNotice() =>
-        _message == NavigationActions.StillLoadingNotice && activeSession()?.IsLoading != true;
+        _message == NavigationActions.StillLoadingNotice && sessions.ActiveSession()?.IsLoading != true;
 }

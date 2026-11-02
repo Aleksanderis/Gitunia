@@ -1,15 +1,17 @@
 using Gitunia.Core.Overlays;
 using Gitunia.Tui.App.Overlays;
+using Gitunia.Tui.Input;
+using Gitunia.Tui.Tests.Fakes;
 using Gitunia.Tui.Views;
 using Xunit;
 
 namespace Gitunia.Tui.Tests.App.Overlays;
 
 [Trait("Os", "Independent")]
-public class PromptPopupTrackerTests
+public class PromptPopupTrackerTests : IPromptDisplay
 {
     private PromptPopup? _popup;
-    private ScreenSize _size = new(120, 36);
+    private readonly FakePaneChrome _chrome = new(new ScreenSize(120, 36));
     private int _shows;
     private bool _overlayOpen;
     private PromptPopupTracker? _tracker;
@@ -45,7 +47,7 @@ public class PromptPopupTrackerTests
         _popup = PromptPopup.ForText("T", "C", "a", "ok");
         tracker.Sync();
 
-        _size = new ScreenSize(50, 20);
+        _chrome.ScreenSize = new ScreenSize(50, 20);
         tracker.Sync();
         tracker.Sync();
 
@@ -59,7 +61,7 @@ public class PromptPopupTrackerTests
         _overlayOpen = true;
         tracker.MarkShown(true);
 
-        _size = new ScreenSize(50, 20);
+        _chrome.ScreenSize = new ScreenSize(50, 20);
         tracker.Sync();
         tracker.Sync();
 
@@ -72,7 +74,7 @@ public class PromptPopupTrackerTests
         var tracker = Tracker();
         tracker.MarkShown(false);
 
-        _size = new ScreenSize(50, 20);
+        _chrome.ScreenSize = new ScreenSize(50, 20);
         tracker.Sync();
 
         Assert.Equal(0, _shows);
@@ -91,9 +93,15 @@ public class PromptPopupTrackerTests
         Assert.Equal(2, _shows);
     }
 
+    string IPromptDisplay.StatusLine => string.Empty;
+
+    PromptPopup? IPromptDisplay.Popup => _popup;
+
     private PromptPopupTracker Tracker()
     {
-        _tracker = new PromptPopupTracker(() => _popup, () => _size, Show);
+        _tracker = new PromptPopupTracker(new PromptDisplays([this]), _chrome);
+        _tracker.RedrawRequested += Show;
+
         return _tracker;
     }
 

@@ -2,6 +2,7 @@ using System.Globalization;
 using Gitunia.App;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
+using Gitunia.Tui.App;
 using Terminal.Gui.Input;
 
 namespace Gitunia.Tui.Input;
@@ -15,19 +16,33 @@ namespace Gitunia.Tui.Input;
 public sealed class KeyController
 {
     private readonly KeymapEngine _engine;
-    private readonly Action<ActionId, int?> _execute;
+    private readonly IActionRoute _route;
+    private readonly IKeyInterceptor? _interceptor;
+    private readonly ITextKeyHandler? _textKeys;
     private readonly Dispatcher _host;
     private KeymapState _state = KeymapState.Initial;
     private long _seenModeChanges;
 
     /// <param name="engine">The keymap engine.</param>
-    /// <param name="execute">Receives a completed binding as an action id with its count.</param>
+    /// <param name="route">Receives a completed binding as an action id with its count.</param>
     /// <param name="host">Holds the input mode.</param>
-    public KeyController(KeymapEngine engine, Action<ActionId, int?> execute, Dispatcher host)
+    /// <param name="interceptor">Gets every key before the keymap does (the repeat mode); null for none.</param>
+    /// <param name="textKeys">
+    /// Gets the keys typed in Insert or Command mode that the keymap does not bind (printable text, <c>Backspace</c>,
+    /// <c>Ctrl-u</c> ...); null for none.
+    /// </param>
+    public KeyController(
+        KeymapEngine engine,
+        IActionRoute route,
+        Dispatcher host,
+        IKeyInterceptor? interceptor = null,
+        ITextKeyHandler? textKeys = null)
     {
         _engine = engine;
-        _execute = execute;
+        _route = route;
         _host = host;
+        _interceptor = interceptor;
+        _textKeys = textKeys;
         _seenModeChanges = host.State.Shell.ModeChanges;
         _state = _state.WithMode(host.State.Shell.Mode);
         host.Changed += FollowMode;
@@ -43,16 +58,7 @@ public sealed class KeyController
 
     private bool IsTextMode => _state.Mode is KeyMode.Insert or KeyMode.Command;
 
-    /// <summary>
-    /// Gets the keys typed in Insert or Command mode that the keymap does not bind (printable text, <c>Backspace</c>,
-    /// <c>Ctrl-u</c> ...); returns true when it consumed the key.
-    /// </summary>
-    public Func<KeyEvent, bool>? TextKeyHandler { get; set; }
-
     public KeymapState State => _state;
-
-    /// <summary>Gets every key before the keymap does (the repeat mode); true means it consumed the key.</summary>
-    public Func<KeyEvent, KeymapState, bool>? Interceptor { get; set; }
 
     /// <summary>The unfinished count and chord, such as <c>5g</c>; empty when nothing is pending.</summary>
     public string PendingText => (_state.Count?.ToString(CultureInfo.InvariantCulture) ?? string.Empty)
@@ -100,7 +106,7 @@ public sealed class KeyController
     /// <returns>True when the key was consumed.</returns>
     public bool Handle(KeyEvent keyEvent, string view)
     {
-        if (Interceptor?.Invoke(keyEvent, _state) == true)
+        if (_interceptor?.TryHandle(keyEvent, _state) == true)
         {
             PendingChanged?.Invoke();
 
@@ -111,11 +117,11 @@ public sealed class KeyController
         _state = result.State;
         if (result is { Outcome: KeyOutcome.Action, Action: { } action })
         {
-            _execute(action, result.Count);
+            _route.Route(action, result.Count);
         }
         else if (result.Outcome is KeyOutcome.TextInput or KeyOutcome.Unbound
             && _state.Mode is KeyMode.Insert or KeyMode.Command
-            && TextKeyHandler?.Invoke(keyEvent) == true)
+            && _textKeys?.HandleTextKey(keyEvent) == true)
         {
             PendingChanged?.Invoke();
             return true;

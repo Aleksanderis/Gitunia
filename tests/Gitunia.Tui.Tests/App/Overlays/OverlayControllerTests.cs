@@ -1,3 +1,4 @@
+using Gitunia.Tui.App;
 using System.Collections.Concurrent;
 using Gitunia.App.Shell;
 using Gitunia.Core.Keymap;
@@ -6,7 +7,6 @@ using Gitunia.Core.Overlays;
 using Gitunia.Core.Shell;
 using Gitunia.Tui.App.Overlays;
 using Gitunia.Tui.Input;
-using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Tests.Fakes;
 using Gitunia.Tui.Views;
 using Terminal.Gui.Input;
@@ -14,16 +14,16 @@ using Xunit;
 
 namespace Gitunia.Tui.Tests.App.Overlays;
 
-public sealed class OverlayControllerTests : IDisposable
+public sealed class OverlayControllerTests : IDisposable, IActionRoute
 {
     private readonly List<ActionId> _routed = [];
     private readonly ConcurrentQueue<Action> _posted = new();
     private readonly TestSignal _postedSignal = new();
     private readonly KeyController _keys;
-    private readonly OverlayController _overlays;
+    private readonly OverlayHarness _overlays;
     private readonly WhichKeyTimer _timer;
     private readonly TestShell _shell = new();
-    private ScreenSize _screen = new(80, 24);
+    private readonly FakePaneChrome _chrome = new(new ScreenSize(80, 24));
     private int _changes;
     private string _baseView = DefaultKeymap.GraphView;
     private CommandLevel _level = CommandLevel.Everyday;
@@ -31,23 +31,21 @@ public sealed class OverlayControllerTests : IDisposable
     public OverlayControllerTests()
     {
         var engine = new KeymapEngine(DefaultKeymap.Create());
-        _keys = new KeyController(engine, RouteAction, _shell.Host);
+        _keys = new KeyController(engine, this, _shell.Host);
         _timer = new WhichKeyTimer(TimeSpan.FromMilliseconds(1), action =>
         {
             _posted.Enqueue(action);
             _postedSignal.Release();
         });
 
-        _overlays = new OverlayController(
+        _overlays = new OverlayHarness(
             engine,
             _keys,
             _timer,
-            RouteAction,
-            () => _screen,
-            GraphGlyphSet.Unicode,
-            () => _baseView,
-            _shell.Statuses,
-            _shell.Host);
+            this,
+            _chrome,
+            new TestFocusedView(() => _baseView),
+            _shell);
         _overlays.Changed += () => _changes++;
     }
 
@@ -65,7 +63,7 @@ public sealed class OverlayControllerTests : IDisposable
         }
     }
 
-    private void RouteAction(ActionId action, int? count)
+    void IActionRoute.Route(ActionId action, int? count)
     {
         if (!_overlays.Handle(action, count))
         {
@@ -75,7 +73,7 @@ public sealed class OverlayControllerTests : IDisposable
 
     private void Resize(int width, int height)
     {
-        _screen = new ScreenSize(width, height);
+        _chrome.ScreenSize = new ScreenSize(width, height);
         _shell.Host.Dispatch(
             new ScreenResizedCommand(new ScreenExtent(width, height), _shell.Host.Clock.GetUtcNow()));
     }
@@ -681,7 +679,7 @@ public sealed class OverlayControllerTests : IDisposable
     public void GivenAScreenTooSmallForTheDropdown_WhenOpeningIt_ThenTheStatusBarSaysSoAndNothingOpens()
     {
         _baseView = DefaultKeymap.DiffView;
-        _screen = new ScreenSize(10, 2);
+        _chrome.ScreenSize = new ScreenSize(10, 2);
         _overlays.MenuTarget = _ => new RowMenuTarget(
             RowActions.ViewOptions,
             new MenuAnchor(0, 0),
@@ -742,7 +740,7 @@ public sealed class OverlayControllerTests : IDisposable
         _overlays.MenuTarget = _ => new RowMenuTarget(RowActions.OfGraphRow, new MenuAnchor(3, 5));
         _overlays.Handle(ActionIds.MenuOpenForRow, null);
 
-        _screen = new ScreenSize(100, 30);
+        _chrome.ScreenSize = new ScreenSize(100, 30);
         _overlays.OnScreenResized();
 
         Assert.False(_overlays.State.IsOpen);

@@ -1,3 +1,5 @@
+using Gitunia.Tui.Views;
+using Gitunia.Tui.Tests.Fakes;
 using Gitunia.App.Status;
 using Gitunia.Core;
 using Gitunia.App;
@@ -110,10 +112,16 @@ public class NavigationActionsTests
     public void GivenTheHintShows_WhenTheLoadFinishes_ThenTheHintIsGone()
     {
         using var harness = new NavigationHarness(isLoading: true);
-        var handlers = new InputHandlers();
-        handlers.Add(InputHandler.Navigation, harness.Actions);
         var session = harness.Session;
-        var executor = new ActionExecutor(handlers, new NoRepeat(), () => session);
+        var handlers = new Dictionary<InputHandler, IActionHandler>();
+        var textKeys = new Dictionary<InputHandler, ITextKeyHandler>();
+        foreach (var handler in Enum.GetValues<InputHandler>())
+        {
+            handlers[handler] = harness.Actions;
+            textKeys[handler] = new NoTextKeys();
+        }
+
+        var executor = new ActionExecutor(new InputHandlers(handlers, textKeys), new NoRepeat(), new FakeActiveSessions(() => session));
         executor.Run(new RouteActionEffect(ActionIds.ListBottom, null, [InputHandler.Navigation]));
         Assert.Equal(NavigationActions.StillLoadingNotice, executor.Message);
 
@@ -142,6 +150,11 @@ public class NavigationActionsTests
         Assert.Equal(0, harness.QuitCount);
     }
 
+    private sealed class NoTextKeys : ITextKeyHandler
+    {
+        public bool HandleTextKey(KeyEvent key) => false;
+    }
+
     private sealed class NoRepeat : IRepeatStarter
     {
         public void AfterPaneAction(ActionId action)
@@ -152,6 +165,8 @@ public class NavigationActionsTests
     private sealed class NavigationHarness : IDisposable
     {
         private readonly TerminalTabSession _session;
+
+        private readonly CountingQuit _quit = new();
 
         public NavigationHarness(bool isLoading, int screenHeight = 40)
         {
@@ -174,18 +189,19 @@ public class NavigationActionsTests
             var statuses = new StatusReporter(new Dispatcher(AppState.Empty));
             var host = new Dispatcher(AppState.Empty);
             var copier = new ClipboardCopier(new ClipboardWriter(new StringWriter(), new Osc52Options(Osc52Mode.Direct, 100_000)), statuses);
+            var sessions = new FakeActiveSessions(() => _session);
             Actions = new NavigationActions(
                 host,
-                GraphList,
-                detailList,
-                () => _session,
-                () => QuitCount++,
-                () => screenHeight,
-                new StatusActionHandler(statuses, () => _session),
-                copier);
+                new FakeGraphDetailLists(GraphList, detailList),
+                sessions,
+                new NavigationServices(
+                    _quit,
+                    new FakePaneChrome(new ScreenSize(120, screenHeight)),
+                    new StatusActionHandler(statuses, sessions),
+                    copier));
         }
 
-        public int QuitCount { get; private set; }
+        public int QuitCount => _quit.Requests;
 
         public TerminalTabSession Session => _session;
 

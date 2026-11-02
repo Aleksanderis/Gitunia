@@ -1,37 +1,26 @@
-using Gitunia.App;
-using Gitunia.Core;
-using Gitunia.Tui.App.WorkingTree;
-using Gitunia.Tui.Rendering.Graph;
-using Gitunia.Tui.Rendering.Panes;
-using Gitunia.Tui.Rendering.Screen;
-using Gitunia.Tui.Rendering.Sidebar;
-using Gitunia.Tui.Rendering.Styling;
-using Gitunia.Tui.Views;
-using Gitunia.Tui.Views.Lists;
-using Gitunia.Tui.Views.Theme;
 using Xunit;
+using Gitunia.Tui.Views.Theme;
+
 
 namespace Gitunia.Tui.Tests.Views;
 
 public class MainViewTests
 {
-    private static readonly ScreenModel EmptyModel = new("repository", null, 1, 1, "Normal", string.Empty, 0, 0, false, string.Empty);
-
     [Fact]
     public void GivenTheMainView_WhenBuilt_ThenTheDetailViewHasItsOwnScheme()
     {
-        using var view = CreateView();
+        using var screen = new MainViewFixture();
 
-        Assert.True(view.Detail.HasScheme, "Without its own scheme the toolkit paints the blank cells below the rows with the terminal default.");
-        Assert.Equal(Palette.BaseScheme().Normal, view.Detail.GetScheme().Normal);
+        Assert.True(screen.Panes.Detail.HasScheme, "Without its own scheme the toolkit paints the blank cells below the rows with the terminal default.");
+        Assert.Equal(Palette.BaseScheme().Normal, screen.Panes.Detail.GetScheme().Normal);
     }
 
     [Fact]
     public void GivenTheMainView_WhenBuilt_ThenEveryListPaneHasThePaletteScheme()
     {
-        using var view = CreateView();
+        using var screen = new MainViewFixture();
 
-        foreach (var pane in new[] { view.Graph, view.Sidebar, view.Detail, view.Diff, view.WorkingUnstaged, view.WorkingStaged, view.WorkingDiff, view.WorkingMessage })
+        foreach (var pane in new[] { screen.Panes.Graph, screen.Panes.Sidebar, screen.Panes.Detail, screen.Panes.Diff, screen.Panes.WorkingUnstaged, screen.Panes.WorkingStaged, screen.Panes.WorkingDiff, screen.Panes.WorkingMessage })
         {
             Assert.True(pane.HasScheme, "An empty pane would paint the toolkit default background.");
             Assert.Equal(Palette.BaseScheme().Normal, pane.GetScheme().Normal);
@@ -42,74 +31,63 @@ public class MainViewTests
     [Fact]
     public void GivenTheMainView_WhenBuilt_ThenOnlyTheGraphIgnoresDoubleClicksOnBlankSpace()
     {
-        using var view = CreateView();
+        using var screen = new MainViewFixture();
 
-        Assert.True(view.Graph.IgnoresBlankDoubleClick);
-        Assert.False(view.Detail.IgnoresBlankDoubleClick);
+        Assert.True(screen.Panes.Graph.IgnoresBlankDoubleClick);
+        Assert.False(screen.Panes.Detail.IgnoresBlankDoubleClick);
     }
 
     [Fact]
     public void GivenTheMainView_WhenBuilt_ThenTheHistoryPanesShowAndTheWorkingTreePanesAreHidden()
     {
-        using var view = CreateView();
+        using var screen = new MainViewFixture();
 
-        Assert.True(view.Graph.Visible);
-        Assert.True(view.Sidebar.Visible);
-        Assert.False(view.WorkingUnstaged.Visible);
-        Assert.False(view.WorkingStaged.Visible);
-        Assert.False(view.IsChangingVisibility);
+        Assert.True(screen.Panes.Graph.Visible);
+        Assert.True(screen.Panes.Sidebar.Visible);
+        Assert.False(screen.Panes.WorkingUnstaged.Visible);
+        Assert.False(screen.Panes.WorkingStaged.Visible);
+        Assert.False(screen.View.IsChangingVisibility);
     }
 
     [Fact]
     public void GivenTheMainView_WhenShowingTheWorkingTreeAndHidingItAgain_ThenThePanesSwapBothWays()
     {
-        using var view = CreateView();
+        using var screen = new MainViewFixture();
 
-        view.ShowWorkingTree(true);
+        screen.View.ShowWorkingTree(true);
 
-        Assert.True(view.WorkingUnstaged.Visible);
-        Assert.True(view.WorkingStaged.Visible);
-        Assert.True(view.WorkingDiff.Visible);
-        Assert.True(view.WorkingMessage.Visible);
-        Assert.False(view.Graph.Visible);
-        Assert.False(view.Sidebar.Visible);
-        Assert.False(view.Detail.Visible);
-        Assert.False(view.Diff.Visible);
-        Assert.False(view.IsChangingVisibility);
+        Assert.True(screen.Panes.WorkingUnstaged.Visible);
+        Assert.True(screen.Panes.WorkingStaged.Visible);
+        Assert.True(screen.Panes.WorkingDiff.Visible);
+        Assert.True(screen.Panes.WorkingMessage.Visible);
+        Assert.False(screen.Panes.Graph.Visible);
+        Assert.False(screen.Panes.Sidebar.Visible);
+        Assert.False(screen.Panes.Detail.Visible);
+        Assert.False(screen.Panes.Diff.Visible);
+        Assert.False(screen.View.IsChangingVisibility);
 
-        view.ShowWorkingTree(false);
+        screen.View.ShowWorkingTree(false);
 
-        Assert.True(view.Graph.Visible);
-        Assert.True(view.Sidebar.Visible);
-        Assert.False(view.WorkingUnstaged.Visible);
-        Assert.False(view.WorkingStaged.Visible);
+        Assert.True(screen.Panes.Graph.Visible);
+        Assert.True(screen.Panes.Sidebar.Visible);
+        Assert.False(screen.Panes.WorkingUnstaged.Visible);
+        Assert.False(screen.Panes.WorkingStaged.Visible);
     }
 
     [Fact]
     public void GivenTheWorkingTree_WhenThePickerOpensAndCloses_ThenTheListsHideAndComeBackAndTheGraphStaysHidden()
     {
-        using var view = CreateView();
-        view.ShowWorkingTree(true);
+        using var screen = new MainViewFixture();
+        screen.View.ShowWorkingTree(true);
 
-        view.ShowPicker(true);
+        screen.View.ShowPicker(true);
 
-        Assert.False(view.WorkingUnstaged.Visible);
-        Assert.False(view.Graph.Visible);
+        Assert.False(screen.Panes.WorkingUnstaged.Visible);
+        Assert.False(screen.Panes.Graph.Visible);
 
-        view.ShowPicker(false);
+        screen.View.ShowPicker(false);
 
-        Assert.True(view.WorkingUnstaged.Visible);
-        Assert.False(view.Graph.Visible);
+        Assert.True(screen.Panes.WorkingUnstaged.Visible);
+        Assert.False(screen.Panes.Graph.Visible);
     }
-
-    private static MainView CreateView() => new(
-        () => EmptyModel,
-        _ => new StyledLine([]),
-        GraphGlyphSet.Unicode,
-        new SidebarListSource(GraphGlyphSet.Unicode),
-        () => new SidebarChrome(string.Empty, false, false),
-        () => PaneArrangement.Normal,
-        _ => new StyledLine([]),
-        new DiffListSource(GraphGlyphSet.Unicode),
-        new StateMessageBoxPort(new Dispatcher(AppState.Empty)));
 }

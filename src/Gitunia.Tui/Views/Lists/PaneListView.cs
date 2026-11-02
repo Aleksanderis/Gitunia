@@ -32,7 +32,7 @@ public sealed class PaneListView : ListView
     public bool IgnoresBlankDoubleClick { get; set; }
 
     /// <summary>True while something modal owns the screen: mouse input is swallowed without focusing or selecting anything.</summary>
-    public Func<bool> IsSuppressed { get; set; } = () => false;
+    public IMouseGate Gate { get; init; } = new MouseGate();
 
     /// <summary>
     /// Raised after the pane took the focus and (for clicks) selected the row under the pointer. The number is the row distance for
@@ -57,7 +57,7 @@ public sealed class PaneListView : ListView
 
     protected override bool OnMouseEvent(Mouse mouse)
     {
-        if (IsSuppressed())
+        if (Gate.IsSuppressed)
         {
             // Not acted on here (not even by the toolkit: no focus, no selection); the application may still use the wheel and the click for the overlay on top.
             if (MouseFlagTranslator.TryTranslate(mouse.Flags, out var suppressedGesture))
@@ -170,7 +170,7 @@ public sealed class PaneListView : ListView
         App.AddTimeout(DragAutoScroll.Interval, () =>
         {
             var step = DragAutoScroll.Step(_lastPointerRow, Viewport.Height);
-            if (!_drag.IsPressed || step == 0 || IsSuppressed())
+            if (!_drag.IsPressed || step == 0 || Gate.IsSuppressed)
             {
                 _isAutoScrolling = false;
                 return false;

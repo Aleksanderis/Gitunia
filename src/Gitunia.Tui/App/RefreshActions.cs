@@ -1,16 +1,16 @@
 using Gitunia.App;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
+using Gitunia.Core.Shell;
 using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.Input;
 
 namespace Gitunia.Tui.App;
 
 /// <summary>The refresh action: reads the active tab again.</summary>
-/// <param name="host">Holds the active tab.</param>
-/// <param name="effects">The runner, which refreshes a tab.</param>
-public sealed class RefreshActions(Dispatcher host, EffectRunner<TerminalTabSession> effects)
-    : IActionHandler, IActionNotice
+/// <param name="host">Holds the active tab; the refresh goes through it.</param>
+/// <param name="sessions">The active tab's session, which tells whether the tab has started loading.</param>
+public sealed class RefreshActions(Dispatcher host, IActiveSessions sessions) : IActionHandler, IActionNotice
 {
     /// <summary>"refreshing..." or "not loaded yet", empty when the last action was not a refresh.</summary>
     public string Notice { get; private set; } = string.Empty;
@@ -22,7 +22,13 @@ public sealed class RefreshActions(Dispatcher host, EffectRunner<TerminalTabSess
             return false;
         }
 
-        var isRefreshing = host.Workspace.ActiveTabId is { } activeId && effects.Refresh(activeId);
+        var isRefreshing = false;
+        if (host.Workspace.ActiveTabId is { } activeId && sessions.ActiveSession() is { IsPending: false })
+        {
+            host.Dispatch(new TabRefreshRequested(activeId, true));
+            isRefreshing = true;
+        }
+
         Notice = isRefreshing ? "refreshing..." : "not loaded yet";
 
         return true;
