@@ -22,9 +22,17 @@ public sealed record BlameOpenRefused(string Text) : BlameCommand;
 /// <param name="PageRows">How many lines the view shows, for page motions.</param>
 /// <param name="CursorCommit">The commit of the highlighted line as the user sees it, null while git has not found it
 /// yet (the view reads it from the store; the reducer cannot).</param>
-public sealed record BlameActionPressed(ActionId Action, int? Count, int PageRows, string? CursorCommit)
-    : BlameCommand;
-
+/// <param name="CursorPath">The file's path in that commit.</param>
+/// <param name="CursorOriginalLine">The line number in that commit's version of the file (zero-based).</param>
+/// <param name="CursorIsBoundary">True when that commit is a root of the walked history (it has no parent).</param>
+public sealed record BlameActionPressed(
+    ActionId Action,
+    int? Count,
+    int PageRows,
+    string? CursorCommit,
+    string? CursorPath = null,
+    int CursorOriginalLine = 0,
+    bool CursorIsBoundary = false) : BlameCommand;
 /// <summary>A key typed into the search box.</summary>
 /// <param name="Key">The key.</param>
 public sealed record BlameKeyTyped(KeyEvent Key) : BlameCommand;
@@ -38,7 +46,14 @@ public sealed record BlameRowClicked(int Index) : BlameCommand;
 /// <param name="Generation">The read number of the effect.</param>
 /// <param name="Kind">Text, or why there are no lines.</param>
 /// <param name="LineCount">The lines of the file.</param>
-public sealed record BlameLoaded(TabId TabId, long Generation, BlameContentKind Kind, int LineCount) : BlameCommand;
+/// <param name="IgnoreRevsFile">The <c>blame.ignoreRevsFile</c> config value that git blame honors, null when none
+/// is set.</param>
+public sealed record BlameLoaded(
+    TabId TabId,
+    long Generation,
+    BlameContentKind Kind,
+    int LineCount,
+    string? IgnoreRevsFile = null) : BlameCommand;
 
 /// <summary>Git found the commits of more lines.</summary>
 /// <param name="Generation">The read number.</param>

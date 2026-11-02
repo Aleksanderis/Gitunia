@@ -12,6 +12,9 @@ public sealed class BlameReader(GitRunner runner) : IBlameReader
     private const string Incremental = "--incremental";
     private const string CatFile = "cat-file";
     private const string BlobType = "blob";
+    private const string Config = "config";
+    private const string GetOption = "--get";
+    private const string IgnoreRevsKey = "blame.ignoreRevsFile";
     private const char RevisionPathSeparator = ':';
 
     public async Task<BlameContent> ReadContentAsync(
@@ -40,10 +43,16 @@ public sealed class BlameReader(GitRunner runner) : IBlameReader
         RepositoryLocation location,
         string path,
         string? revision,
+        BlameOptions? options = null,
         ICollection<string>? warnings = null,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         List<string> arguments = [Blame, Incremental];
+        if (options is not null)
+        {
+            arguments.AddRange(options.Arguments());
+        }
+
         if (revision is not null)
         {
             arguments.Add(revision);
@@ -74,6 +83,20 @@ public sealed class BlameReader(GitRunner runner) : IBlameReader
                 warnings.Add(warning);
             }
         }
+    }
+
+    public async Task<string?> ReadIgnoreRevsFileAsync(RepositoryLocation location, CancellationToken cancellationToken)
+    {
+        var result = await runner
+            .RunAsync(
+                location.CommandPath,
+                [Config, GetOption, IgnoreRevsKey],
+                GitRunOptions.ReadOnlyRunAllowingNoMatch,
+                cancellationToken)
+            .ConfigureAwait(false);
+        var value = result.ExitCode == 0 ? result.StandardOutputText.Trim() : string.Empty;
+
+        return value.Length == 0 ? null : value;
     }
 
     private static async Task<BlameContent> ReadWorkingTreeAsync(

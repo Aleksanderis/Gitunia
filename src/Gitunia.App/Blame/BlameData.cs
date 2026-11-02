@@ -14,6 +14,7 @@ public sealed class BlameData
         Generation = generation;
         Lines = lines;
         Owners = new BlameCommit?[lines.Count];
+        OriginalLines = new int[lines.Count];
     }
 
     /// <summary>The read number the data belongs to.</summary>
@@ -25,9 +26,16 @@ public sealed class BlameData
     /// <summary>The commit of each line, null while git has not found it.</summary>
     public BlameCommit?[] Owners { get; }
 
+    /// <summary>The line number (zero-based) each line has in the version of its commit; valid once the commit is known.</summary>
+    public int[] OriginalLines { get; }
+
     /// <summary>The commit of a line, null while unknown or out of range.</summary>
     /// <param name="line">The line (zero-based).</param>
     public BlameCommit? OwnerOf(int line) => line >= 0 && line < Owners.Length ? Volatile.Read(ref Owners[line]) : null;
+
+    /// <summary>The line number a line has in its commit's version of the file, 0 when out of range.</summary>
+    /// <param name="line">The line (zero-based).</param>
+    public int OriginalLineOf(int line) => line >= 0 && line < OriginalLines.Length ? OriginalLines[line] : 0;
 
     /// <summary>Records the commit of a run of lines.</summary>
     /// <param name="chunk">The run.</param>
@@ -38,6 +46,7 @@ public sealed class BlameData
         var end = Math.Min(chunk.FirstLine + chunk.LineCount, Owners.Length);
         for (var line = Math.Max(0, chunk.FirstLine); line < end; line++)
         {
+            OriginalLines[line] = chunk.OriginalFirstLine + (line - chunk.FirstLine);
             Volatile.Write(ref Owners[line], chunk.Commit);
             applied++;
         }

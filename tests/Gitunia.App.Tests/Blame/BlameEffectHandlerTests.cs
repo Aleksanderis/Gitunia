@@ -151,6 +151,31 @@ public class BlameEffectHandlerTests
         Assert.Equal(-1, Assert.IsType<BlameMatchFound>(await fixture.NextAsync()).Index);
     }
 
+    [Fact]
+    public async Task GivenAnIgnoreRevsConfigAndTheWhitespaceSwitch_WhenBlaming_ThenLoadedNamesTheFileAndTheSwitchIsHonored()
+    {
+        using var repository = TestRepository.Create()
+            .Commit("first", new TestFile("a.txt", "one\ntwo\n"))
+            .Commit("indent", new TestFile("a.txt", "one\n    two\n"));
+        var fixture = new Fixture(await LocateAsync(repository));
+
+        fixture.Handler.Start(fixture.Effect("a.txt", repository.Head, 1), Token);
+        var plainLoaded = Assert.IsType<BlameLoaded>(await fixture.NextAsync());
+        await fixture.UntilFinishedAsync();
+        var plainOwner = fixture.Store.Current!.OwnerOf(1)!.Summary;
+        repository.Git("config", "blame.ignoreRevsFile", "ignore.txt");
+        repository.WriteFile("ignore.txt", "\n");
+        fixture.Handler.Start(fixture.Effect("a.txt", repository.Head, 2, new BlameOptions(IgnoreWhitespace: true)), Token);
+        var loaded = Assert.IsType<BlameLoaded>(await fixture.NextAsync());
+        await fixture.UntilFinishedAsync();
+
+        Assert.Null(plainLoaded.IgnoreRevsFile);
+        Assert.Equal("indent", plainOwner);
+        Assert.Equal("ignore.txt", loaded.IgnoreRevsFile);
+        Assert.Equal("first", fixture.Store.Current!.OwnerOf(1)!.Summary);
+        Assert.Equal(1, fixture.Store.Current!.OriginalLineOf(1));
+    }
+
     private static async Task<RepositoryLocation> LocateAsync(TestRepository repository) =>
         await TestGit.Services.Discovery.DiscoverAsync(repository.WorkingTreePath, Token);
 
@@ -170,8 +195,8 @@ public class BlameEffectHandlerTests
 
         public BlameEffectHandler Handler { get; }
 
-        public StartBlameEffect Effect(string path, string? revision, long generation) =>
-            new(Tab, _location, path, revision, generation);
+        public StartBlameEffect Effect(string path, string? revision, long generation, BlameOptions? options = null) =>
+            new(Tab, _location, path, revision, generation, options);
 
         public Task<AppCommand> NextAsync() => _dispatcher.NextAsync(Token);
 

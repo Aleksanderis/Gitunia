@@ -28,6 +28,12 @@ public static class BlameReducer
     /// <summary>The warning when a search step is asked for and no search was typed.</summary>
     public const string NoSearchNotice = "No search: press / first";
 
+    /// <summary>The warning when the highlighted line comes from the first commit of its history.</summary>
+    public const string NoParentNotice = "This line comes from the first commit of its history: it has no parent";
+
+    /// <summary>The suffix that reads as "the first parent of" a commit.</summary>
+    public const string ParentSuffix = "^";
+
     /// <summary>The title of a file read from the working tree.</summary>
     public const string WorkingTreeTitle = "working tree";
 
@@ -39,10 +45,10 @@ public static class BlameReducer
         command switch
         {
             BlameActionPressed pressed => Press(session, pressed, context),
-            BlameFailed failed => Failed(session, failed),
+            BlameFailed failed => Failed(session, failed, context),
             BlameFinished finished => Progress(session, finished.Generation, finished.BlamedLines, true),
             BlameKeyTyped typed => TypeKey(session, typed.Key, context),
-            BlameLoaded loaded => Loaded(session, loaded),
+            BlameLoaded loaded => Loaded(session, loaded, context),
             BlameMatchFound found => Matched(session, found),
             BlameOpenRefused refused => Warn(session, refused.Text),
             BlameOpenRequested open => Open(session, open, context),
@@ -65,8 +71,7 @@ public static class BlameReducer
         }
 
         var generation = session.Generation + 1;
-        var origin = open.Revision is { } revision ? $"@ {ShortHash.Of(revision)}" : WorkingTreeTitle;
-        var view = new BlameState(tab.Id, open.Path, $"{open.Path} {origin}");
+        var view = new BlameState(tab.Id, open.Path, TitleOf(open.Path, open.Revision), Revision: open.Revision);
         var effect = new StartBlameEffect(tab.Id, tab.Location, open.Path, open.Revision, generation);
 
         return Done(new BlameSession(view, generation), effect);
@@ -92,7 +97,7 @@ public static class BlameReducer
 
         if (action == ActionIds.Cancel || action == ActionIds.NavigateBack)
         {
-            return view.HasSearch ? With(session, view.ClearSearch()) : Close(session);
+            return Back(session, view, context);
         }
 
         if (action == ActionIds.AppQuit)
@@ -115,7 +120,145 @@ public static class BlameReducer
             return ShowCommit(session, view, pressed.CursorCommit);
         }
 
+        if (action == ActionIds.BlameParent)
+        {
+            return Parent(session, view, pressed, context);
+        }
+
+        if (ToggledOptions(view.ActiveOptions, action) is { } options)
+        {
+            return Restart(session, view, view with { Options = options }, context);
+        }
+
         return Move(session, view, pressed);
+    }
+
+    /// <summary>The title of a view: the path and where it is read from.</summary>
+    /// <param name="path">The file.</param>
+    /// <param name="revision">The revision, null for the working tree; may end with the parent suffix.</param>
+    public static string TitleOf(string path, string? revision)
+    {
+        if (revision is null)
+        {
+            return $"{path} {WorkingTreeTitle}";
+        }
+
+        var isParent = revision.EndsWith(ParentSuffix, StringComparison.Ordinal);
+        var id = isParent ? revision[..^ParentSuffix.Length] : revision;
+        var suffix = isParent ? ParentSuffix : string.Empty;
+
+        return $"{path} @ {ShortHash.Of(id)}{suffix}";
+    }
+
+    private static BlameOptions? ToggledOptions(BlameOptions options, ActionId action)
+    {
+        if (action == ActionIds.BlameIgnoreWhitespace)
+        {
+            return options with { IgnoreWhitespace = !options.IgnoreWhitespace };
+        }
+
+        if (action == ActionIds.BlameDetectMoves)
+        {
+            return options with { DetectMoves = !options.DetectMoves };
+        }
+
+        return action == ActionIds.BlameDetectCopies ? options with { DetectCopies = !options.DetectCopies } : null;
+    }
+
+    private static BlameUpdate Back(BlameSession session, BlameState view, BlameContext context)
+    {
+        if (view.HasSearch)
+        {
+            return With(session, view.ClearSearch());
+        }
+
+        return view.Steps.IsEmpty ? Close(session) : GoBack(session, view, context);
+    }
+
+    private static BlameUpdate GoBack(BlameSession session, BlameState view, BlameContext context)
+    {
+        var step = view.Steps[^1];
+        var target = view with
+        {
+            Path = step.Path,
+            Revision = step.Revision,
+            Cursor = step.Cursor,
+            Back = view.Steps.RemoveAt(view.Steps.Length - 1),
+        };
+
+        return Restart(session, view, target, context);
+    }
+
+    private static BlameUpdate Parent(
+        BlameSession session,
+        BlameState view,
+        BlameActionPressed pressed,
+        BlameContext context)
+    {
+        if (pressed.CursorCommit is not { } commit)
+        {
+            return Warn(session, NoCommitYetNotice);
+        }
+
+        if (commit == BlameCommit.UncommittedId)
+        {
+            return Warn(session, UncommittedNotice);
+        }
+
+        if (!ObjectId.TryParse(commit, out _))
+        {
+            return Warn(session, NoCommitYetNotice);
+        }
+
+        if (pressed.CursorIsBoundary)
+        {
+            return Warn(session, NoParentNotice);
+        }
+
+        var step = new BlameStep(view.Path, view.Revision, view.Cursor);
+        var target = view with
+        {
+            Path = pressed.CursorPath ?? view.Path,
+            Revision = $"{commit}{ParentSuffix}",
+            Cursor = pressed.CursorOriginalLine,
+            Back = view.Steps.Add(step),
+        };
+
+        return Restart(session, view, target, context);
+    }
+
+    // Reads the file again under a new read number; the handler cancels the old read and its late results are dropped
+    // by the number.
+    private static BlameUpdate Restart(
+        BlameSession session,
+        BlameState view,
+        BlameState target,
+        BlameContext context)
+    {
+        if (context.ViewTab is not { } tab)
+        {
+            return Close(session);
+        }
+
+        var generation = session.Generation + 1;
+        var next = target with
+        {
+            Title = TitleOf(target.Path, target.Revision),
+            LineCount = 0,
+            BlamedLines = 0,
+            IsComplete = false,
+            SearchText = string.Empty,
+            IsEditingSearch = false,
+        };
+        var effect = new StartBlameEffect(
+            view.TabId,
+            tab.Location,
+            next.Path,
+            next.Revision,
+            generation,
+            next.ActiveOptions);
+
+        return Done(new BlameSession(next, generation), effect);
     }
 
     private static BlameUpdate ShowCommit(BlameSession session, BlameState view, string? commit)
@@ -217,7 +360,7 @@ public static class BlameReducer
         return With(session, view.MoveTo(found.Index));
     }
 
-    private static BlameUpdate Loaded(BlameSession session, BlameLoaded loaded)
+    private static BlameUpdate Loaded(BlameSession session, BlameLoaded loaded, BlameContext context)
     {
         if (loaded.Generation != session.Generation || session.View is null)
         {
@@ -226,13 +369,20 @@ public static class BlameReducer
 
         if (loaded.Kind == BlameContentKind.Text)
         {
-            return With(session, session.View with { LineCount = loaded.LineCount });
+            var shown = session.View with { LineCount = loaded.LineCount, IgnoreRevsFile = loaded.IgnoreRevsFile };
+
+            return With(session, shown.MoveTo(shown.Cursor));
         }
 
         var path = session.View.Path;
         var text = loaded.Kind == BlameContentKind.Binary
             ? $"{path} is a binary file: there are no lines to blame"
             : $"{path} is not in the working tree";
+        if (!session.View.Steps.IsEmpty)
+        {
+            return StepBackWith(session, session.View, context, text);
+        }
+
         var closed = Close(session);
 
         return closed with { Effects = [.. closed.Effects, new PostStatusEffect(text, StatusSeverity.Warning)] };
@@ -248,11 +398,16 @@ public static class BlameReducer
         return With(session, view with { BlamedLines = blamedLines, IsComplete = isComplete || view.IsComplete });
     }
 
-    private static BlameUpdate Failed(BlameSession session, BlameFailed failed)
+    private static BlameUpdate Failed(BlameSession session, BlameFailed failed, BlameContext context)
     {
         if (failed.Generation != session.Generation)
         {
             return Done(session);
+        }
+
+        if (session.View is { } view && !view.Steps.IsEmpty && failed.Text.Length > 0)
+        {
+            return StepBackWith(session, view, context, failed.Text);
         }
 
         var closed = Close(session);
@@ -262,6 +417,18 @@ public static class BlameReducer
         }
 
         return closed with { Effects = [.. closed.Effects, new PostStatusEffect(failed.Text, StatusSeverity.Error)] };
+    }
+
+    // A re-blame that cannot be shown returns to the blame it came from and says why.
+    private static BlameUpdate StepBackWith(
+        BlameSession session,
+        BlameState view,
+        BlameContext context,
+        string text)
+    {
+        var back = GoBack(session, view, context);
+
+        return back with { Effects = [.. back.Effects, new PostStatusEffect(text, StatusSeverity.Warning)] };
     }
 
     private static BlameUpdate TypeKey(BlameSession session, KeyEvent key, BlameContext context)

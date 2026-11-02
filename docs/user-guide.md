@@ -49,7 +49,7 @@ Full table: [keymap.md](keymap.md). To rebind: [customising-keys.md](customising
 - **Branches, tags, worktrees, stashes:** select in the sidebar, then `<space>b`, `t`, `w`, `k`, or `<space>.` for a menu.
 - **Interactive rebase:** `<space>bri` opens the todo editor.
 - **Merge or rebase in progress:** `<space>gc` continue, `ga` abort, `gs` skip.
-- **Blame:** `<space>gb` on a file in the details pane (the file is read at the shown commit) or in the Changes view lists (the working tree file). Each line shows the short id (`^` marks a boundary commit), author and age; `Enter` closes the view and selects the line's commit in the graph, `/` searches, `Esc` closes.
+- **Blame:** `<space>gb` on a file in the details pane (the file is read at the shown commit) or in the Changes view lists (the working tree file). Each line shows the short id (`^` marks a boundary commit), author and age; `Enter` closes the view and selects the line's commit in the graph, `/` searches, `Alt-p` blames the file at the parent of the line's commit (`Esc` steps back), `Alt-w`/`Alt-m`/`Alt-c` toggle git's `-w`, `-M` and `-C` (shown in the footer; `blame.ignoreRevsFile` from your git config is honored and announced), `Esc` closes.
 - **Undo:** destructive actions ask first and name the undo. The reflog (`<space>l`) restores earlier states.
 
 ## Configuration
