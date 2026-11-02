@@ -19,6 +19,9 @@ public abstract record BranchEffect : OperationEffect
 
     /// <summary>The commit the graph cursor follows to after a success, null to leave it.</summary>
     public string? Follow { get; }
+
+    /// <inheritdoc />
+    public override AppCommand FailedWith(string text) => new BranchOperationFailed(TabId, text);
 }
 
 /// <summary>Create a branch, optionally checking it out.</summary>

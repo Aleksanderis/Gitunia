@@ -19,4 +19,12 @@ public abstract record OperationEffect : AppEffect
 
     /// <summary>What the operation does.</summary>
     public RunningOperationKind Kind { get; }
+
+    /// <summary>
+    /// The command that ends this operation when the runner hits an internal error no handler caught. It is the
+    /// feature's own <see cref="IOperationResult"/> failure of <see cref="Kind"/>, so the running mark always ends;
+    /// being abstract, an effect that forgets it does not compile.
+    /// </summary>
+    /// <param name="text">What to tell the user.</param>
+    public abstract AppCommand FailedWith(string text);
 }

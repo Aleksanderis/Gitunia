@@ -21,6 +21,9 @@ public abstract record PickEffect : OperationEffect
 
     /// <summary>Cherry-pick or revert.</summary>
     public PickKind PickKind { get; }
+
+    /// <inheritdoc />
+    public override AppCommand FailedWith(string text) => new PickFailed(TabId, text);
 }
 
 /// <summary>Read the commits (subjects, parents of a merge commit) before anything runs.</summary>

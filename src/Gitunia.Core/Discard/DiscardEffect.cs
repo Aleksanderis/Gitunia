@@ -18,6 +18,9 @@ public abstract record DiscardEffect : OperationEffect
 
     /// <summary>Where the operation runs.</summary>
     public RepositoryLocation Location { get; }
+
+    /// <inheritdoc />
+    public override AppCommand FailedWith(string text) => new DiscardFailed(TabId, text);
 }
 
 /// <summary>Restore the tracked files from the index and delete the untracked ones, in one batch.</summary>

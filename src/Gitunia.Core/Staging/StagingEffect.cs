@@ -16,6 +16,9 @@ public abstract record StagingEffect : OperationEffect
 
     /// <summary>Where the operation runs.</summary>
     public RepositoryLocation Location { get; }
+
+    /// <inheritdoc />
+    public override AppCommand FailedWith(string text) => new StagingFailed(TabId, text);
 }
 
 /// <summary>Stage or unstage whole files (<c>git add</c>, <c>git restore --staged</c>).</summary>

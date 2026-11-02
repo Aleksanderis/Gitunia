@@ -17,6 +17,9 @@ public abstract record StashEffect : OperationEffect
 
     /// <summary>Where the operation runs.</summary>
     public RepositoryLocation Location { get; }
+
+    /// <inheritdoc />
+    public override AppCommand FailedWith(string text) => new StashOperationFailed(TabId, text);
 }
 
 /// <summary>Stash the changes (<c>git stash push</c>).</summary>

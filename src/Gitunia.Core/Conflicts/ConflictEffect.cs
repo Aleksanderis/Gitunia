@@ -1,3 +1,4 @@
+using Gitunia.Core.Status;
 using Gitunia.Core.Running;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Repositories.Models;
@@ -21,6 +22,10 @@ public abstract record ConflictEffect : OperationEffect
 
     /// <summary>The conflicted file, relative to the working tree root.</summary>
     public string Path { get; }
+
+    /// <inheritdoc />
+    public override AppCommand FailedWith(string text) =>
+        new ConflictOperationFailed(TabId, text, StatusSeverity.Error);
 }
 
 /// <summary>Read the conflicted file into its parts. Posts <see cref="ConflictFileRead"/>.</summary>
