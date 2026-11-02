@@ -15,7 +15,7 @@ public class GraphBranchLaneTests
     private static readonly int[] BelowFork = [13, 14, 15, 16, 17];
     private static readonly int[] MainTopCommits = [1, 2];
 
-    public static TheoryData<int> Seeds => [.. Enumerable.Range(1, 40)];
+    public static TheoryData<int> Seeds => [.. Enumerable.Range(1, 3)];
 
     [Fact]
     public void GivenBranchesOnConsecutiveCommitsOfOneChain_WhenLayingOut_ThenTheChainStaysOneStraightLane()

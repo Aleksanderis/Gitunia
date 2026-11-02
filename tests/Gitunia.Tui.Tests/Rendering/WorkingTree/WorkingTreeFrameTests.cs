@@ -164,19 +164,41 @@ public class WorkingTreeFrameTests
         Assert.DoesNotContain("file00.txt", frame, StringComparison.Ordinal);
     }
 
-    [Theory]
-    [InlineData(PaneKind.WorkingUnstaged, 0, 0)]
-    [InlineData(PaneKind.WorkingUnstaged, 1, 1)]
-    [InlineData(PaneKind.WorkingStaged, 5, 3)]
-    [InlineData(PaneKind.WorkingUnstaged, 20, 6)]
-    [InlineData(PaneKind.WorkingStaged, 40, 8)]
-    [InlineData(PaneKind.WorkingUnstaged, 64, 12)]
-    [InlineData(PaneKind.WorkingStaged, 79, 24)]
-    [InlineData(PaneKind.WorkingUnstaged, 80, 24)]
-    [InlineData(PaneKind.WorkingStaged, 80, 8)]
-    [InlineData(PaneKind.WorkingUnstaged, 120, 36)]
-    [InlineData(PaneKind.WorkingStaged, 200, 60)]
-    public void GivenAnySize_WhenComposing_ThenNoLineIsWiderThanTheScreenAndNothingThrows(PaneKind focused, int width, int height)
+    [Fact]
+    public void GivenAnySize_WhenComposing_ThenNoLineIsWiderThanTheScreenAndNothingThrows()
+    {
+        var failures = new List<string>();
+        (PaneKind focused, int width, int height)[] rows =
+        [
+            (PaneKind.WorkingUnstaged, 0, 0),
+            (PaneKind.WorkingUnstaged, 1, 1),
+            (PaneKind.WorkingStaged, 5, 3),
+            (PaneKind.WorkingUnstaged, 20, 6),
+            (PaneKind.WorkingStaged, 40, 8),
+            (PaneKind.WorkingUnstaged, 64, 12),
+            (PaneKind.WorkingStaged, 79, 24),
+            (PaneKind.WorkingUnstaged, 80, 24),
+            (PaneKind.WorkingStaged, 80, 8),
+            (PaneKind.WorkingUnstaged, 120, 36),
+            (PaneKind.WorkingStaged, 200, 60),
+        ];
+
+        foreach (var (focused, width, height) in rows)
+        {
+            try
+            {
+                CheckNoLineIsWiderThanTheScreenAndNothingThrows(focused, width, height);
+            }
+            catch (Exception exception)
+            {
+                failures.Add($"{focused}, {width}, {height}: {exception.Message}");
+            }
+        }
+
+        Assert.Empty(failures);
+    }
+
+    private static void CheckNoLineIsWiderThanTheScreenAndNothingThrows(PaneKind focused, int width, int height)
     {
         var lines = ScreenComposer.ComposeWorkingTree(Model(focused), new WorkingTreeModel(MixedTree(), focused), width, height, GraphGlyphSet.Unicode);
 

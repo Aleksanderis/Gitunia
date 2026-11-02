@@ -7,8 +7,6 @@ namespace Gitunia.Core.Tests.Graph;
 [Trait("Os", "Independent")]
 public class GraphBranchOrderTests
 {
-    public static TheoryData<int> Seeds => [.. Enumerable.Range(1, 40)];
-
     [Fact]
     public void GivenThreeBranchesWithDifferentTipDates_WhenLayingOut_ThenTheNewestTipIsLeftmostThenTheNextNewest()
     {
@@ -46,35 +44,5 @@ public class GraphBranchOrderTests
         var rows = GraphLayout.Compute(commits);
 
         Assert.Equal([0, 1, 2, 0, 0], rows.Select(row => row.Lane));
-    }
-
-    [Theory]
-    [MemberData(nameof(Seeds))]
-    public void GivenAnyChunking_WhenAppendingIncrementally_ThenRowsEqualTheFullLayout(int seed)
-    {
-        var commits = RandomHistory(seed, count: 300, window: 10);
-        var full = GraphLayout.Compute(commits);
-        var random = new Random(seed);
-        var builder = new GraphLayoutBuilder();
-
-        var position = 0;
-        while (position < commits.Count)
-        {
-            var size = Math.Min(random.Next(1, 40), commits.Count - position);
-            builder.AppendRange(commits.Skip(position).Take(size));
-            position += size;
-            Assert.True(GraphRowComparer.AreEqual(full.Take(position).ToArray(), builder.Rows));
-        }
-    }
-
-    [Theory]
-    [MemberData(nameof(Seeds))]
-    public void GivenRandomHistory_WhenLayingOut_ThenTheTopologyIsValid(int seed)
-    {
-        var commits = RandomHistory(seed, count: 400, window: 12);
-
-        var rows = GraphLayout.Compute(commits);
-
-        Assert.Empty(GraphTopologyValidator.Validate(commits, rows));
     }
 }

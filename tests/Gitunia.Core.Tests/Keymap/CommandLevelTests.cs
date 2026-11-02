@@ -24,17 +24,39 @@ public class CommandLevelTests
         Assert.Empty(missing);
     }
 
-    [Theory]
-    [InlineData("working-tree.commit", CommandLevel.Everyday)]
-    [InlineData("view.cycle-command-level", CommandLevel.Everyday)]
-    [InlineData("tab.go-to.3", CommandLevel.Everyday)]
-    [InlineData("conflict-editor.take", CommandLevel.Everyday)]
-    [InlineData("conflict-editor.scroll-left", CommandLevel.Advanced)]
-    [InlineData("conflict-editor.scroll-right", CommandLevel.Advanced)]
-    [InlineData("branch.fast-forward", CommandLevel.Advanced)]
-    [InlineData("branch.set-upstream", CommandLevel.AdvancedPlus)]
-    [InlineData("reflog.open", CommandLevel.AdvancedPlus)]
-    public void GivenAnAction_WhenAskingForItsLevel_ThenItFollowsTheApprovedList(string action, CommandLevel expected)
+    [Fact]
+    public void GivenAnAction_WhenAskingForItsLevel_ThenItFollowsTheApprovedList()
+    {
+        var failures = new List<string>();
+        (string action, CommandLevel expected)[] rows =
+        [
+            ("working-tree.commit", CommandLevel.Everyday),
+            ("view.cycle-command-level", CommandLevel.Everyday),
+            ("tab.go-to.3", CommandLevel.Everyday),
+            ("conflict-editor.take", CommandLevel.Everyday),
+            ("conflict-editor.scroll-left", CommandLevel.Advanced),
+            ("conflict-editor.scroll-right", CommandLevel.Advanced),
+            ("branch.fast-forward", CommandLevel.Advanced),
+            ("branch.set-upstream", CommandLevel.AdvancedPlus),
+            ("reflog.open", CommandLevel.AdvancedPlus),
+        ];
+
+        foreach (var (action, expected) in rows)
+        {
+            try
+            {
+                CheckItFollowsTheApprovedList(action, expected);
+            }
+            catch (Exception exception)
+            {
+                failures.Add($"{action}, {expected}: {exception.Message}");
+            }
+        }
+
+        Assert.Empty(failures);
+    }
+
+    private static void CheckItFollowsTheApprovedList(string action, CommandLevel expected)
     {
         Assert.Equal(expected, ActionCatalog.LevelOf(new ActionId(action)));
     }

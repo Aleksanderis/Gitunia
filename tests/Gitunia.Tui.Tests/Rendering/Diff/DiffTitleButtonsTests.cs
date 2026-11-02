@@ -139,17 +139,39 @@ public class DiffTitleButtonsTests
         Assert.Null(TitleButton.ViewAt(buttons, 0));
     }
 
-    [Theory]
-    [InlineData(30, false)]
-    [InlineData(45, false)]
-    [InlineData(60, false)]
-    [InlineData(80, false)]
-    [InlineData(120, false)]
-    [InlineData(30, true)]
-    [InlineData(60, true)]
-    [InlineData(80, true)]
-    [InlineData(120, true)]
-    public void GivenAnyWidthAndTier_WhenLayingOut_ThenHitZonesAreDisjointInsideTheRowAndMatchWhatIsDrawn(int width, bool isAscii)
+    [Fact]
+    public void GivenAnyWidthAndTier_WhenLayingOut_ThenHitZonesAreDisjointInsideTheRowAndMatchWhatIsDrawn()
+    {
+        var failures = new List<string>();
+        (int width, bool isAscii)[] rows =
+        [
+            (30, false),
+            (45, false),
+            (60, false),
+            (80, false),
+            (120, false),
+            (30, true),
+            (60, true),
+            (80, true),
+            (120, true),
+        ];
+
+        foreach (var (width, isAscii) in rows)
+        {
+            try
+            {
+                CheckHitZonesAreDisjointInsideTheRowAndMatchWhatIsDrawn(width, isAscii);
+            }
+            catch (Exception exception)
+            {
+                failures.Add($"{width}, {isAscii}: {exception.Message}");
+            }
+        }
+
+        Assert.Empty(failures);
+    }
+
+    private static void CheckHitZonesAreDisjointInsideTheRowAndMatchWhatIsDrawn(int width, bool isAscii)
     {
         var buttons = DiffTitleButtons.Layout(width);
         var glyphs = isAscii ? GraphGlyphSet.Ascii : GraphGlyphSet.Unicode;

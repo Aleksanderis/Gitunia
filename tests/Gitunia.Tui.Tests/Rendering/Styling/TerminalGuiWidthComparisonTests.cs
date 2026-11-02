@@ -64,27 +64,33 @@ public class TerminalGuiWidthComparisonTests(ITestOutputHelper output)
         Assert.Empty(unexpected);
     }
 
-    [Theory]
-    [InlineData("\U0001F468‍\U0001F469‍\U0001F467")] // Family
-    [InlineData("\U0001F469‍❤️‍\U0001F468")] // Couple with heart
-    [InlineData("\U0001F3C3‍♀️")] // Woman running
-    [InlineData("\U0001F468\U0001F3FD‍\U0001F4BB")] // Man technologist, skin tone
-    [InlineData("\U0001F3F3️‍\U0001F308")] // Rainbow flag
-    [InlineData("❤️‍\U0001F525")] // Heart on fire
-    [InlineData("x\U0001F468‍\U0001F469y")]
-    [InlineData("a‍b")]
-    [InlineData("\U0001F468‍a")]
-    [InlineData("\U0001F468‍日")]
-    [InlineData("\U0001F468‍ ")]
-    [InlineData("\U0001F468‍1")]
-    [InlineData("\U0001F468‍‍\U0001F469")]
-    [InlineData("❤‍\U0001F525")]
-    [InlineData("\U0001F468‍\U0001F469\U0001F467")]
-    [InlineData("‍\U0001F468")]
-    [InlineData("\U0001F468‍")]
-    public void GivenZeroWidthJoinerSequence_WhenMeasuredByBoth_ThenTerminalGuiAgrees(string text)
+    [Fact]
+    public void GivenZeroWidthJoinerSequences_WhenMeasuredByBoth_ThenTerminalGuiAgrees()
     {
-        Assert.Equal(text.GetColumns(), DisplayWidth.Of(text));
+        string[] sequences =
+        [
+            "\U0001F468‍\U0001F469‍\U0001F467", // Family
+            "\U0001F469‍❤️‍\U0001F468", // Couple with heart
+            "\U0001F3C3‍♀️", // Woman running
+            "\U0001F468\U0001F3FD‍\U0001F4BB", // Man technologist, skin tone
+            "\U0001F3F3️‍\U0001F308", // Rainbow flag
+            "❤️‍\U0001F525", // Heart on fire
+            "x\U0001F468‍\U0001F469y",
+            "a‍b",
+            "\U0001F468‍a",
+            "\U0001F468‍日",
+            "\U0001F468‍ ",
+            "\U0001F468‍1",
+            "\U0001F468‍‍\U0001F469",
+            "❤‍\U0001F525",
+            "\U0001F468‍\U0001F469\U0001F467",
+        "‍\U0001F468",
+        "\U0001F468‍",
+        ];
+
+        var disagreeing = sequences.Where(text => text.GetColumns() != DisplayWidth.Of(text)).ToList();
+
+        Assert.Empty(disagreeing);
     }
 
     // Soft hyphen (Terminal.Gui 1, we 0), the line and paragraph separators and U+1200 (we 1, Terminal.Gui 0, an

@@ -18,19 +18,40 @@ public class DetailReducerTests
     private static readonly FileTreeRow OpenDirectory = Row(FileTreeRowKind.Directory, "docs", true);
     private static readonly FileTreeRow File = Row(FileTreeRowKind.File, "README", false);
 
-    [Theory]
-    [InlineData(BottomTab.Details, DetailTabMove.Next, BottomTab.Changes)]
-    [InlineData(BottomTab.Changes, DetailTabMove.Next, BottomTab.Files)]
-    [InlineData(BottomTab.Files, DetailTabMove.Next, BottomTab.Details)]
-    [InlineData(BottomTab.Details, DetailTabMove.Previous, BottomTab.Files)]
-    [InlineData(BottomTab.Files, DetailTabMove.Previous, BottomTab.Changes)]
-    [InlineData(BottomTab.Changes, DetailTabMove.Previous, BottomTab.Details)]
-    [InlineData(BottomTab.Changes, DetailTabMove.Details, BottomTab.Details)]
-    [InlineData(BottomTab.Details, DetailTabMove.Changes, BottomTab.Changes)]
-    [InlineData(BottomTab.Details, DetailTabMove.Files, BottomTab.Files)]
-    [InlineData(BottomTab.Files, DetailTabMove.Files, BottomTab.Files)]
-    public void GivenATabMove_WhenReducing_ThenTheTabsBottomTabIsTheTarget(
-        BottomTab start,
+    [Fact]
+    public void GivenATabMove_WhenReducing_ThenTheTabsBottomTabIsTheTarget()
+    {
+        var failures = new List<string>();
+        (BottomTab start, DetailTabMove move, BottomTab expected)[] rows =
+        [
+            (BottomTab.Details, DetailTabMove.Next, BottomTab.Changes),
+            (BottomTab.Changes, DetailTabMove.Next, BottomTab.Files),
+            (BottomTab.Files, DetailTabMove.Next, BottomTab.Details),
+            (BottomTab.Details, DetailTabMove.Previous, BottomTab.Files),
+            (BottomTab.Files, DetailTabMove.Previous, BottomTab.Changes),
+            (BottomTab.Changes, DetailTabMove.Previous, BottomTab.Details),
+            (BottomTab.Changes, DetailTabMove.Details, BottomTab.Details),
+            (BottomTab.Details, DetailTabMove.Changes, BottomTab.Changes),
+            (BottomTab.Details, DetailTabMove.Files, BottomTab.Files),
+            (BottomTab.Files, DetailTabMove.Files, BottomTab.Files),
+        ];
+
+        foreach (var (start, move, expected) in rows)
+        {
+            try
+            {
+                CheckTheTabsBottomTabIsTheTarget(start, move, expected);
+            }
+            catch (Exception exception)
+            {
+                failures.Add($"{start}, {move}, {expected}: {exception.Message}");
+            }
+        }
+
+        Assert.Empty(failures);
+    }
+
+    private static void CheckTheTabsBottomTabIsTheTarget(BottomTab start,
         DetailTabMove move,
         BottomTab expected)
     {
