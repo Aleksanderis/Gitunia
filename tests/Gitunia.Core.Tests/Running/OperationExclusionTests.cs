@@ -26,8 +26,6 @@ public class OperationExclusionTests
 {
     private static readonly StashEntry Entry = new(0, "stash@{0}", "abc123", "wip");
 
-    private const string BusyNotice = "Busy: another operation of this tab is still running";
-
     private static readonly RunningOperationKind[] Writers =
     [
         RunningOperationKind.Branches,
