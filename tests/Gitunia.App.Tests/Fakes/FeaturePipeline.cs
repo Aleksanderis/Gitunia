@@ -57,9 +57,12 @@ public sealed class FeaturePipeline : IDisposable
             host,
             pump,
             new TabSessionFactory(),
-            statuses,
-            watcherOptions: TestGit.QuietWatcherOptions,
-            shell: shell);
+            new EffectRunnerOptions<TabSession>
+            {
+                Statuses = statuses,
+                Watcher = TestGit.QuietWatcherOptions,
+                Shell = shell,
+            });
         var location = await services.Discovery.DiscoverAsync(
             repository.WorkingTreePath,
             TestContext.Current.CancellationToken);

@@ -1,8 +1,6 @@
 using Gitunia.Platform.ExternalTools;
 using Gitunia.Tui.App.Reflog;
-using Gitunia.App;
 using Gitunia.Core.Input;
-using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Tui.App.Branches;
 using Gitunia.Tui.App.Clipboard;
 using Gitunia.Tui.App.Conflicts;
@@ -30,7 +28,6 @@ namespace Gitunia.Tui.App.Shell;
 /// </summary>
 public sealed class HandlerParts
 {
-    private readonly Dispatcher _host;
 
     /// <param name="foundation">The configuration, the state and the widgets.</param>
     /// <param name="panes">The controllers of the panes.</param>
@@ -42,7 +39,6 @@ public sealed class HandlerParts
         OverlayParts overlays,
         KeyParts keys)
     {
-        _host = foundation.Host;
         var host = foundation.Host;
         var pause = new ConsolePause();
         Statuses = new StatusActionHandler(foundation.Statuses, foundation.Sessions);
@@ -61,7 +57,7 @@ public sealed class HandlerParts
             Environment.GetEnvironmentVariable,
             pause);
         PaneSizes = new PaneSizeInput(host, panes.DiffView, panes.WorkingDiff);
-        RangeCopier = new RangeCopier(foundation.Clipboard, foundation.Sessions.ActiveSession, WorkingTreeOfActiveTab);
+        RangeCopier = new RangeCopier(foundation.Clipboard, foundation.Sessions, new ActiveWorkingTree(host));
         Handlers = Register(foundation, panes, overlays, keys).Build();
         Actions = new ActionExecutor(
             Handlers,
@@ -145,6 +141,4 @@ public sealed class HandlerParts
             .Add(InputHandler.Creation, panes.Creation)
             .Add(InputHandler.CreationEscape, new CreationEscapeActions(panes.Creation));
     }
-
-    private WorkingTreeState? WorkingTreeOfActiveTab() => _host.Workspace.ActiveTab?.WorkingTree;
 }

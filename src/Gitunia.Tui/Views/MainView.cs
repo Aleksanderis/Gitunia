@@ -69,7 +69,7 @@ public sealed class MainView : IDisposable
         };
         _edges =
         [
-            new FrameStripView(parts.Grids.Current) { X = 0, Y = ScreenLayout.FrameTop, Width = Dim.Fill(), Height = 1 },
+            new FrameStripView(parts.Grids) { X = 0, Y = ScreenLayout.FrameTop, Width = Dim.Fill(), Height = 1 },
             CreateSideEdge(Pos.Absolute(0)),
             CreateSideEdge(Pos.Func(_ => Math.Max(0, geometry.ScreenWidth - 1))),
         ];
@@ -80,7 +80,7 @@ public sealed class MainView : IDisposable
             Width = Dim.Fill(),
             Height = 1,
         };
-        _divider = new FrameStripView(parts.Grids.Current)
+        _divider = new FrameStripView(parts.Grids)
         {
             X = Pos.Func(_ => geometry.Rects().SidebarDivider.X),
             Y = ScreenLayout.GraphTop,
@@ -89,7 +89,7 @@ public sealed class MainView : IDisposable
         };
         _detailTitle = CreateTitle(content.DetailTitle, () => geometry.Rects().DetailTitle);
         _diffTitle = CreateTitle(content.DiffTitle, () => geometry.Rects().DiffTitle);
-        _bottomDivider = new FrameStripView(parts.Grids.Current)
+        _bottomDivider = new FrameStripView(parts.Grids)
         {
             X = Pos.Func(_ => geometry.Rects().BottomDivider.X),
             Y = Pos.Func(_ => geometry.Rects().BottomDivider.Y),
@@ -269,7 +269,7 @@ public sealed class MainView : IDisposable
         _parts.Panes.WorkingMessage.SetNeedsDraw();
     }
 
-    private FrameStripView CreateSideEdge(Pos x) => new(_parts.Grids.Current)
+    private FrameStripView CreateSideEdge(Pos x) => new(_parts.Grids)
     {
         X = x,
         Y = ScreenLayout.GraphTop,

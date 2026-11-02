@@ -36,7 +36,7 @@ public sealed class EffectParts : IDisposable
         var statuses = foundation.Statuses;
         var terminal = foundation.Terminal;
         var configWriter = new ConfigWriter(foundation.Platform.ConfigDirectory);
-        Persistence = new SessionPersistence(foundation.Store, host, SaveDebounce, statuses, terminal.InvokeOnUi);
+        Persistence = new SessionPersistence(foundation.Store, host, SaveDebounce, statuses, terminal.Invoker);
         var options = new OptionsApplier(
             foundation.Config,
             new OptionTargets(keys.Overlays, panes.Picker, terminal, screen.View),
@@ -55,15 +55,18 @@ public sealed class EffectParts : IDisposable
             host,
             terminal.Invoker,
             foundation.SessionFactory,
-            statuses,
-            watcherOptions: WatcherOptionsFor(foundation.Config.Options),
-            shell: new ShellEffects(parts, handlers.Actions),
-            settings: CreateSettingsServices(foundation, configWriter),
-            sessions: foundation.Registry);
+            new EffectRunnerOptions<TerminalTabSession>
+            {
+                Statuses = statuses,
+                Watcher = WatcherOptionsFor(foundation.Config.Options),
+                Shell = new ShellEffects(parts, handlers.Actions),
+                Settings = CreateSettingsServices(foundation, configWriter),
+                Sessions = foundation.Registry,
+            });
         StatusPoller = new BackgroundStatusPoller(
             foundation.Services.Status,
             host,
-            terminal.InvokeOnUi,
+            terminal.Invoker,
             background: Runner.Background);
         WorktreePoller = new WorktreeOverviewPoller(foundation.Services.Status, host, background: Runner.Background);
     }

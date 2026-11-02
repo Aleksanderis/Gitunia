@@ -226,7 +226,7 @@ public sealed class ListRangeFlowTests : IDisposable
         private readonly StagingWiring _wiring;
         private readonly ListView _list;
         private readonly ListView _stagedList;
-        private readonly WhichKeyTimer _timer = new(TimeSpan.FromHours(1), action => action());
+        private readonly WhichKeyTimer _timer = new(TimeSpan.FromHours(1), InlineUi.Instance);
 
         public Flow()
         {
@@ -261,8 +261,8 @@ public sealed class ListRangeFlowTests : IDisposable
             Visual = new VisualRangeInput(_shell.Host, new FakePaneLists(_list, _stagedList));
             _copier = new RangeCopier(
                 new ClipboardCopier(clipboard, Statuses),
-                () => null,
-                () => _shell.Host.Workspace.ActiveTab?.WorkingTree);
+                new FakeActiveSessions(() => null),
+                new FakeActiveWorkingTree(() => _shell.Host.Workspace.ActiveTab?.WorkingTree));
             _shell.Host.EffectRaised += CopyRange;
             Handler = new WorkingTreeActionHandler(
                 _shell.Host, new FakePaneLists(_list, _stagedList), new ClipboardCopier(clipboard, Statuses), staging, TestCommitInput.Create(_shell.Host))

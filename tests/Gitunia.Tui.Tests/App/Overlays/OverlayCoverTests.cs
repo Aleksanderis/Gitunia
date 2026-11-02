@@ -20,7 +20,7 @@ namespace Gitunia.Tui.Tests.App.Overlays;
 public sealed class OverlayCoverTests : IDisposable
 {
     private readonly TestShell _shell = new();
-    private readonly WhichKeyTimer _timer = new(TimeSpan.FromHours(1), action => action());
+    private readonly WhichKeyTimer _timer = new(TimeSpan.FromHours(1), InlineUi.Instance);
     private readonly MouseGate _gate = new();
     private readonly OverlayStore _store;
     private readonly OverlayCover _cover;

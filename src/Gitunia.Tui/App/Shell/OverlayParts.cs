@@ -1,5 +1,3 @@
-using Gitunia.Git.Repositories.Models;
-using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Core.Input;
 using Gitunia.Tui.App.Conflicts;
 using Gitunia.Tui.App.Overlays;
@@ -9,9 +7,7 @@ using Gitunia.Tui.App.Rebase;
 using Gitunia.Tui.App.Reflog;
 using Gitunia.Tui.App.Settings;
 using Gitunia.Tui.Input;
-using Gitunia.Tui.Rendering.Screen;
 using Gitunia.Tui.Search;
-using Gitunia.Tui.Views.Lists;
 
 namespace Gitunia.Tui.App.Shell;
 
@@ -21,26 +17,23 @@ namespace Gitunia.Tui.App.Shell;
 /// </summary>
 public sealed class OverlayParts
 {
-    private readonly ShellFoundation _foundation;
-
     /// <param name="foundation">The configuration, the state and the widgets.</param>
     /// <param name="route">Turns a key into an action.</param>
     /// <param name="panes">The controllers of the panes.</param>
     public OverlayParts(ShellFoundation foundation, RouteParts route, PaneParts panes)
     {
-        _foundation = foundation;
         Store = route.Overlays;
         var host = foundation.Host;
         var glyphs = foundation.Config.Glyphs;
         Pick = new PickActions(host, panes.Picks);
         OpenPrompt = new PromptInputHandler(host);
-        RefJump = new RefJumpController(CreateGraphHandle(), () => foundation.Host.Workspace.ActiveTab?.Refs ?? []);
+        var graphView = new TerminalGraphView(foundation);
+        RefJump = new RefJumpController(graphView);
         Search = new SearchController(
-            CreateGraphHandle(),
-            foundation.Terminal.DeferToNextIteration,
-            foundation.Services.CommitMessages,
-            LocationOf,
-            foundation.Terminal.InvokeOnUi);
+            graphView,
+            foundation.Terminal,
+            foundation.Terminal.Invoker,
+            foundation.Services.CommitMessages);
         Prompts = new PromptDisplays(
             [panes.DiffPane, panes.WorkingDiff, panes.QuickJump, panes.FileTree, OpenPrompt, Pick, RefJump, Search]);
         Reflog = new ReflogInput(host, panes.Rows, glyphs);
@@ -120,28 +113,4 @@ public sealed class OverlayParts
             .Add(InputHandler.Search, Search)
             .Add(InputHandler.CommitMessage, panes.Commits);
     }
-
-    private GraphViewHandle CreateGraphHandle() => new(
-        _foundation.Sessions.ActiveSession,
-        SelectedGraphRow,
-        SelectGraphRow,
-        _foundation.Host,
-        RedrawGraph);
-
-    private int SelectedGraphRow() =>
-        _foundation.Panes.Graph.SelectedItem is { } item ? GraphListSource.CommitIndexOf(item) : -1;
-
-    private void SelectGraphRow(int row)
-    {
-        _foundation.Panes.Graph.SelectedItem = row + ScreenLayout.ReservedLeadingRows;
-        _foundation.Panes.Graph.EnsureSelectedItemVisible();
-    }
-
-    private void RedrawGraph()
-    {
-        _foundation.Panes.Graph.SetNeedsDraw();
-        _foundation.Chrome.RefreshChrome();
-    }
-
-    private RepositoryLocation? LocationOf(TabId tabId) => _foundation.Host.Workspace.FindTab(tabId)?.Location;
 }

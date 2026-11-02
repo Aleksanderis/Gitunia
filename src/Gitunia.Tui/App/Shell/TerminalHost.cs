@@ -14,7 +14,7 @@ namespace Gitunia.Tui.App.Shell;
 /// terminal to an external tool and starting the application again afterwards. The rest of the program never touches the
 /// toolkit's application object, which is replaced after every hand-off.
 /// </summary>
-public sealed class TerminalHost : ITerminalSuspender, IDisposable
+public sealed class TerminalHost : ITerminalSuspender, IUiDeferral, IDisposable
 {
     // Terminal.Gui's default of 25 iterations per second gave ~34 ms key latency (docs/internal/history/decisions.md);
     // the idle rate saves CPU (#909).
@@ -58,12 +58,7 @@ public sealed class TerminalHost : ITerminalSuspender, IDisposable
     /// <summary>Moves work to the UI thread; pauses while a tool owns the terminal.</summary>
     public SuspendableUiInvoker Invoker { get; }
 
-    /// <summary>Runs the work on the UI thread (at once when called on it).</summary>
-    /// <param name="action">The work.</param>
-    public void InvokeOnUi(Action action) => Invoker.Invoke(action);
-
-    /// <summary>Runs the work in a later loop iteration, so keys are handled in between.</summary>
-    /// <param name="work">The work.</param>
+    /// <inheritdoc />
     public void DeferToNextIteration(Action work) => _application.AddTimeout(
         TimeSpan.Zero,
         () =>

@@ -172,23 +172,22 @@ public sealed class QuickJumpTargetTests : IDisposable
     private void Focus(PaneKind pane) =>
         _shell.Host.Dispatch(new TabCommand(_session.TabId, new FocusPaneCommand(pane)));
 
-    private ListJumpTarget? OpenListTarget()
+    private RecordingJumpTarget? OpenListTarget()
     {
         if (!_hasTarget)
         {
             return null;
         }
 
-        return new ListJumpTarget(
+        return new RecordingJumpTarget(
             PaneKind.WorkingUnstaged,
-            _ =>
             [
                 new JumpLabel(3, 0, 1, 'q'),
                 new JumpLabel(1, 0, 1, 'w'),
             ],
-            _shown.Add,
-            _jumps.Add,
-            () => _unavailable);
+            _shown,
+            _jumps,
+            _unavailable);
     }
 
     private sealed class Host(QuickJumpTargetTests test) : IQuickJumpHost

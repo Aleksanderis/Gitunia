@@ -12,7 +12,7 @@ using Terminal.Gui.Views;
 namespace Gitunia.Tui.Views.Lists;
 
 /// <summary>List source over the rows of the detail pane; the whole content is replaced when another commit is selected or its details arrive.</summary>
-public sealed class DetailListSource(GraphGlyphSet glyphs) : IListDataSource, IRangeSource
+public sealed class DetailListSource(GraphGlyphSet glyphs) : IListDataSource, IRangeSource, IJumpSource
 {
     private readonly JumpLabelCache _jump = new();
 

@@ -259,8 +259,11 @@ public class EffectPipelineTests
             host,
             pump,
             new TabSessionFactory(),
-            new StatusReporter(host),
-            watcherOptions: TestGit.QuietWatcherOptions);
+            new EffectRunnerOptions<TabSession>
+            {
+                Statuses = new StatusReporter(host),
+                Watcher = TestGit.QuietWatcherOptions,
+            });
 
         foreach (var effect in effects)
         {
@@ -543,10 +546,13 @@ public class EffectPipelineTests
                 host,
                 pump,
                 new TabSessionFactory(),
-                statuses,
-                watcherOptions: TestGit.QuietWatcherOptions,
-                shell: shell,
-                settings: settings);
+                new EffectRunnerOptions<TabSession>
+                {
+                    Statuses = statuses,
+                    Watcher = TestGit.QuietWatcherOptions,
+                    Shell = shell,
+                    Settings = settings,
+                });
             var location = await TestGit.Services.Discovery.DiscoverAsync(
                 repository.WorkingTreePath,
                 TestContext.Current.CancellationToken);

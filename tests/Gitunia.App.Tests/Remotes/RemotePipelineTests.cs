@@ -114,9 +114,12 @@ public class RemotePipelineTests
                 host,
                 pump,
                 new TabSessionFactory(),
-                statuses,
-                watcherOptions: TestGit.QuietWatcherOptions,
-                shell: new RecordingShell());
+                new EffectRunnerOptions<TabSession>
+                {
+                    Statuses = statuses,
+                    Watcher = TestGit.QuietWatcherOptions,
+                    Shell = new RecordingShell(),
+                });
             var location = await TestGit.Services.Discovery.DiscoverAsync(
                 repository.WorkingTreePath,
                 TestContext.Current.CancellationToken);

@@ -5,13 +5,12 @@ using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Search;
 using Gitunia.Core.Search.Models;
 using Gitunia.Git;
-using Gitunia.Git.Refs.Models;
 using Gitunia.Tui.Input;
 
 namespace Gitunia.Tui.Search;
 
 /// <summary>The ref jump prompt (<c>&lt;space&gt;f</c>): type to filter refs (fuzzy) or a hash prefix, <c>Up</c>/<c>Down</c> or <c>Tab</c> to choose, <c>Enter</c> to select that commit.</summary>
-public sealed class RefJumpController(GraphViewHandle view, Func<IEnumerable<GitRef>> refs)
+public sealed class RefJumpController(IGraphView view)
     : IActionHandler, ITextKeyHandler, IActionNotice, IPromptDisplay, IGraphObserver
 {
     private RefJumpState? _prompt;
@@ -45,7 +44,7 @@ public sealed class RefJumpController(GraphViewHandle view, Func<IEnumerable<Git
         Notice = string.Empty;
         if (action == ActionIds.GraphJumpToRef && view.ActiveSession() is { } session)
         {
-            _prompt = RefJumpResolver.Resolve(string.Empty, refs(), session.Graph);
+            _prompt = RefJumpResolver.Resolve(string.Empty, view.ActiveRefs(), session.Graph);
             view.Dispatcher.SetKeyMode(KeyMode.Insert);
         }
         else if (action == ActionIds.InputAccept && _prompt is not null)
@@ -87,7 +86,7 @@ public sealed class RefJumpController(GraphViewHandle view, Func<IEnumerable<Git
         }
         else if (PromptTextEditor.Apply(_prompt.Text, key) is { } text && text != _prompt.Text)
         {
-            _prompt = RefJumpResolver.Resolve(text, refs(), session.Graph);
+            _prompt = RefJumpResolver.Resolve(text, view.ActiveRefs(), session.Graph);
         }
 
         view.Redraw();

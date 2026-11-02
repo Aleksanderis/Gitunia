@@ -176,8 +176,11 @@ public class GraphTabBinderTests
                 host,
                 pump,
                 new TerminalTabSessionFactory(GraphGlyphSet.Unicode),
-                new StatusReporter(new Dispatcher(AppState.Empty)),
-                sessions: registry);
+                new EffectRunnerOptions<TerminalTabSession>
+                {
+                    Statuses = new StatusReporter(new Dispatcher(AppState.Empty)),
+                    Sessions = registry,
+                });
             var graph = new ListView { Width = 40, Height = 10 };
             var binder = new GraphTabBinder(
                 host,

@@ -267,8 +267,11 @@ public class WorktreePipelineTests
                 host,
                 pump,
                 new TabSessionFactory(),
-                statuses,
-                watcherOptions: TestGit.QuietWatcherOptions);
+                new EffectRunnerOptions<TabSession>
+                {
+                    Statuses = statuses,
+                    Watcher = TestGit.QuietWatcherOptions,
+                });
             var location = await TestGit.Services.Discovery.DiscoverAsync(
                 repository.WorkingTreePath,
                 TestContext.Current.CancellationToken);

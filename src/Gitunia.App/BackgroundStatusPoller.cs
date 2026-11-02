@@ -16,18 +16,18 @@ public sealed class BackgroundStatusPoller : IDisposable
 {
     private readonly IStatusReader _status;
     private readonly Dispatcher _host;
-    private readonly Action<Action> _postToUi;
+    private readonly IUiInvoker _ui;
     private readonly TimeSpan _interval;
     private readonly IBackgroundWork _background;
     private readonly CancellationTokenSource _cancellation = new();
     private Task? _loop;
 
-    public BackgroundStatusPoller(IStatusReader status, Dispatcher host, Action<Action> postToUi, TimeSpan? interval = null, IBackgroundWork? background = null)
+    public BackgroundStatusPoller(IStatusReader status, Dispatcher host, IUiInvoker ui, TimeSpan? interval = null, IBackgroundWork? background = null)
     {
         _background = background ?? UnboundedBackgroundWork.Instance;
         _status = status;
         _host = host;
-        _postToUi = postToUi;
+        _ui = ui;
         _interval = interval ?? TimeSpan.FromSeconds(30);
     }
 
@@ -55,7 +55,7 @@ public sealed class BackgroundStatusPoller : IDisposable
                 var status = await _status.ReadStatusAsync(tab.Location, false, UntrackedFilesMode.Normal, cancellationToken).ConfigureAwait(false);
                 var summary = RepositoryStatusSummary.From(status);
                 var tabId = tab.Id;
-                _postToUi(() => Apply(tabId, summary));
+                _ui.Post(() => Apply(tabId, summary));
             }
             catch (OperationCanceledException)
             {

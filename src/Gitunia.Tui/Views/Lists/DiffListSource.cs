@@ -13,7 +13,7 @@ using Terminal.Gui.Views;
 namespace Gitunia.Tui.Views.Lists;
 
 /// <summary>List source over the rows of a <see cref="DiffDocument"/>: only the visible rows are drawn, so a 50k-line diff costs no more per frame than a small one.</summary>
-public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource, IRangeSource
+public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource, IRangeSource, IJumpSource, IButtonSource
 {
     private readonly JumpLabelCache _jump = new();
     private DiffWrapMap? _map;
@@ -36,10 +36,10 @@ public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource, IRan
     /// Which staging buttons the first line of the highlighted change group carries (none by default); read on every
     /// draw, as the side follows the selected file.
     /// </summary>
-    public Func<WorkingTreeButtons> GroupButtons { get; set; } = () => WorkingTreeButtons.None;
+    public IGroupButtonSource GroupButtons { get; set; } = NoGroupButtons.Instance;
 
     /// <summary>Where the staging buttons' key text comes from; null uses the default keymap.</summary>
-    public Func<ChipKeys?> GroupKeys { get; set; } = () => null;
+    public ChipKeys? GroupKeys { get; set; }
 
     /// <summary>The diff search text to highlight, null for none.</summary>
     public string? Highlight { get; set; }
@@ -291,8 +291,8 @@ public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource, IRan
         return ChangeGroupButtons.Layout(
             width,
             columns,
-            GroupButtons(),
-            GroupKeys(),
+            GroupButtons.Buttons(),
+            GroupKeys,
             ChangeGroupButtons.ContentWidth(line));
     }
 

@@ -25,7 +25,7 @@ namespace Gitunia.Tui.Tests.App.Overlays;
 public sealed class GestureRouterTests : IDisposable, IActionRoute
 {
     private readonly TestShell _shell = new();
-    private readonly WhichKeyTimer _timer = new(TimeSpan.FromHours(1), action => action());
+    private readonly WhichKeyTimer _timer = new(TimeSpan.FromHours(1), InlineUi.Instance);
     private readonly MainViewFixture _screen = new();
     private readonly OverlayClickGuard _guard = new();
     private readonly List<ActionId> _routed = [];

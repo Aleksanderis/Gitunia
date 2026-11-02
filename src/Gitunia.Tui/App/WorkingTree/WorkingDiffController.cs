@@ -180,8 +180,7 @@ public sealed partial class WorkingDiffController : IActionHandler, ITextKeyHand
             _diffList.Source = current?.WorkingDiff?.Source;
             if (current?.WorkingDiff is { } diff)
             {
-                diff.Source.GroupButtons = () =>
-                    WorkingTreePaneRenderer.StagingButtons(_host.Workspace.ActiveTab?.WorkingTree);
+                diff.Source.GroupButtons = new StagingButtonSource(_host);
                 diff.Store.Changed += OnStoreChanged;
                 current.StatusRead += Sync;
                 _actions.RestoreRemembered(diff);
