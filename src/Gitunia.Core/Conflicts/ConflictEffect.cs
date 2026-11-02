@@ -24,7 +24,8 @@ public abstract record ConflictEffect : OperationEffect
     public string Path { get; }
 
     /// <inheritdoc />
-    public override AppCommand FailedWith(string text) => new ConflictOperationFailed(TabId, text, StatusSeverity.Error);
+    public override AppCommand FailedWith(string text) =>
+        new ConflictOperationFailed(TabId, text, StatusSeverity.Error);
 }
 
 /// <summary>Read the conflicted file into its parts. Posts <see cref="ConflictFileRead"/>.</summary>
