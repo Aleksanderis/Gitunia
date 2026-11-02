@@ -76,7 +76,7 @@ Done when: the repository is public and the first release is installable through
 
 ## M9 - History and blame
 
-Status: planned (owner request 2026-11-02; the open issues are the source of truth, tracking issue listed there).
+Status: planned (owner request 2026-11-02; tracking issue #1114, the open issues are the source of truth).
 
 Goal: answer "how did this file or these lines get here" without leaving the app: file history (`git log --follow`), line-range history (`git log -L`) and blame (`git blame`), each with a diff and a jump to the commit in the graph. This moves blame out of the README's "Not included" list; the README is updated when the feature ships, not before. New Git readers and parsers, Core state/commands/effects, views, keymap rows, large-file performance, docs and Windows/macOS checks.
 Done when: from the graph's commit file list or the Changes view you can open a file's history, a line range's history and a blame view of a large file by keyboard and mouse, jump from a blame line to its commit in the graph, and the user guide, keymap reference and README describe it.
