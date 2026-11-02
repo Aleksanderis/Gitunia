@@ -61,7 +61,7 @@ These are quality inspections, not style, so neither the compiler nor `.editorco
 - A class gets its collaborators as objects: an interface it calls (`IBranchWriter`, a small port the owner implements), a store or a context record. No `Func<>`/`Action<>` constructor parameters and no settable delegate properties (`public Func<bool>? IsBusy { get; set; }`) to reach another object's state or behaviour, and no `null!` fields that the composition fills in later.
 - Delegates are a last resort, for a decorator or wrapper whose job is to call the function it wraps. Fine as before: C# events, and a lambda passed as a plain call argument to a pure algorithm (LINQ, a comparer, `token.Register(KillQuietly, process)`), as long as it is not stored as a dependency.
 - More than five constructor parameters means the class does too much: split it, or group what always travels together into one context record.
-- Existing code that breaks these rules is being migrated (#965); new and touched code follows them.
+- Allowed seams: an optional trailing parameter with a production default for an OS or environment seam in a leaf class (an environment-variable lookup, a key reader, a thread queue) and a lambda the owner passes to its own framework call. They are not counted against the five-parameter limit. Anything else that reaches another object takes an object.
 - Where logic goes: decisions in Core reducers (`Core/<Feature>/`), git and file work in `Gitunia.App` effect handlers, views and input translation in `Gitunia.Tui`; a feature adds one line each to the root command, state, reducer and runner switch, in alphabetical order (`docs/architecture.md`, "Effects as data").
 
 ## Testability

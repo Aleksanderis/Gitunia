@@ -31,7 +31,7 @@ public sealed record PromptPopup(
         new(title, [context], input, [], [new("Enter", acceptLabel), Cancel]);
 
     /// <summary>
-    /// A prompt whose text filters candidates (see <see cref="FilterPicker{T}"/>); <paramref name="rows"/> is the
+    /// A prompt whose text filters candidates (see <see cref="Prompts.PromptPicker"/>); <paramref name="rows"/> is the
     /// visible candidate list and <paramref name="acceptLabel"/> names what <c>Enter</c> does.
     /// </summary>
     public static PromptPopup ForFilter(

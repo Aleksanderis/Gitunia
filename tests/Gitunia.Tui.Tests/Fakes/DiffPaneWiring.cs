@@ -70,6 +70,7 @@ public sealed class DiffPaneWiring : IActiveSessions, IPaneChrome, ITabSessions,
             new ScreenResizedCommand(new ScreenExtent(screen.Width, screen.Height), _host.Clock.GetUtcNow()));
     }
 
+    // ReSharper disable once ReturnTypeCanBeNotNullable : fake shared with Gitunia.App.Tests by link: a member counts as unused when only the other project uses it
     TerminalTabSession? IActiveSessions.ActiveSession() => _session;
 
     public TabSession? Find(TabId tabId) => tabId == _session.TabId ? _session : null;

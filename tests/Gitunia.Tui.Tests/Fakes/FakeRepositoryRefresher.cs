@@ -29,9 +29,11 @@ public sealed class FakeRepositoryRefresher : IRepositoryRefresher
     }
 
     /// <summary>Thrown by every refresh.</summary>
+    // ReSharper disable once UnusedAutoPropertyAccessor.Global : fake shared with Gitunia.App.Tests by link: a member counts as unused when only the other project uses it
     public Exception? Failure { get; set; }
 
     /// <summary>How long every refresh takes, to play a slow repository.</summary>
+    // ReSharper disable once UnusedAutoPropertyAccessor.Global : fake shared with Gitunia.App.Tests by link: a member counts as unused when only the other project uses it
     public TimeSpan Delay { get; set; }
 
     /// <summary>The number of refreshes so far.</summary>

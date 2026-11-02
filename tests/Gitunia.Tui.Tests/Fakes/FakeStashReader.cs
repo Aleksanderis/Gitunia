@@ -12,6 +12,7 @@ public sealed class FakeStashReader : IStashReader
     public List<StashEntry> Stashes { get; } = [];
 
     /// <summary>Thrown by every read.</summary>
+    // ReSharper disable once UnusedAutoPropertyAccessor.Global : fake shared with Gitunia.App.Tests by link: a member counts as unused when only the other project uses it
     public Exception? Failure { get; set; }
 
     public Task<ParseResult<StashEntry>> ReadStashesAsync(RepositoryLocation location, CancellationToken cancellationToken)

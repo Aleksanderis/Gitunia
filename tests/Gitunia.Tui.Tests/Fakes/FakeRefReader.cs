@@ -13,6 +13,7 @@ public sealed class FakeRefReader : IRefReader
     public HeadState Head { get; set; } = new(HeadKind.Branch, "main", null);
 
     /// <summary>The branches and tags.</summary>
+    // ReSharper disable once CollectionNeverUpdated.Global : fake shared with Gitunia.App.Tests by link: a member counts as unused when only the other project uses it
     public List<GitRef> Refs { get; } = [];
 
     /// <summary>The worktrees.</summary>
@@ -20,6 +21,7 @@ public sealed class FakeRefReader : IRefReader
     public List<WorktreeInfo> Worktrees { get; } = [];
 
     /// <summary>Thrown by the HEAD read.</summary>
+    // ReSharper disable once UnusedAutoPropertyAccessor.Global : fake shared with Gitunia.App.Tests by link: a member counts as unused when only the other project uses it
     public Exception? HeadFailure { get; set; }
 
     /// <summary>Thrown by the ref read.</summary>
@@ -27,6 +29,7 @@ public sealed class FakeRefReader : IRefReader
     public Exception? RefsFailure { get; set; }
 
     /// <summary>Thrown by the worktree read.</summary>
+    // ReSharper disable once UnusedAutoPropertyAccessor.Global : fake shared with Gitunia.App.Tests by link: a member counts as unused when only the other project uses it
     public Exception? WorktreesFailure { get; set; }
 
     public Task<ParseResult<GitRef>> ReadRefsAsync(RepositoryLocation location, CancellationToken cancellationToken) =>

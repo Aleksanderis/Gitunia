@@ -153,7 +153,7 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
         _settings = settings is null ? null : new SettingsEffectHandler(settings, host);
         _sidebar = new SidebarEffectHandler(this, host);
         _integration = IntegrationEffectHandler.Create(services, host);
-        _issueLinks = new IssueLinkEffectHandler(options.UrlOpener ?? new UrlOpener(), host);
+        _issueLinks = new IssueLinkEffectHandler(new UrlOpener(), host);
         _remotes = new RemoteEffectHandler(services.RemoteManager, host);
         _staging = new StagingEffectHandler(
             services.IndexWriter,
@@ -167,8 +167,8 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
         _pollOptions = options.Poll ?? PollOptions.Default;
         _warmTabLimit = Math.Max(1, options.WarmTabLimit);
         _watcherOptions = options.Watcher ?? RepositoryWatcherOptions.Default;
-        _watchBudget = options.WatchBudget ?? new WatchBudget();
-        _detailDebounce = options.DetailDebounce ?? TimeSpan.FromMilliseconds(80);
+        _watchBudget = new WatchBudget();
+        _detailDebounce = TimeSpan.FromMilliseconds(80);
         _services = services;
         _host = host;
         _ui = ui;

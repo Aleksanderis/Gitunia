@@ -17,12 +17,15 @@ public sealed class FakeCommitLogReader : ICommitLogReader
     public List<CommitInfo> Commits { get; } = [];
 
     /// <summary>Thrown when a read starts, to play a git failure.</summary>
+    // ReSharper disable once UnusedAutoPropertyAccessor.Global : fake shared with Gitunia.App.Tests by link: a member counts as unused when only the other project uses it
     public Exception? Failure { get; set; }
 
     /// <summary>Thrown when the tip decorations are read, to play a failure of only that call.</summary>
+    // ReSharper disable once UnusedAutoPropertyAccessor.Global : fake shared with Gitunia.App.Tests by link: a member counts as unused when only the other project uses it
     public Exception? TipFailure { get; set; }
 
     /// <summary>The token of the last tip decorations read, to check that the load cancels it when over.</summary>
+    // ReSharper disable once UnusedAutoPropertyAccessor.Global : fake shared with Gitunia.App.Tests by link: a member counts as unused when only the other project uses it
     public CancellationToken LastTipToken { get; private set; }
 
     /// <summary>The number of log streams started so far.</summary>

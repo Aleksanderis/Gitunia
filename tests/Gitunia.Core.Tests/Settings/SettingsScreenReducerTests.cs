@@ -483,8 +483,7 @@ public class SettingsScreenReducerTests
     private static SettingsRead Parse(string text)
     {
         var snapshot = new ConfigSnapshot(text.Length > 0, text, text.Length > 0 ? "hash" : string.Empty);
-        var load = SettingsValueReader.Read(snapshot, Environment.HomeDirectory, Environment.DirectoryExists, null,
-            LabelCapStyle.Rounded);
+        var load = SettingsValueReader.Read(snapshot, Environment.HomeDirectory, Environment.DirectoryExists);
 
         return new SettingsRead(snapshot, load);
     }

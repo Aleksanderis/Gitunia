@@ -10,9 +10,7 @@ public class OverlayClickRouterTests
     [Fact]
     public void GivenATargetWithoutAnObject_WhenBuildingTheRouter_ThenItFailsAtStartup()
     {
-        var targets = new Dictionary<OverlayClickTarget, IOverlayClickTarget>();
-
-        Assert.Throws<InvalidOperationException>(() => new OverlayClickRouter(targets));
+        Assert.Throws<InvalidOperationException>(() => new OverlayClickRouter(new Dictionary<OverlayClickTarget, IOverlayClickTarget>()));
     }
 
     [Fact]

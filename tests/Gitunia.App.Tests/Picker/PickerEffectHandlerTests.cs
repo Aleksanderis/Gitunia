@@ -219,7 +219,7 @@ public class PickerEffectHandlerTests
     [Fact]
     public async Task GivenTypedPath_WhenListing_ThenScanningShowsUntilTheCandidatesArrive()
     {
-        using var release = new ManualResetEventSlim();
+        var release = new ManualResetEventSlim();
         using var pipeline = PipelineWith(directory => Blocked(release, directory, "alpha"));
         pipeline.Open();
 
@@ -235,7 +235,7 @@ public class PickerEffectHandlerTests
     [Fact]
     public async Task GivenSlowListing_WhenTypingAgain_ThenTheOlderListingIsDiscarded()
     {
-        using var release = new ManualResetEventSlim();
+        var release = new ManualResetEventSlim();
         using var pipeline = PipelineWith(directory =>
         {
             if (directory.EndsWith("slow", StringComparison.Ordinal))
@@ -266,7 +266,7 @@ public class PickerEffectHandlerTests
     [Fact]
     public async Task GivenSlowListing_WhenItTakesLongerThanTheDelay_ThenScanningIsShownAndOldRowsStayWhileTyping()
     {
-        using var release = new ManualResetEventSlim();
+        var release = new ManualResetEventSlim();
         var timings = new PickerTimings(TimeSpan.FromSeconds(5), TimeSpan.Zero);
         var files = new ScriptedDirectories(directory => Blocked(release, directory, "alpha"));
         using var pipeline = PickerPipeline.Create(picker: new PickerServices(files, timings));
@@ -304,7 +304,7 @@ public class PickerEffectHandlerTests
     [Fact]
     public async Task GivenListingThatNeverFinishes_WhenTheTimeoutPasses_ThenAMessageReplacesScanning()
     {
-        using var release = new ManualResetEventSlim();
+        var release = new ManualResetEventSlim();
         var timings = new PickerTimings(TimeSpan.FromMilliseconds(100), TimeSpan.Zero);
         var files = new ScriptedDirectories(directory => Blocked(release, directory, "late"));
         using var pipeline = PickerPipeline.Create(picker: new PickerServices(files, timings));
@@ -334,7 +334,7 @@ public class PickerEffectHandlerTests
     [Fact]
     public async Task GivenTabDuringListing_WhenTheListingCompletes_ThenThePathIsCompleted()
     {
-        using var release = new ManualResetEventSlim();
+        var release = new ManualResetEventSlim();
         using var pipeline = PipelineWith(directory => Blocked(release, directory, "alpha", "beta"));
         pipeline.Open();
         pipeline.Type("~/al");
@@ -349,9 +349,9 @@ public class PickerEffectHandlerTests
     [Fact]
     public async Task GivenListing_WhenItIsCancelled_ThenItPostsNothingAndTheNextListingIsTheFirstResult()
     {
-        using var release = new ManualResetEventSlim();
-        using var finished = new ManualResetEventSlim();
-        using var started = new ManualResetEventSlim();
+        var release = new ManualResetEventSlim();
+        var finished = new ManualResetEventSlim();
+        var started = new ManualResetEventSlim();
         var files = new ScriptedDirectories(directory =>
         {
             if (!directory.EndsWith("slow", StringComparison.Ordinal))

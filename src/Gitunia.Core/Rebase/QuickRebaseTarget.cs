@@ -10,4 +10,5 @@ namespace Gitunia.Core.Rebase;
 /// <param name="Plan">What the writer read: the commit, its range and the HEAD it was read at.</param>
 /// <param name="BranchName">The current branch that is rewritten.</param>
 /// <param name="NewSubject">The typed subject of a reword; null for the other edits.</param>
+// ReSharper disable once NotAccessedPositionalProperty.Global : kept for equality and the command log
 public sealed record QuickRebaseTarget(TabId TabId, QuickRebasePlan Plan, string BranchName, string? NewSubject);

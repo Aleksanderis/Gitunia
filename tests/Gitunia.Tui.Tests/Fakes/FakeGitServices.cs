@@ -43,5 +43,6 @@ public sealed class FakeGitServices
     public FakeGitConfigReader Config { get; } = new();
 
     /// <summary>The services to hand to the code under test.</summary>
+    // ReSharper disable once UnusedAutoPropertyAccessor.Global : fake shared with Gitunia.App.Tests by link: a member counts as unused when only the other project uses it
     public GitServices Services { get; }
 }
