@@ -13,6 +13,7 @@ using Gitunia.Core.ExternalTools;
 using Gitunia.Core.Input;
 using Gitunia.Core.IssueLinks;
 using Gitunia.Core.Jump;
+using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Pick;
 using Gitunia.Core.Integration;
@@ -264,8 +265,19 @@ public static partial class AppReducer
 
         var update = BlameReducer.Reduce(session, command, new BlameContext(workspace.ActiveTab, viewTab));
         var shell = state.Shell with { Blame = update.Session };
+        var next = new AppUpdate(state with { Shell = shell }, update.Effects);
 
-        return new AppUpdate(state with { Shell = shell }, update.Effects);
+        // The history key closes the view and opens the history of the file it showed, at the revision it showed.
+        if (command is BlameActionPressed { Action: var action } && action == ActionIds.FileHistoryOpen
+            && session.View is { IsEditingSearch: false } shown && viewTab is not null && !update.Session.IsOpen)
+        {
+            var open = new FileHistoryOpenRequested(shown.TabId, shown.Path, BlameReducer.HistoryRevisionOf(shown));
+            var history = ReduceFileHistory(next.State, open);
+
+            return new AppUpdate(history.State, [.. next.Effects, .. history.Effects]);
+        }
+
+        return next;
     }
 
     private static AppUpdate ReduceSettings(AppState state, SettingsCommand command)

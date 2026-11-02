@@ -132,6 +132,9 @@ public static class DefaultMouseMap
     /// <summary>The action row `Alt-p` under the blame view: blame at the parent of the highlighted line's commit.</summary>
     public const string BlameParentButton = "BlameButton.Parent";
 
+    /// <summary>The action row `space H` under the blame view: the history of the blamed file.</summary>
+    public const string BlameHistoryButton = "BlameButton.History";
+
     /// <summary>The chips under the rebase todo editor (#458): each is a view of its own, a click runs the action
     /// its key runs on the highlighted commit.</summary>
     public const string RebasePickButton = "RebaseButton.Pick";
@@ -245,6 +248,7 @@ public static class DefaultMouseMap
         DefaultKeymap.BlameView,
         BlameShowButton,
         BlameParentButton,
+        BlameHistoryButton,
         DefaultKeymap.RebaseEditorView,
         RebasePickButton,
         RebaseRewordButton,
@@ -348,6 +352,7 @@ public static class DefaultMouseMap
         new(DefaultKeymap.BlameView, MouseGesture.WheelDown, ActionIds.ListDown, WheelLines),
         new(BlameShowButton, MouseGesture.Click, ActionIds.BlameShowCommit),
         new(BlameParentButton, MouseGesture.Click, ActionIds.BlameParent),
+        new(BlameHistoryButton, MouseGesture.Click, ActionIds.FileHistoryOpen),
         new(DefaultKeymap.RebaseEditorView, MouseGesture.WheelUp, ActionIds.ListUp, WheelLines),
         new(DefaultKeymap.RebaseEditorView, MouseGesture.WheelDown, ActionIds.ListDown, WheelLines),
         new(RebasePickButton, MouseGesture.Click, ActionIds.RebaseEditorPick),
