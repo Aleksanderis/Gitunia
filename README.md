@@ -45,6 +45,7 @@ In the picker type to filter or type a path. `Enter` opens it in a tab. `?` show
 
 ## Docs
 
+- Landing page source is in `site/`; `scripts/build-site.sh` builds it for local preview
 - [Customising keys](docs/customising-keys.md) and [key reference](docs/keymap.md)
 - Design documents are in `docs/` (maintainer notes in `docs/internal/`)
 - Project conventions are in [CLAUDE.md](CLAUDE.md)

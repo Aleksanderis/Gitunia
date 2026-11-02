@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gitunia</title>
+<meta name="description" content="A keyboard-first terminal Git client with a real commit graph, branches, worktrees and vim-style keys.">
+<link rel="icon" href="assets/favicon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="assets/favicon-180.png">
+<style>
+:root{--bg:#1e1e2e;--fg:#cdd6f4;--muted:#a6adc8;--accent:#89b4fa;--panel:#181825;--border:#313244}
+@media (prefers-color-scheme:light){:root{--bg:#eff1f5;--fg:#4c4f69;--muted:#6c6f85;--accent:#1e66f5;--panel:#e6e9ef;--border:#ccd0da}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 system-ui,sans-serif}
+main{max-width:52rem;margin:0 auto;padding:2rem 16px 4rem}
+header{text-align:center}
+header img.logo{width:96px;height:96px}
+h1{margin:.5rem 0 0;font-size:2.4rem}
+h2{margin-top:2.5rem;border-bottom:1px solid var(--border);padding-bottom:.3rem}
+a{color:var(--accent)}
+.lead{color:var(--muted);font-size:1.15rem}
+.demo{width:100%;height:auto;border:1px solid var(--border);border-radius:8px}
+pre,code{font-family:ui-monospace,Menlo,Consolas,monospace}
+pre{background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:.8rem 1rem;overflow-x:auto}
+code{background:var(--panel);padding:.1rem .3rem;border-radius:4px}
+pre code{padding:0;background:none}
+ul{padding-left:1.3rem}
+.cta a{display:inline-block;margin:.2rem .4rem;padding:.5rem 1rem;border:1px solid var(--accent);border-radius:6px;text-decoration:none}
+footer{margin-top:3rem;color:var(--muted);font-size:.9rem;text-align:center}
+</style>
+</head>
+<body>
+<main>
+<header>
+<img class="logo" src="assets/logo.svg" alt="Gitunia logo">
+<h1>Gitunia</h1>
+<p class="lead">A keyboard-first terminal Git client: a real commit graph, first-class branches and worktrees, vim-style modal navigation. The mouse is optional but fully functional.</p>
+<p class="cta">
+<a href="https://github.com/Aleksanderis/Gitunia/releases/latest">Download latest release</a>
+<a href="https://github.com/Aleksanderis/Gitunia">Source on GitHub</a>
+</p>
+</header>
+
+<img class="demo" src="media/demo.gif" alt="Gitunia demo: graph, branch switch, worktree, staging lines, commit">
+
+<h2>Features</h2>
+<ul>
+<li>Commit graph that scrolls and searches through 100k+ commits</li>
+<li>Stage files, hunks and single lines, then commit or amend</li>
+<li>Branches, merge, rebase, reset, cherry-pick and revert</li>
+<li>Fetch, pull and push with progress</li>
+<li>Unified and side-by-side diffs, also between any two commits</li>
+<li>Standalone multi-repository client: tabs, repository picker, session restore</li>
+<li>Stashes and worktrees as first-class views</li>
+<li>3-way merge conflict resolution and an interactive rebase editor</li>
+<li>Tags, clone, init and remotes</li>
+<li>Reflog browser as the undo path for destructive actions</li>
+<li>Command palette, configurable vim-style keys and full mouse support</li>
+</ul>
+<p>Not included: submodules, LFS UI, blame, hosting-provider integration, plugins.</p>
+
+<h2>Install</h2>
+<p>Needs Git 2.43 or newer on your <code>PATH</code>. Take the files for your system from the <a href="https://github.com/Aleksanderis/Gitunia/releases/latest">latest release</a>.</p>
+<pre><code># Debian / Ubuntu
+sudo apt install ./gitunia_&lt;version&gt;_amd64.deb
+
+# Fedora / RHEL
+sudo dnf install ./gitunia-&lt;version&gt;-1.x86_64.rpm</code></pre>
+<p>Linux and Windows archives are also on the release page: unpack and put <code>gitunia</code> on your <code>PATH</code>, and check it against the <code>.sha256</code> file. Arch, Omarchy and building from source are covered in the <a href="https://github.com/Aleksanderis/Gitunia/blob/main/docs/user-guide.md#install">user guide</a>.</p>
+
+<h2>Quick start</h2>
+<pre><code>gitunia                 # restore the last session, or show the repository picker
+gitunia ~/Projects/foo  # open a repository (any subfolder resolves to its root)</code></pre>
+<p>In the picker type to filter or type a path. <code>Enter</code> opens it in a tab. <code>?</code> shows the keys of the current view, <code>:</code> opens the command palette, <code>q</code> quits.</p>
+
+<h2>Docs</h2>
+<ul>
+<li><a href="https://github.com/Aleksanderis/Gitunia/blob/main/docs/user-guide.md">User guide</a></li>
+<li><a href="https://github.com/Aleksanderis/Gitunia/blob/main/docs/customising-keys.md">Customising keys</a> and <a href="https://github.com/Aleksanderis/Gitunia/blob/main/docs/keymap.md">key reference</a></li>
+<li><a href="https://github.com/Aleksanderis/Gitunia/blob/main/CONTRIBUTING.md">Contributing</a></li>
+</ul>
+
+<footer>MIT License. No analytics, no cookies.</footer>
+</main>
+</body>
+</html>
