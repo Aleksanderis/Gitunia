@@ -17,26 +17,12 @@ public sealed class PickEffectHandler(IPickWriter writer, IPickCommitReader read
     /// <summary>Starts the effect and returns at once; the result arrives through the dispatcher.</summary>
     public void Handle(PickEffect effect, CancellationToken cancellationToken)
     {
-        _ = Task.Run(() => RunAsync(effect, cancellationToken), CancellationToken.None);
-    }
-
-    private async Task RunAsync(PickEffect effect, CancellationToken token)
-    {
-        PickCommand result;
-        try
-        {
-            result = await WorkAsync(effect, token).ConfigureAwait(false);
-        }
-        catch (OperationCanceledException)
-        {
-            result = new PickCancelled(effect.TabId);
-        }
-        catch (Exception exception)
-        {
-            result = Failure(effect, FailureText.Reason(exception));
-        }
-
-        dispatcher.Post(result);
+        EffectWork.Start(
+            dispatcher,
+            token => WorkAsync(effect, token),
+            () => new PickCancelled(effect.TabId),
+            exception => Failure(effect, FailureText.Reason(exception)),
+            cancellationToken);
     }
 
     private Task<PickCommand> WorkAsync(PickEffect effect, CancellationToken token) => effect switch
