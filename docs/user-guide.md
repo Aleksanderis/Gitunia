@@ -6,6 +6,7 @@ Needs `git` 2.43 or newer on your `PATH`. Any terminal works. Truecolor looks be
 
 - **Package (linux-x64):** `sudo apt install ./gitunia_<version>_amd64.deb` or `sudo dnf install ./gitunia-<version>-1.x86_64.rpm`. Installs `/usr/bin/gitunia`.
 - **Archive (linux-x64, win-x64):** unpack and put `gitunia` on your `PATH`. Check the download with the `.sha256` file.
+- **macOS archive (osx-arm64, Apple silicon):** unpack and put `gitunia` on your `PATH`. It should work but is not fully tested yet, and it is unsigned, so Gatekeeper asks you to allow it (System Settings, Privacy & Security).
 - **Arch Linux / Omarchy:** `sudo pacman -U gitunia-<version>-1-x86_64.pkg.tar.zst` (from the release page; pulls in `git`). It is not in the AUR yet. The archive above also works: put `gitunia` in `~/.local/bin`.
 - **Source:**
   - Prerequisites: the .NET SDK from `global.json` and the Native AOT prerequisites.

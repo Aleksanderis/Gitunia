@@ -82,9 +82,11 @@ public sealed class NavigationActions(
                 FocusPane(PaneKind.Graph, _graphList);
             }
         }
-        else if (action == ActionIds.DetailCollapse || action == ActionIds.DetailExpand)
+        else if (action == ActionIds.DetailCollapse
+            || action == ActionIds.DetailExpand
+            || action == ActionIds.DetailToggleFolder)
         {
-            // Bare h and l stay inside the pane: with no directory or folder to fold they do nothing.
+            // Bare h, l and za (or a click) stay inside the pane: with no directory or folder to fold they do nothing.
         }
         else if (!services.Statuses.TryHandleFallback(action))
         {

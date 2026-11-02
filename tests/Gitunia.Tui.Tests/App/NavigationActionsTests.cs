@@ -150,6 +150,17 @@ public class NavigationActionsTests
         Assert.Equal(0, harness.QuitCount);
     }
 
+    [Fact]
+    public void GivenADetailPaneWithoutAFolderTree_WhenToggleFolderRuns_ThenThereIsNoNotice()
+    {
+        using var harness = new NavigationHarness(isLoading: false);
+
+        var handled = harness.Actions.TryExecute(ActionIds.DetailToggleFolder, null);
+
+        Assert.True(handled);
+        Assert.Equal(string.Empty, harness.Actions.Notice);
+    }
+
     private sealed class NoTextKeys : ITextKeyHandler
     {
         public bool HandleTextKey(KeyEvent key) => false;
