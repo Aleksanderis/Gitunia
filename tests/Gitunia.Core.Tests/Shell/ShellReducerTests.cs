@@ -68,6 +68,21 @@ public class ShellReducerTests
     }
 
     [Fact]
+    public void GivenAConfirmThatReplacedHelpOpenFromVisual_WhenALaterConfirmIsAnsweredFromNormal_ThenNormalReturns()
+    {
+        var state = ShellState.Empty.WithMode(KeyMode.Visual);
+        state = ShellReducer.Reduce(state, new OverlayChangedCommand(OverlayKind.Help, KeyMode.Visual)).State;
+        state = ShellReducer.Reduce(state, new ConfirmRequestedCommand(Prompt, Accepted, null)).State;
+        state = ShellReducer.Reduce(state, new ConfirmAnsweredCommand(ConfirmAnswer.No)).State;
+        state = state.WithMode(KeyMode.Normal);
+
+        var asked = ShellReducer.Reduce(state, new ConfirmRequestedCommand(Prompt, Accepted, null));
+        var answered = ShellReducer.Reduce(asked.State, new ConfirmAnsweredCommand(ConfirmAnswer.No));
+
+        Assert.Equal(KeyMode.Normal, answered.State.Mode);
+    }
+
+    [Fact]
     public void GivenAMessage_WhenPosting_ThenItShowsAndTheBarIsScheduledToAgeAtTheEndOfTheHighlight()
     {
         var update = Reduce(ShellState.Empty, new StatusPostedCommand("Pushed", StatusSeverity.Info, Start));
