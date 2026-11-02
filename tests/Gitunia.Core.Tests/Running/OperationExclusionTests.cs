@@ -74,6 +74,32 @@ public class OperationExclusionTests
         return data;
     }
 
+    public enum WritingRequest
+    {
+        StashApply,
+        Pull,
+        RebaseEditor,
+        CherryPick,
+        Rebase,
+        BranchCreateAndCheckout,
+        Merge,
+        Fetch,
+    }
+
+    public static TheoryData<RunningOperationKind, WritingRequest> WriterAndSyncRequests()
+    {
+        var data = new TheoryData<RunningOperationKind, WritingRequest>();
+        foreach (var kind in Writers.Append(RunningOperationKind.Sync))
+        {
+            foreach (var request in Enum.GetValues<WritingRequest>())
+            {
+                data.Add(kind, request);
+            }
+        }
+
+        return data;
+    }
+
     [Theory]
     [MemberData(nameof(WriterPairs))]
     public void GivenTwoWorkingTreeWriters_WhenAskingTheTable_ThenEachExcludesTheOther(
@@ -121,14 +147,15 @@ public class OperationExclusionTests
     }
 
     [Theory]
-    [MemberData(nameof(WriterKinds))]
-    public void GivenAWorkingTreeWriterRuns_WhenAStashApplyIsRequested_ThenItIsRefusedAndNothingStarts(
-        RunningOperationKind running)
+    [MemberData(nameof(WriterAndSyncRequests))]
+    public void GivenAnotherOperationRuns_WhenAWritingRequestIsMade_ThenItIsRefusedAndNothingStarts(
+        RunningOperationKind running,
+        WritingRequest request)
     {
         var (state, tabId) = Opened();
         var busy = AppReducerTestState.WithRunning(state, tabId, running);
 
-        var update = AppReducer.Reduce(busy, new StashApplyRequested(tabId, "abc123", false));
+        var update = AppReducer.Reduce(busy, CommandFor(request, tabId));
 
         Assert.DoesNotContain(update.Effects, effect => effect is OperationEffect);
         Assert.Single(update.Effects.OfType<PostStatusEffect>());
@@ -147,29 +174,6 @@ public class OperationExclusionTests
         var update = AppReducer.Reduce(busy, new StashApplyRequested(tabId, "abc123", false));
 
         Assert.IsType<ApplyStashEffect>(Assert.Single(update.Effects));
-    }
-
-    [Fact]
-    public void GivenARunningSync_WhenAStashApplyIsRequested_ThenItIsRefusedBecauseAPullWritesTheTree()
-    {
-        var (state, tabId) = Opened();
-        var busy = AppReducerTestState.WithRunning(state, tabId, RunningOperationKind.Sync);
-
-        var update = AppReducer.Reduce(busy, new StashApplyRequested(tabId, "abc123", false));
-
-        Assert.DoesNotContain(update.Effects, effect => effect is OperationEffect);
-    }
-
-    [Theory]
-    [MemberData(nameof(WriterKinds))]
-    public void GivenAWorkingTreeWriterRuns_WhenAPullIsRequested_ThenItIsRefused(RunningOperationKind running)
-    {
-        var (state, tabId) = Opened();
-        var busy = AppReducerTestState.WithRunning(state, tabId, running);
-
-        var update = AppReducer.Reduce(busy, new SyncRequested(tabId, SyncKind.Pull));
-
-        Assert.DoesNotContain(update.Effects, effect => effect is OperationEffect);
     }
 
     [Fact]
@@ -198,95 +202,6 @@ public class OperationExclusionTests
         Assert.Single(update.Effects.OfType<PostStatusEffect>());
     }
 
-    [Theory]
-    [MemberData(nameof(WriterKinds))]
-    public void GivenAWorkingTreeWriterRuns_WhenTheRebaseEditorIsOpened_ThenItIsRefusedAndNothingStarts(
-        RunningOperationKind running)
-    {
-        var (state, tabId) = Opened();
-        var busy = AppReducerTestState.WithRunning(state, tabId, running);
-
-        var update = AppReducer.Reduce(
-            busy,
-            new RebaseEditorOpenRequested(tabId, new RebaseSelection(null, null, Target), false));
-
-        Assert.DoesNotContain(update.Effects, effect => effect is OperationEffect);
-        Assert.Equal(BusyNotice, Assert.Single(update.Effects.OfType<PostStatusEffect>()).Text);
-    }
-
-    [Theory]
-    [MemberData(nameof(WriterAndSyncKinds))]
-    public void GivenAnotherOperationRuns_WhenACherryPickIsRequested_ThenItIsRefusedAndNothingStarts(
-        RunningOperationKind running)
-    {
-        var (state, tabId) = Opened();
-        var busy = AppReducerTestState.WithRunning(state, tabId, running);
-
-        var update = AppReducer.Reduce(
-            busy,
-            new PickRequested(tabId, PickKind.CherryPick, new PickTarget(null, ["abc"])));
-
-        Assert.DoesNotContain(update.Effects, effect => effect is OperationEffect);
-        Assert.Single(update.Effects.OfType<PostStatusEffect>());
-    }
-
-    [Theory]
-    [MemberData(nameof(WriterAndSyncKinds))]
-    public void GivenAnotherOperationRuns_WhenARebaseIsRequested_ThenItIsRefusedAndNothingStarts(
-        RunningOperationKind running)
-    {
-        var (state, tabId) = Opened();
-        var busy = AppReducerTestState.WithRunning(state, tabId, running);
-
-        var update = AppReducer.Reduce(busy, new RebaseOntoRequested(tabId, new RebaseSelection(null, null, Target)));
-
-        Assert.DoesNotContain(update.Effects, effect => effect is OperationEffect);
-        Assert.Single(update.Effects.OfType<PostStatusEffect>());
-    }
-
-    [Theory]
-    [MemberData(nameof(WriterAndSyncKinds))]
-    public void GivenAnotherOperationRuns_WhenABranchIsCreatedAndCheckedOut_ThenItIsRefusedAndNothingStarts(
-        RunningOperationKind running)
-    {
-        var (state, tabId) = Opened();
-        var busy = AppReducerTestState.WithRunning(state, tabId, running);
-
-        var update = AppReducer.Reduce(busy, new BranchCreateAtRequested(tabId, Target, true));
-
-        Assert.DoesNotContain(update.Effects, effect => effect is OperationEffect);
-        Assert.Single(update.Effects.OfType<PostStatusEffect>());
-    }
-
-    [Theory]
-    [MemberData(nameof(WriterAndSyncKinds))]
-    public void GivenAnotherOperationRuns_WhenAMergeIsRequested_ThenItIsRefusedAndNothingStarts(
-        RunningOperationKind running)
-    {
-        var (state, tabId) = Opened();
-        var busy = AppReducerTestState.WithRunning(state, tabId, running);
-
-        var update = AppReducer.Reduce(
-            busy,
-            new MergeRequested(tabId, MergeMode.Default, new MergeTarget(Target, "topic")));
-
-        Assert.DoesNotContain(update.Effects, effect => effect is OperationEffect);
-        Assert.Single(update.Effects.OfType<PostStatusEffect>());
-    }
-
-    [Theory]
-    [MemberData(nameof(WriterAndSyncKinds))]
-    public void GivenAnotherOperationRuns_WhenAFetchIsRequested_ThenItIsRefusedAndNothingStarts(
-        RunningOperationKind running)
-    {
-        var (state, tabId) = Opened();
-        var busy = AppReducerTestState.WithRunning(state, tabId, running);
-
-        var update = AppReducer.Reduce(busy, new SyncRequested(tabId, SyncKind.Fetch));
-
-        Assert.DoesNotContain(update.Effects, effect => effect is OperationEffect);
-    }
-
     [Fact]
     public void GivenARunningRemoteOperation_WhenAPushIsRequested_ThenItIsRefused()
     {
@@ -298,6 +213,22 @@ public class OperationExclusionTests
         Assert.DoesNotContain(update.Effects, effect => effect is OperationEffect);
         Assert.Equal(SyncReducer.OtherBusyNotice, Assert.Single(update.Effects.OfType<PostStatusEffect>()).Text);
     }
+
+    private static AppCommand CommandFor(WritingRequest request, TabId tabId) => request switch
+    {
+        WritingRequest.StashApply => new StashApplyRequested(tabId, "abc123", false),
+        WritingRequest.Pull => new SyncRequested(tabId, SyncKind.Pull),
+        WritingRequest.RebaseEditor => new RebaseEditorOpenRequested(
+            tabId,
+            new RebaseSelection(null, null, Target),
+            false),
+        WritingRequest.CherryPick => new PickRequested(tabId, PickKind.CherryPick, new PickTarget(null, ["abc"])),
+        WritingRequest.Rebase => new RebaseOntoRequested(tabId, new RebaseSelection(null, null, Target)),
+        WritingRequest.BranchCreateAndCheckout => new BranchCreateAtRequested(tabId, Target, true),
+        WritingRequest.Merge => new MergeRequested(tabId, MergeMode.Default, new MergeTarget(Target, "topic")),
+        WritingRequest.Fetch => new SyncRequested(tabId, SyncKind.Fetch),
+        _ => throw new ArgumentOutOfRangeException(nameof(request)),
+    };
 
     private static (AppState State, TabId TabId) Opened()
     {

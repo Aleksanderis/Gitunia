@@ -16,37 +16,6 @@ public class ConfigTextEditorTests
     }
 
     [Fact]
-    public void GivenAListValue_WhenSettingAMultiLineArray_ThenOnlyTheArrayIsReplaced()
-    {
-        const string text = "{\n  // roots\n  \"scanRoots\": [\n    \"/a\",\n  ],\n  \"theme\": \"dark\"\n}\n";
-
-        var result = ConfigTextEditor.Set(text, ["scanRoots"], ConfigTextEditor.StringListValue(["/a", "/b"]));
-
-        Assert.Equal(
-            "{\n  // roots\n  \"scanRoots\": [\"/a\", \"/b\"],\n  \"theme\": \"dark\"\n}\n",
-            result.Text);
-    }
-
-    [Fact]
-    public void GivenAnExistingKey_WhenSetting_ThenOnlyTheValueChangesAndCommentsStay()
-    {
-        const string text = "{\n  // Pick one.\n  \"frameStyle\": \"rounded\", // trailing\n  \"scanRoots\": [],\n}\n";
-
-        var result = ConfigTextEditor.Set(text, ["frameStyle"], Quoted);
-
-        Assert.True(result.Edited);
-        Assert.Equal(text.Replace("\"rounded\"", Quoted, StringComparison.Ordinal), result.Text);
-    }
-
-    [Fact]
-    public void GivenKeyInOtherCase_WhenSetting_ThenTheExistingMemberIsChangedNotDuplicated()
-    {
-        var result = ConfigTextEditor.Set("{ \"FrameStyle\": \"rounded\" }", ["frameStyle"], Quoted);
-
-        Assert.Equal("{ \"FrameStyle\": \"square\" }", result.Text);
-    }
-
-    [Fact]
     public void GivenDuplicateKeys_WhenSetting_ThenTheLastIsChangedAndShadowingIsReported()
     {
         const string text = "{ \"theme\": \"a\", \"theme\": \"b\" }";
@@ -55,54 +24,6 @@ public class ConfigTextEditorTests
 
         Assert.Equal("{ \"theme\": \"a\", \"theme\": \"c\" }", result.Text);
         Assert.True(result.Shadowed);
-    }
-
-    [Fact]
-    public void GivenAMissingKeyInAMultiLineObject_WhenSetting_ThenItIsAppendedLikeTheOthers()
-    {
-        const string text = "{\n    \"theme\": \"auto\" // keep\n}\n";
-
-        var result = ConfigTextEditor.Set(text, ["frameStyle"], Quoted);
-
-        Assert.Equal("{\n    \"theme\": \"auto\", // keep\n    \"frameStyle\": \"square\"\n}\n", result.Text);
-    }
-
-    [Fact]
-    public void GivenATrailingComma_WhenInserting_ThenNoSecondCommaIsAdded()
-    {
-        const string text = "{\n  \"theme\": \"auto\",\n}";
-
-        var result = ConfigTextEditor.Set(text, ["frameStyle"], Quoted);
-
-        Assert.Equal("{\n  \"theme\": \"auto\",\n  \"frameStyle\": \"square\"\n}", result.Text);
-    }
-
-    [Fact]
-    public void GivenACrLfFile_WhenInserting_ThenNewLinesUseCrLf()
-    {
-        const string text = "{\r\n  \"theme\": \"auto\"\r\n}\r\n";
-
-        var result = ConfigTextEditor.Set(text, ["frameStyle"], Quoted);
-
-        Assert.Equal("{\r\n  \"theme\": \"auto\",\r\n  \"frameStyle\": \"square\"\r\n}\r\n", result.Text);
-    }
-
-    [Fact]
-    public void GivenTabIndent_WhenInsertingIntoAnEmptyNestedObject_ThenTabsAreUsed()
-    {
-        const string text = "{\n\t\"tabs\": {}\n}";
-
-        var result = ConfigTextEditor.Set(text, ["tabs", "showBranch"], "true");
-
-        Assert.Equal("{\n\t\"tabs\": {\n\t\t\"showBranch\": true\n\t}\n}", result.Text);
-    }
-
-    [Fact]
-    public void GivenASingleLineObject_WhenInserting_ThenTheMemberStaysOnTheLine()
-    {
-        var result = ConfigTextEditor.Set("{ \"theme\": \"auto\" }", ["frameStyle"], Quoted);
-
-        Assert.Equal("{ \"theme\": \"auto\", \"frameStyle\": \"square\" }", result.Text);
     }
 
     [Theory]
@@ -117,36 +38,6 @@ public class ConfigTextEditorTests
         Assert.True(result.Edited);
         Assert.Contains("\"theme\": \"dark\"", result.Text, StringComparison.Ordinal);
         Assert.Equal("dark", JsonDocument.Parse(result.Text).RootElement.GetProperty("theme").GetString());
-    }
-
-    [Fact]
-    public void GivenACommentOnlyFile_WhenSetting_ThenTheCommentIsKeptAndTheObjectFollows()
-    {
-        const string text = "// my config\n";
-
-        var result = ConfigTextEditor.Set(text, ["theme"], "\"dark\"");
-
-        Assert.Equal("// my config\n{\n  \"theme\": \"dark\"\n}\n", result.Text);
-    }
-
-    [Fact]
-    public void GivenAMissingNestedKey_WhenSetting_ThenTheParentIsCreatedOnOneLine()
-    {
-        const string text = "{\n  \"theme\": \"auto\"\n}";
-
-        var result = ConfigTextEditor.Set(text, ["tabs", "showBranch"], "true");
-
-        Assert.Equal("{\n  \"theme\": \"auto\",\n  \"tabs\": { \"showBranch\": true }\n}", result.Text);
-    }
-
-    [Fact]
-    public void GivenAnExistingParent_WhenInsertingANestedKey_ThenItGoesIntoThatParent()
-    {
-        const string text = "{\n  \"tabs\": {\n    \"other\": 1\n  }\n}";
-
-        var result = ConfigTextEditor.Set(text, ["tabs", "showBranch"], "true");
-
-        Assert.Equal("{\n  \"tabs\": {\n    \"other\": 1,\n    \"showBranch\": true\n  }\n}", result.Text);
     }
 
     [Theory]
@@ -174,27 +65,43 @@ public class ConfigTextEditorTests
         Assert.Contains("line 3", result.Message, StringComparison.Ordinal);
     }
 
-    [Fact]
-    public void GivenABlockCommentAfterTheLastMember_WhenInserting_ThenTheMemberIsNeverHiddenInTheComment()
+    [Theory]
+    [InlineData("{\n  \"a\": 1 /* x\n y */ }", "b", "true")] // A member would be hidden in the block comment.
+    [InlineData("[]", "theme", "1")] // The top level is an array.
+    [InlineData("{}", "theme", "1, \"x\": 2")] // The value is not one JSON value.
+    public void GivenATextOrValueItCannotEdit_WhenSetting_ThenItIsRefusedAndTheTextStays(
+        string text,
+        string key,
+        string value)
     {
-        const string text = "{\n  \"a\": 1 /* x\n y */ }";
-
-        var result = ConfigTextEditor.Set(text, ["b"], "true");
+        var result = ConfigTextEditor.Set(text, [key], value);
 
         Assert.False(result.Edited);
         Assert.Equal(text, result.Text);
     }
 
-    [Fact]
-    public void GivenATopLevelArray_WhenSetting_ThenItIsRefused()
+    [Theory]
+    [InlineData("{\n  // roots\n  \"scanRoots\": [\n    \"/a\",\n  ],\n  \"theme\": \"dark\"\n}\n", "scanRoots", "[\"/a\", \"/b\"]", "{\n  // roots\n  \"scanRoots\": [\"/a\", \"/b\"],\n  \"theme\": \"dark\"\n}\n")] // Only the multi-line array is replaced.
+    [InlineData("{\n  // Pick one.\n  \"frameStyle\": \"rounded\", // trailing\n  \"scanRoots\": [],\n}\n", "frameStyle", Quoted, "{\n  // Pick one.\n  \"frameStyle\": \"square\", // trailing\n  \"scanRoots\": [],\n}\n")] // Only the value changes, comments stay.
+    [InlineData("{ \"FrameStyle\": \"rounded\" }", "frameStyle", Quoted, "{ \"FrameStyle\": \"square\" }")] // Other case: changed, not duplicated.
+    [InlineData("{\n    \"theme\": \"auto\" // keep\n}\n", "frameStyle", Quoted, "{\n    \"theme\": \"auto\", // keep\n    \"frameStyle\": \"square\"\n}\n")] // Appended like the others.
+    [InlineData("{\n  \"theme\": \"auto\",\n}", "frameStyle", Quoted, "{\n  \"theme\": \"auto\",\n  \"frameStyle\": \"square\"\n}")] // A trailing comma gets no second one.
+    [InlineData("{\r\n  \"theme\": \"auto\"\r\n}\r\n", "frameStyle", Quoted, "{\r\n  \"theme\": \"auto\",\r\n  \"frameStyle\": \"square\"\r\n}\r\n")] // CRLF files keep CRLF.
+    [InlineData("{\n\t\"tabs\": {}\n}", "tabs/showBranch", "true", "{\n\t\"tabs\": {\n\t\t\"showBranch\": true\n\t}\n}")] // Tab indent in an empty nested object.
+    [InlineData("{ \"theme\": \"auto\" }", "frameStyle", Quoted, "{ \"theme\": \"auto\", \"frameStyle\": \"square\" }")] // A single-line object stays on the line.
+    [InlineData("// my config\n", "theme", "\"dark\"", "// my config\n{\n  \"theme\": \"dark\"\n}\n")] // A comment-only file keeps the comment.
+    [InlineData("{\n  \"theme\": \"auto\"\n}", "tabs/showBranch", "true", "{\n  \"theme\": \"auto\",\n  \"tabs\": { \"showBranch\": true }\n}")] // A missing parent is created on one line.
+    [InlineData("{\n  \"tabs\": {\n    \"other\": 1\n  }\n}", "tabs/showBranch", "true", "{\n  \"tabs\": {\n    \"other\": 1,\n    \"showBranch\": true\n  }\n}")] // An existing parent receives the key.
+    public void GivenAText_WhenSettingAKey_ThenOnlyThatPartChangesAndTheStyleIsKept(
+        string text,
+        string path,
+        string value,
+        string expected)
     {
-        Assert.False(ConfigTextEditor.Set("[]", ["theme"], "1").Edited);
-    }
+        var result = ConfigTextEditor.Set(text, path.Split('/'), value);
 
-    [Fact]
-    public void GivenAValueThatIsNotOneJsonValue_WhenSetting_ThenItIsRefused()
-    {
-        Assert.False(ConfigTextEditor.Set("{}", ["theme"], "1, \"x\": 2").Edited);
+        Assert.True(result.Edited);
+        Assert.Equal(expected, result.Text);
     }
 
     [Fact]

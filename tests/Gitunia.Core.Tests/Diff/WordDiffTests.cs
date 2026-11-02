@@ -6,89 +6,38 @@ namespace Gitunia.Core.Tests.Diff;
 [Trait("Os", "Independent")]
 public class WordDiffTests
 {
-    [Fact]
-    public void GivenOneChangedWord_WhenComparing_ThenOnlyThatWordIsMarkedOnEachSide()
+    // The marked stretches of each side are joined with '|'.
+    [Theory]
+    [InlineData("var total = count + 1;", "var total = amount + 1;", "count", "amount")] // Only the changed word.
+    [InlineData("call(a, b)", "call(a, extra, b)", "", "extra, ")] // An inserted word: nothing to mark on the old side.
+    [InlineData("alpha keep beta", "gamma keep delta", "alpha|beta", "gamma|delta")] // Words apart: two stretches.
+    [InlineData("keep one two end", "keep three four end", "one two", "three four")] // Neighbours: one stretch.
+    [InlineData("    return x;", "\t\treturn x;", "    ", "\t\t")] // Only the indentation changed.
+    [InlineData("line", "line\r", "", "\r")] // A gained carriage return.
+    [InlineData("a 😀 b", "a 😁 b", "😀", "😁")] // A surrogate pair is never split.
+    public void GivenTwoLines_WhenComparing_ThenOnlyTheChangedStretchesAreMarkedOnEachSide(
+        string oldText,
+        string newText,
+        string expectedOld,
+        string expectedNew)
     {
-        var result = WordDiff.Compare("var total = count + 1;", "var total = amount + 1;");
+        var result = WordDiff.Compare(oldText, newText);
 
-        Assert.Equal(["count"], Texts("var total = count + 1;", result.Old));
-        Assert.Equal(["amount"], Texts("var total = amount + 1;", result.New));
+        Assert.Equal(expectedOld, string.Join('|', Texts(oldText, result.Old)));
+        Assert.Equal(expectedNew, string.Join('|', Texts(newText, result.New)));
     }
 
-    [Fact]
-    public void GivenAnInsertedWord_WhenComparing_ThenTheOldSideHasNothingToMark()
+    [Theory]
+    [InlineData("same", "same")]
+    [InlineData("one two", "three four")] // Nothing shared but spaces.
+    [InlineData("", "text")]
+    [InlineData("text", "")]
+    public void GivenLinesWithNothingToPair_WhenComparing_ThenNothingIsMarked(string oldText, string newText)
     {
-        var result = WordDiff.Compare("call(a, b)", "call(a, extra, b)");
-
-        Assert.Empty(result.Old);
-        Assert.Equal(["extra, "], Texts("call(a, extra, b)", result.New));
-    }
-
-    [Fact]
-    public void GivenTwoChangedWordsApartFromEachOther_WhenComparing_ThenTheyAreTwoStretches()
-    {
-        var result = WordDiff.Compare("alpha keep beta", "gamma keep delta");
-
-        Assert.Equal(["alpha", "beta"], Texts("alpha keep beta", result.Old));
-        Assert.Equal(["gamma", "delta"], Texts("gamma keep delta", result.New));
-    }
-
-    [Fact]
-    public void GivenNeighbouringChangedWordsSeparatedByASpace_WhenComparing_ThenTheyAreOneStretch()
-    {
-        var result = WordDiff.Compare("keep one two end", "keep three four end");
-
-        Assert.Equal(["one two"], Texts("keep one two end", result.Old));
-        Assert.Equal(["three four"], Texts("keep three four end", result.New));
-    }
-
-    [Fact]
-    public void GivenOnlyIndentationChanged_WhenComparing_ThenTheWhitespaceIsMarked()
-    {
-        var result = WordDiff.Compare("    return x;", "\t\treturn x;");
-
-        Assert.Equal(["    "], Texts("    return x;", result.Old));
-        Assert.Equal(["\t\t"], Texts("\t\treturn x;", result.New));
-    }
-
-    [Fact]
-    public void GivenAGainedCarriageReturn_WhenComparing_ThenItIsMarked()
-    {
-        var result = WordDiff.Compare("line", "line\r");
-
-        Assert.Empty(result.Old);
-        Assert.Equal(["\r"], Texts("line\r", result.New));
-    }
-
-    [Fact]
-    public void GivenIdenticalLines_WhenComparing_ThenNothingIsMarked()
-    {
-        Assert.Same(WordDiffResult.None, WordDiff.Compare("same", "same"));
-    }
-
-    [Fact]
-    public void GivenLinesThatShareNothingButSpaces_WhenComparing_ThenNothingIsMarked()
-    {
-        var result = WordDiff.Compare("one two", "three four");
+        var result = WordDiff.Compare(oldText, newText);
 
         Assert.Empty(result.Old);
         Assert.Empty(result.New);
-    }
-
-    [Fact]
-    public void GivenAnEmptyLine_WhenComparing_ThenNothingIsMarked()
-    {
-        Assert.Empty(WordDiff.Compare(string.Empty, "text").New);
-        Assert.Empty(WordDiff.Compare("text", string.Empty).Old);
-    }
-
-    [Fact]
-    public void GivenSurrogatePairsInAWord_WhenComparing_ThenThePairIsNeverSplit()
-    {
-        var result = WordDiff.Compare("a 😀 b", "a 😁 b");
-
-        Assert.Equal(["😀"], Texts("a 😀 b", result.Old));
-        Assert.Equal(["😁"], Texts("a 😁 b", result.New));
     }
 
     [Fact]

@@ -1,6 +1,8 @@
 using Gitunia.Core.Discard;
 using Gitunia.Core.Integration;
 using Gitunia.Core.Running;
+using Gitunia.Core.Pick;
+using Gitunia.Core.Rebase;
 using Gitunia.Core.Remotes;
 using Gitunia.Core.Stash;
 using Gitunia.Core.Tags;
@@ -10,6 +12,8 @@ using Gitunia.Core.Worktrees;
 using Gitunia.Core.Staging;
 using Gitunia.Git.Commits.Models;
 using Gitunia.Git.Merge;
+using Gitunia.Git.Pick;
+using Gitunia.Git.Rebase;
 using Gitunia.Git.Operations.Models;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Reset;
@@ -75,189 +79,42 @@ public class RunningOperationsTests
         Assert.Equal(2, Assert.Single(stepped.Items).Id);
     }
 
-    [Fact]
-    public void GivenEveryConcreteDiscardEffect_WhenInspectingIt_ThenItIsAnOperationEffectOfKindDiscard()
+    [Theory]
+    [InlineData(RunningOperationKind.Discard)]
+    [InlineData(RunningOperationKind.Tags)]
+    [InlineData(RunningOperationKind.Remotes)]
+    [InlineData(RunningOperationKind.Stash)]
+    [InlineData(RunningOperationKind.Integration)]
+    [InlineData(RunningOperationKind.Worktrees)]
+    [InlineData(RunningOperationKind.Pick)]
+    [InlineData(RunningOperationKind.Rebase)]
+    public void GivenEveryConcreteEffectOfAFeature_WhenInspectingIt_ThenItIsAnOperationEffectOfThatKind(RunningOperationKind kind)
     {
         // Built through the constructors: an uninitialised instance would show the enum's first value, not the kind.
-        DiscardEffect[] effects =
-        [
-            new DiscardFilesEffect(Tab, Location(), [], 0),
-            new DiscardSelectionEffect(
-                Tab,
-                Location(),
-                new StagingSelection(WorkingDiffSide.Unstaged, null!, [], false),
-                true,
-                null),
-        ];
+        var (concrete, built) = EffectsOf(kind);
 
-        Assert.Equal(2, effects.Length);
-        Assert.All(effects, effect => Assert.Equal(RunningOperationKind.Discard, effect.Kind));
-        Assert.All(effects, effect => Assert.Equal(Tab, effect.TabId));
+        Assert.NotEmpty(concrete);
+        Assert.All(concrete, effect => Assert.IsAssignableFrom<OperationEffect>(effect));
+        Assert.Equal(concrete.Count, built.Length);
+        Assert.All(built, effect => Assert.Equal(kind, effect.Kind));
+        Assert.All(built, effect => Assert.Equal(Tab, effect.TabId));
     }
 
-    [Fact]
-    public void GivenEveryConcreteDiscardResultCommand_WhenInspectingIt_ThenItEndsTheKindDiscard()
+    [Theory]
+    [InlineData(RunningOperationKind.Discard)]
+    [InlineData(RunningOperationKind.Tags)]
+    [InlineData(RunningOperationKind.Remotes)]
+    [InlineData(RunningOperationKind.Stash)]
+    [InlineData(RunningOperationKind.Integration)]
+    [InlineData(RunningOperationKind.Worktrees)]
+    [InlineData(RunningOperationKind.Pick)]
+    [InlineData(RunningOperationKind.Rebase)]
+    public void GivenEveryConcreteResultCommandOfAFeature_WhenInspectingIt_ThenItEndsTheKindOfItsFeature(RunningOperationKind kind)
     {
-        var results = ConcreteSubtypes.InstancesOf<DiscardCommand>().OfType<IOperationResult>().ToArray();
+        var results = ResultsOf(kind);
 
         Assert.NotEmpty(results);
-        Assert.All(results, result => Assert.Equal(RunningOperationKind.Discard, result.Kind));
-    }
-
-    [Fact]
-    public void GivenEveryConcreteTagEffect_WhenInspectingIt_ThenItIsAnOperationEffectOfKindTags()
-    {
-        // Built through the constructors: an uninitialised instance would show the enum's first value, not the kind.
-        TagEffect[] effects =
-        [
-            new CreateTagEffect(Tab, Location(), "v1", "x", string.Empty, "x"),
-            new DeleteTagEffect(Tab, Location(), "v1", "x"),
-            new ListTagRemotesEffect(Tab, Location(), "v1", false),
-            new PushTagEffect(Tab, Location(), "origin", "v1"),
-            new DeleteTagOnRemoteEffect(Tab, Location(), "origin", "v1"),
-        ];
-
-        // Instances are uninitialised (the constructor does not run), so only a built one shows the kind.
-        Assert.NotEmpty(effects);
-        Assert.All(effects, effect => Assert.IsAssignableFrom<OperationEffect>(effect));
-        Assert.Equal(RunningOperationKind.Tags, Delete(Tab).Kind);
-    }
-
-    [Fact]
-    public void GivenEveryConcreteResultCommand_WhenInspectingIt_ThenItEndsTheKindOfItsFeature()
-    {
-        var results = ConcreteSubtypes.InstancesOf<TagCommand>().OfType<IOperationResult>().ToArray();
-
-        Assert.NotEmpty(results);
-        Assert.All(results, result => Assert.Equal(RunningOperationKind.Tags, result.Kind));
-    }
-
-    [Fact]
-    public void GivenEveryConcreteRemoteEffect_WhenInspectingIt_ThenItIsAnOperationEffectOfKindRemotes()
-    {
-        var effects = ConcreteSubtypes.InstancesOf<RemoteEffect>();
-        var location = Location();
-
-        // Instances are uninitialised (the constructor does not run), so one built per type shows the kind.
-        Assert.NotEmpty(effects);
-        Assert.All(effects, effect => Assert.IsAssignableFrom<OperationEffect>(effect));
-        RemoteEffect[] built =
-        [
-            new ListRemotesEffect(Tab, location, RemoteAction.Add, new RemoteTarget(null, null)),
-            new AddRemoteEffect(Tab, location, "a", "u"),
-            new RemoveRemoteEffect(Tab, location, "a", "u"),
-            new RenameRemoteEffect(Tab, location, "a", "b"),
-            new SetRemoteUrlEffect(Tab, location, "a", "u", "v"),
-        ];
-        Assert.Equal(effects.Count, built.Length);
-        Assert.All(built, effect => Assert.Equal(RunningOperationKind.Remotes, effect.Kind));
-    }
-
-    [Fact]
-    public void GivenEveryConcreteRemoteResultCommand_WhenInspectingIt_ThenItEndsTheKindRemotes()
-    {
-        var results = ConcreteSubtypes.InstancesOf<RemoteCommand>().OfType<IOperationResult>().ToArray();
-
-        Assert.NotEmpty(results);
-        Assert.All(results, result => Assert.Equal(RunningOperationKind.Remotes, result.Kind));
-    }
-
-    [Fact]
-    public void GivenEveryConcreteStashEffect_WhenInspectingIt_ThenItIsAnOperationEffectOfKindStash()
-    {
-        var effects = ConcreteSubtypes.InstancesOf<StashEffect>();
-        var location = Location();
-        var entry = new StashEntry(0, "stash@{0}", "abc", "m");
-        var file = new StashFileChange(
-            new CommitFileChange("a", null, FileChangeKind.Added, null),
-            StashFileOrigin.Tracked);
-        var target = new StashFileTarget(entry, file);
-
-        // Instances are uninitialised (the constructor does not run), so one built per type shows the kind.
-        Assert.NotEmpty(effects);
-        Assert.All(effects, effect => Assert.IsAssignableFrom<OperationEffect>(effect));
-        StashEffect[] built =
-        [
-            new PushStashEffect(Tab, location, "m", false),
-            new ApplyStashEffect(Tab, location, entry, false),
-            new DropStashEffect(Tab, location, entry),
-            new CheckStashRestoreEffect(Tab, location, target),
-            new RestoreStashFileEffect(Tab, location, target),
-        ];
-        Assert.Equal(effects.Count, built.Length);
-        Assert.All(built, effect => Assert.Equal(RunningOperationKind.Stash, effect.Kind));
-    }
-
-    [Fact]
-    public void GivenEveryConcreteStashResultCommand_WhenInspectingIt_ThenItEndsTheKindStash()
-    {
-        var results = ConcreteSubtypes.InstancesOf<StashCommand>().OfType<IOperationResult>().ToArray();
-
-        Assert.NotEmpty(results);
-        Assert.All(results, result => Assert.Equal(RunningOperationKind.Stash, result.Kind));
-    }
-
-    [Fact]
-    public void GivenEveryConcreteIntegrationEffect_WhenInspectingIt_ThenItIsAnOperationEffectOfKindIntegration()
-    {
-        var effects = ConcreteSubtypes.InstancesOf<IntegrationEffect>();
-        var location = Location();
-        var target = new ResetTarget("abc", "main", ResetMode.Soft);
-        var info = new OperationInfo(RepositoryOperation.Merge, null, null, null, null, null, null, null);
-
-        // Instances are uninitialised (the constructor does not run), so one built per type shows the kind.
-        Assert.NotEmpty(effects);
-        Assert.All(effects, effect => Assert.IsAssignableFrom<OperationEffect>(effect));
-        IntegrationEffect[] built =
-        [
-            new PrepareResetEffect(Tab, location, target),
-            new ResetBranchEffect(Tab, location, target),
-            new MergeBranchEffect(Tab, location, "main", new MergeTarget("t", "t"), MergeMode.Default),
-            new ContinueOperationEffect(Tab, location, info, "main"),
-            new AbortOperationEffect(Tab, location, info, "main"),
-            new SkipOperationEffect(Tab, location, info),
-        ];
-        Assert.Equal(effects.Count, built.Length);
-        Assert.All(built, effect => Assert.Equal(RunningOperationKind.Integration, effect.Kind));
-    }
-
-    [Fact]
-    public void GivenEveryConcreteIntegrationResultCommand_WhenInspectingIt_ThenItEndsTheKindIntegration()
-    {
-        var results = ConcreteSubtypes.InstancesOf<IntegrationCommand>().OfType<IOperationResult>().ToArray();
-
-        Assert.NotEmpty(results);
-        Assert.All(results, result => Assert.Equal(RunningOperationKind.Integration, result.Kind));
-    }
-
-    [Fact]
-    public void GivenEveryConcreteWorktreeEffect_WhenInspectingIt_ThenItIsAnOperationEffectOfKindWorktrees()
-    {
-        var effects = ConcreteSubtypes.InstancesOf<WorktreeEffect>();
-        var location = Location();
-
-        // Instances are uninitialised (the constructor does not run), so one built per type shows the kind.
-        Assert.NotEmpty(effects);
-        Assert.All(effects, effect => Assert.IsAssignableFrom<OperationEffect>(effect));
-        WorktreeEffect[] built =
-        [
-            new AddWorktreeEffect(Tab, location, new WorktreeAddRequest("p", "b", null), false),
-            new RemoveWorktreeEffect(Tab, location, "p", false),
-            new LockWorktreeEffect(Tab, location, "p", string.Empty),
-            new UnlockWorktreeEffect(Tab, location, "p"),
-            new PruneWorktreesEffect(Tab, location),
-        ];
-        Assert.Equal(effects.Count, built.Length);
-        Assert.All(built, effect => Assert.Equal(RunningOperationKind.Worktrees, effect.Kind));
-    }
-
-    [Fact]
-    public void GivenEveryConcreteWorktreeResultCommand_WhenInspectingIt_ThenItEndsTheKindWorktrees()
-    {
-        var results = ConcreteSubtypes.InstancesOf<WorktreeCommand>().OfType<IOperationResult>().ToArray();
-
-        Assert.NotEmpty(results);
-        Assert.All(results, result => Assert.Equal(RunningOperationKind.Worktrees, result.Kind));
+        Assert.All(results, result => Assert.Equal(kind, result.Kind));
     }
 
     [Fact]
@@ -265,6 +122,123 @@ public class RunningOperationsTests
     {
         Assert.False(typeof(OperationEffect).IsAssignableFrom(typeof(LocateWorktreeEffect)));
     }
+
+    private static IOperationResult[] ResultsOf(RunningOperationKind kind) => kind switch
+    {
+        RunningOperationKind.Discard => Results<DiscardCommand>(),
+        RunningOperationKind.Tags => Results<TagCommand>(),
+        RunningOperationKind.Remotes => Results<RemoteCommand>(),
+        RunningOperationKind.Stash => Results<StashCommand>(),
+        RunningOperationKind.Integration => Results<IntegrationCommand>(),
+        RunningOperationKind.Worktrees => Results<WorktreeCommand>(),
+        RunningOperationKind.Pick => Results<PickCommand>(),
+        RunningOperationKind.Rebase => Results<RebaseCommand>(),
+        _ => throw new ArgumentOutOfRangeException(nameof(kind)),
+    };
+
+    private static IOperationResult[] Results<T>()
+        where T : class => [.. ConcreteSubtypes.InstancesOf<T>().OfType<IOperationResult>()];
+
+    // The concrete effect types found by reflection, and one instance of each built through its constructor.
+    private static EffectSet EffectsOf(RunningOperationKind kind)
+    {
+        var location = Location();
+        switch (kind)
+        {
+            case RunningOperationKind.Discard:
+                return new EffectSet(
+                    ConcreteSubtypes.InstancesOf<DiscardEffect>(),
+                    [
+                        new DiscardFilesEffect(Tab, location, [], 0),
+                        new DiscardSelectionEffect(
+                            Tab,
+                            location,
+                            new StagingSelection(WorkingDiffSide.Unstaged, null!, [], false),
+                            true,
+                            null),
+                    ]);
+            case RunningOperationKind.Tags:
+                return new EffectSet(
+                    ConcreteSubtypes.InstancesOf<TagEffect>(),
+                    [
+                        new CreateTagEffect(Tab, location, "v1", "x", string.Empty, "x"),
+                        new DeleteTagEffect(Tab, location, "v1", "x"),
+                        new ListTagRemotesEffect(Tab, location, "v1", false),
+                        new PushTagEffect(Tab, location, "origin", "v1"),
+                        new DeleteTagOnRemoteEffect(Tab, location, "origin", "v1"),
+                    ]);
+            case RunningOperationKind.Remotes:
+                return new EffectSet(
+                    ConcreteSubtypes.InstancesOf<RemoteEffect>(),
+                    [
+                        new ListRemotesEffect(Tab, location, RemoteAction.Add, new RemoteTarget(null, null)),
+                        new AddRemoteEffect(Tab, location, "a", "u"),
+                        new RemoveRemoteEffect(Tab, location, "a", "u"),
+                        new RenameRemoteEffect(Tab, location, "a", "b"),
+                        new SetRemoteUrlEffect(Tab, location, "a", "u", "v"),
+                    ]);
+            case RunningOperationKind.Stash:
+                var entry = new StashEntry(0, "stash@{0}", "abc", "m");
+                var file = new StashFileChange(
+                    new CommitFileChange("a", null, FileChangeKind.Added, null),
+                    StashFileOrigin.Tracked);
+                var target = new StashFileTarget(entry, file);
+                return new EffectSet(
+                    ConcreteSubtypes.InstancesOf<StashEffect>(),
+                    [
+                        new PushStashEffect(Tab, location, "m", false),
+                        new ApplyStashEffect(Tab, location, entry, false),
+                        new DropStashEffect(Tab, location, entry),
+                        new CheckStashRestoreEffect(Tab, location, target),
+                        new RestoreStashFileEffect(Tab, location, target),
+                    ]);
+            case RunningOperationKind.Integration:
+                var reset = new ResetTarget("abc", "main", ResetMode.Soft);
+                var info = new OperationInfo(RepositoryOperation.Merge, null, null, null, null, null, null, null);
+                return new EffectSet(
+                    ConcreteSubtypes.InstancesOf<IntegrationEffect>(),
+                    [
+                        new PrepareResetEffect(Tab, location, reset),
+                        new ResetBranchEffect(Tab, location, reset),
+                        new MergeBranchEffect(Tab, location, "main", new MergeTarget("t", "t"), MergeMode.Default),
+                        new ContinueOperationEffect(Tab, location, info, "main"),
+                        new AbortOperationEffect(Tab, location, info, "main"),
+                        new SkipOperationEffect(Tab, location, info),
+                    ]);
+            case RunningOperationKind.Worktrees:
+                return new EffectSet(
+                    ConcreteSubtypes.InstancesOf<WorktreeEffect>(),
+                    [
+                        new AddWorktreeEffect(Tab, location, new WorktreeAddRequest("p", "b", null), false),
+                        new RemoveWorktreeEffect(Tab, location, "p", false),
+                        new LockWorktreeEffect(Tab, location, "p", string.Empty),
+                        new UnlockWorktreeEffect(Tab, location, "p"),
+                        new PruneWorktreesEffect(Tab, location),
+                    ]);
+            case RunningOperationKind.Pick:
+                return new EffectSet(
+                    ConcreteSubtypes.InstancesOf<PickEffect>(),
+                    [
+                        new ReadPickCommitsEffect(Tab, location, PickKind.CherryPick, ["a"]),
+                        new RunPickEffect(Tab, location, PickKind.Revert, [], null, "main"),
+                    ]);
+            case RunningOperationKind.Rebase:
+                var rebase = new RebaseTarget(Tab, "a", "b", "c", "d");
+                var plan = new QuickRebasePlan(QuickRebaseKind.Drop, "a", "m", RebaseBase.Root, [], "h", null);
+                return new EffectSet(
+                    ConcreteSubtypes.InstancesOf<RebaseEffect>(),
+                    [
+                        new CountRebaseMergesEffect(Tab, location, rebase),
+                        new RunRebaseEffect(Tab, location, rebase),
+                        new PlanQuickRebaseEffect(Tab, location, QuickRebaseKind.Drop, "a"),
+                        new RunQuickRebaseEffect(Tab, location, new QuickRebaseTarget(Tab, plan, "main", null)),
+                    ]);
+            default:
+                throw new ArgumentOutOfRangeException(nameof(kind));
+        }
+    }
+
+    private sealed record EffectSet(IReadOnlyCollection<OperationEffect> Concrete, OperationEffect[] Built);
 
     private static DeleteTagEffect Delete(TabId tab) => new(tab, Location(), "v1", "x");
 

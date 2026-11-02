@@ -108,20 +108,16 @@ public class SyncReducerTests
         Assert.Equal(string.Empty, push.Branch);
     }
 
-    [Fact]
-    public void GivenNoCheckedOutBranch_WhenForcePushing_ThenItIsRefused()
+    [Theory]
+    [InlineData(null, "No branch is checked out: nothing to force push")]
+    [InlineData("lonely", "lonely has no upstream: push it first")]
+    public void GivenNothingToForce_WhenForcePushing_ThenItIsRefusedWithoutAConfirm(string? branch, string notice)
     {
-        var update = Reduce(new SyncRequested(Tab, SyncKind.PushForce));
+        var refs = branch is null ? Refs() : Refs(Local(branch, null));
 
-        Assert.Equal("No branch is checked out: nothing to force push", Warning(update.Effects));
-    }
+        var update = Reduce(new SyncRequested(Tab, SyncKind.PushForce), refs);
 
-    [Fact]
-    public void GivenABranchWithoutUpstream_WhenForcePushing_ThenItIsRefusedWithoutAConfirm()
-    {
-        var update = Reduce(new SyncRequested(Tab, SyncKind.PushForce), Refs(Local("lonely", null)));
-
-        Assert.Equal("lonely has no upstream: push it first", Warning(update.Effects));
+        Assert.Equal(notice, Warning(update.Effects));
     }
 
     [Fact]
@@ -378,42 +374,25 @@ public class SyncReducerTests
         Assert.Equal((SyncRemotesPurpose.Force, "topic"), (list.Purpose, list.Branch));
     }
 
-    [Fact]
-    public void GivenABranchOnlyBehind_WhenThePlainPushIsRejected_ThenNoForceIsOffered()
+    [Theory]
+    [InlineData("topic", 0, true, false)] // The branch is only behind, so a force would lose commits.
+    [InlineData("other", 1, true, false)] // Another branch is checked out now.
+    [InlineData("topic", 1, false, false)] // The tab is not the active one.
+    [InlineData("topic", 1, true, true)] // An overlay is open and must not be covered.
+    public void GivenARejectedPlainPush_WhenAForceCannotBeOffered_ThenOnlyTheErrorAndTheRefreshFollow(
+        string checkedOut,
+        int ahead,
+        bool active,
+        bool overlay)
     {
-        var refs = Refs(Local("topic", "refs/remotes/origin/topic", ahead: 0));
+        var refs = Refs(Local(checkedOut, $"refs/remotes/origin/{checkedOut}", ahead: ahead));
 
-        var update = Reduce(Rejected(new SyncRejection("topic", null)), refs, busy: true);
-
-        Assert.Equal(2, update.Effects.Length);
-    }
-
-    [Fact]
-    public void GivenAnotherBranchNow_WhenThePlainPushIsRejected_ThenNoForceIsOffered()
-    {
-        var refs = Refs(Local("other", "refs/remotes/origin/other", ahead: 1));
-
-        var update = Reduce(Rejected(new SyncRejection("topic", null)), refs, busy: true);
-
-        Assert.Equal(2, update.Effects.Length);
-    }
-
-    [Fact]
-    public void GivenTheTabIsNotActive_WhenThePushIsRejected_ThenNoForceIsOffered()
-    {
-        var refs = Refs(Local("topic", "refs/remotes/origin/topic", ahead: 1));
-
-        var update = Reduce(Rejected(new SyncRejection("topic", null)), refs, active: false, busy: true);
-
-        Assert.Equal(2, update.Effects.Length);
-    }
-
-    [Fact]
-    public void GivenAnOverlayIsOpen_WhenThePushIsRejected_ThenNoForceIsOfferedOverIt()
-    {
-        var refs = Refs(Local("topic", "refs/remotes/origin/topic", ahead: 1));
-
-        var update = Reduce(Rejected(new SyncRejection("topic", null)), refs, busy: true, overlay: true);
+        var update = Reduce(
+            Rejected(new SyncRejection("topic", null)),
+            refs,
+            active: active,
+            busy: true,
+            overlay: overlay);
 
         Assert.Equal(2, update.Effects.Length);
     }
