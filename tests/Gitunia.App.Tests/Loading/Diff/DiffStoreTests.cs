@@ -1,3 +1,4 @@
+using Gitunia.App.Loading;
 using Gitunia.App.Loading.Diff;
 using Gitunia.Core.Diff;
 using Gitunia.Git;
@@ -343,7 +344,11 @@ public class DiffStoreTests
     }
 
     private static DiffStore CreateStore(UiPump pump, FakeDiffReader reader, int rowLimit = DiffStore.DefaultRowLimit, Func<TimeSpan, CancellationToken, Task>? delay = null) =>
-        new(reader, FakeCommitDetailsReader.Location, pump.Post, rowLimit, delay: delay);
+        new(
+            reader,
+            FakeCommitDetailsReader.Location,
+            pump,
+            new DiffStoreOptions(rowLimit, Delayer: delay is null ? null : new DelegateDelayer(delay)));
 
     private static async Task<DiffDocument> LoadFakeAsync(UiPump pump, DiffStore store, ObjectId commit, ObjectId? firstParent = null)
     {
@@ -355,7 +360,7 @@ public class DiffStoreTests
     private static async Task<DiffStore> CreateStoreAsync(UiPump pump, TestRepository testRepository)
     {
         var location = await TestGit.Services.Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
-        return new DiffStore(TestGit.Services.Diff, location, pump.Post);
+        return new DiffStore(TestGit.Services.Diff, location, pump);
     }
 
     private static async Task<DiffDocument> LoadAsync(UiPump pump, DiffStore store, TestRepository testRepository, string revision, string? parentRevision)

@@ -51,14 +51,14 @@ public class FileTreeInputTests : IDisposable
         _shell.Host.Dispatch(new TabCommand(tabId, new FocusPaneCommand(PaneKind.Detail)));
         _reader.Add(_entry.Id, Paths);
         var debounce = TimeSpan.FromMilliseconds(1);
-        var store = new CommitTreeStore(_reader, FakeCommitDetailsReader.Location, _pump.Post, debounce);
+        var store = new CommitTreeStore(_reader, FakeCommitDetailsReader.Location, _pump, debounce);
         _session = new TerminalTabSession(
             new TabSessionParts(
                 tabId,
                 new CommitDetailsStore(
                 new FakeCommitDetailsReader(),
                 FakeCommitDetailsReader.Location,
-                _pump.Post,
+                _pump,
                 debounce),
                 Tree: new FileTreeSession(store)),
             GraphGlyphSet.Unicode);

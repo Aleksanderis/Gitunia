@@ -107,7 +107,8 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
     private readonly SyncEffectHandler _sync;
     private readonly TagEffectHandler _tags;
     private readonly WorktreeEffectHandler _worktrees;
-    private readonly Action<Action> _postToUi;
+    private readonly IUiInvoker _ui;
+    private readonly WorkspaceBusySource _busy;
     private readonly StatusReporter _statuses;
     private readonly StatusAgingTimer _statusAging;
     private readonly ITabSessionFactory<TSession> _sessionFactory;
@@ -124,7 +125,7 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
     public EffectRunner(
         GitServices services,
         Dispatcher host,
-        Action<Action> postToUi,
+        IUiInvoker ui,
         ITabSessionFactory<TSession> sessionFactory,
         StatusReporter statuses,
         TimeSpan? detailDebounce = null,
@@ -178,7 +179,8 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
         _detailDebounce = detailDebounce ?? TimeSpan.FromMilliseconds(80);
         _services = services;
         _host = host;
-        _postToUi = postToUi;
+        _ui = ui;
+        _busy = new WorkspaceBusySource(host);
         _sessionFactory = sessionFactory;
         _statuses = statuses;
         _statusAging = new StatusAgingTimer(host);
@@ -251,7 +253,7 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
     /// <inheritdoc />
     public void RefreshThen(TabId tabId, Action done)
     {
-        _postToUi(() =>
+        _ui.Post(() =>
         {
             if (!RefreshStatus(tabId, done))
             {

@@ -174,11 +174,11 @@ public class TabPollerTests
         Assert.Empty(harness.Requests);
     }
 
-    private sealed class Harness : IDisposable
+    private sealed class Harness : IDisposable, IPollTarget, IUiInvoker
     {
         private Harness(RepositoryLocation location, PollOptions options)
         {
-            Poller = new TabPoller(location, options, Posted.Enqueue, () => CanPoll, Requests.Add);
+            Poller = new TabPoller(location, options, this, this);
             Poller.Start();
         }
 
@@ -189,6 +189,10 @@ public class TabPollerTests
         public List<RepositoryChangeKinds> Requests { get; } = [];
 
         public bool CanPoll { get; set; } = true;
+
+        void IUiInvoker.Post(Action action) => Posted.Enqueue(action);
+
+        void IPollTarget.Request(RepositoryChangeKinds kinds) => Requests.Add(kinds);
 
         public static async Task<Harness> StartAsync(TestRepository repository, PollOptions? options = null)
         {

@@ -117,13 +117,13 @@ public sealed record GitServices(
     RepositoryLoader RepositoryLoader)
 {
     /// <summary>The real services: every reader runs the git CLI through <paramref name="runner"/>. Hand-wired, no container.</summary>
-    public static GitServices Create(GitRunner runner, Func<int> laneColorCount)
+    public static GitServices Create(GitRunner runner, ILaneColors laneColors)
     {
         var commitLog = new CommitLogReader(runner);
         var refs = new RefReader(runner);
         var status = new StatusReader(runner);
         var stashes = new StashReader(runner);
-        var graphLoader = new GraphLoader(commitLog, colorCount: laneColorCount);
+        var graphLoader = new GraphLoader(commitLog, laneColors: laneColors);
         var operationDetector = new RepositoryOperationDetector();
         var operationRunner = new OperationRunner(runner, operationDetector);
         var remoteRunner = new RemoteRunner(runner);

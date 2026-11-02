@@ -21,18 +21,18 @@ public sealed class GraphLoader
     private static readonly TimeSpan MaximumBatchAge = TimeSpan.FromMilliseconds(40);
 
     private readonly ICommitLogReader _commitLog;
-    private readonly Func<int> _colorCount;
+    private readonly ILaneColors _laneColors;
 
     /// <param name="commitLog">Where the log comes from.</param>
     /// <param name="softRowLimit">Rows a tab loads eagerly.</param>
-    /// <param name="colorCount">The distinct colours of the palette, read per load; all of them when null.</param>
+    /// <param name="laneColors">The distinct colours of the palette, read per load; all of them when null.</param>
     public GraphLoader(
         ICommitLogReader commitLog,
         int softRowLimit = DefaultSoftRowLimit,
-        Func<int>? colorCount = null)
+        ILaneColors? laneColors = null)
     {
         _commitLog = commitLog;
-        _colorCount = colorCount ?? (static () => BranchColors.SlotCount);
+        _laneColors = laneColors ?? AllLaneColors.Instance;
         SoftRowLimit = softRowLimit;
     }
 
@@ -128,5 +128,5 @@ public sealed class GraphLoader
     /// <param name="location">The repository to read.</param>
     /// <param name="cancellationToken">Cancels the read.</param>
     public BranchTipRead StartTipRead(RepositoryLocation location, CancellationToken cancellationToken) =>
-        new(_commitLog, location, _colorCount(), cancellationToken);
+        new(_commitLog, location, _laneColors.Count, cancellationToken);
 }

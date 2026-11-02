@@ -16,7 +16,6 @@ using Gitunia.Core.Creation;
 using Gitunia.Core.Conflicts;
 using Gitunia.Core.Commits;
 using Gitunia.Core.Branches;
-using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Settings;
 using Gitunia.Core.Effects;
@@ -104,7 +103,4 @@ public sealed partial class EffectRunner<TSession>
             closed.Dispose();
         }
     }
-
-    // A tab runs an operation when its state says so; such a tab is never evicted.
-    private bool IsBusy(TabId tabId) => _host.Workspace.FindTab(tabId)?.Running.IsBusy == true;
 }

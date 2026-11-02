@@ -11,9 +11,9 @@ namespace Gitunia.App.Loading.Trees;
 /// (which applies the size cap and the binary check). <see cref="Load"/> sets the loading state at once (the caller
 /// shows <see cref="Current"/> itself; <see cref="Changed"/> comes with the result) and cancels the read before it. A
 /// result that arrives after another file was asked for, or after <see cref="Clear"/>, is dropped. UI thread only;
-/// results come back through <c>postToUi</c>.
+/// results come back through <c>ui</c>.
 /// </summary>
-public sealed class FileContentStore(IBlobReader reader, RepositoryLocation location, Action<Action> postToUi)
+public sealed class FileContentStore(IBlobReader reader, RepositoryLocation location, IUiInvoker ui)
     : IDisposable
 {
     private CancellationTokenSource? _pending;
@@ -76,7 +76,7 @@ public sealed class FileContentStore(IBlobReader reader, RepositoryLocation loca
 
             var content = await reader.ReadAsync(location, blob, size, token).ConfigureAwait(false);
             var document = FileContentDocument.From(path, content);
-            postToUi(() => Complete(commit, path, CommitDetailsStatus.Loaded, document, token));
+            ui.Post(() => Complete(commit, path, CommitDetailsStatus.Loaded, document, token));
         }
         catch (OperationCanceledException)
         {
@@ -85,7 +85,7 @@ public sealed class FileContentStore(IBlobReader reader, RepositoryLocation loca
         catch (Exception exception)
         {
             var document = FileContentDocument.Message(path, $"Cannot read the file: {FirstLine(exception.Message)}");
-            postToUi(() => Complete(commit, path, CommitDetailsStatus.Failed, document, token));
+            ui.Post(() => Complete(commit, path, CommitDetailsStatus.Failed, document, token));
         }
     }
 

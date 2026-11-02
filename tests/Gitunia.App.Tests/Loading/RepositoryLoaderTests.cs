@@ -204,7 +204,7 @@ public class RepositoryLoaderTests
             harness.Location,
             harness.Session,
             harness.Statuses,
-            InlineUi.Post,
+            InlineUi.Instance,
             shown,
             harness.Session.Graph[shown - 1].Id,
             staleVersion,
@@ -272,7 +272,7 @@ public class RepositoryLoaderTests
             Session = new TabSession(
                 new TabSessionParts(
                     TabId,
-                    new CommitDetailsStore(new FakeCommitDetailsReader(), Location, action => action(), TimeSpan.Zero)));
+                    new CommitDetailsStore(new FakeCommitDetailsReader(), Location, InlineUi.Instance, TimeSpan.Zero)));
             var graphLoader = new GraphLoader(CommitLog, softRowLimit);
             Loader = new RepositoryLoader(Refs, Status, graphLoader, new SidebarDataLoader(Refs, Stashes));
             Session.ExpandRequested += OnExpandRequested;
@@ -300,7 +300,7 @@ public class RepositoryLoaderTests
 
         public RepositoryLoader Loader { get; }
 
-        public Task RunAsync() => Loader.RunAsync(Location, Session, Host, Statuses, InlineUi.Post, Session.Cancellation.Token);
+        public Task RunAsync() => Loader.RunAsync(Location, Session, Host, Statuses, InlineUi.Instance, Session.Cancellation.Token);
 
         // Stands in for the effect runner's answer to a request for the rest of the log.
         public Task ExpandAsync()
@@ -311,7 +311,7 @@ public class RepositoryLoaderTests
                 Location,
                 Session,
                 Statuses,
-                InlineUi.Post,
+                InlineUi.Instance,
                 shown,
                 Session.Graph[shown - 1].Id,
                 Session.GraphVersion,

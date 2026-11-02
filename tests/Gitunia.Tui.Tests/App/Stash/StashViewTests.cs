@@ -218,7 +218,7 @@ public class StashViewTests
             Diff = new DiffStore(
                 new StashAwareDiffReader(TestGit.Services.Diff, TestGit.Services.StashDetails, view.Registry),
                 location,
-                Pump.Post);
+                Pump);
             Session = new TerminalTabSession(
                 new TabSessionParts(
                     tabId,
@@ -228,7 +228,7 @@ public class StashViewTests
                         TestGit.Services.StashDetails,
                         view.Registry),
                     location,
-                    Pump.Post,
+                    Pump,
                     TimeSpan.Zero),
                     StashView: view),
                 GraphGlyphSet.Unicode);
@@ -279,7 +279,7 @@ public class StashViewTests
                 harness.Session,
                 host,
                 new StatusReporter(new Dispatcher(AppState.Empty)),
-                InlineUi.Post,
+                InlineUi.Instance,
                 harness.Session.Cancellation.Token);
 
             // Stashes is a folded section until opened.

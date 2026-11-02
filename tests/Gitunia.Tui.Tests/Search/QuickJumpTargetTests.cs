@@ -1,3 +1,4 @@
+using Gitunia.Tui.Tests.App;
 using Gitunia.App.Loading.Commits;
 using Gitunia.App.Tabs;
 using Gitunia.Core;
@@ -36,7 +37,7 @@ public sealed class QuickJumpTargetTests : IDisposable
         _session = new TerminalTabSession(
             new TabSessionParts(
                 _shell.Host.Workspace.ActiveTabId!.Value,
-                new CommitDetailsStore(TestGit.Services.CommitDetails, location, action => action(), TimeSpan.Zero)),
+                new CommitDetailsStore(TestGit.Services.CommitDetails, location, InlineUi.Instance, TimeSpan.Zero)),
             GraphGlyphSet.Unicode);
         Focus(PaneKind.WorkingUnstaged);
         Controller = new QuickJumpInput(_shell.Host, new Host(this));

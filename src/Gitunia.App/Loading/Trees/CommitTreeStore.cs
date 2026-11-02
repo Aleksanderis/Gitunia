@@ -11,7 +11,7 @@ namespace Gitunia.App.Loading.Trees;
 /// cref="Select"/> is cheap and meant for every selection change (it shows the loading state at once, cancels the
 /// previous read and lists the tree off the UI thread; a selection that follows another closely waits for the
 /// debounce, so a fast scroll starts no process per row). The last few trees are kept, as a tree of a commit never
-/// changes. UI thread only; results come back through <c>postToUi</c>.
+/// changes. UI thread only; results come back through <c>ui</c>.
 /// </summary>
 public sealed class CommitTreeStore : IDisposable
 {
@@ -20,9 +20,9 @@ public sealed class CommitTreeStore : IDisposable
 
     private readonly ICommitTreeReader _reader;
     private readonly RepositoryLocation _location;
-    private readonly Action<Action> _postToUi;
+    private readonly IUiInvoker _ui;
     private readonly TimeSpan _debounce;
-    private readonly Func<TimeSpan, CancellationToken, Task> _delay;
+    private readonly IDelayer _delay;
     private readonly TimeProvider _timeProvider;
     private readonly LinkedList<KeyValuePair<ObjectId, FileTreeModel>> _recentFirst = new();
     private CancellationTokenSource? _pending;
@@ -30,25 +30,23 @@ public sealed class CommitTreeStore : IDisposable
 
     /// <param name="reader">Lists the tree of a commit.</param>
     /// <param name="location">The repository the commits belong to.</param>
-    /// <param name="postToUi">Runs an action on the UI thread.</param>
+    /// <param name="ui">Runs an action on the UI thread.</param>
     /// <param name="debounce">How long a selection must stay put before the tree is read, when it follows another move
     /// closely.</param>
-    /// <param name="delay">Waits out the debounce; tests inject one they control.</param>
-    /// <param name="timeProvider">The clock that tells a fresh selection from one in a quick run of moves.</param>
+    /// <param name="options">Optional tuning (delay, clock).</param>
     public CommitTreeStore(
         ICommitTreeReader reader,
         RepositoryLocation location,
-        Action<Action> postToUi,
+        IUiInvoker ui,
         TimeSpan debounce,
-        Func<TimeSpan, CancellationToken, Task>? delay = null,
-        TimeProvider? timeProvider = null)
+        CommitTreeStoreOptions? options = null)
     {
         _reader = reader;
         _location = location;
-        _postToUi = postToUi;
+        _ui = ui;
         _debounce = debounce;
-        _delay = delay ?? Task.Delay;
-        _timeProvider = timeProvider ?? TimeProvider.System;
+        _delay = options?.Delayer ?? TaskDelayer.Instance;
+        _timeProvider = options?.TimeProvider ?? TimeProvider.System;
     }
 
     /// <summary>Raised on the UI thread when <see cref="Current"/> changed.</summary>
@@ -129,10 +127,10 @@ public sealed class CommitTreeStore : IDisposable
     {
         try
         {
-            await _delay(wait, token).ConfigureAwait(false);
+            await _delay.DelayAsync(wait, token).ConfigureAwait(false);
             var entries = await _reader.ReadAsync(_location, commit, cancellationToken: token).ConfigureAwait(false);
             var model = FileTreeModel.Build(entries);
-            _postToUi(() => Complete(commit, model, string.Empty, token));
+            _ui.Post(() => Complete(commit, model, string.Empty, token));
         }
         catch (OperationCanceledException)
         {
@@ -140,7 +138,7 @@ public sealed class CommitTreeStore : IDisposable
         }
         catch (Exception exception)
         {
-            _postToUi(() => Complete(commit, null, exception.Message, token));
+            _ui.Post(() => Complete(commit, null, exception.Message, token));
         }
     }
 

@@ -11,17 +11,13 @@ namespace Gitunia.App.Loading.Diff;
 /// The diff of the commit shown in the diff pane of one tab: the whole commit against its first parent (so merge commits
 /// match the file list), read off the UI thread and flattened into a <see cref="DiffDocument"/>. Asking again for the same
 /// commit costs nothing; asking for another one cancels the load in flight. UI thread only; results come back through
-/// <c>postToUi</c>.
+/// <c>ui</c>.
 /// </summary>
 public sealed class DiffStore(
     IDiffReader reader,
     RepositoryLocation location,
-    Action<Action> postToUi,
-    int rowLimit = DiffStore.DefaultRowLimit,
-    int fileLineLimit = DiffStore.DefaultFileLineLimit,
-    DiffCache? cache = null,
-    Func<TimeSpan, CancellationToken, Task>? delay = null,
-    IBackgroundWork? background = null) : IDisposable
+    IUiInvoker ui,
+    DiffStoreOptions? options = null) : IDisposable
 {
     /// <summary>Rows kept before the diff is cut short; the pane then says so in a last row.</summary>
     public const int DefaultRowLimit = 400_000;
@@ -35,9 +31,10 @@ public sealed class DiffStore(
     /// <summary>How long the shown diff must stay put before the neighbours are read, so passing over a commit starts no process.</summary>
     public static readonly TimeSpan PrefetchDelay = TimeSpan.FromMilliseconds(80);
 
-    private readonly DiffCache _cache = cache ?? new DiffCache();
-    private readonly Func<TimeSpan, CancellationToken, Task> _delay = delay ?? Task.Delay;
-    private readonly IBackgroundWork _background = background ?? UnboundedBackgroundWork.Instance;
+    private readonly DiffStoreOptions _options = options ?? new DiffStoreOptions();
+    private readonly DiffCache _cache = options?.Cache ?? new DiffCache();
+    private readonly IDelayer _delay = options?.Delayer ?? TaskDelayer.Instance;
+    private readonly IBackgroundWork _background = options?.Background ?? UnboundedBackgroundWork.Instance;
     private CancellationTokenSource? _pending;
     private CancellationTokenSource? _prefetching;
     private IReadOnlyList<ObjectId> _wanted = [];
@@ -228,7 +225,7 @@ public sealed class DiffStore(
     {
         try
         {
-            await _delay(PrefetchDelay, token).ConfigureAwait(false);
+            await _delay.DelayAsync(PrefetchDelay, token).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
@@ -253,10 +250,10 @@ public sealed class DiffStore(
             {
                 token.ThrowIfCancellationRequested();
                 var parent = await reader.ReadFirstParentAsync(location, commit, token).ConfigureAwait(false);
-                var document = await ReadAsync(commit, parent, PrefetchRowLimit, Math.Min(fileLineLimit, PrefetchRowLimit), token).ConfigureAwait(false);
+                var document = await ReadAsync(commit, parent, PrefetchRowLimit, Math.Min(_options.FileLineLimit, PrefetchRowLimit), token).ConfigureAwait(false);
                 if (document is { IsCut: false })
                 {
-                    postToUi(() => RememberPrefetched(commit, document.Document, token));
+                    ui.Post(() => RememberPrefetched(commit, document.Document, token));
                 }
             }
             catch (OperationCanceledException)
@@ -310,10 +307,10 @@ public sealed class DiffStore(
     {
         try
         {
-            var rows = limited ? rowLimit : int.MaxValue;
-            var fileLines = limited ? fileLineLimit : int.MaxValue;
+            var rows = limited ? _options.RowLimit : int.MaxValue;
+            var fileLines = limited ? _options.FileLineLimit : int.MaxValue;
             var read = await ReadAsync(commit, firstParent, rows, fileLines, token).ConfigureAwait(false);
-            postToUi(() => Complete(commit, read.Document, string.Empty, read.IsCut, token));
+            ui.Post(() => Complete(commit, read.Document, string.Empty, read.IsCut, token));
         }
         catch (OperationCanceledException)
         {
@@ -321,7 +318,7 @@ public sealed class DiffStore(
         }
         catch (Exception exception)
         {
-            postToUi(() => Complete(commit, null, exception.Message, false, token));
+            ui.Post(() => Complete(commit, null, exception.Message, false, token));
         }
     }
 

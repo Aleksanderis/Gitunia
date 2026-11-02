@@ -13,15 +13,15 @@ namespace Gitunia.App.Loading.Commits;
 /// another move closely (holding a key) waits for the debounce, so a fast scroll starts no process per row. Once the
 /// selection has settled, the commits around it are read in the background into a bounded LRU cache
 /// (<see cref="CommitDetailsCache"/>), so stepping to a neighbour finds its details ready. UI thread only; results come
-/// back through <c>postToUi</c>.
+/// back through <c>ui</c>.
 /// </summary>
 public sealed class CommitDetailsStore : IDisposable
 {
     private readonly ICommitDetailsReader _reader;
     private readonly RepositoryLocation _location;
-    private readonly Action<Action> _postToUi;
+    private readonly IUiInvoker _ui;
     private readonly TimeSpan _debounce;
-    private readonly Func<TimeSpan, CancellationToken, Task> _delay;
+    private readonly IDelayer _delay;
     private readonly TimeProvider _timeProvider;
     private readonly IBackgroundWork _background;
     private readonly CommitDetailsCache _cache;
@@ -33,29 +33,24 @@ public sealed class CommitDetailsStore : IDisposable
 
     /// <param name="reader">Reads the details of a commit.</param>
     /// <param name="location">The repository the commits belong to.</param>
-    /// <param name="postToUi">Runs an action on the UI thread.</param>
+    /// <param name="ui">Runs an action on the UI thread.</param>
     /// <param name="debounce">How long a selection must stay put before the commit is read, when it follows another move closely.</param>
-    /// <param name="delay">Waits out the debounce; tests inject one they control, the default is <see cref="Task.Delay(TimeSpan, CancellationToken)"/>.</param>
-    /// <param name="cache">The cache of loaded details; the default is a <see cref="CommitDetailsCache"/> with its default bounds.</param>
-    /// <param name="background">Where prefetch waits for a slot; the default runs it at once.</param>
-    /// <param name="timeProvider">The clock that tells a fresh selection from one in a quick run of moves; tests inject one they control.</param>
+    /// <param name="options">Optional tuning (delay, cache, clock, background work).</param>
     public CommitDetailsStore(
         ICommitDetailsReader reader,
         RepositoryLocation location,
-        Action<Action> postToUi,
+        IUiInvoker ui,
         TimeSpan debounce,
-        Func<TimeSpan, CancellationToken, Task>? delay = null,
-        CommitDetailsCache? cache = null,
-        TimeProvider? timeProvider = null,
-        IBackgroundWork? background = null)
+        CommitDetailsStoreOptions? options = null)
     {
-        _background = background ?? UnboundedBackgroundWork.Instance;
-        _delay = delay ?? Task.Delay;
-        _cache = cache ?? new CommitDetailsCache();
-        _timeProvider = timeProvider ?? TimeProvider.System;
+        options ??= new CommitDetailsStoreOptions();
+        _background = options.Background ?? UnboundedBackgroundWork.Instance;
+        _delay = options.Delayer ?? TaskDelayer.Instance;
+        _cache = options.Cache ?? new CommitDetailsCache();
+        _timeProvider = options.TimeProvider ?? TimeProvider.System;
         _reader = reader;
         _location = location;
-        _postToUi = postToUi;
+        _ui = ui;
         _debounce = debounce;
     }
 
@@ -211,7 +206,7 @@ public sealed class CommitDetailsStore : IDisposable
             var parent = details.Parents[index];
             var files = await _reader.ReadFilesAsync(_location, commit, parent, null, token).ConfigureAwait(false);
             var switched = details with { Files = files, ParentIndex = index };
-            _postToUi(() => CompleteParent(commit, switched, token));
+            _ui.Post(() => CompleteParent(commit, switched, token));
         }
         catch (OperationCanceledException)
         {
@@ -220,7 +215,7 @@ public sealed class CommitDetailsStore : IDisposable
         catch (Exception)
         {
             // The files of the parent shown stay on screen; the next press tries again.
-            _postToUi(() => ResetRequestedParent(commit, details.ParentIndex, token));
+            _ui.Post(() => ResetRequestedParent(commit, details.ParentIndex, token));
         }
     }
 
@@ -236,12 +231,12 @@ public sealed class CommitDetailsStore : IDisposable
         {
             if (wait > TimeSpan.Zero)
             {
-                await _delay(wait, token).ConfigureAwait(false);
+                await _delay.DelayAsync(wait, token).ConfigureAwait(false);
             }
 
             var files = await _reader.ReadFilesAsync(_location, newer, older, null, token).ConfigureAwait(false);
             var shown = details with { Files = files, CompareOlder = older, CompareNewer = newer };
-            _postToUi(() => CompleteParent(commit, shown, token));
+            _ui.Post(() => CompleteParent(commit, shown, token));
         }
         catch (OperationCanceledException)
         {
@@ -249,7 +244,7 @@ public sealed class CommitDetailsStore : IDisposable
         }
         catch (Exception exception)
         {
-            _postToUi(() => FailComparison(commit, exception.Message, token));
+            _ui.Post(() => FailComparison(commit, exception.Message, token));
         }
     }
 
@@ -317,7 +312,7 @@ public sealed class CommitDetailsStore : IDisposable
         try
         {
             // The neighbours of a commit the user is only passing over are not worth a process each.
-            await _delay(_debounce, token).ConfigureAwait(false);
+            await _delay.DelayAsync(_debounce, token).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
@@ -345,7 +340,7 @@ public sealed class CommitDetailsStore : IDisposable
                 var details = await _reader.ReadAsync(_location, neighbour, cancellationToken: token).ConfigureAwait(false);
                 if (details is not null)
                 {
-                    _postToUi(() => RememberPrefetched(details, token));
+                    _ui.Post(() => RememberPrefetched(details, token));
                 }
             }
             catch (OperationCanceledException)
@@ -365,9 +360,9 @@ public sealed class CommitDetailsStore : IDisposable
         CommitDetails? details;
         try
         {
-            await _delay(wait, token).ConfigureAwait(false);
+            await _delay.DelayAsync(wait, token).ConfigureAwait(false);
             details = await _reader.ReadAsync(_location, commit, cancellationToken: token).ConfigureAwait(false);
-            _postToUi(() => Complete(commit, details, string.Empty, token));
+            _ui.Post(() => Complete(commit, details, string.Empty, token));
         }
         catch (OperationCanceledException)
         {
@@ -376,7 +371,7 @@ public sealed class CommitDetailsStore : IDisposable
         }
         catch (Exception exception)
         {
-            _postToUi(() => Complete(commit, null, exception.Message, token));
+            _ui.Post(() => Complete(commit, null, exception.Message, token));
             return;
         }
 

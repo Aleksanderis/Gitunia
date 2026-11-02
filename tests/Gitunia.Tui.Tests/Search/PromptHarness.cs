@@ -1,3 +1,4 @@
+using Gitunia.Tui.Tests.App;
 using Gitunia.Tui.App;
 using Gitunia.App.Loading.Commits;
 using Gitunia.App.Tabs;
@@ -46,7 +47,7 @@ public sealed class PromptHarness : IDisposable, IQuickJumpHost, IActionRoute, I
         Session = new TerminalTabSession(
             new TabSessionParts(
                 _host.Workspace.ActiveTabId!.Value,
-                new CommitDetailsStore(TestGit.Services.CommitDetails, location, action => action(), TimeSpan.Zero)),
+                new CommitDetailsStore(TestGit.Services.CommitDetails, location, InlineUi.Instance, TimeSpan.Zero)),
             GraphGlyphSet.Unicode);
         Session.Append([.. Enumerable.Range(0, graph.Count).Select(index => graph[index])]);
         if (!isLoading)

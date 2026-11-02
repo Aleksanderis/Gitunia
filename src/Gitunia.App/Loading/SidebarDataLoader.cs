@@ -21,20 +21,20 @@ public sealed class SidebarDataLoader
         _stashes = stashes;
     }
 
-    public async Task LoadAsync(RepositoryLocation location, TabId tabId, Dispatcher host, StatusReporter statuses, Action<Action> postToUi, CancellationToken token)
+    public async Task LoadAsync(RepositoryLocation location, TabId tabId, Dispatcher host, StatusReporter statuses, IUiInvoker ui, CancellationToken token)
     {
         var worktreesTask = _refs.ReadWorktreesAsync(location, token);
         var stashesTask = _stashes.ReadStashesAsync(location, token);
-        await PostAsync(worktreesTask, worktrees => new WorktreesLoadedCommand([.. worktrees.Items]), "worktrees", location, tabId, host, statuses, postToUi).ConfigureAwait(false);
-        await PostAsync(stashesTask, stashes => new StashesLoadedCommand([.. stashes.Items]), "stashes", location, tabId, host, statuses, postToUi).ConfigureAwait(false);
+        await PostAsync(worktreesTask, worktrees => new WorktreesLoadedCommand([.. worktrees.Items]), "worktrees", location, tabId, host, statuses, ui).ConfigureAwait(false);
+        await PostAsync(stashesTask, stashes => new StashesLoadedCommand([.. stashes.Items]), "stashes", location, tabId, host, statuses, ui).ConfigureAwait(false);
     }
 
-    private static async Task PostAsync<TResult>(Task<TResult> task, Func<TResult, RepositoryCommand> toCommand, string what, RepositoryLocation location, TabId tabId, Dispatcher host, StatusReporter statuses, Action<Action> postToUi)
+    private static async Task PostAsync<TResult>(Task<TResult> task, Func<TResult, RepositoryCommand> toCommand, string what, RepositoryLocation location, TabId tabId, Dispatcher host, StatusReporter statuses, IUiInvoker ui)
     {
         try
         {
             var result = await task.ConfigureAwait(false);
-            postToUi(() => host.Dispatch(new TabCommand(tabId, toCommand(result))));
+            ui.Post(() => host.Dispatch(new TabCommand(tabId, toCommand(result))));
         }
         catch (OperationCanceledException)
         {
@@ -43,7 +43,7 @@ public sealed class SidebarDataLoader
         catch (GitException exception)
         {
             // One failed part does not hide the other.
-            postToUi(() => statuses.Error($"{Path.GetFileName(Path.TrimEndingDirectorySeparator(location.RootPath))}: could not read the {what}: {exception.Message}"));
+            ui.Post(() => statuses.Error($"{Path.GetFileName(Path.TrimEndingDirectorySeparator(location.RootPath))}: could not read the {what}: {exception.Message}"));
         }
     }
 }

@@ -35,26 +35,26 @@ public sealed class RepositoryLoader
     /// <param name="session">Receives the graph rows.</param>
     /// <param name="host">Receives HEAD and refs as tab commands.</param>
     /// <param name="statuses">Told when a part of the load fails.</param>
-    /// <param name="postToUi">Runs an action on the UI thread.</param>
+    /// <param name="ui">Runs an action on the UI thread.</param>
     /// <param name="token">Cancelled when the tab closes; taken by the caller because the session disposes its source.</param>
-    public async Task RunAsync(RepositoryLocation location, IGraphSession session, Dispatcher host, StatusReporter statuses, Action<Action> postToUi, CancellationToken token)
+    public async Task RunAsync(RepositoryLocation location, IGraphSession session, Dispatcher host, StatusReporter statuses, IUiInvoker ui, CancellationToken token)
     {
-        var metadata = LoadMetadataAsync(location, session.TabId, host, statuses, postToUi, token);
-        var sidebarData = _sidebarLoader.LoadAsync(location, session.TabId, host, statuses, postToUi, token);
+        var metadata = LoadMetadataAsync(location, session.TabId, host, statuses, ui, token);
+        var sidebarData = _sidebarLoader.LoadAsync(location, session.TabId, host, statuses, ui, token);
         try
         {
             var cut = new GraphCut();
             await foreach (var batch in _graphLoader.StreamCappedAsync(location, cut, token).ConfigureAwait(false))
             {
-                postToUi(() => session.Append(batch));
+                ui.Post(() => session.Append(batch));
             }
 
             if (cut.TruncatedTotal is { } total)
             {
-                postToUi(() => session.Truncate(total));
+                ui.Post(() => session.Truncate(total));
             }
 
-            postToUi(session.Complete);
+            ui.Post(session.Complete);
         }
         catch (OperationCanceledException)
         {
@@ -63,7 +63,7 @@ public sealed class RepositoryLoader
         catch (Exception exception)
         {
             // Not only git failures: a broken pipe or a bug must end the loading state with a message, never hang it.
-            postToUi(() =>
+            ui.Post(() =>
             {
                 statuses.Error($"{Path.GetFileName(Path.TrimEndingDirectorySeparator(location.RootPath))}: could not load the graph: {exception.Message}");
                 session.Fail(exception.Message);
@@ -83,7 +83,7 @@ public sealed class RepositoryLoader
     /// <param name="location">The repository of the tab.</param>
     /// <param name="session">Receives the rows.</param>
     /// <param name="statuses">Told when the log changed under the read or the read failed.</param>
-    /// <param name="postToUi">Runs an action on the UI thread.</param>
+    /// <param name="ui">Runs an action on the UI thread.</param>
     /// <param name="shownCount">Rows the session shows now.</param>
     /// <param name="lastShown">The last of them, which the stream must reach at the same place.</param>
     /// <param name="graphVersion">The session's graph version now; a replacement makes this read stale.</param>
@@ -92,7 +92,7 @@ public sealed class RepositoryLoader
         RepositoryLocation location,
         IGraphSession session,
         StatusReporter statuses,
-        Action<Action> postToUi,
+        IUiInvoker ui,
         int shownCount,
         ObjectId lastShown,
         int graphVersion,
@@ -108,7 +108,7 @@ public sealed class RepositoryLoader
                 var skip = Math.Clamp(shownCount - seen, 0, batch.Count);
                 if (skip > 0 && seen + skip == shownCount && batch[skip - 1].Id != lastShown)
                 {
-                    postToUi(() => ExpansionFailed(session, statuses, graphVersion, ChangedMessage(name)));
+                    ui.Post(() => ExpansionFailed(session, statuses, graphVersion, ChangedMessage(name)));
 
                     return;
                 }
@@ -117,18 +117,18 @@ public sealed class RepositoryLoader
                 if (skip < batch.Count)
                 {
                     var rest = skip == 0 ? batch : batch.Skip(skip).ToList();
-                    postToUi(() => AppendExpansion(session, graphVersion, rest));
+                    ui.Post(() => AppendExpansion(session, graphVersion, rest));
                 }
             }
 
             if (seen < shownCount)
             {
-                postToUi(() => ExpansionFailed(session, statuses, graphVersion, ChangedMessage(name)));
+                ui.Post(() => ExpansionFailed(session, statuses, graphVersion, ChangedMessage(name)));
 
                 return;
             }
 
-            postToUi(() => CompleteExpansion(session, graphVersion));
+            ui.Post(() => CompleteExpansion(session, graphVersion));
         }
         catch (OperationCanceledException)
         {
@@ -137,7 +137,7 @@ public sealed class RepositoryLoader
         catch (Exception exception)
         {
             var message = $"{name}: could not load the full history: {exception.Message}";
-            postToUi(() => ExpansionFailed(session, statuses, graphVersion, message));
+            ui.Post(() => ExpansionFailed(session, statuses, graphVersion, message));
         }
     }
 
@@ -170,7 +170,7 @@ public sealed class RepositoryLoader
         session.EndExpansion();
     }
 
-    private async Task LoadMetadataAsync(RepositoryLocation location, TabId tabId, Dispatcher host, StatusReporter statuses, Action<Action> postToUi, CancellationToken token)
+    private async Task LoadMetadataAsync(RepositoryLocation location, TabId tabId, Dispatcher host, StatusReporter statuses, IUiInvoker ui, CancellationToken token)
     {
         try
         {
@@ -178,11 +178,11 @@ public sealed class RepositoryLoader
             var refsTask = _refs.ReadRefsAsync(location, token);
             var statusTask = _status.ReadStatusAsync(location, false, UntrackedFilesMode.All, token);
             var head = await headTask.ConfigureAwait(false);
-            postToUi(() => host.Dispatch(new TabCommand(tabId, new HeadLoadedCommand(head))));
+            ui.Post(() => host.Dispatch(new TabCommand(tabId, new HeadLoadedCommand(head))));
             var refs = await refsTask.ConfigureAwait(false);
-            postToUi(() => host.Dispatch(new TabCommand(tabId, new RefsLoadedCommand([.. refs.Items]))));
+            ui.Post(() => host.Dispatch(new TabCommand(tabId, new RefsLoadedCommand([.. refs.Items]))));
             var status = await statusTask.ConfigureAwait(false);
-            postToUi(() => host.Dispatch(new TabCommand(tabId, new WorkingTreeLoadedCommand(status))));
+            ui.Post(() => host.Dispatch(new TabCommand(tabId, new WorkingTreeLoadedCommand(status))));
         }
         catch (OperationCanceledException)
         {
@@ -191,7 +191,7 @@ public sealed class RepositoryLoader
         catch (GitException exception)
         {
             // The graph load reports its own failure; this part would otherwise leave the tab label and branch silently empty.
-            postToUi(() => statuses.Error($"{Path.GetFileName(Path.TrimEndingDirectorySeparator(location.RootPath))}: could not read the repository status: {exception.Message}"));
+            ui.Post(() => statuses.Error($"{Path.GetFileName(Path.TrimEndingDirectorySeparator(location.RootPath))}: could not read the repository status: {exception.Message}"));
         }
     }
 }

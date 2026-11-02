@@ -257,7 +257,7 @@ public class EffectPipelineTests
         using var runner = new EffectRunner<TabSession>(
             new FakeGitServices().Services,
             host,
-            pump.Post,
+            pump,
             new TabSessionFactory(),
             new StatusReporter(host),
             watcherOptions: TestGit.QuietWatcherOptions);
@@ -541,7 +541,7 @@ public class EffectPipelineTests
             var runner = new EffectRunner<TabSession>(
                 services,
                 host,
-                pump.Post,
+                pump,
                 new TabSessionFactory(),
                 statuses,
                 watcherOptions: TestGit.QuietWatcherOptions,

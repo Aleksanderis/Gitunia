@@ -1,13 +1,17 @@
+using Gitunia.App;
+
 namespace Gitunia.Tui.Tests.App;
 
 /// <summary>Stands in for the UI thread in loader tests: runs posted actions immediately, one at a time.</summary>
-public static class InlineUi
+public sealed class InlineUi : IUiInvoker
 {
-    private static readonly Lock Gate = new();
+    public static readonly InlineUi Instance = new();
 
-    public static void Post(Action action)
+    private readonly Lock _gate = new();
+
+    public void Post(Action action)
     {
-        lock (Gate)
+        lock (_gate)
         {
             action();
         }

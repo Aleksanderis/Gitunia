@@ -18,7 +18,7 @@ public class FileContentStoreTests
     public async Task GivenAFile_WhenLoading_ThenItShowsLoadingAtOnceAndTheTextWhenItArrives()
     {
         var reader = new GatedBlobReader();
-        using var store = new FileContentStore(reader, FakeCommitDetailsReader.Location, _pump.Post);
+        using var store = new FileContentStore(reader, FakeCommitDetailsReader.Location, _pump);
         var changes = 0;
         store.Changed += () => changes++;
 
@@ -37,7 +37,7 @@ public class FileContentStoreTests
     public async Task GivenASlowReadAndAnotherFile_WhenTheFirstArrivesLate_ThenOnlyTheSecondIsShown()
     {
         var reader = new GatedBlobReader();
-        using var store = new FileContentStore(reader, FakeCommitDetailsReader.Location, _pump.Post);
+        using var store = new FileContentStore(reader, FakeCommitDetailsReader.Location, _pump);
         var changes = 0;
         store.Changed += () => changes++;
         store.Load(Commit, "first.txt", FakeObjectIds.Of(2), 1);
@@ -58,7 +58,7 @@ public class FileContentStoreTests
     public async Task GivenAReadInFlight_WhenCleared_ThenTheResultIsDropped()
     {
         var reader = new GatedBlobReader();
-        using var store = new FileContentStore(reader, FakeCommitDetailsReader.Location, _pump.Post);
+        using var store = new FileContentStore(reader, FakeCommitDetailsReader.Location, _pump);
         store.Load(Commit, "a.txt", FakeObjectIds.Of(2), 1);
         await reader.WaitForReadsAsync(1);
 
@@ -72,7 +72,7 @@ public class FileContentStoreTests
     [Fact]
     public async Task GivenAFailingRead_WhenLoading_ThenANoteNamesTheFailure()
     {
-        using var store = new FileContentStore(new FailingBlobReader(), FakeCommitDetailsReader.Location, _pump.Post);
+        using var store = new FileContentStore(new FailingBlobReader(), FakeCommitDetailsReader.Location, _pump);
         store.Load(Commit, "a.txt", FakeObjectIds.Of(2), 1);
 
         await _pump.RunUntilAsync(() => store.Current.Status == CommitDetailsStatus.Failed);

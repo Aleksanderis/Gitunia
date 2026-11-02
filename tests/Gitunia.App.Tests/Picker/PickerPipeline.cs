@@ -37,7 +37,7 @@ public sealed class PickerPipeline : IDisposable
         _runner = new EffectRunner<TabSession>(
             services,
             Host,
-            Pump.Post,
+            Pump,
             new TabSessionFactory(),
             Statuses,
             watcherOptions: TestGit.QuietWatcherOptions,
