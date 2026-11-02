@@ -7,6 +7,7 @@ using Xunit;
 
 namespace Gitunia.Tui.Tests.Rendering.Overlays;
 
+[Trait("Os", "Independent")]
 public sealed class BlameFrameBuilderTests
 {
     private const int Width = 100;
@@ -20,6 +21,16 @@ public sealed class BlameFrameBuilderTests
         var frame = Frame(state);
 
         Assert.Contains("blaming 0%", frame, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GivenHalfTheLinesBlamed_WhenBuildingTheFrame_ThenTheFooterShowsFiftyPercent()
+    {
+        var state = new BlameState(new TabId(1), "big.txt", "big.txt", LineCount: 4, BlamedLines: 2);
+
+        var frame = Frame(state);
+
+        Assert.Contains("blaming 50%", frame, StringComparison.Ordinal);
     }
 
     [Fact]
