@@ -400,6 +400,15 @@ The list is read from git on open and on `<space>or`.
 Mouse: below the entries four action rows (`Enter` select, `<space>bx` reset, `<space>bc` branch, `<space>bs` checkout) run on the highlighted entry when clicked, so a click on an entry then a click on an action replaces the keys; in the picker a click on a row opens that reflog.
 The graph `<space>l` still opens HEAD's reflog directly; the picker is one key away.
 
+**File history** (`<space>H`, #1115): a modal screen with the commits that touched one file (`git log --follow`, renames followed) on the left and that commit's diff of the file on the right.
+It opens from the file under the cursor of the detail pane (Changes tab or Files tab, a folder row is no file; the history starts at the shown commit) and from either file list of the Changes view (it starts at `HEAD`); anywhere else, or on a folder or heading row, the status says "Select a file to see its history".
+Newest first (the last 1000 commits): short hash, date and subject; the diff shows the file in the highlighted commit only (against the first parent for a merge, with both names of a rename so git pairs them, at most 5000 lines).
+A commit before a rename is listed under the name the file had then.
+`git log --follow` omits merge commits, so a merge appears only through the commits of its branches.
+`j`/`k`/`gg`/`G`/`Ctrl-d`/`Ctrl-u` move the highlight (the diff follows; a newer read cancels the one still running), `J`/`K`/`D`/`U` scroll the diff, `Enter` selects the commit in the graph and closes the screen (a commit outside the loaded graph says so in the status bar and the screen stays), `<space>or` reads the list again keeping the highlight on the same commit, `Esc`, `h` or `q` return to where the screen came from.
+A file with no commits (untracked, never committed) opens an empty screen that says so.
+Mouse: a click on a commit row highlights it, the wheel moves the highlight, the action row `Enter` below the list selects the commit in the graph; opening is the palette entry (`:`) or the key, like the other file actions.
+
 ### 4. In-progress operations: banner, continue, abort, skip (M3; banner, continue, abort and skip done, the blocking of item 5 comes with each blocked feature)
 
 One flow serves merge, rebase, cherry-pick and revert, and the interactive rebase (#399, editor #458) reuses it. `RepositoryOperationDetector` names the operation from the git directory.

@@ -13,6 +13,7 @@ using Gitunia.App.Rebase;
 using Gitunia.App.Integration;
 using Gitunia.App.IssueLinks;
 using Gitunia.App.Picker;
+using Gitunia.App.FileHistory;
 using Gitunia.App.Reflog;
 using Gitunia.App.Settings;
 using Gitunia.App.Sidebar;
@@ -45,6 +46,7 @@ using Gitunia.Core.Integration;
 using Gitunia.Core.Picker;
 using Gitunia.Core.Prompts;
 using Gitunia.Core.Rebase;
+using Gitunia.Core.FileHistory;
 using Gitunia.Core.Reflog;
 using Gitunia.Core.Settings;
 using Gitunia.Core.Sidebar;
@@ -97,6 +99,7 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
     private readonly PickEffectHandler _pick;
     private readonly RebaseEffectHandler _rebase;
     private readonly RebaseEditorEffectHandler _rebaseEditor;
+    private readonly FileHistoryEffectHandler _fileHistory;
     private readonly ReflogEffectHandler _reflog;
     private readonly SettingsEffectHandler? _settings;
     private readonly SidebarEffectHandler _sidebar;
@@ -149,6 +152,7 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
         _pick = new PickEffectHandler(services.Pick, services.PickCommits, host);
         _rebase = new RebaseEffectHandler(services.Rebase, services.QuickRebase, host);
         _rebaseEditor = new RebaseEditorEffectHandler(services.InteractiveRebase, services.CommitDetails, host);
+        _fileHistory = new FileHistoryEffectHandler(services.FileHistory, services.Diff, host);
         _reflog = new ReflogEffectHandler(services.Reflog, host);
         _settings = settings is null ? null : new SettingsEffectHandler(settings, host);
         _sidebar = new SidebarEffectHandler(this, host);
@@ -327,6 +331,9 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
             case DiscardEffect discard:
                 _discard.Handle(discard, _cancellation.TokenOf(discard.TabId));
                 break;
+            case FileHistoryJumpEffect jump:
+                _shell.Flow.JumpToFileHistoryCommit(jump);
+                break;
             case FlushSessionEffect flush:
                 _host.Dispatch(new SessionFlushed(_shell.Session.FlushSession(), flush.Force));
                 break;
@@ -391,6 +398,12 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
                 break;
             case RebaseEditorEffect editor:
                 _rebaseEditor.Handle(editor, _cancellation.TokenOf(editor.TabId));
+                break;
+            case ReadFileHistoryDiffEffect diff:
+                _fileHistory.Handle(diff, _cancellation.TokenOf(diff.TabId));
+                break;
+            case ReadFileHistoryEffect history:
+                _fileHistory.Handle(history, _cancellation.TokenOf(history.TabId));
                 break;
             case ReadReflogEffect read:
                 _reflog.Handle(read, _cancellation.TokenOf(read.TabId));

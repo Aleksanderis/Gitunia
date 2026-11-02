@@ -191,6 +191,116 @@ Every default key binding, one table per view. The design rules, notation and mo
 | `<space>bc` | Normal | `branch.create` | Create a branch and check it out |
 | `<space>bs` | Normal | `branch.switch` | Switch to a branch (check out) |
 
+## DetailChanges
+
+| Keys | Modes | Action | What |
+|---|---|---|---|
+| `<space>H` | Normal | `file-history.open` | Open the history of the selected file, renames followed |
+| `za` | Normal | `detail.toggle-folder` | Open or close the folder under the cursor (Changes tab, tree style) |
+| `<space>vn` | Normal | `files.toggle-path-style` | Cycle the file paths: name first, full path, tree |
+| `<space>vv` | Normal | `files.open-view-options` | Open the view options menu of the file list |
+| `<space>v1` | Normal | `files.path-name-first` | Show file paths name first |
+| `<space>v2` | Normal | `files.path-full-path` | Show file paths in full |
+| `<space>v3` | Normal | `files.path-tree` | Show files as a tree |
+| `<space>vp` | Normal | `diff.merge-parent` | Switch the merge commit's parent |
+| `J` | Normal | `diff.scroll-down` | Scroll the diff down without focusing it |
+| `K` | Normal | `diff.scroll-up` | Scroll the diff up without focusing it |
+| `D` | Normal | `diff.scroll-half-page-down` | Scroll the diff half a page down without focusing it |
+| `U` | Normal | `diff.scroll-half-page-up` | Scroll the diff half a page up without focusing it |
+| `<space>kr` | Normal | `stash.restore-file` | Restore the selected file of the shown stash into the working tree (asks first) |
+
+## DetailFiles
+
+| Keys | Modes | Action | What |
+|---|---|---|---|
+| `<space>H` | Normal | `file-history.open` | Open the history of the selected file, renames followed |
+| `<space>vv` | Normal | `files.open-view-options` | Open the view options menu of the file list |
+| `J` | Normal | `diff.scroll-down` | Scroll the diff down without focusing it |
+| `K` | Normal | `diff.scroll-up` | Scroll the diff up without focusing it |
+| `D` | Normal | `diff.scroll-half-page-down` | Scroll the diff half a page down without focusing it |
+| `U` | Normal | `diff.scroll-half-page-up` | Scroll the diff half a page up without focusing it |
+
+## WorkingUnstaged
+
+| Keys | Modes | Action | What |
+|---|---|---|---|
+| `<space>H` | Normal | `file-history.open` | Open the history of the selected file, renames followed |
+| `<space>or` | Normal | `repo.refresh` | Refresh the repository |
+| `y` | Normal | `working-tree.copy-path` | Copy the file or folder path |
+| `h` | Normal | `working-tree.collapse` | Close the folder, else go to the parent folder |
+| `za` | Normal | `working-tree.toggle-folder` | Open or close the folder under the cursor (tree style) |
+| `Esc` | Normal | `navigate.back` | Go back |
+| `<space>c` | Normal | `working-tree.write-message` | Write the commit message |
+| `<space>ec` | Normal | `tool.commit-editor` | Commit the staged changes in $EDITOR |
+| `Enter` | Normal | `working-tree.open-diff` | Go to the diff of the file or folder (a conflicted one: the conflict editor) |
+| `l` | Normal | `working-tree.expand` | Open the folder under the cursor |
+| `<space>j` | Normal | `view.quick-jump-to-row` | Quick jump to a visible row |
+| `<space>vn` | Normal | `files.toggle-path-style` | Cycle the file paths: name first, full path, tree |
+| `<space>vv` | Normal | `files.open-view-options` | Open the view options menu of the file list |
+| `<space>v1` | Normal | `files.path-name-first` | Show file paths name first |
+| `<space>v2` | Normal | `files.path-full-path` | Show file paths in full |
+| `<space>v3` | Normal | `files.path-tree` | Show files as a tree |
+| `J` | Normal | `diff.scroll-down` | Scroll the diff down without focusing it |
+| `K` | Normal | `diff.scroll-up` | Scroll the diff up without focusing it |
+| `D` | Normal | `diff.scroll-half-page-down` | Scroll the diff half a page down without focusing it |
+| `U` | Normal | `diff.scroll-half-page-up` | Scroll the diff half a page up without focusing it |
+| `<space>a` | Normal, Visual | `working-tree.stage` | Stage the file or folder, the hunk or the selected lines |
+| `<space>A` | Normal | `working-tree.stage-all` | Stage all files |
+| `<space>d` | Normal, Visual | `working-tree.discard` | Discard the changes of the file or folder, the hunk or the selected lines (asks first) |
+| `Alt-s` | Normal, Visual, Insert | `working-tree.toggle-sign-off` | Commit option: SignOff (toggle) |
+| `Alt-n` | Normal, Visual, Insert | `working-tree.toggle-no-verify` | Commit option: No-Verify (toggle) |
+| `Alt-a` | Normal, Visual, Insert | `working-tree.toggle-amend` | Commit option: Amend (toggle) |
+| `<space>1` | Normal | `working-tree.focus-unstaged` | Focus the Unstaged list |
+| `<space>2` | Normal | `working-tree.focus-staged` | Focus the Staged list |
+| `<space>3` | Normal | `working-tree.focus-diff` | Focus the diff |
+| `<space>4` | Normal | `working-tree.focus-message` | Focus the commit message |
+
+## WorkingStaged
+
+| Keys | Modes | Action | What |
+|---|---|---|---|
+| `<space>H` | Normal | `file-history.open` | Open the history of the selected file, renames followed |
+| `<space>or` | Normal | `repo.refresh` | Refresh the repository |
+| `y` | Normal | `working-tree.copy-path` | Copy the file or folder path |
+| `h` | Normal | `working-tree.collapse` | Close the folder, else go to the parent folder |
+| `za` | Normal | `working-tree.toggle-folder` | Open or close the folder under the cursor (tree style) |
+| `Esc` | Normal | `navigate.back` | Go back |
+| `<space>c` | Normal | `working-tree.write-message` | Write the commit message |
+| `<space>ec` | Normal | `tool.commit-editor` | Commit the staged changes in $EDITOR |
+| `Enter` | Normal | `working-tree.open-diff` | Go to the diff of the file or folder (a conflicted one: the conflict editor) |
+| `l` | Normal | `working-tree.expand` | Open the folder under the cursor |
+| `<space>j` | Normal | `view.quick-jump-to-row` | Quick jump to a visible row |
+| `<space>vn` | Normal | `files.toggle-path-style` | Cycle the file paths: name first, full path, tree |
+| `<space>vv` | Normal | `files.open-view-options` | Open the view options menu of the file list |
+| `<space>v1` | Normal | `files.path-name-first` | Show file paths name first |
+| `<space>v2` | Normal | `files.path-full-path` | Show file paths in full |
+| `<space>v3` | Normal | `files.path-tree` | Show files as a tree |
+| `J` | Normal | `diff.scroll-down` | Scroll the diff down without focusing it |
+| `K` | Normal | `diff.scroll-up` | Scroll the diff up without focusing it |
+| `D` | Normal | `diff.scroll-half-page-down` | Scroll the diff half a page down without focusing it |
+| `U` | Normal | `diff.scroll-half-page-up` | Scroll the diff half a page up without focusing it |
+| `<space>u` | Normal, Visual | `working-tree.unstage` | Unstage the file or folder, the hunk or the selected lines |
+| `<space>U` | Normal | `working-tree.unstage-all` | Unstage all files |
+| `Alt-s` | Normal, Visual, Insert | `working-tree.toggle-sign-off` | Commit option: SignOff (toggle) |
+| `Alt-n` | Normal, Visual, Insert | `working-tree.toggle-no-verify` | Commit option: No-Verify (toggle) |
+| `Alt-a` | Normal, Visual, Insert | `working-tree.toggle-amend` | Commit option: Amend (toggle) |
+| `<space>1` | Normal | `working-tree.focus-unstaged` | Focus the Unstaged list |
+| `<space>2` | Normal | `working-tree.focus-staged` | Focus the Staged list |
+| `<space>3` | Normal | `working-tree.focus-diff` | Focus the diff |
+| `<space>4` | Normal | `working-tree.focus-message` | Focus the commit message |
+
+## FileHistory
+
+| Keys | Modes | Action | What |
+|---|---|---|---|
+| `Enter` | Normal | `file-history.select-commit` | Select the file history commit in the graph |
+| `h` `Esc` | Normal | `navigate.back` | Go back |
+| `<space>or` | Normal | `repo.refresh` | Refresh the repository |
+| `J` | Normal | `diff.scroll-down` | Scroll the diff down without focusing it |
+| `K` | Normal | `diff.scroll-up` | Scroll the diff up without focusing it |
+| `D` | Normal | `diff.scroll-half-page-down` | Scroll the diff half a page down without focusing it |
+| `U` | Normal | `diff.scroll-half-page-up` | Scroll the diff half a page up without focusing it |
+
 ## RebaseEditor
 
 | Keys | Modes | Action | What |
@@ -276,33 +386,6 @@ Every default key binding, one table per view. The design rules, notation and mo
 | `gc` | Normal | `detail.tab-changes` | Show the Changes tab |
 | `gf` | Normal | `detail.tab-files` | Show the Files tab |
 
-## DetailChanges
-
-| Keys | Modes | Action | What |
-|---|---|---|---|
-| `za` | Normal | `detail.toggle-folder` | Open or close the folder under the cursor (Changes tab, tree style) |
-| `<space>vn` | Normal | `files.toggle-path-style` | Cycle the file paths: name first, full path, tree |
-| `<space>vv` | Normal | `files.open-view-options` | Open the view options menu of the file list |
-| `<space>v1` | Normal | `files.path-name-first` | Show file paths name first |
-| `<space>v2` | Normal | `files.path-full-path` | Show file paths in full |
-| `<space>v3` | Normal | `files.path-tree` | Show files as a tree |
-| `<space>vp` | Normal | `diff.merge-parent` | Switch the merge commit's parent |
-| `J` | Normal | `diff.scroll-down` | Scroll the diff down without focusing it |
-| `K` | Normal | `diff.scroll-up` | Scroll the diff up without focusing it |
-| `D` | Normal | `diff.scroll-half-page-down` | Scroll the diff half a page down without focusing it |
-| `U` | Normal | `diff.scroll-half-page-up` | Scroll the diff half a page up without focusing it |
-| `<space>kr` | Normal | `stash.restore-file` | Restore the selected file of the shown stash into the working tree (asks first) |
-
-## DetailFiles
-
-| Keys | Modes | Action | What |
-|---|---|---|---|
-| `<space>vv` | Normal | `files.open-view-options` | Open the view options menu of the file list |
-| `J` | Normal | `diff.scroll-down` | Scroll the diff down without focusing it |
-| `K` | Normal | `diff.scroll-up` | Scroll the diff up without focusing it |
-| `D` | Normal | `diff.scroll-half-page-down` | Scroll the diff half a page down without focusing it |
-| `U` | Normal | `diff.scroll-half-page-up` | Scroll the diff half a page up without focusing it |
-
 ## Diff
 
 | Keys | Modes | Action | What |
@@ -343,73 +426,6 @@ Every default key binding, one table per view. The design rules, notation and mo
 | `K` | Normal | `settings.move-up` | Settings: move the folder up in its list |
 | `+` | Normal | `settings.increase` | Settings: raise the number under the cursor |
 | `-` | Normal | `settings.decrease` | Settings: lower the number under the cursor |
-
-## WorkingUnstaged
-
-| Keys | Modes | Action | What |
-|---|---|---|---|
-| `<space>or` | Normal | `repo.refresh` | Refresh the repository |
-| `y` | Normal | `working-tree.copy-path` | Copy the file or folder path |
-| `h` | Normal | `working-tree.collapse` | Close the folder, else go to the parent folder |
-| `za` | Normal | `working-tree.toggle-folder` | Open or close the folder under the cursor (tree style) |
-| `Esc` | Normal | `navigate.back` | Go back |
-| `<space>c` | Normal | `working-tree.write-message` | Write the commit message |
-| `<space>ec` | Normal | `tool.commit-editor` | Commit the staged changes in $EDITOR |
-| `Enter` | Normal | `working-tree.open-diff` | Go to the diff of the file or folder (a conflicted one: the conflict editor) |
-| `l` | Normal | `working-tree.expand` | Open the folder under the cursor |
-| `<space>j` | Normal | `view.quick-jump-to-row` | Quick jump to a visible row |
-| `<space>vn` | Normal | `files.toggle-path-style` | Cycle the file paths: name first, full path, tree |
-| `<space>vv` | Normal | `files.open-view-options` | Open the view options menu of the file list |
-| `<space>v1` | Normal | `files.path-name-first` | Show file paths name first |
-| `<space>v2` | Normal | `files.path-full-path` | Show file paths in full |
-| `<space>v3` | Normal | `files.path-tree` | Show files as a tree |
-| `J` | Normal | `diff.scroll-down` | Scroll the diff down without focusing it |
-| `K` | Normal | `diff.scroll-up` | Scroll the diff up without focusing it |
-| `D` | Normal | `diff.scroll-half-page-down` | Scroll the diff half a page down without focusing it |
-| `U` | Normal | `diff.scroll-half-page-up` | Scroll the diff half a page up without focusing it |
-| `<space>a` | Normal, Visual | `working-tree.stage` | Stage the file or folder, the hunk or the selected lines |
-| `<space>A` | Normal | `working-tree.stage-all` | Stage all files |
-| `<space>d` | Normal, Visual | `working-tree.discard` | Discard the changes of the file or folder, the hunk or the selected lines (asks first) |
-| `Alt-s` | Normal, Visual, Insert | `working-tree.toggle-sign-off` | Commit option: SignOff (toggle) |
-| `Alt-n` | Normal, Visual, Insert | `working-tree.toggle-no-verify` | Commit option: No-Verify (toggle) |
-| `Alt-a` | Normal, Visual, Insert | `working-tree.toggle-amend` | Commit option: Amend (toggle) |
-| `<space>1` | Normal | `working-tree.focus-unstaged` | Focus the Unstaged list |
-| `<space>2` | Normal | `working-tree.focus-staged` | Focus the Staged list |
-| `<space>3` | Normal | `working-tree.focus-diff` | Focus the diff |
-| `<space>4` | Normal | `working-tree.focus-message` | Focus the commit message |
-
-## WorkingStaged
-
-| Keys | Modes | Action | What |
-|---|---|---|---|
-| `<space>or` | Normal | `repo.refresh` | Refresh the repository |
-| `y` | Normal | `working-tree.copy-path` | Copy the file or folder path |
-| `h` | Normal | `working-tree.collapse` | Close the folder, else go to the parent folder |
-| `za` | Normal | `working-tree.toggle-folder` | Open or close the folder under the cursor (tree style) |
-| `Esc` | Normal | `navigate.back` | Go back |
-| `<space>c` | Normal | `working-tree.write-message` | Write the commit message |
-| `<space>ec` | Normal | `tool.commit-editor` | Commit the staged changes in $EDITOR |
-| `Enter` | Normal | `working-tree.open-diff` | Go to the diff of the file or folder (a conflicted one: the conflict editor) |
-| `l` | Normal | `working-tree.expand` | Open the folder under the cursor |
-| `<space>j` | Normal | `view.quick-jump-to-row` | Quick jump to a visible row |
-| `<space>vn` | Normal | `files.toggle-path-style` | Cycle the file paths: name first, full path, tree |
-| `<space>vv` | Normal | `files.open-view-options` | Open the view options menu of the file list |
-| `<space>v1` | Normal | `files.path-name-first` | Show file paths name first |
-| `<space>v2` | Normal | `files.path-full-path` | Show file paths in full |
-| `<space>v3` | Normal | `files.path-tree` | Show files as a tree |
-| `J` | Normal | `diff.scroll-down` | Scroll the diff down without focusing it |
-| `K` | Normal | `diff.scroll-up` | Scroll the diff up without focusing it |
-| `D` | Normal | `diff.scroll-half-page-down` | Scroll the diff half a page down without focusing it |
-| `U` | Normal | `diff.scroll-half-page-up` | Scroll the diff half a page up without focusing it |
-| `<space>u` | Normal, Visual | `working-tree.unstage` | Unstage the file or folder, the hunk or the selected lines |
-| `<space>U` | Normal | `working-tree.unstage-all` | Unstage all files |
-| `Alt-s` | Normal, Visual, Insert | `working-tree.toggle-sign-off` | Commit option: SignOff (toggle) |
-| `Alt-n` | Normal, Visual, Insert | `working-tree.toggle-no-verify` | Commit option: No-Verify (toggle) |
-| `Alt-a` | Normal, Visual, Insert | `working-tree.toggle-amend` | Commit option: Amend (toggle) |
-| `<space>1` | Normal | `working-tree.focus-unstaged` | Focus the Unstaged list |
-| `<space>2` | Normal | `working-tree.focus-staged` | Focus the Staged list |
-| `<space>3` | Normal | `working-tree.focus-diff` | Focus the diff |
-| `<space>4` | Normal | `working-tree.focus-message` | Focus the commit message |
 
 ## WorkingUnstagedDiff
 

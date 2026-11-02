@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using Gitunia.Core.Conflicts;
+using Gitunia.Core.FileHistory;
 using Gitunia.Core.Overlays;
 using Gitunia.Core.Pick;
 using Gitunia.Core.Prompts;
@@ -18,7 +19,7 @@ public sealed class ShellStateTests
     // session cannot be forgotten silently.
     private static readonly string[] NotOverlaySessions = ["Creation", "Picker", "Compare", "QuickJump", "Sidebar", "TabActions"];
 
-    private static readonly string[] EditorSessions = ["Reflog", "RebaseEditor", "Conflict"];
+    private static readonly string[] EditorSessions = ["Reflog", "FileHistory", "RebaseEditor", "Conflict"];
 
     [Theory]
     [InlineData("Confirm")]
@@ -107,6 +108,10 @@ public sealed class ShellStateTests
         "Reflog" => ShellState.Empty with
         {
             Reflog = ReflogSession.Empty with { List = Uninitialised<ReflogState>() },
+        },
+        "FileHistory" => ShellState.Empty with
+        {
+            FileHistory = FileHistorySession.Empty with { History = Uninitialised<FileHistoryState>() },
         },
         "RebaseEditor" => ShellState.Empty with
         {

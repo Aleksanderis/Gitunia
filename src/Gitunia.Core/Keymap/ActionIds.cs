@@ -310,6 +310,10 @@ public static class ActionIds
 
     public static ActionId RebaseDrop { get; } = new("rebase.drop");
 
+    public static ActionId FileHistoryOpen { get; } = new("file-history.open");
+
+    public static ActionId FileHistorySelectCommit { get; } = new("file-history.select-commit");
+
     public static ActionId ReflogOpen { get; } = new("reflog.open");
 
     public static ActionId ReflogSelectCommit { get; } = new("reflog.select-commit");

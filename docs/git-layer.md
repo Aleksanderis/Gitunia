@@ -46,6 +46,7 @@ All take the repository location, are never `ReadOnly`, and run one at a time pe
 | Index | `IIndexWriter` | `add`, `restore --staged`, `apply --cached [-R] -` | Paths on stdin with `--literal-pathspecs`. |
 | Partial staging | `PatchStager` | `apply --cached` with a rebuilt patch | Never builds a patch from the rows on screen: re-reads the diff, matches lines by kind, number and text, falls back to the whole file for what a partial patch cannot represent. Typed `PatchStagingResult`. |
 | Reflog | `IReflogReader` | `reflog show --format=... -n` | Read-only. |
+| File history | `IFileHistoryReader` | `log --follow --find-renames --name-status -z --format=... -n <limit> <revision> -- :(literal)<path>` | Read-only. The parser tracks the file's name across renames; a commit without a status line (a merge) takes the followed name. The diff of one entry is `FileHistoryDiffCommand` (`show --format= -m --first-parent <hash> -- <path> [<old path>]`) run by `IDiffReader.ReadAsync`. |
 | Message search | `ICommitMessageSearcher` | `log -z --grep=<text> --fixed-strings --all` | Only for `body:` queries; read-only, 60 s timeout. |
 | Reset | `IResetWriter` | `reset --soft\|--mixed\|--hard <commit>^{commit}` | Returns the previous HEAD hash for the undo hint; the UI does the checks and the Confirm. |
 | Ancestry | `IAncestryReader` | `merge-base --is-ancestor` | Exit 0 yes, 1 no, else throws; decides whether a force push is offered. |

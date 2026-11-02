@@ -32,6 +32,9 @@ public static partial class PaneHints
     /// <summary>The hints while a confirm dialog is open (only its answers act).</summary>
     public static IReadOnlyList<KeyHint> ForConfirm() => Confirm;
 
+    /// <summary>The hints while the file history is open.</summary>
+    public static IReadOnlyList<KeyHint> ForFileHistory() => FileHistory;
+
     /// <summary>The hints while the reflog list is open.</summary>
     public static IReadOnlyList<KeyHint> ForReflog() => Reflog;
 

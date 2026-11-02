@@ -2,6 +2,7 @@ using Gitunia.Core.Running;
 using Gitunia.Core.Worktrees;
 using Gitunia.Core.Status;
 using Gitunia.Core.Shell;
+using Gitunia.Core.FileHistory;
 using Gitunia.Core.Reflog;
 using Gitunia.Core.Picker;
 using Gitunia.Core.Creation;
@@ -25,6 +26,8 @@ public sealed partial class EffectRunner<TSession>
         DiscoverRepositoryEffect discover => new PickerDiscoveryFailed(discover.Request, text),
         InitRepositoryEffect => new InitFailed(text),
         ReadHeadMessageEffect head => new HeadMessageReadFailed(head.TabId, text),
+        ReadFileHistoryDiffEffect diff => new FileHistoryDiffFailed(diff.Generation, text),
+        ReadFileHistoryEffect => new FileHistoryReadFailed(text),
         ReadReflogEffect => new ReflogReadFailed(text),
         ScanRepositoriesEffect => new PickerScanFinished([]),
         SettingsEffect => new SettingsOperationFailed(text),

@@ -410,6 +410,7 @@ public class WorkingTreeActionHandlerTests
             ActionIds.AppQuit.Value,
             ActionIds.ToolCommitEditor.Value,
             ActionIds.FilesTogglePathStyle.Value,
+            ActionIds.FileHistoryOpen.Value,
         ];
 
     private sealed class Harness : IDisposable

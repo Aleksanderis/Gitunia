@@ -63,6 +63,7 @@ public static class HelpBuilder
                 DefaultKeymap.WorkingMessageView,
             ]),
         new("Reflog", [DefaultKeymap.ReflogView]),
+        new("History", [DefaultKeymap.FileHistoryView]),
         new("Rebase todo", [DefaultKeymap.RebaseEditorView]),
         new(
             "Conflicts",
@@ -75,6 +76,7 @@ public static class HelpBuilder
     private static readonly HashSet<string> ModalScreenViews =
     [
         DefaultKeymap.ReflogView,
+        DefaultKeymap.FileHistoryView,
         DefaultKeymap.RebaseEditorView,
         DefaultKeymap.ConflictEditorView,
         DefaultKeymap.ConflictSideView,

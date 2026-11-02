@@ -81,6 +81,7 @@ public sealed class KeyParts
         [OverlayClickTarget.ConflictEditor] = new ConflictEditorClickTarget(overlays.ConflictEditor, overlays.Cover),
         [OverlayClickTarget.RebaseEditor] = new RebaseEditorClickTarget(overlays.RebaseEditor),
         [OverlayClickTarget.Reflog] = new ReflogClickTarget(overlays.Reflog),
+        [OverlayClickTarget.FileHistory] = new FileHistoryClickTarget(overlays.FileHistory),
         [OverlayClickTarget.HelpTab] = new HelpTabClickTarget(Hits),
         [OverlayClickTarget.Palette] = new PaletteClickTarget(Hits),
         [OverlayClickTarget.ContextMenu] = new ContextMenuClickTarget(Hits),

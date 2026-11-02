@@ -7,12 +7,14 @@ using Gitunia.Tui.App.Conflicts;
 using Gitunia.Tui.App.Creation;
 using Gitunia.Tui.App.Details;
 using Gitunia.Tui.App.ExternalTools;
+using Gitunia.Tui.App.FileHistory;
 using Gitunia.Tui.App.Merge;
 using Gitunia.Tui.App.Operations;
 using Gitunia.Tui.App.Panes;
 using Gitunia.Tui.App.Rebase;
 using Gitunia.Tui.App.Remote;
 using Gitunia.Tui.App.Reset;
+using Gitunia.Tui.App.Selection;
 using Gitunia.Tui.App.Settings;
 using Gitunia.Tui.App.Stash;
 using Gitunia.Tui.App.Tags;
@@ -49,7 +51,9 @@ public sealed class HandlerParts
             foundation.Statuses,
             new TerminalRetryHost(host, overlays.Cover, Tools));
         Reset = new ResetActions(host, panes.Rows);
-        ReflogEntries = new ReflogEntryStarter(host, Reset, panes.Graph);
+        Starters = new FlowStarters(
+            new ReflogEntryStarter(host, Reset, panes.Graph),
+            new FileHistoryJumper(host, panes.Graph));
         ConfigEditor = new ConfigEditorLauncher(
             new ExternalToolLauncher(),
             foundation.Terminal,
@@ -80,8 +84,8 @@ public sealed class HandlerParts
     /// <summary>The reset actions.</summary>
     public ResetActions Reset { get; }
 
-    /// <summary>Starts the flow a reflog entry stands for.</summary>
-    public ReflogEntryStarter ReflogEntries { get; }
+    /// <summary>Carries out the flows a state effect hands to the terminal layer.</summary>
+    public FlowStarters Starters { get; }
 
     /// <summary>Opens the config file in the editor.</summary>
     public ConfigEditorLauncher ConfigEditor { get; }
@@ -105,6 +109,8 @@ public sealed class HandlerParts
         KeyParts keys)
     {
         var host = foundation.Host;
+        var target = new FileHistorySelection(host, foundation.Sessions, foundation.Panes);
+        var fileHistory = new FileHistoryOpener(host, target);
         var navigation = new NavigationServices(keys.Quit, foundation.Chrome, Statuses, foundation.Clipboard);
 
         return overlays.Handlers
@@ -122,6 +128,7 @@ public sealed class HandlerParts
                     panes.Commits,
                     new StagingContext(Staging, panes.WorkingDiff, panes.Visual)))
             .Add(InputHandler.Branches, new BranchActions(host, panes.Rows))
+            .Add(InputHandler.FileHistoryOpen, fileHistory)
             .Add(InputHandler.Stash, new StashActions(host, panes.Stashes))
             .Add(InputHandler.Tags, new TagActions(host, panes.Rows))
             .Add(InputHandler.Sync, new SyncActions(host, panes.Rows))

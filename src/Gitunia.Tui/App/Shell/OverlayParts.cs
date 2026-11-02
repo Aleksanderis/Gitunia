@@ -4,6 +4,7 @@ using Gitunia.Tui.App.Overlays;
 using Gitunia.Tui.App.Pick;
 using Gitunia.Tui.App.Prompts;
 using Gitunia.Tui.App.Rebase;
+using Gitunia.Tui.App.FileHistory;
 using Gitunia.Tui.App.Reflog;
 using Gitunia.Tui.App.Settings;
 using Gitunia.Tui.Input;
@@ -37,8 +38,10 @@ public sealed class OverlayParts
         Prompts = new PromptDisplays(
             [panes.DiffPane, panes.WorkingDiff, panes.QuickJump, panes.FileTree, OpenPrompt, Pick, RefJump, Search]);
         Reflog = new ReflogInput(host, panes.Rows, glyphs);
+        FileHistory = new FileHistoryInput(host, glyphs);
+        Screens = new ListScreens(Reflog, FileHistory);
         Settings = new SettingsScreenInput(host, glyphs);
-        Others = new OtherOverlays(route.Overlays, Reflog, Settings, Pick, Prompts);
+        Others = new OtherOverlays(route.Overlays, Screens, Settings, Pick, Prompts);
         RebaseEditor = new RebaseEditorInput(host, panes.Rows, Others, glyphs, foundation.Keys);
         ConflictEditor = new ConflictEditorInput(host, glyphs, foundation.Keys);
         Editors = new EditorOverlays(RebaseEditor, ConflictEditor, Settings);
@@ -68,6 +71,12 @@ public sealed class OverlayParts
 
     /// <summary>The reflog list.</summary>
     public ReflogInput Reflog { get; }
+
+    /// <summary>The file history.</summary>
+    public FileHistoryInput FileHistory { get; }
+
+    /// <summary>The reflog list and the file history.</summary>
+    public ListScreens Screens { get; }
 
     /// <summary>The settings screen.</summary>
     public SettingsScreenInput Settings { get; }
@@ -107,6 +116,7 @@ public sealed class OverlayParts
             .Add(InputHandler.ConflictEditor, ConflictEditor)
             .Add(InputHandler.RebaseEditor, RebaseEditor)
             .Add(InputHandler.Reflog, Reflog)
+            .Add(InputHandler.FileHistory, FileHistory)
             .Add(InputHandler.FileTree, panes.FileTree)
             .Add(InputHandler.QuickJump, panes.QuickJump)
             .Add(InputHandler.RefJump, RefJump)

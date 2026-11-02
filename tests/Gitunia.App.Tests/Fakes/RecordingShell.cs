@@ -5,6 +5,7 @@ using Gitunia.Core.Conflicts;
 using Gitunia.Core.FileTree;
 using Gitunia.Core.ExternalTools;
 using Gitunia.Core.Input;
+using Gitunia.Core.FileHistory;
 using Gitunia.Core.Reflog;
 using Gitunia.Core.Sidebar;
 using Gitunia.Core.Staging;
@@ -19,6 +20,8 @@ public sealed class RecordingShell : IShellEffects
     public List<string> Retries { get; } = [];
 
     public List<ReflogEntryActionEffect> EntryActions { get; } = [];
+
+    public List<FileHistoryJumpEffect> FileHistoryJumps { get; } = [];
 
     public List<StageResolvedConflictEffect> StagedConflicts { get; } = [];
 
@@ -81,6 +84,8 @@ public sealed class RecordingShell : IShellEffects
     }
 
     public void StartReflogEntryAction(ReflogEntryActionEffect effect) => EntryActions.Add(effect);
+
+    public void JumpToFileHistoryCommit(FileHistoryJumpEffect effect) => FileHistoryJumps.Add(effect);
 
     public void StageResolvedConflict(StageResolvedConflictEffect effect) => StagedConflicts.Add(effect);
 

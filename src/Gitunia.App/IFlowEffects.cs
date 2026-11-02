@@ -1,4 +1,5 @@
 using Gitunia.Core.Conflicts;
+using Gitunia.Core.FileHistory;
 using Gitunia.Core.FileTree;
 using Gitunia.Core.Reflog;
 
@@ -12,6 +13,12 @@ public interface IFlowEffects
     /// cursor) and answers with <c>ReflogEntryActionStarted</c> or <c>ReflogEntryActionRefused</c>.
     /// </summary>
     void StartReflogEntryAction(ReflogEntryActionEffect effect);
+
+    /// <summary>
+    /// Moves the graph cursor to the commit of a file history row and answers with <c>FileHistoryJumpDone</c> or
+    /// <c>FileHistoryJumpRefused</c>.
+    /// </summary>
+    void JumpToFileHistoryCommit(FileHistoryJumpEffect effect);
 
     /// <summary>
     /// Marks a saved, fully resolved conflicted file as resolved (stages it) and reports.

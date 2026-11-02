@@ -5,6 +5,7 @@ using Gitunia.Tui.App.Branches;
 using Gitunia.Tui.App.Overlays;
 using Gitunia.Tui.App.Pick;
 using Gitunia.Tui.App.Rebase;
+using Gitunia.Tui.App.FileHistory;
 using Gitunia.Tui.App.Reflog;
 using Gitunia.Tui.App.Settings;
 using Gitunia.Tui.Input;
@@ -30,7 +31,9 @@ public sealed class OverlayCoverTests : IDisposable
         var settings = new SettingsScreenInput(host, GraphGlyphSet.Unicode);
         var others = new OtherOverlays(
             store,
-            new ReflogInput(host, new NoSelection(), GraphGlyphSet.Unicode),
+            new ListScreens(
+                new ReflogInput(host, new NoSelection(), GraphGlyphSet.Unicode),
+                new FileHistoryInput(host, GraphGlyphSet.Unicode)),
             settings,
             new PickActions(host, new NoPicks()),
             new PromptDisplays([]));

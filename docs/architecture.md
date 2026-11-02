@@ -123,6 +123,14 @@ Both are slices of `ShellState` (`Reflog: ReflogSession`, `Settings: SettingsSes
 
 Tests: `ReflogReducerTests`, `SettingsScreenReducerTests` (Core, synchronous, including the tab closed while the list is open or read), `ReflogEffectHandlerTests` and `SettingsEffectHandlerTests` (App, real repositories and files), `EffectPipelineTests` (through the real runner), `ReflogInputTests` and `SettingsScreenInputTests` (Tui: the former controller scenarios end to end over a real dispatcher).
 
+### File history (#1115)
+
+A third slice of `ShellState` shaped like the reflog: `FileHistory: FileHistorySession` holds the open `FileHistoryState` (the file, the revision it starts at, the commits, the highlight and the diff of that commit's file), a `Generation` for the list reads and a `DiffGeneration` for the diff reads, and `IsReading`.
+`FileHistoryReducer` turns `FileHistoryOpenRequested` (the Tui names the file under the cursor and the revision), `FileHistoryActionPressed` (consumes every action while open), `FileHistoryEntryClicked` and the results into `ReadFileHistoryEffect`, `ReadFileHistoryDiffEffect` and `FileHistoryJumpEffect`; a result with an older generation is dropped, and a closed tab ends the read.
+`App/FileHistory/FileHistoryEffectHandler` reads the commits (`IFileHistoryReader`, `git log --follow`) and one commit's diff of the file (`IDiffReader`); a newer diff read cancels the running one.
+The jump to the graph is carried out by the terminal layer (`Tui/App/FileHistory/FileHistoryJumper`, like a reflog entry) because the graph cursor lives there.
+Both lists are bounded (1000 commits, 5000 diff lines), so they stay in the state like the reflog entries; `Tui/App/FileHistory/FileHistoryInput` only draws and translates keys and clicks, `FileHistoryOpener` is the pane-layer action that opens it from the commit file list and the Changes view.
+
 ### Conflict editor (#982)
 
 A slice of `ShellState` (`Conflict: ConflictSession`) with its own reducer; `ConflictEditorController` is gone. `ConflictEditorState` (the pane model, picks, result buffer, undo) was already pure and stays in `Core/Conflicts/`.
