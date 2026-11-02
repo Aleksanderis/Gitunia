@@ -16,6 +16,8 @@ public class BlameSearchTests
     [InlineData(3, false, 1, 1)]
     [InlineData(1, false, 1, 3)]
     [InlineData(5, false, 2, 1)]
+    [InlineData(3, true, 3, 1)]
+    [InlineData(3, true, 4, 3)]
     public void GivenMatchesOnLinesOneAndThree_WhenStepping_ThenItWrapsAndSkipsByCount(
         int start,
         bool forward,

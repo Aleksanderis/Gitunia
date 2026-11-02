@@ -31,7 +31,8 @@ public sealed class BlameEffectHandler(IBlameReader reader, BlameStore store, ID
         var source = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         _running = source;
         _runningGeneration = effect.Generation;
-        _ = Task.Run(() => RunAsync(effect, source.Token), CancellationToken.None);
+        var token = source.Token;
+        _ = Task.Run(() => RunAsync(effect, token), CancellationToken.None);
     }
 
     /// <summary>Cancels the blame of the generation and frees its lines.</summary>
@@ -79,6 +80,7 @@ public sealed class BlameEffectHandler(IBlameReader reader, BlameStore store, ID
                 .ReadContentAsync(effect.Location, effect.Path, effect.Revision, token)
                 .ConfigureAwait(false);
             var count = content.Lines.Count;
+            token.ThrowIfCancellationRequested();
             if (content.Kind == BlameContentKind.Text)
             {
                 store.Publish(new BlameData(effect.Generation, content.Lines));

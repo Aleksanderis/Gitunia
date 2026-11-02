@@ -44,7 +44,7 @@ public sealed class OverlayParts
             new BlameTargets(foundation.Panes, foundation.Sessions, panes.Graph),
             glyphs);
         Settings = new SettingsScreenInput(host, glyphs);
-        Others = new OtherOverlays(route.Overlays, Reflog, Blame, Settings, Pick, Prompts);
+        Others = new OtherOverlays(route.Overlays, new ListScreens(Reflog, Blame), Settings, Pick, Prompts);
         RebaseEditor = new RebaseEditorInput(host, panes.Rows, Others, glyphs, foundation.Keys);
         ConflictEditor = new ConflictEditorInput(host, glyphs, foundation.Keys);
         Editors = new EditorOverlays(RebaseEditor, ConflictEditor, Settings);

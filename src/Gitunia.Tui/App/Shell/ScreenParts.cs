@@ -71,7 +71,7 @@ public sealed class ScreenParts
         Frames = new OverlayPresenter(
             host,
             foundation.Panes,
-            new OverlayFrames(overlays.Editors, overlays.Reflog, overlays.Blame, keys.Overlays, Popups, overlays.Cover),
+            new OverlayFrames(overlays.Editors, new ListScreens(overlays.Reflog, overlays.Blame), keys.Overlays, Popups, overlays.Cover),
             PopupTracker);
         SizeDragger = new PaneSizeDragger(
             host,

@@ -3,6 +3,7 @@ using Xunit;
 
 namespace Gitunia.Core.Tests.Blame;
 
+[Trait("Os", "Independent")]
 public class BlameDatesTests
 {
     private static readonly DateTimeOffset Now = new(2026, 11, 2, 12, 0, 0, TimeSpan.Zero);

@@ -33,8 +33,9 @@ public sealed class OverlayCoverTests : IDisposable
         var settings = new SettingsScreenInput(host, GraphGlyphSet.Unicode);
         var others = new OtherOverlays(
             store,
-            new ReflogInput(host, new NoSelection(), GraphGlyphSet.Unicode),
-            new BlameInput(host, new BlameStore(), new NoBlameTargets(), GraphGlyphSet.Unicode),
+            new ListScreens(
+                new ReflogInput(host, new NoSelection(), GraphGlyphSet.Unicode),
+                new BlameInput(host, new BlameStore(), new NoBlameTargets(), GraphGlyphSet.Unicode)),
             settings,
             new PickActions(host, new NoPicks()),
             new PromptDisplays([]));

@@ -21,19 +21,20 @@ public static class BlameSearch
             return -1;
         }
 
-        var remaining = Math.Max(1, count);
         var step = forward ? 1 : -1;
         var line = start;
+        var matches = new List<int>();
         for (var visited = 0; visited < total; visited++)
         {
             line = (((line + step) % total) + total) % total;
-            if (IsMatch(data, line, query) && --remaining == 0)
+            if (IsMatch(data, line, query))
             {
-                return line;
+                matches.Add(line);
             }
         }
 
-        return -1;
+        // Matches are in visiting order; a count beyond the last wraps around like vim's.
+        return matches.Count == 0 ? -1 : matches[(Math.Max(1, count) - 1) % matches.Count];
     }
 
     private static bool IsMatch(BlameData data, int line, string query)

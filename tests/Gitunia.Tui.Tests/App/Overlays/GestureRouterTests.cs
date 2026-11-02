@@ -44,8 +44,9 @@ public sealed class GestureRouterTests : IDisposable, IActionRoute
         var settings = new SettingsScreenInput(host, GraphGlyphSet.Unicode);
         var others = new OtherOverlays(
             _store,
-            new ReflogInput(host, new NoSelection(), GraphGlyphSet.Unicode),
-            new BlameInput(host, new BlameStore(), new NoBlameTargets(), GraphGlyphSet.Unicode),
+            new ListScreens(
+                new ReflogInput(host, new NoSelection(), GraphGlyphSet.Unicode),
+                new BlameInput(host, new BlameStore(), new NoBlameTargets(), GraphGlyphSet.Unicode)),
             settings,
             new PickActions(host, new NoPicks()),
             new PromptDisplays([]));
