@@ -1,3 +1,4 @@
+using Gitunia.Core.Text;
 using Gitunia.App.Background;
 using Gitunia.Core.Diff;
 using Gitunia.Git;
@@ -318,7 +319,7 @@ public sealed class DiffStore(
         }
         catch (Exception exception)
         {
-            ui.Post(() => Complete(commit, null, exception.Message, false, token));
+            ui.Post(() => Complete(commit, null, FailureText.Reason(exception), false, token));
         }
     }
 

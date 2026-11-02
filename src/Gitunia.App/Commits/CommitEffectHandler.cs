@@ -1,3 +1,4 @@
+using Gitunia.Core.Text;
 using System.Collections.Concurrent;
 using Gitunia.Core.Commits;
 using Gitunia.Core.Editing;
@@ -77,7 +78,7 @@ public sealed class CommitEffectHandler(ICommitWriter writer, IDispatcher dispat
         catch (Exception exception)
         {
             // Guard of the background run: anything else becomes a failed commit so the box never stays busy.
-            var notice = $"Commit failed: {CommitFailureReport.Notice(exception.Message)}";
+            var notice = $"Commit failed: {CommitFailureReport.Notice(FailureText.Reason(exception))}";
             result = new CommitFailed(effect.TabId, notice, null);
         }
 
@@ -113,7 +114,7 @@ public sealed class CommitEffectHandler(ICommitWriter writer, IDispatcher dispat
         }
         catch (Exception exception) when (effect is ReadHeadMessageEffect)
         {
-            dispatcher.Post(new HeadMessageReadFailed(effect.TabId, CommitFailureReport.Notice(exception.Message)));
+            dispatcher.Post(new HeadMessageReadFailed(effect.TabId, CommitFailureReport.Notice(FailureText.Reason(exception))));
         }
         catch (Exception)
         {

@@ -1,3 +1,4 @@
+using Gitunia.Core.Text;
 using System.Collections.Immutable;
 using Gitunia.Core.Picker;
 using Gitunia.Git.Execution.Exceptions;
@@ -102,7 +103,7 @@ public sealed class PickerEffectHandler(
         catch (Exception exception)
         {
             // Whatever went wrong, the picker must leave the scanning state.
-            message = exception.Message;
+            message = FailureText.Reason(exception);
         }
 
         dispatcher.Post(new ListingCompletedCommand(effect.Query, rows, message));
@@ -147,7 +148,7 @@ public sealed class PickerEffectHandler(
         catch (Exception exception) when (exception is GitException or IOException or UnauthorizedAccessException
             or ArgumentException)
         {
-            result = new PickerDiscoveryFailed(effect.Request, exception.Message);
+            result = new PickerDiscoveryFailed(effect.Request, FailureText.Reason(exception));
         }
 
         dispatcher.Post(result);

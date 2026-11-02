@@ -1,3 +1,4 @@
+using Gitunia.Core.Text;
 using Gitunia.App.Loading.Graph;
 using Gitunia.App.Status;
 using Gitunia.App.Tabs;
@@ -65,8 +66,8 @@ public sealed class RepositoryLoader
             // Not only git failures: a broken pipe or a bug must end the loading state with a message, never hang it.
             ui.Post(() =>
             {
-                statuses.Error($"{Path.GetFileName(Path.TrimEndingDirectorySeparator(location.RootPath))}: could not load the graph: {exception.Message}");
-                session.Fail(exception.Message);
+                statuses.Error($"{Path.GetFileName(Path.TrimEndingDirectorySeparator(location.RootPath))}: could not load the graph: {FailureText.Reason(exception)}");
+                session.Fail(FailureText.Reason(exception));
             });
         }
 
@@ -136,7 +137,7 @@ public sealed class RepositoryLoader
         }
         catch (Exception exception)
         {
-            var message = $"{name}: could not load the full history: {exception.Message}";
+            var message = $"{name}: could not load the full history: {FailureText.Reason(exception)}";
             ui.Post(() => ExpansionFailed(session, statuses, graphVersion, message));
         }
     }
@@ -191,7 +192,7 @@ public sealed class RepositoryLoader
         catch (GitException exception)
         {
             // The graph load reports its own failure; this part would otherwise leave the tab label and branch silently empty.
-            ui.Post(() => statuses.Error($"{Path.GetFileName(Path.TrimEndingDirectorySeparator(location.RootPath))}: could not read the repository status: {exception.Message}"));
+            ui.Post(() => statuses.Error($"{Path.GetFileName(Path.TrimEndingDirectorySeparator(location.RootPath))}: could not read the repository status: {FailureText.Reason(exception)}"));
         }
     }
 }

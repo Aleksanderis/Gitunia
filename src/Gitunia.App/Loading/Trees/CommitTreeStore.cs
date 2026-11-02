@@ -1,3 +1,4 @@
+using Gitunia.Core.Text;
 using Gitunia.App.Loading.Commits;
 using Gitunia.Core.FileTree;
 using Gitunia.Git;
@@ -138,7 +139,7 @@ public sealed class CommitTreeStore : IDisposable
         }
         catch (Exception exception)
         {
-            _ui.Post(() => Complete(commit, null, exception.Message, token));
+            _ui.Post(() => Complete(commit, null, FailureText.Reason(exception), token));
         }
     }
 

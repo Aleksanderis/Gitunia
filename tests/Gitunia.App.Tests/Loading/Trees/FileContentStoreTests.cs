@@ -1,3 +1,4 @@
+using Gitunia.Git.Execution.Exceptions;
 using Gitunia.App.Loading.Commits;
 using Gitunia.App.Loading.Trees;
 using Gitunia.Git;
@@ -79,6 +80,27 @@ public class FileContentStoreTests
 
         Assert.Equal("Cannot read the file: boom", store.Current.Document.Rows[0].Text);
         Assert.Equal("a.txt", store.Current.Document.ContentPath);
+    }
+
+    [Fact]
+    public async Task GivenAGitFailure_WhenLoading_ThenTheNoteShowsStderrNotTheCommandLine()
+    {
+        using var store = new FileContentStore(new GitFailingBlobReader(), FakeCommitDetailsReader.Location, _pump);
+        store.Load(Commit, "a.txt", FakeObjectIds.Of(2), 1);
+
+        await _pump.RunUntilAsync(() => store.Current.Status == CommitDetailsStatus.Failed);
+
+        Assert.Equal("Cannot read the file: fatal: bad object", store.Current.Document.Rows[0].Text);
+    }
+
+    private sealed class GitFailingBlobReader : IBlobReader
+    {
+        public Task<BlobContent> ReadAsync(
+            RepositoryLocation location,
+            ObjectId blob,
+            long? knownSize = null,
+            CancellationToken cancellationToken = default) =>
+            throw new GitCommandFailedException(["cat-file", "--batch"], 128, "fatal: bad object\nmore\n");
     }
 
     private sealed class GatedBlobReader : IBlobReader

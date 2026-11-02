@@ -1,3 +1,4 @@
+using Gitunia.Core.Text;
 using Gitunia.App.Status;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Repositories;
@@ -43,7 +44,7 @@ public sealed class SidebarDataLoader
         catch (GitException exception)
         {
             // One failed part does not hide the other.
-            ui.Post(() => statuses.Error($"{Path.GetFileName(Path.TrimEndingDirectorySeparator(location.RootPath))}: could not read the {what}: {exception.Message}"));
+            ui.Post(() => statuses.Error($"{Path.GetFileName(Path.TrimEndingDirectorySeparator(location.RootPath))}: could not read the {what}: {FailureText.Reason(exception)}"));
         }
     }
 }
