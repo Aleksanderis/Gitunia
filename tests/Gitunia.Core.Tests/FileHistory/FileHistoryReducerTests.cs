@@ -114,6 +114,24 @@ public class FileHistoryReducerTests
     }
 
     [Fact]
+    public void GivenAnotherTabShownMeanwhile_WhenTheResultArrives_ThenTheHistoryDoesNotOpenOverIt()
+    {
+        var state = Opened("alpha", "beta");
+        var first = state.Workspace.Tabs[0].Id;
+        var shown = AppReducer.Reduce(state, new ActivateTabCommand(first)).State;
+        var reading = AppReducer.Reduce(shown, new FileHistoryOpenRequested(first, "a.txt", Revision));
+        var read = Assert.IsType<ReadFileHistoryEffect>(Assert.Single(reading.Effects));
+        var switched = AppReducer.Reduce(reading.State, new NextTabCommand()).State;
+
+        var update = AppReducer.Reduce(
+            switched,
+            new FileHistoryLoaded(first, read.Generation, "a.txt", Revision, Entries(2)));
+
+        Assert.False(update.State.Shell.FileHistory.IsOpen);
+        Assert.False(update.State.Shell.FileHistory.IsReading);
+    }
+
+    [Fact]
     public void GivenTheDiffResult_WhenItArrives_ThenItIsShownForTheHighlightedCommit()
     {
         var opened = Open(Opened("alpha"), 2);

@@ -407,7 +407,8 @@ A commit before a rename is listed under the name the file had then.
 `git log --follow` omits merge commits, so a merge appears only through the commits of its branches.
 `j`/`k`/`gg`/`G`/`Ctrl-d`/`Ctrl-u` move the highlight (the diff follows; a newer read cancels the one still running), `J`/`K`/`D`/`U` scroll the diff, `Enter` selects the commit in the graph and closes the screen (a commit outside the loaded graph says so in the status bar and the screen stays), `<space>or` reads the list again keeping the highlight on the same commit, `Esc`, `h` or `q` return to where the screen came from.
 A file with no commits (untracked, never committed) opens an empty screen that says so.
-Mouse: a click on a commit row highlights it, the wheel moves the highlight, the action row `Enter` below the list selects the commit in the graph; opening is the palette entry (`:`) or the key, like the other file actions.
+Mouse: a click on a commit row highlights it, the wheel moves the highlight, the action row `Enter` below the list selects the commit in the graph; opening is the palette entry (the `: commands` button in the tab row lists it) or the key, like the other file actions (a row menu for the file lists is #1132).
+Limits: the list is read in one go (up to 1000 commits), not streamed; a staged rename in the Changes view opens at `HEAD` under its new name, so it shows no history until the rename is committed; a path that is not valid UTF-8 cannot be matched; in a repository with no commit yet the screen is empty.
 
 ### 4. In-progress operations: banner, continue, abort, skip (M3; banner, continue, abort and skip done, the blocking of item 5 comes with each blocked feature)
 

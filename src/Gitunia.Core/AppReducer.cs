@@ -225,7 +225,9 @@ public static partial class AppReducer
             FileHistoryLoaded loaded => workspace.FindTab(loaded.TabId),
             _ => session.History is { } history ? workspace.FindTab(history.TabId) : null,
         };
-        if (command is FileHistoryLoaded && tab is null)
+        // A result for a tab that is closed, or no longer the shown one, ends the read: the history is modal over the
+        // shown tab and the jump to the graph acts on it.
+        if (command is FileHistoryLoaded loadedFor && (tab is null || workspace.ActiveTabId != loadedFor.TabId))
         {
             command = new FileHistoryReadCancelled();
         }

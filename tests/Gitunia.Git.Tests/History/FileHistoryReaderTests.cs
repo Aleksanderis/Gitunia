@@ -97,6 +97,29 @@ public class FileHistoryReaderTests
     }
 
     [Fact]
+    public async Task GivenAnUnbornHeadWithAStagedFile_WhenReadingItsHistory_ThenTheListIsEmptyNotAnError()
+    {
+        using var repository = TestRepository.Create();
+        repository.WriteFile("a.txt", "x\n");
+        repository.Git("add", "a.txt");
+
+        var entries = await ReadAsync(repository, "a.txt");
+
+        Assert.Empty(entries);
+    }
+
+    [Fact]
+    public async Task GivenSignatureShowingInTheUserConfig_WhenReadingItsHistory_ThenTheRecordsStillParse()
+    {
+        using var repository = TestRepository.Create().Commit("one", new TestFile("a.txt", "1\n"));
+        repository.Git("config", "log.showSignature", "true");
+
+        var entries = await ReadAsync(repository, "a.txt");
+
+        Assert.Equal(["one"], entries.Select(entry => entry.Subject));
+    }
+
+    [Fact]
     public async Task GivenAFileThatWasNeverCommitted_WhenReadingItsHistory_ThenTheListIsEmpty()
     {
         using var repository = TestRepository.Create().Commit("add", new TestFile("a.txt", "x\n"));

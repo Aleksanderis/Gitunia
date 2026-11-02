@@ -102,7 +102,7 @@ public static class FileHistoryFrameBuilder
     {
         var revision = state.Revision == "HEAD" ? "HEAD" : ShortHash.Of(state.Revision);
 
-        return $"File history: {state.Path} (from {revision})";
+        return $"File history: {Printable(state.Path)} (from {revision})";
     }
 
     private static StyledLine ListCell(
@@ -128,7 +128,7 @@ public static class FileHistoryFrameBuilder
         var hash = entry.Hash.Length > ShortHashLength ? entry.Hash[..ShortHashLength] : entry.Hash;
         var role = index == window.Selected ? SegmentRole.Cursor : SegmentRole.Plain;
 
-        return builder.Append($" {hash} {entry.Date} {entry.Subject}", role).Build(role);
+        return builder.Append($" {hash} {entry.Date} {Printable(entry.Subject)}", role).Build(role);
     }
 
     private static StyledLine DiffCell(FileHistoryState state, int row, int width, GraphGlyphSet glyphs)
