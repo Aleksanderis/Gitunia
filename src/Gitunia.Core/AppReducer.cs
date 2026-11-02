@@ -14,6 +14,7 @@ using Gitunia.Core.Input;
 using Gitunia.Core.IssueLinks;
 using Gitunia.Core.Jump;
 using Gitunia.Core.Keymap.Models;
+using Gitunia.Core.Overlays;
 using Gitunia.Core.Pick;
 using Gitunia.Core.Integration;
 using Gitunia.Core.Operations;
@@ -320,7 +321,8 @@ public static partial class AppReducer
         || shell.RebaseEditor.IsOpen
         || shell.Conflict.IsOpen
         || shell.Reflog.IsOpen
-        || shell.Settings.IsOpen;
+        || shell.Settings.IsOpen
+        || shell.Overlay != OverlayKind.None;
 
     // A result or answer for a tab that was closed meanwhile is dropped, like a late TabCommand.
     private static AppUpdate ReduceIntegration(AppState state, IntegrationCommand command)

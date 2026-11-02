@@ -1,3 +1,4 @@
+using Gitunia.Core.Conflicts;
 using Gitunia.Core.Effects;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
@@ -10,6 +11,7 @@ using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
+using Gitunia.Git.Conflicts;
 using Gitunia.Git.Operations.Models;
 using Gitunia.Git.Rebase;
 using Gitunia.Git.Repositories.Models;
@@ -143,6 +145,79 @@ public class RebaseAppReducerTests
         var update = AppReducer.Reduce(state, new QuickRebasePlanned(tabId, Plan(QuickRebaseKind.Drop)));
 
         Assert.Equal(RebaseReducer.ChangedNotice, Assert.Single(update.Effects.OfType<PostStatusEffect>()).Text);
+    }
+
+    [Theory]
+    [InlineData(OverlayKind.Palette)]
+    [InlineData(OverlayKind.ContextMenu)]
+    [InlineData(OverlayKind.Help)]
+    [InlineData(OverlayKind.Messages)]
+    public void GivenAnOverlayLayerOverlayOpen_WhenThePlanArrives_ThenTheQuestionIsDropped(OverlayKind kind)
+    {
+        var (state, tabId) = Opened("alpha");
+        state = AppReducer.Reduce(state, new OverlayChangedCommand(kind)).State;
+
+        var update = AppReducer.Reduce(state, new QuickRebasePlanned(tabId, Plan(QuickRebaseKind.Drop)));
+
+        Assert.Equal(RebaseReducer.ChangedNotice, Assert.Single(update.Effects.OfType<PostStatusEffect>()).Text);
+        Assert.DoesNotContain(update.Effects, effect => effect is ShowConfirmEffect);
+    }
+
+    [Fact]
+    public void GivenTheOverlayClosedAgain_WhenThePlanArrives_ThenTheQuestionIsAsked()
+    {
+        var (state, tabId) = Opened("alpha");
+        state = AppReducer.Reduce(state, new OverlayChangedCommand(OverlayKind.Palette)).State;
+        state = AppReducer.Reduce(state, new OverlayChangedCommand(OverlayKind.None)).State;
+
+        var update = AppReducer.Reduce(state, new QuickRebasePlanned(tabId, Plan(QuickRebaseKind.Drop)));
+
+        Assert.Contains(update.Effects, effect => effect is ShowConfirmEffect);
+    }
+
+    [Fact]
+    public void GivenAnOpenPalette_WhenAConfirmIsRequested_ThenThePaletteMarkIsReplacedByTheDialog()
+    {
+        var (state, _) = Opened("alpha");
+        state = AppReducer.Reduce(state, new OverlayChangedCommand(OverlayKind.Palette)).State;
+        var prompt = new ConfirmPrompt("Other", ["Other?"], "Undo", "Yes");
+
+        var asked = AppReducer.Reduce(state, new ConfirmRequestedCommand(prompt, new RebaseCancelled(new TabId(1)), null));
+
+        Assert.Equal(OverlayKind.None, asked.State.Shell.Overlay);
+        Assert.NotNull(asked.State.Shell.Confirm);
+    }
+
+    [Fact]
+    public void GivenAnOpenRebaseEditor_WhenThePlanArrives_ThenTheQuestionIsDropped()
+    {
+        var (state, tabId) = Opened("alpha");
+        var todo = RebaseEditorState.Create(
+            tabId,
+            "main",
+            "topic",
+            RebaseBase.OntoCommit(Target),
+            Tip,
+            [new(Older, "Older")]);
+        var editor = RebaseEditorSession.Empty with { Editor = todo };
+        state = state with { Shell = state.Shell with { RebaseEditor = editor } };
+
+        var update = AppReducer.Reduce(state, new QuickRebasePlanned(tabId, Plan(QuickRebaseKind.Drop)));
+
+        Assert.DoesNotContain(update.Effects, effect => effect is ShowConfirmEffect);
+    }
+
+    [Fact]
+    public void GivenAnOpenConflictEditor_WhenThePlanArrives_ThenTheQuestionIsDropped()
+    {
+        var (state, tabId) = Opened("alpha");
+        var parts = ConflictParser.Parse("<<<<<<< a\nx\n=======\ny\n>>>>>>> b\n").Parts!;
+        var conflict = ConflictSession.Empty with { Editor = ConflictEditorState.Create(tabId, "file.txt", parts) };
+        state = state with { Shell = state.Shell with { Conflict = conflict } };
+
+        var update = AppReducer.Reduce(state, new QuickRebasePlanned(tabId, Plan(QuickRebaseKind.Drop)));
+
+        Assert.DoesNotContain(update.Effects, effect => effect is ShowConfirmEffect);
     }
 
     [Fact]

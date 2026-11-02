@@ -125,6 +125,21 @@ public sealed class OverlayControllerTests : IDisposable, IActionRoute
     }
 
     [Fact]
+    public void GivenAnOpenHelp_WhenAConfirmReplacesItAndAnotherOneClosesByEsc_ThenTheShellStateFollowsEachStep()
+    {
+        Press(new Key('?'));
+        Assert.Equal(OverlayKind.Help, _shell.Host.State.Shell.Overlay);
+
+        _shell.Host.Confirm(Prompt(), () => { });
+        Assert.Equal(OverlayKind.None, _shell.Host.State.Shell.Overlay);
+
+        Press(new Key('n'));
+        Press(new Key('?'));
+        Press(Key.Esc);
+        Assert.Equal(OverlayKind.None, _shell.Host.State.Shell.Overlay);
+    }
+
+    [Fact]
     public void GivenAnOpenHelp_WhenOutputIsShown_ThenTheOutputReplacesIt()
     {
         Press(new Key('?'));

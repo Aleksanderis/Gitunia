@@ -3,6 +3,7 @@ using Gitunia.Core.Conflicts;
 using Gitunia.Core.Creation;
 using Gitunia.Core.Jump;
 using Gitunia.Core.Keymap.Models;
+using Gitunia.Core.Overlays;
 using Gitunia.Core.Picker;
 using Gitunia.Core.Pick;
 using Gitunia.Core.Prompts;
@@ -37,6 +38,8 @@ namespace Gitunia.Core.Shell;
 /// <param name="Compare">What the comparison of commits remembers per tab (#996).</param>
 /// <param name="QuickJump">The open quick jump prompt, or null (#996).</param>
 /// <param name="Sidebar">What the sidebar keys keep between presses: the filter being typed (#996).</param>
+/// <param name="Overlay">Which of the help, palette, actions menu or history the overlay layer shows, or none (#1020);
+/// the confirm dialog and the output box are the fields above.</param>
 /// <param name="QuitWarned">The first quit after a failed save warned; the next one leaves.</param>
 /// <param name="TabActions">What the tab and pin actions keep between presses (#985).</param>
 /// <param name="Screen">The terminal size, or null until the terminal layer reported it (a dialog then counts as
@@ -61,7 +64,8 @@ public sealed record ShellState(
     bool QuitWarned,
     WorkspaceActionSession TabActions,
     ScreenExtent? Screen,
-    VisualSelection? Visual = null)
+    VisualSelection? Visual = null,
+    OverlayKind Overlay = OverlayKind.None)
 {
     public static ShellState Empty { get; } = new(
         KeyMode.Normal,
