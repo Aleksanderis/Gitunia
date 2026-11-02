@@ -147,8 +147,8 @@ public class WorktreeEffectHandlerTests
 
         Assert.Equal("Pruned 1 worktree entry", Assert.IsType<WorktreeOperationSucceeded>(result).Text);
         var listed = repository.Git("worktree", "list", "--porcelain");
-        Assert.DoesNotContain(prunablePath, listed, StringComparison.Ordinal);
-        Assert.Contains(lockedPath, listed, StringComparison.Ordinal);
+        Assert.DoesNotContain(AsGitPath(prunablePath), listed, StringComparison.Ordinal);
+        Assert.Contains(AsGitPath(lockedPath), listed, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -193,6 +193,9 @@ public class WorktreeEffectHandlerTests
         var failed = Assert.IsType<WorktreeLocateFailed>(result);
         Assert.StartsWith($"Could not open {missing}: ", failed.Text, StringComparison.Ordinal);
     }
+
+    // Git prints paths with forward slashes on every OS, the fixtures build them with the platform separator.
+    private static string AsGitPath(string path) => path.Replace(Path.DirectorySeparatorChar, '/');
 
     private static async Task<RepositoryLocation> LocateAsync(string path) =>
         await TestGit.Services.Discovery.DiscoverAsync(path, Token);
