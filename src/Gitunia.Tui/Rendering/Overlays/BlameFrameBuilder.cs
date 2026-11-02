@@ -2,7 +2,6 @@ using System.Globalization;
 using Gitunia.App.Blame;
 using Gitunia.Core.Blame;
 using Gitunia.Core.Keymap;
-using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Mouse;
 using Gitunia.Core.Text;
 using Gitunia.Git.Blame.Models;
@@ -138,7 +137,7 @@ public static class BlameFrameBuilder
         };
 
     private static HintChip WithKey(HintChip chip) =>
-        chip with { Keys = ChipKeys.Default.For(chip.View, DefaultKeymap.BlameView, KeyMode.Normal) ?? string.Empty };
+        chip with { Keys = ChipKeys.Default.For(chip.View, DefaultKeymap.BlameView) ?? string.Empty };
 
     private static int TopOf(int cursor, int count, int rows)
     {

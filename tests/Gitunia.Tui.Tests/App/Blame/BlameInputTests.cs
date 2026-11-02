@@ -238,7 +238,7 @@ public sealed class BlameInputTests
             .ToArray();
 
         Assert.Equal(
-            new string?[] { DefaultMouseMap.BlameWhitespaceButton, DefaultMouseMap.BlameMovesButton, DefaultMouseMap.BlameCopiesButton },
+            new[] { DefaultMouseMap.BlameWhitespaceButton, DefaultMouseMap.BlameMovesButton, DefaultMouseMap.BlameCopiesButton },
             views);
         Assert.Equal(ActionIds.BlameDetectCopies, DefaultMouseMap.Create().Resolve(views[2]!, MouseGesture.Click)!.Action);
         Assert.Null(harness.Input.OnLineClicked(row, 70, out var beyondHandled));
