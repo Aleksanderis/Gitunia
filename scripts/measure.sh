@@ -158,7 +158,7 @@ if [ "$blame" -eq 1 ]; then
   until plain | grep -qE -- "$blame_row"; do
     [ "$(now_us)" -gt $((t0 + timeout * 1000000)) ] && break
   done
-  if plain | grep -qE -- "$blame_row"; then echo "blame_first_rows_ms=$(ms $(( $(now_us) - t0 )))"; else echo "blame_first_rows_ms=nan"; fi
+  if plain | grep -qE -- "$blame_row"; then echo "blame_first_rows_ms=$(ms $(( $(now_us) - t0 )))"; else echo "blame_first_rows_ms=nan"; echo "blame view did not open" >&2; exit 1; fi
   sleep 2; wait_stable || true
   vals=""
   for _ in $(seq "$keys"); do
