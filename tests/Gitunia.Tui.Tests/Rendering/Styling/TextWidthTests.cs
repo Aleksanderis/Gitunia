@@ -6,78 +6,37 @@ namespace Gitunia.Tui.Tests.Rendering.Styling;
 [Trait("Os", "Independent")]
 public class TextWidthTests
 {
-    [Fact]
-    public void GivenTextThatFits_WhenFitting_ThenItIsUnchanged()
+    [Theory]
+    [InlineData("hello", 5, "hello")] // Text that fits is unchanged.
+    [InlineData("hello world", 5, "hell…")] // The ellipsis fills the last column.
+    [InlineData("ab修正", 4, "ab…")] // A wide character at the edge is dropped, not split.
+    [InlineData("ab\U0001F468‍\U0001F469‍\U0001F467", 4, "ab\U0001F468‍\U0001F469‍\U0001F467")] // A joined emoji counts two columns.
+    [InlineData("a\U0001F468‍\U0001F469‍\U0001F467cdef", 4, "a\U0001F468‍\U0001F469‍\U0001F467…")] // It is kept whole.
+    [InlineData("abc\U0001F468‍\U0001F469‍\U0001F467", 4, "abc…")] // A joined emoji that does not fit is dropped, not cut.
+    [InlineData("hello", 0, "")] // No room: the result is empty.
+    public void GivenText_WhenFitting_ThenItIsCutToTheColumnsWithoutSplittingACharacter(
+        string text,
+        int columns,
+        string expected)
     {
-        Assert.Equal("hello", TextWidth.Fit("hello", 5, "…"));
+        var fitted = TextWidth.Fit(text, columns, "…");
+
+        Assert.Equal(expected, fitted);
+        Assert.True(TextWidth.Of(fitted) <= columns);
     }
 
-    [Fact]
-    public void GivenTextThatDoesNotFit_WhenFitting_ThenEllipsisFillsTheLastColumn()
+    [Theory]
+    [InlineData("src/a", 5, "src/a")] // Text that fits is unchanged.
+    [InlineData("foo/bar", 6, "…o/bar")] // The end stays under a leading ellipsis.
+    [InlineData("修正修正", 3, "…正")] // A wide character at the cut is not split.
+    [InlineData("aéb", 2, "…b")] // A combining mark at the cut does not lead the result.
+    [InlineData("abc", 0, "")] // No columns: the result is empty.
+    public void GivenText_WhenFittingTheStart_ThenTheEndStaysUnderALeadingEllipsis(
+        string text,
+        int columns,
+        string expected)
     {
-        Assert.Equal("hell…", TextWidth.Fit("hello world", 5, "…"));
-    }
-
-    [Fact]
-    public void GivenWideCharacterAtTheEdge_WhenFitting_ThenItIsDroppedNotSplit()
-    {
-        var fitted = TextWidth.Fit("ab修正", 4, "…");
-
-        Assert.Equal("ab…", fitted);
-        Assert.True(TextWidth.Of(fitted) <= 4);
-    }
-
-    [Fact]
-    public void GivenJoinedEmoji_WhenFitting_ThenItCountsTwoColumnsAndIsKeptWhole()
-    {
-        const string family = "\U0001F468‍\U0001F469‍\U0001F467";
-
-        Assert.Equal($"ab{family}", TextWidth.Fit($"ab{family}", 4, "…"));
-        Assert.Equal($"a{family}…", TextWidth.Fit($"a{family}cdef", 4, "…"));
-    }
-
-    [Fact]
-    public void GivenJoinedEmojiThatDoesNotFit_WhenFitting_ThenItIsDroppedNotCut()
-    {
-        const string family = "\U0001F468‍\U0001F469‍\U0001F467";
-
-        Assert.Equal("abc…", TextWidth.Fit($"abc{family}", 4, "…"));
-    }
-
-    [Fact]
-    public void GivenNoRoom_WhenFitting_ThenResultIsEmpty()
-    {
-        Assert.Equal(string.Empty, TextWidth.Fit("hello", 0, "…"));
-    }
-
-    [Fact]
-    public void GivenTextThatFits_WhenFittingTheStart_ThenItIsUnchanged()
-    {
-        Assert.Equal("src/a", TextWidth.FitStart("src/a", 5, "…"));
-    }
-
-    [Fact]
-    public void GivenTextThatDoesNotFit_WhenFittingTheStart_ThenTheEndStaysUnderALeadingEllipsis()
-    {
-        Assert.Equal("…o/bar", TextWidth.FitStart("foo/bar", 6, "…"));
-    }
-
-    [Fact]
-    public void GivenAWideCharacterAtTheCut_WhenFittingTheStart_ThenItIsNotSplit()
-    {
-        Assert.Equal("…正", TextWidth.FitStart("修正修正", 3, "…"));
-    }
-
-    [Fact]
-    public void GivenACombiningMarkAtTheCut_WhenFittingTheStart_ThenItDoesNotLeadTheResult()
-    {
-        Assert.Equal("…b", TextWidth.FitStart("ae\u0301b", 2, "…"));
-    }
-
-    [Fact]
-    public void GivenNoColumns_WhenFittingTheStart_ThenTheResultIsEmpty()
-    {
-        Assert.Equal(string.Empty, TextWidth.FitStart("abc", 0, "…"));
+        Assert.Equal(expected, TextWidth.FitStart(text, columns, "…"));
     }
 
     [Theory]

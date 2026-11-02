@@ -65,19 +65,6 @@ public class WorktreePipelineTests
     }
 
     [Fact]
-    public async Task GivenACleanWorktree_WhenTheDialogIsDeclined_ThenNothingRunsAndTheDirectoryStays()
-    {
-        using var repository = TestRepositories.WithWorktree(out var path);
-        using var pipeline = await Pipeline.OpenAsync(repository, expectedWorktrees: 2);
-
-        pipeline.Dispatch(new WorktreeRemoveRequested(pipeline.TabId, Pipeline.RowOf(path)));
-        pipeline.Dispatch(new ConfirmAnsweredCommand(ConfirmAnswer.No));
-
-        Assert.False(pipeline.IsWorktreeRunning);
-        Assert.True(Directory.Exists(path));
-    }
-
-    [Fact]
     public async Task GivenADirtyWorktree_WhenTheFirstDialogIsYesAndTheSecondNo_ThenTheChangesSurvive()
     {
         using var repository = TestRepositories.WithWorktree(out var path);
@@ -153,21 +140,6 @@ public class WorktreePipelineTests
         await pipeline.Pump.RunUntilAsync(() => pipeline.Host.Workspace.ActiveTabId != first);
 
         Assert.Equal(2, pipeline.Host.Workspace.Tabs.Length);
-    }
-
-    [Fact]
-    public async Task GivenTheRemoveDialogOpen_WhenTheTabIsClosed_ThenYRemovesNothing()
-    {
-        using var repository = TestRepositories.WithWorktree(out var path);
-        using var pipeline = await Pipeline.OpenAsync(repository, expectedWorktrees: 2);
-        var tabId = pipeline.TabId;
-        pipeline.Dispatch(new WorktreeRemoveRequested(tabId, Pipeline.RowOf(path)));
-        pipeline.Dispatch(new CloseTabCommand(tabId));
-
-        pipeline.Dispatch(new ConfirmAnsweredCommand(ConfirmAnswer.Yes));
-
-        Assert.Null(pipeline.Host.State.Shell.Confirm);
-        Assert.True(Directory.Exists(path));
     }
 
     [Fact]

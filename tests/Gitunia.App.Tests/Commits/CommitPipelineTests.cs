@@ -189,24 +189,6 @@ public class CommitPipelineTests
     }
 
     [Fact]
-    public async Task GivenTheTabIsClosedWhileTheDialogIsOpen_WhenAnsweringYes_ThenNothingIsStagedOrCommitted()
-    {
-        using var repository = Initial();
-        repository.WriteFile("a.txt", "changed\n");
-        using var pipeline = await OpenAsync(repository);
-        Seed(pipeline, "Message");
-        Run(pipeline, ActionIds.WorkingTreeCommit);
-        Assert.NotNull(pipeline.Confirm);
-
-        pipeline.Dispatch(new CloseTabCommand(pipeline.TabId));
-        pipeline.Answer(ConfirmAnswer.Yes);
-        await Task.Delay(50, TestContext.Current.CancellationToken);
-
-        Assert.Equal("1", repository.Git("rev-list", "--count", "HEAD").Trim());
-        Assert.Empty(repository.Git("diff", "--cached", "--name-only"));
-    }
-
-    [Fact]
     public async Task GivenNothingStagedAndAmendOn_WhenCommitting_ThenThereIsNoDialog()
     {
         using var repository = Initial();

@@ -7,34 +7,30 @@ namespace Gitunia.App.Tests.Tabs;
 [Trait("Os", "Independent")]
 public sealed class DetailCursorMemoryTests
 {
-    [Fact]
-    public void GivenAnotherCommit_WhenDeciding_ThenTheCursorLandsOnTheLandingRow()
+    [Theory]
+    [InlineData("aaa", "bbb", BottomTab.Changes, BottomTab.Changes, 3, 4, 7, 20, 4)] // Another commit: the landing row.
+    [InlineData("aaa", "aaa", BottomTab.Changes, BottomTab.Changes, 0, 5, 1, 20, 5)] // The files just arrived: first file.
+    [InlineData("aaa", "aaa", BottomTab.Changes, BottomTab.Changes, 3, 5, 8, 20, 8)] // Files already listed: it stays.
+    [InlineData("aaa", "aaa", BottomTab.Details, BottomTab.Changes, 3, 4, 2, 20, 4)] // A tab never visited: landing row.
+    [InlineData("aaa", "aaa", BottomTab.Changes, BottomTab.Changes, 3, 0, 30, 10, 9)] // Past the end: the last row.
+    [InlineData("aaa", "", BottomTab.Changes, BottomTab.Changes, 3, 0, 0, 0, null)] // No rows: no cursor.
+    public void GivenARequest_WhenDeciding_ThenTheCursorLandsWhereTheRulesSay(
+        string previousHash,
+        string hash,
+        BottomTab previousTab,
+        BottomTab tab,
+        int previousFileCount,
+        int landing,
+        int currentRow,
+        int rowCount,
+        int? expected)
     {
         var memory = new DetailCursorMemory();
 
-        var row = memory.Decide(Request(previousHash: "aaa", hash: "bbb", currentRow: 7, landing: 4));
+        var row = memory.Decide(
+            Request(previousHash, hash, previousTab, tab, previousFileCount, landing, currentRow, rowCount));
 
-        Assert.Equal(4, row);
-    }
-
-    [Fact]
-    public void GivenTheSameCommitWhoseFilesJustArrived_WhenDeciding_ThenTheCursorMovesToTheFirstFile()
-    {
-        var memory = new DetailCursorMemory();
-
-        var row = memory.Decide(Request(previousFileCount: 0, currentRow: 1, landing: 5));
-
-        Assert.Equal(5, row);
-    }
-
-    [Fact]
-    public void GivenTheSameCommitWithFilesAlreadyListed_WhenDeciding_ThenTheCursorStays()
-    {
-        var memory = new DetailCursorMemory();
-
-        var row = memory.Decide(Request(previousFileCount: 3, currentRow: 8, landing: 5));
-
-        Assert.Equal(8, row);
+        Assert.Equal(expected, row);
     }
 
     [Fact]
@@ -49,16 +45,6 @@ public sealed class DetailCursorMemoryTests
     }
 
     [Fact]
-    public void GivenATabNeverVisited_WhenSwitchingToIt_ThenTheCursorLandsOnTheLandingRow()
-    {
-        var memory = new DetailCursorMemory();
-
-        var row = memory.Decide(Request(previousTab: BottomTab.Details, tab: BottomTab.Changes, currentRow: 2, landing: 4));
-
-        Assert.Equal(4, row);
-    }
-
-    [Fact]
     public void GivenAnotherCommit_WhenDeciding_ThenTheRememberedRowsAreForgotten()
     {
         var memory = new DetailCursorMemory();
@@ -68,26 +54,6 @@ public sealed class DetailCursorMemoryTests
         var row = memory.Decide(Request(previousHash: "bbb", hash: "bbb", previousTab: BottomTab.Details, tab: BottomTab.Changes, currentRow: 1, landing: 4));
 
         Assert.Equal(4, row);
-    }
-
-    [Fact]
-    public void GivenARowPastTheEnd_WhenDeciding_ThenTheCursorIsClampedToTheLastRow()
-    {
-        var memory = new DetailCursorMemory();
-
-        var row = memory.Decide(Request(currentRow: 30, rowCount: 10));
-
-        Assert.Equal(9, row);
-    }
-
-    [Fact]
-    public void GivenNoRows_WhenDeciding_ThenThereIsNoCursor()
-    {
-        var memory = new DetailCursorMemory();
-
-        var row = memory.Decide(Request(previousHash: "aaa", hash: string.Empty, rowCount: 0));
-
-        Assert.Null(row);
     }
 
     private static DetailCursorRequest Request(

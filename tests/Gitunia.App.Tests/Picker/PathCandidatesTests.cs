@@ -104,28 +104,36 @@ public class PathCandidatesTests
                 cancellation.Token));
     }
 
-    [Fact]
-    public void GivenTypedPrefix_WhenListingCandidates_ThenOnlyMatchingDirectoriesAreReturnedSorted()
+    // The expected names are joined with '|'.
+    [Theory]
+    [InlineData("~/code/alp", "alpha|alpine")] // Only the matching directories, sorted.
+    [InlineData("~/code/", "alpha|alpine|beta|Zed")] // All visible directories, no hidden ones.
+    [InlineData("~/code/.", ".hidden")] // A dot prefix lists the hidden ones.
+    [InlineData("~/code/z", "Zed")] // A lowercase prefix ignores case.
+    [InlineData("~/code/ALP", "alpha|alpine")] // An uppercase prefix still matches lowercase directories.
+    public void GivenATypedPath_WhenListingCandidates_ThenTheMatchingDirectoriesAreReturnedSorted(
+        string typed,
+        string expectedNames)
     {
-        var candidates = Candidates("~/code/alp", Context());
+        var candidates = Candidates(typed, Context());
 
-        Assert.Equal(["alpha", "alpine"], candidates.Select(candidate => candidate.Name));
+        Assert.Equal(expectedNames, string.Join('|', candidates.Select(candidate => candidate.Name)));
     }
 
-    [Fact]
-    public void GivenTrailingSeparator_WhenListingCandidates_ThenAllVisibleDirectoriesAreReturnedAndHiddenOnesAreNot()
+    [Theory]
+    [InlineData("~/code/ze", 0, "~/code/Zed/")] // The real case of the directory is used.
+    [InlineData("~/code/b", 0, "~/code/beta/")] // A single candidate gets its name and a separator.
+    [InlineData("~/code/a", 0, "~/code/alp")] // Several candidates extend to the common prefix.
+    [InlineData("~/code/alp", 1, "~/code/alpine/")] // Nothing left to extend: the highlighted candidate is taken.
+    [InlineData("~/code/q", 0, "~/code/q")] // No candidate: the text is unchanged.
+    public void GivenATypedPath_WhenCompleting_ThenTheTextIsExtendedOrTheHighlightedCandidateTaken(
+        string typed,
+        int highlighted,
+        string expected)
     {
-        var candidates = Candidates("~/code/", Context());
+        var candidates = Candidates(typed, Context());
 
-        Assert.Equal(["alpha", "alpine", "beta", "Zed"], candidates.Select(candidate => candidate.Name));
-    }
-
-    [Fact]
-    public void GivenDotPrefix_WhenListingCandidates_ThenHiddenDirectoriesAreIncluded()
-    {
-        var candidates = Candidates("~/code/.", Context());
-
-        Assert.Equal([".hidden"], candidates.Select(candidate => candidate.Name));
+        Assert.Equal(expected, PathCompleter.Complete(typed, candidates, highlighted));
     }
 
     [Fact]
@@ -138,66 +146,12 @@ public class PathCandidatesTests
     }
 
     [Fact]
-    public void GivenLowercasePrefix_WhenListingCandidates_ThenCaseIsIgnored()
-    {
-        var candidates = Candidates("~/code/z", Context());
-
-        Assert.Equal(["Zed"], candidates.Select(candidate => candidate.Name));
-    }
-
-    [Fact]
-    public void GivenUppercasePrefix_WhenListingCandidates_ThenLowercaseDirectoriesStillMatch()
-    {
-        var candidates = Candidates("~/code/ALP", Context());
-
-        Assert.Equal(["alpha", "alpine"], candidates.Select(candidate => candidate.Name));
-    }
-
-    [Fact]
-    public void GivenWrongCaseTyped_WhenCompleting_ThenTheRealCaseOfTheDirectoryIsUsed()
-    {
-        var candidates = Candidates("~/code/ze", Context());
-
-        Assert.Equal("~/code/Zed/", PathCompleter.Complete("~/code/ze", candidates, 0));
-    }
-
-    [Fact]
     public void GivenNamesDifferingInCaseOnly_WhenCompleting_ThenNoMixedCaseNameIsInvented()
     {
         var context = new FakeDirectories(new Dictionary<string, string[]> { [PickerFiles.PathOf("code")] = ["Docs", "docs2"] });
         var candidates = Candidates("~/code/d", context);
 
         Assert.Equal("~/code/Docs/", PathCompleter.Complete("~/code/d", candidates, 0));
-    }
-
-    [Fact]
-    public void GivenSingleCandidate_WhenCompleting_ThenNameAndSeparatorAreAdded()
-    {
-        var candidates = Candidates("~/code/b", Context());
-
-        Assert.Equal("~/code/beta/", PathCompleter.Complete("~/code/b", candidates, 0));
-    }
-
-    [Fact]
-    public void GivenSharedPrefix_WhenCompleting_ThenTextIsExtendedToTheCommonPrefix()
-    {
-        var candidates = Candidates("~/code/a", Context());
-
-        Assert.Equal("~/code/alp", PathCompleter.Complete("~/code/a", candidates, 0));
-    }
-
-    [Fact]
-    public void GivenNothingLeftToExtend_WhenCompleting_ThenTheHighlightedCandidateIsTaken()
-    {
-        var candidates = Candidates("~/code/alp", Context());
-
-        Assert.Equal("~/code/alpine/", PathCompleter.Complete("~/code/alp", candidates, 1));
-    }
-
-    [Fact]
-    public void GivenNoCandidates_WhenCompleting_ThenTextIsUnchanged()
-    {
-        Assert.Equal("~/code/q", PathCompleter.Complete("~/code/q", [], 0));
     }
 
     [Fact]

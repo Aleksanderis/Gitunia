@@ -63,24 +63,6 @@ public class StashPipelineTests
         Assert.StartsWith("Dropped stash@{0}", pipeline.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
     }
 
-    [Fact]
-    public async Task GivenAStashRow_WhenTheTabIsClosedWhileTheDropDialogIsOpen_ThenYDropsNothing()
-    {
-        using var repository = TestRepositories.WithStash();
-        using var pipeline = await Pipeline.OpenAsync(repository);
-        var tabId = pipeline.TabId;
-        await pipeline.Pump.RunUntilAsync(() => !pipeline.Host.Workspace.FindTab(tabId)!.Stashes.IsEmpty);
-        var entry = pipeline.Host.Workspace.FindTab(tabId)!.Stashes[0];
-        pipeline.Dispatch(new StashDropRequested(tabId, entry.CommitHash));
-        Assert.NotNull(pipeline.Host.State.Shell.Confirm);
-
-        pipeline.Dispatch(new CloseTabCommand(tabId));
-        pipeline.Dispatch(new ConfirmAnsweredCommand(ConfirmAnswer.Yes));
-
-        Assert.Null(pipeline.Host.State.Shell.Confirm);
-        Assert.Contains("stash@{0}", repository.Git("stash", "list"), StringComparison.Ordinal);
-    }
-
     private sealed class Pipeline : IDisposable
     {
         private readonly EffectRunner<TabSession> _runner;

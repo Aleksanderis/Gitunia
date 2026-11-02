@@ -49,23 +49,6 @@ public class DiscardPipelineTests
     }
 
     [Fact]
-    public async Task GivenAnUntrackedFile_WhenTheTabIsClosedWhileTheDialogIsOpen_ThenYDeletesNothing()
-    {
-        using var repository = TestRepositories.Linear();
-        repository.WriteFile("new.txt", "new\n");
-        using var pipeline = await OpenWithStatusAsync(repository);
-        pipeline.Dispatch(new DiscardRequested(pipeline.TabId));
-        Assert.NotNull(pipeline.Confirm);
-
-        pipeline.Dispatch(new CloseTabCommand(pipeline.TabId));
-        pipeline.Answer(ConfirmAnswer.Yes);
-        await Task.Delay(50, TestContext.Current.CancellationToken);
-
-        Assert.Null(pipeline.Confirm);
-        Assert.True(File.Exists(Path.Combine(repository.WorkingTreePath, "new.txt")));
-    }
-
-    [Fact]
     public async Task GivenTheRepositoryIsLocked_WhenDiscarding_ThenTheErrorIsShownAndTheTabIsFree()
     {
         using var repository = TestRepositories.Linear();

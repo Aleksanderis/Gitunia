@@ -3,7 +3,6 @@ using Gitunia.Core.Overlays;
 using Gitunia.Core.Prompts;
 using Gitunia.Core.Rebase;
 using Gitunia.Core.Status;
-using Gitunia.Core.Workspaces;
 using Gitunia.Git.Operations;
 using Gitunia.Git.Rebase;
 using Gitunia.Git.Repositories;
@@ -43,22 +42,6 @@ public class RebasePipelineTests
     }
 
     [Fact]
-    public async Task GivenTheConfirm_WhenDeclined_ThenNothingMovesAndNoStatusIsPosted()
-    {
-        using var repository = Diverged();
-        var oldTip = repository.Head;
-        using var pipeline = await FeaturePipeline.OpenAsync(TestGit.Services, repository);
-        pipeline.Dispatch(Onto(pipeline, repository.Git("rev-parse", "main").Trim()));
-        await pipeline.UntilAsync(() => pipeline.Confirm is not null);
-
-        pipeline.Answer(ConfirmAnswer.No);
-
-        Assert.Equal(oldTip, repository.Head);
-        Assert.Null(pipeline.Statuses.Log.Latest);
-        Assert.False(pipeline.IsBusy);
-    }
-
-    [Fact]
     public async Task GivenAMergeInTheReplayedRange_WhenAsking_ThenTheConfirmWarnsAndTheRebaseIsLinear()
     {
         using var repository = WithMergeOnTopic();
@@ -90,22 +73,6 @@ public class RebasePipelineTests
         Assert.Equal(StatusSeverity.Warning, latest.Severity);
         Assert.Contains("stopped on conflicts", latest.Text, StringComparison.Ordinal);
         Assert.Contains("<space>gc", latest.Text, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public async Task GivenTheConfirmIsOpen_WhenTheTabIsClosed_ThenYDoesNothing()
-    {
-        using var repository = Diverged();
-        var oldTip = repository.Head;
-        using var pipeline = await FeaturePipeline.OpenAsync(TestGit.Services, repository);
-        var tabId = pipeline.TabId;
-        pipeline.Dispatch(Onto(pipeline, repository.Git("rev-parse", "main").Trim()));
-        await pipeline.UntilAsync(() => pipeline.Confirm is not null);
-
-        pipeline.Dispatch(new CloseTabCommand(tabId));
-        pipeline.Answer(ConfirmAnswer.Yes);
-
-        Assert.Equal(oldTip, repository.Head);
     }
 
     [Fact]

@@ -8,21 +8,16 @@ public class PollOptionsTests
 {
     private static readonly PollOptions Options = PollOptions.Default;
 
-    [Fact]
-    public void GivenQuickRefresh_WhenIntervalIsComputed_ThenItStaysAtTheConfiguredStatusInterval()
+    [Theory]
+    [InlineData(40, 5000)] // A quick refresh stays at the configured status interval.
+    [InlineData(2000, 10000)] // A slow refresh waits five times its duration.
+    [InlineData(30000, 60000)] // A very slow refresh is capped at the maximum.
+    public void GivenARefreshDuration_WhenIntervalIsComputed_ThenItFollowsTheDurationWithinTheLimits(
+        int durationMilliseconds,
+        int expectedMilliseconds)
     {
-        Assert.Equal(TimeSpan.FromSeconds(5), Options.StatusIntervalAfter(TimeSpan.FromMilliseconds(40)));
-    }
+        var interval = Options.StatusIntervalAfter(TimeSpan.FromMilliseconds(durationMilliseconds));
 
-    [Fact]
-    public void GivenSlowRefresh_WhenIntervalIsComputed_ThenItIsFiveTimesTheDuration()
-    {
-        Assert.Equal(TimeSpan.FromSeconds(10), Options.StatusIntervalAfter(TimeSpan.FromSeconds(2)));
-    }
-
-    [Fact]
-    public void GivenVerySlowRefresh_WhenIntervalIsComputed_ThenItIsCappedAtTheMaximum()
-    {
-        Assert.Equal(TimeSpan.FromSeconds(60), Options.StatusIntervalAfter(TimeSpan.FromSeconds(30)));
+        Assert.Equal(TimeSpan.FromMilliseconds(expectedMilliseconds), interval);
     }
 }

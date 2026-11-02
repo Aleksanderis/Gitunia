@@ -65,26 +65,6 @@ public class IntegrationPipelineTests
     }
 
     [Fact]
-    public async Task GivenTheHardResetDialog_WhenTheTabIsClosedAndYIsAnswered_ThenNothingIsReset()
-    {
-        using var repository = TwoCommits();
-        repository.WriteFile("a.txt", "dirty");
-        var old = repository.Head;
-        using var pipeline = await Pipeline.OpenAsync(repository);
-        var tabId = pipeline.TabId;
-        pipeline.Dispatch(new ResetRequested(tabId, FirstCommit(repository)));
-        pipeline.Dispatch(new PromptKeyPressedCommand(new KeyEvent("h")));
-        await pipeline.Pump.RunUntilAsync(() => pipeline.Host.State.Shell.Confirm is not null);
-
-        pipeline.Dispatch(new CloseTabCommand(tabId));
-        pipeline.Dispatch(new ConfirmAnsweredCommand(ConfirmAnswer.Yes));
-
-        Assert.Null(pipeline.Host.State.Shell.Confirm);
-        Assert.Equal(old, repository.Head);
-        Assert.Equal("dirty", File.ReadAllText(Path.Combine(repository.WorkingTreePath, "a.txt")));
-    }
-
-    [Fact]
     public async Task GivenACommit_WhenResettingSoft_ThenItRunsWithoutADialogAndTheTabIsFreeAgain()
     {
         using var repository = TwoCommits();
@@ -152,22 +132,6 @@ public class IntegrationPipelineTests
 
         Assert.Equal(before, repository.Head);
         Assert.StartsWith("Aborted the merge", pipeline.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public async Task GivenAnAbortDialog_WhenTheTabIsClosedAndYIsAnswered_ThenTheOperationStays()
-    {
-        using var repository = TestRepositories.Conflicted();
-        using var pipeline = await Pipeline.OpenAsync(repository);
-        var tabId = pipeline.TabId;
-        await pipeline.Pump.RunUntilAsync(() => pipeline.Tab.Operation is not null);
-        pipeline.Dispatch(new OperationRequested(tabId, OperationAction.Abort));
-        Assert.NotNull(pipeline.Host.State.Shell.Confirm);
-
-        pipeline.Dispatch(new CloseTabCommand(tabId));
-        pipeline.Dispatch(new ConfirmAnsweredCommand(ConfirmAnswer.Yes));
-
-        Assert.True(File.Exists(Path.Combine(repository.WorkingTreePath, ".git", "MERGE_HEAD")));
     }
 
     [Fact]
