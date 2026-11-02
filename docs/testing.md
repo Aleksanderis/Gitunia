@@ -48,7 +48,7 @@ A benchmark (BenchmarkDotNet, not part of the normal test run) for graph load an
 
 `scripts/gen-big-repo.sh [dir] [commits]` builds a deterministic repo with `git fast-import` (default 100000 commits, ~5-10 s, linear `main` with a merged 4-commit feature branch every 40 commits, 24 kept branches, a tag per 5000 commits, commit-graph written). Default location `${GITUNIA_BIG_REPO:-${XDG_CACHE_HOME:-~/.cache}/gitunia/big-<commits>}`; it is generated on demand, never committed, and re-running is a no-op. Subjects are `Commit #<n>: ...` / `Merge feature f<k>`, so the newest and oldest commit are recognizable on screen. Linux/macOS only (bash, awk).
 
-`scripts/gen-big-file-repo.sh [dir] [lines] [commits]` builds a repo with one large file `big.txt` for blame checks (default 50000 lines and 500 edit commits, each rewriting every 50th line from a rotating offset, ~9 s). Default location `${XDG_CACHE_HOME:-~/.cache}/gitunia/bigfile-<lines>`; never committed, re-running is a no-op. Linux/macOS only.
+`scripts/gen-big-file-repo.sh [dir] [lines] [commits]` builds a repo with one large file `big.txt` for blame checks (default 50000 lines and 500 edit commits, each rewriting every 50th line from a rotating offset, ~9 s). Default location `${XDG_CACHE_HOME:-~/.cache}/gitunia/bigfile-<lines>-<commits>`; never committed, re-running is a no-op. Linux/macOS only.
 
 ### Measurement harness
 

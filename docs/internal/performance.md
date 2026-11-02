@@ -40,7 +40,9 @@ Known limit: at 80x24 the newest row is cut inside the harness marker; pass `--m
 
 ## Blame and file history (#1125)
 
-Measured on Linux (Release build of the git readers and view code, JIT, one machine) with two throwaway repos: `scripts/gen-big-file-repo.sh` (`big.txt`, 50,000 lines, 501 commits) and `scripts/gen-big-repo.sh` (100,000 commits). Repeat with a throwaway xunit test (not committed) that times `BlameReader.ReadContentAsync` and `BlameAsync`, `FileHistoryReader.ReadAsync` (`src/file5.txt`, limit 1000), `BlameFrameBuilder.Build` and `BlameSearch.Find` in a loop, plus `git blame --incremental big.txt` by hand with `GIT_CONFIG_GLOBAL=/dev/null`.
+Measured on Linux (Release build of the git readers and view code, JIT, one machine) with two throwaway repos: `scripts/gen-big-file-repo.sh` (`big.txt`, 50,000 lines, 501 commits) and `scripts/gen-big-repo.sh` (100,000 commits). No blame or file-history budget existed; the bar used was the graph's: the lines visible at once, the first blamed rows within a frame or two, a frame build far under 16 ms, everything off the UI thread. These numbers are the baseline for later changes.
+
+Repeat: `scripts/gen-big-file-repo.sh` and `scripts/gen-big-repo.sh`, then by hand `time git -C <bigfile repo> blame --incremental big.txt >/dev/null` (once with `GIT_CONFIG_GLOBAL=/dev/null`) and `time git -C <big-100000> log --follow -n 1000 --name-status -- src/file5.txt >/dev/null`. The in-process numbers come from a throwaway xunit test (not committed): 4 runs of `BlameReader.ReadContentAsync` plus `BlameAsync` (timing the first chunk and the end), 3 runs of `FileHistoryReader.ReadAsync(.., "HEAD", "src/file5.txt", 1000)`, 3 x 1000 `BlameFrameBuilder.Build` calls (120x40, cursor moving) and 3 `BlameSearch.Find` calls over a synthetic 50k-line `BlameData` with 501 commits; values are single runs or ranges over those runs, not medians. File history of 903 entries is the whole history of that file (below the 1000 limit).
 
 | Case | Result |
 |---|---|
@@ -53,7 +55,7 @@ Measured on Linux (Release build of the git readers and view code, JIT, one mach
 | File history, 100k-commit repository, file with 903 commits (`log --follow`, limit 1000) | ~0.5 s, off the UI thread |
 | File history, 100k commits, path without history | ~0.17 s |
 
-No hot spot was found, so no code changed. Caveat: with `diff.algorithm = histogram` in the owner's global git config, `git blame --incremental` of the same 50k-line file took ~7.9 s against ~0.2 s with the config ignored. Gitunia respects the user's config and the view stays usable meanwhile (lines first, commits as git finds them); registered as #1136. Not measured: Windows, macOS, the AOT binary end to end (the readers and view code are the code the binary runs; key latency of the real view was not timed under tmux).
+No hot spot was found, so no code changed. Caveat: with `diff.algorithm = histogram` in the owner's global git config, `git blame --incremental` of the same 50k-line file took ~7.9 s against ~0.2 s with the config ignored. Gitunia respects the user's config and the view stays usable meanwhile (lines first, commits as git finds them); registered as #1136, the end-to-end AOT measurement as #1137. Not measured: Windows, macOS, the AOT binary end to end (the readers and view code are the code the binary runs; key latency of the real view was not timed under tmux).
 
 ## Idle CPU (#909)
 
