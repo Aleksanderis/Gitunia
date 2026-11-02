@@ -26,9 +26,19 @@ Invoke as `/work-readiness <milestone>` (for example `M<n>`; `<n>` is a placehol
 4. **Prerequisites and assumptions:** what each issue assumes about existing code versus what exists; missing pieces; unwired work from earlier milestones (follow-up issues such as session or clipboard wiring) that this milestone needs or that could break it.
 5. **Overlap:** which issues touch the same files, shared contracts or keymap rows (check `keymap.default.json`), so the orchestrator knows which can run together (max 3 agents) and in what order.
 6. **Docs:** design issues still to be written (flows in `docs/internal/ux-workflows.md`), docs that are stale for this area, keymap rows that will be needed, and `docs/internal/decisions.md` entries longer than 3 lines or holding implementation detail (move the detail to the area doc).
-7. **Size and cost:** issues too big for one agent run (propose a split), and which large docs agents will have to load (suggest the sections to name in their prompts).
+7. **Size and cost:** issues too big for one agent run (propose a split; split by feature, never by layer, see "Planning"), and which large docs agents will have to load (suggest the sections to name in their prompts).
 8. **Loose ends:** known limits, deferred work and manual checks from earlier milestones that exist only in `docs/internal/decisions.md` or `docs/internal/history/decisions.md`, PR comments or code comments (grep `docs/*.md`, `docs/internal/*.md` and `docs/internal/history/*.md` for 'known limit', 'follow-up', 'not wired', 'TODO'); each must be an issue or part of one. Register missing ones (new issue or edit an existing one) and list them in the report.
 9. **Environment:** the build, tests and AOT publish are green on `main`; local build and tests are green (CI runs on tags, weekly and by dispatch; run it if the last run is stale); nothing from the previous milestone is half-merged (stray worktrees, branches, open PRs awaiting the owner).
+
+## Planning (milestone with a goal but no issues)
+
+When asked to plan a milestone, create its issues from the roadmap goal, then run the checks above. Rules (owner, 2026-11-02, after a layer-per-issue plan was rejected):
+
+- Slice vertically: every issue is a feature a user can see and the release can ship on its own, carrying its own git reader, Core state, view, keymap rows, tests and docs. Never one issue per layer (git / Core / TUI / keys / docs) or per kind of work.
+- Test each issue: "if only this one merged, would the release have a working feature?" If not, merge it into the slice it belongs to.
+- Order slices so the smallest useful one comes first; later slices extend it (options, refinements, extra entry points) and list it in `Blocked by:`.
+- Only cross-cutting work gets its own issue: performance on large inputs, Windows/macOS checks, a final docs consistency pass if needed. Docs and keymap rows for a feature travel with that feature.
+- Create a `tracking` issue and post the plan there; give each issue an `Acceptance:` line.
 
 ## 3. Report
 
