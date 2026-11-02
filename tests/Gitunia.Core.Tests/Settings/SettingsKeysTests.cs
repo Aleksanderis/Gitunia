@@ -2,7 +2,6 @@ using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Tests.Keymap;
 using Xunit;
-using Xunit.Sdk;
 
 namespace Gitunia.Core.Tests.Settings;
 
@@ -35,7 +34,7 @@ public class SettingsKeysTests
             {
                 CheckItRunsTheDocumentedAction(keys, action);
             }
-            catch (XunitException exception)
+            catch (Exception exception)
             {
                 failures.Add($"{keys}, {action}: {exception.Message}");
             }

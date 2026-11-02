@@ -5,7 +5,6 @@ using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Overlays;
 using Gitunia.Tui.Rendering.Styling;
 using Xunit;
-using Xunit.Sdk;
 
 namespace Gitunia.Tui.Tests.Rendering.Overlays;
 
@@ -103,7 +102,7 @@ public class OverlayFrameTests
             {
                 CheckEveryRowHasTheSameWidthAndFitsTheScreen(width, height);
             }
-            catch (XunitException exception)
+            catch (Exception exception)
             {
                 failures.Add($"{width}, {height}: {exception.Message}");
             }
@@ -421,7 +420,7 @@ public class OverlayFrameTests
             {
                 CheckTheFooterIsDirectlyBelowTheLastEntryAndAboveTheStatusRow(screenHeight);
             }
-            catch (XunitException exception)
+            catch (Exception exception)
             {
                 failures.Add($"{screenHeight}: {exception.Message}");
             }
@@ -685,7 +684,7 @@ public class OverlayFrameTests
             {
                 CheckFramesFitTheScreenAndEveryLineIsTheSameWidth(width, height);
             }
-            catch (XunitException exception)
+            catch (Exception exception)
             {
                 failures.Add($"{width}, {height}: {exception.Message}");
             }

@@ -1,7 +1,6 @@
 using Gitunia.Core.Search;
 using Gitunia.Core.Search.Models;
 using Xunit;
-using Xunit.Sdk;
 
 namespace Gitunia.Core.Tests.Search;
 
@@ -29,7 +28,7 @@ public class SearchQueryParserTests
             {
                 CheckFieldAndTextAreSplit(input, field, text);
             }
-            catch (XunitException exception)
+            catch (Exception exception)
             {
                 failures.Add($"{input}, {field}, {text}: {exception.Message}");
             }

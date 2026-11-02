@@ -6,7 +6,6 @@ using Gitunia.Tui.Rendering.Diff;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Styling;
 using Xunit;
-using Xunit.Sdk;
 
 namespace Gitunia.Tui.Tests.Rendering.Diff;
 
@@ -163,7 +162,7 @@ public class DiffTitleButtonsTests
             {
                 CheckHitZonesAreDisjointInsideTheRowAndMatchWhatIsDrawn(width, isAscii);
             }
-            catch (XunitException exception)
+            catch (Exception exception)
             {
                 failures.Add($"{width}, {isAscii}: {exception.Message}");
             }

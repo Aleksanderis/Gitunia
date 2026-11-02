@@ -6,7 +6,6 @@ using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Panes;
 using Gitunia.Tui.Rendering.Styling;
 using Xunit;
-using Xunit.Sdk;
 
 namespace Gitunia.Tui.Tests.Rendering.Diff;
 
@@ -63,7 +62,7 @@ public class ChangeGroupButtonsTests
             {
                 CheckTheButtonsNeverCoverItsText(contentWidth, expected);
             }
-            catch (XunitException exception)
+            catch (Exception exception)
             {
                 failures.Add($"{contentWidth}, {expected}: {exception.Message}");
             }
@@ -115,7 +114,7 @@ public class ChangeGroupButtonsTests
             {
                 CheckDiscardGoesFirstAndThirtyTextColumnsStay(textWidth, expected);
             }
-            catch (XunitException exception)
+            catch (Exception exception)
             {
                 failures.Add($"{textWidth}, {expected}: {exception.Message}");
             }

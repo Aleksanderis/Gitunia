@@ -1,7 +1,6 @@
 using System.Text;
 using Gitunia.Core.Text;
 using Xunit;
-using Xunit.Sdk;
 
 namespace Gitunia.Core.Tests.Text;
 
@@ -46,7 +45,7 @@ public class DisplayWidthTests
             {
                 CheckTakesTwoColumns(codePoint);
             }
-            catch (XunitException exception)
+            catch (Exception exception)
             {
                 failures.Add($"{codePoint}: {exception.Message}");
             }
@@ -80,7 +79,7 @@ public class DisplayWidthTests
             {
                 CheckTakesOneColumn(codePoint);
             }
-            catch (XunitException exception)
+            catch (Exception exception)
             {
                 failures.Add($"{codePoint}: {exception.Message}");
             }
@@ -125,7 +124,7 @@ public class DisplayWidthTests
             {
                 CheckBoundaryIsExact(codePoint, expected);
             }
-            catch (XunitException exception)
+            catch (Exception exception)
             {
                 failures.Add($"{codePoint}, {expected}: {exception.Message}");
             }
@@ -162,7 +161,7 @@ public class DisplayWidthTests
             {
                 CheckItIsOneWideCell(text, expected);
             }
-            catch (XunitException exception)
+            catch (Exception exception)
             {
                 failures.Add($"{text}, {expected}: {exception.Message}");
             }

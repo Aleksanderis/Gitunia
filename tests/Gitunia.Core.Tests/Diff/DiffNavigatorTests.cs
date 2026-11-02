@@ -1,6 +1,5 @@
 using Gitunia.Core.Diff;
 using Xunit;
-using Xunit.Sdk;
 
 namespace Gitunia.Core.Tests.Diff;
 
@@ -31,7 +30,7 @@ public class DiffNavigatorTests
             {
                 CheckTheAnchorIsFound(row, forward, count, expected);
             }
-            catch (XunitException exception)
+            catch (Exception exception)
             {
                 failures.Add($"{row}, {forward}, {count}, {expected}: {exception.Message}");
             }

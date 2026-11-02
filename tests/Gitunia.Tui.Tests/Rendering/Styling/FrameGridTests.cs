@@ -7,7 +7,6 @@ using Gitunia.Tui.Rendering.Screen;
 using Gitunia.Tui.Rendering.Styling;
 using Gitunia.Tui.Tests.Rendering.Graph;
 using Xunit;
-using Xunit.Sdk;
 
 namespace Gitunia.Tui.Tests.Rendering.Styling;
 
@@ -158,7 +157,7 @@ public class FrameGridTests
             {
                 CheckEveryLineFillsTheWidth(width, height);
             }
-            catch (XunitException exception)
+            catch (Exception exception)
             {
                 failures.Add($"{width}, {height}: {exception.Message}");
             }

@@ -8,7 +8,6 @@ using Gitunia.Git.Refs.Models;
 using Gitunia.Git.Remotes.Models;
 using Gitunia.Git.Repositories.Models;
 using Xunit;
-using Xunit.Sdk;
 
 namespace Gitunia.Core.Tests.Sync;
 
@@ -69,7 +68,7 @@ public class SyncReducerTests
             {
                 CheckItIsRefusedAsBusyAndKeepsTheRunningOne(kind);
             }
-            catch (XunitException exception)
+            catch (Exception exception)
             {
                 failures.Add($"{kind}: {exception.Message}");
             }

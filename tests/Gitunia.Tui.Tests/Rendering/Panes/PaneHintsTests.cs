@@ -7,14 +7,11 @@ using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Panes;
 using Gitunia.Tui.Rendering.Screen;
 using Xunit;
-using Xunit.Sdk;
 
 namespace Gitunia.Tui.Tests.Rendering.Panes;
 
 public class PaneHintsTests
 {
-    public static TheoryData<PaneKind> Panes() => [.. Enum.GetValues<PaneKind>()];
-
     // One fact walks every pane (or hint set) and names the ones that fail, instead of one test row each.
     private static void ForEvery<T>(IEnumerable<T> items, Action<T> check)
     {
@@ -25,7 +22,7 @@ public class PaneHintsTests
             {
                 check(item);
             }
-            catch (XunitException exception)
+            catch (Exception exception)
             {
                 failures.Add($"{item}: {exception.Message}");
             }
@@ -124,7 +121,7 @@ public class PaneHintsTests
             {
                 CheckTheyMentionThatPanesKeys(pane, expectedKeys);
             }
-            catch (XunitException exception)
+            catch (Exception exception)
             {
                 failures.Add($"{pane}, {expectedKeys}: {exception.Message}");
             }
@@ -159,7 +156,7 @@ public class PaneHintsTests
             {
                 CheckTheyOfferIt(pane);
             }
-            catch (XunitException exception)
+            catch (Exception exception)
             {
                 failures.Add($"{pane}: {exception.Message}");
             }

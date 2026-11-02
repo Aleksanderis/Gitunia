@@ -3,7 +3,6 @@ using Gitunia.Tui.Rendering.Panes;
 using Gitunia.Tui.Rendering.Screen;
 using Gitunia.Tui.Rendering.WorkingTree;
 using Xunit;
-using Xunit.Sdk;
 
 namespace Gitunia.Tui.Tests.Rendering.WorkingTree;
 
@@ -136,7 +135,7 @@ public class WorkingTreeLayoutTests
             {
                 CheckItNeverThrowsAndNeverHasNegativeSizes(width, height);
             }
-            catch (XunitException exception)
+            catch (Exception exception)
             {
                 failures.Add($"{width}, {height}: {exception.Message}");
             }

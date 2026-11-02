@@ -4,7 +4,6 @@ using Gitunia.Git.Commits.Models;
 using Gitunia.Git.Refs.Models;
 using Gitunia.Git.Status.Models;
 using Xunit;
-using Xunit.Sdk;
 
 namespace Gitunia.Core.Tests.Conflicts;
 
@@ -32,7 +31,7 @@ public class ConflictEditorSupportTests
             {
                 CheckOnlyBothModifiedAndBothAddedOpen(kind, opens);
             }
-            catch (XunitException exception)
+            catch (Exception exception)
             {
                 failures.Add($"{kind}, {opens}: {exception.Message}");
             }

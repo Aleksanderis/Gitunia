@@ -3,7 +3,6 @@ using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Overlays;
 using Gitunia.Core.Tests.Keymap;
 using Xunit;
-using Xunit.Sdk;
 
 namespace Gitunia.Core.Tests.Overlays;
 
@@ -314,7 +313,7 @@ public class HelpBuilderTests
             {
                 CheckItRoundTrips(text);
             }
-            catch (XunitException exception)
+            catch (Exception exception)
             {
                 failures.Add($"{text}: {exception.Message}");
             }

@@ -6,7 +6,6 @@ using Gitunia.Tui.Rendering.Styling;
 using Gitunia.Tui.Views.Theme;
 using Terminal.Gui.Drawing;
 using Xunit;
-using Xunit.Sdk;
 using StyledSegment = Gitunia.Tui.Rendering.Styling.StyledSegment;
 
 namespace Gitunia.Tui.Tests.Views.Theme;
@@ -45,7 +44,7 @@ public sealed class ThemeFileContrastTests
             {
                 check(name);
             }
-            catch (XunitException exception)
+            catch (Exception exception)
             {
                 failures.Add($"{name}: {exception.Message}");
             }

@@ -189,7 +189,7 @@ public class ContextMenuFrameBuilderTests
                 continue;
             }
 
-            foreach (var width in new[] { 100, 160 })
+            foreach (var width in new[] { 100, 120, 160 })
             {
                 var menu = new PaletteState(entries, SelectedIndex: 0);
                 var frame = ContextMenuFrameBuilder.Build(

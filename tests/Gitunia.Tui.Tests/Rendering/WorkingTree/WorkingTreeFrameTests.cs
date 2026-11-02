@@ -6,7 +6,6 @@ using Gitunia.Tui.Rendering.Screen;
 using Gitunia.Tui.Rendering.Styling;
 using Gitunia.Tui.Rendering.WorkingTree;
 using Xunit;
-using Xunit.Sdk;
 using static Gitunia.Tui.Tests.Rendering.WorkingTree.WorkingTreeEntries;
 
 namespace Gitunia.Tui.Tests.Rendering.WorkingTree;
@@ -190,7 +189,7 @@ public class WorkingTreeFrameTests
             {
                 CheckNoLineIsWiderThanTheScreenAndNothingThrows(focused, width, height);
             }
-            catch (XunitException exception)
+            catch (Exception exception)
             {
                 failures.Add($"{focused}, {width}, {height}: {exception.Message}");
             }

@@ -1,6 +1,5 @@
 using Gitunia.Core.Workspaces.Panes;
 using Xunit;
-using Xunit.Sdk;
 
 namespace Gitunia.Core.Tests.Workspaces.Panes;
 
@@ -25,7 +24,7 @@ public class PaneZoomTests
             {
                 CheckOnlyTheMainPanesCan(pane, expected);
             }
-            catch (XunitException exception)
+            catch (Exception exception)
             {
                 failures.Add($"{pane}, {expected}: {exception.Message}");
             }
@@ -70,7 +69,7 @@ public class PaneZoomTests
             {
                 CheckOnlyDetailAndDiffDo(a, b, expected);
             }
-            catch (XunitException exception)
+            catch (Exception exception)
             {
                 failures.Add($"{a}, {b}, {expected}: {exception.Message}");
             }

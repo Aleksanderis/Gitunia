@@ -9,7 +9,6 @@ using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Repositories.Models;
 using Xunit;
-using Xunit.Sdk;
 
 namespace Gitunia.Core.Tests.Details;
 
@@ -43,7 +42,7 @@ public class DetailReducerTests
             {
                 CheckTheTabsBottomTabIsTheTarget(start, move, expected);
             }
-            catch (XunitException exception)
+            catch (Exception exception)
             {
                 failures.Add($"{start}, {move}, {expected}: {exception.Message}");
             }

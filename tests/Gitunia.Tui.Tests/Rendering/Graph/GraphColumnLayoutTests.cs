@@ -1,6 +1,5 @@
 using Gitunia.Tui.Rendering.Graph;
 using Xunit;
-using Xunit.Sdk;
 
 namespace Gitunia.Tui.Tests.Rendering.Graph;
 
@@ -87,7 +86,7 @@ public class GraphColumnLayoutTests
             {
                 CheckTheColumnsNeverExceedTheRow(width, laneColumns);
             }
-            catch (XunitException exception)
+            catch (Exception exception)
             {
                 failures.Add($"{width}, {laneColumns}: {exception.Message}");
             }

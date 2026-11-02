@@ -9,7 +9,6 @@ using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Overlays;
 using Gitunia.Tui.Rendering.Styling;
 using Xunit;
-using Xunit.Sdk;
 
 namespace Gitunia.Tui.Tests.Rendering.Overlays;
 
@@ -333,7 +332,7 @@ public class ConflictEditorFrameBuilderTests
             {
                 CheckNothingIsDrawnAndNothingThrows(width, height);
             }
-            catch (XunitException exception)
+            catch (Exception exception)
             {
                 failures.Add($"{width}, {height}: {exception.Message}");
             }

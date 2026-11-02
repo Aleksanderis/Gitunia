@@ -1,6 +1,5 @@
 using Gitunia.Core.Picker;
 using Xunit;
-using Xunit.Sdk;
 
 namespace Gitunia.Core.Tests.Picker;
 
@@ -28,7 +27,7 @@ public class PathQueryTests
             {
                 CheckItIsAPath(text);
             }
-            catch (XunitException exception)
+            catch (Exception exception)
             {
                 failures.Add($"{text}: {exception.Message}");
             }

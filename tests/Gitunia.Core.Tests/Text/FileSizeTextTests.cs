@@ -1,6 +1,5 @@
 using Gitunia.Core.Text;
 using Xunit;
-using Xunit.Sdk;
 
 namespace Gitunia.Core.Tests.Text;
 
@@ -28,7 +27,7 @@ public class FileSizeTextTests
             {
                 CheckItUsesTheLargestFittingUnit(bytes, expected);
             }
-            catch (XunitException exception)
+            catch (Exception exception)
             {
                 failures.Add($"{bytes}, {expected}: {exception.Message}");
             }

@@ -12,7 +12,6 @@ using Gitunia.Tui.Rendering.Sidebar;
 using Gitunia.Tui.Rendering.Styling;
 using Gitunia.Tui.Tests.Rendering.Graph;
 using Xunit;
-using Xunit.Sdk;
 
 namespace Gitunia.Tui.Tests.Rendering.Details;
 
@@ -159,7 +158,7 @@ public class DetailPaneComposerTests
             {
                 CheckTheUnselectedTabsAreChipsLikeTheRepositoryTabs(width);
             }
-            catch (XunitException exception)
+            catch (Exception exception)
             {
                 failures.Add($"{width}: {exception.Message}");
             }
@@ -199,7 +198,7 @@ public class DetailPaneComposerTests
             {
                 CheckEachDrawnTabLabelIsFoundByItsHitZone(width, isAscii);
             }
-            catch (XunitException exception)
+            catch (Exception exception)
             {
                 failures.Add($"{width}, {isAscii}: {exception.Message}");
             }
@@ -366,7 +365,7 @@ public class DetailPaneComposerTests
             {
                 CheckEveryLineFillsTheWidthExactly(width, height);
             }
-            catch (XunitException exception)
+            catch (Exception exception)
             {
                 failures.Add($"{width}, {height}: {exception.Message}");
             }

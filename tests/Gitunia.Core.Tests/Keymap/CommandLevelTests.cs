@@ -1,7 +1,6 @@
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Xunit;
-using Xunit.Sdk;
 
 namespace Gitunia.Core.Tests.Keymap;
 
@@ -48,7 +47,7 @@ public class CommandLevelTests
             {
                 CheckItFollowsTheApprovedList(action, expected);
             }
-            catch (XunitException exception)
+            catch (Exception exception)
             {
                 failures.Add($"{action}, {expected}: {exception.Message}");
             }

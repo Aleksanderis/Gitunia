@@ -1,7 +1,6 @@
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Xunit;
-using Xunit.Sdk;
 
 namespace Gitunia.Core.Tests.Keymap;
 
@@ -284,7 +283,7 @@ public class KeymapEngineTests
             {
                 CheckNoPaneFocusActionRuns(view);
             }
-            catch (XunitException exception)
+            catch (Exception exception)
             {
                 failures.Add($"{view}: {exception.Message}");
             }

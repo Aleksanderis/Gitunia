@@ -5,7 +5,6 @@ using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Styling;
 using Gitunia.Tui.Rendering.WorkingTree;
 using Xunit;
-using Xunit.Sdk;
 using static Gitunia.Tui.Tests.Rendering.WorkingTree.WorkingTreeEntries;
 
 namespace Gitunia.Tui.Tests.Rendering.WorkingTree;
@@ -82,7 +81,7 @@ public class WorkingTreeRowRendererTests
             {
                 CheckItShowsABangAndTheKindOfConflict(kind, text);
             }
-            catch (XunitException exception)
+            catch (Exception exception)
             {
                 failures.Add($"{kind}, {text}: {exception.Message}");
             }

@@ -8,7 +8,6 @@ using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Git;
 using Xunit;
-using Xunit.Sdk;
 using static Gitunia.Core.Tests.Sidebar.SidebarFixtures;
 
 namespace Gitunia.Core.Tests.Sidebar;
@@ -45,7 +44,7 @@ public class SidebarActionReducerTests
             {
                 CheckItIsTheSidebarsOnlyWhereItShouldBe(actionName, focused, editing, expected);
             }
-            catch (XunitException exception)
+            catch (Exception exception)
             {
                 failures.Add($"{actionName}, {focused}, {editing}, {expected}: {exception.Message}");
             }
