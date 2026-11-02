@@ -13,6 +13,7 @@ public sealed class SuspendableUiInvoker : IUiInvoker
     private readonly Queue<Action> _waiting = new();
     private Action<Action> _target;
     private bool _isSuspended;
+    private bool _isClosed;
 
     public SuspendableUiInvoker(Action<Action> target)
     {
@@ -37,6 +38,11 @@ public sealed class SuspendableUiInvoker : IUiInvoker
     {
         lock (_gate)
         {
+            if (_isClosed)
+            {
+                return;
+            }
+
             if (_isSuspended)
             {
                 _waiting.Enqueue(action);
@@ -54,6 +60,19 @@ public sealed class SuspendableUiInvoker : IUiInvoker
         lock (_gate)
         {
             _isSuspended = true;
+        }
+    }
+
+    /// <summary>
+    /// The last application is going away for good: from now on actions are dropped, because posting to a disposed
+    /// application throws on whatever background thread produced the action and takes the process down.
+    /// </summary>
+    public void Close()
+    {
+        lock (_gate)
+        {
+            _isClosed = true;
+            _waiting.Clear();
         }
     }
 

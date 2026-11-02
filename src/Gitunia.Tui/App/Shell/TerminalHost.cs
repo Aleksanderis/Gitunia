@@ -125,6 +125,7 @@ public sealed class TerminalHost : ITerminalSuspender, IUiDeferral, IDisposable
         }
         finally
         {
+            Invoker.Close();
             StopFocusReporting();
             _isApplicationDisposed = true;
             _application.Dispose();
@@ -144,6 +145,7 @@ public sealed class TerminalHost : ITerminalSuspender, IUiDeferral, IDisposable
         }
 
         _isApplicationDisposed = true;
+        Invoker.Close();
         StopFocusReporting();
         _application.Dispose();
     }
