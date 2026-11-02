@@ -203,9 +203,9 @@ public sealed class BlameInputTests
         using var harness = await Harness.LoadAsync(repository, new FixedTargets("a.txt", repository.Head));
         await harness.OpenAsync();
 
-        var onLine = harness.Input.OnLineClicked(3, out var lineHandled);
-        var onAction = harness.Input.OnLineClicked(BlameFrameBuilder.VisibleRows(Height) + 1, out var actionHandled);
-        var onParent = harness.Input.OnLineClicked(BlameFrameBuilder.VisibleRows(Height) + 2, out var parentHandled);
+        var onLine = harness.Input.OnLineClicked(3, 0, out var lineHandled);
+        var onAction = harness.Input.OnLineClicked(BlameFrameBuilder.VisibleRows(Height) + 1, 0, out var actionHandled);
+        var onParent = harness.Input.OnLineClicked(BlameFrameBuilder.VisibleRows(Height) + 2, 0, out var parentHandled);
 
         Assert.Null(onLine);
         Assert.True(lineHandled);
@@ -214,12 +214,35 @@ public sealed class BlameInputTests
         Assert.True(actionHandled);
         Assert.Equal(DefaultMouseMap.BlameParentButton, onParent);
         Assert.True(parentHandled);
-        var onHistory = harness.Input.OnLineClicked(BlameFrameBuilder.VisibleRows(Height) + 3, out var historyHandled);
+        var onHistory = harness.Input.OnLineClicked(BlameFrameBuilder.VisibleRows(Height) + 3, 0, out var historyHandled);
         Assert.Equal(DefaultMouseMap.BlameHistoryButton, onHistory);
         Assert.True(historyHandled);
         Assert.Equal(ActionIds.FileHistoryOpen, DefaultMouseMap.Create().Resolve(onHistory!, MouseGesture.Click)!.Action);
         Assert.Equal(ActionIds.BlameParent, DefaultMouseMap.Create().Resolve(onParent!, MouseGesture.Click)!.Action);
         Assert.Equal(ActionIds.BlameShowCommit, DefaultMouseMap.Create().Resolve(onAction!, MouseGesture.Click)!.Action);
+    }
+
+    private static readonly string[] ToggleLabels = ["-w", "-M", "-C"];
+
+    [Fact]
+    public async Task GivenTheChipRow_WhenClickingEachChip_ThenItsToggleViewIsNamedAndOffChipsAreNot()
+    {
+        using var repository = TwoCommits();
+        using var harness = await Harness.LoadAsync(repository, new FixedTargets("a.txt", repository.Head));
+        await harness.OpenAsync();
+        var row = BlameFrameBuilder.VisibleRows(Height) + 4;
+        var text = harness.Input.CurrentFrame()!.Lines[row].Text;
+
+        var views = ToggleLabels
+            .Select(label => harness.Input.OnLineClicked(row, text.IndexOf(label, StringComparison.Ordinal), out _))
+            .ToArray();
+
+        Assert.Equal(
+            new[] { DefaultMouseMap.BlameWhitespaceButton, DefaultMouseMap.BlameMovesButton, DefaultMouseMap.BlameCopiesButton },
+            views);
+        Assert.Equal(ActionIds.BlameDetectCopies, DefaultMouseMap.Create().Resolve(views[2]!, MouseGesture.Click)!.Action);
+        Assert.Null(harness.Input.OnLineClicked(row, 70, out var beyondHandled));
+        Assert.False(beyondHandled);
     }
 
     [Fact]

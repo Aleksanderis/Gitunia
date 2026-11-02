@@ -1,6 +1,7 @@
 using System.Globalization;
 using Gitunia.App.Blame;
 using Gitunia.Core.Blame;
+using Gitunia.Core.Keymap;
 using Gitunia.Core.Mouse;
 using Gitunia.Core.Text;
 using Gitunia.Git.Blame.Models;
@@ -16,7 +17,7 @@ namespace Gitunia.Tui.Rendering.Overlays;
 /// </summary>
 public static class BlameFrameBuilder
 {
-    private const int ChromeRows = 6;
+    private const int ChromeRows = 7;
     private const int StatusRows = 1;
     private const int IdWidth = 9;
     private const int AuthorWidth = 14;
@@ -34,6 +35,13 @@ public static class BlameFrameBuilder
     private static readonly HintItem[] PlainHints = [new("/", "search"), new("Esc", "close")];
 
     private static readonly HintItem[] SteppedHints = [new("/", "search"), new("Esc", "back")];
+
+    private static readonly HintChip[] ToggleChips =
+    [
+        new("-w", DefaultMouseMap.BlameWhitespaceButton),
+        new("-M", DefaultMouseMap.BlameMovesButton),
+        new("-C", DefaultMouseMap.BlameCopiesButton),
+    ];
 
     /// <summary>The blame frame for a screen, or null when the screen is too small to show it.</summary>
     public static OverlayFrame? Build(
@@ -93,6 +101,7 @@ public static class BlameFrameBuilder
             glyphs,
             SegmentRole.OverlayKey,
             SegmentRole.Faint));
+        lines.Add(HintChipRows.Line(ToggleChips.Select(WithKey).ToArray(), screenWidth, glyphs));
         lines.Add(OverlayBox.Hints(FooterHints(state), screenWidth, glyphs, FooterLead(state)));
         lines.Add(OverlayBox.Bottom(screenWidth, glyphs));
 
@@ -117,14 +126,18 @@ public static class BlameFrameBuilder
     }
 
     /// <summary>The mouse view of the action row on a frame line; null when the line is none.</summary>
-    public static string? ActionAt(int frameLine, int screenHeight) =>
+    public static string? ActionAt(int frameLine, int frameColumn, int screenHeight) =>
         (frameLine - VisibleRows(screenHeight)) switch
         {
             1 => DefaultMouseMap.BlameShowButton,
             2 => DefaultMouseMap.BlameParentButton,
             3 => DefaultMouseMap.BlameHistoryButton,
+            4 => HintChipRows.ViewAt(ToggleChips.Select(WithKey).ToArray(), frameColumn),
             _ => null,
         };
+
+    private static HintChip WithKey(HintChip chip) =>
+        chip with { Keys = ChipKeys.Default.For(chip.View, DefaultKeymap.BlameView) ?? string.Empty };
 
     private static int TopOf(int cursor, int count, int rows)
     {
