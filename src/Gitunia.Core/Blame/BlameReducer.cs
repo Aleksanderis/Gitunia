@@ -25,6 +25,9 @@ public static class BlameReducer
     /// <summary>The warning when the highlighted line is not committed.</summary>
     public const string UncommittedNotice = "This line is not committed yet";
 
+    /// <summary>The warning when the highlighted line is not committed, so it has no history to follow.</summary>
+    public const string UncommittedHistoryNotice = "This line is not committed yet: it has no history";
+
     /// <summary>The warning when a search step is asked for and no search was typed.</summary>
     public const string NoSearchNotice = "No search: press / first";
 
@@ -130,6 +133,11 @@ public static class BlameReducer
             return Close(session);
         }
 
+        if (action == ActionIds.LineHistoryOpen)
+        {
+            return LineHistory(session, pressed);
+        }
+
         if (ToggledOptions(view.ActiveOptions, action) is { } options)
         {
             return Restart(session, view, view with { Options = options }, context);
@@ -197,6 +205,23 @@ public static class BlameReducer
         };
 
         return Restart(session, view, target, context);
+    }
+
+    // The line history starts at the commit that owns the line, with that commit's line number; the caller opens it
+    // once the view is closed.
+    private static BlameUpdate LineHistory(BlameSession session, BlameActionPressed pressed)
+    {
+        if (pressed.CursorCommit is not { } commit)
+        {
+            return Warn(session, NoCommitYetNotice);
+        }
+
+        if (commit == BlameCommit.UncommittedId)
+        {
+            return Warn(session, UncommittedHistoryNotice);
+        }
+
+        return pressed.CursorOwnPath is null ? Warn(session, NoCommitYetNotice) : Close(session);
     }
 
     private static BlameUpdate Parent(

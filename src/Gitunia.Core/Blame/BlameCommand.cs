@@ -26,6 +26,7 @@ public sealed record BlameOpenRefused(string Text) : BlameCommand;
 /// named).</param>
 /// <param name="CursorOriginalLine">The line number in that commit's version of the file (zero-based).</param>
 /// <param name="CursorIsBoundary">True when that commit is a root of the walked history (it has no parent).</param>
+/// <param name="CursorOwnPath">The file's path in that commit itself, which the line history starts from.</param>
 public sealed record BlameActionPressed(
     ActionId Action,
     int? Count,
@@ -33,7 +34,8 @@ public sealed record BlameActionPressed(
     string? CursorCommit,
     string? CursorPath = null,
     int CursorOriginalLine = 0,
-    bool CursorIsBoundary = false) : BlameCommand;
+    bool CursorIsBoundary = false,
+    string? CursorOwnPath = null) : BlameCommand;
 
 /// <summary>A key typed into the search box.</summary>
 /// <param name="Key">The key.</param>

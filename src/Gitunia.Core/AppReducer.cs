@@ -21,6 +21,7 @@ using Gitunia.Core.Prompts;
 using Gitunia.Core.Rebase;
 using Gitunia.Core.FileHistory;
 using Gitunia.Core.Blame;
+using Gitunia.Git.History.Models;
 using Gitunia.Core.Reflog;
 using Gitunia.Core.Settings;
 using Gitunia.Core.Sidebar;
@@ -272,6 +273,18 @@ public static partial class AppReducer
             && session.View is { IsEditingSearch: false } shown && viewTab is not null && !update.Session.IsOpen)
         {
             var open = new FileHistoryOpenRequested(shown.TabId, shown.Path, BlameReducer.HistoryRevisionOf(shown));
+            var history = ReduceFileHistory(next.State, open);
+
+            return new AppUpdate(history.State, [.. next.Effects, .. history.Effects]);
+        }
+
+        if (command is BlameActionPressed { Action: var lineAction, CursorCommit: { } owner, CursorOwnPath: { } ownPath } lines
+            && lineAction == ActionIds.LineHistoryOpen && session.View is { IsEditingSearch: false } lineView
+            && viewTab is not null && !update.Session.IsOpen)
+        {
+            // The walk starts at the owning commit, whose numbering the original line number is in (one-based here).
+            var line = lines.CursorOriginalLine + 1;
+            var open = new FileHistoryOpenRequested(lineView.TabId, ownPath, owner, new LineRange(line, line));
             var history = ReduceFileHistory(next.State, open);
 
             return new AppUpdate(history.State, [.. next.Effects, .. history.Effects]);
