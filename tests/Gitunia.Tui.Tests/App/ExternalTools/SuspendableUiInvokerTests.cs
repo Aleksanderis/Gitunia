@@ -37,6 +37,31 @@ public class SuspendableUiInvokerTests
     }
 
     [Fact]
+    public void GivenAClosedInvoker_WhenInvokingFromABackgroundThread_ThenItIsDroppedAndNothingThrows()
+    {
+        var invoker = new SuspendableUiInvoker(_ => throw new InvalidOperationException("disposed application"));
+        invoker.Suspend();
+        invoker.Invoke(() => _ran.Add("queued"));
+
+        invoker.Close();
+        invoker.Invoke(() => _ran.Add("late"));
+        invoker.Resume(action => action());
+
+        Assert.Empty(_ran);
+    }
+
+    [Fact]
+    public void GivenARunningUi_WhenClosing_ThenLaterActionsNeverReachTheTarget()
+    {
+        var invoker = new SuspendableUiInvoker(_ => throw new InvalidOperationException("disposed application"));
+
+        invoker.Close();
+
+        invoker.Invoke(() => _ran.Add("late"));
+        Assert.Empty(_ran);
+    }
+
+    [Fact]
     public void GivenAResumedUi_WhenInvoking_ThenTheNewTargetIsUsed()
     {
         var invoker = new SuspendableUiInvoker(_ => throw new InvalidOperationException("old application"));
