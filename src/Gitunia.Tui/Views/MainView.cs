@@ -6,8 +6,8 @@ using Gitunia.Tui.Rendering.Details;
 using Gitunia.Tui.Rendering.Diff;
 using Gitunia.Tui.Rendering.Panes;
 using Gitunia.Tui.Rendering.Screen;
-using Gitunia.Tui.Rendering.Sidebar;
 using Gitunia.Tui.Rendering.Styling;
+using Gitunia.Tui.Views.Lines;
 using Gitunia.Tui.Views.Lists;
 using Gitunia.Tui.Views.Theme;
 using Terminal.Gui.ViewBase;
@@ -54,13 +54,7 @@ public sealed class MainView : IDisposable
             Width = Dim.Fill(),
             Height = 1,
         };
-        _sidebarFilter = new LineView(width =>
-        {
-            var chrome = content.SidebarFilter();
-            var line = SidebarRowRenderer.FilterLine(chrome.FilterText, chrome.IsEditingFilter, PanePadding.TextWidth(width), glyphs);
-
-            return PanePadding.Wrap(line);
-        })
+        _sidebarFilter = new LineView(new SidebarFilterLine(content, glyphs))
         {
             X = 1,
             Y = Pos.Func(_ => geometry.Rects().SidebarFilter.Y),
@@ -73,7 +67,7 @@ public sealed class MainView : IDisposable
             CreateSideEdge(Pos.Absolute(0)),
             CreateSideEdge(Pos.Func(_ => Math.Max(0, geometry.ScreenWidth - 1))),
         ];
-        _bottomEdge = new LineView(BottomEdgeLine)
+        _bottomEdge = new LineView(new BottomEdgeLine(parts))
         {
             X = 0,
             Y = Pos.Func(_ => ScreenLayout.FrameBottom(geometry.ScreenHeight)),
@@ -87,8 +81,8 @@ public sealed class MainView : IDisposable
             Width = Dim.Func(_ => geometry.Rects().SidebarDivider.Width),
             Height = Dim.Func(_ => geometry.Rects().SidebarDivider.Height),
         };
-        _detailTitle = CreateTitle(content.DetailTitle, () => geometry.Rects().DetailTitle);
-        _diffTitle = CreateTitle(content.DiffTitle, () => geometry.Rects().DiffTitle);
+        _detailTitle = CreateTitle(new PaneTitleLine(parts, PaneTitleKind.Detail));
+        _diffTitle = CreateTitle(new PaneTitleLine(parts, PaneTitleKind.Diff));
         _bottomDivider = new FrameStripView(parts.Grids)
         {
             X = Pos.Func(_ => geometry.Rects().BottomDivider.X),
@@ -106,7 +100,7 @@ public sealed class MainView : IDisposable
             Gate = parts.Gate,
         };
         _picker.SetScheme(Palette.BaseScheme());
-        _status = new LineView(width => ChromeBuilder.Status(BannerRenderer.ForStatusBar(content.Model(), geometry.ScreenHeight), width, glyphs))
+        _status = new LineView(new StatusBarLine(content, geometry, glyphs))
         {
             X = 0,
             Y = Pos.AnchorEnd(1),
@@ -277,13 +271,13 @@ public sealed class MainView : IDisposable
         Height = Dim.Func(_ => ScreenLayout.GraphHeight(_parts.Geometry.ScreenHeight)),
     };
 
-    private LineView CreateTitle(Func<int, StyledLine> line, Func<PaneRect> rect) =>
-        new(width => _parts.Grids.Current().ResolveRules(line(width), rect().Y, rect().X))
+    private static LineView CreateTitle(PaneTitleLine title) =>
+        new(title)
         {
-            X = Pos.Func(_ => rect().X),
-            Y = Pos.Func(_ => rect().Y),
-            Width = Dim.Func(_ => rect().Width),
-            Height = Dim.Func(_ => rect().Height),
+            X = Pos.Func(_ => title.Rect().X),
+            Y = Pos.Func(_ => title.Rect().Y),
+            Width = Dim.Func(_ => title.Rect().Width),
+            Height = Dim.Func(_ => title.Rect().Height),
         };
 
     private void WireGestures()
@@ -440,15 +434,7 @@ public sealed class MainView : IDisposable
         }
     }
 
-    // The frame's bottom edge, or the in-progress operation banner over it (ux-workflows.md, workflow 4).
-    private StyledLine BottomEdgeLine(int width)
-    {
-        var geometry = _parts.Geometry;
-        var edge = _parts.Grids.Current().Row(ScreenLayout.FrameBottom(geometry.ScreenHeight), 0, width);
-
-        return BannerRenderer.EdgeLine(_parts.Content.Model(), edge, width, geometry.ScreenHeight, _parts.Panes.Content.Glyphs);
-    }
-
+    // A click on the bottom edge acts on the in-progress operation banner drawn over it (ux-workflows.md, workflow 4).
     private void OnBottomEdgeClicked(int column)
     {
         var model = _parts.Content.Model();

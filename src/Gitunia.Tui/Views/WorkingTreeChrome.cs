@@ -1,12 +1,12 @@
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Mouse;
-using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Tui.Rendering.Diff;
 using Gitunia.Tui.Rendering.Panes;
 using Gitunia.Tui.Rendering.Screen;
 using Gitunia.Tui.Rendering.Styling;
 using Gitunia.Tui.Rendering.WorkingTree;
+using Gitunia.Tui.Views.Lines;
 using Gitunia.Tui.Views.Lists;
 using Terminal.Gui.ViewBase;
 
@@ -51,7 +51,7 @@ public sealed class WorkingTreeChrome : IDisposable
         };
         _leftEdge = CreateEdge(() => EdgeRect(geometry.WorkingRects().Unstaged, geometry.WorkingRects().Staged, isLeft: true));
         _rightEdge = CreateEdge(() => EdgeRect(geometry.WorkingRects().Diff, geometry.WorkingRects().Message, isLeft: false));
-        _diffTitle = new LineView(DiffTitleLine)
+        _diffTitle = new LineView(new WorkingDiffTitleLine(parts))
         {
             X = Pos.Func(_ => geometry.WorkingRects().Diff.X),
             Y = Pos.Func(_ => geometry.WorkingRects().Diff.Y - 1),
@@ -59,7 +59,7 @@ public sealed class WorkingTreeChrome : IDisposable
             Height = Dim.Func(_ => geometry.WorkingRects().Diff.IsEmpty ? 0 : 1),
             Visible = false,
         };
-        _messageOptions = new LineView(OptionsLine)
+        _messageOptions = new LineView(new MessageOptionsLine(parts))
         {
             X = Pos.Func(_ => geometry.WorkingRects().MessageOptions.X),
             Y = Pos.Func(_ => geometry.WorkingRects().MessageOptions.Y),
@@ -169,7 +169,7 @@ public sealed class WorkingTreeChrome : IDisposable
     // path of stage all / unstage all, the view dropdown and (Unstaged, on a conflicted file) resolve.
     private LineView CreateListButton(WorkingTreeSection section, PaneListView list, ListButtonKind kind)
     {
-        var view = new LineView(_ => _buttons.Line(section, kind))
+        var view = new LineView(new ListButtonLine(_buttons, section, kind))
         {
             X = Pos.Func(_ => _buttons.Rect(section, kind).X),
             Y = Pos.Func(_ => _buttons.Rect(section, kind).Y),
@@ -246,29 +246,6 @@ public sealed class WorkingTreeChrome : IDisposable
             Gestured?.Invoke(buttonView, MouseGesture.Click, null);
         }
     }
-
-    private StyledLine DiffTitleLine(int width)
-    {
-        var rect = _parts.Geometry.WorkingRects().Diff;
-        var line = DiffPaneRenderer.RenderWorkingTitle(
-            _parts.Content.WorkingDiffTitle(),
-            WorkingPanes.IsDiff(_parts.Geometry.WorkingFocus),
-            _parts.Geometry.WorkingDiffButtons(),
-            width,
-            _parts.Panes.Content.Glyphs,
-            _parts.Panes.Content.Keys);
-
-        return _parts.Grids.Current().ResolveRules(line, rect.Y - 1, rect.X);
-    }
-
-    private StyledLine OptionsLine(int width) =>
-        MessageBoxRenderer.OptionsLine(
-            _parts.Panes.Content.MessageBox.Draft,
-            width,
-            PanePadding.ColumnsFor(_parts.Geometry.ScreenWidth),
-            _parts.Panes.Content.Glyphs,
-            _parts.Panes.Content.Keys,
-            _parts.Panes.Content.MessageBox.IsCommitting);
 
     // The checkboxes and the Commit button of the option row are the mouse path of the Alt- chords and the commit key.
     private void OnMessageOptionsClicked(int column)
