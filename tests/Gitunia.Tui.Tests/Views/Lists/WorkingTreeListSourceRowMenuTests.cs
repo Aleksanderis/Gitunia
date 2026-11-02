@@ -7,6 +7,7 @@ using static Gitunia.Tui.Tests.Rendering.WorkingTree.WorkingTreeEntries;
 
 namespace Gitunia.Tui.Tests.Views.Lists;
 
+[Trait("Os", "Independent")]
 public class WorkingTreeListSourceRowMenuTests
 {
     [Fact]
@@ -47,6 +48,7 @@ public class WorkingTreeListSourceRowMenuTests
         var staged = new WorkingTreeListSource(WorkingTreeSection.Staged, GraphGlyphSet.Unicode);
         staged.Update(Tree(Modified("a.cs"), StagedAdded("b.cs")));
 
+        Assert.Equal(1, staged.Count);
         Assert.True(staged.HasRowMenu(0));
         Assert.False(staged.HasRowMenu(1));
     }
