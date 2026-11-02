@@ -7,43 +7,22 @@ namespace Gitunia.Core.Tests.Settings;
 
 public class SettingsKeysTests
 {
-    [Fact]
-    public void GivenTheSettingsView_WhenPressingAKeyInNormalMode_ThenItRunsTheDocumentedAction()
-    {
-        var failures = new List<string>();
-        (string keys, string action)[] rows =
-        [
-            ("Enter", "settings.activate"),
-            ("l", "settings.activate"),
-            ("h", "navigate.back"),
-            ("Esc", "navigate.back"),
-            ("x", "settings.toggle"),
-            ("/", "settings.filter"),
-            ("a", "settings.add"),
-            ("d", "settings.remove"),
-            ("J", "settings.move-down"),
-            ("K", "settings.move-up"),
-            ("+", "settings.increase"),
-            ("-", "settings.decrease"),
-            ("j", "list.down"),
-        ];
-
-        foreach (var (keys, action) in rows)
-        {
-            try
-            {
-                CheckItRunsTheDocumentedAction(keys, action);
-            }
-            catch (Exception exception)
-            {
-                failures.Add($"{keys}, {action}: {exception.Message}");
-            }
-        }
-
-        Assert.Empty(failures);
-    }
-
-    private static void CheckItRunsTheDocumentedAction(string keys,
+    [Theory]
+    [InlineData("Enter", "settings.activate")]
+    [InlineData("l", "settings.activate")]
+    [InlineData("h", "navigate.back")]
+    [InlineData("Esc", "navigate.back")]
+    [InlineData("x", "settings.toggle")]
+    [InlineData("/", "settings.filter")]
+    [InlineData("a", "settings.add")]
+    [InlineData("d", "settings.remove")]
+    [InlineData("J", "settings.move-down")]
+    [InlineData("K", "settings.move-up")]
+    [InlineData("+", "settings.increase")]
+    [InlineData("-", "settings.decrease")]
+    [InlineData("j", "list.down")]
+    public void GivenTheSettingsView_WhenPressingAKeyInNormalMode_ThenItRunsTheDocumentedAction(
+        string keys,
         string action)
     {
         var feeder = new KeyFeeder(new KeymapEngine(DefaultKeymap.Create()), DefaultKeymap.SettingsView);

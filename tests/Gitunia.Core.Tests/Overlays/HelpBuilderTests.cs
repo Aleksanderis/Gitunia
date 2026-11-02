@@ -290,39 +290,17 @@ public class HelpBuilderTests
         Assert.Contains(rows, row => row is { Key: "c", Description: "Close the tab" });
     }
 
-    [Fact]
-    public void GivenDocumentedNotation_WhenFormattingTheParsedSequence_ThenItRoundTrips()
-    {
-        var failures = new List<string>();
-        string[] rows =
-        [
-            "gg",
-            "Ctrl-w c",
-            "<space>o",
-            "<space><Tab>",
-            "Ctrl-p",
-            "Shift-Tab",
-            "Alt-1",
-            "Ctrl-w <",
-            "g <",
-        ];
-
-        foreach (var text in rows)
-        {
-            try
-            {
-                CheckItRoundTrips(text);
-            }
-            catch (Exception exception)
-            {
-                failures.Add($"{text}: {exception.Message}");
-            }
-        }
-
-        Assert.Empty(failures);
-    }
-
-    private static void CheckItRoundTrips(string text)
+    [Theory]
+    [InlineData("gg")]
+    [InlineData("Ctrl-w c")]
+    [InlineData("<space>o")]
+    [InlineData("<space><Tab>")]
+    [InlineData("Ctrl-p")]
+    [InlineData("Shift-Tab")]
+    [InlineData("Alt-1")]
+    [InlineData("Ctrl-w <")]
+    [InlineData("g <")]
+    public void GivenDocumentedNotation_WhenFormattingTheParsedSequence_ThenItRoundTrips(string text)
     {
         Assert.Equal(text, KeyFormatter.Format(KeySequenceParser.Parse(text)));
     }

@@ -60,37 +60,15 @@ public class WorkingTreeRowRendererTests
         Assert.StartsWith("R old.txt -> new.txt", staged.Text, StringComparison.Ordinal);
     }
 
-    [Fact]
-    public void GivenAConflict_WhenRendering_ThenItShowsABangAndTheKindOfConflict()
-    {
-        var failures = new List<string>();
-        (ConflictKind kind, string text)[] rows =
-        [
-            (ConflictKind.BothModified, "both modified"),
-            (ConflictKind.BothAdded, "both added"),
-            (ConflictKind.DeletedByThem, "deleted by them"),
-            (ConflictKind.DeletedByUs, "deleted by us"),
-            (ConflictKind.AddedByUs, "added by us"),
-            (ConflictKind.AddedByThem, "added by them"),
-            (ConflictKind.BothDeleted, "both deleted"),
-        ];
-
-        foreach (var (kind, text) in rows)
-        {
-            try
-            {
-                CheckItShowsABangAndTheKindOfConflict(kind, text);
-            }
-            catch (Exception exception)
-            {
-                failures.Add($"{kind}, {text}: {exception.Message}");
-            }
-        }
-
-        Assert.Empty(failures);
-    }
-
-    private static void CheckItShowsABangAndTheKindOfConflict(ConflictKind kind, string text)
+    [Theory]
+    [InlineData(ConflictKind.BothModified, "both modified")]
+    [InlineData(ConflictKind.BothAdded, "both added")]
+    [InlineData(ConflictKind.DeletedByThem, "deleted by them")]
+    [InlineData(ConflictKind.DeletedByUs, "deleted by us")]
+    [InlineData(ConflictKind.AddedByUs, "added by us")]
+    [InlineData(ConflictKind.AddedByThem, "added by them")]
+    [InlineData(ConflictKind.BothDeleted, "both deleted")]
+    public void GivenAConflict_WhenRendering_ThenItShowsABangAndTheKindOfConflict(ConflictKind kind, string text)
     {
         var line = WorkingTreeRowRenderer.Render(Conflict("c.txt", kind), WorkingTreeSection.Unstaged, 40, false, GraphGlyphSet.Unicode);
 

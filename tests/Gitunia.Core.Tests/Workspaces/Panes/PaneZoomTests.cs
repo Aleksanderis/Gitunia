@@ -6,34 +6,12 @@ namespace Gitunia.Core.Tests.Workspaces.Panes;
 [Trait("Os", "Independent")]
 public class PaneZoomTests
 {
-    [Fact]
-    public void GivenAPane_WhenAskingIfItCanZoom_ThenOnlyTheMainPanesCan()
-    {
-        var failures = new List<string>();
-        (PaneKind pane, bool expected)[] rows =
-        [
-            (PaneKind.Graph, true),
-            (PaneKind.Detail, true),
-            (PaneKind.Diff, true),
-            (PaneKind.Sidebar, false),
-        ];
-
-        foreach (var (pane, expected) in rows)
-        {
-            try
-            {
-                CheckOnlyTheMainPanesCan(pane, expected);
-            }
-            catch (Exception exception)
-            {
-                failures.Add($"{pane}, {expected}: {exception.Message}");
-            }
-        }
-
-        Assert.Empty(failures);
-    }
-
-    private static void CheckOnlyTheMainPanesCan(PaneKind pane, bool expected)
+    [Theory]
+    [InlineData(PaneKind.Graph, true)]
+    [InlineData(PaneKind.Detail, true)]
+    [InlineData(PaneKind.Diff, true)]
+    [InlineData(PaneKind.Sidebar, false)]
+    public void GivenAPane_WhenAskingIfItCanZoom_ThenOnlyTheMainPanesCan(PaneKind pane, bool expected)
     {
         Assert.Equal(expected, PaneZoom.CanZoom(pane));
     }
@@ -50,35 +28,13 @@ public class PaneZoomTests
         Assert.Null(PaneZoom.Toggle(PaneKind.Diff, PaneKind.Diff));
     }
 
-    [Fact]
-    public void GivenTwoPanes_WhenPairing_ThenOnlyDetailAndDiffDo()
-    {
-        var failures = new List<string>();
-        (PaneKind a, PaneKind b, bool expected)[] rows =
-        [
-            (PaneKind.Detail, PaneKind.Diff, true),
-            (PaneKind.Diff, PaneKind.Detail, true),
-            (PaneKind.Diff, PaneKind.Diff, true),
-            (PaneKind.Graph, PaneKind.Diff, false),
-            (PaneKind.Detail, PaneKind.Graph, false),
-        ];
-
-        foreach (var (a, b, expected) in rows)
-        {
-            try
-            {
-                CheckOnlyDetailAndDiffDo(a, b, expected);
-            }
-            catch (Exception exception)
-            {
-                failures.Add($"{a}, {b}, {expected}: {exception.Message}");
-            }
-        }
-
-        Assert.Empty(failures);
-    }
-
-    private static void CheckOnlyDetailAndDiffDo(PaneKind a, PaneKind b, bool expected)
+    [Theory]
+    [InlineData(PaneKind.Detail, PaneKind.Diff, true)]
+    [InlineData(PaneKind.Diff, PaneKind.Detail, true)]
+    [InlineData(PaneKind.Diff, PaneKind.Diff, true)]
+    [InlineData(PaneKind.Graph, PaneKind.Diff, false)]
+    [InlineData(PaneKind.Detail, PaneKind.Graph, false)]
+    public void GivenTwoPanes_WhenPairing_ThenOnlyDetailAndDiffDo(PaneKind a, PaneKind b, bool expected)
     {
         Assert.Equal(expected, PaneZoom.IsZoomPair(a, b));
     }

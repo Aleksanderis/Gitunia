@@ -123,34 +123,12 @@ public class BannerRendererTests
         Assert.DoesNotContain("REBASING", lines[^1].Text, StringComparison.Ordinal);
     }
 
-    [Fact]
-    public void GivenAnyWidth_WhenBuilding_ThenTheLineIsExactlyAsWideAndChipsStayInside()
-    {
-        var failures = new List<string>();
-        int[] rows =
-        [
-            20,
-            40,
-            60,
-            100,
-        ];
-
-        foreach (var width in rows)
-        {
-            try
-            {
-                CheckTheLineIsExactlyAsWideAndChipsStayInside(width);
-            }
-            catch (Exception exception)
-            {
-                failures.Add($"{width}: {exception.Message}");
-            }
-        }
-
-        Assert.Empty(failures);
-    }
-
-    private static void CheckTheLineIsExactlyAsWideAndChipsStayInside(int width)
+    [Theory]
+    [InlineData(20)]
+    [InlineData(40)]
+    [InlineData(60)]
+    [InlineData(100)]
+    public void GivenAnyWidth_WhenBuilding_ThenTheLineIsExactlyAsWideAndChipsStayInside(int width)
     {
         var banner = BannerRenderer.Build(Rebase, width, GraphGlyphSet.Unicode);
 

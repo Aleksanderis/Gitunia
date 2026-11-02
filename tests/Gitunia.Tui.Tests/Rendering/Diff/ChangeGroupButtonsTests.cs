@@ -41,37 +41,15 @@ public class ChangeGroupButtonsTests
         Assert.Empty(ChangeGroupButtons.Layout(80, Padding, WorkingTreeButtons.None));
     }
 
-    [Fact]
-    public void GivenALongLine_WhenLayingOut_ThenTheButtonsNeverCoverItsText()
-    {
-        var failures = new List<string>();
-        (int contentWidth, int expected)[] rows =
-        [
-            (0, 2),
-            (31, 2),
-            (60, 2),
-            (61, 1),
-            (70, 1),
-            (71, 0),
-            (78, 0),
-        ];
-
-        foreach (var (contentWidth, expected) in rows)
-        {
-            try
-            {
-                CheckTheButtonsNeverCoverItsText(contentWidth, expected);
-            }
-            catch (Exception exception)
-            {
-                failures.Add($"{contentWidth}, {expected}: {exception.Message}");
-            }
-        }
-
-        Assert.Empty(failures);
-    }
-
-    private static void CheckTheButtonsNeverCoverItsText(int contentWidth, int expected)
+    [Theory]
+    [InlineData(0, 2)]
+    [InlineData(31, 2)]
+    [InlineData(60, 2)]
+    [InlineData(61, 1)]
+    [InlineData(70, 1)]
+    [InlineData(71, 0)]
+    [InlineData(78, 0)]
+    public void GivenALongLine_WhenLayingOut_ThenTheButtonsNeverCoverItsText(int contentWidth, int expected)
     {
         var buttons = ChangeGroupButtons.Layout(78, Padding, WorkingTreeButtons.Unstaged, null, contentWidth);
 
@@ -94,36 +72,14 @@ public class ChangeGroupButtonsTests
         Assert.Equal(4, ChangeGroupButtons.ContentWidth(line));
     }
 
-    [Fact]
-    public void GivenANarrowRow_WhenLayingOut_ThenDiscardGoesFirstAndThirtyTextColumnsStay()
-    {
-        var failures = new List<string>();
-        (int textWidth, int expected)[] rows =
-        [
-            (80, 2),
-            (48, 2),
-            (47, 1),
-            (38, 1),
-            (37, 0),
-            (0, 0),
-        ];
-
-        foreach (var (textWidth, expected) in rows)
-        {
-            try
-            {
-                CheckDiscardGoesFirstAndThirtyTextColumnsStay(textWidth, expected);
-            }
-            catch (Exception exception)
-            {
-                failures.Add($"{textWidth}, {expected}: {exception.Message}");
-            }
-        }
-
-        Assert.Empty(failures);
-    }
-
-    private static void CheckDiscardGoesFirstAndThirtyTextColumnsStay(int textWidth, int expected)
+    [Theory]
+    [InlineData(80, 2)]
+    [InlineData(48, 2)]
+    [InlineData(47, 1)]
+    [InlineData(38, 1)]
+    [InlineData(37, 0)]
+    [InlineData(0, 0)]
+    public void GivenANarrowRow_WhenLayingOut_ThenDiscardGoesFirstAndThirtyTextColumnsStay(int textWidth, int expected)
     {
         var buttons = ChangeGroupButtons.Layout(textWidth, Padding, WorkingTreeButtons.Unstaged);
 
