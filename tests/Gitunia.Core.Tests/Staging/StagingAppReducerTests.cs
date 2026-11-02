@@ -172,18 +172,20 @@ public class StagingAppReducerTests
         Assert.False(tab.Running.IsBusy);
     }
 
+    private static readonly RetryInTerminalConfirmed Then = new(default, "Test", []);
+
     [Fact]
     public void GivenACommitWaitsForStageAll_WhenTheResultArrives_ThenItsCommandIsReducedAfterTheTabIsFree()
     {
         var (state, tabId) = Opened(Modified("a.txt"));
-        var started = AppReducer.Reduce(state, new StageAllThenRequested(tabId, new RunActionCommand(() => { })));
+        var started = AppReducer.Reduce(state, new StageAllThenRequested(tabId, Then));
         var follow = Assert.IsType<StagePathsEffect>(Assert.Single(started.Effects)).Follow;
 
         var done = AppReducer.Reduce(
             started.State,
             new StagingSucceeded(tabId, "Staged 1 file", StatusSeverity.Info, follow));
 
-        Assert.Contains(done.Effects, effect => effect is RunActionEffect);
+        Assert.Contains(done.Effects, effect => effect is RunTerminalRetryEffect);
         Assert.False(Running(done.State, tabId).IsBusy);
     }
 

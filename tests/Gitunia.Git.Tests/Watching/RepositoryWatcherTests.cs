@@ -31,7 +31,8 @@ public class RepositoryWatcherTests
         using var testRepository = TestRepositories.Linear(2);
         var recorder = new ChangeRecorder();
         var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
-        using var watcher = new RepositoryWatcher(location, new WatchBudget(), FastOptions, recorder.Record);
+        using var watcher = new RepositoryWatcher(location, new WatchBudget(), FastOptions);
+        watcher.Changed += recorder.Record;
         watcher.Start();
 
         testRepository.Commit("external", new TestFile("later.txt", "x"));
@@ -47,7 +48,8 @@ public class RepositoryWatcherTests
         using var testRepository = TestRepositories.Linear(1);
         var recorder = new ChangeRecorder();
         var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
-        using var watcher = new RepositoryWatcher(location, new WatchBudget(), FastOptions, recorder.Record);
+        using var watcher = new RepositoryWatcher(location, new WatchBudget(), FastOptions);
+        watcher.Changed += recorder.Record;
         watcher.Start();
 
         testRepository.WriteFile(Path.Combine("sub", "new.txt"), "hello");
@@ -62,7 +64,8 @@ public class RepositoryWatcherTests
         var recorder = new ChangeRecorder();
         var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
         var options = new RepositoryWatcherOptions(TimeSpan.FromMilliseconds(300), TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(1));
-        using var watcher = new RepositoryWatcher(location, new WatchBudget(), options, recorder.Record);
+        using var watcher = new RepositoryWatcher(location, new WatchBudget(), options);
+        watcher.Changed += recorder.Record;
         watcher.Start();
 
         for (var index = 0; index < 20; index++)
@@ -80,7 +83,8 @@ public class RepositoryWatcherTests
         using var testRepository = TestRepositories.Linear(1);
         var recorder = new ChangeRecorder();
         var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
-        using var watcher = new RepositoryWatcher(location, new WatchBudget(), FastOptions, recorder.Record);
+        using var watcher = new RepositoryWatcher(location, new WatchBudget(), FastOptions);
+        watcher.Changed += recorder.Record;
         var stale = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         watcher.BecameStale += () => stale.TrySetResult();
         watcher.Start();
@@ -116,7 +120,8 @@ public class RepositoryWatcherTests
         var recorder = new ChangeRecorder();
         var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
         var queued = new List<Action>();
-        using var watcher = new RepositoryWatcher(location, new WatchBudget(), FastOptions, recorder.Record, queued.Add);
+        using var watcher = new RepositoryWatcher(location, new WatchBudget(), FastOptions, queued.Add);
+        watcher.Changed += recorder.Record;
         var raised = 0;
         watcher.BecameStale += () => raised++;
 
@@ -148,7 +153,7 @@ public class RepositoryWatcherTests
         var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
         var queued = new List<Action>();
         var slowOptions = new RepositoryWatcherOptions(TimeSpan.FromHours(1), TimeSpan.FromHours(2), TimeSpan.FromHours(1));
-        using var watcher = new RepositoryWatcher(location, new WatchBudget(), slowOptions, _ => { }, queued.Add);
+        using var watcher = new RepositoryWatcher(location, new WatchBudget(), slowOptions, queued.Add);
 
         watcher.ReportChange(RepositoryChangeKinds.Refs);
         Assert.Empty(queued);
@@ -165,7 +170,8 @@ public class RepositoryWatcherTests
         using var testRepository = TestRepositories.Linear(1);
         var recorder = new ChangeRecorder();
         var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
-        using var watcher = new RepositoryWatcher(location, new WatchBudget(), FastOptions, recorder.Record);
+        using var watcher = new RepositoryWatcher(location, new WatchBudget(), FastOptions);
+        watcher.Changed += recorder.Record;
         watcher.Start();
 
         watcher.SetActive(false);
@@ -182,7 +188,8 @@ public class RepositoryWatcherTests
         var recorder = new ChangeRecorder();
         var budget = new WatchBudget(0);
         var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
-        using var watcher = new RepositoryWatcher(location, budget, FastOptions, recorder.Record);
+        using var watcher = new RepositoryWatcher(location, budget, FastOptions);
+        watcher.Changed += recorder.Record;
         watcher.Start();
 
         Assert.True(watcher.IsPolling);
@@ -202,8 +209,8 @@ public class RepositoryWatcherTests
         var firstRepository = await Discovery.DiscoverAsync(first.WorkingTreePath, Token);
         var secondRepository = await Discovery.DiscoverAsync(second.WorkingTreePath, Token);
         var budget = new WatchBudget(5);
-        using var firstWatcher = new RepositoryWatcher(firstRepository, budget, FastOptions, _ => { });
-        using var secondWatcher = new RepositoryWatcher(secondRepository, budget, FastOptions, _ => { });
+        using var firstWatcher = new RepositoryWatcher(firstRepository, budget, FastOptions);
+        using var secondWatcher = new RepositoryWatcher(secondRepository, budget, FastOptions);
 
         firstWatcher.Start();
         secondWatcher.Start();
@@ -220,7 +227,7 @@ public class RepositoryWatcherTests
         using var testRepository = TestRepositories.Linear(1);
         var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
         var budget = new WatchBudget();
-        var watcher = new RepositoryWatcher(location, budget, FastOptions, _ => { });
+        var watcher = new RepositoryWatcher(location, budget, FastOptions);
         watcher.Start();
         Assert.True(budget.InUse > 0);
 
@@ -236,7 +243,8 @@ public class RepositoryWatcherTests
         testRepository.Branch("topic");
         var recorder = new ChangeRecorder();
         var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
-        using var watcher = new RepositoryWatcher(location, new WatchBudget(), FastOptions, recorder.Record);
+        using var watcher = new RepositoryWatcher(location, new WatchBudget(), FastOptions);
+        watcher.Changed += recorder.Record;
         watcher.Start();
 
         testRepository.AddWorktree("late", "topic");
@@ -250,7 +258,8 @@ public class RepositoryWatcherTests
         using var testRepository = TestRepositories.WithWorktree(out var worktreePath);
         var recorder = new ChangeRecorder();
         var location = await Discovery.DiscoverAsync(worktreePath, Token);
-        using var watcher = new RepositoryWatcher(location, new WatchBudget(), FastOptions, recorder.Record);
+        using var watcher = new RepositoryWatcher(location, new WatchBudget(), FastOptions);
+        watcher.Changed += recorder.Record;
         watcher.Start();
 
         File.WriteAllText(Path.Combine(worktreePath, "wt.txt"), "x");
@@ -266,7 +275,8 @@ public class RepositoryWatcherTests
         using var origin = TestRepository.Create(bare: true);
         var recorder = new ChangeRecorder();
         var location = await Discovery.DiscoverAsync(origin.WorkingTreePath, Token);
-        using var watcher = new RepositoryWatcher(location, new WatchBudget(), FastOptions, recorder.Record);
+        using var watcher = new RepositoryWatcher(location, new WatchBudget(), FastOptions);
+        watcher.Changed += recorder.Record;
         watcher.Start();
 
         using var clone = TestRepository.Create();

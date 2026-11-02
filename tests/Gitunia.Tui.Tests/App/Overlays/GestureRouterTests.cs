@@ -1,5 +1,4 @@
 using Gitunia.Tui.Views;
-using Gitunia.App.Shell;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Mouse;
@@ -82,7 +81,7 @@ public sealed class GestureRouterTests : IDisposable, IActionRoute
     [Fact]
     public void GivenAnOpenConfirmDialog_WhenClickingAPaneBehindIt_ThenTheClickIsTheBackdropClickAndStartsTheDoubleClickGuard()
     {
-        _shell.Host.Confirm(new ConfirmPrompt("Delete", ["Delete branch x?"], "Cannot be undone.", "Delete"), () => { });
+        _shell.Confirm(new ConfirmPrompt("Delete", ["Delete branch x?"], "Cannot be undone.", "Delete"));
 
         _router.OnGestured(DefaultKeymap.GraphView, MouseGesture.Click, null);
 

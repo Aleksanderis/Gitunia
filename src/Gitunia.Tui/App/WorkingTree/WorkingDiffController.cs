@@ -54,7 +54,12 @@ public sealed partial class WorkingDiffController : IActionHandler, ITextKeyHand
         _sessions = sessions;
         _diffList = lists.ListOf(PaneKind.WorkingUnstagedDiff);
         _chrome = chrome;
-        _actions = new DiffListActions(_diffList, host, clipboard, () => sessions.ActiveSession()?.WorkingDiff, string.Empty, "change");
+        _actions = new DiffListActions(
+            _diffList,
+            host,
+            clipboard,
+            new ActiveWorkingDiff(sessions),
+            new DiffListTexts(string.Empty, "change"));
         host.Changed += OnWorkspaceChanged;
     }
 

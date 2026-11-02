@@ -25,7 +25,9 @@ public static class ShellReducer
         OutputShownCommand shown => ShowOutput(state, shown),
         OverlayChangedCommand changed => new ShellUpdate(state with { Overlay = changed.Kind }, []),
         PromptCommand prompt => PromptReducer.Reduce(state, prompt),
-        RunActionCommand run => new ShellUpdate(state, [new RunActionEffect(run.Run)]),
+        RetryInTerminalConfirmed retry => new ShellUpdate(
+            state,
+            [new RunTerminalRetryEffect(retry.TabId, retry.Noun, retry.Arguments)]),
         ScreenResizedCommand resized => Resize(state, resized),
         SetKeyModeCommand mode => new ShellUpdate(state.WithMode(mode.Mode), []),
         StatusAgedCommand aged => new ShellUpdate(state, Schedule(state, aged.At)),

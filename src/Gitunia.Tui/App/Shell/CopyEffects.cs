@@ -32,4 +32,11 @@ public sealed class CopyEffects(ClipboardCopier clipboard, RangeCopier ranges, T
     /// <param name="arguments">The git arguments.</param>
     public void OfferTerminalRetry(TabId tabId, string noun, IReadOnlyList<string> arguments) =>
         retry.Offer(tabId, noun, arguments);
+
+    /// <summary>Runs the same git arguments in the real terminal after the user accepted the dialog.</summary>
+    /// <param name="tabId">The tab.</param>
+    /// <param name="noun">What failed.</param>
+    /// <param name="arguments">The git arguments.</param>
+    public void RunTerminalRetry(TabId tabId, string noun, IReadOnlyList<string> arguments) =>
+        retry.Run(tabId, noun, arguments);
 }

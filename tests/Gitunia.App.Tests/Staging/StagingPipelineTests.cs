@@ -54,17 +54,14 @@ public class StagingPipelineTests
     {
         using var repository = TestRepositories.Linear();
         repository.WriteFile("file.txt", "changed\n");
-        using var pipeline = await OpenWithStatusAsync(repository);
-        var stagedWhenRun = -1;
-        var host = pipeline.Host;
-        var tabId = pipeline.TabId;
-        var then = new RunActionCommand(() =>
-            stagedWhenRun = host.Workspace.FindTab(tabId)!.WorkingTree!.Staged.Count);
+        var shell = new RecordingShell();
+        using var pipeline = await OpenWithStatusAsync(repository, shell);
+        var then = new RetryInTerminalConfirmed(pipeline.TabId, "Then", []);
 
         pipeline.Dispatch(new StageAllThenRequested(pipeline.TabId, then));
-        await pipeline.UntilAsync(() => stagedWhenRun >= 0);
+        await pipeline.UntilAsync(() => shell.RunRetries.Count > 0);
 
-        Assert.Equal(1, stagedWhenRun);
+        Assert.Single(pipeline.Host.Workspace.FindTab(pipeline.TabId)!.WorkingTree!.Staged);
         Assert.False(IsStaging(pipeline));
     }
 
@@ -73,17 +70,18 @@ public class StagingPipelineTests
     {
         using var repository = TestRepositories.Linear();
         repository.WriteFile("file.txt", "changed\n");
-        using var pipeline = await OpenWithStatusAsync(repository);
+        var shell = new RecordingShell();
+        using var pipeline = await OpenWithStatusAsync(repository, shell);
         await File.WriteAllTextAsync(
             Path.Combine(repository.WorkingTreePath, ".git", "index.lock"),
             string.Empty,
             TestContext.Current.CancellationToken);
-        var ran = false;
 
-        pipeline.Dispatch(new StageAllThenRequested(pipeline.TabId, new RunActionCommand(() => ran = true)));
+        pipeline.Dispatch(
+            new StageAllThenRequested(pipeline.TabId, new RetryInTerminalConfirmed(pipeline.TabId, "Then", [])));
         await pipeline.UntilAsync(() => !IsStaging(pipeline));
 
-        Assert.False(ran);
+        Assert.Empty(shell.RunRetries);
         Assert.StartsWith("Could not stage: ", pipeline.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
     }
 
@@ -104,9 +102,11 @@ public class StagingPipelineTests
     private static bool IsStaging(FeaturePipeline pipeline) =>
         pipeline.Host.Workspace.FindTab(pipeline.TabId)!.Running.IsRunning(RunningOperationKind.Staging);
 
-    private static async Task<FeaturePipeline> OpenWithStatusAsync(TestRepository repository)
+    private static async Task<FeaturePipeline> OpenWithStatusAsync(
+        TestRepository repository,
+        RecordingShell? shell = null)
     {
-        var pipeline = await FeaturePipeline.OpenAsync(TestGit.Services, repository);
+        var pipeline = await FeaturePipeline.OpenAsync(TestGit.Services, repository, shell);
         pipeline.Dispatch(new TabCommand(pipeline.TabId, new OpenWorkingTreeCommand()));
         await pipeline.UntilAsync(() => pipeline.Host.Workspace.FindTab(pipeline.TabId)!.WorkingTree is not null);
         pipeline.Dispatch(new TabCommand(pipeline.TabId, new FocusPaneCommand(PaneKind.WorkingUnstaged)));

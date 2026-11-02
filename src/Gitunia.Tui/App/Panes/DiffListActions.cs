@@ -29,31 +29,27 @@ public sealed class DiffListActions
     private readonly ListView _diffList;
     private readonly Dispatcher _host;
     private readonly ClipboardCopier _clipboard;
-    private readonly Func<IDiffViewState?> _active;
-    private readonly string _sideBySideHint;
-    private readonly string _anchorName;
+    private readonly IActiveDiff _active;
+    private readonly DiffListTexts _texts;
     private bool _isSyncing;
 
     /// <param name="diffList">The list of the diff pane.</param>
     /// <param name="host">Switches the input mode (Insert while the search box is open).</param>
     /// <param name="clipboard">Copies diff text.</param>
-    /// <param name="active">The active tab's diff, null while it has none.</param>
-    /// <param name="sideBySideHint">Appended to the notice when side by side is on but the pane is too narrow.</param>
-    /// <param name="anchorName">What the next and previous anchors are called in notices: "hunk", or "change" in the Changes view diff.</param>
+    /// <param name="active">The active tab's diff this list shows.</param>
+    /// <param name="texts">The words of the notices.</param>
     public DiffListActions(
         ListView diffList,
         Dispatcher host,
         ClipboardCopier clipboard,
-        Func<IDiffViewState?> active,
-        string sideBySideHint,
-        string anchorName = "hunk")
+        IActiveDiff active,
+        DiffListTexts texts)
     {
         _diffList = diffList;
         _host = host;
         _clipboard = clipboard;
         _active = active;
-        _sideBySideHint = sideBySideHint;
-        _anchorName = anchorName;
+        _texts = texts;
         diffList.ValueChanged += (_, _) => RememberCursor();
         diffList.ViewportChanged += (_, _) => SyncWidth();
     }
@@ -123,7 +119,7 @@ public sealed class DiffListActions
         }
         else if (action == ActionIds.DiffNextHunk || action == ActionIds.DiffPreviousHunk)
         {
-            Jump(diff, document.HunkRows, row, action == ActionIds.DiffNextHunk, count, _anchorName);
+            Jump(diff, document.HunkRows, row, action == ActionIds.DiffNextHunk, count, _texts.AnchorName);
         }
         else if (action == ActionIds.DiffSearchOpen)
         {
@@ -307,7 +303,7 @@ public sealed class DiffListActions
     /// </summary>
     public void SyncWidth()
     {
-        if (_isSyncing || _active() is not { } diff || diff.Source.Width == ListTextWidth())
+        if (_isSyncing || _active.Current() is not { } diff || diff.Source.Width == ListTextWidth())
         {
             return;
         }
@@ -346,7 +342,7 @@ public sealed class DiffListActions
 
     public void RememberCursor()
     {
-        if (!IsRestoring && _active() is { } diff)
+        if (!IsRestoring && _active.Current() is { } diff)
         {
             diff.SelectedRow = CursorRow(diff);
             diff.TopRow = diff.Source.RowOf(_diffList.Viewport.Y);
@@ -420,7 +416,7 @@ public sealed class DiffListActions
         else
         {
             var needed = DiffSplitRenderer.MinimumWidth.ToString(CultureInfo.InvariantCulture);
-            Notice = $"Side by side on: needs {needed} columns{_sideBySideHint}";
+            Notice = $"Side by side on: needs {needed} columns{_texts.SideBySideHint}";
             if (diff.Source.ShowsSideBySide)
             {
                 Notice = "Side by side on";

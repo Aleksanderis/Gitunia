@@ -15,7 +15,7 @@ public class ShellReducerTests
 
     private static readonly ConfirmPrompt Prompt = new("Delete", ["Delete branch x?"], "Cannot be undone.", "Delete");
 
-    private static readonly AppCommand Accepted = new RunActionCommand(() => { });
+    private static readonly AppCommand Accepted = new RetryInTerminalConfirmed(default, "Test", []);
 
     [Fact]
     public void GivenARefreshRequest_WhenReducing_ThenTheStateIsUntouchedAndTheTabIsRefreshedAsAsked()
@@ -297,13 +297,16 @@ public class ShellReducerTests
     }
 
     [Fact]
-    public void GivenACallback_WhenReducingTheBridgeCommand_ThenItComesOutAsAnEffect()
+    public void GivenAnAcceptedRetryDialog_WhenReducingItsCommand_ThenTheTerminalRetryRunsForThatTab()
     {
-        var run = new RunActionCommand(() => { });
+        var retry = new RetryInTerminalConfirmed(new TabId(3), "Tag push", ["push", "--", "origin"]);
 
-        var update = ShellReducer.Reduce(ShellState.Empty, run);
+        var update = ShellReducer.Reduce(ShellState.Empty, retry);
 
-        Assert.Same(run.Run, Assert.IsType<RunActionEffect>(Assert.Single(update.Effects)).Run);
+        var effect = Assert.IsType<RunTerminalRetryEffect>(Assert.Single(update.Effects));
+        Assert.Equal(new TabId(3), effect.TabId);
+        Assert.Equal("Tag push", effect.Noun);
+        Assert.Equal(["push", "--", "origin"], effect.Arguments);
     }
 
     private static ShellUpdate Reduce(ShellState state, ShellCommand command) => ShellReducer.Reduce(state, command);

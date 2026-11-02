@@ -28,6 +28,9 @@ public sealed class ShellEffects(ShellEffectParts parts, ActionExecutor actions)
     public void OfferTerminalRetry(TabId tabId, string noun, IReadOnlyList<string> arguments) =>
         parts.Copy.OfferTerminalRetry(tabId, noun, arguments);
 
+    public void RunTerminalRetry(TabId tabId, string noun, IReadOnlyList<string> arguments) =>
+        parts.Copy.RunTerminalRetry(tabId, noun, arguments);
+
     /// <inheritdoc />
     public void StartReflogEntryAction(ReflogEntryActionEffect effect) => parts.Flow.StartReflogEntryAction(effect);
 

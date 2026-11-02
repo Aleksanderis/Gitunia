@@ -64,7 +64,7 @@ public class KeyControllerModeTests
     {
         _host.Dispatch(new ConfirmRequestedCommand(
             new ConfirmPrompt("Delete", ["Delete x?"], "No undo.", "Delete"),
-            new RunActionCommand(() => { }),
+            new RetryInTerminalConfirmed(default, "Test", []),
             null));
 
         Assert.Equal(KeyMode.Confirm, _keys.Mode);

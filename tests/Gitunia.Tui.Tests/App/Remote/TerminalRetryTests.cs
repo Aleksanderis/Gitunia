@@ -33,8 +33,12 @@ public class TerminalRetryTests
         Assert.Contains("Runs: git fetch --prune", prompt.Consequence, StringComparison.Ordinal);
         Assert.Empty(_terminal.Calls);
 
-        _shell.Answer();
+        AnswerYes();
 
+        var accepted = Assert.Single(_shell.Accepted);
+        Assert.Equal(_tabId, accepted.TabId);
+        Assert.Equal("Fetch", accepted.Noun);
+        Assert.Equal(FetchArguments, accepted.Arguments);
         Assert.Equal(["fetch|fetch --prune"], _terminal.Calls);
     }
 
@@ -92,7 +96,7 @@ public class TerminalRetryTests
         _retry.Offer(_tabId, "Fetch", FetchArguments);
         _terminal.Busy = true;
 
-        _shell.Answer();
+        AnswerYes();
 
         Assert.Empty(_terminal.Calls);
         Assert.StartsWith("Busy", _shell.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
@@ -104,7 +108,7 @@ public class TerminalRetryTests
         _retry.Offer(_tabId, "Fetch", FetchArguments);
 
         _shell.Host.Dispatch(new CloseTabCommand(_tabId));
-        _shell.Answer();
+        AnswerYes();
 
         Assert.Empty(_terminal.Calls);
     }
@@ -115,9 +119,19 @@ public class TerminalRetryTests
         _terminal.Notice = "External tools are not supported on this operating system";
         _retry.Offer(_tabId, "Fetch", FetchArguments);
 
-        _shell.Answer();
+        AnswerYes();
 
         Assert.Equal(_terminal.Notice, _shell.Statuses.Log.Latest!.Text);
+    }
+
+    // What the effect runner does with the accepted dialog: hands the effect to the retry.
+    private void AnswerYes()
+    {
+        _shell.Answer();
+        foreach (var accepted in _shell.Accepted)
+        {
+            _retry.Run(accepted.TabId, accepted.Noun, accepted.Arguments);
+        }
     }
 
     private static RepositoryLocation Location(string name)

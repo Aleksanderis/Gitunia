@@ -1,6 +1,5 @@
 using Gitunia.Core.Keymap;
 using Gitunia.Tui.App.Conflicts;
-using Gitunia.App.Shell;
 using Gitunia.Core.Overlays;
 using Gitunia.Tui.App.Branches;
 using Gitunia.Tui.App.Overlays;
@@ -54,7 +53,7 @@ public sealed class OverlayCoverTests : IDisposable
     [Fact]
     public void GivenAConfirmDialogOpens_WhenTheStateChanges_ThenTheMouseGateClosesUntilItIsAnswered()
     {
-        _shell.Host.Confirm(new ConfirmPrompt("Delete", ["Delete branch x?"], "Cannot be undone.", "Delete"), () => { });
+        _shell.Confirm(new ConfirmPrompt("Delete", ["Delete branch x?"], "Cannot be undone.", "Delete"));
 
         Assert.True(_cover.IsAnyOverlayOpen());
         Assert.True(_gate.IsSuppressed);

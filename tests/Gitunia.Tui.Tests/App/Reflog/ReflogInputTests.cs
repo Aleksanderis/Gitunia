@@ -637,9 +637,6 @@ public class ReflogInputTests
                 case PostStatusEffect post:
                     _host.Dispatch(new StatusPostedCommand(post.Text, post.Severity, _host.Clock.GetUtcNow()));
                     break;
-                case RunActionEffect run:
-                    run.Run();
-                    break;
                 case ShowPromptEffect prompt:
                     _host.Dispatch(new PromptRequestedCommand(prompt.Request));
                     break;

@@ -76,7 +76,7 @@ public class IgnoreAwareWatchingTests
         using var testRepository = CreateRepositoryWithIgnoredTree();
         var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
         var budget = new WatchBudget();
-        using var watcher = new RepositoryWatcher(location, budget, FastOptions, _ => { }, directoryLister: Lister);
+        using var watcher = new RepositoryWatcher(location, budget, FastOptions, directoryLister: Lister);
 
         watcher.Start();
         await WaitForAsync(() => watcher.WorkingTreeDirectoryCount == 2);
@@ -191,7 +191,8 @@ public class IgnoreAwareWatchingTests
         var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
         var options = FastOptions with { MaximumWorkingTreeDirectories = 1 };
         var budget = new WatchBudget();
-        using var watcher = new RepositoryWatcher(location, budget, options, recorder.Record, directoryLister: Lister);
+        using var watcher = new RepositoryWatcher(location, budget, options, directoryLister: Lister);
+        watcher.Changed += recorder.Record;
 
         watcher.Start();
         await WaitForAsync(() => watcher.IsPolling);
@@ -212,7 +213,6 @@ public class IgnoreAwareWatchingTests
             location,
             new WatchBudget(),
             options,
-            _ => { },
             directoryLister: Lister);
         watcher.Start();
         await WaitForAsync(() => watcher.WorkingTreeDirectoryCount == 2);
@@ -243,8 +243,8 @@ public class IgnoreAwareWatchingTests
             location,
             budget,
             FastOptions,
-            recorder.Record,
             directoryLister: new FailingLister());
+        watcher.Changed += recorder.Record;
         watcher.Start();
         var watchersBefore = watcher.WatcherCount;
         await WaitForAsync(() => watcher.WatcherCount > watchersBefore);
@@ -265,7 +265,6 @@ public class IgnoreAwareWatchingTests
             location,
             new WatchBudget(),
             FastOptions,
-            _ => { },
             directoryLister: lister);
         watcher.Start();
         await lister.Started.Task.WaitAsync(WaitLimit, Token);
@@ -288,7 +287,6 @@ public class IgnoreAwareWatchingTests
             location,
             new WatchBudget(),
             FastOptions,
-            _ => { },
             directoryLister: lister);
         watcher.Start();
         await lister.Started.Task.WaitAsync(WaitLimit, Token);
@@ -301,8 +299,13 @@ public class IgnoreAwareWatchingTests
 
     private static RepositoryWatcher CreateWatcher(
         RepositoryLocation location,
-        Action<RepositoryChangeKinds> onChanged) =>
-        new(location, new WatchBudget(), FastOptions, onChanged, directoryLister: Lister);
+        Action<RepositoryChangeKinds> onChanged)
+    {
+        var watcher = new RepositoryWatcher(location, new WatchBudget(), FastOptions, directoryLister: Lister);
+        watcher.Changed += onChanged;
+
+        return watcher;
+    }
 
     private static TestRepository CreateRepositoryWithIgnoredTree()
     {
