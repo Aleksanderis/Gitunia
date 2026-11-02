@@ -4,7 +4,7 @@
 
 A keyboard-first terminal Git client: a real commit graph, first-class branches and worktrees, vim-style modal navigation, the mouse is optional but fully functional.
 
-![Gitunia demo: graph, branch switch, worktree, staging lines, commit](docs/media/demo.gif)
+[![Gitunia demo: scrolling a large graph, branch switch, worktree, staging lines, commit](https://gitunia.github.io/media/demo.gif)](https://gitunia.github.io)
 
 ## Why
 
@@ -33,7 +33,7 @@ Not included: submodules, LFS UI, hosting-provider integration, plugins.
 
 Needs Git 2.43 or newer on your `PATH`.
 
-Ways to install: Linux `.deb`/`.rpm`, Arch/Omarchy `.pkg.tar.zst`, Windows and Linux archive, or from source. For more details look in the [user guide](docs/user-guide.md#install).
+Ways to install: Linux `.deb`/`.rpm`, Arch/Omarchy `.pkg.tar.zst`, a Windows or Linux archive, a macOS archive (Apple silicon; should work but is not fully tested yet, and unsigned, so Gatekeeper asks you to allow it), or from source. For more details look in the [user guide](docs/user-guide.md#install).
 
 ## Quick start
 

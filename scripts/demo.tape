@@ -16,17 +16,29 @@ Enter
 Sleep 2s
 Show
 
-# The graph: walk down and back up.
+# The graph: scroll down a long history (half pages, then single rows), jump to the bottom and back, then to HEAD.
 Sleep 1s
-Type "jjjj"
-Sleep 700ms
-Type "kk"
+Type "jjjjjjjjjjjj"
+Sleep 600ms
+Ctrl+d
+Sleep 500ms
+Ctrl+d
+Sleep 500ms
+Ctrl+d
+Sleep 500ms
+Type "jjjjjjjj"
+Sleep 600ms
+Type "G"
+Sleep 1200ms
+Type "gg"
+Sleep 800ms
+Type "jjjjkk"
 Sleep 700ms
 
 # Branch switch: the checkout picker.
 Type " bs"
 Sleep 700ms
-Type "fix"
+Type "fix/over"
 Sleep 900ms
 Enter
 Sleep 1500ms
