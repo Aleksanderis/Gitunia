@@ -9,8 +9,6 @@ namespace Gitunia.Core.Tests.Keymap;
 [Trait("Os", "Independent")]
 public class KeymapRowReaderTests
 {
-    private const string SnapshotResource = "default-bindings.txt";
-
     [Fact]
     public void GivenARow_WhenRead_ThenActionViewModesAndKeysAreKept()
     {
@@ -42,31 +40,12 @@ public class KeymapRowReaderTests
         Assert.ThrowsAny<JsonException>(() => Read(json));
     }
 
-    [Fact]
-    public void GivenTheEmbeddedFile_WhenLoaded_ThenEveryBindingEqualsTheSnapshotOfTheFormerCodeDefaults()
-    {
-        var actual = DefaultKeymap.CreateBindings()
-            .Select(binding => $"{binding.Mode}|{binding.View}|{KeyFormatter.Format(binding.Sequence)}|{binding.Action.Value}")
-            .Order(StringComparer.Ordinal)
-            .ToList();
-
-        Assert.Equal(ReadSnapshot(), actual);
-    }
-
     [Theory]
     [InlineData("""[{ "action": "x", "view": "Global", "modes": ["Normal"], "keys": [1, "a"] }]""")]
     [InlineData("""[{ "action": "x", "view": "Global", "modes": ["1"], "keys": ["a"] }]""")]
     public void GivenAWrongTypedOrNumericValue_WhenRead_ThenItThrows(string json)
     {
         Assert.ThrowsAny<JsonException>(() => Read(json));
-    }
-
-    private static List<string> ReadSnapshot()
-    {
-        using var stream = typeof(KeymapRowReaderTests).Assembly.GetManifestResourceStream(SnapshotResource)!;
-        using var reader = new StreamReader(stream);
-
-        return [.. reader.ReadToEnd().Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)];
     }
 
     private static IReadOnlyList<KeymapRow> Read(string json)

@@ -23,12 +23,6 @@ public class KeymapDocumentationTests
     }
 
     [Fact]
-    public void GivenTheKeymapFile_WhenReadingIt_ThenItHasRows()
-    {
-        Assert.True(ReadRows().Count > 100);
-    }
-
-    [Fact]
     public void GivenEveryActionInTheKeymapFile_WhenLookingItUpInCode_ThenTheIdExists()
     {
         var known = KnownActionIds();

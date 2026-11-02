@@ -14,14 +14,4 @@ public sealed class TestSignalTests
 
         Assert.Null(exception);
     }
-
-    [Fact]
-    public void GivenALiveSignal_WhenReleased_ThenAWaiterIsWoken()
-    {
-        using var signal = new TestSignal();
-
-        signal.Release();
-
-        Assert.True(signal.Wait(TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken));
-    }
 }

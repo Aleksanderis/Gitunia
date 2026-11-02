@@ -110,45 +110,24 @@ public class CompareReducerTests
         Assert.Equal(new StartComparisonEffect(Tab, Oldest, Newest, Newest), Assert.Single(update.Effects));
     }
 
-    [Fact]
-    public void GivenTheMarkedCommitLoaded_WhenDetailsChange_ThenNothingIsCompared()
+    public static TheoryData<CompareFacts, ObjectId?> NoComparisonCases() => new()
     {
-        var update = Changed(Loaded(Newest, markIndex: 0, commitIndex: 0), mark: Newest);
+        { Loaded(Newest, markIndex: 0, commitIndex: 0), Newest },
+        { Loaded(Middle, markIndex: -1, commitIndex: 1), null },
+        { new CompareFacts(false, Middle, false, 0, 1), Newest },
+        { new CompareFacts(true, Middle, true, 0, 1), Newest },
+        { Loaded(Middle, markIndex: -1, commitIndex: 1), Newest },
+    };
 
-        Assert.Empty(update.Effects);
+    [Theory]
+    [MemberData(nameof(NoComparisonCases))]
+    public void GivenTheMarkedCommitNoMarkLoadingComparisonOrMarkOutsideTheGraph_WhenDetailsChange_ThenNothingIsCompared(
+        CompareFacts facts,
+        ObjectId? mark)
+    {
+        Assert.Empty(Changed(facts, mark).Effects);
     }
 
-    [Fact]
-    public void GivenNoMark_WhenDetailsChange_ThenNothingIsCompared()
-    {
-        var update = Changed(Loaded(Middle, markIndex: -1, commitIndex: 1), mark: null);
-
-        Assert.Empty(update.Effects);
-    }
-
-    [Fact]
-    public void GivenDetailsThatAreStillLoading_WhenTheyChange_ThenNothingIsComparedYet()
-    {
-        var facts = new CompareFacts(false, Middle, false, 0, 1);
-
-        Assert.Empty(Changed(facts, mark: Newest).Effects);
-    }
-
-    [Fact]
-    public void GivenDetailsThatAreAComparisonAlready_WhenTheyChange_ThenNothingIsComparedAgain()
-    {
-        var facts = new CompareFacts(true, Middle, true, 0, 1);
-
-        Assert.Empty(Changed(facts, mark: Newest).Effects);
-    }
-
-    [Fact]
-    public void GivenAMarkOutsideTheGraph_WhenDetailsChange_ThenNothingIsCompared()
-    {
-        var update = Changed(Loaded(Middle, markIndex: -1, commitIndex: 1), mark: Newest);
-
-        Assert.Empty(update.Effects);
-    }
 
     [Fact]
     public void GivenTheCommitWasAskedFor_WhenDetailsChangeAgain_ThenItIsNotAskedForTwice()

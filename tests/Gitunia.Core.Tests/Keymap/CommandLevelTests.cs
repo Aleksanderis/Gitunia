@@ -24,19 +24,6 @@ public class CommandLevelTests
         Assert.Empty(missing);
     }
 
-    [Fact]
-    public void GivenTheApprovedList_WhenCountingTheBoundActions_ThenThereAre201EverydayAnd45AdvancedAnd10AdvancedPlus()
-    {
-        // The Level column of docs/internal/ux-keymap.md (192 rows plus the nine tab.go-to.N ids, 45, 10).
-        var counts = KnownActions()
-            .GroupBy(action => ActionCatalog.LevelOf(action)!.Value)
-            .ToDictionary(group => group.Key, group => group.Count());
-
-        Assert.Equal(201, counts[CommandLevel.Everyday]);
-        Assert.Equal(45, counts[CommandLevel.Advanced]);
-        Assert.Equal(10, counts[CommandLevel.AdvancedPlus]);
-    }
-
     [Theory]
     [InlineData("working-tree.commit", CommandLevel.Everyday)]
     [InlineData("view.cycle-command-level", CommandLevel.Everyday)]

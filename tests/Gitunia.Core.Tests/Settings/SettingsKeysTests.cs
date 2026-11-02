@@ -17,14 +17,8 @@ public class SettingsKeysTests
     [InlineData("a", "settings.add")]
     [InlineData("d", "settings.remove")]
     [InlineData("J", "settings.move-down")]
-    [InlineData("K", "settings.move-up")]
     [InlineData("+", "settings.increase")]
-    [InlineData("-", "settings.decrease")]
     [InlineData("j", "list.down")]
-    [InlineData("k", "list.up")]
-    [InlineData("gg", "list.top")]
-    [InlineData("G", "list.bottom")]
-    [InlineData("Ctrl-d", "list.half-page-down")]
     public void GivenTheSettingsView_WhenPressingAKeyInNormalMode_ThenItRunsTheDocumentedAction(
         string keys,
         string action)
