@@ -28,6 +28,9 @@ public sealed record EffectRunnerOptions<TSession>
     public PollOptions? Poll { get; init; }
 
     /// <summary>What only the terminal layer can do; nothing when null.</summary>
+    public ShellRoles? ShellParts { get; init; }
+
+    /// <summary>One object that performs every shell effect (tests); <see cref="ShellParts"/> wins when both are set.</summary>
     public IShellEffects? Shell { get; init; }
 
     /// <summary>The settings screen services; the settings effects are not handled when null.</summary>

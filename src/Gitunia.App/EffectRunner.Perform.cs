@@ -50,13 +50,13 @@ public sealed partial class EffectRunner<TSession>
         switch (effect)
         {
             case ApplySettingsOptionsEffect options:
-                _shell.ApplyOptions(options.Options);
+                _shell.Session.ApplyOptions(options.Options);
                 break;
             case ApplySettingsThemeEffect theme:
-                _shell.ApplyTheme(theme.Theme);
+                _shell.Session.ApplyTheme(theme.Theme);
                 break;
             case OpenConfigEditorEffect:
-                _shell.OpenConfigEditor();
+                _shell.Tools.OpenConfigEditor();
                 break;
             default:
                 throw new UnhandledEffectException(effect);

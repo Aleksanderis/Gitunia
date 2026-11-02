@@ -19,11 +19,11 @@ public sealed class ToolEffects(
     ConfigEditorLauncher editor,
     ConfigWriter writer,
     StatusReporter statuses,
-    Dispatcher host)
+    Dispatcher host) : IToolEffects
 {
     /// <summary>Suspends the UI, runs the git tool on the real terminal and refreshes the tab afterwards.</summary>
     /// <param name="effect">The tool.</param>
-    public void Launch(LaunchExternalToolEffect effect)
+    public void LaunchExternalTool(LaunchExternalToolEffect effect)
     {
         var notice = tools.Launch(effect.Kind, effect.Location, effect.Commit);
         if (notice.Length > 0)
