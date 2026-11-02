@@ -24,6 +24,68 @@ public class DiscardReducerTests
     private static readonly TabId Tab = new(1);
     private static readonly RepositoryLocation Location = new("/r", "/r/.git", "/r/.git", false, false);
 
+    public static TheoryData<string, DiscardCommand, DiscardContext, string> Refusals()
+    {
+        var staged = Context(Tree(StagedModified("a.txt")), PaneKind.WorkingStaged);
+
+        return new TheoryData<string, DiscardCommand, DiscardContext, string>
+        {
+            { "a conflicted file", new DiscardRequested(Tab), Context(Tree(Conflict("c.txt"))), "conflicted" },
+            {
+                "only conflicted files in a range",
+                new DiscardRequested(Tab, new RowRange(0, 1)),
+                Context(Tree(Conflict("c.txt"), Conflict("d.txt"))),
+                "conflicted"
+            },
+            {
+                "an invalid name where the OS cannot delete it",
+                new DiscardRequested(Tab),
+                Context(Tree(Untracked($"bad{(char)0xDCE9}.txt")), canDeleteInvalidNames: false),
+                "not valid UTF-8"
+            },
+            { "the staged list", new DiscardRequested(Tab), staged, "unstage" },
+            {
+                "a range of staged files",
+                new DiscardRequested(Tab, new RowRange(0, 0)),
+                staged,
+                "Discard works in the Unstaged list: unstage the files first"
+            },
+            {
+                "no file list focused",
+                new DiscardRequested(Tab),
+                Context(Tree(Modified("a.txt")), PaneKind.Graph),
+                "Focus a file list first"
+            },
+            { "no status yet", new DiscardRequested(Tab), Context(null), "The status is not loaded yet" },
+            {
+                "a discard running",
+                new DiscardRequested(Tab),
+                Context(Tree(Modified("a.txt")), isBusy: true),
+                DiscardReducer.BusyNotice
+            },
+            {
+                "another operation writing the tree",
+                new DiscardRequested(Tab),
+                Context(Tree(Modified("a.txt")), isBlocked: true),
+                DiscardReducer.BlockedNotice
+            },
+        };
+    }
+
+    [Theory]
+    [MemberData(nameof(Refusals))]
+    public void GivenSomethingThatCannotBeDiscarded_WhenDiscarding_ThenOnlyTheReasonIsPostedWithoutADialog(
+        string situation,
+        DiscardCommand command,
+        DiscardContext context,
+        string expectedText)
+    {
+        var update = Reduce(command, context);
+
+        Assert.NotEmpty(situation);
+        Assert.Contains(expectedText, Assert.IsType<PostStatusEffect>(Assert.Single(update)).Text, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void GivenAModifiedFile_WhenDiscarding_ThenTheDialogNamesWhatIsLostAndNothingRunsYet()
     {
@@ -107,25 +169,6 @@ public class DiscardReducerTests
     }
 
     [Fact]
-    public void GivenAConflictedFile_WhenDiscarding_ThenItIsRefusedWithoutADialog()
-    {
-        var update = Reduce(new DiscardRequested(Tab), Context(Tree(Conflict("c.txt"))));
-
-        Assert.Contains("conflicted", Assert.IsType<PostStatusEffect>(Assert.Single(update)).Text, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void GivenAnUntrackedNameThatIsNotUtf8OnAnOsThatCannotDeleteIt_WhenDiscarding_ThenItIsRefusedWithoutADialog()
-    {
-        var tree = Tree(Untracked($"bad{(char)0xDCE9}.txt"));
-
-        var update = Reduce(new DiscardRequested(Tab), Context(tree, canDeleteInvalidNames: false));
-
-        var post = Assert.IsType<PostStatusEffect>(Assert.Single(update));
-        Assert.Contains("not valid UTF-8", post.Text, StringComparison.Ordinal);
-    }
-
-    [Fact]
     public void GivenAnUntrackedNameThatIsNotUtf8OnLinux_WhenDiscarding_ThenTheDialogOpens()
     {
         var tree = Tree(Untracked($"bad{(char)0xDCE9}.txt"));
@@ -133,44 +176,6 @@ public class DiscardReducerTests
         var update = Reduce(new DiscardRequested(Tab), Context(tree, canDeleteInvalidNames: true));
 
         Assert.IsType<ShowConfirmEffect>(Assert.Single(update));
-    }
-
-    [Fact]
-    public void GivenTheStagedList_WhenDiscarding_ThenItSaysToUnstageFirst()
-    {
-        var update = Reduce(
-            new DiscardRequested(Tab),
-            Context(Tree(StagedModified("a.txt")), PaneKind.WorkingStaged));
-
-        Assert.Contains("unstage", Assert.IsType<PostStatusEffect>(Assert.Single(update)).Text, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void GivenARangeOfStagedFiles_WhenDiscarding_ThenItSaysToUnstageTheFilesFirst()
-    {
-        var update = Reduce(
-            new DiscardRequested(Tab, new RowRange(0, 0)),
-            Context(Tree(StagedModified("a.txt")), PaneKind.WorkingStaged));
-
-        Assert.Equal(
-            "Discard works in the Unstaged list: unstage the files first",
-            Assert.IsType<PostStatusEffect>(Assert.Single(update)).Text);
-    }
-
-    [Fact]
-    public void GivenNoFileList_WhenDiscarding_ThenItSaysToFocusOne()
-    {
-        var update = Reduce(new DiscardRequested(Tab), Context(Tree(Modified("a.txt")), PaneKind.Graph));
-
-        Assert.Equal("Focus a file list first", Assert.IsType<PostStatusEffect>(Assert.Single(update)).Text);
-    }
-
-    [Fact]
-    public void GivenNoStatusYet_WhenDiscarding_ThenItSaysSo()
-    {
-        var update = Reduce(new DiscardRequested(Tab), Context(null));
-
-        Assert.Equal("The status is not loaded yet", Assert.IsType<PostStatusEffect>(Assert.Single(update)).Text);
     }
 
     [Fact]
@@ -200,32 +205,6 @@ public class DiscardReducerTests
         var target = Assert.IsType<DiscardFiles>(Assert.IsType<DiscardConfirmed>(confirm.OnAccepted).Target);
         Assert.Equal(["a.txt"], target.Files.Select(entry => entry.Path));
         Assert.Equal(1, target.Skipped);
-    }
-
-    [Fact]
-    public void GivenARangeOfOnlyConflictedFiles_WhenDiscarding_ThenItIsRefusedWithoutADialog()
-    {
-        var update = Reduce(
-            new DiscardRequested(Tab, new RowRange(0, 1)),
-            Context(Tree(Conflict("c.txt"), Conflict("d.txt"))));
-
-        Assert.Contains("conflicted", Assert.IsType<PostStatusEffect>(Assert.Single(update)).Text, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void GivenADiscardRuns_WhenAnotherIsAsked_ThenItIsRefusedAsBusy()
-    {
-        var update = Reduce(new DiscardRequested(Tab), Context(Tree(Modified("a.txt")), isBusy: true));
-
-        Assert.Equal(DiscardReducer.BusyNotice, Assert.IsType<PostStatusEffect>(Assert.Single(update)).Text);
-    }
-
-    [Fact]
-    public void GivenAnotherOperationWritesTheTree_WhenDiscarding_ThenItIsRefusedAsBlocked()
-    {
-        var update = Reduce(new DiscardRequested(Tab), Context(Tree(Modified("a.txt")), isBlocked: true));
-
-        Assert.Equal(DiscardReducer.BlockedNotice, Assert.IsType<PostStatusEffect>(Assert.Single(update)).Text);
     }
 
     [Fact]
