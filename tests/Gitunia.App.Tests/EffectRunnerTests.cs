@@ -338,6 +338,11 @@ public class EffectRunnerTests
         host.Dispatch(new TabRefreshRequested(tabId, false));
         await pump.RunUntilAsync(() => replaced == 1);
 
+        // A wrong link read would post its result in the background; give it time, then drain the queue in order.
+        await Task.Delay(TimeSpan.FromMilliseconds(500), TestContext.Current.CancellationToken);
+        var isDrained = false;
+        pump.Post(() => isDrained = true);
+        await pump.RunUntilAsync(() => isDrained);
         Assert.True(session.IssueLinks.IsEmpty);
 
         host.Dispatch(new TabRefreshRequested(tabId, true));

@@ -126,8 +126,8 @@ public sealed class TerminalHost : ITerminalSuspender, IUiDeferral, IDisposable
         finally
         {
             StopFocusReporting();
-            _application.Dispose();
             _isApplicationDisposed = true;
+            _application.Dispose();
         }
     }
 

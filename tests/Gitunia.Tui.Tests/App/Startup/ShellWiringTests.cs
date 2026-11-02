@@ -8,7 +8,7 @@ using Xunit;
 
 namespace Gitunia.Tui.Tests.App.Startup;
 
-/// <summary>What the wired subscribers do together after a state change, on a composed shell with a headless driver.</summary>
+/// <summary>A composed and wired shell on a headless driver reacting to a state change (the order of the subscribers is not pinned, see #1042).</summary>
 public sealed class ShellWiringTests : IDisposable
 {
     private readonly string _root = Directory.CreateTempSubdirectory("gitunia-wiring-").FullName;
@@ -32,7 +32,7 @@ public sealed class ShellWiringTests : IDisposable
     }
 
     [Fact]
-    public void GivenAGraphTab_WhenOpeningTheWorkingTree_ThenTheChangesPaneIsShownAndHasTheFocusAfterTheWiredSubscribersRan()
+    public void GivenAGraphTab_WhenOpeningTheWorkingTree_ThenTheChangesPaneIsShownAndFocused()
     {
         var host = _shell.Foundation.Host;
         var gitDirectory = Path.Combine(_root, ".git");
