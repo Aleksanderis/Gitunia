@@ -84,7 +84,7 @@ public sealed class OverlayHarness : IRowMenuTargets
 
     public string ViewName => _store.ViewName;
 
-    RowMenuTarget? IRowMenuTargets.TargetOf(string view) => MenuTarget(view);
+    RowMenuTarget? IRowMenuTargets.TargetOf(string view, ActionId action) => MenuTarget(view);
 
     public OverlayFrame? CurrentFrame()
     {

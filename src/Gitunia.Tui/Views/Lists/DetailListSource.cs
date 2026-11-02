@@ -12,7 +12,7 @@ using Terminal.Gui.Views;
 namespace Gitunia.Tui.Views.Lists;
 
 /// <summary>List source over the rows of the detail pane; the whole content is replaced when another commit is selected or its details arrive.</summary>
-public sealed class DetailListSource(GraphGlyphSet glyphs) : IListDataSource, IRangeSource, IJumpSource
+public sealed class DetailListSource(GraphGlyphSet glyphs) : IListDataSource, IRangeSource, IJumpSource, IRowMenuSource
 {
     private readonly JumpLabelCache _jump = new();
 
@@ -60,6 +60,9 @@ public sealed class DetailListSource(GraphGlyphSet glyphs) : IListDataSource, IR
         return _jump.Labels(text, window, width, () => new DetailJumpRows(Content, width, glyphs.Ellipsis));
     }
 
+    /// <inheritdoc />
+    public bool HasRowMenu(int item) => Content.FilePathAt(item) is not null;
+
     public bool IsMarked(int item) => false;
 
     public void SetMark(int item, bool value)
@@ -71,13 +74,18 @@ public sealed class DetailListSource(GraphGlyphSet glyphs) : IListDataSource, IR
     public void Render(ListView listView, bool selected, int item, int col, int row, int width, int viewportX = 0)
     {
         var columns = ScreenPadding.Columns(listView);
+        var paneWidth = width;
         width = PanePadding.TextWidth(width, columns);
         var isRange = Range?.Contains(item) == true;
         var isSelected = selected || isRange;
         var isRangeCursor = isRange && selected;
         var jump = JumpLabelOf(listView, item);
         var line = LineAt(item, isSelected, width, jump);
-        LinePainter.Paint(listView, PanePadding.Wrap(line, columns), col, row, listView.HasFocus, isRange, isRangeCursor);
+        var shown = RowMenuMarker.Apply(
+            PanePadding.Wrap(line, columns),
+            paneWidth,
+            item == listView.SelectedItem && HasRowMenu(item));
+        LinePainter.Paint(listView, shown, col, row, listView.HasFocus, isRange, isRangeCursor);
     }
 
     public void Dispose()

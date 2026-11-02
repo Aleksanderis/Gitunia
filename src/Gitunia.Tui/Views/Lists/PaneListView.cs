@@ -206,6 +206,7 @@ public sealed class PaneListView : ListView
         OpensRowMenu
         && SelectedItem is { } selected
         && selected < (Source?.Count ?? 0)
+        && (Source is not IRowMenuSource menus || menus.HasRowMenu(selected))
         && RowMenuMarker.IsHit(Viewport.Width, column, Viewport.Y + row == selected);
 
     // Blank space under the last row (#484): a double-click there must not open the menu of the selected row.

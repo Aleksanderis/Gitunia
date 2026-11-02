@@ -6,6 +6,7 @@ using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Panes;
+using Gitunia.Tui.Rendering.Styling;
 using Gitunia.Tui.Rendering.WorkingTree;
 using Gitunia.Tui.Views.Theme;
 using Terminal.Gui.Views;
@@ -13,7 +14,7 @@ using Terminal.Gui.Views;
 namespace Gitunia.Tui.Views.Lists;
 
 /// <summary>List source over one file list (Unstaged or Staged) of the Changes view of the active tab; it can show a Visual range of files.</summary>
-public sealed class WorkingTreeListSource(WorkingTreeSection section, GraphGlyphSet glyphs) : IListDataSource, IRangeSource, IJumpSource
+public sealed class WorkingTreeListSource(WorkingTreeSection section, GraphGlyphSet glyphs) : IListDataSource, IRangeSource, IJumpSource, IRowMenuSource
 {
     private readonly JumpLabelCache _jump = new();
     private WorkingTreeState? _tree;
@@ -104,6 +105,9 @@ public sealed class WorkingTreeListSource(WorkingTreeSection section, GraphGlyph
             () => new WorkingTreeJumpRows(_tree, section, width, glyphs.Ellipsis, _pathStyle));
     }
 
+    /// <inheritdoc />
+    public bool HasRowMenu(int item) => _tree?.SelectionAt(section, item) is { IsFolder: false };
+
     public bool IsMarked(int item) => false;
 
     public void SetMark(int item, bool value)
@@ -115,6 +119,7 @@ public sealed class WorkingTreeListSource(WorkingTreeSection section, GraphGlyph
     public void Render(ListView listView, bool selected, int item, int col, int row, int width, int viewportX = 0)
     {
         var padding = ScreenPadding.Columns(listView);
+        var paneWidth = width;
         var textWidth = PanePadding.TextWidth(width, padding);
         var isRange = Range?.Contains(item) == true;
         var isSelected = selected || isRange;
@@ -128,7 +133,11 @@ public sealed class WorkingTreeListSource(WorkingTreeSection section, GraphGlyph
             glyphs,
             JumpLabelOf(listView, item),
             _pathStyle);
-        LinePainter.Paint(listView, PanePadding.Wrap(line, padding), col, row, listView.HasFocus, isRange, isRangeCursor);
+        var shown = RowMenuMarker.Apply(
+            PanePadding.Wrap(line, padding),
+            paneWidth,
+            item == listView.SelectedItem && HasRowMenu(item));
+        LinePainter.Paint(listView, shown, col, row, listView.HasFocus, isRange, isRangeCursor);
     }
 
     public void Dispose()

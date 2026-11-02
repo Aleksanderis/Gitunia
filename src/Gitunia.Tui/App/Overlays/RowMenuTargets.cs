@@ -1,4 +1,5 @@
 using Gitunia.Core.Keymap;
+using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Overlays;
 using Gitunia.Tui.App.Selection;
 using Gitunia.Tui.Rendering.Details;
@@ -16,8 +17,13 @@ public sealed class RowMenuTargets(PaneViews panes, MenuAnchors anchors, GraphSe
     : IRowMenuTargets
 {
     /// <inheritdoc />
-    public RowMenuTarget? TargetOf(string view)
+    public RowMenuTarget? TargetOf(string view, ActionId action)
     {
+        if (action == ActionIds.MenuOpenForRow && IsFileListView(view))
+        {
+            return FileTarget(view);
+        }
+
         if (view == DefaultKeymap.DiffView)
         {
             return DiffTarget();
@@ -64,6 +70,33 @@ public sealed class RowMenuTargets(PaneViews panes, MenuAnchors anchors, GraphSe
         }
 
         return null;
+    }
+
+    private static bool IsFileListView(string view) =>
+        view is DefaultKeymap.DetailChangesView
+            or DefaultKeymap.DetailFilesView
+            or DefaultKeymap.WorkingUnstagedView
+            or DefaultKeymap.WorkingStagedView;
+
+    // Hangs at the selected file row; a folder row or an empty list has no menu.
+    private RowMenuTarget? FileTarget(string view)
+    {
+        var list = panes.Detail;
+        if (view == DefaultKeymap.WorkingUnstagedView)
+        {
+            list = panes.WorkingUnstaged;
+        }
+        else if (view == DefaultKeymap.WorkingStagedView)
+        {
+            list = panes.WorkingStaged;
+        }
+
+        if (list.Source is not IRowMenuSource menus || list.SelectedItem is not { } selected || !menus.HasRowMenu(selected))
+        {
+            return null;
+        }
+
+        return new RowMenuTarget(RowActions.OfFileRow, AnchorOf(list), RowActions.FileRowTitle);
     }
 
     private static MenuAnchor AnchorOf(PaneListView list)
