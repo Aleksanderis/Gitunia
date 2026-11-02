@@ -57,7 +57,7 @@ public sealed class BlameTargets(IPaneLists lists, IActiveSessions sessions, IGr
 
     private BlameTarget InDetails()
     {
-        var content = sessions.ActiveSession()?.DetailSource?.Content;
+        var content = sessions.ActiveSession()?.DetailSource.Content;
         var row = lists.ListOf(PaneKind.Detail).SelectedItem;
         if (content is null || row is not { } selected)
         {

@@ -18,11 +18,11 @@ public static class BlameFrameBuilder
 {
     private const int ChromeRows = 4;
     private const int StatusRows = 1;
-    private const int IdWidth = 8;
+    private const int IdWidth = 9;
     private const int AuthorWidth = 14;
-    private const int AgeWidth = 8;
+    private const int AgeWidth = 10;
     private const int NumberPadding = 5;
-    private const int WideGutterMinimum = 70;
+    private const int WideGutterMinimum = 72;
     private const int TabWidth = 4;
     private const char Tab = '\t';
     private const string Pending = "...";
@@ -48,7 +48,8 @@ public static class BlameFrameBuilder
             return null;
         }
 
-        var lines = new List<StyledLine> { OverlayBox.Title($"Blame: {state.Title}", screenWidth, glyphs) };
+        var heading = $"Blame: {state.Title}";
+        var lines = new List<StyledLine> { OverlayBox.Title(heading, screenWidth, glyphs) };
         var top = TopOf(state.Cursor, state.LineCount, rows);
         if (data is null)
         {

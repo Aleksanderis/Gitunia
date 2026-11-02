@@ -8,7 +8,6 @@ namespace Gitunia.Core.Blame;
 /// </summary>
 /// <param name="TabId">The tab the view was opened in; showing a commit runs in that tab.</param>
 /// <param name="Path">The file, relative to the repository root.</param>
-/// <param name="Revision">The commit the file is read at, null for the working tree file.</param>
 /// <param name="Title">What the title shows: the path and where it is read from.</param>
 /// <param name="LineCount">The lines of the file; 0 until the file is read.</param>
 /// <param name="BlamedLines">How many lines already know their commit.</param>
@@ -19,7 +18,6 @@ namespace Gitunia.Core.Blame;
 public sealed record BlameState(
     TabId TabId,
     string Path,
-    string? Revision,
     string Title,
     int LineCount = 0,
     int BlamedLines = 0,

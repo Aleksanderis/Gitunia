@@ -66,7 +66,7 @@ public static class BlameReducer
 
         var generation = session.Generation + 1;
         var origin = open.Revision is { } revision ? $"@ {ShortHash.Of(revision)}" : WorkingTreeTitle;
-        var view = new BlameState(tab.Id, open.Path, open.Revision, $"{open.Path} {origin}");
+        var view = new BlameState(tab.Id, open.Path, $"{open.Path} {origin}");
         var effect = new StartBlameEffect(tab.Id, tab.Location, open.Path, open.Revision, generation);
 
         return Done(new BlameSession(view, generation), effect);

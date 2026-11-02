@@ -23,7 +23,6 @@ public sealed class BlameParser
     private const string FilenameKey = "filename";
     private const int MinutesPerHour = 60;
     private const int HundredMinutes = 100;
-    private const int SecondsPerMinute = 60;
 
     private readonly List<byte> _pending = [];
     private readonly Dictionary<string, BlameCommit> _commits = [];
