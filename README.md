@@ -53,3 +53,7 @@ In the picker type to filter or type a path. `Enter` opens it in a tab. `?` show
 ## Contributing, security, license
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) and [SECURITY.md](SECURITY.md). Licensed under the MIT License ([LICENSE](LICENSE)). This covers the logo too.
+
+## Support
+
+If Gitunia saves you time, you can [buy me a coffee](https://buymeacoffee.com/aleksanderis).
