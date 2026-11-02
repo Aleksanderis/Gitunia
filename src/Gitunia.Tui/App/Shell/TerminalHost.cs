@@ -31,6 +31,7 @@ public sealed class TerminalHost : ITerminalSuspender, IUiDeferral, IDisposable
     private IApplication _application;
     private Action? _suspendedWork;
     private Action? _resumed;
+    private bool _isApplicationDisposed;
 
     /// <param name="driverName">The Terminal.Gui driver to force (smoke tests); null picks the platform default.</param>
     /// <param name="config">The theme and the terminal's capabilities the palette is chosen from.</param>
@@ -126,6 +127,7 @@ public sealed class TerminalHost : ITerminalSuspender, IUiDeferral, IDisposable
         {
             StopFocusReporting();
             _application.Dispose();
+            _isApplicationDisposed = true;
         }
     }
 
@@ -133,9 +135,17 @@ public sealed class TerminalHost : ITerminalSuspender, IUiDeferral, IDisposable
     /// <param name="captured">Receives the screen text; null for none.</param>
     public void StopAfterFirstFrame(Action<string>? captured) => _application.Invoke(() => CaptureFirstFrameAndStop(captured));
 
-    /// <inheritdoc />
+    /// <summary>Disposes the application when <see cref="Run"/> never started or did not get to its end; a no-op after a run.</summary>
     public void Dispose()
     {
+        if (_isApplicationDisposed)
+        {
+            return;
+        }
+
+        _isApplicationDisposed = true;
+        StopFocusReporting();
+        _application.Dispose();
     }
 
     private void RunSuspended()

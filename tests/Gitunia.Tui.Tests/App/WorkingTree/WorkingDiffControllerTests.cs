@@ -789,7 +789,7 @@ public class WorkingDiffControllerTests
                 OnCursorMove = move => Controller.MoveAfterReload(move.Move),
             };
             Visual = new VisualRangeInput(host, new FakePaneLists(DiffList));
-            Handler = new WorkingTreeActionHandler(host, new FakePaneLists(DiffList), copier, Staging, TestCommitInput.Create(host)) { Diff = Controller, Visual = Visual };
+            Handler = new WorkingTreeActionHandler(host, new FakePaneLists(DiffList), copier, Staging, TestCommitInput.Create(host), Controller, Visual);
         }
 
         public StagingActions Staging { get; }

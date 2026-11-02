@@ -25,12 +25,16 @@ namespace Gitunia.Tui.App.WorkingTree;
 /// <param name="clipboard">Copies the path of a file.</param>
 /// <param name="staging">Stages and unstages files, hunks and lines.</param>
 /// <param name="commits">The message box and the commit.</param>
+/// <param name="diff">The diff box, which acts on its own actions while it has focus; null in tests that do not need it.</param>
+/// <param name="visual">Visual mode, which the diff box uses for line ranges; null in tests that do not need it.</param>
 public sealed partial class WorkingTreeActionHandler(
     Dispatcher host,
     IPaneLists lists,
     ClipboardCopier clipboard,
     StagingActions staging,
-    CommitMessageInput commits) : IActionHandler, IActionNotice
+    CommitMessageInput commits,
+    WorkingDiffController? diff = null,
+    VisualRangeInput? visual = null) : IActionHandler, IActionNotice
 {
     private static readonly HashSet<ActionId> LeftToOthers =
     [
@@ -44,12 +48,6 @@ public sealed partial class WorkingTreeActionHandler(
         ActionIds.FilesPathFullPath,
         ActionIds.FilesPathTree,
     ];
-
-    /// <summary>The diff box, which acts on its own actions while it has focus; null in tests that do not need it.</summary>
-    public WorkingDiffController? Diff { get; set; }
-
-    /// <summary>Visual mode, which the diff box uses for line ranges; null in tests that do not need it.</summary>
-    public VisualRangeInput? Visual { get; set; }
 
     /// <summary>A short notice for the status bar from the last action, empty when none.</summary>
     public string Message { get; private set; } = string.Empty;
@@ -101,9 +99,9 @@ public sealed partial class WorkingTreeActionHandler(
         {
             // ]f and [f picked another file of the list the diff follows (or said there is none).
         }
-        else if (Diff?.TryExecute(action, count) == true)
+        else if (diff?.TryExecute(action, count) == true)
         {
-            Message = Diff.Notice;
+            Message = diff.Notice;
         }
         else if (TryFolder(tab, action))
         {
@@ -382,13 +380,13 @@ public sealed partial class WorkingTreeActionHandler(
     // Range selection works in the diff (lines) and in the file lists (files): v and the mouse drag start it, y copies it, q ends it.
     private bool TryVisual(RepositoryState tab, ActionId action, int? count)
     {
-        if (Visual is null || !(WorkingPanes.IsDiff(tab.View.FocusedPane) || WorkingPanes.IsList(tab.View.FocusedPane)))
+        if (visual is null || !(WorkingPanes.IsDiff(tab.View.FocusedPane) || WorkingPanes.IsList(tab.View.FocusedPane)))
         {
             return false;
         }
 
         var isRangeAction = action == ActionIds.VisualToggle || action == ActionIds.VisualCopy;
-        return (isRangeAction || (Visual.IsActive && action == ActionIds.AppQuit)) && Visual.TryExecute(action, count);
+        return (isRangeAction || (visual.IsActive && action == ActionIds.AppQuit)) && visual.TryExecute(action, count);
     }
 
     private int PageHeight(RepositoryState tab) => lists.ListOf(tab.View.FocusedPane).Viewport.Height;
