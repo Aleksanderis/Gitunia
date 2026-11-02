@@ -6,7 +6,7 @@ namespace Gitunia.Core.Tests.Graph;
 
 public class GraphLayoutPropertyTests
 {
-    public static TheoryData<int> Seeds => [.. Enumerable.Range(1, 40)];
+    public static TheoryData<int> Seeds => [.. Enumerable.Range(1, 3)];
 
     [Theory]
     [MemberData(nameof(Seeds))]

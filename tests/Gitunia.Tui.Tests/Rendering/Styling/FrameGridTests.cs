@@ -138,13 +138,35 @@ public class FrameGridTests
         Assert.Equal(rects, PaneLayout.Compute(Width, Height, true, null, sizes));
     }
 
-    [Theory]
-    [InlineData(0, 0)]
-    [InlineData(1, 1)]
-    [InlineData(4, 4)]
-    [InlineData(7, 5)]
-    [InlineData(30, 6)]
-    public void GivenATinyTerminal_WhenComposingAScreen_ThenEveryLineFillsTheWidth(int width, int height)
+    [Fact]
+    public void GivenATinyTerminal_WhenComposingAScreen_ThenEveryLineFillsTheWidth()
+    {
+        var failures = new List<string>();
+        (int width, int height)[] rows =
+        [
+            (0, 0),
+            (1, 1),
+            (4, 4),
+            (7, 5),
+            (30, 6),
+        ];
+
+        foreach (var (width, height) in rows)
+        {
+            try
+            {
+                CheckEveryLineFillsTheWidth(width, height);
+            }
+            catch (Exception exception)
+            {
+                failures.Add($"{width}, {height}: {exception.Message}");
+            }
+        }
+
+        Assert.Empty(failures);
+    }
+
+    private static void CheckEveryLineFillsTheWidth(int width, int height)
     {
         var graph = CommitFactory.Graph(CommitFactory.Commit(1, "root", []));
         var model = new ScreenModel("日本語", "main", 1, 1, "NORMAL", string.Empty, 1, 1, false, string.Empty);

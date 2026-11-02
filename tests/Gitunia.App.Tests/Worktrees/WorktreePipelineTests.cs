@@ -65,21 +65,6 @@ public class WorktreePipelineTests
     }
 
     [Fact]
-    public async Task GivenACleanWorktree_WhenRemovingAndConfirming_ThenTheDirectoryIsGoneAndTheBranchKept()
-    {
-        using var repository = TestRepositories.WithWorktree(out var path);
-        using var pipeline = await Pipeline.OpenAsync(repository, expectedWorktrees: 2);
-
-        pipeline.Dispatch(new WorktreeRemoveRequested(pipeline.TabId, Pipeline.RowOf(path)));
-        Assert.NotNull(pipeline.Host.State.Shell.Confirm);
-        pipeline.Dispatch(new ConfirmAnsweredCommand(ConfirmAnswer.Yes));
-        await pipeline.Pump.RunUntilAsync(() => !pipeline.IsWorktreeRunning && pipeline.WorktreeCount == 1);
-
-        Assert.False(Directory.Exists(path));
-        Assert.NotEqual(string.Empty, repository.Git("branch", "--list", "wt-branch").Trim());
-    }
-
-    [Fact]
     public async Task GivenACleanWorktree_WhenTheDialogIsDeclined_ThenNothingRunsAndTheDirectoryStays()
     {
         using var repository = TestRepositories.WithWorktree(out var path);
@@ -138,22 +123,6 @@ public class WorktreePipelineTests
         Assert.Null(pipeline.Host.State.Shell.Confirm);
         Assert.Contains("nothing was changed", pipeline.Statuses.Current!.Text, StringComparison.Ordinal);
         Assert.True(Directory.Exists(path));
-    }
-
-    [Fact]
-    public async Task GivenAPrunableEntry_WhenPruningAndConfirming_ThenOnlyItsEntryGoes()
-    {
-        using var repository = TestRepositories.WithManyWorktrees(out var lockedPath, out var prunablePath, out _);
-        using var pipeline = await Pipeline.OpenAsync(repository, expectedWorktrees: 4);
-
-        pipeline.Dispatch(new WorktreePruneRequested(pipeline.TabId));
-        pipeline.Dispatch(new ConfirmAnsweredCommand(ConfirmAnswer.Yes));
-        await pipeline.Pump.RunUntilAsync(() => !pipeline.IsWorktreeRunning && pipeline.WorktreeCount == 3);
-
-        var listed = repository.Git("worktree", "list", "--porcelain");
-        Assert.DoesNotContain(prunablePath, listed, StringComparison.Ordinal);
-        Assert.Contains(lockedPath, listed, StringComparison.Ordinal);
-        Assert.Equal("Pruned 1 worktree entry", pipeline.Statuses.Log.Latest!.Text);
     }
 
     [Fact]

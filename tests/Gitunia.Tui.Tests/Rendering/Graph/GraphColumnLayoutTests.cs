@@ -67,13 +67,35 @@ public class GraphColumnLayoutTests
         Assert.Equal(343, all[^1].MessageWidth);
     }
 
-    [Theory]
-    [InlineData(5, 1)]
-    [InlineData(10, 3)]
-    [InlineData(20, 4)]
-    [InlineData(80, 16)]
-    [InlineData(300, 4)]
-    public void GivenAnyWidth_WhenComputing_ThenTheColumnsNeverExceedTheRow(int width, int laneColumns)
+    [Fact]
+    public void GivenAnyWidth_WhenComputing_ThenTheColumnsNeverExceedTheRow()
+    {
+        var failures = new List<string>();
+        (int width, int laneColumns)[] rows =
+        [
+            (5, 1),
+            (10, 3),
+            (20, 4),
+            (80, 16),
+            (300, 4),
+        ];
+
+        foreach (var (width, laneColumns) in rows)
+        {
+            try
+            {
+                CheckTheColumnsNeverExceedTheRow(width, laneColumns);
+            }
+            catch (Exception exception)
+            {
+                failures.Add($"{width}, {laneColumns}: {exception.Message}");
+            }
+        }
+
+        Assert.Empty(failures);
+    }
+
+    private static void CheckTheColumnsNeverExceedTheRow(int width, int laneColumns)
     {
         var columns = GraphColumnLayout.Compute(width, laneColumns);
         var used = columns.LaneWidth + 1 + columns.MessageWidth

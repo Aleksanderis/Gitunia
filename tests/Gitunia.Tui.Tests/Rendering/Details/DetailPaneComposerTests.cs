@@ -139,13 +139,35 @@ public class DetailPaneComposerTests
         Assert.Equal(2, roles.Count(role => role == SegmentRole.RepositoryTab));
     }
 
-    [Theory]
-    [InlineData(10)]
-    [InlineData(24)]
-    [InlineData(28)]
-    [InlineData(29)]
-    [InlineData(50)]
-    public void GivenAnyWidth_WhenRenderingTheTitle_ThenTheUnselectedTabsAreChipsLikeTheRepositoryTabs(int width)
+    [Fact]
+    public void GivenAnyWidth_WhenRenderingTheTitle_ThenTheUnselectedTabsAreChipsLikeTheRepositoryTabs()
+    {
+        var failures = new List<string>();
+        int[] rows =
+        [
+            10,
+            24,
+            28,
+            29,
+            50,
+        ];
+
+        foreach (var width in rows)
+        {
+            try
+            {
+                CheckTheUnselectedTabsAreChipsLikeTheRepositoryTabs(width);
+            }
+            catch (Exception exception)
+            {
+                failures.Add($"{width}: {exception.Message}");
+            }
+        }
+
+        Assert.Empty(failures);
+    }
+
+    private static void CheckTheUnselectedTabsAreChipsLikeTheRepositoryTabs(int width)
     {
         var content = LoadedContent(TwoCommits(), BottomTab.Changes);
 
@@ -156,14 +178,36 @@ public class DetailPaneComposerTests
         Assert.DoesNotContain(title.Segments, segment => segment.Role == SegmentRole.Plain);
     }
 
-    [Theory]
-    [InlineData(10, false)]
-    [InlineData(24, false)]
-    [InlineData(28, true)]
-    [InlineData(29, false)]
-    [InlineData(29, true)]
-    [InlineData(50, true)]
-    public void GivenAnyWidthAndGlyphSet_WhenRenderingTheTitle_ThenEachDrawnTabLabelIsFoundByItsHitZone(int width, bool isAscii)
+    [Fact]
+    public void GivenAnyWidthAndGlyphSet_WhenRenderingTheTitle_ThenEachDrawnTabLabelIsFoundByItsHitZone()
+    {
+        var failures = new List<string>();
+        (int width, bool isAscii)[] rows =
+        [
+            (10, false),
+            (24, false),
+            (28, true),
+            (29, false),
+            (29, true),
+            (50, true),
+        ];
+
+        foreach (var (width, isAscii) in rows)
+        {
+            try
+            {
+                CheckEachDrawnTabLabelIsFoundByItsHitZone(width, isAscii);
+            }
+            catch (Exception exception)
+            {
+                failures.Add($"{width}, {isAscii}: {exception.Message}");
+            }
+        }
+
+        Assert.Empty(failures);
+    }
+
+    private static void CheckEachDrawnTabLabelIsFoundByItsHitZone(int width, bool isAscii)
     {
         var glyphs = isAscii ? GraphGlyphSet.Ascii : GraphGlyphSet.Unicode;
         var content = LoadedContent(TwoCommits(), BottomTab.Files);
@@ -303,12 +347,34 @@ public class DetailPaneComposerTests
         Assert.Equal(without.Select(line => line.Text), withPane.Select(line => line.Text));
     }
 
-    [Theory]
-    [InlineData(20, 14)]
-    [InlineData(80, 24)]
-    [InlineData(200, 60)]
-    [InlineData(10, 15)]
-    public void GivenAnyTerminalSize_WhenComposingWithPane_ThenEveryLineFillsTheWidthExactly(int width, int height)
+    [Fact]
+    public void GivenAnyTerminalSize_WhenComposingWithPane_ThenEveryLineFillsTheWidthExactly()
+    {
+        var failures = new List<string>();
+        (int width, int height)[] rows =
+        [
+            (20, 14),
+            (80, 24),
+            (200, 60),
+            (10, 15),
+        ];
+
+        foreach (var (width, height) in rows)
+        {
+            try
+            {
+                CheckEveryLineFillsTheWidthExactly(width, height);
+            }
+            catch (Exception exception)
+            {
+                failures.Add($"{width}, {height}: {exception.Message}");
+            }
+        }
+
+        Assert.Empty(failures);
+    }
+
+    private static void CheckEveryLineFillsTheWidthExactly(int width, int height)
     {
         var graph = TwoCommits();
 

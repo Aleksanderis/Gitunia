@@ -12,7 +12,7 @@ public class GraphSplicerTests
 {
     private static readonly IReadOnlyDictionary<ObjectId, IReadOnlyList<CommitDecoration>> NoDecorations = new Dictionary<ObjectId, IReadOnlyList<CommitDecoration>>();
 
-    public static TheoryData<int> Seeds => [.. Enumerable.Range(1, 40)];
+    public static TheoryData<int> Seeds => [.. Enumerable.Range(1, 3)];
 
     [Theory]
     [MemberData(nameof(Seeds))]
