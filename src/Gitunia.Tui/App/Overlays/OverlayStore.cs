@@ -145,7 +145,7 @@ public sealed class OverlayStore
         var kind = _state.Kind is OverlayKind.Confirm or OverlayKind.Output ? OverlayKind.None : _state.Kind;
         if (_host.State.Shell.Overlay != kind)
         {
-            _host.Dispatch(new OverlayChangedCommand(kind));
+            _host.Dispatch(new OverlayChangedCommand(kind, _state.ReturnMode));
         }
     }
 

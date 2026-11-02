@@ -1,3 +1,4 @@
+using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Overlays;
 
 namespace Gitunia.Core.Shell;
@@ -7,4 +8,6 @@ namespace Gitunia.Core.Shell;
 /// knows (a late question of a rebase must not open over them, #1020). The overlay itself stays with the overlay layer.
 /// </summary>
 /// <param name="Kind">The overlay that is open now, or <see cref="OverlayKind.None"/>.</param>
-public sealed record OverlayChangedCommand(OverlayKind Kind) : ShellCommand;
+/// <param name="ReturnMode">The key mode the overlay was opened from: a dialog or box that replaces the overlay
+/// returns to it, not to the overlay's own mode.</param>
+public sealed record OverlayChangedCommand(OverlayKind Kind, KeyMode ReturnMode = KeyMode.Normal) : ShellCommand;
