@@ -182,7 +182,8 @@ public class RebaseAppReducerTests
         state = AppReducer.Reduce(state, new OverlayChangedCommand(OverlayKind.Palette)).State;
         var prompt = new ConfirmPrompt("Other", ["Other?"], "Undo", "Yes");
 
-        var asked = AppReducer.Reduce(state, new ConfirmRequestedCommand(prompt, new RebaseCancelled(new TabId(1)), null));
+        var answer = new RebaseCancelled(new TabId(1));
+        var asked = AppReducer.Reduce(state, new ConfirmRequestedCommand(prompt, answer, null));
 
         Assert.Equal(OverlayKind.None, asked.State.Shell.Overlay);
         Assert.NotNull(asked.State.Shell.Confirm);
@@ -204,6 +205,7 @@ public class RebaseAppReducerTests
 
         var update = AppReducer.Reduce(state, new QuickRebasePlanned(tabId, Plan(QuickRebaseKind.Drop)));
 
+        Assert.Equal(RebaseReducer.ChangedNotice, Assert.Single(update.Effects.OfType<PostStatusEffect>()).Text);
         Assert.DoesNotContain(update.Effects, effect => effect is ShowConfirmEffect);
     }
 
@@ -217,6 +219,7 @@ public class RebaseAppReducerTests
 
         var update = AppReducer.Reduce(state, new QuickRebasePlanned(tabId, Plan(QuickRebaseKind.Drop)));
 
+        Assert.Equal(RebaseReducer.ChangedNotice, Assert.Single(update.Effects.OfType<PostStatusEffect>()).Text);
         Assert.DoesNotContain(update.Effects, effect => effect is ShowConfirmEffect);
     }
 
