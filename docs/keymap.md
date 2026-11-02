@@ -303,6 +303,7 @@ Every default key binding, one table per view. The design rules, notation and mo
 
 | Keys | Modes | Action | What |
 |---|---|---|---|
+| `<space>L` | Normal | `line-history.open` | Open the history of the selected diff lines (the Visual range, else the cursor line) |
 | `Enter` | Normal | `blame.show-commit` | Select the blame line's commit in the graph |
 | `Alt-p` | Normal | `blame.parent` | Blame the file at the parent of the highlighted line's commit (Esc steps back) |
 | `<space>H` | Normal | `file-history.open` | Open the history of the selected file, renames followed |

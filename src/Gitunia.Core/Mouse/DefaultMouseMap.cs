@@ -135,6 +135,9 @@ public static class DefaultMouseMap
     /// <summary>The action row `space H` under the blame view: the history of the blamed file.</summary>
     public const string BlameHistoryButton = "BlameButton.History";
 
+    /// <summary>The action row of the blame view that opens the history of the highlighted line.</summary>
+    public const string BlameLineHistoryButton = "BlameButton.LineHistory";
+
     /// <summary>The chip `-w` under the blame view: ignore whitespace changes (`Alt-w`).</summary>
     public const string BlameWhitespaceButton = "BlameButton.Whitespace";
 
@@ -258,6 +261,7 @@ public static class DefaultMouseMap
         BlameShowButton,
         BlameParentButton,
         BlameHistoryButton,
+        BlameLineHistoryButton,
         BlameWhitespaceButton,
         BlameMovesButton,
         BlameCopiesButton,
@@ -365,6 +369,7 @@ public static class DefaultMouseMap
         new(BlameShowButton, MouseGesture.Click, ActionIds.BlameShowCommit),
         new(BlameParentButton, MouseGesture.Click, ActionIds.BlameParent),
         new(BlameHistoryButton, MouseGesture.Click, ActionIds.FileHistoryOpen),
+        new(BlameLineHistoryButton, MouseGesture.Click, ActionIds.LineHistoryOpen),
         new(BlameWhitespaceButton, MouseGesture.Click, ActionIds.BlameIgnoreWhitespace),
         new(BlameMovesButton, MouseGesture.Click, ActionIds.BlameDetectMoves),
         new(BlameCopiesButton, MouseGesture.Click, ActionIds.BlameDetectCopies),

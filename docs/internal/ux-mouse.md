@@ -62,6 +62,7 @@ Views inherit like in the keymap: `Lists` covers Graph, Detail, Sidebar, Diff an
 | Blame | Wheel down | `list.down` | Scroll the blame view down 3 lines |
 | BlameButton.Show | Click | `blame.show-commit` | Action row `Enter` under the blame view: select the highlighted line's commit in the graph (the view closes); a click on a line itself only highlights it |
 | BlameButton.History | Click | `file-history.open` | Action row `<space>H` under the blame view: close the view and open the history of the blamed file at the blamed revision (`HEAD` for the working tree file) |
+| BlameButton.LineHistory | Click | `line-history.open` | Action row `<space>L` under the blame view: close the view and open the history of the highlighted line, starting at the commit that wrote it with that commit's line number (an uncommitted line says it has no history) |
 | BlameButton.Parent | Click | `blame.parent` | Action row `Alt-p` under the blame view: blame the file again at the parent of the highlighted line's commit (Esc steps back) |
 | BlameButton.Whitespace | Click | `blame.toggle-whitespace` | Chip `-w` (`Alt-w`) in the chip row under the blame view: toggle ignoring whitespace changes and blame again; the switches in force show in the footer |
 | BlameButton.Moves | Click | `blame.toggle-moves` | Chip `-M` (`Alt-m`) in the same row: toggle detecting lines moved within the file and blame again |

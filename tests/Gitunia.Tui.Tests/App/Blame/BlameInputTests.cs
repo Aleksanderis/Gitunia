@@ -5,6 +5,8 @@ using Gitunia.App.Status;
 using Gitunia.Core;
 using Gitunia.Core.Blame;
 using Gitunia.Core.Effects;
+using Gitunia.Core.FileHistory;
+using Gitunia.Git.History.Models;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Mouse;
@@ -73,6 +75,45 @@ public sealed class BlameInputTests
         Assert.False(harness.Input.IsOpen);
         Assert.Equal(first, locate.Commit.ToString());
         Assert.Null(harness.Input.CurrentFrame());
+    }
+
+    [Fact]
+    public async Task GivenALineOfTheSecondCommit_WhenOpeningItsLineHistory_ThenTheViewClosesAndTheWalkStartsAtThatCommit()
+    {
+        using var repository = TwoCommits();
+        using var harness = await Harness.LoadAsync(repository, new FixedTargets("a.txt", repository.Head));
+        await harness.OpenAsync();
+
+        harness.Input.TryExecute(ActionIds.ListDown, null);
+        Assert.True(harness.Input.TryExecute(ActionIds.LineHistoryOpen, null));
+
+        var read = Assert.Single(harness.Effects.OfType<ReadFileHistoryEffect>());
+        Assert.False(harness.Input.IsOpen);
+        Assert.Equal(repository.Head, read.Revision);
+        Assert.Equal("a.txt", read.Path);
+        Assert.Equal(new LineRange(2, 2), read.Range);
+    }
+
+    [Fact]
+    public async Task GivenAnEditedWorkingTreeFile_WhenOpeningTheLineHistory_ThenCommittedLinesStartAtTheirCommitAndNewOnesRefuse()
+    {
+        using var repository = TwoCommits();
+        repository.WriteFile("a.txt", "new\none\nTWO\nthree\n");
+        using var harness = await Harness.LoadAsync(repository, new FixedTargets("a.txt", null));
+        await harness.OpenAsync();
+
+        harness.Input.TryExecute(ActionIds.LineHistoryOpen, null);
+
+        Assert.True(harness.Input.IsOpen);
+        Assert.Empty(harness.Effects.OfType<ReadFileHistoryEffect>());
+        Assert.Equal(BlameReducer.UncommittedHistoryNotice, harness.Statuses.Log.Latest!.Text);
+
+        harness.Input.TryExecute(ActionIds.ListDown, null);
+        harness.Input.TryExecute(ActionIds.LineHistoryOpen, null);
+
+        var read = Assert.Single(harness.Effects.OfType<ReadFileHistoryEffect>());
+        Assert.Equal(repository.Git("rev-parse", "HEAD~1").Trim(), read.Revision);
+        Assert.Equal(new LineRange(1, 1), read.Range);
     }
 
     [Fact]
@@ -218,6 +259,10 @@ public sealed class BlameInputTests
         Assert.Equal(DefaultMouseMap.BlameHistoryButton, onHistory);
         Assert.True(historyHandled);
         Assert.Equal(ActionIds.FileHistoryOpen, DefaultMouseMap.Create().Resolve(onHistory!, MouseGesture.Click)!.Action);
+        var onLineHistory = harness.Input.OnLineClicked(BlameFrameBuilder.VisibleRows(Height) + 4, 0, out var lineHistoryHandled);
+        Assert.Equal(DefaultMouseMap.BlameLineHistoryButton, onLineHistory);
+        Assert.True(lineHistoryHandled);
+        Assert.Equal(ActionIds.LineHistoryOpen, DefaultMouseMap.Create().Resolve(onLineHistory!, MouseGesture.Click)!.Action);
         Assert.Equal(ActionIds.BlameParent, DefaultMouseMap.Create().Resolve(onParent!, MouseGesture.Click)!.Action);
         Assert.Equal(ActionIds.BlameShowCommit, DefaultMouseMap.Create().Resolve(onAction!, MouseGesture.Click)!.Action);
     }
@@ -230,7 +275,7 @@ public sealed class BlameInputTests
         using var repository = TwoCommits();
         using var harness = await Harness.LoadAsync(repository, new FixedTargets("a.txt", repository.Head));
         await harness.OpenAsync();
-        var row = BlameFrameBuilder.VisibleRows(Height) + 4;
+        var row = BlameFrameBuilder.VisibleRows(Height) + 5;
         var text = harness.Input.CurrentFrame()!.Lines[row].Text;
 
         var views = ToggleLabels
