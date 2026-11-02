@@ -94,7 +94,7 @@ public class GraphBranchLaneTests
         // the leftmost one at the fork commit.
         var forkIndex = Array.FindIndex(commits, commit => commit.Id == Id(13));
         var edges = rows[forkIndex].Edges;
-        var incoming = edges.Where(edge => edge.Kind == GraphEdgeKind.Incoming).Select(edge => edge.FromLane);
+        var incoming = edges.Where(edge => edge.Kind == GraphEdgeKind.Incoming).Select(edge => edge.FromLane).ToList();
         Assert.Equal(5, incoming.Distinct().Count());
         Assert.Contains(firstLane, incoming);
         foreach (var number in BranchTipRows.Select(row => row + 1))

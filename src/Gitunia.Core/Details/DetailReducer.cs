@@ -73,7 +73,7 @@ public static class DetailReducer
             after.Workspace,
             new TabCommand(left.Id, new SetDetailTreeCommand(left.View.DetailTree with { IsEditingFilter = false })));
 
-        return after with { Workspace = update.Workspace, Shell = shell };
+        return new AppState(update.Workspace, shell);
     }
 
     private static AppUpdate MoveTab(AppState state, RepositoryState tab, DetailTabMove move)

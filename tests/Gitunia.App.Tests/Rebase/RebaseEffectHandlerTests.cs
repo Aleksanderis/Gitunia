@@ -85,7 +85,7 @@ public class RebaseEffectHandlerTests
         var oldTip = repository.Head;
         var location = await LocateAsync(repository);
 
-        var result = await RunAsync(new RunRebaseEffect(Tab, location, TargetOf(repository, "main")));
+        var result = await RunAsync(new RunRebaseEffect(Tab, location, TargetOf(repository)));
 
         Assert.Equal(OperationOutcome.Conflicted, Assert.IsType<RebaseFinished>(result).Result.Outcome);
         var detector = new RepositoryOperationDetector();

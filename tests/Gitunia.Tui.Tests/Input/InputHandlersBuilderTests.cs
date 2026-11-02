@@ -46,7 +46,7 @@ public class InputHandlersBuilderTests
         var router = builder.TextKeys();
 
         Assert.IsType<Both>(table.ActionsOf(InputHandler.Navigation));
-        var taken = router.HandleTextKey(new KeyEvent("a", KeyModifiers.None));
+        var taken = router.HandleTextKey(new KeyEvent("a"));
 
         Assert.False(taken);
         Assert.Equal(InputRouting.TextKeyHandlers(), asked);

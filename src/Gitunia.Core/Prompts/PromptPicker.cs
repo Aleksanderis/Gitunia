@@ -5,7 +5,7 @@ using ChoiceMatcher = Gitunia.Core.Search.FuzzyMatcher;
 namespace Gitunia.Core.Prompts;
 
 /// <summary>
-/// The candidate list of a picker prompt as immutable data (the state version of <see cref="FilterPicker{T}"/>): every
+/// The candidate list of a picker prompt as immutable data: every
 /// choice, those matching the typed text best first, and the highlighted row.
 /// </summary>
 /// <param name="All">Every choice.</param>

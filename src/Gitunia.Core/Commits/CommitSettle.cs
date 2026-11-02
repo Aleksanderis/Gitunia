@@ -61,7 +61,7 @@ public static class CommitSettle
             shell = shell.WithMode(KeyMode.Normal);
         }
 
-        return state with { Workspace = Replace(state.Workspace, left), Shell = shell };
+        return new AppState(Replace(state.Workspace, left), shell);
     }
 
     private static AppState ShowPending(AppState state, RepositoryState active, IReadOnlyList<string> lines)
@@ -71,7 +71,7 @@ public static class CommitSettle
             state.Shell,
             new OutputShownCommand(CommitFailureReport.Title, CommitFailureReport.Heading, lines));
 
-        return state with { Workspace = Replace(state.Workspace, cleared), Shell = shown.State };
+        return new AppState(Replace(state.Workspace, cleared), shown.State);
     }
 
     private static Workspace Replace(Workspace workspace, RepositoryState tab)

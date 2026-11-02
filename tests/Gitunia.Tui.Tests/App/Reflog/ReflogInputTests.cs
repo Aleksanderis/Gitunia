@@ -524,7 +524,6 @@ public class ReflogInputTests
         private readonly Dispatcher _host;
         private readonly ReflogEffectHandler _handler;
         private readonly ReflogEntryStarter _starter;
-        private readonly ReflogInput _input;
         private TerminalTabSession? _session;
 
         private Harness(IReflogReader? reader)
@@ -534,8 +533,8 @@ public class ReflogInputTests
             Reset = new ResetActions(_host, new FixedSelection(this));
             _handler = new ReflogEffectHandler(reader ?? TestGit.Services.Reflog, _host);
             _starter = new ReflogEntryStarter(_host, Reset, new RecordingGraph(this));
-            _input = new ReflogInput(_host, new FixedSelection(this), GraphGlyphSet.Unicode);
-            Reflog = new ReflogFacade(_host, _input);
+            var input = new ReflogInput(_host, new FixedSelection(this), GraphGlyphSet.Unicode);
+            Reflog = new ReflogFacade(_host, input);
             _host.EffectRaised += Effects.Add;
             _host.EffectRaised += Route;
             _host.Dispatch(new ScreenResizedCommand(new ScreenExtent(100, 30), _host.Clock.GetUtcNow()));
@@ -554,8 +553,6 @@ public class ReflogInputTests
         public StatusReporter Statuses { get; }
 
         public KeyMode Mode => _host.State.Shell.Mode;
-
-        public int Refreshes { get; private set; }
 
         public BranchSelection Selection { get; set; } = new(null, null, null);
 
@@ -647,12 +644,6 @@ public class ReflogInputTests
                     _host.Dispatch(new PromptRequestedCommand(prompt.Request));
                     break;
             }
-        }
-
-        private bool CountRefresh(TabId tabId)
-        {
-            Refreshes++;
-            return true;
         }
 
         private sealed class RecordingGraph(Harness owner) : IGraphCommitSelector

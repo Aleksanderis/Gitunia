@@ -15,15 +15,19 @@ public sealed class FakeRemoteWriter : IRemoteWriter
     private readonly TaskCompletionSource _started = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     /// <summary>The calls in order, such as <c>fetch|/path|all=False</c>.</summary>
+    // ReSharper disable once CollectionNeverQueried.Global : Fake shared with Gitunia.App.Tests by link: a member counts as unused when only the other project uses it
     public List<string> Calls { get; } = [];
 
     /// <summary>The progress every call reports first.</summary>
+    // ReSharper disable once CollectionNeverUpdated.Global : Fake shared with Gitunia.App.Tests by link: a member counts as unused when only the other project uses it
     public List<RemoteProgress> Reports { get; } = [];
 
     /// <summary>Calls wait for <see cref="Release"/> before they finish.</summary>
+    // ReSharper disable once UnusedAutoPropertyAccessor.Global : Fake shared with Gitunia.App.Tests by link: a member counts as unused when only the other project uses it
     public bool Blocks { get; set; }
 
     /// <summary>Thrown by every call when set.</summary>
+    // ReSharper disable once UnusedAutoPropertyAccessor.Global : Fake shared with Gitunia.App.Tests by link: a member counts as unused when only the other project uses it
     public Exception? Failure { get; set; }
 
     /// <summary>What a pull answers.</summary>

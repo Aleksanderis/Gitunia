@@ -466,9 +466,9 @@ public class ReflogReducerTests
     {
         var state = Press(OpenList(Opened("alpha", "beta"), 3), ActionIds.SearchOpen);
         var other = state.Workspace.Tabs.First(tab => tab.Id != state.Shell.Reflog.List!.TabId).Id;
-        state = AppReducer.Reduce(state, new ActivateTabCommand(other)).State;
+        var switched = AppReducer.Reduce(state, new ActivateTabCommand(other)).State;
 
-        var update = AppReducer.Reduce(state, new ReflogKeyTyped(new KeyEvent("x")));
+        var update = AppReducer.Reduce(switched, new ReflogKeyTyped(new KeyEvent("x")));
 
         Assert.Equal(string.Empty, update.State.Shell.Reflog.List!.SearchText);
     }

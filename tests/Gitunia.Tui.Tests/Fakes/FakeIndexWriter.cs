@@ -13,14 +13,18 @@ public sealed class FakeIndexWriter : IIndexWriter
 
     public List<IReadOnlyList<string>> Unstaged { get; } = [];
 
+    // ReSharper disable once CollectionNeverQueried.Global : Fake shared with Gitunia.App.Tests by link: a member counts as unused when only the other project uses it
     public List<bool> UnbornFlags { get; } = [];
 
+    // ReSharper disable once CollectionNeverQueried.Global : Fake shared with Gitunia.App.Tests by link: a member counts as unused when only the other project uses it
     public List<AppliedPatch> Patches { get; } = [];
 
     /// <summary>Thrown by the next calls when set.</summary>
+    // ReSharper disable once UnusedAutoPropertyAccessor.Global : Fake shared with Gitunia.App.Tests by link: a member counts as unused when only the other project uses it
     public Exception? Failure { get; set; }
 
     /// <summary>When true, calls wait until <see cref="Release"/>.</summary>
+    // ReSharper disable once UnusedAutoPropertyAccessor.Global : Fake shared with Gitunia.App.Tests by link: a member counts as unused when only the other project uses it
     public bool IsHeld { get; set; }
 
     public void Release() => _gate.TrySetResult();

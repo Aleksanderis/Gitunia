@@ -45,7 +45,7 @@ public sealed record ScanProgressCommand(int Generation, ImmutableArray<int> Mat
 public sealed record GraphGrewCommand(int LoadedCount, bool LoadComplete) : GraphSearchCommand;
 
 /// <summary>The graph was replaced by a refreshed log: matches and scan progress are stale and the scan starts over.</summary>
-// ReSharper disable once NotAccessedPositionalProperty.Global : kept for equality and the command log
+// ReSharper disable once NotAccessedPositionalProperty.Global : Kept for equality and the command log
 public sealed record GraphReplacedCommand(int LoadedCount) : GraphSearchCommand;
 
 /// <summary>Git answered a <c>body:</c> query, or failed to.</summary>

@@ -7,7 +7,7 @@ namespace Gitunia.Tui.Rendering.Sidebar;
 /// <param name="FilterText">The name filter, empty when none.</param>
 /// <param name="IsEditingFilter">The filter is being typed.</param>
 /// <param name="IsFocused">The sidebar has focus.</param>
-// ReSharper disable once NotAccessedPositionalProperty.Global : part of the full value, not read yet
+// ReSharper disable once NotAccessedPositionalProperty.Global : Part of the full value, not read yet
 public sealed record SidebarChrome(string FilterText, bool IsEditingFilter, bool IsFocused)
 {
     /// <summary>No filter, not editing, not focused.</summary>

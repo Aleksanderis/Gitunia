@@ -19,6 +19,7 @@ public sealed class FakeGitExecutable : IDisposable
         ExecutablePath = path;
     }
 
+    // ReSharper disable once UnusedAutoPropertyAccessor.Global : Test helper, members used by some tests only
     public string ExecutablePath { get; }
 
     /// <summary>Creates a script from a body for the current OS: <paramref name="unixBody"/> for sh, <paramref name="windowsBody"/> for cmd.</summary>

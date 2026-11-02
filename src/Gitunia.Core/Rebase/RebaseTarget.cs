@@ -10,4 +10,5 @@ namespace Gitunia.Core.Rebase;
 /// <param name="Label">How the commit is named in messages: the branch or tag, else its short hash.</param>
 /// <param name="BranchName">The current branch that is rebased.</param>
 /// <param name="OldTip">The branch tip before the rebase, for the undo.</param>
+// ReSharper disable once NotAccessedPositionalProperty.Global : Kept for equality and the command log
 public sealed record RebaseTarget(TabId TabId, string CommitHash, string Label, string BranchName, string OldTip);

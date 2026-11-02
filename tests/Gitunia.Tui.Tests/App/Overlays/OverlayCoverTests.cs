@@ -22,16 +22,15 @@ public sealed class OverlayCoverTests : IDisposable
     private readonly TestShell _shell = new();
     private readonly WhichKeyTimer _timer = new(TimeSpan.FromHours(1), InlineUi.Instance);
     private readonly MouseGate _gate = new();
-    private readonly OverlayStore _store;
     private readonly OverlayCover _cover;
 
     public OverlayCoverTests()
     {
         var host = _shell.Host;
-        _store = new OverlayStore(host, _shell.Statuses, _timer, new TestFocusedView(() => "Graph"));
+        var store = new OverlayStore(host, _shell.Statuses, _timer, new TestFocusedView(() => "Graph"));
         var settings = new SettingsScreenInput(host, GraphGlyphSet.Unicode);
         var others = new OtherOverlays(
-            _store,
+            store,
             new ReflogInput(host, new NoSelection(), GraphGlyphSet.Unicode),
             settings,
             new PickActions(host, new NoPicks()),
@@ -40,7 +39,7 @@ public sealed class OverlayCoverTests : IDisposable
             new RebaseEditorInput(host, new NoSelection(), others, GraphGlyphSet.Unicode),
             new ConflictEditorInput(host, GraphGlyphSet.Unicode),
             settings);
-        _cover = new OverlayCover(_store, others, editors, host, _gate);
+        _cover = new OverlayCover(store, others, editors, host, _gate);
     }
 
     public void Dispose() => _timer.Dispose();

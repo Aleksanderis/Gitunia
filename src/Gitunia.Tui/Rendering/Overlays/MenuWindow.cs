@@ -4,5 +4,5 @@ namespace Gitunia.Tui.Rendering.Overlays;
 /// <param name="RowCount">Rows shown.</param>
 /// <param name="Selected">Index of the highlighted entry.</param>
 /// <param name="Top">Index of the first shown entry.</param>
-// ReSharper disable once NotAccessedPositionalProperty.Global : part of the full value, not read yet
+// ReSharper disable once NotAccessedPositionalProperty.Global : Part of the full value, not read yet
 public readonly record struct MenuWindow(int RowCount, int Selected, int Top);
