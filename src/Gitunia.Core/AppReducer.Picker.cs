@@ -70,12 +70,18 @@ public static partial class AppReducer
     }
 
     // The commands that follow are reduced in order, each on the state the one before left.
-    private static AppUpdate Follow(AppState state, List<AppEffect> effects, IEnumerable<AppCommand> next)
+    // Settling between them is the caller's choice: Reduce settles, ReduceCommand does not.
+    private static AppUpdate Follow(
+        AppState state,
+        List<AppEffect> effects,
+        IEnumerable<AppCommand> next,
+        Func<AppState, AppCommand, AppUpdate>? reduce = null)
     {
+        var step = reduce ?? Reduce;
         var current = state;
         foreach (var command in next)
         {
-            var then = Reduce(current, command);
+            var then = step(current, command);
             current = then.State;
             effects.AddRange(then.Effects);
         }

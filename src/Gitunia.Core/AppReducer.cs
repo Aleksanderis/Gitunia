@@ -61,21 +61,21 @@ public static partial class AppReducer
 
     private static AppUpdate ReduceCommand(AppState state, AppCommand command) => command switch
     {
-        BranchCommand branch => ReduceBranch(state, branch),
-        CommitCommand commit => ReduceCommit(state, commit),
+        BranchCommand branch => InTab(state, branch.TabId, branch, ReduceBranch),
+        CommitCommand commit => InTab(state, commit.TabId, commit, ReduceCommit),
         CommitDraftMoveRequested move => ReduceCommitDraftMove(state, move),
-        CompareCommand compare => ReduceCompare(state, compare),
+        CompareCommand compare => InTab(state, compare.TabId, compare, ReduceCompare),
         ConflictCommand conflict => ReduceConflict(state, conflict),
         CreationCommand creation => ReduceCreation(state, creation),
         DetailCommand detail => DetailReducer.Reduce(state, detail),
         DiffPaneCommand diffPane => DiffPaneReducer.Reduce(state, diffPane),
-        DiscardCommand discard => ReduceDiscard(state, discard),
+        DiscardCommand discard => InTab(state, discard.TabId, discard, ReduceDiscard),
         EffectFailedCommand failed => EffectFailed(state, failed),
         ExternalToolCommand tool => new AppUpdate(state, ExternalToolReducer.Reduce(tool, state.Workspace.ActiveTab)),
         InputCommand input => InputReducer.Reduce(state, input),
         IssueLinkCommand link => new AppUpdate(state, IssueLinkReducer.Reduce(link)),
         PaneSizeCommand paneSize => PaneSizeReducer.Reduce(state, paneSize),
-        PickCommand pick => ReducePick(state, pick),
+        PickCommand pick => InTab(state, pick.TabId, pick, ReducePick),
         RebaseCommand rebase => ReduceRebase(state, rebase),
         RebaseEditorCommand editor => ReduceRebaseEditor(state, editor),
         IntegrationCommand integration => ReduceIntegration(state, integration),
@@ -86,16 +86,16 @@ public static partial class AppReducer
         SettingsCommand settings => ReduceSettings(state, settings),
         RemoteCommand remote => ReduceRemote(state, remote),
         ShellCommand shell => ReduceShell(state, shell),
-        SidebarActionCommand sidebar => ReduceSidebarAction(state, sidebar),
-        StagingCommand staging => ReduceStaging(state, staging),
+        SidebarActionCommand sidebar => InTab(state, sidebar.TabId, sidebar, ReduceSidebarAction),
+        StagingCommand staging => InTab(state, staging.TabId, staging, ReduceStaging),
         StashCommand stash => ReduceStash(state, stash),
-        SyncCommand sync => ReduceSync(state, sync),
-        TabRenameCommand rename => ReduceTabRename(state, rename),
+        SyncCommand sync => InTab(state, sync.TabId, sync, ReduceSync),
+        TabRenameCommand rename => InTab(state, rename.TabId, rename, ReduceTabRename),
         TagCommand tag => ReduceTag(state, tag),
         VisualCommand visual => VisualReducer.Reduce(state, visual),
         WorkspaceActionPressed action => ReduceWorkspaceAction(state, action),
         WorkspaceCommand workspace => ReduceWorkspace(state, workspace),
-        WorktreeCommand worktree => ReduceWorktree(state, worktree),
+        WorktreeCommand worktree => InTab(state, worktree.TabId, worktree, ReduceWorktree),
         _ => throw new UnhandledCommandException(command),
     };
 
@@ -175,11 +175,7 @@ public static partial class AppReducer
         var next = state with { Shell = state.Shell with { Conflict = update.Session } };
         if (tab is not null)
         {
-            var running = tab.Running.Apply(tab.Id, command, update.Effects);
-            if (!Equals(running, tab.Running))
-            {
-                next = WithTab(next, tab with { Running = running });
-            }
+            next = ApplyRunning(next, tab, command, update.Effects);
         }
 
         return new AppUpdate(next, update.Effects);
@@ -220,16 +216,10 @@ public static partial class AppReducer
         return new AppUpdate(state with { Shell = shell }, update.Effects);
     }
 
-    // A result or answer for a tab that was closed meanwhile is dropped, like a late TabCommand. The mainline question
-    // lives in the shell state because it is an overlay; the reducer returns it after each command.
-    private static AppUpdate ReducePick(AppState state, PickCommand command)
+    // The mainline question lives in the shell state because it is an overlay; the reducer returns it after each
+    // command.
+    private static AppUpdate ReducePick(AppState state, RepositoryState tab, PickCommand command)
     {
-        var workspace = state.Workspace;
-        if (workspace.FindTab(command.TabId) is not { } tab)
-        {
-            return new AppUpdate(state, []);
-        }
-
         var busy = IsBusy(tab, RunningOperationKind.Pick);
         var question = state.Shell.Mainline is { } open && open.TabId == tab.Id ? open : null;
         var context = new PickContext(
@@ -237,16 +227,11 @@ public static partial class AppReducer
             tab.Location,
             tab.Head,
             tab.Operation,
-            workspace.ActiveTabId == tab.Id,
+            state.Workspace.ActiveTabId == tab.Id,
             busy,
             question);
         var update = PickReducer.Reduce(command, context);
-        var running = tab.Running.Apply(tab.Id, command, update.Effects);
-        var next = state;
-        if (!Equals(running, tab.Running))
-        {
-            next = WithTab(state, tab with { Running = running });
-        }
+        var next = ApplyRunning(state, tab, command, update.Effects);
 
         if (!Equals(update.Question, question))
         {
@@ -256,26 +241,14 @@ public static partial class AppReducer
         return new AppUpdate(next, update.Effects);
     }
 
-    // A result or answer for a tab that was closed meanwhile is dropped, like a late TabCommand.
-    private static AppUpdate ReduceRebase(AppState state, RebaseCommand command)
-    {
-        var workspace = state.Workspace;
-        if (workspace.FindTab(command.TabId) is not { } tab)
-        {
-            return new AppUpdate(state, []);
-        }
-
-        var busy = IsBusy(tab, RunningOperationKind.Rebase);
-        var context = new RebaseContext(tab, workspace.ActiveTabId == tab.Id, busy, IsOverlayOpen(state.Shell));
-        var effects = RebaseReducer.Reduce(command, context);
-        var running = tab.Running.Apply(tab.Id, command, effects);
-        if (Equals(running, tab.Running))
-        {
-            return new AppUpdate(state, effects);
-        }
-
-        return new AppUpdate(WithTab(state, tab with { Running = running }), effects);
-    }
+    private static AppUpdate ReduceRebase(AppState state, RebaseCommand command) =>
+        ReduceInTab(state, command.TabId, command, static (s, tab, c) => RebaseReducer.Reduce(
+            c,
+            new RebaseContext(
+                tab,
+                s.Workspace.ActiveTabId == tab.Id,
+                IsBusy(tab, RunningOperationKind.Rebase),
+                IsOverlayOpen(s.Shell))));
 
     // A result or answer for a tab that was closed meanwhile is dropped, like a late TabCommand; a read result only
     // ends the read, or the next one would be refused for good.
@@ -292,14 +265,9 @@ public static partial class AppReducer
 
         var busy = IsBusy(tab, RunningOperationKind.Rebase);
         var overlay = IsOverlayOpen(state.Shell with { RebaseEditor = RebaseEditorSession.Empty });
-        var context = new RebaseEditorContext(tab, workspace.ActiveTabId == tab.Id, busy, overlay);
+        var context = new RebaseEditorContext(tab, state.Workspace.ActiveTabId == tab.Id, busy, overlay);
         var update = RebaseEditorReducer.Reduce(session, command, context);
-        var running = tab.Running.Apply(tab.Id, command, update.Effects);
-        var next = state;
-        if (!Equals(running, tab.Running))
-        {
-            next = WithTab(state, tab with { Running = running });
-        }
+        var next = ApplyRunning(state, tab, command, update.Effects);
 
         if (!ReferenceEquals(update.Session, session))
         {

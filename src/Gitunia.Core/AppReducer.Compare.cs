@@ -11,13 +11,8 @@ namespace Gitunia.Core;
 public static partial class AppReducer
 {
     // A command for a tab that was closed meanwhile is dropped, like a late TabCommand.
-    private static AppUpdate ReduceCompare(AppState state, CompareCommand command)
+    private static AppUpdate ReduceCompare(AppState state, RepositoryState tab, CompareCommand command)
     {
-        if (state.Workspace.FindTab(command.TabId) is not { } tab)
-        {
-            return new AppUpdate(state, []);
-        }
-
         var follow = state.Shell.Compare.Of(tab.Id);
         var context = new CompareContext(tab.Id, tab.View.CompareMark, tab.View.FocusedPane);
         var update = CompareReducer.Reduce(follow, command, context);

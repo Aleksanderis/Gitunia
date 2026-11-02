@@ -1,3 +1,4 @@
+using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Commits;
 using Gitunia.Core.Picker;
 using Gitunia.Core.Running;
@@ -11,13 +12,8 @@ public static partial class AppReducer
     // answered after its tab was closed commits nothing. The commands a result asks for (the focus back to a list, the
     // commit that waited for stage all) are reduced after it, without settling in between: the state they read is
     // the one this command made.
-    private static AppUpdate ReduceCommit(AppState state, CommitCommand command)
+    private static AppUpdate ReduceCommit(AppState state, RepositoryState tab, CommitCommand command)
     {
-        if (state.Workspace.FindTab(command.TabId) is not { } tab)
-        {
-            return new AppUpdate(state, []);
-        }
-
         var context = new CommitContext(
             tab,
             state.Workspace.ActiveTabId == tab.Id,
@@ -49,7 +45,7 @@ public static partial class AppReducer
             shell = ShellReducer.Reduce(shell, output).State;
         }
 
-        return FollowUnsettled(changed with { Shell = shell }, [.. update.Effects], update.Next);
+        return Follow(changed with { Shell = shell }, [.. update.Effects], update.Next, ReduceCommand);
     }
 
     // The draft of a tab that is replaced by a located one moves to the replacement; the picker learns whether it did.
@@ -67,18 +63,5 @@ public static partial class AppReducer
         }
 
         return ReduceCommand(current, answer);
-    }
-
-    private static AppUpdate FollowUnsettled(AppState state, List<AppEffect> effects, IEnumerable<AppCommand> next)
-    {
-        var current = state;
-        foreach (var command in next)
-        {
-            var then = ReduceCommand(current, command);
-            current = then.State;
-            effects.AddRange(then.Effects);
-        }
-
-        return new AppUpdate(current, [.. effects]);
     }
 }
