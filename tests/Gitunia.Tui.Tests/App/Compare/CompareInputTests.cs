@@ -1,5 +1,6 @@
 using Gitunia.Core;
 using Gitunia.App;
+using Gitunia.App.Loading;
 using Gitunia.App.Loading.Commits;
 using Gitunia.App.Tabs;
 using Gitunia.Core.Graph;
@@ -17,6 +18,7 @@ using Gitunia.Tui.App.Compare;
 using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Tests.Fakes;
+using Gitunia.Tui.Tests.Loading;
 using Xunit;
 
 namespace Gitunia.Tui.Tests.App.Compare;
@@ -29,6 +31,7 @@ public sealed class CompareInputTests : IDisposable, ICompareSource, ITabSession
     private readonly TerminalTabSession _session;
     private readonly List<string> _notices = [];
     private readonly CompareEffectHandler _handler;
+    private TaskCompletionSource _gate = new();
     private ObjectId? _selected;
 
     public CompareInputTests()
@@ -41,11 +44,17 @@ public sealed class CompareInputTests : IDisposable, ICompareSource, ITabSession
             new TabSessionParts(
                 _host.Workspace.ActiveTabId!.Value,
                 new CommitDetailsStore(
-                _reader,
-                FakeCommitDetailsReader.Location,
-                _pump,
-                TimeSpan.FromMilliseconds(1))),
+                    _reader,
+                    FakeCommitDetailsReader.Location,
+                    _pump,
+                    TimeSpan.FromMilliseconds(1),
+                    // A frozen clock makes every select after the first a rapid move, and the delayer waits on a gate
+                    // the test opens, so a debounce never elapses on its own whatever the machine load.
+                    new CommitDetailsStoreOptions(
+                        new DelegateDelayer(DelayAsync),
+                        TimeProvider: new ManualTimeProvider()))),
             GraphGlyphSet.Unicode);
+        _gate.SetResult();
         _handler = new CompareEffectHandler(this, _host);
         _host.EffectRaised += Run;
         _session.Graph.AddRange(
@@ -131,10 +140,12 @@ public sealed class CompareInputTests : IDisposable, ICompareSource, ITabSession
         actions.TryExecute(ActionIds.GraphCompare);
         var before = _reader.ReadFilesCount;
 
+        _gate = new TaskCompletionSource();
         _selected = Newest[1];
         _session.Details.Select(Newest[1]);
         _selected = Newest[2];
         _session.Details.Select(Newest[2]);
+        _gate.SetResult();
         await _pump.RunUntilAsync(() => _session.Details.Current.Details?.IsComparison == true);
 
         Assert.Equal(Newest[2], _session.Details.Current.Details!.CompareOlder);
@@ -184,10 +195,12 @@ public sealed class CompareInputTests : IDisposable, ICompareSource, ITabSession
         actions.TryExecute(ActionIds.GraphCompare);
         var before = _reader.ReadFilesCount;
 
+        _gate = new TaskCompletionSource();
         _selected = Newest[1];
         _session.Details.Select(Newest[1]);
         _selected = Newest[2];
         _session.Details.Select(Newest[2]);
+        _gate.SetResult();
         await _pump.RunUntilAsync(() => _session.Details.Current.Details?.IsComparison == true);
 
         Assert.Equal(Newest[2], _session.Details.Current.Commit);
@@ -280,6 +293,8 @@ public sealed class CompareInputTests : IDisposable, ICompareSource, ITabSession
     public ObjectId? SelectedCommitId() => _selected;
 
     public TabSession Find(TabId tabId) => _session;
+
+    private Task DelayAsync(TimeSpan wait, CancellationToken token) => _gate.Task.WaitAsync(token);
 
     private void Run(AppEffect effect)
     {
