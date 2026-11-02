@@ -88,7 +88,8 @@ public class RunningOperationsTests
     [InlineData(RunningOperationKind.Worktrees)]
     [InlineData(RunningOperationKind.Pick)]
     [InlineData(RunningOperationKind.Rebase)]
-    public void GivenEveryConcreteEffectOfAFeature_WhenInspectingIt_ThenItIsAnOperationEffectOfThatKind(RunningOperationKind kind)
+    public void GivenEveryConcreteEffectOfAFeature_WhenInspectingIt_ThenItIsAnOperationEffectOfThatKind(
+        RunningOperationKind kind)
     {
         // Built through the constructors: an uninitialised instance would show the enum's first value, not the kind.
         var (concrete, built) = EffectsOf(kind);
@@ -109,7 +110,8 @@ public class RunningOperationsTests
     [InlineData(RunningOperationKind.Worktrees)]
     [InlineData(RunningOperationKind.Pick)]
     [InlineData(RunningOperationKind.Rebase)]
-    public void GivenEveryConcreteResultCommandOfAFeature_WhenInspectingIt_ThenItEndsTheKindOfItsFeature(RunningOperationKind kind)
+    public void GivenEveryConcreteResultCommandOfAFeature_WhenInspectingIt_ThenItEndsTheKindOfItsFeature(
+        RunningOperationKind kind)
     {
         var results = ResultsOf(kind);
 

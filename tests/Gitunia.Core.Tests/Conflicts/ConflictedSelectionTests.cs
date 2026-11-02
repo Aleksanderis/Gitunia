@@ -46,7 +46,9 @@ public class ConflictedSelectionTests
 
     [Theory]
     [MemberData(nameof(NoConflictedSelection))]
-    public void GivenNoConflictedFileUnderTheCursor_WhenFinding_ThenNothingIsReturned(string reason, WorkingTreeState? tree)
+    public void GivenNoConflictedFileUnderTheCursor_WhenFinding_ThenNothingIsReturned(
+        string reason,
+        WorkingTreeState? tree)
     {
         Assert.NotEmpty(reason);
         Assert.Null(ConflictedSelection.Find(tree));

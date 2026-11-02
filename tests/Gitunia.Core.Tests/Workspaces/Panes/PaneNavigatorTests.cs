@@ -62,31 +62,46 @@ public class PaneNavigatorTests
     [InlineData(PaneKind.Sidebar, true, PaneKind.Graph)]
     [InlineData(PaneKind.Sidebar, false, PaneKind.Sidebar)]
     [InlineData(PaneKind.Graph, true, PaneKind.Graph)]
-    public void GivenSidebarAndGraph_WhenStepping_ThenFocusStopsAtTheEdges(PaneKind current, bool toRight, PaneKind expected) =>
+    public void GivenSidebarAndGraph_WhenStepping_ThenFocusStopsAtTheEdges(
+        PaneKind current,
+        bool toRight,
+        PaneKind expected) =>
         Assert.Equal(expected, PaneNavigator.Step(current, toRight, SidebarAndGraph));
 
     [Theory]
-    [InlineData(PaneKind.Graph, true, PaneKind.Detail, new[] { PaneKind.Sidebar, PaneKind.Graph, PaneKind.Detail, PaneKind.Diff })]
-    [InlineData(PaneKind.Sidebar, true, PaneKind.Detail, new[] { PaneKind.Sidebar, PaneKind.Graph, PaneKind.Detail, PaneKind.Diff })]
-    [InlineData(PaneKind.Detail, false, PaneKind.Graph, new[] { PaneKind.Sidebar, PaneKind.Graph, PaneKind.Detail, PaneKind.Diff })]
-    [InlineData(PaneKind.Diff, false, PaneKind.Graph, new[] { PaneKind.Sidebar, PaneKind.Graph, PaneKind.Detail, PaneKind.Diff })]
-    [InlineData(PaneKind.Graph, false, PaneKind.Graph, new[] { PaneKind.Sidebar, PaneKind.Graph, PaneKind.Detail, PaneKind.Diff })]
-    [InlineData(PaneKind.Detail, true, PaneKind.Detail, new[] { PaneKind.Sidebar, PaneKind.Graph, PaneKind.Detail, PaneKind.Diff })]
-    [InlineData(PaneKind.Graph, true, PaneKind.Diff, new[] { PaneKind.Graph, PaneKind.Diff })] // Only the diff below.
-    [InlineData(PaneKind.Graph, true, PaneKind.Graph, new[] { PaneKind.Sidebar, PaneKind.Graph })] // No bottom pane.
-    [InlineData(PaneKind.Detail, false, PaneKind.Sidebar, new[] { PaneKind.Sidebar, PaneKind.Detail })] // No graph.
-    [InlineData(PaneKind.WorkingUnstaged, true, PaneKind.WorkingStaged, new[] { PaneKind.WorkingUnstaged, PaneKind.WorkingStaged })]
-    [InlineData(PaneKind.WorkingStaged, false, PaneKind.WorkingUnstaged, new[] { PaneKind.WorkingUnstaged, PaneKind.WorkingStaged })]
-    [InlineData(PaneKind.WorkingUnstaged, false, PaneKind.WorkingUnstaged, new[] { PaneKind.WorkingUnstaged, PaneKind.WorkingStaged })]
-    [InlineData(PaneKind.WorkingStaged, true, PaneKind.WorkingStaged, new[] { PaneKind.WorkingUnstaged, PaneKind.WorkingStaged })]
-    [InlineData(PaneKind.WorkingUnstagedDiff, true, PaneKind.WorkingUnstagedDiff, new[] { PaneKind.WorkingUnstaged, PaneKind.WorkingStaged })]
-    [InlineData(PaneKind.WorkingUnstagedDiff, false, PaneKind.WorkingUnstagedDiff, new[] { PaneKind.WorkingUnstaged, PaneKind.WorkingStaged })]
-    [InlineData(PaneKind.WorkingStagedDiff, true, PaneKind.WorkingStagedDiff, new[] { PaneKind.WorkingUnstaged, PaneKind.WorkingStaged })]
-    [InlineData(PaneKind.WorkingStagedDiff, false, PaneKind.WorkingStagedDiff, new[] { PaneKind.WorkingUnstaged, PaneKind.WorkingStaged })]
+    [MemberData(nameof(VerticalSteps))]
     public void GivenOpenPanes_WhenSteppingVertically_ThenFocusMovesBetweenTheRowsAndStaysAtTheEdges(
         PaneKind current,
         bool down,
         PaneKind expected,
         PaneKind[] open) =>
         Assert.Equal(expected, PaneNavigator.StepVertically(current, down, open));
+
+    public static TheoryData<PaneKind, bool, PaneKind, PaneKind[]> VerticalSteps()
+    {
+        PaneKind[] all = [PaneKind.Sidebar, PaneKind.Graph, PaneKind.Detail, PaneKind.Diff];
+        PaneKind[] lists = [PaneKind.WorkingUnstaged, PaneKind.WorkingStaged];
+
+        return new TheoryData<PaneKind, bool, PaneKind, PaneKind[]>
+        {
+            { PaneKind.Graph, true, PaneKind.Detail, all },
+            { PaneKind.Sidebar, true, PaneKind.Detail, all },
+            { PaneKind.Detail, false, PaneKind.Graph, all },
+            { PaneKind.Diff, false, PaneKind.Graph, all },
+            { PaneKind.Graph, false, PaneKind.Graph, all },
+            { PaneKind.Detail, true, PaneKind.Detail, all },
+            { PaneKind.Graph, true, PaneKind.Diff, [PaneKind.Graph, PaneKind.Diff] }, // Only the diff below.
+            { PaneKind.Graph, true, PaneKind.Graph, SidebarAndGraph }, // No bottom pane.
+            { PaneKind.Detail, false, PaneKind.Sidebar, [PaneKind.Sidebar, PaneKind.Detail] }, // No graph.
+            { PaneKind.WorkingUnstaged, true, PaneKind.WorkingStaged, lists },
+            { PaneKind.WorkingStaged, false, PaneKind.WorkingUnstaged, lists },
+            { PaneKind.WorkingUnstaged, false, PaneKind.WorkingUnstaged, lists },
+            { PaneKind.WorkingStaged, true, PaneKind.WorkingStaged, lists },
+            { PaneKind.WorkingUnstagedDiff, true, PaneKind.WorkingUnstagedDiff, lists },
+            { PaneKind.WorkingUnstagedDiff, false, PaneKind.WorkingUnstagedDiff, lists },
+            { PaneKind.WorkingStagedDiff, true, PaneKind.WorkingStagedDiff, lists },
+            { PaneKind.WorkingStagedDiff, false, PaneKind.WorkingStagedDiff, lists },
+        };
+    }
+
 }

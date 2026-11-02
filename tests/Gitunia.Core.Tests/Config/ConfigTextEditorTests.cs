@@ -80,18 +80,79 @@ public class ConfigTextEditorTests
         Assert.Equal(text, result.Text);
     }
 
+    // Text, path ('/' separated), value, expected text.
+    public static TheoryData<string, string, string, string> Edits() => new()
+    {
+        { // Only the multi-line array is replaced.
+            "{\n  // roots\n  \"scanRoots\": [\n    \"/a\",\n  ],\n  \"theme\": \"dark\"\n}\n",
+            "scanRoots",
+            "[\"/a\", \"/b\"]",
+            "{\n  // roots\n  \"scanRoots\": [\"/a\", \"/b\"],\n  \"theme\": \"dark\"\n}\n"
+        },
+        { // Only the value changes, comments stay.
+            "{\n  // Pick one.\n  \"frameStyle\": \"rounded\", // trailing\n  \"scanRoots\": [],\n}\n",
+            "frameStyle",
+            Quoted,
+            "{\n  // Pick one.\n  \"frameStyle\": \"square\", // trailing\n  \"scanRoots\": [],\n}\n"
+        },
+        { // Other case: changed, not duplicated.
+            "{ \"FrameStyle\": \"rounded\" }",
+            "frameStyle",
+            Quoted,
+            "{ \"FrameStyle\": \"square\" }"
+        },
+        { // Appended like the others.
+            "{\n    \"theme\": \"auto\" // keep\n}\n",
+            "frameStyle",
+            Quoted,
+            "{\n    \"theme\": \"auto\", // keep\n    \"frameStyle\": \"square\"\n}\n"
+        },
+        { // A trailing comma gets no second one.
+            "{\n  \"theme\": \"auto\",\n}",
+            "frameStyle",
+            Quoted,
+            "{\n  \"theme\": \"auto\",\n  \"frameStyle\": \"square\"\n}"
+        },
+        { // CRLF files keep CRLF.
+            "{\r\n  \"theme\": \"auto\"\r\n}\r\n",
+            "frameStyle",
+            Quoted,
+            "{\r\n  \"theme\": \"auto\",\r\n  \"frameStyle\": \"square\"\r\n}\r\n"
+        },
+        { // Tab indent in an empty nested object.
+            "{\n\t\"tabs\": {}\n}",
+            "tabs/showBranch",
+            "true",
+            "{\n\t\"tabs\": {\n\t\t\"showBranch\": true\n\t}\n}"
+        },
+        { // A single-line object stays on the line.
+            "{ \"theme\": \"auto\" }",
+            "frameStyle",
+            Quoted,
+            "{ \"theme\": \"auto\", \"frameStyle\": \"square\" }"
+        },
+        { // A comment-only file keeps the comment.
+            "// my config\n",
+            "theme",
+            "\"dark\"",
+            "// my config\n{\n  \"theme\": \"dark\"\n}\n"
+        },
+        { // A missing parent is created on one line.
+            "{\n  \"theme\": \"auto\"\n}",
+            "tabs/showBranch",
+            "true",
+            "{\n  \"theme\": \"auto\",\n  \"tabs\": { \"showBranch\": true }\n}"
+        },
+        { // An existing parent receives the key.
+            "{\n  \"tabs\": {\n    \"other\": 1\n  }\n}",
+            "tabs/showBranch",
+            "true",
+            "{\n  \"tabs\": {\n    \"other\": 1,\n    \"showBranch\": true\n  }\n}"
+        },
+    };
+
     [Theory]
-    [InlineData("{\n  // roots\n  \"scanRoots\": [\n    \"/a\",\n  ],\n  \"theme\": \"dark\"\n}\n", "scanRoots", "[\"/a\", \"/b\"]", "{\n  // roots\n  \"scanRoots\": [\"/a\", \"/b\"],\n  \"theme\": \"dark\"\n}\n")] // Only the multi-line array is replaced.
-    [InlineData("{\n  // Pick one.\n  \"frameStyle\": \"rounded\", // trailing\n  \"scanRoots\": [],\n}\n", "frameStyle", Quoted, "{\n  // Pick one.\n  \"frameStyle\": \"square\", // trailing\n  \"scanRoots\": [],\n}\n")] // Only the value changes, comments stay.
-    [InlineData("{ \"FrameStyle\": \"rounded\" }", "frameStyle", Quoted, "{ \"FrameStyle\": \"square\" }")] // Other case: changed, not duplicated.
-    [InlineData("{\n    \"theme\": \"auto\" // keep\n}\n", "frameStyle", Quoted, "{\n    \"theme\": \"auto\", // keep\n    \"frameStyle\": \"square\"\n}\n")] // Appended like the others.
-    [InlineData("{\n  \"theme\": \"auto\",\n}", "frameStyle", Quoted, "{\n  \"theme\": \"auto\",\n  \"frameStyle\": \"square\"\n}")] // A trailing comma gets no second one.
-    [InlineData("{\r\n  \"theme\": \"auto\"\r\n}\r\n", "frameStyle", Quoted, "{\r\n  \"theme\": \"auto\",\r\n  \"frameStyle\": \"square\"\r\n}\r\n")] // CRLF files keep CRLF.
-    [InlineData("{\n\t\"tabs\": {}\n}", "tabs/showBranch", "true", "{\n\t\"tabs\": {\n\t\t\"showBranch\": true\n\t}\n}")] // Tab indent in an empty nested object.
-    [InlineData("{ \"theme\": \"auto\" }", "frameStyle", Quoted, "{ \"theme\": \"auto\", \"frameStyle\": \"square\" }")] // A single-line object stays on the line.
-    [InlineData("// my config\n", "theme", "\"dark\"", "// my config\n{\n  \"theme\": \"dark\"\n}\n")] // A comment-only file keeps the comment.
-    [InlineData("{\n  \"theme\": \"auto\"\n}", "tabs/showBranch", "true", "{\n  \"theme\": \"auto\",\n  \"tabs\": { \"showBranch\": true }\n}")] // A missing parent is created on one line.
-    [InlineData("{\n  \"tabs\": {\n    \"other\": 1\n  }\n}", "tabs/showBranch", "true", "{\n  \"tabs\": {\n    \"other\": 1,\n    \"showBranch\": true\n  }\n}")] // An existing parent receives the key.
+    [MemberData(nameof(Edits))]
     public void GivenAText_WhenSettingAKey_ThenOnlyThatPartChangesAndTheStyleIsKept(
         string text,
         string path,

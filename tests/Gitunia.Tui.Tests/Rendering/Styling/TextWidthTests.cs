@@ -10,9 +10,9 @@ public class TextWidthTests
     [InlineData("hello", 5, "hello")] // Text that fits is unchanged.
     [InlineData("hello world", 5, "hell…")] // The ellipsis fills the last column.
     [InlineData("ab修正", 4, "ab…")] // A wide character at the edge is dropped, not split.
-    [InlineData("ab\U0001F468‍\U0001F469‍\U0001F467", 4, "ab\U0001F468‍\U0001F469‍\U0001F467")] // A joined emoji counts two columns.
+    [InlineData("ab\U0001F468‍\U0001F469‍\U0001F467", 4, "ab\U0001F468‍\U0001F469‍\U0001F467")]
     [InlineData("a\U0001F468‍\U0001F469‍\U0001F467cdef", 4, "a\U0001F468‍\U0001F469‍\U0001F467…")] // It is kept whole.
-    [InlineData("abc\U0001F468‍\U0001F469‍\U0001F467", 4, "abc…")] // A joined emoji that does not fit is dropped, not cut.
+    [InlineData("abc\U0001F468‍\U0001F469‍\U0001F467", 4, "abc…")]
     [InlineData("hello", 0, "")] // No room: the result is empty.
     public void GivenText_WhenFitting_ThenItIsCutToTheColumnsWithoutSplittingACharacter(
         string text,
@@ -29,7 +29,7 @@ public class TextWidthTests
     [InlineData("src/a", 5, "src/a")] // Text that fits is unchanged.
     [InlineData("foo/bar", 6, "…o/bar")] // The end stays under a leading ellipsis.
     [InlineData("修正修正", 3, "…正")] // A wide character at the cut is not split.
-    [InlineData("aéb", 2, "…b")] // A combining mark at the cut does not lead the result.
+    [InlineData("ae\u0301b", 2, "…b")] // A combining mark at the cut does not lead the result.
     [InlineData("abc", 0, "")] // No columns: the result is empty.
     public void GivenText_WhenFittingTheStart_ThenTheEndStaysUnderALeadingEllipsis(
         string text,

@@ -38,6 +38,7 @@ public class WordDiffTests
 
         Assert.Empty(result.Old);
         Assert.Empty(result.New);
+        Assert.Same(WordDiffResult.None, WordDiff.Compare(newText, newText));
     }
 
     [Fact]

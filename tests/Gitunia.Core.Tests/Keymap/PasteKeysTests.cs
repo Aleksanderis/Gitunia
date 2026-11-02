@@ -31,8 +31,8 @@ public class PasteKeysTests
     [Fact]
     public void GivenAnEmojiAndACombiningMark_WhenConverting_ThenEachStaysOneKey()
     {
-        var keys = PasteKeys.FromText("\U0001F600é", multiLine: false);
+        var keys = PasteKeys.FromText("\U0001F600e\u0301", multiLine: false);
 
-        Assert.Equal(["\U0001F600", "é"], keys.Select(key => key.Name));
+        Assert.Equal(["\U0001F600", "e\u0301"], keys.Select(key => key.Name));
     }
 }

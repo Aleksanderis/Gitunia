@@ -9,9 +9,9 @@ public sealed class DetailCursorMemoryTests
 {
     [Theory]
     [InlineData("aaa", "bbb", BottomTab.Changes, BottomTab.Changes, 3, 4, 7, 20, 4)] // Another commit: the landing row.
-    [InlineData("aaa", "aaa", BottomTab.Changes, BottomTab.Changes, 0, 5, 1, 20, 5)] // The files just arrived: first file.
+    [InlineData("aaa", "aaa", BottomTab.Changes, BottomTab.Changes, 0, 5, 1, 20, 5)]
     [InlineData("aaa", "aaa", BottomTab.Changes, BottomTab.Changes, 3, 5, 8, 20, 8)] // Files already listed: it stays.
-    [InlineData("aaa", "aaa", BottomTab.Details, BottomTab.Changes, 3, 4, 2, 20, 4)] // A tab never visited: landing row.
+    [InlineData("aaa", "aaa", BottomTab.Details, BottomTab.Changes, 3, 4, 2, 20, 4)]
     [InlineData("aaa", "aaa", BottomTab.Changes, BottomTab.Changes, 3, 0, 30, 10, 9)] // Past the end: the last row.
     [InlineData("aaa", "", BottomTab.Changes, BottomTab.Changes, 3, 0, 0, 0, null)] // No rows: no cursor.
     public void GivenARequest_WhenDeciding_ThenTheCursorLandsWhereTheRulesSay(

@@ -83,7 +83,8 @@ public class DiscardReducerTests
         var update = Reduce(command, context);
 
         Assert.NotEmpty(situation);
-        Assert.Contains(expectedText, Assert.IsType<PostStatusEffect>(Assert.Single(update)).Text, StringComparison.Ordinal);
+        var post = Assert.IsType<PostStatusEffect>(Assert.Single(update));
+        Assert.Contains(expectedText, post.Text, StringComparison.Ordinal);
     }
 
     [Fact]
