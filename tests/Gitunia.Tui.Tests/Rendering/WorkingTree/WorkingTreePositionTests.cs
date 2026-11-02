@@ -9,15 +9,10 @@ namespace Gitunia.Tui.Tests.Rendering.WorkingTree;
 public class WorkingTreePositionTests
 {
     [Fact]
-    public void GivenNoStatusYet_WhenAskingForThePosition_ThenItIsZeroOfZero()
-    {
-        Assert.Equal(new WorkingTreePosition(0, 0), WorkingTreePosition.From(null));
-    }
-
-    [Fact]
-    public void GivenACleanTree_WhenAskingForThePosition_ThenItIsZeroOfZero()
+    public void GivenACleanTreeOrNoStatusYet_WhenAskingForThePosition_ThenItIsZeroOfZero()
     {
         Assert.Equal(new WorkingTreePosition(0, 0), WorkingTreePosition.From(Tree()));
+        Assert.Equal(new WorkingTreePosition(0, 0), WorkingTreePosition.From(null));
     }
 
     [Fact]

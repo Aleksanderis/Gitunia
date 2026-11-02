@@ -122,12 +122,6 @@ public class PaneResizerTests
         Assert.Equal(expectedDetail, PaneLayout.Compute(Width, Height, true, null, sizes).Detail.Width);
     }
 
-    [Fact]
-    public void GivenTheDetailPaneSpanningTheScreen_WhenWidening_ThenThereIsNothingToResize()
-    {
-        Assert.Null(PaneResizeRules.Apply(PaneSizes.Automatic, ActionIds.PaneWider, null, PaneKind.Detail, Width, Height, false));
-    }
-
     [Theory]
     [InlineData(PaneKind.Detail, "pane.taller", 14)]
     [InlineData(PaneKind.Diff, "pane.shorter", 12)]
@@ -140,18 +134,23 @@ public class PaneResizerTests
         Assert.Equal(expectedBottomHeight, PaneLayout.BottomHeight(Height, sizes));
     }
 
-    [Fact]
-    public void GivenTheBottomPanesAtTheirMinimum_WhenShrinkingFurther_ThenThereIsNothingToResize()
+    [Theory]
+    [InlineData(PaneKind.Detail, "pane.wider", Width, Height, false)] // The detail pane spans the screen.
+    [InlineData(PaneKind.Detail, "pane.shorter", Width, Height, true)] // The bottom panes are at their minimum.
+    [InlineData(PaneKind.Detail, "pane.taller", Width, 10, false)] // The screen is too short.
+    [InlineData(PaneKind.Sidebar, "pane.wider", 50, Height, false)] // A narrow screen without a sidebar.
+    public void GivenNoRoomToMove_WhenResizingByKey_ThenThereIsNothingToResize(
+        PaneKind focused,
+        string action,
+        int width,
+        int height,
+        bool bottomAtMinimum)
     {
-        var sizes = new PaneSizes(BottomHeight: PaneLayout.MinimumBottomHeight);
+        var sizes = bottomAtMinimum
+            ? new PaneSizes(BottomHeight: PaneLayout.MinimumBottomHeight)
+            : PaneSizes.Automatic;
 
-        Assert.Null(PaneResizeRules.Apply(sizes, ActionIds.PaneShorter, null, PaneKind.Detail, Width, Height, false));
-    }
-
-    [Fact]
-    public void GivenATooShortScreen_WhenResizingHeight_ThenThereIsNothingToResize()
-    {
-        Assert.Null(PaneResizeRules.Apply(PaneSizes.Automatic, ActionIds.PaneTaller, null, PaneKind.Detail, Width, 10, false));
+        Assert.Null(PaneResizeRules.Apply(sizes, new ActionId(action), null, focused, width, height, false));
     }
 
     [Fact]
@@ -161,11 +160,5 @@ public class PaneResizerTests
 
         Assert.Equal(PaneSizes.Automatic, PaneResizeRules.Apply(changed, ActionIds.PaneResetSizes, null, PaneKind.Graph, Width, Height, false));
         Assert.Null(PaneResizeRules.Apply(PaneSizes.Automatic, ActionIds.PaneResetSizes, null, PaneKind.Graph, Width, Height, false));
-    }
-
-    [Fact]
-    public void GivenANarrowScreenWithoutASidebar_WhenWidening_ThenThereIsNothingToResize()
-    {
-        Assert.Null(PaneResizeRules.Apply(PaneSizes.Automatic, ActionIds.PaneWider, null, PaneKind.Sidebar, 50, Height, false));
     }
 }

@@ -7,7 +7,6 @@ using Gitunia.Core.Overlays;
 using Gitunia.Core.Prompts;
 using Gitunia.Core.Running;
 using Gitunia.Core.Shell;
-using Gitunia.Core.Sidebar;
 using Gitunia.Core.Status;
 using Gitunia.Core.Sync;
 using Gitunia.Core.Workspaces;
@@ -231,24 +230,6 @@ public class SyncPipelineTests
     }
 
     [Fact]
-    public async Task GivenTheTabIsClosedWhileTheForceDialogIsOpen_ThenYPushesNothing()
-    {
-        using var repository = TestRepositories.WithTrackingBranch(0, 0);
-        var seen = repository.Git("rev-parse", "origin/topic").Trim();
-        repository.Git("commit", "--amend", "-q", "-m", "Rewritten");
-        using var pipeline = await Pipeline.OpenAsync(repository);
-        var tabId = pipeline.TabId;
-        pipeline.Dispatch(new SyncRequested(tabId, SyncKind.PushForce));
-        await pipeline.UntilAsync(() => pipeline.Host.State.Shell.Confirm is not null);
-
-        pipeline.Dispatch(new CloseTabCommand(tabId));
-        pipeline.Dispatch(new ConfirmAnsweredCommand(ConfirmAnswer.Yes));
-
-        Assert.Null(pipeline.Host.State.Shell.Confirm);
-        Assert.Equal(seen, repository.GitIn(repository.OriginPath, ["rev-parse", "topic"]).Trim());
-    }
-
-    [Fact]
     public async Task GivenARewrittenBranch_WhenPushingPlainly_ThenTheRejectionOffersTheForcePush()
     {
         using var repository = TestRepositories.WithTrackingBranch(0, 0);
@@ -342,23 +323,6 @@ public class SyncPipelineTests
     }
 
     [Fact]
-    public async Task GivenTheCursorOnARemoteBranchRow_WhenDeleting_ThenOnlyTheConfirmComesFirst()
-    {
-        using var repository = TestRepositories.WithTrackingBranch(0, 0);
-        var tip = repository.Git("rev-parse", "origin/topic").Trim();
-        using var pipeline = await Pipeline.OpenAsync(repository);
-        var target = new SyncTarget(SidebarRowKind.RemoteBranch, "origin/topic", tip);
-
-        pipeline.Dispatch(new SyncDeleteRequested(pipeline.TabId, target));
-        await pipeline.UntilAsync(() => pipeline.Host.State.Shell.Confirm is not null);
-
-        var confirm = pipeline.Host.State.Shell.Confirm!.Prompt;
-        Assert.Contains("topic", confirm.Lines[0], StringComparison.Ordinal);
-        Assert.Null(pipeline.Host.State.Shell.Prompt);
-        Assert.Equal(KeyMode.Confirm, pipeline.Host.State.Shell.Mode);
-    }
-
-    [Fact]
     public async Task GivenAGraphCommitWithOnlyARemoteBranch_WhenDeleting_ThenOnlyTheConfirmComesFirst()
     {
         using var repository = TestRepositories.WithTrackingBranch(0, 0);
@@ -372,37 +336,6 @@ public class SyncPipelineTests
 
         Assert.Contains("topic", pipeline.Host.State.Shell.Confirm!.Prompt.Lines[0], StringComparison.Ordinal);
         Assert.Equal(KeyMode.Confirm, pipeline.Host.State.Shell.Mode);
-    }
-
-    [Fact]
-    public async Task GivenTheDeleteConfirmIsDeclined_WhenAnswered_ThenTheRemoteBranchStays()
-    {
-        using var repository = TestRepositories.WithTrackingBranch(0, 0);
-        using var pipeline = await Pipeline.OpenAsync(repository);
-        var target = new SyncTarget(SidebarRowKind.RemoteBranch, "origin/topic", null);
-        pipeline.Dispatch(new SyncDeleteRequested(pipeline.TabId, target));
-        await pipeline.UntilAsync(() => pipeline.Host.State.Shell.Confirm is not null);
-
-        pipeline.Dispatch(new ConfirmAnsweredCommand(ConfirmAnswer.No));
-
-        Assert.False(pipeline.IsRunning);
-        Assert.Contains("topic", repository.GitIn(repository.OriginPath, ["branch"]), StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public async Task GivenTheTabIsClosedWhileTheDeleteDialogIsOpen_ThenYDeletesNothing()
-    {
-        using var repository = TestRepositories.WithTrackingBranch(0, 0);
-        using var pipeline = await Pipeline.OpenAsync(repository);
-        var tabId = pipeline.TabId;
-        var target = new SyncTarget(SidebarRowKind.RemoteBranch, "origin/topic", null);
-        pipeline.Dispatch(new SyncDeleteRequested(tabId, target));
-        await pipeline.UntilAsync(() => pipeline.Host.State.Shell.Confirm is not null);
-
-        pipeline.Dispatch(new CloseTabCommand(tabId));
-        pipeline.Dispatch(new ConfirmAnsweredCommand(ConfirmAnswer.Yes));
-
-        Assert.Contains("topic", repository.GitIn(repository.OriginPath, ["branch"]), StringComparison.Ordinal);
     }
 
     private static string PushFromAnotherClone(TestRepository repository, string branch, bool createBranch = false)

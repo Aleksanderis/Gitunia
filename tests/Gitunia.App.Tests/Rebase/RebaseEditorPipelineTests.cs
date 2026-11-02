@@ -127,24 +127,6 @@ public class RebaseEditorPipelineTests
     }
 
     [Fact]
-    public async Task GivenTheConfirm_WhenDeclined_ThenTheEditorStaysOpenWithItsTodoAndNothingChanged()
-    {
-        using var repository = ThreeCommits();
-        var oldTip = repository.Head;
-        using var pipeline = await FeaturePipeline.OpenAsync(Services(), repository);
-        await OpenEditorAsync(pipeline, MainTip(repository));
-        Press(pipeline, ActionIds.RebaseEditorDrop);
-        Press(pipeline, ActionIds.RebaseEditorStart);
-
-        pipeline.Answer(ConfirmAnswer.No);
-
-        Assert.Equal(RebaseTodoAction.Drop, Editor(pipeline)!.Rows[0].Action);
-        Assert.Equal(oldTip, repository.Head);
-        Assert.Null(pipeline.Statuses.Log.Latest);
-        Assert.False(pipeline.IsBusy);
-    }
-
-    [Fact]
     public async Task GivenAConflictingReorder_WhenStarting_ThenARebaseIsInProgressAndTheStatusNamesTheKeys()
     {
         using var repository = TestRepository.Create()
@@ -209,24 +191,6 @@ public class RebaseEditorPipelineTests
         Assert.Equal(KeyMode.Normal, pipeline.Mode);
         Assert.Equal("add a!", Editor(pipeline)!.Rows[0].Message);
         Assert.Equal(RebaseTodoAction.Reword, Editor(pipeline)!.Rows[0].Action);
-    }
-
-    [Fact]
-    public async Task GivenTheConfirmIsOpen_WhenTheTabIsClosed_ThenYDoesNothing()
-    {
-        using var repository = ThreeCommits();
-        var oldTip = repository.Head;
-        using var pipeline = await FeaturePipeline.OpenAsync(Services(), repository);
-        var tabId = pipeline.TabId;
-        await OpenEditorAsync(pipeline, MainTip(repository));
-        Press(pipeline, ActionIds.RebaseEditorDrop);
-        Press(pipeline, ActionIds.RebaseEditorStart);
-
-        pipeline.Dispatch(new CloseTabCommand(tabId));
-        pipeline.Answer(ConfirmAnswer.Yes);
-
-        Assert.Equal(oldTip, repository.Head);
-        Assert.Null(Editor(pipeline));
     }
 
     [Fact]

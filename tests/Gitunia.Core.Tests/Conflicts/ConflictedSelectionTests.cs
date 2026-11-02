@@ -10,6 +10,32 @@ namespace Gitunia.Core.Tests.Conflicts;
 [Trait("Os", "Independent")]
 public class ConflictedSelectionTests
 {
+    public static TheoryData<string, WorkingTreeState?> NoConflictedSelection() => new()
+    {
+        { "a plain modified file", Tree(Selection("a.txt"), Entry(StatusEntryKind.Ordinary, "a.txt")) },
+        {
+            "another file than the conflicted one",
+            Tree(
+                Selection("b.txt"),
+                Entry(StatusEntryKind.Unmerged, "a.txt"),
+                Entry(StatusEntryKind.Ordinary, "b.txt"))
+        },
+        {
+            "a folder row",
+            Tree(
+                new WorkingTreeSelection(WorkingTreeSection.Unstaged, "a.txt", 0, true),
+                Entry(StatusEntryKind.Unmerged, "a.txt"))
+        },
+        {
+            "the staged list",
+            Tree(
+                new WorkingTreeSelection(WorkingTreeSection.Staged, "a.txt", 0),
+                Entry(StatusEntryKind.Unmerged, "a.txt"))
+        },
+        { "no working tree", null },
+    };
+
+
     [Fact]
     public void GivenTheCursorOnAConflictedFile_WhenFinding_ThenTheEntryIsReturned()
     {
@@ -18,49 +44,14 @@ public class ConflictedSelectionTests
         Assert.Equal("a.txt", ConflictedSelection.Find(tree)?.Path);
     }
 
-    [Fact]
-    public void GivenTheCursorOnAPlainModifiedFile_WhenFinding_ThenNothingIsReturned()
+    [Theory]
+    [MemberData(nameof(NoConflictedSelection))]
+    public void GivenNoConflictedFileUnderTheCursor_WhenFinding_ThenNothingIsReturned(
+        string reason,
+        WorkingTreeState? tree)
     {
-        var tree = Tree(Selection("a.txt"), Entry(StatusEntryKind.Ordinary, "a.txt"));
-
+        Assert.NotEmpty(reason);
         Assert.Null(ConflictedSelection.Find(tree));
-    }
-
-    [Fact]
-    public void GivenTheCursorOnAnotherFileThanTheConflictedOne_WhenFinding_ThenNothingIsReturned()
-    {
-        var tree = Tree(
-            Selection("b.txt"),
-            Entry(StatusEntryKind.Unmerged, "a.txt"),
-            Entry(StatusEntryKind.Ordinary, "b.txt"));
-
-        Assert.Null(ConflictedSelection.Find(tree));
-    }
-
-    [Fact]
-    public void GivenAFolderRow_WhenFinding_ThenNothingIsReturned()
-    {
-        var tree = Tree(
-            new WorkingTreeSelection(WorkingTreeSection.Unstaged, "a.txt", 0, true),
-            Entry(StatusEntryKind.Unmerged, "a.txt"));
-
-        Assert.Null(ConflictedSelection.Find(tree));
-    }
-
-    [Fact]
-    public void GivenTheStagedList_WhenFinding_ThenNothingIsReturned()
-    {
-        var tree = Tree(
-            new WorkingTreeSelection(WorkingTreeSection.Staged, "a.txt", 0),
-            Entry(StatusEntryKind.Unmerged, "a.txt"));
-
-        Assert.Null(ConflictedSelection.Find(tree));
-    }
-
-    [Fact]
-    public void GivenNoWorkingTree_WhenFinding_ThenNothingIsReturned()
-    {
-        Assert.Null(ConflictedSelection.Find(null));
     }
 
     [Fact]

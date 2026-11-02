@@ -5,28 +5,31 @@ namespace Gitunia.Core.Tests.Clipboard;
 
 public class Osc52EnvironmentTests
 {
-    [Fact]
-    public void GivenPlainTerminal_WhenDetecting_ThenDirect()
+    [Theory]
+    [InlineData("xterm-256color", null, null, Osc52Mode.Direct)]
+    [InlineData(null, null, null, Osc52Mode.Direct)]
+    [InlineData("screen-256color", "TMUX", "/tmp/tmux-1000/default,1,0", Osc52Mode.Tmux)]
+    [InlineData("screen", "STY", "1234.pts-0.host", Osc52Mode.Screen)]
+    public void GivenTheEnvironment_WhenDetecting_ThenTheModeFollowsTheMultiplexer(
+        string? terminal,
+        string? multiplexerName,
+        string? multiplexerValue,
+        Osc52Mode mode)
     {
-        var options = Osc52Environment.Detect(Lookup(new EnvironmentVariable("TERM", "xterm-256color")));
+        var variables = new List<EnvironmentVariable>();
+        if (terminal is not null)
+        {
+            variables.Add(new EnvironmentVariable("TERM", terminal));
+        }
 
-        Assert.Equal(Osc52Mode.Direct, options.Mode);
-    }
+        if (multiplexerName is not null)
+        {
+            variables.Add(new EnvironmentVariable(multiplexerName, multiplexerValue!));
+        }
 
-    [Fact]
-    public void GivenTmuxVariable_WhenDetecting_ThenTmux()
-    {
-        var options = Osc52Environment.Detect(Lookup(new EnvironmentVariable("TERM", "screen-256color"), new EnvironmentVariable("TMUX", "/tmp/tmux-1000/default,1,0")));
+        var options = Osc52Environment.Detect(Lookup([.. variables]));
 
-        Assert.Equal(Osc52Mode.Tmux, options.Mode);
-    }
-
-    [Fact]
-    public void GivenScreenVariable_WhenDetecting_ThenScreen()
-    {
-        var options = Osc52Environment.Detect(Lookup(new EnvironmentVariable("TERM", "screen"), new EnvironmentVariable("STY", "1234.pts-0.host")));
-
-        Assert.Equal(Osc52Mode.Screen, options.Mode);
+        Assert.Equal(mode, options.Mode);
     }
 
     [Theory]
@@ -34,18 +37,11 @@ public class Osc52EnvironmentTests
     [InlineData("linux")]
     public void GivenTerminalWithoutClipboard_WhenDetecting_ThenUnsupportedWithReason(string terminal)
     {
-        var options = Osc52Environment.Detect(Lookup(new EnvironmentVariable("TERM", terminal), new EnvironmentVariable("TMUX", "x")));
+        var options = Osc52Environment.Detect(
+            Lookup(new EnvironmentVariable("TERM", terminal), new EnvironmentVariable("TMUX", "x")));
 
         Assert.Equal(Osc52Mode.Unsupported, options.Mode);
         Assert.Contains(terminal, options.UnsupportedReason, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void GivenNoTermVariable_WhenDetecting_ThenDirect()
-    {
-        var options = Osc52Environment.Detect(Lookup());
-
-        Assert.Equal(Osc52Mode.Direct, options.Mode);
     }
 
     private static Func<string, string?> Lookup(params EnvironmentVariable[] variables)

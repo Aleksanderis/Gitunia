@@ -7,90 +7,101 @@ namespace Gitunia.Core.Tests.Workspaces.Panes;
 public class PaneNavigatorTests
 {
     private static readonly PaneKind[] SidebarAndGraph = [PaneKind.Sidebar, PaneKind.Graph];
-    private static readonly PaneKind[] WorkingLists = [PaneKind.WorkingUnstaged, PaneKind.WorkingStaged];
-    private static readonly PaneKind[] AllPanes = [PaneKind.Sidebar, PaneKind.Graph, PaneKind.Detail, PaneKind.Diff];
 
     [Theory]
-    [InlineData(PaneKind.Sidebar, true, PaneKind.Graph)]
-    [InlineData(PaneKind.Graph, true, PaneKind.Sidebar)]
-    [InlineData(PaneKind.Sidebar, false, PaneKind.Graph)]
-    [InlineData(PaneKind.Graph, false, PaneKind.Sidebar)]
-    public void GivenSidebarAndGraph_WhenCycling_ThenItWrapsBothWays(PaneKind current, bool forward, PaneKind expected) =>
-        Assert.Equal(expected, PaneNavigator.Cycle(current, forward, SidebarAndGraph));
-
-    [Fact]
-    public void GivenAllPanes_WhenCyclingBackwardFromSidebar_ThenDiffIsNext() =>
-        Assert.Equal(PaneKind.Diff, PaneNavigator.Cycle(PaneKind.Sidebar, false, AllPanes));
-
-    [Fact]
-    public void GivenClosedFocusedPane_WhenCycling_ThenFirstOpenPaneIsFocused() =>
-        Assert.Equal(PaneKind.Graph, PaneNavigator.Cycle(PaneKind.Sidebar, true, [PaneKind.Graph]));
-
-    [Fact]
-    public void GivenGraphOnly_WhenCycling_ThenFocusStays() =>
-        Assert.Equal(PaneKind.Graph, PaneNavigator.Cycle(PaneKind.Graph, true, [PaneKind.Graph]));
+    [InlineData(PaneKind.Sidebar, true, PaneKind.Graph, new[] { PaneKind.Sidebar, PaneKind.Graph })]
+    [InlineData(PaneKind.Graph, true, PaneKind.Sidebar, new[] { PaneKind.Sidebar, PaneKind.Graph })]
+    [InlineData(PaneKind.Sidebar, false, PaneKind.Graph, new[] { PaneKind.Sidebar, PaneKind.Graph })]
+    [InlineData(PaneKind.Graph, false, PaneKind.Sidebar, new[] { PaneKind.Sidebar, PaneKind.Graph })]
+    [InlineData(
+        PaneKind.Sidebar,
+        false,
+        PaneKind.Diff,
+        new[] { PaneKind.Sidebar, PaneKind.Graph, PaneKind.Detail, PaneKind.Diff })] // Backward from the first wraps.
+    [InlineData(PaneKind.Sidebar, true, PaneKind.Graph, new[] { PaneKind.Graph })] // The focused pane is closed.
+    [InlineData(PaneKind.Graph, true, PaneKind.Graph, new[] { PaneKind.Graph })] // One pane: the focus stays.
+    [InlineData(
+        PaneKind.WorkingUnstaged,
+        true,
+        PaneKind.WorkingStaged,
+        new[] { PaneKind.WorkingUnstaged, PaneKind.WorkingStaged })] // The working lists alternate.
+    [InlineData(
+        PaneKind.WorkingStaged,
+        true,
+        PaneKind.WorkingUnstaged,
+        new[] { PaneKind.WorkingUnstaged, PaneKind.WorkingStaged })]
+    [InlineData(
+        PaneKind.WorkingUnstaged,
+        false,
+        PaneKind.WorkingStaged,
+        new[] { PaneKind.WorkingUnstaged, PaneKind.WorkingStaged })]
+    [InlineData(
+        PaneKind.WorkingStaged,
+        true,
+        PaneKind.WorkingStagedDiff,
+        new[] { PaneKind.WorkingUnstaged, PaneKind.WorkingStaged, PaneKind.WorkingStagedDiff })] // The diff follows.
+    [InlineData(
+        PaneKind.WorkingStagedDiff,
+        true,
+        PaneKind.WorkingUnstaged,
+        new[] { PaneKind.WorkingUnstaged, PaneKind.WorkingStaged, PaneKind.WorkingStagedDiff })]
+    [InlineData(
+        PaneKind.WorkingUnstaged,
+        false,
+        PaneKind.WorkingStagedDiff,
+        new[] { PaneKind.WorkingUnstaged, PaneKind.WorkingStaged, PaneKind.WorkingStagedDiff })]
+    public void GivenOpenPanes_WhenCycling_ThenItWrapsBothWaysOverTheOpenOnes(
+        PaneKind current,
+        bool forward,
+        PaneKind expected,
+        PaneKind[] open) =>
+        Assert.Equal(expected, PaneNavigator.Cycle(current, forward, open));
 
     [Theory]
     [InlineData(PaneKind.Graph, false, PaneKind.Sidebar)]
     [InlineData(PaneKind.Sidebar, true, PaneKind.Graph)]
     [InlineData(PaneKind.Sidebar, false, PaneKind.Sidebar)]
     [InlineData(PaneKind.Graph, true, PaneKind.Graph)]
-    public void GivenSidebarAndGraph_WhenStepping_ThenFocusStopsAtTheEdges(PaneKind current, bool toRight, PaneKind expected) =>
+    public void GivenSidebarAndGraph_WhenStepping_ThenFocusStopsAtTheEdges(
+        PaneKind current,
+        bool toRight,
+        PaneKind expected) =>
         Assert.Equal(expected, PaneNavigator.Step(current, toRight, SidebarAndGraph));
 
     [Theory]
-    [InlineData(PaneKind.Graph, true, PaneKind.Detail)]
-    [InlineData(PaneKind.Sidebar, true, PaneKind.Detail)]
-    [InlineData(PaneKind.Detail, false, PaneKind.Graph)]
-    [InlineData(PaneKind.Diff, false, PaneKind.Graph)]
-    [InlineData(PaneKind.Graph, false, PaneKind.Graph)]
-    [InlineData(PaneKind.Detail, true, PaneKind.Detail)]
-    public void GivenAllPanes_WhenSteppingVertically_ThenFocusMovesBetweenTheTopAndBottomRows(PaneKind current, bool down, PaneKind expected) =>
-        Assert.Equal(expected, PaneNavigator.StepVertically(current, down, AllPanes));
+    [MemberData(nameof(VerticalSteps))]
+    public void GivenOpenPanes_WhenSteppingVertically_ThenFocusMovesBetweenTheRowsAndStaysAtTheEdges(
+        PaneKind current,
+        bool down,
+        PaneKind expected,
+        PaneKind[] open) =>
+        Assert.Equal(expected, PaneNavigator.StepVertically(current, down, open));
 
-    [Theory]
-    [InlineData(PaneKind.WorkingUnstaged, true, PaneKind.WorkingStaged)]
-    [InlineData(PaneKind.WorkingStaged, false, PaneKind.WorkingUnstaged)]
-    [InlineData(PaneKind.WorkingUnstaged, false, PaneKind.WorkingUnstaged)]
-    [InlineData(PaneKind.WorkingStaged, true, PaneKind.WorkingStaged)]
-    public void GivenTheWorkingTreeLists_WhenSteppingVertically_ThenUnstagedIsAboveStaged(PaneKind current, bool down, PaneKind expected) =>
-        Assert.Equal(expected, PaneNavigator.StepVertically(current, down, WorkingLists));
-
-    [Fact]
-    public void GivenTheWorkingTreeLists_WhenCycling_ThenTheTwoListsAlternate()
+    public static TheoryData<PaneKind, bool, PaneKind, PaneKind[]> VerticalSteps()
     {
-        Assert.Equal(PaneKind.WorkingStaged, PaneNavigator.Cycle(PaneKind.WorkingUnstaged, true, WorkingLists));
-        Assert.Equal(PaneKind.WorkingUnstaged, PaneNavigator.Cycle(PaneKind.WorkingStaged, true, WorkingLists));
-        Assert.Equal(PaneKind.WorkingStaged, PaneNavigator.Cycle(PaneKind.WorkingUnstaged, false, WorkingLists));
+        PaneKind[] all = [PaneKind.Sidebar, PaneKind.Graph, PaneKind.Detail, PaneKind.Diff];
+        PaneKind[] lists = [PaneKind.WorkingUnstaged, PaneKind.WorkingStaged];
+
+        return new TheoryData<PaneKind, bool, PaneKind, PaneKind[]>
+        {
+            { PaneKind.Graph, true, PaneKind.Detail, all },
+            { PaneKind.Sidebar, true, PaneKind.Detail, all },
+            { PaneKind.Detail, false, PaneKind.Graph, all },
+            { PaneKind.Diff, false, PaneKind.Graph, all },
+            { PaneKind.Graph, false, PaneKind.Graph, all },
+            { PaneKind.Detail, true, PaneKind.Detail, all },
+            { PaneKind.Graph, true, PaneKind.Diff, [PaneKind.Graph, PaneKind.Diff] }, // Only the diff below.
+            { PaneKind.Graph, true, PaneKind.Graph, SidebarAndGraph }, // No bottom pane.
+            { PaneKind.Detail, false, PaneKind.Sidebar, [PaneKind.Sidebar, PaneKind.Detail] }, // No graph.
+            { PaneKind.WorkingUnstaged, true, PaneKind.WorkingStaged, lists },
+            { PaneKind.WorkingStaged, false, PaneKind.WorkingUnstaged, lists },
+            { PaneKind.WorkingUnstaged, false, PaneKind.WorkingUnstaged, lists },
+            { PaneKind.WorkingStaged, true, PaneKind.WorkingStaged, lists },
+            { PaneKind.WorkingUnstagedDiff, true, PaneKind.WorkingUnstagedDiff, lists },
+            { PaneKind.WorkingUnstagedDiff, false, PaneKind.WorkingUnstagedDiff, lists },
+            { PaneKind.WorkingStagedDiff, true, PaneKind.WorkingStagedDiff, lists },
+            { PaneKind.WorkingStagedDiff, false, PaneKind.WorkingStagedDiff, lists },
+        };
     }
 
-    [Theory]
-    [InlineData(PaneKind.WorkingUnstagedDiff, true)]
-    [InlineData(PaneKind.WorkingUnstagedDiff, false)]
-    [InlineData(PaneKind.WorkingStagedDiff, true)]
-    [InlineData(PaneKind.WorkingStagedDiff, false)]
-    public void GivenAWorkingTreeDiff_WhenSteppingVertically_ThenFocusStays(PaneKind current, bool down) =>
-        Assert.Equal(current, PaneNavigator.StepVertically(current, down, WorkingLists));
-
-    [Fact]
-    public void GivenTheListsAndTheDiffOfTheSelectedSide_WhenCycling_ThenTheDiffComesAfterTheLists()
-    {
-        PaneKind[] cycle = [.. WorkingLists, PaneKind.WorkingStagedDiff];
-
-        Assert.Equal(PaneKind.WorkingStagedDiff, PaneNavigator.Cycle(PaneKind.WorkingStaged, true, cycle));
-        Assert.Equal(PaneKind.WorkingUnstaged, PaneNavigator.Cycle(PaneKind.WorkingStagedDiff, true, cycle));
-        Assert.Equal(PaneKind.WorkingStagedDiff, PaneNavigator.Cycle(PaneKind.WorkingUnstaged, false, cycle));
-    }
-
-    [Fact]
-    public void GivenOnlyTheDiffBelow_WhenSteppingDown_ThenTheDiffIsFocused() =>
-        Assert.Equal(PaneKind.Diff, PaneNavigator.StepVertically(PaneKind.Graph, true, [PaneKind.Graph, PaneKind.Diff]));
-
-    [Fact]
-    public void GivenNoBottomPane_WhenSteppingDown_ThenFocusStays() =>
-        Assert.Equal(PaneKind.Graph, PaneNavigator.StepVertically(PaneKind.Graph, true, SidebarAndGraph));
-
-    [Fact]
-    public void GivenNoGraph_WhenSteppingUp_ThenTheSidebarIsFocused() =>
-        Assert.Equal(PaneKind.Sidebar, PaneNavigator.StepVertically(PaneKind.Detail, false, [PaneKind.Sidebar, PaneKind.Detail]));
 }

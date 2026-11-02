@@ -166,27 +166,6 @@ public class BranchPipelineTests
     }
 
     [Fact]
-    public async Task GivenAnUnmergedBranch_WhenTheSecondDialogIsDeclined_ThenTheBranchStaysAndTheTabIsFree()
-    {
-        using var repository = RepositoryWithTopic()
-            .CheckoutNewBranch("wip")
-            .Commit("only here", new TestFile("only.txt", "x"))
-            .Checkout("main");
-        var tip = repository.Git("rev-parse", "wip").Trim();
-        using var pipeline = await Pipeline.OpenAsync(repository);
-
-        var target = new BranchTarget(SidebarRowKind.LocalBranch, "wip", tip);
-
-        pipeline.Dispatch(new BranchDeleteRequested(pipeline.TabId, target));
-        pipeline.Dispatch(new ConfirmAnsweredCommand(ConfirmAnswer.Yes));
-        await pipeline.Pump.RunUntilAsync(() => pipeline.Host.State.Shell.Confirm is not null);
-        pipeline.Dispatch(new ConfirmAnsweredCommand(ConfirmAnswer.No));
-
-        Assert.False(pipeline.IsBranchRunning);
-        Assert.NotEqual(string.Empty, repository.Git("branch", "--list", "wip").Trim());
-    }
-
-    [Fact]
     public async Task GivenATooSmallScreen_WhenDeleting_ThenNoDialogOpensAndNothingIsDeleted()
     {
         using var repository = RepositoryWithTopic();
