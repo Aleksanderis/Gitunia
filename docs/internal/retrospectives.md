@@ -24,7 +24,7 @@ Owner-approved docs-reduction: (1) decisions entries only for non-obvious choice
 
 ## 2026-11-02 M7 impact report (effects-as-data, #990; issue #1031)
 
-Baseline `468de95` (main before the design spec PR #998, no `Gitunia.App`). End `d151844` (main after #1054). Numbers from `scripts/m7-impact.sh` (raw `find`/`grep`/`wc`, no `tokei`/`cloc` available) and `git diff`. Code lines = non-blank, not starting with `//`. Tests = `[Fact]`/`[Theory]` attributes (a Theory counts once, not per data row). Not measured, on purpose: `scripts/measure.sh` (startup, key latency), AOT binary size and `dotnet test` wall time; the owner said not to run them for this report, so there is no performance verdict here and none is claimed. Constructors with more than five parameters were not counted either (no cheap reliable counter).
+Baseline `468de95` (main before the design spec PR #998, no `Gitunia.App`). End `d151844` (main after #1054). Numbers from `scripts/m7-impact.sh` (raw `find`/`grep`/`wc`, no `tokei`/`cloc` available) and `git diff`. Code lines = non-blank, not starting with `//`. Tests = `[Fact]`/`[Theory]` attributes (a Theory counts once, not per data row). Not measured, on purpose: `scripts/measure.sh` (startup, key latency), AOT binary size and `dotnet test` wall time; they were excluded by the run instructions for this task, so there is no performance verdict here and none is claimed; #1055 tracks them. Constructors with more than five parameters were not counted either (no cheap reliable counter).
 
 ### Totals (baseline..end)
 
@@ -80,8 +80,8 @@ Top 5 before: `TuiApplication` 2344, `MainView` 1064, `ConflictEditorController`
 | Platform | 30 | 30 |
 | Tui | 2360 | 1759 |
 | **Total** | 4232 | 5520 (+1288) |
-| Synchronous Core + App tests | 1099 (26%) | 2988 (54%) |
-| Tui tests (UI-pump/view/TUI wiring) | 2360 (56%) | 1759 (32%) |
+| Core + App tests (no terminal) | 1099 (26%) | 2988 (54%) |
+| Tui tests | 2360 (56%) | 1759 (32%) |
 
 Core + App tests are counted as "no terminal" tests; I did not classify each App test as sync vs async, so the 54% is an upper bound for purely synchronous reducer tests. `dotnet test` wall time: not measured.
 
@@ -93,16 +93,16 @@ Core + App tests are counted as "no terminal" tests; I did not classify each App
 | What moved | About 11.6k lines left `Gitunia.Tui` (35.1k to 23.5k); Core gained 12.8k and App 6.3k. Tui is now views, rendering and input. |
 | Shape | God class (2344 to 95 lines), `ActionRouter` and all files over 500 lines in Tui/App are gone; late `null!` wiring 44 to 1; delegate parameters about 85% fewer. |
 | Tests | 54% of tests need no terminal (was 26%); Tui tests fell by 600 as logic tests moved to Core and App. |
-| Git and Platform layers | Unchanged (within 4 lines). |
+| Git and Platform layers | Unchanged (within 10 raw lines). |
 
 ### Against the "done when" line (`docs/internal/roadmap.md`)
 
 | Criterion | Status |
 |---|---|
-| Every M7 issue closed | Not yet: open #1006 (overlay return mode, RunActionCommand bridge), #1008 (`FilterPicker<T>`, `IPromptHandler`), #1042 (composition root follow-ups), #1045 (failing `OsTraitGuardTests`, flaky `CompareInputTests`), #1047 (last render-callback delegates in Tui views; in flight, another agent), plus this report and tracking issue #990. #1013 and #1020 are closed. |
+| Every M7 issue closed | Not yet: open #1006 (overlay return mode; the RunActionCommand bridge half was removed by #1051), #1008 (`FilterPicker<T>`, `IPromptHandler`), #1042 (composition root follow-ups), #1045 (failing `OsTraitGuardTests`, flaky `CompareInputTests`), #1047 (last render-callback delegates in Tui views; in flight, another agent), plus this report and tracking issue #990. #1013 and #1020 are closed. |
 | Feature logic covered by synchronous Core tests | Largely met (see tests table); not audited feature by feature. |
 | No delegate dependencies | Not met: 83 `Action<`/`Func<` tokens remain, 45 typed parameters by grep estimate (some are legitimate, e.g. callbacks inside pure helpers); #1047 and #1008 cover part. |
-| No late `null!` wiring | Almost: 1 occurrence left (not individually checked whether it is late wiring). |
+| No late `null!` wiring | Met: the one left is an `out` default in `App/Loading/Commits/CommitDetailsCache.cs`, not late wiring. |
 | No constructors over five parameters | Not measured. |
 | No files over ~500 lines in `src/` | Met in practice: one file at 504 lines, a constant list. |
-| Startup and key latency unchanged | Not measured here (no `measure.sh` run by owner instruction); this report makes no claim. |
+| Startup and key latency unchanged | Not measured here (excluded by the run instructions for this task); this report makes no claim. |
