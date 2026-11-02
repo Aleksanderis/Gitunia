@@ -216,8 +216,8 @@ public static partial class AppReducer
         return new AppUpdate(state with { Shell = shell }, update.Effects);
     }
 
-    // The mainline question
-    // lives in the shell state because it is an overlay; the reducer returns it after each command.
+    // The mainline question lives in the shell state because it is an overlay; the reducer returns it after each
+    // command.
     private static AppUpdate ReducePick(AppState state, RepositoryState tab, PickCommand command)
     {
         var busy = IsBusy(tab, RunningOperationKind.Pick);

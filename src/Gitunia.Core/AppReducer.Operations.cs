@@ -94,8 +94,7 @@ public static partial class AppReducer
         return new AppUpdate(WithTab(state, update.Tab), update.Effects);
     }
 
-    // After a success the graph cursor
-    // follows to the commit the reducer named; the saved selection is the commit the refreshed graph then selects.
+    // After a success the graph cursor follows to the commit the reducer named; the saved selection is the commit the refreshed graph then selects.
     private static AppUpdate ReduceBranch(AppState state, RepositoryState tab, BranchCommand command)
     {
         var busy = IsBusy(tab, RunningOperationKind.Branches);
@@ -114,8 +113,7 @@ public static partial class AppReducer
         return new AppUpdate(next, effects);
     }
 
-    // A located worktree or a
-    // read overview is applied to the workspace after the feature has decided.
+    // A located worktree or a read overview is applied to the workspace after the feature has decided.
     private static AppUpdate ReduceWorktree(AppState state, RepositoryState tab, WorktreeCommand command)
     {
         var busy = tab.Running.IsRunning(RunningOperationKind.Worktrees);
