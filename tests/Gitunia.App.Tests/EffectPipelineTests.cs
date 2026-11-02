@@ -390,10 +390,21 @@ public class EffectPipelineTests
         using var repository = TestRepositories.Linear();
         using var pipeline = await Pipeline.OpenAsync(TestGit.Services, repository);
         var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        // Jobs signal when they start: nothing posts to the pump while they block, so waiting on the pump would hang.
+        using var started = new SemaphoreSlim(0);
         var blocked = Enumerable.Range(0, BackgroundWork.DefaultLimit + 2)
-            .Select(_ => pipeline.Background.RunAsync(() => release.Task, CancellationToken.None))
+            .Select(_ => pipeline.Background.RunAsync(() =>
+            {
+                started.Release();
+                return release.Task;
+            }, CancellationToken.None))
             .ToArray();
-        await pipeline.Pump.RunUntilAsync(() => pipeline.Background.Running == BackgroundWork.DefaultLimit);
+        for (var i = 0; i < BackgroundWork.DefaultLimit; i++)
+        {
+            await started.WaitAsync(TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken);
+        }
+
+        Assert.Equal(BackgroundWork.DefaultLimit, pipeline.Background.Running);
         Assert.Equal(2, pipeline.Background.Waiting);
 
         pipeline.Dispatch(new TagCreateRequested(pipeline.TabId, new TagTarget(null, null, repository.Head)));
