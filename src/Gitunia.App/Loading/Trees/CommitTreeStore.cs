@@ -1,6 +1,6 @@
-using Gitunia.Core.Text;
 using Gitunia.App.Loading.Commits;
 using Gitunia.Core.FileTree;
+using Gitunia.Core.Text;
 using Gitunia.Git;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Trees;

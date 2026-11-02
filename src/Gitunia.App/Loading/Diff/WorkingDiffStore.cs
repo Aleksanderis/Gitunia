@@ -1,5 +1,5 @@
-using Gitunia.Core.Text;
 using Gitunia.Core.Diff;
+using Gitunia.Core.Text;
 using Gitunia.Git.Diff;
 using Gitunia.Git.Diff.Models;
 using Gitunia.Git.Repositories.Models;

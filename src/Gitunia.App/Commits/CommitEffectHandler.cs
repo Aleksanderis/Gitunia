@@ -1,7 +1,7 @@
-using Gitunia.Core.Text;
 using System.Collections.Concurrent;
 using Gitunia.Core.Commits;
 using Gitunia.Core.Editing;
+using Gitunia.Core.Text;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Commits;
 using Gitunia.Git.Execution.Exceptions;

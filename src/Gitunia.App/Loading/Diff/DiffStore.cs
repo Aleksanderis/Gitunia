@@ -1,6 +1,6 @@
-using Gitunia.Core.Text;
 using Gitunia.App.Background;
 using Gitunia.Core.Diff;
+using Gitunia.Core.Text;
 using Gitunia.Git;
 using Gitunia.Git.Diff;
 using Gitunia.Git.Diff.Models;

@@ -1,9 +1,9 @@
-using Gitunia.Core.Text;
 using System.Diagnostics;
 using Gitunia.App.Loading.Graph;
 using Gitunia.App.Status;
 using Gitunia.App.Tabs.Models;
 using Gitunia.Core.Graph;
+using Gitunia.Core.Text;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Git.Config;

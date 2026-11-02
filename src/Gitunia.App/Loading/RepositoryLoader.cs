@@ -1,8 +1,8 @@
-using Gitunia.Core.Text;
 using Gitunia.App.Loading.Graph;
 using Gitunia.App.Status;
 using Gitunia.App.Tabs;
 using Gitunia.Core.Graph;
+using Gitunia.Core.Text;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
@@ -64,10 +64,11 @@ public sealed class RepositoryLoader
         catch (Exception exception)
         {
             // Not only git failures: a broken pipe or a bug must end the loading state with a message, never hang it.
+            var reason = FailureText.Reason(exception);
             ui.Post(() =>
             {
-                statuses.Error($"{Path.GetFileName(Path.TrimEndingDirectorySeparator(location.RootPath))}: could not load the graph: {FailureText.Reason(exception)}");
-                session.Fail(FailureText.Reason(exception));
+                statuses.Error($"{Path.GetFileName(Path.TrimEndingDirectorySeparator(location.RootPath))}: could not load the graph: {reason}");
+                session.Fail(reason);
             });
         }
 

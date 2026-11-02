@@ -1,6 +1,6 @@
-using Gitunia.Core.Text;
 using Gitunia.App.Loading.Commits;
 using Gitunia.Core.Diff;
+using Gitunia.Core.Text;
 using Gitunia.Git;
 using Gitunia.Git.Blobs;
 using Gitunia.Git.Repositories.Models;

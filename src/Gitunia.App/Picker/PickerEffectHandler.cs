@@ -1,6 +1,6 @@
-using Gitunia.Core.Text;
 using System.Collections.Immutable;
 using Gitunia.Core.Picker;
+using Gitunia.Core.Text;
 using Gitunia.Git.Execution.Exceptions;
 using Gitunia.Git.Repositories;
 

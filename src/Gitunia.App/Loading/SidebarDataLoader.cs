@@ -1,5 +1,5 @@
-using Gitunia.Core.Text;
 using Gitunia.App.Status;
+using Gitunia.Core.Text;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;

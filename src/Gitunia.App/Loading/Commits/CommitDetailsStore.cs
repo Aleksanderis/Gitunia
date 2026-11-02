@@ -1,5 +1,5 @@
-using Gitunia.Core.Text;
 using Gitunia.App.Background;
+using Gitunia.Core.Text;
 using Gitunia.Git;
 using Gitunia.Git.Commits;
 using Gitunia.Git.Commits.Models;
