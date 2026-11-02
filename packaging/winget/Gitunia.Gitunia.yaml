@@ -1,0 +1,6 @@
+# Winget version manifest template (#943). Placeholders are filled by scripts/winget-manifest.sh.
+PackageIdentifier: Gitunia.Gitunia
+PackageVersion: @VERSION@
+DefaultLocale: en-US
+ManifestType: version
+ManifestVersion: 1.9.0

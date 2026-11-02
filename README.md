@@ -34,7 +34,7 @@ Not included: submodules, LFS UI, hosting-provider integration, plugins.
 
 Needs Git 2.43 or newer on your `PATH`.
 
-Ways to install: Linux `.deb`/`.rpm`, Arch/Omarchy `.pkg.tar.zst`, a Windows or Linux archive, a macOS archive (Apple silicon; should work but is not fully tested yet, and unsigned, so Gatekeeper asks you to allow it), or from source. For more details look in the [user guide](docs/user-guide.md#install).
+Ways to install: Linux `.deb`/`.rpm`, Arch/Omarchy `.pkg.tar.zst`, Windows `winget install Gitunia.Gitunia`, a Windows or Linux archive, a macOS archive (Apple silicon; should work but is not fully tested yet, and unsigned, so Gatekeeper asks you to allow it), or from source. For more details look in the [user guide](docs/user-guide.md#install).
 
 ## Quick start
 

@@ -1,0 +1,36 @@
+name: winget
+
+# Opens the winget-pkgs PR for a release (#943). Runs only when the owner publishes a release (the draft made by
+# ci.yml does not trigger it). The first submission of Gitunia.Gitunia is a manual PR by the owner; this job needs the
+# package to exist already. Needs the repo secret WINGET_TOKEN: a classic PAT with public_repo scope (owner creates it).
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  submit:
+    if: ${{ !github.event.release.prerelease }}
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate manifests from the release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          version="${TAG#v}"
+          gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --pattern "gitunia-${version}-win-x64.exe.sha256" --dir dl
+          scripts/winget-manifest.sh "$version" "dl/gitunia-${version}-win-x64.exe.sha256" manifests
+      - name: Submit to winget-pkgs
+        shell: pwsh
+        env:
+          WINGET_TOKEN: ${{ secrets.WINGET_TOKEN }}
+        run: |
+          if (-not $env:WINGET_TOKEN) { throw "Repo secret WINGET_TOKEN is not set" }
+          Invoke-WebRequest https://aka.ms/wingetcreate/latest -OutFile wingetcreate.exe
+          .\wingetcreate.exe submit --token $env:WINGET_TOKEN manifests

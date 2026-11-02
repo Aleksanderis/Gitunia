@@ -1,0 +1,13 @@
+# Winget installer manifest template (#943). A portable package: winget links the one exe into its PATH folder.
+PackageIdentifier: Gitunia.Gitunia
+PackageVersion: @VERSION@
+InstallerType: portable
+Commands:
+- gitunia
+ReleaseDate: @DATE@
+Installers:
+- Architecture: x64
+  InstallerUrl: @URL@
+  InstallerSha256: @SHA256@
+ManifestType: installer
+ManifestVersion: 1.9.0
