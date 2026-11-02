@@ -31,7 +31,8 @@ public class SidebarActionReducerTests
     [InlineData("navigate.back", PaneKind.Sidebar, false, SidebarActionKind.Sidebar)]
     [InlineData("navigate.back", PaneKind.Graph, false, SidebarActionKind.None)]
     [InlineData("graph.jump-to-head", PaneKind.Sidebar, false, SidebarActionKind.None)]
-    public void GivenAnActionAndTheFocus_WhenClassifying_ThenItIsTheSidebarsOnlyWhereItShouldBe(string actionName,
+    public void GivenAnActionAndTheFocus_WhenClassifying_ThenItIsTheSidebarsOnlyWhereItShouldBe(
+        string actionName,
         PaneKind focused,
         bool editing,
         SidebarActionKind expected)

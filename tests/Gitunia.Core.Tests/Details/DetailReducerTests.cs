@@ -29,7 +29,8 @@ public class DetailReducerTests
     [InlineData(BottomTab.Details, DetailTabMove.Changes, BottomTab.Changes)]
     [InlineData(BottomTab.Details, DetailTabMove.Files, BottomTab.Files)]
     [InlineData(BottomTab.Files, DetailTabMove.Files, BottomTab.Files)]
-    public void GivenATabMove_WhenReducing_ThenTheTabsBottomTabIsTheTarget(BottomTab start,
+    public void GivenATabMove_WhenReducing_ThenTheTabsBottomTabIsTheTarget(
+        BottomTab start,
         DetailTabMove move,
         BottomTab expected)
     {

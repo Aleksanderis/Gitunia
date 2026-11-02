@@ -21,7 +21,8 @@ public class SettingsKeysTests
     [InlineData("+", "settings.increase")]
     [InlineData("-", "settings.decrease")]
     [InlineData("j", "list.down")]
-    public void GivenTheSettingsView_WhenPressingAKeyInNormalMode_ThenItRunsTheDocumentedAction(string keys,
+    public void GivenTheSettingsView_WhenPressingAKeyInNormalMode_ThenItRunsTheDocumentedAction(
+        string keys,
         string action)
     {
         var feeder = new KeyFeeder(new KeymapEngine(DefaultKeymap.Create()), DefaultKeymap.SettingsView);

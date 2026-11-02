@@ -56,7 +56,8 @@ public class ConflictReducerTests
     [InlineData(RunningOperationKind.Rebase)]
     [InlineData(RunningOperationKind.Branches)]
     [InlineData(RunningOperationKind.Sync)]
-    public void GivenAnotherWorkingTreeOperationRuns_WhenOpeningTheEditor_ThenItIsRefusedAsBusy(RunningOperationKind running)
+    public void GivenAnotherWorkingTreeOperationRuns_WhenOpeningTheEditor_ThenItIsRefusedAsBusy(
+        RunningOperationKind running)
     {
         var state = Loaded(Entry(Path, ConflictKind.BothModified));
         var tab = state.Workspace.ActiveTab!;
