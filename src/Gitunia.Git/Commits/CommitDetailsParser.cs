@@ -7,8 +7,6 @@ namespace Gitunia.Git.Commits;
 /// <summary>Parses the output of <c>git log -1 -z</c> in <see cref="CommitDetailsFormat"/> into a <see cref="CommitDetails"/> without files.</summary>
 public static class CommitDetailsParser
 {
-    private static readonly ObjectId[] NoParents = [];
-
     /// <param name="output">Raw stdout.</param>
     /// <param name="warnings">Receives a message when something could not be understood.</param>
     /// <returns>The commit, or null when the output holds no usable record.</returns>
@@ -52,7 +50,7 @@ public static class CommitDetailsParser
             return null;
         }
 
-        var parents = ParseParents(record[fields[1]]);
+        var parents = ParentIds.Parse(record[fields[1]]);
         if (parents is null)
         {
             warnings.Add($"Commit {id} has an invalid parent list");
@@ -81,29 +79,5 @@ public static class CommitDetailsParser
 
         warnings.Add($"Commit {id} has an invalid time");
         return DateTimeOffset.UnixEpoch;
-    }
-
-    private static ObjectId[]? ParseParents(ReadOnlySpan<byte> field)
-    {
-        if (field.Length == 0)
-        {
-            return NoParents;
-        }
-
-        var parents = new List<ObjectId>(2);
-        while (field.Length > 0)
-        {
-            var space = field.IndexOf((byte)' ');
-            var hash = space < 0 ? field : field[..space];
-            if (!ObjectId.TryParse(hash, out var parent))
-            {
-                return null;
-            }
-
-            parents.Add(parent);
-            field = space < 0 ? [] : field[(space + 1)..];
-        }
-
-        return [.. parents];
     }
 }

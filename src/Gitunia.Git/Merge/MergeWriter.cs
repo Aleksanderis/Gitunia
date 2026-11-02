@@ -24,7 +24,6 @@ public sealed class MergeWriter(GitRunner runner, OperationRunner operations) : 
     private const string CommitSuffix = "^{commit}";
 
     private static readonly string[] HeadArguments = ["rev-parse", "--quiet", "--verify", GitOptions.HeadRevision];
-    private static readonly string[] UnmergedArguments = ["ls-files", "--unmerged"];
 
     private static readonly GitRunOptions WriteOptions = new(Timeout: TimeSpan.FromMinutes(10));
 
@@ -157,7 +156,7 @@ public sealed class MergeWriter(GitRunner runner, OperationRunner operations) : 
                 NoMatchOptions,
                 cancellationToken)
             .ConfigureAwait(false);
-        var unmergedBefore = await ReadUnmergedAsync(location, cancellationToken).ConfigureAwait(false);
+        var unmergedBefore = await UnmergedFiles.ReadAsync(runner, location, cancellationToken).ConfigureAwait(false);
         try
         {
             await runner.RunAsync(location.CommandPath, arguments, WriteOptions, cancellationToken)
@@ -165,8 +164,8 @@ public sealed class MergeWriter(GitRunner runner, OperationRunner operations) : 
         }
         catch (GitCommandFailedException)
         {
-            var unmergedAfter = await ReadUnmergedAsync(location, cancellationToken).ConfigureAwait(false);
-            if (unmergedAfter.Length == 0 || unmergedAfter == unmergedBefore)
+            var unmergedAfter = await UnmergedFiles.ReadAsync(runner, location, cancellationToken).ConfigureAwait(false);
+            if (!UnmergedFiles.MadeConflicts(unmergedBefore, unmergedAfter))
             {
                 throw;
             }
@@ -183,13 +182,5 @@ public sealed class MergeWriter(GitRunner runner, OperationRunner operations) : 
             .RunAsync(location.CommandPath, HeadArguments, NoMatchOptions, cancellationToken)
             .ConfigureAwait(false);
         return result.ExitCode == 0 ? result.StandardOutputText.Trim() : null;
-    }
-
-    private async Task<string> ReadUnmergedAsync(RepositoryLocation location, CancellationToken cancellationToken)
-    {
-        var result = await runner
-            .RunAsync(location.CommandPath, UnmergedArguments, GitRunOptions.ReadOnlyRun, cancellationToken)
-            .ConfigureAwait(false);
-        return result.StandardOutputText;
     }
 }

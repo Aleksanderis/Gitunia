@@ -266,7 +266,7 @@ Strangler. Old controllers and the new pipeline coexist until each feature has m
 ### Limits every M7 PR keeps
 
 - No delegate dependencies (`.claude/rules/csharp-style.md`, "Dependencies, not callbacks"), at most five constructor parameters, no `null!` late wiring.
-- No file over about 500 lines in `Gitunia.Tui/App` or `Gitunia.App`.
+- No file over about 500 lines anywhere in `src/` (a pure constant table such as `ActionIds` may exceed it by a few lines). Split by responsibility; a large type becomes `partial` files named `Type.Part.cs`, as `AppReducer` and `RepositoryWatcher` do.
 - Behaviour, keys, texts and snapshots unchanged; startup and key latency unchanged (`scripts/measure.sh`).
 - Build, tests and the AOT smoke run green.
 

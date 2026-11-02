@@ -1,5 +1,6 @@
 using Gitunia.Git.Execution;
 using Gitunia.Git.Execution.Exceptions;
+using Gitunia.Git.Operations;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Stash.Models;
 
@@ -18,8 +19,6 @@ public sealed class StashWriter(GitRunner runner) : IStashWriter
     private static readonly TimeSpan WriteTimeout = TimeSpan.FromMinutes(2);
 
     private static readonly string[] TopCommitArguments = ["rev-parse", "--quiet", "--verify", StashRef];
-
-    private static readonly string[] UnmergedArguments = ["ls-files", "--unmerged"];
 
     private static readonly string[] ListArguments = ["stash", "list", $"--format={StashParser.Format}"];
 
@@ -178,7 +177,7 @@ public sealed class StashWriter(GitRunner runner) : IStashWriter
         }
 
         string[] arguments = ["stash", command, "--quiet", name];
-        var unmergedBefore = await ReadUnmergedAsync(location, cancellationToken).ConfigureAwait(false);
+        var unmergedBefore = await UnmergedFiles.ReadAsync(runner, location, cancellationToken).ConfigureAwait(false);
         try
         {
             await runner
@@ -190,8 +189,8 @@ public sealed class StashWriter(GitRunner runner) : IStashWriter
         {
             // Only a change of the unmerged set proves this call made the conflict; files that were already conflicted
             // (a stopped merge) mean git refused, and its message is the answer.
-            var unmergedAfter = await ReadUnmergedAsync(location, cancellationToken).ConfigureAwait(false);
-            if (unmergedAfter.Length == 0 || unmergedAfter == unmergedBefore)
+            var unmergedAfter = await UnmergedFiles.ReadAsync(runner, location, cancellationToken).ConfigureAwait(false);
+            if (!UnmergedFiles.MadeConflicts(unmergedBefore, unmergedAfter))
             {
                 throw;
             }
@@ -207,14 +206,6 @@ public sealed class StashWriter(GitRunner runner) : IStashWriter
             .RunAsync(location.CommandPath, TopCommitArguments, NoMatchOptions, cancellationToken)
             .ConfigureAwait(false);
         return result.ExitCode == 0 ? result.StandardOutputText.Trim() : null;
-    }
-
-    private async Task<string> ReadUnmergedAsync(RepositoryLocation location, CancellationToken cancellationToken)
-    {
-        var result = await runner
-            .RunAsync(location.CommandPath, UnmergedArguments, GitRunOptions.ReadOnlyRun, cancellationToken)
-            .ConfigureAwait(false);
-        return result.StandardOutputText;
     }
 
     private async Task<string?> FindCurrentNameAsync(

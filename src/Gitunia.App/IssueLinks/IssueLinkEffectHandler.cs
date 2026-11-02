@@ -25,6 +25,7 @@ public sealed class IssueLinkEffectHandler(IUrlOpener opener, IDispatcher dispat
         }
         catch (Exception)
         {
+            // Any opener failure (a missing program, a platform error) shows the same notice.
             result = new UrlOpenResult(false, OpenerFailed);
         }
 

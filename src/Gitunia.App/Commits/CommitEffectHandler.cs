@@ -76,6 +76,7 @@ public sealed class CommitEffectHandler(ICommitWriter writer, IDispatcher dispat
         }
         catch (Exception exception)
         {
+            // Guard of the background run: anything else becomes a failed commit so the box never stays busy.
             var notice = $"Commit failed: {CommitFailureReport.Notice(exception.Message)}";
             result = new CommitFailed(effect.TabId, notice, null);
         }
