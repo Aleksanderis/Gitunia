@@ -201,6 +201,7 @@ Every default key binding, one table per view. The design rules, notation and mo
 | Keys | Modes | Action | What |
 |---|---|---|---|
 | `<space>gb` | Normal | `blame.open` | Blame the selected file (at the shown commit, or the working tree file) |
+| `<space>H` | Normal | `file-history.open` | Open the history of the selected file, renames followed |
 | `<space>or` | Normal | `repo.refresh` | Refresh the repository |
 | `y` | Normal | `working-tree.copy-path` | Copy the file or folder path |
 | `h` | Normal | `working-tree.collapse` | Close the folder, else go to the parent folder |
@@ -236,6 +237,7 @@ Every default key binding, one table per view. The design rules, notation and mo
 | Keys | Modes | Action | What |
 |---|---|---|---|
 | `<space>gb` | Normal | `blame.open` | Blame the selected file (at the shown commit, or the working tree file) |
+| `<space>H` | Normal | `file-history.open` | Open the history of the selected file, renames followed |
 | `<space>or` | Normal | `repo.refresh` | Refresh the repository |
 | `y` | Normal | `working-tree.copy-path` | Copy the file or folder path |
 | `h` | Normal | `working-tree.collapse` | Close the folder, else go to the parent folder |
@@ -293,6 +295,47 @@ Every default key binding, one table per view. The design rules, notation and mo
 | `<space>bx` | Normal | `reset.branch` | Reset the current branch to the selection |
 | `<space>bc` | Normal | `branch.create` | Create a branch and check it out |
 | `<space>bs` | Normal | `branch.switch` | Switch to a branch (check out) |
+
+## DetailChanges
+
+| Keys | Modes | Action | What |
+|---|---|---|---|
+| `<space>H` | Normal | `file-history.open` | Open the history of the selected file, renames followed |
+| `za` | Normal | `detail.toggle-folder` | Open or close the folder under the cursor (Changes tab, tree style) |
+| `<space>vn` | Normal | `files.toggle-path-style` | Cycle the file paths: name first, full path, tree |
+| `<space>vv` | Normal | `files.open-view-options` | Open the view options menu of the file list |
+| `<space>v1` | Normal | `files.path-name-first` | Show file paths name first |
+| `<space>v2` | Normal | `files.path-full-path` | Show file paths in full |
+| `<space>v3` | Normal | `files.path-tree` | Show files as a tree |
+| `<space>vp` | Normal | `diff.merge-parent` | Switch the merge commit's parent |
+| `J` | Normal | `diff.scroll-down` | Scroll the diff down without focusing it |
+| `K` | Normal | `diff.scroll-up` | Scroll the diff up without focusing it |
+| `D` | Normal | `diff.scroll-half-page-down` | Scroll the diff half a page down without focusing it |
+| `U` | Normal | `diff.scroll-half-page-up` | Scroll the diff half a page up without focusing it |
+| `<space>kr` | Normal | `stash.restore-file` | Restore the selected file of the shown stash into the working tree (asks first) |
+
+## DetailFiles
+
+| Keys | Modes | Action | What |
+|---|---|---|---|
+| `<space>H` | Normal | `file-history.open` | Open the history of the selected file, renames followed |
+| `<space>vv` | Normal | `files.open-view-options` | Open the view options menu of the file list |
+| `J` | Normal | `diff.scroll-down` | Scroll the diff down without focusing it |
+| `K` | Normal | `diff.scroll-up` | Scroll the diff up without focusing it |
+| `D` | Normal | `diff.scroll-half-page-down` | Scroll the diff half a page down without focusing it |
+| `U` | Normal | `diff.scroll-half-page-up` | Scroll the diff half a page up without focusing it |
+
+## FileHistory
+
+| Keys | Modes | Action | What |
+|---|---|---|---|
+| `Enter` | Normal | `file-history.select-commit` | Select the file history commit in the graph |
+| `h` `Esc` | Normal | `navigate.back` | Go back |
+| `<space>or` | Normal | `repo.refresh` | Refresh the repository |
+| `J` | Normal | `diff.scroll-down` | Scroll the diff down without focusing it |
+| `K` | Normal | `diff.scroll-up` | Scroll the diff up without focusing it |
+| `D` | Normal | `diff.scroll-half-page-down` | Scroll the diff half a page down without focusing it |
+| `U` | Normal | `diff.scroll-half-page-up` | Scroll the diff half a page up without focusing it |
 
 ## RebaseEditor
 
@@ -359,33 +402,6 @@ Every default key binding, one table per view. The design rules, notation and mo
 | `T` | Normal | `conflict-editor.all-theirs` | Conflict editor: take their side for every unresolved conflict of the file |
 | `e` | Normal | `conflict-editor.edit` | Conflict editor: move into the result at this conflict and start typing (Insert mode) |
 | `h` | Normal | `navigate.back` | Go back |
-
-## DetailChanges
-
-| Keys | Modes | Action | What |
-|---|---|---|---|
-| `za` | Normal | `detail.toggle-folder` | Open or close the folder under the cursor (Changes tab, tree style) |
-| `<space>vn` | Normal | `files.toggle-path-style` | Cycle the file paths: name first, full path, tree |
-| `<space>vv` | Normal | `files.open-view-options` | Open the view options menu of the file list |
-| `<space>v1` | Normal | `files.path-name-first` | Show file paths name first |
-| `<space>v2` | Normal | `files.path-full-path` | Show file paths in full |
-| `<space>v3` | Normal | `files.path-tree` | Show files as a tree |
-| `<space>vp` | Normal | `diff.merge-parent` | Switch the merge commit's parent |
-| `J` | Normal | `diff.scroll-down` | Scroll the diff down without focusing it |
-| `K` | Normal | `diff.scroll-up` | Scroll the diff up without focusing it |
-| `D` | Normal | `diff.scroll-half-page-down` | Scroll the diff half a page down without focusing it |
-| `U` | Normal | `diff.scroll-half-page-up` | Scroll the diff half a page up without focusing it |
-| `<space>kr` | Normal | `stash.restore-file` | Restore the selected file of the shown stash into the working tree (asks first) |
-
-## DetailFiles
-
-| Keys | Modes | Action | What |
-|---|---|---|---|
-| `<space>vv` | Normal | `files.open-view-options` | Open the view options menu of the file list |
-| `J` | Normal | `diff.scroll-down` | Scroll the diff down without focusing it |
-| `K` | Normal | `diff.scroll-up` | Scroll the diff up without focusing it |
-| `D` | Normal | `diff.scroll-half-page-down` | Scroll the diff half a page down without focusing it |
-| `U` | Normal | `diff.scroll-half-page-up` | Scroll the diff half a page up without focusing it |
 
 ## Diff
 

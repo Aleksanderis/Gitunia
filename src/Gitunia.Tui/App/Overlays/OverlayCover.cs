@@ -69,6 +69,11 @@ public sealed class OverlayCover : IConflictCover, IOverlayCover
             return DefaultKeymap.RebaseEditorView;
         }
 
+        if (_others.IsFileHistoryOpen)
+        {
+            return DefaultKeymap.FileHistoryView;
+        }
+
         if (_others.IsBlameOpen)
         {
             return DefaultKeymap.BlameView;

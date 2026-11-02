@@ -154,6 +154,8 @@ internal static class ActionLevels
             ["rebase.interactive-root"] = CommandLevel.AdvancedPlus,
             ["rebase.onto"] = CommandLevel.Everyday,
             ["rebase.reword"] = CommandLevel.Advanced,
+            ["file-history.open"] = CommandLevel.Advanced,
+            ["file-history.select-commit"] = CommandLevel.Advanced,
             ["blame.open"] = CommandLevel.Advanced,
             ["blame.show-commit"] = CommandLevel.Advanced,
             ["blame.parent"] = CommandLevel.Advanced,

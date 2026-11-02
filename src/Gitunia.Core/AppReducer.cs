@@ -18,6 +18,7 @@ using Gitunia.Core.Pick;
 using Gitunia.Core.Integration;
 using Gitunia.Core.Prompts;
 using Gitunia.Core.Rebase;
+using Gitunia.Core.FileHistory;
 using Gitunia.Core.Blame;
 using Gitunia.Core.Reflog;
 using Gitunia.Core.Settings;
@@ -71,6 +72,7 @@ public static partial class AppReducer
         DiffPaneCommand diffPane => DiffPaneReducer.Reduce(state, diffPane),
         DiscardCommand discard => InTab(state, discard.TabId, discard, ReduceDiscard),
         EffectFailedCommand failed => EffectFailed(state, failed),
+        FileHistoryCommand fileHistory => ReduceFileHistory(state, fileHistory),
         ExternalToolCommand tool => new AppUpdate(state, ExternalToolReducer.Reduce(tool, state.Workspace.ActiveTab)),
         InputCommand input => InputReducer.Reduce(state, input),
         IssueLinkCommand link => new AppUpdate(state, IssueLinkReducer.Reduce(link)),
@@ -151,6 +153,12 @@ public static partial class AppReducer
             effects.AddRange(reflog.Effects);
         }
 
+        if (FileHistoryReducer.OnTabClosed(shell.FileHistory, workspace) is { } fileHistory)
+        {
+            shell = shell with { FileHistory = fileHistory.Session };
+            effects.AddRange(fileHistory.Effects);
+        }
+
         if (BlameReducer.OnTabClosed(shell.Blame, workspace) is { } blame)
         {
             shell = shell with { Blame = blame.Session };
@@ -210,6 +218,30 @@ public static partial class AppReducer
 
         var update = ReflogReducer.Reduce(session, command, new ReflogContext(workspace.ActiveTab, listTab));
         var shell = state.Shell with { Reflog = update.Session };
+
+        return new AppUpdate(state with { Shell = shell }, update.Effects);
+    }
+
+    // The tab is the one an open request or a list result names, else the tab of the open history.
+    private static AppUpdate ReduceFileHistory(AppState state, FileHistoryCommand command)
+    {
+        var workspace = state.Workspace;
+        var session = state.Shell.FileHistory;
+        var tab = command switch
+        {
+            FileHistoryOpenRequested open => workspace.FindTab(open.TabId),
+            FileHistoryLoaded loaded => workspace.FindTab(loaded.TabId),
+            _ => session.History is { } history ? workspace.FindTab(history.TabId) : null,
+        };
+        // A result for a tab that is closed, or no longer the shown one, ends the read: the history is modal over the
+        // shown tab and the jump to the graph acts on it.
+        if (command is FileHistoryLoaded loadedFor && (tab is null || workspace.ActiveTabId != loadedFor.TabId))
+        {
+            command = new FileHistoryReadCancelled();
+        }
+
+        var update = FileHistoryReducer.Reduce(session, command, new FileHistoryContext(tab));
+        var shell = state.Shell with { FileHistory = update.Session };
 
         return new AppUpdate(state with { Shell = shell }, update.Effects);
     }

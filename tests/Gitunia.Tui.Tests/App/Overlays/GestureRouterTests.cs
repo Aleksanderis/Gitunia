@@ -16,6 +16,7 @@ using Gitunia.Tui.App.Overlays;
 using Gitunia.Tui.App.Panes;
 using Gitunia.Tui.App.Pick;
 using Gitunia.Tui.App.Rebase;
+using Gitunia.Tui.App.FileHistory;
 using Gitunia.Tui.App.Reflog;
 using Gitunia.Tui.App.Settings;
 using Gitunia.Tui.Input;
@@ -46,7 +47,8 @@ public sealed class GestureRouterTests : IDisposable, IActionRoute
             _store,
             new ListScreens(
                 new ReflogInput(host, new NoSelection(), GraphGlyphSet.Unicode),
-                new BlameInput(host, new BlameStore(), new NoBlameTargets(), GraphGlyphSet.Unicode)),
+                new BlameInput(host, new BlameStore(), new NoBlameTargets(), GraphGlyphSet.Unicode),
+                new FileHistoryInput(host, GraphGlyphSet.Unicode)),
             settings,
             new PickActions(host, new NoPicks()),
             new PromptDisplays([]));
