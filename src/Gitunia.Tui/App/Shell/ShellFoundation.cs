@@ -53,7 +53,7 @@ public sealed class ShellFoundation
         Statuses = new StatusReporter(Host);
         Registry = new TabSessionRegistry<TerminalTabSession>();
         Sessions = new ActiveSessions(Host, Registry);
-        SessionFactory = new TerminalTabSessionFactory(Config.Glyphs);
+        SessionFactory = new TerminalTabSessionFactory(Config.Glyphs, new StagingButtonSource(Host));
         Clipboard = CreateClipboard();
         Chrome = new PaneChrome();
         Gate = new MouseGate();

@@ -432,7 +432,7 @@ public class WorkingTreeActionHandlerTests
             Statuses = new StatusReporter(new Dispatcher(AppState.Empty));
             var staging = new StagingActions(_host);
             var commits = TestCommitInput.Create(_host);
-            Handler = new WorkingTreeActionHandler(_host, new FakePaneLists(_list), new ClipboardCopier(writer, Statuses), staging, commits);
+            Handler = new WorkingTreeActionHandler(_host, new FakePaneLists(_list), new ClipboardCopier(writer, Statuses), commits, new StagingContext(staging));
         }
 
         public WorkingTreeActionHandler Handler { get; }

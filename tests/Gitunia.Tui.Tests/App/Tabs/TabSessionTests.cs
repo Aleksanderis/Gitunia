@@ -4,6 +4,8 @@ using Gitunia.App.Tabs;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Tui.App.Tabs;
+using Gitunia.Tui.Rendering.Diff;
+using Gitunia.Tui.Tests.Fakes;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Views.Lists;
 using Xunit;
@@ -53,6 +55,21 @@ public class TabSessionTests
         session.NotifyStatusRead();
 
         Assert.Equal(generation + 1, session.WorkingDiff.Generation);
+    }
+
+    [Fact]
+    public void GivenAButtonSourceOnTheFactory_WhenCreatingASession_ThenTheWorkingDiffDrawsItsButtons()
+    {
+        var location = new RepositoryLocation(Path.GetTempPath(), Path.GetTempPath(), Path.GetTempPath(), false, false);
+        var details = new CommitDetailsStore(TestGit.Services.CommitDetails, location, InlineUi.Instance, TimeSpan.Zero);
+        var workingDiffStore = new WorkingDiffStore(TestGit.Services.Diff, location, InlineUi.Instance);
+        var buttons = new FixedGroupButtons(WorkingTreeButtons.Unstaged);
+        var factory = new TerminalTabSessionFactory(GraphGlyphSet.Unicode, buttons);
+
+        using var session = factory.Create(
+            new TabSessionParts(new TabId(1), details, WorkingDiffStore: workingDiffStore));
+
+        Assert.Same(buttons, session.WorkingDiff!.Source.GroupButtons);
     }
 
     [Fact]

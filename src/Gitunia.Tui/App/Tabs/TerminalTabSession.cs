@@ -13,11 +13,11 @@ namespace Gitunia.Tui.App.Tabs;
 /// </summary>
 public sealed class TerminalTabSession : TabSession
 {
-    public TerminalTabSession(TabSessionParts parts, GraphGlyphSet glyphs)
+    public TerminalTabSession(TabSessionParts parts, GraphGlyphSet glyphs, IGroupButtonSource? workingButtons = null)
         : base(parts)
     {
         Diff = parts.DiffStore is null ? null : new DiffSession(parts.DiffStore, glyphs, parts.ContentStore);
-        WorkingDiff = parts.WorkingDiffStore is null ? null : new WorkingDiffSession(parts.WorkingDiffStore, glyphs);
+        WorkingDiff = parts.WorkingDiffStore is null ? null : new WorkingDiffSession(parts.WorkingDiffStore, glyphs, workingButtons);
         DetailSource = new DetailListSource(glyphs);
         Source = new GraphListSource(Graph, glyphs);
     }
