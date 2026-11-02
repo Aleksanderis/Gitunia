@@ -270,6 +270,13 @@ public static partial class PaneHints
         new("Esc", "close", [ActionIds.NavigateBack]),
     ];
 
+    private static readonly ImmutableArray<KeyHint> FileHistory =
+    [
+        new("Enter", "graph", [ActionIds.FileHistorySelectCommit]),
+        new("J/K", "scroll", [ActionIds.DiffScrollDown, ActionIds.DiffScrollUp]),
+        new("Esc", "close", [ActionIds.NavigateBack]),
+    ];
+
     private static readonly ImmutableArray<KeyHint> Reflog =
     [
         new("Enter", "select", [ActionIds.ReflogSelectCommit]),

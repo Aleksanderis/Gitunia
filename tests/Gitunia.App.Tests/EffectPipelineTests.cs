@@ -28,6 +28,8 @@ using Gitunia.Core.Sidebar;
 using Gitunia.Core.Status;
 using Gitunia.Core.Prompts;
 using Gitunia.Core.Conflicts;
+using Gitunia.Core.Diff;
+using Gitunia.Core.FileHistory;
 using Gitunia.Core.Reflog;
 using Gitunia.Core.Settings;
 using Gitunia.Core.Settings.Models;
@@ -316,6 +318,25 @@ public class EffectPipelineTests
     }
 
     [Fact]
+    public async Task GivenAFile_WhenItsHistoryIsOpenedThroughTheRunner_ThenTheCommitsAndTheFirstDiffLoadAndTheJumpReachesTheShell()
+    {
+        using var repository = TestRepositories.Linear();
+        repository.Commit("edit", new TestFile("file.txt", "changed\n"));
+        using var pipeline = await Pipeline.OpenAsync(TestGit.Services, repository);
+
+        pipeline.Dispatch(new FileHistoryOpenRequested(pipeline.TabId, "file.txt", "HEAD"));
+        await pipeline.Pump.RunUntilAsync(() => pipeline.FileHistory.History?.Diff is not null);
+        pipeline.Dispatch(new FileHistoryActionPressed(ActionIds.FileHistorySelectCommit, null, 10));
+
+        var history = pipeline.FileHistory.History!;
+        Assert.Equal(repository.Head, history.Entries[0].Hash);
+        Assert.Contains(history.Diff!.Rows, row => row.Kind == DiffRowKind.Added && row.Text == "changed");
+        var jump = Assert.Single(pipeline.Shell.FileHistoryJumps);
+        Assert.Equal(repository.Head, jump.Hash);
+        Assert.Equal(pipeline.TabId, jump.TabId);
+    }
+
+    [Fact]
     public async Task GivenTheTabIsClosedWhileTheReflogIsRead_WhenTheResultArrives_ThenNoListOpensForTheClosedTab()
     {
         using var repository = TestRepositories.Linear();
@@ -527,6 +548,8 @@ public class EffectPipelineTests
         public TabId TabId => Host.Workspace.ActiveTabId!.Value;
 
         public ReflogSession Reflog => Host.State.Shell.Reflog;
+
+        public FileHistorySession FileHistory => Host.State.Shell.FileHistory;
 
         public SettingsSession Settings => Host.State.Shell.Settings;
 

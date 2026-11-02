@@ -3,6 +3,7 @@ using Gitunia.App;
 using Gitunia.Core.Conflicts;
 using Gitunia.Core.Rebase;
 using Gitunia.Core.Blame;
+using Gitunia.Core.FileHistory;
 using Gitunia.Core.Reflog;
 using Gitunia.Core.Shell;
 using Gitunia.Core.Pick;
@@ -24,6 +25,7 @@ public sealed class OverlayPresenter
     private ConflictSession? _drawnConflict;
     private ReflogSession? _drawnReflog;
     private BlameSession? _drawnBlame;
+    private FileHistorySession? _drawnFileHistory;
     private RebaseEditorSession? _drawnRebaseEditor;
     private MainlineQuestion? _drawnMainline;
     private ScreenExtent? _drawnScreen;
@@ -64,6 +66,7 @@ public sealed class OverlayPresenter
         if (ReferenceEquals(shell.Conflict, _drawnConflict)
             && ReferenceEquals(shell.Reflog, _drawnReflog)
             && ReferenceEquals(shell.Blame, _drawnBlame)
+            && ReferenceEquals(shell.FileHistory, _drawnFileHistory)
             && ReferenceEquals(shell.Settings, _drawnSettings)
             && ReferenceEquals(shell.RebaseEditor, _drawnRebaseEditor)
             && ReferenceEquals(shell.Mainline, _drawnMainline) && !MainlineNeedsLayout(shell))
@@ -74,6 +77,7 @@ public sealed class OverlayPresenter
         _drawnConflict = shell.Conflict;
         _drawnReflog = shell.Reflog;
         _drawnBlame = shell.Blame;
+        _drawnFileHistory = shell.FileHistory;
         _drawnRebaseEditor = shell.RebaseEditor;
         _drawnSettings = shell.Settings;
         _drawnMainline = shell.Mainline;

@@ -48,6 +48,7 @@ Full table: [keymap.md](keymap.md). To rebind: [customising-keys.md](customising
 - **Conflicts:** `Enter` on a `!` file opens the conflict editor. Press `?` there for its keys.
 - **Branches, tags, worktrees, stashes:** select in the sidebar, then `<space>b`, `t`, `w`, `k`, or `<space>.` for a menu.
 - **Interactive rebase:** `<space>bri` opens the todo editor.
+- **File history:** `<space>H` on a file in the commit's Changes or Files list, or in the Changes view, opens the commits that touched it, renames followed, with that commit's diff of the file beside the list. `j`/`k` pick a commit, `J`/`K` scroll the diff, `Enter` selects the commit in the graph, `Esc` returns.
 - **Merge or rebase in progress:** `<space>gc` continue, `ga` abort, `gs` skip.
 - **Blame:** `<space>gb` on a file in the details pane (the file is read at the shown commit) or in the Changes view lists (the working tree file). Each line shows the short id (`^` marks a boundary commit), author and age; `Enter` closes the view and selects the line's commit in the graph, `/` searches, `Esc` closes.
 - **Undo:** destructive actions ask first and name the undo. The reflog (`<space>l`) restores earlier states.

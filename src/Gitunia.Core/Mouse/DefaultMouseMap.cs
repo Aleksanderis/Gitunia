@@ -124,6 +124,8 @@ public static class DefaultMouseMap
 
     public const string ReflogPickerRow = "ReflogPicker";
 
+    /// <summary>The row under the file history that selects the highlighted commit in the graph (#1115).</summary>
+    public const string FileHistorySelectButton = "FileHistoryButton.Select";
     /// <summary>The action row under the blame view: a click runs the action its key runs on the highlighted line.</summary>
     public const string BlameShowButton = "BlameButton.Show";
 
@@ -235,6 +237,8 @@ public static class DefaultMouseMap
         DefaultKeymap.HelpView,
         DefaultKeymap.MessagesView,
         DefaultKeymap.ReflogView,
+        DefaultKeymap.FileHistoryView,
+        FileHistorySelectButton,
         DefaultKeymap.BlameView,
         BlameShowButton,
         DefaultKeymap.RebaseEditorView,
@@ -333,6 +337,9 @@ public static class DefaultMouseMap
         new(DefaultKeymap.MessagesView, MouseGesture.WheelDown, ActionIds.ListDown, WheelLines),
         new(DefaultKeymap.ReflogView, MouseGesture.WheelUp, ActionIds.ListUp, WheelLines),
         new(DefaultKeymap.ReflogView, MouseGesture.WheelDown, ActionIds.ListDown, WheelLines),
+        new(DefaultKeymap.FileHistoryView, MouseGesture.WheelUp, ActionIds.ListUp, WheelLines),
+        new(DefaultKeymap.FileHistoryView, MouseGesture.WheelDown, ActionIds.ListDown, WheelLines),
+        new(FileHistorySelectButton, MouseGesture.Click, ActionIds.FileHistorySelectCommit),
         new(DefaultKeymap.BlameView, MouseGesture.WheelUp, ActionIds.ListUp, WheelLines),
         new(DefaultKeymap.BlameView, MouseGesture.WheelDown, ActionIds.ListDown, WheelLines),
         new(BlameShowButton, MouseGesture.Click, ActionIds.BlameShowCommit),

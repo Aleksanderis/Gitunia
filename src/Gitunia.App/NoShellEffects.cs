@@ -4,6 +4,7 @@ using Gitunia.Core.Conflicts;
 using Gitunia.Core.FileTree;
 using Gitunia.Core.ExternalTools;
 using Gitunia.Core.Input;
+using Gitunia.Core.FileHistory;
 using Gitunia.Core.Reflog;
 using Gitunia.Core.Sidebar;
 using Gitunia.Core.Staging;
@@ -34,6 +35,10 @@ public sealed class NoShellEffects : IShellEffects
     }
 
     public void StartReflogEntryAction(ReflogEntryActionEffect effect)
+    {
+    }
+
+    public void JumpToFileHistoryCommit(FileHistoryJumpEffect effect)
     {
     }
 
