@@ -1,5 +1,6 @@
 using Gitunia.App;
 using Gitunia.Core;
+using Gitunia.Core.Diff;
 using Gitunia.Core.FileHistory;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Mouse;
@@ -9,13 +10,17 @@ using Gitunia.Git.Commits.Models;
 using Gitunia.Git.History.Models;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Tui.App.FileHistory;
+using Gitunia.Tui.App.Panes;
+using Gitunia.Tui.Tests.Fakes;
+using Terminal.Gui.Views;
 using Gitunia.Tui.Rendering.Graph;
 using Xunit;
 
 namespace Gitunia.Tui.Tests.App.FileHistory;
 
-public class FileHistoryInputTests
+public sealed class FileHistoryInputTests : IDisposable
 {
+    private ListView? _list;
     private readonly Dispatcher _host = new(AppState.Empty);
     private readonly List<AppEffect> _effects = [];
 
@@ -27,10 +32,12 @@ public class FileHistoryInputTests
         _effects.Clear();
     }
 
+    public void Dispose() => _list?.Dispose();
+
     [Fact]
     public void GivenAFileUnderTheCursor_WhenTheOpenActionRuns_ThenTheHistoryOfThatFileIsRequestedFromItsRevision()
     {
-        var opener = new FileHistoryOpener(_host, new FixedTarget(new FileHistoryTarget("dir/a b.txt", "abc")));
+        var opener = NewOpener(new FixedTarget(new FileHistoryTarget("dir/a b.txt", "abc")));
 
         var taken = opener.TryExecute(ActionIds.FileHistoryOpen, null);
 
@@ -43,7 +50,7 @@ public class FileHistoryInputTests
     [Fact]
     public void GivenNoFileUnderTheCursor_WhenTheOpenActionRuns_ThenNothingStartsAndTheNoticeSaysWhy()
     {
-        var opener = new FileHistoryOpener(_host, new FixedTarget(null));
+        var opener = NewOpener(new FixedTarget(null));
 
         var taken = opener.TryExecute(ActionIds.FileHistoryOpen, null);
 
@@ -55,10 +62,36 @@ public class FileHistoryInputTests
     [Fact]
     public void GivenAnotherAction_WhenOfferedToTheOpener_ThenItIsNotTaken()
     {
-        var opener = new FileHistoryOpener(_host, new FixedTarget(new FileHistoryTarget("a.txt", "HEAD")));
+        var opener = NewOpener(new FixedTarget(new FileHistoryTarget("a.txt", "HEAD")));
 
         Assert.False(opener.TryExecute(ActionIds.ListDown, null));
         Assert.Empty(_effects);
+    }
+
+    [Fact]
+    public void GivenSelectedLines_WhenTheLineHistoryActionRuns_ThenTheRangeIsRequestedFromTheTargetRevision()
+    {
+        var lines = new FixedLines(new LineHistoryTarget("src/a.txt", "abc", new LineRange(4, 9), string.Empty));
+        var opener = NewOpener(new FixedTarget(null), lines);
+
+        var taken = opener.TryExecute(ActionIds.LineHistoryOpen, null);
+
+        Assert.True(taken);
+        var read = Assert.IsType<ReadFileHistoryEffect>(Assert.Single(_effects));
+        Assert.Equal(("src/a.txt", "abc", new LineRange(4, 9)), (read.Path, read.Revision, read.Range!.Value));
+    }
+
+    [Fact]
+    public void GivenNoUsableLines_WhenTheLineHistoryActionRuns_ThenNothingStartsAndTheNoticeSaysWhy()
+    {
+        var lines = new FixedLines(LineHistoryTarget.Refused(DiffLineRanges.UncommittedNotice));
+        var opener = NewOpener(new FixedTarget(null), lines);
+
+        var taken = opener.TryExecute(ActionIds.LineHistoryOpen, null);
+
+        Assert.True(taken);
+        Assert.Empty(_effects);
+        Assert.Equal(DiffLineRanges.UncommittedNotice, opener.Notice);
     }
 
     [Fact]
@@ -163,6 +196,19 @@ public class FileHistoryInputTests
         var gitDirectory = Path.Combine(root, ".git");
 
         return new RepositoryLocation(root, gitDirectory, gitDirectory, false, false);
+    }
+
+    private FileHistoryOpener NewOpener(IFileHistoryTargetSource target, ILineHistorySource? lines = null)
+    {
+        _list = new ListView();
+        var visual = new VisualRangeInput(_host, new FakePaneLists(_list));
+
+        return new FileHistoryOpener(_host, target, lines ?? new FixedLines(LineHistoryTarget.Refused("none")), visual);
+    }
+
+    private sealed class FixedLines(LineHistoryTarget target) : ILineHistorySource
+    {
+        public LineHistoryTarget Resolve() => target;
     }
 
     private sealed class FixedTarget(FileHistoryTarget? target) : IFileHistoryTargetSource

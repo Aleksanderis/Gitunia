@@ -37,6 +37,25 @@ public class FileHistoryReducerTests
     }
 
     [Fact]
+    public void GivenALineRange_WhenOpeningLoadingAndRefreshing_ThenTheRangeTravelsThroughEveryRead()
+    {
+        var state = Opened("alpha");
+        var tab = state.Workspace.ActiveTabId!.Value;
+        var range = new LineRange(3, 8);
+
+        var opening = AppReducer.Reduce(state, new FileHistoryOpenRequested(tab, "a.txt", "abc", range));
+        var read = Assert.IsType<ReadFileHistoryEffect>(Assert.Single(opening.Effects));
+        var loaded = AppReducer.Reduce(
+            opening.State,
+            new FileHistoryLoaded(tab, read.Generation, "a.txt", "abc", Entries(2), read.Range));
+        var refreshing = Press(loaded.State, ActionIds.RepositoryRefresh);
+
+        Assert.Equal(range, read.Range);
+        Assert.Equal(range, loaded.State.Shell.FileHistory.History!.Range);
+        Assert.Equal(range, Assert.IsType<ReadFileHistoryEffect>(Assert.Single(refreshing.Effects)).Range);
+    }
+
+    [Fact]
     public void GivenAReadInFlight_WhenOpeningAgain_ThenNoSecondReadStartsAndTheStatusSaysSo()
     {
         var tab = Opened("alpha");

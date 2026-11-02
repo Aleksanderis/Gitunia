@@ -31,6 +31,7 @@ public static class FileHistoryFrameBuilder
     private const int ShortHashLength = 7;
 
     private const string NoHistoryText = "No history: the file is not in any commit";
+    private const string NoRangeHistoryText = "No commit changed these lines";
     private const string LoadingText = "Loading...";
     private const string SelectKey = "Enter";
     private const string SelectLabel = "select the commit in the graph";
@@ -102,8 +103,15 @@ public static class FileHistoryFrameBuilder
     {
         var revision = state.Revision == "HEAD" ? "HEAD" : ShortHash.Of(state.Revision);
 
+        if (state.Range is { } range)
+        {
+            return $"Line history: {Printable(state.Path)}:{range.Label} (from {revision})";
+        }
+
         return $"File history: {Printable(state.Path)} (from {revision})";
     }
+
+    private static string EmptyText(FileHistoryState state) => state.Range is null ? NoHistoryText : NoRangeHistoryText;
 
     private static StyledLine ListCell(
         FileHistoryState state,
@@ -115,7 +123,7 @@ public static class FileHistoryFrameBuilder
         var builder = new LineBuilder(width, glyphs.Ellipsis);
         if (state.Entries.Count == 0)
         {
-            return builder.Append(row == 0 ? $" {NoHistoryText}" : string.Empty, SegmentRole.Faint).Build();
+            return builder.Append(row == 0 ? $" {EmptyText(state)}" : string.Empty, SegmentRole.Faint).Build();
         }
 
         var index = window.Top + row;

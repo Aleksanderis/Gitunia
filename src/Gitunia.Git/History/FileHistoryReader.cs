@@ -25,6 +25,17 @@ public sealed class FileHistoryReader(GitRunner runner) : IFileHistoryReader
         "--encoding=UTF-8",
     ];
 
+    private static readonly string[] RangeArguments =
+    [
+        "log",
+        FileHistoryParser.Format,
+        FileHistoryParser.DateOption,
+        GitOptions.NoColor,
+        "--no-ext-diff",
+        "--no-show-signature",
+        "--encoding=UTF-8",
+    ];
+
     private static readonly string[] ResolveArguments = ["rev-parse", "--verify", "--quiet"];
 
     public async Task<ParseResult<FileHistoryEntry>> ReadAsync(
@@ -54,6 +65,37 @@ public sealed class FileHistoryReader(GitRunner runner) : IFileHistoryReader
             .ConfigureAwait(false);
 
         return FileHistoryParser.Parse(result.StandardOutputText, path);
+    }
+
+    public async Task<ParseResult<FileHistoryEntry>> ReadRangeAsync(
+        RepositoryLocation location,
+        string revision,
+        string path,
+        LineRange range,
+        int limit,
+        CancellationToken cancellationToken)
+    {
+        if (!await ExistsAsync(location, revision, cancellationToken).ConfigureAwait(false))
+        {
+            return new ParseResult<FileHistoryEntry>([], []);
+        }
+
+        // -L takes no pathspec and follows renames itself; the revision is given explicitly so the line numbers are those
+        // of the committed file even when the working tree differs.
+        string[] arguments =
+        [
+            .. RangeArguments,
+            LimitOption,
+            limit.ToString(CultureInfo.InvariantCulture),
+            $"-L{range.Start},{range.End}:{path}",
+            revision,
+            GitOptions.EndOfOptions,
+        ];
+        var result = await runner
+            .RunAsync(location.CommandPath, arguments, GitRunOptions.ReadOnlyRun, cancellationToken)
+            .ConfigureAwait(false);
+
+        return LineHistoryParser.Parse(result.StandardOutputText, path);
     }
 
     private async Task<bool> ExistsAsync(RepositoryLocation location, string revision, CancellationToken token)

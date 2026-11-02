@@ -82,6 +82,44 @@ public class FileHistoryEffectHandlerTests
     }
 
     [Fact]
+    public async Task GivenALineRange_WhenReadingTheList_ThenTheLoadedResultHoldsTheCommitsOfThoseLinesAndTheRange()
+    {
+        using var repository = TestRepositories.Linear();
+        repository.Commit("add", new TestFile("f.txt", "a\nb\nc\n"));
+        repository.Commit("edit b", new TestFile("f.txt", "a\nB\nc\n"));
+        repository.Commit("edit c", new TestFile("f.txt", "a\nB\nC\n"));
+        var location = await LocateAsync(repository);
+        var dispatcher = new RecordingDispatcher();
+        var range = new LineRange(2, 2);
+
+        new FileHistoryEffectHandler(TestGit.Services.FileHistory, TestGit.Services.Diff, dispatcher)
+            .Handle(new ReadFileHistoryEffect(Tab, location, "HEAD", "f.txt", 3, range), Token);
+        var result = await dispatcher.NextAsync(Token);
+
+        var loaded = Assert.IsType<FileHistoryLoaded>(result);
+        Assert.Equal(range, loaded.Range);
+        Assert.Equal(["edit b", "add"], loaded.Entries.Select(entry => entry.Subject));
+    }
+
+    [Fact]
+    public async Task GivenALineHistoryEntry_WhenReadingItsDiff_ThenTheRowsComeFromItsPatchWithoutRunningGit()
+    {
+        using var repository = TestRepositories.Linear();
+        var location = await LocateAsync(repository);
+        const string patch = "diff --git a/f.txt b/f.txt\n--- a/f.txt\n+++ b/f.txt\n@@ -2,1 +2,1 @@\n-b\n+B";
+        var entry = new FileHistoryEntry("abc", "T", "2026-01-01", "x", "f.txt", null, FileChangeKind.Modified, patch);
+        var dispatcher = new RecordingDispatcher();
+
+        new FileHistoryEffectHandler(new FailingReader(), new BlockingThenFastDiffReader { Fails = true }, dispatcher)
+            .Handle(new ReadFileHistoryDiffEffect(Tab, location, entry, 3), Token);
+        var result = await dispatcher.NextAsync(Token);
+
+        var loaded = Assert.IsType<FileHistoryDiffLoaded>(result);
+        Assert.Contains(loaded.Document.Rows, row => row.Kind == DiffRowKind.Added && row.Text == "B");
+        Assert.Contains(loaded.Document.Rows, row => row.Kind == DiffRowKind.Removed && row.Text == "b");
+    }
+
+    [Fact]
     public async Task GivenAFailingReader_WhenReadingTheList_ThenTheFailureCarriesThePathAndTheReason()
     {
         using var repository = TestRepositories.Linear();
@@ -161,6 +199,15 @@ public class FileHistoryEffectHandlerTests
             int limit,
             CancellationToken cancellationToken) =>
             Task.FromException<ParseResult<FileHistoryEntry>>(new InvalidOperationException("boom"));
+
+        public Task<ParseResult<FileHistoryEntry>> ReadRangeAsync(
+            RepositoryLocation location,
+            string revision,
+            string path,
+            LineRange range,
+            int limit,
+            CancellationToken cancellationToken) =>
+            Task.FromException<ParseResult<FileHistoryEntry>>(new InvalidOperationException("boom"));
     }
 
     private sealed class CancellingReader : IFileHistoryReader
@@ -176,6 +223,15 @@ public class FileHistoryEffectHandlerTests
 
             return Task.FromResult(new ParseResult<FileHistoryEntry>([], []));
         }
+
+        public Task<ParseResult<FileHistoryEntry>> ReadRangeAsync(
+            RepositoryLocation location,
+            string revision,
+            string path,
+            LineRange range,
+            int limit,
+            CancellationToken cancellationToken) =>
+            ReadAsync(location, revision, path, limit, cancellationToken);
     }
 
     // The first read waits until it is cancelled; later ones end at once; or every read fails.

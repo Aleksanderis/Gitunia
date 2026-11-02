@@ -73,7 +73,7 @@ public static class FileHistoryReducer
             return Warn(session, StillReadingNotice);
         }
 
-        return Read(session, tab, open.Revision, open.Path);
+        return Read(session, tab, open.Revision, open.Path, open.Range);
     }
 
     private static FileHistoryUpdate Press(
@@ -104,7 +104,7 @@ public static class FileHistoryReducer
 
         if (action == ActionIds.RepositoryRefresh)
         {
-            return session.IsReading ? Done(session) : Read(session, tab, history.Revision, history.Path);
+            return session.IsReading ? Done(session) : Read(session, tab, history.Revision, history.Path, history.Range);
         }
 
         return Scroll(session, history, pressed) ?? Move(session, history, pressed, tab);
@@ -186,10 +186,15 @@ public static class FileHistoryReducer
     }
 
     // The history opens (or updates) only if nothing was opened or closed meanwhile: the result echoes the generation.
-    private static FileHistoryUpdate Read(FileHistorySession session, RepositoryState tab, string revision, string path)
+    private static FileHistoryUpdate Read(
+        FileHistorySession session,
+        RepositoryState tab,
+        string revision,
+        string path,
+        LineRange? range)
     {
         var generation = session.Generation + 1;
-        var effect = new ReadFileHistoryEffect(tab.Id, tab.Location, revision, path, generation);
+        var effect = new ReadFileHistoryEffect(tab.Id, tab.Location, revision, path, generation, range);
 
         return Done(session with { Generation = generation, IsReading = true }, effect);
     }
@@ -205,8 +210,9 @@ public static class FileHistoryReducer
             return Done(idle);
         }
 
-        var history = new FileHistoryState(loaded.TabId, loaded.Path, loaded.Revision, loaded.Entries);
-        if (session.History is { } current && current.TabId == loaded.TabId && current.Path == loaded.Path)
+        var history = new FileHistoryState(loaded.TabId, loaded.Path, loaded.Revision, loaded.Entries, Range: loaded.Range);
+        if (session.History is { } current && current.TabId == loaded.TabId && current.Path == loaded.Path
+            && current.Range == loaded.Range)
         {
             history = history.MoveTo(KeepIndex(current, loaded.Entries));
         }

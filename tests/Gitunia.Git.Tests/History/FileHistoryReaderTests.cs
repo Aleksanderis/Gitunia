@@ -223,6 +223,124 @@ public class FileHistoryReaderTests
         Assert.Equal(2, file.Hunks.SelectMany(hunk => hunk.Lines).Count(line => line.Kind == DiffLineKind.Added));
     }
 
+    [Fact]
+    public async Task GivenALineRange_WhenReadingItsHistory_ThenOnlyCommitsThatChangedThoseLinesComeWithTheirPatch()
+    {
+        using var repository = TestRepository.Create().Commit("add", new TestFile("f.txt", "a\nb\nc\nd\n"));
+        repository.Commit("edit b", new TestFile("f.txt", "a\nB\nc\nd\n"));
+        repository.Commit("edit d", new TestFile("f.txt", "a\nB\nc\nD\n"));
+
+        var entries = await ReadRangeAsync(repository, "f.txt", new LineRange(2, 3));
+
+        Assert.Equal(["edit b", "add"], entries.Select(entry => entry.Subject));
+        Assert.Contains("+B", entries[0].Patch, StringComparison.Ordinal);
+        Assert.DoesNotContain("D", entries[0].Patch, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task GivenLinesThatMoved_WhenReadingTheirHistory_ThenTheWalkFollowsThemToWhereTheyWere()
+    {
+        using var repository = TestRepository.Create().Commit("add", new TestFile("f.txt", "a\nb\nc\nd\n"));
+        repository.Commit("edit c", new TestFile("f.txt", "a\nb\nC\nd\n"));
+        repository.Commit("insert on top", new TestFile("f.txt", "x\ny\na\nb\nC\nd\n"));
+
+        var entries = await ReadRangeAsync(repository, "f.txt", new LineRange(5, 5));
+
+        Assert.Equal(["edit c", "add"], entries.Select(entry => entry.Subject));
+    }
+
+    [Fact]
+    public async Task GivenARenamedFile_WhenReadingALineRange_ThenCommitsBeforeTheRenameAreFoundUnderTheOldName()
+    {
+        using var repository = TestRepository.Create().Commit("add", new TestFile("old.txt", "a\nb\nc\n"));
+        repository.Commit("edit old", new TestFile("old.txt", "a\nB\nc\n"));
+        repository.Git("mv", "old.txt", "new.txt");
+        repository.Git("commit", "-q", "-m", "rename");
+
+        var entries = await ReadRangeAsync(repository, "new.txt", new LineRange(2, 2));
+
+        Assert.Equal(["edit old", "add"], entries.Select(entry => entry.Subject));
+        Assert.All(entries, entry => Assert.Equal("old.txt", entry.Path));
+    }
+
+    [Fact]
+    public async Task GivenARangeAddedByTheLastCommit_WhenReadingItsHistory_ThenThatCommitIsTheOnlyEntry()
+    {
+        using var repository = TestRepository.Create().Commit("add", new TestFile("f.txt", "a\nb\n"));
+        repository.Commit("append", new TestFile("f.txt", "a\nb\nc\nd\n"));
+
+        var entries = await ReadRangeAsync(repository, "f.txt", new LineRange(3, 4));
+
+        var entry = Assert.Single(entries);
+        Assert.Equal("append", entry.Subject);
+        Assert.Contains("+c", entry.Patch, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task GivenAWorkingTreeThatDiffersFromHead_WhenReadingARange_ThenTheLineNumbersAreThoseOfHead()
+    {
+        using var repository = TestRepository.Create().Commit("add", new TestFile("f.txt", "a\nb\nc\n"));
+        repository.Commit("edit c", new TestFile("f.txt", "a\nb\nC\n"));
+        repository.WriteFile("f.txt", "new top\na\nb\nC\n");
+
+        var entries = await ReadRangeAsync(repository, "f.txt", new LineRange(3, 3));
+
+        Assert.Equal(["edit c", "add"], entries.Select(entry => entry.Subject));
+    }
+
+    [Fact]
+    public async Task GivenARangeBeyondTheEndOfTheFile_WhenReading_ThenGitsMessageSaysHowManyLinesThereAre()
+    {
+        using var repository = TestRepository.Create().Commit("add", new TestFile("f.txt", "a\nb\n"));
+        var runner = repository.CreateIsolatedRunner();
+        var location = await new RepositoryDiscovery(runner).DiscoverAsync(repository.WorkingTreePath, Token);
+
+        var failure = await Assert.ThrowsAnyAsync<Exception>(() =>
+            new FileHistoryReader(runner).ReadRangeAsync(location, Head, "f.txt", new LineRange(5, 9), 10, Token));
+
+        Assert.Contains("has only 2 lines", failure.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task GivenAFileThatIsNotInTheStartRevision_WhenReadingARange_ThenItFailsWithTheMissingPath()
+    {
+        using var repository = TestRepository.Create().Commit("add", new TestFile("f.txt", "a\n"));
+        var runner = repository.CreateIsolatedRunner();
+        var location = await new RepositoryDiscovery(runner).DiscoverAsync(repository.WorkingTreePath, Token);
+
+        var failure = await Assert.ThrowsAnyAsync<Exception>(() =>
+            new FileHistoryReader(runner).ReadRangeAsync(location, Head, "nope.txt", new LineRange(1, 1), 10, Token));
+
+        Assert.Contains("nope.txt", failure.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task GivenAnUnbornHead_WhenReadingARange_ThenTheListIsEmpty()
+    {
+        using var repository = TestRepository.Create();
+        var runner = repository.CreateIsolatedRunner();
+        var location = await new RepositoryDiscovery(runner).DiscoverAsync(repository.WorkingTreePath, Token);
+
+        var result = await new FileHistoryReader(runner)
+            .ReadRangeAsync(location, Head, "f.txt", new LineRange(1, 1), 10, Token);
+
+        Assert.Empty(result.Items);
+    }
+
+    private static async Task<IReadOnlyList<FileHistoryEntry>> ReadRangeAsync(
+        TestRepository repository,
+        string path,
+        LineRange range)
+    {
+        var runner = repository.CreateIsolatedRunner();
+        var location = await new RepositoryDiscovery(runner).DiscoverAsync(repository.WorkingTreePath, Token);
+        var result = await new FileHistoryReader(runner).ReadRangeAsync(location, Head, path, range, 100, Token);
+
+        Assert.Empty(result.Warnings);
+
+        return result.Items;
+    }
+
     private static async Task<IReadOnlyList<FileHistoryEntry>> ReadAsync(
         TestRepository repository,
         string path,
