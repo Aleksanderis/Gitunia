@@ -23,7 +23,7 @@ public static class ShellReducer
         ConfirmRequestedCommand request => Ask(state, request),
         OutputClosedCommand => CloseOutput(state),
         OutputShownCommand shown => ShowOutput(state, shown),
-        OverlayChangedCommand changed => new ShellUpdate(state with { Overlay = changed.Kind }, []),
+        OverlayChangedCommand changed => new ShellUpdate(state with { Overlay = changed.Kind, OverlayReturnMode = changed.ReturnMode }, []),
         PromptCommand prompt => PromptReducer.Reduce(state, prompt),
         RetryInTerminalConfirmed retry => new ShellUpdate(
             state,

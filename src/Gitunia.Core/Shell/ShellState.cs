@@ -40,6 +40,8 @@ namespace Gitunia.Core.Shell;
 /// <param name="Sidebar">What the sidebar keys keep between presses: the filter being typed (#996).</param>
 /// <param name="Overlay">Which of the help, palette, actions menu or history the overlay layer shows, or none (#1020);
 /// the confirm dialog and the output box are the fields above.</param>
+/// <param name="OverlayReturnMode">The key mode <paramref name="Overlay"/> was opened from; read only while one is
+/// open.</param>
 /// <param name="QuitWarned">The first quit after a failed save warned; the next one leaves.</param>
 /// <param name="TabActions">What the tab and pin actions keep between presses (#985).</param>
 /// <param name="Screen">The terminal size, or null until the terminal layer reported it (a dialog then counts as
@@ -65,7 +67,8 @@ public sealed record ShellState(
     WorkspaceActionSession TabActions,
     ScreenExtent? Screen,
     VisualSelection? Visual = null,
-    OverlayKind Overlay = OverlayKind.None)
+    OverlayKind Overlay = OverlayKind.None,
+    KeyMode OverlayReturnMode = KeyMode.Normal)
 {
     public static ShellState Empty { get; } = new(
         KeyMode.Normal,
@@ -101,7 +104,12 @@ public sealed record ShellState(
                 return confirm.ReturnMode;
             }
 
-            return Output is { } output ? output.ReturnMode : Mode;
+            if (Output is { } output)
+            {
+                return output.ReturnMode;
+            }
+
+            return Overlay == OverlayKind.None ? Mode : OverlayReturnMode;
         }
     }
 
