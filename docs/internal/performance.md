@@ -55,7 +55,22 @@ Repeat: `scripts/gen-big-file-repo.sh` and `scripts/gen-big-repo.sh`, then by ha
 | File history, 100k-commit repository, file with 903 commits (`log --follow`, limit 1000) | ~0.5 s, off the UI thread |
 | File history, 100k commits, path without history | ~0.17 s |
 
-No hot spot was found, so no code changed. Caveat: with `diff.algorithm = histogram` in the owner's global git config, `git blame --incremental` of the same 50k-line file took ~7.9 s against ~0.2 s with the config ignored. Gitunia respects the user's config and the view stays usable meanwhile (lines first, commits as git finds them); registered as #1136, the end-to-end AOT measurement as #1137. Not measured: Windows, macOS, the AOT binary end to end (the readers and view code are the code the binary runs; key latency of the real view was not timed under tmux).
+No hot spot was found, so no code changed. Caveat: with `diff.algorithm = histogram` in the owner's global git config, `git blame --incremental` of the same 50k-line file took ~7.9 s against ~0.2 s with the config ignored. Gitunia respects the user's config and the view stays usable meanwhile (lines first, commits as git finds them); registered as #1136, the end-to-end AOT measurement as #1137. Not measured there: Windows, macOS, the AOT binary end to end. The AOT run is below.
+
+### Blame view, AOT binary under tmux (#1137)
+
+Linux, Native AOT Release build (17.7 MB), tmux 120x40, `scripts/gen-big-file-repo.sh` repo (`big.txt`, 50,000 lines, 501 commits), the blame arguments of #1125 (before #1136 changes them; this is the baseline). Repeat: `scripts/measure.sh <binary> <bigfile repo> --blame` (focuses the details pane, opens the blame of `big.txt` with `<space>gb`, then times `j` x20, `Ctrl-d` x20 and `G` until the frame changes; RSS of the process at the end). Three runs (one with a 5-run cold start, two with 3); same harness caveats as the other cases (tmux poll adds ~1-3 ms per sample).
+
+| Case | Result |
+|---|---|
+| `<space>gb` until the first blamed rows (hash column filled) | 228-304 ms |
+| `j` in the blame view | median 39-40 ms, p95 55-62 ms (first, noisier run: 15-22 ms median) |
+| `Ctrl-d` (page) | median 29-44 ms, p95 40-56 ms |
+| `G` (jump to line 50,000) | 24-71 ms |
+| RSS with the view open | 70-73 MB (50 MB for the same repo in the graph view) |
+| Cold start of the same repo (for scale) | median 76-98 ms |
+
+Reading: the view is usable at once (first rows ~0.25-0.3 s, of which git's blame of the whole file is ~0.2 s, see above) and keys land within about two frames. Key latency is higher than the graph's `j` (~20 ms) (the poll itself adds a full-frame capture per sample, the cause in the view was not investigated); the numbers vary between runs by 2x, so treat them as order of magnitude. The view holds ~20 MB more RSS than the graph (50k line strings, commit table, git blame child output). Not measured: Windows and macOS (an optional owner run of `scripts/measure.ps1` / `scripts/measure.sh --blame`; `--blame` is not in `measure.ps1`).
 
 ## Idle CPU (#909)
 
