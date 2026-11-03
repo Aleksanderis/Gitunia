@@ -17,6 +17,7 @@ public sealed class PaneListView : ListView
 {
     private readonly DragTracker _drag = new();
     private int _lastPointerRow;
+    private int _lastPointerColumn;
     private bool _isAutoScrolling;
 
     /// <summary>
@@ -61,6 +62,16 @@ public sealed class PaneListView : ListView
     /// the pane has the focus by then and the cursor has not moved.
     /// </summary>
     public event Action<string>? ButtonClicked;
+
+    /// <summary>
+    /// Raised for the pointer on the text of a <see cref="ITextSource"/> source that can be selected by character: clicks (before
+    /// <see cref="GestureRaised"/> reports them) and drags (after the cursor row followed the pointer). Never raised for a
+    /// source that cannot, or for double and triple clicks while <see cref="SelectsText"/> is off.
+    /// </summary>
+    public event Action<TextPointer>? TextPointed;
+
+    /// <summary>A double or triple click selects a word or the line (read-only text panes where a double-click has no action of its own).</summary>
+    public bool SelectsText { get; set; }
 
     protected override bool OnMouseEvent(Mouse mouse)
     {
@@ -123,7 +134,12 @@ public sealed class PaneListView : ListView
             ClickPositioned?.Invoke(clicked.X, clicked.Y);
         }
 
-        if (gesture is MouseGesture.Click or MouseGesture.DoubleClick)
+        if (mouse.Position is { } pointed)
+        {
+            RaiseClickPointer(gesture, pointed.X, pointed.Y);
+        }
+
+        if (gesture is MouseGesture.Click or MouseGesture.DoubleClick or MouseGesture.TripleClick)
         {
             base.OnMouseEvent(mouse);
         }
@@ -168,6 +184,7 @@ public sealed class PaneListView : ListView
         if (phase is DragPhase.Start or DragPhase.Move && mouse.Position is { } position)
         {
             _lastPointerRow = position.Y;
+            _lastPointerColumn = position.X;
             var visibleRows = Viewport.Height;
             if (DragAutoScroll.Step(position.Y, visibleRows) == 0)
             {
@@ -177,6 +194,9 @@ public sealed class PaneListView : ListView
             {
                 StartAutoScroll();
             }
+
+            var kind = phase == DragPhase.Start ? TextPointerKind.DragStart : TextPointerKind.DragMove;
+            RaiseDragPointer(kind, position.X, position.Y);
         }
 
         return true;
@@ -209,6 +229,7 @@ public sealed class PaneListView : ListView
             }
 
             ExtendTo(target - Viewport.Y);
+            RaiseDragPointer(TextPointerKind.DragMove, _lastPointerColumn, target - Viewport.Y);
             return true;
         });
     }
@@ -228,6 +249,37 @@ public sealed class PaneListView : ListView
         {
             GestureRaised?.Invoke(delta < 0 ? MouseGesture.DragUp : MouseGesture.DragDown, Math.Abs(delta));
         }
+    }
+
+    private void RaiseClickPointer(MouseGesture gesture, int column, int row)
+    {
+        var kind = gesture switch
+        {
+            MouseGesture.Click => TextPointerKind.Click,
+            MouseGesture.DoubleClick when SelectsText => TextPointerKind.DoubleClick,
+            MouseGesture.TripleClick when SelectsText => TextPointerKind.TripleClick,
+            _ => (TextPointerKind?)null,
+        };
+        if (kind is not { } found || Source is not ITextSource { SupportsText: true } text)
+        {
+            return;
+        }
+
+        if (text.PositionAt(this, column, row) is { } at)
+        {
+            TextPointed?.Invoke(new TextPointer(found, at));
+        }
+    }
+
+    private void RaiseDragPointer(TextPointerKind kind, int column, int row)
+    {
+        if (Source is not ITextSource { SupportsText: true } text || text.PositionAt(this, column, row) is not { } at)
+        {
+            return;
+        }
+
+        var origin = kind == TextPointerKind.DragStart ? text.PositionAt(this, _drag.Origin.X, _drag.Origin.Y) : null;
+        TextPointed?.Invoke(new TextPointer(kind, at, origin));
     }
 
     // The marker sits on the selected row only (#479); a click on it is a button click, the cursor does not move.

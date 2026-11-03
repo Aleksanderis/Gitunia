@@ -382,6 +382,38 @@ public class KeymapEngineTests
         Assert.Equal(KeyOutcome.Unbound, feeder.Feed("/").Outcome);
     }
 
+    [Theory]
+    [InlineData("h", "visual.char-left")]
+    [InlineData("l", "visual.char-right")]
+    [InlineData("w", "visual.word-next")]
+    [InlineData("b", "visual.word-previous")]
+    [InlineData("0", "visual.line-start")]
+    [InlineData("$", "visual.line-end")]
+    [InlineData("iw", "visual.select-word")]
+    [InlineData("il", "visual.select-line")]
+    [InlineData("Alt-v", "visual.toggle-chars")]
+    public void GivenVisualMode_WhenPressingACharacterSelectionKey_ThenEveryDiffAndListViewRunsItsAction(string keys, string action)
+    {
+        var engine = new KeymapEngine(DefaultKeymap.Create());
+        foreach (var view in new[] { DefaultKeymap.DiffView, DefaultKeymap.WorkingUnstagedDiffView, DefaultKeymap.WorkingStagedDiffView, DefaultKeymap.DetailView })
+        {
+            var feeder = new KeyFeeder(engine, view);
+            feeder.State = feeder.State.WithMode(KeyMode.Visual);
+
+            Assert.Equal(new ActionId(action), feeder.Feed(keys).Action);
+        }
+    }
+
+    [Fact]
+    public void GivenNormalMode_WhenPressingTheCharacterSelectionKeys_ThenOnlyAltVStartsItAndTheMotionKeysKeepTheirMeaning()
+    {
+        var feeder = new KeyFeeder(new KeymapEngine(DefaultKeymap.Create()), DefaultKeymap.DiffView);
+
+        Assert.Equal(ActionIds.VisualToggleChars, feeder.Feed("Alt-v").Action);
+        Assert.Equal(ActionIds.VisualToggle, feeder.Feed("v").Action);
+        Assert.NotEqual(ActionIds.VisualCharRight, feeder.Feed("l").Action);
+    }
+
     [Fact]
     public void GivenTheWorkingTreeDiffs_WhenPressingTheStagingChords_ThenEachSideHasItsOwnInNormalAndVisualMode()
     {

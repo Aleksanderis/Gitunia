@@ -87,6 +87,15 @@ Every default key binding, one table per view. The design rules, notation and mo
 | `Ctrl-u` `PageUp` | Normal, Visual | `list.half-page-up` | Half page up |
 | `v` | Normal, Visual | `visual.toggle` | Start or end range selection |
 | `y` | Visual | `visual.copy` | Copy the selected range |
+| `Alt-v` | Normal, Visual | `visual.toggle-chars` | Start or end character selection |
+| `h` | Visual | `visual.char-left` | Move the character selection one character left |
+| `l` | Visual | `visual.char-right` | Move the character selection one character right |
+| `w` | Visual | `visual.word-next` | Move the character selection to the next word |
+| `b` | Visual | `visual.word-previous` | Move the character selection to the previous word |
+| `0` | Visual | `visual.line-start` | Move the character selection to the start of the line |
+| `$` | Visual | `visual.line-end` | Move the character selection to the end of the line |
+| `iw` | Visual | `visual.select-word` | Select the word under the cursor (or the pointer) |
+| `il` | Visual | `visual.select-line` | Select the text of the line (or the line under the pointer) |
 
 ## Graph
 
