@@ -1,3 +1,4 @@
+using Gitunia.Core.Editing;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Workspaces.Repositories;
 
@@ -27,4 +28,5 @@ public sealed record ToggleSidebarSectionCommand : SidebarCommand;
 
 /// <summary>Set the name filter and put the cursor on the first match.</summary>
 /// <param name="Text">The filter; empty clears it.</param>
-public sealed record SetSidebarFilterCommand(string Text) : SidebarCommand;
+/// <param name="Caret">The caret column in the text; the end by default. With unchanged text only the caret moves.</param>
+public sealed record SetSidebarFilterCommand(string Text, int Caret = PromptCaret.End) : SidebarCommand;

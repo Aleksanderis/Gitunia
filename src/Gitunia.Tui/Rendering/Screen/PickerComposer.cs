@@ -1,3 +1,4 @@
+using Gitunia.Core.Editing;
 using Gitunia.Core.Picker;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Overlays;
@@ -88,8 +89,7 @@ public static class PickerComposer
     private static StyledLine QueryLine(PickerState picker, int width, GraphGlyphSet glyphs) =>
         new LineBuilder(width, glyphs.Ellipsis)
             .Append(" ", SegmentRole.Plain)
-            .Append(picker.Query, SegmentRole.Plain)
-            .Append(" ", SegmentRole.Cursor)
+            .Append(PromptCaret.Mark(picker.Query, picker.Caret, Math.Max(1, width - 1)), SegmentRole.Plain)
             .Build();
 
     private static StyledLine HintLine(int width, GraphGlyphSet glyphs)

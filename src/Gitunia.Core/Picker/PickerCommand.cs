@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using Gitunia.Core.Keymap.Models;
 
 namespace Gitunia.Core.Picker;
 
@@ -10,11 +11,15 @@ public abstract record PickerCommand : AppCommand
     }
 }
 
-/// <summary>Text typed into the query.</summary>
+/// <summary>Text typed into the query, inserted at the caret.</summary>
 /// <param name="Text">The typed characters.</param>
 public sealed record TypeTextCommand(string Text) : PickerCommand;
 
-/// <summary>Delete the last character of the query.</summary>
+/// <summary>A key typed into the query: text is inserted at the caret, the editing keys move it or delete (see <see cref="Editing.PromptTextEditor"/>).</summary>
+/// <param name="Key">The typed key.</param>
+public sealed record EditQueryCommand(KeyEvent Key) : PickerCommand;
+
+/// <summary>Delete the character before the caret of the query.</summary>
 public sealed record BackspaceCommand : PickerCommand;
 
 /// <summary>Clear the query.</summary>

@@ -19,7 +19,7 @@ public static class SidebarReducer
             ExpandSidebarCommand => Expand(tab, rows, cursor),
             CollapseSidebarCommand => Collapse(tab, rows, cursor),
             ToggleSidebarSectionCommand => Toggle(tab, rows, cursor),
-            SetSidebarFilterCommand filter => SetFilter(tab, filter.Text),
+            SetSidebarFilterCommand filter => SetFilter(tab, filter.Text, filter.Caret),
             _ => tab,
         };
     }
@@ -126,9 +126,14 @@ public static class SidebarReducer
         return tab with { Sidebar = tab.Sidebar with { CollapsedSections = collapsed } };
     }
 
-    private static RepositoryState SetFilter(RepositoryState tab, string text)
+    private static RepositoryState SetFilter(RepositoryState tab, string text, int caret)
     {
-        var filtered = tab with { Sidebar = tab.Sidebar with { FilterText = text, Cursor = 0 } };
+        if (text == tab.Sidebar.FilterText)
+        {
+            return tab with { Sidebar = tab.Sidebar with { FilterCaret = caret } };
+        }
+
+        var filtered = tab with { Sidebar = tab.Sidebar with { FilterText = text, FilterCaret = caret, Cursor = 0 } };
         var rows = SidebarBuilder.Build(filtered);
         var firstEntry = rows.Length > 1 && text.Length > 0 ? 1 : 0;
         return WithCursor(filtered, firstEntry);

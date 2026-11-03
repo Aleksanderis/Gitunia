@@ -1,4 +1,5 @@
 using Gitunia.Core;
+using Gitunia.Core.Editing;
 using Gitunia.Core.Workspaces.Panes;
 
 namespace Gitunia.Tui.Rendering.Sidebar;
@@ -7,8 +8,9 @@ namespace Gitunia.Tui.Rendering.Sidebar;
 /// <param name="FilterText">The name filter, empty when none.</param>
 /// <param name="IsEditingFilter">The filter is being typed.</param>
 /// <param name="IsFocused">The sidebar has focus.</param>
+/// <param name="FilterCaret">The caret column in the filter (see <see cref="PromptCaret"/>).</param>
 // ReSharper disable once NotAccessedPositionalProperty.Global : Part of the full value, not read yet
-public sealed record SidebarChrome(string FilterText, bool IsEditingFilter, bool IsFocused)
+public sealed record SidebarChrome(string FilterText, bool IsEditingFilter, bool IsFocused, int FilterCaret = PromptCaret.End)
 {
     /// <summary>No filter, not editing, not focused.</summary>
     public static SidebarChrome Idle { get; } = new(string.Empty, false, false);
@@ -23,6 +25,6 @@ public sealed record SidebarChrome(string FilterText, bool IsEditingFilter, bool
 
         var isEditing = state.Shell.Sidebar.IsEditing(tab.Id);
 
-        return new SidebarChrome(tab.Sidebar.FilterText, isEditing, tab.View.FocusedPane == PaneKind.Sidebar);
+        return new SidebarChrome(tab.Sidebar.FilterText, isEditing, tab.View.FocusedPane == PaneKind.Sidebar, tab.Sidebar.FilterCaret);
     }
 }
