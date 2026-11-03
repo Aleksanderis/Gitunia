@@ -22,7 +22,7 @@ public sealed class CopyEffects(ClipboardCopier clipboard, RangeCopier ranges, T
     /// <param name="effect">The range.</param>
     public void CopyVisualRange(CopyVisualRangeEffect effect)
     {
-        var result = ranges.Copy(effect.Pane, effect.Range);
+        var result = ranges.Copy(effect.Pane, effect.Range, effect.Chars);
         host.Dispatch(new VisualCopied(result.Copied, result.Notice));
     }
 

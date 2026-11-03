@@ -26,6 +26,9 @@ public sealed class PaneParts
         var panes = foundation.Panes;
         Commits = new CommitMessageInput(host, route.ActionInput);
         Visual = new VisualRangeInput(host, panes);
+        panes.Diff.SelectsText = true;
+        panes.Diff.TextPointed += Visual.OnTextPointed;
+        panes.WorkingDiff.TextPointed += Visual.OnTextPointed;
         DiffView = new DiffPaneView(host, foundation.Sessions, panes, foundation.Chrome, foundation.Clipboard);
         DiffPane = new DiffPaneInput(host, foundation.Sessions, panes, DiffView);
         WorkingDiff = new WorkingDiffController(

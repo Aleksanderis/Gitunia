@@ -20,6 +20,7 @@ Key notes that the tables cannot carry:
 - `Ctrl-w >` `Ctrl-w <` move the divider beside the focused pane by 2 columns (a count multiplies; dragging a divider does the same); `Ctrl-w +` `Ctrl-w -` move the edge between the graph and the bottom panes by 1 row; `Ctrl-w =` resets the sizes. The `ResizeRepeat` and `ContextRepeat` views are the short-lived repeat modes after such a step: any other key ends the mode.
 - `Ctrl-^` has a second binding, `<space><Tab>`, for terminals that drop it.
 - `Esc` ladder in Normal mode: cancels a pending chord, then clears the search highlight, leaves Insert, cancels running remote work in the graph, else dismisses the status message.
+- Character-wise selection (#1161): `v` stays row-wise; `Alt-v` starts a selection by character in the diff (history, Changes view and file content), turns a row-wise one into it, or ends it. The second key is `Alt-v` because the free vim-like keys (`V`, `Ctrl-v`) keep their vim meaning for later and a bare letter would clash with the vim rule; inside it `h` `l` `w` `b` `0` `$` move the cursor end on its line (a count repeats `h` `l` `w` `b`), `j` `k` change the row, `iw` selects the word and `il` the line's text, and `v` turns it into whole rows. It needs a diff without wrap or side-by-side (otherwise a notice says so). `y` copies exactly the selected characters (lines joined with a line feed, no gutter or markers, notes skipped) and ends it.
 - Visual `y` copies the range without `+`/`-`/space markers or gutter, a wrapped row once, notes skipped; above about 75 KB it refuses, and a failed copy keeps the range.
 - `<space>bd` asks a second Confirm when the branch is unmerged; `<space>gr` with no conflicted file says so in the status bar.
 - Changes view, `Enter` on a screen under 80 columns: the diff replaces the list until `Esc`.
@@ -396,6 +397,15 @@ Grouped as the palette groups them (`ActionCatalog.GroupOf`). "Old" lists every 
 | `sidebar.filter` | Filter the sidebar | `/` | same | Everyday |  |
 | `view.quick-jump-to-row` | Quick jump to a visible row | `<space>j` | same | Everyday |  |
 | `visual.toggle` | Start or end range selection | `v` | same | Everyday |  |
+| `visual.char-left` | Move the character selection one character left | none | `h` | Advanced | #1161; Visual mode only |
+| `visual.char-right` | Move the character selection one character right | none | `l` | Advanced | #1161; Visual mode only |
+| `visual.line-end` | Move the character selection to the end of the line | none | `$` | Advanced | #1161; Visual mode only |
+| `visual.line-start` | Move the character selection to the start of the line | none | `0` | Advanced | #1161; Visual mode only |
+| `visual.select-line` | Select the text of the line (or the line under the pointer) | none | `il` | Everyday | #1161; Visual mode only |
+| `visual.select-word` | Select the word under the cursor (or the pointer) | none | `iw` | Everyday | #1161; Visual mode only |
+| `visual.toggle-chars` | Start or end character selection | none | `Alt-v` | Everyday | #1161; Normal and Visual mode |
+| `visual.word-next` | Move the character selection to the next word | none | `w` | Advanced | #1161; Visual mode only |
+| `visual.word-previous` | Move the character selection to the previous word | none | `b` | Advanced | #1161; Visual mode only |
 
 **View**
 

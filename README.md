@@ -26,6 +26,7 @@ Terminal Git tools are great for quick staging and commits but awkward for many 
 - Reflog browser as the undo path for destructive actions
 - Blame view: who last changed each line of a file, at a commit or in the working tree
 - Command palette, configurable vim-style keys and full mouse support
+- Select and copy exactly the text you want from a diff, by character or by line, with keys or the mouse (copies through the terminal clipboard, also over ssh)
 
 Not included: submodules, LFS UI, hosting-provider integration, plugins.
 
