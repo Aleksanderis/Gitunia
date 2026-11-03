@@ -70,6 +70,24 @@ public class KeyControllerModeTests
         Assert.Equal(KeyMode.Confirm, _keys.Mode);
     }
 
+    [Theory]
+    [InlineData("Left")]
+    [InlineData("Right")]
+    [InlineData("Down")]
+    [InlineData("Up")]
+    [InlineData("Home")]
+    [InlineData("z")]
+    public void GivenTheSettingsScreen_WhenAKeyIsPressed_ThenItIsConsumedSoNoPaneBehindMoves(string name)
+    {
+        Assert.True(_keys.Handle(new KeyEvent(name), DefaultKeymap.SettingsView));
+    }
+
+    [Fact]
+    public void GivenAPane_WhenAnUnboundKeyIsPressed_ThenItIsLeftToTheTerminal()
+    {
+        Assert.False(_keys.Handle(new KeyEvent("Left"), DefaultKeymap.GraphView));
+    }
+
     private sealed class IgnoringRoute : IActionRoute
     {
         public void Route(ActionId action, int? count)
