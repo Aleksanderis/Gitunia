@@ -715,8 +715,9 @@ public class PaletteTests
         Assert.NotEqual(word, selected);
         if (depth == ColorDepth.TrueColor)
         {
-            Assert.NotEqual(word.Background, selected.Background);
-            Assert.True(Contrast(ToRgb(selected.Foreground), ToRgb(selected.Background)) >= PaletteTable.ReadableContrast);
+            Assert.True(Contrast(ToRgb(word.Background), ToRgb(selected.Background)) >= 1.1);
+            Assert.True(
+                Contrast(ToRgb(selected.Foreground), ToRgb(selected.Background)) >= PaletteTable.ReadableContrast);
         }
         else
         {

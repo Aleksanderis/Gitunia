@@ -108,8 +108,9 @@ public static class Palette
         }
         else if (IsChangedWord(segment.Role) && background != Color.None && colors.RangeBackground != Color.None)
         {
-            // A changed word keeps its own tint, so the range tint is mixed in (#1176): a selected character stays apart from the word around it.
-            background = PaletteTable.Mix(background, colors.RangeBackground, ChangedWordRangeShare);
+            // A changed word keeps its own tint, so the range tint is mixed in (#1176):
+            // a selected character stays apart from the word around it.
+            background = PaletteTable.Blend(background, colors.RangeBackground, ChangedWordRangeShare);
             var minimum = segment.Role is SegmentRole.WhitespaceMarkAddedWord or SegmentRole.WhitespaceMarkRemovedWord
                 ? PaletteTable.SubtleContrast
                 : PaletteTable.ReadableContrast;
