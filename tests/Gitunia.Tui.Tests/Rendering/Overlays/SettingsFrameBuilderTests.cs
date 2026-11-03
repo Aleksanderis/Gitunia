@@ -13,9 +13,9 @@ public class SettingsFrameBuilderTests
     private const string Home = "/home/user";
 
     [Fact]
-    public void GivenTheDefaultSettings_WhenRenderingAt80x14_ThenTheCategoriesAndTheFirstSettingsShow()
+    public void GivenTheDefaultSettings_WhenRenderingAt80x15_ThenTheCategoriesAndTheFirstSettingsShow()
     {
-        var frame = SettingsFrameBuilder.Build(Open(), 80, 14, GraphGlyphSet.Unicode)!;
+        var frame = SettingsFrameBuilder.Build(Open(), 80, 15, GraphGlyphSet.Unicode)!;
 
         Assert.Equal(
             string.Join(
@@ -24,6 +24,7 @@ public class SettingsFrameBuilderTests
                 "│ / filter                                                                   │",
                 "│  Appearance    │  Theme                                           [auto ▾] │",
                 "│  Keys          │  Branch label caps                            [rounded ▾] │",
+                "│  Key mapping   │                                                           │",
                 "│  Repositories  │                                                           │",
                 "│  Tabs          │                                                           │",
                 "│  Config file   │                                                           │",
@@ -368,7 +369,7 @@ public class SettingsFrameBuilderTests
 
         var entries = SettingsFrameBuilder.BodyEntries(state);
 
-        Assert.Equal([0, 1, 2, 3, -1, 4, -1, 5, 6], entries.Select(entry => entry.RowIndex));
+        Assert.Equal([0, -1, 1, -1, 2, 3], entries.Select(entry => entry.RowIndex));
         Assert.Equal(["Global", "Graph"], entries.Where(entry => entry.RowIndex < 0).Select(entry => entry.Heading));
     }
 

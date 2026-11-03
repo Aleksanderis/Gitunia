@@ -112,7 +112,7 @@ public static class SettingsRegistry
             [.. CommandLevels.Names]),
         new SettingDefinition(
             KeyReferenceId,
-            SettingCategory.Keys,
+            SettingCategory.KeyMapping,
             "Key reference",
             SettingControl.KeyReference,
             [],
@@ -147,6 +147,7 @@ public static class SettingsRegistry
     {
         SettingCategory.Appearance => "Appearance",
         SettingCategory.Keys => "Keys",
+        SettingCategory.KeyMapping => "Key mapping",
         SettingCategory.Repositories => "Repositories",
         SettingCategory.Git => "Git",
         SettingCategory.Tabs => "Tabs",
