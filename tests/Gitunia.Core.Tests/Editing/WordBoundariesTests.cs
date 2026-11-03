@@ -3,6 +3,7 @@ using Xunit;
 
 namespace Gitunia.Core.Tests.Editing;
 
+[Trait("Os", "Independent")]
 public sealed class WordBoundariesTests
 {
     [Theory]
@@ -18,6 +19,8 @@ public sealed class WordBoundariesTests
     [InlineData("ab", 0, 0)]
     [InlineData("a😀b", 4, 3)]
     [InlineData("a😀b", 3, 1)]
+    [InlineData("x ❤️", 4, 2)]
+    [InlineData("x 👨‍👩 y", 7, 2)]
     [InlineData("", 0, 0)]
     public void GivenAColumn_WhenGoingPrevious_ThenItLandsOnTheWordStart(string line, int column, int expected) =>
         Assert.Equal(expected, WordBoundaries.Previous(line, column));
@@ -34,6 +37,8 @@ public sealed class WordBoundariesTests
     [InlineData("ab  ", 2, 4)]
     [InlineData("ab", 2, 2)]
     [InlineData("a😀b", 1, 3)]
+    [InlineData("x ❤️ y", 1, 4)]
+    [InlineData("e\u0301a b", 0, 3)]
     [InlineData("", 0, 0)]
     public void GivenAColumn_WhenGoingNext_ThenItLandsOnTheWordEnd(string line, int column, int expected) =>
         Assert.Equal(expected, WordBoundaries.Next(line, column));
