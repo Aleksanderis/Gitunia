@@ -399,6 +399,96 @@ public class MessageEditorTests
         Assert.Equal("new", editor.Text);
     }
 
+    [Theory]
+    [InlineData(KeyModifiers.Ctrl)]
+    [InlineData(KeyModifiers.Alt)]
+    public void GivenCtrlOrAltArrows_WhenApplying_ThenTheCursorStepsByWordsAcrossLines(KeyModifiers modifiers)
+    {
+        var editor = Editor("foo.bar baz\nqux");
+        editor.Apply(new KeyEvent(KeyNames.Home, KeyModifiers.Ctrl));
+        var stops = new List<(int, int)>();
+        for (var step = 0; step < 6; step++)
+        {
+            editor.Apply(new KeyEvent(KeyNames.Right, modifiers));
+            stops.Add((editor.CursorRow, editor.CursorColumn));
+        }
+
+        Assert.Equal([(0, 3), (0, 4), (0, 7), (0, 11), (1, 0), (1, 3)], stops);
+        for (var step = 0; step < 3; step++)
+        {
+            editor.Apply(new KeyEvent(KeyNames.Left, modifiers));
+        }
+
+        Assert.Equal((0, 8), (editor.CursorRow, editor.CursorColumn));
+        editor.Apply(new KeyEvent(KeyNames.Left, modifiers));
+        Assert.Equal((0, 4), (editor.CursorRow, editor.CursorColumn));
+    }
+
+    [Fact]
+    public void GivenReadlineAltKeys_WhenApplying_ThenTheyMoveAndDeleteWords()
+    {
+        var editor = Editor("one two three");
+        editor.Apply(new KeyEvent("b", KeyModifiers.Alt));
+        Assert.Equal(8, editor.CursorColumn);
+        editor.Apply(new KeyEvent("b", KeyModifiers.Alt));
+        editor.Apply(new KeyEvent("f", KeyModifiers.Alt));
+        Assert.Equal(7, editor.CursorColumn);
+        editor.Apply(new KeyEvent("d", KeyModifiers.Alt));
+        Assert.Equal("one two", editor.Text);
+        editor.Apply(new KeyEvent(KeyNames.Backspace, KeyModifiers.Alt));
+        Assert.Equal("one ", editor.Text);
+    }
+
+    [Fact]
+    public void GivenCtrlBackspaceAndCtrlDelete_WhenApplying_ThenAWordIsDeleted()
+    {
+        var editor = Editor("foo.bar baz");
+        editor.Apply(new KeyEvent(KeyNames.Backspace, KeyModifiers.Ctrl));
+        Assert.Equal("foo.bar ", editor.Text);
+        editor.Apply(new KeyEvent(KeyNames.Backspace, KeyModifiers.Ctrl));
+        Assert.Equal("foo.", editor.Text);
+        editor.Apply(new KeyEvent("w", KeyModifiers.Ctrl));
+        Assert.Equal("foo", editor.Text);
+        editor.Apply(new KeyEvent(KeyNames.Home));
+        editor.Apply(new KeyEvent(KeyNames.Delete, KeyModifiers.Ctrl));
+        Assert.Equal(string.Empty, editor.Text);
+    }
+
+    [Fact]
+    public void GivenLineEdges_WhenDeletingWords_ThenLinesJoin()
+    {
+        var editor = Editor("ab\ncd");
+        editor.Apply(new KeyEvent(KeyNames.Home));
+        editor.Apply(new KeyEvent(KeyNames.Backspace, KeyModifiers.Ctrl));
+        Assert.Equal("abcd", editor.Text);
+
+        editor.SetText("ab\ncd");
+        editor.Apply(new KeyEvent(KeyNames.Home, KeyModifiers.Ctrl));
+        editor.Apply(new KeyEvent(KeyNames.End));
+        editor.Apply(new KeyEvent("d", KeyModifiers.Alt));
+        Assert.Equal("abcd", editor.Text);
+    }
+
+    [Fact]
+    public void GivenCtrlHomeAndEnd_WhenApplying_ThenTheCursorGoesToTheTextEdges()
+    {
+        var editor = Editor("ab\ncd\nef");
+        editor.Apply(new KeyEvent(KeyNames.Home, KeyModifiers.Ctrl));
+        Assert.Equal((0, 0), (editor.CursorRow, editor.CursorColumn));
+        editor.Apply(new KeyEvent(KeyNames.End, KeyModifiers.Ctrl));
+        Assert.Equal((2, 2), (editor.CursorRow, editor.CursorColumn));
+    }
+
+    [Fact]
+    public void GivenUnicodeWords_WhenDeletingBackward_ThenWholeWordsGo()
+    {
+        var editor = Editor($"hello привет {Emoji}");
+        editor.Apply(new KeyEvent(KeyNames.Backspace, KeyModifiers.Ctrl));
+        Assert.Equal("hello привет ", editor.Text);
+        editor.Apply(new KeyEvent(KeyNames.Backspace, KeyModifiers.Ctrl));
+        Assert.Equal("hello ", editor.Text);
+    }
+
     private static MessageEditor Editor(string text)
     {
         var editor = new MessageEditor();
