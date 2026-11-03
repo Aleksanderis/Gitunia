@@ -1,4 +1,5 @@
 using Gitunia.Core.Mouse;
+using Gitunia.Core.Text;
 using Gitunia.Tui.Input;
 using Gitunia.Tui.Input.Drag;
 using Gitunia.Tui.Rendering.Styling;
@@ -18,6 +19,7 @@ public sealed class PaneListView : ListView
     private readonly DragTracker _drag = new();
     private int _lastPointerRow;
     private int _lastPointerColumn;
+    private bool _dragIsOldSide;
     private bool _isAutoScrolling;
 
     /// <summary>
@@ -72,6 +74,12 @@ public sealed class PaneListView : ListView
 
     /// <summary>A double or triple click selects a word or the line (read-only text panes where a double-click has no action of its own).</summary>
     public bool SelectsText { get; set; }
+
+    /// <summary>
+    /// A triple click selects the line, while a double-click keeps its own action (the Details tab opens an issue link
+    /// with it).
+    /// </summary>
+    public bool SelectsLine { get; set; }
 
     protected override bool OnMouseEvent(Mouse mouse)
     {
@@ -257,7 +265,7 @@ public sealed class PaneListView : ListView
         {
             MouseGesture.Click => TextPointerKind.Click,
             MouseGesture.DoubleClick when SelectsText => TextPointerKind.DoubleClick,
-            MouseGesture.TripleClick when SelectsText => TextPointerKind.TripleClick,
+            MouseGesture.TripleClick when SelectsText || SelectsLine => TextPointerKind.TripleClick,
             _ => (TextPointerKind?)null,
         };
         if (kind is not { } found || Source is not ITextSource { SupportsText: true } text)
@@ -265,21 +273,31 @@ public sealed class PaneListView : ListView
             return;
         }
 
-        if (text.PositionAt(this, column, row) is { } at)
+        if (text.HitAt(this, column, row, null) is { } hit)
         {
-            TextPointed?.Invoke(new TextPointer(found, at));
+            TextPointed?.Invoke(new TextPointer(found, hit.Position, null, hit.IsOldSide));
         }
     }
 
     private void RaiseDragPointer(TextPointerKind kind, int column, int row)
     {
-        if (Source is not ITextSource { SupportsText: true } text || text.PositionAt(this, column, row) is not { } at)
+        if (Source is not ITextSource { SupportsText: true } text)
         {
             return;
         }
 
-        var origin = kind == TextPointerKind.DragStart ? text.PositionAt(this, _drag.Origin.X, _drag.Origin.Y) : null;
-        TextPointed?.Invoke(new TextPointer(kind, at, origin));
+        TextPosition? origin = null;
+        if (kind == TextPointerKind.DragStart)
+        {
+            var pressed = text.HitAt(this, _drag.Origin.X, _drag.Origin.Y, null);
+            origin = pressed?.Position;
+            _dragIsOldSide = pressed?.IsOldSide ?? false;
+        }
+
+        if (text.HitAt(this, column, row, _dragIsOldSide) is { } hit)
+        {
+            TextPointed?.Invoke(new TextPointer(kind, hit.Position, origin, _dragIsOldSide));
+        }
     }
 
     // The marker sits on the selected row only (#479); a click on it is a button click, the cursor does not move.

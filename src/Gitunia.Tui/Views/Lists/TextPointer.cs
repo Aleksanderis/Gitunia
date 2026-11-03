@@ -6,4 +6,11 @@ namespace Gitunia.Tui.Views.Lists;
 /// <param name="Kind">What the pointer did.</param>
 /// <param name="Position">The character under the pointer (clamped to the rows).</param>
 /// <param name="Origin">For <see cref="TextPointerKind.DragStart"/>, the character where the button went down.</param>
-public readonly record struct TextPointer(TextPointerKind Kind, TextPosition Position, TextPosition? Origin = null);
+/// <param name="IsOldSide">
+/// The pointer is on the left (old) side of the side-by-side diff (for a drag: the side the button went down on).
+/// </param>
+public readonly record struct TextPointer(
+    TextPointerKind Kind,
+    TextPosition Position,
+    TextPosition? Origin = null,
+    bool IsOldSide = false);

@@ -24,6 +24,7 @@ public sealed class VisualRangeInput : IActionHandler
     private PaneKind _pane;
     private IRangeSource? _source;
     private TextPosition? _pointed;
+    private bool _pointedIsOldSide;
     private TextPosition? _dragAnchor;
 
     /// <param name="host">The state and the commands.</param>
@@ -90,16 +91,17 @@ public sealed class VisualRangeInput : IActionHandler
         {
             case TextPointerKind.DragStart:
                 _dragAnchor = pointed.Origin ?? pointed.Position;
-                SelectChars(_dragAnchor.Value, pointed.Position);
+                SelectChars(_dragAnchor.Value, pointed.Position, pointed.IsOldSide);
                 break;
             case TextPointerKind.DragMove when _dragAnchor is { } anchor:
-                SelectChars(anchor, pointed.Position);
+                SelectChars(anchor, pointed.Position, pointed.IsOldSide);
                 break;
             case TextPointerKind.Click:
                 _pointed = null;
                 break;
             default:
                 _pointed = pointed.Position;
+                _pointedIsOldSide = pointed.IsOldSide;
                 break;
         }
     }
@@ -120,7 +122,7 @@ public sealed class VisualRangeInput : IActionHandler
 
     public void End()
     {
-        _pointed = null;
+        // The pointed position stays: the gesture router ends the range before the double-click action selects at it.
         if (IsActive)
         {
             _host.Dispatch(new VisualEnded());
@@ -146,9 +148,10 @@ public sealed class VisualRangeInput : IActionHandler
         if (_host.State.Shell.Visual is { Kind: VisualKind.Chars } selection
             && TextOfPane(selection.Pane) is { } source)
         {
-            var text = source.TextOf(selection.Range.Cursor);
+            var text = source.TextOf(selection.Range.Cursor, selection.IsOldSide);
             var column = VisualActions.MoveColumn(action, text, selection.CursorColumn, count ?? 1);
             _host.Dispatch(new VisualColumnMoved(column));
+            FollowColumn(selection, source, column);
         }
 
         return IsActive;
@@ -158,9 +161,32 @@ public sealed class VisualRangeInput : IActionHandler
     {
         var pane = _host.Workspace.ActiveTab?.View.FocusedPane ?? PaneKind.Graph;
         var list = _lists.ListOf(pane);
-        var hasText = TextOfPane(pane) is not null;
+        var source = TextOfPane(pane);
+        if (source is null || list.SelectedItem is not { } item)
+        {
+            _host.Dispatch(new VisualCharsToggled(list.SelectedItem, 0, false));
 
-        _host.Dispatch(new VisualCharsToggled(list.SelectedItem, 0, hasText));
+            return;
+        }
+
+        var isOldSide = StartsOnOldSide(source, item);
+        _host.Dispatch(new VisualCharsToggled(item, source.StartAt(item, isOldSide).Column, true, isOldSide));
+    }
+
+    // Side by side the cursor line selects on the new side, or on the old one when only that side has a row there.
+    private static bool StartsOnOldSide(ITextSource source, int item) =>
+        source.TextOf(item, false).Length == 0 && source.TextOf(item, true).Length > 0;
+
+    // A wrapped row spreads over several lines: the cursor line goes to the one that shows the cursor column.
+    private void FollowColumn(VisualSelection selection, ITextSource source, int column)
+    {
+        var position = new TextPosition(selection.Range.Cursor, column);
+        var item = source.ItemShowing(position, selection.IsOldSide);
+        var list = _lists.ListOf(selection.Pane);
+        if (item != selection.Range.Cursor && list.SelectedItem != item)
+        {
+            list.SelectedItem = item;
+        }
     }
 
     // A double or triple click selects at the pointer; the keys and the palette select at the cursor (its column in a
@@ -177,18 +203,24 @@ public sealed class VisualRangeInput : IActionHandler
             return;
         }
 
-        var current = _host.State.Shell.Visual is { Kind: VisualKind.Chars } selection
-            ? new TextPosition(selection.Range.Cursor, selection.CursorColumn)
-            : new TextPosition(row, 0);
+        var selected = _host.State.Shell.Visual is { Kind: VisualKind.Chars } active ? active : null;
+        var isOldSide = SideOfSelection(source, row, selected);
+        var current = selected is null
+            ? source.StartAt(row, isOldSide)
+            : new TextPosition(selected.Range.Cursor, selected.CursorColumn);
         var at = _pointed ?? current;
+        isOldSide = _pointed is null ? isOldSide : _pointedIsOldSide;
         _pointed = null;
-        var text = source.TextOf(at.Line);
+        var text = source.TextOf(at.Line, isOldSide);
         var span = isWord ? TextMotions.WordAt(text, at.Column) : new ColumnSpan(0, TextMotions.LineEnd(text));
-        SelectChars(new TextPosition(at.Line, span.First), new TextPosition(at.Line, span.Last));
+        SelectChars(new TextPosition(at.Line, span.First), new TextPosition(at.Line, span.Last), isOldSide);
     }
 
-    private void SelectChars(TextPosition anchor, TextPosition cursor) =>
-        _host.Dispatch(new VisualCharsSelected(anchor, cursor));
+    private bool SideOfSelection(ITextSource source, int row, VisualSelection? selected) =>
+        _pointed is not null ? _pointedIsOldSide : selected?.IsOldSide ?? StartsOnOldSide(source, row);
+
+    private void SelectChars(TextPosition anchor, TextPosition cursor, bool isOldSide) =>
+        _host.Dispatch(new VisualCharsSelected(anchor, cursor, isOldSide));
 
     private ITextSource? TextOfPane(PaneKind pane) =>
         _lists.ListOf(pane).Source is ITextSource { SupportsText: true } source ? source : null;
@@ -222,10 +254,11 @@ public sealed class VisualRangeInput : IActionHandler
             return;
         }
 
-        if (source.Range != selection.Range || (source as ITextSource)?.Text != selection.Text)
+        var text = source as ITextSource;
+        if (source.Range != selection.Range || text?.Text != selection.Text || text?.IsOldSide != selection.IsOldSide)
         {
             source.Range = selection.Range;
-            SetText(selection.Text);
+            SetText(selection.Text, selection.IsOldSide);
             _lists.ListOf(_pane).SetNeedsDraw();
         }
     }
@@ -251,16 +284,17 @@ public sealed class VisualRangeInput : IActionHandler
 
         _source.RangeInvalidated -= OnInvalidated;
         _source.Range = null;
-        SetText(null);
+        SetText(null, false);
         _source = null;
         _lists.ListOf(_pane).SetNeedsDraw();
     }
 
-    private void SetText(TextSelection? text)
+    private void SetText(TextSelection? text, bool isOldSide)
     {
         if (_source is ITextSource source)
         {
             source.Text = text;
+            source.IsOldSide = isOldSide;
         }
     }
 
