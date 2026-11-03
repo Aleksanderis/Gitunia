@@ -35,4 +35,12 @@ public class PasteKeysTests
 
         Assert.Equal(["\U0001F600", "e\u0301"], keys.Select(key => key.Name));
     }
+
+    [Fact]
+    public void GivenTabsAndNewlines_WhenMultiLine_ThenTabsStayTabKeysSoNothingIsFlattened()
+    {
+        var keys = PasteKeys.FromText("a\tb\n\tc", multiLine: true);
+
+        Assert.Equal(["a", KeyNames.Tab, "b", KeyNames.Enter, KeyNames.Tab, "c"], keys.Select(key => key.Name));
+    }
 }

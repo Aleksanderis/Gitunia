@@ -239,3 +239,7 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 **UI:** Blame opens with `<space>gb` (leader chord, vim-clash rule) and "show commit" reuses the sidebar's commit lookup (`LocateGraphCommitEffect`) instead of a flow of its own, so a commit outside the loaded graph gets the same status message.
 **Process:** The landing page (#900) lives in its own repository, `Gitunia/gitunia.github.io` (owner, 2026-11-02): static `index.html` plus copies of `docs/assets` and `docs/media/demo.gif`, served at the organisation site root, no build step and no workflow in this repository. Why: an organisation `<name>.github.io` repository serves from `/` without Pages settings, and `docs/` stays the reader docs. The main repository stays under the user account for now. The Features list on the page is a copy of the README one; update both.
+
+## 2026-11-03
+
+**UI:** Message box selection keys (#1165): copy is `Alt-w`, cut `Ctrl-x`, redo `Ctrl-y` with `Ctrl-z` undo in Insert mode (`Ctrl-r` redo in Normal mode, as in vim), paste is the terminal's bracketed paste only. Why: `Ctrl-c` is quit, `Ctrl-v` is not delivered as paste by most terminals, and OSC 52 cannot read the clipboard. A drag in the box selects text and never starts a Visual range; the wheel moves the cursor 3 lines (no pure scroll, as in the lists).

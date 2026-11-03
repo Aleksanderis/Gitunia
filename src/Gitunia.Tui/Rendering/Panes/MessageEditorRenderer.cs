@@ -70,17 +70,26 @@ public static class MessageEditorRenderer
         width = Math.Max(0, width);
         var lines = new List<StyledLine>(height);
         var top = scrollTop ?? Math.Max(0, editor.CursorRow - height + 1);
+        var selection = editor.Selection;
         for (var row = top; row < top + height; row++)
         {
             var text = row < editor.Lines.Count ? editor.Lines[row] : string.Empty;
             var cursorColumn = showCursor && row == editor.CursorRow ? editor.CursorColumn : -1;
-            lines.Add(RenderLine(text, width, cursorColumn, marksSubject && row == 0));
+            var selected = row < editor.Lines.Count ? selection?.InLine(row, text.Length) : null;
+            var includesBreak = selection?.IncludesLineBreak(row) == true;
+            lines.Add(RenderLine(text, width, cursorColumn, marksSubject && row == 0, selected, includesBreak));
         }
 
         return lines;
     }
 
-    private static StyledLine RenderLine(string text, int width, int cursorColumn, bool isSubject)
+    private static StyledLine RenderLine(
+        string text,
+        int width,
+        int cursorColumn,
+        bool isSubject,
+        ColumnRange? selected,
+        bool selectsLineBreak)
     {
         var elements = SplitElements(text);
         var segments = new List<StyledSegment>();
@@ -88,10 +97,12 @@ public static class MessageEditorRenderer
         var offset = 0;
         var first = cursorColumn < 0 ? 0 : FirstVisibleElement(elements, cursorColumn, width);
         var skipped = WidthOf(elements, first);
+        var isCut = false;
         for (var index = 0; index < elements.Count; index++)
         {
             var element = elements[index];
             var isCursor = offset == cursorColumn;
+            var offsetBefore = offset;
             offset += element.Length;
             if (index < first)
             {
@@ -101,9 +112,11 @@ public static class MessageEditorRenderer
             var elementWidth = TextWidth.Of(element);
             if (used + elementWidth > width)
             {
+                isCut = true;
                 break;
             }
 
+            var isSelected = selected is { } range && offsetBefore >= range.Start && offsetBefore < range.End;
             var isOverlong = isSubject && skipped + used >= MessageEditor.SubjectSoftLimit;
             var role = SegmentRole.Plain;
             if (isCursor)
@@ -115,13 +128,19 @@ public static class MessageEditorRenderer
                 role = SegmentRole.Error;
             }
 
-            Append(segments, Displayable(element), role);
+            Append(segments, Displayable(element), role, isSelected);
             used += elementWidth;
         }
 
         if (offset == cursorColumn && cursorColumn == text.Length && used < width)
         {
             Append(segments, Blank, SegmentRole.Cursor);
+            used++;
+        }
+        else if (selectsLineBreak && !isCut && used < width)
+        {
+            // The selection runs on to the next line: the line break shows as one selected cell.
+            Append(segments, Blank, SegmentRole.Plain, true);
             used++;
         }
 
@@ -188,14 +207,18 @@ public static class MessageEditorRenderer
     private static string Displayable(string element) =>
         element.Length == 1 && char.IsControl(element[0]) ? Blank : element;
 
-    private static void Append(List<StyledSegment> segments, string text, SegmentRole role)
+    private static void Append(List<StyledSegment> segments, string text, SegmentRole role, bool isSelected = false)
     {
-        if (segments.Count > 0 && segments[^1].Role == role && role is SegmentRole.Plain or SegmentRole.Error)
+        var selection = isSelected ? SegmentSelection.Range : SegmentSelection.Inherit;
+        if (segments.Count > 0
+            && segments[^1].Role == role
+            && segments[^1].Selection == selection
+            && role is SegmentRole.Plain or SegmentRole.Error)
         {
             segments[^1] = segments[^1] with { Text = $"{segments[^1].Text}{text}" };
             return;
         }
 
-        segments.Add(new StyledSegment(text, role));
+        segments.Add(new StyledSegment(text, role, 0, selection));
     }
 }

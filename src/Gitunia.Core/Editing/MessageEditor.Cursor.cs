@@ -31,6 +31,7 @@ public sealed partial class MessageEditor
 
     private void MoveVertically(int direction)
     {
+        _anchor = null;
         var row = CursorRow + direction;
         if (row < 0 || row >= _lines.Count)
         {
@@ -64,6 +65,7 @@ public sealed partial class MessageEditor
 
     private void MoveTo(int row, int column)
     {
+        _anchor = null;
         CursorRow = row;
         CursorColumn = column;
         RememberColumn();

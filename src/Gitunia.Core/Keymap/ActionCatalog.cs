@@ -98,6 +98,7 @@ public static class ActionCatalog
         ActionIds.WorkingTreeMessageDeleteChar,
         ActionIds.WorkingTreeMessageDeleteLine,
         ActionIds.WorkingTreeMessageUndo,
+        ActionIds.WorkingTreeMessageRedo,
     ];
 
     private static readonly HashSet<ActionId> PaletteOnlyActions =
@@ -442,6 +443,10 @@ public static class ActionCatalog
         ["working-tree.message-delete-char"] = "Message box and conflict result: delete the character under the cursor",
         ["working-tree.message-delete-line"] = "Message box and conflict result: delete the line",
         ["working-tree.message-undo"] = "Message box: undo",
+        ["working-tree.message-redo"] = "Message box: redo",
+        ["working-tree.message-select-word"] = "Message box: select the word at the cursor",
+        ["working-tree.message-scroll-up"] = "Message box: scroll up (3 lines)",
+        ["working-tree.message-scroll-down"] = "Message box: scroll down (3 lines)",
         ["working-tree.commit"] = "Commit the staged changes",
         ["working-tree.toggle-sign-off"] = "Commit option: SignOff (toggle)",
         ["working-tree.toggle-no-verify"] = "Commit option: No-Verify (toggle)",

@@ -32,6 +32,12 @@ public sealed class PaneListView : ListView
     /// </summary>
     public bool IgnoresBlankDoubleClick { get; set; }
 
+    /// <summary>
+    /// A drag selects text in this pane (the message box): it is reported through <see cref="PointerDragged"/> with
+    /// the pointer's cell instead of selecting rows or starting a Visual range.
+    /// </summary>
+    public bool ReportsPointerDrag { get; set; }
+
     /// <summary>True while something modal owns the screen: mouse input is swallowed without focusing or selecting anything.</summary>
     public IMouseGate Gate { get; init; } = new MouseGate();
 
@@ -43,6 +49,13 @@ public sealed class PaneListView : ListView
 
     /// <summary>Raised for a click, before <see cref="GestureRaised"/>, with the pointer's column and row inside the pane.</summary>
     public event Action<int, int>? ClickPositioned;
+
+    /// <summary>
+    /// Raised for a drag in a pane with <see cref="ReportsPointerDrag"/>: first the cell where the button went down
+    /// (<c>true</c>), then every cell the pointer reaches (<c>false</c>); the cells are inside the pane or beyond its
+    /// edges while the mouse is grabbed.
+    /// </summary>
+    public event Action<int, int, bool>? PointerDragged;
 
     /// <summary>
     /// Raised instead of <see cref="GestureRaised"/> when a click or double-click hit a button of an <see cref="IButtonSource"/> source (not a click on the row);
@@ -146,6 +159,19 @@ public sealed class PaneListView : ListView
         {
             _isAutoScrolling = false;
             return base.OnMouseEvent(mouse);
+        }
+
+        if (ReportsPointerDrag && phase is DragPhase.Start or DragPhase.Move && mouse.Position is { } dragged)
+        {
+            if (phase == DragPhase.Start)
+            {
+                FocusPane();
+                PointerDragged?.Invoke(_drag.Origin.X, _drag.Origin.Y, true);
+            }
+
+            PointerDragged?.Invoke(dragged.X, dragged.Y, false);
+
+            return true;
         }
 
         if (phase == DragPhase.Start)

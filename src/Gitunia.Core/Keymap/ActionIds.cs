@@ -534,6 +534,14 @@ public static class ActionIds
 
     public static ActionId WorkingTreeMessageUndo { get; } = new("working-tree.message-undo");
 
+    public static ActionId WorkingTreeMessageRedo { get; } = new("working-tree.message-redo");
+
+    public static ActionId WorkingTreeMessageSelectWord { get; } = new("working-tree.message-select-word");
+
+    public static ActionId WorkingTreeMessageScrollUp { get; } = new("working-tree.message-scroll-up");
+
+    public static ActionId WorkingTreeMessageScrollDown { get; } = new("working-tree.message-scroll-down");
+
     public static ActionId WorkingTreeCommit { get; } = new("working-tree.commit");
 
     public static ActionId WorkingTreeToggleSignOff { get; } = new("working-tree.toggle-sign-off");

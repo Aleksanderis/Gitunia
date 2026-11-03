@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using Gitunia.Core.Clipboard;
 using Gitunia.Core.Editing;
 using Gitunia.Core.Effects;
 using Gitunia.Core.Keymap;
@@ -29,6 +30,11 @@ namespace Gitunia.Core.Commits;
 /// </summary>
 public static class CommitReducer
 {
+    private static readonly KeyEvent CopyKey = new("w", KeyModifiers.Alt);
+    private static readonly KeyEvent CutKey = new("x", KeyModifiers.Ctrl);
+    private static readonly KeyEvent UndoKey = new("z", KeyModifiers.Ctrl);
+    private static readonly KeyEvent RedoKey = new("y", KeyModifiers.Ctrl);
+
     /// <summary>Applies a command.</summary>
     /// <param name="command">What happened.</param>
     /// <param name="context">The tab the command is for and the facts around it.</param>
@@ -37,6 +43,7 @@ public static class CommitReducer
         CommitActionPressed pressed => Press(pressed.Action, context),
         CommitAfterStaging after => AfterStaging(after.Request, context),
         CommitCursorPlaced placed => Place(placed, context),
+        CommitSelectionDragged dragged => Drag(dragged, context),
         CommitDraftRestored restored => Restore(restored.Saved, context),
         CommitFailed failed => Failed(failed, context),
         CommitKeyTyped typed => TypeKey(typed.Key, context),
@@ -142,6 +149,7 @@ public static class CommitReducer
 
         var draft = DraftOf(context);
         draft.Editor.DropUndoPointIfUnchanged();
+        draft.Editor.ClearSelection();
 
         return new CommitUpdate(tab.Commit with { Draft = draft, IsInserting = false }, KeyMode.Normal, null, [], []);
     }
@@ -161,6 +169,11 @@ public static class CommitReducer
         if (action == ActionIds.WorkingTreeMessageNewLine)
         {
             return NewLine(context);
+        }
+
+        if (CommitRules.IsPointerAction(action))
+        {
+            return CommitMessageKeys.RunPointer(action, context);
         }
 
         if (CommitRules.IsNormalKey(action))
@@ -217,7 +230,58 @@ public static class CommitReducer
         }
 
         var draft = DraftOf(context);
-        draft.Editor.Apply(key);
+        var effects = EditingKey(key, draft.Editor);
+
+        return Changed(context, draft, effects);
+    }
+
+    // Keys that need more than the editor: copy and cut hand the selection to the clipboard, undo and redo post a
+    // notice when there is nothing to go back to. Everything else is the editor's own key.
+    private static AppEffect[] EditingKey(KeyEvent rawKey, MessageEditor editor)
+    {
+        var key = rawKey.Normalize();
+        var isCut = key == CutKey;
+        if ((isCut || key == CopyKey) && editor.HasSelection)
+        {
+            var copy = new CopyToClipboardEffect(editor.SelectedText, CommitTexts.SelectionDescription);
+            if (isCut)
+            {
+                editor.DeleteSelection();
+            }
+
+            return [copy];
+        }
+
+        if (key == CopyKey || isCut)
+        {
+            return [];
+        }
+
+        if (key == UndoKey)
+        {
+            return editor.Undo() ? [] : [Post(CommitTexts.NothingToUndoNotice)];
+        }
+
+        if (key == RedoKey)
+        {
+            return editor.Redo() ? [] : [Post(CommitTexts.NothingToRedoNotice)];
+        }
+
+        editor.Apply(key);
+
+        return [];
+    }
+
+    private static CommitUpdate Drag(CommitSelectionDragged dragged, CommitContext context)
+    {
+        if (context.IsCommitting || context.Tab.Commit.Draft is null)
+        {
+            return Same(context);
+        }
+
+        var draft = DraftOf(context);
+        var line = Math.Clamp(dragged.Row, 0, draft.Editor.Lines.Count - 1);
+        draft.Editor.ExtendTo(line, Math.Max(0, dragged.Column));
 
         return Changed(context, draft);
     }

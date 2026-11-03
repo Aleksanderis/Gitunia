@@ -6,7 +6,11 @@ namespace Gitunia.Core.Editing;
 
 public sealed partial class MessageEditor
 {
-    /// <summary>Applies a key; returns false when it is not an editing key (the caller handles it).</summary>
+    /// <summary>
+    /// Applies a key; returns false when it is not an editing key (the caller handles it). Shift with a movement key
+    /// extends the selection; typing or a deleting key replaces or deletes it; <c>Left</c> and <c>Right</c> collapse it
+    /// to its start or end.
+    /// </summary>
     public bool Apply(KeyEvent rawKey)
     {
         var key = rawKey.Normalize();
@@ -21,6 +25,40 @@ public sealed partial class MessageEditor
             return false;
         }
 
+        if (key.Modifiers.HasFlag(KeyModifiers.Shift) && IsMovement(key))
+        {
+            var moved = key with { Modifiers = key.Modifiers & ~KeyModifiers.Shift };
+            ExtendWith(() => ApplyKey(moved));
+
+            return true;
+        }
+
+        if (!HasSelection)
+        {
+            // An anchor on the cursor is no selection; it must not turn into one when the cursor moves by an edit.
+            ClearSelection();
+        }
+
+        if (HasSelection && DeletesText(key))
+        {
+            DeleteSelection();
+
+            return true;
+        }
+
+        if (key.Modifiers == KeyModifiers.None && key.Name is KeyNames.Left or KeyNames.Right && Selection is { } range)
+        {
+            var edge = key.Name == KeyNames.Left ? range.Start : range.End;
+            MoveTo(edge.Row, edge.Column);
+
+            return true;
+        }
+
+        return ApplyKey(key);
+    }
+
+    private bool ApplyKey(KeyEvent key)
+    {
         return key.Modifiers switch
         {
             KeyModifiers.None or KeyModifiers.Shift => ApplyPlain(key.Name),
@@ -29,6 +67,34 @@ public sealed partial class MessageEditor
             _ => false,
         };
     }
+
+    // Keys that move the cursor; with Shift they extend the selection (Ctrl and Alt make them word or text steps).
+    private static bool IsMovement(KeyEvent key)
+    {
+        var modifiers = key.Modifiers & ~KeyModifiers.Shift;
+        if (modifiers == KeyModifiers.Alt)
+        {
+            return key.Name is KeyNames.Left or KeyNames.Right or "b" or "f";
+        }
+
+        if (modifiers == KeyModifiers.Ctrl)
+        {
+            return key.Name is KeyNames.Left or KeyNames.Right or KeyNames.Home or KeyNames.End;
+        }
+
+        return modifiers == KeyModifiers.None
+            && key.Name is KeyNames.Left or KeyNames.Right or KeyNames.Up or KeyNames.Down or KeyNames.Home
+                or KeyNames.End;
+    }
+
+    // Keys that delete before or after the cursor; with a selection they delete the selection and nothing else.
+    private static bool DeletesText(KeyEvent key) => key.Modifiers switch
+    {
+        KeyModifiers.None or KeyModifiers.Shift => key.Name is KeyNames.Backspace or KeyNames.Delete,
+        KeyModifiers.Ctrl => key.Name is KeyNames.Backspace or KeyNames.Delete or "w" or "u" or "k",
+        KeyModifiers.Alt => key.Name is KeyNames.Backspace or "d",
+        _ => false,
+    };
 
     private static int NextBoundary(string line, int column) =>
         column + StringInfo.GetNextTextElementLength(line.AsSpan(column));
@@ -70,6 +136,7 @@ public sealed partial class MessageEditor
                 MoveVertically(1);
                 return true;
             case KeyNames.Tab:
+                DeleteSelection();
                 Insert(UsesTabCharacters ? Tab.ToString() : new string(' ', TabWidth - CursorDisplayColumn % TabWidth));
                 return true;
             case KeyNames.Home:

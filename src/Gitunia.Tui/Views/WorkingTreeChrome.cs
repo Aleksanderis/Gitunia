@@ -97,6 +97,12 @@ public sealed class WorkingTreeChrome : IDisposable
     /// </summary>
     public event Action<int, int, int>? MessageClicked;
 
+    /// <summary>
+    /// Raised while the pointer is dragged over the message text with the button held, with the same arguments as
+    /// <see cref="MessageClicked"/>; the drag's first cell is reported as a click first.
+    /// </summary>
+    public event Action<int, int, int>? MessageDragged;
+
     /// <summary>The frame views (divider, edges, diff title), to add to the window before the lists.</summary>
     public IEnumerable<View> FrameViews => [_divider, _leftEdge, _rightEdge, _diffTitle];
 
@@ -165,6 +171,8 @@ public sealed class WorkingTreeChrome : IDisposable
         panes.WorkingMessage.GestureRaised += (gesture, target) =>
             Gestured?.Invoke(DefaultKeymap.WorkingMessageView, gesture, target);
         panes.WorkingMessage.ClickPositioned += OnMessageClicked;
+        panes.WorkingMessage.ReportsPointerDrag = true;
+        panes.WorkingMessage.PointerDragged += OnMessageDragged;
     }
 
     // The title row of a file list is the top edge of its box, one row above the list; its buttons are the mouse
@@ -229,6 +237,25 @@ public sealed class WorkingTreeChrome : IDisposable
         var padding = PanePadding.ColumnsFor(geometry.ScreenWidth);
         var textWidth = PanePadding.TextWidth(geometry.WorkingRects().MessageEditor.Width, padding);
         MessageClicked?.Invoke(column - padding, row, textWidth);
+    }
+
+    // The press cell acts as a click (cursor, Insert mode); the cells after it extend the selection.
+    private void OnMessageDragged(int column, int row, bool isStart)
+    {
+        var geometry = _parts.Geometry;
+        var padding = PanePadding.ColumnsFor(geometry.ScreenWidth);
+        var textWidth = PanePadding.TextWidth(geometry.WorkingRects().MessageEditor.Width, padding);
+        if (isStart)
+        {
+            MessageClicked?.Invoke(column - padding, row, textWidth);
+            Gestured?.Invoke(DefaultKeymap.WorkingMessageView, MouseGesture.Click, null);
+
+            return;
+        }
+
+        // A pointer above or below the box reaches the first or last visible line, never past it.
+        var visibleRows = geometry.WorkingRects().MessageEditor.Height;
+        MessageDragged?.Invoke(column - padding, Math.Clamp(row, 0, Math.Max(0, visibleRows - 1)), textWidth);
     }
 
     private void OnDiffTitleClicked(int column)

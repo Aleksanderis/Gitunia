@@ -82,6 +82,8 @@ public sealed class CommitHarness
         }
     }
 
+    public void Press(KeyEvent key) => Send(new CommitKeyTyped(TabId, key));
+
     public void SetText(string text) => Send(new CommitDraftRestored(TabId, new SessionDraft(text, Draft.SignOff, Draft.NoVerify)));
 
     public void Load(string? upstream = null, int? ahead = null, HeadKind head = HeadKind.Branch)

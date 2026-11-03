@@ -558,6 +558,10 @@ Every default key binding, one table per view. The design rules, notation and mo
 | `x` | Normal | `working-tree.message-delete-char` | Message box and conflict result: delete the character under the cursor |
 | `dd` | Normal | `working-tree.message-delete-line` | Message box and conflict result: delete the line |
 | `u` | Normal | `working-tree.message-undo` | Message box: undo |
+| `Ctrl-r` | Normal | `working-tree.message-redo` | Message box: redo |
+| `viw` | Normal | `working-tree.message-select-word` | Message box: select the word at the cursor |
+| `Ctrl-d` | Normal | `working-tree.message-scroll-down` | Message box: scroll down (3 lines) |
+| `Ctrl-u` | Normal | `working-tree.message-scroll-up` | Message box: scroll up (3 lines) |
 | `Enter` | Insert | `working-tree.message-new-line` | Start a new line in the commit message |
 | `Ctrl-g` | Insert | `working-tree.commit` | Commit the staged changes |
 | `Alt-s` | Normal, Visual, Insert | `working-tree.toggle-sign-off` | Commit option: SignOff (toggle) |
