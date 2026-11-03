@@ -179,6 +179,17 @@ public class SidebarFrameTests
     }
 
     [Fact]
+    public void GivenTheCaretInTheFilter_WhenComposing_ThenTheFilterLineDrawsItBetweenTheCharacters()
+    {
+        var sidebar = Sidebar(Section(SidebarSection.Branches, "Branches", 1, isExpanded: true), Branch("feature"))
+            with { FilterText = "feat", IsEditingFilter = true, FilterCaret = 2 };
+
+        var frame = Frame(sidebar, 80, 8);
+
+        Assert.StartsWith("│ /fe|at             │", frame[5], StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void GivenScrolledSidebar_WhenComposing_ThenRowsStartAtTheTopRow()
     {
         var rows = Enumerable.Range(0, 10).Select(index => Branch($"branch{index}")).ToArray();

@@ -1,4 +1,5 @@
 using System.Globalization;
+using Gitunia.Core.Editing;
 using Gitunia.Core.Sidebar;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Tui.Rendering.Graph;
@@ -66,16 +67,14 @@ public static class SidebarRowRenderer
             isSelected);
 
     /// <summary>The last row of the sidebar: the filter being typed or the active one, blank otherwise.</summary>
-    public static StyledLine FilterLine(string filterText, bool isEditing, int width, GraphGlyphSet glyphs)
+    public static StyledLine FilterLine(string filterText, bool isEditing, int width, GraphGlyphSet glyphs, int caret = PromptCaret.End)
     {
         var builder = new LineBuilder(width, glyphs.Ellipsis);
         if (isEditing || filterText.Length > 0)
         {
-            builder.Append("/", SegmentRole.SectionTitle).Append(filterText, SegmentRole.Plain);
-            if (isEditing)
-            {
-                builder.Append("_", SegmentRole.Faint);
-            }
+            // The caret is part of the text while editing, so the row keeps it in view when the filter is wider than the pane.
+            var shown = isEditing ? PromptCaret.Mark(filterText, caret, Math.Max(1, width - 1)) : filterText;
+            builder.Append("/", SegmentRole.SectionTitle).Append(shown, SegmentRole.Plain);
         }
 
         return builder.Build();

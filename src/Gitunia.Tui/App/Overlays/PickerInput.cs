@@ -3,7 +3,6 @@ using Gitunia.App;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Picker;
 using Gitunia.Core.Workspaces.Tabs;
-using Gitunia.Core.Keymap;
 
 namespace Gitunia.Tui.App.Overlays;
 
@@ -31,8 +30,8 @@ public sealed class PickerInput(Dispatcher host)
         host.Dispatch(new PickerOpenRequested(locatingTabId, initialQuery, host.Clock.GetUtcNow()));
 
     /// <summary>
-    /// The picker's query is plain state, not a text widget: it takes printable keys and edits itself with Backspace
-    /// (some terminals send it as Ctrl-h). Nothing is typed while a question of the picker (clone, init) is open.
+    /// The picker's query is plain state, not a text widget: it takes printable keys and edits itself like every single-line prompt
+    /// (caret, Backspace, Delete, Home, End, word keys). Nothing is typed while a question of the picker (clone, init) is open.
     /// </summary>
     /// <param name="key">The typed key.</param>
     public void TypeKey(KeyEvent key)
@@ -42,14 +41,7 @@ public sealed class PickerInput(Dispatcher host)
             return;
         }
 
-        if (key.IsPrintable)
-        {
-            host.Dispatch(new TypeTextCommand(key.Name));
-        }
-        else if (key is { Name: KeyNames.Backspace, Modifiers: KeyModifiers.None or KeyModifiers.Ctrl })
-        {
-            host.Dispatch(new BackspaceCommand());
-        }
+        host.Dispatch(new EditQueryCommand(key));
     }
 
     /// <summary>A click highlights the row; the double-click's "open" comes from the mouse map as picker.accept.</summary>

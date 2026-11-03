@@ -1,3 +1,4 @@
+using Gitunia.Core.Editing;
 using Gitunia.Core.Overlays;
 using Gitunia.Core.Text;
 using Gitunia.Tui.Rendering.Graph;
@@ -97,7 +98,8 @@ public static class HelpFrameBuilder
         GraphGlyphSet glyphs,
         string? title = null,
         string? filter = null,
-        bool isEditingFilter = false)
+        bool isEditingFilter = false,
+        int filterCaret = PromptCaret.End)
     {
         var rowCount = VisibleRows(tabs, tab, screenWidth, screenHeight);
         if (rowCount == 0)
@@ -111,7 +113,7 @@ public static class HelpFrameBuilder
         var content = Flatten(SectionsOf(tabs, tab), KeysWidth(tabs), contentWidth, descriptionWidth, glyphs);
         var first = Math.Clamp(scroll, 0, Math.Max(0, content.Count - rowCount));
 
-        var lines = new List<StyledLine> { OverlayBox.Title(title ?? FilterTitle($"Keys: {view}", filter, isEditingFilter), width, glyphs) };
+        var lines = new List<StyledLine> { OverlayBox.Title(title ?? FilterTitle($"Keys: {view}", filter, isEditingFilter, filterCaret, width), width, glyphs) };
         if (HasMenu(tabs, screenWidth))
         {
             lines.AddRange(MenuRows(tabs, tab, [.. content.Skip(first).Take(rowCount)], rowCount, width, glyphs));
@@ -184,8 +186,11 @@ public static class HelpFrameBuilder
     }
 
     // The title with the filter line after it: "Keys: Graph  / text" and a cursor while the text is being typed.
-    private static string FilterTitle(string title, string? filter, bool isEditing) =>
-        filter is null ? title : $"{title}  / {filter}{(isEditing ? "_" : string.Empty)}";
+    // The space before the title, the two spaces and "/ " after it, and the border.
+    private const int FilterPrefixColumns = 8;
+
+    private static string FilterTitle(string title, string? filter, bool isEditing, int caret, int width) =>
+        filter is null ? title : $"{title}  / {(isEditing ? PromptCaret.Mark(filter, caret, Math.Max(1, width - title.Length - FilterPrefixColumns)) : filter)}";
 
     private readonly record struct TabLabel(string Text, int Start, int Width, int Tab, bool IsActive);
 

@@ -23,6 +23,13 @@ public static class PromptTextEditor
         return result is { } edit && (edit.Text != text || edit.Caret != at) ? edit : null;
     }
 
+    /// <summary>Inserts text at the caret and puts the caret after it; null for empty text.</summary>
+    public static PromptEdit? Insert(string text, int caret, string inserted)
+    {
+        var at = PromptCaret.Clamp(text, caret);
+        return inserted.Length == 0 ? null : new PromptEdit(text.Insert(at, inserted), at + inserted.Length);
+    }
+
     private static PromptEdit? Edit(string text, int at, KeyEvent key)
     {
         return key.Modifiers switch

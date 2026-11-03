@@ -154,6 +154,18 @@ public class HelpAllCommandsFrameTests
     }
 
     [Fact]
+    public void GivenTheCaretInTheFilter_WhenRendering_ThenTheTitleDrawsItBetweenTheCharacters()
+    {
+        var page = HelpBuilder.Filter(HelpBuilder.Build(Table, DefaultKeymap.GraphView), "gc");
+
+        var lines = HelpFrameBuilder.Build(
+            [page], 0, DefaultKeymap.GraphView, 0, 80, ScreenHeight, GraphGlyphSet.Unicode,
+            filter: "gc", isEditingFilter: true, filterCaret: 1)!.Lines.Select(line => line.Text).ToList();
+
+        Assert.Equal(" Keys: Graph  / g|c".PadRight(lines[0].Length), lines[0]);
+    }
+
+    [Fact]
     public void GivenAKeptFilterWithNoMatch_WhenRendering_ThenTheTitleHasNoCursorAndTheMessageShows()
     {
         var page = HelpBuilder.Filter(HelpBuilder.Build(Table, DefaultKeymap.GraphView), "zzzqqq");

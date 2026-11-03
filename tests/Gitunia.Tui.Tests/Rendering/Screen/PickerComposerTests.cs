@@ -39,8 +39,7 @@ public class PickerComposerTests
 
         Assert.Equal(SegmentRole.OverlayTitle, lines[TitleLine].Segments[0].Role);
         Assert.Contains("Open repository", lines[TitleLine].Text, StringComparison.Ordinal);
-        Assert.Contains("al", lines[QueryRow].Text, StringComparison.Ordinal);
-        Assert.Contains(lines[QueryRow].Segments, segment => segment.Role == SegmentRole.Cursor);
+        Assert.Contains(" al_", lines[QueryRow].Text, StringComparison.Ordinal);
         Assert.Contains(lines[HintLine].Segments, segment => segment.Role == SegmentRole.OverlayKey && segment.Text == "Tab");
         Assert.All(lines.Skip(1).Take(lines.Count - 2), line => Assert.Equal(SegmentRole.FocusedBorder, line.Segments[0].Role));
         Assert.All(lines, line => Assert.Equal(lines[0].Text.Length, line.Text.Length));
@@ -107,6 +106,24 @@ public class PickerComposerTests
         var selected = lines.Where(line => line.IsSelected).ToList();
         Assert.Single(selected);
         Assert.Contains("beta", selected[0].Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GivenTheCaretInTheQuery_WhenComposing_ThenTheQueryLineDrawsItBetweenTheCharacters()
+    {
+        var picker = new PickerState("abcd", 0, [], string.Empty, null, Caret: 2);
+
+        var lines = Compose(picker);
+
+        Assert.Contains(" ab|cd", lines[1].Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GivenTheCaretAtTheEnd_WhenComposing_ThenTheQueryLineEndsWithTheEndGlyph()
+    {
+        var lines = Compose(new PickerState("abcd", 0, [], string.Empty, null));
+
+        Assert.Contains(" abcd_", lines[1].Text, StringComparison.Ordinal);
     }
 
     [Fact]

@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using Gitunia.Core.Editing;
 using Gitunia.Core.Workspaces.Tabs;
 
 namespace Gitunia.Core.Picker;
@@ -11,7 +12,8 @@ namespace Gitunia.Core.Picker;
 /// <param name="LocatingTabId">Set when the picker was opened to find the new place of a missing repository: the chosen repository replaces that tab.</param>
 /// <param name="IsListing">The directory candidates of a typed path are still being listed in the background; the rows of the previous query stay until it completes.</param>
 /// <param name="IsScanningShown">The listing has taken long enough (about 150 ms) to show a "scanning..." notice.</param>
-public sealed record PickerState(string Query, int Highlight, ImmutableArray<PickerRow> Rows, string Message, TabId? LocatingTabId, bool IsListing = false, bool IsScanningShown = false)
+/// <param name="Caret">The caret column in <see cref="Query"/> (see <see cref="PromptCaret"/>); the end when the query is replaced as a value.</param>
+public sealed record PickerState(string Query, int Highlight, ImmutableArray<PickerRow> Rows, string Message, TabId? LocatingTabId, bool IsListing = false, bool IsScanningShown = false, int Caret = PromptCaret.End)
 {
     /// <summary>The query is a path (starts with <c>/</c>, <c>~/</c>, <c>./</c>, <c>../</c> or a drive).</summary>
     public bool IsPathMode => PathQuery.IsPath(Query);
