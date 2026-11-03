@@ -227,14 +227,23 @@ public class MouseMapTests
     }
 
     [Fact]
-    public void GivenTheHistoryDiff_WhenDoubleOrTripleClicking_ThenTheWordOrTheLineIsSelectedAndTheChangesViewDiffStillStages()
+    public void GivenTheHistoryDiff_WhenDoubleOrTripleClicking_ThenTheWordOrTheLineIsSelected()
     {
         var map = DefaultMouseMap.Create();
 
         Assert.Equal(ActionIds.VisualSelectWord, map.Resolve(DefaultKeymap.DiffView, MouseGesture.DoubleClick)?.Action);
         Assert.Equal(ActionIds.VisualSelectLine, map.Resolve(DefaultKeymap.DiffView, MouseGesture.TripleClick)?.Action);
-        Assert.Equal(ActionIds.WorkingTreeStage, map.Resolve(DefaultKeymap.WorkingUnstagedDiffView, MouseGesture.DoubleClick)?.Action);
-        Assert.Null(map.Resolve(DefaultKeymap.WorkingUnstagedDiffView, MouseGesture.TripleClick));
+    }
+
+    [Theory]
+    [InlineData(DefaultKeymap.WorkingUnstagedDiffView)]
+    [InlineData(DefaultKeymap.WorkingStagedDiffView)]
+    public void GivenTheChangesViewDiff_WhenDoubleOrTripleClicking_ThenTheWordIsSelectedAndNothingIsStaged(string view)
+    {
+        var map = DefaultMouseMap.Create();
+
+        Assert.Equal(ActionIds.VisualSelectWord, map.Resolve(view, MouseGesture.DoubleClick)?.Action);
+        Assert.Null(map.Resolve(view, MouseGesture.TripleClick));
     }
 
     [Fact]

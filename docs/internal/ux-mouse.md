@@ -17,7 +17,7 @@ Views inherit like in the keymap: `Lists` covers Graph, Detail, Sidebar, Diff an
 | Lists | Wheel up | `list.up` | Moves the selection up 3 rows (like `3k`) in the pane under the pointer, which gets focus |
 | Lists | Wheel down | `list.down` | Moves the selection down 3 rows (like `3j`) |
 | Lists | Drag start | `visual.toggle` | Pressing a row and moving the pointer starts Visual mode (range selection, like `v`) at the pressed row (in the diff, the file content, the Changes view diff and the Details tab it selects characters instead, see Drag to select); graph, detail, diff, the Changes view diff and the two Changes view file lists (to stage the files or lines, press `<space>a` / `<space>u`, or run the action from the palette, `:`) |
-| Diff | Double-click | `visual.select-word` | History diff and file content only (the Changes view diff keeps its staging double-click): select the word under the pointer by character, then `y` copies it |
+| Diff | Double-click | `visual.select-word` | History diff and file content (the Changes view diff has its own row below, with no triple-click): select the word under the pointer by character, then `y` copies it |
 | Diff | Triple-click | `visual.select-line` | Select the text of the line under the pointer (no gutter or marker) |
 | Detail | Triple-click | `visual.select-line` | Details tab only: select the text of the row under the pointer by character (the double-click keeps opening an issue link; on the Changes and Files tabs a notice says there is no character selection) |
 | Lists | Drag up | `list.up` | While dragging, the cursor follows the pointer: moves up by as many rows as the pointer is above it |
@@ -152,8 +152,8 @@ Views inherit like in the keymap: `Lists` covers Graph, Detail, Sidebar, Diff an
 | MessageButton.NoVerify | Click | `working-tree.toggle-no-verify` | The `[ ] No-Verify` checkbox, same as `Alt-n` |
 | MessageButton.Amend | Click | `working-tree.toggle-amend` | The `[ ] Amend` checkbox, same as `Alt-a` |
 | MessageButton.Commit | Click | `working-tree.commit` | The `Commit` button, same as `Ctrl-g` |
-| WorkingUnstagedDiff | Double-click | `working-tree.stage` | Stage the change group under the pointer (same as `<space>a`) |
-| WorkingStagedDiff | Double-click | `working-tree.unstage` | Unstage the change group under the pointer (same as `<space>u`) |
+| WorkingUnstagedDiff | Double-click | `visual.select-word` | Select the word under the pointer by character, then `y` copies it (staging a change group is `<space>a`, the `stage` chip or the file list; no triple-click here, #1177) |
+| WorkingStagedDiff | Double-click | `visual.select-word` | Select the word under the pointer by character, then `y` copies it (unstaging a change group is `<space>u` or the `unstage` chip; no triple-click here, #1177) |
 | Picker | Double-click | `picker.accept` | Open the repository of the row |
 | Picker | Wheel up | `picker.previous` | Move the highlight up one row |
 | Picker | Wheel down | `picker.next` | Move the highlight down one row |
@@ -173,7 +173,7 @@ The range is drawn stronger than the selected row (bolder and a brighter tint, r
 In the diff panes (history diff, file content, the Changes view diff, also while wrap or side by side is on) and on the Details tab the drag selects characters: the pressed character is the anchor and the character under the pointer is the moving end (both included), drawn in the same stronger tint over exactly that text, gutter and `+`/`-` markers excluded; a drag from the gutter starts at the first character and one past the end of a line stops at its last, and `y` copies exactly those characters (lines joined with a line feed).
 With word wrap on, the pointer on any wrapped line of a row maps to the character it shows (the row's text continues across its lines and is copied without a line feed inside the row). Side by side, the half the button went down on is the side of the whole drag: the other half is not selected while the pointer crosses it, and only that side's text is copied.
 The keyboard path is `Alt-v`, then `h` `l` `w` `b` `0` `$`, `iw`, `il` (see the keymap); the graph, the Changes and Files tabs and the file lists still select whole rows, or nothing; the blame view has its own selection (table above, #1175).
-A double-click in the history diff or file content selects the word under the pointer and a triple-click the text of the line, the same as `iw` / `il`; the Changes view diff keeps its staging double-click and the Details tab its issue-link double-click (the triple-click selects the row there). Ctrl-click gestures are excluded (decision #479), so there is no word-select gesture in the Changes view diff yet: drag or `Alt-v` `iw` (#1177).
+A double-click in the history diff, file content or Changes view diff selects the word under the pointer, the same as `iw`; a triple-click in the history diff or file content selects the text of the line, the same as `il` (the Changes view diff has none: drag or `Alt-v` `il`); the Details tab keeps its issue-link double-click (the triple-click selects the row there).
 With mouse reporting on, the terminal's own text selection needs the terminal's bypass modifier (usually Shift-drag; Option-drag in some macOS terminals): that copy is plain screen text, with gutter and markers, and bypasses OSC 52.
 The release leaves the range active; a click on a row, `Esc`, `q`, `v` (on a character selection it turns it into whole rows) or moving focus to another pane or tab ends it.
 `y` copies the range (the drag plus `y`, or `visual.copy` from the palette) and ends it; staging acts on it too (lines in the Changes view diff, files in its lists).

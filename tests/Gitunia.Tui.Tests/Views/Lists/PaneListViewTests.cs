@@ -137,6 +137,21 @@ public class PaneListViewTests
         Assert.Equal([TextPointerKind.TripleClick], pointed.Select(found => found.Kind));
     }
 
+    [Fact]
+    public void GivenAPaneThatSelectsWords_WhenDoubleAndTripleClicking_ThenOnlyTheDoubleClickIsReportedAsText()
+    {
+        using var source = TextSource();
+        using var view = TextView(source, selectsText: false);
+        view.SelectsWord = true;
+        var pointed = new List<TextPointer>();
+        view.TextPointed += pointed.Add;
+
+        view.NewMouseEvent(new Mouse { Flags = MouseFlags.LeftButtonDoubleClicked, Position = new Point(TextColumn(view, 4), 1) });
+        view.NewMouseEvent(new Mouse { Flags = MouseFlags.LeftButtonTripleClicked, Position = new Point(TextColumn(view, 4), 1) });
+
+        Assert.Equal([TextPointerKind.DoubleClick], pointed.Select(found => found.Kind));
+    }
+
     private static DiffListSource LongTextSource()
     {
         var source = new DiffListSource(GraphGlyphSet.Unicode);
