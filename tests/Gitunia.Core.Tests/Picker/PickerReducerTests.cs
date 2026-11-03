@@ -105,14 +105,15 @@ public class PickerReducerTests
     }
 
     [Fact]
-    public void GivenACaretInTheMiddle_WhenTheQueryIsReplacedAsAValue_ThenTheCaretIsAtTheEnd()
+    public void GivenACaretInTheMiddle_WhenThePathIsCompleted_ThenTheCaretIsAtTheEndOfTheNewQuery()
     {
-        var state = Key(Type(PickerReducer.Open(Context()), "al"), new KeyEvent(KeyNames.Home));
+        var state = Type(PickerReducer.Open(Context()), "alp");
+        state = Key(state, new KeyEvent(KeyNames.Home));
 
-        state = PickerReducer.Reduce(state, new ClearQueryCommand(), Context());
+        state = PickerReducer.Reduce(state, new CompletePathCommand(), Context());
 
-        Assert.Equal(string.Empty, state.Query);
-        Assert.Equal(0, PromptCaret.Clamp(state.Query, state.Caret));
+        Assert.NotEqual("alp", state.Query);
+        Assert.Equal(state.Query.Length, PromptCaret.Clamp(state.Query, state.Caret));
     }
 
     [Fact]
