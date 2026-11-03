@@ -19,7 +19,7 @@ public static class GraphSearchReducer
     public static GraphSearchUpdate Reduce(GraphSearchState state, GraphSearchCommand command) => command switch
     {
         OpenSearchCommand => Plain(GraphSearchState.Initial with { Phase = SearchPhase.Editing, Generation = state.Generation + 1 }),
-        EditSearchTextCommand edit => Edit(state, edit.Text),
+        EditSearchTextCommand edit => Edit(state, edit.Text, edit.Caret),
         AcceptSearchCommand accept => Accept(state, accept.SelectedIndex),
         CancelSearchCommand => Plain(GraphSearchState.Initial with { Generation = state.Generation + 1 }),
         StepMatchCommand step => Step(state, step),
@@ -32,17 +32,24 @@ public static class GraphSearchReducer
 
     private static GraphSearchUpdate Plain(GraphSearchState state) => new(state, []);
 
-    private static GraphSearchUpdate Edit(GraphSearchState state, string text)
+    private static GraphSearchUpdate Edit(GraphSearchState state, string text, int caret)
     {
         if (state.Phase != SearchPhase.Editing)
         {
             return Plain(state);
         }
 
+        // Only the caret moved: the query, its matches and the scan stay.
+        if (text == state.Text)
+        {
+            return Plain(state with { Caret = caret });
+        }
+
         var query = SearchQueryParser.Parse(text);
         var next = state with
         {
             Text = text,
+            Caret = caret,
             Query = query,
             Matches = [],
             Scanned = 0,

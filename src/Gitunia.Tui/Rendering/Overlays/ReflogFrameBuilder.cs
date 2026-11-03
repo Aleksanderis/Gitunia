@@ -1,4 +1,5 @@
 using System.Globalization;
+using Gitunia.Core.Editing;
 using Gitunia.Core.Mouse;
 using Gitunia.Core.Reflog;
 using Gitunia.Core.Text;
@@ -147,7 +148,7 @@ public static class ReflogFrameBuilder
             lines.Add(OverlayBox.Text(string.Empty, width, glyphs));
         }
 
-        lines.Add(OverlayBox.Hints(PickerHints, width, glyphs, $"> {picker.Text}_"));
+        lines.Add(OverlayBox.Hints(PickerHints, width, glyphs, $"> {PromptCaret.Mark(picker.Text, picker.Caret)}"));
         lines.Add(OverlayBox.Bottom(width, glyphs));
         return new OverlayFrame((screenWidth - width) / 2, 1, lines);
     }
@@ -178,9 +179,9 @@ public static class ReflogFrameBuilder
             count = string.Create(CultureInfo.InvariantCulture, $"{current}/{matches.Count} matches");
         }
 
-        var cursor = state.IsEditingSearch ? "_" : string.Empty;
+        var text = state.IsEditingSearch ? PromptCaret.Mark(state.SearchText, state.SearchCaret) : state.SearchText;
 
-        return $"/{state.SearchText}{cursor}  {count}";
+        return $"/{text}  {count}";
     }
 
     /// <summary>The entry index of the row on <paramref name="frameLine"/>, or null for none.</summary>

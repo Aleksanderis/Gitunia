@@ -1,5 +1,6 @@
 using System.Globalization;
 using Gitunia.App.Shell;
+using Gitunia.Core.Editing;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Search;
@@ -27,7 +28,7 @@ public sealed class RefJumpController(IGraphView view)
                 return string.Empty;
             }
 
-            var line = $"ref {_prompt.Text}_  ";
+            var line = $"ref {PromptCaret.Mark(_prompt.Text, _prompt.Caret)}  ";
             if (_prompt.Selected is not { } selected)
             {
                 return $"{line}no matching ref or commit";
@@ -84,9 +85,11 @@ public sealed class RefJumpController(IGraphView view)
         {
             _prompt = _prompt.Move(1);
         }
-        else if (PromptTextEditor.Apply(_prompt.Text, key) is { } text && text != _prompt.Text)
+        else if (PromptTextEditor.Apply(_prompt.Text, _prompt.Caret, key) is { } edit)
         {
-            _prompt = RefJumpResolver.Resolve(text, view.ActiveRefs(), session.Graph);
+            _prompt = edit.Text == _prompt.Text
+                ? _prompt with { Caret = edit.Caret }
+                : RefJumpResolver.Resolve(edit.Text, view.ActiveRefs(), session.Graph) with { Caret = edit.Caret };
         }
 
         view.Redraw();

@@ -1,4 +1,5 @@
 using System.Globalization;
+using Gitunia.Core.Editing;
 using Gitunia.Core.Settings;
 using Gitunia.Core.Settings.Models;
 using Gitunia.Tui.Rendering.Graph;
@@ -17,7 +18,6 @@ public static class SettingsFrameBuilder
     private const string ReadOnlyTitle = "Settings (read-only)";
     private const string FilterPlaceholder = "/ filter";
 
-    private const string Cursor = "_";
     private const string TooSmallText = "Terminal too small for the settings";
     private const string TooSmallHint = "Needs 40x12. Esc closes.";
     private const string AnswerYes = "y  remove it";
@@ -200,7 +200,7 @@ public static class SettingsFrameBuilder
     {
         if (state.IsEditingFilter)
         {
-            return OverlayBox.Text($"/{state.Filter}{Cursor}", layout.Width, glyphs);
+            return OverlayBox.Text($"/{PromptCaret.Mark(state.Filter, state.FilterCaret)}", layout.Width, glyphs);
         }
 
         if (state.IsReadOnly)

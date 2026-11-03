@@ -1,8 +1,9 @@
 using Gitunia.App;
 using Gitunia.Core.Details;
+using Gitunia.Core.Editing;
 using Gitunia.Core.FileTree;
-using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
+using Gitunia.Core.Keymap;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Tui.Input;
@@ -42,7 +43,7 @@ public sealed class FileTreeInput(Dispatcher host, ListView detailList)
                 return string.Empty;
             }
 
-            return tree.IsEditingFilter ? $"{FilterLabel}{tree.Filter}" : $"{AppliedFilterLabel}{tree.Filter}";
+            return tree.IsEditingFilter ? $"{FilterLabel}{PromptCaret.Mark(tree.Filter, tree.Caret)}" : $"{AppliedFilterLabel}{tree.Filter}";
         }
     }
 

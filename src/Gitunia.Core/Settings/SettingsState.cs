@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using Gitunia.Core.Config.Models;
+using Gitunia.Core.Editing;
 using Gitunia.Core.Settings.Models;
 
 namespace Gitunia.Core.Settings;
@@ -37,7 +38,8 @@ public sealed record SettingsState(
     ChoiceEdit? Choice = null,
     SettingsInput? Input = null,
     PendingRemoval? Removal = null,
-    IReadOnlyList<KeyReferenceEntry>? KeyReference = null)
+    IReadOnlyList<KeyReferenceEntry>? KeyReference = null,
+    int FilterCaret = PromptCaret.End)
 {
     /// <summary>The lines of the key reference, in the order they are listed.</summary>
     public IReadOnlyList<KeyReferenceEntry> Reference => KeyReference ?? [];
@@ -237,13 +239,17 @@ public sealed record SettingsState(
 
     /// <summary>The state with other text in the number or folder box.</summary>
     /// <param name="text">The text now typed.</param>
-    public SettingsState WithInputText(string text) =>
-        Input is null ? this : this with { Input = Input with { Text = text } };
+    /// <param name="caret">The caret column in the text.</param>
+    public SettingsState WithInputText(string text, int caret = PromptCaret.End) =>
+        Input is null ? this : this with { Input = Input with { Text = text, Caret = caret } };
 
     /// <summary>The state with other text in the filter box; the list starts again at its top.</summary>
     /// <param name="text">The filter now typed.</param>
-    public SettingsState WithFilterText(string text) =>
-        this with { Filter = text, Cursor = 0, Column = SettingsColumn.Settings };
+    /// <param name="caret">The caret column in the text; when only it changed, the list stays where it is.</param>
+    public SettingsState WithFilterText(string text, int caret = PromptCaret.End) =>
+        text == Filter
+            ? this with { FilterCaret = caret }
+            : this with { Filter = text, FilterCaret = caret, Cursor = 0, Column = SettingsColumn.Settings };
 
     // While a choice is open the cursor stays among its options.
     private int WithinOptions(int target)

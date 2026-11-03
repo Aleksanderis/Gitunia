@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using Gitunia.Core.Editing;
 using Gitunia.Git;
 
 namespace Gitunia.Core.Search.Models;
@@ -16,7 +17,7 @@ public sealed record OpenSearchCommand : GraphSearchCommand;
 
 /// <summary>The text in the search box changed.</summary>
 /// <param name="Text">The whole text.</param>
-public sealed record EditSearchTextCommand(string Text) : GraphSearchCommand;
+public sealed record EditSearchTextCommand(string Text, int Caret = PromptCaret.End) : GraphSearchCommand;
 
 /// <summary>Enter in the search box: keep the matches and jump to the first one at or after the selection.</summary>
 /// <param name="SelectedIndex">The selected row.</param>

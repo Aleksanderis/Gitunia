@@ -216,7 +216,7 @@ public class FileTreeInputTests : IDisposable
 
         Assert.Equal(["src/lib/", "  core.cs", "  util.cs"], Labels());
         Assert.Equal(0, Cursor);
-        Assert.Equal("/LIB", _controller.StatusLine);
+        Assert.Equal("/LIB_", _controller.StatusLine);
     }
 
     [Fact]

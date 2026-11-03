@@ -7,6 +7,7 @@ using Gitunia.Core.Shell;
 using Gitunia.Core.Status;
 using Gitunia.Core.Tests.Fixtures;
 using Gitunia.Core.Workspaces.Tabs;
+using Gitunia.Core.Editing;
 using Xunit;
 
 namespace Gitunia.Core.Tests.Prompts;
@@ -14,7 +15,30 @@ namespace Gitunia.Core.Tests.Prompts;
 [Trait("Os", "Independent")]
 public class PromptReducerTests
 {
-    private static readonly DateTimeOffset Start = new(2026, 10, 18, 12, 0, 0, TimeSpan.Zero);
+    [Fact]
+    public void GivenCaretMovedLeft_WhenTyping_ThenTheTextIsInsertedAtTheCaret()
+    {
+        var state = Reduce(ShellState.Empty, Request(initialText: "ac")).State;
+        Assert.Equal(PromptCaret.End, state.Prompt!.Caret);
+
+        state = Press(state, new KeyEvent(KeyNames.Left));
+        state = Press(state, new KeyEvent("b"));
+
+        Assert.Equal("abc", state.Prompt!.Text);
+        Assert.Equal(2, state.Prompt.Caret);
+    }
+
+    [Fact]
+    public void GivenCaretMovedWithoutTextChange_WhenPressing_ThenThePickerKeepsItsFilter()
+    {
+        var state = Reduce(ShellState.Empty, Request(initialText: "ab")).State;
+
+        state = Press(state, new KeyEvent(KeyNames.Home));
+        state = Press(state, new KeyEvent("k", KeyModifiers.Ctrl));
+
+        Assert.Equal(string.Empty, state.Prompt!.Text);
+        Assert.Equal(0, state.Prompt.Caret);
+    }    private static readonly DateTimeOffset Start = new(2026, 10, 18, 12, 0, 0, TimeSpan.Zero);
 
     private static readonly ConfirmPrompt AskDelete = new("Delete", ["x"], "y", "Delete");
 

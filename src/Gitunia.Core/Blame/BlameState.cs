@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using Gitunia.Core.Editing;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Blame.Models;
 
@@ -16,6 +17,7 @@ namespace Gitunia.Core.Blame;
 /// <param name="IsComplete">True once git finished the blame.</param>
 /// <param name="Cursor">The highlighted line (zero-based).</param>
 /// <param name="SearchText">The search text, empty when no search is active.</param>
+/// <param name="SearchCaret">The caret column in <see cref="SearchText"/> (see <see cref="PromptCaret"/>).</param>
 /// <param name="IsEditingSearch">True while the search box takes typed text.</param>
 /// <param name="Revision">The revision blamed, null for the working tree file; <c>&lt;id&gt;^</c> after a re-blame at a
 /// parent.</param>
@@ -35,7 +37,8 @@ public sealed record BlameState(
     string? Revision = null,
     BlameOptions? Options = null,
     string? IgnoreRevsFile = null,
-    ImmutableArray<BlameStep> Back = default)
+    ImmutableArray<BlameStep> Back = default,
+    int SearchCaret = PromptCaret.End)
 {
     /// <summary>The switches in force (none when not set).</summary>
     public BlameOptions ActiveOptions => Options ?? BlameOptions.None;

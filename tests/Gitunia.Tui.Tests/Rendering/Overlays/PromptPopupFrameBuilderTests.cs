@@ -25,6 +25,22 @@ public class PromptPopupFrameBuilderTests
     }
 
     [Fact]
+    public void GivenACaretInsideTheText_WhenBuilding_ThenItIsDrawnThereAndLongTextKeepsItVisible()
+    {
+        var inside = PromptPopup.ForText("T", "C", "feature", "ok") with { InputCaret = 3 };
+        var longText = PromptPopup.ForText("T", "C", new string('a', 120) + "XY", "ok") with { InputCaret = 60 };
+
+        var short1 = PromptPopupFrameBuilder.Build(inside, 80, 24, GraphGlyphSet.Unicode);
+        var long1 = PromptPopupFrameBuilder.Build(longText, 80, 24, GraphGlyphSet.Unicode);
+
+        Assert.NotNull(short1);
+        Assert.NotNull(long1);
+        Assert.Contains("> fea|ture", short1.Lines[2].Text, StringComparison.Ordinal);
+        Assert.Contains("|", long1.Lines[2].Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("XY", long1.Lines[2].Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void GivenAnyPrompt_WhenBuilding_ThenItIsCentredAndEveryRowHasTheSameWidth()
     {
         var prompt = PromptPopup.ForText("Title", "Context", string.Empty, "ok");

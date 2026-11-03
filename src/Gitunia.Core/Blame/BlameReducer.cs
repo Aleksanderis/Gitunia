@@ -1,8 +1,8 @@
+using Gitunia.Core.Editing;
 using Gitunia.Core.Effects;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Lists;
-using Gitunia.Core.Search;
 using Gitunia.Core.Sidebar;
 using Gitunia.Core.Status;
 using Gitunia.Core.Text;
@@ -473,9 +473,9 @@ public static class BlameReducer
             return Done(session);
         }
 
-        if (PromptTextEditor.Apply(view.SearchText, key) is { } edited && edited != view.SearchText)
+        if (PromptTextEditor.Apply(view.SearchText, view.SearchCaret, key) is { } edited)
         {
-            return With(session, view with { SearchText = edited });
+            return With(session, view with { SearchText = edited.Text, SearchCaret = edited.Caret });
         }
 
         return Done(session);

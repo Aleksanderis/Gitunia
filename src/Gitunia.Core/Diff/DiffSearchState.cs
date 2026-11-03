@@ -1,4 +1,5 @@
 using System.Globalization;
+using Gitunia.Core.Editing;
 
 namespace Gitunia.Core.Diff;
 
@@ -7,7 +8,9 @@ namespace Gitunia.Core.Diff;
 /// <param name="Text">The query typed so far.</param>
 /// <param name="Matches">Ascending rows whose text contains the query; empty for an empty query.</param>
 /// <param name="Notice">A short remark such as "No match", empty when none.</param>
-public sealed record DiffSearchState(DiffSearchPhase Phase, string Text, IReadOnlyList<int> Matches, string Notice)
+/// <param name="Caret">The caret column in <see cref="Text"/> while typing (see <see cref="PromptCaret"/>).</param>
+public sealed record DiffSearchState(DiffSearchPhase Phase, string Text, IReadOnlyList<int> Matches, string Notice,
+    int Caret = PromptCaret.End)
 {
     public static DiffSearchState Idle { get; } = new(DiffSearchPhase.None, string.Empty, [], string.Empty);
 
@@ -26,9 +29,9 @@ public sealed record DiffSearchState(DiffSearchPhase Phase, string Text, IReadOn
             return string.Empty;
         }
 
-        var cursor = Phase == DiffSearchPhase.Editing ? "_" : string.Empty;
+        var shown = Phase == DiffSearchPhase.Editing ? PromptCaret.Mark(Text, Caret) : Text;
         var position = Matches.Count == 0 ? "0" : PositionOf(row);
-        var text = $"/{Text}{cursor}  {position}/{Matches.Count}";
+        var text = $"/{shown}  {position}/{Matches.Count}";
         return Notice.Length > 0 ? $"{text}  {Notice}" : text;
     }
 

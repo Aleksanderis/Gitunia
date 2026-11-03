@@ -1,4 +1,5 @@
 using System.Globalization;
+using Gitunia.Core.Editing;
 using Gitunia.Core.Search.Models;
 
 namespace Gitunia.Core.Search;
@@ -17,7 +18,7 @@ public static class GraphSearchStatusText
             return string.Empty;
         }
 
-        var text = $"/{state.Text}{(state.Phase == SearchPhase.Editing ? "_" : string.Empty)}";
+        var text = $"/{(state.Phase == SearchPhase.Editing ? PromptCaret.Mark(state.Text, state.Caret) : state.Text)}";
         if (state.Query is null)
         {
             return text;

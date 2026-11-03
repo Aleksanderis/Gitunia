@@ -1,3 +1,4 @@
+using Gitunia.Core.Editing;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Reflog.Models;
 
@@ -10,6 +11,7 @@ namespace Gitunia.Core.Reflog;
 /// <param name="Entries">Every entry read.</param>
 /// <param name="SelectedIndex">Index into <paramref name="Entries"/>.</param>
 /// <param name="SearchText">The search text, empty when no search is active.</param>
+/// <param name="SearchCaret">The caret column in <see cref="SearchText"/> (see <see cref="PromptCaret"/>).</param>
 /// <param name="IsEditingSearch">True while the search box takes typed text.</param>
 /// <param name="Picker">The open ref picker, null when the list itself is shown.</param>
 public sealed record ReflogState(
@@ -20,7 +22,8 @@ public sealed record ReflogState(
     int SelectedIndex = 0,
     string SearchText = "",
     bool IsEditingSearch = false,
-    ReflogRefPicker? Picker = null)
+    ReflogRefPicker? Picker = null,
+    int SearchCaret = PromptCaret.End)
 {
     /// <summary>True when a search is active (being typed or accepted).</summary>
     public bool HasSearch => SearchText.Length > 0 || IsEditingSearch;
@@ -60,7 +63,18 @@ public sealed record ReflogState(
     public ReflogState OpenSearch() => this with { SearchText = string.Empty, IsEditingSearch = true };
 
     /// <summary>The search with new text; the highlight jumps to the first match at or after the highlight.</summary>
-    public ReflogState EditSearch(string text) => (this with { SearchText = text }).JumpToMatch(true, 0, SelectedIndex);
+    public ReflogState EditSearch(string text) => EditSearch(text, PromptCaret.End);
+
+    /// <summary>The state after an edit of the search box; a move of the caret alone keeps the selection.</summary>
+    public ReflogState EditSearch(string text, int caret)
+    {
+        if (text == SearchText)
+        {
+            return this with { SearchCaret = caret };
+        }
+
+        return (this with { SearchText = text, SearchCaret = caret }).JumpToMatch(true, 0, SelectedIndex);
+    }
 
     /// <summary>Leaves the box and keeps the search active (so <c>n</c> and <c>N</c> work).</summary>
     public ReflogState AcceptSearch() => this with { IsEditingSearch = false };
