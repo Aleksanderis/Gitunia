@@ -192,7 +192,13 @@ public static class HelpBuilder
                 .ToList();
             if (bindings.Count > 0)
             {
-                tabs.Add(new HelpTab($"{AllPrefix}{spec.Title}", SectionsOf(bindings)));
+                var sections = SectionsOf(bindings);
+                if (spec.Views.Contains(RepeatMode.ResizeView))
+                {
+                    sections.Insert(0, RepeatStartSection(table));
+                }
+
+                tabs.Add(new HelpTab($"{AllPrefix}{spec.Title}", sections));
             }
         }
 
@@ -386,6 +392,43 @@ public static class HelpBuilder
             new HelpRow("Drag", "Select a range of rows; drag a divider to resize the panes"),
             new HelpRow("Tab row", "Chips: commands (palette), + (new tab), fetch, pull and push"),
         ]),
+    ];
+
+    // The repeat keys only work once a first step started the mode, so the page says how it starts (keys from the keymap).
+    private static HelpSection RepeatStartSection(KeyBindingTable table)
+    {
+        var resizeKeys = StartKeys(
+            table,
+            KeyBindingTable.GlobalView,
+            ActionIds.PaneWider,
+            ActionIds.PaneNarrower,
+            ActionIds.PaneTaller,
+            ActionIds.PaneShorter);
+        var contextKeys = StartKeys(table, DefaultKeymap.DiffView, ActionIds.DiffMoreContext, ActionIds.DiffLessContext);
+
+        return new HelpSection(
+            "How it starts",
+            [
+                new HelpRow(
+                    resizeKeys.Count > 0 ? resizeKeys[0] : string.Empty,
+                    "Resize a pane: this first step turns the mode on, then the keys below repeat it",
+                    string.Join(AlsoSeparator, resizeKeys.Skip(1))),
+                new HelpRow(
+                    contextKeys.Count > 0 ? contextKeys[0] : string.Empty,
+                    "In a diff: the first context step turns the mode on the same way",
+                    string.Join(AlsoSeparator, contextKeys.Skip(1)),
+                    null,
+                    true),
+            ]);
+    }
+
+    private static List<string> StartKeys(KeyBindingTable table, string view, params ActionId[] actions) =>
+    [
+        .. actions
+            .Select(action => table.Bindings.FirstOrDefault(
+                binding => binding.View == view && binding.Mode == KeyMode.Normal && binding.Action == action))
+            .OfType<KeyBinding>()
+            .Select(binding => KeyFormatter.Display(binding.Sequence)),
     ];
 
     // What the marks after a branch name mean (the Unicode mark, then its ASCII fallback); not tied to a key.

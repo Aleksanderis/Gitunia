@@ -100,7 +100,7 @@ public class HelpAllCommandsTests
     {
         foreach (var tab in HelpBuilder.AllCommandsTabs(Table))
         {
-            var actions = tab.Rows.Select(row => row.Action).ToList();
+            var actions = tab.Rows.Where(row => row.Action is not null).Select(row => row.Action).ToList();
 
             Assert.Equal(actions.Distinct(), actions);
             Assert.DoesNotContain(tab.Sections, section => section.Title == "Other");
@@ -139,7 +139,8 @@ public class HelpAllCommandsTests
 
         Assert.All(sections, section => Assert.False(section.Rows[0].GapBefore));
         Assert.Contains(sections, section => section.Rows.Any(row => row.GapBefore));
-        foreach (var section in sections)
+        // The repeat page opens with a note section that is not made of actions.
+        foreach (var section in sections.Where(candidate => candidate.Rows.All(row => row.Action is not null)))
         {
             var clusters = section.Rows.Select(row => ActionClusters.ClusterOf(row.Action!.Value)).ToList();
             for (var index = 1; index < section.Rows.Count; index++)
