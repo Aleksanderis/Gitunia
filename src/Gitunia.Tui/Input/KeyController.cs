@@ -134,8 +134,11 @@ public sealed class KeyController
 
         PendingChanged?.Invoke();
 
-        // A confirm dialog swallows every key, so a stray one (Enter, an arrow) reaches nothing behind it.
-        return result.Outcome != KeyOutcome.Unbound || _state.Mode is KeyMode.Command or KeyMode.Insert or KeyMode.Confirm;
+        // A confirm dialog swallows every key, so a stray one (Enter, an arrow) reaches nothing behind it. The settings
+        // screen does the same: a key it does not bind (Left, Right) must not move the pane under it (#1157).
+        return result.Outcome != KeyOutcome.Unbound
+            || _state.Mode is KeyMode.Command or KeyMode.Insert or KeyMode.Confirm
+            || view == DefaultKeymap.SettingsView;
     }
 
     // Every mode switch (also to the same mode) drops the pending chord or count.
