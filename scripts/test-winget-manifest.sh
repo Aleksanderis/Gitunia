@@ -12,13 +12,17 @@ H=$(printf 'A%.0s' $(seq 64))
 i="$tmp/out/Gitunia.Gitunia.installer.yaml"
 grep -q '^PackageVersion: 1.2.3$' "$i" || fail "version"
 grep -q "InstallerSha256: $H$" "$i" || fail "hash not upper case"
-grep -q 'download/v1.2.3/gitunia-1.2.3-win-x64.exe$' "$i" || fail "url"
-grep -q '^InstallerType: portable$' "$i" || fail "portable"
+grep -q 'download/v1.2.3/gitunia-1.2.3-win-x64.zip$' "$i" || fail "url"
+grep -q '^InstallerType: zip$' "$i" || fail "zip"
+grep -q '^NestedInstallerType: portable$' "$i" || fail "nested portable"
+# Must name the folder and file scripts/package.sh puts in the zip (scripts/test-package.sh checks that side).
+grep -qF 'RelativeFilePath: gitunia-1.2.3-win-x64\gitunia.exe' "$i" || fail "nested path"
+grep -q '^  PortableCommandAlias: gitunia$' "$i" || fail "alias"
 grep -q '^ReleaseDate: 2030-01-02$' "$i" || fail "date"
 grep -q 'releases/tag/v1.2.3$' "$tmp/out/Gitunia.Gitunia.locale.en-US.yaml" || fail "release notes url"
 if grep -rq '@[A-Z0-9]*@' "$tmp/out"; then fail "placeholder left"; fi
 
-printf '%s  gitunia-1.2.3-win-x64.exe\n' "$h" > "$tmp/x.sha256"
+printf '%s  gitunia-1.2.3-win-x64.zip\n' "$h" > "$tmp/x.sha256"
 "$root/scripts/winget-manifest.sh" 1.2.3 "$tmp/x.sha256" "$tmp/out2" >/dev/null || fail "sha256 file input"
 grep -q "InstallerSha256: $H$" "$tmp/out2/Gitunia.Gitunia.installer.yaml" || fail "hash from file"
 
