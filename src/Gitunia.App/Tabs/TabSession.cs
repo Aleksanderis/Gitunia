@@ -95,9 +95,6 @@ public class TabSession : IGraphSession, IDisposable
     /// <summary>The tab has not been activated since the session was restored, so its load has not started.</summary>
     public bool IsPending { get; private set; } = true;
 
-    /// <summary>The graph has been put on HEAD once, when the tab was first shown; later switches keep the tab's own selection.</summary>
-    public bool HasOpenedAtHead { get; set; }
-
     /// <summary>The log is still streaming in.</summary>
     public bool IsLoading { get; private set; } = true;
 

@@ -26,7 +26,8 @@ public class CommitGraphTests
     public void GivenCheckedOutBranch_WhenLookingForHead_ThenItsRowIsReturned()
     {
         var graph = new CommitGraph();
-        graph.AddRange([Entry(1, 1), Decorated(2, new CommitDecoration("refs/heads/main", "main", RefKind.LocalBranch, true)), Entry(3, 1)]);
+        var main = new CommitDecoration("refs/heads/main", "main", RefKind.LocalBranch, true);
+        graph.AddRange([Entry(1, 1), Decorated(2, main), Entry(3, 1)]);
 
         Assert.Equal(1, graph.HeadIndex());
     }
@@ -35,7 +36,8 @@ public class CommitGraphTests
     public void GivenDetachedHead_WhenLookingForHead_ThenItsRowIsReturned()
     {
         var graph = new CommitGraph();
-        graph.AddRange([Entry(1, 1), Entry(2, 1), Decorated(3, new CommitDecoration("HEAD", "HEAD", RefKind.Head, false))]);
+        var head = new CommitDecoration("HEAD", "HEAD", RefKind.Head, false);
+        graph.AddRange([Entry(1, 1), Entry(2, 1), Decorated(3, head)]);
 
         Assert.Equal(2, graph.HeadIndex());
     }
@@ -44,17 +46,11 @@ public class CommitGraphTests
     public void GivenOtherBranchesOnly_WhenLookingForHead_ThenMinusOne()
     {
         var graph = new CommitGraph();
-        graph.AddRange([Decorated(1, new CommitDecoration("refs/heads/other", "other", RefKind.LocalBranch, false)), Entry(2, 1)]);
+        var other = new CommitDecoration("refs/heads/other", "other", RefKind.LocalBranch, false);
+        graph.AddRange([Decorated(1, other), Entry(2, 1)]);
 
         Assert.Equal(-1, graph.HeadIndex());
         Assert.Equal(-1, new CommitGraph().HeadIndex());
-    }
-
-    private static GraphEntry Decorated(int number, CommitDecoration decoration)
-    {
-        var row = new GraphRow(Id(number), 0, 1, []);
-
-        return new GraphEntry(Id(number), $"commit {number}", "Author", DateTimeOffset.UnixEpoch, [decoration], row);
     }
 
     [Fact]
@@ -89,5 +85,12 @@ public class CommitGraphTests
 
         Assert.Equal(1, graph.IndexOf(Id(2)));
         Assert.Equal(-1, graph.IndexOf(Id(9)));
+    }
+
+    private static GraphEntry Decorated(int number, CommitDecoration decoration)
+    {
+        var row = new GraphRow(Id(number), 0, 1, []);
+
+        return new GraphEntry(Id(number), $"commit {number}", "Author", DateTimeOffset.UnixEpoch, [decoration], row);
     }
 }

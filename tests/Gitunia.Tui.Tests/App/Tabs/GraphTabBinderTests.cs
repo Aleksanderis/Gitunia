@@ -227,23 +227,55 @@ public class GraphTabBinderTests
     }
 
     [Fact]
-    public async Task GivenTabShownBefore_WhenItIsShownAgain_ThenItKeepsItsOwnSelection()
+    public async Task GivenTabShownBefore_WhenAnotherTabIsShownAndThisOneAgain_ThenItKeepsItsOwnSelection()
+    {
+        using var first = TestRepository.Create();
+        using var second = TestRepository.Create();
+        for (var index = 0; index < 10; index++)
+        {
+            first.Commit($"commit {index}", new TestFile("a.txt", index.ToString()));
+            second.Commit($"other {index}", new TestFile("b.txt", index.ToString()));
+        }
+
+        using var harness = await Harness.LoadAsync(first);
+        var deep = harness.Session.Graph[6].Id;
+        harness.Host.Dispatch(new TabCommand(harness.TabId, new SelectCommitCommand(deep)));
+        harness.Graph.SelectedItem = 6;
+        var location = await TestGit.Services.Discovery.DiscoverAsync(second.WorkingTreePath, CancellationToken.None);
+
+        harness.Host.Dispatch(new OpenRepositoryCommand(location));
+        var otherId = harness.Host.Workspace.ActiveTabId!.Value;
+        await harness.Pump.RunUntilAsync(() => harness.Effects.SessionOf(otherId) is { IsLoading: false });
+        Assert.NotEqual(harness.TabId, otherId);
+        harness.Host.Dispatch(new ActivateTabCommand(harness.TabId));
+
+        Assert.Equal(6, harness.Graph.SelectedItem);
+        Assert.Equal(deep, harness.Host.Workspace.FindTab(harness.TabId)!.View.SelectedCommit);
+    }
+
+    [Fact]
+    public async Task GivenCursorOnTheNewestCommitAboveHead_WhenACommitArrives_ThenTheCursorStaysOnItsCommit()
     {
         using var repository = TestRepository.Create();
-        for (var index = 0; index < 10; index++)
+        for (var index = 0; index < 6; index++)
         {
             repository.Commit($"commit {index}", new TestFile("a.txt", index.ToString()));
         }
 
+        repository.Git("checkout", "--detach", "HEAD~3");
         using var harness = await Harness.LoadAsync(repository);
-        var deep = harness.Session.Graph[6].Id;
-        harness.Host.Dispatch(new TabCommand(harness.TabId, new SelectCommitCommand(deep)));
-        harness.Graph.SelectedItem = 6;
+        var newest = harness.Session.Graph[0].Id;
+        harness.Graph.SelectedItem = 0;
+        harness.Host.Dispatch(new TabCommand(harness.TabId, new SelectCommitCommand(newest)));
+        var replaced = 0;
+        harness.Session.GraphReplaced += () => replaced++;
 
-        harness.Binder.Sync();
+        repository.Commit("new", new TestFile("a.txt", "new"));
+        harness.Effects.Refresh(harness.TabId);
+        await harness.Pump.RunUntilAsync(() => replaced == 1);
 
-        Assert.Equal(6, harness.Graph.SelectedItem);
-        Assert.Equal(deep, harness.Host.Workspace.FindTab(harness.TabId)!.View.SelectedCommit);
+        Assert.Equal(newest, harness.Session.Graph[harness.Graph.SelectedItem!.Value].Id);
+        Assert.Equal(newest, harness.Host.Workspace.FindTab(harness.TabId)!.View.SelectedCommit);
     }
 
     private sealed class Harness : IDisposable

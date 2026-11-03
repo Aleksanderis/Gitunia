@@ -37,6 +37,9 @@ public sealed class GraphTabBinder(
     private int _rowBeforeReplace;
     private bool _followsHeadBeforeReplace;
 
+    // Tabs that were put on HEAD once; a reloaded session (worktree switch, evicted tab) keeps the tab's own selection.
+    private readonly HashSet<TabId> _openedTabs = [];
+
     /// <summary>Raised when the shown tab changed, with the session that was shown and the one that is shown now (either may be null).</summary>
     public event Action<TerminalTabSession?, TerminalTabSession?>? Switched;
 
@@ -63,7 +66,6 @@ public sealed class GraphTabBinder(
             return;
         }
 
-        var isSameTab = _hasShown && activeId == _shownTabId;
         _hasShown = true;
         _shownTabId = activeId;
         var previousSession = _shownSession;
@@ -75,12 +77,6 @@ public sealed class GraphTabBinder(
         }
 
         _shownSession = activeId is { } id ? registry.GetValueOrDefault(id) : null;
-
-        // A tab switched to another worktree keeps its selection; only a tab shown for the first time opens on HEAD.
-        if (isSameTab && _shownSession is not null)
-        {
-            _shownSession.HasOpenedAtHead = true;
-        }
 
         IsSuspended = true;
         try
@@ -140,11 +136,11 @@ public sealed class GraphTabBinder(
     {
         _itemBeforeReplace = _graph.SelectedItem ?? 0;
         _rowBeforeReplace = Math.Max(0, _itemBeforeReplace - _graph.Viewport.Y);
-        _followsHeadBeforeReplace = IsOnHeadOrNewest(_itemBeforeReplace);
+        _followsHeadBeforeReplace = IsOnHead(_itemBeforeReplace);
     }
 
-    // A cursor on HEAD or on the newest commit follows HEAD to its new place; a cursor in the history stays where it is.
-    private bool IsOnHeadOrNewest(int item)
+    // A cursor on HEAD (on the newest commit when there is no HEAD yet) follows HEAD to its new place; a cursor in the history stays where it is.
+    private bool IsOnHead(int item)
     {
         if (_shownSession is not { } session)
         {
@@ -153,8 +149,14 @@ public sealed class GraphTabBinder(
 
         var commitIndex = GraphListSource.CommitIndexOf(item);
 
-        return commitIndex >= 0 && commitIndex < session.Graph.Count
-            && (commitIndex == 0 || commitIndex == session.Graph.HeadIndex());
+        if (commitIndex < 0 || commitIndex >= session.Graph.Count)
+        {
+            return false;
+        }
+
+        var headIndex = session.Graph.HeadIndex();
+
+        return commitIndex == (headIndex >= 0 ? headIndex : 0);
     }
 
     // A refreshed log keeps the selected commit selected and on the same screen row; when the commit is gone the old position stays.
@@ -269,9 +271,9 @@ public sealed class GraphTabBinder(
             return;
         }
 
-        if (!session.HasOpenedAtHead)
+        if (!_openedTabs.Contains(tab.Id))
         {
-            OpenAtHead(session);
+            OpenAtHead(session, tab);
 
             return;
         }
@@ -299,13 +301,13 @@ public sealed class GraphTabBinder(
     }
 
     // The first time a tab is shown it opens on HEAD, not on the selection saved by the last session.
-    private void OpenAtHead(TerminalTabSession session)
+    private void OpenAtHead(TerminalTabSession session, RepositoryState tab)
     {
         var headIndex = session.Graph.HeadIndex();
         if (headIndex < 0 && session.IsLoading)
         {
             // HEAD may still be streaming in: show the newest commit meanwhile and decide when it arrives or the load ends.
-            _graph.SelectedItem = ScreenLayout.ReservedLeadingRows;
+            _graph.SelectedItem ??= ScreenLayout.ReservedLeadingRows;
 
             return;
         }
@@ -314,9 +316,9 @@ public sealed class GraphTabBinder(
         _graph.SelectedItem = index + ScreenLayout.ReservedLeadingRows;
         _graph.Viewport = _graph.Viewport with { Y = 0 };
         _graph.EnsureSelectedItemVisible();
-        session.HasOpenedAtHead = true;
+        _openedTabs.Add(tab.Id);
         _restorePending = false;
-        if (index < session.Graph.Count && host.Workspace.ActiveTab is { } tab
+        if (index < session.Graph.Count
             && (tab.View.SelectedCommit != session.Graph[index].Id || tab.View.ScrollOffset != _graph.Viewport.Y))
         {
             SelectAndRemember(session.Graph[index].Id, _graph.Viewport.Y);
