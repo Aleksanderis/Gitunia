@@ -61,7 +61,11 @@ public static class SelectionMarker
         return column;
     }
 
-    private static void Add(List<StyledSegment> output, StyledSegment segment, StringBuilder text, SegmentSelection selection)
+    private static void Add(
+        List<StyledSegment> output,
+        StyledSegment segment,
+        StringBuilder text,
+        SegmentSelection selection)
     {
         if (text.Length > 0)
         {

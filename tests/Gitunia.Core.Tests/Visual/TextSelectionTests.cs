@@ -4,6 +4,7 @@ using Xunit;
 
 namespace Gitunia.Core.Tests.Visual;
 
+[Trait("Os", "Independent")]
 public class TextSelectionTests
 {
     private static readonly string[] Sample = ["first line", "", "second", "third one"];

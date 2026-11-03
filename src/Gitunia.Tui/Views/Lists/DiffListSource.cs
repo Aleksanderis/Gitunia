@@ -15,7 +15,8 @@ using Terminal.Gui.Views;
 namespace Gitunia.Tui.Views.Lists;
 
 /// <summary>List source over the rows of a <see cref="DiffDocument"/>: only the visible rows are drawn, so a 50k-line diff costs no more per frame than a small one.</summary>
-public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource, IRangeSource, IJumpSource, IButtonSource, ITextSource
+public sealed class DiffListSource(GraphGlyphSet glyphs)
+    : IListDataSource, IRangeSource, IJumpSource, IButtonSource, ITextSource
 {
     private readonly JumpLabelCache _jump = new();
     private DiffWrapMap? _map;

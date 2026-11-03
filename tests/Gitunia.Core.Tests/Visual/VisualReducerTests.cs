@@ -273,6 +273,21 @@ public class VisualReducerTests
     }
 
     [Fact]
+    public void GivenARowSelectionInAPaneWithoutText_WhenTheCharacterKeyIsPressed_ThenTheRowSelectionStaysAndCopyStillWorks()
+    {
+        var state = Toggle(WithTab(), 2).State;
+        state = Reduce(state, new VisualCursorMoved(4)).State;
+
+        var update = Reduce(state, new VisualCharsToggled(4, 0, false));
+
+        Assert.Equal(VisualKind.Lines, update.State.Shell.Visual!.Kind);
+        Assert.Equal(new RowRange(2, 4), update.State.Shell.Visual.Range);
+        Assert.Equal(VisualReducer.NoCharsNotice, NoticeOf(update));
+        var copy = Reduce(update.State, new VisualCopyRequested());
+        Assert.Null(Assert.IsType<CopyVisualRangeEffect>(Assert.Single(copy.Effects)).Chars);
+    }
+
+    [Fact]
     public void GivenACharacterSelection_WhenTheRowKeyIsPressed_ThenItBecomesWholeRows()
     {
         var state = Reduce(WithTab(PaneKind.Diff), new VisualCharsToggled(3, 5, true)).State;

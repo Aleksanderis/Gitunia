@@ -3,6 +3,7 @@ using Xunit;
 
 namespace Gitunia.Core.Tests.Text;
 
+[Trait("Os", "Independent")]
 public class ShownColumnsTests
 {
     private const int TabWidth = 4;

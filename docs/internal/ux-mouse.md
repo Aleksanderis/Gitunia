@@ -167,7 +167,7 @@ In the diff panes (history diff, file content, the Changes view diff; not while 
 The keyboard path is `Alt-v`, then `h` `l` `w` `b` `0` `$`, `iw`, `il` (see the keymap); the detail pane, the graph, blame and the file lists still select whole rows (#1167).
 A double-click in the history diff or file content selects the word under the pointer and a triple-click the text of the line, the same as `iw` / `il` (the Changes view diff keeps its staging double-click; drag or `Alt-v` there).
 With mouse reporting on, the terminal's own text selection needs the terminal's bypass modifier (usually Shift-drag; Option-drag in some macOS terminals): that copy is plain screen text, with gutter and markers, and bypasses OSC 52.
-The release leaves the range active; a click on a row, `Esc`, `q`, `v` or moving focus to another pane or tab ends it.
+The release leaves the range active; a click on a row, `Esc`, `q`, `v` (on a character selection it turns it into whole rows) or moving focus to another pane or tab ends it.
 `y` copies the range (the drag plus `y`, or `visual.copy` from the palette) and ends it; staging acts on it too (lines in the Changes view diff, files in its lists).
 The sidebar and the message box have no ranges (a drag there only moves the selection); a drag also does not start a range while a prompt (search, filter, ref jump) or the picker is open.
 

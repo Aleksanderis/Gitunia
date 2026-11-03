@@ -90,7 +90,8 @@ public sealed class RangeCopier(
         }
 
         var characters = text.EnumerateRunes().Count();
-        var copied = clipboard.Copy(text, characters == 1 ? "1 selected character" : $"{characters} selected characters");
+        var description = characters == 1 ? "1 selected character" : $"{characters} selected characters";
+        var copied = clipboard.Copy(text, description);
 
         return new RangeCopyResult(copied, string.Empty);
     }

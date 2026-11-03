@@ -120,6 +120,7 @@ public sealed class VisualRangeInput : IActionHandler
 
     public void End()
     {
+        _pointed = null;
         if (IsActive)
         {
             _host.Dispatch(new VisualEnded());
@@ -216,9 +217,14 @@ public sealed class VisualRangeInput : IActionHandler
             Attach(selection.Pane);
         }
 
-        if (_source is not null && (_source.Range != selection.Range || (_source as ITextSource)?.Text != selection.Text))
+        if (_source is not { } source)
         {
-            _source.Range = selection.Range;
+            return;
+        }
+
+        if (source.Range != selection.Range || (source as ITextSource)?.Text != selection.Text)
+        {
+            source.Range = selection.Range;
             SetText(selection.Text);
             _lists.ListOf(_pane).SetNeedsDraw();
         }

@@ -32,7 +32,7 @@ public class DiffTextSelectionTests
     public void GivenTextRows_WhenThePointerIsOverACharacter_ThenItsIndexIsReturnedWithoutTheGutter()
     {
         using var source = NewSource();
-        using var pane = new PaneListView { Width = Columns, Height = Rows, Source = source };
+        using var pane = NewPane(source);
         var start = TextStart(pane, 0);
 
         Assert.Equal(new TextPosition(0, 6), source.PositionAt(pane, start + 6, 0));
@@ -46,7 +46,7 @@ public class DiffTextSelectionTests
     public void GivenATabInARow_WhenThePointerIsOverItsColumns_ThenTheTabIsReturnedAndTheNextCharacterAfterIt()
     {
         using var source = NewSource();
-        using var pane = new PaneListView { Width = Columns, Height = Rows, Source = source };
+        using var pane = NewPane(source);
         var start = TextStart(pane, 1);
 
         Assert.Equal(new TextPosition(1, 0), source.PositionAt(pane, start, 1));
@@ -59,7 +59,7 @@ public class DiffTextSelectionTests
     public void GivenAPointerAboveOrBelowTheRows_WhenMapping_ThenTheFirstOrLastRowIsUsed()
     {
         using var source = NewSource();
-        using var pane = new PaneListView { Width = Columns, Height = Rows, Source = source };
+        using var pane = NewPane(source);
 
         Assert.Equal(0, source.PositionAt(pane, 12, -3)!.Value.Line);
         Assert.Equal(source.Count - 1, source.PositionAt(pane, 12, 40)!.Value.Line);
@@ -69,7 +69,7 @@ public class DiffTextSelectionTests
     public void GivenWrappedOrSideBySideRows_WhenMapping_ThenNoTextIsSupported()
     {
         using var source = NewSource();
-        using var pane = new PaneListView { Width = Columns, Height = Rows, Source = source };
+        using var pane = NewPane(source);
 
         source.SetWrapped(true);
 
@@ -154,6 +154,9 @@ public class DiffTextSelectionTests
         Assert.Equal(Table.RangeBackground, BackgroundOf(contents[1, start + 3].Attribute));
         Assert.NotEqual(Table.RangeBackground, BackgroundOf(contents[1, start + 4].Attribute));
     }
+
+    private static PaneListView NewPane(DiffListSource source) =>
+        new() { Width = Columns, Height = Rows, Source = source };
 
     private static PaneListView Show(IApplication application, DiffListSource source)
     {

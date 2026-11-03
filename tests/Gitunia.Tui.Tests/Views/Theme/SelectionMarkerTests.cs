@@ -4,6 +4,7 @@ using Xunit;
 
 namespace Gitunia.Tui.Tests.Views.Theme;
 
+[Trait("Os", "Independent")]
 public class SelectionMarkerTests
 {
     [Fact]

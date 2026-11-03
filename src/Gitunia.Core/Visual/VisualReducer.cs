@@ -104,7 +104,18 @@ public static class VisualReducer
                 return new AppUpdate(End(state), []);
             }
 
-            var converted = active with { Kind = VisualKind.Chars, AnchorColumn = 0, CursorColumn = toggled.CursorColumn };
+            if (!toggled.HasTextSource)
+            {
+                // A row selection in a pane without text stays as it is, so its copy keeps working.
+                return Notice(state, NoCharsNotice);
+            }
+
+            var converted = active with
+            {
+                Kind = VisualKind.Chars,
+                AnchorColumn = 0,
+                CursorColumn = toggled.CursorColumn,
+            };
 
             return new AppUpdate(state with { Shell = state.Shell with { Visual = converted } }, []);
         }
@@ -132,7 +143,9 @@ public static class VisualReducer
             toggled.CursorColumn,
             toggled.CursorColumn);
 
-        return new AppUpdate(state with { Shell = state.Shell.WithMode(KeyMode.Visual) with { Visual = selection } }, []);
+        var visual = state.Shell.WithMode(KeyMode.Visual) with { Visual = selection };
+
+        return new AppUpdate(state with { Shell = visual }, []);
     }
 
     private static AppUpdate MoveColumn(AppState state, int column)

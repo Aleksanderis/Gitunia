@@ -169,7 +169,8 @@ public sealed class PaneListView : ListView
                 StartAutoScroll();
             }
 
-            RaiseDragPointer(phase == DragPhase.Start ? TextPointerKind.DragStart : TextPointerKind.DragMove, position.X, position.Y);
+            var kind = phase == DragPhase.Start ? TextPointerKind.DragStart : TextPointerKind.DragMove;
+            RaiseDragPointer(kind, position.X, position.Y);
         }
 
         return true;
@@ -233,7 +234,12 @@ public sealed class PaneListView : ListView
             MouseGesture.TripleClick when SelectsText => TextPointerKind.TripleClick,
             _ => (TextPointerKind?)null,
         };
-        if (kind is { } found && Source is ITextSource { SupportsText: true } text && text.PositionAt(this, column, row) is { } at)
+        if (kind is not { } found || Source is not ITextSource { SupportsText: true } text)
+        {
+            return;
+        }
+
+        if (text.PositionAt(this, column, row) is { } at)
         {
             TextPointed?.Invoke(new TextPointer(found, at));
         }
