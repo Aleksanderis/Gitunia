@@ -75,6 +75,9 @@ public sealed class PaneListView : ListView
     /// <summary>A double or triple click selects a word or the line (read-only text panes where a double-click has no action of its own).</summary>
     public bool SelectsText { get; set; }
 
+    /// <summary>A double click selects a word, while a triple click has no action of its own (the Changes view diff).</summary>
+    public bool SelectsWord { get; set; }
+
     /// <summary>
     /// A triple click selects the line, while a double-click keeps its own action (the Details tab opens an issue link
     /// with it).
@@ -264,7 +267,7 @@ public sealed class PaneListView : ListView
         var kind = gesture switch
         {
             MouseGesture.Click => TextPointerKind.Click,
-            MouseGesture.DoubleClick when SelectsText => TextPointerKind.DoubleClick,
+            MouseGesture.DoubleClick when SelectsText || SelectsWord => TextPointerKind.DoubleClick,
             MouseGesture.TripleClick when SelectsText || SelectsLine => TextPointerKind.TripleClick,
             _ => (TextPointerKind?)null,
         };
