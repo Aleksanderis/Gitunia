@@ -1,7 +1,7 @@
 # Fills the winget manifest templates in packaging/winget for one release (#943).
 # PowerShell twin of scripts/winget-manifest.sh (Windows PowerShell 5.1 and pwsh): same arguments, checks and output files.
 # Usage: scripts/winget-manifest.ps1 <version> <sha256 | path to the .sha256 file> <out-dir> [release-date]
-# <version> has no leading "v". The installer URL is the bare gitunia-<version>-win-x64.exe release asset (#941).
+# <version> has no leading "v". The installer URL is the gitunia-<version>-win-x64.zip release asset (#1156); pass its .sha256 file.
 # Writes the three files winget wants (version, installer, defaultLocale) into <out-dir>.
 param(
     [Parameter(Mandatory, Position = 0)][string]$Version,
@@ -25,7 +25,7 @@ $Hash = $Hash.ToUpperInvariant()
 if ($Hash -cnotmatch '^[0-9A-F]+$') { Stop-Script "not a SHA-256: $Hash" }
 if ($Hash.Length -ne 64) { Stop-Script "SHA-256 must be 64 hex digits: $Hash" }
 
-$url = "https://github.com/Aleksanderis/Gitunia/releases/download/v$Version/gitunia-$Version-win-x64.exe"
+$url = "https://github.com/Aleksanderis/Gitunia/releases/download/v$Version/gitunia-$Version-win-x64.zip"
 $outDir = $PSCmdlet.GetUnresolvedProviderPathFromPSPath($Out)
 [void](New-Item -ItemType Directory -Force -Path $outDir)
 $utf8 = New-Object System.Text.UTF8Encoding($false)

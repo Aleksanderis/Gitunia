@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Fills the winget manifest templates in packaging/winget for one release (#943).
 # Usage: scripts/winget-manifest.sh <version> <sha256 | path to the .sha256 file> <out-dir> [release-date]
-# <version> has no leading "v". The installer URL is the bare gitunia-<version>-win-x64.exe release asset (#941).
+# <version> has no leading "v". The installer URL is the gitunia-<version>-win-x64.zip release asset (#1156); pass its .sha256 file.
 # Writes the three files winget wants (version, installer, defaultLocale) into <out-dir>.
 set -euo pipefail
 
@@ -22,7 +22,7 @@ case "$hash" in
 esac
 [ "${#hash}" -eq 64 ] || { echo "SHA-256 must be 64 hex digits: $hash" >&2; exit 1; }
 
-url="https://github.com/Aleksanderis/Gitunia/releases/download/v${version}/gitunia-${version}-win-x64.exe"
+url="https://github.com/Aleksanderis/Gitunia/releases/download/v${version}/gitunia-${version}-win-x64.zip"
 mkdir -p "$out"
 for t in "$root"/packaging/winget/*.yaml; do
   sed -e "s|@VERSION@|$version|g" -e "s|@URL@|$url|g" -e "s|@SHA256@|$hash|g" -e "s|@DATE@|$date|g" "$t" > "$out/$(basename "$t")"
