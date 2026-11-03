@@ -347,6 +347,7 @@ public static class DefaultMouseMap
         new(DefaultKeymap.WorkingStagedDiffView, MouseGesture.DoubleClick, ActionIds.WorkingTreeUnstage),
         new(DefaultKeymap.DiffView, MouseGesture.DoubleClick, ActionIds.VisualSelectWord),
         new(DefaultKeymap.DiffView, MouseGesture.TripleClick, ActionIds.VisualSelectLine),
+        new(DefaultKeymap.DetailView, MouseGesture.TripleClick, ActionIds.VisualSelectLine),
         new(DefaultKeymap.ListsView, MouseGesture.DragStart, ActionIds.VisualToggle),
         new(DefaultKeymap.ListsView, MouseGesture.DragUp, ActionIds.ListUp, UsesTarget: true),
         new(DefaultKeymap.ListsView, MouseGesture.DragDown, ActionIds.ListDown, UsesTarget: true),
