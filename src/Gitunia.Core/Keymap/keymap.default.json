@@ -134,7 +134,7 @@
   { "action": "blame.open", "view": "Detail", "modes": ["Normal"], "keys": ["<space>gb"] },
   { "action": "blame.open", "view": "WorkingUnstaged", "modes": ["Normal"], "keys": ["<space>gb"] },
   { "action": "blame.open", "view": "WorkingStaged", "modes": ["Normal"], "keys": ["<space>gb"] },
-  { "action": "line-history.open", "view": "Blame", "modes": ["Normal"], "keys": ["<space>L"] },
+  { "action": "line-history.open", "view": "Blame", "modes": ["Normal", "Visual"], "keys": ["<space>L"] },
   { "action": "blame.show-commit", "view": "Blame", "modes": ["Normal"], "keys": ["Enter"] },
   { "action": "blame.parent", "view": "Blame", "modes": ["Normal"], "keys": ["Alt-p"] },
   { "action": "file-history.open", "view": "Blame", "modes": ["Normal"], "keys": ["<space>H"] },

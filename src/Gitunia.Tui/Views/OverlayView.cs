@@ -32,8 +32,11 @@ public sealed class OverlayView : View
     /// <summary>Raised with the frame line and column where a drag with the left button began.</summary>
     public event Action<int, int>? DragStarted;
 
-    /// <summary>Raised with the frame line of the pointer while a drag goes on (also for its first move).</summary>
-    public event Action<int>? Dragged;
+    /// <summary>Raised with the frame line and column of the pointer while a drag goes on (also for its first move).</summary>
+    public event Action<int, int>? Dragged;
+
+    /// <summary>Raised with the frame line when the overlay is triple-clicked (the first clicks were raised as a click and a double-click).</summary>
+    public event Action<int>? LineTripleClicked;
 
     /// <summary>Raised for the wheel over the overlay.</summary>
     public event Action<MouseGesture>? GestureRaised;
@@ -70,7 +73,7 @@ public sealed class OverlayView : View
 
             if (phase is DragPhase.Start or DragPhase.Move && mouse.Position is { } pointerAt)
             {
-                Dragged?.Invoke(pointerAt.Y);
+                Dragged?.Invoke(pointerAt.Y, pointerAt.X);
             }
 
             return true;
@@ -100,6 +103,10 @@ public sealed class OverlayView : View
         else if (gesture == MouseGesture.DoubleClick && mouse.Position is { } doublePosition)
         {
             LineDoubleClicked?.Invoke(doublePosition.Y);
+        }
+        else if (gesture == MouseGesture.TripleClick && mouse.Position is { } triplePosition)
+        {
+            LineTripleClicked?.Invoke(triplePosition.Y);
         }
         else if (gesture is MouseGesture.WheelUp or MouseGesture.WheelDown)
         {

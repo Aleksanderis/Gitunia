@@ -1,3 +1,4 @@
+using Gitunia.Core.Visual;
 using Gitunia.Git.Blame.Models;
 
 namespace Gitunia.App.Blame;
@@ -7,7 +8,7 @@ namespace Gitunia.App.Blame;
 /// handler fills <see cref="Owners"/> while git finds the commits (a reference write is atomic, so a reader sees either
 /// null or the commit).
 /// </summary>
-public sealed class BlameData
+public sealed class BlameData : ITextLines
 {
     public BlameData(long generation, IReadOnlyList<string> lines)
     {
@@ -16,6 +17,15 @@ public sealed class BlameData
         Owners = new BlameCommit?[lines.Count];
         OriginalLines = new int[lines.Count];
     }
+
+    /// <inheritdoc />
+    public int Count => Lines.Count;
+
+    /// <inheritdoc />
+    public string TextOf(int line) => Lines[line];
+
+    /// <inheritdoc />
+    public bool IsSkipped(int line) => false;
 
     /// <summary>The read number the data belongs to.</summary>
     public long Generation { get; }

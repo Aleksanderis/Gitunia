@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using Gitunia.Core.Blame;
+using Gitunia.Core.Clipboard;
 using Gitunia.Core.Text;
 using Gitunia.Git.Blame;
 using Gitunia.Git.Blame.Models;
@@ -58,6 +59,33 @@ public sealed class BlameEffectHandler(IBlameReader reader, BlameStore store, ID
         }
 
         dispatcher.Post(new BlameMatchFound(effect.Generation, effect.Query, index));
+    }
+
+    /// <summary>The text to copy for a selection: the code of the lines, or exactly the selected characters.</summary>
+    /// <param name="effect">The selection.</param>
+    /// <returns>The copy to make, null when the lines are gone or the selection holds no text.</returns>
+    public CopyToClipboardEffect? CopyOf(CopyBlameSelectionEffect effect)
+    {
+        if (store.Current is not { } data || data.Generation != effect.Generation || data.Count == 0)
+        {
+            return null;
+        }
+
+        var first = Math.Clamp(effect.FirstLine, 0, data.Count - 1);
+        var last = Math.Clamp(effect.LastLine, first, data.Count - 1);
+        if (effect.Chars is { } chars)
+        {
+            var selected = chars.TextIn(data);
+            var characters = selected.EnumerateRunes().Count();
+            var description = characters == 1 ? "1 selected character" : $"{characters} selected characters";
+
+            return selected.Length == 0 ? null : new CopyToClipboardEffect(selected, description);
+        }
+
+        var count = last - first + 1;
+        var text = string.Join('\n', Enumerable.Range(first, count).Select(data.TextOf));
+
+        return new CopyToClipboardEffect(text, count == 1 ? "1 line of code" : $"{count} lines of code");
     }
 
     private void Cancel()

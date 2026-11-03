@@ -1,3 +1,4 @@
+using Gitunia.Core.Visual;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Blame.Models;
 using Gitunia.Git.Repositories.Models;
@@ -26,6 +27,17 @@ public sealed record StartBlameEffect(
 /// <summary>Stop a running blame and free the lines it holds (the view closed or another was asked for).</summary>
 /// <param name="Generation">The read number the effect ends; a newer read is left alone.</param>
 public sealed record StopBlameEffect(long Generation) : AppEffect;
+
+/// <summary>
+/// Copy the selected lines (their code text, no gutter) or characters of the blame view to the clipboard. The lines are
+/// in the store, so the handler builds the text.
+/// </summary>
+/// <param name="Generation">The read number of the lines.</param>
+/// <param name="FirstLine">The first selected line.</param>
+/// <param name="LastLine">The last selected line.</param>
+/// <param name="Chars">The characters of a character selection, null for whole lines.</param>
+public sealed record CopyBlameSelectionEffect(long Generation, int FirstLine, int LastLine, TextSelection? Chars)
+    : AppEffect;
 
 /// <summary>
 /// Look for the next line containing the text. The lines are in the store, so the handler scans them and posts

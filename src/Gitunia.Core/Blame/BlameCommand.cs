@@ -1,4 +1,5 @@
 using Gitunia.Core.Keymap.Models;
+using Gitunia.Core.Text;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Blame.Models;
 
@@ -27,6 +28,11 @@ public sealed record BlameOpenRefused(string Text) : BlameCommand;
 /// <param name="CursorOriginalLine">The line number in that commit's version of the file (zero-based).</param>
 /// <param name="CursorIsBoundary">True when that commit is a root of the walked history (it has no parent).</param>
 /// <param name="CursorOwnPath">The file's path in that commit itself, which the line history starts from.</param>
+/// <param name="CursorText">The text of the highlighted line, for the character motions; empty when unknown.</param>
+/// <param name="RangeLines">For the line history of a selection: how many lines it covers (the cursor values above
+/// then describe its first line).</param>
+/// <param name="RangeIsOneCommit">For the line history of a selection: all its lines come from the same commit and are
+/// consecutive in it.</param>
 public sealed record BlameActionPressed(
     ActionId Action,
     int? Count,
@@ -35,7 +41,20 @@ public sealed record BlameActionPressed(
     string? CursorPath = null,
     int CursorOriginalLine = 0,
     bool CursorIsBoundary = false,
-    string? CursorOwnPath = null) : BlameCommand;
+    string? CursorOwnPath = null,
+    string CursorText = "",
+    int RangeLines = 1,
+    bool RangeIsOneCommit = true) : BlameCommand;
+
+/// <summary>The mouse selected characters of the code column (a drag, a double or triple click).</summary>
+/// <param name="Anchor">Where the selection starts.</param>
+/// <param name="Cursor">Where its moving end is.</param>
+public sealed record BlameTextSelected(TextPosition Anchor, TextPosition Cursor) : BlameCommand;
+
+/// <summary>The mouse selected whole lines (a drag that started in the gutter).</summary>
+/// <param name="Anchor">The line the drag started on.</param>
+/// <param name="Cursor">The line under the pointer.</param>
+public sealed record BlameLinesSelected(int Anchor, int Cursor) : BlameCommand;
 
 /// <summary>A key typed into the search box.</summary>
 /// <param name="Key">The key.</param>
