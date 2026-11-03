@@ -122,6 +122,7 @@ public sealed class VisualRangeInput : IActionHandler
 
     public void End()
     {
+        // The pointed position stays: the gesture router ends the range before the double-click action selects at it.
         if (IsActive)
         {
             _host.Dispatch(new VisualEnded());

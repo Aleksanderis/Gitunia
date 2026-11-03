@@ -21,7 +21,10 @@ using Xunit;
 
 namespace Gitunia.Tui.Tests.App.Panes;
 
-/// <summary>Character-wise selection in wrapped and side-by-side diffs and in the Details tab: keys, the pointer and what is copied (#1167).</summary>
+/// <summary>
+/// Character-wise selection in wrapped and side-by-side diffs and in the Details tab: keys, the pointer and what is
+/// copied (#1167).
+/// </summary>
 public sealed class VisualCharSelectionViewsTests : IDisposable
 {
     private const int PaneWidth = 40;
@@ -44,7 +47,7 @@ public sealed class VisualCharSelectionViewsTests : IDisposable
     }
 
     [Fact]
-    public void GivenAWrappedRow_WhenTheLineEndKeyMovesTheSelection_ThenTheCursorLineFollowsTheColumnAndTheWholeRowIsCopied()
+    public void GivenAWrappedRow_WhenTheLineEndKeyMovesTheSelection_ThenTheCursorLineFollowsAndTheWholeRowIsCopied()
     {
         StartDiff(WrappedDocument(), PaneWidth, isWrapped: true, isSideBySide: false);
         _list!.SelectedItem = 0;
@@ -65,7 +68,10 @@ public sealed class VisualCharSelectionViewsTests : IDisposable
         StartDiff(WrappedDocument(), PaneWidth, isWrapped: true, isSideBySide: false);
         var last = _long.Length / (PaneWidth - Prefix);
 
-        _input!.OnTextPointed(new TextPointer(TextPointerKind.DragStart, new TextPosition(0, 3), new TextPosition(0, 3)));
+        _input!.OnTextPointed(new TextPointer(
+            TextPointerKind.DragStart,
+            new TextPosition(0, 3),
+            new TextPosition(0, 3)));
         _input.OnTextPointed(new TextPointer(TextPointerKind.DragMove, new TextPosition(last, 65)));
 
         Assert.Equal(_long[3..66], _diff.CopyText(_diff.Text!.Value, false));
@@ -77,7 +83,10 @@ public sealed class VisualCharSelectionViewsTests : IDisposable
         StartDiff(WrappedDocument(), PaneWidth, isWrapped: true, isSideBySide: false);
         var items = _long.Length / (PaneWidth - Prefix) + 1;
 
-        _input!.OnTextPointed(new TextPointer(TextPointerKind.DragStart, new TextPosition(1, 40), new TextPosition(1, 40)));
+        _input!.OnTextPointed(new TextPointer(
+            TextPointerKind.DragStart,
+            new TextPosition(1, 40),
+            new TextPosition(1, 40)));
         _input.OnTextPointed(new TextPointer(TextPointerKind.DragMove, new TextPosition(items, 1)));
 
         Assert.Equal($"{_long[40..]}\nen", _diff.CopyText(_diff.Text!.Value, false));
@@ -88,7 +97,10 @@ public sealed class VisualCharSelectionViewsTests : IDisposable
     {
         StartDiff(SplitDocument(), SplitWidth, isWrapped: false, isSideBySide: true);
 
-        _input!.OnTextPointed(new TextPointer(TextPointerKind.DragStart, new TextPosition(1, 0), new TextPosition(1, 0), true));
+        _input!.OnTextPointed(new TextPointer(
+            TextPointerKind.DragStart,
+            new TextPosition(1, 0),
+            new TextPosition(1, 0), true));
         _input.OnTextPointed(new TextPointer(TextPointerKind.DragMove, new TextPosition(3, 1), null, true));
 
         Assert.True(_host!.State.Shell.Visual!.IsOldSide);
@@ -101,7 +113,10 @@ public sealed class VisualCharSelectionViewsTests : IDisposable
     {
         StartDiff(SplitDocument(), SplitWidth, isWrapped: false, isSideBySide: true);
 
-        _input!.OnTextPointed(new TextPointer(TextPointerKind.DragStart, new TextPosition(0, 0), new TextPosition(0, 0)));
+        _input!.OnTextPointed(new TextPointer(
+            TextPointerKind.DragStart,
+            new TextPosition(0, 0),
+            new TextPosition(0, 0)));
         _input.OnTextPointed(new TextPointer(TextPointerKind.DragMove, new TextPosition(3, 1)));
         _input.TryExecute(ActionIds.VisualCopy, null);
 
@@ -141,7 +156,10 @@ public sealed class VisualCharSelectionViewsTests : IDisposable
     {
         StartDetail(BottomTab.Details);
 
-        _input!.OnTextPointed(new TextPointer(TextPointerKind.DragStart, new TextPosition(0, 8), new TextPosition(0, 8)));
+        _input!.OnTextPointed(new TextPointer(
+            TextPointerKind.DragStart,
+            new TextPosition(0, 8),
+            new TextPosition(0, 8)));
         _input.OnTextPointed(new TextPointer(TextPointerKind.DragMove, new TextPosition(1, 3)));
 
         Assert.Equal(VisualKind.Chars, _host!.State.Shell.Visual!.Kind);
@@ -232,7 +250,8 @@ public sealed class VisualCharSelectionViewsTests : IDisposable
         _host = new Dispatcher(AppState.Empty);
         var root = Path.Combine(Path.GetTempPath(), "gitunia-visual-views");
         var gitDirectory = Path.Combine(root, ".git");
-        _host.Dispatch(new OpenRepositoryCommand(new RepositoryLocation(root, gitDirectory, gitDirectory, false, false)));
+        var location = new RepositoryLocation(root, gitDirectory, gitDirectory, false, false);
+        _host.Dispatch(new OpenRepositoryCommand(location));
         _host.Dispatch(new TabCommand(_host.Workspace.ActiveTabId!.Value, new FocusPaneCommand(pane)));
         _host.EffectRaised += _effects.Add;
         _input = new VisualRangeInput(_host, new FakePaneLists(_list));

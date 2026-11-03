@@ -23,7 +23,10 @@ using StyledSegment = Gitunia.Tui.Rendering.Styling.StyledSegment;
 
 namespace Gitunia.Tui.Tests.Views.Lists;
 
-/// <summary>Which cells carry the selection tint when the selected rows wrap, sit side by side or are the lines of the Details tab (#1167).</summary>
+/// <summary>
+/// Which cells carry the selection tint when the selected rows wrap, sit side by side or are the lines of the Details
+/// tab (#1167).
+/// </summary>
 public class DiffWrappedSelectionDrawTests
 {
     private const int Columns = 90;
@@ -156,7 +159,7 @@ public class DiffWrappedSelectionDrawTests
     // The rows, then filler rows the cursor can rest on, so the tinted rows are not the cursor row.
     private static DiffDocument Document(params DiffRow[] rows)
     {
-        var all = rows.Concat(Enumerable.Range(0, 8).Select(index => new DiffRow(DiffRowKind.Context, "filler", 1, 1, 0)));
+        var all = rows.Concat(Enumerable.Range(0, 8).Select(_ => new DiffRow(DiffRowKind.Context, "filler", 1, 1, 0)));
 
         return new DiffDocument([.. all], [], [], [["f"]], 1);
     }

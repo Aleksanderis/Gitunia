@@ -6,13 +6,18 @@ using Gitunia.Tui.Rendering.Styling;
 namespace Gitunia.Tui.Rendering.Diff;
 
 /// <summary>
-/// Where the text of the diff is on screen, for character-wise selection: which document row a screen line (a list item) shows
-/// on a side, which columns of the line its text takes, and which part of the row's shown text (tabs expanded) the line holds
-/// once the row wraps. Positions of a selection are a screen line and the UTF-16 index of a character in the text of the row
+/// Where the text of the diff is on screen, for character-wise selection: which document row a screen line (a list
+/// item) shows
+/// on a side, which columns of the line its text takes, and which part of the row's shown text (tabs expanded) the line
+/// holds
+/// once the row wraps. Positions of a selection are a screen line and the UTF-16 index of a character in the text of
+/// the row
 /// that line shows; <see cref="ToRows"/> turns them into rows for the copy.
 /// </summary>
 /// <param name="document">The diff.</param>
-/// <param name="wrap">The wrapped layout of the unified view, null when rows are not wrapped or the view is side by side.</param>
+/// <param name="wrap">
+/// The wrapped layout of the unified view, null when rows are not wrapped or the view is side by side.
+/// </param>
 /// <param name="split">The side-by-side layout, null in the unified view.</param>
 /// <param name="width">Columns of the text area of the pane.</param>
 /// <param name="gutterDigits">Digits of a line number column.</param>
@@ -29,7 +34,10 @@ public sealed class DiffTextGeometry(
     /// <summary>Screen lines in all.</summary>
     public int Count => split?.Count ?? wrap?.Count ?? document.Rows.Count;
 
-    /// <summary>The document row shown on screen line <paramref name="item"/> (side by side: the one on <paramref name="isOldSide"/>); null when that side is empty there.</summary>
+    /// <summary>
+    /// The document row shown on screen line <paramref name="item"/> (side by side: the one on <paramref
+    /// name="isOldSide"/>); null when that side is empty there.
+    /// </summary>
     /// <param name="item">The screen line.</param>
     /// <param name="isOldSide">The left side of the side-by-side view.</param>
     public int? RowOf(int item, bool isOldSide)
@@ -50,7 +58,10 @@ public sealed class DiffTextGeometry(
         return wrap?.RowOf(item) ?? item;
     }
 
-    /// <summary>Where the text of the row on screen line <paramref name="item"/> is, null when there is none (outside the lines, an empty side).</summary>
+    /// <summary>
+    /// Where the text of the row on screen line <paramref name="item"/> is, null when there is none (outside the lines,
+    /// an empty side).
+    /// </summary>
     /// <param name="item">The screen line.</param>
     /// <param name="isOldSide">The left side of the side-by-side view.</param>
     public DiffTextCell? CellOf(int item, bool isOldSide)
@@ -75,14 +86,21 @@ public sealed class DiffTextGeometry(
         return Cell(item, 0, width, 0, PrefixOf(item), false);
     }
 
-    /// <summary>Whether the pointer at <paramref name="x"/> (a column of the text area) is on the old (left) side of the side-by-side view.</summary>
+    /// <summary>
+    /// Whether the pointer at <paramref name="x"/> (a column of the text area) is on the old (left) side of the
+    /// side-by-side view.
+    /// </summary>
     /// <param name="x">The column.</param>
     public bool IsOldSideAt(int x) => split is not null && x < DiffSplitRenderer.LeftWidth(width);
 
-    /// <summary>The character the pointer at <paramref name="x"/> is over on screen line <paramref name="item"/>.</summary>
+    /// <summary>
+    /// The character the pointer at <paramref name="x"/> is over on screen line <paramref name="item"/>.
+    /// </summary>
     /// <param name="item">The screen line.</param>
     /// <param name="x">The column inside the text area of the pane.</param>
-    /// <param name="isOldSide">Stay on this side of the side-by-side view; null takes the side the pointer is on.</param>
+    /// <param name="isOldSide">
+    /// Stay on this side of the side-by-side view; null takes the side the pointer is on.
+    /// </param>
     /// <returns>The position and its side; the start of the line when the row has no text on the side.</returns>
     public TextHit PositionAt(int item, int x, bool? isOldSide)
     {
@@ -112,7 +130,10 @@ public sealed class DiffTextGeometry(
         return new TextPosition(item, ShownColumns.IndexAt(TextOf(cell.Row), cell.First, DiffRowRenderer.TabWidth));
     }
 
-    /// <summary>The screen line that shows the character at <paramref name="position"/> (the line of its row that holds its column); the line itself when the row has no text there.</summary>
+    /// <summary>
+    /// The screen line that shows the character at <paramref name="position"/> (the line of its row that holds its
+    /// column); the line itself when the row has no text there.
+    /// </summary>
     /// <param name="position">A screen line of the row and a character index in the row's text.</param>
     /// <param name="isOldSide">The left side of the side-by-side view.</param>
     public int ItemShowing(TextPosition position, bool isOldSide)
@@ -136,7 +157,10 @@ public sealed class DiffTextGeometry(
         return first;
     }
 
-    /// <summary>The columns of the text area that the characters of <paramref name="span"/> take on screen line <paramref name="item"/>; null when none of them are on it.</summary>
+    /// <summary>
+    /// The columns of the text area that the characters of <paramref name="span"/> take on screen line <paramref
+    /// name="item"/>; null when none of them are on it.
+    /// </summary>
     /// <param name="item">The screen line.</param>
     /// <param name="isOldSide">The left side of the side-by-side view.</param>
     /// <param name="span">The characters of the row the line shows.</param>
@@ -164,8 +188,10 @@ public sealed class DiffTextGeometry(
     }
 
     /// <summary>
-    /// The selection in rows: its ends are the rows of the screen lines they sit on (side by side, on <paramref name="isOldSide"/>),
-    /// so a row that wraps over several lines counts once. An end on a line that has no row on the side moves to the next row
+    /// The selection in rows: its ends are the rows of the screen lines they sit on (side by side, on <paramref
+    /// name="isOldSide"/>),
+    /// so a row that wraps over several lines counts once. An end on a line that has no row on the side moves to the
+    /// next row
     /// that has one (the start) or the previous one (the end).
     /// </summary>
     /// <param name="selection">The selection in screen lines.</param>
@@ -187,7 +213,10 @@ public sealed class DiffTextGeometry(
         return first.Line > last.Line ? null : new TextSelection(anchor, cursor);
     }
 
-    /// <summary>Whether row <paramref name="row"/> is part of the text of a side (a removed row is not on the new side, an added one not on the old side).</summary>
+    /// <summary>
+    /// Whether row <paramref name="row"/> is part of the text of a side (a removed row is not on the new side, an added
+    /// one not on the old side).
+    /// </summary>
     /// <param name="row">The row.</param>
     /// <param name="isOldSide">The left side of the side-by-side view.</param>
     public bool IsOnSide(int row, bool isOldSide) => !IsSplit || document.Rows[row].Kind switch
@@ -273,6 +302,8 @@ public sealed class DiffTextGeometry(
             first += TextWidth.Of(chunks[index]);
         }
 
-        return new DiffTextCell(row, lineStart, prefix, first, first + TextWidth.Of(chunks[segment]), segment, chunks.Count);
+        var last = first + TextWidth.Of(chunks[segment]);
+
+        return new DiffTextCell(row, lineStart, prefix, first, last, segment, chunks.Count);
     }
 }

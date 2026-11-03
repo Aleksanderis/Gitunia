@@ -15,7 +15,10 @@ namespace Gitunia.Core.Visual;
 /// <param name="Kind">Whole rows or characters.</param>
 /// <param name="AnchorColumn">The column in the anchor row where a character-wise selection started.</param>
 /// <param name="CursorColumn">The column in the cursor row where its moving end is.</param>
-/// <param name="IsOldSide">A character-wise selection in the side-by-side diff follows its left (old) side; false for the right side and everywhere else.</param>
+/// <param name="IsOldSide">
+/// A character-wise selection in the side-by-side diff follows its left (old) side; false for the right side and
+/// everywhere else.
+/// </param>
 public sealed record VisualSelection(
     TabId TabId,
     PaneKind Pane,

@@ -3,8 +3,8 @@ using Gitunia.Core.Visual;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Tui.App.Tabs;
-using Gitunia.Tui.Views.Lists;
 using Gitunia.Tui.Rendering.WorkingTree;
+using Gitunia.Tui.Views.Lists;
 
 namespace Gitunia.Tui.App.Clipboard;
 
@@ -77,7 +77,11 @@ public sealed class RangeCopier(
         return new RangeCopyResult(copied, string.Empty);
     }
 
-    private RangeCopyResult CopyChars(PaneKind pane, TerminalTabSession session, TextSelection selection, bool isOldSide)
+    private RangeCopyResult CopyChars(
+        PaneKind pane,
+        TerminalTabSession session,
+        TextSelection selection,
+        bool isOldSide)
     {
         ITextSource? source = pane switch
         {

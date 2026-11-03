@@ -202,7 +202,13 @@ public static class VisualReducer
             return new AppUpdate(state, []);
         }
 
-        return new AppUpdate(state, [new CopyVisualRangeEffect(selection.Pane, selection.Range, selection.Text, selection.IsOldSide)]);
+        var copy = new CopyVisualRangeEffect(
+            selection.Pane,
+            selection.Range,
+            selection.Text,
+            selection.IsOldSide);
+
+        return new AppUpdate(state, [copy]);
     }
 
     private static AppUpdate Copied(AppState state, VisualCopied copied)

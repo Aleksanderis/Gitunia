@@ -75,7 +75,10 @@ public sealed class PaneListView : ListView
     /// <summary>A double or triple click selects a word or the line (read-only text panes where a double-click has no action of its own).</summary>
     public bool SelectsText { get; set; }
 
-    /// <summary>A triple click selects the line, while a double-click keeps its own action (the Details tab opens an issue link with it).</summary>
+    /// <summary>
+    /// A triple click selects the line, while a double-click keeps its own action (the Details tab opens an issue link
+    /// with it).
+    /// </summary>
     public bool SelectsLine { get; set; }
 
     protected override bool OnMouseEvent(Mouse mouse)

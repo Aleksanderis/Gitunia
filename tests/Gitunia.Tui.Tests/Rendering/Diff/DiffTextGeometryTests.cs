@@ -6,7 +6,10 @@ using Xunit;
 
 namespace Gitunia.Tui.Tests.Rendering.Diff;
 
-/// <summary>Where the text of wrapped and side-by-side diff rows is on screen, for character-wise selection (#1167).</summary>
+/// <summary>
+/// Where the text of wrapped and side-by-side diff rows is on screen, for character-wise selection (#1167).
+/// </summary>
+[Trait("Os", "Independent")]
 public class DiffTextGeometryTests
 {
     private const int WrappedWidth = 30;
@@ -75,7 +78,8 @@ public class DiffTextGeometryTests
         var document = new DiffDocument([row], [], [], [["f"]], 1);
         var digits = DiffRowRenderer.GutterDigits(document.MaximumLineNumber);
         var prefix = DiffRowRenderer.PrefixWidth(row, digits);
-        var geometry = new DiffTextGeometry(document, DiffWrapMap.Build(document, prefix + 8), null, prefix + 8, digits);
+        var map = DiffWrapMap.Build(document, prefix + 8);
+        var geometry = new DiffTextGeometry(document, map, null, prefix + 8, digits);
 
         Assert.Equal(2, geometry.Count);
         Assert.Equal(0, geometry.PositionAt(0, prefix + 3, null).Position.Column);
@@ -177,7 +181,11 @@ public class DiffTextGeometryTests
         Assert.Equal(1, geometry.RowOf(1, false));
     }
 
-    private static string Copy(DiffTextGeometry geometry, DiffDocument document, TextSelection selection, bool isOldSide)
+    private static string Copy(
+        DiffTextGeometry geometry,
+        DiffDocument document,
+        TextSelection selection,
+        bool isOldSide)
     {
         var rows = geometry.ToRows(selection, isOldSide)!.Value;
 

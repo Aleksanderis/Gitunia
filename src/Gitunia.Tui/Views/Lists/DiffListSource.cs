@@ -115,7 +115,9 @@ public sealed class DiffListSource(GraphGlyphSet glyphs)
     /// <param name="listView">The list this source is shown in.</param>
     /// <param name="column">The pointer column inside the list view.</param>
     /// <param name="row">The pointer row inside the list view.</param>
-    /// <param name="isOldSide">Stay on this side of the side-by-side view; null takes the side the pointer is on.</param>
+    /// <param name="isOldSide">
+    /// Stay on this side of the side-by-side view; null takes the side the pointer is on.
+    /// </param>
     public TextHit? HitAt(ListView listView, int column, int row, bool? isOldSide)
     {
         if (!SupportsText || Count == 0)
@@ -140,7 +142,10 @@ public sealed class DiffListSource(GraphGlyphSet glyphs)
     /// <param name="isOldSide">The left side of the side-by-side view.</param>
     public int ItemShowing(TextPosition position, bool isOldSide) => Geometry(Width).ItemShowing(position, isOldSide);
 
-    /// <summary>The characters of a selection as they are copied: lines joined with a line feed, notes and the other side's rows left out.</summary>
+    /// <summary>
+    /// The characters of a selection as they are copied: lines joined with a line feed, notes and the other side's rows
+    /// left out.
+    /// </summary>
     /// <param name="selection">The selection, in screen lines.</param>
     /// <param name="isOldSide">The left side of the side-by-side view.</param>
     public string CopyText(TextSelection selection, bool isOldSide)

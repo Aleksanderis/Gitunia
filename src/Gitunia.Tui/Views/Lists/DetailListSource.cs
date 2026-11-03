@@ -6,9 +6,9 @@ using Gitunia.Core.Text;
 using Gitunia.Core.Visual;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Tui.Rendering.Details;
+using Gitunia.Tui.Rendering.Diff;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Panes;
-using Gitunia.Tui.Rendering.Diff;
 using Gitunia.Tui.Rendering.Styling;
 using Gitunia.Tui.Views.Theme;
 using Terminal.Gui.Views;
@@ -33,13 +33,17 @@ public sealed class DetailListSource(GraphGlyphSet glyphs)
 
     public RowRange? Range { get; set; }
 
-    /// <summary>The characters of a character-wise selection, drawn instead of the whole rows of <see cref="Range"/>.</summary>
+    /// <summary>
+    /// The characters of a character-wise selection, drawn instead of the whole rows of <see cref="Range"/>.
+    /// </summary>
     public TextSelection? Text { get; set; }
 
     /// <summary>The detail pane has no sides; the flag is never set.</summary>
     public bool IsOldSide { get; set; }
 
-    /// <summary>The Details tab shows plain text rows (the Changes and Files tabs list files, which are selected as rows).</summary>
+    /// <summary>
+    /// The Details tab shows plain text rows (the Changes and Files tabs list files, which are selected as rows).
+    /// </summary>
     public bool SupportsText => Content.Tab == BottomTab.Details && Content.Rows.Count > 0;
 
     /// <summary>The text of row <paramref name="item"/> as drawn.</summary>

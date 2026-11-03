@@ -302,7 +302,7 @@ public class VisualReducerTests
     }
 
     [Fact]
-    public void GivenARowSelectionOnTheNewSide_WhenStartingCharacterSelectionOnTheOldSide_ThenTheSelectionTakesTheOldSide()
+    public void GivenARowSelectionOnTheNewSide_WhenStartingCharactersOnTheOldSide_ThenTheSelectionTakesTheOldSide()
     {
         var state = Toggle(WithTab(PaneKind.Diff), 2).State;
 
