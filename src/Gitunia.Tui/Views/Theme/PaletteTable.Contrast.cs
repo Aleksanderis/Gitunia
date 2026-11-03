@@ -32,7 +32,8 @@ public sealed partial class PaletteTable
     }
 
     // A step from one colour towards another; the second one missing leaves the first.
-    private static Color Blend(Color from, Color to, double share)
+    /// <summary>The colour <paramref name="share"/> of the way from one to the other; the first when either is <see cref="Color.None"/>.</summary>
+    public static Color Blend(Color from, Color to, double share)
     {
         if (from == Color.None || to == Color.None)
         {
