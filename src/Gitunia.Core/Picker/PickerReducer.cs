@@ -1,3 +1,6 @@
+using Gitunia.Core.Editing;
+using Gitunia.Core.Keymap;
+using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
 
@@ -19,8 +22,9 @@ public static class PickerReducer
 
     public static PickerState Reduce(PickerState state, PickerCommand command, PickerContext context) => command switch
     {
-        TypeTextCommand type => WithQuery(state, state.Query + type.Text, context),
-        BackspaceCommand => WithQuery(state, RemoveLastCharacter(state.Query), context),
+        TypeTextCommand type => Edit(state, PromptTextEditor.Insert(state.Query, state.Caret, type.Text), context),
+        BackspaceCommand => Edit(state, PromptTextEditor.Apply(state.Query, state.Caret, new KeyEvent(KeyNames.Backspace)), context),
+        EditQueryCommand edit => Edit(state, PromptTextEditor.Apply(state.Query, state.Caret, edit.Key), context),
         ClearQueryCommand => WithQuery(state, string.Empty, context),
         MoveHighlightCommand move => state with { Highlight = Math.Clamp(state.Highlight + move.Delta, 0, Math.Max(0, state.Rows.Length - 1)) },
         CompletePathCommand => Complete(state, context),
@@ -55,17 +59,28 @@ public static class PickerReducer
     }
 
     // A path is listed in the background (the controller starts it when IsListing turns on), so the reducer never touches the file system.
-    private static PickerState WithQuery(PickerState state, string query, PickerContext context)
+    private static PickerState Edit(PickerState state, PromptEdit? edit, PickerContext context)
+    {
+        if (edit is not { } change)
+        {
+            return state;
+        }
+
+        // A move of the caret alone keeps the rows and the highlight.
+        return change.Text == state.Query ? state with { Caret = change.Caret } : WithQuery(state, change.Text, context, change.Caret);
+    }
+
+    private static PickerState WithQuery(PickerState state, string query, PickerContext context, int caret = PromptCaret.End)
     {
         var isPath = PathQuery.IsPath(query);
         if (!isPath)
         {
-            return state with { Query = query, Rows = PickerRowBuilder.Build(query, context), Highlight = 0, Message = string.Empty, IsListing = false, IsScanningShown = false };
+            return state with { Query = query, Caret = caret, Rows = PickerRowBuilder.Build(query, context), Highlight = 0, Message = string.Empty, IsListing = false, IsScanningShown = false };
         }
 
         // Previous path rows stay (and the highlight with them, clamped) until the new listing arrives, so typing does not flicker.
         var rows = state.IsPathMode ? state.Rows : [];
-        return state with { Query = query, Rows = rows, Highlight = Math.Clamp(state.Highlight, 0, Math.Max(0, rows.Length - 1)), Message = string.Empty, IsListing = true, IsScanningShown = false };
+        return state with { Query = query, Caret = caret, Rows = rows, Highlight = Math.Clamp(state.Highlight, 0, Math.Max(0, rows.Length - 1)), Message = string.Empty, IsListing = true, IsScanningShown = false };
     }
 
     // In a path the completion extends the typed name; in a fuzzy query it accepts the highlighted suggestion (its real path, with its own case).
@@ -100,15 +115,5 @@ public static class PickerReducer
 
         var highlight = index >= 0 ? index : Math.Min(state.Highlight, Math.Max(0, rows.Length - 1));
         return state with { Rows = rows, Highlight = highlight };
-    }
-
-    private static string RemoveLastCharacter(string text)
-    {
-        if (text.Length == 0)
-        {
-            return text;
-        }
-
-        return char.IsLowSurrogate(text[^1]) && text.Length >= 2 ? text[..^2] : text[..^1];
     }
 }

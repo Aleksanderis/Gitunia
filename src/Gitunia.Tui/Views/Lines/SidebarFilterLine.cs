@@ -18,7 +18,8 @@ public sealed class SidebarFilterLine(IScreenContent content, GraphGlyphSet glyp
             chrome.FilterText,
             chrome.IsEditingFilter,
             PanePadding.TextWidth(width),
-            glyphs);
+            glyphs,
+            chrome.FilterCaret);
 
         return PanePadding.Wrap(line);
     }

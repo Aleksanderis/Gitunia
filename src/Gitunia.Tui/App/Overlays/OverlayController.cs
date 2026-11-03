@@ -427,19 +427,13 @@ public sealed class OverlayController : IActionHandler
     {
         if (State is { Kind: OverlayKind.Help, IsEditingHelpFilter: true })
         {
-            if (key.Name == KeyNames.Backspace)
-            {
-                State = State.DeleteHelpFilterLast();
-            }
-            else if (key.IsPrintable)
-            {
-                State = State.TypeHelpFilter(key.Name);
-            }
-            else
+            var edited = State.EditHelpFilter(key);
+            if (edited == State)
             {
                 return;
             }
 
+            State = edited;
             _store.RaiseChanged();
             return;
         }
