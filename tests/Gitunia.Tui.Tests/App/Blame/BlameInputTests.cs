@@ -4,6 +4,7 @@ using Gitunia.App.Blame;
 using Gitunia.App.Status;
 using Gitunia.Core;
 using Gitunia.Core.Blame;
+using Gitunia.Core.Clipboard;
 using Gitunia.Core.Effects;
 using Gitunia.Core.FileHistory;
 using Gitunia.Git.History.Models;
@@ -267,6 +268,212 @@ public sealed class BlameInputTests
         Assert.Equal(ActionIds.BlameShowCommit, DefaultMouseMap.Create().Resolve(onAction!, MouseGesture.Click)!.Action);
     }
 
+    [Fact]
+    public async Task GivenALineSelection_WhenCopying_ThenTheClipboardGetsTheCodeOfTheLinesWithoutTheGutter()
+    {
+        using var repository = TwoCommits();
+        using var harness = await Harness.LoadAsync(repository, new FixedTargets("a.txt", repository.Head));
+        await harness.OpenAsync();
+
+        harness.Input.TryExecute(ActionIds.VisualToggle, null);
+        harness.Input.TryExecute(ActionIds.ListDown, null);
+        harness.Input.TryExecute(ActionIds.VisualCopy, null);
+
+        var copy = Assert.Single(harness.Copies);
+        Assert.Equal("one\nTWO", copy.Text);
+        Assert.Equal("2 lines of code", copy.Description);
+        Assert.Null(harness.View.Selection);
+    }
+
+    [Fact]
+    public async Task GivenACharacterSelectionAcrossLines_WhenCopying_ThenExactlyTheSelectedCharactersAreCopied()
+    {
+        using var repository = TwoCommits();
+        using var harness = await Harness.LoadAsync(repository, new FixedTargets("a.txt", repository.Head));
+        await harness.OpenAsync();
+
+        harness.Input.TryExecute(ActionIds.VisualToggleChars, null);
+        harness.Input.TryExecute(ActionIds.VisualCharRight, null);
+        harness.Input.TryExecute(ActionIds.ListDown, null);
+        harness.Input.TryExecute(ActionIds.VisualCopy, null);
+
+        var copy = Assert.Single(harness.Copies);
+        Assert.Equal("one\nTW", copy.Text);
+        Assert.Equal("6 selected characters", copy.Description);
+    }
+
+    [Fact]
+    public async Task GivenTheWordMotions_WhenSelectingWithIwAndIl_ThenTheWordAndTheLineAreCopied()
+    {
+        using var repository = TestRepository.Create().Commit("first", new TestFile("a.txt", "foo bar baz\n"));
+        using var harness = await Harness.LoadAsync(repository, new FixedTargets("a.txt", repository.Head));
+        await harness.OpenAsync();
+
+        harness.Input.TryExecute(ActionIds.VisualToggleChars, null);
+        harness.Input.TryExecute(ActionIds.VisualWordNext, null);
+        harness.Input.TryExecute(ActionIds.VisualSelectWord, null);
+        harness.Input.TryExecute(ActionIds.VisualCopy, null);
+        harness.Input.TryExecute(ActionIds.VisualToggleChars, null);
+        harness.Input.TryExecute(ActionIds.VisualSelectLine, null);
+        harness.Input.TryExecute(ActionIds.VisualCopy, null);
+
+        Assert.Equal(["bar", "foo bar baz"], harness.Copies.Select(copy => copy.Text));
+    }
+
+    [Fact]
+    public async Task GivenADragFromTheCode_WhenCopying_ThenTheCharactersUnderThePointerAreCopiedTabsIncluded()
+    {
+        using var repository = TestRepository.Create().Commit("first", new TestFile("a.txt", "ab\tcd\nsecond\n"));
+        using var harness = await Harness.LoadAsync(repository, new FixedTargets("a.txt", repository.Head));
+        await harness.OpenAsync();
+        var code = BlameFrameBuilder.CodeStart(Width);
+
+        harness.Input.OnDragStarted(1, code + 1);
+        harness.Input.OnDragged(2, code + 2);
+        harness.Input.TryExecute(ActionIds.VisualCopy, null);
+
+        Assert.Equal("b\tcd\nsec", Assert.Single(harness.Copies).Text);
+    }
+
+    [Fact]
+    public async Task GivenADragFromTheGutter_WhenCopying_ThenWholeLinesAreCopiedAndAPointerPastTheLastLineStopsAtIt()
+    {
+        using var repository = TwoCommits();
+        using var harness = await Harness.LoadAsync(repository, new FixedTargets("a.txt", repository.Head));
+        await harness.OpenAsync();
+
+        harness.Input.OnDragStarted(2, 3);
+        harness.Input.OnDragged(Height, 3);
+        harness.Input.TryExecute(ActionIds.VisualCopy, null);
+
+        Assert.Equal("TWO\nthree", Assert.Single(harness.Copies).Text);
+    }
+
+    [Fact]
+    public async Task GivenDoubleAndTripleClicks_WhenOnTheCode_ThenTheWordAndTheLineAreSelectedAndTheGutterIsIgnored()
+    {
+        using var repository = TestRepository.Create().Commit("first", new TestFile("a.txt", "foo bar baz\n"));
+        using var harness = await Harness.LoadAsync(repository, new FixedTargets("a.txt", repository.Head));
+        await harness.OpenAsync();
+        var code = BlameFrameBuilder.CodeStart(Width);
+
+        Assert.False(harness.Input.OnTextClicked(1, 3, true));
+        Assert.True(harness.Input.OnTextClicked(1, code + 5, true));
+        harness.Input.TryExecute(ActionIds.VisualCopy, null);
+        Assert.True(harness.Input.OnTextClicked(1, code + 5, false));
+        harness.Input.TryExecute(ActionIds.VisualCopy, null);
+
+        Assert.Equal(["bar", "foo bar baz"], harness.Copies.Select(copy => copy.Text));
+    }
+
+    [Fact]
+    public async Task GivenALineSelectionOfSeveralCommits_WhenOpeningTheLineHistory_ThenACommittedFileUsesItsShownLines()
+    {
+        using var repository = TwoCommits();
+        using var harness = await Harness.LoadAsync(repository, new FixedTargets("a.txt", repository.Head));
+        await harness.OpenAsync();
+
+        harness.Input.TryExecute(ActionIds.VisualToggle, null);
+        harness.Input.TryExecute(ActionIds.ListBottom, null);
+        harness.Input.TryExecute(ActionIds.LineHistoryOpen, null);
+
+        var read = Assert.Single(harness.Effects.OfType<ReadFileHistoryEffect>());
+        Assert.Equal(repository.Head, read.Revision);
+        Assert.Equal(new LineRange(1, 3), read.Range);
+    }
+
+    [Fact]
+    public async Task GivenTwoLinesOfTheSameCommit_WhenOpeningTheLineHistoryOfTheWorkingTreeFile_ThenTheWalkStartsAtThatCommit()
+    {
+        using var repository = TestRepository.Create().Commit("first", new TestFile("a.txt", "one\ntwo\nthree\n"));
+        repository.WriteFile("a.txt", "one\ntwo\nthree\nfour\n");
+        using var harness = await Harness.LoadAsync(repository, new FixedTargets("a.txt", null));
+        await harness.OpenAsync();
+
+        harness.Input.TryExecute(ActionIds.ListDown, null);
+        harness.Input.TryExecute(ActionIds.VisualToggle, null);
+        harness.Input.TryExecute(ActionIds.ListDown, null);
+        harness.Input.TryExecute(ActionIds.LineHistoryOpen, null);
+
+        var read = Assert.Single(harness.Effects.OfType<ReadFileHistoryEffect>());
+        Assert.Equal(repository.Head, read.Revision);
+        Assert.Equal(new LineRange(2, 3), read.Range);
+    }
+
+    [Fact]
+    public async Task GivenALineSelectionAcrossCommittedAndUncommittedLines_WhenOpeningTheLineHistory_ThenItRefusesAndKeepsTheView()
+    {
+        using var repository = TwoCommits();
+        repository.WriteFile("a.txt", "one\nTWO\nthree\nextra\n");
+        using var harness = await Harness.LoadAsync(repository, new FixedTargets("a.txt", null));
+        await harness.OpenAsync();
+
+        harness.Input.TryExecute(ActionIds.ListBottom, null);
+        harness.Input.TryExecute(ActionIds.VisualToggle, null);
+        harness.Input.TryExecute(ActionIds.ListUp, null);
+        harness.Input.TryExecute(ActionIds.LineHistoryOpen, null);
+
+        Assert.True(harness.Input.IsOpen);
+        Assert.Empty(harness.Effects.OfType<ReadFileHistoryEffect>());
+        Assert.Equal(BlameReducer.MixedLinesNotice, harness.Statuses.Log.Latest!.Text);
+    }
+
+    [Fact]
+    public async Task GivenAFileLongerThanTheScreen_WhenDraggingAndDoubleClicking_ThenTheLinesDoNotScrollUnderThePointer()
+    {
+        var text = string.Concat(Enumerable.Range(1, 100).Select(number => $"word{number} tail\n"));
+        using var repository = TestRepository.Create().Commit("first", new TestFile("a.txt", text));
+        using var harness = await Harness.LoadAsync(repository, new FixedTargets("a.txt", repository.Head));
+        await harness.OpenAsync();
+        harness.Input.TryExecute(ActionIds.ListBottom, null);
+        var code = BlameFrameBuilder.CodeStart(Width);
+        var top = BlameFrameBuilder.TopLine(harness.View, Height);
+
+        harness.Input.OnLineClicked(3, code, out _);
+        harness.Input.OnDragStarted(3, code + 1);
+        harness.Input.OnDragged(4, code + 2);
+        harness.Input.OnDragged(6, code + 3);
+        Assert.Equal(top, BlameFrameBuilder.TopLine(harness.View, Height));
+        harness.Input.TryExecute(ActionIds.VisualCopy, null);
+
+        Assert.Equal($"ord{top + 3} tail\nword{top + 4} tail\nword{top + 5} tail\nword", Assert.Single(harness.Copies).Text);
+    }
+
+    [Fact]
+    public async Task GivenAFileLongerThanTheScreen_WhenDoubleClickingAfterAClick_ThenTheWordOfThatRowIsSelected()
+    {
+        var text = string.Concat(Enumerable.Range(1, 100).Select(number => $"word{number} tail\n"));
+        using var repository = TestRepository.Create().Commit("first", new TestFile("a.txt", text));
+        using var harness = await Harness.LoadAsync(repository, new FixedTargets("a.txt", repository.Head));
+        await harness.OpenAsync();
+        harness.Input.TryExecute(ActionIds.ListBottom, null);
+        var code = BlameFrameBuilder.CodeStart(Width);
+        var top = BlameFrameBuilder.TopLine(harness.View, Height);
+
+        harness.Input.OnLineClicked(2, code + 8, out _);
+        harness.Input.OnTextClicked(2, code + 8, true);
+        Assert.Equal(top, BlameFrameBuilder.TopLine(harness.View, Height));
+        harness.Input.TryExecute(ActionIds.VisualCopy, null);
+
+        Assert.Equal($"tail", Assert.Single(harness.Copies).Text);
+    }
+
+    [Fact]
+    public async Task GivenAPinnedTop_WhenAKeyIsPressed_ThenTheViewCentresTheCursorAgain()
+    {
+        var text = string.Concat(Enumerable.Range(1, 100).Select(number => $"line{number}\n"));
+        using var repository = TestRepository.Create().Commit("first", new TestFile("a.txt", text));
+        using var harness = await Harness.LoadAsync(repository, new FixedTargets("a.txt", repository.Head));
+        await harness.OpenAsync();
+        harness.Input.TryExecute(ActionIds.ListBottom, null);
+        harness.Input.OnLineClicked(3, 0, out _);
+        Assert.NotNull(harness.View.PinnedTop);
+
+        harness.Input.TryExecute(ActionIds.ListUp, null);
+
+        Assert.Null(harness.View.PinnedTop);
+    }
+
     private static readonly string[] ToggleLabels = ["-w", "-M", "-C"];
 
     [Fact]
@@ -355,6 +562,8 @@ public sealed class BlameInputTests
 
         public List<AppEffect> Effects { get; } = [];
 
+        public List<CopyToClipboardEffect> Copies { get; } = [];
+
         public StatusReporter Statuses { get; }
 
         public BlameState View => _host.State.Shell.Blame.View!;
@@ -397,6 +606,9 @@ public sealed class BlameInputTests
                     break;
                 case FindBlameMatchEffect find:
                     _handler.Find(find);
+                    break;
+                case CopyBlameSelectionEffect copy when _handler.CopyOf(copy) is { } text:
+                    Copies.Add(text);
                     break;
                 case SetKeyModeEffect mode:
                     _host.Dispatch(new SetKeyModeCommand(mode.Mode));

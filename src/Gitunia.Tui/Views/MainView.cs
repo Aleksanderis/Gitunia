@@ -149,11 +149,14 @@ public sealed class MainView : IDisposable
     /// <summary>Raised with the frame line and column when a drag begins on the overlay box.</summary>
     public event Action<int, int>? OverlayDragStarted;
 
-    /// <summary>Raised with the frame line of the pointer while a drag goes on over the overlay box.</summary>
-    public event Action<int>? OverlayDragged;
+    /// <summary>Raised with the frame line and column of the pointer while a drag goes on over the box.</summary>
+    public event Action<int, int>? OverlayDragged;
 
     /// <summary>Raised with the frame line and the pointer column when the overlay box is double-clicked.</summary>
     public event Action<int, int>? OverlayLineDoubleClicked;
+
+    /// <summary>Raised with the frame line and the pointer column on a triple-click of the overlay box.</summary>
+    public event Action<int, int>? OverlayLineTripleClicked;
 
     /// <summary>Raised with the row index when a picker row is clicked (the highlight follows the pointer).</summary>
     public event Action<int>? PickerRowClicked
@@ -316,8 +319,9 @@ public sealed class MainView : IDisposable
         _diffTitle.Clicked += OnDiffTitleClicked;
         panes.Overlay.LineClicked += line => OverlayLineClicked?.Invoke(line, panes.Overlay.PointerColumn);
         panes.Overlay.DragStarted += (line, column) => OverlayDragStarted?.Invoke(line, column);
-        panes.Overlay.Dragged += line => OverlayDragged?.Invoke(line);
+        panes.Overlay.Dragged += (line, column) => OverlayDragged?.Invoke(line, column);
         panes.Overlay.LineDoubleClicked += line => OverlayLineDoubleClicked?.Invoke(line, panes.Overlay.PointerColumn);
+        panes.Overlay.LineTripleClicked += line => OverlayLineTripleClicked?.Invoke(line, panes.Overlay.PointerColumn);
         panes.Overlay.GestureRaised += gesture => Gestured?.Invoke(OverlayGestureView, gesture, null);
     }
 

@@ -3,6 +3,8 @@ using Gitunia.App.Blame;
 using Gitunia.App.Tests.Tags;
 using Gitunia.Core;
 using Gitunia.Core.Blame;
+using Gitunia.Core.Text;
+using Gitunia.Core.Visual;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Blame.Models;
 using Gitunia.Git.Repositories.Models;
@@ -178,6 +180,26 @@ public class BlameEffectHandlerTests
 
     private static async Task<RepositoryLocation> LocateAsync(TestRepository repository) =>
         await TestGit.Services.Discovery.DiscoverAsync(repository.WorkingTreePath, Token);
+
+    [Fact]
+    public void GivenStoredLines_WhenCopyingASelection_ThenLinesAndCharactersAreBuiltAndAStaleReadGivesNothing()
+    {
+        var store = new BlameStore();
+        store.Publish(new BlameData(3, ["one", "two", "three"]));
+        var handler = new BlameEffectHandler(TestGit.Services.Blame, store, new RecordingDispatcher());
+        var chars = new TextSelection(new TextPosition(0, 1), new TextPosition(1, 1));
+
+        var lines = handler.CopyOf(new CopyBlameSelectionEffect(3, 1, 2, null));
+        var characters = handler.CopyOf(new CopyBlameSelectionEffect(3, 0, 1, chars));
+        var stale = handler.CopyOf(new CopyBlameSelectionEffect(2, 0, 1, null));
+        var beyond = handler.CopyOf(new CopyBlameSelectionEffect(3, 1, 9, null));
+
+        Assert.Equal("two\nthree", lines!.Text);
+        Assert.Equal("ne\ntw", characters!.Text);
+        Assert.Equal("5 selected characters", characters.Description);
+        Assert.Null(stale);
+        Assert.Equal("two\nthree", beyond!.Text);
+    }
 
     private sealed class Fixture
     {

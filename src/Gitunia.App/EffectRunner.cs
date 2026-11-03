@@ -320,6 +320,13 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
             case ConflictEffect conflict:
                 _conflicts.Handle(conflict, _cancellation.TokenOf(conflict.TabId));
                 break;
+            case CopyBlameSelectionEffect copyBlame:
+                if (_blame.CopyOf(copyBlame) is { } blameCopy)
+                {
+                    _shell.Copy.CopyToClipboard(blameCopy);
+                }
+
+                break;
             case CopyToClipboardEffect copy:
                 _shell.Copy.CopyToClipboard(copy);
                 break;

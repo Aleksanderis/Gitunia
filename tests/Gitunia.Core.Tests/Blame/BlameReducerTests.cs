@@ -183,8 +183,8 @@ public class BlameReducerTests
     {
         var state = Viewing(10);
 
-        Assert.Equal(7, Cursor(AppReducer.Reduce(state, new BlameRowClicked(7)).State));
-        Assert.Equal(9, Cursor(AppReducer.Reduce(state, new BlameRowClicked(70)).State));
+        Assert.Equal(7, Cursor(AppReducer.Reduce(state, new BlameRowClicked(7, 0)).State));
+        Assert.Equal(9, Cursor(AppReducer.Reduce(state, new BlameRowClicked(70, 0)).State));
     }
 
     [Fact]

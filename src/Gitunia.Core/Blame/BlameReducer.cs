@@ -17,7 +17,7 @@ namespace Gitunia.Core.Blame;
 /// consumes every action, so nothing behind it moves. The file is read and blamed by an effect; the lines stay in the
 /// blame store, so the reducer only counts them and moves the cursor.
 /// </summary>
-public static class BlameReducer
+public static partial class BlameReducer
 {
     /// <summary>The warning when the highlighted line has no commit yet.</summary>
     public const string NoCommitYetNotice = "Git has not found this line's commit yet: try again in a moment";
@@ -51,12 +51,14 @@ public static class BlameReducer
             BlameFailed failed => Failed(session, failed, context),
             BlameFinished finished => Progress(session, finished.Generation, finished.BlamedLines, true),
             BlameKeyTyped typed => TypeKey(session, typed.Key, context),
+            BlameLinesSelected lines => SelectLines(session, lines),
+            BlameTextSelected text => SelectText(session, text),
             BlameLoaded loaded => Loaded(session, loaded, context),
             BlameMatchFound found => Matched(session, found),
             BlameOpenRefused refused => Warn(session, refused.Text),
             BlameOpenRequested open => Open(session, open, context),
             BlameProgressed progressed => Progress(session, progressed.Generation, progressed.BlamedLines, false),
-            BlameRowClicked clicked => ClickRow(session, clicked.Index),
+            BlameRowClicked clicked => ClickRow(session, clicked.Index, clicked.Top),
             _ => throw new UnhandledCommandException(command),
         };
 
@@ -92,10 +94,22 @@ public static class BlameReducer
             return Close(session);
         }
 
+        // A key puts the view back to centring the cursor.
+        if (view.PinnedTop is not null)
+        {
+            view = view with { PinnedTop = null };
+            session = session with { View = view };
+        }
+
         var action = pressed.Action;
         if (view.IsEditingSearch)
         {
             return InSearchBox(session, view, action);
+        }
+
+        if (TrySelectionKey(session, view, pressed) is { } selected)
+        {
+            return selected;
         }
 
         if (action == ActionIds.Cancel || action == ActionIds.NavigateBack)
@@ -211,6 +225,12 @@ public static class BlameReducer
     // once the view is closed.
     private static BlameUpdate LineHistory(BlameSession session, BlameActionPressed pressed)
     {
+        if (!pressed.RangeIsOneCommit)
+        {
+            // Lines of several commits are numbered by the file as shown, which only a committed revision fixes.
+            return session.View?.Revision is null ? Warn(session, MixedLinesNotice) : Close(session);
+        }
+
         if (pressed.CursorCommit is not { } commit)
         {
             return Warn(session, NoCommitYetNotice);
@@ -284,6 +304,7 @@ public static class BlameReducer
             IsComplete = false,
             SearchText = string.Empty,
             IsEditingSearch = false,
+            Selection = null,
         };
         var effect = new StartBlameEffect(
             view.TabId,
@@ -293,7 +314,7 @@ public static class BlameReducer
             generation,
             next.ActiveOptions);
 
-        return Done(new BlameSession(next, generation), effect);
+        return Done(new BlameSession(next, generation), [.. ModeEffects(view, next), effect]);
     }
 
     private static BlameUpdate ShowCommit(BlameSession session, BlameState view, string? commit)
@@ -392,7 +413,7 @@ public static class BlameReducer
             return Warn(session, $"No match for {found.Query}");
         }
 
-        return With(session, view.MoveTo(found.Index));
+        return With(session, (view with { PinnedTop = null }).MoveTo(found.Index));
     }
 
     private static BlameUpdate Loaded(BlameSession session, BlameLoaded loaded, BlameContext context)
@@ -481,11 +502,14 @@ public static class BlameReducer
         return Done(session);
     }
 
-    private static BlameUpdate ClickRow(BlameSession session, int index)
+    private static BlameUpdate ClickRow(BlameSession session, int index, int top)
     {
         if (session.View is { IsEditingSearch: false } view)
         {
-            return With(session, view.MoveTo(index));
+            // A click is a position: it ends a selection, like in the panes.
+            var moved = (EndSelection(view) with { PinnedTop = top }).MoveTo(index);
+
+            return With(session, moved, ModeEffects(view, moved));
         }
 
         return Done(session);
@@ -496,7 +520,7 @@ public static class BlameReducer
         var generation = session.Generation;
         var closed = session with { View = null, Generation = generation + 1 };
         var effects = new List<AppEffect> { new StopBlameEffect(generation) };
-        if (session.View is { IsEditingSearch: true })
+        if (session.View is { IsEditingSearch: true } or { Selection: not null })
         {
             effects.Add(new SetKeyModeEffect(KeyMode.Normal));
         }

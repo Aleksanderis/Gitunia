@@ -1,4 +1,5 @@
 using Gitunia.Core.Mouse;
+using Gitunia.Tui.App.Blame;
 using Gitunia.Tui.Input;
 
 namespace Gitunia.Tui.App.Overlays;
@@ -12,12 +13,14 @@ namespace Gitunia.Tui.App.Overlays;
 /// <param name="guard">Ignores a double-click that follows a click on an overlay.</param>
 /// <param name="editors">The two editors; the conflict editor takes the drag and the double-click.</param>
 /// <param name="cover">Which overlays cover the conflict editor.</param>
+/// <param name="blame">The blame view, whose code a drag, a double click and a triple click select.</param>
 public sealed class OverlayGestures(
     MouseController mouse,
     OverlayClickRouter clicks,
     OverlayClickGuard guard,
     EditorOverlays editors,
-    OverlayCover cover)
+    OverlayCover cover,
+    BlameInput blame)
 {
     /// <summary>
     /// A click on an overlay line goes to the first overlay under it; a click on a palette row highlights it and runs it
@@ -51,6 +54,13 @@ public sealed class OverlayGestures(
     /// <param name="column">The frame column.</param>
     public void OnLineDoubleClicked(int line, int column)
     {
+        if (blame.IsOpen)
+        {
+            blame.OnTextClicked(line, column, true);
+
+            return;
+        }
+
         if (!editors.Conflict.IsOpen)
         {
             return;
@@ -79,6 +89,13 @@ public sealed class OverlayGestures(
     /// <param name="column">The frame column.</param>
     public void OnDragStarted(int line, int column)
     {
+        if (blame.IsOpen)
+        {
+            blame.OnDragStarted(line, column);
+
+            return;
+        }
+
         if (editors.Conflict.OnDragStarted(cover.IsOtherThanConflictEditorOpen(), line, column) is { } view)
         {
             mouse.Handle(view, MouseGesture.DragStart);
@@ -87,5 +104,27 @@ public sealed class OverlayGestures(
 
     /// <summary>The pointer of a drag over an overlay moved to a frame line.</summary>
     /// <param name="line">The frame line.</param>
-    public void OnDragged(int line) => editors.Conflict.OnDragged(cover.IsOtherThanConflictEditorOpen(), line);
+    /// <param name="column">The frame column.</param>
+    public void OnDragged(int line, int column)
+    {
+        if (blame.IsOpen)
+        {
+            blame.OnDragged(line, column);
+
+            return;
+        }
+
+        editors.Conflict.OnDragged(cover.IsOtherThanConflictEditorOpen(), line);
+    }
+
+    /// <summary>A triple click on the blame view selects the line text under the pointer; others ignore it.</summary>
+    /// <param name="line">The frame line.</param>
+    /// <param name="column">The frame column.</param>
+    public void OnLineTripleClicked(int line, int column)
+    {
+        if (blame.IsOpen)
+        {
+            blame.OnTextClicked(line, column, false);
+        }
+    }
 }

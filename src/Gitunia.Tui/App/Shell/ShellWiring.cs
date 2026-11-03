@@ -72,6 +72,7 @@ public sealed class ShellWiring(ShellComposition shell)
         view.EdgeDragged += shell.Screen.SizeDragger.OnEdgeDragged;
         view.OverlayLineClicked += shell.Keys.OverlayGestures.OnLineClicked;
         view.OverlayLineDoubleClicked += shell.Keys.OverlayGestures.OnLineDoubleClicked;
+        view.OverlayLineTripleClicked += shell.Keys.OverlayGestures.OnLineTripleClicked;
         view.OverlayDragStarted += shell.Keys.OverlayGestures.OnDragStarted;
         view.OverlayDragged += shell.Keys.OverlayGestures.OnDragged;
         view.PickerRowClicked += shell.Screen.Picker.OnRowClicked;
