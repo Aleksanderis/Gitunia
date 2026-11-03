@@ -1,4 +1,4 @@
-using System.Globalization;
+using Gitunia.Core.Editing;
 using Gitunia.Core.Overlays;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Styling;
@@ -17,7 +17,6 @@ public static class PromptPopupFrameBuilder
     private const int ScreenMargin = 2;
     private const int FooterLines = 3;
     private const string Marker = "> ";
-    private const string Cursor = "_";
 
     /// <summary>The popup for a screen, or null when it does not fit.</summary>
     public static OverlayFrame? Build(PromptPopup prompt, int screenWidth, int screenHeight, GraphGlyphSet glyphs)
@@ -44,7 +43,7 @@ public static class PromptPopupFrameBuilder
 
         if (prompt.Input is { } input)
         {
-            lines.Add(InputRow(input, textWidth, width, glyphs));
+            lines.Add(InputRow(input, prompt.InputCaret, textWidth, width, glyphs));
         }
 
         var fixedLines = lines.Count + FooterLines;
@@ -95,36 +94,9 @@ public static class PromptPopupFrameBuilder
         return window;
     }
 
-    private static StyledLine InputRow(string input, int textWidth, int width, GraphGlyphSet glyphs)
+    private static StyledLine InputRow(string input, int caret, int textWidth, int width, GraphGlyphSet glyphs)
     {
-        var room = Math.Max(1, textWidth - Marker.Length - Cursor.Length);
-        return OverlayBox.Text($"{Marker}{Tail(input, room)}{Cursor}", width, glyphs, SegmentRole.OverlayKey);
-    }
-
-    // The end of the text that fits in the columns: the part being typed stays visible.
-    private static string Tail(string text, int columns)
-    {
-        if (TextWidth.Of(text) <= columns)
-        {
-            return text;
-        }
-
-        var starts = StringInfo.ParseCombiningCharacters(text);
-        var used = 0;
-        var keptFrom = text.Length;
-        for (var index = starts.Length - 1; index >= 0; index--)
-        {
-            var end = index + 1 < starts.Length ? starts[index + 1] : text.Length;
-            var elementWidth = TextWidth.Of(text[starts[index]..end]);
-            if (used + elementWidth > columns)
-            {
-                break;
-            }
-
-            keptFrom = starts[index];
-            used += elementWidth;
-        }
-
-        return text[keptFrom..];
+        var room = Math.Max(1, textWidth - Marker.Length);
+        return OverlayBox.Text($"{Marker}{PromptCaret.Mark(input, caret, room)}", width, glyphs, SegmentRole.OverlayKey);
     }
 }

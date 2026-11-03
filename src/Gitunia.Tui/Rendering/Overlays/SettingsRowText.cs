@@ -1,3 +1,4 @@
+using Gitunia.Core.Editing;
 using Gitunia.Core.Settings;
 using Gitunia.Core.Settings.Models;
 using Gitunia.Tui.Rendering.Graph;
@@ -16,7 +17,6 @@ public sealed record SettingsRowText(string Marker, string Left, string Right)
     private const string NoMarker = " ";
     private const string ChoiceArrow = "▾";
     private const string AsciiChoiceArrow = "v";
-    private const string Cursor = "_";
     private const string ItemIndent = "  ";
     private const string RemoveMarker = "[x]";
     private const string CheckedBox = "[x]";
@@ -55,7 +55,7 @@ public sealed record SettingsRowText(string Marker, string Left, string Right)
         new(NoMarker, $"{ItemIndent}{entry.Title}", entry.Keys);
 
     private static SettingsRowText NewItemText(SettingsState state) =>
-        new(NoMarker, $"{ItemIndent}> {TypedText(state)}{Cursor}", string.Empty);
+        new(NoMarker, $"{ItemIndent}> {TypedText(state)}", string.Empty);
 
     private static SettingsRowText SettingText(
         SettingsState state,
@@ -88,7 +88,7 @@ public sealed record SettingsRowText(string Marker, string Left, string Right)
             case SettingControl.Number:
                 if (state.Input is { Kind: SettingsInputKind.Number } input && input.SettingId == definition.Id)
                 {
-                    return $"[{input.Text}{Cursor}]";
+                    return $"[{PromptCaret.Mark(input.Text, input.Caret)}]";
                 }
 
                 return $"[{value.Number}]";
@@ -116,7 +116,7 @@ public sealed record SettingsRowText(string Marker, string Left, string Right)
         var editing = state.Input is { Kind: SettingsInputKind.PathEdit } input
             && input.SettingId == row.Definition.Id
             && input.ItemIndex == row.Index;
-        var left = editing ? $"{ItemIndent}> {TypedText(state)}{Cursor}" : $"{ItemIndent}{value.Paths[row.Index]}";
+        var left = editing ? $"{ItemIndent}> {TypedText(state)}" : $"{ItemIndent}{value.Paths[row.Index]}";
 
         return new SettingsRowText(NoMarker, left, RemoveMarker);
     }
@@ -134,5 +134,7 @@ public sealed record SettingsRowText(string Marker, string Left, string Right)
         return $"{ItemIndent}{radio} {option}";
     }
 
-    private static string TypedText(SettingsState state) => state.Input?.Text ?? string.Empty;
+    // The text typed into the number or folder box, with the caret drawn in.
+    private static string TypedText(SettingsState state) =>
+        state.Input is { } input ? PromptCaret.Mark(input.Text, input.Caret) : PromptCaret.EndGlyph;
 }

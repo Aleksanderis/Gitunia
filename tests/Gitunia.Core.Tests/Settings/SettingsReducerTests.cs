@@ -384,6 +384,19 @@ public class SettingsReducerTests
     }
 
     [Fact]
+    public void GivenAFilter_WhenOnlyTheCaretMoves_ThenTheListCursorStays()
+    {
+        var typed = Reduce(Open(), SettingsCommandKind.FilterOpen).State.WithFilterText("t");
+        var lowered = typed with { Cursor = 1 };
+
+        var moved = lowered.WithFilterText("t", 0);
+
+        Assert.Equal(1, moved.Cursor);
+        Assert.Equal(0, moved.FilterCaret);
+        Assert.Equal(0, lowered.WithFilterText("th").Cursor);
+    }
+
+    [Fact]
     public void GivenAcceptedFilter_WhenActivatingAMatch_ThenTheCursorJumpsToTheSettingInItsCategoryAndTheFilterClears()
     {
         var typing = Reduce(Open(), SettingsCommandKind.FilterOpen).State.WithFilterText("tab name");

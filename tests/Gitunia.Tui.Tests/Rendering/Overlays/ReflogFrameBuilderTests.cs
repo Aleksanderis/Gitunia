@@ -113,6 +113,19 @@ public class ReflogFrameBuilderTests
     }
 
     [Fact]
+    public void GivenCaretsInsideTheTexts_WhenRendering_ThenTheSearchBoxAndThePickerShowThem()
+    {
+        var searching = State(5).OpenSearch().EditSearch("message 3", 4);
+        var picking = State(3) with { Picker = new ReflogRefPicker(["HEAD", "main"], "mn", 0, 1) };
+
+        var search = ReflogFrameBuilder.Build(searching, 80, 24, GraphGlyphSet.Unicode)!;
+        var picker = ReflogFrameBuilder.Build(picking, 80, 24, GraphGlyphSet.Unicode)!;
+
+        Assert.Contains("/mess|age 3", search.Lines[^2].Text, StringComparison.Ordinal);
+        Assert.Contains("> m|n", picker.Lines[^2].Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void GivenTheRefPicker_WhenRendering_ThenItListsTheChoicesAndMapsClicksToThem()
     {
         var picker = new ReflogRefPicker(["HEAD", "main"]);

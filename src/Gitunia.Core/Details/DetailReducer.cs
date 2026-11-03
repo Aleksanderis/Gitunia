@@ -1,7 +1,7 @@
+using Gitunia.Core.Editing;
 using Gitunia.Core.Effects;
 using Gitunia.Core.FileTree;
 using Gitunia.Core.Keymap.Models;
-using Gitunia.Core.Search;
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Repositories;
@@ -114,7 +114,7 @@ public static class DetailReducer
             return new AppUpdate(state, [Notice(WrongTabNotice)]);
         }
 
-        var update = Apply(state, tab, new SetDetailTreeCommand(tab.View.DetailTree with { IsEditingFilter = true }));
+        var update = Apply(state, tab, new SetDetailTreeCommand(tab.View.DetailTree with { IsEditingFilter = true, Caret = PromptCaret.End }));
 
         return new AppUpdate(WithMode(update.State, KeyMode.Insert), []);
     }
@@ -122,12 +122,17 @@ public static class DetailReducer
     private static AppUpdate TypeFilter(AppState state, RepositoryState tab, KeyEvent key)
     {
         var tree = tab.View.DetailTree;
-        if (!DetailTreeRules.IsEditingFilter(tab.View) || PromptTextEditor.Apply(tree.Filter, key) is not { } text)
+        if (!DetailTreeRules.IsEditingFilter(tab.View) || PromptTextEditor.Apply(tree.Filter, tree.Caret, key) is not { } edit)
         {
             return new AppUpdate(state, []);
         }
 
-        return ChangeFilter(state, tab, text, tree.IsEditingFilter);
+        if (edit.Text == tree.Filter)
+        {
+            return Apply(state, tab, new SetDetailTreeCommand(tree with { Caret = edit.Caret }));
+        }
+
+        return ChangeFilter(state, tab, edit.Text, tree.IsEditingFilter, edit.Caret);
     }
 
     private static AppUpdate EndFilter(AppState state, RepositoryState tab, bool clear)
@@ -153,9 +158,15 @@ public static class DetailReducer
             : ChangeFilter(state, tab, string.Empty, tab.View.DetailTree.IsEditingFilter);
 
     // The cursor goes to the top after every change of the filter, so the first match shows.
-    private static AppUpdate ChangeFilter(AppState state, RepositoryState tab, string text, bool editing)
+    private static AppUpdate ChangeFilter(
+        AppState state,
+        RepositoryState tab,
+        string text,
+        bool editing,
+        int caret = PromptCaret.End)
     {
-        var update = Apply(state, tab, new SetDetailTreeCommand(tab.View.DetailTree with { Filter = text, IsEditingFilter = editing }));
+        var filtered = tab.View.DetailTree with { Filter = text, IsEditingFilter = editing, Caret = caret };
+        var update = Apply(state, tab, new SetDetailTreeCommand(filtered));
 
         return new AppUpdate(update.State, [new MoveDetailCursorEffect(0)]);
     }

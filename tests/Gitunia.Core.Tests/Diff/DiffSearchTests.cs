@@ -1,10 +1,24 @@
 using Gitunia.Core.Diff;
+using Gitunia.Core.Editing;
 using Xunit;
 
 namespace Gitunia.Core.Tests.Diff;
 
 public class DiffSearchTests
 {
+    [Fact]
+    public void GivenOnlyTheCaretMoves_WhenEditing_ThenMatchesAndTextStayAndTheCaretIsDrawnInside()
+    {
+        var document = Document("Alpha", "beta");
+        var state = Typed(document, "alp");
+
+        var moved = DiffSearch.Edit(state, "alp", 1, document).State;
+
+        Assert.Equal(state.Matches, moved.Matches);
+        Assert.Equal(1, moved.Caret);
+        Assert.Equal("/a|lp  1/1", moved.Describe(0));
+    }
+
     [Fact]
     public void GivenTypedText_WhenEditing_ThenMatchesIgnoreCaseAndStayHighlighted()
     {
@@ -99,5 +113,5 @@ public class DiffSearchTests
         1);
 
     private static DiffSearchState Typed(DiffDocument document, string text) =>
-        DiffSearch.Edit(DiffSearch.Open().State, text, document).State;
+        DiffSearch.Edit(DiffSearch.Open().State, text, PromptCaret.End, document).State;
 }

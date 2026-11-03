@@ -1,6 +1,7 @@
 using System.Globalization;
 using Gitunia.App.Blame;
 using Gitunia.Core.Blame;
+using Gitunia.Core.Editing;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Mouse;
 using Gitunia.Core.Text;
@@ -253,9 +254,9 @@ public static class BlameFrameBuilder
     {
         if (state.HasSearch)
         {
-            var cursor = state.IsEditingSearch ? "_" : string.Empty;
+            var typed = state.IsEditingSearch ? PromptCaret.Mark(state.SearchText, state.SearchCaret) : state.SearchText;
 
-            return $"/{state.SearchText}{cursor}";
+            return $"/{typed}";
         }
 
         var position = state.LineCount == 0 ? 0 : state.Cursor + 1;

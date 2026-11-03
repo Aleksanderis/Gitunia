@@ -1,5 +1,6 @@
 using Gitunia.App;
 using Gitunia.App.Shell;
+using Gitunia.Core.Editing;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Search;
@@ -108,9 +109,9 @@ public sealed class SearchController(
             return false;
         }
 
-        if (PromptTextEditor.Apply(session.Search.Text, key) is { } text && text != session.Search.Text)
+        if (PromptTextEditor.Apply(session.Search.Text, session.Search.Caret, key) is { } edit)
         {
-            Dispatch(session, new EditSearchTextCommand(text));
+            Dispatch(session, new EditSearchTextCommand(edit.Text, edit.Caret));
         }
 
         // Insert mode swallows every key, so a stray one never moves the list or fires a binding.
