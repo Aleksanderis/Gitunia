@@ -25,6 +25,12 @@ public static class CommitTexts
     /// <summary>Shown when an undo has nothing to go back to.</summary>
     public const string NothingToUndoNotice = "Nothing to undo";
 
+    /// <summary>What a copy of the selected message text says it copied.</summary>
+    public const string SelectionDescription = "selected text";
+
+    /// <summary>Shown when a redo has nothing to bring back.</summary>
+    public const string NothingToRedoNotice = "Nothing to redo";
+
     /// <summary>Shown when HEAD's message could not be read for an amend.</summary>
     public const string HeadMessageFailure = "Could not read the last commit's message";
 

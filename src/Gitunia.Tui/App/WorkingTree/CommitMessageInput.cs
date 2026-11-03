@@ -76,15 +76,40 @@ public sealed class CommitMessageInput(Dispatcher host, IActionRoute route) : IT
     /// <param name="textWidth">Text columns of the box.</param>
     public void PlaceCursor(int textColumn, int row, int textWidth)
     {
+        if (PointerTarget(textColumn, row, textWidth) is { } target)
+        {
+            host.Dispatch(new CommitCursorPlaced(target.Tab, target.Line, target.Column));
+        }
+    }
+
+    /// <summary>
+    /// Extends the selection to where a drag with the button held is: the drag's first cell was placed like a click,
+    /// so the selection starts there.
+    /// </summary>
+    /// <param name="textColumn">The pointer's column in the text, left padding removed.</param>
+    /// <param name="row">The pointer's row in the box (negative above it, past the height below it).</param>
+    /// <param name="textWidth">Text columns of the box.</param>
+    public void DragSelection(int textColumn, int row, int textWidth)
+    {
+        if (PointerTarget(textColumn, row, textWidth) is { } target)
+        {
+            host.Dispatch(new CommitSelectionDragged(target.Tab, target.Line, target.Column));
+        }
+    }
+
+    // The line and display column of a pointer cell; only the cursor's own line is scrolled sideways, and only while it is drawn with the cursor.
+    private PointerTarget? PointerTarget(int textColumn, int row, int textWidth)
+    {
         if (host.Workspace.ActiveTab is not { Commit.Draft: { } draft } tab)
         {
-            return;
+            return null;
         }
 
         var editor = draft.Editor;
         var line = Math.Clamp(draft.Top + row, 0, editor.Lines.Count - 1);
         var shows = CommitRules.ShowsCursor(host.State);
         var offset = shows && line == editor.CursorRow ? MessageEditorRenderer.ScrollOffset(editor, textWidth) : 0;
-        host.Dispatch(new CommitCursorPlaced(tab.Id, line, Math.Max(0, textColumn) + offset));
+
+        return new PointerTarget(tab.Id, line, Math.Max(0, textColumn) + offset);
     }
 }

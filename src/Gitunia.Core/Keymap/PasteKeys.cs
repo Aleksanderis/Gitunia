@@ -16,7 +16,7 @@ public static class PasteKeys
     /// each run of line breaks becomes one space and line breaks at either end are dropped, so a paste never submits.
     /// </param>
     /// <returns>
-    /// One key per text element (a combining sequence or an emoji stays whole); other control characters are dropped.
+    /// One key per text element (a combining sequence or an emoji stays whole), a tab is a <c>Tab</c> key in a message editor and a space elsewhere; other control characters are dropped.
     /// </returns>
     public static IReadOnlyList<KeyEvent> FromText(string text, bool multiLine)
     {
@@ -36,6 +36,14 @@ public static class PasteKeys
                 {
                     pendingBreak = keys.Count > 0;
                 }
+
+                continue;
+            }
+
+            if (element == "\t" && multiLine)
+            {
+                // The editor decides what a tab is (spaces up to the next stop, or a tab character).
+                keys.Add(new KeyEvent(KeyNames.Tab));
 
                 continue;
             }

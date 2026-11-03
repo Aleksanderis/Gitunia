@@ -1,4 +1,6 @@
 using Gitunia.Core.Editing;
+using Gitunia.Core.Keymap;
+using Gitunia.Core.Keymap.Models;
 using Gitunia.Tui.Rendering.Panes;
 using Gitunia.Tui.Rendering.Styling;
 using Xunit;
@@ -97,5 +99,50 @@ public class MessageEditorRendererTests
         var lines = MessageEditorRenderer.Render(editor, 3, 2, true);
 
         Assert.Equal(["3  ", "4  "], lines.Select(line => line.Text));
+    }
+
+    [Fact]
+    public void GivenASelection_WhenRendering_ThenOnlyTheSelectedCellsAreInTheRange()
+    {
+        var editor = new MessageEditor();
+        editor.SetText("abcdef");
+        editor.SetCursor(0, 1);
+        editor.Apply(new KeyEvent(KeyNames.Right, KeyModifiers.Shift));
+        editor.Apply(new KeyEvent(KeyNames.Right, KeyModifiers.Shift));
+
+        var line = MessageEditorRenderer.Render(editor, 8, 1, true)[0];
+
+        var selected = line.Segments.Where(segment => segment.Selection == SegmentSelection.Range);
+        Assert.Equal("bc", string.Concat(selected.Select(segment => segment.Text)));
+        Assert.Equal("abcdef  ", line.Text);
+    }
+
+    [Fact]
+    public void GivenASelectionAcrossLines_WhenRendering_ThenTheLineBreakShowsAsOneSelectedCellAndOtherLinesAreUntouched()
+    {
+        var editor = new MessageEditor();
+        editor.SetText("ab\ncd\nef");
+        editor.SetCursor(0, 1);
+        editor.Apply(new KeyEvent(KeyNames.Down, KeyModifiers.Shift));
+
+        var lines = MessageEditorRenderer.Render(editor, 5, 3, true, scrollTop: 0);
+
+        Assert.Equal("b ", string.Concat(lines[0].Segments.Where(segment => segment.Selection == SegmentSelection.Range).Select(segment => segment.Text)));
+        Assert.Equal("c", string.Concat(lines[1].Segments.Where(segment => segment.Selection == SegmentSelection.Range).Select(segment => segment.Text)).Trim());
+        Assert.DoesNotContain(lines[2].Segments, segment => segment.Selection == SegmentSelection.Range);
+    }
+
+    [Fact]
+    public void GivenAnEmptyMiddleLineInASelection_WhenRendering_ThenItShowsASelectedCell()
+    {
+        var editor = new MessageEditor();
+        editor.SetText("a\n\nb");
+        editor.SetCursor(0, 0);
+        editor.Apply(new KeyEvent(KeyNames.Down, KeyModifiers.Shift));
+        editor.Apply(new KeyEvent(KeyNames.Down, KeyModifiers.Shift));
+
+        var lines = MessageEditorRenderer.Render(editor, 4, 3, true, scrollTop: 0);
+
+        Assert.Contains(lines[1].Segments, segment => segment.Selection == SegmentSelection.Range && segment.Text == " ");
     }
 }

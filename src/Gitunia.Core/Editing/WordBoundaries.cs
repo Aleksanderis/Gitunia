@@ -83,6 +83,42 @@ public static class WordBoundaries
         return index == starts.Length ? line.Length : starts[index];
     }
 
+    /// <summary>
+    /// The run of the same class around <paramref name="column"/> (a double-click): the word under the cursor, or the
+    /// whitespace or symbols there. At the line end it is the run before it. An empty range for an empty line.
+    /// </summary>
+    /// <param name="line">The line.</param>
+    /// <param name="column">UTF-16 index in the line.</param>
+    public static ColumnRange Around(string line, int column)
+    {
+        if (line.Length == 0)
+        {
+            return new ColumnRange(0, 0);
+        }
+
+        var starts = StringInfo.ParseCombiningCharacters(line);
+        var index = starts.Length - 1;
+        while (index > 0 && starts[index] > column)
+        {
+            index--;
+        }
+
+        var wanted = ClassAt(line, starts[index]);
+        var first = index;
+        while (first > 0 && ClassAt(line, starts[first - 1]) == wanted)
+        {
+            first--;
+        }
+
+        var last = index;
+        while (last + 1 < starts.Length && ClassAt(line, starts[last + 1]) == wanted)
+        {
+            last++;
+        }
+
+        return new ColumnRange(starts[first], last + 1 < starts.Length ? starts[last + 1] : line.Length);
+    }
+
     private static CharClass ClassAt(string line, int index)
     {
         if (!Rune.TryGetRuneAt(line, index, out var rune))

@@ -19,6 +19,28 @@ namespace Gitunia.Tui.Tests.App.WorkingTree;
 // The keys and clicks of the message box become commands; what they do is tested in the Core reducer tests.
 public sealed class CommitMessageInputTests : IDisposable
 {
+    [Fact]
+    public void GivenAPlacedCursor_WhenDraggingToAnotherCell_ThenTheTextBetweenIsSelected()
+    {
+        SetText("first line\nsecond line");
+        _input.PlaceCursor(2, 0, 20);
+
+        _input.DragSelection(4, 1, 20);
+
+        Assert.Equal("rst line\nseco", Tab.Commit.Draft!.Editor.SelectedText);
+    }
+
+    [Fact]
+    public void GivenADragAboveTheBox_WhenExtending_ThenTheSelectionStopsAtTheFirstLine()
+    {
+        SetText("first line\nsecond line");
+        _input.PlaceCursor(3, 1, 20);
+
+        _input.DragSelection(0, -4, 20);
+
+        Assert.Equal("first line\nsec", Tab.Commit.Draft!.Editor.SelectedText);
+    }
+
     private readonly TestShell _shell = new();
     private readonly TestCommitInput.RecordingRoute _route = new();
     private readonly CommitMessageInput _input;

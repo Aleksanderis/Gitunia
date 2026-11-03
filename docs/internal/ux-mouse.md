@@ -139,6 +139,9 @@ Views inherit like in the keymap: `Lists` covers Graph, Detail, Sidebar, Diff an
 | ListButton.Diff | Click | `working-tree.open-diff` | The `diff ›` chip in the title row of either file list, shown only on screens under 80 columns where the diff is not beside the list; left of the stage all / unstage all button and ahead of the `view ▾` and `resolve` chips (they give way to it), same as `Enter`: the diff of the file or folder under the cursor takes focus and replaces the list (also focuses the list; #376) |
 | ListButton.View | Click | `files.open-view-options` | The `view ▾` chip in the title row of either file list, left of the stage all / unstage all button, same as `<space>vv`: opens the dropdown of the path style |
 | WorkingMessage | Click | `working-tree.edit-message` | Focus the message box and start writing (Insert mode), same as `i`; the cursor goes where the pointer is (the position is not part of the action id) |
+| WorkingMessage | Double-click | `working-tree.message-select-word` | Select the word (or the run of spaces or symbols) under the pointer; the first click of the double-click already placed the cursor (#1165) |
+| WorkingMessage | Wheel up | `working-tree.message-scroll-up` | Move the cursor 3 lines up, scrolling a long message (any mode, like the lists' wheel) |
+| WorkingMessage | Wheel down | `working-tree.message-scroll-down` | Move the cursor 3 lines down |
 | MessageButton.SignOff | Click | `working-tree.toggle-sign-off` | The `[ ] SignOff` checkbox of the message box, same as `Alt-s` |
 | MessageButton.NoVerify | Click | `working-tree.toggle-no-verify` | The `[ ] No-Verify` checkbox, same as `Alt-n` |
 | MessageButton.Amend | Click | `working-tree.toggle-amend` | The `[ ] Amend` checkbox, same as `Alt-a` |
@@ -163,7 +166,7 @@ Drag to select: press a row of the graph, detail, diff or file-list pane and mov
 The range is drawn stronger than the selected row (bolder and a brighter tint, reverse video where there are no colours), and its moving end, the cursor row, is underlined as well.
 The release leaves the range active; a click on a row, `Esc`, `q`, `v` or moving focus to another pane or tab ends it.
 `y` copies the range (the drag plus `y`, or `visual.copy` from the palette) and ends it; staging acts on it too (lines in the Changes view diff, files in its lists).
-The sidebar and the message box have no ranges (a drag there only moves the selection); a drag also does not start a range while a prompt (search, filter, ref jump) or the picker is open.
+The sidebar has no ranges (a drag there only moves the selection). A drag in the message box is a text selection, not a Visual range: the press cell places the cursor and starts Insert mode like a click, the pointer then extends a selection drawn with the range tint (a drag above or below the box keeps extending to the first or last visible line; it does not auto-scroll on its own); it ends with a click, a cursor key or `Esc` (#1165); a drag also does not start a range while a prompt (search, filter, ref jump) or the picker is open.
 
 Drag to resize: the line between the sidebar and the graph, the line between the detail and diff panes, and the title rows of the detail and diff panes (the line between the graph and the bottom panes) follow the pointer while the button is held.
 Sizes are clamped to what fits (at least 12 columns for the sidebar and detail, 20 for the graph and diff, 3 rows for the bottom panes, 4 for the graph), belong to the tab and are saved with the session; `Ctrl-w =` (or `:`, then "Reset the pane sizes") returns to automatic, and `Ctrl-w >` `Ctrl-w <` `Ctrl-w +` `Ctrl-w -` are the keyboard path; after a step the repeat mode (see Modes) takes bare `>` `<` `+` `-` `=` until `Esc` or another key.

@@ -130,6 +130,16 @@ public sealed class MainView : IDisposable
         remove => _working.MessageClicked -= value;
     }
 
+    /// <summary>
+    /// Raised while the message text is dragged over with the button held, with the same arguments as
+    /// <see cref="MessageClicked"/>.
+    /// </summary>
+    public event Action<int, int, int>? MessageDragged
+    {
+        add => _working.MessageDragged += value;
+        remove => _working.MessageDragged -= value;
+    }
+
     /// <summary>Raised while a divider or a pane title row is dragged: which edge and the pointer's screen column and row.</summary>
     public event Action<PaneEdge, int, int>? EdgeDragged;
 

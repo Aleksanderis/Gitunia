@@ -33,6 +33,12 @@ public sealed record CommitKeyTyped(TabId TabId, KeyEvent Key) : CommitCommand(T
 /// <param name="Column">The display column in the line, the sideways scroll already added.</param>
 public sealed record CommitCursorPlaced(TabId TabId, int Row, int Column) : CommitCommand(TabId);
 
+/// <summary>The pointer was dragged over the message text with the button held: the selection reaches the line and column.</summary>
+/// <param name="TabId">The tab.</param>
+/// <param name="Row">The line of the message.</param>
+/// <param name="Column">The display column in the line, the sideways scroll already added.</param>
+public sealed record CommitSelectionDragged(TabId TabId, int Row, int Column) : CommitCommand(TabId);
+
 /// <summary><c>y</c> in the "stage all and commit" question; the message and options are those the user saw.</summary>
 /// <param name="TabId">The tab.</param>
 /// <param name="Request">What to commit.</param>
