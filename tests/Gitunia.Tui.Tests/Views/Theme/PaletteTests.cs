@@ -697,6 +697,34 @@ public class PaletteTests
     }
 
     [Theory]
+    [InlineData(ColorDepth.TrueColor, false, SegmentRole.DiffAddedWord)]
+    [InlineData(ColorDepth.TrueColor, false, SegmentRole.DiffRemovedWord)]
+    [InlineData(ColorDepth.TrueColor, true, SegmentRole.DiffAddedWord)]
+    [InlineData(ColorDepth.TrueColor, true, SegmentRole.DiffRemovedWord)]
+    [InlineData(ColorDepth.Ansi16, false, SegmentRole.DiffAddedWord)]
+    [InlineData(ColorDepth.None, false, SegmentRole.DiffRemovedWord)]
+    public void GivenAChangedWord_WhenItsCharactersAreSelected_ThenTheyDifferFromTheUnselectedWordInEveryTier(
+        ColorDepth depth, bool isLight, SegmentRole role)
+    {
+        var colors = PaletteTable.For(new PaletteSettings(depth, isLight));
+        var segment = new StyledSegment("x", role);
+
+        var word = Palette.For(segment, false, true, colors);
+        var selected = Palette.For(segment, RangeHighlight, colors);
+
+        Assert.NotEqual(word, selected);
+        if (depth == ColorDepth.TrueColor)
+        {
+            Assert.NotEqual(word.Background, selected.Background);
+            Assert.True(Contrast(ToRgb(selected.Foreground), ToRgb(selected.Background)) >= PaletteTable.ReadableContrast);
+        }
+        else
+        {
+            Assert.True(selected.Style.HasFlag(TextStyle.Reverse) && !word.Style.HasFlag(TextStyle.Reverse));
+        }
+    }
+
+    [Theory]
     [InlineData(ColorDepth.TrueColor, false)]
     [InlineData(ColorDepth.TrueColor, true)]
     [InlineData(ColorDepth.Ansi16, false)]

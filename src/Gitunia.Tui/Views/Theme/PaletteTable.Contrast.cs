@@ -31,6 +31,9 @@ public sealed partial class PaletteTable
         return target;
     }
 
+    /// <summary>The colour <paramref name="share"/> of the way from one to the other; the first one when either is not 24-bit.</summary>
+    public static Color Mix(Color from, Color to, double share) => Blend(from, to, share);
+
     // A step from one colour towards another; the second one missing leaves the first.
     private static Color Blend(Color from, Color to, double share)
     {
