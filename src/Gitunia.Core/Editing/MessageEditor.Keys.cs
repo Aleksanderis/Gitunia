@@ -25,6 +25,7 @@ public sealed partial class MessageEditor
         {
             KeyModifiers.None or KeyModifiers.Shift => ApplyPlain(key.Name),
             KeyModifiers.Ctrl => ApplyControl(key.Name),
+            KeyModifiers.Alt => ApplyAlt(key.Name),
             _ => false,
         };
     }
@@ -99,10 +100,89 @@ public sealed partial class MessageEditor
                 DeleteTo(_lines[CursorRow].Length);
                 return true;
             case "w":
+            case KeyNames.Backspace:
+                DeleteWordBackward();
+                return true;
+            case KeyNames.Delete:
+                DeleteWordForward();
+                return true;
+            case KeyNames.Left:
+                MoveWordLeft();
+                return true;
+            case KeyNames.Right:
+                MoveWordRight();
+                return true;
+            case KeyNames.Home:
+                MoveTo(0, 0);
+                return true;
+            case KeyNames.End:
+                MoveTo(_lines.Count - 1, _lines[^1].Length);
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    // Alt-arrows too: many terminals report Ctrl-arrows as Alt-arrows (docs/internal/ux-workflows.md, message box).
+    private bool ApplyAlt(string name)
+    {
+        switch (name)
+        {
+            case "b":
+            case KeyNames.Left:
+                MoveWordLeft();
+                return true;
+            case "f":
+            case KeyNames.Right:
+                MoveWordRight();
+                return true;
+            case "d":
+                DeleteWordForward();
+                return true;
+            case KeyNames.Backspace:
                 DeleteWordBackward();
                 return true;
             default:
                 return false;
+        }
+    }
+
+    // Word steps wrap to the neighbouring line at the line edges, like Left and Right.
+    private void MoveWordLeft()
+    {
+        if (CursorColumn > 0)
+        {
+            MoveTo(CursorRow, WordBoundaries.Previous(_lines[CursorRow], CursorColumn));
+        }
+        else
+        {
+            MoveLeft();
+        }
+    }
+
+    private void MoveWordRight()
+    {
+        var line = _lines[CursorRow];
+        if (CursorColumn < line.Length)
+        {
+            MoveTo(CursorRow, WordBoundaries.Next(line, CursorColumn));
+        }
+        else
+        {
+            MoveRight();
+        }
+    }
+
+    private void DeleteWordForward()
+    {
+        var line = _lines[CursorRow];
+        if (CursorColumn < line.Length)
+        {
+            DeleteTo(WordBoundaries.Next(line, CursorColumn));
+        }
+        else
+        {
+            DeleteForward();
         }
     }
 
@@ -140,19 +220,7 @@ public sealed partial class MessageEditor
             return;
         }
 
-        var line = _lines[CursorRow];
-        var start = CursorColumn;
-        while (start > 0 && char.IsWhiteSpace(line[start - 1]))
-        {
-            start--;
-        }
-
-        while (start > 0 && !char.IsWhiteSpace(line[start - 1]))
-        {
-            start--;
-        }
-
-        DeleteTo(start);
+        DeleteTo(WordBoundaries.Previous(_lines[CursorRow], CursorColumn));
     }
 
     private void JoinWithPrevious()
