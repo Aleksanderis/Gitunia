@@ -271,6 +271,22 @@ public class BlameSelectionTests
         Assert.Contains(update.Effects, effect => effect is SetKeyModeEffect { Mode: KeyMode.Normal });
     }
 
+    [Fact]
+    public void GivenTheDefaultKeymap_WhenListingTheBlameViewBindings_ThenTheSelectionKeysAreBoundInTheRightModes()
+    {
+        var table = DefaultKeymap.Create();
+        var normal = table.EffectiveBindings(KeyMode.Normal, DefaultKeymap.BlameView).Select(binding => binding.Action).ToList();
+        var visual = table.EffectiveBindings(KeyMode.Visual, DefaultKeymap.BlameView).Select(binding => binding.Action).ToList();
+
+        Assert.Contains(ActionIds.VisualToggle, normal);
+        Assert.Contains(ActionIds.VisualToggleChars, normal);
+        Assert.DoesNotContain(ActionIds.VisualCopy, normal);
+        foreach (var action in new[] { ActionIds.VisualCopy, ActionIds.VisualCharLeft, ActionIds.VisualCharRight, ActionIds.VisualWordNext, ActionIds.VisualWordPrevious, ActionIds.VisualLineStart, ActionIds.VisualLineEnd, ActionIds.VisualSelectWord, ActionIds.VisualSelectLine, ActionIds.LineHistoryOpen, ActionIds.ListDown })
+        {
+            Assert.Contains(action, visual);
+        }
+    }
+
     private static AppState Reduce(AppState state, BlameCommand command) => AppReducer.Reduce(state, command).State;
 
     private static BlameActionPressed Pressed(ActionId action, int? count = null, string text = "") =>
