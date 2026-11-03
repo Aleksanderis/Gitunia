@@ -130,7 +130,7 @@ public class BlameSelectionTests
     [Fact]
     public void GivenACharacterSelection_WhenCopying_ThenTheEffectCarriesTheExactCharacters()
     {
-        var update = AppReducer.Reduce(Viewing(3), new BlameTextSelected(new TextPosition(1, 2), new TextPosition(2, 3)));
+        var update = AppReducer.Reduce(Viewing(3), new BlameTextSelected(new TextPosition(1, 2), new TextPosition(2, 3), 0));
         var started = update.State;
 
         var copy = AppReducer.Reduce(started, Pressed(ActionIds.VisualCopy)).Effects.OfType<CopyBlameSelectionEffect>().Single();
@@ -142,8 +142,8 @@ public class BlameSelectionTests
     [Fact]
     public void GivenTheMouse_WhenDraggingCharactersOrLines_ThenTheSelectionAndCursorFollowThePointer()
     {
-        var text = AppReducer.Reduce(Viewing(8), new BlameTextSelected(new TextPosition(1, 4), new TextPosition(3, 2)));
-        var lines = AppReducer.Reduce(Viewing(8), new BlameLinesSelected(5, 2));
+        var text = AppReducer.Reduce(Viewing(8), new BlameTextSelected(new TextPosition(1, 4), new TextPosition(3, 2), 0));
+        var lines = AppReducer.Reduce(Viewing(8), new BlameLinesSelected(5, 2, 0));
 
         var textView = text.State.Shell.Blame.View!;
         Assert.Equal(new BlameSelection(VisualKind.Chars, 1, 4, 2), textView.Selection);
@@ -157,9 +157,9 @@ public class BlameSelectionTests
     [Fact]
     public void GivenASelectionStarted_WhenTheMouseExtendsIt_ThenNoSecondModeEffectIsSent()
     {
-        var first = AppReducer.Reduce(Viewing(8), new BlameTextSelected(new TextPosition(1, 4), new TextPosition(1, 4)));
+        var first = AppReducer.Reduce(Viewing(8), new BlameTextSelected(new TextPosition(1, 4), new TextPosition(1, 4), 0));
 
-        var more = AppReducer.Reduce(first.State, new BlameTextSelected(new TextPosition(1, 4), new TextPosition(2, 0)));
+        var more = AppReducer.Reduce(first.State, new BlameTextSelected(new TextPosition(1, 4), new TextPosition(2, 0), 0));
 
         Assert.Empty(more.Effects);
     }
@@ -179,7 +179,7 @@ public class BlameSelectionTests
     {
         var state = Reduce(Viewing(6), Pressed(ActionIds.VisualToggle));
 
-        var update = AppReducer.Reduce(state, new BlameRowClicked(4));
+        var update = AppReducer.Reduce(state, new BlameRowClicked(4, 0));
 
         Assert.Null(update.State.Shell.Blame.View!.Selection);
         Assert.Equal(4, update.State.Shell.Blame.View!.Cursor);

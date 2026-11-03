@@ -36,7 +36,13 @@ public sealed class KeyParts
         Hits = new OverlayHitTests(route.Overlays, Overlays, foundation.Chrome);
         Mouse = new MouseController(DefaultMouseMap.Create(), route.ActionInput, foundation.Gate);
         Clicks = new OverlayClickRouter(ClickTargets(overlays));
-        OverlayGestures = new OverlayGestures(Mouse, Clicks, overlays.Guard, overlays.Editors, overlays.Cover, overlays.Blame);
+        OverlayGestures = new OverlayGestures(
+            Mouse,
+            Clicks,
+            overlays.Guard,
+            overlays.Editors,
+            overlays.Cover,
+            overlays.Blame);
         GestureRouter = new GestureRouter(
             Mouse,
             panes.Visual,

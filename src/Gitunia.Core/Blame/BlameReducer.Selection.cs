@@ -16,7 +16,7 @@ public static partial class BlameReducer
 
     /// <summary>The warning for the line history of lines that cannot be told apart in the working tree file.</summary>
     public const string MixedLinesNotice =
-        "These lines come from several commits: select lines of one commit, or open the blame at a commit";
+        "These lines do not come from one commit, or are not blamed yet: open the blame at a commit to follow them";
 
     /// <summary>The selection that follows a pointer: a drag, a double click or a triple click on the code.</summary>
     private static BlameUpdate SelectText(BlameSession session, BlameTextSelected selected)
@@ -32,7 +32,7 @@ public static partial class BlameReducer
             selected.Anchor.Column,
             selected.Cursor.Column);
 
-        return Select(session, view, selection, selected.Cursor.Line);
+        return Select(session, view, selection, selected.Cursor.Line, selected.Top);
     }
 
     private static BlameUpdate SelectLines(BlameSession session, BlameLinesSelected selected)
@@ -44,12 +44,17 @@ public static partial class BlameReducer
 
         var selection = new BlameSelection(VisualKind.Lines, Math.Clamp(selected.Anchor, 0, view.LineCount - 1));
 
-        return Select(session, view, selection, selected.Cursor);
+        return Select(session, view, selection, selected.Cursor, selected.Top);
     }
 
-    private static BlameUpdate Select(BlameSession session, BlameState view, BlameSelection selection, int cursor)
+    private static BlameUpdate Select(
+        BlameSession session,
+        BlameState view,
+        BlameSelection selection,
+        int cursor,
+        int top)
     {
-        var moved = (view with { Selection = selection }).MoveTo(cursor);
+        var moved = (view with { Selection = selection, PinnedTop = top }).MoveTo(cursor);
 
         return With(session, moved, ModeEffects(view, moved));
     }

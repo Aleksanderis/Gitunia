@@ -68,7 +68,7 @@ public static class BlameFrameBuilder
 
         var heading = $"Blame: {state.Title}";
         var lines = new List<StyledLine> { OverlayBox.Title(heading, screenWidth, glyphs) };
-        var top = TopOf(state.Cursor, state.LineCount, rows);
+        var top = TopOf(state, rows);
         if (data is null)
         {
             lines.Add(OverlayBox.Text($"Reading {state.Path}...", screenWidth, glyphs, SegmentRole.Faint));
@@ -131,7 +131,7 @@ public static class BlameFrameBuilder
     {
         var rows = VisibleRows(screenHeight);
         var offset = frameLine - 1;
-        var line = TopOf(state.Cursor, state.LineCount, rows) + offset;
+        var line = TopOf(state, rows) + offset;
         if (offset >= 0 && offset < rows && line < state.LineCount)
         {
             return line;
@@ -154,6 +154,22 @@ public static class BlameFrameBuilder
 
     private static HintChip WithKey(HintChip chip) =>
         chip with { Keys = ChipKeys.Default.For(chip.View, DefaultKeymap.BlameView) ?? string.Empty };
+
+    /// <summary>The first file line shown at a screen height: the one the mouse pinned, else the one that centres the
+    /// cursor.</summary>
+    /// <param name="state">The view.</param>
+    /// <param name="screenHeight">The screen height.</param>
+    public static int TopLine(BlameState state, int screenHeight) => TopOf(state, VisibleRows(screenHeight));
+
+    private static int TopOf(BlameState state, int rows)
+    {
+        if (state.PinnedTop is { } pinned)
+        {
+            return Math.Clamp(pinned, 0, Math.Max(0, state.LineCount - rows));
+        }
+
+        return TopOf(state.Cursor, state.LineCount, rows);
+    }
 
     private static int TopOf(int cursor, int count, int rows)
     {
@@ -220,7 +236,8 @@ public static class BlameFrameBuilder
 
         var start = CodeStart(width) - BorderColumns;
         var from = start + ShownColumns.OfIndex(raw, span.First, TabWidth);
-        var to = start + ShownColumns.OfIndex(raw, span.Last, TabWidth) + ShownColumns.WidthAt(raw, span.Last, TabWidth);
+        var to = start + ShownColumns.OfIndex(raw, span.Last, TabWidth)
+            + ShownColumns.WidthAt(raw, span.Last, TabWidth);
 
         return SelectionMarker.Mark(inner, from, to);
     }
@@ -261,7 +278,7 @@ public static class BlameFrameBuilder
 
         var offset = Math.Clamp(frameLine - 1, 0, rows - 1);
 
-        return Math.Min(TopOf(state.Cursor, state.LineCount, rows) + offset, state.LineCount - 1);
+        return Math.Min(TopOf(state, rows) + offset, state.LineCount - 1);
     }
 
     private static string IdText(BlameCommit? owner)
@@ -338,10 +355,15 @@ public static class BlameFrameBuilder
         return builder.ToString();
     }
 
-    private static HintItem[] FooterHints(BlameState state) =>
-        state.HasSearch
-            ? [new("Esc", state.IsEditingSearch ? "cancel" : "clear")]
-            : state.Selection is null ? Plain(state) : SelectionHints;
+    private static HintItem[] FooterHints(BlameState state)
+    {
+        if (state.HasSearch)
+        {
+            return [new("Esc", state.IsEditingSearch ? "cancel" : "clear")];
+        }
+
+        return state.Selection is null ? Plain(state) : SelectionHints;
+    }
 
     private static HintItem[] Plain(BlameState state) => state.Steps.IsEmpty ? PlainHints : SteppedHints;
 
@@ -380,7 +402,8 @@ public static class BlameFrameBuilder
         }
 
         var position = state.LineCount == 0 ? 0 : state.Cursor + 1;
-        var text = string.Create(CultureInfo.InvariantCulture, $"{position}/{state.LineCount}{Flags(state)}{Selected(state)}");
+        var counts = string.Create(CultureInfo.InvariantCulture, $"{position}/{state.LineCount}");
+        var text = $"{counts}{Flags(state)}{Selected(state)}";
         if (state.IsComplete || state.LineCount == 0)
         {
             return text;

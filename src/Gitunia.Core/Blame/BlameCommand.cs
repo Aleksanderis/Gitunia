@@ -48,21 +48,24 @@ public sealed record BlameActionPressed(
 
 /// <summary>The mouse selected characters of the code column (a drag, a double or triple click).</summary>
 /// <param name="Anchor">Where the selection starts.</param>
+/// <param name="Top">The first line shown when the pointer moved.</param>
 /// <param name="Cursor">Where its moving end is.</param>
-public sealed record BlameTextSelected(TextPosition Anchor, TextPosition Cursor) : BlameCommand;
+public sealed record BlameTextSelected(TextPosition Anchor, TextPosition Cursor, int Top) : BlameCommand;
 
 /// <summary>The mouse selected whole lines (a drag that started in the gutter).</summary>
 /// <param name="Anchor">The line the drag started on.</param>
+/// <param name="Top">The first line shown when the pointer moved.</param>
 /// <param name="Cursor">The line under the pointer.</param>
-public sealed record BlameLinesSelected(int Anchor, int Cursor) : BlameCommand;
+public sealed record BlameLinesSelected(int Anchor, int Cursor, int Top) : BlameCommand;
 
 /// <summary>A key typed into the search box.</summary>
 /// <param name="Key">The key.</param>
 public sealed record BlameKeyTyped(KeyEvent Key) : BlameCommand;
 
 /// <summary>A click on a line.</summary>
+/// <param name="Top">The first line shown when the pointer clicked.</param>
 /// <param name="Index">The line.</param>
-public sealed record BlameRowClicked(int Index) : BlameCommand;
+public sealed record BlameRowClicked(int Index, int Top) : BlameCommand;
 
 /// <summary>The lines of the file are known (or the file cannot be blamed).</summary>
 /// <param name="TabId">The tab.</param>

@@ -149,13 +149,13 @@ public sealed class MainView : IDisposable
     /// <summary>Raised with the frame line and column when a drag begins on the overlay box.</summary>
     public event Action<int, int>? OverlayDragStarted;
 
-    /// <summary>Raised with the frame line and column of the pointer while a drag goes on over the overlay box.</summary>
+    /// <summary>Raised with the frame line and column of the pointer while a drag goes on over the box.</summary>
     public event Action<int, int>? OverlayDragged;
 
     /// <summary>Raised with the frame line and the pointer column when the overlay box is double-clicked.</summary>
     public event Action<int, int>? OverlayLineDoubleClicked;
 
-    /// <summary>Raised with the frame line and the pointer column when the overlay box is triple-clicked.</summary>
+    /// <summary>Raised with the frame line and the pointer column on a triple-click of the overlay box.</summary>
     public event Action<int, int>? OverlayLineTripleClicked;
 
     /// <summary>Raised with the row index when a picker row is clicked (the highlight follows the pointer).</summary>

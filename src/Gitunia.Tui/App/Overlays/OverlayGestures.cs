@@ -117,7 +117,7 @@ public sealed class OverlayGestures(
         editors.Conflict.OnDragged(cover.IsOtherThanConflictEditorOpen(), line);
     }
 
-    /// <summary>A triple click on the blame view selects the text of the line under the pointer; other overlays ignore it.</summary>
+    /// <summary>A triple click on the blame view selects the line text under the pointer; others ignore it.</summary>
     /// <param name="line">The frame line.</param>
     /// <param name="column">The frame column.</param>
     public void OnLineTripleClicked(int line, int column)

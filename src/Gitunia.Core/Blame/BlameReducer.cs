@@ -58,7 +58,7 @@ public static partial class BlameReducer
             BlameOpenRefused refused => Warn(session, refused.Text),
             BlameOpenRequested open => Open(session, open, context),
             BlameProgressed progressed => Progress(session, progressed.Generation, progressed.BlamedLines, false),
-            BlameRowClicked clicked => ClickRow(session, clicked.Index),
+            BlameRowClicked clicked => ClickRow(session, clicked.Index, clicked.Top),
             _ => throw new UnhandledCommandException(command),
         };
 
@@ -92,6 +92,13 @@ public static partial class BlameReducer
         if (context.ViewTab is null)
         {
             return Close(session);
+        }
+
+        // A key puts the view back to centring the cursor.
+        if (view.PinnedTop is not null)
+        {
+            view = view with { PinnedTop = null };
+            session = session with { View = view };
         }
 
         var action = pressed.Action;
@@ -406,7 +413,7 @@ public static partial class BlameReducer
             return Warn(session, $"No match for {found.Query}");
         }
 
-        return With(session, view.MoveTo(found.Index));
+        return With(session, (view with { PinnedTop = null }).MoveTo(found.Index));
     }
 
     private static BlameUpdate Loaded(BlameSession session, BlameLoaded loaded, BlameContext context)
@@ -495,12 +502,12 @@ public static partial class BlameReducer
         return Done(session);
     }
 
-    private static BlameUpdate ClickRow(BlameSession session, int index)
+    private static BlameUpdate ClickRow(BlameSession session, int index, int top)
     {
         if (session.View is { IsEditingSearch: false } view)
         {
             // A click is a position: it ends a selection, like in the panes.
-            var moved = EndSelection(view).MoveTo(index);
+            var moved = (EndSelection(view) with { PinnedTop = top }).MoveTo(index);
 
             return With(session, moved, ModeEffects(view, moved));
         }

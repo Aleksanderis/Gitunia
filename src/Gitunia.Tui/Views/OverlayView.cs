@@ -32,10 +32,10 @@ public sealed class OverlayView : View
     /// <summary>Raised with the frame line and column where a drag with the left button began.</summary>
     public event Action<int, int>? DragStarted;
 
-    /// <summary>Raised with the frame line and column of the pointer while a drag goes on (also for its first move).</summary>
+    /// <summary>Raised with the frame line and column of the pointer during a drag (also the first move).</summary>
     public event Action<int, int>? Dragged;
 
-    /// <summary>Raised with the frame line when the overlay is triple-clicked (the first clicks were raised as a click and a double-click).</summary>
+    /// <summary>Raised with the frame line on a triple-click of the overlay.</summary>
     public event Action<int>? LineTripleClicked;
 
     /// <summary>Raised for the wheel over the overlay.</summary>

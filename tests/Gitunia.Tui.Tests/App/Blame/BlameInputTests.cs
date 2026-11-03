@@ -418,6 +418,62 @@ public sealed class BlameInputTests
         Assert.Equal(BlameReducer.MixedLinesNotice, harness.Statuses.Log.Latest!.Text);
     }
 
+    [Fact]
+    public async Task GivenAFileLongerThanTheScreen_WhenDraggingAndDoubleClicking_ThenTheLinesDoNotScrollUnderThePointer()
+    {
+        var text = string.Concat(Enumerable.Range(1, 100).Select(number => $"word{number} tail\n"));
+        using var repository = TestRepository.Create().Commit("first", new TestFile("a.txt", text));
+        using var harness = await Harness.LoadAsync(repository, new FixedTargets("a.txt", repository.Head));
+        await harness.OpenAsync();
+        harness.Input.TryExecute(ActionIds.ListBottom, null);
+        var code = BlameFrameBuilder.CodeStart(Width);
+        var top = BlameFrameBuilder.TopLine(harness.View, Height);
+
+        harness.Input.OnLineClicked(3, code, out _);
+        harness.Input.OnDragStarted(3, code + 1);
+        harness.Input.OnDragged(4, code + 2);
+        harness.Input.OnDragged(6, code + 3);
+        Assert.Equal(top, BlameFrameBuilder.TopLine(harness.View, Height));
+        harness.Input.TryExecute(ActionIds.VisualCopy, null);
+
+        Assert.Equal($"ord{top + 3} tail\nword{top + 4} tail\nword{top + 5} tail\nword", Assert.Single(harness.Copies).Text);
+    }
+
+    [Fact]
+    public async Task GivenAFileLongerThanTheScreen_WhenDoubleClickingAfterAClick_ThenTheWordOfThatRowIsSelected()
+    {
+        var text = string.Concat(Enumerable.Range(1, 100).Select(number => $"word{number} tail\n"));
+        using var repository = TestRepository.Create().Commit("first", new TestFile("a.txt", text));
+        using var harness = await Harness.LoadAsync(repository, new FixedTargets("a.txt", repository.Head));
+        await harness.OpenAsync();
+        harness.Input.TryExecute(ActionIds.ListBottom, null);
+        var code = BlameFrameBuilder.CodeStart(Width);
+        var top = BlameFrameBuilder.TopLine(harness.View, Height);
+
+        harness.Input.OnLineClicked(2, code + 8, out _);
+        harness.Input.OnTextClicked(2, code + 8, true);
+        Assert.Equal(top, BlameFrameBuilder.TopLine(harness.View, Height));
+        harness.Input.TryExecute(ActionIds.VisualCopy, null);
+
+        Assert.Equal($"tail", Assert.Single(harness.Copies).Text);
+    }
+
+    [Fact]
+    public async Task GivenAPinnedTop_WhenAKeyIsPressed_ThenTheViewCentresTheCursorAgain()
+    {
+        var text = string.Concat(Enumerable.Range(1, 100).Select(number => $"line{number}\n"));
+        using var repository = TestRepository.Create().Commit("first", new TestFile("a.txt", text));
+        using var harness = await Harness.LoadAsync(repository, new FixedTargets("a.txt", repository.Head));
+        await harness.OpenAsync();
+        harness.Input.TryExecute(ActionIds.ListBottom, null);
+        harness.Input.OnLineClicked(3, 0, out _);
+        Assert.NotNull(harness.View.PinnedTop);
+
+        harness.Input.TryExecute(ActionIds.ListUp, null);
+
+        Assert.Null(harness.View.PinnedTop);
+    }
+
     private static readonly string[] ToggleLabels = ["-w", "-M", "-C"];
 
     [Fact]

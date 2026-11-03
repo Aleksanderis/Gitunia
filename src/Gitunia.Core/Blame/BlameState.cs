@@ -25,6 +25,8 @@ namespace Gitunia.Core.Blame;
 /// <param name="IgnoreRevsFile">The value of <c>blame.ignoreRevsFile</c> when git uses one, else null.</param>
 /// <param name="Back">The earlier blames; the last one is where Esc goes back to.</param>
 /// <param name="Selection">The selected lines or characters, null when none; the cursor is its moving end.</param>
+/// <param name="PinnedTop">The first shown line while the mouse drives the view, so the lines do not scroll under the
+/// pointer; null lets the view centre the cursor (any key or search clears it).</param>
 public sealed record BlameState(
     TabId TabId,
     string Path,
@@ -40,7 +42,8 @@ public sealed record BlameState(
     string? IgnoreRevsFile = null,
     ImmutableArray<BlameStep> Back = default,
     int SearchCaret = PromptCaret.End,
-    BlameSelection? Selection = null)
+    BlameSelection? Selection = null,
+    int? PinnedTop = null)
 {
     /// <summary>The switches in force (none when not set).</summary>
     public BlameOptions ActiveOptions => Options ?? BlameOptions.None;

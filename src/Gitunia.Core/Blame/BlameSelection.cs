@@ -18,7 +18,8 @@ public sealed record BlameSelection(VisualKind Kind, int AnchorLine, int AnchorC
     /// <param name="cursor">The cursor line of the view.</param>
     public RowRange RangeTo(int cursor) => new(AnchorLine, cursor);
 
-    /// <summary>The character selection when the cursor is on <paramref name="cursor"/>, null for whole lines.</summary>
+    /// <summary>The character selection when the cursor is on <paramref name="cursor"/>, null for whole
+    /// lines.</summary>
     /// <param name="cursor">The cursor line of the view.</param>
     public TextSelection? TextTo(int cursor) => Kind == VisualKind.Chars
         ? new TextSelection(new TextPosition(AnchorLine, AnchorColumn), new TextPosition(cursor, CursorColumn))

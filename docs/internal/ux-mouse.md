@@ -65,7 +65,7 @@ Views inherit like in the keymap: `Lists` covers Graph, Detail, Sidebar, Diff an
 | Blame | Wheel down | `list.down` | Scroll the blame view down 3 lines |
 | Blame | Drag start | `visual.toggle` | A drag from the code column selects characters (the pressed character is the anchor, the one under the pointer the moving end, both included, drawn in the range tint over exactly that text), a drag from the gutter selects whole lines; the cursor follows the pointer, also above or below the shown lines (no auto-scroll); `y` copies the code text of the selection (#1175) |
 | Blame | Double-click | `visual.select-word` | On the code: select the word under the pointer by character, then `y` copies it |
-| Blame | Triple-click | `visual.select-line` | On the code: select the text of the line |
+| Blame | Triple-click | `visual.select-line` | On the code: select the text of the line (the three Blame gesture rows are fixed: the view maps the pointer position itself, so they are not remappable) |
 | BlameButton.Show | Click | `blame.show-commit` | Action row `Enter` under the blame view: select the highlighted line's commit in the graph (the view closes); a click on a line itself only highlights it |
 | BlameButton.History | Click | `file-history.open` | Action row `<space>H` under the blame view: close the view and open the history of the blamed file at the blamed revision (`HEAD` for the working tree file) |
 | BlameButton.LineHistory | Click | `line-history.open` | Action row `<space>L` under the blame view: close the view and open the history of the highlighted line, starting at the commit that wrote it with that commit's line number (an uncommitted line says it has no history) |

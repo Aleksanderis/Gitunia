@@ -115,7 +115,7 @@ public sealed class BlameInput(
         }
     }
 
-    /// <summary>A double or triple click on the code selects the word or the text of the line under the pointer.</summary>
+    /// <summary>A double or triple click on the code selects the word or the line text under the pointer.</summary>
     /// <param name="frameLine">The frame line.</param>
     /// <param name="frameColumn">The frame column.</param>
     /// <param name="isWord">True for the word, false for the line.</param>
@@ -129,7 +129,10 @@ public sealed class BlameInput(
 
         var text = TextOfLine(DataOf(Session), point.Line);
         var span = isWord ? TextMotions.WordAt(text, point.Column) : new ColumnSpan(0, TextMotions.LineEnd(text));
-        host.Dispatch(new BlameTextSelected(new TextPosition(point.Line, span.First), new TextPosition(point.Line, span.Last)));
+        host.Dispatch(new BlameTextSelected(
+            new TextPosition(point.Line, span.First),
+            new TextPosition(point.Line, span.Last),
+            BlameFrameBuilder.TopLine(Session.View!, Screen.Height)));
 
         return true;
     }
@@ -165,7 +168,7 @@ public sealed class BlameInput(
 
         if (BlameFrameBuilder.LineIndexAt(view, frameLine, Screen.Height) is { } line)
         {
-            host.Dispatch(new BlameRowClicked(line));
+            host.Dispatch(new BlameRowClicked(line, BlameFrameBuilder.TopLine(view, Screen.Height)));
             handled = true;
 
             return null;
@@ -187,11 +190,13 @@ public sealed class BlameInput(
         {
             host.Dispatch(new BlameTextSelected(
                 new TextPosition(anchor.Line, anchor.Column),
-                new TextPosition(cursor.Line, cursor.Column)));
+                new TextPosition(cursor.Line, cursor.Column),
+                BlameFrameBuilder.TopLine(Session.View!, Screen.Height)));
         }
         else
         {
-            host.Dispatch(new BlameLinesSelected(anchor.Line, cursor.Line));
+            var top = BlameFrameBuilder.TopLine(Session.View!, Screen.Height);
+            host.Dispatch(new BlameLinesSelected(anchor.Line, cursor.Line, top));
         }
     }
 
@@ -232,7 +237,8 @@ public sealed class BlameInput(
         for (var line = first + 1; line < first + count; line++)
         {
             var other = data.OwnerOf(line);
-            if (other?.Id != owner.Id || data.OriginalLineOf(line) != data.OriginalLineOf(line - 1) + 1)
+            var isNext = data.OriginalLineOf(line) == data.OriginalLineOf(line - 1) + 1;
+            if (other?.Id != owner.Id || other.Path != owner.Path || !isNext)
             {
                 return false;
             }
