@@ -35,11 +35,11 @@ public class DiffTextSelectionTests
         using var pane = NewPane(source);
         var start = TextStart(pane, 0);
 
-        Assert.Equal(new TextPosition(0, 6), source.PositionAt(pane, start + 6, 0));
-        Assert.Equal(new TextPosition(0, 0), source.PositionAt(pane, 0, 0));
-        Assert.Equal(new TextPosition(0, 0), source.PositionAt(pane, start - 1, 0));
-        Assert.Equal(new TextPosition(0, 10), source.PositionAt(pane, Columns - 1, 0));
-        Assert.Equal(new TextPosition(2, 3), source.PositionAt(pane, start + 3, 2));
+        Assert.Equal(new TextPosition(0, 6), source.HitAt(pane, start + 6, 0, null)?.Position);
+        Assert.Equal(new TextPosition(0, 0), source.HitAt(pane, 0, 0, null)?.Position);
+        Assert.Equal(new TextPosition(0, 0), source.HitAt(pane, start - 1, 0, null)?.Position);
+        Assert.Equal(new TextPosition(0, 10), source.HitAt(pane, Columns - 1, 0, null)?.Position);
+        Assert.Equal(new TextPosition(2, 3), source.HitAt(pane, start + 3, 2, null)?.Position);
     }
 
     [Fact]
@@ -49,10 +49,10 @@ public class DiffTextSelectionTests
         using var pane = NewPane(source);
         var start = TextStart(pane, 1);
 
-        Assert.Equal(new TextPosition(1, 0), source.PositionAt(pane, start, 1));
-        Assert.Equal(new TextPosition(1, 1), source.PositionAt(pane, start + 1, 1));
-        Assert.Equal(new TextPosition(1, 1), source.PositionAt(pane, start + 3, 1));
-        Assert.Equal(new TextPosition(1, 2), source.PositionAt(pane, start + 4, 1));
+        Assert.Equal(new TextPosition(1, 0), source.HitAt(pane, start, 1, null)?.Position);
+        Assert.Equal(new TextPosition(1, 1), source.HitAt(pane, start + 1, 1, null)?.Position);
+        Assert.Equal(new TextPosition(1, 1), source.HitAt(pane, start + 3, 1, null)?.Position);
+        Assert.Equal(new TextPosition(1, 2), source.HitAt(pane, start + 4, 1, null)?.Position);
     }
 
     [Fact]
@@ -61,20 +61,8 @@ public class DiffTextSelectionTests
         using var source = NewSource();
         using var pane = NewPane(source);
 
-        Assert.Equal(0, source.PositionAt(pane, 12, -3)!.Value.Line);
-        Assert.Equal(source.Count - 1, source.PositionAt(pane, 12, 40)!.Value.Line);
-    }
-
-    [Fact]
-    public void GivenWrappedOrSideBySideRows_WhenMapping_ThenNoTextIsSupported()
-    {
-        using var source = NewSource();
-        using var pane = NewPane(source);
-
-        source.SetWrapped(true);
-
-        Assert.False(source.SupportsText);
-        Assert.Null(source.PositionAt(pane, 12, 0));
+        Assert.Equal(0, source.HitAt(pane, 12, -3, null)!.Value.Position.Line);
+        Assert.Equal(source.Count - 1, source.HitAt(pane, 12, 40, null)!.Value.Position.Line);
     }
 
     [Fact]
@@ -82,7 +70,7 @@ public class DiffTextSelectionTests
     {
         using var source = NewSource();
 
-        var text = new TextSelection(new TextPosition(2, 1), new TextPosition(4, 1)).TextIn(source);
+        var text = source.CopyText(new TextSelection(new TextPosition(2, 1), new TextPosition(4, 1)), false);
 
         Assert.Equal("ail\nen", text);
     }

@@ -3,6 +3,7 @@ using Gitunia.Core.Visual;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Tui.App.Tabs;
+using Gitunia.Tui.Views.Lists;
 using Gitunia.Tui.Rendering.WorkingTree;
 
 namespace Gitunia.Tui.App.Clipboard;
@@ -23,7 +24,8 @@ public sealed class RangeCopier(
     /// <param name="pane">The pane the selection is in.</param>
     /// <param name="range">The rows.</param>
     /// <param name="chars">The characters of a character-wise selection, null for whole rows.</param>
-    public RangeCopyResult Copy(PaneKind pane, RowRange range, TextSelection? chars = null)
+    /// <param name="isOldSide">The characters are those of the left (old) side of the side-by-side diff.</param>
+    public RangeCopyResult Copy(PaneKind pane, RowRange range, TextSelection? chars = null, bool isOldSide = false)
     {
         if (pane is PaneKind.WorkingUnstaged or PaneKind.WorkingStaged)
         {
@@ -38,7 +40,7 @@ public sealed class RangeCopier(
 
         if (chars is { } selection)
         {
-            return CopyChars(pane, session, selection);
+            return CopyChars(pane, session, selection, isOldSide);
         }
 
         string text;
@@ -75,15 +77,16 @@ public sealed class RangeCopier(
         return new RangeCopyResult(copied, string.Empty);
     }
 
-    private RangeCopyResult CopyChars(PaneKind pane, TerminalTabSession session, TextSelection selection)
+    private RangeCopyResult CopyChars(PaneKind pane, TerminalTabSession session, TextSelection selection, bool isOldSide)
     {
-        ITextLines? lines = pane switch
+        ITextSource? source = pane switch
         {
             PaneKind.Diff => session.Diff?.Source,
+            PaneKind.Detail => session.DetailSource,
             PaneKind.WorkingUnstagedDiff or PaneKind.WorkingStagedDiff => session.WorkingDiff?.Source,
             _ => null,
         };
-        var text = lines is null ? string.Empty : selection.TextIn(lines);
+        var text = source?.CopyText(selection, isOldSide) ?? string.Empty;
         if (text.Length == 0)
         {
             return NothingToCopy;

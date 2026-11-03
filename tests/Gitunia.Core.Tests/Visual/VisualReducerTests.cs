@@ -288,6 +288,38 @@ public class VisualReducerTests
     }
 
     [Fact]
+    public void GivenTheOldSideOfTheSideBySideDiff_WhenSelectingCharacters_ThenTheSideIsKeptAndSentWithTheCopy()
+    {
+        var state = Reduce(WithTab(PaneKind.Diff), new VisualCharsToggled(3, 5, true, true)).State;
+        Assert.True(state.Shell.Visual!.IsOldSide);
+
+        state = Reduce(state, new VisualCharsSelected(new TextPosition(2, 4), new TextPosition(5, 1), true)).State;
+        var copy = Assert.IsType<CopyVisualRangeEffect>(
+            Assert.Single(Reduce(state, new VisualCopyRequested()).Effects));
+
+        Assert.True(state.Shell.Visual!.IsOldSide);
+        Assert.True(copy.IsOldSide);
+    }
+
+    [Fact]
+    public void GivenARowSelectionOnTheNewSide_WhenStartingCharacterSelectionOnTheOldSide_ThenTheSelectionTakesTheOldSide()
+    {
+        var state = Toggle(WithTab(PaneKind.Diff), 2).State;
+
+        state = Reduce(state, new VisualCharsToggled(2, 3, true, true)).State;
+
+        Assert.True(state.Shell.Visual!.IsOldSide);
+    }
+
+    [Fact]
+    public void GivenNoSideIsSaid_WhenSelectingCharacters_ThenTheNewSideIsUsed()
+    {
+        var state = Reduce(WithTab(PaneKind.Diff), new VisualCharsToggled(3, 5, true)).State;
+
+        Assert.False(state.Shell.Visual!.IsOldSide);
+    }
+
+    [Fact]
     public void GivenACharacterSelection_WhenTheRowKeyIsPressed_ThenItBecomesWholeRows()
     {
         var state = Reduce(WithTab(PaneKind.Diff), new VisualCharsToggled(3, 5, true)).State;

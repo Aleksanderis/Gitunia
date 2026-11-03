@@ -24,7 +24,7 @@ public static class VisualReducer
     public const string NothingToSelectNotice = "Nothing to select";
 
     /// <summary>The notice for the character-wise key where no text can be selected by character.</summary>
-    public const string NoCharsNotice = "No character selection here (needs a diff without wrap or split view)";
+    public const string NoCharsNotice = "No character selection here (only in diffs, file content and the Details tab)";
 
     /// <summary>Applies a command.</summary>
     public static AppUpdate Reduce(AppState state, VisualCommand command) => command switch
@@ -115,6 +115,7 @@ public static class VisualReducer
                 Kind = VisualKind.Chars,
                 AnchorColumn = 0,
                 CursorColumn = toggled.CursorColumn,
+                IsOldSide = toggled.IsOldSide,
             };
 
             return new AppUpdate(state with { Shell = state.Shell with { Visual = converted } }, []);
@@ -141,7 +142,8 @@ public static class VisualReducer
             new RowRange(row, row),
             VisualKind.Chars,
             toggled.CursorColumn,
-            toggled.CursorColumn);
+            toggled.CursorColumn,
+            toggled.IsOldSide);
 
         var visual = state.Shell.WithMode(KeyMode.Visual) with { Visual = selection };
 
@@ -174,7 +176,8 @@ public static class VisualReducer
             new RowRange(selected.Anchor.Line, selected.Cursor.Line),
             VisualKind.Chars,
             selected.Anchor.Column,
-            selected.Cursor.Column);
+            selected.Cursor.Column,
+            selected.IsOldSide);
         var shell = state.Shell.Mode == KeyMode.Visual ? state.Shell : state.Shell.WithMode(KeyMode.Visual);
 
         return new AppUpdate(state with { Shell = shell with { Visual = selection } }, []);
@@ -199,7 +202,7 @@ public static class VisualReducer
             return new AppUpdate(state, []);
         }
 
-        return new AppUpdate(state, [new CopyVisualRangeEffect(selection.Pane, selection.Range, selection.Text)]);
+        return new AppUpdate(state, [new CopyVisualRangeEffect(selection.Pane, selection.Range, selection.Text, selection.IsOldSide)]);
     }
 
     private static AppUpdate Copied(AppState state, VisualCopied copied)
