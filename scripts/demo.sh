@@ -48,7 +48,7 @@ fi
 [ -x "$binary" ] || { echo "binary '$binary' not found" >&2; exit 3; }
 
 # Throwaway repo: about 300 commits, three authors, main/develop/release branches and short feature branches
-# merged back one at a time (a mostly straight graph; a few stay open), tags, and a working-tree change in README.md.
+# merged back one at a time (a mostly straight graph; merged ones are deleted, a few stay open), tags, and a working-tree change in README.md.
 # Built with git fast-import from a generated stream: deterministic (no clock, no randomness) and fast.
 repo="$work/demo-repo"
 (
@@ -127,6 +127,9 @@ repo="$work/demo-repo"
   printf 'done\n' >>"$stream"
   git -C "$repo" fast-import --quiet <"$stream"
   git -C "$repo" checkout -q -f main
+  # Merged feature branches are gone in a tidy repo; keep feature/multiply (the demo creates a worktree on it) and the open ones.
+  git -C "$repo" for-each-ref --merged main --format='%(refname:short)' refs/heads/feature |
+    grep -vx feature/multiply | xargs -r git -C "$repo" branch -q -d
   # Uncommitted edits in README.md (it is identical on every branch, so switching branches stays possible):
   # added lines in one hunk, so the demo can stage only some of them.
   sed -i 's/^Call the functions from src\.$/&\n\nDivide truncates toward zero.\nModulo keeps the sign of the dividend.\nPower is not implemented yet./' "$repo/README.md"
