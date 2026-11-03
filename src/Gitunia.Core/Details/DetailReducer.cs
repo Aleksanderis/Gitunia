@@ -3,9 +3,9 @@ using Gitunia.Core.Effects;
 using Gitunia.Core.FileTree;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Status;
+using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
-using Gitunia.Core.Workspaces;
 
 namespace Gitunia.Core.Details;
 
@@ -114,7 +114,7 @@ public static class DetailReducer
             return new AppUpdate(state, [Notice(WrongTabNotice)]);
         }
 
-        var update = Apply(state, tab, new SetDetailTreeCommand(tab.View.DetailTree with { IsEditingFilter = true }));
+        var update = Apply(state, tab, new SetDetailTreeCommand(tab.View.DetailTree with { IsEditingFilter = true, Caret = PromptCaret.End }));
 
         return new AppUpdate(WithMode(update.State, KeyMode.Insert), []);
     }

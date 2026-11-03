@@ -9,6 +9,23 @@ namespace Gitunia.Core.Tests.Search;
 
 public class GraphSearchReducerTests
 {
+    private static GraphSearchState Apply(GraphSearchState state, params GraphSearchCommand[] commands) =>
+        commands.Aggregate(state, (current, command) => GraphSearchReducer.Reduce(current, command).State);
+
+    private static GraphSearchState Editing(string text) => Apply(GraphSearchState.Initial, new OpenSearchCommand(), new EditSearchTextCommand(text));
+
+    private static ScanProgressCommand Progress(GraphSearchState state, int next, int loaded, bool complete, params int[] matches) =>
+        new(state.Generation, [.. matches], next, loaded, complete);
+
+    private static GraphSearchState Scanned(string text, int loaded, params int[] matches)
+    {
+        var state = Editing(text);
+        return Apply(state, Progress(state, loaded, loaded, true, matches));
+    }
+
+    private static IReadOnlyList<GraphSearchEffect> Step(GraphSearchState state, bool forward, int count, int selected) =>
+        GraphSearchReducer.Reduce(state, new StepMatchCommand(forward, count, selected)).Effects;
+
     [Fact]
     public void GivenOnlyTheCaretMoves_WhenEditing_ThenTheScanAndGenerationStay()
     {
@@ -30,22 +47,7 @@ public class GraphSearchReducerTests
         Assert.Equal(new SearchQuery(SearchField.Message, "fix"), update.State.Query);
         Assert.Equal(2, update.State.Caret);
         Assert.Single(update.Effects);
-    }    private static GraphSearchState Apply(GraphSearchState state, params GraphSearchCommand[] commands) =>
-        commands.Aggregate(state, (current, command) => GraphSearchReducer.Reduce(current, command).State);
-
-    private static GraphSearchState Editing(string text) => Apply(GraphSearchState.Initial, new OpenSearchCommand(), new EditSearchTextCommand(text));
-
-    private static ScanProgressCommand Progress(GraphSearchState state, int next, int loaded, bool complete, params int[] matches) =>
-        new(state.Generation, [.. matches], next, loaded, complete);
-
-    private static GraphSearchState Scanned(string text, int loaded, params int[] matches)
-    {
-        var state = Editing(text);
-        return Apply(state, Progress(state, loaded, loaded, true, matches));
-    }
-
-    private static IReadOnlyList<GraphSearchEffect> Step(GraphSearchState state, bool forward, int count, int selected) =>
-        GraphSearchReducer.Reduce(state, new StepMatchCommand(forward, count, selected)).Effects;
+    } 
 
     [Fact]
     public void GivenIdleSearch_WhenOpening_ThenTheBoxIsOpenAndEmpty()

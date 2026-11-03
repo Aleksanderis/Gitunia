@@ -14,6 +14,16 @@ public sealed class BlameFrameBuilderTests
     private const int Height = 30;
 
     [Fact]
+    public void GivenTheSearchBoxWithTheCaretInside_WhenBuildingTheFrame_ThenTheFooterDrawsTheCaretThere()
+    {
+        var state = new BlameState(new TabId(1), "a.txt", "a.txt", LineCount: 4, SearchText: "todo", IsEditingSearch: true, SearchCaret: 2);
+
+        var frame = Frame(state);
+
+        Assert.Contains("/to|do", frame, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void GivenGitStillBlaming_WhenBuildingTheFrame_ThenTheFooterShowsTheProgressHint()
     {
         var state = new BlameState(new TabId(1), "big.txt", "big.txt", LineCount: 4, BlamedLines: 0);

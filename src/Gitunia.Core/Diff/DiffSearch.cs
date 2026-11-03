@@ -1,5 +1,3 @@
-using Gitunia.Core.Editing;
-
 namespace Gitunia.Core.Diff;
 
 /// <summary>Pure transitions of a diff search: open, edit, accept, step, cancel. Matching is a case-insensitive substring test on the row text.</summary>
@@ -7,9 +5,6 @@ public static class DiffSearch
 {
     public static DiffSearchUpdate Open() =>
         new(new DiffSearchState(DiffSearchPhase.Editing, string.Empty, [], string.Empty), null);
-
-    public static DiffSearchUpdate Edit(DiffSearchState state, string text, DiffDocument document) =>
-        Edit(state, text, PromptCaret.End, document);
 
     /// <summary>The search after an edit; a move of the caret alone keeps the matches and the notice.</summary>
     public static DiffSearchUpdate Edit(DiffSearchState state, string text, int caret, DiffDocument document)

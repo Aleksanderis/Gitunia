@@ -220,6 +220,21 @@ public class FileTreeInputTests : IDisposable
     }
 
     [Fact]
+    public async Task GivenAFilterWithTheCaretInside_WhenEditingAgain_ThenTheCaretIsAtTheEnd()
+    {
+        await LoadAsync();
+        _controller.TryExecute(ActionIds.DetailFilter, null);
+        TypeText("main");
+        Assert.True(_controller.HandleTextKey(new KeyEvent(KeyNames.Home)));
+        Assert.Equal("/|main", _controller.StatusLine);
+        _controller.TryExecute(ActionIds.InputAccept, null);
+
+        _controller.TryExecute(ActionIds.DetailFilter, null);
+
+        Assert.Equal("/main_", _controller.StatusLine);
+    }
+
+    [Fact]
     public async Task GivenAFilter_WhenAccepting_ThenItStaysAndInsertModeEnds()
     {
         await LoadAsync();

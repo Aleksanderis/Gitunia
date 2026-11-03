@@ -1,3 +1,4 @@
+using Gitunia.Core.Editing;
 using Gitunia.Core.Effects;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
@@ -7,7 +8,6 @@ using Gitunia.Core.Shell;
 using Gitunia.Core.Status;
 using Gitunia.Core.Tests.Fixtures;
 using Gitunia.Core.Workspaces.Tabs;
-using Gitunia.Core.Editing;
 using Xunit;
 
 namespace Gitunia.Core.Tests.Prompts;
@@ -15,6 +15,10 @@ namespace Gitunia.Core.Tests.Prompts;
 [Trait("Os", "Independent")]
 public class PromptReducerTests
 {
+    private static readonly DateTimeOffset Start = new(2026, 10, 18, 12, 0, 0, TimeSpan.Zero);
+
+    private static readonly ConfirmPrompt AskDelete = new("Delete", ["x"], "y", "Delete");
+
     [Fact]
     public void GivenCaretMovedLeft_WhenTyping_ThenTheTextIsInsertedAtTheCaret()
     {
@@ -29,18 +33,30 @@ public class PromptReducerTests
     }
 
     [Fact]
-    public void GivenCaretMovedWithoutTextChange_WhenPressing_ThenThePickerKeepsItsFilter()
+    public void GivenAPickerWithATypedFilter_WhenOnlyTheCaretMoves_ThenTheHighlightAndCandidatesStay()
     {
-        var state = Reduce(ShellState.Empty, Request(initialText: "ab")).State;
+        var state = Reduce(ShellState.Empty, Picker("origin", "backup", "bak")).State;
+        state = Press(state, new KeyEvent("b"));
+        state = Press(state, new KeyEvent(KeyNames.Down));
+        var before = state.Prompt!.Picker!;
 
         state = Press(state, new KeyEvent(KeyNames.Home));
+
+        Assert.Equal(0, state.Prompt!.Caret);
+        Assert.Equal(before.Index, state.Prompt.Picker!.Index);
+        Assert.Equal(before.Candidates, state.Prompt.Picker.Candidates);
+    }
+
+    [Fact]
+    public void GivenAPicker_WhenCtrlKIsPressed_ThenItMovesTheHighlightInsteadOfDeletingText()
+    {
+        var state = Reduce(ShellState.Empty, Picker("origin", "backup")).State;
+        state = Press(state, new KeyEvent("o"));
+
         state = Press(state, new KeyEvent("k", KeyModifiers.Ctrl));
 
-        Assert.Equal(string.Empty, state.Prompt!.Text);
-        Assert.Equal(0, state.Prompt.Caret);
-    }    private static readonly DateTimeOffset Start = new(2026, 10, 18, 12, 0, 0, TimeSpan.Zero);
-
-    private static readonly ConfirmPrompt AskDelete = new("Delete", ["x"], "y", "Delete");
+        Assert.Equal("o", state.Prompt!.Text);
+    }
 
     [Fact]
     public void GivenARequest_WhenOpening_ThenThePromptIsOpenInInsertModeWithTheStartingText()

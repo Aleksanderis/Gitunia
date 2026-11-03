@@ -1,4 +1,5 @@
 using Gitunia.Core.Diff;
+using Gitunia.Core.Editing;
 using Xunit;
 
 namespace Gitunia.Core.Tests.Diff;
@@ -112,5 +113,5 @@ public class DiffSearchTests
         1);
 
     private static DiffSearchState Typed(DiffDocument document, string text) =>
-        DiffSearch.Edit(DiffSearch.Open().State, text, document).State;
+        DiffSearch.Edit(DiffSearch.Open().State, text, PromptCaret.End, document).State;
 }
