@@ -243,3 +243,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 ## 2026-11-03
 
 **UI:** Message box selection keys (#1165): copy is `Alt-w`, cut `Ctrl-x`, redo `Ctrl-y` with `Ctrl-z` undo in Insert mode (`Ctrl-r` redo in Normal mode, as in vim), paste is the terminal's bracketed paste only. Why: `Ctrl-c` is quit, `Ctrl-v` is not delivered as paste by most terminals, and OSC 52 cannot read the clipboard. A drag in the box selects text and never starts a Visual range; the wheel moves the cursor 3 lines (no pure scroll, as in the lists).
+
+**Process:** winget (#943): PackageIdentifier `Gitunia.Gitunia` (permanent once merged), PackageName `Gitunia`, moniker `gitunia`, MIT, no code signing. Portable installer on the bare `.exe` from #941; the alias comes from `Commands`. The update runs from its own workflow `winget.yml` (trigger `release: published`, which ci.yml does not listen to) with wingetcreate and the secret `WINGET_TOKEN`; the first submission is a manual owner PR. Why: ci.yml tag jobs stay untouched and drafts never trigger a submission.
