@@ -430,6 +430,24 @@ public static class ActionIds
 
     public static ActionId TabRename { get; } = new("tab.rename");
 
+    public static ActionId VisualCharLeft { get; } = new("visual.char-left");
+
+    public static ActionId VisualCharRight { get; } = new("visual.char-right");
+
+    public static ActionId VisualLineEnd { get; } = new("visual.line-end");
+
+    public static ActionId VisualLineStart { get; } = new("visual.line-start");
+
+    public static ActionId VisualSelectLine { get; } = new("visual.select-line");
+
+    public static ActionId VisualSelectWord { get; } = new("visual.select-word");
+
+    public static ActionId VisualToggleChars { get; } = new("visual.toggle-chars");
+
+    public static ActionId VisualWordNext { get; } = new("visual.word-next");
+
+    public static ActionId VisualWordPrevious { get; } = new("visual.word-previous");
+
     public static ActionId VisualCopy { get; } = new("visual.copy");
 
     public static ActionId VisualToggle { get; } = new("visual.toggle");

@@ -1,6 +1,9 @@
 using System.Drawing;
+using Gitunia.Core.Diff;
 using Gitunia.Core.Mouse;
+using Gitunia.Core.Text;
 using Gitunia.Tui.Rendering.Graph;
+using Gitunia.Tui.Views;
 using Gitunia.Tui.Views.Lists;
 using Terminal.Gui.Input;
 using Xunit;
@@ -32,6 +35,110 @@ public class PaneListViewTests
 
         Assert.Equal([MouseGesture.DoubleClick], gestures);
     }
+
+    [Fact]
+    public void GivenATextPane_WhenDraggingAcrossText_ThenTheStartCarriesTheOriginAndTheMovesCarryThePointerCharacter()
+    {
+        using var source = TextSource();
+        using var view = TextView(source, selectsText: true);
+        var pointed = new List<TextPointer>();
+        view.TextPointed += pointed.Add;
+
+        view.NewMouseEvent(new Mouse { Flags = MouseFlags.LeftButtonPressed, Position = new Point(TextColumn(view, 3), 0) });
+        view.NewMouseEvent(new Mouse
+        {
+            Flags = MouseFlags.LeftButtonPressed | MouseFlags.PositionReport,
+            Position = new Point(TextColumn(view, 5), 0),
+        });
+        view.NewMouseEvent(new Mouse
+        {
+            Flags = MouseFlags.LeftButtonPressed | MouseFlags.PositionReport,
+            Position = new Point(TextColumn(view, 2), 1),
+        });
+
+        Assert.Equal(TextPointerKind.DragStart, pointed[0].Kind);
+        Assert.Equal(new TextPosition(0, 3), pointed[0].Origin);
+        Assert.Equal(new TextPosition(0, 5), pointed[0].Position);
+        Assert.Equal(TextPointerKind.DragMove, pointed[^1].Kind);
+        Assert.Equal(new TextPosition(1, 2), pointed[^1].Position);
+    }
+
+    [Fact]
+    public void GivenAPaneThatSelectsText_WhenDoubleAndTripleClicking_ThenThePointerCharacterIsReported()
+    {
+        using var source = TextSource();
+        using var view = TextView(source, selectsText: true);
+        var pointed = new List<TextPointer>();
+        view.TextPointed += pointed.Add;
+
+        view.NewMouseEvent(new Mouse { Flags = MouseFlags.LeftButtonDoubleClicked, Position = new Point(TextColumn(view, 4), 1) });
+        view.NewMouseEvent(new Mouse { Flags = MouseFlags.LeftButtonTripleClicked, Position = new Point(TextColumn(view, 4), 1) });
+
+        Assert.Equal(
+            [
+                new TextPointer(TextPointerKind.DoubleClick, new TextPosition(1, 4)),
+                new TextPointer(TextPointerKind.TripleClick, new TextPosition(1, 4)),
+            ],
+            pointed);
+    }
+
+    [Fact]
+    public void GivenAPaneThatDoesNotSelectText_WhenDoubleClicking_ThenNoPointerEventIsRaisedButTheGestureIs()
+    {
+        using var source = TextSource();
+        using var view = TextView(source, selectsText: false);
+        var pointed = new List<TextPointer>();
+        var gestures = new List<MouseGesture>();
+        view.TextPointed += pointed.Add;
+        view.GestureRaised += (gesture, _) => gestures.Add(gesture);
+
+        view.NewMouseEvent(new Mouse { Flags = MouseFlags.LeftButtonDoubleClicked, Position = new Point(TextColumn(view, 4), 1) });
+
+        Assert.Empty(pointed);
+        Assert.Equal([MouseGesture.DoubleClick], gestures);
+    }
+
+    [Fact]
+    public void GivenAWrappedDiff_WhenDragging_ThenNoPointerEventIsRaisedAndTheRowsGestureStillIs()
+    {
+        using var source = TextSource();
+        source.SetWrapped(true);
+        using var view = TextView(source, selectsText: true);
+        var pointed = new List<TextPointer>();
+        var gestures = new List<MouseGesture>();
+        view.TextPointed += pointed.Add;
+        view.GestureRaised += (gesture, _) => gestures.Add(gesture);
+
+        view.NewMouseEvent(new Mouse { Flags = MouseFlags.LeftButtonPressed, Position = new Point(10, 0) });
+        view.NewMouseEvent(new Mouse { Flags = MouseFlags.LeftButtonPressed | MouseFlags.PositionReport, Position = new Point(12, 1) });
+
+        Assert.Empty(pointed);
+        Assert.Contains(MouseGesture.DragStart, gestures);
+    }
+
+    private static DiffListSource TextSource()
+    {
+        var source = new DiffListSource(GraphGlyphSet.Unicode);
+        source.Update(new DiffDocument(
+            [new(DiffRowKind.Context, "first line", 1, 1, 0), new(DiffRowKind.Context, "second line", 2, 2, 0)],
+            [],
+            [],
+            [["f"]],
+            2));
+
+        return source;
+    }
+
+    private static PaneListView TextView(DiffListSource source, bool selectsText)
+    {
+        var view = new PaneListView { Width = 40, Height = 10, SelectsText = selectsText, Source = source };
+        view.Layout();
+
+        return view;
+    }
+
+    // The pointer column of the character at the given index of a plain-ASCII row (padding and 3-digit gutter before it).
+    private static int TextColumn(PaneListView view, int index) => ScreenPadding.Columns(view) + 9 + index;
 
     private static List<MouseGesture> DoubleClickAt(bool ignoresBlank, int row)
     {
