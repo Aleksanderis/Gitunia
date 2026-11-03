@@ -434,8 +434,12 @@ Grouped as the palette groups them (`ActionCatalog.GroupOf`). "Old" lists every 
 | `confirm.no` | Answer no | `n` | same | Everyday |  |
 | `confirm.yes` | Answer yes | `y` | same | Everyday |  |
 | `help.show` | Show keys for this view | `?` | same | Everyday |  |
-| `help.tab-next` | Next help section | `Tab` `l` | same | Everyday |  |
-| `help.tab-previous` | Previous help section | `Shift-Tab` `h` | same | Everyday |  |
+| `help.scroll-down` | Scroll the help page down one line | `J` | same | Everyday |  |
+| `help.scroll-up` | Scroll the help page up one line | `K` | same | Everyday |  |
+| `help.scroll-half-page-down` | Scroll the help page down half a page | `D` | same | Everyday |  |
+| `help.scroll-half-page-up` | Scroll the help page up half a page | `U` | same | Everyday |  |
+| `help.tab-next` | Next help section | `Tab` `j` `Down` | same | Everyday |  |
+| `help.tab-previous` | Previous help section | `Shift-Tab` `k` `Up` | same | Everyday |  |
 | `help.search` | Filter the help rows by key, title or action id | `/` | same | Everyday |  |
 | `help.tab-select` | Show the clicked help section | none | same | Everyday |  |
 | `input.accept` | Accept the input | `Enter` | same | Everyday |  |

@@ -593,8 +593,12 @@ Every default key binding, one table per view. The design rules, notation and mo
 | Keys | Modes | Action | What |
 |---|---|---|---|
 | `/` | Normal | `help.search` | Filter the help rows by key, title or action id |
-| `Tab` `l` | Normal | `help.tab-next` | Next help section |
-| `Shift-Tab` `h` | Normal | `help.tab-previous` | Previous help section |
+| `Tab` `j` `Down` | Normal | `help.tab-next` | Next help section |
+| `Shift-Tab` `k` `Up` | Normal | `help.tab-previous` | Previous help section |
+| `J` | Normal | `help.scroll-down` | Scroll the help page down one line |
+| `K` | Normal | `help.scroll-up` | Scroll the help page up one line |
+| `D` | Normal | `help.scroll-half-page-down` | Scroll the help page down half a page |
+| `U` | Normal | `help.scroll-half-page-up` | Scroll the help page up half a page |
 
 ## ContextRepeat
 

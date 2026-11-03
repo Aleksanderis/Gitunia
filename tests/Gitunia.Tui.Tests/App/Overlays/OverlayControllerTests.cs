@@ -370,11 +370,11 @@ public sealed class OverlayControllerTests : IDisposable, IActionRoute
     }
 
     [Fact]
-    public void GivenOpenHelp_WhenPressingOtherActionKeys_ThenTheyAreSwallowedAndJScrolls()
+    public void GivenOpenHelp_WhenPressingOtherActionKeys_ThenTheyAreSwallowedAndShiftJScrolls()
     {
         Press(new Key('?'));
 
-        Press(new Key('j'));
+        Press(new Key('J'));
         Press(new Key('x'));
 
         Assert.Equal(1, _overlays.State.HelpScroll);
@@ -470,14 +470,14 @@ public sealed class OverlayControllerTests : IDisposable, IActionRoute
     public void GivenOpenHelp_WhenPressingTabAndShiftTab_ThenTheFourGraphTabsCycleBothWaysAndScrollStartsOver()
     {
         Press(new Key('?'));
-        Press(new Key('j'));
+        Press(new Key('J'));
 
         Press(Key.Tab);
         var second = _overlays.State;
-        Press(new Key('l'));
-        Press(new Key('l'));
+        Press(new Key('j'));
+        Press(new Key('j'));
         var wrapped = _overlays.State.HelpTab;
-        Press(new Key('h'));
+        Press(new Key('k'));
         Press(Key.Tab.WithShift);
 
         Assert.Equal(1, second.HelpTab);

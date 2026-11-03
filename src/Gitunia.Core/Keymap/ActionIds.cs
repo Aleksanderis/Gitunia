@@ -110,6 +110,14 @@ public static class ActionIds
 
     public static ActionId HelpSearch { get; } = new("help.search");
 
+    public static ActionId HelpScrollDown { get; } = new("help.scroll-down");
+
+    public static ActionId HelpScrollHalfPageDown { get; } = new("help.scroll-half-page-down");
+
+    public static ActionId HelpScrollHalfPageUp { get; } = new("help.scroll-half-page-up");
+
+    public static ActionId HelpScrollUp { get; } = new("help.scroll-up");
+
     public static ActionId HelpShow { get; } = new("help.show");
 
     public static ActionId HelpTabNext { get; } = new("help.tab-next");

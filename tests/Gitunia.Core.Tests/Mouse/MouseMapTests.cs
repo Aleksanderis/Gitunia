@@ -153,7 +153,7 @@ public class MouseMapTests
     {
         // Opening the working tree (the dirty marker, #331) is the one-way half of the key toggle <space>s.
         // The mainline parent row (#449) is the digit key, which the open prompt reads as typed text in Insert mode.
-        // A help tab label (#652) is the jump straight to a tab that Tab, Shift-Tab, h and l reach one step at a time.
+        // A help tab label (#652) is the jump straight to a tab that Tab, Shift-Tab, j and k reach one step at a time.
         var keyed = DefaultKeymap.CreateBindings()
             .Select(binding => binding.Action)
             .Append(ActionIds.WorkingTreeOpen)
