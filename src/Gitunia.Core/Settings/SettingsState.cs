@@ -267,7 +267,7 @@ public sealed record SettingsState(
         if (IsCollapsed)
         {
             // The long key reference goes last, so the other categories are reachable without passing it.
-            return Definitions.OrderBy(definition => definition.Category == SettingCategory.Keys ? 1 : 0)
+            return Definitions.OrderBy(definition => definition.Category == SettingCategory.KeyMapping ? 1 : 0)
                 .ThenBy(definition => definition.Category);
         }
 

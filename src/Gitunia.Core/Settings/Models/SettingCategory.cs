@@ -5,6 +5,7 @@ public enum SettingCategory
 {
     Appearance,
     Keys,
+    KeyMapping,
     Repositories,
     Git,
     Tabs,

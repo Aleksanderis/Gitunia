@@ -35,6 +35,19 @@ public class SettingsReducerTests
     private static string Quote(string path) => $"\"{path.Replace("\\", "\\\\", StringComparison.Ordinal)}\"";
 
     [Fact]
+    public void GivenTheRegistry_WhenLookingAtTheKeyCategories_ThenTheReferenceIsAloneInKeyMapping()
+    {
+        var keys = SettingsRegistry.All.Where(definition => definition.Category == SettingCategory.Keys).ToList();
+        var mapping = SettingsRegistry.All.Where(definition => definition.Category == SettingCategory.KeyMapping)
+            .ToList();
+
+        Assert.DoesNotContain(keys, definition => definition.Control == SettingControl.KeyReference);
+        Assert.Equal(3, keys.Count);
+        Assert.Equal(SettingsRegistry.KeyReferenceId, Assert.Single(mapping).Id);
+        Assert.Equal("Key mapping", SettingsRegistry.TitleOf(SettingCategory.KeyMapping));
+    }
+
+    [Fact]
     public void GivenTheRegistry_WhenListingCategories_ThenOnlyThoseWithSettingsAppearInDisplayOrder()
     {
         var state = Open();
@@ -43,6 +56,7 @@ public class SettingsReducerTests
             [
                 SettingCategory.Appearance,
                 SettingCategory.Keys,
+                SettingCategory.KeyMapping,
                 SettingCategory.Repositories,
                 SettingCategory.Tabs,
                 SettingCategory.ConfigFile,
@@ -53,7 +67,7 @@ public class SettingsReducerTests
     [Fact]
     public void GivenTheCategoriesColumn_WhenActivating_ThenTheCursorEntersTheSettingsOfThatCategory()
     {
-        var state = Open().MoveTo(3);
+        var state = Open().MoveTo(4);
 
         var outcome = Reduce(state, SettingsCommandKind.Activate);
 
@@ -633,8 +647,11 @@ public class SettingsReducerTests
 
         Assert.Equal(SettingsRegistry.KeyReferenceId, rows[^4].Definition.Id);
         Assert.DoesNotContain(rows.Take(rows.Count - 4), row => row.Definition.Id == SettingsRegistry.KeyReferenceId);
-        Assert.Equal(SettingsRegistry.CommandLevelId, rows[^5].Definition.Id);
-        Assert.Equal(SettingsRegistry.StatusBarHintsId, rows[^6].Definition.Id);
+        Assert.Equal(SettingsRegistry.OpenConfigId, rows[^5].Definition.Id);
+        Assert.Contains(rows, row => row.Definition.Id == SettingsRegistry.CommandLevelId);
+        Assert.True(
+            rows.ToList().FindIndex(row => row.Definition.Id == SettingsRegistry.CommandLevelId)
+            < rows.ToList().FindIndex(row => row.Definition.Category == SettingCategory.Repositories));
     }
 
     private static SettingsState WithReference(string text) =>

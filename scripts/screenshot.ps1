@@ -215,8 +215,8 @@ function Get-Scenario([string]$name) {
         'settings' { $s.Keys = 'Space ,' }
         'settings-choice' { $s.Keys = 'Space , Enter Enter j' }
         'settings-narrow' { $s.Columns = 64; $s.Rows = 24; $s.Keys = 'Space ,' }
-        'settings-keys' { $s.Keys = 'Space , j Enter j j j' }
-        'settings-keys-entry' { $s.Keys = 'Space , j Enter j j j Enter' }
+        'settings-keys' { $s.Keys = 'Space , j j Enter' }
+        'settings-keys-entry' { $s.Keys = 'Space , j j Enter Enter' }
         'theme-preview' { $s.Keys = 'Space , Enter Enter j j' }
         'theme-kept' { $s.Keys = 'Space , Enter Enter j j Enter' }
         'theme-tokyo' { $s.Keys = 'Space ,'; $s.After = 'Enter Enter j j j j j j j' }
