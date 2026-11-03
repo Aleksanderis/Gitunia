@@ -171,7 +171,7 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 **UI:** File lists scroll the diff beside them with `D`/`U` (half page) and `J`/`K` (line) (#755, owner): bare `D`/`U` break the vim-clash rule on purpose, so `Ctrl-d`/`Ctrl-u` keep paging the focused list.
 
-**UI:** Graph lane order (#757, owner): the branch with the newest tip is leftmost, the next newest to its right, with no exception for the checked-out branch (supersedes the lane 0 rule of #308). Why: the most compact graph; HEAD keeps its `◆` mark and label. The HEAD reads (`ReadHeadLayoutAsync`, the above-HEAD walk) are gone, one git call less per graph load.
+**UI:** Graph lane order (#757, owner): the branch with the newest tip is leftmost, the next newest to its right, with no exception for the checked-out branch (supersedes the lane 0 rule of #308). Why: the most compact graph; HEAD keeps its checked-out mark and label. The HEAD reads (`ReadHeadLayoutAsync`, the above-HEAD walk) are gone, one git call less per graph load.
 
 ## 2026-10-29
 
@@ -247,3 +247,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **Process:** winget (#943): PackageIdentifier `Gitunia.Gitunia` (permanent once merged), PackageName `Gitunia`, moniker `gitunia`, MIT, no code signing. Portable installer on the bare `.exe` from #941; the alias comes from `Commands`. The update runs from its own workflow `winget.yml` (trigger `release: published`, which ci.yml does not listen to) with wingetcreate and the secret `WINGET_TOKEN`; the first submission is a manual owner PR. Why: ci.yml tag jobs stay untouched and drafts never trigger a submission.
 
 **UI:** Changes view diff mouse (#1177, owner): a double-click selects the word under the pointer instead of staging the change group, as in the history diff; no triple-click there. Why: staging on a double-click in the text was confusing; drag and double-click select text everywhere, staging is `<space>a` / `<space>u`, the chips or the file list. Supersedes the staging double-click of the diff rows in the mouse table.
+
+**UI:** Checked-out branch marker (#1184, owner): `◉⎇ main`, the `◉` (U+25C9) directly in front of `⎇` with no space, instead of `◆ ⎇ `. Why: picked by the owner from a glyph sheet in Windows Terminal; one cell, no gap, nicer than the diamond. Supersedes the diamond of #198 (history/ux.md). Other local branches (`⎇ `) and the ASCII set are unchanged.

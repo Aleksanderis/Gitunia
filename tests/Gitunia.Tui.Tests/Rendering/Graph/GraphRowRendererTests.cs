@@ -287,7 +287,7 @@ public class GraphRowRendererTests
 
         var row = Rows(GraphGlyphSet.Unicode, 120, commit)[0];
 
-        Assert.StartsWith("●   ◆ ⎇ main    ⎇ topic  tag: v1 release", row);
+        Assert.StartsWith("●   ◉⎇ main    ⎇ topic  tag: v1 release", row);
     }
 
     [Fact]
@@ -381,7 +381,7 @@ public class GraphRowRendererTests
         var rows = Rows(GraphGlyphSet.Unicode, 60, feature, main, root);
 
         Assert.StartsWith("●   ⎇ feature  feature work", rows[0]);
-        Assert.StartsWith("●   ◆ ⎇ main", rows[1]);
+        Assert.StartsWith("●   ◉⎇ main", rows[1]);
         Assert.StartsWith("●  root", rows[2]);
     }
 
@@ -398,7 +398,7 @@ public class GraphRowRendererTests
 
         var rows = Rows(GraphGlyphSet.Unicode, 60, main, tip, first, fork, root);
 
-        Assert.StartsWith("●   ◆ ⎇ main  main tip", rows[0]);
+        Assert.StartsWith("●   ◉⎇ main  main tip", rows[0]);
         Assert.StartsWith("│ ●   ⎇ feature  feature tip", rows[1]);
         Assert.StartsWith("│ ├  feature first", rows[2]);
         Assert.StartsWith("●─╯  fork point", rows[3]);
@@ -438,7 +438,7 @@ public class GraphRowRendererTests
 
         Assert.StartsWith("●   ⎇ feature  feature tip", rows[0]);
         Assert.StartsWith("├  feature first", rows[1]);
-        Assert.StartsWith("│ ●   ◆ ⎇ main", rows[2]);
+        Assert.StartsWith("│ ●   ◉⎇ main", rows[2]);
         Assert.StartsWith("●─╯  fork point", rows[3]);
         Assert.StartsWith("●  root", rows[4]);
         var graph = CommitFactory.Graph(tip, first, main, fork, root);
