@@ -1,6 +1,8 @@
 namespace Gitunia.Core.Editing;
 
-/// <summary>The selected part of a <see cref="MessageEditor"/>: never empty, <see cref="Start"/> before <see cref="End"/>.</summary>
+/// <summary>
+/// The selected part of a <see cref="MessageEditor"/>: never empty, <see cref="Start"/> before <see cref="End"/>.
+/// </summary>
 /// <param name="Start">The first selected position.</param>
 /// <param name="End">The position after the last selected element.</param>
 public readonly record struct TextSelection(TextPosition Start, TextPosition End)

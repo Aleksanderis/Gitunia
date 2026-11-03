@@ -274,7 +274,11 @@ Grouped as the palette groups them (`ActionCatalog.GroupOf`). "Old" lists every 
 | `working-tree.message-line-start` | Message box: line start | `0` | same | Everyday |  |
 | `working-tree.message-new-line` | Start a new line in the commit message | `Enter` | same | Everyday |  |
 | `working-tree.message-open-line` | Message box: open a line below and insert | `o` | same | Everyday |  |
+| `working-tree.message-redo` | Message box: redo | `Ctrl-r` | same | Everyday |  |
 | `working-tree.message-right` | Message box: cursor right | `l` | same | Everyday |  |
+| `working-tree.message-scroll-down` | Message box: scroll down (3 lines) | `Ctrl-d` | same | Everyday |  |
+| `working-tree.message-scroll-up` | Message box: scroll up (3 lines) | `Ctrl-u` | same | Everyday |  |
+| `working-tree.message-select-word` | Message box: select the word at the cursor | `viw` | same | Everyday |  |
 | `working-tree.message-undo` | Message box: undo | `u` | same | Everyday |  |
 | `working-tree.message-up` | Message box: cursor up | `k` | same | Everyday |  |
 | `working-tree.message-word-next` | Message box: next word | `w` | same | Everyday |  |

@@ -5,6 +5,7 @@ using Xunit;
 
 namespace Gitunia.Core.Tests.Editing;
 
+[Trait("Os", "Independent")]
 public class MessageEditorSelectionTests
 {
     private const KeyModifiers ShiftCtrl = KeyModifiers.Shift | KeyModifiers.Ctrl;
@@ -94,6 +95,21 @@ public class MessageEditorSelectionTests
 
         Assert.False(editor.HasSelection);
         Assert.Equal(string.Empty, editor.SelectedText);
+    }
+
+    [Fact]
+    public void GivenAnEmptiedSelection_WhenBackspacingTwice_ThenNothingBeforeTheCursorIsLeftToDelete()
+    {
+        var editor = Editor("abc");
+        editor.SetCursor(0, 1);
+        editor.Apply(new KeyEvent(KeyNames.Right, KeyModifiers.Shift));
+        editor.Apply(new KeyEvent(KeyNames.Left, KeyModifiers.Shift));
+
+        editor.Apply(new KeyEvent(KeyNames.Backspace));
+        Assert.False(editor.HasSelection);
+        editor.Apply(new KeyEvent(KeyNames.Backspace));
+
+        Assert.Equal("bc", editor.Text);
     }
 
     [Fact]

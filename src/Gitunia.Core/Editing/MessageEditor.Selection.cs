@@ -60,7 +60,9 @@ public sealed partial class MessageEditor
     /// <summary>Drops the selection and leaves the cursor where it is.</summary>
     public void ClearSelection() => _anchor = null;
 
-    /// <summary>Deletes the selected text and puts the cursor where it started; false when nothing is selected.</summary>
+    /// <summary>
+    /// Deletes the selected text and puts the cursor where it started; false when nothing is selected.
+    /// </summary>
     public bool DeleteSelection()
     {
         if (Selection is not { } selection)

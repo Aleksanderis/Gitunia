@@ -33,7 +33,10 @@ public sealed record CommitKeyTyped(TabId TabId, KeyEvent Key) : CommitCommand(T
 /// <param name="Column">The display column in the line, the sideways scroll already added.</param>
 public sealed record CommitCursorPlaced(TabId TabId, int Row, int Column) : CommitCommand(TabId);
 
-/// <summary>The pointer was dragged over the message text with the button held: the selection reaches the line and column.</summary>
+/// <summary>
+/// The pointer was dragged over the message text with the button held: the selection reaches the line and
+/// column.
+/// </summary>
 /// <param name="TabId">The tab.</param>
 /// <param name="Row">The line of the message.</param>
 /// <param name="Column">The display column in the line, the sideways scroll already added.</param>

@@ -33,6 +33,12 @@ public sealed partial class MessageEditor
             return true;
         }
 
+        if (!HasSelection)
+        {
+            // An anchor on the cursor is no selection; it must not turn into one when the cursor moves by an edit.
+            ClearSelection();
+        }
+
         if (HasSelection && DeletesText(key))
         {
             DeleteSelection();

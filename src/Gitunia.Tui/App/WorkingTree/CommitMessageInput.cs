@@ -97,7 +97,8 @@ public sealed class CommitMessageInput(Dispatcher host, IActionRoute route) : IT
         }
     }
 
-    // The line and display column of a pointer cell; only the cursor's own line is scrolled sideways, and only while it is drawn with the cursor.
+    // The line and display column of a pointer cell; only the cursor's own line is scrolled sideways, and only
+    // while it is drawn with the cursor.
     private PointerTarget? PointerTarget(int textColumn, int row, int textWidth)
     {
         if (host.Workspace.ActiveTab is not { Commit.Draft: { } draft } tab)

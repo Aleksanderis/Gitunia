@@ -253,7 +253,9 @@ public sealed class WorkingTreeChrome : IDisposable
             return;
         }
 
-        MessageDragged?.Invoke(column - padding, row, textWidth);
+        // A pointer above or below the box reaches the first or last visible line, never past it.
+        var visibleRows = geometry.WorkingRects().MessageEditor.Height;
+        MessageDragged?.Invoke(column - padding, Math.Clamp(row, 0, Math.Max(0, visibleRows - 1)), textWidth);
     }
 
     private void OnDiffTitleClicked(int column)
