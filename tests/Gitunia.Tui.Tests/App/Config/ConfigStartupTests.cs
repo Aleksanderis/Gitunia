@@ -119,14 +119,14 @@ public sealed class ConfigStartupTests : IDisposable
     }
 
     [Fact]
-    public void GivenTheClassicConsole_WhenLoadingWithoutLabelCaps_ThenNoneAndAnExplicitValueWins()
+    public void GivenAnyConsole_WhenLoadingWithoutLabelCaps_ThenRoundedAndAnExplicitValueWins()
     {
         var classic = new ConsoleCapabilities(true, ColorDepth.Ansi16, true, IsClassicConsole: true);
         var modern = classic with { IsClassicConsole = false };
-        Assert.Equal(LabelCapStyle.None, ConfigStartup.DefaultLabelCaps(classic));
+        Assert.Equal(LabelCapStyle.Rounded, ConfigStartup.DefaultLabelCaps(classic));
         Assert.Equal(LabelCapStyle.Rounded, ConfigStartup.DefaultLabelCaps(modern));
 
-        Assert.Equal(LabelCapStyle.None, new ConfigStartup(_directory, _directory, ConfigStartup.DefaultLabelCaps(classic)).Load().Options.LabelCaps);
+        Assert.Equal(LabelCapStyle.Rounded, new ConfigStartup(_directory, _directory, ConfigStartup.DefaultLabelCaps(classic)).Load().Options.LabelCaps);
 
         Write("""{ "labelCaps": "angled" }""");
         Assert.Equal(LabelCapStyle.Angled, new ConfigStartup(_directory, _directory, ConfigStartup.DefaultLabelCaps(classic)).Load().Options.LabelCaps);
