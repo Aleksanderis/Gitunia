@@ -649,6 +649,9 @@ public class SettingsReducerTests
         Assert.DoesNotContain(rows.Take(rows.Count - 4), row => row.Definition.Id == SettingsRegistry.KeyReferenceId);
         Assert.Equal(SettingsRegistry.OpenConfigId, rows[^5].Definition.Id);
         Assert.Contains(rows, row => row.Definition.Id == SettingsRegistry.CommandLevelId);
+        Assert.True(
+            rows.ToList().FindIndex(row => row.Definition.Id == SettingsRegistry.CommandLevelId)
+            < rows.ToList().FindIndex(row => row.Definition.Category == SettingCategory.Repositories));
     }
 
     private static SettingsState WithReference(string text) =>

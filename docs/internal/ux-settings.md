@@ -61,7 +61,7 @@ Per control:
   `auto` chosen at run time uses the `COLORFGBG` guess: the terminal is asked for its background (OSC 11) only at startup, and only when the file says `auto`.
 - Number: `Enter` starts typing (Insert mode), `Enter` saves, `Esc` cancels; `+`/`-` step. Out of range is refused with a message naming the range, nothing is saved.
 - Path list: `a` add (prompt, `~` expanded, must be an existing directory), `d` remove (a question inside the overlay naming the path, Confirm mode: `y` removes, `n` or `Esc` keeps, or click its `y`/`n` row; the folder is untouched), `Enter` edit, `J`/`K` reorder. Saved on each change.
-- Key reference (its own category, Key mapping, apart from the Keys settings): read-only.
+- Key reference (category Key mapping): read-only.
   `KeyReferenceBuilder` generates it from the key binding table of the running app (the defaults with the `keys` entries of the config file applied, so rebinds show) and the action titles, one line per action and view (`j / Down`, title on the left, keys on the right), under a heading per view; Visual-mode bindings get their own heading (`Lists (Visual)`).
   Insert, Command and Confirm keys are not listed.
   It is a list of rows under the `Key reference` setting, listed Global first, then the other views as bound, then the Visual headings.
