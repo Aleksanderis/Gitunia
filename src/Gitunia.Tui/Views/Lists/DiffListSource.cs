@@ -3,6 +3,8 @@ using System.Collections.Specialized;
 using Gitunia.Core.Diff;
 using Gitunia.Core.Jump.Models;
 using Gitunia.Core.Lists;
+using Gitunia.Core.Text;
+using Gitunia.Core.Visual;
 using Gitunia.Tui.Rendering.Diff;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Panes;
@@ -13,7 +15,7 @@ using Terminal.Gui.Views;
 namespace Gitunia.Tui.Views.Lists;
 
 /// <summary>List source over the rows of a <see cref="DiffDocument"/>: only the visible rows are drawn, so a 50k-line diff costs no more per frame than a small one.</summary>
-public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource, IRangeSource, IJumpSource, IButtonSource
+public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource, IRangeSource, IJumpSource, IButtonSource, ITextSource
 {
     private readonly JumpLabelCache _jump = new();
     private DiffWrapMap? _map;
@@ -88,6 +90,39 @@ public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource, IRan
     public bool SuspendCollectionChangedEvent { get; set; }
 
     public RowRange? Range { get; set; }
+
+    /// <summary>The characters of a character-wise selection, drawn instead of the whole rows of <see cref="Range"/>.</summary>
+    public TextSelection? Text { get; set; }
+
+    /// <summary>Rows are single lines of text: not wrapped and not side by side.</summary>
+    public bool SupportsText => !IsWrapped && !ShowsSideBySide;
+
+    /// <summary>The text of diff row <paramref name="line"/>, as it is copied.</summary>
+    /// <param name="line">The row.</param>
+    public string TextOf(int line) =>
+        line >= 0 && line < Document.Rows.Count ? DiffTextWriter.Line(Document.Rows[line]) : string.Empty;
+
+    /// <summary>Notes and warnings are shown in the diff but are not part of the file text.</summary>
+    /// <param name="line">The row.</param>
+    public bool IsSkipped(int line) =>
+        line >= 0 && line < Document.Rows.Count && Document.Rows[line].Kind is DiffRowKind.Note or DiffRowKind.Warning;
+
+    /// <summary>The character under a pointer position: the pane padding and the row prefix (line numbers, marker) count as the first character.</summary>
+    /// <param name="listView">The list this source is shown in.</param>
+    /// <param name="column">The pointer column inside the list view.</param>
+    /// <param name="row">The pointer row inside the list view.</param>
+    public TextPosition? PositionAt(ListView listView, int column, int row)
+    {
+        if (!SupportsText || Document.Rows.Count == 0)
+        {
+            return null;
+        }
+
+        var line = Math.Clamp(listView.Viewport.Y + row, 0, Document.Rows.Count - 1);
+        var shown = column - TextStart(listView, line);
+
+        return new TextPosition(line, ShownColumns.IndexAt(TextOf(line), Math.Max(shown, 0), DiffRowRenderer.TabWidth));
+    }
 
     public event Action? RangeInvalidated;
 
@@ -213,11 +248,12 @@ public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource, IRan
         var columns = ScreenPadding.Columns(listView);
         var current = Map();
         width = PanePadding.TextWidth(width, columns);
-        var isRange = Range?.Contains(item) == true;
+        var isRange = Range?.Contains(item) == true && Text is null;
         var isRangeCursor = isRange && selected;
         selected |= isRange;
         var jump = ShowsSideBySide ? null : JumpLabelAt(listView, current, item);
         var line = LineAt(listView, current, item, width, selected, jump);
+        line = MarkText(line, item);
         var padded = PanePadding.Wrap(line, columns);
         if (IsInCursorGroup(listView, item))
         {
@@ -234,6 +270,32 @@ public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource, IRan
 
     public void Dispose()
     {
+    }
+
+    // The column of the list view where the text of diff row line starts (padding, line numbers and marker before it).
+    private int TextStart(ListView listView, int line) =>
+        ScreenPadding.Columns(listView) + DiffRowRenderer.PrefixWidth(Document.Rows[line], _gutterDigits);
+
+    // The line with the selected characters of a character-wise selection in the selection tint.
+    private StyledLine MarkText(StyledLine line, int item)
+    {
+        if (Text is not { } selection || !SupportsText || item < 0 || item >= Document.Rows.Count)
+        {
+            return line;
+        }
+
+        var text = TextOf(item);
+        if (selection.SpanOn(item, text) is not { } span)
+        {
+            return line;
+        }
+
+        var prefix = DiffRowRenderer.PrefixWidth(Document.Rows[item], _gutterDigits);
+        var from = prefix + ShownColumns.OfIndex(text, span.First, DiffRowRenderer.TabWidth);
+        var to = prefix + ShownColumns.OfIndex(text, span.Last, DiffRowRenderer.TabWidth)
+            + ShownColumns.WidthAt(text, span.Last, DiffRowRenderer.TabWidth);
+
+        return SelectionMarker.Mark(line, from, to);
     }
 
     /// <summary>

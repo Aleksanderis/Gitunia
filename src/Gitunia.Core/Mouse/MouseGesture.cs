@@ -9,6 +9,9 @@ public enum MouseGesture
     /// <summary>A left double-click (the first click of it was already reported as a <see cref="Click"/>).</summary>
     DoubleClick,
 
+    /// <summary>A left triple-click (the first two clicks of it were already reported as a <see cref="Click"/> and a <see cref="DoubleClick"/>).</summary>
+    TripleClick,
+
     /// <summary>One wheel notch away from the user (the selection moves up).</summary>
     WheelUp,
 

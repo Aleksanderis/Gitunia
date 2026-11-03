@@ -4,6 +4,7 @@ using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Lists;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Panes;
+using Gitunia.Tui.App.Panes;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Tui.App.Clipboard;
@@ -382,7 +383,7 @@ public sealed partial class WorkingTreeActionHandler(
             return false;
         }
 
-        var isRangeAction = action == ActionIds.VisualToggle || action == ActionIds.VisualCopy;
+        var isRangeAction = VisualRangeInput.IsVisualAction(action);
         return (isRangeAction || (context.Visual.IsActive && action == ActionIds.AppQuit)) && context.Visual.TryExecute(action, count);
     }
 

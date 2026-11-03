@@ -1,6 +1,7 @@
 using Gitunia.Core.Effects;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Lists;
+using Gitunia.Core.Text;
 using Gitunia.Core.Visual;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Panes;
@@ -222,6 +223,109 @@ public class VisualReducerTests
 
         Assert.Null(state.Shell.Visual);
         Assert.Equal(KeyMode.Normal, state.Shell.Mode);
+    }
+
+    [Fact]
+    public void GivenADiffCursor_WhenStartingCharacterSelection_ThenACharacterSelectionStartsAtTheColumn()
+    {
+        var state = WithTab(PaneKind.Diff);
+
+        var update = Reduce(state, new VisualCharsToggled(3, 5, true));
+
+        var selection = update.State.Shell.Visual!;
+        Assert.Equal(VisualKind.Chars, selection.Kind);
+        Assert.Equal(new RowRange(3, 3), selection.Range);
+        Assert.Equal(new TextSelection(new TextPosition(3, 5), new TextPosition(3, 5)), selection.Text);
+        Assert.Equal(KeyMode.Visual, update.State.Shell.Mode);
+    }
+
+    [Fact]
+    public void GivenAPaneWithoutText_WhenStartingCharacterSelection_ThenNothingStartsAndTheUserIsTold()
+    {
+        var update = Reduce(WithTab(), new VisualCharsToggled(3, 0, false));
+
+        Assert.Null(update.State.Shell.Visual);
+        Assert.Equal(VisualReducer.NoCharsNotice, NoticeOf(update));
+    }
+
+    [Fact]
+    public void GivenACharacterSelection_WhenTheColumnMovesAndTheRowChanges_ThenBothFollowAndTheAnchorStays()
+    {
+        var state = Reduce(WithTab(PaneKind.Diff), new VisualCharsToggled(3, 5, true)).State;
+
+        state = Reduce(state, new VisualColumnMoved(9)).State;
+        state = Reduce(state, new VisualCursorMoved(4)).State;
+
+        Assert.Equal(new TextSelection(new TextPosition(3, 5), new TextPosition(4, 9)), state.Shell.Visual!.Text);
+    }
+
+    [Fact]
+    public void GivenARowSelection_WhenStartingCharacterSelection_ThenItBecomesCharactersOverTheSameRows()
+    {
+        var state = Toggle(WithTab(PaneKind.Diff), 2).State;
+        state = Reduce(state, new VisualCursorMoved(4)).State;
+
+        state = Reduce(state, new VisualCharsToggled(4, 7, true)).State;
+
+        Assert.Equal(VisualKind.Chars, state.Shell.Visual!.Kind);
+        Assert.Equal(new RowRange(2, 4), state.Shell.Visual.Range);
+        Assert.Equal(new TextSelection(new TextPosition(2, 0), new TextPosition(4, 7)), state.Shell.Visual.Text);
+    }
+
+    [Fact]
+    public void GivenACharacterSelection_WhenTheRowKeyIsPressed_ThenItBecomesWholeRows()
+    {
+        var state = Reduce(WithTab(PaneKind.Diff), new VisualCharsToggled(3, 5, true)).State;
+
+        state = Toggle(state, 3).State;
+
+        Assert.Equal(VisualKind.Lines, state.Shell.Visual!.Kind);
+        Assert.Null(state.Shell.Visual.Text);
+        Assert.Equal(KeyMode.Visual, state.Shell.Mode);
+    }
+
+    [Fact]
+    public void GivenACharacterSelection_WhenTheCharacterKeyIsPressedAgain_ThenVisualEnds()
+    {
+        var state = Reduce(WithTab(PaneKind.Diff), new VisualCharsToggled(3, 5, true)).State;
+
+        state = Reduce(state, new VisualCharsToggled(3, 5, true)).State;
+
+        Assert.Null(state.Shell.Visual);
+        Assert.Equal(KeyMode.Normal, state.Shell.Mode);
+    }
+
+    [Fact]
+    public void GivenAMouseSelection_WhenReduced_ThenTheRowsAndColumnsOfBothEndsAreKept()
+    {
+        var state = WithTab(PaneKind.Diff);
+
+        state = Reduce(state, new VisualCharsSelected(new TextPosition(2, 4), new TextPosition(5, 1))).State;
+
+        Assert.Equal(new RowRange(2, 5), state.Shell.Visual!.Range);
+        Assert.Equal(new TextSelection(new TextPosition(2, 4), new TextPosition(5, 1)), state.Shell.Visual.Text);
+        Assert.Equal(KeyMode.Visual, state.Shell.Mode);
+    }
+
+    [Fact]
+    public void GivenAPromptIsOpen_WhenTheMouseSelects_ThenNothingStartsBehindIt()
+    {
+        var state = WithMode(WithTab(PaneKind.Diff), KeyMode.Insert);
+
+        var update = Reduce(state, new VisualCharsSelected(new TextPosition(2, 4), new TextPosition(5, 1)));
+
+        Assert.Null(update.State.Shell.Visual);
+    }
+
+    [Fact]
+    public void GivenACharacterSelection_WhenCopying_ThenTheCharactersAreHandedToTheTerminalLayer()
+    {
+        var state = Reduce(WithTab(PaneKind.Diff), new VisualCharsSelected(new TextPosition(2, 4), new TextPosition(5, 1))).State;
+
+        var update = Reduce(state, new VisualCopyRequested());
+
+        var effect = Assert.IsType<CopyVisualRangeEffect>(Assert.Single(update.Effects));
+        Assert.Equal(new TextSelection(new TextPosition(2, 4), new TextPosition(5, 1)), effect.Chars);
     }
 
     private static AppUpdate Toggle(AppState state, int row) => Reduce(state, new VisualToggled(row, true));
