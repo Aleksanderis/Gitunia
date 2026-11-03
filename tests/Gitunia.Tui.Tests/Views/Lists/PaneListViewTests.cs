@@ -3,6 +3,7 @@ using Gitunia.Core.Diff;
 using Gitunia.Core.Mouse;
 using Gitunia.Core.Text;
 using Gitunia.Tui.Rendering.Graph;
+using Gitunia.Tui.Rendering.Panes;
 using Gitunia.Tui.Views;
 using Gitunia.Tui.Views.Lists;
 using Terminal.Gui.Input;
@@ -99,21 +100,54 @@ public class PaneListViewTests
     }
 
     [Fact]
-    public void GivenAWrappedDiff_WhenDragging_ThenNoPointerEventIsRaisedAndTheRowsGestureStillIs()
+    public void GivenAWrappedDiff_WhenDragging_ThenThePointerCharactersOfTheWrappedLinesAreReported()
+    {
+        using var source = LongTextSource();
+        using var view = TextView(source, selectsText: true);
+        source.SetWrapped(true);
+        source.Width = PanePadding.TextWidth(view.Viewport.Width, ScreenPadding.Columns(view));
+        var pointed = new List<TextPointer>();
+        view.TextPointed += pointed.Add;
+
+        view.NewMouseEvent(new Mouse { Flags = MouseFlags.LeftButtonPressed, Position = new Point(TextColumn(view, 3), 0) });
+        view.NewMouseEvent(new Mouse
+        {
+            Flags = MouseFlags.LeftButtonPressed | MouseFlags.PositionReport,
+            Position = new Point(TextColumn(view, 4), 1),
+        });
+
+        var columns = source.Width - 9;
+        Assert.Equal(TextPointerKind.DragStart, pointed[0].Kind);
+        Assert.Equal(new TextPosition(0, 3), pointed[0].Origin);
+        Assert.Equal(new TextPosition(1, columns + 4), pointed[0].Position);
+    }
+
+    [Fact]
+    public void GivenAPaneThatSelectsLines_WhenDoubleAndTripleClicking_ThenOnlyTheTripleClickIsReportedAsText()
     {
         using var source = TextSource();
-        source.SetWrapped(true);
-        using var view = TextView(source, selectsText: true);
+        using var view = TextView(source, selectsText: false);
+        view.SelectsLine = true;
         var pointed = new List<TextPointer>();
-        var gestures = new List<MouseGesture>();
         view.TextPointed += pointed.Add;
-        view.GestureRaised += (gesture, _) => gestures.Add(gesture);
 
-        view.NewMouseEvent(new Mouse { Flags = MouseFlags.LeftButtonPressed, Position = new Point(10, 0) });
-        view.NewMouseEvent(new Mouse { Flags = MouseFlags.LeftButtonPressed | MouseFlags.PositionReport, Position = new Point(12, 1) });
+        view.NewMouseEvent(new Mouse { Flags = MouseFlags.LeftButtonDoubleClicked, Position = new Point(TextColumn(view, 4), 1) });
+        view.NewMouseEvent(new Mouse { Flags = MouseFlags.LeftButtonTripleClicked, Position = new Point(TextColumn(view, 4), 1) });
 
-        Assert.Empty(pointed);
-        Assert.Contains(MouseGesture.DragStart, gestures);
+        Assert.Equal([TextPointerKind.TripleClick], pointed.Select(found => found.Kind));
+    }
+
+    private static DiffListSource LongTextSource()
+    {
+        var source = new DiffListSource(GraphGlyphSet.Unicode);
+        source.Update(new DiffDocument(
+            [new(DiffRowKind.Context, new string('x', 80), 1, 1, 0), new(DiffRowKind.Context, "end", 2, 2, 0)],
+            [],
+            [],
+            [["f"]],
+            2));
+
+        return source;
     }
 
     private static DiffListSource TextSource()

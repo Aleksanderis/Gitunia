@@ -143,7 +143,7 @@ public sealed class VisualCharSelectionInputTests : IDisposable
 
         var selection = _source.Text!.Value;
 
-        Assert.Equal("t value_1 = foo.bar;\nsecond", selection.TextIn(_source));
+        Assert.Equal("t value_1 = foo.bar;\nsecond", _source.CopyText(selection, false));
     }
 
     [Fact]
@@ -153,7 +153,7 @@ public sealed class VisualCharSelectionInputTests : IDisposable
 
         _input.TryExecute(ActionIds.VisualSelectWord, null);
 
-        Assert.Equal("value_1", _source.Text!.Value.TextIn(_source));
+        Assert.Equal("value_1", _source.CopyText(_source.Text!.Value, false));
     }
 
     [Fact]
@@ -163,7 +163,7 @@ public sealed class VisualCharSelectionInputTests : IDisposable
 
         _input.TryExecute(ActionIds.VisualSelectLine, null);
 
-        Assert.Equal("second line", _source.Text!.Value.TextIn(_source));
+        Assert.Equal("second line", _source.CopyText(_source.Text!.Value, false));
     }
 
     [Fact]
@@ -175,7 +175,19 @@ public sealed class VisualCharSelectionInputTests : IDisposable
 
         _input.TryExecute(ActionIds.VisualSelectWord, null);
 
-        Assert.Equal("value_1", _source.Text!.Value.TextIn(_source));
+        Assert.Equal("value_1", _source.CopyText(_source.Text!.Value, false));
+    }
+
+    [Fact]
+    public void GivenADoubleClickOnAWord_WhenTheRouterEndsTheRangeBeforeTheAction_ThenThePointedWordIsStillSelected()
+    {
+        _input.OnTextPointed(new TextPointer(TextPointerKind.DoubleClick, new TextPosition(0, 8)));
+
+        // The gesture router ends any range on a double-click before the mouse map runs the action.
+        _input.End();
+        _input.TryExecute(ActionIds.VisualSelectWord, null);
+
+        Assert.Equal("value_1", _source.CopyText(_source.Text!.Value, false));
     }
 
     [Fact]
@@ -187,14 +199,13 @@ public sealed class VisualCharSelectionInputTests : IDisposable
 
         _input.TryExecute(ActionIds.VisualSelectWord, null);
 
-        Assert.Equal("second", _source.Text!.Value.TextIn(_source));
+        Assert.Equal("second", _source.CopyText(_source.Text!.Value, false));
     }
 
     [Fact]
-    public void GivenAWrappedDiff_WhenTheCharacterKeyIsPressed_ThenNothingStartsAndTheUserIsTold()
+    public void GivenAnEmptyDiff_WhenTheCharacterKeyIsPressed_ThenNothingStartsAndTheUserIsTold()
     {
-        _source.SetWrapped(true);
-        _list.SelectedItem = 0;
+        _source.Update(DiffDocument.Empty);
 
         _input.TryExecute(ActionIds.VisualToggleChars, null);
 
