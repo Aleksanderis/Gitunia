@@ -21,6 +21,11 @@ for f in gitunia-1.2.3-win-x64.zip gitunia-1.2.3-win-x64.zip.sha256 \
 done
 (cd "$tmp/out" && sha256sum -c gitunia-1.2.3-win-x64.zip.sha256 >/dev/null) || fail "zip sha256 does not verify"
 # The winget manifest points at gitunia-<version>-win-x64/gitunia.exe inside the zip (#1156).
-unzip -p "$tmp/out/gitunia-1.2.3-win-x64.zip" gitunia-1.2.3-win-x64/gitunia.exe | cmp - "$tmp/win/gitunia.exe" || fail "zip does not hold gitunia.exe from the publish output"
+# Same nested path as RelativeFilePath in packaging/winget/Gitunia.Gitunia.installer.yaml (scripts/test-winget-manifest.sh checks the manifest side).
+# unzip, or 7z (package.sh accepts 7z or zip), reads the file out of the zip.
+if command -v unzip >/dev/null 2>&1; then unzip -p "$tmp/out/gitunia-1.2.3-win-x64.zip" gitunia-1.2.3-win-x64/gitunia.exe > "$tmp/unzipped.exe"
+elif command -v 7z >/dev/null 2>&1; then 7z e -so "$tmp/out/gitunia-1.2.3-win-x64.zip" gitunia-1.2.3-win-x64/gitunia.exe > "$tmp/unzipped.exe" 2>/dev/null
+else fail "need unzip or 7z to read the zip"; fi
+cmp "$tmp/unzipped.exe" "$tmp/win/gitunia.exe" || fail "zip does not hold gitunia.exe from the publish output"
 [ "$(ls "$tmp/out" | wc -l)" -eq 6 ] || fail "unexpected asset count (no bare binary any more, #1156)"
 echo "ok"

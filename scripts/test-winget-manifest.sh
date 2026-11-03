@@ -15,6 +15,7 @@ grep -q "InstallerSha256: $H$" "$i" || fail "hash not upper case"
 grep -q 'download/v1.2.3/gitunia-1.2.3-win-x64.zip$' "$i" || fail "url"
 grep -q '^InstallerType: zip$' "$i" || fail "zip"
 grep -q '^NestedInstallerType: portable$' "$i" || fail "nested portable"
+# Must name the folder and file scripts/package.sh puts in the zip (scripts/test-package.sh checks that side).
 grep -qF 'RelativeFilePath: gitunia-1.2.3-win-x64\gitunia.exe' "$i" || fail "nested path"
 grep -q '^  PortableCommandAlias: gitunia$' "$i" || fail "alias"
 grep -q '^ReleaseDate: 2030-01-02$' "$i" || fail "date"
