@@ -8,7 +8,7 @@ Part of the UX spec; start at [ux.md](ux.md).
 
 ### 0. Open a repository, switch tabs, reopen the session
 
-1. **Start.** `gitunia` restores the last session (tabs, active tab, per-tab selection and focus); with no session it opens the picker. `gitunia <path>` opens that path as a tab (a repository already open just gets focused) and keeps the other restored tabs.
+1. **Start.** `gitunia` restores the last session (tabs, active tab and focus; the graph of each tab opens on HEAD, see workflow 2); with no session it opens the picker. `gitunia <path>` opens that path as a tab (a repository already open just gets focused) and keeps the other restored tabs.
 2. **Picker.** `Ctrl-t` or `<space>oo` opens it (Insert mode, input focused). It lists open, pinned, recent and discovered repositories, fuzzy-filtered as you type, as a framed overlay with group headers and a tag per row (`open`, `pinned`, `recent`, `found`, `missing` for a tab whose directory is gone); look in `ux-look.md`.
    - `Up`/`Down` and `Ctrl-j`/`Ctrl-k` move; `Enter` or `Ctrl-l` opens in a new tab (or focuses the existing one); `Backspace` deletes a character; `Esc` cancels (with no tab open it quits, since there is nothing to go back to).
    - `Tab` or `Right` accepts the suggestion: the highlighted repository's path is filled in and its subfolders are listed; in a typed path it completes the folder name.
@@ -33,7 +33,7 @@ Part of the UX spec; start at [ux.md](ux.md).
 
 ### 1. Browse the graph, jump, search
 
-1. **Open.** A repository tab opens with focus on the graph, the newest commit selected and HEAD marked. Commits stream in; the list is usable immediately and the status bar shows loading progress.
+1. **Open.** A repository tab opens with focus on the graph and the cursor on HEAD (the checked-out branch's tip or the detached commit; the newest commit when there is none), scrolled into view, whatever the last session had selected. Only the first time a tab is shown: switching back to a tab, or switching its worktree, keeps its own selection. After a refresh (own commit, external git activity) a cursor that was on HEAD or on the newest commit follows HEAD to its new row and the list scrolls to show it; a cursor anywhere else stays on its commit and screen row. Commits stream in; the list is usable immediately and the status bar shows loading progress.
 2. **Graph row.** A table: branch lanes, message (ref decorations then subject), author, date and time (`yyyy-MM-dd HH:mm`, the author's local time) and short hash (dimmed).
    - The message starts two columns after the last line of the row's own lanes and is the flexible column; author, date (`yyyy-MM-dd HH:mm`, local time) and hash are fixed-width. Narrow terminals drop columns instead of squeezing the message below 30 columns: hash first, then the time, then the date, then author. `gitunia <repository> --print-frame WxH` shows any width.
 3. **Ref labels.** The symbolic `origin/HEAD` is hidden.

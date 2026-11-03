@@ -1,4 +1,6 @@
 using Gitunia.Git;
+using Gitunia.Git.Commits.Models;
+using Gitunia.Git.Refs.Models;
 
 namespace Gitunia.Core.Graph;
 
@@ -52,4 +54,24 @@ public sealed class CommitGraph
 
         return -1;
     }
+
+    /// <summary>
+    /// Index of the commit HEAD is on (the checked-out branch or a detached HEAD), or -1 when it is not loaded (yet) or
+    /// there is none (an unborn branch). HEAD sits near the top, so the scan stops early in practice.
+    /// </summary>
+    public int HeadIndex()
+    {
+        for (var index = 0; index < _entries.Count; index++)
+        {
+            if (_entries[index].Decorations.Any(IsHead))
+            {
+                return index;
+            }
+        }
+
+        return -1;
+    }
+
+    private static bool IsHead(CommitDecoration decoration) =>
+        decoration.IsCurrent || decoration.Kind == RefKind.Head;
 }
