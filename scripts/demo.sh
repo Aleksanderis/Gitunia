@@ -47,8 +47,8 @@ if [ -z "$binary" ]; then
 fi
 [ -x "$binary" ] || { echo "binary '$binary' not found" >&2; exit 3; }
 
-# Throwaway repo: about 300 commits, three authors, main/develop/release branches and short feature branches
-# merged back one at a time (a mostly straight graph; merged ones are deleted, a few stay open), tags, and a working-tree change in README.md.
+# Throwaway repo: about 300 commits, three authors, main/develop/release branches and feature branches of mixed length
+# growing in parallel with main (a few crossings; merged ones are deleted, a few stay open), tags, and a working-tree change in README.md.
 # Built with git fast-import from a generated stream: deterministic (no clock, no randomness) and fast.
 repo="$work/demo-repo"
 (
@@ -101,19 +101,36 @@ repo="$work/demo-repo"
   topics=(sidebar-filter graph-lanes ref-badges stash-list diff-wrap rebase-todo tag-dialog remote-fetch config-keys status-bar
           worktree-prune commit-search file-tree hunk-stage reflog-view palette theme-colors mouse-wheel tab-restore
           conflict-editor cherry-pick revert-flow push-confirm pull-rebase bisect-hint help-overlay session-save)
-  for ((w = 0; w < 48; w++)); do
+  # Feature branches of mixed length (1-8 commits) grow in parallel with main: at most two are open at once, so lanes
+  # cross where a merge cuts over another branch. The last one of each 24 stays unmerged.
+  lens=(2 6 1 4 8 2 3 5 1 7)
+  act_ref=() act_tip=() act_left=() act_n=()
+  for ((w = 0; w < 64; w++)); do
     topic=${topics[$((w % ${#topics[@]}))]}
-    # Mostly straight: main advances, a short feature branch is cut and merged back before the next one starts, so at most
-    # one side lane is open at a time. Every 24th feature stays open, every 4th merges into develop instead of main.
     commit main "${verbs[$((w % 8))]} the ${areas[$((w % 8))]} view" "$main_tip"; main_tip=$last
-    branch "feature/$topic" "$main_tip" $((2 + w % 3)) "Add $topic"; feat_tip=$last
-    commit main "${verbs[$(((w + 3) % 8))]} ${areas[$(((w + 3) % 8))]} errors" "$main_tip"; main_tip=$last
-    if [ $((w % 24)) -ne 23 ]; then
-      commit main "Merge feature/$topic" "$main_tip" "$feat_tip"; main_tip=$last
+    # Advance every open branch by one commit; merge it into main when it is complete.
+    n_ref=() n_tip=() n_left=() n_n=()
+    for i in "${!act_ref[@]}"; do
+      ref=${act_ref[$i]} tip=${act_tip[$i]} left=${act_left[$i]} cnt=${act_n[$i]}
+      if [ "$left" -gt 0 ]; then
+        cnt=$((cnt + 1))
+        commit "$ref" "${verbs[$(((mark + cnt) % 8))]} ${ref#feature/} (part $cnt)" "$tip"; tip=$last; left=$((left - 1))
+      fi
+      if [ "$left" -eq 0 ]; then
+        commit main "Merge $ref" "$main_tip" "$tip"; main_tip=$last
+      else
+        n_ref+=("$ref"); n_tip+=("$tip"); n_left+=("$left"); n_n+=("$cnt")
+      fi
+    done
+    act_ref=("${n_ref[@]}") act_tip=("${n_tip[@]}") act_left=("${n_left[@]}") act_n=("${n_n[@]}")
+    if [ $((w % 24)) -eq 23 ]; then
+      branch "feature/$topic" "$main_tip" 3 "Add $topic"
+    elif [ "${#act_ref[@]}" -lt 2 ] && [ $((w % 4)) -ne 1 ]; then
+      commit "feature/$topic" "Add $topic" "$main_tip"
+      act_ref+=("feature/$topic"); act_tip+=("$last"); act_left+=("$((lens[w % 10] - 1))"); act_n+=(1)
     fi
-    # Develop is a single line that catches up with main now and then, plus one open fix branch.
+    # Develop is a single line that catches up with main now and then,.
     if [ $((w % 6)) -eq 5 ]; then commit develop "Merge main into develop" "$dev_tip" "$main_tip"; dev_tip=$last; fi
-    if [ $((w % 16)) -eq 9 ]; then branch "fix/crash-$w" "$dev_tip" 2 "Fix crash in ${areas[$((w % 8))]} ($w)"; fi
     # Releases: a tag on main every 16 iterations and a release branch cut from it with one hotfix.
     if [ $((w % 16)) -eq 15 ]; then
       rel=$((w / 16 + 1))
