@@ -74,9 +74,9 @@ Reading: the view is usable at once (first rows ~0.25-0.3 s, of which git's blam
 
 ## Idle CPU (#909)
 
-Cause: Terminal.Gui 2.5.0 runs its main loop unconditionally, `Application.MaximumIterationsPerSecond` times a second, each ending in `Task.Delay(..).Wait()` (a wakeup of the timer thread, a pool worker and the main thread, plus a size query and a draw check), and its input thread polls every 20 ms. The poller, the 2 s fingerprint and the UI timers are small next to this. Idle CPU is about proportional to the rate (Linux, AOT, 5000-commit repository, 8 refs, 45 s windows, whole process, threads summed from `/proc/<pid>/task/*/stat`): 100/s 2.56%, 50/s 1.44%, 25/s 1.04%, 10/s 0.91%; 230-390 voluntary context switches per second on each of five threads at 100/s. The rate stays 100/s while working for key latency (the default 25/s gave ~34 ms, `docs/history/decisions.md`).
+Cause: Terminal.Gui 2.5.0 runs its main loop unconditionally, `Application.MaximumIterationsPerSecond` times a second, each ending in `Task.Delay(..).Wait()` (a wakeup of the timer thread, a pool worker and the main thread, plus a size query and a draw check), and its input thread polls every 20 ms. The poller, the 2 s fingerprint and the UI timers are small next to this. Idle CPU is about proportional to the rate (measured at 100/s to 10/s; Linux, AOT, 5000-commit repository, 8 refs, 45 s windows, whole process, threads summed from `/proc/<pid>/task/*/stat`): 100/s 2.56%, 50/s 1.44%, 25/s 1.04%, 10/s 0.91%; 230-390 voluntary context switches per second on each of five threads at 100/s. The rate stays 100/s while working for key latency (the default 25/s gave ~34 ms, `docs/history/decisions.md`).
 
-Fix: `IterationRateGovernor` keeps 100/s while the user is working and for 2 s after the last key, mouse event or paste, and drops to 50/s on an untouched screen; the first input after an idle spell is handled by one slower iteration, then the rate is back at 100/s.
+Fix: `IterationRateGovernor` keeps 100/s while the user is working and for 2 s after the last key, mouse event or paste, and drops to 5/s on an untouched screen (50/s until #1209, see "Idle output"); the first input after an idle spell is handled by one slower iteration, then the rate is back at 100/s.
 
 | Case (AOT, 5000-commit repository, 60 s idle after a 15 s settle, whole process, `git status` children excluded) | Before | After |
 |---|---|---|
@@ -107,6 +107,17 @@ So it only partly reproduces: no full-frame repaint, but the 1 frame/s bar is no
 - `ApplicationImpl`, the only type that takes an `IComponentFactory`, is internal; `Application.Create` accepts only an `ITimeProvider`; `IApplication.Driver` has no setter.
 
 So a decorating `IOutput` cannot be installed without reflection (not AOT-safe) or replacing the process's stdout at file-descriptor level (platform-specific, and the driver queries the terminal size on it). Options left: a Terminal.Gui change (idle cursor update skipped when the cursor is unchanged, or a public factory hook), or a lower idle iteration rate, which costs first-key latency (see "Idle CPU").
+
+#1209 (owner decision: lower the idle rate as a stopgap). `IdleIterationsPerSecond` (`TerminalHost`) went from 50 to 5. Same method as above (AOT, 120x36 `script`, 10 s window, 3-commit throwaway repo), plus first key after idle: `j`/`k` alternating every 3.3 s of idle (past the 2 s `IdleAfter`), 25 samples, private tmux, time until the captured pane changes (tmux poll included):
+
+| Idle rate | Cursor-home+hide pairs / 10 s | Bytes / 10 s | First key after idle (median / p95 / max) |
+|---|---|---|---|
+| 50/s (before) | 513 | 6156 | 31 / 47 / 51 ms |
+| 10/s | 100 | 1200 | 94 / 106 / 119 ms |
+| 5/s (chosen) | 51 | 612 | 102 / 127 / 138 ms |
+| 2/s | 51 | 678 | 204 / 219 / 233 ms |
+
+Idle writes drop about 10x (513 to 51 pairs, ~61 B/s). Below 5/s the writes do not fall (51 pairs at 2/s too: something else, about 5 a second, still drives the loop) while latency doubles, so 5/s is the floor. Cost: the first key after 2 s of idle waits up to ~200 ms for the slow iteration, median +71 ms, worst sample +87 ms, inside the +100 ms budget; later keys are back at 100/s. The bar of 1 frame/s is still not met (the fix is skipping the cursor update upstream, see the follow-up). `?1003h` against `?1002h`: at idle there is no mouse input, so the mode changes no output; it only adds reports (and wakeups) while the mouse moves over the window, which this measurement does not cover, and it still cannot be changed (same blocked hook).
 
 ## Many tabs
 
