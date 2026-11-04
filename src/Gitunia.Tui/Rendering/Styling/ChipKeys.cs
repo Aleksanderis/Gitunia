@@ -45,13 +45,23 @@ public sealed class ChipKeys
             $"{mouseView}{CacheSeparator}{keyView}{CacheSeparator}{mode}",
             _ => Find(mouseView, keyView, mode));
 
-    private string? Find(string mouseView, string keyView, KeyMode mode)
-    {
-        if (!_actions.TryGetValue(mouseView, out var action))
-        {
-            return null;
-        }
+    /// <summary>
+    /// The shortest key of <paramref name="action"/> in <paramref name="keyView"/>, or null when it has none; for a hint
+    /// that names an action without a chip.
+    /// </summary>
+    /// <param name="action">The action id.</param>
+    /// <param name="keyView">The keymap view.</param>
+    /// <param name="mode">The mode the keys are looked up in.</param>
+    public string? ForAction(ActionId action, string keyView, KeyMode mode = KeyMode.Normal) =>
+        _cache.GetOrAdd(
+            $"{action.Value}{CacheSeparator}{keyView}{CacheSeparator}{mode}{CacheSeparator}action",
+            _ => FindAction(action, keyView, mode));
 
+    private string? Find(string mouseView, string keyView, KeyMode mode) =>
+        _actions.TryGetValue(mouseView, out var action) ? FindAction(action, keyView, mode) : null;
+
+    private string? FindAction(ActionId action, string keyView, KeyMode mode)
+    {
         var binding = _table.EffectiveBindings(mode, keyView)
             .Where(candidate => candidate.Action == action)
             .OrderBy(candidate => candidate.Sequence.Length)

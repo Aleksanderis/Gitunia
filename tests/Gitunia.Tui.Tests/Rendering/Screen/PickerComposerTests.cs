@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using Gitunia.Core.Graph;
+using Gitunia.Core.Keymap;
 using Gitunia.Core.Mouse;
 using Gitunia.Core.Picker;
 using Gitunia.Core.Workspaces.Tabs;
@@ -223,6 +224,36 @@ public class PickerComposerTests
 
         Assert.Contains("Locate repository", lines[TitleLine].Text, StringComparison.Ordinal);
         Assert.DoesNotContain(lines, line => line.Text.Contains("Alt-c", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void GivenARebindingOfCompletePath_WhenComposing_ThenTheHintShowsTheNewKeyAndNoneWhenUnbound()
+    {
+        var picker = Picker(Row("alpha", PickerTags.Recent));
+        var rebound = DefaultKeymap.CreateBindings()
+            .Select(binding => binding.Action == ActionIds.PickerCompletePath
+                ? binding with { Sequence = KeySequenceParser.Parse("Ctrl-t") }
+                : binding);
+        var unbound = DefaultKeymap.CreateBindings().Where(binding => binding.Action != ActionIds.PickerCompletePath);
+
+        var withKey = PickerComposer.Compose(
+            picker, Home, 100, 30, GraphGlyphSet.Unicode, new ChipKeys(new KeyBindingTable(rebound, DefaultKeymap.ViewParents)));
+        var without = PickerComposer.Compose(
+            picker, Home, 100, 30, GraphGlyphSet.Unicode, new ChipKeys(new KeyBindingTable(unbound, DefaultKeymap.ViewParents)));
+
+        Assert.Contains(withKey[QueryRow].Segments, segment => segment.Role == ChipStyle.Pane.Key && segment.Text == "Ctrl-t");
+        Assert.DoesNotContain("accepts a path", without[QueryRow].Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GivenLocatingMode_WhenLayingOutTheFooter_ThenTheFirstChipSaysLocate()
+    {
+        var picker = new PickerState(string.Empty, 0, [Row("alpha", PickerTags.Recent)], string.Empty, new TabId(1));
+
+        var lines = Compose(picker);
+
+        Assert.Contains("Enter locate", lines[^2].Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Enter open", lines[^2].Text, StringComparison.Ordinal);
     }
 
     [Fact]

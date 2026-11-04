@@ -1,5 +1,7 @@
 using System.Globalization;
 using Gitunia.Core.Editing;
+using Gitunia.Core.Keymap;
+using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Picker;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Overlays;
@@ -21,8 +23,6 @@ public static class PickerComposer
     private const int GlyphGap = 2;
     private const int MinimumTitleGap = 2;
     private const string QueryPlaceholder = "type to filter, or a path";
-    // The hint names the key by hand: the keymap lookup of the chips starts from a mouse view and this is no chip.
-    private const string AcceptKey = "Tab";
     private const string AcceptLabel = " accepts a path";
 
     /// <param name="picker">The picker state.</param>
@@ -50,7 +50,7 @@ public static class PickerComposer
         var layout = PickerLayout.Compute(picker, width, height);
         return layout.IsFramed
             ? Framed(picker, homeDirectory, layout, glyphs, keys, openBranches)
-            : Compact(picker, homeDirectory, layout, glyphs, openBranches);
+            : Compact(picker, homeDirectory, layout, glyphs, keys, openBranches);
     }
 
     private static List<StyledLine> Framed(
@@ -66,7 +66,7 @@ public static class PickerComposer
         var lines = new List<StyledLine>(layout.BoxHeight)
         {
             TitleLine(picker, width, glyphs),
-            OverlayBox.Wrap(QueryLine(picker, inner, glyphs, true), glyphs),
+            OverlayBox.Wrap(QueryLine(picker, inner, glyphs, true, keys), glyphs),
             OverlayBox.Wrap(new LineBuilder(inner, glyphs.Ellipsis).Build(), glyphs),
         };
         lines.AddRange(ListLines(picker, homeDirectory, layout, glyphs, true, openBranches));
@@ -86,9 +86,10 @@ public static class PickerComposer
         string homeDirectory,
         PickerLayout layout,
         GraphGlyphSet glyphs,
+        ChipKeys? keys,
         IReadOnlyDictionary<string, string>? openBranches)
     {
-        var lines = new List<StyledLine> { QueryLine(picker, layout.BoxWidth, glyphs, false) };
+        var lines = new List<StyledLine> { QueryLine(picker, layout.BoxWidth, glyphs, false, keys) };
         lines.AddRange(ListLines(picker, homeDirectory, layout, glyphs, false, openBranches));
         if (layout.MessageLine >= 0)
         {
@@ -125,7 +126,7 @@ public static class PickerComposer
         return picker.Rows.Length == 1 ? $"{count} repository" : $"{count} repositories";
     }
 
-    private static StyledLine QueryLine(PickerState picker, int width, GraphGlyphSet glyphs, bool withHint)
+    private static StyledLine QueryLine(PickerState picker, int width, GraphGlyphSet glyphs, bool withHint, ChipKeys? keys)
     {
         var builder = new LineBuilder(width, glyphs.Ellipsis)
             .Append($" {glyphs.Picker.Prompt} ", SegmentRole.SectionTitle)
@@ -136,12 +137,23 @@ public static class PickerComposer
         }
 
         var used = width - builder.Remaining;
-        var hintWidth = TextWidth.Of(AcceptKey) + TextWidth.Of(AcceptLabel);
-        if (withHint && used + ColumnGap + hintWidth + 1 <= width)
+        if (!withHint)
+        {
+            return builder.Build();
+        }
+
+        var acceptKey = (keys ?? ChipKeys.Default).ForAction(ActionIds.PickerCompletePath, DefaultKeymap.PickerView, KeyMode.Insert);
+        if (acceptKey is null)
+        {
+            return builder.Build();
+        }
+
+        var hintWidth = TextWidth.Of(acceptKey) + TextWidth.Of(AcceptLabel);
+        if (used + ColumnGap + hintWidth + 1 <= width)
         {
             builder
                 .Append(new string(' ', width - used - hintWidth - 1), SegmentRole.Plain)
-                .Append(AcceptKey, ChipStyle.Pane.Key)
+                .Append(acceptKey, ChipStyle.Pane.Key)
                 .Append(AcceptLabel, SegmentRole.Faint);
         }
 
