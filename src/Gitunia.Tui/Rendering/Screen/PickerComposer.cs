@@ -137,8 +137,13 @@ public static class PickerComposer
         }
 
         var used = width - builder.Remaining;
+        if (!withHint)
+        {
+            return builder.Build();
+        }
+
         var acceptKey = (keys ?? ChipKeys.Default).ForAction(ActionIds.PickerCompletePath, DefaultKeymap.PickerView, KeyMode.Insert);
-        if (!withHint || acceptKey is null)
+        if (acceptKey is null)
         {
             return builder.Build();
         }
