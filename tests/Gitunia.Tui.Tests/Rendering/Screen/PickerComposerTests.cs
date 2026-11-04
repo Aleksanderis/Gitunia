@@ -73,8 +73,8 @@ public class PickerComposerTests
             Row("alpha", PickerTags.Open | PickerTags.Recent),
             Row("beta", PickerTags.Pinned),
             Row("gamma", PickerTags.Recent),
-            Row("delta", PickerTags.Discovered),
-            Row("gone", PickerTags.Recent | PickerTags.Missing)));
+            Row("gone", PickerTags.Recent | PickerTags.Missing),
+            Row("delta", PickerTags.Discovered)));
 
         Assert.Equal(("●", SegmentRole.LocalBranch), GlyphOf(lines, "alpha"));
         Assert.Equal(("★", SegmentRole.CurrentBranch), GlyphOf(lines, "beta"));
@@ -205,7 +205,7 @@ public class PickerComposerTests
     public void GivenHighlightBelowTheVisibleRows_WhenComposing_ThenTheListScrollsToShowIt()
     {
         var rows = Enumerable.Range(1, 40).Select(number => Row($"repo{number}", PickerTags.Recent)).ToImmutableArray();
-        var picker = new PickerState(string.Empty, 30, rows, string.Empty, null);
+        var picker = new PickerState(string.Empty, 30, rows, string.Empty, null, Expanded: PickerSection.Recent);
 
         var lines = Compose(picker);
 
@@ -306,8 +306,8 @@ public class PickerComposerTests
             Row("alpha", PickerTags.Open),
             Row("beta", PickerTags.Pinned),
             Row("gamma", PickerTags.Recent),
-            Row("delta", PickerTags.Discovered),
-            Row("gone", PickerTags.Recent | PickerTags.Missing));
+            Row("gone", PickerTags.Recent | PickerTags.Missing),
+            Row("delta", PickerTags.Discovered));
 
         var lines = PickerComposer.Compose(picker, Home, 100, 30, GraphGlyphSet.Ascii);
 
@@ -490,13 +490,121 @@ public class PickerComposerTests
     public void GivenAScrolledList_WhenAskingForTheRowAtALine_ThenLinesMapToTheShownRows()
     {
         var rows = Enumerable.Range(1, 40).Select(number => Row($"repo{number}", PickerTags.Recent)).ToImmutableArray();
-        var picker = new PickerState(string.Empty, 30, rows, string.Empty, null);
+        var picker = new PickerState(string.Empty, 30, rows, string.Empty, null, Expanded: PickerSection.Recent);
 
         var layout = PickerLayout.Compute(picker, 100, 30);
 
         Assert.Equal(30, layout.RowIndexAt(layout.ListFirstLine + layout.ListHeight - 1));
         Assert.Equal(30 - layout.ListHeight + 1, layout.RowIndexAt(layout.ListFirstLine));
         Assert.Null(layout.RowIndexAt(layout.ListFirstLine + layout.ListHeight));
+    }
+
+    [Fact]
+    public void GivenMoreRecentsThanTheCap_WhenComposing_ThenTheHeaderCountsAndAMoreLineEndsTheSection()
+    {
+        var lines = Compose(CappedPicker());
+
+        Assert.Contains(lines, line => line.Text.Contains("RECENT  5 of 31", StringComparison.Ordinal));
+        Assert.Contains(lines, line => line.Text.Contains("▸  26 more", StringComparison.Ordinal));
+        Assert.DoesNotContain(lines, line => line.Text.Contains("recent6 ", StringComparison.Ordinal));
+        Assert.Contains(lines, line => line.Text.Contains("FOUND", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void GivenTheHighlightOnTheMoreLine_WhenComposing_ThenThatLineIsSelectedAndTheChipsSayExpand()
+    {
+        var picker = CappedPicker() with { Highlight = 4, IsOnToggle = true };
+
+        var lines = Compose(picker);
+
+        var selected = Assert.Single(lines, line => line.IsSelected);
+        Assert.Contains("26 more", selected.Text, StringComparison.Ordinal);
+        var footer = lines[^2].Text;
+        Assert.Contains("expand", footer, StringComparison.Ordinal);
+        Assert.DoesNotContain("pin", footer, StringComparison.Ordinal);
+        Assert.DoesNotContain("remove", footer, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GivenAnExpandedSection_WhenComposing_ThenTheHeaderHasNoCountAndALessLineEndsTheSection()
+    {
+        var picker = CappedPicker() with { Expanded = PickerSection.Recent, Highlight = 30, IsOnToggle = true };
+
+        var lines = Compose(picker);
+
+        Assert.DoesNotContain(lines, line => line.Text.Contains(" of 31", StringComparison.Ordinal));
+        var selected = Assert.Single(lines, line => line.IsSelected);
+        Assert.Contains("▴  less", selected.Text, StringComparison.Ordinal);
+        Assert.Contains("collapse", lines[^2].Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GivenAnExpandedSectionWithTheHighlightInIt_WhenComposing_ThenTheListScrollsAndTheSectionRowsAreShown()
+    {
+        var picker = CappedPicker() with { Expanded = PickerSection.Recent, Highlight = 20 };
+
+        var lines = Compose(picker);
+
+        var selected = Assert.Single(lines, line => line.IsSelected);
+        Assert.Contains("recent21", selected.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GivenAsciiGlyphsAndACappedSection_WhenComposing_ThenTheMoreLineIsAscii()
+    {
+        var lines = PickerComposer.Compose(CappedPicker(), Home, 100, 30, GraphGlyphSet.Ascii);
+
+        Assert.All(lines, line => Assert.True(line.Text.All(char.IsAscii), line.Text));
+        Assert.Contains(lines, line => line.Text.Contains(">  26 more", StringComparison.Ordinal));
+    }
+
+    [Theory]
+    [InlineData(100, 30)]
+    [InlineData(32, 30)]
+    [InlineData(100, 12)]
+    [InlineData(100, 9)]
+    [InlineData(20, 8)]
+    [InlineData(12, 4)]
+    public void GivenCappedSectionsAtManySizes_WhenComposing_ThenTheLinesFitTheAreaAndTheHighlightIsVisible(
+        int width,
+        int height)
+    {
+        var picker = CappedPicker() with { Highlight = 4, IsOnToggle = true };
+
+        var lines = Compose(picker, width, height);
+
+        Assert.True(lines.Count <= height);
+        var layout = PickerLayout.Compute(picker, width, height);
+        Assert.All(lines, line => Assert.True(line.Text.Length <= width + 2));
+        if (layout.ListHeight > 0)
+        {
+            Assert.Contains(lines, line => line.IsSelected);
+        }
+    }
+
+    [Fact]
+    public void GivenCappedSections_WhenAskingForTheLineAtARow_ThenTheMoreLineIsSelectableButNotARow()
+    {
+        var layout = PickerLayout.Compute(CappedPicker(), 100, 30);
+
+        var moreOffset = layout.Visible.ToList().FindIndex(entry => entry.Kind == PickerEntryKind.More);
+        var entry = layout.EntryAt(layout.ListFirstLine + moreOffset);
+
+        Assert.NotNull(entry);
+        Assert.Equal(PickerEntryKind.More, entry.Kind);
+        Assert.Equal(4, entry.RowIndex);
+        Assert.True(entry.IsToggle);
+        Assert.Null(layout.RowIndexAt(layout.ListFirstLine + moreOffset));
+        var header = layout.Visible.ToList().FindIndex(candidate => candidate.Kind == PickerEntryKind.Header);
+        Assert.Null(layout.EntryAt(layout.ListFirstLine + header));
+    }
+
+    private static PickerState CappedPicker()
+    {
+        var recents = Enumerable.Range(1, 31).Select(number => Row($"recent{number}", PickerTags.Recent));
+        var found = Enumerable.Range(1, 3).Select(number => Row($"found{number}", PickerTags.Discovered));
+
+        return Picker([.. recents, .. found]);
     }
 
     private static Dictionary<string, string> Branches(params (string Name, string Branch)[] pairs) =>

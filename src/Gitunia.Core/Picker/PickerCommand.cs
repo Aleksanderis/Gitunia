@@ -29,6 +29,14 @@ public sealed record ClearQueryCommand : PickerCommand;
 /// <param name="Delta">Rows to move, negative for up.</param>
 public sealed record MoveHighlightCommand(int Delta) : PickerCommand;
 
+/// <summary>Put the highlight on a row, or on the "more" or "less" line after it (a click).</summary>
+/// <param name="Row">The index in the rows (the anchor row of a toggle line).</param>
+/// <param name="IsOnToggle">Whether the highlight goes on the toggle line after the row.</param>
+public sealed record SetHighlightCommand(int Row, bool IsOnToggle) : PickerCommand;
+
+/// <summary>Expand the section whose "more" line is highlighted, or collapse the one whose "less" line is.</summary>
+public sealed record ToggleSectionCommand : PickerCommand;
+
 /// <summary>Complete the typed path (to the common prefix of the directories, or to the highlighted one).</summary>
 public sealed record CompletePathCommand : PickerCommand;
 

@@ -156,7 +156,7 @@ Views inherit like in the keymap: `Lists` covers Graph, Detail, Sidebar, Diff an
 | MessageButton.Commit | Click | `working-tree.commit` | The `Commit` button, same as `Ctrl-g` |
 | WorkingUnstagedDiff | Double-click | `visual.select-word` | Select the word under the pointer by character, then `y` copies it (staging a change group is `<space>a`, the `stage` chip or the file list; no triple-click here, #1177) |
 | WorkingStagedDiff | Double-click | `visual.select-word` | Select the word under the pointer by character, then `y` copies it (unstaging a change group is `<space>u` or the `unstage` chip; no triple-click here, #1177) |
-| Picker | Double-click | `picker.accept` | Open the repository of the row |
+| Picker | Double-click | `picker.accept` | Open the repository of the row; on a `▸ N more` line expand that section, on a `▴ less` line collapse it (the click before it highlighted the line; nothing is opened) |
 | Picker | Wheel up | `picker.previous` | Move the highlight up one row |
 | Picker | Wheel down | `picker.next` | Move the highlight down one row |
 | PickerButton.Accept | Click | `picker.accept` | Footer chip `Enter open`: open the highlighted row, same as `Enter` (#1203) |
@@ -166,7 +166,7 @@ Views inherit like in the keymap: `Lists` covers Graph, Detail, Sidebar, Diff an
 | PickerButton.Clone | Click | `picker.clone` | Footer chip `Alt-c clone` in the picker box (when it fits, not while locating), same as `Alt-c` |
 | PickerButton.Init | Click | `picker.init` | Chip `Alt-i init` next to it, same as `Alt-i` |
 
-Pointer-position behaviour that has no action of its own: a click on a pane focuses it, a click on a list row selects it (graph, detail, sidebar, diff; the details pane follows the graph selection as with keys), a click on a picker row highlights it.
+Pointer-position behaviour that has no action of its own: a click on a pane focuses it, a click on a list row selects it (graph, detail, sidebar, diff; the details pane follows the graph selection as with keys), a click on a picker row highlights it (also on a `▸ N more` or `▴ less` line, which is a row kind of its own with no repository behind it).
 A click on empty space does nothing.
 The wheel moves the selection, not just the view (the keyboard has no pure scroll either), so the details pane follows it as it does for `j`/`k`.
 A mouse action does not touch a pending count or chord typed before it.
@@ -201,7 +201,7 @@ The change group under the cursor also carries the same chips on its first line,
 A row that would keep fewer than 30 columns of diff text drops `discard`, then `stage`/`unstage`; the keys and the title buttons stay.
 `<space>z` and the `zoom` entry of the `view ▾` dropdown give the diff the whole view (lists and message box hidden) until focus leaves the diff (`Esc`, `Ctrl-h`) or zoom is used again; in the history view with the Changes tab beside the diff they zoom the file list and the diff together and `Esc`/`Ctrl-h` only return focus to the list (#632).
 In the Changes view a click on the diff box focuses it (the mouse path from a list to its diff on screens of 80 columns or more; narrow screens use the `diff ›` chip in the title row of the list).
-The picker's footer row (under a rule) shows the key-first chips of the diff title (#744, #880), in two groups: on the left `Enter open` and, for the highlighted row, `Alt-p pin`/`Alt-p unpin` and (recent repository) `Alt-d remove`; on the right `Alt-c clone`, `Alt-i init` and `Esc close` (#1203). Chips that do not fit are left out, the right group from its left end, so `Esc close` is the last to go. Picker list lines that are not rows (group headers and the blank spacer above each header but the first) ignore clicks; a click or double-click on a row hits that row wherever the spacers push it.
+The picker's footer row (under a rule) shows the key-first chips of the diff title (#744, #880), in two groups: on the left `Enter open` and, for the highlighted row, `Alt-p pin`/`Alt-p unpin` and (recent repository) `Alt-d remove`; on the right `Alt-c clone`, `Alt-i init` and `Esc close` (#1203). Chips that do not fit are left out, the right group from its left end, so `Esc close` is the last to go. Picker list lines that are not rows (group headers and the blank spacer above each header but the first) ignore clicks; a click or double-click on a row hits that row wherever the spacers push it. The `▸ N more` and `▴ less` lines take clicks like rows (#1205): the footer's first chip then reads `Enter expand` or `Enter collapse` and the pin and remove chips are left out.
 The repository picker (the opener) hides the fetch, pull and push chips of the tab row, since they act on the active tab's repository; `: commands` stays.
 Clicking the commands button at the right end of the tab row opens the command palette, which lists the actions of the focused pane and the global ones, so every action without a button (for example `<space>vl` load anyway, the search keys, `<space>or` refresh) can be run with the mouse; typing a search or a filter text needs the keyboard, as nothing else can enter text.
 

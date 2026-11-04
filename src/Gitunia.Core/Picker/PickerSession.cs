@@ -16,6 +16,8 @@ namespace Gitunia.Core.Picker;
 /// arrive.</param>
 /// <param name="OpenRequest">Counts the opens of a path, so a result that arrives after a close or a newer open is
 /// stale.</param>
+/// <param name="ListBudget">The rows the list can show on the current screen (see <see cref="PickerListPlan.Budget"/>), set
+/// with every command.</param>
 public sealed record PickerSession(
     PickerState? State,
     ImmutableArray<string> Discovered,
@@ -24,7 +26,8 @@ public sealed record PickerSession(
     DateTimeOffset? LastScan,
     bool IsScanning,
     bool CompleteAfterListing,
-    int OpenRequest)
+    int OpenRequest,
+    int ListBudget = PickerListPlan.MaximumListRows)
 {
     public static PickerSession Empty { get; } = new(null, [], null, string.Empty, null, false, false, 0);
 

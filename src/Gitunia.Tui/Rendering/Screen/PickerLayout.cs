@@ -3,16 +3,6 @@ using Gitunia.Core.Picker;
 namespace Gitunia.Tui.Rendering.Screen;
 
 /// <summary>
-/// One line of the picker list: a repository row, a group header (<see cref="RowIndex"/> is -1, a name) or the blank
-/// spacer above a header (<see cref="RowIndex"/> is -1, no name).
-/// </summary>
-public sealed record PickerListLine(int RowIndex, string Header)
-{
-    /// <summary>A blank line that is not a row.</summary>
-    public bool IsSpacer => RowIndex < 0 && Header.Length == 0;
-}
-
-/// <summary>
 /// Where the parts of the picker sit inside its area, shared by the renderer and the mouse. Lines are relative to the
 /// box (<see cref="PickerComposer.Compose"/> returns them), the box sits at (<see cref="BoxX"/>, <see cref="BoxY"/>) of the
 /// area. A tiny area gets no frame: query line, list and notice only.
@@ -26,12 +16,12 @@ public sealed record PickerLayout(
     int ListFirstLine,
     int ListHeight,
     int MessageLine,
-    IReadOnlyList<PickerListLine> Visible)
+    IReadOnlyList<PickerListEntry> Visible)
 {
     private const int MaximumWidth = 100;
-    private const int MaximumListRows = 18;
-    private const int MinimumListRows = 4;
-    private const int FramedChromeRows = 6;
+    private const int MaximumListRows = PickerListPlan.MaximumListRows;
+    private const int MinimumListRows = PickerListPlan.MinimumListRows;
+    private const int FramedChromeRows = PickerListPlan.FramedChromeRows;
     private const int MinimumFramedWidth = 30;
     private const int Margin = 2;
 
@@ -41,43 +31,26 @@ public sealed record PickerLayout(
     /// <summary>Whether box line <paramref name="line"/> is the footer row of chips (the framed box only).</summary>
     public bool IsFooterLine(int line) => IsFramed && line == BoxHeight - 2;
 
-    /// <summary>The repository row index drawn on box line <paramref name="line"/>, or null.</summary>
-    public int? RowIndexAt(int line)
+    /// <summary>The repository row index drawn on box line <paramref name="line"/>, or null (a header, a spacer or a more or less line).</summary>
+    public int? RowIndexAt(int line) => EntryAt(line) is { Kind: PickerEntryKind.Row } entry ? entry.RowIndex : null;
+
+    /// <summary>The selectable list line (row, more or less) drawn on box line <paramref name="line"/>, or null.</summary>
+    public PickerListEntry? EntryAt(int line)
     {
         var offset = line - ListFirstLine;
-        return offset >= 0 && offset < Visible.Count && Visible[offset].RowIndex >= 0 ? Visible[offset].RowIndex : null;
+        return offset >= 0 && offset < Visible.Count && Visible[offset].IsSelectable ? Visible[offset] : null;
     }
 
     /// <summary>
-    /// The group headers and rows of the list: headers only for the unfiltered list with more than one group, each
-    /// but the first after a spacer line when <paramref name="withSpacers"/> (the framed box; the unframed one is too
-    /// small).
+    /// The lines of the list for an area of <paramref name="areaHeight"/> rows, as <see cref="PickerListPlan"/> lays them
+    /// out; the blank spacers above the headers are left out unless <paramref name="withSpacers"/> (the framed box; the
+    /// unframed one is too small).
     /// </summary>
-    public static IReadOnlyList<PickerListLine> ListLines(PickerState picker, bool withSpacers)
+    public static IReadOnlyList<PickerListEntry> ListLines(PickerState picker, int areaHeight, bool withSpacers)
     {
-        var lines = new List<PickerListLine>(picker.Rows.Length + 4);
-        var withHeaders = picker.Query.Length == 0
-            && !picker.IsPathMode
-            && picker.Rows.Select(row => Group(row.Tags)).Distinct().Count() > 1;
-        var previous = -1;
-        for (var index = 0; index < picker.Rows.Length; index++)
-        {
-            var group = Group(picker.Rows[index].Tags);
-            if (withHeaders && group != previous)
-            {
-                if (withSpacers && previous >= 0)
-                {
-                    lines.Add(new PickerListLine(-1, string.Empty));
-                }
+        var plan = PickerListPlan.Build(picker, PickerListPlan.Budget(areaHeight));
 
-                lines.Add(new PickerListLine(-1, GroupName(group)));
-            }
-
-            previous = group;
-            lines.Add(new PickerListLine(index, string.Empty));
-        }
-
-        return lines;
+        return withSpacers ? plan : [.. plan.Where(entry => entry.Kind != PickerEntryKind.Spacer)];
     }
 
     public static PickerLayout Compute(PickerState picker, int width, int height)
@@ -86,7 +59,7 @@ public sealed record PickerLayout(
         var chrome = FramedChromeRows + (hasMessage ? 1 : 0);
         if (width >= MinimumFramedWidth && height >= chrome + 1)
         {
-            var all = ListLines(picker, true);
+            var all = ListLines(picker, height, true);
             var boxWidth = Math.Min(MaximumWidth, width - Margin);
             var listHeight = Math.Min(Math.Min(MaximumListRows, height - chrome), Math.Max(MinimumListRows, all.Count));
             var boxHeight = chrome + listHeight;
@@ -100,10 +73,10 @@ public sealed record PickerLayout(
                 3,
                 listHeight,
                 messageLine,
-                Window(all, picker.Highlight, listHeight));
+                Window(all, picker, listHeight));
         }
 
-        var compact = ListLines(picker, false);
+        var compact = ListLines(picker, height, false);
         var compactList = Math.Max(0, height - 1 - (hasMessage ? 1 : 0));
         return new PickerLayout(
             false,
@@ -114,50 +87,26 @@ public sealed record PickerLayout(
             1,
             compactList,
             hasMessage && height > 1 ? 1 + compactList : -1,
-            Window(compact, picker.Highlight, compactList));
+            Window(compact, picker, compactList));
     }
 
     /// <summary>The first list row shown for a highlight, so the highlight stays visible.</summary>
     public static int TopRow(int highlight, int listHeight) => highlight < listHeight ? 0 : highlight - listHeight + 1;
 
-    private static List<PickerListLine> Window(IReadOnlyList<PickerListLine> all, int highlight, int listHeight)
+    private static List<PickerListEntry> Window(IReadOnlyList<PickerListEntry> all, PickerState picker, int listHeight)
     {
         if (listHeight <= 0)
         {
             return [];
         }
 
-        var at = all.ToList().FindIndex(line => line.RowIndex == highlight);
+        var at = PickerListPlan.PositionOf(all, picker);
         var top = TopRow(Math.Max(0, at), listHeight);
-        if (top < at && all[top].IsSpacer)
+        if (top < at && all[top].Kind == PickerEntryKind.Spacer)
         {
             top++;
         }
 
         return [.. all.Skip(top).Take(listHeight)];
     }
-
-    // Open, pinned, recent, then the rest (found, directories).
-    private static int Group(PickerTags tags)
-    {
-        if (tags.HasFlag(PickerTags.Open))
-        {
-            return 0;
-        }
-
-        if (tags.HasFlag(PickerTags.Pinned))
-        {
-            return 1;
-        }
-
-        return tags.HasFlag(PickerTags.Recent) ? 2 : 3;
-    }
-
-    private static string GroupName(int group) => group switch
-    {
-        0 => "Open",
-        1 => "Pinned",
-        2 => "Recent",
-        _ => "Found",
-    };
 }

@@ -76,7 +76,7 @@ public static class PickerComposer
         }
 
         lines.Add(OverlayBox.Wrap(Rule(inner, glyphs, 1), glyphs));
-        lines.Add(OverlayBox.Wrap(Footer(picker, inner, glyphs, keys), glyphs));
+        lines.Add(OverlayBox.Wrap(Footer(picker, inner, glyphs, keys, layout), glyphs));
         lines.Add(OverlayBox.Bottom(width, glyphs));
         return lines;
     }
@@ -156,9 +156,19 @@ public static class PickerComposer
         return builder.Build();
     }
 
-    private static StyledLine Footer(PickerState picker, int inner, GraphGlyphSet glyphs, ChipKeys? keys)
+    private static StyledLine Footer(
+        PickerState picker,
+        int inner,
+        GraphGlyphSet glyphs,
+        ChipKeys? keys,
+        PickerLayout layout)
     {
-        var buttons = PickerFooterButtons.Layout(picker.HighlightedRow, inner, picker.LocatingTabId is not null, keys);
+        var buttons = PickerFooterButtons.Layout(
+            picker.HighlightedRow,
+            inner,
+            picker.LocatingTabId is not null,
+            keys,
+            PickerFooterButtons.AcceptLabel(picker, layout.Visible));
         var builder = new LineBuilder(inner, glyphs.Ellipsis);
         var column = 0;
         foreach (var button in buttons)
@@ -199,10 +209,21 @@ public static class PickerComposer
         var longestName = picker.Rows.Select(row => TextWidth.Of(DisplayName(row))).DefaultIfEmpty(0).Max();
         var nameWidth = Math.Min(Math.Min(MaximumNameColumns, longestName), Math.Max(6, width / 3));
         var branchWidth = BranchWidth(picker, openBranches, homeDirectory, width, nameWidth, glyphs);
-        foreach (var entry in layout.Visible)
+        var selected = PickerListPlan.PositionOf(layout.Visible, picker);
+        for (var offset = 0; offset < layout.Visible.Count; offset++)
         {
-            var line = ListLine(picker, entry, homeDirectory, width, nameWidth, branchWidth, openBranches, glyphs);
-            lines.Add(Wrap(line, glyphs, isFramed, entry.RowIndex == picker.Highlight && entry.RowIndex >= 0));
+            var isSelected = offset == selected;
+            var line = ListLine(
+                picker,
+                layout.Visible[offset],
+                isSelected,
+                homeDirectory,
+                width,
+                nameWidth,
+                branchWidth,
+                openBranches,
+                glyphs);
+            lines.Add(Wrap(line, glyphs, isFramed, isSelected));
         }
 
         while (lines.Count < layout.ListHeight)
@@ -215,7 +236,8 @@ public static class PickerComposer
 
     private static StyledLine ListLine(
         PickerState picker,
-        PickerListLine entry,
+        PickerListEntry entry,
+        bool isSelected,
         string homeDirectory,
         int width,
         int nameWidth,
@@ -223,24 +245,53 @@ public static class PickerComposer
         IReadOnlyDictionary<string, string>? openBranches,
         GraphGlyphSet glyphs)
     {
-        if (entry.IsSpacer)
+        return entry.Kind switch
         {
-            return new LineBuilder(width, glyphs.Ellipsis).Build();
-        }
-
-        return entry.RowIndex < 0
-            ? HeaderLine(entry.Header, width, glyphs)
-            : RowLine(picker, entry.RowIndex, homeDirectory, width, nameWidth, branchWidth, openBranches, glyphs);
+            PickerEntryKind.Spacer => new LineBuilder(width, glyphs.Ellipsis).Build(),
+            PickerEntryKind.Header => HeaderLine(entry, width, glyphs),
+            PickerEntryKind.Row => RowLine(
+                picker,
+                entry.RowIndex,
+                isSelected,
+                homeDirectory,
+                width,
+                nameWidth,
+                branchWidth,
+                openBranches,
+                glyphs),
+            _ => ToggleLine(entry, isSelected, width, glyphs),
+        };
     }
 
-    // The group name in capitals, then a rule to the right edge.
-    private static StyledLine HeaderLine(string header, int width, GraphGlyphSet glyphs)
+    // The group name in capitals, the shown count when the section is capped, then a rule to the right edge.
+    private static StyledLine HeaderLine(PickerListEntry entry, int width, GraphGlyphSet glyphs)
     {
         var builder = new LineBuilder(width, glyphs.Ellipsis)
-            .Append($" {header.ToUpperInvariant()}", SegmentRole.SectionTitle)
-            .Append(" ", SegmentRole.Plain);
+            .Append($" {entry.Section.ToString().ToUpperInvariant()}", SegmentRole.SectionTitle);
+        if (entry.Shown < entry.Total)
+        {
+            var shown = entry.Shown.ToString(CultureInfo.InvariantCulture);
+            var total = entry.Total.ToString(CultureInfo.InvariantCulture);
+            builder.Append($"  {shown} of {total}", SegmentRole.Faint);
+        }
+
+        builder.Append(" ", SegmentRole.Plain);
         builder.Append(new string(glyphs.Horizontal, Math.Max(0, builder.Remaining - 1)), SegmentRole.Faint);
         return builder.Build();
+    }
+
+    // The line that expands a capped section ("N more") or collapses an expanded one, under the rows' glyph column.
+    private static StyledLine ToggleLine(PickerListEntry entry, bool isSelected, int width, GraphGlyphSet glyphs)
+    {
+        var isMore = entry.Kind == PickerEntryKind.More;
+        var mark = isMore ? glyphs.Picker.More : glyphs.Picker.Less;
+        var text = isMore ? $"{entry.Hidden.ToString(CultureInfo.InvariantCulture)} more" : "less";
+        return new LineBuilder(width, glyphs.Ellipsis)
+            .Append(" ", SegmentRole.Plain)
+            .Append(mark, SegmentRole.Faint)
+            .Append(new string(' ', GlyphGap), SegmentRole.Plain)
+            .Append(text, SegmentRole.Faint)
+            .Build(isSelected: isSelected);
     }
 
     // Glyph, name, then the path right-aligned; a second mark for a pinned row whose glyph says something else sits
@@ -248,6 +299,7 @@ public static class PickerComposer
     private static StyledLine RowLine(
         PickerState picker,
         int index,
+        bool isSelected,
         string homeDirectory,
         int width,
         int nameWidth,
@@ -283,7 +335,7 @@ public static class PickerComposer
             builder.Append(isStarred ? glyphs.Picker.Pinned : " ", SegmentRole.CurrentBranch);
         }
 
-        return builder.Build(isSelected: index == picker.Highlight);
+        return builder.Build(isSelected: isSelected);
     }
 
     // The branch of an open, present repository; detached or unloaded tabs have none.

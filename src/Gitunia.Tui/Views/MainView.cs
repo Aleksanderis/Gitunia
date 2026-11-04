@@ -1,5 +1,6 @@
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Mouse;
+using Gitunia.Core.Picker;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Tui.Rendering.Details;
@@ -161,8 +162,8 @@ public sealed class MainView : IDisposable
     /// <summary>Raised with the frame line and the pointer column on a triple-click of the overlay box.</summary>
     public event Action<int, int>? OverlayLineTripleClicked;
 
-    /// <summary>Raised with the row index when a picker row is clicked (the highlight follows the pointer).</summary>
-    public event Action<int>? PickerRowClicked
+    /// <summary>Raised with the list line when a picker row, or its more or less line, is clicked (the highlight follows the pointer).</summary>
+    public event Action<PickerListEntry>? PickerRowClicked
     {
         add => _picker.RowClicked += value;
         remove => _picker.RowClicked -= value;
