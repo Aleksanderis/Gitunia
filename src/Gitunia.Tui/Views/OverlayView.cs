@@ -35,6 +35,9 @@ public sealed class OverlayView : View
     /// <summary>Raised with the frame line and column of the pointer during a drag (also the first move).</summary>
     public event Action<int, int>? Dragged;
 
+    /// <summary>Raised when the button is released after a drag over the overlay.</summary>
+    public event Action? DragReleased;
+
     /// <summary>Raised with the frame line on a triple-click of the overlay.</summary>
     public event Action<int>? LineTripleClicked;
 
@@ -69,6 +72,11 @@ public sealed class OverlayView : View
             if (phase == DragPhase.Start)
             {
                 DragStarted?.Invoke(_drag.Origin.Y, _drag.Origin.X);
+            }
+
+            if (phase == DragPhase.End)
+            {
+                DragReleased?.Invoke();
             }
 
             if (phase is DragPhase.Start or DragPhase.Move && mouse.Position is { } pointerAt)

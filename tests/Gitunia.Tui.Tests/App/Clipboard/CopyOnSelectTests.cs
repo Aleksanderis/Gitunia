@@ -1,4 +1,5 @@
 using Gitunia.App;
+using Gitunia.App.Blame;
 using Gitunia.Core;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Visual;
@@ -7,9 +8,12 @@ using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Platform;
+using Gitunia.Tui.App.Blame;
 using Gitunia.Tui.App.Clipboard;
 using Gitunia.Tui.App.Config;
 using Gitunia.Tui.App.Panes;
+using Gitunia.Tui.Rendering.Graph;
+using Gitunia.Tui.Tests.App.Blame;
 using Gitunia.Tui.Tests.App.Panes;
 using Gitunia.Tui.Tests.Fakes;
 using Terminal.Gui.Views;
@@ -41,7 +45,8 @@ public sealed class CopyOnSelectTests : IDisposable
             new ConfigStartup(Path.Combine(Path.GetTempPath(), "gitunia-no-config"), Path.GetTempPath()).Load(),
             new ConsoleCapabilities(false, ColorDepth.None, true),
             Path.GetTempPath());
-        _ = new CopyOnSelect(_host, _visual, _config); // Wires itself to the pointer events.
+        var blame = new BlameInput(_host, new BlameStore(), new NoBlameTargets(), GraphGlyphSet.Unicode);
+        _ = new CopyOnSelect(_host, _visual, blame, _config); // Wires itself to the pointer events.
     }
 
     public void Dispose()

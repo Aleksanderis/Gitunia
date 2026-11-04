@@ -117,6 +117,15 @@ public sealed class OverlayGestures(
         editors.Conflict.OnDragged(cover.IsOtherThanConflictEditorOpen(), line);
     }
 
+    /// <summary>The button was released after a drag over an overlay: the blame view's selection is final.</summary>
+    public void OnDragReleased()
+    {
+        if (blame.IsOpen)
+        {
+            blame.OnDragReleased();
+        }
+    }
+
     /// <summary>A triple click on the blame view selects the line text under the pointer; others ignore it.</summary>
     /// <param name="line">The frame line.</param>
     /// <param name="column">The frame column.</param>

@@ -2,6 +2,7 @@ using Gitunia.App;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Visual;
 using Gitunia.Tui.App;
+using Gitunia.Tui.App.Blame;
 using Gitunia.Tui.App.Panes;
 
 namespace Gitunia.Tui.Input;
@@ -18,18 +19,26 @@ public sealed class CtrlCHandler
 
     private readonly Dispatcher _host;
     private readonly VisualRangeInput _visual;
+    private readonly BlameInput _blame;
     private readonly IQuitRequests _quit;
     private readonly TimeProvider _time;
     private DateTimeOffset? _copiedAt;
 
     /// <param name="host">Takes the copy request.</param>
-    /// <param name="visual">Tells whether a selection is active.</param>
+    /// <param name="visual">Tells whether a selection of a pane is active.</param>
+    /// <param name="blame">Tells whether a selection of the blame view is active.</param>
     /// <param name="quit">Quits.</param>
     /// <param name="time">The clock, for the window of the second press.</param>
-    public CtrlCHandler(Dispatcher host, VisualRangeInput visual, IQuitRequests quit, TimeProvider? time = null)
+    public CtrlCHandler(
+        Dispatcher host,
+        VisualRangeInput visual,
+        BlameInput blame,
+        IQuitRequests quit,
+        TimeProvider? time = null)
     {
         _host = host;
         _visual = visual;
+        _blame = blame;
         _quit = quit;
         _time = time ?? TimeProvider.System;
         host.Changed += ForgetCopyWhenSelectionEnded;
@@ -48,15 +57,22 @@ public sealed class CtrlCHandler
         }
 
         _copiedAt = now;
-        _host.Dispatch(new VisualCopyRequested(VisualCopyMode.CtrlC));
+        if (_visual.IsActive)
+        {
+            _host.Dispatch(new VisualCopyRequested(VisualCopyMode.CtrlC));
+        }
+        else
+        {
+            _blame.CopySelection(VisualCopyMode.CtrlC);
+        }
     }
 
-    private bool IsCopying => _visual.IsActive && _host.State.Shell.Mode == KeyMode.Visual;
+    private bool IsCopying => (_visual.IsActive || _blame.HasSelection) && _host.State.Shell.Mode == KeyMode.Visual;
 
     // A second press only counts for the selection that was copied: a new one starts over.
     private void ForgetCopyWhenSelectionEnded()
     {
-        if (!_visual.IsActive)
+        if (!_visual.IsActive && !_blame.HasSelection)
         {
             _copiedAt = null;
         }

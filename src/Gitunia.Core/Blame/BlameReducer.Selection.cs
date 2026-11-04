@@ -179,15 +179,37 @@ public static partial class BlameReducer
             return Done(session);
         }
 
-        var range = selection.RangeTo(view.Cursor);
-        var effect = new CopyBlameSelectionEffect(
-            session.Generation,
-            range.First,
-            range.Last,
-            selection.TextTo(view.Cursor));
+        var effect = CopyEffectOf(session, view, selection);
         var ended = EndSelection(view);
 
         return With(session, ended, [.. ModeEffects(view, ended), effect]);
+    }
+
+    // Copy on select and Ctrl-c copy the selection and keep it, so y still works and a second Ctrl-c can quit.
+    private static BlameUpdate RequestCopy(BlameSession session, VisualCopyMode mode)
+    {
+        if (session.View is not { Selection: { } selection } view)
+        {
+            return Done(session);
+        }
+
+        if (mode == VisualCopyMode.Yank)
+        {
+            return Copy(session, view);
+        }
+
+        // The copy posts its own outcome (copied, or why not); a quit hint here would hide a failure.
+        return Done(session, CopyEffectOf(session, view, selection));
+    }
+
+    private static CopyBlameSelectionEffect CopyEffectOf(
+        BlameSession session,
+        BlameState view,
+        BlameSelection selection)
+    {
+        var range = selection.RangeTo(view.Cursor);
+
+        return new CopyBlameSelectionEffect(session.Generation, range.First, range.Last, selection.TextTo(view.Cursor));
     }
 
     /// <summary>

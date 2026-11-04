@@ -1,4 +1,3 @@
-using Gitunia.Tui.App.Clipboard;
 using Gitunia.Tui.App.Compare;
 using Gitunia.Tui.App.Creation;
 using Gitunia.Tui.App.Details;
@@ -27,7 +26,6 @@ public sealed class PaneParts
         var panes = foundation.Panes;
         Commits = new CommitMessageInput(host, route.ActionInput);
         Visual = new VisualRangeInput(host, panes);
-        _ = new CopyOnSelect(host, Visual, foundation.Config); // Wires itself to the pointer events of Visual.
         panes.Graph.DragReleased += Visual.OnDragReleased;
         panes.Detail.DragReleased += Visual.OnDragReleased;
         panes.Diff.DragReleased += Visual.OnDragReleased;

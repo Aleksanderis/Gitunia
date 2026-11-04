@@ -139,6 +139,43 @@ public class BlameSelectionTests
         Assert.Equal((1, 2), (copy.FirstLine, copy.LastLine));
     }
 
+    [Theory]
+    [InlineData(VisualCopyMode.OnSelect)]
+    [InlineData(VisualCopyMode.CtrlC)]
+    public void GivenACharacterSelection_WhenCopiedOnSelectOrWithCtrlC_ThenTheCopyIsAskedAndTheSelectionAndModeStay(
+        VisualCopyMode mode)
+    {
+        var started = AppReducer.Reduce(
+            Viewing(3),
+            new BlameTextSelected(new TextPosition(1, 2), new TextPosition(2, 3), 0)).State;
+
+        var update = AppReducer.Reduce(started, new BlameCopyRequested(mode));
+
+        var copy = Assert.Single(update.Effects.OfType<CopyBlameSelectionEffect>());
+        Assert.Equal(new TextSelection(new TextPosition(1, 2), new TextPosition(2, 3)), copy.Chars);
+        Assert.NotNull(update.State.Shell.Blame.View!.Selection);
+        Assert.DoesNotContain(update.Effects, effect => effect is SetKeyModeEffect or PostStatusEffect);
+    }
+
+    [Fact]
+    public void GivenAYankRequest_WhenCopying_ThenItEndsTheSelectionLikeTheKey()
+    {
+        var state = Reduce(Viewing(6, cursor: 4), Pressed(ActionIds.VisualToggle));
+
+        var update = AppReducer.Reduce(state, new BlameCopyRequested(VisualCopyMode.Yank));
+
+        Assert.Single(update.Effects.OfType<CopyBlameSelectionEffect>());
+        Assert.Null(update.State.Shell.Blame.View!.Selection);
+    }
+
+    [Fact]
+    public void GivenNoSelection_WhenCopyIsRequested_ThenNothingHappens()
+    {
+        var update = AppReducer.Reduce(Viewing(3), new BlameCopyRequested(VisualCopyMode.OnSelect));
+
+        Assert.Empty(update.Effects);
+    }
+
     [Fact]
     public void GivenTheMouse_WhenDraggingCharactersOrLines_ThenTheSelectionAndCursorFollowThePointer()
     {

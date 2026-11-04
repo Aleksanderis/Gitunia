@@ -4,6 +4,7 @@ using Gitunia.App.Blame;
 using Gitunia.App.Status;
 using Gitunia.Core;
 using Gitunia.Core.Blame;
+using Gitunia.Core.Visual;
 using Gitunia.Core.Clipboard;
 using Gitunia.Core.Effects;
 using Gitunia.Core.FileHistory;
@@ -18,6 +19,14 @@ using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Git.Tests.Fixtures;
 using Gitunia.Tui.App.Blame;
 using Gitunia.Tui.Rendering.Graph;
+using Gitunia.Platform;
+using Gitunia.Tui.App.Clipboard;
+using Gitunia.Tui.App.Config;
+using Gitunia.Tui.App.Panes;
+using Gitunia.Tui.Input;
+using Gitunia.Tui.Tests.App.Panes;
+using Gitunia.Tui.Tests.Fakes;
+using Terminal.Gui.Views;
 using Xunit;
 
 namespace Gitunia.Tui.Tests.App.Blame;
@@ -364,6 +373,166 @@ public sealed class BlameInputTests
         harness.Input.TryExecute(ActionIds.VisualCopy, null);
 
         Assert.Equal(["bar", "foo bar baz"], harness.Copies.Select(copy => copy.Text));
+    }
+
+    [Fact]
+    public async Task GivenADragFromTheCode_WhenTheButtonIsReleased_ThenThePointerSelectionIsReported()
+    {
+        using var repository = TestRepository.Create().Commit("first", new TestFile("a.txt", "ab\tcd\nsecond\n"));
+        using var harness = await Harness.LoadAsync(repository, new FixedTargets("a.txt", repository.Head));
+        await harness.OpenAsync();
+        var reported = 0;
+        harness.Input.PointerSelected += () => reported++;
+        var code = BlameFrameBuilder.CodeStart(Width);
+
+        harness.Input.OnDragStarted(1, code + 1);
+        harness.Input.OnDragged(2, code + 2);
+        Assert.Equal(0, reported);
+        harness.Input.OnDragReleased();
+        harness.Input.OnDragReleased();
+
+        Assert.Equal(1, reported);
+        Assert.True(harness.Input.HasSelection);
+    }
+
+    [Fact]
+    public async Task GivenADoubleClickOnTheCode_WhenItSelectsTheWord_ThenThePointerSelectionIsReported()
+    {
+        using var repository = TestRepository.Create().Commit("first", new TestFile("a.txt", "foo bar baz\n"));
+        using var harness = await Harness.LoadAsync(repository, new FixedTargets("a.txt", repository.Head));
+        await harness.OpenAsync();
+        var reported = 0;
+        harness.Input.PointerSelected += () => reported++;
+        var code = BlameFrameBuilder.CodeStart(Width);
+
+        harness.Input.OnTextClicked(1, 3, true);
+        harness.Input.OnTextClicked(1, code + 5, true);
+
+        Assert.Equal(1, reported);
+    }
+
+    [Theory]
+    [InlineData(VisualCopyMode.OnSelect)]
+    [InlineData(VisualCopyMode.CtrlC)]
+    public async Task GivenASelection_WhenCopiedOnSelectOrWithCtrlC_ThenTheTextIsCopiedAndTheSelectionStays(
+        VisualCopyMode mode)
+    {
+        using var repository = TestRepository.Create().Commit("first", new TestFile("a.txt", "foo bar baz\n"));
+        using var harness = await Harness.LoadAsync(repository, new FixedTargets("a.txt", repository.Head));
+        await harness.OpenAsync();
+        harness.Input.OnTextClicked(1, BlameFrameBuilder.CodeStart(Width) + 5, true);
+
+        harness.Input.CopySelection(mode);
+
+        Assert.Equal("bar", Assert.Single(harness.Copies).Text);
+        Assert.True(harness.Input.HasSelection);
+    }
+
+    [Fact]
+    public async Task GivenABlameSelection_WhenCtrlCIsPressedTwice_ThenTheFirstCopiesAndTheSecondQuits()
+    {
+        using var repository = TestRepository.Create().Commit("first", new TestFile("a.txt", "foo bar baz\n"));
+        using var harness = await Harness.LoadAsync(repository, new FixedTargets("a.txt", repository.Head));
+        await harness.OpenAsync();
+        harness.Input.OnTextClicked(1, BlameFrameBuilder.CodeStart(Width) + 5, true);
+        var quit = new CountingQuit();
+        using var source = new RangeSource(0);
+        using var list = new ListView();
+        list.Source = source;
+        var visual = new VisualRangeInput(harness.Host, new FakePaneLists(list));
+        var handler = new CtrlCHandler(harness.Host, visual, harness.Input, quit);
+
+        handler.Press();
+        Assert.Equal(0, quit.Forced);
+        Assert.Equal("bar", Assert.Single(harness.Copies).Text);
+        handler.Press();
+
+        Assert.Equal(1, quit.Forced);
+    }
+
+    [Fact]
+    public async Task GivenABlameSelection_WhenCopyOnSelectIsOn_ThenAMouseSelectionIsCopiedWhenTheDragIsReleased()
+    {
+        using var repository = TestRepository.Create().Commit("first", new TestFile("a.txt", "ab\tcd\nsecond\n"));
+        using var harness = await Harness.LoadAsync(repository, new FixedTargets("a.txt", repository.Head));
+        await harness.OpenAsync();
+        using var source = new RangeSource(0);
+        using var list = new ListView();
+        list.Source = source;
+        var config = new LiveConfig(
+            new ConfigStartup(Path.Combine(Path.GetTempPath(), "gitunia-no-config"), Path.GetTempPath()).Load(),
+            new ConsoleCapabilities(false, ColorDepth.None, true),
+            Path.GetTempPath());
+        _ = new CopyOnSelect(
+            harness.Host,
+            new VisualRangeInput(harness.Host, new FakePaneLists(list)),
+            harness.Input,
+            config); // Wires itself to the pointer events.
+        var code = BlameFrameBuilder.CodeStart(Width);
+
+        harness.Input.OnDragStarted(1, code + 1);
+        harness.Input.OnDragged(2, code + 2);
+        Assert.Empty(harness.Copies);
+        harness.Input.OnDragReleased();
+
+        Assert.Equal("b\tcd\nsec", Assert.Single(harness.Copies).Text);
+        Assert.True(harness.Input.HasSelection);
+    }
+
+    [Fact]
+    public async Task GivenABlameSelection_WhenCopyOnSelectIsOff_ThenAReleasedDragCopiesNothing()
+    {
+        using var repository = TestRepository.Create().Commit("first", new TestFile("a.txt", "ab\tcd\nsecond\n"));
+        using var harness = await Harness.LoadAsync(repository, new FixedTargets("a.txt", repository.Head));
+        await harness.OpenAsync();
+        using var source = new RangeSource(0);
+        using var list = new ListView();
+        list.Source = source;
+        var config = new LiveConfig(
+            new ConfigStartup(Path.Combine(Path.GetTempPath(), "gitunia-no-config"), Path.GetTempPath()).Load(),
+            new ConsoleCapabilities(false, ColorDepth.None, true),
+            Path.GetTempPath());
+        _ = new CopyOnSelect(
+            harness.Host,
+            new VisualRangeInput(harness.Host, new FakePaneLists(list)),
+            harness.Input,
+            config); // Wires itself to the pointer events.
+        config.ChangeOptions(config.Options with { CopyOnSelect = false });
+        var code = BlameFrameBuilder.CodeStart(Width);
+
+        harness.Input.OnDragStarted(1, code + 1);
+        harness.Input.OnDragged(2, code + 2);
+        Assert.Empty(harness.Copies);
+        harness.Input.OnDragReleased();
+
+        Assert.Empty(harness.Copies);
+        Assert.True(harness.Input.HasSelection);
+    }
+
+    [Fact]
+    public async Task GivenNoSelection_WhenCopyingOnSelect_ThenNothingIsCopied()
+    {
+        using var repository = TwoCommits();
+        using var harness = await Harness.LoadAsync(repository, new FixedTargets("a.txt", repository.Head));
+        await harness.OpenAsync();
+
+        harness.Input.CopySelection(VisualCopyMode.OnSelect);
+
+        Assert.Empty(harness.Copies);
+    }
+
+    [Fact]
+    public async Task GivenYankOnASelection_WhenCopying_ThenTheSelectionEnds()
+    {
+        using var repository = TestRepository.Create().Commit("first", new TestFile("a.txt", "foo bar baz\n"));
+        using var harness = await Harness.LoadAsync(repository, new FixedTargets("a.txt", repository.Head));
+        await harness.OpenAsync();
+        harness.Input.OnTextClicked(1, BlameFrameBuilder.CodeStart(Width) + 5, true);
+
+        harness.Input.CopySelection(VisualCopyMode.Yank);
+
+        Assert.Equal("bar", Assert.Single(harness.Copies).Text);
+        Assert.False(harness.Input.HasSelection);
     }
 
     [Fact]
