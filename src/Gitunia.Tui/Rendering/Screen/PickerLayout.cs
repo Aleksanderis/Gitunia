@@ -2,8 +2,15 @@ using Gitunia.Core.Picker;
 
 namespace Gitunia.Tui.Rendering.Screen;
 
-/// <summary>One line of the picker list: a group header (<see cref="RowIndex"/> is -1) or a repository row.</summary>
-public sealed record PickerListLine(int RowIndex, string Header);
+/// <summary>
+/// One line of the picker list: a repository row, a group header (<see cref="RowIndex"/> is -1, a name) or the blank
+/// spacer above a header (<see cref="RowIndex"/> is -1, no name).
+/// </summary>
+public sealed record PickerListLine(int RowIndex, string Header)
+{
+    /// <summary>A blank line that is not a row.</summary>
+    public bool IsSpacer => RowIndex < 0 && Header.Length == 0;
+}
 
 /// <summary>
 /// Where the parts of the picker sit inside its area, shared by the renderer and the mouse. Lines are relative to the
@@ -22,9 +29,9 @@ public sealed record PickerLayout(
     IReadOnlyList<PickerListLine> Visible)
 {
     private const int MaximumWidth = 100;
-    private const int MaximumListRows = 14;
+    private const int MaximumListRows = 18;
     private const int MinimumListRows = 4;
-    private const int FramedChromeRows = 5;
+    private const int FramedChromeRows = 6;
     private const int MinimumFramedWidth = 30;
     private const int Margin = 2;
 
@@ -41,8 +48,12 @@ public sealed record PickerLayout(
         return offset >= 0 && offset < Visible.Count && Visible[offset].RowIndex >= 0 ? Visible[offset].RowIndex : null;
     }
 
-    /// <summary>The group headers and rows of the list: headers only for the unfiltered list with more than one group.</summary>
-    public static IReadOnlyList<PickerListLine> ListLines(PickerState picker)
+    /// <summary>
+    /// The group headers and rows of the list: headers only for the unfiltered list with more than one group, each
+    /// but the first after a spacer line when <paramref name="withSpacers"/> (the framed box; the unframed one is too
+    /// small).
+    /// </summary>
+    public static IReadOnlyList<PickerListLine> ListLines(PickerState picker, bool withSpacers)
     {
         var lines = new List<PickerListLine>(picker.Rows.Length + 4);
         var withHeaders = picker.Query.Length == 0
@@ -54,6 +65,11 @@ public sealed record PickerLayout(
             var group = Group(picker.Rows[index].Tags);
             if (withHeaders && group != previous)
             {
+                if (withSpacers && previous >= 0)
+                {
+                    lines.Add(new PickerListLine(-1, string.Empty));
+                }
+
                 lines.Add(new PickerListLine(-1, GroupName(group)));
             }
 
@@ -66,11 +82,11 @@ public sealed record PickerLayout(
 
     public static PickerLayout Compute(PickerState picker, int width, int height)
     {
-        var all = ListLines(picker);
         var hasMessage = picker.Message.Length > 0;
         var chrome = FramedChromeRows + (hasMessage ? 1 : 0);
         if (width >= MinimumFramedWidth && height >= chrome + 1)
         {
+            var all = ListLines(picker, true);
             var boxWidth = Math.Min(MaximumWidth, width - Margin);
             var listHeight = Math.Min(Math.Min(MaximumListRows, height - chrome), Math.Max(MinimumListRows, all.Count));
             var boxHeight = chrome + listHeight;
@@ -87,6 +103,7 @@ public sealed record PickerLayout(
                 Window(all, picker.Highlight, listHeight));
         }
 
+        var compact = ListLines(picker, false);
         var compactList = Math.Max(0, height - 1 - (hasMessage ? 1 : 0));
         return new PickerLayout(
             false,
@@ -97,7 +114,7 @@ public sealed record PickerLayout(
             1,
             compactList,
             hasMessage && height > 1 ? 1 + compactList : -1,
-            Window(all, picker.Highlight, compactList));
+            Window(compact, picker.Highlight, compactList));
     }
 
     /// <summary>The first list row shown for a highlight, so the highlight stays visible.</summary>
@@ -112,6 +129,11 @@ public sealed record PickerLayout(
 
         var at = all.ToList().FindIndex(line => line.RowIndex == highlight);
         var top = TopRow(Math.Max(0, at), listHeight);
+        if (top < at && all[top].IsSpacer)
+        {
+            top++;
+        }
+
         return [.. all.Skip(top).Take(listHeight)];
     }
 

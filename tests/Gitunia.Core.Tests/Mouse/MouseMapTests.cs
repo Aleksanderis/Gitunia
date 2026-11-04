@@ -32,6 +32,14 @@ public class MouseMapTests
         Assert.Equal(action, DefaultMouseMap.Create().Resolve(view, MouseGesture.Click)?.Action.Value);
     }
 
+    [Theory]
+    [InlineData(DefaultMouseMap.PickerAcceptButton, "picker.accept")]
+    [InlineData(DefaultMouseMap.PickerCloseButton, "cancel")]
+    public void GivenAPickerFooterChip_WhenClicked_ThenItRunsTheActionTheKeyRuns(string view, string action)
+    {
+        Assert.Equal(action, DefaultMouseMap.Create().Resolve(view, MouseGesture.Click)?.Action.Value);
+    }
+
     [Fact]
     public void GivenAMainlineParentRow_WhenClicked_ThenTheClickTargetIsTheParentNumber()
     {

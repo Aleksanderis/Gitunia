@@ -1,4 +1,5 @@
 using System.Globalization;
+using Gitunia.Core.Picker;
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Tui.Rendering.Graph;
@@ -38,15 +39,7 @@ public static class ChromeBuilder
 
     public static StyledLine Status(ScreenModel model, int width, GraphGlyphSet glyphs)
     {
-        var selected = model.SelectedPosition.ToString(CultureInfo.InvariantCulture);
-        var loaded = model.LoadedCount.ToString(CultureInfo.InvariantCulture);
-        var more = model.IsLoading || model.TruncatedTotal is not null ? "+" : string.Empty;
-        var position = $"{selected}/{loaded}{more}";
-        if (model.TruncatedTotal is { } total)
-        {
-            position += $" of {total.ToString(CultureInfo.InvariantCulture)}";
-        }
-
+        var position = model.Picker is { } picker ? PickerPosition(picker) : GraphPosition(model);
         var builder = new LineBuilder(width, glyphs.Ellipsis)
             .Append($" {model.ModeName} ", SegmentRole.StatusMode)
             .Append(" ", SegmentRole.Status);
@@ -56,13 +49,13 @@ public static class ChromeBuilder
         }
 
         builder.Append($"{(model.SearchLine.Length > 0 ? model.SearchLine : position)} ", SegmentRole.Status);
-        if (model.SearchLine.Length == 0 && model.SelectedName.Length > 0)
+        if (model.Picker is null && model.SearchLine.Length == 0 && model.SelectedName.Length > 0)
         {
             var name = TextWidth.FitMiddle(model.SelectedName, Math.Max(MinimumNameColumns, width / NameShareDivisor), glyphs.Ellipsis);
             builder.Append($"{name} ", SegmentRole.Status);
         }
 
-        if (model.IsLoading)
+        if (model.IsLoading && model.Picker is null)
         {
             builder.Append("loading... ", SegmentRole.Status);
         }
@@ -72,12 +65,34 @@ public static class ChromeBuilder
             builder.Append($" {model.Message} ", MessageRole(model));
         }
 
-        if (model.SearchLine.Length == 0)
+        if (model.SearchLine.Length == 0 && model.Picker is null)
         {
-            AppendHints(builder, model.Picker is not null ? PaneHints.ForPicker() : model.Hints ?? PaneHints.For(PaneKind.Graph));
+            AppendHints(builder, model.Hints ?? PaneHints.For(PaneKind.Graph));
         }
 
         return builder.Build(SegmentRole.Status);
+    }
+
+    // The picker's status bar keeps the mode chip and the position of the highlight; its keys are in the box.
+    private static string PickerPosition(PickerState picker)
+    {
+        var selected = picker.Rows.IsEmpty ? 0 : picker.Highlight + 1;
+        var total = picker.Rows.Length;
+        return $"{selected.ToString(CultureInfo.InvariantCulture)}/{total.ToString(CultureInfo.InvariantCulture)}";
+    }
+
+    private static string GraphPosition(ScreenModel model)
+    {
+        var selected = model.SelectedPosition.ToString(CultureInfo.InvariantCulture);
+        var loaded = model.LoadedCount.ToString(CultureInfo.InvariantCulture);
+        var more = model.IsLoading || model.TruncatedTotal is not null ? "+" : string.Empty;
+        var position = $"{selected}/{loaded}{more}";
+        if (model.TruncatedTotal is { } total)
+        {
+            position += $" of {total.ToString(CultureInfo.InvariantCulture)}";
+        }
+
+        return position;
     }
 
     // One role per severity, a filled chip while the message is fresh. No severity (a key's own notice, progress)

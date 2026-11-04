@@ -246,17 +246,6 @@ public static partial class PaneHints
         new("Alt-s/Alt-n/Alt-a", "options", [ActionIds.WorkingTreeToggleSignOff, ActionIds.WorkingTreeToggleNoVerify, ActionIds.WorkingTreeToggleAmend]),
     ];
 
-    private static readonly ImmutableArray<KeyHint> Picker =
-    [
-        new("Enter", "open", [ActionIds.PickerAccept]),
-        new("Tab", "accept", [ActionIds.PickerCompletePath]),
-        new("Alt-p", "pin to top", [ActionIds.PickerPin]),
-        new("Alt-d", "forget", [ActionIds.PickerRemoveRecent]),
-        new("Alt-c", "clone", [ActionIds.PickerClone]),
-        new("Alt-i", "init", [ActionIds.PickerInit]),
-        new("Esc", "close", [ActionIds.Cancel]),
-    ];
-
     private static readonly ImmutableArray<KeyHint> Palette =
     [
         new("Ctrl-j/k", "move", [ActionIds.PaletteNext, ActionIds.PalettePrevious]),

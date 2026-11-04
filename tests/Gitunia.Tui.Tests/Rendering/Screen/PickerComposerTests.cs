@@ -12,11 +12,8 @@ namespace Gitunia.Tui.Tests.Rendering.Screen;
 
 public class PickerComposerTests
 {
-    private static readonly string[] Kinds = ["open", "pinned", "recent", "found"];
-
     private const int TitleLine = 0;
     private const int QueryRow = 1;
-    private const int HintLine = 2;
     private const int FirstListLine = 3;
 
     private static readonly string Home =
@@ -31,7 +28,7 @@ public class PickerComposerTests
         PickerComposer.Compose(picker, Home, width, height, GraphGlyphSet.Unicode);
 
     [Fact]
-    public void GivenAFramedPicker_WhenComposing_ThenTitleChipQueryHintAndBottomRuleAreDrawn()
+    public void GivenAFramedPicker_WhenComposing_ThenTitleWithCountQueryWithPromptAndHintAndBottomRuleAreDrawn()
     {
         var picker = Picker(Row("alpha", PickerTags.Recent)) with { Query = "al" };
 
@@ -40,13 +37,17 @@ public class PickerComposerTests
         Assert.Equal(SegmentRole.OverlayTitle, lines[TitleLine].Segments[0].Role);
         Assert.Contains("Open repository", lines[TitleLine].Text, StringComparison.Ordinal);
         Assert.Contains(" al_", lines[QueryRow].Text, StringComparison.Ordinal);
-        Assert.Contains(lines[HintLine].Segments, segment => segment.Role == SegmentRole.OverlayKey && segment.Text == "Tab");
+        Assert.Contains(" › al_", lines[QueryRow].Text, StringComparison.Ordinal);
+        Assert.Contains(
+            lines[QueryRow].Segments,
+            segment => segment.Role == ChipStyle.Pane.Key && segment.Text == "Tab");
+        Assert.EndsWith("1 repository ", lines[TitleLine].Text, StringComparison.Ordinal);
         Assert.All(lines.Skip(1).Take(lines.Count - 2), line => Assert.Equal(SegmentRole.FocusedBorder, line.Segments[0].Role));
         Assert.All(lines, line => Assert.Equal(lines[0].Text.Length, line.Text.Length));
     }
 
     [Fact]
-    public void GivenRowsOfEverySource_WhenComposing_ThenGroupHeadersSeparateThemAndKindsHaveTheirOwnRole()
+    public void GivenRowsOfEverySource_WhenComposing_ThenUppercaseHeadersWithARuleAndSpacersSeparateThem()
     {
         var lines = Compose(Picker(
             Row("alpha", PickerTags.Open | PickerTags.Recent),
@@ -54,13 +55,75 @@ public class PickerComposerTests
             Row("gamma", PickerTags.Recent),
             Row("delta", PickerTags.Discovered)));
 
-        var headers = lines.Where(line => line.Segments.Any(segment => segment.Role == SegmentRole.SectionTitle))
-            .Select(line => line.Text.Trim('│', ' '));
-        Assert.Equal(["Open", "Pinned", "Recent", "Found"], headers);
-        var roles = Kinds
-            .Select(kind => lines.SelectMany(line => line.Segments).First(segment => segment.Text == kind).Role)
+        var headers = lines.Skip(FirstListLine).Where(HasSectionTitle).ToList();
+        Assert.Equal(["OPEN", "PINNED", "RECENT", "FOUND"], headers.Select(HeaderName));
+        Assert.All(headers, line => Assert.Contains(line.Segments, IsRule));
+        Assert.Equal(FirstListLine, lines.ToList().IndexOf(headers[0]));
+        foreach (var header in headers.Skip(1))
+        {
+            var above = lines[lines.ToList().IndexOf(header) - 1];
+            Assert.Equal(string.Empty, above.Text.Trim('│', ' '));
+        }
+    }
+
+    [Fact]
+    public void GivenRowsOfEverySource_WhenComposing_ThenEachRowStartsWithItsGlyphInItsRole()
+    {
+        var lines = Compose(Picker(
+            Row("alpha", PickerTags.Open | PickerTags.Recent),
+            Row("beta", PickerTags.Pinned),
+            Row("gamma", PickerTags.Recent),
+            Row("delta", PickerTags.Discovered),
+            Row("gone", PickerTags.Recent | PickerTags.Missing)));
+
+        Assert.Equal(("●", SegmentRole.LocalBranch), GlyphOf(lines, "alpha"));
+        Assert.Equal(("★", SegmentRole.CurrentBranch), GlyphOf(lines, "beta"));
+        Assert.Equal(("◷", SegmentRole.RemoteBranch), GlyphOf(lines, "gamma"));
+        Assert.Equal(("○", SegmentRole.Faint), GlyphOf(lines, "delta"));
+        Assert.Equal(("!", SegmentRole.FileChanged), GlyphOf(lines, "gone"));
+        Assert.DoesNotContain(lines, line => line.Text.Contains("recent ", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void GivenANarrowFramedBox_WhenComposing_ThenTheCountAndTheHintAreDroppedAndTheCloseChipStays()
+    {
+        var picker = Picker(Row("alpha", PickerTags.Open), Row("beta", PickerTags.Recent));
+
+        var lines = Compose(picker, 32);
+
+        Assert.True(PickerLayout.Compute(picker, 32, 30).IsFramed);
+        Assert.DoesNotContain("repositories", lines[TitleLine].Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Tab", lines[QueryRow].Text, StringComparison.Ordinal);
+        Assert.Contains("Esc", lines[^2].Text, StringComparison.Ordinal);
+        Assert.All(lines, line => Assert.Equal(lines[0].Text.Length, line.Text.Length));
+    }
+
+    [Fact]
+    public void GivenAnOpenAndPinnedRow_WhenComposing_ThenTheOpenGlyphLeadsAndAStarFollowsThePath()
+    {
+        var lines = Compose(Picker(Row("alpha", PickerTags.Open | PickerTags.Pinned), Row("beta", PickerTags.Open)));
+
+        var starred = Assert.Single(lines, line => line.Text.Contains("alpha", StringComparison.Ordinal));
+        var plain = Assert.Single(lines, line => line.Text.Contains("beta", StringComparison.Ordinal));
+        Assert.Equal(("●", SegmentRole.LocalBranch), GlyphOf(lines, "alpha"));
+        Assert.EndsWith("★ │", starred.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("★", plain.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GivenRowsWithPaths_WhenComposing_ThenThePathsEndInTheSameColumn()
+    {
+        var lines = Compose(Picker(
+            Row("alpha", PickerTags.Open | PickerTags.Pinned),
+            Row("beta", PickerTags.Recent),
+            Row("a-much-longer-name", PickerTags.Discovered)));
+
+        var ends = lines
+            .Where(line => line.Text.Contains("code", StringComparison.Ordinal))
+            .Select(line => line.Text.TrimEnd('│', ' ', '★').Length)
+            .Distinct()
             .ToList();
-        Assert.Equal(4, roles.Distinct().Count());
+        Assert.Single(ends);
     }
 
     [Fact]
@@ -70,7 +133,7 @@ public class PickerComposerTests
 
         var lines = Compose(picker);
 
-        Assert.DoesNotContain(lines, line => line.Segments.Any(segment => segment.Role == SegmentRole.SectionTitle));
+        Assert.DoesNotContain(lines.Skip(FirstListLine), HasSectionTitle);
     }
 
     [Fact]
@@ -92,8 +155,7 @@ public class PickerComposerTests
     {
         var lines = Compose(Picker(Row("gone", PickerTags.Open | PickerTags.Missing)));
 
-        var tag = lines.SelectMany(line => line.Segments).Single(segment => segment.Text == "missing");
-        Assert.Equal(SegmentRole.FileChanged, tag.Role);
+        Assert.Equal(("!", SegmentRole.FileChanged), GlyphOf(lines, "gone"));
     }
 
     [Fact]
@@ -172,7 +234,7 @@ public class PickerComposerTests
     }
 
     [Fact]
-    public void GivenDirectoryRows_WhenComposing_ThenRepositoriesAreMarked()
+    public void GivenDirectoryRows_WhenComposing_ThenFoldersEndInTheSeparatorAndRepositoriesDoNot()
     {
         var picker = new PickerState(
             "~/code/",
@@ -183,8 +245,10 @@ public class PickerComposerTests
 
         var lines = Compose(picker);
 
-        Assert.Contains("repository", lines[FirstListLine].Text, StringComparison.Ordinal);
-        Assert.Contains("dir", lines[FirstListLine + 1].Text, StringComparison.Ordinal);
+        Assert.Contains("app  ", lines[FirstListLine].Text, StringComparison.Ordinal);
+        Assert.Contains($"docs{Path.DirectorySeparatorChar}", lines[FirstListLine + 1].Text, StringComparison.Ordinal);
+        Assert.Equal("○", GlyphOf(lines, "app").Text);
+        Assert.Equal("○", GlyphOf(lines, "docs").Text);
     }
 
     [Fact]
@@ -236,15 +300,27 @@ public class PickerComposerTests
     }
 
     [Fact]
-    public void GivenAsciiGlyphs_WhenComposing_ThenTheFrameUsesAsciiAndTheChipsAreBracketed()
+    public void GivenAsciiGlyphs_WhenComposing_ThenEverythingIsAsciiAndTheChipsAreBracketed()
     {
-        var picker = Picker(Row("alpha", PickerTags.Recent));
+        var picker = Picker(
+            Row("alpha", PickerTags.Open),
+            Row("beta", PickerTags.Pinned),
+            Row("gamma", PickerTags.Recent),
+            Row("delta", PickerTags.Discovered),
+            Row("gone", PickerTags.Recent | PickerTags.Missing));
 
         var lines = PickerComposer.Compose(picker, Home, 100, 30, GraphGlyphSet.Ascii);
 
         Assert.StartsWith("|", lines[QueryRow].Text, StringComparison.Ordinal);
+        Assert.Contains("> ", lines[QueryRow].Text, StringComparison.Ordinal);
         Assert.StartsWith("+", lines[^1].Text, StringComparison.Ordinal);
         Assert.Contains("[", lines[^2].Text, StringComparison.Ordinal);
+        Assert.All(lines, line => Assert.True(line.Text.All(char.IsAscii), line.Text));
+        Assert.Equal("*", GlyphOf(lines, "alpha").Text);
+        Assert.Equal("+", GlyphOf(lines, "beta").Text);
+        Assert.Equal("~", GlyphOf(lines, "gamma").Text);
+        Assert.Equal("o", GlyphOf(lines, "delta").Text);
+        Assert.Equal("!", GlyphOf(lines, "gone").Text);
     }
 
     [Fact]
@@ -258,24 +334,32 @@ public class PickerComposerTests
         Assert.Equal(24, lines.Count);
         Assert.Contains(lines, line => line.Text.Contains("Open repository", StringComparison.Ordinal));
         Assert.Contains(lines, line => line.Text.Contains("alpha", StringComparison.Ordinal));
-        Assert.Contains("Alt-p pin", lines[^1].Text, StringComparison.Ordinal);
+        Assert.Contains(" INSERT ", lines[^1].Text, StringComparison.Ordinal);
+        Assert.Contains("1/1", lines[^1].Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Alt-", lines[^1].Text, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void GivenARecentRowHighlighted_WhenLayingOutTheFooter_ThenCloneInitPinAndRemoveAreInOrderAndHit()
+    public void GivenARecentRowHighlighted_WhenLayingOutTheFooter_ThenOpenPinRemoveAreLeftAndCloneInitCloseRight()
     {
         var buttons = PickerFooterButtons.Layout(Row("alpha", PickerTags.Recent), 90, false);
 
         Assert.Equal(
             [
-                DefaultMouseMap.PickerCloneButton,
-                DefaultMouseMap.PickerInitButton,
+                DefaultMouseMap.PickerAcceptButton,
                 DefaultMouseMap.PickerPinButton,
                 DefaultMouseMap.PickerRemoveButton,
+                DefaultMouseMap.PickerCloneButton,
+                DefaultMouseMap.PickerInitButton,
+                DefaultMouseMap.PickerCloseButton,
             ],
             buttons.Select(button => button.View));
         Assert.All(buttons, button => Assert.Equal(button.View, TitleButton.ViewAt(buttons, button.Start)));
         Assert.Null(TitleButton.ViewAt(buttons, buttons[0].Start - 1));
+        var last = buttons[^1];
+        Assert.Equal(90 - PickerFooterButtons.Margin, last.Start + last.Width);
+        Assert.Contains(buttons, button => button.Label == " Enter open ");
+        Assert.Contains(buttons, button => button.Label == " Esc close ");
     }
 
     [Fact]
@@ -296,16 +380,22 @@ public class PickerComposerTests
         Assert.DoesNotContain(directory, button => button.View == DefaultMouseMap.PickerPinButton);
         Assert.DoesNotContain(locating, button => button.View == DefaultMouseMap.PickerCloneButton);
         Assert.Contains(locating, button => button.View == DefaultMouseMap.PickerPinButton);
+        Assert.Contains(locating, button => button.View == DefaultMouseMap.PickerCloseButton);
     }
 
     [Fact]
-    public void GivenANarrowFooter_WhenLayingOutTheChips_ThenOnlyTheOnesThatFitAreKept()
+    public void GivenANarrowFooter_WhenLayingOutTheChips_ThenOnlyTheOnesThatFitAreKeptAndNeverOverlap()
     {
         var wide = PickerFooterButtons.Layout(Row("alpha", PickerTags.Recent), 90, false);
-        var narrow = PickerFooterButtons.Layout(Row("alpha", PickerTags.Recent), 30, false);
+        var narrow = PickerFooterButtons.Layout(Row("alpha", PickerTags.Recent), 40, false);
 
         Assert.True(narrow.Count < wide.Count);
-        Assert.All(narrow, button => Assert.True(button.Start + button.Width <= 30));
+        Assert.All(narrow, button => Assert.True(button.Start + button.Width <= 40));
+        Assert.Contains(narrow, button => button.View == DefaultMouseMap.PickerCloseButton);
+        for (var index = 1; index < narrow.Count; index++)
+        {
+            Assert.True(narrow[index].Start >= narrow[index - 1].Start + narrow[index - 1].Width);
+        }
     }
 
     [Fact]
@@ -316,19 +406,84 @@ public class PickerComposerTests
         var footer = lines[^2];
         Assert.Contains(footer.Segments, segment => segment.Text == "Alt-c" && segment.Role == SegmentRole.RepositoryTabKey);
         Assert.DoesNotContain(footer.Segments, segment => segment.Role == SegmentRole.Button);
+        Assert.Contains(footer.Segments, segment => IsChipKey(segment, "Enter"));
+        Assert.Contains(footer.Segments, segment => IsChipKey(segment, "Esc"));
+        Assert.Equal(SegmentRole.Faint, lines[^3].Segments[2].Role);
+        Assert.StartsWith("│ ──", lines[^3].Text, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void GivenGroupedRows_WhenAskingForTheRowAtALine_ThenHeadersAreNotRowsAndLinesMapToIndexes()
+    public void GivenGroupedRows_WhenAskingForTheRowAtALine_ThenHeadersAndSpacersAreNotRowsAndLinesMapToIndexes()
     {
-        var picker = Picker(Row("alpha", PickerTags.Open), Row("beta", PickerTags.Recent));
+        var picker = Picker(
+            Row("alpha", PickerTags.Open),
+            Row("beta", PickerTags.Recent),
+            Row("gamma", PickerTags.Recent));
 
         var layout = PickerLayout.Compute(picker, 100, 30);
 
         Assert.Null(layout.RowIndexAt(layout.ListFirstLine));
         Assert.Equal(0, layout.RowIndexAt(layout.ListFirstLine + 1));
         Assert.Null(layout.RowIndexAt(layout.ListFirstLine + 2));
+        Assert.True(layout.Visible[2].IsSpacer);
+        Assert.Null(layout.RowIndexAt(layout.ListFirstLine + 3));
+        Assert.Equal(1, layout.RowIndexAt(layout.ListFirstLine + 4));
+        Assert.Equal(2, layout.RowIndexAt(layout.ListFirstLine + 5));
+    }
+
+    [Fact]
+    public void GivenGroupedRowsScrolledToASpacer_WhenComputingTheLayout_ThenTheWindowDoesNotStartOnTheSpacer()
+    {
+        var rows = Enumerable.Range(1, 12).Select(number => Row($"open{number}", PickerTags.Open))
+            .Concat(Enumerable.Range(1, 12).Select(number => Row($"recent{number}", PickerTags.Recent)))
+            .ToImmutableArray();
+        var picker = new PickerState(string.Empty, 13, rows, string.Empty, null);
+
+        var layout = PickerLayout.Compute(picker, 100, 10);
+
+        Assert.Equal(4, layout.ListHeight);
+        Assert.Equal(4, layout.Visible.Count);
+        Assert.False(layout.Visible[0].IsSpacer);
+        var offset = layout.Visible.ToList().FindIndex(line => line.RowIndex == 13);
+        Assert.True(offset >= 0);
+        Assert.Equal(13, layout.RowIndexAt(layout.ListFirstLine + offset));
+    }
+
+    [Fact]
+    public void GivenATinyAreaWithGroups_WhenComputingTheLayout_ThenTheUnframedListHasNoSpacers()
+    {
+        var picker = Picker(Row("alpha", PickerTags.Open), Row("beta", PickerTags.Recent));
+
+        var layout = PickerLayout.Compute(picker, 20, 8);
+
+        Assert.False(layout.IsFramed);
+        Assert.DoesNotContain(layout.Visible, line => line.IsSpacer);
         Assert.Equal(1, layout.RowIndexAt(layout.ListFirstLine + 3));
+    }
+
+    [Fact]
+    public void GivenAFilteredOrPathList_WhenComputingTheLayout_ThenThereAreNoHeadersOrSpacers()
+    {
+        var rows = new[] { Row("alpha", PickerTags.Open), Row("beta", PickerTags.Recent) };
+
+        var filtered = PickerLayout.Compute(Picker(rows) with { Query = "a" }, 100, 30);
+        var path = PickerLayout.Compute(Picker(rows) with { Query = "~/" }, 100, 30);
+
+        Assert.All(filtered.Visible.Concat(path.Visible), line => Assert.True(line.RowIndex >= 0));
+    }
+
+    [Fact]
+    public void GivenAMessage_WhenComposing_ThenTheFooterIsTheRowAboveTheBottomRuleAndTheBoxMatchesTheLines()
+    {
+        var picker = Picker(Row("alpha", PickerTags.Open), Row("beta", PickerTags.Recent)) with { Message = "oops" };
+
+        var layout = PickerLayout.Compute(picker, 100, 30);
+        var lines = Compose(picker);
+
+        Assert.Equal(layout.BoxHeight, lines.Count);
+        Assert.True(layout.IsFooterLine(lines.Count - 2));
+        Assert.Contains("Esc", lines[layout.BoxHeight - 2].Text, StringComparison.Ordinal);
+        Assert.Contains("oops", lines[layout.MessageLine].Text, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -342,5 +497,24 @@ public class PickerComposerTests
         Assert.Equal(30, layout.RowIndexAt(layout.ListFirstLine + layout.ListHeight - 1));
         Assert.Equal(30 - layout.ListHeight + 1, layout.RowIndexAt(layout.ListFirstLine));
         Assert.Null(layout.RowIndexAt(layout.ListFirstLine + layout.ListHeight));
+    }
+
+    private static bool HasSectionTitle(StyledLine line) =>
+        line.Segments.Any(segment => segment.Role == SegmentRole.SectionTitle);
+
+    private static bool IsRule(StyledSegment segment) =>
+        segment.Role == SegmentRole.Faint && segment.Text.StartsWith('─');
+
+    private static bool IsChipKey(StyledSegment segment, string key) =>
+        segment.Text == key && segment.Role == SegmentRole.RepositoryTabKey;
+
+    private static string HeaderName(StyledLine line) =>
+        line.Segments.Single(segment => segment.Role == SegmentRole.SectionTitle).Text.Trim();
+
+    private static (string Text, SegmentRole Role) GlyphOf(IReadOnlyList<StyledLine> lines, string name)
+    {
+        var line = lines.Single(candidate => candidate.Text.Contains(name, StringComparison.Ordinal));
+        var segment = line.Segments[2];
+        return (segment.Text, segment.Role);
     }
 }
