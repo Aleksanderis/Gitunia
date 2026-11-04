@@ -46,6 +46,12 @@ public sealed class GraphTabBinder(
     /// <summary>Raised after rows were appended or the shown tab changed, so searches can look at the new rows.</summary>
     public event Action? GraphChanged;
 
+    /// <summary>
+    /// Raised after a reloaded graph was put back under the selection, also when the cursor row did not change (so the list
+    /// raised no event) although another commit is on it now (#1206). Raised while <see cref="IsReplacing"/> is true.
+    /// </summary>
+    public event Action? SelectionReplaced;
+
     /// <summary>True while the list is changed on purpose; selection changes then must not be written back to the workspace.</summary>
     public bool IsSuspended { get; private set; }
 
@@ -166,6 +172,7 @@ public sealed class GraphTabBinder(
         try
         {
             RestoreAfterReplace();
+            SelectionReplaced?.Invoke();
         }
         finally
         {
