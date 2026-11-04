@@ -54,6 +54,10 @@ Git output parsers, graph layout and scrolling, per-frame rendering, caches, sta
 - keymap doc is generated (`scripts/gen-keymap-doc.sh`) and must be current
 - no platform-specific APIs outside the platform abstraction; no hardcoded separators, `/tmp` or `/dev/null`
 
+## Review checklist
+
+`.claude/review-checklist.md` (read by the reviewer and by implementers before review).
+
 ## Visual verification
 
 `scripts/screenshot.sh` (see the `screenshots` skill); images are hosted in the `<repo>-screenshots` repository.
