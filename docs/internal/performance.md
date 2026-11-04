@@ -87,6 +87,19 @@ Fix: `IterationRateGovernor` keeps 100/s while the user is working and for 2 s a
 
 With the `git status` children (~1%) the whole app idles at about 2.5%, so the ~2% bar is met for the Gitunia process alone, not for the total. Not measured: the latency of an automatic refresh or reload that finishes while the screen is idle (its redraw waits at most one 20 ms iteration longer), and Windows/macOS. Going lower costs first-key latency in proportion (25/s idle: ~1.0% but about +30 ms); a loop without idle wakeups needs a change inside Terminal.Gui (blocking wait on input and timers). Reproduce: sum fields 14+15 of every `/proc/<pid>/task/*/stat` twice, 60 s apart, in a private tmux.
 
+## Idle output (#1207)
+
+Check for the sibling project's pattern (Geeratya issue #744) (full-frame repaints at idle). Method: AOT build, 120x36 pty via `script`, private `XDG_STATE_HOME`/`XDG_CONFIG_HOME`, throwaway 3-commit repo, 14 s run, the 4 s startup capture subtracted. Counts of `ESC[1;1H` (cursor home) and `ESC[?25l` (cursor hide).
+
+| Idle 10 s | Result |
+|---|---|
+| Frames with cell content | 0 |
+| `ESC[1;1H ESC[?25l` pairs | 473 (~47/s, one per main-loop iteration at the 50/s idle rate) |
+| Bytes | 5676 (28352 minus 22676 of the 4 s run; ~570 B/s, exactly 473 pairs of 12 bytes) |
+| Mouse modes | `?1003h` (any-event) and `?1006h` once at start; no `?1002h` |
+
+So it only partly reproduces: no full-frame repaint, but the 1 frame/s bar is not met. Cause: Terminal.Gui 2.5.0 writes cursor-home plus cursor-hide on every iteration even when nothing is dirty. `Console.SetOut` with a filter that drops repeated pairs had no effect (the pairs kept arriving, so the driver most likely does not write through `Console.Out`; not verified in the driver source), so the fix needs a custom `IOutput` (decorating the driver's output via an `IComponentFactory`) or a change in Terminal.Gui; tracked as a follow-up. `?1003h` is set by Terminal.Gui for mouse support; Gitunia has no hover feature, but the mode cannot be changed without the same hook. Not measured: the terminal CPU comparison (Ghostty vs Foot, needs a graphical session) and whether mouse moves cause repaints. The `docs/architecture.md` pitfall note and the `?1002h` switch are carried by #1209, which fixes the cause.
+
 ## Many tabs
 
 Only the active tab loads (lazy restore); a visited small tab adds ~0.5-1 MB. Background tabs get their dirty/ahead/behind markers from `BackgroundStatusPoller`: `git status` only, one tab at a time, once at start and then every 30 s, with no graph, refs or watchers loaded. An idle preload would only add memory and processes, so none is done.
