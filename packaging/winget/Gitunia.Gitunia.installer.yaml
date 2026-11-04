@@ -1,10 +1,12 @@
 # yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.1.9.0.schema.json
-# Winget installer manifest template (#943). A portable package: winget links the one exe into its PATH folder.
+# Winget installer manifest template (#943, #1156). A zip holding one portable exe: winget unpacks it and puts the folder on PATH.
 PackageIdentifier: Gitunia.Gitunia
 PackageVersion: @VERSION@
-InstallerType: portable
-Commands:
-- gitunia
+InstallerType: zip
+NestedInstallerType: portable
+NestedInstallerFiles:
+- RelativeFilePath: gitunia-@VERSION@-win-x64\gitunia.exe
+  PortableCommandAlias: gitunia
 ReleaseDate: @DATE@
 Installers:
 - Architecture: x64
