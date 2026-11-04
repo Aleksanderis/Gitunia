@@ -26,7 +26,7 @@ public static class KeymapReference
             text.Append($"\n## {view}\n\n| Keys | Modes | Action | What |\n|---|---|---|---|\n");
             foreach (var row in rows.Where(row => row.View == view))
             {
-                var keys = string.Join(' ', row.Keys.Select(Code));
+                var keys = string.Join(' ', row.Keys.Select(key => Code(KeyFormatter.Format(KeySequenceParser.Parse(key)))));
                 var modes = string.Join(", ", row.Modes);
                 text.Append($"| {keys} | {modes} | `{row.Action.Value}` | {Escape(ActionCatalog.Describe(row.Action))} |\n");
             }
