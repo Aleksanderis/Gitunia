@@ -12,7 +12,7 @@ namespace Gitunia.Core.Worktrees;
 /// testable without a terminal.</summary>
 public static class WorktreeTexts
 {
-    private const string NewWorktree = "{key:worktree.add|a new worktree}";
+    private static readonly string NewWorktree = KeyTokens.Of(ActionIds.WorktreeAdd, "a new worktree");
 
     /// <summary>Shown when another worktree operation of the tab still runs.</summary>
     public const string BusyNotice = "Busy: another operation on this tab is still running";
@@ -43,12 +43,12 @@ public static class WorktreeTexts
 
         if (worktree.IsLocked)
         {
-            return $"{worktree.Path} is locked: {KeyTokens.Of("worktree.unlock", "unlock it")} first";
+            return $"{worktree.Path} is locked: {KeyTokens.Of(ActionIds.WorktreeUnlock, "unlock it")} first";
         }
 
         if (worktree.IsPrunable)
         {
-            return $"{worktree.Path} is missing on disk: {KeyTokens.Of("worktree.prune", "prune it")} instead";
+            return $"{worktree.Path} is missing on disk: {KeyTokens.Of(ActionIds.WorktreePrune, "prune it")} instead";
         }
 
         return string.Empty;

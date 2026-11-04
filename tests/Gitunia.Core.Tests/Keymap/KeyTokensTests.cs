@@ -14,11 +14,13 @@ public sealed class KeyTokensTests
     [InlineData("reflog.open", "<space>l")]
     [InlineData("worktree.add", "<space>wa")]
     [InlineData("conflict-editor.recreate", "Ctrl-x")]
+    [InlineData("worktree.unlock", "<space>wu")]
+    [InlineData("worktree.prune", "<space>wp")]
     public void GivenTheDefaultKeymap_WhenResolvingAToken_ThenTheDefaultKeyIsNamed(string action, string key)
     {
         var table = new KeyBindingTable(DefaultKeymap.CreateBindings());
 
-        var text = KeyTokens.Resolve(KeyTokens.Of(action, "the thing"), table);
+        var text = KeyTokens.Resolve(KeyTokens.Of(new ActionId(action), "the thing"), table);
 
         Assert.Equal($"the thing ({key})", text);
     }
@@ -39,6 +41,21 @@ public sealed class KeyTokensTests
     }
 
     [Fact]
+    public void GivenSeveralBindings_WhenResolving_ThenTheGlobalNormalModeShortKeyWins()
+    {
+        var action = ActionIds.StatusHistory;
+        var table = new KeyBindingTable(
+        [
+            new KeyBinding(KeyMode.Insert, KeyBindingTable.GlobalView, KeySequenceParser.Parse("Ctrl-q"), action),
+            new KeyBinding(KeyMode.Normal, "Graph", KeySequenceParser.Parse("m"), action),
+            new KeyBinding(KeyMode.Normal, KeyBindingTable.GlobalView, KeySequenceParser.Parse("<space>zz"), action),
+            new KeyBinding(KeyMode.Normal, KeyBindingTable.GlobalView, KeySequenceParser.Parse("Ctrl-m"), action),
+        ]);
+
+        Assert.Equal("x (Ctrl-m)", KeyTokens.Resolve(KeyTokens.Of(action, "x"), table));
+    }
+
+    [Fact]
     public void GivenAnUnboundAction_WhenResolving_ThenOnlyTheNameStays()
     {
         var table = new KeyBindingTable([]);
@@ -46,7 +63,7 @@ public sealed class KeyTokensTests
         var text = KeyTokens.Resolve(UndoNotes.FromReflog, table);
 
         Assert.Equal("Afterwards you can go back from the reflog; the message history has the exact command.", text);
-        Assert.Equal("a new worktree", KeyTokens.Resolve(KeyTokens.Of("worktree.add", "a new worktree"), null));
+        Assert.Equal("a new worktree", KeyTokens.Resolve(KeyTokens.Of(ActionIds.WorktreeAdd, "a new worktree"), null));
     }
 
     [Fact]

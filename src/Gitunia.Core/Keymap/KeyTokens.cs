@@ -15,7 +15,7 @@ public static class KeyTokens
     private const string Open = "{key:";
 
     /// <summary>The token for <paramref name="action"/>, with <paramref name="name"/> as the words that stand for it.</summary>
-    public static string Of(string action, string name) => $"{Open}{action}|{name}}}";
+    public static string Of(ActionId action, string name) => $"{Open}{action.Value}|{name}}}";
 
     /// <summary>Replaces every token of <paramref name="text"/>; with a null <paramref name="table"/> the names stand alone.</summary>
     public static string Resolve(string text, KeyBindingTable? table)
@@ -55,8 +55,19 @@ public static class KeyTokens
 
     private static string? KeyOf(KeyBindingTable? table, string action)
     {
+        if (table is null)
+        {
+            return null;
+        }
+
         var id = new ActionId(action);
-        var binding = table?.Bindings.FirstOrDefault(candidate => candidate.Action == id);
+        var binding = table.Bindings
+            .Where(candidate => candidate.Action == id)
+            .OrderBy(candidate => candidate.Mode == KeyMode.Normal ? 0 : 1)
+            .ThenBy(candidate => candidate.View == KeyBindingTable.GlobalView ? 0 : 1)
+            .ThenBy(candidate => candidate.Sequence.Length)
+            .FirstOrDefault();
+
         return binding is null ? null : KeyFormatter.Display(binding.Sequence);
     }
 }
