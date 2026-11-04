@@ -98,7 +98,7 @@ public class ConflictEditorInputTests
 
         var prompt = Assert.Single(harness.Prompts);
         Assert.Contains("1 unresolved conflict out of 2", prompt.Lines[0], StringComparison.Ordinal);
-        Assert.Contains("re-create the whole conflict", prompt.Consequence, StringComparison.Ordinal);
+        Assert.Contains("rebuild the whole conflict", prompt.Consequence, StringComparison.Ordinal);
         Assert.Equal(harness.OriginalText, File.ReadAllText(harness.FullPath));
         harness.Answer();
         await harness.WaitAsync();

@@ -168,7 +168,7 @@ public static class StashReducer
                 $"Replace {target.File.Change.Path} in the working tree with its version from {target.Entry.Name}?",
                 "Your current content of the file is replaced; the stash and the index stay as they are.",
             ],
-            $"Your current content is saved first; afterwards the message history ({UndoNotes.MessagesKey}) shows how to get it back.",
+            $"Your current content is saved first; afterwards {UndoNotes.MessageHistory} shows how to get it back.",
             "Restore file");
         var accepted = new StashRestoreConfirmed(context.TabId, target);
 

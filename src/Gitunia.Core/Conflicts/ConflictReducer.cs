@@ -250,7 +250,8 @@ public static class ConflictReducer
                 $"Save {name} with {unresolved} out of {editor.Hunks.Count}?",
                 "The unresolved conflicts keep their conflict markers and the file stays conflicted.",
             ],
-            "Afterwards you can re-create the whole conflict with Ctrl-x (it discards what you resolved).",
+            "Afterwards you can use {key:conflict-editor.recreate|re-create} to rebuild the whole conflict " +
+            "(it discards what you resolved).",
             "Save");
         var accepted = new ConflictSaveConfirmed(editor.TabId, session.Generation);
 

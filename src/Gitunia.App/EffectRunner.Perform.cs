@@ -1,3 +1,4 @@
+using Gitunia.Core.Keymap;
 using Gitunia.Core.Running;
 using Gitunia.Core.Worktrees;
 using Gitunia.Core.Status;
@@ -71,7 +72,14 @@ public sealed partial class EffectRunner<TSession>
     private void ShowConfirm(ShowConfirmEffect confirm)
     {
         var refusal = new StatusPostedCommand(confirm.UnavailableNotice, StatusSeverity.Warning, _host.Clock.GetUtcNow());
-        _host.Dispatch(new ConfirmRequestedCommand(confirm.Prompt, confirm.OnAccepted, refusal));
+        var prompt = confirm.Prompt;
+        var worded = prompt with
+        {
+            Title = KeyTokens.Resolve(prompt.Title, _keymap),
+            Lines = [.. prompt.Lines.Select(line => KeyTokens.Resolve(line, _keymap))],
+            Consequence = KeyTokens.Resolve(prompt.Consequence, _keymap),
+        };
+        _host.Dispatch(new ConfirmRequestedCommand(worded, confirm.OnAccepted, refusal));
     }
 
     private void Cancel(CancelLoadEffect cancel)
