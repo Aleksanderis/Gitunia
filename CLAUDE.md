@@ -62,7 +62,7 @@ Run from the repo root:
 
 ## Working autonomously
 
-Follow the `work-task` skill (`.claude/skills/work-task/`) for the procedure. To work a whole milestone or the backlog, follow the `work-orchestrator` skill (`.claude/skills/work-orchestrator/`); `work-readiness` prevalidates a milestone first. They hold the issue order, review, PR, merge, loose-end and owner-feedback procedure. Invariants that hold regardless:
+Follow the `workflow:work-task` skill (from the `workflow` plugin, profile in `.claude/workflow.md`) for the procedure, and the `workflow:reviewer` agent for reviews. To work a whole milestone or the backlog, follow `workflow:work-orchestrator`; `workflow:work-readiness` prevalidates a milestone first. The older copies in `.claude/skills/` and `.claude/agents/` are superseded and must not be used (to be removed once the plugin trial is done). They hold the issue order, review, PR, merge, loose-end and owner-feedback procedure. Invariants that hold regardless:
 
 - `spike` issues are never merged by an agent: they stay on unmerged `spike/` branches and close with findings. `needs-review` issues are worked and merged like any other (reviewer clean, local build and tests green); the label only marks what the owner reviews afterwards, and the PR body says what deserves a closer look. Policy switches live in `.claude/workflow.md`.
 - Merge commits only, never squash or rebase, never force-push.
