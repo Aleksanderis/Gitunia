@@ -38,5 +38,5 @@ public sealed class OperationWork(IOperationWriter writer)
     }
 
     private static IntegrationSucceeded Report(TabId tabId, IntegrationReport report) =>
-        new(tabId, report.Text, report.Severity);
+        new(tabId, report.Text, report.Severity, report.Detail);
 }

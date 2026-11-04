@@ -288,7 +288,7 @@ public static class RemoteReducer
         var confirm = new ConfirmPrompt(
             "Remove remote",
             lines,
-            $"Undo: git remote add {remote.Name} {remote.Url}, then fetch it",
+            UndoNotes.FromHistory,
             "Remove remote");
         var accepted = new RemoteRemoveConfirmed(context.TabId, remote.Name, remote.Url);
 
@@ -312,7 +312,10 @@ public static class RemoteReducer
     }
 
     private static ImmutableArray<AppEffect> Succeeded(RemoteOperationSucceeded succeeded, RemoteContext context) =>
-        [Post(succeeded.Text, StatusSeverity.Info), new RefreshTabEffect(context.TabId)];
+        [
+            new PostStatusEffect(succeeded.Text, StatusSeverity.Info, succeeded.Detail),
+            new RefreshTabEffect(context.TabId),
+        ];
 
     private static ImmutableArray<AppEffect> Failed(RemoteOperationFailed failed, RemoteContext context) =>
         [Post(failed.Text, StatusSeverity.Error), new RefreshTabEffect(context.TabId)];

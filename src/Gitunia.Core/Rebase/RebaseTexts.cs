@@ -39,7 +39,7 @@ public static class RebaseTexts
         return new ConfirmPrompt(
             "Rebase",
             lines,
-            $"Undo: git reset --keep {target.OldTip} (also ORIG_HEAD, the reflog). A stop on conflicts leaves a " +
+            $"{UndoNotes.FromReflog} A stop on conflicts leaves a " +
             "rebase in progress: <space>gc continues, <space>ga aborts.",
             "Rebase");
     }
@@ -67,9 +67,9 @@ public static class RebaseTexts
         var was = ShortHash.Of(target.OldTip);
 
         return new PostedText(
-            $"Rebased {target.BranchName} onto {target.Label} ({head}), was {was}; " +
-            $"undo: git reset --keep {target.OldTip} (or ORIG_HEAD, the reflog)",
-            StatusSeverity.Info);
+            $"Rebased {target.BranchName} onto {target.Label} ({head}), was {was}",
+            StatusSeverity.Info,
+            UndoNotes.Undo($"git reset --keep {target.OldTip} (or ORIG_HEAD, the reflog)"));
     }
 
     /// <summary>The failure line of a rebase that did not run.</summary>

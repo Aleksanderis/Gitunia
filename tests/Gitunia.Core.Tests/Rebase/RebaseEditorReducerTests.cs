@@ -544,7 +544,8 @@ public class RebaseEditorReducerTests
         Assert.Equal("Interactive rebase", confirm.Prompt.Title);
         Assert.Contains("2 of 3 commits kept, 1 dropped", confirm.Prompt.Lines, StringComparer.Ordinal);
         Assert.Contains(confirm.Prompt.Lines, line => line.Contains("one", StringComparison.Ordinal));
-        Assert.Contains($"git reset --keep {Tip}", confirm.Prompt.Consequence, StringComparison.Ordinal);
+        Assert.Contains(UndoNotes.ReflogKey, confirm.Prompt.Consequence, StringComparison.Ordinal);
+        Assert.DoesNotContain("git reset", confirm.Prompt.Consequence, StringComparison.Ordinal);
         Assert.Equal(RebaseEditorReducer.TooSmallNotice, confirm.UnavailableNotice);
         Assert.Equal(new RebaseEditorStartConfirmed(Tab, session.Editor!), confirm.OnAccepted);
         Assert.Equal(session, update.Session);
@@ -615,7 +616,8 @@ public class RebaseEditorReducerTests
 
         var post = Assert.Single(update.Effects.OfType<PostStatusEffect>());
         Assert.Equal(StatusSeverity.Info, post.Severity);
-        Assert.Contains($"git reset --keep {Tip}", post.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("git reset", post.Text, StringComparison.Ordinal);
+        Assert.Equal($"Undo: git reset --keep {Tip} (or ORIG_HEAD, the reflog)", post.Detail);
         Assert.Contains(update.Effects, effect => effect is RefreshTabEffect refresh && refresh.TabId == Tab);
     }
 

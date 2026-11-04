@@ -90,7 +90,7 @@ public sealed class StagingWiring : IStatusRefresher, IDisposable
         }
         else if (effect is PostStatusEffect post)
         {
-            _host.Dispatch(new StatusPostedCommand(post.Text, post.Severity, _host.Clock.GetUtcNow()));
+            _host.Dispatch(new StatusPostedCommand(post.Text, post.Severity, _host.Clock.GetUtcNow(), post.Detail));
         }
         else if (effect is ShowConfirmEffect confirm)
         {

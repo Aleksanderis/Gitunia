@@ -127,10 +127,17 @@ public sealed class OverlayStore
     /// <summary>The messages list: newest first; the severity takes the keys column.</summary>
     public HelpSection MessageSection()
     {
-        var rows = _statuses.Log.History
-            .Reverse()
-            .Select(message => new HelpRow(message.Severity.ToString().ToLowerInvariant(), message.Text))
-            .ToList();
+        var rows = new List<HelpRow>();
+        foreach (var message in _statuses.Log.History.Reverse())
+        {
+            rows.Add(new HelpRow(message.Severity.ToString().ToLowerInvariant(), message.Text));
+            if (message.Detail is { } detail)
+            {
+                // The long text (restore command, full hash) sits under its entry, indented.
+                rows.Add(new HelpRow(string.Empty, "  " + detail));
+            }
+        }
+
         if (rows.Count == 0)
         {
             rows.Add(new HelpRow(string.Empty, "no messages yet"));

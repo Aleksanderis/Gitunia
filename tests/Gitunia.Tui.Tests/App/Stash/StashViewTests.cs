@@ -148,7 +148,7 @@ public class StashViewTests
         harness.Select("stash@{0}");
         harness.Press(ActionIds.SidebarActivate);
         await harness.WaitForDetailsAsync();
-        harness.Statuses.Post("Dropped stash@{0} (abc); undo: git stash store -m wip abc");
+        harness.Statuses.Post("Dropped stash@{0} (abc)");
 
         harness.Send(new StashesLoadedCommand([]));
 

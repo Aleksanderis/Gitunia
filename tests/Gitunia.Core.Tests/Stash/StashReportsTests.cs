@@ -55,9 +55,10 @@ public class StashReportsTests
     {
         var report = StashReports.Apply(new StashResult(StashOutcome.Done, null), Entry, true);
 
+        Assert.Equal("Popped stash@{0}", report.Text);
         Assert.Equal(
-            "Popped stash@{0}; undo the drop: git stash store -m \"On main: \\\"quoted\\\" work\" abc123",
-            report.Text);
+            "Restore: git stash store -m \"On main: \\\"quoted\\\" work\" abc123",
+            report.Detail);
     }
 
     [Fact]
@@ -85,7 +86,8 @@ public class StashReportsTests
     {
         var report = StashReports.Drop(new StashResult(StashOutcome.Done, null), Entry);
 
-        Assert.StartsWith("Dropped stash@{0} (abc123); undo: git stash store -m", report.Text, StringComparison.Ordinal);
+        Assert.Equal("Dropped stash@{0} (abc123)", report.Text);
+        Assert.StartsWith("Restore: git stash store -m", report.Detail, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -99,9 +101,9 @@ public class StashReportsTests
         var withBackup = StashReports.Restore(new StashRestoreResult(StashRestoreState.Overwrites, "deadbeef"), target);
         var without = StashReports.Restore(new StashRestoreResult(StashRestoreState.Creates, null), target);
 
-        Assert.Equal(
-            "Restored a b.txt from stash@{0}; undo: git cat-file blob deadbeef > \"a b.txt\"",
-            withBackup.Text);
+        Assert.Equal("Restored a b.txt from stash@{0}", withBackup.Text);
+        Assert.Equal("Undo: git cat-file blob deadbeef > \"a b.txt\"", withBackup.Detail);
         Assert.Equal("Restored a b.txt from stash@{0}", without.Text);
+        Assert.Null(without.Detail);
     }
 }

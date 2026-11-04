@@ -517,8 +517,9 @@ public class CommitReducerTests
         harness.Send(new CommitSucceeded(harness.TabId, effect.Request, new CommitResult("2222222222", "1111111111"), null));
 
         Assert.True(effect.Request.Amend);
-        Assert.Contains("previous commit 1111111", harness.LastStatus, StringComparison.Ordinal);
-        Assert.Contains("git reset --soft 1111111", harness.LastStatus, StringComparison.Ordinal);
+        var post = harness.Effects.OfType<PostStatusEffect>().Last();
+        Assert.Equal("Amended to 2222222 (was 1111111)", post.Text);
+        Assert.Equal("Undo: git reset --soft 1111111111", post.Detail);
         Assert.False(harness.Draft.Amend);
     }
 

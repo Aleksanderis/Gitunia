@@ -3,6 +3,7 @@ using Gitunia.Core.Effects;
 using Gitunia.Core.Overlays;
 using Gitunia.Core.Prompts;
 using Gitunia.Core.Sidebar;
+using Gitunia.Core.Status;
 using Gitunia.Core.Text;
 using Gitunia.Git.Refs.Models;
 
@@ -61,7 +62,7 @@ internal static class BranchDeletes
         var prompt = new ConfirmPrompt(
             "Delete branch",
             [$"Delete the branch {branch.Name} (at {ShortHash.Of(branch.CommitHash)})?"],
-            $"Undo: git branch {branch.Name} {branch.CommitHash}",
+            UndoNotes.FromHistory,
             "Delete branch");
         var accepted = new BranchDeleteConfirmed(
             context.TabId,

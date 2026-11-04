@@ -180,9 +180,8 @@ public class BranchEffectHandlerTests
         var result = await RunAsync(Delete(location, "topic", repository.Head, force: false));
 
         var success = Assert.IsType<BranchOperationSucceeded>(result);
-        Assert.Equal(
-            $"Deleted branch topic (was {repository.Head[..7]}; restore: git branch topic {repository.Head})",
-            success.Text);
+        Assert.Equal($"Deleted branch topic (was {repository.Head[..7]})", success.Text);
+        Assert.Equal($"Restore: git branch topic {repository.Head}", success.Detail);
         Assert.Equal(string.Empty, repository.Git("branch", "--list", "topic").Trim());
     }
 
@@ -209,7 +208,9 @@ public class BranchEffectHandlerTests
         var result = await RunAsync(Delete(location, "wip", tip, force: true));
 
         var success = Assert.IsType<BranchOperationSucceeded>(result);
-        Assert.Contains(tip, success.Text, StringComparison.Ordinal);
+        Assert.Contains(tip[..7], success.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain(tip, success.Text, StringComparison.Ordinal);
+        Assert.Equal($"Restore: git branch wip {tip}", success.Detail);
         Assert.Equal(string.Empty, repository.Git("branch", "--list", "wip").Trim());
         Assert.Equal(tip, repository.Git("rev-parse", tip).Trim());
     }
@@ -250,8 +251,9 @@ public class BranchEffectHandlerTests
 
         var result = await RunAsync(new UnsetUpstreamEffect(Tab, location, "topic", "origin/topic"));
 
-        var text = Assert.IsType<BranchOperationSucceeded>(result).Text;
-        Assert.Contains("git branch --set-upstream-to=origin/topic topic", text, StringComparison.Ordinal);
+        var success = Assert.IsType<BranchOperationSucceeded>(result);
+        Assert.Equal("topic no longer tracks origin/topic", success.Text);
+        Assert.Equal("Restore: git branch --set-upstream-to=origin/topic topic", success.Detail);
         Assert.Equal(string.Empty, repository.Git("for-each-ref", "--format=%(upstream)", "refs/heads/topic").Trim());
     }
 
@@ -268,10 +270,9 @@ public class BranchEffectHandlerTests
         var result = await RunAsync(
             new FastForwardBranchEffect(Tab, location, "topic", "refs/remotes/origin/topic", old, tip));
 
-        var text = Assert.IsType<BranchOperationSucceeded>(result).Text;
-        Assert.Equal(
-            $"Fast-forwarded topic from {old[..7]} to {tip[..7]} (undo: git update-ref refs/heads/topic {old})",
-            text);
+        var success = Assert.IsType<BranchOperationSucceeded>(result);
+        Assert.Equal($"Fast-forwarded topic from {old[..7]} to {tip[..7]}", success.Text);
+        Assert.Equal($"Undo: git update-ref refs/heads/topic {old}", success.Detail);
         Assert.Equal(tip, repository.Git("rev-parse", "refs/heads/topic").Trim());
         Assert.Equal("main", repository.Git("branch", "--show-current").Trim());
     }

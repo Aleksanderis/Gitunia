@@ -457,7 +457,12 @@ public static class CommitReducer
         }
 
         var message = CommitTexts.Success(succeeded.Request, succeeded.Result, succeeded.ForcePushUpstream);
-        ImmutableArray<AppEffect> effects = [Post(message), new RefreshTabEffect(tab.Id)];
+        var detail = CommitTexts.SuccessDetail(succeeded.Request, succeeded.Result);
+        ImmutableArray<AppEffect> effects =
+        [
+            new PostStatusEffect(message, StatusSeverity.Info, detail),
+            new RefreshTabEffect(tab.Id),
+        ];
 
         return new CommitUpdate(tab.Commit with { Draft = draft }, null, null, effects, next);
     }

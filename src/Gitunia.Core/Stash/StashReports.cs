@@ -43,8 +43,9 @@ public static class StashReports
         if (pop)
         {
             return new StashReport(
-                $"Popped {entry.Name}; undo the drop: {RestoreCommand(entry)}",
-                StatusSeverity.Info);
+                $"Popped {entry.Name}",
+                StatusSeverity.Info,
+                UndoNotes.Restore(RestoreCommand(entry)));
         }
 
         return new StashReport($"Applied {entry.Name}; the stash is kept", StatusSeverity.Info);
@@ -59,8 +60,9 @@ public static class StashReports
         }
 
         return new StashReport(
-            $"Dropped {entry.Name} ({entry.CommitHash}); undo: {RestoreCommand(entry)}",
-            StatusSeverity.Info);
+            $"Dropped {entry.Name} ({ShortHash.Of(entry.CommitHash)})",
+            StatusSeverity.Info,
+            UndoNotes.Restore(RestoreCommand(entry)));
     }
 
     /// <summary>The report of a restore, or of a check that found nothing to restore.</summary>
@@ -77,18 +79,22 @@ public static class StashReports
             StashRestoreState.Identical => new StashReport(
                 $"{path} already matches {name}: nothing to restore",
                 StatusSeverity.Info),
-            _ => new StashReport(Restored(result, path, name), StatusSeverity.Info),
+            _ => Restored(result, path, name),
         };
     }
 
-    private static string Restored(StashRestoreResult result, string path, string name)
+    private static StashReport Restored(StashRestoreResult result, string path, string name)
     {
+        var text = $"Restored {path} from {name}";
         if (result.BackupBlob is null)
         {
-            return $"Restored {path} from {name}";
+            return new StashReport(text, StatusSeverity.Info);
         }
 
-        return $"Restored {path} from {name}; undo: git cat-file blob {result.BackupBlob} > \"{path}\"";
+        return new StashReport(
+            text,
+            StatusSeverity.Info,
+            UndoNotes.Undo($"git cat-file blob {result.BackupBlob} > \"{path}\""));
     }
 
     private static StashReport Gone(StashEntry entry) =>

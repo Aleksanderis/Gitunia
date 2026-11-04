@@ -167,7 +167,7 @@ public static class StagingReducer
                 $"Mark {name} as resolved?",
                 "Conflict markers still in the file are not removed or checked: they are committed as they are.",
             ],
-            "Undo: git checkout --merge <file> re-creates the conflict (it overwrites the file's current content).",
+            "Afterwards you can re-create the conflict from the conflict editor (Ctrl-x there); that overwrites the file's current content.",
             "Mark resolved");
 
         var accepted = new ResolveConfirmed(context.TabId, entry);

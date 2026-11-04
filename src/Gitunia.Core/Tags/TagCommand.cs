@@ -72,7 +72,9 @@ public sealed record TagDeleteOnRemoteConfirmed(TabId TabId, string Remote, stri
 /// <summary>Result: a tag operation finished.</summary>
 /// <param name="TabId">The tab.</param>
 /// <param name="Text">What to tell the user.</param>
-public sealed record TagOperationSucceeded(TabId TabId, string Text) : TagCommand(TabId), IOperationResult
+/// <param name="Detail">The restore command, kept in the message history; null when there is none.</param>
+public sealed record TagOperationSucceeded(TabId TabId, string Text, string? Detail = null)
+    : TagCommand(TabId), IOperationResult
 {
     RunningOperationKind IOperationResult.Kind => RunningOperationKind.Tags;
 }

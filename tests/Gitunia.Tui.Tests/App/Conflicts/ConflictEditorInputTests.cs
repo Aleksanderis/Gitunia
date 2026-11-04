@@ -98,7 +98,7 @@ public class ConflictEditorInputTests
 
         var prompt = Assert.Single(harness.Prompts);
         Assert.Contains("1 unresolved conflict out of 2", prompt.Lines[0], StringComparison.Ordinal);
-        Assert.Contains("git checkout --merge", prompt.Consequence, StringComparison.Ordinal);
+        Assert.Contains("re-create the whole conflict", prompt.Consequence, StringComparison.Ordinal);
         Assert.Equal(harness.OriginalText, File.ReadAllText(harness.FullPath));
         harness.Answer();
         await harness.WaitAsync();
@@ -954,7 +954,7 @@ public class ConflictEditorInputTests
         harness.Run(ActionIds.ConflictEditorRecreate);
         var prompt = Assert.Single(harness.Prompts);
         Assert.Contains("Re-create the conflict of conflict.txt", prompt.Lines[0], StringComparison.Ordinal);
-        Assert.Contains("checkout --merge", prompt.Consequence, StringComparison.Ordinal);
+        Assert.Contains("No undo for the file's current content", prompt.Consequence, StringComparison.Ordinal);
         Assert.Equal("garbage\n", File.ReadAllText(harness.FullPath));
         harness.Answer();
         await harness.WaitForStatusAsync("Re-created");
@@ -1634,7 +1634,7 @@ public class ConflictEditorInputTests
                     _handler.Handle(conflict, TestContext.Current.CancellationToken);
                     break;
                 case PostStatusEffect post:
-                    _host.Dispatch(new StatusPostedCommand(post.Text, post.Severity, Now));
+                    _host.Dispatch(new StatusPostedCommand(post.Text, post.Severity, Now, post.Detail));
                     break;
                 case RefreshTabEffect:
                     Refreshes++;

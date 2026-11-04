@@ -22,7 +22,9 @@ public class WorktreeRemoveReducerTests
         Assert.Equal("Remove worktree", confirm.Prompt.Title);
         Assert.Equal($"Remove the worktree {Linked}?", confirm.Prompt.Lines[0]);
         Assert.Equal("Its branch wt is kept.", confirm.Prompt.Lines[1]);
-        Assert.Equal("Undo: git worktree add <path> wt checks the branch out again.", confirm.Prompt.Consequence);
+        Assert.Equal(
+            "The branch stays; wt can be checked out again with a new worktree (<space>wa).",
+            confirm.Prompt.Consequence);
         Assert.Equal(new WorktreeRemoveConfirmed(Tab, Linked), confirm.OnAccepted);
         Assert.Equal(WorktreeTexts.TooSmallNotice, confirm.UnavailableNotice);
     }
@@ -37,7 +39,7 @@ public class WorktreeRemoveReducerTests
         var confirm = Assert.IsType<ShowConfirmEffect>(Assert.Single(update.Effects));
         Assert.Equal("It has a detached HEAD: commits that no branch reaches are lost.", confirm.Prompt.Lines[1]);
         Assert.Equal(
-            "Undo: git worktree add <path> 2222222 checks that commit out again.",
+            "Only the checkout is removed; its commit stays in the repository.",
             confirm.Prompt.Consequence);
     }
 

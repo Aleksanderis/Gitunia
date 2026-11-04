@@ -399,7 +399,10 @@ public static class RebaseEditorReducer
     {
         var report = RebaseEditorTexts.ReportOf(finished.State, finished.Result);
 
-        return Done(session, Post(report.Text, report.Severity), new RefreshTabEffect(finished.TabId));
+        return Done(
+            session,
+            new PostStatusEffect(report.Text, report.Severity, report.Detail),
+            new RefreshTabEffect(finished.TabId));
     }
 
     // Nothing ran: the todo comes back so the work of editing it is not lost.

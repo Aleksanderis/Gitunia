@@ -18,6 +18,36 @@ public class ShellReducerTests
     private static readonly AppCommand Accepted = new RetryInTerminalConfirmed(default, "Test", []);
 
     [Fact]
+    public void GivenAPostWithADetail_WhenPosted_ThenTheHistoryKeepsTheDetailAndTheTextStaysShort()
+    {
+        var update = Reduce(
+            ShellState.Empty,
+            new StatusPostedCommand("Deleted branch x (was dde61a9)", StatusSeverity.Info, Start, "Restore: git branch x dde61a9abb"));
+
+        var message = Assert.Single(update.State.Status.History);
+        Assert.Equal("Deleted branch x (was dde61a9)", message.Text);
+        Assert.Equal("Restore: git branch x dde61a9abb", message.Detail);
+    }
+
+    [Fact]
+    public void GivenTheSameTextWithAnotherDetail_WhenPostedAgain_ThenBothStayInTheHistory()
+    {
+        var first = Reduce(ShellState.Empty, new StatusPostedCommand("Dropped", StatusSeverity.Info, Start, "Restore: a"));
+
+        var second = Reduce(first.State, new StatusPostedCommand("Dropped", StatusSeverity.Info, Start, "Restore: b"));
+
+        Assert.Equal(["Restore: a", "Restore: b"], second.State.Status.History.Select(message => message.Detail));
+    }
+
+    [Fact]
+    public void GivenABlankDetail_WhenPosted_ThenTheMessageHasNone()
+    {
+        var update = Reduce(ShellState.Empty, new StatusPostedCommand("Pushed", StatusSeverity.Info, Start, "  "));
+
+        Assert.Null(Assert.Single(update.State.Status.History).Detail);
+    }
+
+    [Fact]
     public void GivenARefreshRequest_WhenReducing_ThenTheStateIsUntouchedAndTheTabIsRefreshedAsAsked()
     {
         var tab = new TabId(7);

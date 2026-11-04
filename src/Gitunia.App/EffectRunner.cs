@@ -391,7 +391,7 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
                 _pick.Handle(pick, _cancellation.TokenOf(pick.TabId));
                 break;
             case PostStatusEffect post:
-                _host.Dispatch(new StatusPostedCommand(post.Text, post.Severity, _host.Clock.GetUtcNow()));
+                _host.Dispatch(new StatusPostedCommand(post.Text, post.Severity, _host.Clock.GetUtcNow(), post.Detail));
                 break;
             case QuitEffect quit:
                 if (quit.CancelWork)

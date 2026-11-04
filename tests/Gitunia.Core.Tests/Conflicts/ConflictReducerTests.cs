@@ -246,7 +246,8 @@ public class ConflictReducerTests
 
         var confirm = Assert.IsType<ShowConfirmEffect>(Assert.Single(update.Effects));
         Assert.Contains("1 unresolved conflict out of 2", confirm.Prompt.Lines[0], StringComparison.Ordinal);
-        Assert.Contains("git checkout --merge", confirm.Prompt.Consequence, StringComparison.Ordinal);
+        Assert.Contains("re-create the whole conflict with Ctrl-x", confirm.Prompt.Consequence, StringComparison.Ordinal);
+        Assert.DoesNotContain("git ", confirm.Prompt.Consequence, StringComparison.Ordinal);
         Assert.IsType<ConflictSaveConfirmed>(confirm.OnAccepted);
     }
 

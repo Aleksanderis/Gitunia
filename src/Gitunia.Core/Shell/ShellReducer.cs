@@ -108,13 +108,14 @@ public static class ShellReducer
     {
         if (state.Status.Current(posted.At) is { } current
             && current.Text == posted.Text
-            && current.Severity == posted.Severity)
+            && current.Severity == posted.Severity
+            && current.Detail == posted.Detail)
         {
             // The same failure again (a repeated refresh) would only fill the history with copies.
             return new ShellUpdate(state, []);
         }
 
-        var shown = state with { Status = state.Status.Post(posted.Text, posted.Severity, posted.At) };
+        var shown = state with { Status = state.Status.Post(posted.Text, posted.Severity, posted.At, posted.Detail) };
 
         return new ShellUpdate(shown, Schedule(shown, posted.At));
     }

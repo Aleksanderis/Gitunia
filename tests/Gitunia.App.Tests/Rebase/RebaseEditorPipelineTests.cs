@@ -77,7 +77,8 @@ public class RebaseEditorPipelineTests
         Assert.Equal("with a body", repository.Git("log", "-1", "--format=%b", "HEAD~2").Trim());
         var latest = pipeline.Statuses.Log.Latest!;
         Assert.Equal(StatusSeverity.Info, latest.Severity);
-        Assert.Contains($"git reset --keep {oldTip}", latest.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("git reset", latest.Text, StringComparison.Ordinal);
+        Assert.Equal($"Undo: git reset --keep {oldTip} (or ORIG_HEAD, the reflog)", latest.Detail);
         Assert.Equal(RepositoryOperation.None, new RepositoryOperationDetector().Detect(LocationOf(pipeline)));
     }
 

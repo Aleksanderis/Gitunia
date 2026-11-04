@@ -1,3 +1,4 @@
+using Gitunia.Core.Status;
 using Gitunia.Tui.App;
 using System.Collections.Concurrent;
 using Gitunia.App.Shell;
@@ -537,6 +538,23 @@ public sealed class OverlayControllerTests : IDisposable, IActionRoute
         Assert.Equal(1, changes);
         Assert.Contains("late warning", lines[2], StringComparison.Ordinal);
         Assert.Contains("first failure", lines[3], StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GivenAMessageWithADetail_WhenOpeningTheHistory_ThenTheDetailSitsUnderItsEntryAndTheBarKeepsOnlyTheText()
+    {
+        _shell.Statuses.Post("Deleted branch topic (was dde61a9)", StatusSeverity.Info, "Restore: git branch topic dde61a9abb");
+        _shell.Statuses.Warning("plain warning");
+        Assert.DoesNotContain("git branch", _shell.Statuses.Current!.Text, StringComparison.Ordinal);
+
+        Press(new Key(' '));
+        Press(new Key('m'));
+        var lines = _overlays.CurrentFrame()!.Lines.Select(line => line.Text).ToList();
+
+        var entry = lines.FindIndex(line => line.Contains("Deleted branch topic (was dde61a9)", StringComparison.Ordinal));
+        Assert.True(entry > 0);
+        Assert.Contains("Restore: git branch topic dde61a9abb", lines[entry + 1], StringComparison.Ordinal);
+        Assert.Equal(1, lines.Count(line => line.Contains("git branch", StringComparison.Ordinal)));
     }
 
     [Fact]

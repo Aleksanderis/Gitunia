@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using Gitunia.Core.Status;
 using Gitunia.Core.Sync;
 using Gitunia.Core.Text;
 using Gitunia.Core.Workspaces.Tabs;
@@ -93,7 +94,8 @@ public sealed class SyncEffectHandler(
                 var restore = $"git push {delete.Remote} {delete.CommitHash}:{GitRefPrefixes.Heads}{delete.Branch}";
                 return new SyncSucceeded(
                     effect.TabId,
-                    $"Deleted {delete.Branch} on {delete.Remote} (restore: {restore})");
+                    $"Deleted {delete.Branch} on {delete.Remote} (was {ShortHash.Of(delete.CommitHash)})",
+                    UndoNotes.Restore(restore));
             case FetchEffect fetch:
                 var request = new FetchRequest(null, fetch.AllRemotes, true);
                 await writer.FetchAsync(fetch.Location, request, progress, token).ConfigureAwait(false);
@@ -113,7 +115,7 @@ public sealed class SyncEffectHandler(
                 return new SyncSucceeded(effect.TabId, pulled);
             case PushEffect push:
                 await writer.PushAsync(push.Location, push.Request, progress, token).ConfigureAwait(false);
-                return new SyncSucceeded(effect.TabId, push.Done);
+                return new SyncSucceeded(effect.TabId, push.Done, push.DoneDetail);
             default:
                 throw new UnhandledEffectException(effect);
         }

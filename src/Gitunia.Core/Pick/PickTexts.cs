@@ -47,9 +47,9 @@ public static class PickTexts
         return result.Outcome switch
         {
             PickOutcome.Completed => new PostedText(
-                $"{PastTense(kind)} {what} onto {target} ({tip}), was {was}; undo: git reset --hard {was} " +
-                "(the reflog has it)",
-                StatusSeverity.Info),
+                $"{PastTense(kind)} {what} onto {target} ({tip}), was {was}",
+                StatusSeverity.Info,
+                UndoNotes.Undo($"git reset --hard {result.OldHead} (the reflog has it)")),
             PickOutcome.NothingToApply => new PostedText(
                 $"Nothing to {verb}: {target} already has the changes of {what}",
                 StatusSeverity.Info),

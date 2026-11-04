@@ -783,7 +783,7 @@ public sealed class BlameInputTests
                     _host.Dispatch(new SetKeyModeCommand(mode.Mode));
                     break;
                 case PostStatusEffect post:
-                    _host.Dispatch(new StatusPostedCommand(post.Text, post.Severity, _host.Clock.GetUtcNow()));
+                    _host.Dispatch(new StatusPostedCommand(post.Text, post.Severity, _host.Clock.GetUtcNow(), post.Detail));
                     break;
             }
         }

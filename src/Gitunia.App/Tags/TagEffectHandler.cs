@@ -1,3 +1,4 @@
+using Gitunia.Core.Status;
 using Gitunia.Core.Tags;
 using Gitunia.Core.Text;
 using Gitunia.Git.Execution.Exceptions;
@@ -67,9 +68,9 @@ public sealed class TagEffectHandler(ITagWriter writer, IDispatcher dispatcher)
     private async Task<TagCommand> DeleteAsync(DeleteTagEffect effect, CancellationToken token)
     {
         await writer.DeleteAsync(effect.Location, effect.Name, token).ConfigureAwait(false);
-        var text = $"Deleted tag {effect.Name} (was {ShortHash.Of(effect.ObjectHash)}; "
-            + $"restore: git tag {effect.Name} {effect.ObjectHash})";
-        return new TagOperationSucceeded(effect.TabId, text);
+        var text = $"Deleted tag {effect.Name} (was {ShortHash.Of(effect.ObjectHash)})";
+        var restore = UndoNotes.Restore($"git tag {effect.Name} {effect.ObjectHash}");
+        return new TagOperationSucceeded(effect.TabId, text, restore);
     }
 
     private async Task<TagCommand> ListRemotesAsync(ListTagRemotesEffect effect, CancellationToken token)
@@ -87,9 +88,9 @@ public sealed class TagEffectHandler(ITagWriter writer, IDispatcher dispatcher)
     private async Task<TagCommand> DeleteOnRemoteAsync(DeleteTagOnRemoteEffect effect, CancellationToken token)
     {
         await writer.DeleteOnRemoteAsync(effect.Location, effect.Remote, effect.Name, token).ConfigureAwait(false);
-        var text = $"Deleted tag {effect.Name} on {effect.Remote} "
-            + $"(restore: git push {effect.Remote} refs/tags/{effect.Name})";
-        return new TagOperationSucceeded(effect.TabId, text);
+        var text = $"Deleted tag {effect.Name} on {effect.Remote}";
+        var restore = UndoNotes.Restore($"git push {effect.Remote} refs/tags/{effect.Name}");
+        return new TagOperationSucceeded(effect.TabId, text, restore);
     }
 
     private static TagCommand Failure(TagEffect effect, Exception exception)

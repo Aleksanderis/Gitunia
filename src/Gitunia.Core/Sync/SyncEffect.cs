@@ -39,12 +39,14 @@ public sealed record PullEffect(TabId TabId, RepositoryLocation Location) : Sync
 /// <param name="Request">What to push.</param>
 /// <param name="Done">The status text of a success.</param>
 /// <param name="Branch">The branch that was checked out when the push started.</param>
+/// <param name="DoneDetail">The undo command for the message history after a success, null when there is none.</param>
 public sealed record PushEffect(
     TabId TabId,
     RepositoryLocation Location,
     PushRequest Request,
     string Done,
-    string Branch) : SyncEffect(TabId, Location);
+    string Branch,
+    string? DoneDetail = null) : SyncEffect(TabId, Location);
 
 /// <summary>Delete a branch on a remote, guarded by a lease on the tip the user saw.</summary>
 /// <param name="TabId">The tab.</param>

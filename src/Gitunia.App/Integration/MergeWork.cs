@@ -15,6 +15,6 @@ public sealed class MergeWork(IMergeWriter writer)
             .ConfigureAwait(false);
         var report = MergeTexts.Report(result, effect.Mode, effect.Branch, effect.Target.Label);
 
-        return new IntegrationSucceeded(effect.TabId, report.Text, report.Severity);
+        return new IntegrationSucceeded(effect.TabId, report.Text, report.Severity, report.Detail);
     }
 }

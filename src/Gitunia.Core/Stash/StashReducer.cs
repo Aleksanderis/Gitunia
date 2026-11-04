@@ -40,7 +40,8 @@ public static class StashReducer
         StashMessageAccepted accepted => MessageAccepted(accepted, context),
         StashOperationCancelled => [],
         StashOperationFailed failed => Finished(failed.Text, StatusSeverity.Error, context),
-        StashOperationSucceeded succeeded => Finished(succeeded.Text, succeeded.Severity, context),
+        StashOperationSucceeded succeeded =>
+            Finished(succeeded.Text, succeeded.Severity, context, succeeded.Detail),
         StashPushRequested push => Push(push, context),
         StashRestoreChecked restoreChecked => RestoreChecked(restoreChecked, context),
         StashRestoreConfirmed confirmed => RestoreConfirmed(confirmed, context),
@@ -115,7 +116,7 @@ public static class StashReducer
         var confirm = new ConfirmPrompt(
             "Drop stash",
             [$"Drop {entry.Name}: {entry.Message}?"],
-            $"Undo: {StashReports.RestoreCommand(entry)}",
+            UndoNotes.FromHistory,
             "Drop stash");
         var accepted = new StashDropConfirmed(context.TabId, entry);
 
@@ -167,7 +168,7 @@ public static class StashReducer
                 $"Replace {target.File.Change.Path} in the working tree with its version from {target.Entry.Name}?",
                 "Your current content of the file is replaced; the stash and the index stay as they are.",
             ],
-            "Undo: your current content is saved as a git object first; its id is shown afterwards",
+            $"Your current content is saved first; afterwards the message history ({UndoNotes.MessagesKey}) shows how to get it back.",
             "Restore file");
         var accepted = new StashRestoreConfirmed(context.TabId, target);
 
@@ -184,8 +185,12 @@ public static class StashReducer
         return [new RestoreStashFileEffect(context.TabId, context.Location, confirmed.Target)];
     }
 
-    private static ImmutableArray<AppEffect> Finished(string text, StatusSeverity severity, StashContext context) =>
-        [Post(text, severity), new RefreshTabEffect(context.TabId)];
+    private static ImmutableArray<AppEffect> Finished(
+        string text,
+        StatusSeverity severity,
+        StashContext context,
+        string? detail = null) =>
+        [new PostStatusEffect(text, severity, detail), new RefreshTabEffect(context.TabId)];
 
     // Apply, pop and drop act only on a stash row of the focused sidebar; the stash is found by its commit.
     private static StashEntry? EntryOf(string? commitHash, StashContext context)
