@@ -17,6 +17,7 @@ public static class WorkspaceReducer
         NextTabCommand => Unchanged(Step(workspace, 1)),
         PreviousTabCommand => Unchanged(Step(workspace, -1)),
         GoToTabCommand goTo => Unchanged(GoTo(workspace, goTo.Position)),
+        MoveTabCommand move => Unchanged(Move(workspace, move.Offset)),
         ActivatePreviousTabCommand => Unchanged(workspace.PreviousTabId is { } previous ? Activate(workspace, previous) : workspace),
         TogglePinCommand pin => Unchanged(TogglePin(workspace, pin.RootPath)),
         RemoveRecentCommand remove => Unchanged(workspace with { Recents = Remove(workspace.Recents, remove.RootPath) }),
@@ -145,6 +146,26 @@ public static class WorkspaceReducer
 
     private static Workspace GoTo(Workspace workspace, int position) =>
         position >= 1 && position <= workspace.Tabs.Length ? Activate(workspace, workspace.Tabs[position - 1].Id) : workspace;
+
+    // Only the array order changes: the active and previous tab are ids, so they follow their tabs.
+    private static Workspace Move(Workspace workspace, int offset)
+    {
+        var from = workspace.ActiveTabId is { } activeId ? IndexOf(workspace, activeId) : -1;
+        if (from < 0 || offset == 0)
+        {
+            return workspace;
+        }
+
+        var to = Math.Clamp(from + offset, 0, workspace.Tabs.Length - 1);
+        if (to == from)
+        {
+            return workspace;
+        }
+
+        var tab = workspace.Tabs[from];
+
+        return workspace with { Tabs = workspace.Tabs.RemoveAt(from).Insert(to, tab) };
+    }
 
     private static Workspace TogglePin(Workspace workspace, string rootPath)
     {

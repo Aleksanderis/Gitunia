@@ -46,6 +46,8 @@ public static class WorkspaceActionReducer
                 state,
                 pressed.Count is { } position ? new GoToTabCommand(position) : new NextTabCommand()),
             Kind.TabPrevious => Switch(cleared, state, new PreviousTabCommand()),
+            Kind.TabMoveLeft => Switch(cleared, state, new MoveTabCommand(-(pressed.Count ?? 1))),
+            Kind.TabMoveRight => Switch(cleared, state, new MoveTabCommand(pressed.Count ?? 1)),
             Kind.TabLastActive => Switch(cleared, state, new ActivatePreviousTabCommand()),
             Kind.TabGoTo => Switch(cleared, state, new GoToTabCommand(GoToNumber(action))),
             Kind.TabClose => Close(cleared, pressed, state),
@@ -133,6 +135,16 @@ public static class WorkspaceActionReducer
         if (action == ActionIds.TabPrevious)
         {
             return Kind.TabPrevious;
+        }
+
+        if (action == ActionIds.TabMoveLeft)
+        {
+            return Kind.TabMoveLeft;
+        }
+
+        if (action == ActionIds.TabMoveRight)
+        {
+            return Kind.TabMoveRight;
         }
 
         if (action == ActionIds.TabLastActive)
@@ -251,6 +263,8 @@ public static class WorkspaceActionReducer
         TabNext,
         TabPrevious,
         TabLastActive,
+        TabMoveLeft,
+        TabMoveRight,
         TabGoTo,
         TabClose,
         TabRename,

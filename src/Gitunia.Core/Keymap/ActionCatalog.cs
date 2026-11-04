@@ -382,6 +382,8 @@ public static class ActionCatalog
         ["status.history"] = "Show the status message history",
         ["tab.close"] = "Close the tab",
         ["tab.last-active"] = "Previously active tab",
+        ["tab.move-left"] = "Move the tab one place left",
+        ["tab.move-right"] = "Move the tab one place right",
         ["tab.next"] = "Next tab",
         ["tab.previous"] = "Previous tab",
         ["tab.rename"] = "Rename the tab",

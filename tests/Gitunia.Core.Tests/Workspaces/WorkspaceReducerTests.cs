@@ -468,6 +468,70 @@ public class WorkspaceReducerTests
         Assert.Empty(update.Effects);
     }
 
+    [Fact]
+    public void GivenThreeTabs_WhenMovingTheActiveTabRightAndLeft_ThenItSwapsAndStaysActive()
+    {
+        var workspace = Open(Workspace.Empty, "alpha", "beta", "gamma");
+        workspace = WorkspaceReducer.Reduce(workspace, new ActivateTabCommand(IdOf(workspace, "alpha"))).Workspace;
+
+        var right = WorkspaceReducer.Reduce(workspace, new MoveTabCommand(1)).Workspace;
+        var back = WorkspaceReducer.Reduce(right, new MoveTabCommand(-1)).Workspace;
+
+        Assert.Equal(["beta", "alpha", "gamma"], right.Tabs.Select(tab => tab.DisplayName));
+        Assert.Equal(IdOf(workspace, "alpha"), right.ActiveTabId);
+        Assert.Equal(["alpha", "beta", "gamma"], back.Tabs.Select(tab => tab.DisplayName));
+    }
+
+    [Fact]
+    public void GivenTheActiveTabAtAnEnd_WhenMovingPastIt_ThenNothingChangesAndThereIsNoWrap()
+    {
+        var workspace = Open(Workspace.Empty, "alpha", "beta", "gamma");
+
+        var past = WorkspaceReducer.Reduce(workspace, new MoveTabCommand(1)).Workspace;
+        workspace = WorkspaceReducer.Reduce(workspace, new ActivateTabCommand(IdOf(workspace, "alpha"))).Workspace;
+        var before = WorkspaceReducer.Reduce(workspace, new MoveTabCommand(-1)).Workspace;
+
+        Assert.Equal(["alpha", "beta", "gamma"], before.Tabs.Select(tab => tab.DisplayName));
+        Assert.Equal(["alpha", "beta", "gamma"], past.Tabs.Select(tab => tab.DisplayName));
+    }
+
+    [Fact]
+    public void GivenACount_WhenMovingTheActiveTab_ThenItMovesThatFarAndStopsAtTheEnd()
+    {
+        var workspace = Open(Workspace.Empty, "alpha", "beta", "gamma", "delta");
+        workspace = WorkspaceReducer.Reduce(workspace, new ActivateTabCommand(IdOf(workspace, "alpha"))).Workspace;
+
+        var two = WorkspaceReducer.Reduce(workspace, new MoveTabCommand(2)).Workspace;
+        var clamped = WorkspaceReducer.Reduce(workspace, new MoveTabCommand(9)).Workspace;
+
+        Assert.Equal(["beta", "gamma", "alpha", "delta"], two.Tabs.Select(tab => tab.DisplayName));
+        Assert.Equal(["beta", "gamma", "delta", "alpha"], clamped.Tabs.Select(tab => tab.DisplayName));
+    }
+
+    [Fact]
+    public void GivenAPreviousTab_WhenTabsAreMoved_ThenThePreviousTabIsTheSameTabAndNumbersFollowTheOrder()
+    {
+        var workspace = Open(Workspace.Empty, "alpha", "beta", "gamma");
+        workspace = WorkspaceReducer.Reduce(workspace, new ActivateTabCommand(IdOf(workspace, "alpha"))).Workspace;
+        workspace = WorkspaceReducer.Reduce(workspace, new ActivateTabCommand(IdOf(workspace, "gamma"))).Workspace;
+
+        var moved = WorkspaceReducer.Reduce(workspace, new MoveTabCommand(-2)).Workspace;
+        var back = WorkspaceReducer.Reduce(moved, new ActivatePreviousTabCommand()).Workspace;
+        var third = WorkspaceReducer.Reduce(moved, new GoToTabCommand(3)).Workspace;
+
+        Assert.Equal(["gamma", "alpha", "beta"], moved.Tabs.Select(tab => tab.DisplayName));
+        Assert.Equal(IdOf(workspace, "alpha"), back.ActiveTabId);
+        Assert.Equal(IdOf(workspace, "beta"), third.ActiveTabId);
+    }
+
+    [Fact]
+    public void GivenNoTabs_WhenMoving_ThenNothingHappens()
+    {
+        var moved = WorkspaceReducer.Reduce(Workspace.Empty, new MoveTabCommand(1)).Workspace;
+
+        Assert.Same(Workspace.Empty, moved);
+    }
+
     private static RepositoryLocation Location(string name)
     {
         var root = Path.Combine(Path.GetTempPath(), "gitunia-workspace-tests", name);

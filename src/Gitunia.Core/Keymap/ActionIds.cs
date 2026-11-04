@@ -424,6 +424,10 @@ public static class ActionIds
 
     public static ActionId TabLastActive { get; } = new("tab.last-active");
 
+    public static ActionId TabMoveLeft { get; } = new("tab.move-left");
+
+    public static ActionId TabMoveRight { get; } = new("tab.move-right");
+
     public static ActionId TabNext { get; } = new("tab.next");
 
     public static ActionId TabPrevious { get; } = new("tab.previous");

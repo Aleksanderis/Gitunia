@@ -27,6 +27,8 @@ Views inherit like in the keymap: `Lists` covers Graph, Detail, Sidebar, Diff an
 | Detail | Double-click | `detail.open-diff` | Same as `Enter`: go to the file diff (Files tab: open or close the directory, or focus the file's content; Details tab: open the issue link on the line, if any) |
 | Sidebar | Click | `sidebar.activate` | Same as `Enter`: expand or collapse a section, select the ref's commit in the graph, show a stash in the detail pane (then a click on its file rows opens their diff) |
 | Tabs | Click | `tab.next` | Switch to the clicked tab (same as `3gt` with the tab's number); closes an open picker |
+| Tabs | Drag back | `tab.move-left` | Press a tab chip and move the pointer: the tab becomes the active one and moves one place left each time the pointer crosses the left edge of its chip, so the chip follows the pointer and the others shift (a click without moving only switches); release drops it, releasing outside the tab row or `Esc` puts the tab back where the drag began |
+| Tabs | Drag forward | `tab.move-right` | The same to the right; the `+` button and the right-hand chips are no drop targets |
 | TabDirtyMarker | Click | `working-tree.open` | The `*` of a dirty tab chip: switch to that tab and open its Changes view (a click elsewhere on the chip only switches); no effect where the marker is cut off |
 | NewTabButton | Click | `picker.open` | The ` + ` button right after the last tab: open the repository picker for a new tab, same as `Ctrl-t` |
 | CommandsButton | Click | `palette.open` | The ` : commands ` button at the right end of the tab row (rows of 44 columns or more; there is no header bar): open the command palette, the menu of the actions of the focused pane and the global ones, each with its keys |

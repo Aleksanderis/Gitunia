@@ -21,6 +21,8 @@
   { "action": "picker.open", "view": "Global", "modes": ["Normal", "Visual", "Insert"], "keys": ["Ctrl-t"] },
   { "action": "tab.close", "view": "Global", "modes": ["Normal"], "keys": ["<space>oc", "Ctrl-w c"] },
   { "action": "tab.rename", "view": "Global", "modes": ["Normal"], "keys": ["<space>on", "Ctrl-w r"] },
+  { "action": "tab.move-left", "view": "Global", "modes": ["Normal"], "keys": ["<space>o<lt>"] },
+  { "action": "tab.move-right", "view": "Global", "modes": ["Normal"], "keys": ["<space>o>"] },
   { "action": "repo.pin", "view": "Global", "modes": ["Normal"], "keys": ["<space>op"] },
   { "action": "pane.focus-left", "view": "Global", "modes": ["Normal"], "keys": ["Ctrl-h", "Ctrl-w h", "Ctrl-Backspace"] },
   { "action": "pane.focus-down", "view": "Global", "modes": ["Normal"], "keys": ["Ctrl-j", "Ctrl-w j"] },

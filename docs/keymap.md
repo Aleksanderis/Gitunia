@@ -30,6 +30,8 @@ Every default key binding, one table per view. The design rules, notation and mo
 | `Ctrl-t` | Normal, Visual, Insert | `picker.open` | Open the repository picker |
 | `<space>oc` `Ctrl-w c` | Normal | `tab.close` | Close the tab |
 | `<space>on` `Ctrl-w r` | Normal | `tab.rename` | Rename the tab |
+| `<space>o<lt>` | Normal | `tab.move-left` | Move the tab one place left |
+| `<space>o>` | Normal | `tab.move-right` | Move the tab one place right |
 | `<space>op` | Normal | `repo.pin` | Pin to the top of the picker (toggle) |
 | `Ctrl-h` `Ctrl-w h` `Ctrl-Backspace` | Normal | `pane.focus-left` | Focus the pane to the left |
 | `Ctrl-j` `Ctrl-w j` | Normal | `pane.focus-down` | Focus the pane below |

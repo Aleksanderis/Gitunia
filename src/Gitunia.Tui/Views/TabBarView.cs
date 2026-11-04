@@ -1,4 +1,6 @@
+using Gitunia.Core.Mouse;
 using Gitunia.Tui.Input;
+using Gitunia.Tui.Input.Drag;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Screen;
 using Gitunia.Tui.Rendering.Tabs;
@@ -11,6 +13,12 @@ namespace Gitunia.Tui.Views;
 /// <summary>The tab row: draws the tab labels and reports which tab was clicked.</summary>
 public sealed class TabBarView(IScreenContent content, GraphGlyphSet glyphs) : View
 {
+    private readonly DragTracker _drag = new();
+    private int? _pressedNumber;
+    private int _draggedNumber;
+    private int _netMoves;
+    private bool _isDragging;
+
     /// <summary>Raised with the one-based tab number when a tab is clicked.</summary>
     public event Action<int>? TabClicked;
 
@@ -26,6 +34,29 @@ public sealed class TabBarView(IScreenContent content, GraphGlyphSet glyphs) : V
     /// <summary>Raised when the "+" button after the last tab is clicked.</summary>
     public event Action? NewTabClicked;
 
+    /// <summary>
+    /// Raised while a tab chip is dragged: <see cref="MouseGesture.DragBack"/> or <see cref="MouseGesture.DragForward"/> and
+    /// the number of places the tab moves (always one while following the pointer, more when a cancel puts it back).
+    /// </summary>
+    public event Action<MouseGesture, int>? TabDragged;
+
+    /// <summary>Whether a tab chip is being dragged.</summary>
+    public bool IsDragging => _isDragging;
+
+    /// <summary>Cancels a drag in progress: the tab goes back to where the drag began. Returns false when none is going on.</summary>
+    public bool CancelDrag()
+    {
+        if (!_isDragging)
+        {
+            return false;
+        }
+
+        UndoMoves();
+        _isDragging = false;
+
+        return true;
+    }
+
     protected override bool OnDrawingContent(DrawContext? context)
     {
         LinePainter.Paint(this, ChromeBuilder.Tabs(content.Model(), Viewport.Width, glyphs), 0, 0, isFocused: false);
@@ -34,6 +65,14 @@ public sealed class TabBarView(IScreenContent content, GraphGlyphSet glyphs) : V
 
     protected override bool OnMouseEvent(Mouse mouse)
     {
+        var phase = mouse.Position is { } point ? _drag.Feed(mouse.Flags, point.X, point.Y) : DragPhase.None;
+        if (content.Model().Tabs is { Count: > 0 } && phase != DragPhase.None)
+        {
+            DragGrab.Update(this, mouse.Flags, phase);
+
+            return HandleDrag(phase, mouse);
+        }
+
         if (!MouseFlagTranslator.IsLeftClick(mouse.Flags) || mouse.Position is not { } position)
         {
             return base.OnMouseEvent(mouse);
@@ -78,5 +117,97 @@ public sealed class TabBarView(IScreenContent content, GraphGlyphSet glyphs) : V
         }
 
         return true;
+    }
+
+    private bool HandleDrag(DragPhase phase, Mouse mouse)
+    {
+        switch (phase)
+        {
+            case DragPhase.Press:
+                _pressedNumber = NumberAtPress();
+                _isDragging = false;
+
+                return base.OnMouseEvent(mouse);
+            case DragPhase.Start when _pressedNumber is { } number:
+                _isDragging = true;
+                _draggedNumber = number;
+                _netMoves = 0;
+
+                // Dragging a chip makes its tab the active one, the tab the move actions act on.
+                TabClicked?.Invoke(number);
+
+                return true;
+            case DragPhase.Move when _isDragging && mouse.Position is { } position:
+                FollowPointer(position.X);
+
+                return true;
+            case DragPhase.End:
+                FinishDrag(mouse);
+
+                return true;
+            case DragPhase.SwallowClick:
+                return true;
+            default:
+                return base.OnMouseEvent(mouse);
+        }
+    }
+
+    private int? NumberAtPress()
+    {
+        var labels = content.Model().Tabs;
+        if (labels is not { Count: > 0 })
+        {
+            return null;
+        }
+
+        var cells = TabBarLayout.Layout(labels, Viewport.Width, glyphs, content.Model().Keys);
+
+        return TabBarLayout.NumberAt(cells, _drag.Origin.X);
+    }
+
+    private void FollowPointer(int column)
+    {
+        var labels = content.Model().Tabs;
+        if (labels is not { Count: > 0 })
+        {
+            return;
+        }
+
+        var cells = TabBarLayout.Layout(labels, Viewport.Width, glyphs, content.Model().Keys);
+
+        // The model is still the one before the last move: wait for the redraw instead of moving twice.
+        if (cells.FirstOrDefault(cell => cell.IsActive)?.Number != _draggedNumber)
+        {
+            return;
+        }
+
+        var step = TabDragPlanner.Step(cells, _draggedNumber, column);
+        if (step != 0)
+        {
+            _draggedNumber += step;
+            _netMoves += step;
+            TabDragged?.Invoke(step < 0 ? MouseGesture.DragBack : MouseGesture.DragForward, 1);
+        }
+    }
+
+    // Released outside the tab row: the drag is cancelled and the tab goes back.
+    private void FinishDrag(Mouse mouse)
+    {
+        if (_isDragging && mouse.Position is { } position && !Viewport.Contains(position))
+        {
+            UndoMoves();
+        }
+
+        _isDragging = false;
+    }
+
+    private void UndoMoves()
+    {
+        if (_netMoves != 0)
+        {
+            TabDragged?.Invoke(_netMoves < 0 ? MouseGesture.DragForward : MouseGesture.DragBack, Math.Abs(_netMoves));
+        }
+
+        _netMoves = 0;
     }
 }

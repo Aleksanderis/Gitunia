@@ -223,7 +223,7 @@ public class OverlayFrameTests
                 "│                                                                            │",
                 "│ Merge and rebase                                                           │",
                 "│ Rebase the current branch onto the selection                    <space>brr │",
-                "│ 1/193 Ctrl-j/k move  Enter run  Esc close                                  │",
+                "│ 1/195 Ctrl-j/k move  Enter run  Esc close                                  │",
                 "╰────────────────────────────────────────────────────────────────────────────╯"),
             Text(frame));
         Assert.Equal(1, frame!.Column);
@@ -241,7 +241,7 @@ public class OverlayFrameTests
                 "| Branch                             |",
                 "| Create a branch and ch~  <space>bc |",
                 "| Create a branch withou~  <space>bC |",
-                "| 1/193 Ctrl-j/k move  Enter run  Esc|",
+                "| 1/195 Ctrl-j/k move  Enter run  Esc|",
                 "+------------------------------------+"),
             Text(frame));
         Assert.Equal(SegmentRole.SectionTitle, frame.Lines[1].Segments[1].Role);
@@ -331,7 +331,7 @@ public class OverlayFrameTests
                 "│ Go to tab 2 (same as 2gt)                        Alt-2 │",
                 "│ Go to tab 3 (same as 3gt)                        Alt-3 │",
                 "│ Go to tab 4 (same as 4gt)                        Alt-4 │",
-                "│ 2/38 Ctrl-j/k move  Enter run  Esc close               │",
+                "│ 2/40 Ctrl-j/k move  Enter run  Esc close               │",
                 "╰────────────────────────────────────────────────────────╯"),
             Text(frame));
         Assert.Equal([false, false, true, false], [.. frame!.Lines.Skip(1).Take(4).Select(line => line.IsSelected)]);

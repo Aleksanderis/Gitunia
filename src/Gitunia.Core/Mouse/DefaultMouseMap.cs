@@ -327,6 +327,8 @@ public static class DefaultMouseMap
         new(DefaultKeymap.DetailView, MouseGesture.Click, ActionIds.DetailToggleFolder),
         new(DefaultKeymap.SidebarView, MouseGesture.Click, ActionIds.SidebarActivate),
         new(TabsView, MouseGesture.Click, ActionIds.TabNext, UsesTarget: true),
+        new(TabsView, MouseGesture.DragBack, ActionIds.TabMoveLeft, UsesTarget: true),
+        new(TabsView, MouseGesture.DragForward, ActionIds.TabMoveRight, UsesTarget: true),
         new(TabDirtyMarker, MouseGesture.Click, ActionIds.WorkingTreeOpen),
         new(DefaultKeymap.PickerView, MouseGesture.DoubleClick, ActionIds.PickerAccept),
         new(DefaultKeymap.PickerView, MouseGesture.WheelUp, ActionIds.PickerPrevious),
