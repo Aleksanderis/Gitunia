@@ -39,10 +39,10 @@ public sealed class GraphSelectionPresenter
         _binder = binder;
         _stash = stash;
         _detail = detail;
-        panes.Graph.ValueChanged += (_, _) => OnSelectionChanged(true);
+        panes.Graph.ValueChanged += (_, _) => OnSelectionChanged(recordSelection: true);
 
-        // A refresh can leave the cursor on the same row with another commit on it: the list raises no event then (#1206).
-        binder.SelectionReplaced += () => OnSelectionChanged(false);
+        // A refresh can leave the cursor on the same row with another commit on it: no list event then (#1206).
+        binder.SelectionReplaced += () => OnSelectionChanged(recordSelection: false);
     }
 
     private void OnSelectionChanged(bool recordSelection)

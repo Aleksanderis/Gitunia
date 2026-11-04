@@ -47,8 +47,8 @@ public sealed class GraphTabBinder(
     public event Action? GraphChanged;
 
     /// <summary>
-    /// Raised after a reloaded graph was put back under the selection, also when the cursor row did not change (so the list
-    /// raised no event) although another commit is on it now (#1206). Raised while <see cref="IsReplacing"/> is true.
+    /// Raised after a reloaded graph was put back under the selection, also when the cursor row did not change (so the
+    /// list raised no event) although another commit is on it now (#1206). Raised while <see cref="IsReplacing"/> is true.
     /// </summary>
     public event Action? SelectionReplaced;
 
