@@ -296,10 +296,14 @@ public sealed class MainView : IDisposable
             Height = Dim.Func(_ => title.Rect().Height),
         };
 
+    /// <summary>Cancels a tab chip drag in progress (<c>Esc</c>); false when none is going on.</summary>
+    public bool CancelTabDrag() => _tabs.CancelDrag();
+
     private void WireGestures()
     {
         var panes = _parts.Panes;
         _tabs.TabClicked += number => Gestured?.Invoke(DefaultMouseMap.TabsView, MouseGesture.Click, number);
+        _tabs.TabDragged += (gesture, places) => Gestured?.Invoke(DefaultMouseMap.TabsView, gesture, places);
         _tabs.DirtyMarkerClicked += number => Gestured?.Invoke(DefaultMouseMap.TabDirtyMarker, MouseGesture.Click, number);
         _tabs.RemoteChipClicked += view => Gestured?.Invoke(view, MouseGesture.Click, null);
         _tabs.NewTabClicked += () => Gestured?.Invoke(DefaultMouseMap.NewTabButton, MouseGesture.Click, null);

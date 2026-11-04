@@ -243,6 +243,22 @@ public class WorkspaceActionReducerTests
         Assert.Null(update.State.Shell.Prompt);
     }
 
+    [Fact]
+    public void GivenThreeTabs_WhenTheMoveActionsRunWithAndWithoutACount_ThenTheActiveTabMovesAndStaysActive()
+    {
+        var state = Tabs("alpha", "beta", "gamma");
+        var active = state.Workspace.ActiveTabId;
+
+        var left = Press(state, ActionIds.TabMoveLeft).State;
+        var counted = Press(state, ActionIds.TabMoveLeft, 2).State;
+        var right = Press(left, ActionIds.TabMoveRight).State;
+
+        Assert.Equal(["alpha", "gamma", "beta"], left.Workspace.Tabs.Select(tab => tab.DisplayName));
+        Assert.Equal(["gamma", "alpha", "beta"], counted.Workspace.Tabs.Select(tab => tab.DisplayName));
+        Assert.Equal(active, counted.Workspace.ActiveTabId);
+        Assert.Equal(["alpha", "beta", "gamma"], right.Workspace.Tabs.Select(tab => tab.DisplayName));
+    }
+
     private static AppState Prompted(AppState state)
     {
         var update = AppReducer.Reduce(state, new CreationRequested(CreationKind.Clone));

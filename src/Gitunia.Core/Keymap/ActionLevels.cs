@@ -213,6 +213,8 @@ internal static class ActionLevels
             ["status.history"] = CommandLevel.Everyday,
             ["tab.close"] = CommandLevel.Everyday,
             ["tab.last-active"] = CommandLevel.Everyday,
+            ["tab.move-left"] = CommandLevel.Advanced,
+            ["tab.move-right"] = CommandLevel.Advanced,
             ["tab.next"] = CommandLevel.Everyday,
             ["tab.previous"] = CommandLevel.Everyday,
             ["tab.rename"] = CommandLevel.Everyday,

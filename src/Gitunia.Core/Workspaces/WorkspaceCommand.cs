@@ -43,6 +43,13 @@ public sealed record PreviousTabCommand : WorkspaceCommand;
 /// <param name="Position">One-based tab position.</param>
 public sealed record GoToTabCommand(int Position) : WorkspaceCommand;
 
+/// <summary>
+/// Move the active tab by a number of places (negative is left); the tab stays active, the move stops at either end
+/// (no wrap) and nothing happens when there is no active tab or the offset is zero.
+/// </summary>
+/// <param name="Offset">Places to move: negative left, positive right.</param>
+public sealed record MoveTabCommand(int Offset) : WorkspaceCommand;
+
 /// <summary>Activate the previously active tab.</summary>
 public sealed record ActivatePreviousTabCommand : WorkspaceCommand;
 

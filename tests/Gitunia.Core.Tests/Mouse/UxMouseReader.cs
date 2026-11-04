@@ -48,6 +48,8 @@ public static class UxMouseReader
         "Drag start" => MouseGesture.DragStart,
         "Drag up" => MouseGesture.DragUp,
         "Drag down" => MouseGesture.DragDown,
+        "Drag back" => MouseGesture.DragBack,
+        "Drag forward" => MouseGesture.DragForward,
         _ => throw new InvalidDataException($"Unknown mouse gesture in docs/internal/ux-mouse.md: {text}"),
     };
 }

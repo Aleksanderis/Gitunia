@@ -32,4 +32,10 @@ public enum MouseGesture
 
     /// <summary>While dragging, the pointer is below the cursor row; the binding's count is how many rows below.</summary>
     DragDown,
+
+    /// <summary>While dragging a tab chip, the pointer crossed the edge of the chip to its left: the tab moves one place left.</summary>
+    DragBack,
+
+    /// <summary>While dragging a tab chip, the pointer crossed the edge of the chip to its right: the tab moves one place right.</summary>
+    DragForward,
 }
