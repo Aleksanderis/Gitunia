@@ -65,6 +65,30 @@ public class GraphTabBinderTests
     }
 
     [Fact]
+    public async Task GivenCursorOnHead_WhenANewCommitArrives_ThenSelectionReplacedReportsTheNewTopCommitOnTheSameRow()
+    {
+        using var repository = TestRepository.Create();
+        repository.Commit("one", new TestFile("a.txt", "1")).Commit("two", new TestFile("a.txt", "2"));
+        using var harness = await Harness.LoadAsync(repository);
+        var oldTop = harness.Session.Graph[0].Id;
+        harness.Graph.SelectedItem = 0;
+        var rowEvents = 0;
+        harness.Graph.ValueChanged += (_, _) => rowEvents++;
+
+        var shownOnReplace = new List<ObjectId>();
+        harness.Binder.SelectionReplaced += () =>
+            shownOnReplace.Add(harness.Session.Graph[harness.Graph.SelectedItem!.Value].Id);
+        repository.Commit("three", new TestFile("a.txt", "3"));
+        harness.Effects.Refresh(harness.TabId);
+        await harness.Pump.RunUntilAsync(() => shownOnReplace.Count == 1);
+
+        var newTop = harness.Session.Graph[0].Id;
+        Assert.NotEqual(oldTop, newTop);
+        Assert.Equal(0, rowEvents);
+        Assert.Equal([newTop], shownOnReplace);
+    }
+
+    [Fact]
     public async Task GivenSelectedCommit_WhenItDisappearsFromTheGraph_ThenTheNearestRowIsSelectedAndSaved()
     {
         using var repository = TestRepository.Create();
