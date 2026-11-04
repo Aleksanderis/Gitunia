@@ -435,3 +435,6 @@ docs/private/
 
 # Generated demo output (scripts/demo.sh writes to the landing page checkout by default; this repo carries none)
 docs/media/
+
+# Workflow orchestrator state
+.claude/orchestrator/
