@@ -1,5 +1,8 @@
 using Gitunia.App;
+using Gitunia.App.Shell;
 using Gitunia.Core;
+using Gitunia.Core.Keymap;
+using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Visual;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Panes;
@@ -32,7 +35,8 @@ public sealed class CtrlCHandlerTests : IDisposable
         _list = new ListView { Source = _source };
         var root = Path.Combine(Path.GetTempPath(), "gitunia-ctrl-c");
         var gitDirectory = Path.Combine(root, ".git");
-        _host.Dispatch(new OpenRepositoryCommand(new RepositoryLocation(root, gitDirectory, gitDirectory, false, false)));
+        var location = new RepositoryLocation(root, gitDirectory, gitDirectory, false, false);
+        _host.Dispatch(new OpenRepositoryCommand(location));
         _host.Dispatch(new TabCommand(_host.Workspace.ActiveTabId!.Value, new FocusPaneCommand(PaneKind.Graph)));
         _host.EffectRaised += _effects.Add;
         _visual = new VisualRangeInput(_host, new FakePaneLists(_list));
@@ -103,9 +107,35 @@ public sealed class CtrlCHandlerTests : IDisposable
         Assert.Equal(1, _quit.Forced);
     }
 
+    [Fact]
+    public void GivenACopyThenANewSelection_WhenCtrlCIsPressedWithinTheWindow_ThenItCopiesTheNewOneInsteadOfQuitting()
+    {
+        StartSelection();
+        _handler.Press();
+        _visual.End();
+        StartSelection();
+
+        _handler.Press();
+
+        Assert.Equal(0, _quit.Forced);
+        Assert.Equal(2, _effects.OfType<CopyVisualRangeEffect>().Count());
+    }
+
+    [Fact]
+    public void GivenASelectionHeldWhileAnotherModeIsOpen_WhenCtrlCIsPressed_ThenItQuitsWithoutCopying()
+    {
+        StartSelection();
+        _host.SetKeyMode(KeyMode.Insert);
+
+        _handler.Press();
+
+        Assert.Equal(1, _quit.Forced);
+        Assert.Empty(_effects.OfType<CopyVisualRangeEffect>());
+    }
+
     private void StartSelection()
     {
         _list.SelectedItem = 4;
-        _visual.TryExecute(Gitunia.Core.Keymap.ActionIds.VisualToggle, null);
+        _visual.TryExecute(ActionIds.VisualToggle, null);
     }
 }

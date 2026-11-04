@@ -100,9 +100,9 @@ The file is read once at startup and never modified by the loader; the settings 
   // Hints that teach keys. whichKey: on (default) or off, the popup after a pending chord. statusBar: full (default),
   // minimal (only ? help, : commands, q quit) or off. The keys work either way; a change in Settings applies at once.
   "hints": { "whichKey": "on", "statusBar": "full" },
-  // Live file watching instead of polling (default false: each watcher takes a scarce inotify instance; read at startup).
   // Copy a mouse selection (drag, double or triple click) to the clipboard when you let go (default true).
   "copyOnSelect": true,
+  // Live file watching instead of polling (default false: each watcher takes a scarce inotify instance; read at startup).
   "watchFiles": false,
   "keys": [
     // Bind a free key (mode defaults to Normal, view to Global).

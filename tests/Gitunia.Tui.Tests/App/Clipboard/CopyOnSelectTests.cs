@@ -32,7 +32,8 @@ public sealed class CopyOnSelectTests : IDisposable
         _list = new ListView { Source = _source };
         var root = Path.Combine(Path.GetTempPath(), "gitunia-copy-on-select");
         var gitDirectory = Path.Combine(root, ".git");
-        _host.Dispatch(new OpenRepositoryCommand(new RepositoryLocation(root, gitDirectory, gitDirectory, false, false)));
+        var location = new RepositoryLocation(root, gitDirectory, gitDirectory, false, false);
+        _host.Dispatch(new OpenRepositoryCommand(location));
         _host.Dispatch(new TabCommand(_host.Workspace.ActiveTabId!.Value, new FocusPaneCommand(PaneKind.Graph)));
         _host.EffectRaised += _effects.Add;
         _visual = new VisualRangeInput(_host, new FakePaneLists(_list));

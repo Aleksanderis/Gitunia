@@ -225,7 +225,12 @@ public static class VisualReducer
             return Notice(next, copied.Notice);
         }
 
-        return copied.Copied && copied.Mode == VisualCopyMode.CtrlC ? Notice(next, CtrlCNotice) : new AppUpdate(next, []);
+        if (copied.Copied && copied.Mode == VisualCopyMode.CtrlC)
+        {
+            return Notice(next, CtrlCNotice);
+        }
+
+        return new AppUpdate(next, []);
     }
 
     private static AppUpdate Invalidate(AppState state) =>
