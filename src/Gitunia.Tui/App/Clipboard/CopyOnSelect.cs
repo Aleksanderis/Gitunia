@@ -7,8 +7,8 @@ using Gitunia.Tui.App.Panes;
 namespace Gitunia.Tui.App.Clipboard;
 
 /// <summary>
-/// Copy on select (<c>copyOnSelect</c>): a selection the pointer finished (a drag released, a double or triple click) in
-/// a pane or in the blame view is copied at once. The selection stays, so <c>y</c> or <c>Ctrl-c</c> copies it again.
+/// Copy on select (<c>copyOnSelect</c>): a selection the pointer finished (a drag released, a double or triple
+/// click) in a pane or in the blame view is copied at once. The selection stays, so <c>y</c> or <c>Ctrl-c</c> copies it again.
 /// </summary>
 public sealed class CopyOnSelect
 {

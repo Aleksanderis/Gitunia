@@ -429,19 +429,6 @@ public sealed class BlameInputTests
     }
 
     [Fact]
-    public async Task GivenASelection_WhenCtrlCCopiesIt_ThenTheNoticeSaysASecondPressQuits()
-    {
-        using var repository = TestRepository.Create().Commit("first", new TestFile("a.txt", "foo bar baz\n"));
-        using var harness = await Harness.LoadAsync(repository, new FixedTargets("a.txt", repository.Head));
-        await harness.OpenAsync();
-        harness.Input.OnTextClicked(1, BlameFrameBuilder.CodeStart(Width) + 5, true);
-
-        harness.Input.CopySelection(VisualCopyMode.CtrlC);
-
-        Assert.Equal(BlameReducer.CtrlCNotice, harness.Host.State.Shell.Status.Latest?.Text);
-    }
-
-    [Fact]
     public async Task GivenABlameSelection_WhenCtrlCIsPressedTwice_ThenTheFirstCopiesAndTheSecondQuits()
     {
         using var repository = TestRepository.Create().Commit("first", new TestFile("a.txt", "foo bar baz\n"));
@@ -489,6 +476,36 @@ public sealed class BlameInputTests
         harness.Input.OnDragReleased();
 
         Assert.Equal("b\tcd\nsec", Assert.Single(harness.Copies).Text);
+        Assert.True(harness.Input.HasSelection);
+    }
+
+    [Fact]
+    public async Task GivenABlameSelection_WhenCopyOnSelectIsOff_ThenAReleasedDragCopiesNothing()
+    {
+        using var repository = TestRepository.Create().Commit("first", new TestFile("a.txt", "ab\tcd\nsecond\n"));
+        using var harness = await Harness.LoadAsync(repository, new FixedTargets("a.txt", repository.Head));
+        await harness.OpenAsync();
+        using var source = new RangeSource(0);
+        using var list = new ListView();
+        list.Source = source;
+        var config = new LiveConfig(
+            new ConfigStartup(Path.Combine(Path.GetTempPath(), "gitunia-no-config"), Path.GetTempPath()).Load(),
+            new ConsoleCapabilities(false, ColorDepth.None, true),
+            Path.GetTempPath());
+        _ = new CopyOnSelect(
+            harness.Host,
+            new VisualRangeInput(harness.Host, new FakePaneLists(list)),
+            harness.Input,
+            config); // Wires itself to the pointer events.
+        config.ChangeOptions(config.Options with { CopyOnSelect = false });
+        var code = BlameFrameBuilder.CodeStart(Width);
+
+        harness.Input.OnDragStarted(1, code + 1);
+        harness.Input.OnDragged(2, code + 2);
+        Assert.Empty(harness.Copies);
+        harness.Input.OnDragReleased();
+
+        Assert.Empty(harness.Copies);
         Assert.True(harness.Input.HasSelection);
     }
 

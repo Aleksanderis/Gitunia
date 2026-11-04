@@ -4,7 +4,6 @@ using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Lists;
 using Gitunia.Core.Text;
-using Gitunia.Core.Status;
 using Gitunia.Core.Visual;
 using Gitunia.Git.History.Models;
 
@@ -12,9 +11,6 @@ namespace Gitunia.Core.Blame;
 
 public static partial class BlameReducer
 {
-    /// <summary>The notice after <c>Ctrl-c</c> copied a selection: a second press within the window quits.</summary>
-    public const string CtrlCNotice = "Press Ctrl-c again to quit";
-
     /// <summary>The warning when a selection is started in a file without lines.</summary>
     public const string NothingToSelectNotice = "Nothing to select";
 
@@ -202,16 +198,14 @@ public static partial class BlameReducer
             return Copy(session, view);
         }
 
-        var effect = CopyEffectOf(session, view, selection);
-        if (mode == VisualCopyMode.CtrlC)
-        {
-            return Done(session, effect, new PostStatusEffect(CtrlCNotice, StatusSeverity.Info));
-        }
-
-        return Done(session, effect);
+        // The copy posts its own outcome (copied, or why not); a quit hint here would hide a failure.
+        return Done(session, CopyEffectOf(session, view, selection));
     }
 
-    private static CopyBlameSelectionEffect CopyEffectOf(BlameSession session, BlameState view, BlameSelection selection)
+    private static CopyBlameSelectionEffect CopyEffectOf(
+        BlameSession session,
+        BlameState view,
+        BlameSelection selection)
     {
         var range = selection.RangeTo(view.Cursor);
 
