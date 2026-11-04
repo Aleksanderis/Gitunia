@@ -304,10 +304,9 @@ public class PickReducerTests
             new PickFinished(Tab, PickKind.Revert, result, "main", "2 commits"),
             Context(busy: true));
 
-        var text = Assert.IsType<PostStatusEffect>(update.Effects[0]).Text;
-        Assert.Equal(
-            "Reverted 2 commits onto main (2222222), was 1111111; undo: git reset --hard 1111111 (the reflog has it)",
-            text);
+        var post = Assert.IsType<PostStatusEffect>(update.Effects[0]);
+        Assert.Equal("Reverted 2 commits onto main (2222222), was 1111111", post.Text);
+        Assert.Equal($"Undo: git reset --hard {First} (the reflog has it)", post.Detail);
     }
 
     [Fact]

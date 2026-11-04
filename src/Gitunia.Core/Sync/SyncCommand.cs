@@ -65,7 +65,9 @@ public sealed record SyncDeleteConfirmed(TabId TabId, string Remote, string Bran
 /// <param name="TabId">The tab.</param>
 /// <param name="Request">What to push, with the lease.</param>
 /// <param name="Done">The status text of a success.</param>
-public sealed record SyncForceConfirmed(TabId TabId, PushRequest Request, string Done) : SyncCommand(TabId);
+/// <param name="DoneDetail">The undo command for the message history after a success.</param>
+public sealed record SyncForceConfirmed(TabId TabId, PushRequest Request, string Done, string? DoneDetail = null)
+    : SyncCommand(TabId);
 
 /// <summary>Progress: git reported a stage of the running transfer.</summary>
 /// <param name="TabId">The tab.</param>
@@ -75,7 +77,9 @@ public sealed record SyncProgressed(TabId TabId, RemoteProgress Report) : SyncCo
 /// <summary>Result: a transfer or a delete finished.</summary>
 /// <param name="TabId">The tab.</param>
 /// <param name="Text">What to tell the user.</param>
-public sealed record SyncSucceeded(TabId TabId, string Text) : SyncCommand(TabId), IOperationResult
+/// <param name="Detail">The restore command, kept in the message history; null when there is none.</param>
+public sealed record SyncSucceeded(TabId TabId, string Text, string? Detail = null)
+    : SyncCommand(TabId), IOperationResult
 {
     RunningOperationKind IOperationResult.Kind => RunningOperationKind.Sync;
 }

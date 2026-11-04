@@ -52,7 +52,13 @@ public sealed record ResolveConfirmed(TabId TabId, StatusEntry Entry) : StagingC
 /// <param name="Text">What to tell the user.</param>
 /// <param name="Severity">How serious it is.</param>
 /// <param name="Follow">What happens next; <see cref="StagingFollow.None"/> when the change was not made.</param>
-public sealed record StagingSucceeded(TabId TabId, string Text, StatusSeverity Severity, StagingFollow Follow)
+/// <param name="Detail">The undo command, kept in the message history; null when there is none.</param>
+public sealed record StagingSucceeded(
+    TabId TabId,
+    string Text,
+    StatusSeverity Severity,
+    StagingFollow Follow,
+    string? Detail = null)
     : StagingCommand(TabId), IOperationResult
 {
     RunningOperationKind IOperationResult.Kind => RunningOperationKind.Staging;

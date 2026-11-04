@@ -57,7 +57,7 @@ public sealed class StashEffectHandler(IStashWriter writer, IDispatcher dispatch
     }
 
     private static StashOperationSucceeded Success(StashEffect effect, StashReport report) =>
-        new(effect.TabId, report.Text, report.Severity);
+        new(effect.TabId, report.Text, report.Severity, report.Detail);
 
     private static string FailureLead(StashEffect effect) => effect switch
     {

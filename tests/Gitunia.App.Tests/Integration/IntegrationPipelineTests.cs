@@ -44,7 +44,8 @@ public class IntegrationPipelineTests
 
         Assert.Equal(first, repository.Head);
         Assert.Equal("1", File.ReadAllText(Path.Combine(repository.WorkingTreePath, "a.txt")));
-        Assert.Contains($"git reset --hard {old}", pipeline.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("git reset", pipeline.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
+        Assert.Contains($"git reset --hard {old}", pipeline.Statuses.Log.Latest.Detail, StringComparison.Ordinal);
         Assert.Equal(KeyMode.Normal, pipeline.Host.State.Shell.Mode);
     }
 

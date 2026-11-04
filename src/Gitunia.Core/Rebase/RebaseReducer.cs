@@ -117,7 +117,10 @@ public static class RebaseReducer
     }
 
     private static ImmutableArray<AppEffect> Finished(PostedText report, RebaseContext context) =>
-        [Post(report.Text, report.Severity), new RefreshTabEffect(context.Tab.Id)];
+        [
+            new PostStatusEffect(report.Text, report.Severity, report.Detail),
+            new RefreshTabEffect(context.Tab.Id),
+        ];
 
     private static ImmutableArray<AppEffect> Failed(string text, RebaseContext context) =>
         [Post(text, StatusSeverity.Error), new RefreshTabEffect(context.Tab.Id)];

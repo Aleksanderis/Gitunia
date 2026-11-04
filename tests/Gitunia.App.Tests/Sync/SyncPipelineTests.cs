@@ -199,14 +199,16 @@ public class SyncPipelineTests
         var confirm = pipeline.Host.State.Shell.Confirm!.Prompt;
         Assert.Contains("origin/topic", confirm.Lines[0], StringComparison.Ordinal);
         Assert.Contains(seen[..7], confirm.Lines[0], StringComparison.Ordinal);
-        Assert.Contains($"{seen}:topic", confirm.Consequence, StringComparison.Ordinal);
+        Assert.Equal(UndoNotes.FromHistory, confirm.Consequence);
         Assert.Equal(seen, repository.GitIn(repository.OriginPath, ["rev-parse", "topic"]).Trim());
 
         pipeline.Dispatch(new ConfirmAnsweredCommand(ConfirmAnswer.Yes));
         await pipeline.UntilAsync(() => pipeline.Statuses.Log.Latest is not null && !pipeline.IsRunning);
 
         Assert.Equal(repository.Head, repository.GitIn(repository.OriginPath, ["rev-parse", "topic"]).Trim());
-        Assert.StartsWith("Force pushed topic to origin/topic", pipeline.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
+        var latest = pipeline.Statuses.Log.Latest!;
+        Assert.Equal($"Force pushed topic to origin/topic (was {seen[..7]})", latest.Text);
+        Assert.Equal($"Undo: git push --force-with-lease origin {seen}:topic", latest.Detail);
     }
 
     [Fact]
@@ -242,7 +244,7 @@ public class SyncPipelineTests
 
         var confirm = pipeline.Host.State.Shell.Confirm!.Prompt;
         Assert.Equal("Force push", confirm.Title);
-        Assert.Contains($"{seen}:topic", confirm.Consequence, StringComparison.Ordinal);
+        Assert.DoesNotContain(seen, string.Join('\n', confirm.Lines) + confirm.Consequence, StringComparison.Ordinal);
         Assert.Equal(seen, repository.GitIn(repository.OriginPath, ["rev-parse", "topic"]).Trim());
 
         pipeline.Dispatch(new ConfirmAnsweredCommand(ConfirmAnswer.Yes));
@@ -311,7 +313,8 @@ public class SyncPipelineTests
         var confirm = pipeline.Host.State.Shell.Confirm!.Prompt;
         Assert.Contains("topic", confirm.Lines[0], StringComparison.Ordinal);
         Assert.Contains("origin", confirm.Lines[0], StringComparison.Ordinal);
-        Assert.Contains($"git push origin {tip}:refs/heads/topic", confirm.Consequence, StringComparison.Ordinal);
+        Assert.Equal(UndoNotes.FromHistory, confirm.Consequence);
+        Assert.DoesNotContain(tip, string.Join('\n', confirm.Lines), StringComparison.Ordinal);
         Assert.Contains("topic", repository.GitIn(repository.OriginPath, ["branch"]), StringComparison.Ordinal);
 
         pipeline.Dispatch(new ConfirmAnsweredCommand(ConfirmAnswer.Yes));
@@ -319,7 +322,8 @@ public class SyncPipelineTests
 
         Assert.DoesNotContain("topic", repository.GitIn(repository.OriginPath, ["branch"]), StringComparison.Ordinal);
         Assert.Equal(tip, repository.Git("rev-parse", "topic").Trim());
-        Assert.Contains(tip, pipeline.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
+        Assert.Contains(tip[..7], pipeline.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
+        Assert.Equal($"Restore: git push origin {tip}:refs/heads/topic", pipeline.Statuses.Log.Latest.Detail);
     }
 
     [Fact]

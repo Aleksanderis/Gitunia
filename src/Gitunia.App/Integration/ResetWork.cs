@@ -39,6 +39,8 @@ public sealed class ResetWork(IResetWriter writer, IStatusReader statusReader, I
             .ResetAsync(effect.Location, target.Mode, target.CommitHash, cancellationToken)
             .ConfigureAwait(false);
 
-        return new IntegrationSucceeded(effect.TabId, ResetTexts.Done(target, oldHash), StatusSeverity.Info);
+        return new IntegrationSucceeded(effect.TabId, ResetTexts.Done(target, oldHash),
+            StatusSeverity.Info,
+            ResetTexts.DoneDetail(target, oldHash));
     }
 }

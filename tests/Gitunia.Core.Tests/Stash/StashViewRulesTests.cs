@@ -43,7 +43,7 @@ public class StashViewRulesTests
     [Fact]
     public void GivenAStatusThatNamesTheStash_WhenAskingToWarn_ThenTheDropMessageIsKept()
     {
-        Assert.False(StashViewRules.ShouldWarnGone(Shown, "Dropped stash@{0} (abc); undo: git stash store"));
+        Assert.False(StashViewRules.ShouldWarnGone(Shown, "Dropped stash@{0} (abc)"));
         Assert.True(StashViewRules.ShouldWarnGone(Shown, "Something else"));
         Assert.True(StashViewRules.ShouldWarnGone(Shown, null));
     }

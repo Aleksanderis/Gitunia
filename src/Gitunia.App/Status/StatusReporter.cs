@@ -20,8 +20,8 @@ public sealed class StatusReporter(Dispatcher host)
     /// <summary>Whether <see cref="Current"/> was posted so recently that it is drawn to catch the eye.</summary>
     public bool IsFresh => Current is { } message && StatusLifetime.IsFresh(message, host.Clock.GetUtcNow());
 
-    public void Post(string text, StatusSeverity severity = StatusSeverity.Info) =>
-        host.Dispatch(new StatusPostedCommand(text, severity, host.Clock.GetUtcNow()));
+    public void Post(string text, StatusSeverity severity = StatusSeverity.Info, string? detail = null) =>
+        host.Dispatch(new StatusPostedCommand(text, severity, host.Clock.GetUtcNow(), detail));
 
     public void Error(string text) => Post(text, StatusSeverity.Error);
 

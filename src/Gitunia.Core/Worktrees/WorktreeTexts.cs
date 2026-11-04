@@ -96,7 +96,7 @@ public static class WorktreeTexts
         return new ConfirmPrompt(
             "Prune worktrees",
             lines,
-            "Only git's records are deleted. Undo: git worktree add <path> <branch> makes a checkout again.",
+            "Only git's records are deleted; a branch can be checked out again with a new worktree (<space>wa).",
             "Prune");
     }
 
@@ -125,11 +125,9 @@ public static class WorktreeTexts
     {
         if (worktree.BranchFullName is { } branch)
         {
-            return $"Undo: git worktree add <path> {ShortName(branch)} checks the branch out again.";
+            return $"The branch stays; {ShortName(branch)} can be checked out again with a new worktree (<space>wa).";
         }
 
-        var hash = worktree.HeadHash is { Length: >= ShortHash.Length } head ? head[..ShortHash.Length] : "<hash>";
-
-        return $"Undo: git worktree add <path> {hash} checks that commit out again.";
+        return "No undo is offered for commits that no branch reaches.";
     }
 }

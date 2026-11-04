@@ -18,7 +18,7 @@ namespace Gitunia.Core.Tests.Sync;
 public class SyncAppReducerTests
 {
     private static readonly ConfirmPrompt ForcePrompt =
-        new("Force push", ["Force push topic to origin/topic?"], "Undo: git push ...", "Force push");
+        new("Force push", ["Force push topic to origin/topic?"], "Afterwards the message history (<space>m) shows how to bring it back.", "Force push");
 
     private static readonly PushRequest ForceRequest = new("origin", "topic", false, new PushLease("topic", "abc"));
 
@@ -134,7 +134,7 @@ public class SyncAppReducerTests
     public void GivenAnOpenDeleteDialog_WhenTheTabIsClosedAndYIsAnswered_ThenNothingIsDeleted()
     {
         var (state, tabId) = Opened();
-        var prompt = new ConfirmPrompt("Delete branch on remote", ["Delete?"], "Undo: git push", "Delete on remote");
+        var prompt = new ConfirmPrompt("Delete branch on remote", ["Delete?"], "Afterwards the message history (<space>m) shows how to bring it back.", "Delete on remote");
         var asked = AppReducer.Reduce(
             state,
             new ConfirmRequestedCommand(prompt, new SyncDeleteConfirmed(tabId, "origin", "topic", "abc"), null));

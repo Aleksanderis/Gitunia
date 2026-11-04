@@ -138,7 +138,10 @@ public static class PickReducer
     {
         var report = PickTexts.Report(finished.Result, finished.PickKind, finished.Target, finished.What);
 
-        return Same(context, [new PostStatusEffect(report.Text, report.Severity), new RefreshTabEffect(context.TabId)]);
+        return Same(context, [
+            new PostStatusEffect(report.Text, report.Severity, report.Detail),
+            new RefreshTabEffect(context.TabId),
+        ]);
     }
 
     private static PickUpdate Failed(string text, PickContext context, bool refresh)

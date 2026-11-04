@@ -235,7 +235,7 @@ public static class BranchReducer
                 $"{needsForce.Name} has commits that are not on HEAD or its upstream.",
                 "Deleting it makes them unreachable.",
             ],
-            $"Undo: git branch {needsForce.Name} {needsForce.CommitHash}",
+            UndoNotes.FromHistory,
             "Delete anyway");
         var accepted = new BranchForceDeleteConfirmed(needsForce.TabId, needsForce.Name, needsForce.CommitHash);
         var unavailable = $"{needsForce.Name} is unmerged and the screen is too small to ask: nothing was deleted";
@@ -265,7 +265,10 @@ public static class BranchReducer
     }
 
     private static ImmutableArray<AppEffect> Succeeded(BranchOperationSucceeded succeeded, BranchContext context) =>
-        [Post(succeeded.Text, StatusSeverity.Info), new RefreshTabEffect(context.TabId)];
+        [
+            new PostStatusEffect(succeeded.Text, StatusSeverity.Info, succeeded.Detail),
+            new RefreshTabEffect(context.TabId),
+        ];
 
     private static ImmutableArray<AppEffect> Failed(BranchOperationFailed failed, BranchContext context) =>
         [Post(failed.Text, StatusSeverity.Error), new RefreshTabEffect(context.TabId)];

@@ -48,7 +48,7 @@ public static class RebaseEditorTexts
         return new ConfirmPrompt(
             "Interactive rebase",
             lines,
-            $"Undo: git reset --keep {state.OldTip} (also ORIG_HEAD, the reflog). A stop on conflicts leaves a " +
+            $"{UndoNotes.FromReflog} A stop on conflicts leaves a " +
             "rebase in progress: <space>gc continues, <space>ga aborts.",
             "Rebase");
     }
@@ -66,9 +66,9 @@ public static class RebaseEditorTexts
 
         return new PostedText(
             $"Rebased {state.BranchName} onto {state.TargetLabel} interactively " +
-            $"({ShortHash.Of(result.Head)}), was {ShortHash.Of(result.OriginalHead)}; " +
-            $"undo: git reset --keep {result.OriginalHead} (or ORIG_HEAD, the reflog)",
-            StatusSeverity.Info);
+            $"({ShortHash.Of(result.Head)}), was {ShortHash.Of(result.OriginalHead)}",
+            StatusSeverity.Info,
+            UndoNotes.Undo($"git reset --keep {result.OriginalHead} (or ORIG_HEAD, the reflog)"));
     }
 
     private static string Summary(RebaseEditorState state)

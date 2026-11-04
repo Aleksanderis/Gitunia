@@ -1,3 +1,4 @@
+using Gitunia.Core.Status;
 using Gitunia.Tui.App;
 using System.Collections.Concurrent;
 using Gitunia.App.Shell;
@@ -537,6 +538,43 @@ public sealed class OverlayControllerTests : IDisposable, IActionRoute
         Assert.Equal(1, changes);
         Assert.Contains("late warning", lines[2], StringComparison.Ordinal);
         Assert.Contains("first failure", lines[3], StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GivenAMessageWithADetail_WhenOpeningTheHistory_ThenTheDetailSitsUnderItsEntryAndTheBarKeepsOnlyTheText()
+    {
+        _shell.Statuses.Post("Deleted branch topic (was dde61a9)", StatusSeverity.Info, "Restore: git branch topic dde61a9abb");
+        _shell.Statuses.Warning("plain warning");
+        Assert.DoesNotContain("git branch", _shell.Statuses.Current!.Text, StringComparison.Ordinal);
+
+        Press(new Key(' '));
+        Press(new Key('m'));
+        var lines = _overlays.CurrentFrame()!.Lines.Select(line => line.Text).ToList();
+
+        var entry = lines.FindIndex(line => line.Contains("Deleted branch topic (was dde61a9)", StringComparison.Ordinal));
+        Assert.True(entry > 0);
+        Assert.Contains("Restore: git branch topic dde61a9abb", lines[entry + 1], StringComparison.Ordinal);
+        Assert.Equal(1, lines.Count(line => line.Contains("git branch", StringComparison.Ordinal)));
+    }
+
+    [Fact]
+    public void GivenALongDetailOnANarrowScreen_WhenOpeningTheHistory_ThenItWrapsInsideTheBoxAndKeepsEveryCharacter()
+    {
+        const string hash = "dde61a9abb8282f672f211bc0344358deae24d97";
+        var detail = $"Restore: git push origin {hash}:refs/heads/some-long-branch-name";
+        Resize(60, 24);
+        _shell.Statuses.Post("Deleted topic on origin (was dde61a9)", StatusSeverity.Info, detail);
+
+        Press(new Key(' '));
+        Press(new Key('m'));
+        var frame = _overlays.CurrentFrame()!;
+        var lines = frame.Lines.Select(line => line.Text).ToList();
+
+        Assert.All(lines, line => Assert.True(line.Length <= 60, line));
+        var joined = string.Concat(lines).Replace("\u2502", string.Empty, StringComparison.Ordinal)
+            .Replace(" ", string.Empty, StringComparison.Ordinal);
+        Assert.Contains(hash, joined, StringComparison.Ordinal);
+        Assert.Contains("some-long-branch-name", joined, StringComparison.Ordinal);
     }
 
     [Fact]

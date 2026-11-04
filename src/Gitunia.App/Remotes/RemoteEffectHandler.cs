@@ -1,4 +1,5 @@
 using Gitunia.Core.Remotes;
+using Gitunia.Core.Status;
 using Gitunia.Core.Text;
 using Gitunia.Git.Remotes;
 
@@ -36,8 +37,8 @@ public sealed class RemoteEffectHandler(IRemoteManager manager, IDispatcher disp
                 return new RemotesListed(effect.TabId, list.Action, list.Target, [.. remotes]);
             case RemoveRemoteEffect remove:
                 await manager.RemoveAsync(remove.Location, remove.Name, token).ConfigureAwait(false);
-                var restore = $"restore: git remote add {remove.Name} {remove.Url}, then fetch";
-                return Success(effect, $"Removed remote {remove.Name} ({restore})");
+                var restore = UndoNotes.Restore($"git remote add {remove.Name} {remove.Url}, then fetch");
+                return Success(effect, $"Removed remote {remove.Name}", restore);
             case RenameRemoteEffect rename:
                 await manager.RenameAsync(rename.Location, rename.OldName, rename.NewName, token)
                     .ConfigureAwait(false);
@@ -50,7 +51,8 @@ public sealed class RemoteEffectHandler(IRemoteManager manager, IDispatcher disp
         }
     }
 
-    private static RemoteOperationSucceeded Success(RemoteEffect effect, string text) => new(effect.TabId, text);
+    private static RemoteOperationSucceeded Success(RemoteEffect effect, string text, string? detail = null) =>
+        new(effect.TabId, text, detail);
 
     private static RemoteCommand Failure(RemoteEffect effect, Exception exception)
     {

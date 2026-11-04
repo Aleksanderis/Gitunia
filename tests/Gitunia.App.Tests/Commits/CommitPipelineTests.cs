@@ -65,9 +65,10 @@ public class CommitPipelineTests
 
         Assert.Equal("1", repository.Git("rev-list", "--count", "HEAD").Trim());
         Assert.Equal("Initial, with b", repository.Git("log", "-1", "--format=%B").TrimEnd());
-        var text = pipeline.Statuses.Log.Latest!.Text;
-        Assert.Contains(before[..7], text, StringComparison.Ordinal);
-        Assert.Contains($"git reset --soft {before[..7]}", text, StringComparison.Ordinal);
+        var latest = pipeline.Statuses.Log.Latest!;
+        Assert.Contains(before[..7], latest.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("git reset", latest.Text, StringComparison.Ordinal);
+        Assert.Equal($"Undo: git reset --soft {before}", latest.Detail);
     }
 
     [Fact]

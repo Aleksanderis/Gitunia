@@ -245,7 +245,8 @@ public class StagingReducerTests
         var confirm = Assert.IsType<ShowConfirmEffect>(Assert.Single(update.Effects));
         Assert.Equal("Mark c.txt as resolved?", confirm.Prompt.Lines[0]);
         Assert.Contains("markers", confirm.Prompt.Lines[1], StringComparison.Ordinal);
-        Assert.Contains("git checkout --merge", confirm.Prompt.Consequence, StringComparison.Ordinal);
+        Assert.Equal(UndoNotes.FromHistory, confirm.Prompt.Consequence);
+        Assert.DoesNotContain("git ", confirm.Prompt.Consequence, StringComparison.Ordinal);
         Assert.Equal("The screen is too small to ask: nothing was marked resolved", confirm.UnavailableNotice);
         Assert.Equal(Conflict("c.txt"), Assert.IsType<ResolveConfirmed>(confirm.OnAccepted).Entry);
     }

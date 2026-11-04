@@ -45,7 +45,7 @@ public static class QuickRebaseTexts
         return new ConfirmPrompt(
             title,
             lines,
-            $"Undo: git reset --keep {plan.Head} (also ORIG_HEAD, the reflog). A stop on conflicts leaves a " +
+            $"{UndoNotes.FromReflog} A stop on conflicts leaves a " +
             "rebase in progress: <space>gc continues, <space>ga aborts.",
             yes);
     }
@@ -70,9 +70,9 @@ public static class QuickRebaseTexts
 
         return new PostedText(
             $"{done} {Quoted(plan)} on {target.BranchName} ({ShortHash.Of(result.Head)}), " +
-            $"was {ShortHash.Of(result.OriginalHead)}; undo: git reset --keep {result.OriginalHead} " +
-            "(or ORIG_HEAD, the reflog)",
-            StatusSeverity.Info);
+            $"was {ShortHash.Of(result.OriginalHead)}",
+            StatusSeverity.Info,
+            UndoNotes.Undo($"git reset --keep {result.OriginalHead} (or ORIG_HEAD, the reflog)"));
     }
 
     /// <summary>The verb of the kind in a sentence: "fix up", "reword", "drop".</summary>

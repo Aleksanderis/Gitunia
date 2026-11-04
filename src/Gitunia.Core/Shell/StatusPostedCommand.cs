@@ -6,4 +6,6 @@ namespace Gitunia.Core.Shell;
 /// <param name="Text">The message.</param>
 /// <param name="Severity">How it is drawn.</param>
 /// <param name="At">When it was posted (the reducer reads no clock).</param>
-public sealed record StatusPostedCommand(string Text, StatusSeverity Severity, DateTimeOffset At) : ShellCommand;
+/// <param name="Detail">Optional long text kept in the message history only (a restore command, a full hash).</param>
+public sealed record StatusPostedCommand(string Text, StatusSeverity Severity, DateTimeOffset At, string? Detail = null)
+    : ShellCommand;

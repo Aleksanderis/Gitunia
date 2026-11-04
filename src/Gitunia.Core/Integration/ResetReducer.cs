@@ -85,15 +85,14 @@ public static class ResetReducer
         }
 
         var target = prepared.Target;
-        var oldHash = context.Head!.CommitHash!;
         if (target.Mode == ResetMode.Hard)
         {
-            return [Ask(ResetTexts.HardPrompt(target, oldHash, prepared.Changes), target, context)];
+            return [Ask(ResetTexts.HardPrompt(target, prepared.Changes), target, context)];
         }
 
         if (target.Mode == ResetMode.Mixed && prepared.Changes.Any(entry => entry.IsStaged))
         {
-            return [Ask(ResetTexts.MixedPrompt(target, oldHash, prepared.Changes), target, context)];
+            return [Ask(ResetTexts.MixedPrompt(target, prepared.Changes), target, context)];
         }
 
         return [new ResetBranchEffect(context.TabId, context.Location, target)];
