@@ -319,6 +319,37 @@ public class BranchWriterTests
     }
 
     [Fact]
+    public async Task GivenMergedBranchWhoseUpstreamWasPruned_WhenCheckingMerged_ThenItCountsAsMerged()
+    {
+        using var repository = TestRepositories.Linear().Branch("topic");
+        repository.Git("update-ref", "refs/remotes/origin/topic", "topic");
+        repository.Git("update-ref", "-d", "refs/remotes/origin/topic");
+        var location = await LocateAsync(repository);
+        var writer = WriterFor(repository);
+
+        var merged = await writer.IsMergedAsync(location, "topic", "refs/remotes/origin/topic", Token);
+        await writer.DeleteAsync(location, "topic", false, Token);
+
+        Assert.True(merged);
+        Assert.Equal(string.Empty, repository.Git("branch", "--list", "topic").Trim());
+    }
+
+    [Fact]
+    public async Task GivenUnmergedBranchWhoseUpstreamWasPruned_WhenCheckingMerged_ThenItStaysUnmerged()
+    {
+        using var repository = TestRepositories.Linear()
+            .CheckoutNewBranch("topic")
+            .Commit("Only here", new TestFile("only.txt", "x\n"));
+        repository.Checkout("main");
+        var location = await LocateAsync(repository);
+
+        var merged = await WriterFor(repository)
+            .IsMergedAsync(location, "topic", "refs/remotes/origin/topic", Token);
+
+        Assert.False(merged);
+    }
+
+    [Fact]
     public async Task GivenBranchCheckedOutInAnotherWorktree_WhenDeleting_ThenGitRefusesEvenWithForce()
     {
         using var repository = TestRepositories.Linear().Branch("topic");
