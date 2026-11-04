@@ -62,7 +62,7 @@ Run from the repo root:
 
 ## Working autonomously
 
-Autonomous work (one issue, a milestone, reviews, PRs) follows the `workflow` skills and the policy in `.claude/workflow.md` (autonomy, `needs-review`, CI, run-time rules); `/workflow:setup` checks they are installed. Invariants that hold regardless:
+Autonomous work (one issue, a milestone, reviews, PRs) follows the policy in `.claude/workflow.md` (autonomy, `needs-review`, CI, run-time rules) when that file exists; without it, work only on what the owner asks. Invariants that hold regardless:
 
 - `spike` issues are never merged by an agent: they stay on unmerged `spike/` branches and close with findings.
 - Merge commits only, never squash or rebase, never force-push.
