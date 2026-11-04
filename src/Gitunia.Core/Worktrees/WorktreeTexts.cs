@@ -128,6 +128,6 @@ public static class WorktreeTexts
             return $"The branch stays; {ShortName(branch)} can be checked out again with a new worktree (<space>wa).";
         }
 
-        return "Only the checkout is removed; its commit stays in the repository.";
+        return "No undo is offered for commits that no branch reaches.";
     }
 }

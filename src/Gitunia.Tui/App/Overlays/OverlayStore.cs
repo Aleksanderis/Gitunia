@@ -133,8 +133,9 @@ public sealed class OverlayStore
             rows.Add(new HelpRow(message.Severity.ToString().ToLowerInvariant(), message.Text));
             if (message.Detail is { } detail)
             {
-                // The long text (restore command, full hash) sits under its entry, indented.
-                rows.Add(new HelpRow(string.Empty, "  " + detail));
+                // The long text (restore command, full hash) sits under its entry in the description column; the
+                // frame wraps it there (a leading indent would not survive the word wrap).
+                rows.Add(new HelpRow(string.Empty, detail));
             }
         }
 

@@ -558,6 +558,26 @@ public sealed class OverlayControllerTests : IDisposable, IActionRoute
     }
 
     [Fact]
+    public void GivenALongDetailOnANarrowScreen_WhenOpeningTheHistory_ThenItWrapsInsideTheBoxAndKeepsEveryCharacter()
+    {
+        const string hash = "dde61a9abb8282f672f211bc0344358deae24d97";
+        var detail = $"Restore: git push origin {hash}:refs/heads/some-long-branch-name";
+        Resize(60, 24);
+        _shell.Statuses.Post("Deleted topic on origin (was dde61a9)", StatusSeverity.Info, detail);
+
+        Press(new Key(' '));
+        Press(new Key('m'));
+        var frame = _overlays.CurrentFrame()!;
+        var lines = frame.Lines.Select(line => line.Text).ToList();
+
+        Assert.All(lines, line => Assert.True(line.Length <= 60, line));
+        var joined = string.Concat(lines).Replace("\u2502", string.Empty, StringComparison.Ordinal)
+            .Replace(" ", string.Empty, StringComparison.Ordinal);
+        Assert.Contains(hash, joined, StringComparison.Ordinal);
+        Assert.Contains("some-long-branch-name", joined, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void GivenNoMessages_WhenOpeningTheHistory_ThenItSaysSo()
     {
         Press(new Key(' '));

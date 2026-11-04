@@ -39,7 +39,7 @@ public class WorktreeRemoveReducerTests
         var confirm = Assert.IsType<ShowConfirmEffect>(Assert.Single(update.Effects));
         Assert.Equal("It has a detached HEAD: commits that no branch reaches are lost.", confirm.Prompt.Lines[1]);
         Assert.Equal(
-            "Only the checkout is removed; its commit stays in the repository.",
+            "No undo is offered for commits that no branch reaches.",
             confirm.Prompt.Consequence);
     }
 
