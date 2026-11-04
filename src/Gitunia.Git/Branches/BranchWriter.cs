@@ -118,7 +118,8 @@ public sealed class BranchWriter(GitRunner runner) : IBranchWriter
         }
         catch (GitCommandFailedException)
         {
-            // An unborn HEAD or a vanished upstream: unknown counts as unmerged, so the caller warns.
+            // An unborn HEAD, or an upstream that vanished after the check: unknown counts as unmerged, so the
+            // caller warns.
             return false;
         }
     }
