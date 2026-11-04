@@ -120,6 +120,53 @@ public class VisualReducerTests
         Assert.Equal("Nothing to copy", NoticeOf(update));
     }
 
+    [Theory]
+    [InlineData(VisualCopyMode.Yank)]
+    [InlineData(VisualCopyMode.OnSelect)]
+    [InlineData(VisualCopyMode.CtrlC)]
+    public void GivenAnActiveRange_WhenCopyingInAMode_ThenTheEffectCarriesTheModeForTheAnswer(VisualCopyMode mode)
+    {
+        var state = Toggle(WithTab(), 4).State;
+
+        var update = Reduce(state, new VisualCopyRequested(mode));
+
+        Assert.Equal(mode, Assert.IsType<CopyVisualRangeEffect>(Assert.Single(update.Effects)).Mode);
+    }
+
+    [Fact]
+    public void GivenACopyOnSelectThatWorked_WhenTheTerminalLayerAnswers_ThenTheRangeStaysWithoutANotice()
+    {
+        var state = Toggle(WithTab(), 4).State;
+
+        var update = Reduce(state, new VisualCopied(true, string.Empty, VisualCopyMode.OnSelect));
+
+        Assert.Equal(new RowRange(4, 4), update.State.Shell.Visual!.Range);
+        Assert.Equal(KeyMode.Visual, update.State.Shell.Mode);
+        Assert.Empty(update.Effects);
+    }
+
+    [Fact]
+    public void GivenACtrlCCopyThatWorked_WhenTheTerminalLayerAnswers_ThenTheRangeStaysAndTheNoticeSaysCtrlCQuits()
+    {
+        var state = Toggle(WithTab(), 4).State;
+
+        var update = Reduce(state, new VisualCopied(true, string.Empty, VisualCopyMode.CtrlC));
+
+        Assert.NotNull(update.State.Shell.Visual);
+        Assert.Equal(VisualReducer.CtrlCNotice, NoticeOf(update));
+    }
+
+    [Fact]
+    public void GivenACtrlCCopyThatFailed_WhenTheTerminalLayerAnswers_ThenOnlyTheFailureIsSaid()
+    {
+        var state = Toggle(WithTab(), 4).State;
+
+        var update = Reduce(state, new VisualCopied(false, "Nothing to copy", VisualCopyMode.CtrlC));
+
+        Assert.NotNull(update.State.Shell.Visual);
+        Assert.Equal("Nothing to copy", NoticeOf(update));
+    }
+
     [Fact]
     public void GivenTheSidebarFocused_WhenTogglingVisual_ThenItSaysThereAreNoRangesThere()
     {

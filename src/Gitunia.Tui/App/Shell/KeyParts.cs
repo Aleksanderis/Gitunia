@@ -48,7 +48,7 @@ public sealed class KeyParts
             panes.Visual,
             new GestureServices(overlays.Guard, overlays.Cover, overlays.Editors, foundation.Panes));
         Quit = new QuitRequests(host);
-        Input = new KeyInput(host, Keys, Quit, overlays.KeyFocus, overlays.Editors);
+        Input = new KeyInput(host, Keys, new CtrlCHandler(host, panes.Visual, Quit), overlays.KeyFocus, overlays.Editors);
     }
 
     /// <summary>The sticky repeat mode.</summary>

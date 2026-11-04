@@ -42,4 +42,10 @@ public sealed record ConfigDocument
     /// <c>OptionsConfigurator</c>.
     /// </summary>
     public JsonElement? CommandLevel { get; init; }
+
+    /// <summary>
+    /// <c>true</c> (default) copies a mouse selection to the clipboard when it is made, read by
+    /// <c>OptionsConfigurator</c>.
+    /// </summary>
+    public JsonElement? CopyOnSelect { get; init; }
 }

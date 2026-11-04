@@ -8,8 +8,10 @@ namespace Gitunia.Core.Visual;
 /// <param name="Range">The rows.</param>
 /// <param name="Chars">The characters of a character-wise selection, null for whole rows.</param>
 /// <param name="IsOldSide">The characters are those of the left (old) side of a side-by-side diff.</param>
+/// <param name="Mode">Why it is copied; returned in <see cref="VisualCopied"/>.</param>
 public sealed record CopyVisualRangeEffect(
     PaneKind Pane,
     RowRange Range,
     TextSelection? Chars = null,
-    bool IsOldSide = false) : AppEffect;
+    bool IsOldSide = false,
+    VisualCopyMode Mode = VisualCopyMode.Yank) : AppEffect;

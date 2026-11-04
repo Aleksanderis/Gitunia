@@ -42,7 +42,7 @@ public class SettingsReducerTests
             .ToList();
 
         Assert.DoesNotContain(keys, definition => definition.Control == SettingControl.KeyReference);
-        Assert.Equal(3, keys.Count);
+        Assert.Equal(4, keys.Count);
         Assert.Equal(SettingsRegistry.KeyReferenceId, Assert.Single(mapping).Id);
         Assert.Equal("Key mapping", SettingsRegistry.TitleOf(SettingCategory.KeyMapping));
     }
@@ -515,7 +515,7 @@ public class SettingsReducerTests
         var collapsed = state.WithLayout(collapsed: true);
         var expanded = collapsed.WithLayout(collapsed: false);
 
-        Assert.Equal(9, collapsed.Rows.Count);
+        Assert.Equal(10, collapsed.Rows.Count);
         Assert.Equal(SettingsRegistry.ShowBranchId, collapsed.Selected?.Definition.Id);
         Assert.Equal(SettingsRegistry.ShowBranchId, expanded.Selected?.Definition.Id);
         Assert.Equal(SettingCategory.Tabs, expanded.CurrentCategory);

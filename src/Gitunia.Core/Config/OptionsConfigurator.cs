@@ -16,6 +16,7 @@ public static class OptionsConfigurator
     private const string ShowBranchKey = "tabs.showBranch";
     private const string ScanRootsKey = "scanRoots";
     private const string WatchFilesKey = "watchFiles";
+    private const string CopyOnSelectKey = "copyOnSelect";
     private const string LabelCapsKey = "labelCaps";
     private const string CommandLevelKey = "commandLevel";
     private const string HintsKey = "hints";
@@ -45,7 +46,8 @@ public static class OptionsConfigurator
             ParseLabelCaps(document.LabelCaps, problems, defaultLabelCaps),
             ParseWhichKey(document.Hints, problems),
             ParseStatusBar(document.Hints, problems),
-            ParseCommandLevel(document.CommandLevel, problems));
+            ParseCommandLevel(document.CommandLevel, problems),
+            ParseCopyOnSelect(document.CopyOnSelect, problems));
 
     /// <summary>
     /// The <c>commandLevel</c> option (#839): everyday (default), advanced or advanced+, any case; anything else is
@@ -183,6 +185,24 @@ public static class OptionsConfigurator
         problems.Add(new ConfigProblem(LabelCapsKey, "labelCaps must be none, rounded or angled, using rounded"));
 
         return LabelCapStyle.Rounded;
+    }
+
+    /// <summary>The <c>copyOnSelect</c> flag: on unless the file says false; anything but true or false gives true.</summary>
+    public static bool ParseCopyOnSelect(JsonElement? value, ICollection<ConfigProblem> problems)
+    {
+        if (value is null or { ValueKind: JsonValueKind.Null })
+        {
+            return true;
+        }
+
+        if (value.Value.ValueKind is JsonValueKind.True or JsonValueKind.False)
+        {
+            return value.Value.GetBoolean();
+        }
+
+        problems.Add(new ConfigProblem(CopyOnSelectKey, "copyOnSelect must be true or false, using true"));
+
+        return true;
     }
 
     /// <summary>The <c>watchFiles</c> flag; anything but true or false gives false.</summary>

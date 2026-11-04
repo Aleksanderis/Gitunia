@@ -33,13 +33,16 @@ public sealed record VisualCharsSelected(TextPosition Anchor, TextPosition Curso
 /// <param name="Row">The new cursor row.</param>
 public sealed record VisualCursorMoved(int Row) : VisualCommand;
 
-/// <summary><c>y</c>: copy the rows of the active range.</summary>
-public sealed record VisualCopyRequested : VisualCommand;
+/// <summary>Copy the rows of the active range (<c>y</c>, copy on select, <c>Ctrl-c</c>).</summary>
+/// <param name="Mode">Why it is copied: <c>y</c> ends the selection, the other two keep it.</param>
+public sealed record VisualCopyRequested(VisualCopyMode Mode = VisualCopyMode.Yank) : VisualCommand;
 
 /// <summary>The terminal layer copied (or failed to copy) the rows of the range.</summary>
 /// <param name="Copied">The text reached the clipboard; false keeps the range so the user can retry.</param>
 /// <param name="Notice">A notice for the status bar, empty when there is none.</param>
-public sealed record VisualCopied(bool Copied, string Notice) : VisualCommand;
+/// <param name="Mode">Why it was copied, as asked for in <see cref="VisualCopyRequested"/>.</param>
+public sealed record VisualCopied(bool Copied, string Notice, VisualCopyMode Mode = VisualCopyMode.Yank)
+    : VisualCommand;
 
 /// <summary><c>Esc</c>, <c>q</c>, a click or any other reason to leave Visual mode.</summary>
 public sealed record VisualEnded : VisualCommand;

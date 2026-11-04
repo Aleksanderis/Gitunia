@@ -26,6 +26,9 @@ public static class SettingsRegistry
     /// <summary>The id of the command level setting (#839).</summary>
     public const string CommandLevelId = "command-level";
 
+    /// <summary>The id of the copy on select setting.</summary>
+    public const string CopyOnSelectId = "copy-on-select";
+
     /// <summary>The id of the tab branch setting.</summary>
     public const string ShowBranchId = "tabs-show-branch";
 
@@ -110,6 +113,16 @@ public static class SettingsRegistry
                 + "<space>* cycles the level.",
             "everyday",
             [.. CommandLevels.Names]),
+        new SettingDefinition(
+            CopyOnSelectId,
+            SettingCategory.Keys,
+            "Copy on select",
+            SettingControl.Toggle,
+            ["copyOnSelect"],
+            "A selection made with the mouse (a drag, a double or triple click) is copied to the clipboard when you "
+                + "let go; the highlight stays and y or Ctrl-c copies it again. Needs a terminal with OSC 52.",
+            "on",
+            []),
         new SettingDefinition(
             KeyReferenceId,
             SettingCategory.KeyMapping,

@@ -1,21 +1,20 @@
 using Gitunia.App;
 using Gitunia.Core.Commits;
-using Gitunia.Tui.App;
 using Gitunia.Tui.App.Overlays;
 using Terminal.Gui.Input;
 
 namespace Gitunia.Tui.Input;
 
-/// <summary>Takes the key presses and pastes of the terminal: Ctrl-c quits, everything else goes through the keymap.</summary>
+/// <summary>Takes the key presses and pastes of the terminal: Ctrl-c copies a selection or quits, everything else goes through the keymap.</summary>
 /// <param name="host">Tells whether a message editor is open.</param>
 /// <param name="keys">The keymap engine and its mode.</param>
-/// <param name="quit">Quits on Ctrl-c.</param>
+/// <param name="ctrlC">Copies the selection or quits on Ctrl-c.</param>
 /// <param name="focus">Which view has the keys.</param>
 /// <param name="editors">The editors, which keep line breaks of a paste.</param>
 public sealed class KeyInput(
     Dispatcher host,
     KeyController keys,
-    IQuitRequests quit,
+    CtrlCHandler ctrlC,
     KeyFocus focus,
     EditorOverlays editors)
 {
@@ -45,7 +44,7 @@ public sealed class KeyInput(
     {
         if (ForceQuitKey.IsMatch(key))
         {
-            quit.Force();
+            ctrlC.Press();
 
             return true;
         }
