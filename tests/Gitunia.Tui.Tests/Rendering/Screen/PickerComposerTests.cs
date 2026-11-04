@@ -499,6 +499,74 @@ public class PickerComposerTests
         Assert.Null(layout.RowIndexAt(layout.ListFirstLine + layout.ListHeight));
     }
 
+    private static Dictionary<string, string> Branches(params (string Name, string Branch)[] pairs) =>
+        pairs.ToDictionary(pair => Row(pair.Name, PickerTags.Open).Path, pair => pair.Branch);
+
+    private static IReadOnlyList<StyledLine> ComposeWithBranches(
+        PickerState picker,
+        IReadOnlyDictionary<string, string> branches,
+        int width) =>
+        PickerComposer.Compose(picker, Home, width, 30, GraphGlyphSet.Unicode, null, branches);
+
+    [Fact]
+    public void GivenTwoOpenTabsWithBranches_WhenComposing_ThenEachOpenRowShowsItsBranchInCyanBetweenNameAndPath()
+    {
+        var picker = Picker(
+            Row("alpha", PickerTags.Open),
+            Row("beta", PickerTags.Open),
+            Row("gamma", PickerTags.Recent),
+            Row("delta", PickerTags.Pinned),
+            Row("omega", PickerTags.Discovered));
+
+        var all = Branches(("alpha", "main"), ("beta", "fix/9"), ("gamma", "recent"), ("delta", "pinned"), ("omega", "found"));
+        var lines = ComposeWithBranches(picker, all, 100);
+        var plain = Compose(picker);
+
+        var alpha = lines.Single(line => line.Text.Contains("alpha", StringComparison.Ordinal));
+        Assert.Contains(alpha.Segments, segment => segment.Role == SegmentRole.CurrentBranch && segment.Text == "main");
+        var path = "~/code/alpha";
+        Assert.True(alpha.Text.IndexOf("alpha", StringComparison.Ordinal) < alpha.Text.IndexOf("main", StringComparison.Ordinal));
+        Assert.True(alpha.Text.IndexOf("main", StringComparison.Ordinal) < alpha.Text.IndexOf(path, StringComparison.Ordinal));
+        var beta = lines.Single(line => line.Text.Contains("beta", StringComparison.Ordinal));
+        Assert.Contains(beta.Segments, segment => segment.Role == SegmentRole.CurrentBranch && segment.Text == "fix/9");
+        foreach (var name in new[] { "gamma", "delta", "omega" })
+        {
+            var line = lines.Single(candidate => candidate.Text.Contains(name, StringComparison.Ordinal));
+            Assert.DoesNotContain(all[Row(name, PickerTags.Open).Path], line.Text, StringComparison.Ordinal);
+            Assert.DoesNotContain(line.Segments, segment => segment.Text.Contains("recent", StringComparison.Ordinal)
+                || segment.Text.Contains("pinned", StringComparison.Ordinal) || segment.Text.Contains("found", StringComparison.Ordinal));
+        }
+
+        Assert.Equal(plain.Count, lines.Count);
+    }
+
+    [Fact]
+    public void GivenAnOpenTabWithoutABranchOrMissing_WhenComposing_ThenNoBranchColumnIsDrawn()
+    {
+        var picker = Picker(Row("alpha", PickerTags.Open), Row("beta", PickerTags.Open | PickerTags.Missing));
+
+        var detached = ComposeWithBranches(picker, Branches(), 100);
+        var missing = ComposeWithBranches(picker, Branches(("beta", "main")), 100);
+
+        Assert.All(detached.Concat(missing), line => Assert.DoesNotContain("main", line.Text, StringComparison.Ordinal));
+        Assert.Equal(Compose(picker).Select(line => line.Text), detached.Select(line => line.Text));
+    }
+
+    [Fact]
+    public void GivenANarrowBox_WhenComposingWithBranches_ThenTheBranchColumnIsDroppedAndThePathStaysWhole()
+    {
+        var picker = Picker(Row("alpha", PickerTags.Open));
+        var branches = Branches(("alpha", "feature/long-branch"));
+
+        var narrow = ComposeWithBranches(picker, branches, 44);
+        var wide = ComposeWithBranches(picker, branches, 100);
+
+        var narrowRow = narrow.Single(line => line.Text.Contains("alpha", StringComparison.Ordinal));
+        Assert.DoesNotContain("feature", narrowRow.Text, StringComparison.Ordinal);
+        Assert.Contains("~/code/alpha", narrowRow.Text, StringComparison.Ordinal);
+        Assert.Contains("feature/long-branch", wide.Single(line => line.Text.Contains("alpha", StringComparison.Ordinal)).Text, StringComparison.Ordinal);
+    }
+
     private static bool HasSectionTitle(StyledLine line) =>
         line.Segments.Any(segment => segment.Role == SegmentRole.SectionTitle);
 

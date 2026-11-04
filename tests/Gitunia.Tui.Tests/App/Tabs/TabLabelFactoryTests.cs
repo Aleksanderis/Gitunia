@@ -37,6 +37,20 @@ public class TabLabelFactoryTests
     }
 
     [Fact]
+    public void GivenLoadedAndDetachedTabs_WhenListingOpenBranches_ThenOnlyTheBranchTabIsKeyedByItsRoot()
+    {
+        var workspace = Open(["a"], ["b"], ["c"]);
+        workspace = WorkspaceReducer.Reduce(workspace, new TabCommand(workspace.Tabs[0].Id, new HeadLoadedCommand(new HeadState(HeadKind.Branch, "main", null)))).Workspace;
+        workspace = WorkspaceReducer.Reduce(workspace, new TabCommand(workspace.Tabs[1].Id, new HeadLoadedCommand(new HeadState(HeadKind.Detached, null, "abc")))).Workspace;
+
+        var branches = TabLabelFactory.OpenBranches(workspace);
+
+        var entry = Assert.Single(branches);
+        Assert.Equal(workspace.Tabs[0].Location.RootPath, entry.Key);
+        Assert.Equal("main", entry.Value);
+    }
+
+    [Fact]
     public void GivenStatusAndHead_WhenLabelling_ThenMarkersAndBranchComeFromTheTabState()
     {
         var workspace = Open(["a"]);

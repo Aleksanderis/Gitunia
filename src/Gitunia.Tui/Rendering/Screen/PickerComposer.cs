@@ -15,6 +15,7 @@ namespace Gitunia.Tui.Rendering.Screen;
 public static class PickerComposer
 {
     private const int MaximumNameColumns = 24;
+    private const int MaximumBranchColumns = 20;
     private const int MinimumPathColumns = 10;
     private const int ColumnGap = 2;
     private const int GlyphGap = 2;
@@ -30,13 +31,16 @@ public static class PickerComposer
     /// <param name="height">Rows of the area.</param>
     /// <param name="glyphs">The character set for the ellipsis, the frame, the rules and the row marks.</param>
     /// <param name="keys">Where the chip keys come from.</param>
+    /// <param name="openBranches">The checked-out branch of each open tab by repository path; only open rows use it, so
+    /// no process is started for any other row. Null or empty leaves the branch column out.</param>
     public static IReadOnlyList<StyledLine> Compose(
         PickerState picker,
         string homeDirectory,
         int width,
         int height,
         GraphGlyphSet glyphs,
-        ChipKeys? keys = null)
+        ChipKeys? keys = null,
+        IReadOnlyDictionary<string, string>? openBranches = null)
     {
         if (width <= 0 || height <= 0)
         {
@@ -45,8 +49,8 @@ public static class PickerComposer
 
         var layout = PickerLayout.Compute(picker, width, height);
         return layout.IsFramed
-            ? Framed(picker, homeDirectory, layout, glyphs, keys)
-            : Compact(picker, homeDirectory, layout, glyphs);
+            ? Framed(picker, homeDirectory, layout, glyphs, keys, openBranches)
+            : Compact(picker, homeDirectory, layout, glyphs, openBranches);
     }
 
     private static List<StyledLine> Framed(
@@ -54,7 +58,8 @@ public static class PickerComposer
         string homeDirectory,
         PickerLayout layout,
         GraphGlyphSet glyphs,
-        ChipKeys? keys)
+        ChipKeys? keys,
+        IReadOnlyDictionary<string, string>? openBranches)
     {
         var width = layout.BoxWidth;
         var inner = layout.InnerWidth;
@@ -64,7 +69,7 @@ public static class PickerComposer
             OverlayBox.Wrap(QueryLine(picker, inner, glyphs, true), glyphs),
             OverlayBox.Wrap(new LineBuilder(inner, glyphs.Ellipsis).Build(), glyphs),
         };
-        lines.AddRange(ListLines(picker, homeDirectory, layout, glyphs, isFramed: true));
+        lines.AddRange(ListLines(picker, homeDirectory, layout, glyphs, true, openBranches));
         if (layout.MessageLine >= 0)
         {
             lines.Add(OverlayBox.Text(picker.Message, width, glyphs, SegmentRole.Error));
@@ -80,10 +85,11 @@ public static class PickerComposer
         PickerState picker,
         string homeDirectory,
         PickerLayout layout,
-        GraphGlyphSet glyphs)
+        GraphGlyphSet glyphs,
+        IReadOnlyDictionary<string, string>? openBranches)
     {
         var lines = new List<StyledLine> { QueryLine(picker, layout.BoxWidth, glyphs, false) };
-        lines.AddRange(ListLines(picker, homeDirectory, layout, glyphs, isFramed: false));
+        lines.AddRange(ListLines(picker, homeDirectory, layout, glyphs, false, openBranches));
         if (layout.MessageLine >= 0)
         {
             var message = new LineBuilder(layout.BoxWidth, glyphs.Ellipsis).Append($" {picker.Message}", SegmentRole.Error);
@@ -174,7 +180,8 @@ public static class PickerComposer
         string homeDirectory,
         PickerLayout layout,
         GraphGlyphSet glyphs,
-        bool isFramed)
+        bool isFramed,
+        IReadOnlyDictionary<string, string>? openBranches)
     {
         var lines = new List<StyledLine>(layout.ListHeight);
         if (layout.ListHeight == 0)
@@ -191,9 +198,10 @@ public static class PickerComposer
 
         var longestName = picker.Rows.Select(row => TextWidth.Of(DisplayName(row))).DefaultIfEmpty(0).Max();
         var nameWidth = Math.Min(Math.Min(MaximumNameColumns, longestName), Math.Max(6, width / 3));
+        var branchWidth = BranchWidth(picker, openBranches, homeDirectory, width, nameWidth, glyphs);
         foreach (var entry in layout.Visible)
         {
-            var line = ListLine(picker, entry, homeDirectory, width, nameWidth, glyphs);
+            var line = ListLine(picker, entry, homeDirectory, width, nameWidth, branchWidth, openBranches, glyphs);
             lines.Add(Wrap(line, glyphs, isFramed, entry.RowIndex == picker.Highlight && entry.RowIndex >= 0));
         }
 
@@ -211,6 +219,8 @@ public static class PickerComposer
         string homeDirectory,
         int width,
         int nameWidth,
+        int branchWidth,
+        IReadOnlyDictionary<string, string>? openBranches,
         GraphGlyphSet glyphs)
     {
         if (entry.IsSpacer)
@@ -220,7 +230,7 @@ public static class PickerComposer
 
         return entry.RowIndex < 0
             ? HeaderLine(entry.Header, width, glyphs)
-            : RowLine(picker, entry.RowIndex, homeDirectory, width, nameWidth, glyphs);
+            : RowLine(picker, entry.RowIndex, homeDirectory, width, nameWidth, branchWidth, openBranches, glyphs);
     }
 
     // The group name in capitals, then a rule to the right edge.
@@ -241,6 +251,8 @@ public static class PickerComposer
         string homeDirectory,
         int width,
         int nameWidth,
+        int branchWidth,
+        IReadOnlyDictionary<string, string>? openBranches,
         GraphGlyphSet glyphs)
     {
         var row = picker.Rows[index];
@@ -252,6 +264,13 @@ public static class PickerComposer
             .Append(mark.Text, mark.Role)
             .Append(new string(' ', GlyphGap), SegmentRole.Plain)
             .Append($"{name}{padding}", SegmentRole.Plain);
+        if (branchWidth > 0)
+        {
+            var branch = BranchOf(row, openBranches) is { } text ? TextWidth.Fit(text, branchWidth, glyphs.Ellipsis) : string.Empty;
+            builder.Append(branch, SegmentRole.CurrentBranch);
+            builder.Append(new string(' ', branchWidth - TextWidth.Of(branch) + ColumnGap), SegmentRole.Plain);
+        }
+
         var pathColumns = builder.Remaining - 1 - TextWidth.Of(glyphs.Picker.Pinned) - 1;
         if (pathColumns >= MinimumPathColumns)
         {
@@ -265,6 +284,42 @@ public static class PickerComposer
         }
 
         return builder.Build(isSelected: index == picker.Highlight);
+    }
+
+    // The branch of an open, present repository; detached or unloaded tabs have none.
+    private static string? BranchOf(PickerRow row, IReadOnlyDictionary<string, string>? openBranches) =>
+        row.IsOpen && !row.IsMissing && openBranches is not null && openBranches.TryGetValue(row.Path, out var branch)
+            && branch.Length > 0
+            ? branch
+            : null;
+
+    // The branch column's width (0 when no row has a branch, or when keeping it would shorten the longest path).
+    private static int BranchWidth(
+        PickerState picker,
+        IReadOnlyDictionary<string, string>? openBranches,
+        string homeDirectory,
+        int width,
+        int nameWidth,
+        GraphGlyphSet glyphs)
+    {
+        var longestBranch = picker.Rows
+            .Select(row => BranchOf(row, openBranches))
+            .Where(branch => branch is not null)
+            .Select(branch => TextWidth.Of(branch!))
+            .DefaultIfEmpty(0)
+            .Max();
+        if (longestBranch == 0)
+        {
+            return 0;
+        }
+
+        var branchWidth = Math.Min(MaximumBranchColumns, longestBranch);
+        var longestPath = picker.Rows
+            .Select(row => TextWidth.Of(PathDisplay.Abbreviate(row.Path, homeDirectory, OperatingSystem.IsWindows())))
+            .Max();
+        var fixedColumns = 1 + TextWidth.Of(glyphs.Picker.Open) + GlyphGap + nameWidth + ColumnGap;
+        var pathRoom = width - fixedColumns - 1 - TextWidth.Of(glyphs.Picker.Pinned) - 1;
+        return pathRoom - branchWidth - ColumnGap >= Math.Max(longestPath, MinimumPathColumns) ? branchWidth : 0;
     }
 
     private static StyledLine Wrap(StyledLine line, GraphGlyphSet glyphs, bool isFramed, bool isSelected) =>
