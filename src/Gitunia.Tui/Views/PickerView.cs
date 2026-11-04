@@ -38,7 +38,8 @@ public sealed class PickerView(IScreenContent content, GraphGlyphSet glyphs) : V
             Viewport.Width,
             Viewport.Height,
             glyphs,
-            content.Model().Keys);
+            content.Model().Keys,
+            content.Model().PickerBranches);
         var layout = PickerLayout.Compute(picker, Viewport.Width, Viewport.Height);
         for (var row = 0; row < lines.Count; row++)
         {

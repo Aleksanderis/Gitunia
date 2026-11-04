@@ -36,6 +36,8 @@ namespace Gitunia.Tui.Rendering.Screen;
 /// null otherwise; the position then reads <c>12/100000+ of 1204331</c>.</param>
 /// <param name="Keys">Where the tab row chips take their key text from; null uses the default keymap.</param>
 /// <param name="RepeatPane">The pane whose title shows the repeat marker while the repeat mode is on.</param>
+/// <param name="PickerBranches">The checked-out branch of each open tab by repository path, read from the tabs' state
+/// for the picker's branch column; null when the picker is closed.</param>
 /// <param name="Hints">The key hints of the focused pane for the status bar; null uses the graph's.</param>
 public sealed record ScreenModel(
     string RepositoryName,
@@ -61,4 +63,5 @@ public sealed record ScreenModel(
     int? TruncatedTotal = null,
     ChipKeys? Keys = null,
     string SelectedName = "",
-    PaneKind? RepeatPane = null);
+    PaneKind? RepeatPane = null,
+    IReadOnlyDictionary<string, string>? PickerBranches = null);

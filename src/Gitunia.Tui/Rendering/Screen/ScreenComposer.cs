@@ -72,7 +72,8 @@ public static class ScreenComposer
                 rects.Graph.Width,
                 rects.Graph.Height,
                 glyphs,
-                model.Keys);
+                model.Keys,
+                model.PickerBranches);
             var pickerLayout = PickerLayout.Compute(model.Picker!, rects.Graph.Width, rects.Graph.Height);
             overlays.Add(new PaneLines(
                 rects.Graph.X + pickerLayout.BoxX,
