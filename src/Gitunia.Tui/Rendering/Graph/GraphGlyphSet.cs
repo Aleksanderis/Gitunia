@@ -34,7 +34,8 @@ public sealed record GraphGlyphSet(
     string LabelCapRight = "")
 {
     // Index: Up=1, Down=2, Left=4, Right=8. Lone strokes borrow the straight line of their axis.
-    public static GraphGlyphSet Unicode { get; } = new('●', '○', '├', " │││─╯╮┤─╰╭├─┴┬┼", "…", "◉ ", "⎇ ", " ", " ✗", PickerGlyphs.Unicode);
+    public static GraphGlyphSet Unicode { get; } =
+        new('●', '○', '├', " │││─╯╮┤─╰╭├─┴┬┼", "…", "◉ ", "⎇ ", " ", " ✗", PickerGlyphs.Unicode);
 
     public static GraphGlyphSet Ascii { get; } =
         new('*', 'o', '|', " |||-/\\|-\\/|---+", "~", "HEAD -> ", "", " (r)", " (x)", PickerGlyphs.Ascii);

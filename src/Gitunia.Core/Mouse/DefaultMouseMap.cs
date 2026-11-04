@@ -87,7 +87,7 @@ public static class DefaultMouseMap
 
     public const string PickerInitButton = "PickerButton.Init";
 
-    /// <summary>Picker footer chips for the two keys every picker has: open the highlighted row, close the picker.</summary>
+    /// <summary>Picker footer chips for the keys every picker has: open the highlighted row, close the picker.</summary>
     public const string PickerAcceptButton = "PickerButton.Accept";
 
     public const string PickerCloseButton = "PickerButton.Close";

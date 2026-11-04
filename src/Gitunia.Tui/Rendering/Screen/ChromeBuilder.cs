@@ -77,7 +77,8 @@ public static class ChromeBuilder
     private static string PickerPosition(PickerState picker)
     {
         var selected = picker.Rows.IsEmpty ? 0 : picker.Highlight + 1;
-        return $"{selected.ToString(CultureInfo.InvariantCulture)}/{picker.Rows.Length.ToString(CultureInfo.InvariantCulture)}";
+        var total = picker.Rows.Length;
+        return $"{selected.ToString(CultureInfo.InvariantCulture)}/{total.ToString(CultureInfo.InvariantCulture)}";
     }
 
     private static string GraphPosition(ScreenModel model)

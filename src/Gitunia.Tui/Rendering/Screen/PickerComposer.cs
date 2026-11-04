@@ -20,6 +20,7 @@ public static class PickerComposer
     private const int GlyphGap = 2;
     private const int MinimumTitleGap = 2;
     private const string QueryPlaceholder = "type to filter, or a path";
+    // The hint names the key by hand: the keymap lookup of the chips starts from a mouse view and this is no chip.
     private const string AcceptKey = "Tab";
     private const string AcceptLabel = " accepts a path";
 

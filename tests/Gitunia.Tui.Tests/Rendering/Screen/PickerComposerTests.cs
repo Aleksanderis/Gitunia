@@ -38,7 +38,9 @@ public class PickerComposerTests
         Assert.Contains("Open repository", lines[TitleLine].Text, StringComparison.Ordinal);
         Assert.Contains(" al_", lines[QueryRow].Text, StringComparison.Ordinal);
         Assert.Contains(" › al_", lines[QueryRow].Text, StringComparison.Ordinal);
-        Assert.Contains(lines[QueryRow].Segments, segment => segment.Role == ChipStyle.Pane.Key && segment.Text == "Tab");
+        Assert.Contains(
+            lines[QueryRow].Segments,
+            segment => segment.Role == ChipStyle.Pane.Key && segment.Text == "Tab");
         Assert.EndsWith("1 repository ", lines[TitleLine].Text, StringComparison.Ordinal);
         Assert.All(lines.Skip(1).Take(lines.Count - 2), line => Assert.Equal(SegmentRole.FocusedBorder, line.Segments[0].Role));
         Assert.All(lines, line => Assert.Equal(lines[0].Text.Length, line.Text.Length));
@@ -53,10 +55,9 @@ public class PickerComposerTests
             Row("gamma", PickerTags.Recent),
             Row("delta", PickerTags.Discovered)));
 
-        var headers = lines.Skip(FirstListLine).Where(line => line.Segments.Any(segment => segment.Role == SegmentRole.SectionTitle))
-            .ToList();
+        var headers = lines.Skip(FirstListLine).Where(HasSectionTitle).ToList();
         Assert.Equal(["OPEN", "PINNED", "RECENT", "FOUND"], headers.Select(HeaderName));
-        Assert.All(headers, line => Assert.Contains(line.Segments, segment => segment.Role == SegmentRole.Faint && segment.Text.StartsWith('─')));
+        Assert.All(headers, line => Assert.Contains(line.Segments, IsRule));
         Assert.Equal(FirstListLine, lines.ToList().IndexOf(headers[0]));
         foreach (var header in headers.Skip(1))
         {
@@ -81,6 +82,20 @@ public class PickerComposerTests
         Assert.Equal(("○", SegmentRole.Faint), GlyphOf(lines, "delta"));
         Assert.Equal(("!", SegmentRole.FileChanged), GlyphOf(lines, "gone"));
         Assert.DoesNotContain(lines, line => line.Text.Contains("recent ", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void GivenANarrowFramedBox_WhenComposing_ThenTheCountAndTheHintAreDroppedAndTheCloseChipStays()
+    {
+        var picker = Picker(Row("alpha", PickerTags.Open), Row("beta", PickerTags.Recent));
+
+        var lines = Compose(picker, 32);
+
+        Assert.True(PickerLayout.Compute(picker, 32, 30).IsFramed);
+        Assert.DoesNotContain("repositories", lines[TitleLine].Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Tab", lines[QueryRow].Text, StringComparison.Ordinal);
+        Assert.Contains("Esc", lines[^2].Text, StringComparison.Ordinal);
+        Assert.All(lines, line => Assert.Equal(lines[0].Text.Length, line.Text.Length));
     }
 
     [Fact]
@@ -118,7 +133,7 @@ public class PickerComposerTests
 
         var lines = Compose(picker);
 
-        Assert.DoesNotContain(lines.Skip(FirstListLine), line => line.Segments.Any(segment => segment.Role == SegmentRole.SectionTitle));
+        Assert.DoesNotContain(lines.Skip(FirstListLine), HasSectionTitle);
     }
 
     [Fact]
@@ -391,8 +406,8 @@ public class PickerComposerTests
         var footer = lines[^2];
         Assert.Contains(footer.Segments, segment => segment.Text == "Alt-c" && segment.Role == SegmentRole.RepositoryTabKey);
         Assert.DoesNotContain(footer.Segments, segment => segment.Role == SegmentRole.Button);
-        Assert.Contains(footer.Segments, segment => segment.Text == "Enter" && segment.Role == SegmentRole.RepositoryTabKey);
-        Assert.Contains(footer.Segments, segment => segment.Text == "Esc" && segment.Role == SegmentRole.RepositoryTabKey);
+        Assert.Contains(footer.Segments, segment => IsChipKey(segment, "Enter"));
+        Assert.Contains(footer.Segments, segment => IsChipKey(segment, "Esc"));
         Assert.Equal(SegmentRole.Faint, lines[^3].Segments[2].Role);
         Assert.StartsWith("│ ──", lines[^3].Text, StringComparison.Ordinal);
     }
@@ -400,7 +415,10 @@ public class PickerComposerTests
     [Fact]
     public void GivenGroupedRows_WhenAskingForTheRowAtALine_ThenHeadersAndSpacersAreNotRowsAndLinesMapToIndexes()
     {
-        var picker = Picker(Row("alpha", PickerTags.Open), Row("beta", PickerTags.Recent), Row("gamma", PickerTags.Recent));
+        var picker = Picker(
+            Row("alpha", PickerTags.Open),
+            Row("beta", PickerTags.Recent),
+            Row("gamma", PickerTags.Recent));
 
         var layout = PickerLayout.Compute(picker, 100, 30);
 
@@ -480,6 +498,15 @@ public class PickerComposerTests
         Assert.Equal(30 - layout.ListHeight + 1, layout.RowIndexAt(layout.ListFirstLine));
         Assert.Null(layout.RowIndexAt(layout.ListFirstLine + layout.ListHeight));
     }
+
+    private static bool HasSectionTitle(StyledLine line) =>
+        line.Segments.Any(segment => segment.Role == SegmentRole.SectionTitle);
+
+    private static bool IsRule(StyledSegment segment) =>
+        segment.Role == SegmentRole.Faint && segment.Text.StartsWith('─');
+
+    private static bool IsChipKey(StyledSegment segment, string key) =>
+        segment.Text == key && segment.Role == SegmentRole.RepositoryTabKey;
 
     private static string HeaderName(StyledLine line) =>
         line.Segments.Single(segment => segment.Role == SegmentRole.SectionTitle).Text.Trim();

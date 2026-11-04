@@ -49,8 +49,9 @@ public sealed record PickerLayout(
     }
 
     /// <summary>
-    /// The group headers and rows of the list: headers only for the unfiltered list with more than one group, each but
-    /// the first after a spacer line when <paramref name="withSpacers"/> (the framed box; the unframed one is too small).
+    /// The group headers and rows of the list: headers only for the unfiltered list with more than one group, each
+    /// but the first after a spacer line when <paramref name="withSpacers"/> (the framed box; the unframed one is too
+    /// small).
     /// </summary>
     public static IReadOnlyList<PickerListLine> ListLines(PickerState picker, bool withSpacers)
     {

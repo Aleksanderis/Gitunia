@@ -7,10 +7,10 @@ using Gitunia.Tui.Rendering.Styling;
 namespace Gitunia.Tui.Rendering.Screen;
 
 /// <summary>
-/// The chips of the picker's footer row. Left: open (<c>Enter</c>), then pin or unpin and remove for the highlighted row
-/// (<c>Alt-p</c>, <c>Alt-d</c>). Right: clone and init (<c>Alt-c</c>, <c>Alt-i</c>) and close (<c>Esc</c>). A chip that
-/// does not fit is left out (the key stays), the right group first from its left end; locating a missing repository has
-/// no clone and init, and a directory row has no pin.
+/// The chips of the picker's footer row. Left: open (<c>Enter</c>), then pin or unpin and remove for the highlighted
+/// row (<c>Alt-p</c>, <c>Alt-d</c>). Right: clone and init (<c>Alt-c</c>, <c>Alt-i</c>) and close (<c>Esc</c>). A chip
+/// that does not fit is left out (the key stays), the right group first from its left end and the left group before
+/// the close chip; locating a missing repository has no clone and init, and a directory row has no pin.
 /// </summary>
 public static class PickerFooterButtons
 {
@@ -26,8 +26,9 @@ public static class PickerFooterButtons
     {
         var lookup = keys ?? ChipKeys.Default;
         var buttons = new List<TitleButton>();
-        var column = PlaceLeft(buttons, LeftChips(lookup, row), innerWidth);
-        PlaceRight(buttons, RightChips(lookup, isLocating), column, innerWidth);
+        var right = RightChips(lookup, isLocating);
+        var column = PlaceLeft(buttons, LeftChips(lookup, row), innerWidth - right[^1].Width - 1);
+        PlaceRight(buttons, right, column, innerWidth);
         return buttons;
     }
 
@@ -61,13 +62,13 @@ public static class PickerFooterButtons
         return chips;
     }
 
-    // Returns the first free column after the chips that fit.
-    private static int PlaceLeft(List<TitleButton> buttons, List<TitleButton> chips, int innerWidth)
+    // Returns the first free column after the chips that fit; the close chip's room is kept free.
+    private static int PlaceLeft(List<TitleButton> buttons, List<TitleButton> chips, int limit)
     {
         var column = Margin;
         foreach (var chip in chips)
         {
-            if (column + chip.Width > innerWidth - Margin)
+            if (column + chip.Width > limit - Margin)
             {
                 break;
             }
