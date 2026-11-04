@@ -1,5 +1,3 @@
-using System.Collections;
-using System.Collections.Specialized;
 using Gitunia.App;
 using Gitunia.Core;
 using Gitunia.App.Shell;
@@ -14,7 +12,6 @@ using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Tui.App.Panes;
 using Gitunia.Tui.Tests.Fakes;
-using Gitunia.Tui.Views.Lists;
 using Terminal.Gui.Views;
 using Xunit;
 
@@ -114,6 +111,30 @@ public sealed class VisualRangeInputTests : IDisposable
     }
 
     [Fact]
+    public void GivenAnActiveRange_WhenTheDragIsReleased_ThenThePointerSelectionIsReported()
+    {
+        var reported = 0;
+        _input.PointerSelected += () => reported++;
+        _list.SelectedItem = 4;
+        _input.TryExecute(ActionIds.VisualToggle, null);
+
+        _input.OnDragReleased();
+
+        Assert.Equal(1, reported);
+    }
+
+    [Fact]
+    public void GivenNoRange_WhenADragIsReleased_ThenNothingIsReported()
+    {
+        var reported = 0;
+        _input.PointerSelected += () => reported++;
+
+        _input.OnDragReleased();
+
+        Assert.Equal(0, reported);
+    }
+
+    [Fact]
     public void GivenNoRange_WhenCopyingOrCancelling_ThenTheActionsAreLeftToOthers()
     {
         Assert.False(_input.TryExecute(ActionIds.VisualCopy, null));
@@ -185,41 +206,4 @@ public sealed class VisualRangeInputTests : IDisposable
 
     private static string NoticeOf(List<AppEffect> effects) =>
         Assert.Single(effects.OfType<PostStatusEffect>()).Text;
-
-    private sealed class RangeSource(int count) : IListDataSource, IRangeSource
-    {
-        public event NotifyCollectionChangedEventHandler? CollectionChanged
-        {
-            add { }
-            remove { }
-        }
-
-        public int Count => count;
-
-        public int MaxItemLength => 0;
-
-        public bool SuspendCollectionChangedEvent { get; set; }
-
-        public RowRange? Range { get; set; }
-
-        public event Action? RangeInvalidated;
-
-        public void Invalidate() => RangeInvalidated?.Invoke();
-
-        public bool IsMarked(int item) => false;
-
-        public void SetMark(int item, bool value)
-        {
-        }
-
-        public IList ToList() => Array.Empty<object>();
-
-        public void Render(ListView listView, bool selected, int item, int col, int row, int width, int viewportX = 0)
-        {
-        }
-
-        public void Dispose()
-        {
-        }
-    }
 }

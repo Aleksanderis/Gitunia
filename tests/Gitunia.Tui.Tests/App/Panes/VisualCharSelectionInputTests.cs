@@ -157,6 +157,29 @@ public sealed class VisualCharSelectionInputTests : IDisposable
     }
 
     [Fact]
+    public void GivenADoubleClickOnAWord_WhenTheWordActionRuns_ThenThePointerSelectionIsReported()
+    {
+        var reported = 0;
+        _input.PointerSelected += () => reported++;
+        _input.OnTextPointed(new TextPointer(TextPointerKind.DoubleClick, new TextPosition(0, 8)));
+
+        _input.TryExecute(ActionIds.VisualSelectWord, null);
+
+        Assert.Equal(1, reported);
+    }
+
+    [Fact]
+    public void GivenTheWordKeyWithoutAPointer_WhenItRuns_ThenNothingIsReportedBecauseKeysDoNotCopyOnSelect()
+    {
+        var reported = 0;
+        _input.PointerSelected += () => reported++;
+
+        _input.TryExecute(ActionIds.VisualSelectWord, null);
+
+        Assert.Equal(0, reported);
+    }
+
+    [Fact]
     public void GivenATripleClick_WhenTheLineActionRuns_ThenTheWholeTextOfTheLineIsSelected()
     {
         _input.OnTextPointed(new TextPointer(TextPointerKind.TripleClick, new TextPosition(1, 3)));

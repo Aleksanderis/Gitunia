@@ -250,4 +250,7 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 **UI:** Checked-out branch marker (#1184, owner): `◉⎇ main`, the `◉` (U+25C9) directly in front of `⎇` with no space, instead of `◆ ⎇ `. Why: picked by the owner from a glyph sheet in Windows Terminal; one cell, no gap, nicer than the diamond. Supersedes the diamond of #198 (history/ux.md). Other local branches (`⎇ `) and the ASCII set are unchanged.
 
+## 2026-11-04
+
+**UI:** Copy on select and Ctrl-c (#1188, owner): releasing a mouse selection copies it (setting `copyOnSelect`, on by default), and while a selection is active the first `Ctrl-c` copies it and a second within 2 s quits; with no selection `Ctrl-c` quits at once. Why: Gitunia draws its own selection (mouse reporting), so the terminal's copy never applies, and `Ctrl-c` right after selecting is a reflex that must not quit. Supersedes "Ctrl-c force-quits from any mode" of #856 for that one case.
 **Process:** winget installs the release zip, not a bare exe (#1156). Tested on Windows with a local manifest: `InstallerType: zip`, `NestedInstallerType: portable`, `PortableCommandAlias: gitunia` validates, installs, resolves `gitunia` in a new shell and uninstalls cleanly (`winget uninstall --manifest <dir>` for a local manifest). Why: one Windows file per release instead of two. Supersedes the bare `.exe` of #941 and the portable manifest of #943.

@@ -72,6 +72,9 @@ public sealed class PaneListView : ListView
     /// </summary>
     public event Action<TextPointer>? TextPointed;
 
+    /// <summary>Raised when the button is released after a drag, which has made (or ended) the selection of the pane.</summary>
+    public event Action? DragReleased;
+
     /// <summary>A double or triple click selects a word or the line (read-only text panes where a double-click has no action of its own).</summary>
     public bool SelectsText { get; set; }
 
@@ -170,6 +173,13 @@ public sealed class PaneListView : ListView
         {
             _isAutoScrolling = false;
             return base.OnMouseEvent(mouse);
+        }
+
+        if (phase == DragPhase.End)
+        {
+            DragReleased?.Invoke();
+
+            return true;
         }
 
         if (ReportsPointerDrag && phase is DragPhase.Start or DragPhase.Move && mouse.Position is { } dragged)

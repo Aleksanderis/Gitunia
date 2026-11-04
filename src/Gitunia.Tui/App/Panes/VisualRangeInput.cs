@@ -36,6 +36,12 @@ public sealed class VisualRangeInput : IActionHandler
         host.Changed += Sync;
     }
 
+    /// <summary>
+    /// Raised when the pointer finished a selection: the button was released after a drag, or a double or triple click
+    /// selected a word or a line. A selection made with keys never raises it.
+    /// </summary>
+    public event Action? PointerSelected;
+
     /// <summary>A range is active.</summary>
     public bool IsActive => _host.State.Shell.Visual is not null;
 
@@ -103,6 +109,16 @@ public sealed class VisualRangeInput : IActionHandler
                 _pointed = pointed.Position;
                 _pointedIsOldSide = pointed.IsOldSide;
                 break;
+        }
+    }
+
+    /// <summary>The button was released after a drag: the range the drag made is final.</summary>
+    public void OnDragReleased()
+    {
+        _dragAnchor = null;
+        if (IsActive)
+        {
+            PointerSelected?.Invoke();
         }
     }
 
@@ -209,11 +225,16 @@ public sealed class VisualRangeInput : IActionHandler
             ? source.StartAt(row, isOldSide)
             : new TextPosition(selected.Range.Cursor, selected.CursorColumn);
         var at = _pointed ?? current;
-        isOldSide = _pointed is null ? isOldSide : _pointedIsOldSide;
+        var isPointer = _pointed is not null;
+        isOldSide = isPointer ? _pointedIsOldSide : isOldSide;
         _pointed = null;
         var text = source.TextOf(at.Line, isOldSide);
         var span = isWord ? TextMotions.WordAt(text, at.Column) : new ColumnSpan(0, TextMotions.LineEnd(text));
         SelectChars(new TextPosition(at.Line, span.First), new TextPosition(at.Line, span.Last), isOldSide);
+        if (isPointer && IsActive)
+        {
+            PointerSelected?.Invoke();
+        }
     }
 
     private bool SideOfSelection(ITextSource source, int row, VisualSelection? selected) =>

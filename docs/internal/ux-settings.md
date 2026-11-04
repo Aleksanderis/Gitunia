@@ -44,6 +44,7 @@ The set of categories and settings is the table below; the screen is generated f
 | Keys | Which-key popup | choice (on, off) | `hints.whichKey` | #837 |
 | Keys | Status bar hints | choice (full, minimal, off) | `hints.statusBar` | #837 |
 | Keys | Command level | choice (everyday, advanced, advanced+) | `commandLevel` | #839 |
+| Keys | Copy on select | toggle | `copyOnSelect` | #1188 |
 | Key mapping | Key reference | read-only list from the keymap | none | #50 |
 | Config file | Open config.json in $EDITOR | action | none | #523 |
 
