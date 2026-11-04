@@ -63,10 +63,11 @@ public sealed class TabBarView(IScreenContent content, GraphGlyphSet glyphs) : V
     protected override bool OnMouseEvent(Mouse mouse)
     {
         var phase = mouse.Position is { } point ? _drag.Feed(mouse.Flags, point.X, point.Y) : DragPhase.None;
+
+        // Also on the release of a plain click (no phase): the grab taken at the press must not outlive it.
+        DragGrab.Update(this, mouse.Flags, phase);
         if (content.Model().Tabs is { Count: > 0 } && phase != DragPhase.None)
         {
-            DragGrab.Update(this, mouse.Flags, phase);
-
             return HandleDrag(phase, mouse);
         }
 
