@@ -45,7 +45,32 @@ public class PickerListPlanTests
         Assert.Equal(2, RowsOf(entries, PickerSection.Found));
         Assert.Equal(2, RowsOf(entries, PickerSection.Pinned));
         Assert.Equal(3, RowsOf(entries, PickerSection.Open));
-        Assert.Equal(2, RowsOf(entries, PickerSection.Recent));
+        Assert.Equal(4, RowsOf(entries, PickerSection.Recent));
+    }
+
+    [Fact]
+    public void GivenACommonFourSectionState_WhenBuildingAtTheTallestBudget_ThenFiveRecentsAreStillShown()
+    {
+        var state = Opened(openCount: 2, pinnedCount: 1, recentCount: 31, foundCount: 20);
+
+        var entries = PickerListPlan.Build(state, TallBudget);
+
+        Assert.Equal(5, RowsOf(entries, PickerSection.Recent));
+        Assert.True(entries.Length <= TallBudget);
+    }
+
+    [Fact]
+    public void GivenASectionShrunkBelowItsCap_WhenExpanded_ThenALessLineStillCollapsesIt()
+    {
+        var state = Opened(openCount: 3, pinnedCount: 2, recentCount: 5, foundCount: 20);
+        var tight = PickerListPlan.Build(state, 11);
+        Assert.True(RowsOf(tight, PickerSection.Recent) < 5);
+        var onMore = state with { Highlight = tight.Last(entry => entry.Kind == PickerEntryKind.More && entry.Section == PickerSection.Recent).RowIndex, IsOnToggle = true };
+
+        var expanded = PickerListPlan.Toggle(onMore, 11);
+
+        var entries = PickerListPlan.Build(expanded, 11);
+        Assert.Contains(entries, entry => entry.Kind == PickerEntryKind.Less && entry.Section == PickerSection.Recent);
     }
 
     [Theory]

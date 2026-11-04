@@ -267,7 +267,7 @@ public static class PickerComposer
     private static StyledLine HeaderLine(PickerListEntry entry, int width, GraphGlyphSet glyphs)
     {
         var builder = new LineBuilder(width, glyphs.Ellipsis)
-            .Append($" {entry.Section.ToString().ToUpperInvariant()}", SegmentRole.SectionTitle);
+            .Append($" {SectionName(entry.Section)}", SegmentRole.SectionTitle);
         if (entry.Shown < entry.Total)
         {
             var shown = entry.Shown.ToString(CultureInfo.InvariantCulture);
@@ -279,6 +279,14 @@ public static class PickerComposer
         builder.Append(new string(glyphs.Horizontal, Math.Max(0, builder.Remaining - 1)), SegmentRole.Faint);
         return builder.Build();
     }
+
+    private static string SectionName(PickerSection section) => section switch
+    {
+        PickerSection.Open => "OPEN",
+        PickerSection.Pinned => "PINNED",
+        PickerSection.Recent => "RECENT",
+        _ => "FOUND",
+    };
 
     // The line that expands a capped section ("N more") or collapses an expanded one, under the rows' glyph column.
     private static StyledLine ToggleLine(PickerListEntry entry, bool isSelected, int width, GraphGlyphSet glyphs)

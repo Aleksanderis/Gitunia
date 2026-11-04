@@ -13,7 +13,7 @@ namespace Gitunia.Core.Picker;
 public static class PickerListPlan
 {
     /// <summary>The most rows the framed list shows at once.</summary>
-    public const int MaximumListRows = 18;
+    public const int MaximumListRows = 20;
 
     /// <summary>The fewest rows the framed list keeps, however short the terminal.</summary>
     public const int MinimumListRows = 4;
@@ -29,10 +29,13 @@ public static class PickerListPlan
     private const int RecentCap = 5;
     private const int FoundCap = 3;
     private const int SectionCount = 4;
+    private const int ShrinkStep = 2;
+    private const int OpenIndex = 0;
+    private const int PinnedIndex = 1;
     private const int RecentIndex = 2;
     private const int FoundIndex = 3;
 
-    private static readonly int[] ShrinkOrder = [FoundIndex, 1, 0, RecentIndex];
+    private static readonly int[] ShrinkOrder = [FoundIndex, PinnedIndex, OpenIndex, RecentIndex];
 
     private static readonly PickerSection[] Sections =
         [PickerSection.Open, PickerSection.Pinned, PickerSection.Recent, PickerSection.Found];
@@ -129,8 +132,8 @@ public static class PickerListPlan
             }
         }
 
-        // A highlighted row the caps hide is shown as the "more" line of its section.
-        if (!state.IsOnToggle && state.Highlight >= 0 && state.Highlight < state.Rows.Length)
+        // A highlighted row the caps hide (or a toggle line that vanished) is shown as the "more" line of its section.
+        if (state.Highlight >= 0 && state.Highlight < state.Rows.Length)
         {
             var section = SectionOf(state.Rows[state.Highlight].Tags);
             for (var index = 0; index < entries.Count; index++)
@@ -228,8 +231,8 @@ public static class PickerListPlan
 
     private static int SectionIndex(PickerSection section) => section switch
     {
-        PickerSection.Open => 0,
-        PickerSection.Pinned => 1,
+        PickerSection.Open => OpenIndex,
+        PickerSection.Pinned => PinnedIndex,
         PickerSection.Recent => RecentIndex,
         _ => FoundIndex,
     };
@@ -263,7 +266,7 @@ public static class PickerListPlan
         {
             builder.Add(new PickerListEntry(PickerEntryKind.More, section, last, shown, total));
         }
-        else if (expanded.HasFlag(section) && total > CapOf(section))
+        else if (expanded.HasFlag(section) && total > MinimumShown)
         {
             builder.Add(new PickerListEntry(PickerEntryKind.Less, section, last, shown, total));
         }
@@ -296,7 +299,7 @@ public static class PickerListPlan
 
             present++;
             lines += shown[section];
-            var isExpandedPastCap = expanded.HasFlag(Sections[section]) && counts[section] > CapOf(Sections[section]);
+            var isExpandedPastCap = expanded.HasFlag(Sections[section]) && counts[section] > MinimumShown;
             if (shown[section] < counts[section] || isExpandedPastCap)
             {
                 lines++;
@@ -333,7 +336,7 @@ public static class PickerListPlan
             foreach (var section in ShrinkOrder)
             {
                 var canShrink = shown[section] > MinimumShown
-                    && (shown[section] < counts[section] || shown[section] - 2 >= MinimumShown);
+                    && (shown[section] < counts[section] || shown[section] - ShrinkStep >= MinimumShown);
                 if (canShrink)
                 {
                     pick = section;
@@ -347,7 +350,7 @@ public static class PickerListPlan
             }
 
             // A section that shows everything gains a more line by hiding rows, so it gives up two at a time.
-            shown[pick] = shown[pick] < counts[pick] ? shown[pick] - 1 : Math.Max(MinimumShown, shown[pick] - 2);
+            shown[pick] = shown[pick] < counts[pick] ? shown[pick] - 1 : Math.Max(MinimumShown, shown[pick] - ShrinkStep);
         }
     }
 }
