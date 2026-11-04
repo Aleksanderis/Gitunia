@@ -65,6 +65,7 @@ public sealed class EffectParts : IDisposable
                 ShellParts = shell,
                 Settings = CreateSettingsServices(foundation, configWriter),
                 Sessions = foundation.Registry,
+                Keymap = foundation.Config.Startup.Keymap.Table,
             });
         StatusPoller = new BackgroundStatusPoller(
             foundation.Services.Status,

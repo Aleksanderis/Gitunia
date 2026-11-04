@@ -2,6 +2,7 @@ using Gitunia.App.Status;
 using Gitunia.App.Tabs;
 using Gitunia.App.Tests.Fakes;
 using Gitunia.Core;
+using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Overlays;
 using Gitunia.Core.Prompts;
@@ -199,7 +200,7 @@ public class SyncPipelineTests
         var confirm = pipeline.Host.State.Shell.Confirm!.Prompt;
         Assert.Contains("origin/topic", confirm.Lines[0], StringComparison.Ordinal);
         Assert.Contains(seen[..7], confirm.Lines[0], StringComparison.Ordinal);
-        Assert.Equal(UndoNotes.FromHistory, confirm.Consequence);
+        Assert.Equal(KeyTokens.Resolve(UndoNotes.FromHistory, null), confirm.Consequence);
         Assert.Equal(seen, repository.GitIn(repository.OriginPath, ["rev-parse", "topic"]).Trim());
 
         pipeline.Dispatch(new ConfirmAnsweredCommand(ConfirmAnswer.Yes));
@@ -313,7 +314,7 @@ public class SyncPipelineTests
         var confirm = pipeline.Host.State.Shell.Confirm!.Prompt;
         Assert.Contains("topic", confirm.Lines[0], StringComparison.Ordinal);
         Assert.Contains("origin", confirm.Lines[0], StringComparison.Ordinal);
-        Assert.Equal(UndoNotes.FromHistory, confirm.Consequence);
+        Assert.Equal(KeyTokens.Resolve(UndoNotes.FromHistory, null), confirm.Consequence);
         Assert.DoesNotContain(tip, string.Join('\n', confirm.Lines), StringComparison.Ordinal);
         Assert.Contains("topic", repository.GitIn(repository.OriginPath, ["branch"]), StringComparison.Ordinal);
 

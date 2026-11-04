@@ -88,7 +88,7 @@ public class QuickRebaseReducerTests
             "Drop 2222222 \"Add feature\" from main? Its changes disappear from the branch.",
             show.Prompt.Lines[0]);
         Assert.Equal("2 later commits of main are replayed and get new hashes.", show.Prompt.Lines[1]);
-        Assert.Contains(UndoNotes.ReflogKey, show.Prompt.Consequence, StringComparison.Ordinal);
+        Assert.Contains(UndoNotes.Reflog, show.Prompt.Consequence, StringComparison.Ordinal);
         Assert.DoesNotContain("git reset", show.Prompt.Consequence, StringComparison.Ordinal);
         var target = Assert.IsType<QuickRebaseConfirmed>(show.OnAccepted).Target;
         Assert.Null(target.NewSubject);

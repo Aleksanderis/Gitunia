@@ -1,3 +1,4 @@
+using Gitunia.Core.Keymap;
 using Gitunia.Git.Discard;
 using Gitunia.Git.Staging;
 using Gitunia.App.Background;
@@ -86,6 +87,7 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
     private readonly GitServices _services;
     private readonly Dispatcher _host;
     private readonly ShellRoles _shell;
+    private readonly KeyBindingTable? _keymap;
     private readonly TabCancellation _cancellation = new();
     private readonly BackgroundWork _background = new();
     private readonly CreationEffectHandler _creation;
@@ -139,6 +141,7 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
         _sessions = options.Sessions ?? new TabSessionRegistry<TSession>();
         var pickerServices = options.Picker ?? PickerServices.Default;
         var settings = options.Settings;
+        _keymap = options.Keymap;
         _shell = options.ShellParts ?? (options.Shell is { } shell ? ShellRoles.From(shell) : ShellRoles.None);
         _branches = new BranchEffectHandler(services.Branches, host);
         _commits = new CommitEffectHandler(services.CommitWriter, host);
@@ -391,7 +394,11 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
                 _pick.Handle(pick, _cancellation.TokenOf(pick.TabId));
                 break;
             case PostStatusEffect post:
-                _host.Dispatch(new StatusPostedCommand(post.Text, post.Severity, _host.Clock.GetUtcNow(), post.Detail));
+                _host.Dispatch(new StatusPostedCommand(
+                    KeyTokens.Resolve(post.Text, _keymap),
+                    post.Severity,
+                    _host.Clock.GetUtcNow(),
+                    post.Detail is { } detail ? KeyTokens.Resolve(detail, _keymap) : null));
                 break;
             case QuitEffect quit:
                 if (quit.CancelWork)

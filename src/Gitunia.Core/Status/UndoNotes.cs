@@ -1,3 +1,5 @@
+using Gitunia.Core.Keymap;
+
 namespace Gitunia.Core.Status;
 
 /// <summary>
@@ -6,18 +8,18 @@ namespace Gitunia.Core.Status;
 /// </summary>
 public static class UndoNotes
 {
-    /// <summary>The default key of the message history; messages that name a key keep naming it.</summary>
-    public const string MessagesKey = "<space>m";
+    /// <summary>The message history and its key; the token is resolved where the keymap is known (#1196).</summary>
+    public static readonly string MessageHistory = KeyTokens.Of(ActionIds.StatusHistory, "the message history");
 
-    /// <summary>The default key of the reflog.</summary>
-    public const string ReflogKey = "<space>l";
+    /// <summary>The reflog and its key; the token is resolved where the keymap is known (#1196).</summary>
+    public static readonly string Reflog = KeyTokens.Of(ActionIds.ReflogOpen, "the reflog");
 
     /// <summary>For actions that git can undo with a command we know: the message history will hold it.</summary>
-    public const string FromHistory = $"Afterwards the message history ({MessagesKey}) shows how to bring it back.";
+    public static readonly string FromHistory = $"Afterwards {MessageHistory} shows how to bring it back.";
 
     /// <summary>For actions that move HEAD: the reflog also holds the old position.</summary>
-    public const string FromReflog =
-        $"Afterwards you can go back from the reflog ({ReflogKey}); the message history ({MessagesKey}) has the exact command.";
+    public static readonly string FromReflog =
+        $"Afterwards you can go back from {Reflog}; {MessageHistory} has the exact command.";
 
     /// <summary>The detail line of a status message: what to run, in the message history.</summary>
     public static string Restore(string command) => $"Restore: {command}";
