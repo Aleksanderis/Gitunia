@@ -62,9 +62,9 @@ Run from the repo root:
 
 ## Working autonomously
 
-Follow the `workflow:work-task` skill (from the `workflow` plugin, profile in `.claude/workflow.md`) for the procedure, and the `workflow:reviewer` agent for reviews. To work a whole milestone or the backlog, follow `workflow:work-orchestrator`; `workflow:work-readiness` prevalidates a milestone first. The older copies in `.claude/skills/` and `.claude/agents/` are superseded and must not be used (to be removed once the plugin trial is done). They hold the issue order, review, PR, merge, loose-end and owner-feedback procedure. Invariants that hold regardless:
+Autonomous work (one issue, a milestone, reviews, PRs) follows the `workflow` skills and the policy in `.claude/workflow.md` (autonomy, `needs-review`, CI, run-time rules); `/workflow:setup` checks they are installed. Invariants that hold regardless:
 
-- `spike` issues are never merged by an agent: they stay on unmerged `spike/` branches and close with findings. `needs-review` issues are worked and merged like any other (reviewer clean, local build and tests green); the label only marks what the owner reviews afterwards, and the PR body says what deserves a closer look. Policy switches live in `.claude/workflow.md`.
+- `spike` issues are never merged by an agent: they stay on unmerged `spike/` branches and close with findings.
 - Merge commits only, never squash or rebase, never force-push.
 - Every PR carries the reviewer's findings as a PR comment; every owner comment gets an agent-marked reply; loose ends are registered as issues, not left in notes.
 - Don't block on questions: decide from the docs or take the recommended default, log it, and say so in the PR.
