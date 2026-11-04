@@ -89,16 +89,16 @@ With the `git status` children (~1%) the whole app idles at about 2.5%, so the ~
 
 ## Idle output (#1207)
 
-Check for the Geeratya #744 pattern (full-frame repaints at idle). Method: AOT build, 120x36 pty via `script`, private `XDG_STATE_HOME`/`XDG_CONFIG_HOME`, throwaway 3-commit repo, 14 s run, the 4 s startup capture subtracted. Counts of `ESC[1;1H` (cursor home) and `ESC[?25l` (cursor hide).
+Check for the sibling project's pattern (Geeratya issue #744) (full-frame repaints at idle). Method: AOT build, 120x36 pty via `script`, private `XDG_STATE_HOME`/`XDG_CONFIG_HOME`, throwaway 3-commit repo, 14 s run, the 4 s startup capture subtracted. Counts of `ESC[1;1H` (cursor home) and `ESC[?25l` (cursor hide).
 
 | Idle 10 s | Result |
 |---|---|
-| Frames with cell content | 0 (Terminal.Gui already writes dirty cells only) |
+| Frames with cell content | 0 |
 | `ESC[1;1H ESC[?25l` pairs | 473 (~47/s, one per main-loop iteration at the 50/s idle rate) |
-| Bytes | ~5.2 KB (~520 B/s, all of it those 11-byte pairs) |
+| Bytes | 5676 (28352 minus 22676 of the 4 s run; ~570 B/s, exactly 473 pairs of 12 bytes) |
 | Mouse modes | `?1003h` (any-event) and `?1006h` once at start; no `?1002h` |
 
-So it only partly reproduces: no full-frame repaint, but the 1 frame/s bar is not met. Cause: Terminal.Gui 2.5.0 writes cursor-home plus cursor-hide on every iteration even when nothing is dirty. `Console.SetOut` with a filter that drops repeated pairs had no effect (the driver does not write through `Console.Out`), so the fix needs a custom `IOutput` (decorating the driver's output via an `IComponentFactory`) or a change in Terminal.Gui; tracked as a follow-up. `?1003h` is set by Terminal.Gui for mouse support; Gitunia has no hover feature, but the mode cannot be changed without the same hook. The terminal CPU comparison (Ghostty vs Foot) was not run (needs a graphical session).
+So it only partly reproduces: no full-frame repaint, but the 1 frame/s bar is not met. Cause: Terminal.Gui 2.5.0 writes cursor-home plus cursor-hide on every iteration even when nothing is dirty. `Console.SetOut` with a filter that drops repeated pairs had no effect (the pairs kept arriving, so the driver most likely does not write through `Console.Out`; not verified in the driver source), so the fix needs a custom `IOutput` (decorating the driver's output via an `IComponentFactory`) or a change in Terminal.Gui; tracked as a follow-up. `?1003h` is set by Terminal.Gui for mouse support; Gitunia has no hover feature, but the mode cannot be changed without the same hook. Not measured: the terminal CPU comparison (Ghostty vs Foot, needs a graphical session) and whether mouse moves cause repaints. The `docs/architecture.md` pitfall note and the `?1002h` switch are carried by #1209, which fixes the cause.
 
 ## Many tabs
 
