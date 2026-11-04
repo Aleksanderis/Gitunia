@@ -248,7 +248,7 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 **UI:** Changes view diff mouse (#1177, owner): a double-click selects the word under the pointer instead of staging the change group, as in the history diff; no triple-click there. Why: staging on a double-click in the text was confusing; drag and double-click select text everywhere, staging is `<space>a` / `<space>u`, the chips or the file list. Supersedes the staging double-click of the diff rows in the mouse table.
 
-**UI:** Checked-out branch marker (#1184, owner): `◉⎇ main`, the `◉` (U+25C9) directly in front of `⎇` with no space, instead of `◆ ⎇ `. Why: picked by the owner from a glyph sheet in Windows Terminal; one cell, no gap, nicer than the diamond. Supersedes the diamond of #198 (history/ux.md). Other local branches (`⎇ `) and the ASCII set are unchanged.
+**UI:** Checked-out branch marker (#1184, owner): `◉⎇ main`, the `◉` (U+25C9) directly in front of `⎇` with no space, instead of `◆ ⎇ `. Why: picked by the owner from a glyph sheet in Windows Terminal; one cell, no gap, nicer than the diamond. Supersedes the diamond of #198 (history/ux.md). Other local branches (`⎇ `) and the ASCII set are unchanged. Changed 2026-11-04 (owner): the marker is `◉ main` (no `⎇` after the `◉`).
 
 ## 2026-11-04
 
