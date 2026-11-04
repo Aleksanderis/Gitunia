@@ -18,8 +18,8 @@ public sealed class TerminalHost : ITerminalSuspender, IUiDeferral, IDisposable
 {
     // Terminal.Gui's default of 25 iterations per second gave ~34 ms key latency (docs/internal/history/decisions.md);
     // the idle rate saves CPU (#909) and the per-iteration cursor home + hide writes Terminal.Gui emits (#1207, #1209).
-    // 5/s is the lowest rate whose first key after idle stays within about +100 ms of the 50/s cost (median 102 ms
-    // against 31 ms); 2/s writes no less and costs 204 ms (docs/internal/performance.md, "Idle output").
+    // 5/s is the lowest rate where writes stop falling; the first key after idle costs about +70 ms median (+90 ms worst) (102 ms
+    // against 31 ms at 50/s); 2/s writes no less and costs 204 ms (docs/internal/performance.md, "Idle output").
     private const ushort ActiveIterationsPerSecond = 100;
     private const ushort IdleIterationsPerSecond = 5;
     private const int HeadlessColumns = 120;
