@@ -36,7 +36,7 @@ Git output parsers, graph layout and scrolling, per-frame rendering, caches, sta
 
 ## Agent run-time rules
 
-(owner, 2026-11-01, after hour-long runs; from `.claude/skills/work-orchestrator/SKILL.md`)
+Owner rules from 2026-11-01, after hour-long runs, except the last bullet (CI decision 2026-10-18).
 
 - No `scripts/measure.sh` or A/B performance rounds per issue (measure once at the milestone's composition-root issue, if at all).
 - One normal `dotnet test`, then rerun only the affected project after a fix; never full-suite loops.
