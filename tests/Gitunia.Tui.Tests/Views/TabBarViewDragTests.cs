@@ -49,8 +49,9 @@ public sealed class TabBarViewDragTests
 
         fixture.Press(start);
         fixture.Move(start + 1);
-        fixture.Move(fixture.ColumnOf(2) + 8);
-        fixture.Release(fixture.ColumnOf(2) + 8);
+        var target = fixture.ColumnOf(2);
+        fixture.Move(target);
+        fixture.Release(target);
 
         Assert.Equal([1], fixture.Clicked);
         Assert.Equal([MouseGesture.DragForward], fixture.Drags);
@@ -71,6 +72,21 @@ public sealed class TabBarViewDragTests
         }
 
         fixture.Release(RowWidth - 21);
+
+        Assert.Equal(["beta", "gamma", "alpha"], fixture.Names);
+    }
+
+    [Fact]
+    public void GivenAFastDragThatSkipsColumns_WhenReleasedFarRight_ThenTheTabCatchesUpWithThePointer()
+    {
+        using var fixture = new Fixture();
+        var start = fixture.ColumnOf(1);
+
+        fixture.Press(start);
+        fixture.Move(start + 1);
+        var far = fixture.ColumnOf(3);
+        fixture.Move(far);
+        fixture.Release(far);
 
         Assert.Equal(["beta", "gamma", "alpha"], fixture.Names);
     }
@@ -97,8 +113,8 @@ public sealed class TabBarViewDragTests
 
         fixture.Press(start);
         fixture.Move(start + 1);
-        fixture.Move(fixture.ColumnOf(2) + 8);
-        fixture.Release(fixture.ColumnOf(2) + 8, row: 5);
+        fixture.Move(fixture.ColumnOf(2));
+        fixture.Release(fixture.ColumnOf(2), row: 5);
 
         Assert.Equal(["alpha", "beta", "gamma"], fixture.Names);
     }
@@ -110,12 +126,13 @@ public sealed class TabBarViewDragTests
         var start = fixture.ColumnOf(1);
         fixture.Press(start);
         fixture.Move(start + 1);
-        fixture.Move(fixture.ColumnOf(2) + 8);
+        fixture.Move(fixture.ColumnOf(2));
         Assert.Equal(["beta", "alpha", "gamma"], fixture.Names);
 
         var cancelled = fixture.View.CancelDrag();
-        fixture.Move(fixture.ColumnOf(1) + 8);
-        fixture.Release(fixture.ColumnOf(1) + 8);
+        var later = fixture.ColumnOf(1) + 8;
+        fixture.Move(later);
+        fixture.Release(later);
 
         Assert.True(cancelled);
         Assert.False(fixture.View.CancelDrag());

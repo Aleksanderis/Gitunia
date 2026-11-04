@@ -156,7 +156,7 @@ public static class WorkspaceReducer
             return workspace;
         }
 
-        var to = Math.Clamp(from + offset, 0, workspace.Tabs.Length - 1);
+        var to = (int)Math.Clamp((long)from + offset, 0, workspace.Tabs.Length - 1);
         if (to == from)
         {
             return workspace;

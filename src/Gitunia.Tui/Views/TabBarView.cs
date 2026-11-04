@@ -10,7 +10,7 @@ using Terminal.Gui.ViewBase;
 
 namespace Gitunia.Tui.Views;
 
-/// <summary>The tab row: draws the tab labels and reports which tab was clicked.</summary>
+/// <summary>The tab row: draws the tab labels, reports which tab was clicked and which way a dragged tab chip moves.</summary>
 public sealed class TabBarView(IScreenContent content, GraphGlyphSet glyphs) : View
 {
     private readonly DragTracker _drag = new();
@@ -39,9 +39,6 @@ public sealed class TabBarView(IScreenContent content, GraphGlyphSet glyphs) : V
     /// the number of places the tab moves (always one while following the pointer, more when a cancel puts it back).
     /// </summary>
     public event Action<MouseGesture, int>? TabDragged;
-
-    /// <summary>Whether a tab chip is being dragged.</summary>
-    public bool IsDragging => _isDragging;
 
     /// <summary>Cancels a drag in progress: the tab goes back to where the drag began. Returns false when none is going on.</summary>
     public bool CancelDrag()
@@ -165,12 +162,24 @@ public sealed class TabBarView(IScreenContent content, GraphGlyphSet glyphs) : V
         return TabBarLayout.NumberAt(cells, _drag.Origin.X);
     }
 
+    // A fast drag can skip columns, so the chip catches up with the pointer one place at a time (bounded by the tab count).
     private void FollowPointer(int column)
+    {
+        for (var attempt = 0; attempt < content.Model().TabCount + 1; attempt++)
+        {
+            if (!FollowPointerOnce(column))
+            {
+                return;
+            }
+        }
+    }
+
+    private bool FollowPointerOnce(int column)
     {
         var labels = content.Model().Tabs;
         if (labels is not { Count: > 0 })
         {
-            return;
+            return false;
         }
 
         var cells = TabBarLayout.Layout(labels, Viewport.Width, glyphs, content.Model().Keys);
@@ -178,24 +187,35 @@ public sealed class TabBarView(IScreenContent content, GraphGlyphSet glyphs) : V
         // The model is still the one before the last move: wait for the redraw instead of moving twice.
         if (cells.FirstOrDefault(cell => cell.IsActive)?.Number != _draggedNumber)
         {
-            return;
+            return false;
         }
 
         var step = TabDragPlanner.Step(cells, _draggedNumber, column);
-        if (step != 0)
+        if (step == 0)
         {
-            _draggedNumber += step;
-            _netMoves += step;
-            TabDragged?.Invoke(step < 0 ? MouseGesture.DragBack : MouseGesture.DragForward, 1);
+            return false;
         }
+
+        _draggedNumber += step;
+        _netMoves += step;
+        TabDragged?.Invoke(step < 0 ? MouseGesture.DragBack : MouseGesture.DragForward, 1);
+
+        return true;
     }
 
     // Released outside the tab row: the drag is cancelled and the tab goes back.
     private void FinishDrag(Mouse mouse)
     {
-        if (_isDragging && mouse.Position is { } position && !Viewport.Contains(position))
+        if (_isDragging && mouse.Position is { } position)
         {
-            UndoMoves();
+            if (Viewport.Contains(position))
+            {
+                FollowPointer(position.X);
+            }
+            else
+            {
+                UndoMoves();
+            }
         }
 
         _isDragging = false;

@@ -506,6 +506,9 @@ public class WorkspaceReducerTests
 
         Assert.Equal(["beta", "gamma", "alpha", "delta"], two.Tabs.Select(tab => tab.DisplayName));
         Assert.Equal(["beta", "gamma", "delta", "alpha"], clamped.Tabs.Select(tab => tab.DisplayName));
+        Assert.Equal(
+            ["beta", "gamma", "delta", "alpha"],
+            WorkspaceReducer.Reduce(workspace, new MoveTabCommand(int.MaxValue)).Workspace.Tabs.Select(tab => tab.DisplayName));
     }
 
     [Fact]
