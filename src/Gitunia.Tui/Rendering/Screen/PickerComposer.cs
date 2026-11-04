@@ -1,3 +1,4 @@
+using System.Globalization;
 using Gitunia.Core.Editing;
 using Gitunia.Core.Picker;
 using Gitunia.Tui.Rendering.Graph;
@@ -7,21 +8,26 @@ using Gitunia.Tui.Rendering.Styling;
 namespace Gitunia.Tui.Rendering.Screen;
 
 /// <summary>
-/// Lays out the repository picker as a framed overlay (title chip, query, hint, grouped rows, notice, chip footer) of
-/// styled lines, without a terminal. The lines are the box only: <see cref="PickerLayout"/> says where it sits.
+/// Lays out the repository picker as a framed overlay (title bar with the count, query line, grouped rows with a glyph
+/// column, notice, rule and chip footer) of styled lines, without a terminal. The lines are the box only:
+/// <see cref="PickerLayout"/> says where it sits.
 /// </summary>
 public static class PickerComposer
 {
-    private const int MaximumNameColumns = 28;
-    private const int MaximumTagColumns = 20;
+    private const int MaximumNameColumns = 24;
     private const int MinimumPathColumns = 10;
     private const int ColumnGap = 2;
+    private const int GlyphGap = 2;
+    private const int MinimumTitleGap = 2;
+    private const string QueryPlaceholder = "type to filter, or a path";
+    private const string AcceptKey = "Tab";
+    private const string AcceptLabel = " accepts a path";
 
     /// <param name="picker">The picker state.</param>
     /// <param name="homeDirectory">Paths below it are shown with a leading <c>~</c>.</param>
     /// <param name="width">Columns of the area.</param>
     /// <param name="height">Rows of the area.</param>
-    /// <param name="glyphs">The character set for the ellipsis and the frame.</param>
+    /// <param name="glyphs">The character set for the ellipsis, the frame, the rules and the row marks.</param>
     /// <param name="keys">Where the chip keys come from.</param>
     public static IReadOnlyList<StyledLine> Compose(
         PickerState picker,
@@ -51,12 +57,11 @@ public static class PickerComposer
     {
         var width = layout.BoxWidth;
         var inner = layout.InnerWidth;
-        var title = picker.LocatingTabId is null ? "Open repository" : "Locate repository";
         var lines = new List<StyledLine>(layout.BoxHeight)
         {
-            OverlayBox.Title(title, width, glyphs),
-            OverlayBox.Wrap(QueryLine(picker, inner, glyphs), glyphs),
-            OverlayBox.Wrap(HintLine(inner, glyphs), glyphs),
+            TitleLine(picker, width, glyphs),
+            OverlayBox.Wrap(QueryLine(picker, inner, glyphs, true), glyphs),
+            OverlayBox.Wrap(new LineBuilder(inner, glyphs.Ellipsis).Build(), glyphs),
         };
         lines.AddRange(ListLines(picker, homeDirectory, layout, glyphs, isFramed: true));
         if (layout.MessageLine >= 0)
@@ -64,6 +69,7 @@ public static class PickerComposer
             lines.Add(OverlayBox.Text(picker.Message, width, glyphs, SegmentRole.Error));
         }
 
+        lines.Add(OverlayBox.Wrap(Rule(inner, glyphs, 1), glyphs));
         lines.Add(OverlayBox.Wrap(Footer(picker, inner, glyphs, keys), glyphs));
         lines.Add(OverlayBox.Bottom(width, glyphs));
         return lines;
@@ -75,7 +81,7 @@ public static class PickerComposer
         PickerLayout layout,
         GraphGlyphSet glyphs)
     {
-        var lines = new List<StyledLine> { QueryLine(picker, layout.BoxWidth, glyphs) };
+        var lines = new List<StyledLine> { QueryLine(picker, layout.BoxWidth, glyphs, false) };
         lines.AddRange(ListLines(picker, homeDirectory, layout, glyphs, isFramed: false));
         if (layout.MessageLine >= 0)
         {
@@ -86,20 +92,61 @@ public static class PickerComposer
         return [.. lines.Take(layout.BoxHeight)];
     }
 
-    private static StyledLine QueryLine(PickerState picker, int width, GraphGlyphSet glyphs) =>
-        new LineBuilder(width, glyphs.Ellipsis)
-            .Append(" ", SegmentRole.Plain)
-            .Append(PromptCaret.Mark(picker.Query, picker.Caret, Math.Max(1, width - 1)), SegmentRole.Plain)
-            .Build();
-
-    private static StyledLine HintLine(int width, GraphGlyphSet glyphs)
+    private static StyledLine TitleLine(PickerState picker, int width, GraphGlyphSet glyphs)
     {
-        var starts = PathDisplay.PathStartsHint(OperatingSystem.IsWindows());
-        return new LineBuilder(width, glyphs.Ellipsis)
-            .Append($" type to filter, or a path starting with {starts} (", SegmentRole.Faint)
-            .Append("Tab", SegmentRole.OverlayKey)
-            .Append(" accepts)", SegmentRole.Faint)
-            .Build();
+        var title = picker.LocatingTabId is null ? "Open repository" : "Locate repository";
+        var left = $" {title}";
+        var count = $"{CountText(picker)} ";
+        var builder = new LineBuilder(width, glyphs.Ellipsis).Append(left, SegmentRole.OverlayTitle);
+        var gap = width - TextWidth.Of(left) - TextWidth.Of(count);
+        if (gap >= MinimumTitleGap)
+        {
+            builder.Append(new string(' ', gap), SegmentRole.OverlayTitle).Append(count, SegmentRole.OverlayTitle);
+        }
+
+        return builder.Build(SegmentRole.OverlayTitle);
+    }
+
+    private static string CountText(PickerState picker)
+    {
+        var count = picker.Rows.Length.ToString(CultureInfo.InvariantCulture);
+        if (picker.IsPathMode)
+        {
+            return picker.Rows.Length == 1 ? $"{count} directory" : $"{count} directories";
+        }
+
+        return picker.Rows.Length == 1 ? $"{count} repository" : $"{count} repositories";
+    }
+
+    private static StyledLine QueryLine(PickerState picker, int width, GraphGlyphSet glyphs, bool withHint)
+    {
+        var builder = new LineBuilder(width, glyphs.Ellipsis)
+            .Append($" {glyphs.Picker.Prompt} ", SegmentRole.SectionTitle)
+            .Append(PromptCaret.Mark(picker.Query, picker.Caret, Math.Max(1, width - 3)), SegmentRole.Plain);
+        if (picker.Query.Length == 0)
+        {
+            builder.Append($" {QueryPlaceholder}", SegmentRole.Faint);
+        }
+
+        var used = width - builder.Remaining;
+        var hintWidth = TextWidth.Of(AcceptKey) + TextWidth.Of(AcceptLabel);
+        if (withHint && used + ColumnGap + hintWidth + 1 <= width)
+        {
+            builder
+                .Append(new string(' ', width - used - hintWidth - 1), SegmentRole.Plain)
+                .Append(AcceptKey, ChipStyle.Pane.Key)
+                .Append(AcceptLabel, SegmentRole.Faint);
+        }
+
+        return builder.Build();
+    }
+
+    // A rule of the faint role with one column of room on the left and on the right.
+    private static StyledLine Rule(int width, GraphGlyphSet glyphs, int offset)
+    {
+        var builder = new LineBuilder(width, glyphs.Ellipsis).Append(new string(' ', offset), SegmentRole.Plain);
+        builder.Append(new string(glyphs.Horizontal, Math.Max(0, builder.Remaining - 1)), SegmentRole.Faint);
+        return builder.Build();
     }
 
     private static StyledLine Footer(PickerState picker, int inner, GraphGlyphSet glyphs, ChipKeys? keys)
@@ -141,15 +188,11 @@ public static class PickerComposer
             lines.Add(Wrap(empty, glyphs, isFramed, false));
         }
 
-        var longestName = picker.Rows.Select(row => TextWidth.Of(row.Name)).DefaultIfEmpty(0).Max();
+        var longestName = picker.Rows.Select(row => TextWidth.Of(DisplayName(row))).DefaultIfEmpty(0).Max();
         var nameWidth = Math.Min(Math.Min(MaximumNameColumns, longestName), Math.Max(6, width / 3));
-        var longestTags = picker.Rows.Select(row => TagsWidth(Kinds(row))).DefaultIfEmpty(0).Max();
-        var tagWidth = Math.Min(MaximumTagColumns, longestTags);
         foreach (var entry in layout.Visible)
         {
-            var line = entry.RowIndex < 0
-                ? new LineBuilder(width, glyphs.Ellipsis).Append($" {entry.Header}", SegmentRole.SectionTitle).Build()
-                : RowLine(picker, entry.RowIndex, homeDirectory, width, nameWidth, tagWidth, glyphs);
+            var line = ListLine(picker, entry, homeDirectory, width, nameWidth, glyphs);
             lines.Add(Wrap(line, glyphs, isFramed, entry.RowIndex == picker.Highlight && entry.RowIndex >= 0));
         }
 
@@ -161,35 +204,63 @@ public static class PickerComposer
         return lines;
     }
 
+    private static StyledLine ListLine(
+        PickerState picker,
+        PickerListLine entry,
+        string homeDirectory,
+        int width,
+        int nameWidth,
+        GraphGlyphSet glyphs)
+    {
+        if (entry.IsSpacer)
+        {
+            return new LineBuilder(width, glyphs.Ellipsis).Build();
+        }
+
+        return entry.RowIndex < 0
+            ? HeaderLine(entry.Header, width, glyphs)
+            : RowLine(picker, entry.RowIndex, homeDirectory, width, nameWidth, glyphs);
+    }
+
+    // The group name in capitals, then a rule to the right edge.
+    private static StyledLine HeaderLine(string header, int width, GraphGlyphSet glyphs)
+    {
+        var builder = new LineBuilder(width, glyphs.Ellipsis)
+            .Append($" {header.ToUpperInvariant()}", SegmentRole.SectionTitle)
+            .Append(" ", SegmentRole.Plain);
+        builder.Append(new string(glyphs.Horizontal, Math.Max(0, builder.Remaining - 1)), SegmentRole.Faint);
+        return builder.Build();
+    }
+
+    // Glyph, name, then the path right-aligned; a second mark for a pinned row whose glyph says something else sits
+    // after the path, in a column every row keeps free so the paths line up.
     private static StyledLine RowLine(
         PickerState picker,
         int index,
         string homeDirectory,
         int width,
         int nameWidth,
-        int tagWidth,
         GraphGlyphSet glyphs)
     {
         var row = picker.Rows[index];
-        var name = TextWidth.Fit(row.Name, nameWidth, glyphs.Ellipsis);
+        var mark = MarkOf(row, glyphs.Picker);
+        var name = TextWidth.Fit(DisplayName(row), nameWidth, glyphs.Ellipsis);
         var padding = new string(' ', Math.Max(0, nameWidth - TextWidth.Of(name)) + ColumnGap);
-        var builder = new LineBuilder(width, glyphs.Ellipsis).Append($" {name}{padding}", SegmentRole.Plain);
-        var used = 1 + nameWidth + ColumnGap;
-        var kinds = Kinds(row);
-        for (var position = 0; position < kinds.Count; position++)
-        {
-            var text = position == kinds.Count - 1 ? kinds[position].Text : $"{kinds[position].Text} ";
-            builder.Append(text, kinds[position].Role);
-        }
-
-        var tagsUsed = TagsWidth(kinds);
-        builder.Append(new string(' ', Math.Max(0, tagWidth - tagsUsed) + ColumnGap), SegmentRole.Plain);
-        used += Math.Max(tagWidth, tagsUsed) + ColumnGap;
-        var pathColumns = width - used - 1;
+        var builder = new LineBuilder(width, glyphs.Ellipsis)
+            .Append(" ", SegmentRole.Plain)
+            .Append(mark.Text, mark.Role)
+            .Append(new string(' ', GlyphGap), SegmentRole.Plain)
+            .Append($"{name}{padding}", SegmentRole.Plain);
+        var pathColumns = builder.Remaining - 1 - TextWidth.Of(glyphs.Picker.Pinned) - 1;
         if (pathColumns >= MinimumPathColumns)
         {
             var path = PathDisplay.Abbreviate(row.Path, homeDirectory, OperatingSystem.IsWindows());
-            builder.Append(TextWidth.FitMiddle(path, pathColumns, glyphs.Ellipsis), SegmentRole.Faint);
+            var fitted = TextWidth.FitMiddle(path, pathColumns, glyphs.Ellipsis);
+            builder.Append(new string(' ', pathColumns - TextWidth.Of(fitted)), SegmentRole.Plain);
+            builder.Append(fitted, SegmentRole.Faint);
+            var isStarred = row.IsPinned && mark.Text != glyphs.Picker.Pinned;
+            builder.Append(" ", SegmentRole.Plain);
+            builder.Append(isStarred ? glyphs.Picker.Pinned : " ", SegmentRole.CurrentBranch);
         }
 
         return builder.Build(isSelected: index == picker.Highlight);
@@ -218,49 +289,38 @@ public static class PickerComposer
         return " no repositories yet: type a path to open one";
     }
 
-    private static int TagsWidth(List<PickerKind> kinds) =>
-        kinds.Sum(kind => TextWidth.Of(kind.Text)) + Math.Max(0, kinds.Count - 1);
-
-    private static List<PickerKind> Kinds(PickerRow row)
+    // A directory that is not a repository ends in the path separator, so it reads as a folder without colour.
+    private static string DisplayName(PickerRow row)
     {
-        var kinds = new List<PickerKind>(3);
+        var isFolder = row.Tags.HasFlag(PickerTags.Directory) && !row.Tags.HasFlag(PickerTags.Repository);
+        return isFolder ? $"{row.Name}{Path.DirectorySeparatorChar}" : row.Name;
+    }
+
+    // One mark per row, the first that applies: missing, open, pinned, recent, else found (or a directory).
+    private static PickerMark MarkOf(PickerRow row, PickerGlyphs marks)
+    {
+        if (row.IsMissing)
+        {
+            return new PickerMark(marks.Missing, SegmentRole.FileChanged);
+        }
+
         if (row.IsOpen)
         {
-            kinds.Add(new PickerKind("open", SegmentRole.LocalBranch));
+            return new PickerMark(marks.Open, SegmentRole.LocalBranch);
         }
 
         if (row.IsPinned)
         {
-            kinds.Add(new PickerKind("pinned", SegmentRole.CurrentBranch));
+            return new PickerMark(marks.Pinned, SegmentRole.CurrentBranch);
         }
 
-        if (row.Tags.HasFlag(PickerTags.Directory))
+        if (row.IsRecent && !row.Tags.HasFlag(PickerTags.Directory))
         {
-            var directory = row.Tags.HasFlag(PickerTags.Repository) ? "repository" : "dir";
-            kinds.Add(new PickerKind(directory, SegmentRole.Faint));
-        }
-        else if (!row.IsOpen && !row.IsPinned)
-        {
-            kinds.Add(RecentOrFound(row));
+            return new PickerMark(marks.Recent, SegmentRole.RemoteBranch);
         }
 
-        if (row.IsMissing)
-        {
-            kinds.Add(new PickerKind("missing", SegmentRole.FileChanged));
-        }
-
-        return kinds;
+        return new PickerMark(marks.Found, SegmentRole.Faint);
     }
 
-    private static PickerKind RecentOrFound(PickerRow row)
-    {
-        if (row.IsRecent)
-        {
-            return new PickerKind("recent", SegmentRole.RemoteBranch);
-        }
-
-        return new PickerKind("found", SegmentRole.Faint);
-    }
-
-    private sealed record PickerKind(string Text, SegmentRole Role);
+    private sealed record PickerMark(string Text, SegmentRole Role);
 }

@@ -87,6 +87,11 @@ public static class DefaultMouseMap
 
     public const string PickerInitButton = "PickerButton.Init";
 
+    /// <summary>Picker footer chips for the two keys every picker has: open the highlighted row, close the picker.</summary>
+    public const string PickerAcceptButton = "PickerButton.Accept";
+
+    public const string PickerCloseButton = "PickerButton.Close";
+
     /// <summary>The checkboxes and the Commit button in the option row of the working-tree message box.</summary>
     public const string MessageSignOffButton = "MessageButton.SignOff";
 
@@ -469,5 +474,7 @@ public static class DefaultMouseMap
         new(PickerRemoveButton, MouseGesture.Click, ActionIds.PickerRemoveRecent),
         new(PickerCloneButton, MouseGesture.Click, ActionIds.PickerClone),
         new(PickerInitButton, MouseGesture.Click, ActionIds.PickerInit),
+        new(PickerAcceptButton, MouseGesture.Click, ActionIds.PickerAccept),
+        new(PickerCloseButton, MouseGesture.Click, ActionIds.Cancel),
     ];
 }

@@ -16,6 +16,7 @@ namespace Gitunia.Tui.Rendering.Graph;
 /// </param>
 /// <param name="Remote">After the name, inside the label box (the box has one space of padding on each side, so a wide icon does not touch its edge, #827), of a branch that also stands for its remote-tracking branch.</param>
 /// <param name="UpstreamGone">After the label box, separated by a space, of a local branch whose upstream no longer exists.</param>
+/// <param name="Picker">The marks of the repository picker (#1203).</param>
 /// <param name="LabelCapLeft">Drawn before a branch label box, in the colour of the box over the row background (#851); empty for a plain box.</param>
 /// <param name="LabelCapRight">Drawn after a branch label box, like <paramref name="LabelCapLeft"/>.</param>
 public sealed record GraphGlyphSet(
@@ -28,14 +29,15 @@ public sealed record GraphGlyphSet(
     string LocalBranch,
     string Remote,
     string UpstreamGone,
+    PickerGlyphs Picker,
     string LabelCapLeft = "",
     string LabelCapRight = "")
 {
     // Index: Up=1, Down=2, Left=4, Right=8. Lone strokes borrow the straight line of their axis.
-    public static GraphGlyphSet Unicode { get; } = new('●', '○', '├', " │││─╯╮┤─╰╭├─┴┬┼", "…", "◉ ", "⎇ ", " ", " ✗");
+    public static GraphGlyphSet Unicode { get; } = new('●', '○', '├', " │││─╯╮┤─╰╭├─┴┬┼", "…", "◉ ", "⎇ ", " ", " ✗", PickerGlyphs.Unicode);
 
     public static GraphGlyphSet Ascii { get; } =
-        new('*', 'o', '|', " |||-/\\|-\\/|---+", "~", "HEAD -> ", "", " (r)", " (x)");
+        new('*', 'o', '|', " |||-/\\|-\\/|---+", "~", "HEAD -> ", "", " (r)", " (x)", PickerGlyphs.Ascii);
 
     /// <summary>
     /// The set with Powerline caps on the branch labels (#851). Only the Unicode set takes them, and only where the

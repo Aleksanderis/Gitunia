@@ -269,15 +269,6 @@ public class PaneHintsTests
         Assert.Equal(PaneHints.For(pane), PaneHints.For(pane, showsFileContent: false, onConflict: true));
     }
 
-    [Fact]
-    public void GivenThePickerHints_WhenListing_ThenEveryHintHasADescription()
-    {
-        foreach (var hint in PaneHints.ForPicker())
-        {
-            Assert.False(string.IsNullOrWhiteSpace(hint.Description), $"The hint {hint.Keys} has no description.");
-        }
-    }
-
     [Theory]
     [MemberData(nameof(Panes))]
     public void GivenAPane_WhenAskingForHints_ThenNoKeyUsesTheCaretNotation(PaneKind pane)
@@ -388,7 +379,6 @@ public class PaneHintsTests
             "ConflictEdit",
             "RebaseMessage",
             "Settings",
-            "Picker",
             "Palette",
         ];
 
@@ -440,9 +430,6 @@ public class PaneHintsTests
                 break;
             case "Settings":
                 AssertKeysTriggerActions(PaneHints.ForSettings(), KeyMode.Normal, DefaultKeymap.SettingsView);
-                break;
-            case "Picker":
-                AssertKeysTriggerActions(PaneHints.ForPicker(), KeyMode.Insert, DefaultKeymap.PickerView);
                 break;
             case "Palette":
                 AssertKeysTriggerActions(PaneHints.ForPalette(), KeyMode.Command, DefaultKeymap.PaletteView);
