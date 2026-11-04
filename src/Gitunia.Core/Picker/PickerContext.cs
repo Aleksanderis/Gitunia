@@ -10,7 +10,9 @@ namespace Gitunia.Core.Picker;
 /// <param name="Workspace">Open tabs, recents and pins.</param>
 /// <param name="Discovered">Repository root paths found by the scanner so far.</param>
 /// <param name="BaseDirectory">What a relative path (<c>./</c>, <c>../</c>) is resolved against: the active repository, or the home directory.</param>
+/// <param name="ListBudget">The rows the picker list can show (see <see cref="PickerListPlan.Budget"/>); with the sections' caps it decides which rows are listed.</param>
 public sealed record PickerContext(
     Workspace Workspace,
     ImmutableArray<string> Discovered,
-    string BaseDirectory);
+    string BaseDirectory,
+    int ListBudget = PickerListPlan.MaximumListRows);

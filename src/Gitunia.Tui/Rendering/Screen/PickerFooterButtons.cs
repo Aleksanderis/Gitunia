@@ -22,19 +22,45 @@ public static class PickerFooterButtons
     /// <param name="innerWidth">The columns between the side rules.</param>
     /// <param name="isLocating">Whether the picker locates a missing repository.</param>
     /// <param name="keys">Where the key text comes from; null uses the default keymap.</param>
-    public static IReadOnlyList<TitleButton> Layout(PickerRow? row, int innerWidth, bool isLocating, ChipKeys? keys = null)
+    /// <param name="acceptLabel">The label of the first chip, "open" when null.</param>
+    public static IReadOnlyList<TitleButton> Layout(
+        PickerRow? row,
+        int innerWidth,
+        bool isLocating,
+        ChipKeys? keys = null,
+        string? acceptLabel = null)
     {
         var lookup = keys ?? ChipKeys.Default;
         var buttons = new List<TitleButton>();
         var right = RightChips(lookup, isLocating);
-        var column = PlaceLeft(buttons, LeftChips(lookup, row), innerWidth - right[^1].Width - 1);
+        var column = PlaceLeft(buttons, LeftChips(lookup, row, acceptLabel ?? "open"), innerWidth - right[^1].Width - 1);
         PlaceRight(buttons, right, column, innerWidth);
         return buttons;
     }
 
-    private static List<TitleButton> LeftChips(ChipKeys keys, PickerRow? row)
+    /// <summary>The label of the first chip for the highlighted line: "expand" or "collapse" on a more or less line,
+    /// else "open".</summary>
+    /// <param name="picker">The picker.</param>
+    /// <param name="visible">The listed lines.</param>
+    public static string AcceptLabel(PickerState picker, IReadOnlyList<PickerListEntry> visible)
     {
-        var chips = new List<TitleButton> { Chip(keys, DefaultMouseMap.PickerAcceptButton, "open") };
+        var position = PickerListPlan.PositionOf(visible, picker);
+        if (position < 0)
+        {
+            return "open";
+        }
+
+        return visible[position].Kind switch
+        {
+            PickerEntryKind.More => "expand",
+            PickerEntryKind.Less => "collapse",
+            _ => "open",
+        };
+    }
+
+    private static List<TitleButton> LeftChips(ChipKeys keys, PickerRow? row, string acceptLabel)
+    {
+        var chips = new List<TitleButton> { Chip(keys, DefaultMouseMap.PickerAcceptButton, acceptLabel) };
         if (row is null || row.Tags.HasFlag(PickerTags.Directory))
         {
             return chips;

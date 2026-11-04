@@ -1,3 +1,4 @@
+using Gitunia.Core.Picker;
 using Gitunia.Tui.Input;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Tui.App.Overlays;
@@ -73,7 +74,7 @@ public sealed class PickerPresenter
         }
     }
 
-    /// <summary>A click highlights the row; the double-click's "open" comes from the mouse map as picker.accept.</summary>
-    /// <param name="index">The row.</param>
-    public void OnRowClicked(int index) => _picker.ClickRow(index);
+    /// <summary>A click highlights the line; the double-click's "open" (or expand and collapse) comes from the mouse map as picker.accept.</summary>
+    /// <param name="line">The row, or the more or less line.</param>
+    public void OnRowClicked(PickerListEntry line) => _picker.ClickRow(line);
 }

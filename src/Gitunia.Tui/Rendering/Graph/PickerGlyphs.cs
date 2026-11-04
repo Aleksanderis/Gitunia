@@ -7,15 +7,19 @@ namespace Gitunia.Tui.Rendering.Graph;
 /// <param name="Missing">A repository whose directory is gone.</param>
 /// <param name="Found">A discovered repository or a directory.</param>
 /// <param name="Prompt">Before the typed query.</param>
+/// <param name="More">Before the "N more" line that expands a capped section.</param>
+/// <param name="Less">Before the "less" line that collapses an expanded section.</param>
 public sealed record PickerGlyphs(
     string Open,
     string Pinned,
     string Recent,
     string Missing,
     string Found,
-    string Prompt)
+    string Prompt,
+    string More,
+    string Less)
 {
-    public static PickerGlyphs Unicode { get; } = new("●", "★", "◷", "!", "○", "›");
+    public static PickerGlyphs Unicode { get; } = new("●", "★", "◷", "!", "○", "›", "▸", "▴");
 
-    public static PickerGlyphs Ascii { get; } = new("*", "+", "~", "!", "o", ">");
+    public static PickerGlyphs Ascii { get; } = new("*", "+", "~", "!", "o", ">", ">", "^");
 }

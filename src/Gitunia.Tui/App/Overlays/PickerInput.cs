@@ -44,13 +44,13 @@ public sealed class PickerInput(Dispatcher host)
         host.Dispatch(new EditQueryCommand(key));
     }
 
-    /// <summary>A click highlights the row; the double-click's "open" comes from the mouse map as picker.accept.</summary>
-    /// <param name="index">The clicked row.</param>
-    public void ClickRow(int index)
+    /// <summary>A click highlights the line; the double-click's "open" (or expand and collapse) comes from the mouse map as picker.accept.</summary>
+    /// <param name="line">The clicked row, or more or less line.</param>
+    public void ClickRow(PickerListEntry line)
     {
-        if (State is { } state)
+        if (IsOpen)
         {
-            host.Dispatch(new MoveHighlightCommand(index - state.Highlight));
+            host.Dispatch(new SetHighlightCommand(line.RowIndex, line.IsToggle));
         }
     }
 

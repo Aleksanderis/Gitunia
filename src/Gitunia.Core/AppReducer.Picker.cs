@@ -14,7 +14,7 @@ public static partial class AppReducer
 {
     private static AppUpdate ReducePicker(AppState state, PickerCommand command)
     {
-        var update = PickerSessionReducer.Reduce(state.Shell.Picker, command, state.Workspace);
+        var update = PickerSessionReducer.Reduce(state.Shell.Picker, command, state.Workspace, state.Shell.Screen);
         var shell = state.Shell with { Picker = update.Session };
         var effects = new List<AppEffect>(update.Effects);
 

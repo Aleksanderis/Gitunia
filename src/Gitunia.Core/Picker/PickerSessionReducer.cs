@@ -1,5 +1,6 @@
 using Gitunia.Core.Shell;
 using Gitunia.Core.Workspaces;
+using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Tabs;
 
 namespace Gitunia.Core.Picker;
@@ -16,14 +17,34 @@ public static class PickerSessionReducer
     private const string MovedDraftBothMessage =
         "Both tabs hold an unsent commit message; the missing tab stays open (close it with Ctrl-w c)";
 
-    /// <summary>Applies a command to the session; <paramref name="workspace"/> is what the rows are built from.</summary>
-    public static PickerUpdate Reduce(PickerSession session, PickerCommand command, Workspace workspace)
+    /// <summary>Applies a command to the session; <paramref name="workspace"/> is what the rows are built from and <paramref name="screen"/> decides how many rows the list can show (null: the most).</summary>
+    public static PickerUpdate Reduce(
+        PickerSession session,
+        PickerCommand command,
+        Workspace workspace,
+        ScreenExtent? screen = null)
     {
         var effects = new List<AppEffect>();
         var next = new List<AppCommand>();
-        var reduced = Apply(session, command, workspace, effects, next);
+        var budget = ListBudgetOf(screen);
+        var sized = session with { ListBudget = budget };
+        var reduced = Apply(Normalized(sized), command, workspace, effects, next);
 
         return new PickerUpdate(reduced, [.. effects], [.. next]);
+    }
+
+    private static int ListBudgetOf(ScreenExtent? screen) =>
+        screen is null ? PickerListPlan.MaximumListRows : PickerListPlan.Budget(PaneSizing.AreaHeight(screen.Height));
+
+    // A highlight that a smaller list hides moves onto the "more" line of its section before a command acts on it.
+    private static PickerSession Normalized(PickerSession session)
+    {
+        if (session.State is not { } state)
+        {
+            return session;
+        }
+
+        return session with { State = PickerListPlan.Normalize(state, session.ListBudget) };
     }
 
     /// <summary>Where relative paths are taken from: the active repository, or the home directory.</summary>
@@ -157,6 +178,11 @@ public static class PickerSessionReducer
             var path = PathQuery.Resolve(state.Query, session.HomeDirectory, BaseDirectory(session, workspace));
 
             return OpenPath(session, path, state.LocatingTabId, workspace, effects);
+        }
+
+        if (state.IsOnToggle)
+        {
+            return Edit(session, new ToggleSectionCommand(), workspace, effects);
         }
 
         if (state.HighlightedRow is not { } row)
@@ -326,5 +352,5 @@ public static class PickerSessionReducer
     }
 
     private static PickerContext ContextOf(PickerSession session, Workspace workspace) =>
-        new(workspace, session.Discovered, BaseDirectory(session, workspace));
+        new(workspace, session.Discovered, BaseDirectory(session, workspace), session.ListBudget);
 }

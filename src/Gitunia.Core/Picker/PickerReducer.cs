@@ -26,7 +26,9 @@ public static class PickerReducer
         BackspaceCommand => Edit(state, PromptTextEditor.Apply(state.Query, state.Caret, new KeyEvent(KeyNames.Backspace)), context),
         EditQueryCommand edit => Edit(state, PromptTextEditor.Apply(state.Query, state.Caret, edit.Key), context),
         ClearQueryCommand => WithQuery(state, string.Empty, context),
-        MoveHighlightCommand move => state with { Highlight = Math.Clamp(state.Highlight + move.Delta, 0, Math.Max(0, state.Rows.Length - 1)) },
+        MoveHighlightCommand move => PickerListPlan.Move(state, move.Delta, context.ListBudget),
+        SetHighlightCommand set => SetHighlight(state, set),
+        ToggleSectionCommand => PickerListPlan.Toggle(state, context.ListBudget),
         CompletePathCommand => Complete(state, context),
         SetMessageCommand message => state with { Message = message.Message },
         ListingCompletedCommand listing => CompleteListing(state, listing),
@@ -34,6 +36,16 @@ public static class PickerReducer
         RefreshRowsCommand => Refresh(state, context),
         _ => state,
     };
+
+    private static PickerState SetHighlight(PickerState state, SetHighlightCommand set)
+    {
+        if (set.Row < 0 || set.Row >= state.Rows.Length)
+        {
+            return state;
+        }
+
+        return state with { Highlight = set.Row, IsOnToggle = set.IsOnToggle && !PickerListPlan.IsFlat(state) };
+    }
 
     private static PickerState CompleteListing(PickerState state, ListingCompletedCommand listing)
     {
@@ -52,6 +64,7 @@ public static class PickerReducer
         {
             Rows = listing.Rows,
             Highlight = 0,
+            IsOnToggle = false,
             Message = message,
             IsListing = false,
             IsScanningShown = false,
@@ -75,12 +88,34 @@ public static class PickerReducer
         var isPath = PathQuery.IsPath(query);
         if (!isPath)
         {
-            return state with { Query = query, Caret = caret, Rows = PickerRowBuilder.Build(query, context), Highlight = 0, Message = string.Empty, IsListing = false, IsScanningShown = false };
+            var matches = PickerRowBuilder.Build(query, context);
+            return state with
+            {
+                Query = query,
+                Caret = caret,
+                Rows = matches,
+                Highlight = 0,
+                IsOnToggle = false,
+                Message = string.Empty,
+                IsListing = false,
+                IsScanningShown = false,
+            };
         }
 
         // Previous path rows stay (and the highlight with them, clamped) until the new listing arrives, so typing does not flicker.
         var rows = state.IsPathMode ? state.Rows : [];
-        return state with { Query = query, Caret = caret, Rows = rows, Highlight = Math.Clamp(state.Highlight, 0, Math.Max(0, rows.Length - 1)), Message = string.Empty, IsListing = true, IsScanningShown = false };
+        var highlight = Math.Clamp(state.Highlight, 0, Math.Max(0, rows.Length - 1));
+        return state with
+        {
+            Query = query,
+            Caret = caret,
+            Rows = rows,
+            Highlight = highlight,
+            IsOnToggle = false,
+            Message = string.Empty,
+            IsListing = true,
+            IsScanningShown = false,
+        };
     }
 
     // In a path the completion extends the typed name; in a fuzzy query it accepts the highlighted suggestion (its real path, with its own case).
@@ -102,7 +137,8 @@ public static class PickerReducer
         }
 
         var rows = PickerRowBuilder.Build(state.Query, context);
-        var highlighted = state.HighlightedRow;
+        var isInRange = state.Highlight >= 0 && state.Highlight < state.Rows.Length;
+        var highlighted = isInRange ? state.Rows[state.Highlight] : null;
         var index = -1;
         for (var candidate = 0; highlighted is not null && candidate < rows.Length; candidate++)
         {
@@ -114,6 +150,9 @@ public static class PickerReducer
         }
 
         var highlight = index >= 0 ? index : Math.Min(state.Highlight, Math.Max(0, rows.Length - 1));
-        return state with { Rows = rows, Highlight = highlight };
+        var keepsToggle = state.IsOnToggle && index >= 0;
+        var refreshed = state with { Rows = rows, Highlight = highlight, IsOnToggle = keepsToggle };
+
+        return PickerListPlan.Normalize(refreshed, context.ListBudget);
     }
 }
