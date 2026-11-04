@@ -20,6 +20,9 @@ public class PickerComposerTests
     private static readonly string Home =
         OperatingSystem.IsWindows() ? @"C:\h" : Path.Combine(Path.GetTempPath(), "composer-home");
 
+    private static readonly string AlphaShown =
+        PathDisplay.Abbreviate(Path.Combine(Home, "code", "alpha"), Home, OperatingSystem.IsWindows());
+
     private static PickerRow Row(string name, PickerTags tags) => new(Path.Combine(Home, "code", name), name, tags);
 
     private static PickerState Picker(params PickerRow[] rows) =>
@@ -663,7 +666,7 @@ public class PickerComposerTests
 
         var alpha = lines.Single(line => line.Text.Contains("alpha", StringComparison.Ordinal));
         Assert.Contains(alpha.Segments, segment => segment.Role == SegmentRole.CurrentBranch && segment.Text == "main");
-        var path = "~/code/alpha";
+        var path = AlphaShown;
         Assert.True(alpha.Text.IndexOf("alpha", StringComparison.Ordinal) < alpha.Text.IndexOf("main", StringComparison.Ordinal));
         Assert.True(alpha.Text.IndexOf("main", StringComparison.Ordinal) < alpha.Text.IndexOf(path, StringComparison.Ordinal));
         var beta = lines.Single(line => line.Text.Contains("beta", StringComparison.Ordinal));
@@ -702,7 +705,7 @@ public class PickerComposerTests
 
         var narrowRow = narrow.Single(line => line.Text.Contains("alpha", StringComparison.Ordinal));
         Assert.DoesNotContain("feature", narrowRow.Text, StringComparison.Ordinal);
-        Assert.Contains("~/code/alpha", narrowRow.Text, StringComparison.Ordinal);
+        Assert.Contains(AlphaShown, narrowRow.Text, StringComparison.Ordinal);
         Assert.Contains("feature/long-branch", wide.Single(line => line.Text.Contains("alpha", StringComparison.Ordinal)).Text, StringComparison.Ordinal);
     }
 
