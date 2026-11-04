@@ -518,21 +518,26 @@ public class PickerComposerTests
             Row("delta", PickerTags.Pinned),
             Row("omega", PickerTags.Discovered));
 
-        var lines = ComposeWithBranches(picker, Branches(("alpha", "main"), ("beta", "fix/9")), 100);
+        var all = Branches(("alpha", "main"), ("beta", "fix/9"), ("gamma", "recent"), ("delta", "pinned"), ("omega", "found"));
+        var lines = ComposeWithBranches(picker, all, 100);
+        var plain = Compose(picker);
 
         var alpha = lines.Single(line => line.Text.Contains("alpha", StringComparison.Ordinal));
         Assert.Contains(alpha.Segments, segment => segment.Role == SegmentRole.CurrentBranch && segment.Text == "main");
+        var path = "~/code/alpha";
         Assert.True(alpha.Text.IndexOf("alpha", StringComparison.Ordinal) < alpha.Text.IndexOf("main", StringComparison.Ordinal));
-        Assert.True(alpha.Text.IndexOf("main", StringComparison.Ordinal) < alpha.Text.IndexOf("composer-home", StringComparison.Ordinal)
-            || alpha.Text.IndexOf("main", StringComparison.Ordinal) < alpha.Text.IndexOf('~'));
+        Assert.True(alpha.Text.IndexOf("main", StringComparison.Ordinal) < alpha.Text.IndexOf(path, StringComparison.Ordinal));
         var beta = lines.Single(line => line.Text.Contains("beta", StringComparison.Ordinal));
         Assert.Contains(beta.Segments, segment => segment.Role == SegmentRole.CurrentBranch && segment.Text == "fix/9");
         foreach (var name in new[] { "gamma", "delta", "omega" })
         {
             var line = lines.Single(candidate => candidate.Text.Contains(name, StringComparison.Ordinal));
-            Assert.DoesNotContain("main", line.Text, StringComparison.Ordinal);
-            Assert.DoesNotContain(line.Segments, segment => segment.Role == SegmentRole.CurrentBranch && segment.Text.Trim().Length > 1);
+            Assert.DoesNotContain(all[Row(name, PickerTags.Open).Path], line.Text, StringComparison.Ordinal);
+            Assert.DoesNotContain(line.Segments, segment => segment.Text.Contains("recent", StringComparison.Ordinal)
+                || segment.Text.Contains("pinned", StringComparison.Ordinal) || segment.Text.Contains("found", StringComparison.Ordinal));
         }
+
+        Assert.Equal(plain.Count, lines.Count);
     }
 
     [Fact]

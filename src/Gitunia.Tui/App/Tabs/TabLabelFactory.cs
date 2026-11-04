@@ -39,6 +39,21 @@ public static class TabLabelFactory
         return labels;
     }
 
+    /// <summary>The checked-out branch of every open tab that has one (not detached, loaded); by repository root. Read from the tab state, so no git call.</summary>
+    public static Dictionary<string, string> OpenBranches(Workspace workspace)
+    {
+        var branches = new Dictionary<string, string>();
+        foreach (var tab in workspace.Tabs)
+        {
+            if (tab.Head?.BranchName is { Length: > 0 } branch)
+            {
+                branches[tab.Location.RootPath] = branch;
+            }
+        }
+
+        return branches;
+    }
+
     private static string WithParent(RepositoryState tab)
     {
         var parent = Path.GetFileName(Path.GetDirectoryName(Path.TrimEndingDirectorySeparator(tab.Location.RootPath)) ?? string.Empty);

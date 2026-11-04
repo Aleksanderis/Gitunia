@@ -1,5 +1,4 @@
 using Gitunia.Core.Sidebar;
-using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.Rendering.Screen;
@@ -39,23 +38,8 @@ public sealed class ScreenModelSource(ScreenModelParts parts)
             Hints = parts.Lines.CurrentHints(),
             RepeatPane = parts.Lines.Repeat.Active?.Pane,
             SearchLine = parts.Lines.SearchLine(),
-            PickerBranches = model.Picker is null ? null : OpenBranches(host.Workspace),
+            PickerBranches = model.Picker is null ? null : TabLabelFactory.OpenBranches(host.Workspace),
         };
-    }
-
-    // The checked-out branch of every open tab that has one (not detached, loaded), by repository root.
-    private static Dictionary<string, string> OpenBranches(Workspace workspace)
-    {
-        var branches = new Dictionary<string, string>();
-        foreach (var tab in workspace.Tabs)
-        {
-            if (tab.Head?.BranchName is { Length: > 0 } branch)
-            {
-                branches[tab.Location.RootPath] = branch;
-            }
-        }
-
-        return branches;
     }
 
     // The full name of the sidebar row under the cursor while the sidebar has focus (rows show short names).

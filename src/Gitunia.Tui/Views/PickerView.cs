@@ -27,19 +27,20 @@ public sealed class PickerView(IScreenContent content, GraphGlyphSet glyphs) : V
 
     protected override bool OnDrawingContent(DrawContext? context)
     {
-        if (content.Model().Picker is not { } picker)
+        var model = content.Model();
+        if (model.Picker is not { } picker)
         {
             return true;
         }
 
         var lines = PickerComposer.Compose(
             picker,
-            content.Model().HomeDirectory,
+            model.HomeDirectory,
             Viewport.Width,
             Viewport.Height,
             glyphs,
-            content.Model().Keys,
-            content.Model().PickerBranches);
+            model.Keys,
+            model.PickerBranches);
         var layout = PickerLayout.Compute(picker, Viewport.Width, Viewport.Height);
         for (var row = 0; row < lines.Count; row++)
         {
