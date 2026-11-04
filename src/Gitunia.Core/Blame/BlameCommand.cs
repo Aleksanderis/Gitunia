@@ -1,5 +1,6 @@
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Text;
+using Gitunia.Core.Visual;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Blame.Models;
 
@@ -51,6 +52,13 @@ public sealed record BlameActionPressed(
 /// <param name="Top">The first line shown when the pointer moved.</param>
 /// <param name="Cursor">Where its moving end is.</param>
 public sealed record BlameTextSelected(TextPosition Anchor, TextPosition Cursor, int Top) : BlameCommand;
+
+/// <summary>
+/// Copy the selection of the view without a key: copy on select (a mouse release or a double or triple click) and
+/// <c>Ctrl-c</c> keep the selection, <c>y</c> (a bound action) ends it.
+/// </summary>
+/// <param name="Mode">Why it is copied.</param>
+public sealed record BlameCopyRequested(VisualCopyMode Mode) : BlameCommand;
 
 /// <summary>The mouse selected whole lines (a drag that started in the gutter).</summary>
 /// <param name="Anchor">The line the drag started on.</param>

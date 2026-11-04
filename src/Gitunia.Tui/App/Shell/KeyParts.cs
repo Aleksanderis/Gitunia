@@ -1,4 +1,5 @@
 using Gitunia.Core.Mouse;
+using Gitunia.Tui.App.Clipboard;
 using Gitunia.Tui.App.Overlays;
 using Gitunia.Tui.App.Overlays.Clicks;
 using Gitunia.Tui.App.Panes;
@@ -48,7 +49,8 @@ public sealed class KeyParts
             panes.Visual,
             new GestureServices(overlays.Guard, overlays.Cover, overlays.Editors, foundation.Panes));
         Quit = new QuitRequests(host);
-        var ctrlC = new CtrlCHandler(host, panes.Visual, Quit);
+        _ = new CopyOnSelect(host, panes.Visual, overlays.Blame, foundation.Config); // Wires itself to the pointer events.
+        var ctrlC = new CtrlCHandler(host, panes.Visual, overlays.Blame, Quit);
         Input = new KeyInput(host, Keys, ctrlC, overlays.KeyFocus, overlays.Editors);
     }
 

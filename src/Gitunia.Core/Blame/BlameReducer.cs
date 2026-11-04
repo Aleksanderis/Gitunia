@@ -48,6 +48,7 @@ public static partial class BlameReducer
         command switch
         {
             BlameActionPressed pressed => Press(session, pressed, context),
+            BlameCopyRequested copy => RequestCopy(session, copy.Mode),
             BlameFailed failed => Failed(session, failed, context),
             BlameFinished finished => Progress(session, finished.Generation, finished.BlamedLines, true),
             BlameKeyTyped typed => TypeKey(session, typed.Key, context),

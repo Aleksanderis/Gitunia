@@ -4,6 +4,7 @@ using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Lists;
 using Gitunia.Core.Text;
+using Gitunia.Core.Status;
 using Gitunia.Core.Visual;
 using Gitunia.Git.History.Models;
 
@@ -11,6 +12,9 @@ namespace Gitunia.Core.Blame;
 
 public static partial class BlameReducer
 {
+    /// <summary>The notice after <c>Ctrl-c</c> copied a selection: a second press within the window quits.</summary>
+    public const string CtrlCNotice = "Press Ctrl-c again to quit";
+
     /// <summary>The warning when a selection is started in a file without lines.</summary>
     public const string NothingToSelectNotice = "Nothing to select";
 
@@ -179,15 +183,39 @@ public static partial class BlameReducer
             return Done(session);
         }
 
-        var range = selection.RangeTo(view.Cursor);
-        var effect = new CopyBlameSelectionEffect(
-            session.Generation,
-            range.First,
-            range.Last,
-            selection.TextTo(view.Cursor));
+        var effect = CopyEffectOf(session, view, selection);
         var ended = EndSelection(view);
 
         return With(session, ended, [.. ModeEffects(view, ended), effect]);
+    }
+
+    // Copy on select and Ctrl-c copy the selection and keep it, so y still works and a second Ctrl-c can quit.
+    private static BlameUpdate RequestCopy(BlameSession session, VisualCopyMode mode)
+    {
+        if (session.View is not { Selection: { } selection } view)
+        {
+            return Done(session);
+        }
+
+        if (mode == VisualCopyMode.Yank)
+        {
+            return Copy(session, view);
+        }
+
+        var effect = CopyEffectOf(session, view, selection);
+        if (mode == VisualCopyMode.CtrlC)
+        {
+            return Done(session, effect, new PostStatusEffect(CtrlCNotice, StatusSeverity.Info));
+        }
+
+        return Done(session, effect);
+    }
+
+    private static CopyBlameSelectionEffect CopyEffectOf(BlameSession session, BlameState view, BlameSelection selection)
+    {
+        var range = selection.RangeTo(view.Cursor);
+
+        return new CopyBlameSelectionEffect(session.Generation, range.First, range.Last, selection.TextTo(view.Cursor));
     }
 
     /// <summary>

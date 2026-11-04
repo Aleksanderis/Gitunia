@@ -152,6 +152,9 @@ public sealed class MainView : IDisposable
     /// <summary>Raised with the frame line and column of the pointer while a drag goes on over the box.</summary>
     public event Action<int, int>? OverlayDragged;
 
+    /// <summary>Raised when the button is released after a drag over the overlay box.</summary>
+    public event Action? OverlayDragReleased;
+
     /// <summary>Raised with the frame line and the pointer column when the overlay box is double-clicked.</summary>
     public event Action<int, int>? OverlayLineDoubleClicked;
 
@@ -320,6 +323,7 @@ public sealed class MainView : IDisposable
         panes.Overlay.LineClicked += line => OverlayLineClicked?.Invoke(line, panes.Overlay.PointerColumn);
         panes.Overlay.DragStarted += (line, column) => OverlayDragStarted?.Invoke(line, column);
         panes.Overlay.Dragged += (line, column) => OverlayDragged?.Invoke(line, column);
+        panes.Overlay.DragReleased += () => OverlayDragReleased?.Invoke();
         panes.Overlay.LineDoubleClicked += line => OverlayLineDoubleClicked?.Invoke(line, panes.Overlay.PointerColumn);
         panes.Overlay.LineTripleClicked += line => OverlayLineTripleClicked?.Invoke(line, panes.Overlay.PointerColumn);
         panes.Overlay.GestureRaised += gesture => Gestured?.Invoke(OverlayGestureView, gesture, null);

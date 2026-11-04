@@ -1,4 +1,5 @@
 using Gitunia.App;
+using Gitunia.App.Blame;
 using Gitunia.App.Shell;
 using Gitunia.Core;
 using Gitunia.Core.Keymap;
@@ -8,8 +9,11 @@ using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Git.Repositories.Models;
+using Gitunia.Tui.App.Blame;
 using Gitunia.Tui.App.Panes;
 using Gitunia.Tui.Input;
+using Gitunia.Tui.Rendering.Graph;
+using Gitunia.Tui.Tests.App.Blame;
 using Gitunia.Tui.Tests.App.Panes;
 using Gitunia.Tui.Tests.Fakes;
 using Gitunia.Tui.Tests.Loading;
@@ -40,7 +44,8 @@ public sealed class CtrlCHandlerTests : IDisposable
         _host.Dispatch(new TabCommand(_host.Workspace.ActiveTabId!.Value, new FocusPaneCommand(PaneKind.Graph)));
         _host.EffectRaised += _effects.Add;
         _visual = new VisualRangeInput(_host, new FakePaneLists(_list));
-        _handler = new CtrlCHandler(_host, _visual, _quit, _clock);
+        var blame = new BlameInput(_host, new BlameStore(), new NoBlameTargets(), GraphGlyphSet.Unicode);
+        _handler = new CtrlCHandler(_host, _visual, blame, _quit, _clock);
     }
 
     public void Dispose()

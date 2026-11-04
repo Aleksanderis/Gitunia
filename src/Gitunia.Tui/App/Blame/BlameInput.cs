@@ -5,6 +5,7 @@ using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Shell;
 using Gitunia.Core.Text;
+using Gitunia.Core.Visual;
 using Gitunia.Tui.Input;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Overlays;
@@ -36,6 +37,15 @@ public sealed class BlameInput(
     private ScreenExtent Screen => host.State.Shell.Screen ?? new ScreenExtent(0, 0);
 
     public bool IsOpen => Session.IsOpen;
+
+    /// <summary>
+    /// Raised when the pointer finished a selection: the button was released after a drag that selected, or a double or
+    /// triple click selected a word or a line.
+    /// </summary>
+    public event Action? PointerSelected;
+
+    /// <summary>The view is open with a line or character selection.</summary>
+    public bool HasSelection => Session.View?.Selection is not null;
 
     /// <summary>The frame to draw, or null when the view is closed or the screen is too small for it.</summary>
     public OverlayFrame? CurrentFrame()
@@ -104,6 +114,21 @@ public sealed class BlameInput(
         Select(point, point);
     }
 
+    /// <summary>The button was released after a drag: the selection it made is final.</summary>
+    public void OnDragReleased()
+    {
+        var wasSelecting = _dragAnchor is not null;
+        _dragAnchor = null;
+        if (wasSelecting && HasSelection)
+        {
+            PointerSelected?.Invoke();
+        }
+    }
+
+    /// <summary>Copies the selection of the view: copy on select and Ctrl-c keep it, y ends it.</summary>
+    /// <param name="mode">Why it is copied.</param>
+    public void CopySelection(VisualCopyMode mode) => host.Dispatch(new BlameCopyRequested(mode));
+
     /// <summary>The pointer of a drag moved to a frame line and column; the moving end follows it.</summary>
     /// <param name="frameLine">The frame line.</param>
     /// <param name="frameColumn">The frame column.</param>
@@ -133,6 +158,7 @@ public sealed class BlameInput(
             new TextPosition(point.Line, span.First),
             new TextPosition(point.Line, span.Last),
             BlameFrameBuilder.TopLine(Session.View!, Screen.Height)));
+        PointerSelected?.Invoke();
 
         return true;
     }
