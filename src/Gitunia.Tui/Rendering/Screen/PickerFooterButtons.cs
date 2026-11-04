@@ -39,7 +39,7 @@ public static class PickerFooterButtons
     }
 
     /// <summary>The label of the first chip for the highlighted line: "expand" or "collapse" on a more or less line,
-    /// else "open".</summary>
+    /// else "open" ("locate" while locating a missing repository).</summary>
     /// <param name="picker">The picker.</param>
     /// <param name="visible">The listed lines.</param>
     public static string AcceptLabel(PickerState picker, IReadOnlyList<PickerListEntry> visible)
@@ -47,14 +47,14 @@ public static class PickerFooterButtons
         var position = PickerListPlan.PositionOf(visible, picker);
         if (position < 0)
         {
-            return "open";
+            return picker.LocatingTabId is null ? "open" : "locate";
         }
 
         return visible[position].Kind switch
         {
             PickerEntryKind.More => "expand",
             PickerEntryKind.Less => "collapse",
-            _ => "open",
+            _ => picker.LocatingTabId is null ? "open" : "locate",
         };
     }
 
