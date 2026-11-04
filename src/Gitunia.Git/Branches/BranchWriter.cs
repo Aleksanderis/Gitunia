@@ -12,6 +12,9 @@ public sealed class BranchWriter(GitRunner runner) : IBranchWriter
     private const string Switch = "switch";
     private const string CheckRefFormat = "check-ref-format";
     private const string RevList = "rev-list";
+    private const string RevParse = "rev-parse";
+    private const string VerifyOption = "--verify";
+    private const string QuietOption = "--quiet";
     private const string BranchOption = "--branch";
     private const string CreateOption = "-c";
     private const string TrackOption = "--track";
@@ -99,7 +102,10 @@ public sealed class BranchWriter(GitRunner runner) : IBranchWriter
             $"{GitRefPrefixes.Heads}{name}",
             $"{GitOptions.ExcludeRevisionPrefix}{GitOptions.HeadRevision}",
         ];
-        if (upstreamFullName is not null)
+
+        // A pruned upstream is configured but no longer exists: excluding it would fail the whole check.
+        if (upstreamFullName is not null
+            && await RefExistsAsync(location, upstreamFullName, cancellationToken).ConfigureAwait(false))
         {
             arguments.Add($"{GitOptions.ExcludeRevisionPrefix}{upstreamFullName}");
         }
@@ -157,5 +163,26 @@ public sealed class BranchWriter(GitRunner runner) : IBranchWriter
         // A cancel before the start must not run a write that a short-lived process would finish before it is noticed.
         cancellationToken.ThrowIfCancellationRequested();
         await runner.RunAsync(location.CommandPath, arguments, WriteOptions, cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task<bool> RefExistsAsync(
+        RepositoryLocation location,
+        string fullName,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await runner.RunAsync(
+                location.CommandPath,
+                [RevParse, VerifyOption, QuietOption, fullName],
+                ReadOptions,
+                cancellationToken).ConfigureAwait(false);
+
+            return true;
+        }
+        catch (GitCommandFailedException)
+        {
+            return false;
+        }
     }
 }
