@@ -8,9 +8,9 @@ namespace Gitunia.Core.Tests.Graph;
 [Trait("Os", "Independent")]
 public class GraphBackMergeTests
 {
-    // The shape of Geeratya 047adcc (#1234): main waits in lane 0 for commit 2, another branch holds lane 1, a feature
-    // tip (3) sits in lane 2 and merges 2 back. Commit 1 is the PR merge that opened the feature lane.
-    private static readonly IReadOnlyList<CommitInfo> BackMerge =
+    // A feature branch back-merging main (#1234): main waits in lane 0 for commit 2, another branch holds lane 1, a
+    // feature tip (3) sits in lane 2 and merges 2 back. Commit 1 is the PR merge that opened the feature lane.
+    public static readonly IReadOnlyList<CommitInfo> BackMerge =
     [
         Commit(20, 1),
         Commit(21, 22),
@@ -64,19 +64,17 @@ public class GraphBackMergeTests
     }
 
     [Fact]
-    public void GivenTheBackMerge_WhenValidatingAndAppendingOneByOne_ThenTopologyIsValidAndRowsAndFingerprintsMatch()
+    public void GivenAWaitedForLaneToTheRight_WhenLayingOut_ThenTheEdgeJoinsThatLaneWithoutANewOne()
     {
-        var full = GraphLayout.Compute(BackMerge);
-        var builder = new GraphLayoutBuilder();
+        // Lane 0 is the node's lane; lane 1 waits for 5, the second parent of 1.
+        var rows = GraphLayout.Compute([Commit(10, 1), Commit(11, 5), Commit(1, 2, 5), Commit(2, 5), Commit(5)]);
 
-        var chunked = BackMerge.Select(builder.Append).ToList();
-
-        Assert.Empty(GraphTopologyValidator.Validate(BackMerge, full));
-        for (var index = 0; index < full.Count; index++)
-        {
-            Assert.Equal(full[index].Lane, chunked[index].Lane);
-            Assert.Equal(full[index].LaneFingerprint, chunked[index].LaneFingerprint);
-            Assert.Equal(Shape(full[index].Edges), Shape(chunked[index].Edges));
-        }
+        Assert.Equal(0, rows[2].Lane);
+        Assert.Contains(new GraphEdge(GraphEdgeKind.Outgoing, 0, 1), Shape(rows[2].Edges));
+        Assert.Equal(2, rows[2].LaneCount);
     }
+
+    [Fact]
+    public void GivenTheBackMerge_WhenValidatingTheTopology_ThenThereAreNoViolations() =>
+        Assert.Empty(GraphTopologyValidator.Validate(BackMerge, GraphLayout.Compute(BackMerge)));
 }
