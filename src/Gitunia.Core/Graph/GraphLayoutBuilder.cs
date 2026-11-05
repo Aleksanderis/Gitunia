@@ -43,6 +43,9 @@ public sealed class GraphLayoutBuilder
     private readonly Queue<RecentTip> _recentTips = new();
     private readonly int _colorCount;
 
+    // Experiment (#1228): see the constructor.
+    private readonly bool _isShiftingLanes;
+
     /// <param name="branchTips">
     /// The branch name of every commit that carries a branch ref (<see cref="BranchColors.TipsOf"/>), so a lane gets
     /// the colour of its branch from its first row on; null when not known (every lane is then coloured by its commit).
@@ -55,11 +58,18 @@ public sealed class GraphLayoutBuilder
     /// The further branch names of the commits that carry several (<see cref="BranchColors.ExtraNamesOf"/>): each
     /// name gets a chip colour of its own (#849), none of them colours a lane.
     /// </param>
+    /// <param name="isShiftingLanes">
+    /// Experiment (#1228, off by default): a merged parent that would cross other lanes opens its lane right next to
+    /// the node instead and the lanes right of it shift one column right in that row (a <see cref="GraphEdgeKind.Through"/>
+    /// edge whose lanes differ). It widens the graph and moves lanes between rows, see docs/git-layer.md.
+    /// </param>
     public GraphLayoutBuilder(
         IReadOnlyDictionary<ObjectId, string>? branchTips = null,
         int colorCount = BranchColors.SlotCount,
-        IReadOnlyDictionary<ObjectId, IReadOnlyList<string>>? extraBranchNames = null)
+        IReadOnlyDictionary<ObjectId, IReadOnlyList<string>>? extraBranchNames = null,
+        bool isShiftingLanes = false)
     {
+        _isShiftingLanes = isShiftingLanes;
         _extraNames = extraBranchNames ?? FrozenDictionary<ObjectId, IReadOnlyList<string>>.Empty;
         _colorCount = Math.Clamp(colorCount, 1, BranchColors.SlotCount);
         _branchTips = branchTips ?? FrozenDictionary<ObjectId, string>.Empty;
@@ -126,6 +136,11 @@ public sealed class GraphLayoutBuilder
                 if (parentLane < 0)
                 {
                     parentLane = FindFreeLaneNotEndingHere(edges);
+                    if (_isShiftingLanes && CrossesLanes(nodeLane, parentLane))
+                    {
+                        parentLane = InsertLaneNextToNode(edges, nodeLane);
+                    }
+
                     EnsureLane(parentLane);
                     _laneSlots[parentLane] = SlotForNewLane(parent);
                     _lanes[parentLane] = parent;
@@ -341,6 +356,53 @@ public sealed class GraphLayoutBuilder
         }
 
         return lane;
+    }
+
+    private bool CrossesLanes(int nodeLane, int parentLane)
+    {
+        for (var lane = Math.Min(nodeLane, parentLane) + 1; lane < Math.Max(nodeLane, parentLane) && lane < _lanes.Count; lane++)
+        {
+            if (_lanes[lane].IsValid)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private int InsertLaneNextToNode(List<GraphEdge> edges, int nodeLane)
+    {
+        var position = nodeLane + 1;
+        while (EndsHere(edges, position))
+        {
+            position++;
+        }
+
+        while (_lanes.Count < position)
+        {
+            _lanes.Add(default);
+            _laneSlots.Add(0);
+            _laneNamedByParent.Add(false);
+        }
+
+        _lanes.Insert(position, default);
+        _laneSlots.Insert(position, 0);
+        _laneNamedByParent.Insert(position, false);
+        for (var index = 0; index < edges.Count; index++)
+        {
+            var edge = edges[index];
+            if (edge.Kind == GraphEdgeKind.Through && edge.ToLane >= position)
+            {
+                edges[index] = edge with { ToLane = edge.ToLane + 1 };
+            }
+            else if (edge.Kind == GraphEdgeKind.Outgoing && edge.ToLane >= position)
+            {
+                edges[index] = edge with { ToLane = edge.ToLane + 1 };
+            }
+        }
+
+        return position;
     }
 
     private static bool EndsHere(List<GraphEdge> edges, int lane)
