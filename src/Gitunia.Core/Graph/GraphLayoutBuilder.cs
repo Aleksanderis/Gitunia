@@ -121,7 +121,7 @@ public sealed class GraphLayoutBuilder
             {
                 // A merged branch gets a lane of its own even when another lane already waits for its tip (a branch
                 // forked there): the two join at that commit, so the merge never looks like the other branch carrying
-                // on past it (#1224). Only a lane this commit opened for an earlier parent is shared.
+                // on past it (#1224). Only the lane of an earlier parent of this same commit is shared.
                 parentLane = OpenedParentLane(edges, parent);
                 if (parentLane < 0)
                 {
