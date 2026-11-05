@@ -76,6 +76,47 @@ public class GraphLayoutShapeTests
     }
 
     [Fact]
+    public void GivenBackMergeOfALineOfMergesRightNextToIt_WhenLayingOut_ThenTheMergeEdgeJoinsThatLaneFromTheLeft()
+    {
+        // The shape of Geeratya 047adcc: 1 merges 2 (main) and 3 (feature); 3 is a back-merge of 2 into the feature.
+        var commits = new[] { Commit(1, 2, 3), Commit(3, 4, 2), Commit(4, 5), Commit(2, 5), Commit(5) };
+        var rows = GraphLayout.Compute(commits);
+
+        var backMerge = rows[1];
+        Assert.Equal(1, backMerge.Lane);
+        Assert.Equal(2, backMerge.LaneCount);
+        Assert.Contains(new GraphEdge(GraphEdgeKind.Outgoing, 1, 0), Shape(backMerge.Edges));
+        Assert.Contains(new GraphEdge(GraphEdgeKind.Through, 0, 0), Shape(backMerge.Edges));
+        Assert.Equal(2, rows.Max(row => row.LaneCount));
+        Assert.Empty(GraphTopologyValidator.Validate(commits, rows));
+    }
+
+    [Fact]
+    public void GivenBackMergeWithALaneBetweenItAndTheLineOfMerges_WhenLayingOut_ThenTheMergedParentOpensItsOwnLane()
+    {
+        // Lane 0 continues a line of merges waiting for 2; lane 1 waits for 9; the back-merge 3 (child 10) sits in lane 2.
+        var commits = new[]
+        {
+            Commit(1, 2, 9), Commit(10, 3), Commit(3, 4, 2), Commit(4, 5), Commit(2, 5), Commit(9, 5), Commit(5),
+        };
+        var rows = GraphLayout.Compute(commits);
+
+        Assert.Equal(2, rows[2].Lane);
+        Assert.DoesNotContain(rows[2].Edges, edge => edge.Kind == GraphEdgeKind.Outgoing && edge.ToLane < 2);
+        Assert.Contains(new GraphEdge(GraphEdgeKind.Outgoing, 2, 3), Shape(rows[2].Edges));
+        Assert.Empty(GraphTopologyValidator.Validate(commits, rows));
+    }
+
+    [Fact]
+    public void GivenMergedBranchAdjacentToAPlainBranchLane_WhenLayingOut_ThenTheMergeStillOpensItsOwnLane()
+    {
+        // Lane 0 continues the plain commit 1 (not a merge), so it is not a line of merges (#1224 keeps its own lane).
+        var rows = GraphLayout.Compute([Commit(1, 3), Commit(2, 4, 3), Commit(4, 5), Commit(3, 5), Commit(5)]);
+
+        Assert.Contains(new GraphEdge(GraphEdgeKind.Outgoing, 1, 2), Shape(rows[1].Edges));
+    }
+
+    [Fact]
     public void GivenOctopusMerge_WhenLayingOut_ThenEveryParentGetsItsOwnLane()
     {
         var rows = GraphLayout.Compute([Commit(1, 2, 3, 4, 5), Commit(2, 6), Commit(3, 6), Commit(4, 6), Commit(5, 6), Commit(6)]);

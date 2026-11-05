@@ -28,6 +28,10 @@ public sealed class GraphLayoutBuilder
     // Whether the lane was started by a second parent whose branch name chose its colour (GraphRow.ColorChosenByName).
     private readonly List<bool> _laneNamedByParent = [];
 
+    // Whether the commit the lane waits for is the first parent of a merge: a line of merges is a long-lived lane (main)
+    // that a back-merge joins from the right (#1232).
+    private readonly List<bool> _laneAfterMerge = [];
+
     private readonly List<GraphRow> _rows = [];
 
     // The slot each branch name got: a branch keeps one colour for the whole graph, local and remote alike.
@@ -116,13 +120,22 @@ public sealed class GraphLayoutBuilder
                 parentLane = nodeLane;
                 _laneSlots[parentLane] = nodeColor;
                 _lanes[parentLane] = parent;
+                _laneAfterMerge[parentLane] = commit.Parents.Count > 1;
             }
             else
             {
                 // A merged branch gets a lane of its own even when another lane already waits for its tip (a branch
                 // forked there): the two join at that commit, so the merge never looks like the other branch carrying
-                // on past it (#1224). Only the lane of an earlier parent of this same commit is shared.
+                // on past it (#1224). The exception is the lane directly left that already waits for the merged
+                // commit and continues a line of merges (a back-merge of main): the edge joins it in one column
+                // instead of running to a new lane on the right (#1232). The lane of an earlier parent of this same
+                // commit is shared too.
                 parentLane = OpenedParentLane(edges, parent);
+                if (parentLane < 0)
+                {
+                    parentLane = WaitingLaneLeftOf(parent, nodeLane);
+                }
+
                 if (parentLane < 0)
                 {
                     parentLane = FindFreeLaneNotEndingHere(edges);
@@ -130,6 +143,7 @@ public sealed class GraphLayoutBuilder
                     _laneSlots[parentLane] = SlotForNewLane(parent);
                     _lanes[parentLane] = parent;
                     _laneNamedByParent[parentLane] = true;
+                    _laneAfterMerge[parentLane] = false;
                 }
             }
 
@@ -241,6 +255,19 @@ public sealed class GraphLayoutBuilder
         return -1;
     }
 
+    // The lane directly left of the node lane when it waits for the commit and continues a line of merges, so the edge is
+    // one column long and joins that line, else -1.
+    private int WaitingLaneLeftOf(ObjectId commitId, int nodeLane)
+    {
+        var lane = nodeLane - 1;
+        if (lane >= 0 && _lanes[lane] == commitId && _laneAfterMerge[lane])
+        {
+            return lane;
+        }
+
+        return -1;
+    }
+
     private int IndexOfLane(ObjectId commitId)
     {
         for (var lane = 0; lane < _lanes.Count; lane++)
@@ -261,6 +288,7 @@ public sealed class GraphLayoutBuilder
             _lanes.Add(default);
             _laneSlots.Add(0);
             _laneNamedByParent.Add(false);
+            _laneAfterMerge.Add(false);
         }
     }
 
@@ -364,7 +392,8 @@ public sealed class GraphLayoutBuilder
         {
             if (_lanes[lane].IsValid)
             {
-                hash = (hash ^ _lanes[lane].Hash64 ^ ((ulong)(lane + 1) << 56) ^ ((ulong)(_laneSlots[lane] + 1) << 48))
+                hash = (hash ^ _lanes[lane].Hash64 ^ ((ulong)(lane + 1) << 56) ^ ((ulong)(_laneSlots[lane] + 1) << 48)
+                    ^ (_laneAfterMerge[lane] ? 1UL << 47 : 0UL))
                     * 1099511628211UL;
             }
         }
@@ -383,5 +412,6 @@ public sealed class GraphLayoutBuilder
         _lanes.RemoveRange(count, _lanes.Count - count);
         _laneSlots.RemoveRange(count, _laneSlots.Count - count);
         _laneNamedByParent.RemoveRange(count, _laneNamedByParent.Count - count);
+        _laneAfterMerge.RemoveRange(count, _laneAfterMerge.Count - count);
     }
 }
