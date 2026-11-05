@@ -9,4 +9,10 @@ public enum LineDirections
     Down = 2,
     Left = 4,
     Right = 8,
+
+    /// <summary>The cell holds a diagonal from its top left to its bottom right (a line stepping into the lane below on its right).</summary>
+    Backslash = 16,
+
+    /// <summary>The cell holds a diagonal from its bottom left to its top right.</summary>
+    Slash = 32,
 }

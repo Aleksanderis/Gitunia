@@ -36,10 +36,10 @@ public class GraphRowRendererTests
 
         Assert.Equal(
             [
-                "○─╮  merge side",
+                "○╲  merge side",
                 "├ │  main work",
                 "│ ├  side work",
-                "●─╯  root",
+                "●╱  root",
             ],
             rows);
     }
@@ -51,10 +51,10 @@ public class GraphRowRendererTests
 
         Assert.Equal(
             [
-                "o-\\  merge side",
+                "o\\  merge side",
                 "| |  main work",
                 "| |  side work",
-                "*-/  root",
+                "*/  root",
             ],
             rows);
     }
@@ -94,7 +94,26 @@ public class GraphRowRendererTests
             CommitFactory.Commit(10, "e", []),
             CommitFactory.Commit(12, "d", [13, 99]));
 
-        Assert.Equal("╭─┼─○  d", rows[4]);
+        Assert.Equal(" ╱│─○  d", rows[4]);
+    }
+
+    [Fact]
+    public void GivenMergeWhereBranchesPassAndOneEnds_WhenRendering_ThenTheParentLineStepsInDiagonallyWithoutCrosses()
+    {
+        // The shape of Geeratya a54c200 (merge #760): lanes 1 and 2 are busy, lane 3 ends at the merge, which adds a parent.
+        var rows = Rows(
+            GraphGlyphSet.Unicode,
+            30,
+            CommitFactory.Commit(1, "a", [10]),
+            CommitFactory.Commit(2, "b", [12]),
+            CommitFactory.Commit(3, "c", [13]),
+            CommitFactory.Commit(4, "d", [10, 14]),
+            CommitFactory.Commit(10, "merge", [20, 21]),
+            CommitFactory.Commit(20, "e", []),
+            CommitFactory.Commit(21, "f", []));
+
+        Assert.Equal("○─│─│─┴─│╲  merge", rows[4]);
+        Assert.DoesNotContain('┼', rows[4]);
     }
 
     [Fact]
@@ -403,7 +422,7 @@ public class GraphRowRendererTests
         Assert.StartsWith("●   ◉ main  main tip", rows[0]);
         Assert.StartsWith("│ ●   ⎇ feature  feature tip", rows[1]);
         Assert.StartsWith("│ ├  feature first", rows[2]);
-        Assert.StartsWith("●─╯  fork point", rows[3]);
+        Assert.StartsWith("●╱  fork point", rows[3]);
         Assert.StartsWith("●  root", rows[4]);
         var graph = CommitFactory.Graph(main, tip, first, fork, root);
         Assert.Equal(graph[0].Row.NodeColor, graph[3].Row.NodeColor);
@@ -422,7 +441,7 @@ public class GraphRowRendererTests
         Assert.Equal(graph[0].Row.NodeColor, curve[0].ColorIndex);
         Assert.Contains("●", curve[0].Text, StringComparison.Ordinal);
         Assert.Equal(graph[1].Row.NodeColor, curve[^1].ColorIndex);
-        Assert.Contains("╯", curve[^1].Text, StringComparison.Ordinal);
+        Assert.Contains("╱", curve[^1].Text, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -441,7 +460,7 @@ public class GraphRowRendererTests
         Assert.StartsWith("●   ⎇ feature  feature tip", rows[0]);
         Assert.StartsWith("├  feature first", rows[1]);
         Assert.StartsWith("│ ●   ◉ main", rows[2]);
-        Assert.StartsWith("●─╯  fork point", rows[3]);
+        Assert.StartsWith("●╱  fork point", rows[3]);
         Assert.StartsWith("●  root", rows[4]);
         var graph = CommitFactory.Graph(tip, first, main, fork, root);
         Assert.Equal(graph[0].Row.NodeColor, graph[3].Row.NodeColor);

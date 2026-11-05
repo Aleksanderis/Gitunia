@@ -27,8 +27,8 @@ public class LaneCellBuilderTests
             new GraphEdge(GraphEdgeKind.Outgoing, 0, 2),
         };
 
-        Assert.Equal("○─┬─╮ ", Draw(GraphGlyphSet.Unicode, 3, 0, edges));
-        Assert.Equal("o---\\ ", Draw(GraphGlyphSet.Ascii, 3, 0, edges));
+        Assert.Equal("○─┬╲  ", Draw(GraphGlyphSet.Unicode, 3, 0, edges));
+        Assert.Equal("o--\\  ", Draw(GraphGlyphSet.Ascii, 3, 0, edges));
     }
 
     [Fact]
@@ -40,7 +40,7 @@ public class LaneCellBuilderTests
             new GraphEdge(GraphEdgeKind.Outgoing, 0, 2),
         };
 
-        Assert.Equal("●─┴─╮ ", Draw(GraphGlyphSet.Unicode, 3, 0, edges));
+        Assert.Equal("●─┴╲  ", Draw(GraphGlyphSet.Unicode, 3, 0, edges));
     }
 
     [Fact]
@@ -52,7 +52,36 @@ public class LaneCellBuilderTests
             new GraphEdge(GraphEdgeKind.Outgoing, 1, 0),
         };
 
-        Assert.Equal("├─● ", Draw(GraphGlyphSet.Unicode, 2, 1, edges));
+        Assert.Equal("│╱● ", Draw(GraphGlyphSet.Unicode, 2, 1, edges));
+    }
+
+    [Fact]
+    public void GivenMergeAcrossBusyLanes_WhenDrawing_ThenTheLineEndsInADiagonalAndNoCrossIsDrawn()
+    {
+        // The shape of Geeratya a54c200: lane 1 passes, lane 2 ends at the node, lane 3 passes, the parent goes to lane 4.
+        var edges = new[]
+        {
+            new GraphEdge(GraphEdgeKind.Through, 1, 1),
+            new GraphEdge(GraphEdgeKind.Incoming, 2, 0),
+            new GraphEdge(GraphEdgeKind.Through, 3, 3),
+            new GraphEdge(GraphEdgeKind.Outgoing, 0, 4),
+        };
+
+        Assert.Equal("●─│─┴─│╲  ", Draw(GraphGlyphSet.Unicode, 5, 0, edges));
+        Assert.Equal("*-|---|\\  ", Draw(GraphGlyphSet.Ascii, 5, 0, edges));
+    }
+
+    [Fact]
+    public void GivenForkFromTheRight_WhenDrawing_ThenTheLineStepsInWithASlash()
+    {
+        var edges = new[]
+        {
+            new GraphEdge(GraphEdgeKind.Incoming, 2, 0),
+            new GraphEdge(GraphEdgeKind.Outgoing, 0, 0),
+        };
+
+        Assert.Equal("●──╱  ", Draw(GraphGlyphSet.Unicode, 3, 0, edges));
+        Assert.Equal("*--/  ", Draw(GraphGlyphSet.Ascii, 3, 0, edges));
     }
 
     [Fact]
@@ -114,6 +143,6 @@ public class LaneCellBuilderTests
             new GraphEdge(GraphEdgeKind.Outgoing, 0, 0),
         };
 
-        Assert.Equal("●─╯ ", Draw(GraphGlyphSet.Unicode, 2, 0, edges));
+        Assert.Equal("●╱  ", Draw(GraphGlyphSet.Unicode, 2, 0, edges));
     }
 }

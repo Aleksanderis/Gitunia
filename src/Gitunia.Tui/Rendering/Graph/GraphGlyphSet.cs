@@ -19,6 +19,7 @@ namespace Gitunia.Tui.Rendering.Graph;
 /// <param name="Picker">The marks of the repository picker (#1203).</param>
 /// <param name="LabelCapLeft">Drawn before a branch label box, in the colour of the box over the row background (#851); empty for a plain box.</param>
 /// <param name="LabelCapRight">Drawn after a branch label box, like <paramref name="LabelCapLeft"/>.</param>
+/// <param name="Diagonals">Two characters: the diagonal from top left to bottom right, then the one from bottom left to top right. A merge or fork line ends in one next to its lane (#1230).</param>
 public sealed record GraphGlyphSet(
     char Node,
     char MergeNode,
@@ -31,14 +32,15 @@ public sealed record GraphGlyphSet(
     string UpstreamGone,
     PickerGlyphs Picker,
     string LabelCapLeft = "",
-    string LabelCapRight = "")
+    string LabelCapRight = "",
+    string Diagonals = "╲╱")
 {
     // Index: Up=1, Down=2, Left=4, Right=8. Lone strokes borrow the straight line of their axis.
     public static GraphGlyphSet Unicode { get; } =
         new('●', '○', '├', " │││─╯╮┤─╰╭├─┴┬┼", "…", "◉ ", "⎇ ", " ", " ✗", PickerGlyphs.Unicode);
 
     public static GraphGlyphSet Ascii { get; } =
-        new('*', 'o', '|', " |||-/\\|-\\/|---+", "~", "HEAD -> ", "", " (r)", " (x)", PickerGlyphs.Ascii);
+        new('*', 'o', '|', " |||-/\\|-\\/|---+", "~", "HEAD -> ", "", " (r)", " (x)", PickerGlyphs.Ascii, Diagonals: "\\/");
 
     /// <summary>
     /// The set with Powerline caps on the branch labels (#851). Only the Unicode set takes them, and only where the
@@ -84,7 +86,20 @@ public sealed record GraphGlyphSet(
     public char Horizontal => Lines[(int)(LineDirections.Left | LineDirections.Right)];
 
     /// <summary>The character for a cell whose lines go in the given directions.</summary>
-    public char For(LineDirections directions) => Lines[(int)directions];
+    public char For(LineDirections directions)
+    {
+        if ((directions & LineDirections.Backslash) != 0)
+        {
+            return Diagonals[0];
+        }
+
+        if ((directions & LineDirections.Slash) != 0)
+        {
+            return Diagonals[1];
+        }
+
+        return Lines[(int)directions];
+    }
 
     /// <summary>The set a terminal with the given Unicode support can show.</summary>
     public static GraphGlyphSet For(bool unicode) => unicode ? Unicode : Ascii;

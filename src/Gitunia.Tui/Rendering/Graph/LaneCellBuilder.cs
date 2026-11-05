@@ -9,6 +9,8 @@ namespace Gitunia.Tui.Rendering.Graph;
 /// </summary>
 public static class LaneCellBuilder
 {
+    private const LineDirections AllSides = LineDirections.Up | LineDirections.Down | LineDirections.Left | LineDirections.Right;
+
     /// <param name="row">The layout of the row.</param>
     /// <param name="laneColumns">Lanes shown; lanes further right are drawn in the last column.</param>
     /// <param name="glyphs">The characters to use.</param>
@@ -23,6 +25,8 @@ public static class LaneCellBuilder
         var outgoingCount = 0;
         var incomingCount = 0;
         var isOnLane = true;
+        Span<PendingStep> steps = stackalloc PendingStep[row.Edges.Count];
+        var stepCount = 0;
         foreach (var edge in row.Edges)
         {
             switch (edge.Kind)
@@ -35,21 +39,36 @@ public static class LaneCellBuilder
                     incomingCount++;
                     isOnLane &= edge.FromLane == row.Lane;
                     var incomingLane = Math.Min(edge.FromLane, laneColumns - 1);
-                    Connect(directions, colors, incomingLane, nodeLane, LineDirections.Up, edge.Color);
+                    if (Connect(directions, colors, incomingLane, nodeLane, edge.Color))
+                    {
+                        steps[stepCount++] = new PendingStep(incomingLane, LineDirections.Up, edge.Color);
+                    }
+
                     break;
                 default:
                     outgoingCount++;
                     isOnLane &= edge.ToLane == row.Lane;
                     var outgoingLane = Math.Min(edge.ToLane, laneColumns - 1);
-                    Connect(directions, colors, outgoingLane, nodeLane, LineDirections.Down, edge.Color);
+                    if (Connect(directions, colors, outgoingLane, nodeLane, edge.Color))
+                    {
+                        steps[stepCount++] = new PendingStep(outgoingLane, LineDirections.Down, edge.Color);
+                    }
+
                     break;
             }
+        }
+
+        for (var index = 0; index < stepCount; index++)
+        {
+            FinishStep(directions, colors, steps[..stepCount], index, nodeLane);
         }
 
         var cells = new GraphCell[laneColumns * 2];
         for (var column = 0; column < cells.Length; column++)
         {
-            cells[column] = new GraphCell(glyphs.For(directions[column]), colors[column]);
+            // A lane crossing a connecting line stays a plain vertical: the line passes under it instead of a cross.
+            var cellDirections = directions[column] == AllSides ? LineDirections.Up | LineDirections.Down : directions[column];
+            cells[column] = new GraphCell(glyphs.For(cellDirections), colors[column]);
             if (directions[column] == LineDirections.None)
             {
                 cells[column] = new GraphCell(' ', -1);
@@ -68,30 +87,58 @@ public static class LaneCellBuilder
         return cells;
     }
 
-    // A line between the node and another lane: horizontal in between, a corner (up or down plus sideways) at the other lane.
-    private static void Connect(
+    // A line between the node and another lane: horizontal in between, and a diagonal step in the connector cell next
+    // to the other lane (FinishStep), so the line leaves or enters the lane at an angle instead of a corner (#1230).
+    // Returns false when the other lane is the node's own.
+    private static bool Connect(
         LineDirections[] directions,
         int[] colors,
         int otherLane,
         int nodeLane,
-        LineDirections vertical,
         int color)
     {
         if (otherLane == nodeLane)
         {
-            return;
+            return false;
         }
 
         var from = Math.Min(otherLane, nodeLane);
         var to = Math.Max(otherLane, nodeLane);
         var isRight = otherLane > nodeLane;
-        for (var column = (from * 2) + 1; column < to * 2; column++)
+
+        // The run stops short of the diagonal cell, the one beside the other lane.
+        var first = isRight ? (from * 2) + 1 : (from * 2) + 2;
+        var last = isRight ? (to * 2) - 2 : (to * 2) - 1;
+        for (var column = first; column <= last; column++)
         {
             Add(directions, colors, column, LineDirections.Left | LineDirections.Right, color);
         }
 
-        var sideways = isRight ? LineDirections.Left : LineDirections.Right;
-        Add(directions, colors, otherLane * 2, vertical | sideways, color);
+        return true;
+    }
+
+    // The diagonal goes in the connector cell beside the other lane when nothing else uses that cell; otherwise the
+    // old corner at the lane (a line running through the cell, or another diagonal, would be cut by it).
+    private static void FinishStep(
+        LineDirections[] directions,
+        int[] colors,
+        ReadOnlySpan<PendingStep> steps,
+        int index,
+        int nodeLane)
+    {
+        var step = steps[index];
+        var isRight = step.Lane > nodeLane;
+        var diagonalColumn = isRight ? (step.Lane * 2) - 1 : (step.Lane * 2) + 1;
+        if (directions[diagonalColumn] == LineDirections.None && !IsLaneShared(steps, index))
+        {
+            // Down-right and up-left read as a backslash, up-right and down-left as a slash.
+            var isDown = step.Vertical == LineDirections.Down;
+            Add(directions, colors, diagonalColumn, isRight == isDown ? LineDirections.Backslash : LineDirections.Slash, step.Color);
+            return;
+        }
+
+        Add(directions, colors, diagonalColumn, LineDirections.Left | LineDirections.Right, step.Color);
+        Add(directions, colors, step.Lane * 2, step.Vertical | (isRight ? LineDirections.Left : LineDirections.Right), step.Color);
     }
 
     // The first line in a cell decides its colour (a through lane keeps its own where a connection crosses it).
@@ -104,4 +151,20 @@ public static class LaneCellBuilder
 
         directions[column] |= added;
     }
+
+    // Lines in and out of the same lane (a lane ending here and starting again) would share one diagonal cell.
+    private static bool IsLaneShared(ReadOnlySpan<PendingStep> steps, int index)
+    {
+        for (var other = 0; other < steps.Length; other++)
+        {
+            if (other != index && steps[other].Lane == steps[index].Lane)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private readonly record struct PendingStep(int Lane, LineDirections Vertical, int Color);
 }
