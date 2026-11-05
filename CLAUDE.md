@@ -32,7 +32,7 @@ Reader docs are in `docs/` (user guide, architecture, git-layer, testing). Maint
 - Syncing unpushed local commits with `origin/main`: `git fetch` then `git rebase origin/main`. Never `git merge origin/main` or a bare `git pull` (merge commits are for PR merges only); if a merge slipped in, redo it as a rebase.
 - Changes that address PR review comments (code, docs, skills, CLAUDE.md alike) all go through a PR branch, never straight to `main`. The straight-to-`main` exception above applies only to standalone requests from the owner.
 - After a PR is merged, nothing of it remains: remove its worktree and delete the branch locally and on the remote (spike branches are the exception and stay).
-- Agent identity: every commit, PR body and GitHub comment says which agent (orchestrator, implementer, reviewer) produced it: header, signature and hidden marker on GitHub comments; author name or `Agent:` trailer on commits is a soft convention. Details in the `work-task` skill, "Agent identity". Never add the "🤖 Generated with Claude Code" line to PR bodies or comments.
+- Agent identity: every commit, PR body and GitHub comment says which agent (orchestrator, implementer, reviewer) produced it: header, signature and hidden marker on GitHub comments; author name or `Agent:` trailer on commits is a soft convention. Details: `.claude/workflow.md` when that file exists. Never add the "🤖 Generated with Claude Code" line to PR bodies or comments.
 - Commits: Conventional Commits (`feat:`, `fix:`, `docs:`, `test:`, `refactor:`, `chore:`, `ci:`), optional scope, imperative subject.
 
 ## Which doc to read
