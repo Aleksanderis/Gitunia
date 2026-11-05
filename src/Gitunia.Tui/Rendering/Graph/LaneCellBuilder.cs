@@ -29,15 +29,20 @@ public static class LaneCellBuilder
             {
                 case GraphEdgeKind.Through:
                     var throughLane = Math.Min(edge.FromLane, laneColumns - 1);
-                    if (edge.ToLane == edge.FromLane)
+                    var shiftedLane = Math.Min(edge.ToLane, laneColumns - 1);
+                    if (shiftedLane == throughLane)
                     {
                         Add(directions, colors, throughLane * 2, LineDirections.Up | LineDirections.Down, edge.Color);
                         break;
                     }
 
-                    var shiftedLane = Math.Min(edge.ToLane, laneColumns - 1);
                     Add(directions, colors, throughLane * 2, LineDirections.Up | LineDirections.Right, edge.Color);
-                    Add(directions, colors, (throughLane * 2) + 1, LineDirections.Left | LineDirections.Right, edge.Color);
+                    Add(
+                        directions,
+                        colors,
+                        (throughLane * 2) + 1,
+                        LineDirections.Left | LineDirections.Right,
+                        edge.Color);
                     Add(directions, colors, shiftedLane * 2, LineDirections.Left | LineDirections.Down, edge.Color);
                     break;
                 case GraphEdgeKind.Incoming:

@@ -31,6 +31,18 @@ public class LaneCellBuilderTests
     }
 
     [Fact]
+    public void GivenShiftedThroughLanePastTheLastShownLane_WhenDrawing_ThenItStaysStraight()
+    {
+        var edges = new[]
+        {
+            new GraphEdge(GraphEdgeKind.Through, 1, 2),
+            new GraphEdge(GraphEdgeKind.Outgoing, 0, 0),
+        };
+
+        Assert.Equal("● │ ", Draw(GraphGlyphSet.Unicode, 2, 0, edges));
+    }
+
+    [Fact]
     public void GivenOctopusMerge_WhenDrawing_ThenInnerParentLaneIsATeeDown()
     {
         var edges = new[]

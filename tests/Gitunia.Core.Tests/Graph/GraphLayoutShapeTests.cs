@@ -81,13 +81,22 @@ public class GraphLayoutShapeTests
         // The shape of Geeratya a54c200: lanes 1 and 2 are busy, lane 3 ends at the merge, which adds parent 21.
         var builder = new GraphLayoutBuilder(isShiftingLanes: true);
         var rows = builder.AppendRange(
-            [Commit(1, 10), Commit(2, 12), Commit(3, 13), Commit(4, 10, 14), Commit(10, 20, 21), Commit(20), Commit(21)]);
+            [
+                Commit(1, 10),
+                Commit(2, 12),
+                Commit(3, 13),
+                Commit(4, 10, 14),
+                Commit(10, 20, 21),
+                Commit(20),
+                Commit(21),
+            ]);
 
         var merge = rows[4];
         Assert.Equal(0, merge.Lane);
         Assert.Contains(new GraphEdge(GraphEdgeKind.Outgoing, 0, 1), Shape(merge.Edges));
         Assert.Contains(new GraphEdge(GraphEdgeKind.Through, 1, 2), Shape(merge.Edges));
         Assert.Contains(new GraphEdge(GraphEdgeKind.Through, 2, 3), Shape(merge.Edges));
+        Assert.Contains(new GraphEdge(GraphEdgeKind.Through, 4, 5), Shape(merge.Edges));
         Assert.Equal(1, rows[6].Lane);
     }
 

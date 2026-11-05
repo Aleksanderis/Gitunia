@@ -60,8 +60,8 @@ public sealed class GraphLayoutBuilder
     /// </param>
     /// <param name="isShiftingLanes">
     /// Experiment (#1228, off by default): a merged parent that would cross other lanes opens its lane right next to
-    /// the node instead and the lanes right of it shift one column right in that row (a <see cref="GraphEdgeKind.Through"/>
-    /// edge whose lanes differ). It widens the graph and moves lanes between rows, see docs/git-layer.md.
+    /// the node instead and the lanes right of it shift one column right in that row (a
+    /// <see cref="GraphEdgeKind.Through"/> edge whose lanes differ). It widens the graph and moves lanes between rows, see docs/git-layer.md.
     /// </param>
     public GraphLayoutBuilder(
         IReadOnlyDictionary<ObjectId, string>? branchTips = null,
@@ -360,7 +360,8 @@ public sealed class GraphLayoutBuilder
 
     private bool CrossesLanes(int nodeLane, int parentLane)
     {
-        for (var lane = Math.Min(nodeLane, parentLane) + 1; lane < Math.Max(nodeLane, parentLane) && lane < _lanes.Count; lane++)
+        var last = Math.Min(Math.Max(nodeLane, parentLane), _lanes.Count);
+        for (var lane = Math.Min(nodeLane, parentLane) + 1; lane < last; lane++)
         {
             if (_lanes[lane].IsValid)
             {
@@ -392,11 +393,8 @@ public sealed class GraphLayoutBuilder
         for (var index = 0; index < edges.Count; index++)
         {
             var edge = edges[index];
-            if (edge.Kind == GraphEdgeKind.Through && edge.ToLane >= position)
-            {
-                edges[index] = edge with { ToLane = edge.ToLane + 1 };
-            }
-            else if (edge.Kind == GraphEdgeKind.Outgoing && edge.ToLane >= position)
+            // An incoming edge belongs to the row above (its lane is where the line was), so it never moves.
+            if (edge.Kind != GraphEdgeKind.Incoming && edge.ToLane >= position)
             {
                 edges[index] = edge with { ToLane = edge.ToLane + 1 };
             }
