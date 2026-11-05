@@ -125,7 +125,7 @@ public sealed class GraphLayoutBuilder
                 parentLane = OpenedParentLane(edges, parent);
                 if (parentLane < 0)
                 {
-                    parentLane = FindFreeLane();
+                    parentLane = FindFreeLaneNotEndingHere(edges);
                     EnsureLane(parentLane);
                     _laneSlots[parentLane] = SlotForNewLane(parent);
                     _lanes[parentLane] = parent;
@@ -324,6 +324,36 @@ public sealed class GraphLayoutBuilder
         }
 
         return _lanes.Count;
+    }
+
+    // Like FindFreeLane, but skips a lane that a line ended in at this row (a child waiting for this commit): the merged
+    // parent's line would carry on straight below it and read as that child's line passing through the merge (#1226).
+    private int FindFreeLaneNotEndingHere(List<GraphEdge> edges)
+    {
+        var lane = FindFreeLane();
+        while (EndsHere(edges, lane))
+        {
+            lane++;
+            while (lane < _lanes.Count && _lanes[lane].IsValid)
+            {
+                lane++;
+            }
+        }
+
+        return lane;
+    }
+
+    private static bool EndsHere(List<GraphEdge> edges, int lane)
+    {
+        foreach (var edge in edges)
+        {
+            if (edge.Kind == GraphEdgeKind.Incoming && edge.FromLane == lane)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     // FNV-style mix over (lane index, waited-for commit) of the occupied lanes.
