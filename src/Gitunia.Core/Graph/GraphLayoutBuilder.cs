@@ -29,7 +29,8 @@ public sealed class GraphLayoutBuilder
     private readonly List<bool> _laneNamedByParent = [];
 
     // Whether the commit the lane waits for is the first parent of a merge: a line of merges is a long-lived lane (main)
-    // that a back-merge joins from the right (#1232).
+    // that a back-merge node directly to its right joins (#1232). Only read where the lane waits for a commit, and
+    // every assignment sets it, so it is not cleared when a lane is freed.
     private readonly List<bool> _laneAfterMerge = [];
 
     private readonly List<GraphRow> _rows = [];
