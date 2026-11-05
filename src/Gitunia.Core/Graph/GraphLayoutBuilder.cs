@@ -311,8 +311,8 @@ public sealed class GraphLayoutBuilder
         return false;
     }
 
-    // Leftmost free lane, or the next new one. Only the lane of the commit being laid out can end in a row, and a later
-    // parent may reuse it: its line simply continues straight down.
+    // Leftmost free lane, or the next new one. The first parent keeps the node lane; a merged parent uses
+    // FindFreeLaneNotEndingHere instead.
     private int FindFreeLane()
     {
         for (var lane = 0; lane < _lanes.Count; lane++)
