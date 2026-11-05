@@ -83,16 +83,18 @@ public class GraphRowRendererTests
     [Fact]
     public void GivenEdgeSpanningAThroughLane_WhenRendering_ThenCrossingIsDrawn()
     {
-        // Lanes 0, 1 and 2 wait for 10, 11 and 12; commit 12 sits in lane 2 and merges commit 10 in lane 0.
+        // Lanes 0, 1 and 2 wait for 10, 11 and 12; commit 10 ends lane 0, then commit 12 in lane 2 merges commit 99 into
+        // the free lane 0, across lane 1.
         var rows = Rows(
             GraphGlyphSet.Unicode,
             30,
             CommitFactory.Commit(20, "a", [10]),
             CommitFactory.Commit(21, "b", [11]),
             CommitFactory.Commit(22, "c", [12]),
-            CommitFactory.Commit(12, "d", [13, 10]));
+            CommitFactory.Commit(10, "e", []),
+            CommitFactory.Commit(12, "d", [13, 99]));
 
-        Assert.Equal("├─┼─○  d", rows[3]);
+        Assert.Equal("╭─┼─○  d", rows[4]);
     }
 
     [Fact]

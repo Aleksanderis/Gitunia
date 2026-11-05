@@ -119,7 +119,10 @@ public sealed class GraphLayoutBuilder
             }
             else
             {
-                parentLane = IndexOfLane(parent);
+                // A merged branch gets a lane of its own even when another lane already waits for its tip (a branch
+                // forked there): the two join at that commit, so the merge never looks like the other branch carrying
+                // on past it (#1224). Only the lane of an earlier parent of this same commit is shared.
+                parentLane = OpenedParentLane(edges, parent);
                 if (parentLane < 0)
                 {
                     parentLane = FindFreeLane();
@@ -222,6 +225,20 @@ public sealed class GraphLayoutBuilder
         }
 
         return slot;
+    }
+
+    // The lane an earlier outgoing edge of this row opened for the same parent (a repeated parent id), else -1.
+    private int OpenedParentLane(List<GraphEdge> edges, ObjectId parent)
+    {
+        foreach (var edge in edges)
+        {
+            if (edge.Kind == GraphEdgeKind.Outgoing && _lanes[edge.ToLane] == parent)
+            {
+                return edge.ToLane;
+            }
+        }
+
+        return -1;
     }
 
     private int IndexOfLane(ObjectId commitId)

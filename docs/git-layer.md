@@ -81,7 +81,7 @@ Rules: `.claude/rules/git-layer.md`.
 - **Commit graph:** hash (`ObjectId`, a fixed 40-byte struct), parents, author, date, subject, refs. Lane assignment is a pure function computed incrementally from `rev-list --parents` order, so it can be tested and cached.
   - A lane waits for exactly one commit id; lanes are not shifted left, so columns do not jump while scrolling or loading.
   - **Lane order (#757).** A branch tip takes the leftmost free lane, so the newest tip is leftmost; the layout never reads HEAD.
-  - **One lane per branch (#759).** A first parent continues its commit's lane even when another lane waits for it, so every lane runs to its fork commit, where lanes join (several `Incoming` edges).
+  - **One lane per branch (#759).** A first parent continues its commit's lane even when another lane waits for it, so every lane runs to its fork commit, where lanes join (several `Incoming` edges); a second parent (merged branch) always opens a lane of its own, even when another lane already waits for that commit (#1224).
   - **Colours (#761, #807, #849).** A lane takes the colour slot of its branch name (`BranchColors`, from a separate `log --no-walk` read started with the log; lanes fall back to their first commit when it fails), moved on to a slot no open lane and no tip of the last 50 rows uses. `GraphRow.LabelSlots` colours the chips. Behaviour: `docs/internal/ux-workflows.md`, graph.
   - `GraphRow.LaneFingerprint` hashes the commits the open lanes wait for, so an incremental reload only joins old rows where the layout below is the same.
 
