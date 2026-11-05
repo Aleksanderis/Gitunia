@@ -13,7 +13,7 @@ Colours are decided in one place: `PaletteTable` (`Gitunia.Tui.Views`) holds the
 ```
  1 gitunia                                                   <- tab row
 ╭─ gitunia ────────────┬─ History ──────────────────────────────╮
-│  ▾ Branches 2        │ ○─╮  main Merge feature x      Ada ... │
+│  ▾ Branches 2        │ ○╲  main Merge feature x       Ada ... │
 │     feature/x        │ ●  │  Fix parser                       │
 ├─ Details ─ Changes ─ Files ─ 64d72f2 ─ 3 files ┬─ Diff ... ──┤
 │ commit  64d72f2...                             │ @@ -1 +1 @@  │

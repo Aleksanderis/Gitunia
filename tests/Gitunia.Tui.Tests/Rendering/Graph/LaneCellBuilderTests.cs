@@ -72,6 +72,48 @@ public class LaneCellBuilderTests
     }
 
     [Fact]
+    public void GivenMergeLineOverAThroughLane_WhenDrawing_ThenTheLaneKeepsItsOwnColour()
+    {
+        var edges = new[]
+        {
+            new GraphEdge(GraphEdgeKind.Incoming, 1, 0, 5),
+            new GraphEdge(GraphEdgeKind.Through, 2, 2, 7),
+            new GraphEdge(GraphEdgeKind.Outgoing, 0, 3, 9),
+        };
+        var row = new GraphRow(CommitFactory.Id(1), 0, 4, edges);
+
+        var cells = LaneCellBuilder.Build(row, 4, GraphGlyphSet.Unicode, false);
+
+        Assert.Equal('│', cells[4].Glyph);
+        Assert.Equal(7, cells[4].Color);
+    }
+
+    [Fact]
+    public void GivenLaneThatEndsAndStartsAtTheRowUnderAMergeLine_WhenDrawing_ThenTheJoinStaysVisible()
+    {
+        var edges = new[]
+        {
+            new GraphEdge(GraphEdgeKind.Incoming, 1, 0),
+            new GraphEdge(GraphEdgeKind.Outgoing, 0, 1),
+            new GraphEdge(GraphEdgeKind.Outgoing, 0, 2),
+        };
+
+        Assert.Equal("○─┼╲  ",Draw(GraphGlyphSet.Unicode, 3, 0, edges));
+    }
+
+    [Fact]
+    public void GivenForkFromTheLeft_WhenDrawing_ThenTheLineStepsInWithABackslash()
+    {
+        var edges = new[]
+        {
+            new GraphEdge(GraphEdgeKind.Incoming, 0, 2),
+            new GraphEdge(GraphEdgeKind.Outgoing, 2, 2),
+        };
+
+        Assert.Equal(" ╲──● ", Draw(GraphGlyphSet.Unicode, 3, 2, edges));
+    }
+
+    [Fact]
     public void GivenForkFromTheRight_WhenDrawing_ThenTheLineStepsInWithASlash()
     {
         var edges = new[]

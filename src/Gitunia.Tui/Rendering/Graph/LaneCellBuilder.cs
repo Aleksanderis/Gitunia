@@ -9,7 +9,9 @@ namespace Gitunia.Tui.Rendering.Graph;
 /// </summary>
 public static class LaneCellBuilder
 {
-    private const LineDirections AllSides = LineDirections.Up | LineDirections.Down | LineDirections.Left | LineDirections.Right;
+    // A through lane with a connecting line over it: all four sides plus the through marker.
+    private const LineDirections CrossingMask =
+        LineDirections.Through | LineDirections.Up | LineDirections.Down | LineDirections.Left | LineDirections.Right;
 
     /// <param name="row">The layout of the row.</param>
     /// <param name="laneColumns">Lanes shown; lanes further right are drawn in the last column.</param>
@@ -33,7 +35,7 @@ public static class LaneCellBuilder
             {
                 case GraphEdgeKind.Through:
                     var throughLane = Math.Min(edge.FromLane, laneColumns - 1);
-                    Add(directions, colors, throughLane * 2, LineDirections.Up | LineDirections.Down, edge.Color);
+                    AddThrough(directions, colors, throughLane * 2, edge.Color);
                     break;
                 case GraphEdgeKind.Incoming:
                     incomingCount++;
@@ -67,7 +69,12 @@ public static class LaneCellBuilder
         for (var column = 0; column < cells.Length; column++)
         {
             // A lane crossing a connecting line stays a plain vertical: the line passes under it instead of a cross.
-            var cellDirections = directions[column] == AllSides ? LineDirections.Up | LineDirections.Down : directions[column];
+            var cellDirections = directions[column] & ~LineDirections.Through;
+            if ((directions[column] & CrossingMask) == CrossingMask)
+            {
+                cellDirections = LineDirections.Up | LineDirections.Down;
+            }
+
             cells[column] = new GraphCell(glyphs.For(cellDirections), colors[column]);
             if (directions[column] == LineDirections.None)
             {
@@ -141,7 +148,7 @@ public static class LaneCellBuilder
         Add(directions, colors, step.Lane * 2, step.Vertical | (isRight ? LineDirections.Left : LineDirections.Right), step.Color);
     }
 
-    // The first line in a cell decides its colour (a through lane keeps its own where a connection crosses it).
+    // The first line in a cell decides its colour; a through lane always keeps its own where a connection crosses it.
     private static void Add(LineDirections[] directions, int[] colors, int column, LineDirections added, int color)
     {
         if (directions[column] == LineDirections.None)
@@ -150,6 +157,12 @@ public static class LaneCellBuilder
         }
 
         directions[column] |= added;
+    }
+
+    private static void AddThrough(LineDirections[] directions, int[] colors, int column, int color)
+    {
+        colors[column] = color;
+        directions[column] |= LineDirections.Up | LineDirections.Down | LineDirections.Through;
     }
 
     // Lines in and out of the same lane (a lane ending here and starting again) would share one diagonal cell.

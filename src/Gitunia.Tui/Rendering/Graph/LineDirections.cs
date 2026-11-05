@@ -15,4 +15,7 @@ public enum LineDirections
 
     /// <summary>The cell holds a diagonal from its bottom left to its top right.</summary>
     Slash = 32,
+
+    /// <summary>The cell holds a lane passing through the row; a marker only, never a glyph of its own.</summary>
+    Through = 64,
 }
