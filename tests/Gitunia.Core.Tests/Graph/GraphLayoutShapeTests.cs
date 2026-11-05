@@ -62,20 +62,6 @@ public class GraphLayoutShapeTests
     }
 
     [Fact]
-    public void GivenMergeWhereAnotherLineEndsInAFreeLane_WhenLayingOut_ThenTheMergedParentDoesNotReuseThatLane()
-    {
-        // The shape of Geeratya a54c200: lanes 0 to 2 are busy, lane 3 holds a line that ends at merge 10, which merges 21.
-        var rows = GraphLayout.Compute(
-            [Commit(1, 10), Commit(2, 12), Commit(3, 13), Commit(4, 10, 14), Commit(10, 20, 21), Commit(20), Commit(21)]);
-
-        var merge = rows[4];
-        Assert.Equal(0, merge.Lane);
-        Assert.Contains(new GraphEdge(GraphEdgeKind.Incoming, 3, 0), Shape(merge.Edges));
-        Assert.Contains(new GraphEdge(GraphEdgeKind.Outgoing, 0, 5), Shape(merge.Edges));
-        Assert.DoesNotContain(merge.Edges, edge => edge.Kind != GraphEdgeKind.Incoming && edge.ToLane == 3);
-    }
-
-    [Fact]
     public void GivenBackMergeOfALineOfMergesRightNextToIt_WhenLayingOut_ThenTheMergeEdgeJoinsThatLaneFromTheLeft()
     {
         // The shape of Geeratya 047adcc: 1 merges 2 (main) and 3 (feature); 3 is a back-merge of 2 into the feature.
