@@ -44,6 +44,19 @@ public class GraphSplicerTests
     }
 
     [Fact]
+    public void GivenABackMergeBelowTheNewTip_WhenSplicing_ThenResultEqualsFullLayout()
+    {
+        var old = GraphBackMergeTests.BackMerge;
+        var updated = new List<CommitInfo> { Commit(30, 20) };
+        updated.AddRange(old);
+
+        var (result, _) = Reload(old, updated);
+
+        // The new tip moves the lanes, so the join may come late or not at all, never wrongly.
+        AssertEqualToFullLayout(updated, result);
+    }
+
+    [Fact]
     public void GivenUnchangedLog_WhenObservingTheFirstRow_ThenItJoinsImmediately()
     {
         var old = RandomHistory(3, count: 50, window: 6);
