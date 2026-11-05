@@ -47,6 +47,21 @@ public class GraphLayoutShapeTests
     }
 
     [Fact]
+    public void GivenMergedTipThatAnotherBranchForkedFrom_WhenLayingOut_ThenTheMergeOpensItsOwnLaneThatJoinsAtTheTip()
+    {
+        // 1 is a newer branch tip on top of 3; 2 merges 4 and 3; the merged branch tip 3 is also the parent of 1.
+        var rows = GraphLayout.Compute([Commit(1, 3), Commit(2, 4, 3), Commit(4, 5), Commit(3, 5), Commit(5)]);
+
+        Assert.Equal(1, rows[1].Lane);
+        Assert.Equal(3, rows[1].LaneCount);
+        Assert.Contains(new GraphEdge(GraphEdgeKind.Outgoing, 1, 2), Shape(rows[1].Edges));
+        Assert.Equal(0, rows[3].Lane);
+        Assert.Equal(
+            [new GraphEdge(GraphEdgeKind.Incoming, 0, 0), new GraphEdge(GraphEdgeKind.Incoming, 2, 0)],
+            Shape(rows[3].Edges.Where(edge => edge.Kind == GraphEdgeKind.Incoming).ToArray()));
+    }
+
+    [Fact]
     public void GivenOctopusMerge_WhenLayingOut_ThenEveryParentGetsItsOwnLane()
     {
         var rows = GraphLayout.Compute([Commit(1, 2, 3, 4, 5), Commit(2, 6), Commit(3, 6), Commit(4, 6), Commit(5, 6), Commit(6)]);
