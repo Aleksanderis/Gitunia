@@ -46,7 +46,7 @@ public sealed class PaneGeometry(IPaneChrome chrome, IPaneArrangement arrangemen
 
     /// <summary>The rectangles of the Changes view panes.</summary>
     public WorkingTreeRects WorkingRects() =>
-        WorkingTreeLayout.Compute(ScreenWidth, ScreenHeight, working.FocusedPane(), working.IsDiffZoomed());
+        WorkingTreeLayout.Compute(ScreenWidth, ScreenHeight, working.FocusedPane(), working.IsDiffZoomed(), working.ListWidth());
 
     /// <summary>The line between the lists and the diff, on the screen's rows of content.</summary>
     public PaneRect WorkingDividerRect()

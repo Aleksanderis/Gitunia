@@ -34,6 +34,11 @@ public static class PaneSizeReducer
         }
 
         var view = tab.View;
+        if (view.Mode == TabViewMode.WorkingTree)
+        {
+            return ReduceWorking(state, tab, command, screen.Width);
+        }
+
         var current = new PaneSizes(view.SidebarWidth, view.BottomHeight, view.DetailWidth);
         var sizes = PaneResizeRules.Apply(
             current,
@@ -51,6 +56,18 @@ public static class PaneSizeReducer
         var update = WorkspaceReducer.Reduce(
             state.Workspace,
             new TabCommand(tab.Id, new SetPaneSizesCommand(sizes.SidebarWidth, sizes.BottomHeight, sizes.DetailWidth)));
+
+        return new AppUpdate(state with { Workspace = update.Workspace }, [.. update.Effects]);
+    }
+
+    private static AppUpdate ReduceWorking(AppState state, RepositoryState tab, PaneSizeCommand command, int screenWidth)
+    {
+        if (!PaneResizeRules.TryApplyWorking(tab.View.WorkingListWidth, command.Action, command.Count, tab.View.FocusedPane, screenWidth, out var width))
+        {
+            return Notice(state, command.Action == ActionIds.PaneResetSizes ? AlreadyAutomaticNotice : AtLimitNotice);
+        }
+
+        var update = WorkspaceReducer.Reduce(state.Workspace, new TabCommand(tab.Id, new SetWorkingListWidthCommand(width)));
 
         return new AppUpdate(state with { Workspace = update.Workspace }, [.. update.Effects]);
     }

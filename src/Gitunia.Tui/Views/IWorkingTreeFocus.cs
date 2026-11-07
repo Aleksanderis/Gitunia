@@ -20,4 +20,7 @@ public interface IWorkingTreeFocus
 
     /// <summary>The staging buttons of the diff box's title row: those of the selected file's side.</summary>
     WorkingTreeButtons DiffButtons();
+
+    /// <summary>Columns of the file lists the user set with the resize keys, null for automatic.</summary>
+    int? ListWidth();
 }

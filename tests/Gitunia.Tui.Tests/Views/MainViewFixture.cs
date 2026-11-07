@@ -58,6 +58,8 @@ public sealed class MainViewFixture : IDisposable
 
         public bool IsDiffZoomed() => false;
 
+        public int? ListWidth() => null;
+
         public WorkingTreeButtons DiffButtons() => WorkingTreeButtons.None;
     }
 

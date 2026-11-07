@@ -134,7 +134,7 @@ public static class ScreenComposer
             lines.Add(ChromeBuilder.Tabs(model, width, glyphs));
         }
 
-        var rects = WorkingTreeLayout.Compute(width, height, working.Focused, working.IsDiffZoomed);
+        var rects = WorkingTreeLayout.Compute(width, height, working.Focused, working.IsDiffZoomed, working.ListWidth);
         var isUnstagedFocused = working.Focused == PaneKind.WorkingUnstaged;
         var isStagedFocused = working.Focused == PaneKind.WorkingStaged;
         var isMessageFocused = working.Focused == PaneKind.WorkingMessage;

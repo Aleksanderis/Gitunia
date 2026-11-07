@@ -19,6 +19,7 @@ public static class RepositoryReducer
         OpenWorkingTreeCommand => OpenWorkingTree(state),
         LeaveWorkingTreeCommand => state with { View = state.View with { Mode = TabViewMode.History, FocusedPane = PaneKind.Graph } },
         SetPaneSizesCommand sizes => state with { View = state.View with { SidebarWidth = sizes.SidebarWidth, BottomHeight = sizes.BottomHeight, DetailWidth = sizes.DetailWidth } },
+        SetWorkingListWidthCommand list => state with { View = state.View with { WorkingListWidth = list.Width } },
         SetDetailTreeCommand tree => state with { View = state.View with { FileTree = tree.Tree } },
         SetDiffPaneCommand diff => state with { View = state.View with { Diff = diff.Pane } },
         SetBottomTabCommand bottomTab => state with { View = state.View with { BottomTab = bottomTab.Tab } },
