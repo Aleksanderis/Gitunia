@@ -375,6 +375,10 @@ public sealed class TabRefresher : IDisposable, IPollTarget
     {
         _isRunning = false;
         var applied = TakeInFlight();
+
+        // The run cleared the pending kinds when it started, so anything pending now was requested while it ran (an
+        // explicit refresh after an operation, say). That request needs its own run: nothing else would start one.
+        var requestedMeanwhile = _pending != RepositoryChangeKinds.None;
         _pending |= kinds;
         _forceGraph |= reloadGraph;
         _announce |= isManual;
@@ -392,6 +396,10 @@ public sealed class TabRefresher : IDisposable, IPollTarget
         }
 
         RunAll(applied);
+        if (requestedMeanwhile)
+        {
+            RunNext();
+        }
     }
 
     private string RepositoryName() => Path.GetFileName(Path.TrimEndingDirectorySeparator(_location.RootPath));
