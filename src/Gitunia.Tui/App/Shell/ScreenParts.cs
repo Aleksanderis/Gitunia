@@ -77,7 +77,8 @@ public sealed class ScreenParts
             foundation.Arrangements,
             foundation.Chrome,
             foundation.Sessions,
-            overlays.KeyFocus);
+            overlays.KeyFocus,
+            foundation.WorkingFocus);
     }
 
     /// <summary>The message of the status bar.</summary>

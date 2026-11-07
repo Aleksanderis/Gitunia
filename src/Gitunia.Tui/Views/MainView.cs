@@ -319,6 +319,7 @@ public sealed class MainView : IDisposable
         panes.Diff.GestureRaised += (gesture, target) => Gestured?.Invoke(DefaultKeymap.DiffView, gesture, target);
         _working.Gestured += (view, gesture, target) => Gestured?.Invoke(view, gesture, target);
         _divider.Dragged += (column, row) => EdgeDragged?.Invoke(PaneEdge.Sidebar, column, row);
+        _working.ListsDragged += (column, row) => EdgeDragged?.Invoke(PaneEdge.WorkingLists, column, row);
         _bottomDivider.Dragged += (column, row) => EdgeDragged?.Invoke(PaneEdge.Detail, column, row);
         _detailTitle.Dragged += (column, row) => EdgeDragged?.Invoke(PaneEdge.Bottom, column, row);
         _diffTitle.Dragged += (column, row) => EdgeDragged?.Invoke(PaneEdge.Bottom, column, row);

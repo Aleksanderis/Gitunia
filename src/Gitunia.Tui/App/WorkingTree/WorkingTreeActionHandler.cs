@@ -45,6 +45,11 @@ public sealed partial class WorkingTreeActionHandler(
         ActionIds.FilesPathTree,
         ActionIds.FileHistoryOpen,
         ActionIds.LineHistoryOpen,
+        ActionIds.PaneWider,
+        ActionIds.PaneNarrower,
+        ActionIds.PaneTaller,
+        ActionIds.PaneShorter,
+        ActionIds.PaneResetSizes,
     ];
 
     /// <summary>A short notice for the status bar from the last action, empty when none.</summary>

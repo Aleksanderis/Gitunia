@@ -3,6 +3,7 @@ using Gitunia.Core;
 using Gitunia.App;
 using Gitunia.Core.Clipboard;
 using Gitunia.Core.Keymap;
+using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Repositories;
@@ -69,6 +70,21 @@ public class WorkingTreeActionHandlerTests
 
         Assert.Equal(TabViewMode.History, harness.Tab.View.Mode);
         Assert.Contains("missing", harness.Handler.Message, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("pane.wider")]
+    [InlineData("pane.narrower")]
+    [InlineData("pane.taller")]
+    [InlineData("pane.shorter")]
+    [InlineData("pane.reset-sizes")]
+    public void GivenTheWorkingTreeIsShown_WhenAPaneResizeActionArrives_ThenTheHandlerLeavesItToTheResizeHandler(string id)
+    {
+        var harness = new Harness(Modified("a.txt"));
+        harness.Handler.TryExecute(ActionIds.WorkingTreeToggle, null);
+
+        Assert.False(harness.Handler.TryExecute(new ActionId(id), null));
+        Assert.Equal(string.Empty, harness.Handler.Message);
     }
 
     [Fact]

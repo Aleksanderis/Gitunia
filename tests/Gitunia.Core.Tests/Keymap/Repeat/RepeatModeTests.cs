@@ -37,6 +37,11 @@ public class RepeatModeTests
     [InlineData(PaneKind.Graph)]
     [InlineData(PaneKind.Detail)]
     [InlineData(PaneKind.Diff)]
+    [InlineData(PaneKind.WorkingUnstaged)]
+    [InlineData(PaneKind.WorkingStaged)]
+    [InlineData(PaneKind.WorkingUnstagedDiff)]
+    [InlineData(PaneKind.WorkingStagedDiff)]
+    [InlineData(PaneKind.WorkingMessage)]
     public void GivenAResizeStep_WhenStarting_ThenTheResizeModeStarts(PaneKind pane)
     {
         var mode = RepeatMode.Start(ActionIds.PaneShorter, Tab, pane);
