@@ -221,8 +221,9 @@ public class TabRefresherTests
         // The test thread is the pump, so the failed run cannot finish before the second request has been merged.
         harness.Refresher.RefreshNow();
         harness.Refresher.RefreshStatus(() => applied++);
-        await harness.Pump.RunUntilAsync(() => applied == 1);
+        await harness.Pump.RunUntilAsync(() => applied == 1 && !harness.Refresher.IsRefreshing);
 
+        // Two runs, no more: the retry of a request does not retry itself while the repository keeps failing.
         Assert.Equal(before + 2, harness.RepositoryRefresher.RefreshCount);
     }
 
