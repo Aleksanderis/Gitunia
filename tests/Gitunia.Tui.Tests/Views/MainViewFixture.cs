@@ -36,10 +36,13 @@ public sealed class MainViewFixture : IDisposable
         var content = new EmptyContent();
         var grids = new FrameGrids(Panes, geometry, mode, content);
         var parts = new ChromeParts(Panes, geometry, grids, content, gate, mode);
-        View = new MainView(parts, new WorkingTreeChrome(parts, new WorkingListButtons(geometry, Panes)));
+        Working = new WorkingTreeChrome(parts, new WorkingListButtons(geometry, Panes));
+        View = new MainView(parts, Working);
     }
 
     public PaneViews Panes { get; }
+
+    public WorkingTreeChrome Working { get; }
 
     public MainView View { get; }
 

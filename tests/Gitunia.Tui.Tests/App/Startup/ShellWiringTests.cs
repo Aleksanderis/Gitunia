@@ -3,6 +3,7 @@ using Gitunia.App;
 using Gitunia.Core.Input;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
+using Gitunia.Core.Keymap.Repeat;
 using Gitunia.Core.Overlays;
 using Gitunia.Core.Shell;
 using Gitunia.Core.Workspaces;
@@ -20,6 +21,9 @@ namespace Gitunia.Tui.Tests.App.Startup;
 /// <summary>A composed and wired shell on a headless driver reacting to a state change; the order of the state subscribers ShellWiring adds is pinned too.</summary>
 public sealed class ShellWiringTests : IDisposable
 {
+    private const int ScreenWidth = 120;
+    private const int ScreenHeight = 30;
+
     private readonly string _root = Directory.CreateTempSubdirectory("gitunia-wiring-").FullName;
     private readonly ShellComposition _shell;
     private readonly List<string> _wired;
@@ -100,15 +104,27 @@ public sealed class ShellWiringTests : IDisposable
 
         PressAction(ActionIds.PaneWider);
         var wider = ListColumns();
+        var repeatAfterStep = _shell.Keys.Repeat.Active;
         PressAction(ActionIds.PaneNarrower);
         PressAction(ActionIds.PaneNarrower);
         var narrower = ListColumns();
         PressAction(ActionIds.PaneResetSizes);
 
         Assert.True(wider > automatic);
+        Assert.Equal(RepeatKind.Resize, repeatAfterStep?.Kind);
         Assert.True(narrower < automatic);
         Assert.Equal(automatic, ListColumns());
         Assert.Null(_shell.Foundation.Host.Workspace.ActiveTab!.View.WorkingListWidth);
+    }
+
+    [Fact]
+    public void GivenTheChangesView_WhenAHeightKeyIsRefused_ThenNoRepeatModeStarts()
+    {
+        OpenChangesView();
+
+        PressAction(ActionIds.PaneTaller);
+
+        Assert.Null(_shell.Keys.Repeat.Active);
     }
 
     [Fact]
@@ -134,11 +150,9 @@ public sealed class ShellWiringTests : IDisposable
         var widest = ListColumns();
 
         Assert.Equal(PaneSizing.MinimumWorkingListWidth, narrowest);
-        Assert.Equal(ScreenWidth - 2 - 1 - PaneSizing.MinimumDiffWidth, widest);
+        Assert.Equal(PaneSizing.MinimumDiffWidth, _shell.Foundation.Geometry.WorkingRects().Diff.Width);
+        Assert.True(widest > narrowest);
     }
-
-    private const int ScreenWidth = 120;
-    private const int ScreenHeight = 30;
 
     private void OpenChangesView()
     {
