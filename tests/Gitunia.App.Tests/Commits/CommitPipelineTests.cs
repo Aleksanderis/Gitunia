@@ -133,7 +133,7 @@ public class CommitPipelineTests
         var output = string.Join('\n', pipeline.Host.State.Shell.Output!.Lines);
         Assert.Contains("Really commit? [y/N]", output, StringComparison.Ordinal);
         Assert.Contains("no answer: stdin is closed", output, StringComparison.Ordinal);
-        Assert.Contains("<space>ec", output, StringComparison.Ordinal);
+        Assert.Contains("the commit editor key", output, StringComparison.Ordinal);
     }
 
     [Fact]

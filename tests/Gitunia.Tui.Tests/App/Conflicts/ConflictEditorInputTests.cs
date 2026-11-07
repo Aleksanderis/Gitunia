@@ -235,7 +235,7 @@ public class ConflictEditorInputTests
         Assert.False(harness.Controller.IsOpen);
         Assert.Contains("delete/modify", harness.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
         Assert.Contains("not for the editor", harness.Statuses.Log.Latest.Text, StringComparison.Ordinal);
-        Assert.Contains("<space>em", harness.Statuses.Log.Latest.Text, StringComparison.Ordinal);
+        Assert.Contains("{key:tool.mergetool|the mergetool}", harness.Statuses.Log.Latest.Text, StringComparison.Ordinal);
     }
 
     [Fact]

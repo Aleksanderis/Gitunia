@@ -106,7 +106,7 @@ public class PickPipelineTests
 
         var latest = pipeline.Statuses.Log.Latest!;
         Assert.Equal(StatusSeverity.Warning, latest.Severity);
-        Assert.Contains("<space>gc", latest.Text, StringComparison.Ordinal);
+        Assert.Contains("continue", latest.Text, StringComparison.Ordinal);
         var location = pipeline.Host.Workspace.FindTab(pipeline.TabId)!.Location;
         Assert.Equal(RepositoryOperation.CherryPick, new RepositoryOperationDetector().Detect(location));
     }

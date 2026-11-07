@@ -30,7 +30,7 @@ public sealed record OperationBanner(
                 parts.Add(Detail);
             }
 
-            parts.AddRange(Chips.Select(chip => $"{chip.Keys} {chip.Label}"));
+            parts.AddRange(Chips.Select(chip => chip.Keys.Length == 0 ? chip.Label : $"{chip.Keys} {chip.Label}"));
             if (Hint.Length > 0)
             {
                 parts.Add(Hint);

@@ -1,3 +1,4 @@
+using Gitunia.Core.Operations;
 using Gitunia.Core.Branches;
 using Gitunia.Core.Effects;
 using Gitunia.Core.Sidebar;
@@ -92,8 +93,8 @@ public class BranchReducerTests
 
         var warning = Warning(effects);
         Assert.Contains($"finish or abort the {name} first", warning, StringComparison.Ordinal);
-        Assert.Contains("<space>gc", warning, StringComparison.Ordinal);
-        Assert.Contains("<space>ga", warning, StringComparison.Ordinal);
+        Assert.Contains(OperationKeys.Continue, warning, StringComparison.Ordinal);
+        Assert.Contains(OperationKeys.Abort, warning, StringComparison.Ordinal);
     }
 
     [Fact]

@@ -1,3 +1,4 @@
+using Gitunia.Core.Operations;
 using Gitunia.Core.Effects;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Pick;
@@ -80,7 +81,7 @@ public class PickReducerTests
         var revert = PickReducer.Reduce(Request(PickKind.Revert, null, First), context);
 
         Assert.Contains($"finish or abort the {name} first", Warning(cherry.Effects), StringComparison.Ordinal);
-        Assert.Contains("<space>gc", Warning(revert.Effects), StringComparison.Ordinal);
+        Assert.Contains(OperationKeys.Continue, Warning(revert.Effects), StringComparison.Ordinal);
     }
 
     [Fact]

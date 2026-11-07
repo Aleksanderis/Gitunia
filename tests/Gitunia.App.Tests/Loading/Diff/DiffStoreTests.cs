@@ -1,3 +1,5 @@
+using Gitunia.Core.Keymap.Models;
+using Gitunia.Core.Keymap;
 using Gitunia.App.Loading;
 using Gitunia.App.Loading.Diff;
 using Gitunia.Core.Diff;
@@ -128,6 +130,27 @@ public class DiffStoreTests
         var document = await LoadFakeAsync(pump, store, commit);
 
         Assert.Contains("cut short", document.Rows[^1].Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task GivenARemappedLoadAllKey_WhenTheDiffIsCutShort_ThenTheNoteNamesTheNewKey()
+    {
+        var reader = new FakeDiffReader();
+        var commit = reader.Add(null, FakeDiffReader.FileAdding("big.txt", 2000));
+        var pump = new UiPump(Token);
+        var keymap = new KeyBindingTable(
+        [
+            new KeyBinding(KeyMode.Normal, "Diff", KeySequenceParser.Parse("<space>zv"), ActionIds.DiffLoadAnyway),
+        ]);
+        using var store = new DiffStore(
+            reader,
+            FakeCommitDetailsReader.Location,
+            pump,
+            new DiffStoreOptions(100, Keymap: keymap));
+
+        var document = await LoadFakeAsync(pump, store, commit);
+
+        Assert.Equal("Diff cut short after 100 rows: load all of it (<space>zv)", document.Rows[^1].Text);
     }
 
     [Fact]

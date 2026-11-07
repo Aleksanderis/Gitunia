@@ -1,3 +1,5 @@
+using Gitunia.Core.Operations;
+using Gitunia.Core.Keymap;
 using Gitunia.Core.Status;
 using Gitunia.Core.Text;
 using Gitunia.Git.Merge;
@@ -26,7 +28,7 @@ public static class MergeTexts
                 StatusSeverity.Info,
                 undo),
             MergeKind.Squashed => new IntegrationReport(
-                $"Squashed {target} into the index of {branch}: the changes are staged, commit them (<space>s); " +
+                $"Squashed {target} into the index of {branch}: the changes are staged, commit them in {KeyTokens.Of(ActionIds.WorkingTreeToggle, "the Changes view")}; " +
                 "nothing is committed yet",
                 StatusSeverity.Info),
             _ => ConflictReport(mode, branch, target),
@@ -49,7 +51,7 @@ public static class MergeTexts
 
         return new IntegrationReport(
             $"The merge of {target} into {branch} stopped on conflicts: resolve the files marked !, " +
-            "then <space>gc to continue or <space>ga to abort",
+            $"then {OperationKeys.Continue} or {OperationKeys.Abort}",
             StatusSeverity.Warning);
     }
 }

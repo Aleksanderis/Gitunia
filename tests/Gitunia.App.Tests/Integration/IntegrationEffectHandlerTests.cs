@@ -206,7 +206,7 @@ public class IntegrationEffectHandlerTests
     }
 
     [Theory]
-    [InlineData(MergeMode.Default, "<space>gc")]
+    [InlineData(MergeMode.Default, "{key:operation.continue|continue}")]
     [InlineData(MergeMode.Squash, "no operation is in progress")]
     public async Task GivenConflictingBranches_WhenMerging_ThenAWarningSaysHowToGoOn(MergeMode mode, string expected)
     {

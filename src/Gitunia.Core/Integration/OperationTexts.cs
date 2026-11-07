@@ -1,3 +1,4 @@
+using Gitunia.Core.Keymap;
 using Gitunia.Core.Operations;
 using Gitunia.Core.Overlays;
 using Gitunia.Core.Status;
@@ -18,7 +19,7 @@ public static class OperationTexts
     public const string NoOperationNotice = "No merge, rebase, cherry-pick or revert is in progress";
 
     public static string StillConflicted(int count) =>
-        $"{CountText.Plural(count, "file")} still conflicted: resolve and mark them (<space>a) first";
+        $"{CountText.Plural(count, "file")} still conflicted: resolve and mark them first: {KeyTokens.Of(ActionIds.WorkingTreeStage, "stage")}";
 
     public static string CannotSkipMerge => "A merge cannot be skipped: continue or abort it";
 
@@ -105,7 +106,7 @@ public static class OperationTexts
 
     private static IntegrationReport StoppedAgain(string done, string name) =>
         new(
-            $"{done}; the {name} stopped on conflicts: resolve the files marked !, then <space>gc",
+            $"{done}; the {name} stopped on conflicts: resolve the files marked !, then {OperationKeys.Continue}",
             StatusSeverity.Warning);
 
     private static string Finished(OperationInfo info, string? branch, string? head)

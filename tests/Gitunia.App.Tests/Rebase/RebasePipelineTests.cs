@@ -72,7 +72,7 @@ public class RebasePipelineTests
         var latest = pipeline.Statuses.Log.Latest!;
         Assert.Equal(StatusSeverity.Warning, latest.Severity);
         Assert.Contains("stopped on conflicts", latest.Text, StringComparison.Ordinal);
-        Assert.Contains("<space>gc", latest.Text, StringComparison.Ordinal);
+        Assert.Contains("continue", latest.Text, StringComparison.Ordinal);
     }
 
     [Fact]

@@ -1,3 +1,4 @@
+using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Text;
 using System.Collections.Immutable;
 using System.Globalization;
@@ -15,20 +16,13 @@ public static class OperationBannerBuilder
 {
     private const string Gap = "  ";
 
-    // The editor key is the global ConflictOpen binding; the text is not rebuilt from the keymap
-    // because the banner is plain data.
-    private const string EditorHint = "<space>gr open conflict editor";
-    private const string ShortEditorHint = "<space>gr conflict editor";
+    // The keys the banner names when no keymap is given (tests, tools); the running app passes its table (#1198).
+    private const string EditorLabel = "open conflict editor";
+    private const string ShortEditorLabel = "conflict editor";
 
     // No conflicted file is one the editor takes (delete/modify and the like): the mergetool is the way (#742).
-    private const string MergetoolHint = "<space>em open mergetool";
-    private const string ShortMergetoolHint = "<space>em mergetool";
-
-    private static readonly BannerChip Continue = new("<space>gc", "continue", ActionIds.OperationContinue);
-    private static readonly BannerChip Abort = new("<space>ga", "abort", ActionIds.OperationAbort);
-    private static readonly BannerChip Skip = new("<space>gs", "skip", ActionIds.OperationSkip);
-    private static readonly ImmutableArray<BannerChip> MergeChips = [Continue, Abort];
-    private static readonly ImmutableArray<BannerChip> SkippableChips = [Continue, Abort, Skip];
+    private const string MergetoolLabel = "open mergetool";
+    private const string ShortMergetoolLabel = "mergetool";
 
     /// <summary>The banner for <paramref name="info"/>, null when no operation the banner handles is in
     /// progress.</summary>
@@ -36,7 +30,13 @@ public static class OperationBannerBuilder
     /// <param name="conflictCount">Conflicted files in the working tree.</param>
     /// <param name="editorOpens">Whether the conflict editor takes any of the conflicted files; when not, the hint
     /// names the mergetool instead.</param>
-    public static OperationBanner? Build(OperationInfo? info, int conflictCount, bool editorOpens = true)
+    /// <param name="keymap">The running keymap the keys are read from; null names the default keys. An unbound action
+    /// has no key text and its hint is left out.</param>
+    public static OperationBanner? Build(
+        OperationInfo? info,
+        int conflictCount,
+        bool editorOpens = true,
+        KeyBindingTable? keymap = null)
     {
         if (info is null || Verb(info.Kind) is not { } verb)
         {
@@ -57,10 +57,14 @@ public static class OperationBannerBuilder
         }
 
         parts.Add(ConflictText(conflictCount));
-        var chips = info.Kind == RepositoryOperation.Merge ? MergeChips : SkippableChips;
+        var continueChip = Chip(keymap, ActionIds.OperationContinue, "<space>gc", "continue");
+        var abortChip = Chip(keymap, ActionIds.OperationAbort, "<space>ga", "abort");
+        ImmutableArray<BannerChip> chips = info.Kind == RepositoryOperation.Merge
+            ? [continueChip, abortChip]
+            : [continueChip, abortChip, Chip(keymap, ActionIds.OperationSkip, "<space>gs", "skip")];
         var hasConflicts = conflictCount > 0;
-        var hint = hasConflicts ? HintOf(editorOpens, isShort: false) : string.Empty;
-        var shortHint = hasConflicts ? HintOf(editorOpens, isShort: true) : string.Empty;
+        var hint = hasConflicts ? HintOf(editorOpens, isShort: false, keymap) : string.Empty;
+        var shortHint = hasConflicts ? HintOf(editorOpens, isShort: true, keymap) : string.Empty;
 
         return new OperationBanner(title, string.Join(Gap, parts), chips, hint, shortHint);
     }
@@ -84,14 +88,20 @@ public static class OperationBannerBuilder
         _ => operation.ToString().ToLowerInvariant(),
     };
 
-    private static string HintOf(bool editorOpens, bool isShort)
-    {
-        if (editorOpens)
-        {
-            return isShort ? ShortEditorHint : EditorHint;
-        }
+    private static BannerChip Chip(KeyBindingTable? keymap, ActionId action, string defaultKeys, string label) =>
+        new(KeyOrDefault(keymap, action, defaultKeys), label, action);
 
-        return isShort ? ShortMergetoolHint : MergetoolHint;
+    private static string KeyOrDefault(KeyBindingTable? keymap, ActionId action, string defaultKeys) =>
+        keymap is null ? defaultKeys : KeyTokens.KeyOf(keymap, action) ?? string.Empty;
+
+    private static string HintOf(bool editorOpens, bool isShort, KeyBindingTable? keymap)
+    {
+        var (action, defaultKeys, label) = editorOpens
+            ? (ActionIds.ConflictOpen, "<space>gr", isShort ? ShortEditorLabel : EditorLabel)
+            : (ActionIds.ToolMergetool, "<space>em", isShort ? ShortMergetoolLabel : MergetoolLabel);
+        var keys = KeyOrDefault(keymap, action, defaultKeys);
+
+        return keys.Length == 0 ? string.Empty : $"{keys} {label}";
     }
 
     private static string? Verb(RepositoryOperation operation) => operation switch
