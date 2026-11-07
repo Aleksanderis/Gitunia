@@ -21,25 +21,30 @@ public sealed class PaneSizeDragger
     private readonly IPaneChrome _chrome;
     private readonly IActiveSessions _sessions;
     private readonly KeyFocus _focus;
+    private readonly IWorkingTreeFocus _working;
     private PaneSizes? _laidOutSizes;
+    private int? _laidOutListWidth;
 
     /// <param name="host">Takes the size command.</param>
     /// <param name="arrangements">The saved sizes and the zoom.</param>
     /// <param name="chrome">The screen height; lays the panes out again.</param>
     /// <param name="sessions">A tab without a diff has nothing to resize.</param>
     /// <param name="focus">A drag is ignored while an overlay or the picker is open.</param>
+    /// <param name="working">Tells whether the Changes view diff fills the view, which leaves no divider to drag.</param>
     public PaneSizeDragger(
         Dispatcher host,
         PaneArrangements arrangements,
         IPaneChrome chrome,
         IActiveSessions sessions,
-        KeyFocus focus)
+        KeyFocus focus,
+        IWorkingTreeFocus working)
     {
         _host = host;
         _arrangements = arrangements;
         _chrome = chrome;
         _sessions = sessions;
         _focus = focus;
+        _working = working;
     }
 
     /// <summary>A divider or a pane title row is dragged to a screen cell.</summary>
@@ -48,6 +53,13 @@ public sealed class PaneSizeDragger
     /// <param name="row">The pointer row.</param>
     public void OnEdgeDragged(PaneEdge edge, int column, int row)
     {
+        if (edge == PaneEdge.WorkingLists)
+        {
+            DragWorkingLists(column);
+
+            return;
+        }
+
         if (_focus.IsBlocked || _sessions.ActiveSession()?.Diff is null || _arrangements.Arrangement().Zoomed is not null)
         {
             return;
@@ -64,10 +76,29 @@ public sealed class PaneSizeDragger
     public void OnStateChanged()
     {
         var sizes = _arrangements.SizesOfActiveTab();
-        if (sizes != _laidOutSizes)
+        var listWidth = _working.ListWidth();
+        if (sizes != _laidOutSizes || listWidth != _laidOutListWidth)
         {
             _laidOutSizes = sizes;
+            _laidOutListWidth = listWidth;
             _chrome.Relayout();
         }
+    }
+
+    private void DragWorkingLists(int column)
+    {
+        if (_focus.IsBlocked || _working.IsDiffZoomed() || _host.Workspace.ActiveTab is not { } tab
+            || tab.View.Mode != TabViewMode.WorkingTree)
+        {
+            return;
+        }
+
+        var width = PaneSizing.WorkingListWidth(_chrome.ScreenSize.Width, column - 1);
+        if (width == 0 || PaneSizing.WorkingListWidth(_chrome.ScreenSize.Width, tab.View.WorkingListWidth) == width)
+        {
+            return;
+        }
+
+        _host.Dispatch(new TabCommand(tab.Id, new SetWorkingListWidthCommand(width)));
     }
 }

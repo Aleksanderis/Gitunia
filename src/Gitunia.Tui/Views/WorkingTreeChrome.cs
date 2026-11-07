@@ -74,6 +74,7 @@ public sealed class WorkingTreeChrome : IDisposable
         _resolveButton = CreateListButton(WorkingTreeSection.Unstaged, panes.WorkingUnstaged, ListButtonKind.Resolve);
         _unstagedDiffButton = CreateListButton(WorkingTreeSection.Unstaged, panes.WorkingUnstaged, ListButtonKind.Diff);
         _stagedDiffButton = CreateListButton(WorkingTreeSection.Staged, panes.WorkingStaged, ListButtonKind.Diff);
+        _divider.Dragged += (column, row) => ListsDragged?.Invoke(column, row);
         _messageOptions.Clicked += OnMessageOptionsClicked;
         _diffTitle.Clicked += OnDiffTitleClicked;
         WireGestures();
@@ -102,6 +103,9 @@ public sealed class WorkingTreeChrome : IDisposable
     /// <see cref="MessageClicked"/>; the drag's first cell is reported as a click first.
     /// </summary>
     public event Action<int, int, int>? MessageDragged;
+
+    /// <summary>Raised with the screen column and row of the pointer while the divider between the lists and the diff is dragged.</summary>
+    public event Action<int, int>? ListsDragged;
 
     /// <summary>The frame views (divider, edges, diff title), to add to the window before the lists.</summary>
     public IEnumerable<View> FrameViews => [_divider, _leftEdge, _rightEdge, _diffTitle];

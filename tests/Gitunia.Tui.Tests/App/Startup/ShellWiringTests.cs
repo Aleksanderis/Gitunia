@@ -1,10 +1,18 @@
 using System.Reflection;
 using Gitunia.App;
+using Gitunia.Core.Input;
+using Gitunia.Core.Keymap;
+using Gitunia.Core.Keymap.Models;
+using Gitunia.Core.Keymap.Repeat;
+using Gitunia.Core.Overlays;
+using Gitunia.Core.Shell;
 using Gitunia.Core.Workspaces;
+using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Platform;
 using Gitunia.Tui.App.Shell;
+using Gitunia.Tui.Rendering.Panes;
 using Terminal.Gui.Drivers;
 using Xunit;
 
@@ -13,6 +21,9 @@ namespace Gitunia.Tui.Tests.App.Startup;
 /// <summary>A composed and wired shell on a headless driver reacting to a state change; the order of the state subscribers ShellWiring adds is pinned too.</summary>
 public sealed class ShellWiringTests : IDisposable
 {
+    private const int ScreenWidth = 120;
+    private const int ScreenHeight = 30;
+
     private readonly string _root = Directory.CreateTempSubdirectory("gitunia-wiring-").FullName;
     private readonly ShellComposition _shell;
     private readonly List<string> _wired;
@@ -84,6 +95,82 @@ public sealed class ShellWiringTests : IDisposable
         Assert.True(unstaged.Visible);
         Assert.True(unstaged.HasFocus);
     }
+
+    [Fact]
+    public void GivenTheChangesView_WhenTheResizeKeysRun_ThenTheListsResizeAndTheResetRestoresThem()
+    {
+        OpenChangesView();
+        var automatic = ListColumns();
+
+        PressAction(ActionIds.PaneWider);
+        var wider = ListColumns();
+        var repeatAfterStep = _shell.Keys.Repeat.Active;
+        PressAction(ActionIds.PaneNarrower);
+        PressAction(ActionIds.PaneNarrower);
+        var narrower = ListColumns();
+        PressAction(ActionIds.PaneResetSizes);
+
+        Assert.True(wider > automatic);
+        Assert.Equal(RepeatKind.Resize, repeatAfterStep?.Kind);
+        Assert.True(narrower < automatic);
+        Assert.Equal(automatic, ListColumns());
+        Assert.Null(_shell.Foundation.Host.Workspace.ActiveTab!.View.WorkingListWidth);
+    }
+
+    [Fact]
+    public void GivenTheChangesView_WhenAHeightKeyIsRefused_ThenNoRepeatModeStarts()
+    {
+        OpenChangesView();
+
+        PressAction(ActionIds.PaneTaller);
+
+        Assert.Null(_shell.Keys.Repeat.Active);
+    }
+
+    [Fact]
+    public void GivenTheChangesView_WhenTheDividerIsDragged_ThenTheListsFollowThePointer()
+    {
+        OpenChangesView();
+        var divider = _shell.Foundation.Geometry.WorkingDividerRect();
+
+        _shell.Screen.SizeDragger.OnEdgeDragged(PaneEdge.WorkingLists, divider.X + 10, divider.Y);
+
+        Assert.Equal(divider.X - 1 + 10, ListColumns());
+        Assert.Equal(divider.X + 10, _shell.Foundation.Geometry.WorkingDividerRect().X);
+    }
+
+    [Fact]
+    public void GivenTheChangesView_WhenTheDividerIsDraggedPastTheLimits_ThenTheWidthIsClamped()
+    {
+        OpenChangesView();
+
+        _shell.Screen.SizeDragger.OnEdgeDragged(PaneEdge.WorkingLists, 1, 5);
+        var narrowest = ListColumns();
+        _shell.Screen.SizeDragger.OnEdgeDragged(PaneEdge.WorkingLists, ScreenWidth - 1, 5);
+        var widest = ListColumns();
+
+        Assert.Equal(PaneSizing.MinimumWorkingListWidth, narrowest);
+        Assert.Equal(PaneSizing.MinimumDiffWidth, _shell.Foundation.Geometry.WorkingRects().Diff.Width);
+        Assert.True(widest > narrowest);
+    }
+
+    private void OpenChangesView()
+    {
+        var host = _shell.Foundation.Host;
+        var gitDirectory = Path.Combine(_root, ".git");
+        host.Dispatch(new OpenRepositoryCommand(new RepositoryLocation(_root, gitDirectory, gitDirectory, false, false)));
+        var window = _shell.Foundation.Chrome.Window;
+        window.Width = ScreenWidth;
+        window.Height = ScreenHeight;
+        window.Layout();
+        host.Dispatch(new ScreenResizedCommand(new ScreenExtent(ScreenWidth, ScreenHeight), DateTimeOffset.UnixEpoch));
+        host.Dispatch(new TabCommand(host.Workspace.ActiveTabId!.Value, new OpenWorkingTreeCommand()));
+    }
+
+    private void PressAction(ActionId action) =>
+        _shell.Foundation.Host.Dispatch(new ActionInvoked(action, null, new InputFocus(OverlayKind.None, true)));
+
+    private int ListColumns() => _shell.Foundation.Geometry.WorkingRects().Unstaged.Width;
 
     private sealed class TestPlatform(string root, ConsoleCapabilities capabilities) : IPlatform
     {
