@@ -48,7 +48,7 @@ public class BannerRendererTests
     [Fact]
     public void GivenAnEditorHint_WhenBuilding_ThenItsKeyIsInTheKeyRoleAndItsLabelInTheStatusRole()
     {
-        var banner = Rebase with { Hint = "<space>gr open conflict editor", ShortHint = "<space>gr conflict editor" };
+        var banner = Rebase with { Hint = EditorHint("<space>gr") };
 
         var segments = BannerRenderer.Build(banner, 160, GraphGlyphSet.Unicode).Line.Segments;
 
@@ -60,14 +60,26 @@ public class BannerRendererTests
     }
 
     [Fact]
+    public void GivenARemappedHintKeyWithASpace_WhenBuilding_ThenTheWholeKeyIsStyledAsOneKeyWithTheRightLabel()
+    {
+        var banner = Rebase with { Hint = EditorHint("Ctrl-w c") };
+
+        var segments = BannerRenderer.Build(banner, 160, GraphGlyphSet.Unicode).Line.Segments;
+
+        var key = segments.Single(segment => segment.Text == "Ctrl-w c");
+        Assert.Equal(SegmentRole.StatusKey, key.Role);
+        var label = segments[segments.ToList().IndexOf(key) + 1];
+        Assert.Equal(" open conflict editor", label.Text);
+    }
+
+    [Fact]
     public void GivenAHintAndNarrowWidth_WhenBuilding_ThenTheShortHintReplacesTheLongOneAndTheChipsStayWhole()
     {
         var banner = Rebase with
         {
             Detail = "3 conflicts",
             Chips = Rebase.Chips.RemoveAt(2),
-            Hint = "<space>gr open conflict editor",
-            ShortHint = "<space>gr conflict editor",
+            Hint = EditorHint("<space>gr"),
         };
 
         var tight = BannerRenderer.Build(banner, 100, GraphGlyphSet.Unicode);
@@ -187,6 +199,8 @@ public class BannerRendererTests
 
         Assert.Contains("REBASING feature/x", lines[^2].Text, StringComparison.Ordinal);
     }
+
+    private static BannerHint EditorHint(string keys) => new(keys, "open conflict editor", "conflict editor");
 
     private static ScreenModel Model(OperationBanner? banner) =>
         new("repo", "main", 1, 1, "NORMAL", string.Empty, 1, 1, false, string.Empty, Banner: banner);

@@ -71,8 +71,8 @@ public sealed class OperationKeyTextsTests
         var banner = OperationBannerBuilder.Build(Info(RepositoryOperation.Rebase), 2, keymap: Remapped())!;
 
         Assert.Equal(["<space>zc", "<space>za", "<space>zs"], banner.Chips.Select(chip => chip.Keys));
-        Assert.Equal("<space>zr open conflict editor", banner.Hint);
-        Assert.Equal("<space>zr conflict editor", banner.ShortHint);
+        Assert.Equal("<space>zr open conflict editor", banner.Hint!.Text);
+        Assert.Equal("<space>zr conflict editor", banner.Hint.ShortText);
     }
 
     [Fact]
@@ -80,7 +80,7 @@ public sealed class OperationKeyTextsTests
     {
         var banner = OperationBannerBuilder.Build(Info(RepositoryOperation.Merge), 1, editorOpens: false, keymap: Remapped())!;
 
-        Assert.Equal("<space>zm open mergetool", banner.Hint);
+        Assert.Equal("<space>zm open mergetool", banner.Hint!.Text);
     }
 
     [Fact]
@@ -88,7 +88,7 @@ public sealed class OperationKeyTextsTests
     {
         var banner = OperationBannerBuilder.Build(Info(RepositoryOperation.Merge), 1, keymap: new KeyBindingTable([]))!;
 
-        Assert.Equal(string.Empty, banner.Hint);
+        Assert.Null(banner.Hint);
         Assert.All(banner.Chips, chip => Assert.Equal(string.Empty, chip.Keys));
     }
 

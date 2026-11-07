@@ -24,8 +24,8 @@ public class OperationBannerBuilderTests
     {
         var banner = OperationBannerBuilder.Build(Info(RepositoryOperation.Merge, target: "x"), count)!;
 
-        Assert.Equal(hinted, banner.Hint.Contains("<space>gr open", StringComparison.Ordinal));
-        Assert.Equal(hinted, banner.ShortHint.Contains("<space>gr", StringComparison.Ordinal));
+        Assert.Equal(hinted, banner.Hint?.Text == "<space>gr open conflict editor");
+        Assert.Equal(hinted, banner.Hint?.ShortText == "<space>gr conflict editor");
     }
 
     [Fact]
@@ -33,8 +33,8 @@ public class OperationBannerBuilderTests
     {
         var banner = OperationBannerBuilder.Build(Info(RepositoryOperation.Rebase, target: "x"), 1, editorOpens: false)!;
 
-        Assert.Equal("<space>em open mergetool", banner.Hint);
-        Assert.Equal("<space>em mergetool", banner.ShortHint);
+        Assert.Equal("<space>em open mergetool", banner.Hint!.Text);
+        Assert.Equal("<space>em mergetool", banner.Hint.ShortText);
         Assert.DoesNotContain("<space>gr", banner.PlainText, StringComparison.Ordinal);
     }
 
@@ -43,8 +43,7 @@ public class OperationBannerBuilderTests
     {
         var banner = OperationBannerBuilder.Build(Info(RepositoryOperation.Merge, target: "x"), 0, editorOpens: false)!;
 
-        Assert.Equal(string.Empty, banner.Hint);
-        Assert.Equal(string.Empty, banner.ShortHint);
+        Assert.Null(banner.Hint);
     }
 
     [Fact]
