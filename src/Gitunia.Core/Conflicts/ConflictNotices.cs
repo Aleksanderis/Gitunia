@@ -1,3 +1,4 @@
+using Gitunia.Core.Keymap;
 namespace Gitunia.Core.Conflicts;
 
 /// <summary>The status messages of the conflict editor flow.</summary>
@@ -47,7 +48,7 @@ public static class ConflictNotices
     public const string FileChanged = "The file changed on disk since it was opened: nothing was saved";
 
     /// <summary>The hint for a conflict the editor refuses.</summary>
-    public const string MergetoolHint = "use <space>em for the mergetool";
+    public static readonly string MergetoolHint = $"use {KeyTokens.Of(ActionIds.ToolMergetool, "the mergetool")} instead";
 
     /// <summary>The status line while typing without a conflict under the cursor.</summary>
     public const string TypingInResult = "Typing in the result: Esc or Ctrl-g keeps the text";

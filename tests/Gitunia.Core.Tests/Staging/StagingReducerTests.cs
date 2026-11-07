@@ -437,7 +437,7 @@ public class StagingReducerTests
         var update = Reduce(Resolved("c.txt"), Context(Tree(StagedModified("c.txt")), hasOperation: true));
 
         Assert.Equal(
-            "Resolved and staged c.txt (Staged list): all conflicts resolved, <space>gc continue",
+            "Resolved and staged c.txt (Staged list): all conflicts resolved, {key:operation.continue|continue}",
             Assert.IsType<PostStatusEffect>(Assert.Single(update.Effects)).Text);
     }
 

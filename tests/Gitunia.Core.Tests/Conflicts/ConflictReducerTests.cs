@@ -90,7 +90,7 @@ public class ConflictReducerTests
 
         var post = Assert.IsType<PostStatusEffect>(Assert.Single(update.Effects));
         Assert.Contains("they deleted it", post.Text, StringComparison.Ordinal);
-        Assert.Contains("<space>em", post.Text, StringComparison.Ordinal);
+        Assert.Contains("{key:tool.mergetool|the mergetool}", post.Text, StringComparison.Ordinal);
     }
 
     [Fact]

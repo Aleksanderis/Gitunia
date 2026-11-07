@@ -1,3 +1,4 @@
+using Gitunia.Core.Keymap;
 using Gitunia.Core.Overlays;
 using Gitunia.Core.Status;
 using Gitunia.Core.Text;
@@ -41,7 +42,7 @@ public static class CommitTexts
     public static ConfirmPrompt StageAll { get; } = new(
         "Commit",
         [StageAllQuestion],
-        "Untracked files are included; conflicted files are skipped. Unstage them again with <space>U.",
+        "Untracked files are included; conflicted files are skipped. Unstage them again with " + KeyTokens.Of(ActionIds.WorkingTreeUnstageAll, "unstage all") + ".",
         "Stage all and commit");
 
     /// <summary>The status after a toggle of SignOff.</summary>

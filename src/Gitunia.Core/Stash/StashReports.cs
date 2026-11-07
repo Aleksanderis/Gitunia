@@ -1,3 +1,4 @@
+using Gitunia.Core.Keymap;
 using Gitunia.Core.Status;
 using Gitunia.Core.Text;
 using Gitunia.Git.Stash;
@@ -17,7 +18,7 @@ public static class StashReports
     {
         if (result.Outcome == StashOutcome.NothingToStash)
         {
-            var hint = includeUntracked ? string.Empty : " (untracked files are stashed with <space>ku)";
+            var hint = includeUntracked ? string.Empty : $" (untracked files are stashed with {KeyTokens.Of(ActionIds.StashPushUntracked, "stash with untracked files")})";
             return new StashReport($"Nothing to stash{hint}", StatusSeverity.Warning);
         }
 

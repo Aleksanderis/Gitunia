@@ -1,3 +1,4 @@
+using Gitunia.Core.Keymap;
 using Gitunia.Core.Diff;
 using Gitunia.Core.Text;
 using Gitunia.Git.Diff;
@@ -22,6 +23,8 @@ public sealed class WorkingDiffStore(
 {
     /// <summary>Files of a folder diff read before the rest is left out (one git process each, #625).</summary>
     public const int DefaultFolderFileLimit = 200;
+
+    private static readonly string LoadAll = KeyTokens.Of(ActionIds.DiffLoadAnyway, "load all of it");
 
     private readonly WorkingDiffLimits _limits = limits ?? new WorkingDiffLimits();
     private readonly KeyedDiffCache<WorkingDiffRequest> _cache = new();
@@ -219,13 +222,15 @@ public sealed class WorkingDiffStore(
         {
             var noun = skipped == 1 ? "file" : "files";
             builder.AddTrailingNote(
-                $"Showing the first {fileLimit} of {entries.Count} files; {skipped} more {noun} left out "
-                + "(<space>vl loads all of them)");
+                KeyTokens.Resolve(
+                    $"Showing the first {fileLimit} of {entries.Count} files; {skipped} more {noun} left out: "
+                    + KeyTokens.Of(ActionIds.DiffLoadAnyway, "load all of them"),
+                    _limits.Keymap));
         }
 
         if (truncated)
         {
-            builder.AddTrailingNote($"Diff cut short after {rows} rows (<space>vl loads all of it)");
+            builder.AddTrailingNote(KeyTokens.Resolve($"Diff cut short after {rows} rows: {LoadAll}", _limits.Keymap));
         }
 
         return new DiffReadResult(builder.Build(warnings), truncated || fileCut || skipped > 0);

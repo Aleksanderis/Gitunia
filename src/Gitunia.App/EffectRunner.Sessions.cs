@@ -66,8 +66,8 @@ public sealed partial class EffectRunner<TSession>
                     new StashAwareDiffReader(_services.Diff, _services.StashDetails, stashView.Registry),
                     tab.Location,
                     _ui,
-                    new DiffStoreOptions(Background: _background)),
-                new WorkingDiffStore(_services.Diff, tab.Location, _ui),
+                    new DiffStoreOptions(Background: _background, Keymap: _keymap)),
+                new WorkingDiffStore(_services.Diff, tab.Location, _ui, new WorkingDiffLimits(Keymap: _keymap)),
                 new FileTreeSession(
                     new CommitTreeStore(_services.CommitTree, tab.Location, _ui, _detailDebounce)),
                 new FileContentStore(_services.Blob, tab.Location, _ui),

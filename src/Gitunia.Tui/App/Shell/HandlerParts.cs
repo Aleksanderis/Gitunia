@@ -66,7 +66,8 @@ public sealed class HandlerParts
         Actions = new ActionExecutor(
             Handlers,
             new RepeatStarter(host, foundation.Panes, keys.Repeat, PaneSizes),
-            foundation.Sessions);
+            foundation.Sessions,
+            foundation.Config.Keymap.Table);
     }
 
     /// <summary>The status actions (dismiss, retry).</summary>

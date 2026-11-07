@@ -1,3 +1,4 @@
+using Gitunia.Core.Operations;
 using System.Collections.Immutable;
 using Gitunia.Core.Effects;
 using Gitunia.Core.Rebase;
@@ -255,8 +256,8 @@ public class RebaseReducerTests
 
         var post = Assert.IsType<PostStatusEffect>(effects[0]);
         Assert.Equal(StatusSeverity.Warning, post.Severity);
-        Assert.Contains("<space>gc", post.Text, StringComparison.Ordinal);
-        Assert.Contains("abort, back to 1111111", post.Text, StringComparison.Ordinal);
+        Assert.Contains(OperationKeys.Continue, post.Text, StringComparison.Ordinal);
+        Assert.Contains($"{OperationKeys.Abort} to go back to 1111111", post.Text, StringComparison.Ordinal);
     }
 
     [Fact]

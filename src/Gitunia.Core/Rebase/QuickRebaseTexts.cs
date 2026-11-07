@@ -1,3 +1,4 @@
+using Gitunia.Core.Operations;
 using Gitunia.Core.Overlays;
 using Gitunia.Core.Status;
 using Gitunia.Core.Text;
@@ -46,7 +47,7 @@ public static class QuickRebaseTexts
             title,
             lines,
             $"{UndoNotes.FromReflog} A stop on conflicts leaves a " +
-            "rebase in progress: <space>gc continues, <space>ga aborts.",
+            $"rebase in progress: you can {OperationKeys.Continue} or {OperationKeys.Abort} it.",
             yes);
     }
 
@@ -64,7 +65,7 @@ public static class QuickRebaseTexts
         {
             return new PostedText(
                 $"{noun} of {Quoted(plan)} stopped on conflicts: resolve the files marked !, then " +
-                $"<space>gc (continue), <space>ga (abort, back to {ShortHash.Of(result.OriginalHead)})",
+                $"{OperationKeys.Continue}, or {OperationKeys.Abort} to go back to {ShortHash.Of(result.OriginalHead)}",
                 StatusSeverity.Warning);
         }
 

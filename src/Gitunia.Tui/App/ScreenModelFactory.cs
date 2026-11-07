@@ -1,4 +1,5 @@
 using Gitunia.Core.Conflicts;
+using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Operations;
 using Gitunia.Core.Picker;
@@ -23,6 +24,7 @@ public static class ScreenModelFactory
     /// <param name="tabs">The tab row labels, null for the single-label fallback.</param>
     /// <param name="picker">The open repository picker, null when closed.</param>
     /// <param name="homeDirectory">The home directory the picker abbreviates to <c>~</c>.</param>
+    /// <param name="keymap">The running keymap the banner names its keys from; null names the defaults.</param>
     public static ScreenModel Create(
         Workspace workspace,
         TerminalTabSession? session,
@@ -32,7 +34,8 @@ public static class ScreenModelFactory
         int? selectedItem,
         IReadOnlyList<TabLabel>? tabs = null,
         PickerState? picker = null,
-        string homeDirectory = "")
+        string homeDirectory = "",
+        KeyBindingTable? keymap = null)
     {
         var tab = workspace.ActiveTab;
         var tabIndex = tab is null ? 0 : workspace.Tabs.IndexOf(tab);
@@ -66,7 +69,8 @@ public static class ScreenModelFactory
             Banner: OperationBannerBuilder.Build(
                 tab?.Operation,
                 OperationBannerBuilder.ConflictCount(tab?.WorkingTree),
-                ConflictEditorSupport.AnyCanOpen(tab?.WorkingTree)),
+                ConflictEditorSupport.AnyCanOpen(tab?.WorkingTree),
+                keymap),
             TruncatedTotal: session?.TruncatedTotal);
 
         return screenModel;

@@ -60,7 +60,7 @@ public class CommitEffectHandlerTests
         Assert.Equal("Commit failed: lint failed: a.txt", failed.Notice);
         Assert.Contains("lint failed: a.txt", failed.Output!);
         Assert.Contains("fix it", failed.Output!);
-        Assert.Contains("<space>ec", failed.Output![^1], StringComparison.Ordinal);
+        Assert.Contains("the commit editor key", failed.Output![^1], StringComparison.Ordinal);
     }
 
     [Fact]

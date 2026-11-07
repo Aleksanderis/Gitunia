@@ -49,7 +49,7 @@ public class CommitFailureReportTests
     [Fact]
     public void GivenTheHint_WhenReadingIt_ThenItNamesTheWayOut()
     {
-        Assert.Contains("<space>ec", CommitFailureReport.Hint, StringComparison.Ordinal);
+        Assert.Contains("{key:tool.commit-editor|", CommitFailureReport.Hint, StringComparison.Ordinal);
         Assert.Contains("passphrase", CommitFailureReport.Hint, StringComparison.Ordinal);
     }
 }

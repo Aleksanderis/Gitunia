@@ -245,7 +245,7 @@ public static class StagingReducer
         var left = tree.Unstaged.Count(entry => entry.Kind == StatusEntryKind.Unmerged);
         if (left == 0)
         {
-            var next = hasOperation ? $"{StagingReports.ContinueKeys} continue" : "commit it";
+            var next = hasOperation ? StagingReports.Continue : "commit it";
             var text = $"Resolved and staged {resolved.Name} (Staged list): all conflicts resolved, {next}";
 
             return new ResolvedReport(text, SelectStaged(tree, resolved.Path));

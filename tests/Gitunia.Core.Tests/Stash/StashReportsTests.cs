@@ -18,7 +18,7 @@ public class StashReportsTests
         var report = StashReports.Push(new StashResult(StashOutcome.NothingToStash, null), string.Empty, false);
 
         Assert.Equal(StatusSeverity.Warning, report.Severity);
-        Assert.Equal("Nothing to stash (untracked files are stashed with <space>ku)", report.Text);
+        Assert.Equal("Nothing to stash (untracked files are stashed with {key:stash.push-untracked|stash with untracked files})", report.Text);
     }
 
     [Fact]

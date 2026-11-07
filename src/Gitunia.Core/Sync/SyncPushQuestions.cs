@@ -1,3 +1,4 @@
+using Gitunia.Core.Keymap;
 using System.Collections.Immutable;
 using Gitunia.Core.Effects;
 using Gitunia.Core.Overlays;
@@ -133,7 +134,7 @@ internal static class SyncPushQuestions
             return
             [
                 SyncReducer.Post(
-                    $"{remote}/{rejection.Branch} is not known here: fetch first, then force push (<space>rP)"),
+                    $"{remote}/{rejection.Branch} is not known here: fetch first, then {KeyTokens.Of(ActionIds.RemotePushForce, "force push")}"),
             ];
         }
 

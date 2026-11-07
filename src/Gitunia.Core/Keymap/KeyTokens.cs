@@ -53,6 +53,9 @@ public static class KeyTokens
         return builder.Append(text, from, text.Length - from).ToString();
     }
 
+    /// <summary>The key shown for <paramref name="action"/>, null when the table is null or the action is unbound.</summary>
+    public static string? KeyOf(KeyBindingTable? table, ActionId action) => KeyOf(table, action.Value);
+
     private static string? KeyOf(KeyBindingTable? table, string action)
     {
         if (table is null)

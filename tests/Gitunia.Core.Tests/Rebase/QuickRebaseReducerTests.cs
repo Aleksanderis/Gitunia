@@ -1,3 +1,4 @@
+using Gitunia.Core.Operations;
 using System.Collections.Immutable;
 using Gitunia.Core.Effects;
 using Gitunia.Core.Prompts;
@@ -316,7 +317,7 @@ public class QuickRebaseReducerTests
         var post = Assert.IsType<PostStatusEffect>(effects[0]);
         Assert.Equal(StatusSeverity.Warning, post.Severity);
         Assert.StartsWith("Drop of 2222222", post.Text, StringComparison.Ordinal);
-        Assert.Contains("abort, back to 1111111", post.Text, StringComparison.Ordinal);
+        Assert.Contains($"{OperationKeys.Abort} to go back to 1111111", post.Text, StringComparison.Ordinal);
     }
 
     private static ImmutableArray<AppEffect> Reduce(RebaseCommand command) =>

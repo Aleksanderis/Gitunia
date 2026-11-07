@@ -1,3 +1,4 @@
+using Gitunia.Core.Keymap;
 using Gitunia.App.Background;
 using Gitunia.Core.Diff;
 using Gitunia.Core.Text;
@@ -22,6 +23,8 @@ public sealed class DiffStore(
 {
     /// <summary>Rows kept before the diff is cut short; the pane then says so in a last row.</summary>
     public const int DefaultRowLimit = 400_000;
+
+    private static readonly string LoadAll = KeyTokens.Of(ActionIds.DiffLoadAnyway, "load all of it");
 
     /// <summary>Hunk lines kept per file before the file is cut short.</summary>
     public const int DefaultFileLineLimit = 100_000;
@@ -298,7 +301,7 @@ public sealed class DiffStore(
 
         if (truncated)
         {
-            builder.AddTrailingNote($"Diff cut short after {rows} rows (<space>vl loads all of it)");
+            builder.AddTrailingNote(KeyTokens.Resolve($"Diff cut short after {rows} rows: {LoadAll}", _options.Keymap));
         }
 
         return new DiffReadResult(builder.Build(warnings), truncated || fileCut);
