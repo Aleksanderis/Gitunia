@@ -77,7 +77,7 @@ public class WorktreeSwitchReducerTests
         var context = Context(MainAnd(Info(gone, "gone", prunable: true), Info(bare, bare: true)));
 
         Assert.Equal(
-            $"{gone} is gone from disk: prune it with <space>wp",
+            $"{gone} is gone from disk: {{key:worktree.prune|prune it}}",
             Warning(Reduce(new WorktreeSwitchRequested(Tab, WorktreeRow(gone)), context).Effects));
         Assert.Equal(
             "The bare repository has no working tree to switch to",
@@ -95,7 +95,7 @@ public class WorktreeSwitchReducerTests
 
         var update = Reduce(new WorktreeSwitchRequested(Tab, WorktreeRow(Linked)), context);
 
-        Assert.Equal($"{Linked} is already open in tab {other.Title}: <space>wt goes there", Warning(update.Effects));
+        Assert.Equal($"{Linked} is already open in tab {other.Title}: {{key:worktree.open|go there}}", Warning(update.Effects));
     }
 
     [Fact]

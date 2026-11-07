@@ -1,3 +1,4 @@
+using Gitunia.Core.Operations;
 using Gitunia.Core.Status;
 using Gitunia.Core.Text;
 using Gitunia.Git.Diff.Models;
@@ -8,8 +9,8 @@ namespace Gitunia.Core.Staging;
 /// <summary>What the status bar says when a stage or unstage ended.</summary>
 public static class StagingReports
 {
-    /// <summary>The key for continuing an operation in progress, named in the resolved report.</summary>
-    public const string ContinueKeys = "<space>gc";
+    /// <summary>Continuing an operation in progress and its key, named in the resolved report.</summary>
+    public static readonly string Continue = OperationKeys.Continue;
 
     /// <summary>The report of whole files staged or unstaged.</summary>
     public static string Paths(StagingPlan plan, bool isStage)

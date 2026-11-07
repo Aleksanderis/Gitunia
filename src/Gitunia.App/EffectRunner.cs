@@ -144,7 +144,7 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
         _keymap = options.Keymap;
         _shell = options.ShellParts ?? (options.Shell is { } shell ? ShellRoles.From(shell) : ShellRoles.None);
         _branches = new BranchEffectHandler(services.Branches, host);
-        _commits = new CommitEffectHandler(services.CommitWriter, host);
+        _commits = new CommitEffectHandler(services.CommitWriter, host, options.Keymap);
         _compare = new CompareEffectHandler(this, host);
         _conflicts = new ConflictEffectHandler(
             services.Conflicts,

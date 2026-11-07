@@ -1,3 +1,4 @@
+using Gitunia.Core.Operations;
 using Gitunia.Core.Rebase;
 using Gitunia.Core.Status;
 using Gitunia.Core.Text;
@@ -54,8 +55,8 @@ public static class PickTexts
                 $"Nothing to {verb}: {target} already has the changes of {what}",
                 StatusSeverity.Info),
             _ => new PostedText(
-                $"The {verb} of {what} stopped on conflicts: resolve the files marked !, then <space>gc to " +
-                "continue, <space>ga to abort or <space>gs to skip the commit",
+                $"The {verb} of {what} stopped on conflicts: resolve the files marked !, then " +
+                $"{OperationKeys.Continue}, {OperationKeys.Abort} or {OperationKeys.Skip} the commit",
                 StatusSeverity.Warning),
         };
     }

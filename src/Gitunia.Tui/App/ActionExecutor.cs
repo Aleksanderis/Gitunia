@@ -1,3 +1,4 @@
+using Gitunia.Core.Keymap;
 using Gitunia.App;
 using Gitunia.Core.Input;
 using Gitunia.Tui.App.Panes;
@@ -17,7 +18,8 @@ namespace Gitunia.Tui.App;
 public sealed class ActionExecutor(
     InputHandlers handlers,
     IRepeatStarter repeat,
-    IActiveSessions sessions) : IActionRouteEffects
+    IActiveSessions sessions,
+    KeyBindingTable? keymap = null) : IActionRouteEffects
 {
     private string _message = string.Empty;
 
@@ -46,7 +48,7 @@ public sealed class ActionExecutor(
 
             if (isPaneLayer && target is IActionNotice notice)
             {
-                _message = notice.Notice;
+                _message = KeyTokens.Resolve(notice.Notice, keymap);
             }
 
             break;

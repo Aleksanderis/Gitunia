@@ -1,3 +1,4 @@
+using Gitunia.Core.Keymap;
 using Gitunia.App.Loading.Diff;
 using Gitunia.Core.Diff;
 using Gitunia.Core.Lists;
@@ -31,7 +32,7 @@ public sealed partial class WorkingDiffController
 
         if (diff.Store.IsCut)
         {
-            return DiffStagingCapture.Refused("The diff is cut short: press <space>vl to load all of it first");
+            return DiffStagingCapture.Refused("The diff is cut short: press " + KeyTokens.Of(ActionIds.DiffLoadAnyway, "load all of it") + " first");
         }
 
         if (target.Folder is not null)

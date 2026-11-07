@@ -1,3 +1,5 @@
+using Gitunia.Core.Keymap.Models;
+using Gitunia.Core.Keymap;
 using Gitunia.App.Loading;
 using Gitunia.App.Loading.Diff;
 using Gitunia.Core.Diff;
@@ -209,6 +211,49 @@ public class WorkingDiffStoreTests
     }
 
     [Fact]
+    public async Task GivenARemappedLoadAllKey_WhenAFileIsCutShort_ThenTheNoteNamesTheNewKey()
+    {
+        var reader = new FakeDiffReader();
+        reader.SetWorking(WorkingDiffSide.Unstaged, "a.txt", FakeDiffReader.FileAdding("a.txt", 50));
+        var pump = new UiPump(Token);
+        using var store = new WorkingDiffStore(
+            reader,
+            FakeCommitDetailsReader.Location,
+            pump,
+            new WorkingDiffLimits(10, Keymap: RemappedLoadAll()));
+
+        store.Show(Unstaged("a.txt"), 0);
+        await pump.RunUntilAsync(() => store.Status == DiffStatus.Loaded);
+
+        Assert.Equal("Diff cut short after 10 rows: load all of it (<space>zv)", store.Document.Rows[^1].Text);
+    }
+
+    [Fact]
+    public async Task GivenARemappedLoadAllKey_WhenAFolderIsCutShort_ThenTheNoteNamesTheNewKey()
+    {
+        var reader = new FakeDiffReader();
+        var entries = Enumerable.Range(0, 30).Select(index => Modified($"src/f{index}.cs")).ToArray();
+        foreach (var entry in entries)
+        {
+            reader.SetWorking(WorkingDiffSide.Unstaged, entry.Path, FakeDiffReader.FileAdding(entry.Path, ["x"]));
+        }
+
+        var pump = new UiPump(Token);
+        using var store = new WorkingDiffStore(
+            reader,
+            FakeCommitDetailsReader.Location,
+            pump,
+            new WorkingDiffLimits(FolderFileLimit: 10, Keymap: RemappedLoadAll()));
+
+        store.Show(new WorkingDiffRequest(WorkingDiffSide.Unstaged, entries[0], new WorkingDiffFolder("src", entries)), 0);
+        await pump.RunUntilAsync(() => store.Status == DiffStatus.Loaded);
+
+        Assert.Contains(
+            store.Document.Rows,
+            row => row.Text.EndsWith("20 more files left out: load all of them (<space>zv)", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void GivenNothingToShow_WhenShowingARemark_ThenItIsTheOnlyRowAndAskingAgainDoesNotRepeatTheEvent()
     {
         var reader = new FakeDiffReader();
@@ -270,6 +315,11 @@ public class WorkingDiffStoreTests
         await pump.RunUntilAsync(() => store.Status == DiffStatus.Loaded && !store.IsCut);
         Assert.Equal(5010, reader.WorkingReadCount);
     }
+
+    private static KeyBindingTable RemappedLoadAll() => new(
+    [
+        new KeyBinding(KeyMode.Normal, "WorkingUnstagedDiff", KeySequenceParser.Parse("<space>zv"), ActionIds.DiffLoadAnyway),
+    ]);
 
     private static WorkingDiffRequest Unstaged(string path) => new(WorkingDiffSide.Unstaged, Modified(path));
 

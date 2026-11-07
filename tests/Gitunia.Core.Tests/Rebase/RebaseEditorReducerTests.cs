@@ -1,3 +1,4 @@
+using Gitunia.Core.Operations;
 using Gitunia.Core.Effects;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
@@ -630,7 +631,7 @@ public class RebaseEditorReducerTests
 
         var post = Assert.Single(update.Effects.OfType<PostStatusEffect>());
         Assert.Equal(StatusSeverity.Warning, post.Severity);
-        Assert.Contains("<space>gc", post.Text, StringComparison.Ordinal);
+        Assert.Contains(OperationKeys.Continue, post.Text, StringComparison.Ordinal);
         Assert.Contains(Tip[..7], post.Text, StringComparison.Ordinal);
     }
 

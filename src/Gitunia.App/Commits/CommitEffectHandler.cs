@@ -1,3 +1,4 @@
+using Gitunia.Core.Keymap;
 using System.Collections.Concurrent;
 using Gitunia.Core.Commits;
 using Gitunia.Core.Editing;
@@ -19,7 +20,11 @@ namespace Gitunia.App.Commits;
 /// </summary>
 /// <param name="writer">Creates the commit and reads the messages.</param>
 /// <param name="dispatcher">Where the result commands go.</param>
-public sealed class CommitEffectHandler(ICommitWriter writer, IDispatcher dispatcher)
+/// <param name="keymap">The running keymap; the key tokens of the failure output are resolved against it.</param>
+public sealed class CommitEffectHandler(
+    ICommitWriter writer,
+    IDispatcher dispatcher,
+    KeyBindingTable? keymap = null)
 {
     private readonly ConcurrentDictionary<TabId, CancellationTokenSource> _running = new();
 
@@ -64,12 +69,14 @@ public sealed class CommitEffectHandler(ICommitWriter writer, IDispatcher dispat
             result => Finish(effect, linked, result),
             linked.Token);
 
-    private static CommitFailed Failed(RunCommitEffect effect, Exception exception)
+    private CommitFailed Failed(RunCommitEffect effect, Exception exception)
     {
         if (exception is GitCommandFailedException failed)
         {
             var reason = CommitFailureReport.Notice(failed.StandardError, failed.StandardOutput);
-            var lines = CommitFailureReport.Lines(failed.StandardError, failed.StandardOutput);
+            var lines = CommitFailureReport.Lines(failed.StandardError, failed.StandardOutput)
+                .Select(line => KeyTokens.Resolve(line, keymap))
+                .ToList();
 
             return new CommitFailed(effect.TabId, $"Commit failed: {reason}", lines);
         }

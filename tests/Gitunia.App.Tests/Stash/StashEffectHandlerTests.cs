@@ -59,7 +59,7 @@ public class StashEffectHandlerTests
 
         var success = Assert.IsType<StashOperationSucceeded>(result);
         Assert.Equal(StatusSeverity.Warning, success.Severity);
-        Assert.Equal("Nothing to stash (untracked files are stashed with <space>ku)", success.Text);
+        Assert.Equal("Nothing to stash (untracked files are stashed with {key:stash.push-untracked|stash with untracked files})", success.Text);
         Assert.Equal(string.Empty, repository.Git("stash", "list").Trim());
     }
 

@@ -36,6 +36,6 @@ public static class BranchRefusals
 
         var name = OperationBannerBuilder.NameOf(operation.Kind);
 
-        return $"A {name} is in progress: finish or abort the {name} first (<space>gc continue, <space>ga abort)";
+        return OperationKeys.InProgress(name);
     }
 }

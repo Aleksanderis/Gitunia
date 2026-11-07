@@ -148,7 +148,7 @@ public class RebaseEditorPipelineTests
         Assert.Equal(RepositoryOperation.Rebase, new RepositoryOperationDetector().Detect(LocationOf(pipeline)));
         var latest = pipeline.Statuses.Log.Latest!;
         Assert.Equal(StatusSeverity.Warning, latest.Severity);
-        Assert.Contains("<space>gc", latest.Text, StringComparison.Ordinal);
+        Assert.Contains("continue", latest.Text, StringComparison.Ordinal);
         Assert.Contains(oldTip[..7], latest.Text, StringComparison.Ordinal);
         Assert.Null(Editor(pipeline));
     }
