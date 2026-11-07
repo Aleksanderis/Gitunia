@@ -211,6 +211,23 @@ public class TabRefresherTests
     }
 
     [Fact]
+    public async Task GivenARefreshThatFails_WhenAnotherWasRequestedWhileItRan_ThenThatOneRunsAfterIt()
+    {
+        using var harness = await FakeHarness.LoadAsync();
+        harness.RepositoryRefresher.Failure = new GitException("boom");
+        var applied = 0;
+        var before = harness.RepositoryRefresher.RefreshCount;
+
+        // The test thread is the pump, so the failed run cannot finish before the second request has been merged.
+        harness.Refresher.RefreshNow();
+        harness.Refresher.RefreshStatus(() => applied++);
+        await harness.Pump.RunUntilAsync(() => applied == 1 && !harness.Refresher.IsRefreshing);
+
+        // Two runs, no more: the retry of a request does not retry itself while the repository keeps failing.
+        Assert.Equal(before + 2, harness.RepositoryRefresher.RefreshCount);
+    }
+
+    [Fact]
     public async Task GivenStatusRefreshRequest_WhenTheReadFails_ThenTheCallbackStillRuns()
     {
         using var harness = await FakeHarness.LoadAsync();
