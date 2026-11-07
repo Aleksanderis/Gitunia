@@ -48,6 +48,51 @@ public static class PaneResizeRules
         return changed is not null && changed != current ? changed : null;
     }
 
+    /// <summary>
+    /// The Changes view list width after a resize action. Only the width of the lists beside the diff can change there;
+    /// the height keys and a screen too narrow for both columns refuse.
+    /// </summary>
+    /// <param name="current">The width now, null for automatic.</param>
+    /// <param name="action">The resize action.</param>
+    /// <param name="count">The typed count, null for one step.</param>
+    /// <param name="focused">The focused pane; a list grows with a wider key, the diff and the message box shrink the lists.</param>
+    /// <param name="screenWidth">Terminal columns.</param>
+    /// <param name="width">The new width, null for automatic (the reset key).</param>
+    /// <returns>False when nothing changes.</returns>
+    public static bool TryApplyWorking(int? current, ActionId action, int? count, PaneKind focused, int screenWidth, out int? width)
+    {
+        width = current;
+        var shown = PaneSizing.WorkingListWidth(screenWidth, current);
+        if (shown == 0)
+        {
+            return false;
+        }
+
+        if (action == ActionIds.PaneResetSizes)
+        {
+            width = null;
+
+            return current is not null;
+        }
+
+        if (action != ActionIds.PaneWider && action != ActionIds.PaneNarrower)
+        {
+            return false;
+        }
+
+        var amount = Math.Max(1, count ?? 1) * ColumnStep;
+        var listFocused = focused is PaneKind.WorkingUnstaged or PaneKind.WorkingStaged;
+        var wanted = shown + ((action == ActionIds.PaneWider) == listFocused ? amount : -amount);
+        if (PaneSizing.WorkingListWidth(screenWidth, wanted) == shown)
+        {
+            return false;
+        }
+
+        width = wanted;
+
+        return true;
+    }
+
     private static PaneSizes? ChangeWidth(PaneSizes current, bool grows, int amount, PaneKind focused, int screenWidth, bool isDiffOpen)
     {
         var sidebarWidth = PaneSizing.SidebarWidth(screenWidth, current);

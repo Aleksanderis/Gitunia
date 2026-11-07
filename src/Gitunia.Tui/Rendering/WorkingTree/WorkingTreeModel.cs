@@ -15,6 +15,7 @@ namespace Gitunia.Tui.Rendering.WorkingTree;
 /// <param name="IsEditing">The message box is in Insert mode, so it shows the cursor.</param>
 /// <param name="IsCommitting">A commit runs, so the box is read-only.</param>
 /// <param name="IsDiffZoomed">The diff has focus and fills the whole view.</param>
+/// <param name="ListWidth">Columns of the file lists the user set, null for automatic.</param>
 public sealed record WorkingTreeModel(
     WorkingTreeState? Tree,
     PaneKind Focused,
@@ -24,4 +25,5 @@ public sealed record WorkingTreeModel(
     CommitDraft? Draft = null,
     bool IsEditing = false,
     bool IsDiffZoomed = false,
-    bool IsCommitting = false);
+    bool IsCommitting = false,
+    int? ListWidth = null);

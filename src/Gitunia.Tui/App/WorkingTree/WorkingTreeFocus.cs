@@ -44,4 +44,7 @@ public sealed class WorkingTreeFocus(Dispatcher host, IActiveSessions sessions) 
     /// <inheritdoc />
     public WorkingTreeButtons DiffButtons() =>
         WorkingTreePaneRenderer.StagingButtons(host.Workspace.ActiveTab?.WorkingTree);
+
+    /// <inheritdoc />
+    public int? ListWidth() => host.Workspace.ActiveTab?.View.WorkingListWidth;
 }

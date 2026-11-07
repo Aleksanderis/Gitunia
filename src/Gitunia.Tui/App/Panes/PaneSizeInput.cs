@@ -38,9 +38,9 @@ public sealed class PaneSizeInput(Dispatcher host, DiffPaneView diffPane, Workin
                 arrangement.Zoomed,
                 arrangement.ZoomBoth,
                 workingDiff.IsZoomed);
-            var before = diffPane.SizesOfActiveTab();
+            var before = (diffPane.SizesOfActiveTab(), host.Workspace.ActiveTab?.View.WorkingListWidth);
             host.Dispatch(new PaneSizeCommand(tabId, action, count, layout));
-            WasRefused = diffPane.SizesOfActiveTab() == before;
+            WasRefused = (diffPane.SizesOfActiveTab(), host.Workspace.ActiveTab?.View.WorkingListWidth) == before;
         }
 
         return true;

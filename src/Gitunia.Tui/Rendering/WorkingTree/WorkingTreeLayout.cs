@@ -14,7 +14,7 @@ namespace Gitunia.Tui.Rendering.WorkingTree;
 public static class WorkingTreeLayout
 {
     /// <summary>Narrowest screen that shows the lists beside the diff (docs/internal/ux-workflows.md, workflow 2); narrower ones show one pane at a time.</summary>
-    public const int MinimumWidthForSideBySide = 80;
+    public const int MinimumWidthForSideBySide = PaneSizing.MinimumWidthForWorkingSideBySide;
 
     /// <summary>Rows of the message box's content: the draft and the option row.</summary>
     public const int MessageHeight = 5;
@@ -25,18 +25,16 @@ public static class WorkingTreeLayout
     /// <summary>Fewest rows of content area at which the message box is shown below the diff.</summary>
     public const int MinimumHeightWithMessage = 12;
 
-    private const int MinimumListWidth = 24;
-    private const int MaximumListWidth = 50;
-    private const int ListWidthDivisor = 3;
     private const int Divider = 1;
 
     /// <param name="screenWidth">Terminal columns.</param>
     /// <param name="screenHeight">Terminal rows.</param>
     /// <param name="focused">The focused pane; on narrow screens it decides which list shows.</param>
+    /// <param name="listWidth">Columns of the file lists the user set, null for automatic; clamped to what fits.</param>
     /// <param name="isDiffZoomed">The diff has focus and takes the whole view (<c>&lt;space&gt;z</c>, #343); ignored when another pane has focus.</param>
-    public static WorkingTreeRects Compute(int screenWidth, int screenHeight, PaneKind focused, bool isDiffZoomed = false)
+    public static WorkingTreeRects Compute(int screenWidth, int screenHeight, PaneKind focused, bool isDiffZoomed = false, int? listWidth = null)
     {
-        var rects = ComputeBoxes(screenWidth, screenHeight, focused);
+        var rects = ComputeBoxes(screenWidth, screenHeight, focused, listWidth);
         if (isDiffZoomed && WorkingPanes.IsDiff(focused) && !rects.Diff.IsEmpty)
         {
             return ZoomedDiff(screenWidth, screenHeight);
@@ -71,7 +69,7 @@ public static class WorkingTreeLayout
         return new WorkingTreeRects(none, none, whole, none);
     }
 
-    private static WorkingTreeRects ComputeBoxes(int screenWidth, int screenHeight, PaneKind focused)
+    private static WorkingTreeRects ComputeBoxes(int screenWidth, int screenHeight, PaneKind focused, int? listWidth)
     {
         var none = new PaneRect(0, 0, 0, 0);
         var inner = ScreenLayout.InnerWidth(screenWidth);
@@ -97,16 +95,16 @@ public static class WorkingTreeLayout
             return new WorkingTreeRects(unstagedList, stagedList, none, none);
         }
 
-        var listWidth = Math.Clamp(inner / ListWidthDivisor, MinimumListWidth, MaximumListWidth);
-        var rightLeft = listWidth + Divider + 1;
-        var rightWidth = Math.Max(0, inner - listWidth - Divider);
+        var listColumns = PaneSizing.WorkingListWidth(screenWidth, listWidth);
+        var rightLeft = listColumns + Divider + 1;
+        var rightWidth = Math.Max(0, inner - listColumns - Divider);
         var messageHeight = area >= MinimumHeightWithMessage ? MessageHeight : 0;
         var diffHeight = messageHeight > 0 ? area - messageHeight - Divider : area;
         var diff = new PaneRect(rightLeft, top, rightWidth, diffHeight);
         var message = messageHeight > 0 ? new PaneRect(rightLeft, top + diffHeight + Divider, rightWidth, messageHeight) : none;
         if (area < MinimumStackedHeight)
         {
-            var single = new PaneRect(1, top, listWidth, area);
+            var single = new PaneRect(1, top, listColumns, area);
             var unstagedSingle = onlyStaged ? none : single;
             var stagedSingle = onlyStaged ? single : none;
             return new WorkingTreeRects(unstagedSingle, stagedSingle, diff, message);
@@ -115,8 +113,8 @@ public static class WorkingTreeLayout
         var unstagedHeight = (area - Divider + 1) / 2;
         var stagedHeight = area - Divider - unstagedHeight;
         return new WorkingTreeRects(
-            new PaneRect(1, top, listWidth, unstagedHeight),
-            new PaneRect(1, top + unstagedHeight + Divider, listWidth, stagedHeight),
+            new PaneRect(1, top, listColumns, unstagedHeight),
+            new PaneRect(1, top + unstagedHeight + Divider, listColumns, stagedHeight),
             diff,
             message);
     }

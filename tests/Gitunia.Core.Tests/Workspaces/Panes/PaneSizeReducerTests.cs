@@ -145,11 +145,102 @@ public class PaneSizeReducerTests
         Assert.Same(state, update.State);
     }
 
+    [Fact]
+    public void GivenTheChangesViewListFocused_WhenWidening_ThenTheListWidthGrowsAndTheHistorySizesStay()
+    {
+        var state = WithWorkingTab(PaneKind.WorkingUnstaged);
+
+        var update = PaneSizeReducer.Reduce(state, Command(state, ActionIds.PaneWider, null, Normal));
+
+        var view = update.State.Workspace.ActiveTab!.View;
+        Assert.Equal(PaneSizing.WorkingListWidth(120, null) + PaneResizeRules.ColumnStep, view.WorkingListWidth);
+        Assert.Null(view.SidebarWidth);
+        Assert.Empty(update.Effects);
+    }
+
+    [Fact]
+    public void GivenTheChangesViewMessageBoxFocused_WhenWidening_ThenTheListsGetNarrower()
+    {
+        var state = WithWorkingTab(PaneKind.WorkingMessage);
+
+        var update = PaneSizeReducer.Reduce(state, Command(state, ActionIds.PaneWider, 2, Normal));
+
+        Assert.Equal(PaneSizing.WorkingListWidth(120, null) - (2 * PaneResizeRules.ColumnStep), update.State.Workspace.ActiveTab!.View.WorkingListWidth);
+    }
+
+    [Fact]
+    public void GivenAChangedListWidth_WhenResetting_ThenItIsAutomaticAgain()
+    {
+        var state = WithWorkingTab(PaneKind.WorkingUnstaged);
+        state = PaneSizeReducer.Reduce(state, Command(state, ActionIds.PaneWider, null, Normal)).State;
+
+        var update = PaneSizeReducer.Reduce(state, Command(state, ActionIds.PaneResetSizes, null, Normal));
+
+        Assert.Null(update.State.Workspace.ActiveTab!.View.WorkingListWidth);
+    }
+
+    [Fact]
+    public void GivenAutomaticListWidth_WhenResetting_ThenANoticeSaysSo()
+    {
+        var state = WithWorkingTab(PaneKind.WorkingUnstaged);
+
+        var update = PaneSizeReducer.Reduce(state, Command(state, ActionIds.PaneResetSizes, null, Normal));
+
+        Assert.Same(state, update.State);
+        Assert.Equal(PaneSizeReducer.AlreadyAutomaticNotice, NoticeOf(update));
+    }
+
+    [Fact]
+    public void GivenTheChangesView_WhenChangingHeight_ThenNothingChangesAndANoticeSaysWhy()
+    {
+        var state = WithWorkingTab(PaneKind.WorkingUnstaged);
+
+        var update = PaneSizeReducer.Reduce(state, Command(state, ActionIds.PaneTaller, null, Normal));
+
+        Assert.Same(state, update.State);
+        Assert.Equal(PaneSizeReducer.AtLimitNotice, NoticeOf(update));
+    }
+
+    [Fact]
+    public void GivenTheListsAtTheirNarrowestWidth_WhenNarrowing_ThenANoticeSaysItIsAtItsLimit()
+    {
+        var state = WithWorkingTab(PaneKind.WorkingUnstaged);
+        for (var i = 0; i < 30; i++)
+        {
+            state = PaneSizeReducer.Reduce(state, Command(state, ActionIds.PaneNarrower, null, Normal)).State;
+        }
+
+        var update = PaneSizeReducer.Reduce(state, Command(state, ActionIds.PaneNarrower, null, Normal));
+
+        Assert.Equal(PaneSizing.MinimumWorkingListWidth, PaneSizing.WorkingListWidth(120, state.Workspace.ActiveTab!.View.WorkingListWidth));
+        Assert.Equal(PaneSizeReducer.AtLimitNotice, NoticeOf(update));
+    }
+
+    [Fact]
+    public void GivenAScreenTooNarrowForBothColumns_WhenWidening_ThenANoticeSaysItIsAtItsLimit()
+    {
+        var state = WithWorkingTab(PaneKind.WorkingUnstaged);
+        state = AppReducer.Reduce(state, new ScreenResizedCommand(new ScreenExtent(70, 40), DateTimeOffset.UnixEpoch)).State;
+
+        var update = PaneSizeReducer.Reduce(state, Command(state, ActionIds.PaneWider, null, Normal));
+
+        Assert.Equal(PaneSizeReducer.AtLimitNotice, NoticeOf(update));
+    }
+
     private static PaneSizeCommand Command(AppState state, ActionId action, int? count, PaneLayoutFacts layout) =>
         new(state.Workspace.ActiveTabId!.Value, action, count, layout);
 
     private static string NoticeOf(AppUpdate update) =>
         Assert.IsType<PostStatusEffect>(Assert.Single(update.Effects)).Text;
+
+    private static AppState WithWorkingTab(PaneKind focused)
+    {
+        var state = WithTab(PaneKind.Graph);
+        var tab = state.Workspace.ActiveTabId!.Value;
+        state = AppReducer.Reduce(state, new TabCommand(tab, new OpenWorkingTreeCommand())).State;
+
+        return AppReducer.Reduce(state, new TabCommand(tab, new FocusPaneCommand(focused))).State;
+    }
 
     private static AppState WithTab(PaneKind focused)
     {

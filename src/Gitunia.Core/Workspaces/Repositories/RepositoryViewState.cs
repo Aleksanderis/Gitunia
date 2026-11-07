@@ -24,6 +24,8 @@ namespace Gitunia.Core.Workspaces.Repositories;
 /// tab's tree style, null for none. Not saved with the session; read it through <see cref="DetailTree"/>.</param>
 /// <param name="Diff">What the diff pane shows and how it is laid out, null for a pane never used. Not saved with the
 /// session; read it through <see cref="DiffPane"/>.</param>
+/// <param name="WorkingListWidth">Columns of the Changes view file lists the user set, null for automatic. A wish: the
+/// layout clamps it. Not saved with the session.</param>
 public sealed record RepositoryViewState(
     ObjectId? SelectedCommit,
     int ScrollOffset,
@@ -37,7 +39,8 @@ public sealed record RepositoryViewState(
     FilePathStyle PathStyle = FilePathStyle.NameFirst,
     ObjectId? CompareMark = null,
     DetailTreeState? FileTree = null,
-    DiffPaneState? Diff = null)
+    DiffPaneState? Diff = null,
+    int? WorkingListWidth = null)
 {
     /// <summary>The tab's file tree state, empty when none was set.</summary>
     public DetailTreeState DetailTree => FileTree ?? DetailTreeState.Empty;
