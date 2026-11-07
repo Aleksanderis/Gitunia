@@ -11,6 +11,7 @@ using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Execution.Exceptions;
 using Gitunia.Git.Refs.Models;
 using Gitunia.Git.Repositories.Models;
+using Gitunia.Git.Status.Models;
 using Xunit;
 
 namespace Gitunia.App.Tests.Loading;
@@ -64,6 +65,26 @@ public class RepositoryLoaderTests
         await harness.RunAsync();
 
         Assert.Equal(new RepositoryStatusSummary(true, 0, 0), harness.Tab.Status);
+    }
+
+    [Fact]
+    public async Task GivenANewerStatusAlreadyApplied_WhenTheLoadsOlderReadArrives_ThenTheNewerStatusStays()
+    {
+        using var harness = new Harness();
+        harness.CommitLog.AddOnTop("root");
+        harness.Status.SetDirty(harness.Location, true);
+        var newer = await harness.Status.ReadStatusAsync(
+            harness.Location,
+            false,
+            UntrackedFilesMode.All,
+            TestContext.Current.CancellationToken);
+        harness.Host.Dispatch(new TabCommand(harness.TabId, new WorkingTreeLoadedCommand(newer)));
+        harness.Status.SetDirty(harness.Location, false);
+
+        await harness.RunAsync();
+
+        Assert.Equal(new RepositoryStatusSummary(true, 0, 0), harness.Tab.Status);
+        Assert.Single(harness.Tab.WorkingTree!.Snapshot.Entries);
     }
 
     [Fact]
