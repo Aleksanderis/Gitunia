@@ -63,10 +63,9 @@ public static class OperationBannerBuilder
             ? [continueChip, abortChip]
             : [continueChip, abortChip, Chip(keymap, ActionIds.OperationSkip, "<space>gs", "skip")];
         var hasConflicts = conflictCount > 0;
-        var hint = hasConflicts ? HintOf(editorOpens, isShort: false, keymap) : string.Empty;
-        var shortHint = hasConflicts ? HintOf(editorOpens, isShort: true, keymap) : string.Empty;
+        var hint = hasConflicts ? HintOf(editorOpens, keymap) : null;
 
-        return new OperationBanner(title, string.Join(Gap, parts), chips, hint, shortHint);
+        return new OperationBanner(title, string.Join(Gap, parts), chips, hint);
     }
 
     /// <summary>Conflicted files in a tab's working tree, 0 while it is not loaded.</summary>
@@ -94,14 +93,14 @@ public static class OperationBannerBuilder
     private static string KeyOrDefault(KeyBindingTable? keymap, ActionId action, string defaultKeys) =>
         keymap is null ? defaultKeys : KeyTokens.KeyOf(keymap, action) ?? string.Empty;
 
-    private static string HintOf(bool editorOpens, bool isShort, KeyBindingTable? keymap)
+    private static BannerHint? HintOf(bool editorOpens, KeyBindingTable? keymap)
     {
-        var (action, defaultKeys, label) = editorOpens
-            ? (ActionIds.ConflictOpen, "<space>gr", isShort ? ShortEditorLabel : EditorLabel)
-            : (ActionIds.ToolMergetool, "<space>em", isShort ? ShortMergetoolLabel : MergetoolLabel);
+        var (action, defaultKeys, label, shortLabel) = editorOpens
+            ? (ActionIds.ConflictOpen, "<space>gr", EditorLabel, ShortEditorLabel)
+            : (ActionIds.ToolMergetool, "<space>em", MergetoolLabel, ShortMergetoolLabel);
         var keys = KeyOrDefault(keymap, action, defaultKeys);
 
-        return keys.Length == 0 ? string.Empty : $"{keys} {label}";
+        return keys.Length == 0 ? null : new BannerHint(keys, label, shortLabel);
     }
 
     private static string? Verb(RepositoryOperation operation) => operation switch
