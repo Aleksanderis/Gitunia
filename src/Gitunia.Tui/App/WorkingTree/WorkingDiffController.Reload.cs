@@ -32,7 +32,8 @@ public sealed partial class WorkingDiffController
 
         if (diff.Store.IsCut)
         {
-            return DiffStagingCapture.Refused("The diff is cut short: press " + KeyTokens.Of(ActionIds.DiffLoadAnyway, "load all of it") + " first");
+            return DiffStagingCapture.Refused(
+                $"The diff is cut short: press {KeyTokens.Of(ActionIds.DiffLoadAnyway, "load all of it")} first");
         }
 
         if (target.Folder is not null)

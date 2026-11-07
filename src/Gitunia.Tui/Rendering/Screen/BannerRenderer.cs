@@ -70,7 +70,7 @@ public static class BannerRenderer
     }
 
     private static int ChipsWidth(OperationBanner banner) =>
-        banner.Chips.Sum(chip => Gap.Length + TextWidth.Of(chip.Keys) + 1 + TextWidth.Of(chip.Label));
+        banner.Chips.Sum(chip => Gap.Length + TextWidth.Of(chip.Keys) + (chip.Keys.Length == 0 ? 0 : 1) + TextWidth.Of(chip.Label));
 
     private static string FittingHint(OperationBanner banner, int free)
     {
