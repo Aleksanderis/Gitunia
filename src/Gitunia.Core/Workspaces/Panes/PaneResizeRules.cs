@@ -62,17 +62,17 @@ public static class PaneResizeRules
     public static bool TryApplyWorking(int? current, ActionId action, int? count, PaneKind focused, int screenWidth, out int? width)
     {
         width = current;
-        var shown = PaneSizing.WorkingListWidth(screenWidth, current);
-        if (shown == 0)
-        {
-            return false;
-        }
-
         if (action == ActionIds.PaneResetSizes)
         {
             width = null;
 
             return current is not null;
+        }
+
+        var shown = PaneSizing.WorkingListWidth(screenWidth, current);
+        if (shown == 0)
+        {
+            return false;
         }
 
         if (action != ActionIds.PaneWider && action != ActionIds.PaneNarrower)
@@ -88,7 +88,7 @@ public static class PaneResizeRules
             return false;
         }
 
-        width = wanted;
+        width = PaneSizing.WorkingListWidth(screenWidth, wanted);
 
         return true;
     }
