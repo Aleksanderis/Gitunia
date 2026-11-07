@@ -1,9 +1,11 @@
 name: CI
 
-# Minutes are limited on the free plan (decision 2026-10-18): CI never runs on PRs or pushes. Local builds are
-# the gate. It runs on release tags and on demand (`gh workflow run ci.yml`).
+# Runs on pull requests, pushes to main, release tags and on demand (`gh workflow run ci.yml`). Re-enabled when the
+# repository went public (minutes are free there; supersedes the manual-only decision of 2026-10-18).
 on:
+  pull_request:
   push:
+    branches: [main]
     tags: ["v*"]
   workflow_dispatch:
     inputs:
@@ -63,7 +65,7 @@ jobs:
   linux-x64:
     needs: check
     # `check` is skipped off tags; if it failed, `green` is empty and the tag run tests (fail closed).
-    if: ${{ !cancelled() && github.event.pull_request.draft != true && (inputs.platform == 'all' || inputs.platform == 'linux' || github.event_name == 'push') }}
+    if: ${{ !cancelled() && github.event.pull_request.draft != true && (github.event_name != 'workflow_dispatch' || inputs.platform == 'all' || inputs.platform == 'linux') }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -138,7 +140,7 @@ jobs:
 
   windows-x64:
     needs: check
-    if: ${{ !cancelled() && (inputs.platform == 'all' || inputs.platform == 'windows' || github.event_name == 'push') }}
+    if: ${{ !cancelled() && github.event.pull_request.draft != true && (github.event_name != 'workflow_dispatch' || inputs.platform == 'all' || inputs.platform == 'windows') }}
     runs-on: windows-latest
     timeout-minutes: 25
     defaults:
@@ -218,7 +220,7 @@ jobs:
   macos-arm64:
     # Tags and an explicit `platform: macos` dispatch only (#455): macOS minutes cost 10x on the free plan.
     needs: check
-    if: ${{ !cancelled() && (inputs.platform == 'macos' || github.event_name == 'push') }}
+    if: ${{ !cancelled() && (inputs.platform == 'macos' || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v'))) }}
     runs-on: macos-14
     timeout-minutes: 20
     steps:

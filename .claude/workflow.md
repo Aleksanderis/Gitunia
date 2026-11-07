@@ -25,7 +25,7 @@
 - `needs-review` issues: `merge` (merge as usual, owner reviews afterwards); `spike` issues are never merged by an agent
 - autonomy: `autonomous` (never wait for the owner: merge dependencies yourself, decide from the docs, report afterwards)
 - push policy: as `CLAUDE.md` "Git conventions" (it wins): never push without the owner's confirmation, except the autonomous PR flow (agents push their `feature/`/`fix/` branches, open and merge PRs, and screenshots `publish`/`clean`, plain pushes only). Ad-hoc owner requests are committed locally and not pushed.
-- CI: `manual` (decision 2026-10-18: never runs automatically; local build and tests are the gate). Dispatch once before closing a milestone: `gh workflow run ci.yml --ref main`; a run takes about 4-6 minutes
+- CI: `automatic` (re-enabled at go-public, 2026-11-07, superseding the manual-only decision of 2026-10-18): runs on PRs, pushes to `main`, tags and dispatch. Local build and tests stay the first gate; a run takes about 4-6 minutes
 - extra labels: `windows-vm` (needs a Windows VM; the orchestrator never picks it), `tracking` (never picked as work), `owner` (filed by the owner)
 - commit message format: Conventional Commits (`feat:`, `fix:`, `docs:`, `test:`, `refactor:`, `chore:`, `ci:`)
 - context limit: 150000
