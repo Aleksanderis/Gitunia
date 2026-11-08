@@ -14,8 +14,6 @@
 #   GITUNIA_ARCH         x64 | arm64 (default: detected; for tests)
 #
 # Everything is in one function called on the last line, so a cut-off download runs nothing.
-$ErrorActionPreference = 'Stop'
-
 function Get-GitumiaFile([string]$Source, [string]$Destination) {
     # A URL is downloaded; anything else is a local path (tests).
     if ($Source -match '^https?://') {
@@ -28,7 +26,34 @@ function Get-GitumiaFile([string]$Source, [string]$Destination) {
     }
 }
 
+# Adds a folder to the user PATH without changing how the existing value is stored: read it unexpanded (it may hold
+# %VARIABLES%) and write it back as an expandable string, which Environment.SetEnvironmentVariable would not do.
+function Add-ToUserPath([string]$Folder) {
+    $key = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey('Environment', $true)
+    try {
+        $current = [string]$key.GetValue('Path', '', [Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames)
+        $wanted = $Folder.TrimEnd('\')
+        $present = $current -split ';' | Where-Object { $_ } |
+            Where-Object { [Environment]::ExpandEnvironmentVariables($_).TrimEnd('\') -ieq $wanted }
+        if ($present) { return }
+        $value = if ($current) { "$($current.TrimEnd(';'));$Folder" } else { $Folder }
+        $key.SetValue('Path', $value, [Microsoft.Win32.RegistryValueKind]::ExpandString)
+    } finally { $key.Dispose() }
+    # Writing the registry directly sends no change notice; setting and removing a variable does, so new terminals see the PATH.
+    [Environment]::SetEnvironmentVariable('GITUNIA_PATH_REFRESH', '1', 'User')
+    [Environment]::SetEnvironmentVariable('GITUNIA_PATH_REFRESH', $null, 'User')
+    $env:Path = "$env:Path;$Folder"
+    Write-Host "Added $Folder to your user PATH (open a new terminal for other windows to see it)."
+}
+
 function Install-Gitunia {
+    # Under `irm | iex` this runs in the caller's session: set the preference here and put it back afterwards.
+    $previousPreference = $ErrorActionPreference
+    $ErrorActionPreference = 'Stop'
+    try { Invoke-InstallCore } finally { $ErrorActionPreference = $previousPreference }
+}
+
+function Invoke-InstallCore {
     $repository = 'Aleksanderis/Gitunia'
     $releaseUrl = if ($env:GITUNIA_RELEASE_URL) { $env:GITUNIA_RELEASE_URL } else { "https://api.github.com/repos/$repository/releases/latest" }
     $architecture = if ($env:GITUNIA_ARCH) { $env:GITUNIA_ARCH } else {
@@ -46,7 +71,7 @@ function Install-Gitunia {
         $jsonPath = Join-Path $work 'release.json'
         Get-GitumiaFile $releaseUrl $jsonPath
         $release = Get-Content -LiteralPath $jsonPath -Raw | ConvertFrom-Json
-        if (-not $release.tag_name) { throw 'could not read the latest release (GitHub rate limit? try again later)' }
+        if (-not $release.tag_name) { throw "could not read the latest release from $releaseUrl" }
         $latest = ([string]$release.tag_name).TrimStart('v')
 
         $target = if ($env:GITUNIA_INSTALL_DIR) { $env:GITUNIA_INSTALL_DIR } else { Join-Path $env:LOCALAPPDATA 'Gitunia' }
@@ -65,6 +90,7 @@ function Install-Gitunia {
         Get-GitumiaFile $asset.browser_download_url $zip
         Get-GitumiaFile "$($asset.browser_download_url).sha256" "$zip.sha256"
         $expected = ((Get-Content -LiteralPath "$zip.sha256" -TotalCount 1).Trim() -split '\s+')[0]
+        if (-not $expected) { throw "no checksum for $(Split-Path -Leaf $zip)" }
         $actual = (Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash
         if ($expected -ne $actual) { throw "checksum mismatch for $(Split-Path -Leaf $zip) (expected $expected, got $actual)" }
 
@@ -76,20 +102,18 @@ function Install-Gitunia {
         [void](New-Item -ItemType Directory -Force -Path $target)
         # A running gitunia.exe cannot be overwritten but can be renamed away, so an update works while it runs.
         $old = "$executable.old"
+        Remove-Item -LiteralPath $old -Force -ErrorAction SilentlyContinue
         if (Test-Path -LiteralPath $executable) { Move-Item -LiteralPath $executable -Destination $old -Force }
-        Copy-Item -LiteralPath $binary.FullName -Destination $executable
+        try {
+            Copy-Item -LiteralPath $binary.FullName -Destination $executable
+        } catch {
+            if (Test-Path -LiteralPath $old) { Move-Item -LiteralPath $old -Destination $executable -Force }
+            throw
+        }
         Remove-Item -LiteralPath $old -Force -ErrorAction SilentlyContinue
         Write-Host "Installed $executable"
 
-        if ($env:GITUNIA_NO_PATH -ne '1') {
-            $userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
-            $entries = if ($userPath) { $userPath -split ';' } else { @() }
-            if ($entries -notcontains $target) {
-                [Environment]::SetEnvironmentVariable('Path', (@($entries | Where-Object { $_ }) + $target) -join ';', 'User')
-                $env:Path = "$env:Path;$target"
-                Write-Host "Added $target to your user PATH (open a new terminal for other windows to see it)."
-            }
-        }
+        if ($env:GITUNIA_NO_PATH -ne '1') { Add-ToUserPath $target }
         Write-Host "Gitunia $latest installed. Run: gitunia"
     } finally {
         Remove-Item -LiteralPath $work -Recurse -Force -ErrorAction SilentlyContinue

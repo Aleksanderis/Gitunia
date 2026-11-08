@@ -25,10 +25,10 @@ say() { printf '%s\n' "$*"; }
 fail() { printf 'gitunia install: %s\n' "$*" >&2; exit 1; }
 have() { command -v "$1" >/dev/null 2>&1; }
 
-# Downloads $1 to the file $2 (curl or wget; file:// URLs work with curl).
+# Downloads $1 to the file $2 (curl or wget; file:// URLs work with curl). $3 is an optional hint added to the failure.
 download() {
-  if have curl; then curl -fsSL -o "$2" "$1" || fail "download failed: $1"
-  elif have wget; then wget -q -O "$2" "$1" || fail "download failed: $1"
+  if have curl; then curl -fsSL -o "$2" "$1" || fail "download failed: $1 ${3:-}"
+  elif have wget; then wget -q -O "$2" "$1" || fail "download failed: $1 ${3:-}"
   else fail "need curl or wget"; fi
 }
 
@@ -40,7 +40,9 @@ sha256_of() {
 
 # Prints the download URL of the release asset whose name ends with $2 (the release JSON is in the file $1).
 asset_url() {
-  grep -o '"browser_download_url": *"[^"]*"' "$1" | cut -d '"' -f 4 | grep -- "$2\$" | head -n 1 || true
+  grep -o '"browser_download_url": *"[^"]*"' "$1" | cut -d '"' -f 4 |
+    awk -v suffix="$2" 'length($0) >= length(suffix) && substr($0, length($0) - length(suffix) + 1) == suffix { print; exit }'
+
 }
 
 # Downloads asset URL $1 into directory $2 and checks it against its .sha256 asset; prints the local path.
@@ -50,6 +52,7 @@ fetch_verified() {
   download "$1.sha256" "$2/$name.sha256"
   expected="$(cut -d ' ' -f 1 "$2/$name.sha256" | head -n 1)"
   actual="$(sha256_of "$2/$name")"
+  [ -n "$expected" ] && [ -n "$actual" ] || fail "no checksum for $name"
   [ "$expected" = "$actual" ] || fail "checksum mismatch for $name (expected $expected, got $actual)"
   printf '%s' "$2/$name"
 }
@@ -75,12 +78,15 @@ install_package() {
   url="$(asset_url "$json" "$suffix")"
   [ -n "$url" ] || return 1
 
-  file="$(fetch_verified "$url" "$work")"
+  # Not "set -e" here: this runs in an if condition, so a failed verification must stop the script explicitly.
+  file="$(fetch_verified "$url" "$work")" || exit 1
+  [ -n "$file" ] || exit 1
   say "Installing $(basename "$file") (asks for your password if needed)"
   # A fitting package that fails to install is an error, not a reason to fall back silently.
-  if have pacman; then as_root pacman -U --noconfirm "$file" || fail "pacman could not install $file"
-  elif have apt-get; then as_root apt-get install -y "$file" || fail "apt-get could not install $file"
-  else as_root dnf install -y "$file" || fail "dnf could not install $file"; fi
+  hint="(no root or sudo rights? run again with GITUNIA_METHOD=archive)"
+  if have pacman; then as_root pacman -U --noconfirm "$file" || fail "pacman could not install $file $hint"
+  elif have apt-get; then as_root apt-get install -y "$file" || fail "apt-get could not install $file $hint"
+  else as_root dnf install -y "$file" || fail "dnf could not install $file $hint"; fi
 }
 
 install_archive() {
@@ -90,7 +96,7 @@ install_archive() {
   [ -n "$url" ] || fail "this release has no $rid archive yet; see https://github.com/$REPOSITORY/releases"
   have tar || fail "need tar"
 
-  file="$(fetch_verified "$url" "$work")"
+  file="$(fetch_verified "$url" "$work")" || exit 1
   mkdir -p "$work/unpacked"
   tar -xzf "$file" -C "$work/unpacked"
   binary="$(find "$work/unpacked" -type f -name gitunia | head -n 1)"
@@ -118,7 +124,11 @@ main() {
     *) fail "unsupported architecture: $machine (releases exist for x64 and arm64)" ;;
   esac
   case "$os" in
-    Linux) rid="linux-$arch" ;;
+    Linux)
+      if have ldd && ldd --version 2>&1 | grep -qi musl; then
+        fail "the Linux builds need glibc; this system uses musl (Alpine)"
+      fi
+      rid="linux-$arch" ;;
     Darwin)
       [ "$arch" = "arm64" ] || fail "macOS builds exist for Apple silicon only"
       rid="osx-arm64" ;;
@@ -128,15 +138,18 @@ main() {
   have git || say "Note: Gitunia needs git 2.43 or newer on your PATH; git was not found."
 
   work="$(mktemp -d)"
-  trap 'rm -rf "$work"' EXIT
+  trap 'rm -rf "$work"' EXIT INT TERM HUP
   json="$work/release.json"
-  download "${GITUNIA_RELEASE_URL:-$DEFAULT_RELEASE_URL}" "$json"
+  download "${GITUNIA_RELEASE_URL:-$DEFAULT_RELEASE_URL}" "$json" "(GitHub rate limit? try again later)"
   tag="$(grep -o '"tag_name": *"[^"]*"' "$json" | head -n 1 | cut -d '"' -f 4)"
-  [ -n "$tag" ] || fail "could not read the latest release (GitHub rate limit? try again later)"
+  [ -n "$tag" ] || fail "could not read the latest release from $DEFAULT_RELEASE_URL"
   latest="${tag#v}"
 
-  if have gitunia && [ "${GITUNIA_FORCE:-0}" != "1" ]; then
-    installed="$(gitunia --version 2>/dev/null | awk '{print $2; exit}' || true)"
+  # The copy this run would replace: the archive folder for an archive install, else the one on the PATH.
+  if [ "${GITUNIA_METHOD:-package}" = "archive" ]; then current="${GITUNIA_INSTALL_DIR:-$HOME/.local/bin}/gitunia"
+  else current="$(command -v gitunia || true)"; fi
+  if [ -n "$current" ] && [ -x "$current" ] && [ "${GITUNIA_FORCE:-0}" != "1" ]; then
+    installed="$("$current" --version 2>/dev/null | awk '{print $2; exit}' || true)"
     if [ "$installed" = "$latest" ]; then
       say "Gitunia $latest is already installed."
       return 0

@@ -56,4 +56,27 @@ if out="$(run_install "$tmp/r2" GITUNIA_OS=FreeBSD GITUNIA_ARCH=x86_64)"; then f
 grep -q "unsupported system" <<<"$out" || fail "no system message: $out"
 if out="$(run_install "$tmp/r2" GITUNIA_OS=Darwin GITUNIA_ARCH=arm64)"; then fail "missing macOS asset accepted"; fi
 grep -q "no osx-arm64 archive" <<<"$out" || fail "no missing-asset message: $out"
+# The package path with a fake pacman and sudo (no root): installs the verified file, and a bad checksum stops the script
+# before the package manager runs (the reviewer's set -e case).
+mkdir -p "$tmp/stubs"
+printf '#!/bin/sh\nexec "$@"\n' > "$tmp/stubs/sudo"
+printf '#!/bin/sh\necho "pacman $*" >> "%s/pacman.log"\n' "$tmp" > "$tmp/stubs/pacman"
+chmod +x "$tmp/stubs/sudo" "$tmp/stubs/pacman"
+printf 'fake package' > "$tmp/r2/gitunia-1.3.0-1-x86_64.pkg.tar.zst"
+(cd "$tmp/r2" && sha256sum gitunia-1.3.0-1-x86_64.pkg.tar.zst > gitunia-1.3.0-1-x86_64.pkg.tar.zst.sha256)
+sed -i "s|\] }|  ,{ \"browser_download_url\": \"file://$tmp/r2/gitunia-1.3.0-1-x86_64.pkg.tar.zst\" },\n  { \"browser_download_url\": \"file://$tmp/r2/gitunia-1.3.0-1-x86_64.pkg.tar.zst.sha256\" }\n] }|" "$tmp/r2/release.json"
+rm -f "$tmp/bin/gitunia"
+
+run_package() {
+  env "$@" GITUNIA_RELEASE_URL="file://$tmp/r2/release.json" GITUNIA_OS=Linux GITUNIA_ARCH=x86_64 \
+    PATH="$tmp/stubs:$PATH" sh "$root/scripts/install.sh" 2>&1
+}
+out="$(run_package GITUNIA_METHOD=package)" || fail "package install failed: $out"
+grep -q "^pacman -U --noconfirm .*gitunia-1.3.0-1-x86_64.pkg.tar.zst$" "$tmp/pacman.log" || fail "pacman not called as expected: $(cat "$tmp/pacman.log")"
+
+rm "$tmp/pacman.log"
+printf '%064d  x\n' 0 > "$tmp/r2/gitunia-1.3.0-1-x86_64.pkg.tar.zst.sha256"
+if out="$(run_package GITUNIA_METHOD=package)"; then fail "package checksum mismatch accepted: $out"; fi
+grep -q "checksum mismatch" <<<"$out" || fail "no package checksum message: $out"
+[ ! -e "$tmp/pacman.log" ] || fail "pacman ran despite a bad checksum"
 echo "ok"
