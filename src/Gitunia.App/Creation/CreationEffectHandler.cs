@@ -16,7 +16,12 @@ namespace Gitunia.App.Creation;
 /// <param name="creator">Runs clone and init.</param>
 /// <param name="files">The file system questions of the default clone folder.</param>
 /// <param name="dispatcher">Where the progress and result commands go.</param>
-public sealed class CreationEffectHandler(IRepositoryCreator creator, IDirectoryLister files, IDispatcher dispatcher)
+/// <param name="tasks">Remembers the running work so the shutdown can wait for it; the default is a private set.</param>
+public sealed class CreationEffectHandler(
+    IRepositoryCreator creator,
+    IDirectoryLister files,
+    IDispatcher dispatcher,
+    ShutdownTasks? tasks = null)
 {
     private const string PromptsOffMarker = "terminal prompts disabled";
     private const string DeniedMarker = "Permission denied";
@@ -26,6 +31,7 @@ public sealed class CreationEffectHandler(IRepositoryCreator creator, IDirectory
 
     private static readonly TimeSpan ShutdownWait = TimeSpan.FromSeconds(5);
 
+    private readonly ShutdownTasks _tasks = tasks ?? new ShutdownTasks();
     private CancellationTokenSource? _clone;
     private Task? _cloneTask;
 
@@ -37,7 +43,12 @@ public sealed class CreationEffectHandler(IRepositoryCreator creator, IDirectory
         switch (effect)
         {
             case ResolveCloneParentEffect parent:
-                _ = Task.Run(() => ResolveParent(parent), CancellationToken.None);
+                _tasks.Run(() =>
+                {
+                    ResolveParent(parent);
+
+                    return Task.CompletedTask;
+                });
                 break;
             case CloneRepositoryEffect clone:
                 StartClone(clone, cancellationToken);
@@ -46,7 +57,7 @@ public sealed class CreationEffectHandler(IRepositoryCreator creator, IDirectory
                 CancelClone();
                 break;
             case InitRepositoryEffect init:
-                _ = Task.Run(() => InitAsync(init, cancellationToken), CancellationToken.None);
+                _tasks.Run(() => InitAsync(init, cancellationToken));
                 break;
             default:
                 throw new UnhandledEffectException(effect);

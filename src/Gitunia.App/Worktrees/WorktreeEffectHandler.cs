@@ -14,8 +14,15 @@ namespace Gitunia.App.Worktrees;
 /// <param name="writer">Runs the worktree commands.</param>
 /// <param name="discovery">Resolves the path of a worktree to its location.</param>
 /// <param name="dispatcher">Where the result commands go.</param>
-public sealed class WorktreeEffectHandler(IWorktreeWriter writer, RepositoryDiscovery discovery, IDispatcher dispatcher)
+/// <param name="tasks">Remembers the running work so the shutdown can wait for it; the default is a private set.</param>
+public sealed class WorktreeEffectHandler(
+    IWorktreeWriter writer,
+    RepositoryDiscovery discovery,
+    IDispatcher dispatcher,
+    ShutdownTasks? tasks = null)
 {
+    private readonly ShutdownTasks _tasks = tasks ?? new ShutdownTasks();
+
     /// <summary>Starts the effect and returns at once; the result arrives through the dispatcher.</summary>
     public void Handle(WorktreeEffect effect, CancellationToken cancellationToken)
     {
@@ -26,14 +33,15 @@ public sealed class WorktreeEffectHandler(IWorktreeWriter writer, RepositoryDisc
             exception => new WorktreeOperationFailed(
                 effect.TabId,
                 $"{FailureOf(effect)}: {FailureText.Reason(exception)}"),
-            cancellationToken);
+            cancellationToken,
+            _tasks);
     }
 
     /// <summary>Starts resolving a worktree path and returns at once. A cancelled read (the tab was closed) posts
     /// nothing.</summary>
     public void Locate(LocateWorktreeEffect effect, CancellationToken cancellationToken)
     {
-        _ = Task.Run(() => LocateAsync(effect, cancellationToken), CancellationToken.None);
+        _tasks.Run(() => LocateAsync(effect, cancellationToken));
     }
 
     private async Task LocateAsync(LocateWorktreeEffect effect, CancellationToken token)

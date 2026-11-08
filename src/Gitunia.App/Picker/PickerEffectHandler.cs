@@ -15,12 +15,15 @@ namespace Gitunia.App.Picker;
 /// <param name="files">The file system questions.</param>
 /// <param name="dispatcher">Where the result commands go.</param>
 /// <param name="timings">The listing delays; <see cref="PickerTimings.Default"/> in the app.</param>
+/// <param name="tasks">Remembers the running work so the shutdown can wait for it; the default is a private set.</param>
 public sealed class PickerEffectHandler(
     RepositoryDiscovery discovery,
     IDirectoryLister files,
     IDispatcher dispatcher,
-    PickerTimings timings)
+    PickerTimings timings,
+    ShutdownTasks? tasks = null)
 {
+    private readonly ShutdownTasks _tasks = tasks ?? new ShutdownTasks();
     private CancellationTokenSource? _listing;
 
     /// <summary>Starts the effect and returns at once; the result arrives through the dispatcher.</summary>
@@ -37,10 +40,15 @@ public sealed class PickerEffectHandler(
                 CancelListing();
                 break;
             case ScanRepositoriesEffect scan:
-                _ = Task.Run(() => Scan(scan, cancellationToken), CancellationToken.None);
+                _tasks.Run(() =>
+                {
+                    Scan(scan, cancellationToken);
+
+                    return Task.CompletedTask;
+                });
                 break;
             case DiscoverRepositoryEffect discover:
-                _ = Task.Run(() => DiscoverAsync(discover, cancellationToken), CancellationToken.None);
+                _tasks.Run(() => DiscoverAsync(discover, cancellationToken));
                 break;
             default:
                 throw new UnhandledEffectException(effect);
@@ -54,7 +62,7 @@ public sealed class PickerEffectHandler(
         var cancellation = CancellationTokenSource.CreateLinkedTokenSource(shutdown);
         var previous = Interlocked.Exchange(ref _listing, cancellation);
         Cancel(previous);
-        _ = Task.Run(() => ListAsync(effect, cancellation), CancellationToken.None);
+        _tasks.Run(() => ListAsync(effect, cancellation));
     }
 
     private void CancelListing() => Cancel(Interlocked.Exchange(ref _listing, null));
