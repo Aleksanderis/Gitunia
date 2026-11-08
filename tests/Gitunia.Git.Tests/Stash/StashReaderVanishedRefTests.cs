@@ -12,6 +12,7 @@ public class StashReaderVanishedRefTests
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
     // "stash list" always fails; "rev-parse --verify refs/stash" exits 1 (ref gone) or 0 (ref exists).
+    // The reader decides from that exit code only; the stderr message just mimics real git.
     private static FakeGitExecutable StashListFailing(string message, bool stashRefExists)
     {
         var verifyExit = stashRefExists ? 0 : 1;
@@ -49,7 +50,7 @@ public class StashReaderVanishedRefTests
     }
 
     [Fact]
-    public async Task GivenOtherStashListFailure_WhenReading_ThenErrorSurfaces()
+    public async Task GivenRefProbeAlsoFails_WhenReading_ThenOriginalErrorSurfaces()
     {
         using var fake = FakeGitExecutable.Failing(128, "fatal: unable to read stash");
 
