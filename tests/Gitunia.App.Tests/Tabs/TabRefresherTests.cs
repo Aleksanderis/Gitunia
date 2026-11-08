@@ -129,7 +129,8 @@ public class TabRefresherTests
         harness.RepositoryRefresher.WindDown = TimeSpan.FromMilliseconds(300);
         var before = harness.RepositoryRefresher.RefreshCount;
         harness.Refresher.RefreshNow();
-        await harness.Pump.RunUntilAsync(() => harness.RepositoryRefresher.RefreshCount > before);
+        // The read starts on the thread pool and posts nothing while it waits, so the pump has nothing to run.
+        Assert.True(SpinWait.SpinUntil(() => harness.RepositoryRefresher.RefreshCount > before, TimeSpan.FromSeconds(10)));
 
         harness.Refresher.Dispose();
 
