@@ -3,10 +3,10 @@
 class Gitunia < Formula
   desc "Keyboard-first terminal Git client (graph, branches, worktrees, vim-style keys)"
   homepage "https://github.com/Aleksanderis/Gitunia"
-  version "@VERSION@"
   license "MIT"
 
   on_macos do
+    depends_on arch: :arm64
     on_arm do
       url "https://github.com/Aleksanderis/Gitunia/releases/download/v@VERSION@/gitunia-@VERSION@-osx-arm64.tar.gz"
       sha256 "@SHA256_OSX_ARM64@"
@@ -32,7 +32,7 @@ class Gitunia < Formula
 
   def caveats
     <<~EOS
-      The macOS binary is not signed or notarised. If Gatekeeper blocks it, run:
+      The macOS binary is not signed or notarised. If macOS blocks it, run:
         xattr -d com.apple.quarantine "$(which gitunia)"
     EOS
   end

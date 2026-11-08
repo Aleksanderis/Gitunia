@@ -1,6 +1,8 @@
 # Updates Formula/gitunia.rb in the tap Aleksanderis/homebrew-tap when the owner publishes a release (#945).
 # Needs the repository secret HOMEBREW_TAP_TOKEN (fine-grained PAT, contents:write on the tap repo only) and the tap
-# repo itself. While either is missing the job ends green with a notice, so releases are not blocked.
+# repo itself. Without the secret the job ends green with a notice, so releases are not blocked; with a secret but no
+# reachable tap (repo missing, token expired) it fails, so a stale tap is visible. A release without the osx-arm64
+# archive makes it fail too (the formula needs all three hashes).
 # Manual run for a version: `gh workflow run homebrew.yml -f version=1.2.3`.
 name: homebrew
 
@@ -39,7 +41,7 @@ jobs:
           printf '#!/bin/sh\necho "$TAP_TOKEN"\n' > "$GIT_ASKPASS"; chmod 700 "$GIT_ASKPASS"
           export GIT_TERMINAL_PROMPT=0
           if ! git clone -q https://x-access-token@github.com/Aleksanderis/homebrew-tap.git tap; then
-            echo "::notice::cannot clone Aleksanderis/homebrew-tap (repo missing or token without access), tap not updated"; exit 0
+            echo "::error::cannot clone Aleksanderis/homebrew-tap (repo missing, token expired or without access)"; exit 1
           fi
           scripts/homebrew-formula.sh "$version" tap/Formula/gitunia.rb
           cd tap
