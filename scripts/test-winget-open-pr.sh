@@ -20,5 +20,10 @@ cat > "$tmp/open.json" <<'J'
 J
 [ "$("$root/scripts/winget-open-pr.sh" "$tmp/open.json")" = "https://example.test/474463" ] || fail "open PR not found"
 
+cat > "$tmp/prefix.json" <<'J'
+[{"number":9,"title":"New version: Gitunia.Gitunia version 0.8","url":"https://example.test/9"}]
+J
+[ "$("$root/scripts/winget-open-pr.sh" "$tmp/prefix.json")" = "https://example.test/9" ] || fail "prefixed title not found"
+
 if "$root/scripts/winget-open-pr.sh" "$tmp/missing.json" 2>/dev/null; then fail "missing file accepted"; fi
 echo "ok"

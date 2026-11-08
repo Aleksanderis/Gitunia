@@ -8,6 +8,7 @@ name: winget
 # open only piles up. Before submitting, the job looks for open winget-pkgs PRs by this repository's owner titled
 # "Gitunia.Gitunia ..." (read-only, github.token). If one is open it ends green with a notice naming it and submits
 # nothing. A manual run (Actions > winget > Run workflow) with the tag of a release and force=true submits anyway.
+# If the lookup itself fails the job goes red and submits nothing. A manual run skips the prerelease check.
 # The lookup is scripts/winget-open-pr.sh (test: scripts/test-winget-open-pr.sh).
 on:
   release:
