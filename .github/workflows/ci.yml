@@ -91,6 +91,8 @@ jobs:
         # names the running test. The step timeout also covers a host that died with no test in flight.
         timeout-minutes: 10
         run: dotnet test -c Release --no-build --blame-hang-timeout 3m --blame-hang-dump-type none
+      - name: Install script test (fake release on disk, #1248)
+        run: scripts/test-install.sh
       - name: Decide whether the AOT publish is needed
         id: aot
         env:
@@ -192,6 +194,10 @@ jobs:
             dotnet test "tests/Gitunia.$project.Tests" -c Release --no-build --filter "Os!=Independent" \
               --blame-hang-timeout 10m --blame-hang-dump-type none || exit 1
           done
+      - name: Install script test (Windows PowerShell 5.1 and pwsh, fake release on disk, #1248)
+        run: |
+          powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-install.ps1
+          pwsh -NoProfile -File scripts/test-install.ps1
       - name: AOT publish (any IL* warning fails)
         run: |
           version_arg=""; if [[ "$GITHUB_REF" == refs/tags/v* ]]; then version_arg="-p:Version=${GITHUB_REF_NAME#v}"; fi

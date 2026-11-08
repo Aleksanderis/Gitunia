@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+# Tests scripts/install.sh against a fake release on disk (no network, no root): archive install, skip when current,
+# update, checksum mismatch, unsupported architecture and system, missing asset (#1248).
+set -euo pipefail
+root="$(cd "$(dirname "$0")/.." && pwd)"
+tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
+fail() { echo "FAIL: $*" >&2; exit 1; }
+
+# A fake release: the real package.sh archive of a fake binary that answers --version, plus the release JSON.
+make_release() { # <version> <dir>
+  local version="$1" dir="$2"
+  mkdir -p "$dir" "$tmp/publish"
+  printf '#!/bin/sh\necho "gitunia %s"\n' "$version" > "$tmp/publish/gitunia"
+  chmod +x "$tmp/publish/gitunia"
+  (cd "$root" && scripts/package.sh linux-x64 "$tmp/publish" "$version" "$dir" >/dev/null)
+  (cd "$root" && scripts/package.sh linux-arm64 "$tmp/publish" "$version" "$dir" >/dev/null)
+  {
+    echo "{ \"tag_name\": \"v$version\", \"assets\": ["
+    echo "  { \"browser_download_url\": \"file://$dir/gitunia-$version-linux-x64.tar.gz\" },"
+    echo "  { \"browser_download_url\": \"file://$dir/gitunia-$version-linux-x64.tar.gz.sha256\" },"
+    echo "  { \"browser_download_url\": \"file://$dir/gitunia-$version-linux-arm64.tar.gz\" },"
+    echo "  { \"browser_download_url\": \"file://$dir/gitunia-$version-linux-arm64.tar.gz.sha256\" }"
+    echo "] }"
+  } > "$dir/release.json"
+}
+
+run_install() { # <release dir> [env assignments...]; prints combined output
+  local dir="$1"; shift
+  env "$@" GITUNIA_METHOD=archive GITUNIA_RELEASE_URL="file://$dir/release.json" \
+    GITUNIA_INSTALL_DIR="$tmp/bin" PATH="$tmp/bin:$PATH" sh "$root/scripts/install.sh" 2>&1
+}
+
+make_release 1.2.3 "$tmp/r1"
+make_release 1.3.0 "$tmp/r2"
+
+out="$(run_install "$tmp/r1" GITUNIA_OS=Linux GITUNIA_ARCH=x86_64)" || fail "install failed: $out"
+[ -x "$tmp/bin/gitunia" ] || fail "binary not installed"
+[ "$("$tmp/bin/gitunia" --version)" = "gitunia 1.2.3" ] || fail "wrong binary installed"
+
+out="$(run_install "$tmp/r1" GITUNIA_OS=Linux GITUNIA_ARCH=x86_64)" || fail "second run failed: $out"
+grep -q "already installed" <<<"$out" || fail "no skip when current: $out"
+
+out="$(run_install "$tmp/r2" GITUNIA_OS=Linux GITUNIA_ARCH=aarch64)" || fail "update failed: $out"
+grep -q "Updating Gitunia 1.2.3 -> 1.3.0" <<<"$out" || fail "no update message: $out"
+[ "$("$tmp/bin/gitunia" --version)" = "gitunia 1.3.0" ] || fail "not updated"
+
+rm "$tmp/bin/gitunia"
+printf '%064d  x\n' 0 > "$tmp/r1/gitunia-1.2.3-linux-x64.tar.gz.sha256"
+if out="$(run_install "$tmp/r1" GITUNIA_OS=Linux GITUNIA_ARCH=x86_64)"; then fail "checksum mismatch accepted"; fi
+grep -q "checksum mismatch" <<<"$out" || fail "no checksum message: $out"
+[ ! -e "$tmp/bin/gitunia" ] || fail "binary installed despite a bad checksum"
+
+if out="$(run_install "$tmp/r2" GITUNIA_OS=Linux GITUNIA_ARCH=riscv64)"; then fail "unsupported arch accepted"; fi
+grep -q "unsupported architecture" <<<"$out" || fail "no arch message: $out"
+if out="$(run_install "$tmp/r2" GITUNIA_OS=FreeBSD GITUNIA_ARCH=x86_64)"; then fail "unsupported system accepted"; fi
+grep -q "unsupported system" <<<"$out" || fail "no system message: $out"
+if out="$(run_install "$tmp/r2" GITUNIA_OS=Darwin GITUNIA_ARCH=arm64)"; then fail "missing macOS asset accepted"; fi
+grep -q "no osx-arm64 archive" <<<"$out" || fail "no missing-asset message: $out"
+echo "ok"
