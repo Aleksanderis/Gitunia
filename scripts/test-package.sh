@@ -32,4 +32,5 @@ elif command -v 7z >/dev/null 2>&1; then 7z e -so "$tmp/out/gitunia-1.2.3-win-x6
 else fail "need unzip or 7z to read the zip"; fi
 cmp "$tmp/unzipped.exe" "$tmp/win/gitunia.exe" || fail "zip does not hold gitunia.exe from the publish output"
 [ "$(ls "$tmp/out" | wc -l)" -eq 10 ] || fail "unexpected asset count (no bare binary any more, #1156)"
+if scripts/package-linux.sh "$tmp/lin" 1.2.3 "$tmp/out" foo 2>/dev/null; then fail "unknown architecture accepted"; fi
 echo "ok"
