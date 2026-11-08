@@ -28,7 +28,8 @@ public sealed class StashReader : IStashReader
         catch (GitCommandFailedException)
         {
             // The last stash may have been dropped while "stash list" walked the reflog ("bad revision
-            // 'refs/stash...'"): the stack is then empty, which is not a failure. Any other failure stays one.
+            // 'refs/stash...'"): the stack is then empty, which is not a failure. Any other failure stays one, also
+            // when the ref was recreated between the two calls.
             if (!await IsStashRefGoneAsync(location, cancellationToken).ConfigureAwait(false))
             {
                 throw;
@@ -40,7 +41,15 @@ public sealed class StashReader : IStashReader
 
     private async Task<bool> IsStashRefGoneAsync(RepositoryLocation location, CancellationToken cancellationToken)
     {
-        var result = await _runner.RunAsync(location.CommandPath, StashRefArguments, GitRunOptions.ReadOnlyRunAllowingNoMatch, cancellationToken).ConfigureAwait(false);
-        return result.ExitCode != 0;
+        try
+        {
+            var result = await _runner.RunAsync(location.CommandPath, StashRefArguments, GitRunOptions.ReadOnlyRunAllowingNoMatch, cancellationToken).ConfigureAwait(false);
+            return result.ExitCode == GitRunOptions.NoMatchExitCode;
+        }
+        catch (GitCommandFailedException)
+        {
+            // A broken repository: let the caller rethrow the original failure.
+            return false;
+        }
     }
 }
