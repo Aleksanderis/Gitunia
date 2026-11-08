@@ -19,6 +19,10 @@ grep -q 'xattr -d com.apple.quarantine' "$f" || fail "quarantine caveat"
 if grep -q '@[A-Z0-9_]*@' "$f"; then fail "placeholder left"; fi
 if command -v ruby >/dev/null 2>&1; then ruby -c "$f" >/dev/null || fail "ruby syntax"; fi
 
+# Two-part versions (v0.8, gitunia-0.8-*.tar.gz) are what releases use.
+"$gen" 0.8 "$tmp/two/gitunia.rb" --sha256-osx-arm64 "$a" --sha256-linux-x64 "$b" --sha256-linux-arm64 "$c" >/dev/null
+grep -A1 'download/v0.8/gitunia-0.8-osx-arm64.tar.gz"' "$tmp/two/gitunia.rb" | grep -q "sha256 \"$a\"" || fail "two-part version pair"
+if "$gen" 0.8.0.1 "$tmp/o0" --sha256-osx-arm64 "$a" --sha256-linux-x64 "$b" --sha256-linux-arm64 "$c" 2>/dev/null; then fail "four-part accepted"; fi
 if "$gen" v1.2.3 "$tmp/o1" --sha256-osx-arm64 "$a" --sha256-linux-x64 "$b" --sha256-linux-arm64 "$c" 2>/dev/null; then fail "leading v accepted"; fi
 if "$gen" 1.2.3-rc1 "$tmp/o2" --sha256-osx-arm64 "$a" --sha256-linux-x64 "$b" --sha256-linux-arm64 "$c" 2>/dev/null; then fail "prerelease accepted"; fi
 if "$gen" 1.2.3 "$tmp/o3" --sha256-osx-arm64 abc --sha256-linux-x64 "$b" --sha256-linux-arm64 "$c" 2>/dev/null; then fail "short hash accepted"; fi

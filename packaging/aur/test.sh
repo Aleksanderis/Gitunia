@@ -21,6 +21,8 @@ grep -q "sha256sums_x86_64=('$sha')" "$tmp/out/PKGBUILD" || fail "x64 hash not f
 grep -q "sha256sums_aarch64=('$sha_arm')" "$tmp/out/PKGBUILD" || fail "arm64 hash not filled"
 if grep -v '^#' "$tmp/out/PKGBUILD" | grep -q '@[A-Z0-9_]*@'; then fail "placeholder left"; fi
 if "$here/update.sh" 1.2.3 "$tmp/bad" --sha256 nothex --sha256-arm64 "$sha_arm" >/dev/null 2>&1; then fail "bad hash accepted"; fi
+"$here/update.sh" 0.8 "$tmp/two" --sha256 "$sha" --sha256-arm64 "$sha_arm" >/dev/null
+grep -q '^pkgver=0.8$' "$tmp/two/PKGBUILD" || fail "two-part version not accepted"
 if "$here/update.sh" 1.2.3-rc1 "$tmp/bad" --sha256 "$sha" --sha256-arm64 "$sha_arm" >/dev/null 2>&1; then fail "prerelease accepted"; fi
 
 if command -v makepkg >/dev/null 2>&1; then

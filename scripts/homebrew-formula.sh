@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Fills the Homebrew formula template packaging/homebrew/gitunia.rb.in for one release (#945).
 # Usage: scripts/homebrew-formula.sh <version> <out-file> [--sha256-osx-arm64 H --sha256-linux-x64 H --sha256-linux-arm64 H]
-#   <version>  without the leading v (1.2.3, stable releases only)
+#   <version>  without the leading v (0.8 or 1.2.3, as in the tag, stable releases only)
 #   hashes     default: downloaded from the release's .tar.gz.sha256 assets ($GITUNIA_REPO overrides Aleksanderis/Gitunia)
 # Writes the formula (Formula/gitunia.rb of the tap Aleksanderis/homebrew-tap) to <out-file>.
 set -euo pipefail
@@ -20,7 +20,7 @@ while [ "$#" -gt 0 ]; do
   esac
 done
 [ -n "$version" ] && [ -n "$out" ] || { echo "usage: $0 <version> <out-file> [--sha256-osx-arm64 H --sha256-linux-x64 H --sha256-linux-arm64 H]" >&2; exit 2; }
-[[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "version must look like 1.2.3 (stable releases only, no leading v)" >&2; exit 2; }
+[[ "$version" =~ ^[0-9]+\.[0-9]+(\.[0-9]+)?$ ]] || { echo "version must look like 1.2 or 1.2.3 (stable releases only, no leading v)" >&2; exit 2; }
 
 fetch_sha() { # <rid>
   local url="https://github.com/$repo/releases/download/v$version/gitunia-$version-$1.tar.gz.sha256"

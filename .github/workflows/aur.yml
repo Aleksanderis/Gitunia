@@ -1,6 +1,8 @@
 # Updates the AUR package gitunia-bin when the owner publishes a release (#944).
-# Needs the repository secret AUR_SSH_KEY (private key of the AUR account that maintains gitunia-bin).
-# Manual run for a version: `gh workflow run aur.yml -f version=1.2.3`.
+# Needs the repository secret AUR_SSH_KEY (private key of the AUR account that maintains gitunia-bin). Without the
+# secret the job ends green with a notice (the AUR account is still in Backlog, #1261); with a secret but a failing
+# push it fails, so a stale package is visible.
+# Manual run for a version: `gh workflow run aur.yml -f version=0.8`.
 name: aur
 
 on:
@@ -9,7 +11,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: Release version without the leading v (1.2.3)
+        description: Release version without the leading v (0.8 or 1.2.3, as in the tag)
         required: true
 
 permissions:
@@ -36,7 +38,7 @@ jobs:
           VERSION_INPUT: ${{ github.event.inputs.version }}
           TAG: ${{ github.event.release.tag_name }}
         run: |
-          [ -n "$AUR_SSH_KEY" ] || { echo "::error::secret AUR_SSH_KEY is not set"; exit 1; }
+          if [ -z "$AUR_SSH_KEY" ]; then echo "::notice::secret AUR_SSH_KEY is not set, AUR not updated"; exit 0; fi
           version="${VERSION_INPUT:-${TAG#v}}"
           key="$(mktemp)"; trap 'rm -f "$key"' EXIT
           printf '%s\n' "$AUR_SSH_KEY" > "$key"; chmod 600 "$key"

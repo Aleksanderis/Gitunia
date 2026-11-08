@@ -3,7 +3,7 @@
 # repo itself. Without the secret the job ends green with a notice, so releases are not blocked; with a secret but no
 # reachable tap (repo missing, token expired) it fails, so a stale tap is visible. A release without the osx-arm64
 # archive makes it fail too (the formula needs all three hashes).
-# Manual run for a version: `gh workflow run homebrew.yml -f version=1.2.3`.
+# Manual run for a version: `gh workflow run homebrew.yml -f version=0.8`.
 name: homebrew
 
 on:
@@ -12,7 +12,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: Release version without the leading v (1.2.3)
+        description: Release version without the leading v (0.8 or 1.2.3, as in the tag)
         required: true
 
 permissions:
