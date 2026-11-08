@@ -13,9 +13,19 @@ public sealed class ShutdownTasks
     private readonly HashSet<Task> _running = [];
 
     /// <summary>Starts <paramref name="work"/> on the thread pool and tracks it until it ends.</summary>
-    public void Run(Func<Task> work)
+    public void Run(Func<Task> work) => Track(Task.Run(work, CancellationToken.None));
+
+    /// <summary>Starts <paramref name="work"/> on the thread pool, tracks it until it ends and returns its task.</summary>
+    public Task<T> Start<T>(Func<T> work)
     {
         var task = Task.Run(work, CancellationToken.None);
+        Track(task);
+
+        return task;
+    }
+
+    private void Track(Task task)
+    {
         lock (_gate)
         {
             _running.Add(task);
