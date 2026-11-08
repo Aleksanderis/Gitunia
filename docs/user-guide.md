@@ -4,11 +4,11 @@
 
 Needs `git` 2.43 or newer on your `PATH`. Any terminal works. Truecolor looks best.
 
-- **Package (linux-x64):** `sudo apt install ./gitunia_<version>_amd64.deb` or `sudo dnf install ./gitunia-<version>-1.x86_64.rpm`. Installs `/usr/bin/gitunia`.
+- **Package (linux-x64, linux-arm64):** `sudo apt install ./gitunia_<version>_amd64.deb` (`_arm64.deb` on arm64) or `sudo dnf install ./gitunia-<version>-1.x86_64.rpm` (`.aarch64.rpm` on arm64). Installs `/usr/bin/gitunia`.
 - **Windows (winget):** `winget install Gitunia.Gitunia` puts `gitunia` on your `PATH`. The binary is unsigned, so SmartScreen may warn at first. Available once the first release is in winget.
-- **Archive (linux-x64, win-x64):** unpack and put `gitunia` on your `PATH`. Check the download with the `.sha256` file.
+- **Archive (linux-x64, linux-arm64, win-x64, win-arm64):** unpack and put `gitunia` on your `PATH`. Check the download with the `.sha256` file.
 - **macOS archive (osx-arm64, Apple silicon):** unpack and put `gitunia` on your `PATH`. It should work but is not fully tested yet, and it is unsigned, so Gatekeeper asks you to allow it (System Settings, Privacy & Security).
-- **Arch Linux / Omarchy:** `sudo pacman -U gitunia-<version>-1-x86_64.pkg.tar.zst` (from the release page; pulls in `git`). It is not in the AUR yet. The archive above also works: put `gitunia` in `~/.local/bin`.
+- **Arch Linux / Omarchy:** `sudo pacman -U gitunia-<version>-1-x86_64.pkg.tar.zst` (`aarch64` on arm64; from the release page; pulls in `git`). It is not in the AUR yet. The archive above also works: put `gitunia` in `~/.local/bin`.
 - **Source:**
   - Prerequisites: the .NET SDK from `global.json` and the Native AOT prerequisites.
     - Linux (Debian/Ubuntu): `clang` and `zlib1g-dev`.

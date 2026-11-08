@@ -1,7 +1,7 @@
-# nfpm config for the .deb, .rpm and Arch packages (#942, #966); used by scripts/package-linux.sh, which sets VERSION and BINARY.
+# nfpm config for the .deb, .rpm and Arch packages (#942, #966); used by scripts/package-linux.sh, which sets VERSION, BINARY and ARCH (amd64 or arm64, #1247).
 # Smallest install: the binary and the licence. git is declared, not bundled.
 name: gitunia
-arch: amd64
+arch: ${ARCH}
 platform: linux
 version: ${VERSION}
 section: vcs
