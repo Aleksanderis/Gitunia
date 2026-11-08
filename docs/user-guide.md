@@ -10,7 +10,7 @@ Needs `git` 2.43 or newer on your `PATH`. Any terminal works. Truecolor looks be
 - **Windows (winget):** `winget install Gitunia.Gitunia` puts `gitunia` on your `PATH`. The binary is unsigned, so SmartScreen may warn at first. Available once the first release is in winget.
 - **Archive (linux-x64, linux-arm64, win-x64, win-arm64):** unpack and put `gitunia` on your `PATH`. Check the download with the `.sha256` file.
 - **macOS archive (osx-arm64, Apple silicon):** unpack and put `gitunia` on your `PATH`. It should work but is not fully tested yet, and it is unsigned, so Gatekeeper asks you to allow it (System Settings, Privacy & Security).
-- **Arch Linux / Omarchy:** `sudo pacman -U gitunia-<version>-1-x86_64.pkg.tar.zst` (`aarch64` on arm64; from the release page; pulls in `git`). It is not in the AUR yet. The archive above also works: put `gitunia` in `~/.local/bin`.
+- **Arch Linux / Omarchy:** `sudo pacman -U gitunia-<version>-1-x86_64.pkg.tar.zst` (`aarch64` on arm64; from the release page; pulls in `git`). From the AUR (once the first release is published): `yay -S gitunia-bin` (or `paru -S gitunia-bin`; x86_64 and aarch64); it installs the release binary and `git`. The archive above also works: put `gitunia` in `~/.local/bin`.
 - **Source:**
   - Prerequisites: the .NET SDK from `global.json` and the Native AOT prerequisites.
     - Linux (Debian/Ubuntu): `clang` and `zlib1g-dev`.
