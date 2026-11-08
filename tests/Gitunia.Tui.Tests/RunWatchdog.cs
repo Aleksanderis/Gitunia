@@ -18,6 +18,8 @@ internal static class RunWatchdog
         {
             Thread.Sleep(Limit);
             Console.Error.WriteLine($"Gitunia.Tui.Tests: run exceeded {Limit.TotalMinutes} minutes, aborting (see issue #384).");
+            Console.Error.WriteLine($"Tests still running (the runner names only the last one it saw start):{Environment.NewLine}{RunningTests.Describe()}");
+            Console.Error.Flush();
             Environment.FailFast("Gitunia.Tui.Tests run watchdog expired");
         })
         {
