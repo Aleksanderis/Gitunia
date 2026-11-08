@@ -49,7 +49,7 @@ curl -fsSL https://raw.githubusercontent.com/Aleksanderis/Gitunia/main/scripts/i
 irm https://raw.githubusercontent.com/Aleksanderis/Gitunia/main/scripts/install.ps1 | iex           # Windows PowerShell
 ```
 
-Other ways to install: Linux `.deb`/`.rpm`, Arch/Omarchy `.pkg.tar.zst` (x64 and arm64) or AUR `gitunia-bin` (once the first release is published), Windows `winget install Gitunia.Gitunia` (once the first release is in winget), a Windows or Linux archive (x64 and arm64), a macOS archive (Apple silicon; should work but is not fully tested yet, and unsigned, so Gatekeeper asks you to allow it), or from source. For more details look in the [user guide](docs/user-guide.md#install).
+Other ways to install: Linux `.deb`/`.rpm`, Arch/Omarchy `.pkg.tar.zst` (x64 and arm64) or AUR `gitunia-bin` (once the first release is published), Windows `winget install Gitunia.Gitunia` (once the first release is in winget), Homebrew `brew install aleksanderis/tap/gitunia` (macOS and Linux, once the first release is published), a Windows or Linux archive (x64 and arm64), a macOS archive (Apple silicon; should work but is not fully tested yet, and unsigned, so Gatekeeper asks you to allow it), or from source. For more details look in the [user guide](docs/user-guide.md#install).
 
 ## Quick start
 
