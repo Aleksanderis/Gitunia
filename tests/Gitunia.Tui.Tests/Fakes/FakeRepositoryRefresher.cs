@@ -16,6 +16,7 @@ public sealed class FakeRepositoryRefresher : IRepositoryRefresher
 
     private RepositorySnapshot _snapshot = new(MainBranch, [], [], new StatusSnapshot(new StatusBranch(MainBranch, null, null, null), [], []), RepositoryOperation.None);
     private RepositorySections _changed = RepositorySections.None;
+    private int _woundDown;
 
     /// <summary>What the next refresh returns; replacing it marks every section as changed for the next refresh.</summary>
     public RepositorySnapshot Snapshot
@@ -35,6 +36,13 @@ public sealed class FakeRepositoryRefresher : IRepositoryRefresher
     /// <summary>How long every refresh takes, to play a slow repository.</summary>
     // ReSharper disable once UnusedAutoPropertyAccessor.Global : Fake shared with Gitunia.App.Tests by link: a member counts as unused when only the other project uses it
     public TimeSpan Delay { get; set; }
+
+    /// <summary>How long a cancelled refresh takes to wind down, to play a git process that is still being killed.</summary>
+    // ReSharper disable once UnusedAutoPropertyAccessor.Global : Fake shared with Gitunia.App.Tests by link: a member counts as unused when only the other project uses it
+    public TimeSpan WindDown { get; set; }
+
+    /// <summary>The number of cancelled refreshes that have finished winding down.</summary>
+    public int WoundDownCount => Volatile.Read(ref _woundDown);
 
     /// <summary>The number of refreshes so far.</summary>
     public int RefreshCount { get; private set; }
@@ -63,7 +71,17 @@ public sealed class FakeRepositoryRefresher : IRepositoryRefresher
         RepositoryRefreshResult result,
         CancellationToken cancellationToken)
     {
-        await Task.Delay(Delay, cancellationToken);
+        try
+        {
+            await Task.Delay(Delay, cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            await Task.Delay(WindDown, CancellationToken.None);
+            Interlocked.Increment(ref _woundDown);
+
+            throw;
+        }
 
         return result;
     }

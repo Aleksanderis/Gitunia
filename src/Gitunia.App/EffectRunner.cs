@@ -84,6 +84,8 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
     /// </summary>
     public const int DefaultWarmTabLimit = 5;
 
+    private static readonly TimeSpan LoadShutdownWait = TimeSpan.FromSeconds(5);
+
     private readonly GitServices _services;
     private readonly Dispatcher _host;
     private readonly ShellRoles _shell;
@@ -109,6 +111,7 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
     private readonly SettingsEffectHandler? _settings;
     private readonly SidebarEffectHandler _sidebar;
     private readonly CancellationTokenSource _shutdown = new();
+    private readonly ShutdownTasks _loads = new();
     private readonly RemoteEffectHandler _remotes;
     private readonly StagingEffectHandler _staging;
     private readonly StashEffectHandler _stash;
@@ -274,6 +277,14 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
 
         _refreshers.Clear();
         _shutdown.Cancel();
+
+        // The initial and the incremental graph loads may still run git in the repository: cancel and wait (bounded).
+        foreach (var session in _sessions.Values)
+        {
+            session.Cancellation.Cancel();
+        }
+
+        _loads.Wait(LoadShutdownWait);
         _creation.CancelAndWait();
         _shutdown.Dispose();
         _cancellation.Dispose();

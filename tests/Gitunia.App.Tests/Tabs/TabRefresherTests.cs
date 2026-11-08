@@ -122,6 +122,21 @@ public class TabRefresherTests
     }
 
     [Fact]
+    public async Task GivenARefreshInFlight_WhenTheRefresherIsDisposed_ThenItWaitsForTheCancelledReadToEnd()
+    {
+        using var harness = await FakeHarness.LoadAsync();
+        harness.RepositoryRefresher.Delay = TimeSpan.FromHours(1);
+        harness.RepositoryRefresher.WindDown = TimeSpan.FromMilliseconds(300);
+        var before = harness.RepositoryRefresher.RefreshCount;
+        harness.Refresher.RefreshNow();
+        await harness.Pump.RunUntilAsync(() => harness.RepositoryRefresher.RefreshCount > before);
+
+        harness.Refresher.Dispose();
+
+        Assert.Equal(1, harness.RepositoryRefresher.WoundDownCount);
+    }
+
+    [Fact]
     public async Task GivenManualRefresh_WhenItSucceeds_ThenTheGraphIsReloadedAndCompletionIsReported()
     {
         using var harness = await FakeHarness.LoadAsync();
