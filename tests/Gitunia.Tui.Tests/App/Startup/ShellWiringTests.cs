@@ -45,16 +45,15 @@ public sealed class ShellWiringTests : IDisposable
     {
         _shell.Dispose();
 
-        // Best effort (#1250): the shell only cancels its background git work on dispose, it does not wait for the
-        // processes to exit, and Windows refuses to delete a directory a process is still running in. A leftover
-        // temp directory is harmless; failing the test over it is not.
         try
         {
             Directory.Delete(_root, true);
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
-            // See above.
+            // Best effort (#1250, root cause #1251): the shell only cancels its background git work on dispose and
+            // does not wait for the processes to exit, and Windows refuses to delete a directory a process is still
+            // running in. A leftover temp directory is harmless; failing the test over it is not.
         }
     }
 
