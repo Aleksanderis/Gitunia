@@ -133,6 +133,7 @@ public class TabRefresherTests
         Assert.True(SpinWait.SpinUntil(() => harness.RepositoryRefresher.RefreshCount > before, TimeSpan.FromSeconds(10)));
 
         harness.Refresher.Dispose();
+        Assert.True(harness.Refresher.WaitForStop(TimeSpan.FromSeconds(10)));
 
         Assert.Equal(1, harness.RepositoryRefresher.WoundDownCount);
     }

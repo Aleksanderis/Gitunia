@@ -6,6 +6,9 @@ namespace Gitunia.App;
 /// </summary>
 public sealed class ShutdownTasks
 {
+    /// <summary>The longest the shutdown waits for background git work in total.</summary>
+    public static readonly TimeSpan DefaultWait = TimeSpan.FromSeconds(5);
+
     private readonly Lock _gate = new();
     private readonly HashSet<Task> _running = [];
 
@@ -42,7 +45,7 @@ public sealed class ShutdownTasks
 
         try
         {
-            return Task.WaitAll(tasks, timeout);
+            return Task.WaitAll(tasks, timeout < TimeSpan.Zero ? TimeSpan.Zero : timeout);
         }
         catch (AggregateException)
         {

@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Gitunia.Core.Keymap;
 using Gitunia.Git.Discard;
 using Gitunia.Git.Staging;
@@ -83,8 +84,6 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
     /// (docs/internal/performance.md, "Bounded memory").
     /// </summary>
     public const int DefaultWarmTabLimit = 5;
-
-    private static readonly TimeSpan LoadShutdownWait = TimeSpan.FromSeconds(5);
 
     private readonly GitServices _services;
     private readonly Dispatcher _host;
@@ -270,7 +269,8 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
 
     public void Dispose()
     {
-        foreach (var refresher in _refreshers.Values)
+        var stopping = _refreshers.Values.ToArray();
+        foreach (var refresher in stopping)
         {
             refresher.Dispose();
         }
@@ -278,13 +278,20 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
         _refreshers.Clear();
         _shutdown.Cancel();
 
-        // The initial and the incremental graph loads may still run git in the repository: cancel and wait (bounded).
+        // The refreshes and the initial and incremental graph loads may still run git in the repositories: cancel all,
+        // then wait for them within one shared bound.
         foreach (var session in _sessions.Values)
         {
             session.Cancellation.Cancel();
         }
 
-        _loads.Wait(LoadShutdownWait);
+        var started = Stopwatch.GetTimestamp();
+        foreach (var refresher in stopping)
+        {
+            refresher.WaitForStop(ShutdownTasks.DefaultWait - Stopwatch.GetElapsedTime(started));
+        }
+
+        _loads.Wait(ShutdownTasks.DefaultWait - Stopwatch.GetElapsedTime(started));
         _creation.CancelAndWait();
         _shutdown.Dispose();
         _cancellation.Dispose();

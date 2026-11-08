@@ -28,8 +28,6 @@ namespace Gitunia.App.Tabs;
 /// </summary>
 public sealed class TabRefresher : IDisposable, IPollTarget
 {
-    private static readonly TimeSpan ShutdownWait = TimeSpan.FromSeconds(5);
-
     private const RepositoryChangeKinds StatusKinds = RepositoryChangeKinds.Head
         | RepositoryChangeKinds.Refs
         | RepositoryChangeKinds.Index
@@ -165,12 +163,15 @@ public sealed class TabRefresher : IDisposable, IPollTarget
         _watcher?.Dispose();
         _poller?.Dispose();
 
-        // Cancels the running read and waits (bounded) for its git process to end, so the repository directory is free
-        // when this returns. Runs at shutdown or tab close.
+        // Cancels the running read; it does not wait, so closing a tab never blocks the UI thread.
         _stop.Cancel();
-        _tasks.Wait(ShutdownWait);
-        _stop.Dispose();
     }
+
+    /// <summary>
+    /// Waits until the cancelled read has ended (its git process is gone, so the repository directory is free) or the
+    /// timeout has passed. For the shutdown, after <see cref="Dispose"/>; true when the read has ended.
+    /// </summary>
+    public bool WaitForStop(TimeSpan timeout) => _tasks.Wait(timeout);
 
     private void OnLoadFinished()
     {
