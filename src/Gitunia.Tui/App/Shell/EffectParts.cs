@@ -92,8 +92,10 @@ public sealed class EffectParts : IDisposable
     {
         StatusPoller.Dispose();
         WorktreePoller.Dispose();
-        StatusPoller.WaitForStop(ShutdownTasks.DefaultWait);
         Runner.Dispose();
+
+        // The poller was cancelled first, so its read is usually gone by now; the wait is short.
+        StatusPoller.WaitForStop(ShutdownTasks.DefaultWait);
         Persistence.Dispose();
     }
 
