@@ -2,6 +2,14 @@
 
 <h1 align="center">Gitunia</h1>
 
+<p align="center">
+<a href="https://github.com/Aleksanderis/Gitunia/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/Aleksanderis/Gitunia/ci.yml?branch=main&logo=github&label=CI" alt="CI status"></a>
+<a href="https://github.com/Aleksanderis/Gitunia/releases/latest"><img src="https://img.shields.io/github/v/release/Aleksanderis/Gitunia?label=release" alt="Latest release"></a>
+<a href="LICENSE"><img src="https://img.shields.io/github/license/Aleksanderis/Gitunia" alt="MIT license"></a>
+<img src="https://img.shields.io/badge/platform-Linux%20%7C%20Windows%20%7C%20macOS-informational" alt="Platforms: Linux, Windows, macOS">
+<img src="https://img.shields.io/badge/.NET-10%20Native%20AOT-512BD4?logo=dotnet" alt=".NET 10 Native AOT">
+</p>
+
 A keyboard-first terminal Git client: a real commit graph, first-class branches and worktrees, vim-style modal navigation, the mouse is optional but fully functional.
 
 [![Gitunia demo: scrolling a large graph, branch switch, worktree, staging lines, commit](https://gitunia.github.io/media/demo.gif)](https://gitunia.github.io)
