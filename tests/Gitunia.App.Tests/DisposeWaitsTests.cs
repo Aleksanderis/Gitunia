@@ -141,21 +141,24 @@ public class DisposeWaitsTests
         session.ContentStore!.Load(commit, "a.txt", blobId, null);
         effects.Run(new ReadFileHistoryEffect(tabId, location, "HEAD", "a.txt", 1));
         effects.Run(new ReadHeadMessageEffect(tabId, location, null));
+        effects.Run(new RunCommitEffect(tabId, location, new CommitRequest("m", false, false, false), null));
+        var historyEntry = new FileHistoryEntry(new string('b', 40), "a", "d", "s", "a.txt", null, FileChangeKind.Modified);
+        effects.Run(new ReadFileHistoryDiffEffect(tabId, location, historyEntry, 1));
         effects.Run(new StagePathsEffect(tabId, location, new StagingPlan(["a.txt"], "a.txt", 1, 0, string.Empty), true, false, StagingFollow.None));
-        Assert.True(diff.WaitStarted(Limit, 2));
+        Assert.True(diff.WaitStarted(Limit, 3));
         Assert.True(tree.WaitStarted(Limit));
         Assert.True(blob.WaitStarted(Limit));
         Assert.True(history.WaitStarted(Limit));
-        Assert.True(commits.WaitStarted(Limit));
+        Assert.True(commits.WaitStarted(Limit, 2));
         Assert.True(index.WaitStarted(Limit));
 
         effects.Dispose();
 
-        Assert.Equal(2, diff.WoundDownCount);
+        Assert.Equal(3, diff.WoundDownCount);
         Assert.Equal(1, tree.WoundDownCount);
         Assert.Equal(1, blob.WoundDownCount);
         Assert.Equal(1, history.WoundDownCount);
-        Assert.Equal(1, commits.WoundDownCount);
+        Assert.Equal(2, commits.WoundDownCount);
         Assert.Equal(1, index.WoundDownCount);
     }
 
@@ -181,24 +184,23 @@ public class DisposeWaitsTests
     }
 
     // Plays a read whose process takes a while to die: it blocks until cancelled, then needs time to wind down.
-    private sealed class BlockingReader : IStatusReader, IBlameReader, ICommitDetailsReader, IIssueTrackerReader, IDiffReader, ICommitTreeReader, IBlobReader, IFileHistoryReader, ICommitWriter, IIndexWriter
+    private sealed class BlockingReader : IStatusReader, IBlameReader, ICommitDetailsReader, IIssueTrackerReader, IDiffReader, ICommitTreeReader, IBlobReader, IFileHistoryReader, ICommitWriter, IIndexWriter, IDisposable
     {
-        private int _started;
+        private readonly SemaphoreSlim _started = new(0);
         private int _woundDown;
+
+        public void Dispose() => _started.Dispose();
 
         public int WoundDownCount => Volatile.Read(ref _woundDown);
 
         public bool WaitStarted(TimeSpan timeout, int count = 1)
         {
-            var until = DateTime.UtcNow + timeout;
-            while (Volatile.Read(ref _started) < count)
+            for (var index = 0; index < count; index++)
             {
-                if (DateTime.UtcNow > until)
+                if (!_started.Wait(timeout))
                 {
                     return false;
                 }
-
-                Thread.Sleep(5);
             }
 
             return true;
@@ -366,7 +368,7 @@ public class DisposeWaitsTests
 
         private async Task BlockAsync(CancellationToken cancellationToken)
         {
-            Interlocked.Increment(ref _started);
+            _started.Release();
             try
             {
                 await Task.Delay(Timeout.Infinite, cancellationToken);

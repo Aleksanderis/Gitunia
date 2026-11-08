@@ -51,6 +51,7 @@ public sealed class TabPoller : IDisposable
     public TimeSpan StatusInterval => _statusInterval;
 
     /// <summary>Takes the first fingerprint, so a change made while the tab loads is seen by the first tick.</summary>
+    // The fingerprint is plain file reading that cannot be cancelled; the shutdown only waits for it (short) within its bound.
     public void Start() => _tasks.Run(() =>
     {
         ReadBaseline();
