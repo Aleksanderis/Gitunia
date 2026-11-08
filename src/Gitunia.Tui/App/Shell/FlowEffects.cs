@@ -2,22 +2,22 @@ using Gitunia.Core.Conflicts;
 using Gitunia.App;
 using Gitunia.App.Status;
 using Gitunia.Core.FileTree;
+using Gitunia.Core.FileHistory;
 using Gitunia.Core.Reflog;
 using Gitunia.Core.Shell;
 using Gitunia.Tui.App.Panes;
-using Gitunia.Tui.App.Reflog;
 using Gitunia.Tui.App.WorkingTree;
 
 namespace Gitunia.Tui.App.Shell;
 
 /// <summary>The shell effects that continue a flow in a view: a reflog entry, a resolved conflict, a file's content.</summary>
-/// <param name="reflog">Starts the flow a reflog entry stands for.</param>
+/// <param name="starters">Carries out the reflog entry and file history flows.</param>
 /// <param name="staging">Marks a conflicted file resolved.</param>
 /// <param name="host">Takes the refresh request.</param>
 /// <param name="statuses">Reports the outcome.</param>
 /// <param name="diffPane">Shows a file's content in the diff pane.</param>
 public sealed class FlowEffects(
-    ReflogEntryStarter reflog,
+    FlowStarters starters,
     StagingActions staging,
     Dispatcher host,
     StatusReporter statuses,
@@ -25,7 +25,11 @@ public sealed class FlowEffects(
 {
     /// <summary>Starts the flow a reflog entry stands for.</summary>
     /// <param name="effect">The entry and the flow.</param>
-    public void StartReflogEntryAction(ReflogEntryActionEffect effect) => reflog.Start(effect);
+    public void StartReflogEntryAction(ReflogEntryActionEffect effect) => starters.Reflog.Start(effect);
+
+    /// <summary>Moves the graph cursor to a file history commit.</summary>
+    /// <param name="effect">The tab and the commit.</param>
+    public void JumpToFileHistoryCommit(FileHistoryJumpEffect effect) => starters.FileHistory.Jump(effect);
 
     /// <summary>A saved conflicted file with no conflict left is marked resolved; the editor closed already.</summary>
     /// <param name="effect">The tab and the file.</param>

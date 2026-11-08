@@ -64,13 +64,13 @@ public class HelpAllCommandsFrameTests
                 "│  All Diff        │               │ (no checkout)                           │",
                 "│  All Changes     │                                                         │",
                 "│  All Reflog      │ Merge and rebase                                        │",
-                "│  All Rebase todo │  <space>brr   │ Rebase the current branch onto the      │",
-                "│  All Conflicts   │               │ selection                               │",
-                "│  All Settings    │  <space>bri   │ Interactive rebase onto the selection   │",
-                "│  All Repeat mode │               │ (edit the todo)                         │",
-                "│  Commands        │  <space>brI   │ Interactive rebase from the root commit │",
-                "│                  │               │ (selection ignored)                     │",
-                "│                  │  <space>brf   │ Fix up the commit into the one before it│",
+                "│  All History     │  <space>brr   │ Rebase the current branch onto the      │",
+                "│  All Blame       │               │ selection                               │",
+                "│  All Rebase todo │  <space>bri   │ Interactive rebase onto the selection   │",
+                "│  All Conflicts   │               │ (edit the todo)                         │",
+                "│  All Settings    │  <space>brI   │ Interactive rebase from the root commit │",
+                "│  All Repeat mode │               │ (selection ignored)                     │",
+                "│  Commands        │  <space>brf   │ Fix up the commit into the one before it│",
                 "│ 1-19/71  Esc close  Tab next section  list keys scroll                     │",
                 "╰────────────────────────────────────────────────────────────────────────────╯"),
             HelpText(Table, "All Graph", 80));
@@ -83,10 +83,9 @@ public class HelpAllCommandsFrameTests
             string.Join(
                 '\n',
                 " Keys: Graph                                                                  ",
-                "│  Graph           │ Graph                                                   │",
-                "│  Lists           │  <space>h     │ Unbound: Jump to HEAD                   │",
-                "│  Global          │  J            │ Move up                                 │",
-                "│  Markers         │                                                         │",
+                "│  Lists           │ Graph                                                   │",
+                "│  Global          │  <space>h     │ Unbound: Jump to HEAD                   │",
+                "│  Markers         │  J            │ Move up                                 │",
                 "│  All Global      │                                                         │",
                 "│  All Lists       │                                                         │",
                 "│  All Graph       │                                                         │",
@@ -95,6 +94,8 @@ public class HelpAllCommandsFrameTests
                 "│  All Diff        │                                                         │",
                 "│  All Changes     │                                                         │",
                 "│  All Reflog      │                                                         │",
+                "│  All History     │                                                         │",
+                "│  All Blame       │                                                         │",
                 "│  All Rebase todo │                                                         │",
                 "│  All Conflicts   │                                                         │",
                 "│  All Settings    │                                                         │",
@@ -125,13 +126,13 @@ public class HelpAllCommandsFrameTests
                 "│  All Diff        │ Mouse                                                   │",
                 "│  All Changes     │  Click        │ Focus a pane, select a row, switch a tab│",
                 "│  All Reflog      │               │ or a help section; outside a popup it   │",
-                "│  All Rebase todo │               │ closes                                  │",
-                "│  All Conflicts   │  Double-click │ Graph row: the actions menu; Changes    │",
-                "│  All Settings    │               │ view file: stage or unstage it          │",
-                "│  All Repeat mode │  ...          │ Marker on the selected sidebar row: its │",
-                "│> Commands        │               │ actions menu                            │",
-                "│                  │  Wheel        │ Scroll the pane under the pointer       │",
-                "│                  │  Drag         │ Select a range of rows; drag a divider  │",
+                "│  All History     │               │ closes                                  │",
+                "│  All Blame       │  Double-click │ Graph row: the actions menu; Changes    │",
+                "│  All Rebase todo │               │ view file: stage or unstage it          │",
+                "│  All Conflicts   │  ...          │ Marker on the selected sidebar row: its │",
+                "│  All Settings    │               │ actions menu                            │",
+                "│  All Repeat mode │  Wheel        │ Scroll the pane under the pointer       │",
+                "│> Commands        │  Drag         │ Select a range of rows; drag a divider  │",
                 "│ 1-19/22  Esc close  Tab next section  list keys scroll                     │",
                 "╰────────────────────────────────────────────────────────────────────────────╯"),
             HelpText(Table, "Commands", 80));
@@ -150,6 +151,18 @@ public class HelpAllCommandsFrameTests
         Assert.Contains("Esc clear filter  Enter keep filter", lines[^2]);
         Assert.Contains(lines, line => line.Contains("<space>gc"));
         Assert.DoesNotContain(lines, line => line.Contains("<space>gd"));
+    }
+
+    [Fact]
+    public void GivenTheCaretInTheFilter_WhenRendering_ThenTheTitleDrawsItBetweenTheCharacters()
+    {
+        var page = HelpBuilder.Filter(HelpBuilder.Build(Table, DefaultKeymap.GraphView), "gc");
+
+        var lines = HelpFrameBuilder.Build(
+            [page], 0, DefaultKeymap.GraphView, 0, 80, ScreenHeight, GraphGlyphSet.Unicode,
+            filter: "gc", isEditingFilter: true, filterCaret: 1)!.Lines.Select(line => line.Text).ToList();
+
+        Assert.Equal(" Keys: Graph  / g|c".PadRight(lines[0].Length), lines[0]);
     }
 
     [Fact]

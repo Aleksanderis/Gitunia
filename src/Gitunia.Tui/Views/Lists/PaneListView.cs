@@ -1,4 +1,5 @@
 using Gitunia.Core.Mouse;
+using Gitunia.Core.Text;
 using Gitunia.Tui.Input;
 using Gitunia.Tui.Input.Drag;
 using Gitunia.Tui.Rendering.Styling;
@@ -17,6 +18,8 @@ public sealed class PaneListView : ListView
 {
     private readonly DragTracker _drag = new();
     private int _lastPointerRow;
+    private int _lastPointerColumn;
+    private bool _dragIsOldSide;
     private bool _isAutoScrolling;
 
     /// <summary>
@@ -31,6 +34,12 @@ public sealed class PaneListView : ListView
     /// </summary>
     public bool IgnoresBlankDoubleClick { get; set; }
 
+    /// <summary>
+    /// A drag selects text in this pane (the message box): it is reported through <see cref="PointerDragged"/> with
+    /// the pointer's cell instead of selecting rows or starting a Visual range.
+    /// </summary>
+    public bool ReportsPointerDrag { get; set; }
+
     /// <summary>True while something modal owns the screen: mouse input is swallowed without focusing or selecting anything.</summary>
     public IMouseGate Gate { get; init; } = new MouseGate();
 
@@ -44,10 +53,39 @@ public sealed class PaneListView : ListView
     public event Action<int, int>? ClickPositioned;
 
     /// <summary>
+    /// Raised for a drag in a pane with <see cref="ReportsPointerDrag"/>: first the cell where the button went down
+    /// (<c>true</c>), then every cell the pointer reaches (<c>false</c>); the cells are inside the pane or beyond its
+    /// edges while the mouse is grabbed.
+    /// </summary>
+    public event Action<int, int, bool>? PointerDragged;
+
+    /// <summary>
     /// Raised instead of <see cref="GestureRaised"/> when a click or double-click hit a button of an <see cref="IButtonSource"/> source (not a click on the row);
     /// the pane has the focus by then and the cursor has not moved.
     /// </summary>
     public event Action<string>? ButtonClicked;
+
+    /// <summary>
+    /// Raised for the pointer on the text of a <see cref="ITextSource"/> source that can be selected by character: clicks (before
+    /// <see cref="GestureRaised"/> reports them) and drags (after the cursor row followed the pointer). Never raised for a
+    /// source that cannot, or for double and triple clicks while <see cref="SelectsText"/> is off.
+    /// </summary>
+    public event Action<TextPointer>? TextPointed;
+
+    /// <summary>Raised when the button is released after a drag, which has made (or ended) the selection of the pane.</summary>
+    public event Action? DragReleased;
+
+    /// <summary>A double or triple click selects a word or the line (read-only text panes where a double-click has no action of its own).</summary>
+    public bool SelectsText { get; set; }
+
+    /// <summary>A double click selects a word, while a triple click has no action of its own (the Changes view diff).</summary>
+    public bool SelectsWord { get; set; }
+
+    /// <summary>
+    /// A triple click selects the line, while a double-click keeps its own action (the Details tab opens an issue link
+    /// with it).
+    /// </summary>
+    public bool SelectsLine { get; set; }
 
     protected override bool OnMouseEvent(Mouse mouse)
     {
@@ -74,7 +112,10 @@ public sealed class PaneListView : ListView
             return base.OnMouseEvent(mouse);
         }
 
-        if (gesture is MouseGesture.Click or MouseGesture.DoubleClick
+        // A file row's double-click is the row's own action (open the diff, stage): only a single click hits its marker.
+        var hitsMarker = gesture == MouseGesture.Click
+            || (gesture == MouseGesture.DoubleClick && Source is not IRowMenuSource);
+        if (hitsMarker
             && mouse.Position is { } at
             && IsOnRowMenuMarker(at.X, at.Y))
         {
@@ -107,7 +148,12 @@ public sealed class PaneListView : ListView
             ClickPositioned?.Invoke(clicked.X, clicked.Y);
         }
 
-        if (gesture is MouseGesture.Click or MouseGesture.DoubleClick)
+        if (mouse.Position is { } pointed)
+        {
+            RaiseClickPointer(gesture, pointed.X, pointed.Y);
+        }
+
+        if (gesture is MouseGesture.Click or MouseGesture.DoubleClick or MouseGesture.TripleClick)
         {
             base.OnMouseEvent(mouse);
         }
@@ -129,6 +175,26 @@ public sealed class PaneListView : ListView
             return base.OnMouseEvent(mouse);
         }
 
+        if (phase == DragPhase.End)
+        {
+            DragReleased?.Invoke();
+
+            return true;
+        }
+
+        if (ReportsPointerDrag && phase is DragPhase.Start or DragPhase.Move && mouse.Position is { } dragged)
+        {
+            if (phase == DragPhase.Start)
+            {
+                FocusPane();
+                PointerDragged?.Invoke(_drag.Origin.X, _drag.Origin.Y, true);
+            }
+
+            PointerDragged?.Invoke(dragged.X, dragged.Y, false);
+
+            return true;
+        }
+
         if (phase == DragPhase.Start)
         {
             FocusPane();
@@ -139,6 +205,7 @@ public sealed class PaneListView : ListView
         if (phase is DragPhase.Start or DragPhase.Move && mouse.Position is { } position)
         {
             _lastPointerRow = position.Y;
+            _lastPointerColumn = position.X;
             var visibleRows = Viewport.Height;
             if (DragAutoScroll.Step(position.Y, visibleRows) == 0)
             {
@@ -148,6 +215,9 @@ public sealed class PaneListView : ListView
             {
                 StartAutoScroll();
             }
+
+            var kind = phase == DragPhase.Start ? TextPointerKind.DragStart : TextPointerKind.DragMove;
+            RaiseDragPointer(kind, position.X, position.Y);
         }
 
         return true;
@@ -180,6 +250,7 @@ public sealed class PaneListView : ListView
             }
 
             ExtendTo(target - Viewport.Y);
+            RaiseDragPointer(TextPointerKind.DragMove, _lastPointerColumn, target - Viewport.Y);
             return true;
         });
     }
@@ -201,11 +272,53 @@ public sealed class PaneListView : ListView
         }
     }
 
+    private void RaiseClickPointer(MouseGesture gesture, int column, int row)
+    {
+        var kind = gesture switch
+        {
+            MouseGesture.Click => TextPointerKind.Click,
+            MouseGesture.DoubleClick when SelectsText || SelectsWord => TextPointerKind.DoubleClick,
+            MouseGesture.TripleClick when SelectsText || SelectsLine => TextPointerKind.TripleClick,
+            _ => (TextPointerKind?)null,
+        };
+        if (kind is not { } found || Source is not ITextSource { SupportsText: true } text)
+        {
+            return;
+        }
+
+        if (text.HitAt(this, column, row, null) is { } hit)
+        {
+            TextPointed?.Invoke(new TextPointer(found, hit.Position, null, hit.IsOldSide));
+        }
+    }
+
+    private void RaiseDragPointer(TextPointerKind kind, int column, int row)
+    {
+        if (Source is not ITextSource { SupportsText: true } text)
+        {
+            return;
+        }
+
+        TextPosition? origin = null;
+        if (kind == TextPointerKind.DragStart)
+        {
+            var pressed = text.HitAt(this, _drag.Origin.X, _drag.Origin.Y, null);
+            origin = pressed?.Position;
+            _dragIsOldSide = pressed?.IsOldSide ?? false;
+        }
+
+        if (text.HitAt(this, column, row, _dragIsOldSide) is { } hit)
+        {
+            TextPointed?.Invoke(new TextPointer(kind, hit.Position, origin, _dragIsOldSide));
+        }
+    }
+
     // The marker sits on the selected row only (#479); a click on it is a button click, the cursor does not move.
     private bool IsOnRowMenuMarker(int column, int row) =>
         OpensRowMenu
         && SelectedItem is { } selected
         && selected < (Source?.Count ?? 0)
+        && (Source is not IRowMenuSource menus || menus.HasRowMenu(selected))
         && RowMenuMarker.IsHit(Viewport.Width, column, Viewport.Y + row == selected);
 
     // Blank space under the last row (#484): a double-click there must not open the menu of the selected row.

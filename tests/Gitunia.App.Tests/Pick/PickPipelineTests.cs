@@ -28,9 +28,10 @@ public class PickPipelineTests
         await pipeline.UntilAsync(() => !pipeline.IsBusy && Tip(pipeline) != old);
 
         Assert.Equal("topic two", repository.Git("log", "-1", "--format=%s").Trim());
-        var text = pipeline.Statuses.Log.Latest!.Text;
-        Assert.StartsWith("Cherry-picked ", text, StringComparison.Ordinal);
-        Assert.Contains($"git reset --hard {old[..7]}", text, StringComparison.Ordinal);
+        var latest = pipeline.Statuses.Log.Latest!;
+        Assert.StartsWith("Cherry-picked ", latest.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("git reset", latest.Text, StringComparison.Ordinal);
+        Assert.Equal($"Undo: git reset --hard {old} (the reflog has it)", latest.Detail);
         Assert.Equal(repository.Head, Tip(pipeline));
     }
 
@@ -105,7 +106,7 @@ public class PickPipelineTests
 
         var latest = pipeline.Statuses.Log.Latest!;
         Assert.Equal(StatusSeverity.Warning, latest.Severity);
-        Assert.Contains("<space>gc", latest.Text, StringComparison.Ordinal);
+        Assert.Contains("continue", latest.Text, StringComparison.Ordinal);
         var location = pipeline.Host.Workspace.FindTab(pipeline.TabId)!.Location;
         Assert.Equal(RepositoryOperation.CherryPick, new RepositoryOperationDetector().Detect(location));
     }

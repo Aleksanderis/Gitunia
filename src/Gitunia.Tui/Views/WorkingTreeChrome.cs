@@ -74,6 +74,7 @@ public sealed class WorkingTreeChrome : IDisposable
         _resolveButton = CreateListButton(WorkingTreeSection.Unstaged, panes.WorkingUnstaged, ListButtonKind.Resolve);
         _unstagedDiffButton = CreateListButton(WorkingTreeSection.Unstaged, panes.WorkingUnstaged, ListButtonKind.Diff);
         _stagedDiffButton = CreateListButton(WorkingTreeSection.Staged, panes.WorkingStaged, ListButtonKind.Diff);
+        _divider.Dragged += (column, row) => ListsDragged?.Invoke(column, row);
         _messageOptions.Clicked += OnMessageOptionsClicked;
         _diffTitle.Clicked += OnDiffTitleClicked;
         WireGestures();
@@ -96,6 +97,15 @@ public sealed class WorkingTreeChrome : IDisposable
     /// removed) and the text width of the box.
     /// </summary>
     public event Action<int, int, int>? MessageClicked;
+
+    /// <summary>
+    /// Raised while the pointer is dragged over the message text with the button held, with the same arguments as
+    /// <see cref="MessageClicked"/>; the drag's first cell is reported as a click first.
+    /// </summary>
+    public event Action<int, int, int>? MessageDragged;
+
+    /// <summary>Raised with the screen column and row of the pointer while the divider between the lists and the diff is dragged.</summary>
+    public event Action<int, int>? ListsDragged;
 
     /// <summary>The frame views (divider, edges, diff title), to add to the window before the lists.</summary>
     public IEnumerable<View> FrameViews => [_divider, _leftEdge, _rightEdge, _diffTitle];
@@ -157,12 +167,16 @@ public sealed class WorkingTreeChrome : IDisposable
             Gestured?.Invoke(DefaultKeymap.WorkingUnstagedView, gesture, target);
         panes.WorkingStaged.GestureRaised += (gesture, target) =>
             Gestured?.Invoke(DefaultKeymap.WorkingStagedView, gesture, target);
+        panes.WorkingUnstaged.ButtonClicked += buttonView => Gestured?.Invoke(buttonView, MouseGesture.Click, null);
+        panes.WorkingStaged.ButtonClicked += buttonView => Gestured?.Invoke(buttonView, MouseGesture.Click, null);
         panes.WorkingDiff.GestureRaised += (gesture, target) =>
             Gestured?.Invoke(_parts.Geometry.WorkingDiffView, gesture, target);
         panes.WorkingDiff.ButtonClicked += buttonView => Gestured?.Invoke(buttonView, MouseGesture.Click, null);
         panes.WorkingMessage.GestureRaised += (gesture, target) =>
             Gestured?.Invoke(DefaultKeymap.WorkingMessageView, gesture, target);
         panes.WorkingMessage.ClickPositioned += OnMessageClicked;
+        panes.WorkingMessage.ReportsPointerDrag = true;
+        panes.WorkingMessage.PointerDragged += OnMessageDragged;
     }
 
     // The title row of a file list is the top edge of its box, one row above the list; its buttons are the mouse
@@ -227,6 +241,25 @@ public sealed class WorkingTreeChrome : IDisposable
         var padding = PanePadding.ColumnsFor(geometry.ScreenWidth);
         var textWidth = PanePadding.TextWidth(geometry.WorkingRects().MessageEditor.Width, padding);
         MessageClicked?.Invoke(column - padding, row, textWidth);
+    }
+
+    // The press cell acts as a click (cursor, Insert mode); the cells after it extend the selection.
+    private void OnMessageDragged(int column, int row, bool isStart)
+    {
+        var geometry = _parts.Geometry;
+        var padding = PanePadding.ColumnsFor(geometry.ScreenWidth);
+        var textWidth = PanePadding.TextWidth(geometry.WorkingRects().MessageEditor.Width, padding);
+        if (isStart)
+        {
+            MessageClicked?.Invoke(column - padding, row, textWidth);
+            Gestured?.Invoke(DefaultKeymap.WorkingMessageView, MouseGesture.Click, null);
+
+            return;
+        }
+
+        // A pointer above or below the box reaches the first or last visible line, never past it.
+        var visibleRows = geometry.WorkingRects().MessageEditor.Height;
+        MessageDragged?.Invoke(column - padding, Math.Clamp(row, 0, Math.Max(0, visibleRows - 1)), textWidth);
     }
 
     private void OnDiffTitleClicked(int column)

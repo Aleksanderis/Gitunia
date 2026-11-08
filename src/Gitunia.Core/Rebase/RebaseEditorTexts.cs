@@ -1,3 +1,4 @@
+using Gitunia.Core.Operations;
 using Gitunia.Core.Overlays;
 using Gitunia.Core.Status;
 using Gitunia.Core.Text;
@@ -48,8 +49,8 @@ public static class RebaseEditorTexts
         return new ConfirmPrompt(
             "Interactive rebase",
             lines,
-            $"Undo: git reset --keep {state.OldTip} (also ORIG_HEAD, the reflog). A stop on conflicts leaves a " +
-            "rebase in progress: <space>gc continues, <space>ga aborts.",
+            $"{UndoNotes.FromReflog} A stop on conflicts leaves a " +
+            $"rebase in progress: you can {OperationKeys.Continue} or {OperationKeys.Abort} it.",
             "Rebase");
     }
 
@@ -60,15 +61,15 @@ public static class RebaseEditorTexts
         {
             return new PostedText(
                 $"Rebase of {state.BranchName} onto {state.TargetLabel} stopped on conflicts: resolve the files " +
-                $"marked !, then <space>gc (continue), <space>ga (abort, back to {ShortHash.Of(result.OriginalHead)})",
+                $"marked !, then {OperationKeys.Continue}, or {OperationKeys.Abort} to go back to {ShortHash.Of(result.OriginalHead)}",
                 StatusSeverity.Warning);
         }
 
         return new PostedText(
             $"Rebased {state.BranchName} onto {state.TargetLabel} interactively " +
-            $"({ShortHash.Of(result.Head)}), was {ShortHash.Of(result.OriginalHead)}; " +
-            $"undo: git reset --keep {result.OriginalHead} (or ORIG_HEAD, the reflog)",
-            StatusSeverity.Info);
+            $"({ShortHash.Of(result.Head)}), was {ShortHash.Of(result.OriginalHead)}",
+            StatusSeverity.Info,
+            UndoNotes.Undo($"git reset --keep {result.OriginalHead} (or ORIG_HEAD, the reflog)"));
     }
 
     private static string Summary(RebaseEditorState state)

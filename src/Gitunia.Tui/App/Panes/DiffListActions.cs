@@ -3,11 +3,11 @@ using Gitunia.App.Loading.Trees;
 using Gitunia.App.Shell;
 using Gitunia.App;
 using Gitunia.Core.Diff;
+using Gitunia.Core.Editing;
 using Gitunia.Core.Jump.Models;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Lists;
-using Gitunia.Core.Search;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Git.Diff.Models;
 using Gitunia.Tui.App.Clipboard;
@@ -185,9 +185,9 @@ public sealed class DiffListActions
             return false;
         }
 
-        if (PromptTextEditor.Apply(diff.Search.Text, key) is { } text && text != diff.Search.Text)
+        if (PromptTextEditor.Apply(diff.Search.Text, diff.Search.Caret, key) is { } edit)
         {
-            ApplySearch(diff, DiffSearch.Edit(diff.Search, text, document));
+            ApplySearch(diff, DiffSearch.Edit(diff.Search, edit.Text, edit.Caret, document));
         }
 
         return true;

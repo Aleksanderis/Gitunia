@@ -250,7 +250,8 @@ public static class ConflictReducer
                 $"Save {name} with {unresolved} out of {editor.Hunks.Count}?",
                 "The unresolved conflicts keep their conflict markers and the file stays conflicted.",
             ],
-            "Undo: git checkout --merge -- <file> re-creates the whole conflict (it discards what you resolved).",
+            $"Afterwards you can use {KeyTokens.Of(ActionIds.ConflictEditorRecreate, "re-create")} to rebuild the " +
+            "whole conflict (it discards what you resolved).",
             "Save");
         var accepted = new ConflictSaveConfirmed(editor.TabId, session.Generation);
 
@@ -341,7 +342,7 @@ public static class ConflictReducer
                 "The file goes back to its conflict markers, also when it was saved or marked resolved; "
                 + "what this editor holds is discarded.",
             ],
-            "No undo for the file's current content: git checkout --merge -- <file> overwrites it.",
+            "No undo for the file's current content: it is overwritten.",
             "Re-create");
         var accepted = new ConflictRecreateConfirmed(editor.TabId, session.Generation);
 

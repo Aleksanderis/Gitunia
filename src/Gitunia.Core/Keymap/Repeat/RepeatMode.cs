@@ -37,7 +37,7 @@ public sealed record RepeatMode(RepeatKind Kind, TabId Tab, PaneKind Pane)
             return new RepeatMode(RepeatKind.Context, tab, pane);
         }
 
-        if (IsResizeStep(action) && pane is PaneKind.Sidebar or PaneKind.Graph or PaneKind.Detail or PaneKind.Diff)
+        if (IsResizeStep(action) && IsResizable(pane))
         {
             return new RepeatMode(RepeatKind.Resize, tab, pane);
         }
@@ -67,4 +67,9 @@ public sealed record RepeatMode(RepeatKind Kind, TabId Tab, PaneKind Pane)
     /// <param name="activeTab">The active tab.</param>
     /// <param name="focused">The focused pane.</param>
     public bool AppliesTo(TabId? activeTab, PaneKind focused) => activeTab == Tab && focused == Pane;
+
+    private static bool IsResizable(PaneKind pane) =>
+        pane is PaneKind.Sidebar or PaneKind.Graph or PaneKind.Detail or PaneKind.Diff
+            or PaneKind.WorkingUnstaged or PaneKind.WorkingStaged or PaneKind.WorkingMessage
+            or PaneKind.WorkingUnstagedDiff or PaneKind.WorkingStagedDiff;
 }

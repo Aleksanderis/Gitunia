@@ -66,8 +66,8 @@ public sealed partial class EffectRunner<TSession>
                     new StashAwareDiffReader(_services.Diff, _services.StashDetails, stashView.Registry),
                     tab.Location,
                     _ui,
-                    new DiffStoreOptions(Background: _background)),
-                new WorkingDiffStore(_services.Diff, tab.Location, _ui),
+                    new DiffStoreOptions(Background: _background, Keymap: _keymap)),
+                new WorkingDiffStore(_services.Diff, tab.Location, _ui, new WorkingDiffLimits(Keymap: _keymap)),
                 new FileTreeSession(
                     new CommitTreeStore(_services.CommitTree, tab.Location, _ui, _detailDebounce)),
                 new FileContentStore(_services.Blob, tab.Location, _ui),
@@ -106,9 +106,7 @@ public sealed partial class EffectRunner<TSession>
         refresher.Start();
         refresher.SetActive(_host.Workspace.ActiveTabId == tabId);
         _ = Task.Run(() => QueueIssueLinksAsync(session, location, token), CancellationToken.None);
-        _ = Task.Run(
-            () => _services.RepositoryLoader.RunAsync(location, session, _host, _statuses, _ui, token),
-            CancellationToken.None);
+        _loads.Run(() => _services.RepositoryLoader.RunAsync(location, session, _host, _statuses, _ui, token));
     }
 
     private async Task QueueIssueLinksAsync(TSession session, RepositoryLocation location, CancellationToken token)
@@ -151,7 +149,7 @@ public sealed partial class EffectRunner<TSession>
         var shownCount = session.Graph.Count;
         var lastShown = session.Graph[shownCount - 1].Id;
         var version = session.GraphVersion;
-        _ = Task.Run(
+        _loads.Run(
             () => _services.RepositoryLoader.ExpandAsync(
                 location,
                 session,
@@ -160,8 +158,7 @@ public sealed partial class EffectRunner<TSession>
                 shownCount,
                 lastShown,
                 version,
-                token),
-            CancellationToken.None);
+                token));
     }
 
     private void DisposeRefresher(TabId tabId)

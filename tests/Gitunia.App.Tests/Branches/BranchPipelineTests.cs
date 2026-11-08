@@ -162,7 +162,8 @@ public class BranchPipelineTests
         await pipeline.Pump.RunUntilAsync(() => !pipeline.IsBranchRunning && !pipeline.HasBranch("wip"));
 
         Assert.Equal(string.Empty, repository.Git("branch", "--list", "wip").Trim());
-        Assert.Contains(tip, pipeline.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
+        Assert.Contains(tip[..7], pipeline.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
+        Assert.Equal($"Restore: git branch wip {tip}", pipeline.Statuses.Log.Latest.Detail);
     }
 
     [Fact]
@@ -197,8 +198,9 @@ public class BranchPipelineTests
         await pipeline.Pump.RunUntilAsync(() => !pipeline.IsBranchRunning && pipeline.TipOf("topic") == tip);
 
         Assert.Equal(tip, repository.Git("rev-parse", "refs/heads/topic").Trim());
-        var text = pipeline.Statuses.Log.Latest!.Text;
-        Assert.Contains($"git update-ref refs/heads/topic {old}", text, StringComparison.Ordinal);
+        var latest = pipeline.Statuses.Log.Latest!;
+        Assert.DoesNotContain("update-ref", latest.Text, StringComparison.Ordinal);
+        Assert.Equal($"Undo: git update-ref refs/heads/topic {old}", latest.Detail);
     }
 
     private static TestRepository RepositoryWithTopic() =>

@@ -1,5 +1,6 @@
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Mouse;
+using Gitunia.Core.Picker;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Tui.Rendering.Details;
@@ -130,6 +131,16 @@ public sealed class MainView : IDisposable
         remove => _working.MessageClicked -= value;
     }
 
+    /// <summary>
+    /// Raised while the message text is dragged over with the button held, with the same arguments as
+    /// <see cref="MessageClicked"/>.
+    /// </summary>
+    public event Action<int, int, int>? MessageDragged
+    {
+        add => _working.MessageDragged += value;
+        remove => _working.MessageDragged -= value;
+    }
+
     /// <summary>Raised while a divider or a pane title row is dragged: which edge and the pointer's screen column and row.</summary>
     public event Action<PaneEdge, int, int>? EdgeDragged;
 
@@ -139,14 +150,20 @@ public sealed class MainView : IDisposable
     /// <summary>Raised with the frame line and column when a drag begins on the overlay box.</summary>
     public event Action<int, int>? OverlayDragStarted;
 
-    /// <summary>Raised with the frame line of the pointer while a drag goes on over the overlay box.</summary>
-    public event Action<int>? OverlayDragged;
+    /// <summary>Raised with the frame line and column of the pointer while a drag goes on over the box.</summary>
+    public event Action<int, int>? OverlayDragged;
+
+    /// <summary>Raised when the button is released after a drag over the overlay box.</summary>
+    public event Action? OverlayDragReleased;
 
     /// <summary>Raised with the frame line and the pointer column when the overlay box is double-clicked.</summary>
     public event Action<int, int>? OverlayLineDoubleClicked;
 
-    /// <summary>Raised with the row index when a picker row is clicked (the highlight follows the pointer).</summary>
-    public event Action<int>? PickerRowClicked
+    /// <summary>Raised with the frame line and the pointer column on a triple-click of the overlay box.</summary>
+    public event Action<int, int>? OverlayLineTripleClicked;
+
+    /// <summary>Raised with the list line when a picker row, or its more or less line, is clicked (the highlight follows the pointer).</summary>
+    public event Action<PickerListEntry>? PickerRowClicked
     {
         add => _picker.RowClicked += value;
         remove => _picker.RowClicked -= value;
@@ -280,10 +297,14 @@ public sealed class MainView : IDisposable
             Height = Dim.Func(_ => title.Rect().Height),
         };
 
+    /// <summary>Cancels a tab chip drag in progress (<c>Esc</c>); false when none is going on.</summary>
+    public bool CancelTabDrag() => _tabs.CancelDrag();
+
     private void WireGestures()
     {
         var panes = _parts.Panes;
         _tabs.TabClicked += number => Gestured?.Invoke(DefaultMouseMap.TabsView, MouseGesture.Click, number);
+        _tabs.TabDragged += (gesture, places) => Gestured?.Invoke(DefaultMouseMap.TabsView, gesture, places);
         _tabs.DirtyMarkerClicked += number => Gestured?.Invoke(DefaultMouseMap.TabDirtyMarker, MouseGesture.Click, number);
         _tabs.RemoteChipClicked += view => Gestured?.Invoke(view, MouseGesture.Click, null);
         _tabs.NewTabClicked += () => Gestured?.Invoke(DefaultMouseMap.NewTabButton, MouseGesture.Click, null);
@@ -294,9 +315,11 @@ public sealed class MainView : IDisposable
         panes.Sidebar.GestureRaised += (gesture, target) => Gestured?.Invoke(DefaultKeymap.SidebarView, gesture, target);
         panes.Sidebar.ButtonClicked += buttonView => Gestured?.Invoke(buttonView, MouseGesture.Click, null);
         panes.Detail.GestureRaised += (gesture, target) => Gestured?.Invoke(DefaultKeymap.DetailView, gesture, target);
+        panes.Detail.ButtonClicked += buttonView => Gestured?.Invoke(buttonView, MouseGesture.Click, null);
         panes.Diff.GestureRaised += (gesture, target) => Gestured?.Invoke(DefaultKeymap.DiffView, gesture, target);
         _working.Gestured += (view, gesture, target) => Gestured?.Invoke(view, gesture, target);
         _divider.Dragged += (column, row) => EdgeDragged?.Invoke(PaneEdge.Sidebar, column, row);
+        _working.ListsDragged += (column, row) => EdgeDragged?.Invoke(PaneEdge.WorkingLists, column, row);
         _bottomDivider.Dragged += (column, row) => EdgeDragged?.Invoke(PaneEdge.Detail, column, row);
         _detailTitle.Dragged += (column, row) => EdgeDragged?.Invoke(PaneEdge.Bottom, column, row);
         _diffTitle.Dragged += (column, row) => EdgeDragged?.Invoke(PaneEdge.Bottom, column, row);
@@ -305,8 +328,10 @@ public sealed class MainView : IDisposable
         _diffTitle.Clicked += OnDiffTitleClicked;
         panes.Overlay.LineClicked += line => OverlayLineClicked?.Invoke(line, panes.Overlay.PointerColumn);
         panes.Overlay.DragStarted += (line, column) => OverlayDragStarted?.Invoke(line, column);
-        panes.Overlay.Dragged += line => OverlayDragged?.Invoke(line);
+        panes.Overlay.Dragged += (line, column) => OverlayDragged?.Invoke(line, column);
+        panes.Overlay.DragReleased += () => OverlayDragReleased?.Invoke();
         panes.Overlay.LineDoubleClicked += line => OverlayLineDoubleClicked?.Invoke(line, panes.Overlay.PointerColumn);
+        panes.Overlay.LineTripleClicked += line => OverlayLineTripleClicked?.Invoke(line, panes.Overlay.PointerColumn);
         panes.Overlay.GestureRaised += gesture => Gestured?.Invoke(OverlayGestureView, gesture, null);
     }
 

@@ -2,6 +2,7 @@ using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Overlays;
 using Gitunia.Core.Sidebar;
+using Gitunia.Core.Tests.Keymap;
 using Xunit;
 
 namespace Gitunia.Core.Tests.Overlays;
@@ -23,6 +24,32 @@ public class ContextMenuBuilderTests
         Assert.All(entries, entry => Assert.NotEqual(string.Empty, entry.Keys));
         Assert.Equal("<space>brr", entries.Single(entry => entry.Action == ActionIds.RebaseOnto).Keys);
         Assert.Equal("<space>bri", entries.Single(entry => entry.Action == ActionIds.RebaseInteractive).Keys);
+    }
+
+    [Theory]
+    [InlineData(DefaultKeymap.DetailChangesView)]
+    [InlineData(DefaultKeymap.DetailFilesView)]
+    [InlineData(DefaultKeymap.WorkingUnstagedView)]
+    [InlineData(DefaultKeymap.WorkingStagedView)]
+    public void GivenAFileListView_WhenBuildingTheFileRowMenu_ThenHistoryAndBlameAreOfferedWithTheirKeys(string view)
+    {
+        var entries = ContextMenuBuilder.Build(Table, view, RowActions.OfFileRow, grouped: false);
+
+        Assert.Equal(RowActions.OfFileRow, entries.Select(entry => entry.Action));
+        Assert.Equal("<space>H", entries[0].Keys);
+        Assert.Equal("<space>gb", entries[1].Keys);
+    }
+
+    [Theory]
+    [InlineData(DefaultKeymap.DetailChangesView)]
+    [InlineData(DefaultKeymap.DetailFilesView)]
+    [InlineData(DefaultKeymap.WorkingUnstagedView)]
+    [InlineData(DefaultKeymap.WorkingStagedView)]
+    public void GivenAFileListView_WhenPressingTheRowMenuKey_ThenTheKeymapRunsTheRowMenu(string view)
+    {
+        var key = new KeyFeeder(new KeymapEngine(Table), view).Feed("<space>.");
+
+        Assert.Equal(ActionIds.MenuOpenForRow, key.Action);
     }
 
     [Fact]

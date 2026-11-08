@@ -59,7 +59,7 @@ public class StashEffectHandlerTests
 
         var success = Assert.IsType<StashOperationSucceeded>(result);
         Assert.Equal(StatusSeverity.Warning, success.Severity);
-        Assert.Equal("Nothing to stash (untracked files are stashed with <space>ku)", success.Text);
+        Assert.Equal("Nothing to stash (untracked files are stashed with {key:stash.push-untracked|stash with untracked files})", success.Text);
         Assert.Equal(string.Empty, repository.Git("stash", "list").Trim());
     }
 
@@ -86,8 +86,9 @@ public class StashEffectHandlerTests
 
         var result = await RunAsync(new ApplyStashEffect(Tab, location, entry, true));
 
-        var text = Assert.IsType<StashOperationSucceeded>(result).Text;
-        Assert.StartsWith("Popped stash@{0}; undo the drop: git stash store -m", text, StringComparison.Ordinal);
+        var success = Assert.IsType<StashOperationSucceeded>(result);
+        Assert.Equal("Popped stash@{0}", success.Text);
+        Assert.StartsWith("Restore: git stash store -m", success.Detail, StringComparison.Ordinal);
         Assert.Equal(string.Empty, repository.Git("stash", "list").Trim());
     }
 
@@ -114,8 +115,10 @@ public class StashEffectHandlerTests
 
         var result = await RunAsync(new DropStashEffect(Tab, location, entry));
 
-        var text = Assert.IsType<StashOperationSucceeded>(result).Text;
-        Assert.StartsWith($"Dropped stash@{{0}} ({entry.CommitHash}); undo: git stash store -m", text, StringComparison.Ordinal);
+        var success = Assert.IsType<StashOperationSucceeded>(result);
+        Assert.Equal($"Dropped stash@{{0}} ({entry.CommitHash[..7]})", success.Text);
+        Assert.StartsWith("Restore: git stash store -m", success.Detail, StringComparison.Ordinal);
+        Assert.EndsWith(entry.CommitHash, success.Detail, StringComparison.Ordinal);
         Assert.Equal(string.Empty, repository.Git("stash", "list").Trim());
     }
 
@@ -160,8 +163,9 @@ public class StashEffectHandlerTests
 
         var result = await RunAsync(new RestoreStashFileEffect(Tab, location, target));
 
-        var text = Assert.IsType<StashOperationSucceeded>(result).Text;
-        Assert.StartsWith("Restored file.txt from stash@{0}; undo: git cat-file blob ", text, StringComparison.Ordinal);
+        var success = Assert.IsType<StashOperationSucceeded>(result);
+        Assert.Equal("Restored file.txt from stash@{0}", success.Text);
+        Assert.StartsWith("Undo: git cat-file blob ", success.Detail, StringComparison.Ordinal);
         Assert.Equal("stashed change\n", File.ReadAllText(Path.Combine(repository.WorkingTreePath, "file.txt")));
     }
 

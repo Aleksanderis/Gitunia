@@ -172,6 +172,18 @@ public sealed class RepositoryLoader
         session.EndExpansion();
     }
 
+    // This read started with the load. The tab's refresher reads the status again on its own and may have applied a newer
+    // one (or the user may have staged something since): the older read then must not put the lists back.
+    private static void ApplyLoadedStatus(Dispatcher host, TabId tabId, StatusSnapshot status)
+    {
+        if (host.Workspace.FindTab(tabId) is { WorkingTree: not null })
+        {
+            return;
+        }
+
+        host.Dispatch(new TabCommand(tabId, new WorkingTreeLoadedCommand(status)));
+    }
+
     private async Task LoadMetadataAsync(RepositoryLocation location, TabId tabId, Dispatcher host, StatusReporter statuses, IUiInvoker ui, CancellationToken token)
     {
         try
@@ -184,7 +196,7 @@ public sealed class RepositoryLoader
             var refs = await refsTask.ConfigureAwait(false);
             ui.Post(() => host.Dispatch(new TabCommand(tabId, new RefsLoadedCommand([.. refs.Items]))));
             var status = await statusTask.ConfigureAwait(false);
-            ui.Post(() => host.Dispatch(new TabCommand(tabId, new WorkingTreeLoadedCommand(status))));
+            ui.Post(() => ApplyLoadedStatus(host, tabId, status));
         }
         catch (OperationCanceledException)
         {

@@ -40,6 +40,7 @@ public static class UxMouseReader
     {
         "Click" => MouseGesture.Click,
         "Double-click" => MouseGesture.DoubleClick,
+        "Triple-click" => MouseGesture.TripleClick,
         "Wheel up" => MouseGesture.WheelUp,
         "Sideways wheel back" => MouseGesture.WheelHorizontalBack,
         "Sideways wheel forward" => MouseGesture.WheelHorizontalForward,
@@ -47,6 +48,8 @@ public static class UxMouseReader
         "Drag start" => MouseGesture.DragStart,
         "Drag up" => MouseGesture.DragUp,
         "Drag down" => MouseGesture.DragDown,
+        "Drag back" => MouseGesture.DragBack,
+        "Drag forward" => MouseGesture.DragForward,
         _ => throw new InvalidDataException($"Unknown mouse gesture in docs/internal/ux-mouse.md: {text}"),
     };
 }

@@ -167,7 +167,7 @@ public static class StagingReducer
                 $"Mark {name} as resolved?",
                 "Conflict markers still in the file are not removed or checked: they are committed as they are.",
             ],
-            "Undo: git checkout --merge <file> re-creates the conflict (it overwrites the file's current content).",
+            UndoNotes.FromHistory,
             "Mark resolved");
 
         var accepted = new ResolveConfirmed(context.TabId, entry);
@@ -222,7 +222,7 @@ public static class StagingReducer
         }
         else
         {
-            effects.Add(Post(succeeded.Text, succeeded.Severity));
+            effects.Add(new PostStatusEffect(succeeded.Text, succeeded.Severity, succeeded.Detail));
         }
 
         if (follow.Move is { } move)
@@ -245,7 +245,7 @@ public static class StagingReducer
         var left = tree.Unstaged.Count(entry => entry.Kind == StatusEntryKind.Unmerged);
         if (left == 0)
         {
-            var next = hasOperation ? $"{StagingReports.ContinueKeys} continue" : "commit it";
+            var next = hasOperation ? StagingReports.Continue : "commit it";
             var text = $"Resolved and staged {resolved.Name} (Staged list): all conflicts resolved, {next}";
 
             return new ResolvedReport(text, SelectStaged(tree, resolved.Path));

@@ -1,6 +1,8 @@
 using System.Globalization;
 using Gitunia.Core.Graph;
 using Gitunia.Git;
+using Gitunia.Git.Commits.Models;
+using Gitunia.Git.Refs.Models;
 using Xunit;
 
 namespace Gitunia.Core.Tests.Graph;
@@ -18,6 +20,37 @@ public class CommitGraphTests
     {
         var row = new GraphRow(Id(number), 0, laneCount, []);
         return new GraphEntry(Id(number), $"commit {number}", "Author", DateTimeOffset.UnixEpoch, [], row);
+    }
+
+    [Fact]
+    public void GivenCheckedOutBranch_WhenLookingForHead_ThenItsRowIsReturned()
+    {
+        var graph = new CommitGraph();
+        var main = new CommitDecoration("refs/heads/main", "main", RefKind.LocalBranch, true);
+        graph.AddRange([Entry(1, 1), Decorated(2, main), Entry(3, 1)]);
+
+        Assert.Equal(1, graph.HeadIndex());
+    }
+
+    [Fact]
+    public void GivenDetachedHead_WhenLookingForHead_ThenItsRowIsReturned()
+    {
+        var graph = new CommitGraph();
+        var head = new CommitDecoration("HEAD", "HEAD", RefKind.Head, false);
+        graph.AddRange([Entry(1, 1), Entry(2, 1), Decorated(3, head)]);
+
+        Assert.Equal(2, graph.HeadIndex());
+    }
+
+    [Fact]
+    public void GivenOtherBranchesOnly_WhenLookingForHead_ThenMinusOne()
+    {
+        var graph = new CommitGraph();
+        var other = new CommitDecoration("refs/heads/other", "other", RefKind.LocalBranch, false);
+        graph.AddRange([Decorated(1, other), Entry(2, 1)]);
+
+        Assert.Equal(-1, graph.HeadIndex());
+        Assert.Equal(-1, new CommitGraph().HeadIndex());
     }
 
     [Fact]
@@ -52,5 +85,12 @@ public class CommitGraphTests
 
         Assert.Equal(1, graph.IndexOf(Id(2)));
         Assert.Equal(-1, graph.IndexOf(Id(9)));
+    }
+
+    private static GraphEntry Decorated(int number, CommitDecoration decoration)
+    {
+        var row = new GraphRow(Id(number), 0, 1, []);
+
+        return new GraphEntry(Id(number), $"commit {number}", "Author", DateTimeOffset.UnixEpoch, [decoration], row);
     }
 }

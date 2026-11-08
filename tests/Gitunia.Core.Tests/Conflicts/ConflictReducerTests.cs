@@ -90,7 +90,7 @@ public class ConflictReducerTests
 
         var post = Assert.IsType<PostStatusEffect>(Assert.Single(update.Effects));
         Assert.Contains("they deleted it", post.Text, StringComparison.Ordinal);
-        Assert.Contains("<space>em", post.Text, StringComparison.Ordinal);
+        Assert.Contains("{key:tool.mergetool|the mergetool}", post.Text, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -246,7 +246,8 @@ public class ConflictReducerTests
 
         var confirm = Assert.IsType<ShowConfirmEffect>(Assert.Single(update.Effects));
         Assert.Contains("1 unresolved conflict out of 2", confirm.Prompt.Lines[0], StringComparison.Ordinal);
-        Assert.Contains("git checkout --merge", confirm.Prompt.Consequence, StringComparison.Ordinal);
+        Assert.Contains("use {key:conflict-editor.recreate|re-create} to rebuild the whole conflict", confirm.Prompt.Consequence, StringComparison.Ordinal);
+        Assert.DoesNotContain("git ", confirm.Prompt.Consequence, StringComparison.Ordinal);
         Assert.IsType<ConflictSaveConfirmed>(confirm.OnAccepted);
     }
 

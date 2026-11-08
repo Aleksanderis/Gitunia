@@ -1,8 +1,8 @@
 using System.Collections.Immutable;
+using Gitunia.Core.Editing;
 using Gitunia.Core.Effects;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Overlays;
-using Gitunia.Core.Search;
 using Gitunia.Core.Shell;
 using Gitunia.Core.Status;
 
@@ -79,12 +79,14 @@ public static class PromptReducer
             return new ShellUpdate(state, []);
         }
 
-        if (PromptTextEditor.Apply(prompt.Text, key) is not { } edited || edited == prompt.Text)
+        if (PromptTextEditor.Apply(prompt.Text, prompt.Caret, key) is not { } edited)
         {
             return new ShellUpdate(state, []);
         }
 
-        return Replace(state, prompt with { Text = edited, Picker = prompt.Picker?.Filtered(edited) });
+        var filtered = edited.Text == prompt.Text ? prompt.Picker : prompt.Picker?.Filtered(edited.Text);
+
+        return Replace(state, prompt with { Text = edited.Text, Caret = edited.Caret, Picker = filtered });
     }
 
     // A one-key prompt closes on a listed key and ignores every other, like Enter.

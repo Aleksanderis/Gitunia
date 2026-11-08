@@ -250,8 +250,9 @@ public class SyncEffectHandlerTests
 
         var result = await RunAsync(new DeleteRemoteBranchEffect(Tab, location, "origin", "topic", tip));
 
-        var text = Assert.IsType<SyncSucceeded>(result).Text;
-        Assert.Equal($"Deleted topic on origin (restore: git push origin {tip}:refs/heads/topic)", text);
+        var success = Assert.IsType<SyncSucceeded>(result);
+        Assert.Equal($"Deleted topic on origin (was {tip[..7]})", success.Text);
+        Assert.Equal($"Restore: git push origin {tip}:refs/heads/topic", success.Detail);
         Assert.DoesNotContain("topic", repository.GitIn(repository.OriginPath, ["branch"]), StringComparison.Ordinal);
         Assert.Equal(tip, repository.Git("rev-parse", "topic").Trim());
     }

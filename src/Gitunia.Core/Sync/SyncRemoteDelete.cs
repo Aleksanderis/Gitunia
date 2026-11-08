@@ -2,8 +2,8 @@ using System.Collections.Immutable;
 using Gitunia.Core.Effects;
 using Gitunia.Core.Overlays;
 using Gitunia.Core.Prompts;
+using Gitunia.Core.Status;
 using Gitunia.Core.Text;
-using Gitunia.Git.Refs;
 using Gitunia.Git.Refs.Models;
 
 namespace Gitunia.Core.Sync;
@@ -139,7 +139,7 @@ internal static class SyncRemoteDelete
                 $"Delete the branch {branch} on the remote {remote} (at {ShortHash.Of(target.CommitHash)})?",
                 "Local branches are not touched.",
             ],
-            $"Undo: git push {remote} {target.CommitHash}:{GitRefPrefixes.Heads}{branch}",
+            UndoNotes.FromHistory,
             "Delete on remote");
         var accepted = new SyncDeleteConfirmed(context.TabId, remote, branch, target.CommitHash);
 

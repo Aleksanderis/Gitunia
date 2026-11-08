@@ -19,6 +19,7 @@ Mouse: the `settings.open` entry of the command palette, reached by the ` : comm
 │ / filter                                                         │
 │ ▌Appearance  │ Theme                                [auto ▾]   │
 │  Keys        │   ● auto                                          │
+│  Key mapping │                                                   │
 │  Repositories│   ○ dark                                          │
 │              │   ○ light                                         │
 │  Tabs        │ Show branch in tab name                  [x]      │
@@ -30,7 +31,7 @@ Mouse: the `settings.open` entry of the command palette, reached by the ` : comm
 ╰──────────────────────────────────────────────────────────────────╯
 ```
 
-**Layout.** Categories on the left (Appearance, Keys, Repositories, Git, Tabs, Config file; a category with no setting yet is hidden, Git has none today), the settings of the selected category on the right, a help line under the list (what the setting does, its config key, its default) and a hint row.
+**Layout.** Categories on the left (Appearance, Keys, Key mapping, Repositories, Git, Tabs, Config file; a category with no setting yet is hidden, Git has none today), the settings of the selected category on the right, a help line under the list (what the setting does, its config key, its default) and a hint row.
 Under 80 columns the categories collapse into one list with category headings; under 40x12 the overlay shows a "terminal too small" line and no layout (Esc still closes it).
 The set of categories and settings is the table below; the screen is generated from it (a registry of setting id, category, control, config key, default, validation), so docs, screen and config reader cannot drift.
 
@@ -43,7 +44,8 @@ The set of categories and settings is the table below; the screen is generated f
 | Keys | Which-key popup | choice (on, off) | `hints.whichKey` | #837 |
 | Keys | Status bar hints | choice (full, minimal, off) | `hints.statusBar` | #837 |
 | Keys | Command level | choice (everyday, advanced, advanced+) | `commandLevel` | #839 |
-| Keys | Key reference | read-only list from the keymap | none | #50 |
+| Keys | Copy on select | toggle | `copyOnSelect` | #1188 |
+| Key mapping | Key reference | read-only list from the keymap | none | #50 |
 | Config file | Open config.json in $EDITOR | action | none | #523 |
 
 New options of later issues add a row here in the same change; a number control exists in the screen for them (min, max, step, typed digits).
@@ -60,12 +62,12 @@ Per control:
   `auto` chosen at run time uses the `COLORFGBG` guess: the terminal is asked for its background (OSC 11) only at startup, and only when the file says `auto`.
 - Number: `Enter` starts typing (Insert mode), `Enter` saves, `Esc` cancels; `+`/`-` step. Out of range is refused with a message naming the range, nothing is saved.
 - Path list: `a` add (prompt, `~` expanded, must be an existing directory), `d` remove (a question inside the overlay naming the path, Confirm mode: `y` removes, `n` or `Esc` keeps, or click its `y`/`n` row; the folder is untouched), `Enter` edit, `J`/`K` reorder. Saved on each change.
-- Key reference: read-only.
+- Key reference (category Key mapping): read-only.
   `KeyReferenceBuilder` generates it from the key binding table of the running app (the defaults with the `keys` entries of the config file applied, so rebinds show) and the action titles, one line per action and view (`j / Down`, title on the left, keys on the right), under a heading per view; Visual-mode bindings get their own heading (`Lists (Visual)`).
   Insert, Command and Confirm keys are not listed.
   It is a list of rows under the `Key reference` setting, listed Global first, then the other views as bound, then the Visual headings.
   The filter (`/`) also matches the lines' title, keys and action id (`quit`, `gg`, `list.down`) and lists them under their view heading; `Enter` on one clears the filter and lands on the line.
-  In the collapsed layout the Key reference is the last category, so the others are reachable without passing its lines (#558).
+  In the collapsed layout the Key mapping is the last category, so the others are reachable without passing its lines (#558).
   `Enter` (or a second click) on a line shows its `keys` entry in the status bar (`{ "view": "Graph", "key": "J", "action": "list.down" }`, with `mode` for Visual); it works on a read-only file too and writes nothing.
   The list shows the keymap read at startup: after editing `keys`, restart.
   Editing a binding in the UI is out of scope (see open choices).

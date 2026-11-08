@@ -67,10 +67,11 @@ public class RemoteEffectHandlerTests
 
         var result = await RunAsync(new RemoveRemoteEffect(Tab, location, "origin", repository.OriginPath));
 
-        var text = Assert.IsType<RemoteOperationSucceeded>(result).Text;
+        var success = Assert.IsType<RemoteOperationSucceeded>(result);
+        Assert.Equal("Removed remote origin", success.Text);
         Assert.Equal(
-            $"Removed remote origin (restore: git remote add origin {repository.OriginPath}, then fetch)",
-            text);
+            $"Restore: git remote add origin {repository.OriginPath}, then fetch",
+            success.Detail);
         Assert.Equal(string.Empty, repository.Git("remote").Trim());
         Assert.Equal(string.Empty, repository.Git("branch", "-r").Trim());
     }

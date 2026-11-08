@@ -110,6 +110,14 @@ public static class ActionIds
 
     public static ActionId HelpSearch { get; } = new("help.search");
 
+    public static ActionId HelpScrollDown { get; } = new("help.scroll-down");
+
+    public static ActionId HelpScrollHalfPageDown { get; } = new("help.scroll-half-page-down");
+
+    public static ActionId HelpScrollHalfPageUp { get; } = new("help.scroll-half-page-up");
+
+    public static ActionId HelpScrollUp { get; } = new("help.scroll-up");
+
     public static ActionId HelpShow { get; } = new("help.show");
 
     public static ActionId HelpTabNext { get; } = new("help.tab-next");
@@ -310,6 +318,24 @@ public static class ActionIds
 
     public static ActionId RebaseDrop { get; } = new("rebase.drop");
 
+    public static ActionId FileHistoryOpen { get; } = new("file-history.open");
+
+    public static ActionId FileHistorySelectCommit { get; } = new("file-history.select-commit");
+
+    public static ActionId LineHistoryOpen { get; } = new("line-history.open");
+
+    public static ActionId BlameOpen { get; } = new("blame.open");
+
+    public static ActionId BlameDetectCopies { get; } = new("blame.toggle-copies");
+
+    public static ActionId BlameDetectMoves { get; } = new("blame.toggle-moves");
+
+    public static ActionId BlameIgnoreWhitespace { get; } = new("blame.toggle-whitespace");
+
+    public static ActionId BlameParent { get; } = new("blame.parent");
+
+    public static ActionId BlameShowCommit { get; } = new("blame.show-commit");
+
     public static ActionId ReflogOpen { get; } = new("reflog.open");
 
     public static ActionId ReflogSelectCommit { get; } = new("reflog.select-commit");
@@ -398,11 +424,33 @@ public static class ActionIds
 
     public static ActionId TabLastActive { get; } = new("tab.last-active");
 
+    public static ActionId TabMoveLeft { get; } = new("tab.move-left");
+
+    public static ActionId TabMoveRight { get; } = new("tab.move-right");
+
     public static ActionId TabNext { get; } = new("tab.next");
 
     public static ActionId TabPrevious { get; } = new("tab.previous");
 
     public static ActionId TabRename { get; } = new("tab.rename");
+
+    public static ActionId VisualCharLeft { get; } = new("visual.char-left");
+
+    public static ActionId VisualCharRight { get; } = new("visual.char-right");
+
+    public static ActionId VisualLineEnd { get; } = new("visual.line-end");
+
+    public static ActionId VisualLineStart { get; } = new("visual.line-start");
+
+    public static ActionId VisualSelectLine { get; } = new("visual.select-line");
+
+    public static ActionId VisualSelectWord { get; } = new("visual.select-word");
+
+    public static ActionId VisualToggleChars { get; } = new("visual.toggle-chars");
+
+    public static ActionId VisualWordNext { get; } = new("visual.word-next");
+
+    public static ActionId VisualWordPrevious { get; } = new("visual.word-previous");
 
     public static ActionId VisualCopy { get; } = new("visual.copy");
 
@@ -489,6 +537,14 @@ public static class ActionIds
     public static ActionId WorkingTreeMessageDeleteLine { get; } = new("working-tree.message-delete-line");
 
     public static ActionId WorkingTreeMessageUndo { get; } = new("working-tree.message-undo");
+
+    public static ActionId WorkingTreeMessageRedo { get; } = new("working-tree.message-redo");
+
+    public static ActionId WorkingTreeMessageSelectWord { get; } = new("working-tree.message-select-word");
+
+    public static ActionId WorkingTreeMessageScrollUp { get; } = new("working-tree.message-scroll-up");
+
+    public static ActionId WorkingTreeMessageScrollDown { get; } = new("working-tree.message-scroll-down");
 
     public static ActionId WorkingTreeCommit { get; } = new("working-tree.commit");
 

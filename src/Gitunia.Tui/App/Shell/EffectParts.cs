@@ -50,7 +50,7 @@ public sealed class EffectParts : IDisposable
             Tools = new ToolEffects(handlers.Tools, handlers.ConfigEditor, configWriter, statuses, host),
             Copy = new CopyEffects(foundation.Clipboard, handlers.RangeCopier, handlers.Retry, host),
             Session = new SessionEffects(Persistence, terminal, options),
-            Flow = new FlowEffects(handlers.ReflogEntries, handlers.Staging, host, statuses, panes.DiffPane),
+            Flow = new FlowEffects(handlers.Starters, handlers.Staging, host, statuses, panes.DiffPane),
             Route = handlers.Actions,
         };
         Runner = new EffectRunner<TerminalTabSession>(
@@ -65,6 +65,7 @@ public sealed class EffectParts : IDisposable
                 ShellParts = shell,
                 Settings = CreateSettingsServices(foundation, configWriter),
                 Sessions = foundation.Registry,
+                Keymap = foundation.Config.Startup.Keymap.Table,
             });
         StatusPoller = new BackgroundStatusPoller(
             foundation.Services.Status,

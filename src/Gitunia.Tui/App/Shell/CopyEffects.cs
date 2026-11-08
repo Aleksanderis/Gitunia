@@ -22,8 +22,8 @@ public sealed class CopyEffects(ClipboardCopier clipboard, RangeCopier ranges, T
     /// <param name="effect">The range.</param>
     public void CopyVisualRange(CopyVisualRangeEffect effect)
     {
-        var result = ranges.Copy(effect.Pane, effect.Range);
-        host.Dispatch(new VisualCopied(result.Copied, result.Notice));
+        var result = ranges.Copy(effect.Pane, effect.Range, effect.Chars, effect.IsOldSide);
+        host.Dispatch(new VisualCopied(result.Copied, result.Notice, effect.Mode));
     }
 
     /// <summary>Offers to run the same git arguments in the real terminal (credentials are needed).</summary>

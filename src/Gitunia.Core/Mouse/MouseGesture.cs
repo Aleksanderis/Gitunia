@@ -9,6 +9,9 @@ public enum MouseGesture
     /// <summary>A left double-click (the first click of it was already reported as a <see cref="Click"/>).</summary>
     DoubleClick,
 
+    /// <summary>A left triple-click (the first two clicks of it were already reported as a <see cref="Click"/> and a <see cref="DoubleClick"/>).</summary>
+    TripleClick,
+
     /// <summary>One wheel notch away from the user (the selection moves up).</summary>
     WheelUp,
 
@@ -29,4 +32,10 @@ public enum MouseGesture
 
     /// <summary>While dragging, the pointer is below the cursor row; the binding's count is how many rows below.</summary>
     DragDown,
+
+    /// <summary>While dragging a tab chip, the pointer crossed the edge of the chip to its left: the tab moves one place left.</summary>
+    DragBack,
+
+    /// <summary>While dragging a tab chip, the pointer crossed the edge of the chip to its right: the tab moves one place right.</summary>
+    DragForward,
 }

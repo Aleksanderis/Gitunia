@@ -120,7 +120,7 @@ public static class TagReducer
         var confirm = new ConfirmPrompt(
             "Delete tag on remote",
             [$"Delete the tag {chosen.TagName} on the remote {chosen.Remote}?", "The local tag stays."],
-            $"Undo: git push {chosen.Remote} refs/tags/{chosen.TagName}",
+            UndoNotes.FromHistory,
             "Delete on remote");
         var accepted = new TagDeleteOnRemoteConfirmed(context.TabId, chosen.Remote, chosen.TagName);
 
@@ -145,7 +145,7 @@ public static class TagReducer
                 $"Delete the local tag {tag!.Name} (at {ShortHash.Of(tag.CommitHash)})?",
                 "A copy on a remote is not touched.",
             ],
-            $"Undo: git tag {tag.Name} {tag.ObjectHash}",
+            UndoNotes.FromHistory,
             "Delete tag");
         var accepted = new TagDeleteConfirmed(context.TabId, tag.Name, tag.ObjectHash);
 
@@ -217,7 +217,10 @@ public static class TagReducer
     }
 
     private static ImmutableArray<AppEffect> Succeeded(TagOperationSucceeded succeeded, TagContext context) =>
-        [Post(succeeded.Text, StatusSeverity.Info), new RefreshTabEffect(context.TabId)];
+        [
+            new PostStatusEffect(succeeded.Text, StatusSeverity.Info, succeeded.Detail),
+            new RefreshTabEffect(context.TabId),
+        ];
 
     private static ImmutableArray<AppEffect> Failed(TagOperationFailed failed, TagContext context)
     {

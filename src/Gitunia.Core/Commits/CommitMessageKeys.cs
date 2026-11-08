@@ -10,6 +10,8 @@ namespace Gitunia.Core.Commits;
 /// can run them from elsewhere).</summary>
 internal static class CommitMessageKeys
 {
+    private const int WheelLines = 3;
+
     /// <summary>Applies a Normal mode key to a copy of the draft.</summary>
     /// <param name="action">One of the box's Normal mode actions.</param>
     /// <param name="context">The tab and the facts around it.</param>
@@ -58,6 +60,29 @@ internal static class CommitMessageKeys
         return CommitReducer.Changed(context, draft);
     }
 
+    /// <summary>The mouse paths of the box (double-click, wheel), which act in any mode.</summary>
+    /// <param name="action">One of the pointer actions.</param>
+    /// <param name="context">The tab and the facts around it.</param>
+    public static CommitUpdate RunPointer(ActionId action, CommitContext context)
+    {
+        if (context.Tab.Commit.Draft is null)
+        {
+            return CommitReducer.Same(context);
+        }
+
+        var draft = CommitReducer.DraftOf(context);
+        if (action == ActionIds.WorkingTreeMessageSelectWord)
+        {
+            draft.Editor.SelectWordAtCursor();
+        }
+        else
+        {
+            draft.Editor.MoveLines(action == ActionIds.WorkingTreeMessageScrollDown ? WheelLines : -WheelLines);
+        }
+
+        return CommitReducer.Changed(context, draft);
+    }
+
     // Keys that change the text or start Insert mode; one undo point per change (an Insert session is one change).
     private static CommitUpdate Change(ActionId action, CommitContext context, CommitDraft draft)
     {
@@ -69,6 +94,15 @@ internal static class CommitMessageKeys
             return undone
                 ? CommitReducer.Changed(context, draft)
                 : CommitReducer.Same(context, CommitReducer.Post(CommitTexts.NothingToUndoNotice));
+        }
+
+        if (action == ActionIds.WorkingTreeMessageRedo)
+        {
+            var redone = editor.Redo();
+
+            return redone
+                ? CommitReducer.Changed(context, draft)
+                : CommitReducer.Same(context, CommitReducer.Post(CommitTexts.NothingToRedoNotice));
         }
 
         if (action == ActionIds.WorkingTreeMessageDeleteChar)

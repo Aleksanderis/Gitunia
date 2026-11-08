@@ -31,11 +31,19 @@ public static class CommitRules
         ActionIds.WorkingTreeMessageDeleteChar,
         ActionIds.WorkingTreeMessageDeleteLine,
         ActionIds.WorkingTreeMessageUndo,
+        ActionIds.WorkingTreeMessageRedo,
     ]);
 
     /// <summary>True for the Normal mode keys of the box.</summary>
     /// <param name="action">The action.</param>
     public static bool IsNormalKey(ActionId action) => NormalKeys.Contains(action);
+
+    /// <summary>True for the mouse paths of the box that run in any mode: select the word, scroll.</summary>
+    /// <param name="action">The action.</param>
+    public static bool IsPointerAction(ActionId action) =>
+        action == ActionIds.WorkingTreeMessageSelectWord
+        || action == ActionIds.WorkingTreeMessageScrollUp
+        || action == ActionIds.WorkingTreeMessageScrollDown;
 
     /// <summary>True for the actions the message box runs whatever the state is.</summary>
     /// <param name="action">The action.</param>
@@ -44,6 +52,7 @@ public static class CommitRules
         || action == ActionIds.WorkingTreeEditMessage
         || action == ActionIds.WorkingTreeMessageNewLine
         || NormalKeys.Contains(action)
+        || IsPointerAction(action)
         || action == ActionIds.WorkingTreeCommit
         || action == ActionIds.WorkingTreeToggleSignOff
         || action == ActionIds.WorkingTreeToggleNoVerify

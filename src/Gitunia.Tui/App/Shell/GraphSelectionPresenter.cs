@@ -39,10 +39,13 @@ public sealed class GraphSelectionPresenter
         _binder = binder;
         _stash = stash;
         _detail = detail;
-        panes.Graph.ValueChanged += (_, _) => OnSelectionChanged();
+        panes.Graph.ValueChanged += (_, _) => OnSelectionChanged(recordSelection: true);
+
+        // A refresh can leave the cursor on the same row with another commit on it: no list event then (#1206).
+        binder.SelectionReplaced += () => OnSelectionChanged(recordSelection: false);
     }
 
-    private void OnSelectionChanged()
+    private void OnSelectionChanged(bool recordSelection)
     {
         var session = _detail.ActiveSession();
         var tabId = _host.Workspace.ActiveTabId;
@@ -52,7 +55,7 @@ public sealed class GraphSelectionPresenter
         }
 
         // While the binder swaps or restores the list, the tab's saved selection must not be overwritten, but the details still follow.
-        var record = !_binder.IsSuspended;
+        var record = recordSelection && !_binder.IsSuspended;
         var keepStash = _stash.KeepsViewOnSelectionChange(_binder.IsSuspended || _binder.IsReplacing);
         var commitIndex = GraphListSource.CommitIndexOf(item);
         if (commitIndex >= 0 && commitIndex < session.Graph.Count)

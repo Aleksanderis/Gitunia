@@ -18,6 +18,11 @@ public enum InputHandler
     /// <summary>The reflog list.</summary>
     Reflog,
 
+    /// <summary>The file history.</summary>
+    FileHistory,
+    /// <summary>The blame view.</summary>
+    Blame,
+
     /// <summary>The help, the palette, the actions menu, the message history and the which-key popup.</summary>
     Overlays,
 
@@ -38,6 +43,9 @@ public enum InputHandler
 
     /// <summary>Refreshes the active tab.</summary>
     Refresh,
+
+    /// <summary>Open the history of the selected file.</summary>
+    FileHistoryOpen,
 
     /// <summary>Create, switch, rename and delete a branch.</summary>
     Branches,

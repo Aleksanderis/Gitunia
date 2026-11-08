@@ -200,7 +200,7 @@ public sealed class OverlayController : IActionHandler
     private void OpenContextMenu(ActionId action)
     {
         var view = BaseView;
-        if (_services.Menus.TargetOf(view) is not { } target)
+        if (_services.Menus.TargetOf(view, action) is not { } target)
         {
             if (action == ActionIds.DiffOpenViewOptions)
             {
@@ -209,6 +209,10 @@ public sealed class OverlayController : IActionHandler
             else if (action == ActionIds.ListOpenViewOptions)
             {
                 _services.Statuses.Post("No view options for this tab");
+            }
+            else if (action == ActionIds.MenuOpenForRow)
+            {
+                _services.Statuses.Post("No actions for this row");
             }
 
             return;
@@ -302,8 +306,14 @@ public sealed class OverlayController : IActionHandler
             return true;
         }
 
-        // The filtered rows are one page: the section keys do nothing, scrolling works once the filter is kept.
-        return action == ActionIds.HelpTabNext || action == ActionIds.HelpTabPrevious || action == ActionIds.HelpTabSelect;
+        // The filtered rows are one page: there is no section to move to, so j/k scroll it a line once the filter is kept.
+        if (action == ActionIds.HelpTabNext || action == ActionIds.HelpTabPrevious)
+        {
+            ScrollHelp(action == ActionIds.HelpTabNext ? ActionIds.ListDown : ActionIds.ListUp, null);
+            return true;
+        }
+
+        return action == ActionIds.HelpTabSelect;
     }
 
     private bool TrySwitchHelpTab(ActionId action, int? count)
@@ -344,11 +354,32 @@ public sealed class OverlayController : IActionHandler
         var tab = State.IsHelpFiltered ? 0 : State.HelpTab;
         var maximum = HelpFrameBuilder.MaximumScroll(shown, tab, width, height);
         var visible = HelpFrameBuilder.VisibleRows(shown, tab, width, height);
-        if (ListMotion.TryMove(action, count, State.HelpScroll, maximum + 1, visible, out var target))
+        if (ListMotion.TryMove(ListActionOf(action), count, State.HelpScroll, maximum + 1, visible, out var target))
         {
             State = State.ScrollHelpTo(target);
             _store.RaiseChanged();
         }
+    }
+
+    // The help's own scroll keys (J, K, D, U) run the same motions as the list actions the wheel and Ctrl-d use.
+    private static ActionId ListActionOf(ActionId action)
+    {
+        if (action == ActionIds.HelpScrollDown)
+        {
+            return ActionIds.ListDown;
+        }
+
+        if (action == ActionIds.HelpScrollUp)
+        {
+            return ActionIds.ListUp;
+        }
+
+        if (action == ActionIds.HelpScrollHalfPageDown)
+        {
+            return ActionIds.ListHalfPageDown;
+        }
+
+        return action == ActionIds.HelpScrollHalfPageUp ? ActionIds.ListHalfPageUp : action;
     }
 
     private void HandlePalette(PaletteState palette, ActionId action)
@@ -396,19 +427,13 @@ public sealed class OverlayController : IActionHandler
     {
         if (State is { Kind: OverlayKind.Help, IsEditingHelpFilter: true })
         {
-            if (key.Name == KeyNames.Backspace)
-            {
-                State = State.DeleteHelpFilterLast();
-            }
-            else if (key.IsPrintable)
-            {
-                State = State.TypeHelpFilter(key.Name);
-            }
-            else
+            var edited = State.EditHelpFilter(key);
+            if (edited == State)
             {
                 return;
             }
 
+            State = edited;
             _store.RaiseChanged();
             return;
         }

@@ -2,9 +2,17 @@
 
 <h1 align="center">Gitunia</h1>
 
+<p align="center">
+<a href="https://github.com/Aleksanderis/Gitunia/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/Aleksanderis/Gitunia/ci.yml?branch=main&logo=github&label=CI" alt="CI status"></a>
+<a href="https://github.com/Aleksanderis/Gitunia/releases/latest"><img src="https://img.shields.io/github/v/release/Aleksanderis/Gitunia?label=release" alt="Latest release"></a>
+<a href="LICENSE"><img src="https://img.shields.io/github/license/Aleksanderis/Gitunia" alt="MIT license"></a>
+<img src="https://img.shields.io/badge/platform-Linux%20%7C%20Windows%20%7C%20macOS-informational" alt="Platforms: Linux, Windows, macOS">
+<img src="https://img.shields.io/badge/.NET-10%20Native%20AOT-512BD4?logo=dotnet" alt=".NET 10 Native AOT">
+</p>
+
 A keyboard-first terminal Git client: a real commit graph, first-class branches and worktrees, vim-style modal navigation, the mouse is optional but fully functional.
 
-![Gitunia demo: graph, branch switch, worktree, staging lines, commit](docs/media/demo.gif)
+[![Gitunia demo: scrolling a large graph, branch switch, worktree, staging lines, commit](https://gitunia.github.io/media/demo.gif)](https://gitunia.github.io)
 
 ## Why
 
@@ -24,15 +32,24 @@ Terminal Git tools are great for quick staging and commits but awkward for many 
 - Tags, clone, init and remotes
 - Interactive rebase editor
 - Reflog browser as the undo path for destructive actions
+- Blame view: who last changed each line of a file, at a commit or in the working tree
 - Command palette, configurable vim-style keys and full mouse support
+- Select and copy exactly the text you want from a diff, by character or by line, with keys or the mouse (copies through the terminal clipboard, also over ssh)
 
-Not included: submodules, LFS UI, blame, hosting-provider integration, plugins.
+Not included: submodules, LFS UI, hosting-provider integration, plugins.
 
 ## Install
 
 Needs Git 2.43 or newer on your `PATH`.
 
-Ways to install: Linux `.deb`/`.rpm`, Arch/Omarchy `.pkg.tar.zst` or AUR `gitunia-bin`, Windows and Linux archive, or from source. For more details look in the [user guide](docs/user-guide.md#install).
+One line, installs the latest release (re-run it to update):
+
+```
+curl -fsSL https://raw.githubusercontent.com/Aleksanderis/Gitunia/main/scripts/install.sh | sh      # Linux (x64, arm64)
+irm https://raw.githubusercontent.com/Aleksanderis/Gitunia/main/scripts/install.ps1 | iex           # Windows PowerShell
+```
+
+Other ways to install: Linux `.deb`/`.rpm`, Arch/Omarchy `.pkg.tar.zst` (x64 and arm64) or AUR `gitunia-bin` (once the first release is published), Windows `winget install Gitunia.Gitunia` (once the first release is in winget), a Windows or Linux archive (x64 and arm64), a macOS archive (Apple silicon; should work but is not fully tested yet, and unsigned, so Gatekeeper asks you to allow it), or from source. For more details look in the [user guide](docs/user-guide.md#install).
 
 ## Quick start
 
@@ -52,3 +69,7 @@ In the picker type to filter or type a path. `Enter` opens it in a tab. `?` show
 ## Contributing, security, license
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) and [SECURITY.md](SECURITY.md). Licensed under the MIT License ([LICENSE](LICENSE)). This covers the logo too.
+
+## Support
+
+If Gitunia saves you time, you can [buy me a coffee](https://buymeacoffee.com/aleksanderis).

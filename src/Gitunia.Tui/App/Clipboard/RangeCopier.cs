@@ -1,8 +1,10 @@
 using Gitunia.Core.Lists;
+using Gitunia.Core.Visual;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.Rendering.WorkingTree;
+using Gitunia.Tui.Views.Lists;
 
 namespace Gitunia.Tui.App.Clipboard;
 
@@ -19,7 +21,11 @@ public sealed class RangeCopier(
 
     /// <summary>Copies the range of <paramref name="pane"/>.</summary>
     /// <returns>Whether the text was copied, with a notice for the status bar when nothing was copied (a failed copy posts its own warning).</returns>
-    public RangeCopyResult Copy(PaneKind pane, RowRange range)
+    /// <param name="pane">The pane the selection is in.</param>
+    /// <param name="range">The rows.</param>
+    /// <param name="chars">The characters of a character-wise selection, null for whole rows.</param>
+    /// <param name="isOldSide">The characters are those of the left (old) side of the side-by-side diff.</param>
+    public RangeCopyResult Copy(PaneKind pane, RowRange range, TextSelection? chars = null, bool isOldSide = false)
     {
         if (pane is PaneKind.WorkingUnstaged or PaneKind.WorkingStaged)
         {
@@ -30,6 +36,11 @@ public sealed class RangeCopier(
         if (session is null)
         {
             return NothingToCopy;
+        }
+
+        if (chars is { } selection)
+        {
+            return CopyChars(pane, session, selection, isOldSide);
         }
 
         string text;
@@ -63,6 +74,32 @@ public sealed class RangeCopier(
 
         var lines = text.Count(character => character == '\n');
         var copied = clipboard.Copy(text, lines == 1 ? $"1 line of {description}" : $"{lines} lines of {description}");
+        return new RangeCopyResult(copied, string.Empty);
+    }
+
+    private RangeCopyResult CopyChars(
+        PaneKind pane,
+        TerminalTabSession session,
+        TextSelection selection,
+        bool isOldSide)
+    {
+        ITextSource? source = pane switch
+        {
+            PaneKind.Diff => session.Diff?.Source,
+            PaneKind.Detail => session.DetailSource,
+            PaneKind.WorkingUnstagedDiff or PaneKind.WorkingStagedDiff => session.WorkingDiff?.Source,
+            _ => null,
+        };
+        var text = source?.CopyText(selection, isOldSide) ?? string.Empty;
+        if (text.Length == 0)
+        {
+            return NothingToCopy;
+        }
+
+        var characters = text.EnumerateRunes().Count();
+        var description = characters == 1 ? "1 selected character" : $"{characters} selected characters";
+        var copied = clipboard.Copy(text, description);
+
         return new RangeCopyResult(copied, string.Empty);
     }
 

@@ -32,6 +32,25 @@ public sealed record DetailContent(
     /// row.</summary>
     public int FileIndexAt(int row) => row >= 0 && row < Rows.Count ? Rows[row].FileIndex : -1;
 
+    /// <summary>
+    /// The path of the file on <paramref name="row"/>: the Files tab lists a tree (a directory row is no file), the
+    /// Changes tab the changed files. Null on any other row.
+    /// </summary>
+    /// <param name="row">The row.</param>
+    public string? FilePathAt(int row)
+    {
+        if (Tree.Count > 0)
+        {
+            var isFile = row >= 0 && row < Tree.Count && Tree[row].Kind != FileTreeRowKind.Directory;
+
+            return isFile ? Tree[row].Path : null;
+        }
+
+        var index = FileIndexAt(row);
+
+        return index >= 0 && index < Files.Count ? Files[index].Path : null;
+    }
+
     /// <summary>The path of the folder row <paramref name="row"/> (tree style), null for any other row.</summary>
     public string? FolderAt(int row) => row >= 0 && row < Rows.Count ? Rows[row].Folder : null;
 

@@ -1,4 +1,5 @@
 using Gitunia.Core.Workspaces.Panes;
+using Gitunia.Git.History.Models;
 
 namespace Gitunia.Tui.Rendering.Panes;
 
@@ -32,6 +33,20 @@ public static partial class PaneHints
     /// <summary>The hints while a confirm dialog is open (only its answers act).</summary>
     public static IReadOnlyList<KeyHint> ForConfirm() => Confirm;
 
+    /// <summary>The hints while the blame view is open.</summary>
+    public static IReadOnlyList<KeyHint> ForBlame() => Blame;
+
+    /// <summary>The hints while the file history is open.</summary>
+    public static IReadOnlyList<KeyHint> ForFileHistory() => FileHistory;
+
+    /// <summary>
+    /// The hints while the history of a line range is open: the file history set led by a hint naming the range, so
+    /// the view is not mistaken for the whole-file history.
+    /// </summary>
+    /// <param name="range">The lines the history follows.</param>
+    public static IReadOnlyList<KeyHint> ForLineHistory(LineRange range) =>
+        [new KeyHint($"Lines {range.Label}", "history", []), .. FileHistory];
+
     /// <summary>The hints while the reflog list is open.</summary>
     public static IReadOnlyList<KeyHint> ForReflog() => Reflog;
 
@@ -55,9 +70,6 @@ public static partial class PaneHints
 
     /// <summary>The hints while the settings screen is open.</summary>
     public static IReadOnlyList<KeyHint> ForSettings() => Settings;
-
-    /// <summary>The hints while the repository picker is open.</summary>
-    public static IReadOnlyList<KeyHint> ForPicker() => Picker;
 
     /// <summary>The hints in the footer of the commands popup.</summary>
     public static IReadOnlyList<KeyHint> ForPalette() => Palette;

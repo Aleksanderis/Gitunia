@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using Gitunia.Core.Keymap;
 using Gitunia.Core.Overlays;
 using Gitunia.Core.Text;
 using Gitunia.Core.Workspaces.Repositories;
@@ -11,6 +12,8 @@ namespace Gitunia.Core.Worktrees;
 /// testable without a terminal.</summary>
 public static class WorktreeTexts
 {
+    private static readonly string NewWorktree = KeyTokens.Of(ActionIds.WorktreeAdd, "a new worktree");
+
     /// <summary>Shown when another worktree operation of the tab still runs.</summary>
     public const string BusyNotice = "Busy: another operation on this tab is still running";
 
@@ -40,12 +43,12 @@ public static class WorktreeTexts
 
         if (worktree.IsLocked)
         {
-            return $"{worktree.Path} is locked: unlock it first (<space>wu)";
+            return $"{worktree.Path} is locked: {KeyTokens.Of(ActionIds.WorktreeUnlock, "unlock it")} first";
         }
 
         if (worktree.IsPrunable)
         {
-            return $"{worktree.Path} is missing on disk: prune it instead (<space>wp)";
+            return $"{worktree.Path} is missing on disk: {KeyTokens.Of(ActionIds.WorktreePrune, "prune it")} instead";
         }
 
         return string.Empty;
@@ -96,7 +99,7 @@ public static class WorktreeTexts
         return new ConfirmPrompt(
             "Prune worktrees",
             lines,
-            "Only git's records are deleted. Undo: git worktree add <path> <branch> makes a checkout again.",
+            $"Only git's records are deleted; a branch can be checked out again with {NewWorktree}.",
             "Prune");
     }
 
@@ -125,11 +128,9 @@ public static class WorktreeTexts
     {
         if (worktree.BranchFullName is { } branch)
         {
-            return $"Undo: git worktree add <path> {ShortName(branch)} checks the branch out again.";
+            return $"The branch stays; {ShortName(branch)} can be checked out again with {NewWorktree}.";
         }
 
-        var hash = worktree.HeadHash is { Length: >= ShortHash.Length } head ? head[..ShortHash.Length] : "<hash>";
-
-        return $"Undo: git worktree add <path> {hash} checks that commit out again.";
+        return "No undo is offered for commits that no branch reaches.";
     }
 }

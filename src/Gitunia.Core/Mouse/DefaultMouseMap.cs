@@ -87,6 +87,11 @@ public static class DefaultMouseMap
 
     public const string PickerInitButton = "PickerButton.Init";
 
+    /// <summary>Picker footer chips for the keys every picker has: open the highlighted row, close the picker.</summary>
+    public const string PickerAcceptButton = "PickerButton.Accept";
+
+    public const string PickerCloseButton = "PickerButton.Close";
+
     /// <summary>The checkboxes and the Commit button in the option row of the working-tree message box.</summary>
     public const string MessageSignOffButton = "MessageButton.SignOff";
 
@@ -123,6 +128,29 @@ public static class DefaultMouseMap
     public const string ReflogCheckoutButton = "ReflogButton.Checkout";
 
     public const string ReflogPickerRow = "ReflogPicker";
+
+    /// <summary>The row under the file history that selects the highlighted commit in the graph (#1115).</summary>
+    public const string FileHistorySelectButton = "FileHistoryButton.Select";
+    /// <summary>The action row under the blame view: a click runs the action its key runs on the highlighted line.</summary>
+    public const string BlameShowButton = "BlameButton.Show";
+
+    /// <summary>The action row `Alt-p` under the blame view: blame at the parent of the highlighted line's commit.</summary>
+    public const string BlameParentButton = "BlameButton.Parent";
+
+    /// <summary>The action row `space H` under the blame view: the history of the blamed file.</summary>
+    public const string BlameHistoryButton = "BlameButton.History";
+
+    /// <summary>The action row of the blame view that opens the history of the highlighted line.</summary>
+    public const string BlameLineHistoryButton = "BlameButton.LineHistory";
+
+    /// <summary>The chip `-w` under the blame view: ignore whitespace changes (`Alt-w`).</summary>
+    public const string BlameWhitespaceButton = "BlameButton.Whitespace";
+
+    /// <summary>The chip `-M` under the blame view: detect moved lines (`Alt-m`).</summary>
+    public const string BlameMovesButton = "BlameButton.Moves";
+
+    /// <summary>The chip `-C` under the blame view: detect copied lines (`Alt-c`).</summary>
+    public const string BlameCopiesButton = "BlameButton.Copies";
 
     /// <summary>The chips under the rebase todo editor (#458): each is a view of its own, a click runs the action
     /// its key runs on the highlighted commit.</summary>
@@ -232,6 +260,16 @@ public static class DefaultMouseMap
         DefaultKeymap.HelpView,
         DefaultKeymap.MessagesView,
         DefaultKeymap.ReflogView,
+        DefaultKeymap.FileHistoryView,
+        FileHistorySelectButton,
+        DefaultKeymap.BlameView,
+        BlameShowButton,
+        BlameParentButton,
+        BlameHistoryButton,
+        BlameLineHistoryButton,
+        BlameWhitespaceButton,
+        BlameMovesButton,
+        BlameCopiesButton,
         DefaultKeymap.RebaseEditorView,
         RebasePickButton,
         RebaseRewordButton,
@@ -294,6 +332,8 @@ public static class DefaultMouseMap
         new(DefaultKeymap.DetailView, MouseGesture.Click, ActionIds.DetailToggleFolder),
         new(DefaultKeymap.SidebarView, MouseGesture.Click, ActionIds.SidebarActivate),
         new(TabsView, MouseGesture.Click, ActionIds.TabNext, UsesTarget: true),
+        new(TabsView, MouseGesture.DragBack, ActionIds.TabMoveLeft, UsesTarget: true),
+        new(TabsView, MouseGesture.DragForward, ActionIds.TabMoveRight, UsesTarget: true),
         new(TabDirtyMarker, MouseGesture.Click, ActionIds.WorkingTreeOpen),
         new(DefaultKeymap.PickerView, MouseGesture.DoubleClick, ActionIds.PickerAccept),
         new(DefaultKeymap.PickerView, MouseGesture.WheelUp, ActionIds.PickerPrevious),
@@ -303,12 +343,18 @@ public static class DefaultMouseMap
         new(DefaultKeymap.WorkingUnstagedView, MouseGesture.DoubleClick, ActionIds.WorkingTreeStage),
         new(DefaultKeymap.WorkingStagedView, MouseGesture.DoubleClick, ActionIds.WorkingTreeUnstage),
         new(DefaultKeymap.WorkingMessageView, MouseGesture.Click, ActionIds.WorkingTreeEditMessage),
+        new(DefaultKeymap.WorkingMessageView, MouseGesture.DoubleClick, ActionIds.WorkingTreeMessageSelectWord),
+        new(DefaultKeymap.WorkingMessageView, MouseGesture.WheelUp, ActionIds.WorkingTreeMessageScrollUp),
+        new(DefaultKeymap.WorkingMessageView, MouseGesture.WheelDown, ActionIds.WorkingTreeMessageScrollDown),
         new(MessageSignOffButton, MouseGesture.Click, ActionIds.WorkingTreeToggleSignOff),
         new(MessageNoVerifyButton, MouseGesture.Click, ActionIds.WorkingTreeToggleNoVerify),
         new(MessageAmendButton, MouseGesture.Click, ActionIds.WorkingTreeToggleAmend),
         new(MessageCommitButton, MouseGesture.Click, ActionIds.WorkingTreeCommit),
-        new(DefaultKeymap.WorkingUnstagedDiffView, MouseGesture.DoubleClick, ActionIds.WorkingTreeStage),
-        new(DefaultKeymap.WorkingStagedDiffView, MouseGesture.DoubleClick, ActionIds.WorkingTreeUnstage),
+        new(DefaultKeymap.WorkingUnstagedDiffView, MouseGesture.DoubleClick, ActionIds.VisualSelectWord),
+        new(DefaultKeymap.WorkingStagedDiffView, MouseGesture.DoubleClick, ActionIds.VisualSelectWord),
+        new(DefaultKeymap.DiffView, MouseGesture.DoubleClick, ActionIds.VisualSelectWord),
+        new(DefaultKeymap.DiffView, MouseGesture.TripleClick, ActionIds.VisualSelectLine),
+        new(DefaultKeymap.DetailView, MouseGesture.TripleClick, ActionIds.VisualSelectLine),
         new(DefaultKeymap.ListsView, MouseGesture.DragStart, ActionIds.VisualToggle),
         new(DefaultKeymap.ListsView, MouseGesture.DragUp, ActionIds.ListUp, UsesTarget: true),
         new(DefaultKeymap.ListsView, MouseGesture.DragDown, ActionIds.ListDown, UsesTarget: true),
@@ -328,6 +374,21 @@ public static class DefaultMouseMap
         new(DefaultKeymap.MessagesView, MouseGesture.WheelDown, ActionIds.ListDown, WheelLines),
         new(DefaultKeymap.ReflogView, MouseGesture.WheelUp, ActionIds.ListUp, WheelLines),
         new(DefaultKeymap.ReflogView, MouseGesture.WheelDown, ActionIds.ListDown, WheelLines),
+        new(DefaultKeymap.FileHistoryView, MouseGesture.WheelUp, ActionIds.ListUp, WheelLines),
+        new(DefaultKeymap.FileHistoryView, MouseGesture.WheelDown, ActionIds.ListDown, WheelLines),
+        new(FileHistorySelectButton, MouseGesture.Click, ActionIds.FileHistorySelectCommit),
+        new(DefaultKeymap.BlameView, MouseGesture.WheelUp, ActionIds.ListUp, WheelLines),
+        new(DefaultKeymap.BlameView, MouseGesture.WheelDown, ActionIds.ListDown, WheelLines),
+        new(DefaultKeymap.BlameView, MouseGesture.DragStart, ActionIds.VisualToggle),
+        new(DefaultKeymap.BlameView, MouseGesture.DoubleClick, ActionIds.VisualSelectWord),
+        new(DefaultKeymap.BlameView, MouseGesture.TripleClick, ActionIds.VisualSelectLine),
+        new(BlameShowButton, MouseGesture.Click, ActionIds.BlameShowCommit),
+        new(BlameParentButton, MouseGesture.Click, ActionIds.BlameParent),
+        new(BlameHistoryButton, MouseGesture.Click, ActionIds.FileHistoryOpen),
+        new(BlameLineHistoryButton, MouseGesture.Click, ActionIds.LineHistoryOpen),
+        new(BlameWhitespaceButton, MouseGesture.Click, ActionIds.BlameIgnoreWhitespace),
+        new(BlameMovesButton, MouseGesture.Click, ActionIds.BlameDetectMoves),
+        new(BlameCopiesButton, MouseGesture.Click, ActionIds.BlameDetectCopies),
         new(DefaultKeymap.RebaseEditorView, MouseGesture.WheelUp, ActionIds.ListUp, WheelLines),
         new(DefaultKeymap.RebaseEditorView, MouseGesture.WheelDown, ActionIds.ListDown, WheelLines),
         new(RebasePickButton, MouseGesture.Click, ActionIds.RebaseEditorPick),
@@ -413,5 +474,7 @@ public static class DefaultMouseMap
         new(PickerRemoveButton, MouseGesture.Click, ActionIds.PickerRemoveRecent),
         new(PickerCloneButton, MouseGesture.Click, ActionIds.PickerClone),
         new(PickerInitButton, MouseGesture.Click, ActionIds.PickerInit),
+        new(PickerAcceptButton, MouseGesture.Click, ActionIds.PickerAccept),
+        new(PickerCloseButton, MouseGesture.Click, ActionIds.Cancel),
     ];
 }

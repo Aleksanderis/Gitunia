@@ -1,5 +1,6 @@
 using Gitunia.Tui.App.Sidebar;
 using Gitunia.Tui.App.WorkingTree;
+using Terminal.Gui.Input;
 
 namespace Gitunia.Tui.App.Shell;
 
@@ -68,11 +69,14 @@ public sealed class ShellWiring(ShellComposition shell)
         var view = shell.Screen.View;
         view.Gestured += shell.Keys.GestureRouter.OnGestured;
         view.MessageClicked += shell.Panes.Commits.PlaceCursor;
+        view.MessageDragged += shell.Panes.Commits.DragSelection;
         view.EdgeDragged += shell.Screen.SizeDragger.OnEdgeDragged;
         view.OverlayLineClicked += shell.Keys.OverlayGestures.OnLineClicked;
         view.OverlayLineDoubleClicked += shell.Keys.OverlayGestures.OnLineDoubleClicked;
+        view.OverlayLineTripleClicked += shell.Keys.OverlayGestures.OnLineTripleClicked;
         view.OverlayDragStarted += shell.Keys.OverlayGestures.OnDragStarted;
         view.OverlayDragged += shell.Keys.OverlayGestures.OnDragged;
+        view.OverlayDragReleased += shell.Keys.OverlayGestures.OnDragReleased;
         view.PickerRowClicked += shell.Screen.Picker.OnRowClicked;
         view.ChromeRefreshed += shell.Screen.PopupTracker.Sync;
     }
@@ -93,8 +97,21 @@ public sealed class ShellWiring(ShellComposition shell)
     private void ConnectTerminal()
     {
         var terminal = shell.Foundation.Terminal;
-        terminal.KeyDown += shell.Keys.Input.OnKeyDown;
+        terminal.KeyDown += OnKeyDown;
         terminal.Pasted += shell.Keys.Input.OnPaste;
         terminal.FocusGained += shell.Effects.Runner.CheckActiveTabNow;
+    }
+
+    // Esc while a tab chip is dragged only puts the tab back; the keymap does not see it.
+    private void OnKeyDown(object? sender, Key key)
+    {
+        if (key == Key.Esc && shell.Screen.View.CancelTabDrag())
+        {
+            key.Handled = true;
+
+            return;
+        }
+
+        shell.Keys.Input.OnKeyDown(sender, key);
     }
 }

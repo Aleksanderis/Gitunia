@@ -32,6 +32,14 @@ public class MouseMapTests
         Assert.Equal(action, DefaultMouseMap.Create().Resolve(view, MouseGesture.Click)?.Action.Value);
     }
 
+    [Theory]
+    [InlineData(DefaultMouseMap.PickerAcceptButton, "picker.accept")]
+    [InlineData(DefaultMouseMap.PickerCloseButton, "cancel")]
+    public void GivenAPickerFooterChip_WhenClicked_ThenItRunsTheActionTheKeyRuns(string view, string action)
+    {
+        Assert.Equal(action, DefaultMouseMap.Create().Resolve(view, MouseGesture.Click)?.Action.Value);
+    }
+
     [Fact]
     public void GivenAMainlineParentRow_WhenClicked_ThenTheClickTargetIsTheParentNumber()
     {
@@ -153,7 +161,7 @@ public class MouseMapTests
     {
         // Opening the working tree (the dirty marker, #331) is the one-way half of the key toggle <space>s.
         // The mainline parent row (#449) is the digit key, which the open prompt reads as typed text in Insert mode.
-        // A help tab label (#652) is the jump straight to a tab that Tab, Shift-Tab, h and l reach one step at a time.
+        // A help tab label (#652) is the jump straight to a tab that Tab, Shift-Tab, j and k reach one step at a time.
         var keyed = DefaultKeymap.CreateBindings()
             .Select(binding => binding.Action)
             .Append(ActionIds.WorkingTreeOpen)
@@ -224,6 +232,26 @@ public class MouseMapTests
             Assert.True(map.Resolve(view, MouseGesture.DragUp)?.UsesTarget);
             Assert.True(map.Resolve(view, MouseGesture.DragDown)?.UsesTarget);
         }
+    }
+
+    [Fact]
+    public void GivenTheHistoryDiff_WhenDoubleOrTripleClicking_ThenTheWordOrTheLineIsSelected()
+    {
+        var map = DefaultMouseMap.Create();
+
+        Assert.Equal(ActionIds.VisualSelectWord, map.Resolve(DefaultKeymap.DiffView, MouseGesture.DoubleClick)?.Action);
+        Assert.Equal(ActionIds.VisualSelectLine, map.Resolve(DefaultKeymap.DiffView, MouseGesture.TripleClick)?.Action);
+    }
+
+    [Theory]
+    [InlineData(DefaultKeymap.WorkingUnstagedDiffView)]
+    [InlineData(DefaultKeymap.WorkingStagedDiffView)]
+    public void GivenTheChangesViewDiff_WhenDoubleOrTripleClicking_ThenTheWordIsSelectedAndNothingIsStaged(string view)
+    {
+        var map = DefaultMouseMap.Create();
+
+        Assert.Equal(ActionIds.VisualSelectWord, map.Resolve(view, MouseGesture.DoubleClick)?.Action);
+        Assert.Null(map.Resolve(view, MouseGesture.TripleClick));
     }
 
     [Fact]

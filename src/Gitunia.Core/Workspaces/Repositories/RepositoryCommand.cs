@@ -32,6 +32,10 @@ public sealed record SetFilterCommand(string Text) : RepositoryCommand;
 /// <param name="DetailWidth">Columns of the detail pane beside the diff.</param>
 public sealed record SetPaneSizesCommand(int? SidebarWidth, int? BottomHeight, int? DetailWidth) : RepositoryCommand;
 
+/// <summary>Sets the width of the Changes view file lists.</summary>
+/// <param name="Width">Columns of the lists, null for automatic.</param>
+public sealed record SetWorkingListWidthCommand(int? Width) : RepositoryCommand;
+
 /// <summary>Move focus to a pane.</summary>
 /// <param name="Pane">The pane.</param>
 public sealed record FocusPaneCommand(PaneKind Pane) : RepositoryCommand;

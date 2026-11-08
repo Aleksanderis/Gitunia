@@ -6,7 +6,11 @@ namespace Gitunia.Core.Editing;
 
 public sealed partial class MessageEditor
 {
-    /// <summary>Applies a key; returns false when it is not an editing key (the caller handles it).</summary>
+    /// <summary>
+    /// Applies a key; returns false when it is not an editing key (the caller handles it). Shift with a movement key
+    /// extends the selection; typing or a deleting key replaces or deletes it; <c>Left</c> and <c>Right</c> collapse it
+    /// to its start or end.
+    /// </summary>
     public bool Apply(KeyEvent rawKey)
     {
         var key = rawKey.Normalize();
@@ -21,13 +25,76 @@ public sealed partial class MessageEditor
             return false;
         }
 
+        if (key.Modifiers.HasFlag(KeyModifiers.Shift) && IsMovement(key))
+        {
+            var moved = key with { Modifiers = key.Modifiers & ~KeyModifiers.Shift };
+            ExtendWith(() => ApplyKey(moved));
+
+            return true;
+        }
+
+        if (!HasSelection)
+        {
+            // An anchor on the cursor is no selection; it must not turn into one when the cursor moves by an edit.
+            ClearSelection();
+        }
+
+        if (HasSelection && DeletesText(key))
+        {
+            DeleteSelection();
+
+            return true;
+        }
+
+        if (key.Modifiers == KeyModifiers.None && key.Name is KeyNames.Left or KeyNames.Right && Selection is { } range)
+        {
+            var edge = key.Name == KeyNames.Left ? range.Start : range.End;
+            MoveTo(edge.Row, edge.Column);
+
+            return true;
+        }
+
+        return ApplyKey(key);
+    }
+
+    private bool ApplyKey(KeyEvent key)
+    {
         return key.Modifiers switch
         {
             KeyModifiers.None or KeyModifiers.Shift => ApplyPlain(key.Name),
             KeyModifiers.Ctrl => ApplyControl(key.Name),
+            KeyModifiers.Alt => ApplyAlt(key.Name),
             _ => false,
         };
     }
+
+    // Keys that move the cursor; with Shift they extend the selection (Ctrl and Alt make them word or text steps).
+    private static bool IsMovement(KeyEvent key)
+    {
+        var modifiers = key.Modifiers & ~KeyModifiers.Shift;
+        if (modifiers == KeyModifiers.Alt)
+        {
+            return key.Name is KeyNames.Left or KeyNames.Right or "b" or "f";
+        }
+
+        if (modifiers == KeyModifiers.Ctrl)
+        {
+            return key.Name is KeyNames.Left or KeyNames.Right or KeyNames.Home or KeyNames.End;
+        }
+
+        return modifiers == KeyModifiers.None
+            && key.Name is KeyNames.Left or KeyNames.Right or KeyNames.Up or KeyNames.Down or KeyNames.Home
+                or KeyNames.End;
+    }
+
+    // Keys that delete before or after the cursor; with a selection they delete the selection and nothing else.
+    private static bool DeletesText(KeyEvent key) => key.Modifiers switch
+    {
+        KeyModifiers.None or KeyModifiers.Shift => key.Name is KeyNames.Backspace or KeyNames.Delete,
+        KeyModifiers.Ctrl => key.Name is KeyNames.Backspace or KeyNames.Delete or "w" or "u" or "k",
+        KeyModifiers.Alt => key.Name is KeyNames.Backspace or "d",
+        _ => false,
+    };
 
     private static int NextBoundary(string line, int column) =>
         column + StringInfo.GetNextTextElementLength(line.AsSpan(column));
@@ -69,6 +136,7 @@ public sealed partial class MessageEditor
                 MoveVertically(1);
                 return true;
             case KeyNames.Tab:
+                DeleteSelection();
                 Insert(UsesTabCharacters ? Tab.ToString() : new string(' ', TabWidth - CursorDisplayColumn % TabWidth));
                 return true;
             case KeyNames.Home:
@@ -99,10 +167,89 @@ public sealed partial class MessageEditor
                 DeleteTo(_lines[CursorRow].Length);
                 return true;
             case "w":
+            case KeyNames.Backspace:
+                DeleteWordBackward();
+                return true;
+            case KeyNames.Delete:
+                DeleteWordForward();
+                return true;
+            case KeyNames.Left:
+                MoveWordLeft();
+                return true;
+            case KeyNames.Right:
+                MoveWordRight();
+                return true;
+            case KeyNames.Home:
+                MoveTo(0, 0);
+                return true;
+            case KeyNames.End:
+                MoveTo(_lines.Count - 1, _lines[^1].Length);
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    // Alt-arrows too: many terminals report Ctrl-arrows as Alt-arrows (docs/internal/ux-workflows.md, message box).
+    private bool ApplyAlt(string name)
+    {
+        switch (name)
+        {
+            case "b":
+            case KeyNames.Left:
+                MoveWordLeft();
+                return true;
+            case "f":
+            case KeyNames.Right:
+                MoveWordRight();
+                return true;
+            case "d":
+                DeleteWordForward();
+                return true;
+            case KeyNames.Backspace:
                 DeleteWordBackward();
                 return true;
             default:
                 return false;
+        }
+    }
+
+    // Word steps wrap to the neighbouring line at the line edges, like Left and Right.
+    private void MoveWordLeft()
+    {
+        if (CursorColumn > 0)
+        {
+            MoveTo(CursorRow, WordBoundaries.Previous(_lines[CursorRow], CursorColumn));
+        }
+        else
+        {
+            MoveLeft();
+        }
+    }
+
+    private void MoveWordRight()
+    {
+        var line = _lines[CursorRow];
+        if (CursorColumn < line.Length)
+        {
+            MoveTo(CursorRow, WordBoundaries.Next(line, CursorColumn));
+        }
+        else
+        {
+            MoveRight();
+        }
+    }
+
+    private void DeleteWordForward()
+    {
+        var line = _lines[CursorRow];
+        if (CursorColumn < line.Length)
+        {
+            DeleteTo(WordBoundaries.Next(line, CursorColumn));
+        }
+        else
+        {
+            DeleteForward();
         }
     }
 
@@ -140,19 +287,7 @@ public sealed partial class MessageEditor
             return;
         }
 
-        var line = _lines[CursorRow];
-        var start = CursorColumn;
-        while (start > 0 && char.IsWhiteSpace(line[start - 1]))
-        {
-            start--;
-        }
-
-        while (start > 0 && !char.IsWhiteSpace(line[start - 1]))
-        {
-            start--;
-        }
-
-        DeleteTo(start);
+        DeleteTo(WordBoundaries.Previous(_lines[CursorRow], CursorColumn));
     }
 
     private void JoinWithPrevious()

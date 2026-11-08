@@ -1,3 +1,4 @@
+using Gitunia.Core.Operations;
 using System.Collections.Immutable;
 using Gitunia.Core.Effects;
 using Gitunia.Core.Prompts;
@@ -88,7 +89,8 @@ public class QuickRebaseReducerTests
             "Drop 2222222 \"Add feature\" from main? Its changes disappear from the branch.",
             show.Prompt.Lines[0]);
         Assert.Equal("2 later commits of main are replayed and get new hashes.", show.Prompt.Lines[1]);
-        Assert.Contains($"git reset --keep {Tip}", show.Prompt.Consequence, StringComparison.Ordinal);
+        Assert.Contains(UndoNotes.Reflog, show.Prompt.Consequence, StringComparison.Ordinal);
+        Assert.DoesNotContain("git reset", show.Prompt.Consequence, StringComparison.Ordinal);
         var target = Assert.IsType<QuickRebaseConfirmed>(show.OnAccepted).Target;
         Assert.Null(target.NewSubject);
         Assert.Equal("main", target.BranchName);
@@ -285,9 +287,9 @@ public class QuickRebaseReducerTests
     }
 
     [Theory]
-    [InlineData(QuickRebaseKind.Drop, "Dropped 2222222 \"Add feature\" on main (3333333), was 1111111; ")]
-    [InlineData(QuickRebaseKind.Fixup, "Fixed up 2222222 \"Add feature\" on main (3333333), was 1111111; ")]
-    [InlineData(QuickRebaseKind.Reword, "Reworded 2222222 \"Add feature\" on main (3333333), was 1111111; ")]
+    [InlineData(QuickRebaseKind.Drop, "Dropped 2222222 \"Add feature\" on main (3333333), was 1111111")]
+    [InlineData(QuickRebaseKind.Fixup, "Fixed up 2222222 \"Add feature\" on main (3333333), was 1111111")]
+    [InlineData(QuickRebaseKind.Reword, "Reworded 2222222 \"Add feature\" on main (3333333), was 1111111")]
     public void GivenAQuickRebaseThatCompleted_WhenItFinished_ThenTheStatusNamesTheUndoAndTheTabRefreshes(
         QuickRebaseKind kind,
         string start)
@@ -299,11 +301,8 @@ public class QuickRebaseReducerTests
 
         var post = Assert.IsType<PostStatusEffect>(effects[0]);
         Assert.Equal(StatusSeverity.Info, post.Severity);
-        Assert.StartsWith(start, post.Text, StringComparison.Ordinal);
-        Assert.EndsWith(
-            $"undo: git reset --keep {Tip} (or ORIG_HEAD, the reflog)",
-            post.Text,
-            StringComparison.Ordinal);
+        Assert.Equal(start, post.Text);
+        Assert.Equal($"Undo: git reset --keep {Tip} (or ORIG_HEAD, the reflog)", post.Detail);
         Assert.Equal(new RefreshTabEffect(Tab), effects[1]);
     }
 
@@ -318,7 +317,7 @@ public class QuickRebaseReducerTests
         var post = Assert.IsType<PostStatusEffect>(effects[0]);
         Assert.Equal(StatusSeverity.Warning, post.Severity);
         Assert.StartsWith("Drop of 2222222", post.Text, StringComparison.Ordinal);
-        Assert.Contains("abort, back to 1111111", post.Text, StringComparison.Ordinal);
+        Assert.Contains($"{OperationKeys.Abort} to go back to 1111111", post.Text, StringComparison.Ordinal);
     }
 
     private static ImmutableArray<AppEffect> Reduce(RebaseCommand command) =>

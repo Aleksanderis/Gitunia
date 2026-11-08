@@ -13,13 +13,24 @@ cd "$root"
 scripts/package.sh win-x64 "$tmp/win" 1.2.3 "$tmp/out" >/dev/null
 scripts/package.sh linux-x64 "$tmp/lin" 1.2.3 "$tmp/out" >/dev/null
 scripts/package.sh osx-arm64 "$tmp/mac" 1.2.3 "$tmp/out" >/dev/null
+scripts/package.sh linux-arm64 "$tmp/lin" 1.2.3 "$tmp/out" >/dev/null
+scripts/package.sh win-arm64 "$tmp/win" 1.2.3 "$tmp/out" >/dev/null
 
-for f in gitunia-1.2.3-win-x64.zip gitunia-1.2.3-win-x64.zip.sha256 gitunia-1.2.3-win-x64.exe gitunia-1.2.3-win-x64.exe.sha256 \
+for f in gitunia-1.2.3-win-x64.zip gitunia-1.2.3-win-x64.zip.sha256 \
          gitunia-1.2.3-linux-x64.tar.gz gitunia-1.2.3-linux-x64.tar.gz.sha256 \
-         gitunia-1.2.3-osx-arm64.tar.gz gitunia-1.2.3-osx-arm64.tar.gz.sha256; do
+         gitunia-1.2.3-osx-arm64.tar.gz gitunia-1.2.3-osx-arm64.tar.gz.sha256 \
+         gitunia-1.2.3-linux-arm64.tar.gz gitunia-1.2.3-linux-arm64.tar.gz.sha256 \
+         gitunia-1.2.3-win-arm64.zip gitunia-1.2.3-win-arm64.zip.sha256; do
   [ -f "$tmp/out/$f" ] || fail "missing $f"
 done
-cmp "$tmp/win/gitunia.exe" "$tmp/out/gitunia-1.2.3-win-x64.exe" || fail "exe differs from publish output"
-(cd "$tmp/out" && sha256sum -c gitunia-1.2.3-win-x64.exe.sha256 >/dev/null) || fail "exe sha256 does not verify"
-[ "$(ls "$tmp/out" | wc -l)" -eq 8 ] || fail "unexpected asset count (linux must not get a bare binary)"
+(cd "$tmp/out" && sha256sum -c gitunia-1.2.3-win-x64.zip.sha256 >/dev/null) || fail "zip sha256 does not verify"
+# The winget manifest points at gitunia-<version>-win-x64/gitunia.exe inside the zip (#1156).
+# Same nested path as RelativeFilePath in packaging/winget/Gitunia.Gitunia.installer.yaml (scripts/test-winget-manifest.sh checks the manifest side).
+# unzip, or 7z (package.sh accepts 7z or zip), reads the file out of the zip.
+if command -v unzip >/dev/null 2>&1; then unzip -p "$tmp/out/gitunia-1.2.3-win-x64.zip" gitunia-1.2.3-win-x64/gitunia.exe > "$tmp/unzipped.exe"
+elif command -v 7z >/dev/null 2>&1; then 7z e -so "$tmp/out/gitunia-1.2.3-win-x64.zip" gitunia-1.2.3-win-x64/gitunia.exe > "$tmp/unzipped.exe" 2>/dev/null
+else fail "need unzip or 7z to read the zip"; fi
+cmp "$tmp/unzipped.exe" "$tmp/win/gitunia.exe" || fail "zip does not hold gitunia.exe from the publish output"
+[ "$(ls "$tmp/out" | wc -l)" -eq 10 ] || fail "unexpected asset count (no bare binary any more, #1156)"
+if scripts/package-linux.sh "$tmp/lin" 1.2.3 "$tmp/out" foo 2>/dev/null; then fail "unknown architecture accepted"; fi
 echo "ok"

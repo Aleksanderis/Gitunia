@@ -1,4 +1,6 @@
+using Gitunia.Core.Keymap;
 using Gitunia.Core.Overlays;
+using Gitunia.Core.Status;
 using Gitunia.Core.Text;
 using Gitunia.Git.Commits.Models;
 
@@ -25,6 +27,12 @@ public static class CommitTexts
     /// <summary>Shown when an undo has nothing to go back to.</summary>
     public const string NothingToUndoNotice = "Nothing to undo";
 
+    /// <summary>What a copy of the selected message text says it copied.</summary>
+    public const string SelectionDescription = "selected text";
+
+    /// <summary>Shown when a redo has nothing to bring back.</summary>
+    public const string NothingToRedoNotice = "Nothing to redo";
+
     /// <summary>Shown when HEAD's message could not be read for an amend.</summary>
     public const string HeadMessageFailure = "Could not read the last commit's message";
 
@@ -34,7 +42,7 @@ public static class CommitTexts
     public static ConfirmPrompt StageAll { get; } = new(
         "Commit",
         [StageAllQuestion],
-        "Untracked files are included; conflicted files are skipped. Unstage them again with <space>U.",
+        "Untracked files are included; conflicted files are skipped. Unstage them again with " + KeyTokens.Of(ActionIds.WorkingTreeUnstageAll, "unstage all") + ".",
         "Stage all and commit");
 
     /// <summary>The status after a toggle of SignOff.</summary>
@@ -65,8 +73,16 @@ public static class CommitTexts
             warning = $"; it was on {forcePushUpstream}: pushing needs a force push";
         }
 
-        return $"Amended to {hash}; previous commit {old}, `git reset --soft {old}` restores it{warning}";
+        return $"Amended to {hash} (was {old}){warning}";
     }
+
+    /// <summary>The message history detail of an amend: the command that restores the previous commit.</summary>
+    /// <param name="request">What was committed.</param>
+    /// <param name="result">The new commit.</param>
+    public static string? SuccessDetail(CommitRequest request, CommitResult result) =>
+        request.Amend && result.PreviousHash is { } previous
+            ? UndoNotes.Undo($"git reset --soft {previous}")
+            : null;
 
     private static string OnOff(bool isOn) => isOn ? "on" : "off";
 }

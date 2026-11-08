@@ -115,7 +115,10 @@ public static class SyncReducer
         new(new SyncState(activity, noun, null, false), [effect]);
 
     private static SyncUpdate Succeeded(SyncSucceeded succeeded, SyncContext context) =>
-        Ended([Post(succeeded.Text, StatusSeverity.Info), new RefreshTabEffect(context.TabId)]);
+        Ended([
+            new PostStatusEffect(succeeded.Text, StatusSeverity.Info, succeeded.Detail),
+            new RefreshTabEffect(context.TabId),
+        ]);
 
     private static SyncUpdate Cancel(SyncContext context)
     {
@@ -208,7 +211,13 @@ public static class SyncReducer
         }
 
         var branch = CurrentBranch(context.Refs)?.Name ?? string.Empty;
-        var effect = new PushEffect(context.TabId, context.Location, confirmed.Request, confirmed.Done, branch);
+        var effect = new PushEffect(
+            context.TabId,
+            context.Location,
+            confirmed.Request,
+            confirmed.Done,
+            branch,
+            confirmed.DoneDetail);
 
         return Transfer(effect, "Pushing", "Push");
     }

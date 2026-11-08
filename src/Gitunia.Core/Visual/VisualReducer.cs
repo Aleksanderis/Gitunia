@@ -23,12 +23,21 @@ public static class VisualReducer
     /// <summary>The notice for <c>v</c> on a pane without rows.</summary>
     public const string NothingToSelectNotice = "Nothing to select";
 
+    /// <summary>The notice for the character-wise key where no text can be selected by character.</summary>
+    public const string NoCharsNotice = "No character selection here (only in diffs, file content and the Details tab)";
+
+    /// <summary>The notice after <c>Ctrl-c</c> copied a selection: a second press within the window quits.</summary>
+    public const string CtrlCNotice = "Copied. Press Ctrl-c again to quit";
+
     /// <summary>Applies a command.</summary>
     public static AppUpdate Reduce(AppState state, VisualCommand command) => command switch
     {
         VisualToggled toggled => Toggle(state, toggled),
+        VisualCharsToggled chars => ToggleChars(state, chars),
+        VisualColumnMoved column => MoveColumn(state, column.Column),
+        VisualCharsSelected selected => SelectChars(state, selected),
         VisualCursorMoved moved => MoveCursor(state, moved.Row),
-        VisualCopyRequested => RequestCopy(state),
+        VisualCopyRequested requested => RequestCopy(state, requested.Mode),
         VisualCopied copied => Copied(state, copied),
         VisualEnded => new AppUpdate(End(state), []),
         VisualInvalidated => Invalidate(state),
@@ -53,6 +62,14 @@ public static class VisualReducer
 
     private static AppUpdate Toggle(AppState state, VisualToggled toggled)
     {
+        if (state.Shell.Visual is { Kind: VisualKind.Chars } chars)
+        {
+            // The row-wise key turns a character-wise selection into whole rows, like vim.
+            var rows = chars with { Kind = VisualKind.Lines, AnchorColumn = 0, CursorColumn = 0 };
+
+            return new AppUpdate(state with { Shell = state.Shell with { Visual = rows } }, []);
+        }
+
         if (state.Shell.Visual is not null)
         {
             return new AppUpdate(End(state), []);
@@ -81,6 +98,94 @@ public static class VisualReducer
         return new AppUpdate(state with { Shell = shell }, []);
     }
 
+    private static AppUpdate ToggleChars(AppState state, VisualCharsToggled toggled)
+    {
+        if (state.Shell.Visual is { } active)
+        {
+            if (active.Kind == VisualKind.Chars)
+            {
+                return new AppUpdate(End(state), []);
+            }
+
+            if (!toggled.HasTextSource)
+            {
+                // A row selection in a pane without text stays as it is, so its copy keeps working.
+                return Notice(state, NoCharsNotice);
+            }
+
+            var converted = active with
+            {
+                Kind = VisualKind.Chars,
+                AnchorColumn = 0,
+                CursorColumn = toggled.CursorColumn,
+                IsOldSide = toggled.IsOldSide,
+            };
+
+            return new AppUpdate(state with { Shell = state.Shell with { Visual = converted } }, []);
+        }
+
+        if (state.Shell.Mode != KeyMode.Normal || state.Workspace.ActiveTab is not { } tab)
+        {
+            return new AppUpdate(state, []);
+        }
+
+        if (tab.View.FocusedPane == PaneKind.Sidebar)
+        {
+            return Notice(state, SidebarNotice);
+        }
+
+        if (toggled.CursorRow is not { } row || !toggled.HasTextSource)
+        {
+            return Notice(state, NoCharsNotice);
+        }
+
+        var selection = new VisualSelection(
+            tab.Id,
+            tab.View.FocusedPane,
+            new RowRange(row, row),
+            VisualKind.Chars,
+            toggled.CursorColumn,
+            toggled.CursorColumn,
+            toggled.IsOldSide);
+
+        var visual = state.Shell.WithMode(KeyMode.Visual) with { Visual = selection };
+
+        return new AppUpdate(state with { Shell = visual }, []);
+    }
+
+    private static AppUpdate MoveColumn(AppState state, int column)
+    {
+        if (state.Shell.Visual is not { Kind: VisualKind.Chars } selection)
+        {
+            return new AppUpdate(state, []);
+        }
+
+        var moved = selection with { CursorColumn = Math.Max(column, 0) };
+
+        return new AppUpdate(state with { Shell = state.Shell with { Visual = moved } }, []);
+    }
+
+    private static AppUpdate SelectChars(AppState state, VisualCharsSelected selected)
+    {
+        var isFree = state.Shell.Mode is KeyMode.Normal or KeyMode.Visual;
+        if (!isFree || state.Workspace.ActiveTab is not { } tab || tab.View.FocusedPane == PaneKind.Sidebar)
+        {
+            return new AppUpdate(state, []);
+        }
+
+        var selection = new VisualSelection(
+            tab.Id,
+            tab.View.FocusedPane,
+            new RowRange(selected.Anchor.Line, selected.Cursor.Line),
+            VisualKind.Chars,
+            selected.Anchor.Column,
+            selected.Cursor.Column,
+            selected.IsOldSide);
+        var shell = state.Shell.Mode == KeyMode.Visual ? state.Shell : state.Shell.WithMode(KeyMode.Visual);
+
+        return new AppUpdate(state with { Shell = shell with { Visual = selection } }, []);
+    }
+
     private static AppUpdate MoveCursor(AppState state, int row)
     {
         if (state.Shell.Visual is not { } selection)
@@ -93,22 +198,39 @@ public static class VisualReducer
         return new AppUpdate(state with { Shell = state.Shell with { Visual = moved } }, []);
     }
 
-    private static AppUpdate RequestCopy(AppState state)
+    private static AppUpdate RequestCopy(AppState state, VisualCopyMode mode)
     {
         if (state.Shell.Visual is not { } selection)
         {
             return new AppUpdate(state, []);
         }
 
-        return new AppUpdate(state, [new CopyVisualRangeEffect(selection.Pane, selection.Range)]);
+        var copy = new CopyVisualRangeEffect(
+            selection.Pane,
+            selection.Range,
+            selection.Text,
+            selection.IsOldSide,
+            mode);
+
+        return new AppUpdate(state, [copy]);
     }
 
     private static AppUpdate Copied(AppState state, VisualCopied copied)
     {
-        // A failed copy keeps the range so the user can retry (or leave it with Esc).
-        var next = copied.Copied ? End(state) : state;
+        // A failed copy keeps the range so the user can retry (or leave it with Esc), and so does a copy on select or
+        // with Ctrl-c: the selection stays until the user ends it.
+        var next = copied.Copied && copied.Mode == VisualCopyMode.Yank ? End(state) : state;
+        if (copied.Notice.Length > 0)
+        {
+            return Notice(next, copied.Notice);
+        }
 
-        return copied.Notice.Length == 0 ? new AppUpdate(next, []) : Notice(next, copied.Notice);
+        if (copied.Copied && copied.Mode == VisualCopyMode.CtrlC)
+        {
+            return Notice(next, CtrlCNotice);
+        }
+
+        return new AppUpdate(next, []);
     }
 
     private static AppUpdate Invalidate(AppState state) =>

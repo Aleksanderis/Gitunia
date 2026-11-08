@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using Gitunia.Core.Editing;
 
 namespace Gitunia.Core.Search.Models;
 
@@ -14,6 +15,7 @@ namespace Gitunia.Core.Search.Models;
 /// <param name="Anchor">A pending jump goes to the first match after this row.</param>
 /// <param name="JumpPending">A jump waits for the scan to find a match.</param>
 /// <param name="Notice">A short message for the status bar, empty when none.</param>
+/// <param name="Caret">The caret column in <see cref="Text"/> while typing (see <see cref="PromptCaret"/>).</param>
 public sealed record GraphSearchState(
     SearchPhase Phase,
     string Text,
@@ -25,7 +27,8 @@ public sealed record GraphSearchState(
     int Generation,
     int Anchor,
     bool JumpPending,
-    string Notice)
+    string Notice,
+    int Caret = PromptCaret.End)
 {
     public static GraphSearchState Initial { get; } = new(SearchPhase.Idle, string.Empty, null, [], 0, false, true, 0, -1, false, string.Empty);
 

@@ -1,8 +1,8 @@
+using Gitunia.Core.Editing;
 using Gitunia.Core.Effects;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Lists;
-using Gitunia.Core.Search;
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Repositories;
@@ -317,17 +317,17 @@ public static class ReflogReducer
                 return With(session, list with { Picker = picker.Move(normalized.Name == KeyNames.Up ? -1 : 1) });
             }
 
-            if (PromptTextEditor.Apply(picker.Text, key) is { } text && text != picker.Text)
+            if (PromptTextEditor.Apply(picker.Text, picker.Caret, key) is { } text)
             {
-                return With(session, list with { Picker = picker.WithText(text) });
+                return With(session, list with { Picker = picker.WithEdit(text) });
             }
 
             return Done(session);
         }
 
-        if (PromptTextEditor.Apply(list.SearchText, key) is { } edited && edited != list.SearchText)
+        if (PromptTextEditor.Apply(list.SearchText, list.SearchCaret, key) is { } edited)
         {
-            return With(session, list.EditSearch(edited));
+            return With(session, list.EditSearch(edited.Text, edited.Caret));
         }
 
         return Done(session);

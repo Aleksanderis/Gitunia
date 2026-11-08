@@ -138,7 +138,10 @@ public static class PickReducer
     {
         var report = PickTexts.Report(finished.Result, finished.PickKind, finished.Target, finished.What);
 
-        return Same(context, [new PostStatusEffect(report.Text, report.Severity), new RefreshTabEffect(context.TabId)]);
+        return Same(context, [
+            new PostStatusEffect(report.Text, report.Severity, report.Detail),
+            new RefreshTabEffect(context.TabId),
+        ]);
     }
 
     private static PickUpdate Failed(string text, PickContext context, bool refresh)
@@ -167,7 +170,7 @@ public static class PickReducer
         {
             var name = OperationBannerBuilder.NameOf(operation.Kind);
 
-            return $"A {name} is in progress: finish or abort the {name} first (<space>gc continue, <space>ga abort)";
+            return OperationKeys.InProgress(name);
         }
 
         return context.Head?.Kind == HeadKind.Unborn ? "The branch has no commits yet: nothing to pick onto" : null;

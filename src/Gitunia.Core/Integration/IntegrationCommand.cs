@@ -76,7 +76,8 @@ public sealed record ResetPrepared(
 /// <param name="TabId">The tab.</param>
 /// <param name="Text">What to tell the user.</param>
 /// <param name="Severity">How serious it is.</param>
-public sealed record IntegrationSucceeded(TabId TabId, string Text, StatusSeverity Severity)
+/// <param name="Detail">The undo command, kept in the message history; null when there is none.</param>
+public sealed record IntegrationSucceeded(TabId TabId, string Text, StatusSeverity Severity, string? Detail = null)
     : IntegrationCommand(TabId), IOperationResult
 {
     RunningOperationKind IOperationResult.Kind => RunningOperationKind.Integration;

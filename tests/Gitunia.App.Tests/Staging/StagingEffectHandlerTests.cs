@@ -64,6 +64,19 @@ public class StagingEffectHandlerTests
     }
 
     [Fact]
+    public async Task GivenAConflictedFileMarkedResolved_WhenItSucceeds_ThenTheHistoryDetailHasTheRecreateCommand()
+    {
+        var run = new Run();
+        var plan = StagingPlan.For(["c.txt"], "c.txt", 1, 0) with { IsResolve = true };
+
+        var result = await run.ExecuteAsync(new StagePathsEffect(Tab, Nowhere, plan, true, false, StagingFollow.None));
+
+        var success = Assert.IsType<StagingSucceeded>(result);
+        Assert.DoesNotContain("git ", success.Text, StringComparison.Ordinal);
+        Assert.StartsWith("Undo: git checkout --merge -- c.txt", success.Detail, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task GivenGitFails_WhenStaging_ThenTheErrorIsTheResultAndTheStatusIsStillReadAgain()
     {
         var run = new Run();

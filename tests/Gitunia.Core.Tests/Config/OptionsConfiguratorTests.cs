@@ -110,6 +110,36 @@ public sealed class OptionsConfiguratorTests
     }
 
     [Theory]
+    [InlineData("true", true)]
+    [InlineData("false", false)]
+    [InlineData("null", true)]
+    public void GivenAValidCopyOnSelectValue_WhenParsing_ThenItFollowsWithoutProblems(string json, bool expected)
+    {
+        var problems = new List<ConfigProblem>();
+
+        Assert.Equal(expected, OptionsConfigurator.ParseCopyOnSelect(Json(json), problems));
+        Assert.Empty(problems);
+    }
+
+    [Fact]
+    public void GivenNoCopyOnSelectValue_WhenParsing_ThenCopyOnSelectIsOn()
+    {
+        var problems = new List<ConfigProblem>();
+
+        Assert.True(OptionsConfigurator.ParseCopyOnSelect(null, problems));
+        Assert.Empty(problems);
+    }
+
+    [Fact]
+    public void GivenAWrongCopyOnSelectType_WhenParsing_ThenItIsOnWithAProblem()
+    {
+        var problems = new List<ConfigProblem>();
+
+        Assert.True(OptionsConfigurator.ParseCopyOnSelect(Json("\"off\""), problems));
+        Assert.Equal("copyOnSelect", Assert.Single(problems).Path);
+    }
+
+    [Theory]
     [InlineData("{ \"whichKey\": \"on\" }", true)]
     [InlineData("{ \"whichKey\": \"OFF\" }", false)]
     [InlineData("{ }", true)]

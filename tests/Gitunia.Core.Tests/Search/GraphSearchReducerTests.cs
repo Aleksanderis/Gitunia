@@ -27,6 +27,29 @@ public class GraphSearchReducerTests
         GraphSearchReducer.Reduce(state, new StepMatchCommand(forward, count, selected)).Effects;
 
     [Fact]
+    public void GivenOnlyTheCaretMoves_WhenEditing_ThenTheScanAndGenerationStay()
+    {
+        var typed = Editing("fix");
+
+        var update = GraphSearchReducer.Reduce(typed, new EditSearchTextCommand("fix", 1));
+
+        Assert.Equal(1, update.State.Caret);
+        Assert.Equal(typed.Generation, update.State.Generation);
+        Assert.Empty(update.Effects);
+        Assert.StartsWith("/f|ix", GraphSearchStatusText.Describe(update.State, -1, 0), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GivenTextInsertedInTheMiddle_WhenEditing_ThenTheQueryIsRescannedAndTheCaretFollows()
+    {
+        var update = GraphSearchReducer.Reduce(Editing("fx"), new EditSearchTextCommand("fix", 2));
+
+        Assert.Equal(new SearchQuery(SearchField.Message, "fix"), update.State.Query);
+        Assert.Equal(2, update.State.Caret);
+        Assert.Single(update.Effects);
+    } 
+
+    [Fact]
     public void GivenIdleSearch_WhenOpening_ThenTheBoxIsOpenAndEmpty()
     {
         var update = GraphSearchReducer.Reduce(GraphSearchState.Initial, new OpenSearchCommand());

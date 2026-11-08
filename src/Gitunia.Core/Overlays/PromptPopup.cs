@@ -1,3 +1,5 @@
+using Gitunia.Core.Editing;
+
 namespace Gitunia.Core.Overlays;
 
 /// <summary>
@@ -11,12 +13,14 @@ namespace Gitunia.Core.Overlays;
 /// <param name="Input">The text typed so far; null for a prompt without a text field (a choice).</param>
 /// <param name="Details">Rows under the field: the highlighted candidate, or the options of a choice.</param>
 /// <param name="Hints">The keys that answer the prompt, such as <c>Enter create</c> and <c>Esc cancel</c>.</param>
+/// <param name="InputCaret">The caret column in <see cref="Input"/> (see <see cref="PromptCaret"/>).</param>
 public sealed record PromptPopup(
     string Title,
     IReadOnlyList<string> Lines,
     string? Input,
     IReadOnlyList<string> Details,
-    IReadOnlyList<PromptHint> Hints)
+    IReadOnlyList<PromptHint> Hints,
+    int InputCaret = PromptCaret.End)
 {
     private static readonly PromptHint Cancel = new("Esc", "cancel");
 
@@ -59,6 +63,7 @@ public sealed record PromptPopup(
         other is not null
         && Title == other.Title
         && Input == other.Input
+        && InputCaret == other.InputCaret
         && Hints.SequenceEqual(other.Hints)
         && Lines.SequenceEqual(other.Lines)
         && Details.SequenceEqual(other.Details);

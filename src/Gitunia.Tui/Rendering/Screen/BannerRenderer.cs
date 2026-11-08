@@ -53,36 +53,34 @@ public static class BannerRenderer
             }
         }
 
-        if (hint.Length > 0)
+        if (hint is { } fitting)
         {
             builder.Append(Gap, SegmentRole.Status);
-            HintBar.AppendOne(builder, SplitHint(hint));
+            HintBar.AppendOne(builder, fitting);
         }
 
         return new BannerLine(builder.Build(SegmentRole.Status), areas);
     }
 
-    // The hint is "<keys> label"; the keys end at the first space after the closing '>' of a <space> leader.
-    private static HintItem SplitHint(string hint)
-    {
-        var split = hint.IndexOf(' ', Math.Max(0, hint.IndexOf('>')));
-        return split < 0 ? new HintItem(string.Empty, hint) : new HintItem(hint[..split], hint[(split + 1)..]);
-    }
-
     private static int ChipsWidth(OperationBanner banner) =>
-        banner.Chips.Sum(chip => Gap.Length + TextWidth.Of(chip.Keys) + 1 + TextWidth.Of(chip.Label));
+        banner.Chips.Sum(chip => Gap.Length + TextWidth.Of(chip.Keys) + (chip.Keys.Length == 0 ? 0 : 1) + TextWidth.Of(chip.Label));
 
-    private static string FittingHint(OperationBanner banner, int free)
+    private static HintItem? FittingHint(OperationBanner banner, int free)
     {
-        foreach (var hint in (string[])[banner.Hint, banner.ShortHint])
+        if (banner.Hint is not { } hint)
         {
-            if (hint.Length > 0 && free >= Gap.Length + TextWidth.Of(hint))
+            return null;
+        }
+
+        foreach (var label in (string[])[hint.Label, hint.ShortLabel])
+        {
+            if (free >= Gap.Length + TextWidth.Of($"{hint.Keys} {label}"))
             {
-                return hint;
+                return new HintItem(hint.Keys, label);
             }
         }
 
-        return string.Empty;
+        return null;
     }
 
     /// <summary>The line to draw on the frame's bottom edge row: the banner where it applies, else <paramref

@@ -1,3 +1,5 @@
+using System.Diagnostics;
+using Gitunia.Core.Keymap;
 using Gitunia.Git.Discard;
 using Gitunia.Git.Staging;
 using Gitunia.App.Background;
@@ -13,6 +15,8 @@ using Gitunia.App.Rebase;
 using Gitunia.App.Integration;
 using Gitunia.App.IssueLinks;
 using Gitunia.App.Picker;
+using Gitunia.App.FileHistory;
+using Gitunia.App.Blame;
 using Gitunia.App.Reflog;
 using Gitunia.App.Settings;
 using Gitunia.App.Sidebar;
@@ -45,6 +49,8 @@ using Gitunia.Core.Integration;
 using Gitunia.Core.Picker;
 using Gitunia.Core.Prompts;
 using Gitunia.Core.Rebase;
+using Gitunia.Core.FileHistory;
+using Gitunia.Core.Blame;
 using Gitunia.Core.Reflog;
 using Gitunia.Core.Settings;
 using Gitunia.Core.Sidebar;
@@ -82,6 +88,7 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
     private readonly GitServices _services;
     private readonly Dispatcher _host;
     private readonly ShellRoles _shell;
+    private readonly KeyBindingTable? _keymap;
     private readonly TabCancellation _cancellation = new();
     private readonly BackgroundWork _background = new();
     private readonly CreationEffectHandler _creation;
@@ -97,10 +104,13 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
     private readonly PickEffectHandler _pick;
     private readonly RebaseEffectHandler _rebase;
     private readonly RebaseEditorEffectHandler _rebaseEditor;
+    private readonly FileHistoryEffectHandler _fileHistory;
+    private readonly BlameEffectHandler _blame;
     private readonly ReflogEffectHandler _reflog;
     private readonly SettingsEffectHandler? _settings;
     private readonly SidebarEffectHandler _sidebar;
     private readonly CancellationTokenSource _shutdown = new();
+    private readonly ShutdownTasks _loads = new();
     private readonly RemoteEffectHandler _remotes;
     private readonly StagingEffectHandler _staging;
     private readonly StashEffectHandler _stash;
@@ -133,9 +143,10 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
         _sessions = options.Sessions ?? new TabSessionRegistry<TSession>();
         var pickerServices = options.Picker ?? PickerServices.Default;
         var settings = options.Settings;
+        _keymap = options.Keymap;
         _shell = options.ShellParts ?? (options.Shell is { } shell ? ShellRoles.From(shell) : ShellRoles.None);
         _branches = new BranchEffectHandler(services.Branches, host);
-        _commits = new CommitEffectHandler(services.CommitWriter, host);
+        _commits = new CommitEffectHandler(services.CommitWriter, host, options.Keymap);
         _compare = new CompareEffectHandler(this, host);
         _conflicts = new ConflictEffectHandler(
             services.Conflicts,
@@ -149,6 +160,8 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
         _pick = new PickEffectHandler(services.Pick, services.PickCommits, host);
         _rebase = new RebaseEffectHandler(services.Rebase, services.QuickRebase, host);
         _rebaseEditor = new RebaseEditorEffectHandler(services.InteractiveRebase, services.CommitDetails, host);
+        _fileHistory = new FileHistoryEffectHandler(services.FileHistory, services.Diff, host);
+        _blame = new BlameEffectHandler(services.Blame, services.BlameStore, host);
         _reflog = new ReflogEffectHandler(services.Reflog, host);
         _settings = settings is null ? null : new SettingsEffectHandler(settings, host);
         _sidebar = new SidebarEffectHandler(this, host);
@@ -256,13 +269,29 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
 
     public void Dispose()
     {
-        foreach (var refresher in _refreshers.Values)
+        var stopping = _refreshers.Values.ToArray();
+        foreach (var refresher in stopping)
         {
             refresher.Dispose();
         }
 
         _refreshers.Clear();
         _shutdown.Cancel();
+
+        // The refreshes and the initial and incremental graph loads may still run git in the repositories: cancel all,
+        // then wait for them within one shared bound.
+        foreach (var session in _sessions.Values)
+        {
+            session.Cancellation.Cancel();
+        }
+
+        var started = Stopwatch.GetTimestamp();
+        foreach (var refresher in stopping)
+        {
+            refresher.WaitForStop(ShutdownTasks.DefaultWait - Stopwatch.GetElapsedTime(started));
+        }
+
+        _loads.Wait(ShutdownTasks.DefaultWait - Stopwatch.GetElapsedTime(started));
         _creation.CancelAndWait();
         _shutdown.Dispose();
         _cancellation.Dispose();
@@ -312,6 +341,13 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
             case ConflictEffect conflict:
                 _conflicts.Handle(conflict, _cancellation.TokenOf(conflict.TabId));
                 break;
+            case CopyBlameSelectionEffect copyBlame:
+                if (_blame.CopyOf(copyBlame) is { } blameCopy)
+                {
+                    _shell.Copy.CopyToClipboard(blameCopy);
+                }
+
+                break;
             case CopyToClipboardEffect copy:
                 _shell.Copy.CopyToClipboard(copy);
                 break;
@@ -326,6 +362,9 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
                 break;
             case DiscardEffect discard:
                 _discard.Handle(discard, _cancellation.TokenOf(discard.TabId));
+                break;
+            case FileHistoryJumpEffect jump:
+                _shell.Flow.JumpToFileHistoryCommit(jump);
                 break;
             case FlushSessionEffect flush:
                 _host.Dispatch(new SessionFlushed(_shell.Session.FlushSession(), flush.Force));
@@ -373,7 +412,11 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
                 _pick.Handle(pick, _cancellation.TokenOf(pick.TabId));
                 break;
             case PostStatusEffect post:
-                _host.Dispatch(new StatusPostedCommand(post.Text, post.Severity, _host.Clock.GetUtcNow()));
+                _host.Dispatch(new StatusPostedCommand(
+                    KeyTokens.Resolve(post.Text, _keymap),
+                    post.Severity,
+                    _host.Clock.GetUtcNow(),
+                    post.Detail is { } detail ? KeyTokens.Resolve(detail, _keymap) : null));
                 break;
             case QuitEffect quit:
                 if (quit.CancelWork)
@@ -391,6 +434,21 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
                 break;
             case RebaseEditorEffect editor:
                 _rebaseEditor.Handle(editor, _cancellation.TokenOf(editor.TabId));
+                break;
+            case ReadFileHistoryDiffEffect diff:
+                _fileHistory.Handle(diff, _cancellation.TokenOf(diff.TabId));
+                break;
+            case ReadFileHistoryEffect history:
+                _fileHistory.Handle(history, _cancellation.TokenOf(history.TabId));
+                break;
+            case StartBlameEffect blame:
+                _blame.Start(blame, _cancellation.TokenOf(blame.TabId));
+                break;
+            case StopBlameEffect stopBlame:
+                _blame.Stop(stopBlame);
+                break;
+            case FindBlameMatchEffect findBlame:
+                _blame.Find(findBlame);
                 break;
             case ReadReflogEffect read:
                 _reflog.Handle(read, _cancellation.TokenOf(read.TabId));

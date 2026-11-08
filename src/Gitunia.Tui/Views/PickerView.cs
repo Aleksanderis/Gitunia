@@ -16,8 +16,8 @@ public sealed class PickerView(IScreenContent content, GraphGlyphSet glyphs) : V
     /// <summary>True while something modal owns the screen: mouse input is swallowed.</summary>
     public IMouseGate Gate { get; init; } = new MouseGate();
 
-    /// <summary>Raised with the row index when a row is clicked (a double-click raises it before <see cref="GestureRaised"/>).</summary>
-    public event Action<int>? RowClicked;
+    /// <summary>Raised with the clicked list line (a row, or a more or less line) when it is clicked (a double-click raises it before <see cref="GestureRaised"/>).</summary>
+    public event Action<PickerListEntry>? RowClicked;
 
     /// <summary>Raised with the mouse-map view of a button (pin, remove) clicked on the highlighted row.</summary>
     public event Action<string>? ButtonClicked;
@@ -27,18 +27,20 @@ public sealed class PickerView(IScreenContent content, GraphGlyphSet glyphs) : V
 
     protected override bool OnDrawingContent(DrawContext? context)
     {
-        if (content.Model().Picker is not { } picker)
+        var model = content.Model();
+        if (model.Picker is not { } picker)
         {
             return true;
         }
 
         var lines = PickerComposer.Compose(
             picker,
-            content.Model().HomeDirectory,
+            model.HomeDirectory,
             Viewport.Width,
             Viewport.Height,
             glyphs,
-            content.Model().Keys);
+            model.Keys,
+            model.PickerBranches);
         var layout = PickerLayout.Compute(picker, Viewport.Width, Viewport.Height);
         for (var row = 0; row < lines.Count; row++)
         {
@@ -85,7 +87,8 @@ public sealed class PickerView(IScreenContent content, GraphGlyphSet glyphs) : V
                 picker.HighlightedRow,
                 layout.InnerWidth,
                 picker.LocatingTabId is not null,
-                content.Model().Keys);
+                content.Model().Keys,
+                PickerFooterButtons.AcceptLabel(picker, layout.Visible));
             if (TitleButton.ViewAt(buttons, column - 1) is { } buttonView)
             {
                 ButtonClicked?.Invoke(buttonView);
@@ -94,9 +97,9 @@ public sealed class PickerView(IScreenContent content, GraphGlyphSet glyphs) : V
             return true;
         }
 
-        if (layout.RowIndexAt(line) is { } index)
+        if (layout.EntryAt(line) is { } entry)
         {
-            ClickRow(index, gesture);
+            ClickRow(entry, gesture);
         }
 
         return true;
@@ -104,17 +107,17 @@ public sealed class PickerView(IScreenContent content, GraphGlyphSet glyphs) : V
 
     private bool CompactClick(PickerState picker, PickerLayout layout, int line, MouseGesture gesture)
     {
-        if (!layout.IsFramed && layout.RowIndexAt(line) is { } index && index < picker.Rows.Length)
+        if (!layout.IsFramed && layout.EntryAt(line) is { } entry && entry.RowIndex < picker.Rows.Length)
         {
-            ClickRow(index, gesture);
+            ClickRow(entry, gesture);
         }
 
         return true;
     }
 
-    private void ClickRow(int index, MouseGesture gesture)
+    private void ClickRow(PickerListEntry entry, MouseGesture gesture)
     {
-        RowClicked?.Invoke(index);
+        RowClicked?.Invoke(entry);
         if (gesture == MouseGesture.DoubleClick)
         {
             GestureRaised?.Invoke(MouseGesture.DoubleClick);

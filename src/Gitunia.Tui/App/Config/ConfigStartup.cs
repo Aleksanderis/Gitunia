@@ -19,10 +19,10 @@ public sealed class ConfigStartup(string configDirectory, string homeDirectory, 
     private const int MaximumReportedProblems = 5;
     private const string ThemesFolder = "themes";
 
-    /// <summary>The label caps while the file sets none: plain boxes in the classic console, whose font has no Powerline glyphs (#574).</summary>
+    /// <summary>The label caps while the file sets none: rounded everywhere, the classic console included (the owner wants caps on by default; a font without Powerline glyphs sets <c>labelCaps</c> to none).</summary>
     /// <param name="capabilities">What the platform detected.</param>
     public static LabelCapStyle DefaultLabelCaps(ConsoleCapabilities capabilities) =>
-        capabilities.IsClassicConsole ? LabelCapStyle.None : LabelCapStyle.Rounded;
+        LabelCapStyle.Rounded;
 
     /// <summary>Loads the file and applies its key entries to the default keymap. Never throws.</summary>
     public KeymapBuildResult LoadKeymap() => Load().Keymap;

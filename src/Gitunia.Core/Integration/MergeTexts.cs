@@ -1,3 +1,5 @@
+using Gitunia.Core.Operations;
+using Gitunia.Core.Keymap;
 using Gitunia.Core.Status;
 using Gitunia.Core.Text;
 using Gitunia.Git.Merge;
@@ -11,20 +13,22 @@ public static class MergeTexts
     {
         var tip = ShortHash.Of(result.Head);
         var was = ShortHash.Of(result.OldHead);
-        var undo = $"undo: git reset --hard {was} (or ORIG_HEAD, the reflog)";
+        var undo = UndoNotes.Undo($"git reset --hard {result.OldHead} (or ORIG_HEAD, the reflog)");
         return result.Kind switch
         {
             MergeKind.UpToDate => new IntegrationReport(
                 $"Already up to date: {branch} contains {target}",
                 StatusSeverity.Info),
             MergeKind.FastForward => new IntegrationReport(
-                $"Fast-forwarded {branch} to {tip} ({target}), was {was}; {undo}",
-                StatusSeverity.Info),
+                $"Fast-forwarded {branch} to {tip} ({target}), was {was}",
+                StatusSeverity.Info,
+                undo),
             MergeKind.MergeCommit => new IntegrationReport(
-                $"Merged {target} into {branch} ({tip}), was {was}; {undo}",
-                StatusSeverity.Info),
+                $"Merged {target} into {branch} ({tip}), was {was}",
+                StatusSeverity.Info,
+                undo),
             MergeKind.Squashed => new IntegrationReport(
-                $"Squashed {target} into the index of {branch}: the changes are staged, commit them (<space>s); " +
+                $"Squashed {target} into the index of {branch}: the changes are staged, commit them in {KeyTokens.Of(ActionIds.WorkingTreeToggle, "the Changes view")}; " +
                 "nothing is committed yet",
                 StatusSeverity.Info),
             _ => ConflictReport(mode, branch, target),
@@ -40,13 +44,14 @@ public static class MergeTexts
         {
             return new IntegrationReport(
                 $"The squash of {target} stopped on conflicts: resolve the files marked !, then commit " +
-                "(git reset --merge undoes it; no operation is in progress)",
-                StatusSeverity.Warning);
+                "(no operation is in progress)",
+                StatusSeverity.Warning,
+                UndoNotes.Undo("git reset --merge"));
         }
 
         return new IntegrationReport(
             $"The merge of {target} into {branch} stopped on conflicts: resolve the files marked !, " +
-            "then <space>gc to continue or <space>ga to abort",
+            $"then {OperationKeys.Continue} or {OperationKeys.Abort}",
             StatusSeverity.Warning);
     }
 }

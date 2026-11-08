@@ -17,7 +17,7 @@ namespace Gitunia.Core.Tests.Remotes;
 public class RemoteAppReducerTests
 {
     private static readonly ConfirmPrompt RemovePrompt =
-        new("Remove remote", ["Remove the remote origin (u)?"], "Undo: git remote add origin u", "Remove remote");
+        new("Remove remote", ["Remove the remote origin (u)?"], "Afterwards the message history (<space>m) shows how to bring it back.", "Remove remote");
 
     [Fact]
     public void GivenARequest_WhenReducing_ThenTheTabIsMarkedBusyUntilTheResultArrives()

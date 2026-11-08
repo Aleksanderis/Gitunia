@@ -46,6 +46,8 @@ public sealed class TabRefresher : IDisposable, IPollTarget
     private readonly IUiInvoker _ui;
     private readonly RepositoryWatcher? _watcher;
     private readonly TabPoller? _poller;
+    private readonly CancellationTokenSource _stop;
+    private readonly ShutdownTasks _tasks = new();
     private readonly ITabBusySource _busy = NeverBusy.Instance;
     private long _refreshStartedAt;
     private RepositorySnapshot? _snapshot;
@@ -72,6 +74,7 @@ public sealed class TabRefresher : IDisposable, IPollTarget
         _location = context.Location;
         _statuses = context.Statuses;
         _ui = context.Ui;
+        _stop = CancellationTokenSource.CreateLinkedTokenSource(_session.Cancellation.Token);
         if (watching.Options.UseFileWatchers)
         {
             _watcher = new RepositoryWatcher(
@@ -150,11 +153,25 @@ public sealed class TabRefresher : IDisposable, IPollTarget
 
     public void Dispose()
     {
+        if (_isDisposed)
+        {
+            return;
+        }
+
         _isDisposed = true;
         _session.LoadFinished -= OnLoadFinished;
         _watcher?.Dispose();
         _poller?.Dispose();
+
+        // Cancels the running read; it does not wait, so closing a tab never blocks the UI thread.
+        _stop.Cancel();
     }
+
+    /// <summary>
+    /// Waits until the cancelled read has ended (its git process is gone, so the repository directory is free) or the
+    /// timeout has passed. For the shutdown, after <see cref="Dispose"/>; true when the read has ended.
+    /// </summary>
+    public bool WaitForStop(TimeSpan timeout) => _tasks.Wait(timeout);
 
     private void OnLoadFinished()
     {
@@ -203,7 +220,7 @@ public sealed class TabRefresher : IDisposable, IPollTarget
         _inFlight = _waiting;
         _waiting = [];
         var previous = _snapshot;
-        var token = _session.Cancellation.Token;
+        var token = _stop.Token;
 
         // A copy, because the background read must not see the graph change; only a refresh that is not forced may reuse the old rows
         // (the baseline needs them too, to compare the graph with its snapshot).
@@ -211,9 +228,7 @@ public sealed class TabRefresher : IDisposable, IPollTarget
         // and the count guard cannot hold.
         var isCapped = _session.IsTruncated;
         IReadOnlyList<GraphEntry> previousRows = reloadGraph || isCapped ? [] : _session.Graph.ToArray();
-        _ = Task.Run(
-            () => RefreshAsync(previous, previousRows, isCapped, kinds, reloadGraph, isManual, token),
-            CancellationToken.None);
+        _tasks.Run(() => RefreshAsync(previous, previousRows, isCapped, kinds, reloadGraph, isManual, token));
     }
 
     private async Task RefreshAsync(
@@ -375,6 +390,10 @@ public sealed class TabRefresher : IDisposable, IPollTarget
     {
         _isRunning = false;
         var applied = TakeInFlight();
+
+        // The run cleared the pending kinds when it started, so anything pending now was requested while it ran (an
+        // explicit refresh after an operation, say). That request needs its own run: nothing else would start one.
+        var requestedMeanwhile = _pending != RepositoryChangeKinds.None;
         _pending |= kinds;
         _forceGraph |= reloadGraph;
         _announce |= isManual;
@@ -392,6 +411,10 @@ public sealed class TabRefresher : IDisposable, IPollTarget
         }
 
         RunAll(applied);
+        if (requestedMeanwhile)
+        {
+            RunNext();
+        }
     }
 
     private string RepositoryName() => Path.GetFileName(Path.TrimEndingDirectorySeparator(_location.RootPath));

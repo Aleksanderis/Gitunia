@@ -6,7 +6,7 @@ body:
     attributes:
       value: |
         Please read the [Features list in the README](https://github.com/Aleksanderis/Gitunia/blob/main/README.md#features) first.
-        Items listed as not included (submodules, LFS UI, blame view, hosting-provider integrations, plugins) are asked about first: describe the need here and wait for an answer before sending code.
+        Items listed as not included (submodules, LFS UI, hosting-provider integrations, plugins) are asked about first: describe the need here and wait for an answer before sending code.
   - type: textarea
     id: problem
     attributes:

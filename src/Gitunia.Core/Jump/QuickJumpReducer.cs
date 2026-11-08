@@ -1,4 +1,5 @@
 using System.Globalization;
+using Gitunia.Core.Editing;
 using Gitunia.Core.Effects;
 using Gitunia.Core.Status;
 
@@ -34,16 +35,18 @@ public static class QuickJumpReducer
     /// <summary>The status bar line of an open prompt.</summary>
     /// <param name="text">The typed text.</param>
     /// <param name="matches">How many rows in view match.</param>
-    public static string StatusLine(string text, int matches)
+    /// <param name="caret">The caret column in the text.</param>
+    public static string StatusLine(string text, int matches, int caret = PromptCaret.End)
     {
         if (text.Length == 0)
         {
-            return $"{Prefix}_  type text, then press a label";
+            return $"{Prefix}{PromptCaret.EndGlyph}  type text, then press a label";
         }
 
         var count = matches.ToString(CultureInfo.InvariantCulture);
+        var typed = PromptCaret.Mark(text, caret);
 
-        return matches == 0 ? $"{Prefix}{text}_  no match in view" : $"{Prefix}{text}_  {count} in view";
+        return matches == 0 ? $"{Prefix}{typed}  no match in view" : $"{Prefix}{typed}  {count} in view";
     }
 
     private static QuickJumpTransition Open(QuickJumpOpenRequested open)
@@ -83,13 +86,13 @@ public static class QuickJumpReducer
             return new QuickJumpTransition(null, []);
         }
 
-        var update = QuickJumpLabeler.Apply(session.Text, pressed.Key, pressed.Labels);
+        var update = QuickJumpLabeler.Apply(session.Text, session.Caret, pressed.Key, pressed.Labels);
         if (update.JumpRow is { } row)
         {
             return new QuickJumpTransition(null, [new JumpToRowEffect(row)]);
         }
 
-        return new QuickJumpTransition(session with { Text = update.Text }, []);
+        return new QuickJumpTransition(session with { Text = update.Text, Caret = update.Caret }, []);
     }
 
     private static QuickJumpTransition Notice(string text) =>

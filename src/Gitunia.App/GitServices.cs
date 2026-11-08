@@ -9,11 +9,14 @@ using Gitunia.Git.Conflicts;
 using Gitunia.Git.Diff;
 using Gitunia.Git.Discard;
 using Gitunia.Git.Execution;
+using Gitunia.Git.History;
 using Gitunia.Git.IssueTracker;
 using Gitunia.Git.Merge;
 using Gitunia.Git.Operations;
 using Gitunia.Git.Pick;
 using Gitunia.Git.Rebase;
+using Gitunia.App.Blame;
+using Gitunia.Git.Blame;
 using Gitunia.Git.Reflog;
 using Gitunia.Git.Refs;
 using Gitunia.Git.Remotes;
@@ -59,6 +62,9 @@ namespace Gitunia.App;
 /// </param>
 /// <param name="QuickRebase">Fixup, reword and drop of one commit through the interactive rebase.</param>
 /// <param name="Reflog">Reads the reflog of HEAD or of a branch.</param>
+/// <param name="FileHistory">Reads the history of one file across renames.</param>
+/// <param name="Blame">Reads the lines of a file and blames them.</param>
+/// <param name="BlameStore">Holds the lines of the open blame view outside the state.</param>
 /// <param name="Stashes">Reads the stash stack.</param>
 /// <param name="StashWriter">Pushes, applies, pops and drops stashes.</param>
 /// <param name="StashDetails">Reads the files and diff of a stash.</param>
@@ -99,6 +105,9 @@ public sealed record GitServices(
     IInteractiveRebaseWriter InteractiveRebase,
     IQuickRebaseWriter QuickRebase,
     IReflogReader Reflog,
+    IFileHistoryReader FileHistory,
+    IBlameReader Blame,
+    BlameStore BlameStore,
     IStashReader Stashes,
     IStashWriter StashWriter,
     IStashDetailsReader StashDetails,
@@ -161,6 +170,9 @@ public sealed record GitServices(
             interactiveRebase,
             new QuickRebaseWriter(runner, interactiveRebase),
             new ReflogReader(runner),
+            new FileHistoryReader(runner),
+            new BlameReader(runner),
+            new BlameStore(),
             stashes,
             new StashWriter(runner),
             new StashDetailsReader(runner),

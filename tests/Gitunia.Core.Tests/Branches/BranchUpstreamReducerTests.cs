@@ -149,7 +149,7 @@ public class BranchUpstreamReducerTests
 
         var effects = Reduce(new BranchFastForwardRequested(Tab, Row("topic")), refs);
 
-        Assert.Equal("topic is checked out: pull it with <space>p instead", Warning(effects));
+        Assert.Equal("topic is checked out: {key:remote.pull|pull it} instead", Warning(effects));
     }
 
     [Fact]

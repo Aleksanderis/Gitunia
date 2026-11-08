@@ -74,7 +74,8 @@ public class TagEffectHandlerTests
         var result = await RunAsync(new DeleteTagEffect(Tab, location, "v1", objectHash));
 
         var success = Assert.IsType<TagOperationSucceeded>(result);
-        Assert.Contains($"restore: git tag v1 {objectHash}", success.Text, StringComparison.Ordinal);
+        Assert.Equal($"Deleted tag v1 (was {objectHash[..7]})", success.Text);
+        Assert.Equal($"Restore: git tag v1 {objectHash}", success.Detail);
         Assert.Equal(string.Empty, repository.Git("tag", "--list").Trim());
     }
 

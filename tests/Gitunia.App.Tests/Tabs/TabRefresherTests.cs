@@ -122,6 +122,23 @@ public class TabRefresherTests
     }
 
     [Fact]
+    public async Task GivenARefreshInFlight_WhenTheRefresherIsDisposed_ThenItWaitsForTheCancelledReadToEnd()
+    {
+        using var harness = await FakeHarness.LoadAsync();
+        harness.RepositoryRefresher.Delay = TimeSpan.FromHours(1);
+        harness.RepositoryRefresher.WindDown = TimeSpan.FromMilliseconds(300);
+        var before = harness.RepositoryRefresher.RefreshCount;
+        harness.Refresher.RefreshNow();
+        // The read starts on the thread pool and posts nothing while it waits, so the pump has nothing to run.
+        Assert.True(SpinWait.SpinUntil(() => harness.RepositoryRefresher.RefreshCount > before, TimeSpan.FromSeconds(10)));
+
+        harness.Refresher.Dispose();
+        Assert.True(harness.Refresher.WaitForStop(TimeSpan.FromSeconds(10)));
+
+        Assert.Equal(1, harness.RepositoryRefresher.WoundDownCount);
+    }
+
+    [Fact]
     public async Task GivenManualRefresh_WhenItSucceeds_ThenTheGraphIsReloadedAndCompletionIsReported()
     {
         using var harness = await FakeHarness.LoadAsync();
@@ -208,6 +225,23 @@ public class TabRefresherTests
         await harness.Pump.RunUntilAsync(() => replaced == 1);
 
         Assert.Equal(FastPoll.StatusInterval, harness.Refresher.StatusPollInterval);
+    }
+
+    [Fact]
+    public async Task GivenARefreshThatFails_WhenAnotherWasRequestedWhileItRan_ThenThatOneRunsAfterIt()
+    {
+        using var harness = await FakeHarness.LoadAsync();
+        harness.RepositoryRefresher.Failure = new GitException("boom");
+        var applied = 0;
+        var before = harness.RepositoryRefresher.RefreshCount;
+
+        // The test thread is the pump, so the failed run cannot finish before the second request has been merged.
+        harness.Refresher.RefreshNow();
+        harness.Refresher.RefreshStatus(() => applied++);
+        await harness.Pump.RunUntilAsync(() => applied == 1 && !harness.Refresher.IsRefreshing);
+
+        // Two runs, no more: the retry of a request does not retry itself while the repository keeps failing.
+        Assert.Equal(before + 2, harness.RepositoryRefresher.RefreshCount);
     }
 
     [Fact]

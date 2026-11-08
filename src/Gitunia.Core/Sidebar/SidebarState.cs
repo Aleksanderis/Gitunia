@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using Gitunia.Core.Editing;
 
 namespace Gitunia.Core.Sidebar;
 
@@ -11,12 +12,14 @@ namespace Gitunia.Core.Sidebar;
 /// Folders the user closed. A folder in neither list is open when it holds the current branch or is a remote's own
 /// folder, and closed otherwise.
 /// </param>
+/// <param name="FilterCaret">The caret column in <see cref="FilterText"/> (see <see cref="PromptCaret"/>).</param>
 public sealed record SidebarState(
     ImmutableArray<SidebarSection> CollapsedSections,
     string FilterText,
     int Cursor,
     ImmutableArray<string> OpenedFolders,
-    ImmutableArray<string> ClosedFolders)
+    ImmutableArray<string> ClosedFolders,
+    int FilterCaret = PromptCaret.End)
 {
     /// <summary>Branches, worktrees and stashes open; the long remote and tag lists folded; cursor on the first row.</summary>
     public static SidebarState Initial { get; } =

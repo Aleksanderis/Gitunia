@@ -43,6 +43,39 @@ public class SessionPersistenceTests
     }
 
     [Fact]
+    public async Task GivenMovedTabs_WhenFlushingAndLoading_ThenTheTabsComeBackInTheNewOrderWithTheSameActiveTab()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), $"gitunia-session-{Guid.NewGuid().ToString("N")}");
+        try
+        {
+            var store = new SessionStore(directory);
+            var host = new Dispatcher(AppState.Empty);
+            foreach (var name in new[] { "alpha", "beta", "gamma" })
+            {
+                host.Dispatch(new OpenRepositoryCommand(Location(Path.Combine(directory, name))));
+            }
+
+            using var persistence = new SessionPersistence(store, host, TimeSpan.FromHours(1), new StatusReporter(host), InlineUi.Instance);
+            persistence.Start();
+            host.Dispatch(new MoveTabCommand(-2));
+
+            persistence.Flush();
+
+            var loaded = await store.LoadAsync(CancellationToken.None);
+            var paths = loaded.Update.Workspace.Tabs.Select(tab => Path.GetFileName(tab.Location.RootPath));
+            Assert.Equal(["gamma", "alpha", "beta"], paths);
+            Assert.Equal("gamma", Path.GetFileName(loaded.Update.Workspace.ActiveTab!.Location.RootPath));
+        }
+        finally
+        {
+            if (Directory.Exists(directory))
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
     public async Task GivenADraftChangedAfterStart_WhenFlushing_ThenTheSessionFileHoldsTheDraft()
     {
         var directory = Path.Combine(Path.GetTempPath(), $"gitunia-session-{Guid.NewGuid().ToString("N")}");

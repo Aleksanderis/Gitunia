@@ -255,14 +255,14 @@ public class SidebarActionReducerTests
         var session = new SidebarSession(tab.Id);
 
         var typed = SidebarActionReducer.Reduce(session, new SidebarFilterKeyTyped(tab.Id, new KeyEvent("o")), tab);
-        Assert.Equal(new SetSidebarFilterCommand("o"), Assert.Single(typed.TabCommands));
+        Assert.Equal(new SetSidebarFilterCommand("o", 1), Assert.Single(typed.TabCommands));
 
         var withText = Reduce(tab, new SetSidebarFilterCommand("ol"));
         var erased = SidebarActionReducer.Reduce(
             session,
             new SidebarFilterKeyTyped(tab.Id, new KeyEvent(KeyNames.Backspace)),
             withText);
-        Assert.Equal(new SetSidebarFilterCommand("o"), Assert.Single(erased.TabCommands));
+        Assert.Equal(new SetSidebarFilterCommand("o", 1), Assert.Single(erased.TabCommands));
     }
 
     [Fact]
@@ -275,7 +275,34 @@ public class SidebarActionReducerTests
             new SidebarFilterKeyTyped(tab.Id, new KeyEvent(KeyNames.Backspace)),
             tab);
 
-        Assert.Equal(new SetSidebarFilterCommand("a"), Assert.Single(erased.TabCommands));
+        Assert.Equal(new SetSidebarFilterCommand("a", 1), Assert.Single(erased.TabCommands));
+    }
+
+    [Fact]
+    public void GivenTheCaretInTheMiddle_WhenKeysArrive_ThenTheyEditAtTheCaret()
+    {
+        var tab = Reduce(OnSidebar(Tab()), new SetSidebarFilterCommand("abd", 2));
+        var session = new SidebarSession(tab.Id);
+
+        var typed = SidebarActionReducer.Reduce(session, new SidebarFilterKeyTyped(tab.Id, new KeyEvent("c")), tab);
+        Assert.Equal(new SetSidebarFilterCommand("abcd", 3), Assert.Single(typed.TabCommands));
+
+        var erased = SidebarActionReducer.Reduce(session, new SidebarFilterKeyTyped(tab.Id, new KeyEvent(KeyNames.Backspace)), tab);
+        Assert.Equal(new SetSidebarFilterCommand("ad", 1), Assert.Single(erased.TabCommands));
+
+        var moved = SidebarActionReducer.Reduce(session, new SidebarFilterKeyTyped(tab.Id, new KeyEvent(KeyNames.Left)), tab);
+        Assert.Equal(new SetSidebarFilterCommand("abd", 1), Assert.Single(moved.TabCommands));
+    }
+
+    [Fact]
+    public void GivenACaretMoveOnly_WhenSettingTheFilter_ThenTheCursorStaysAndTheCaretIsStored()
+    {
+        var tab = Reduce(OnSidebar(Tab(refs: [Branch("old"), Branch("older")])), new SetSidebarFilterCommand("old"));
+        tab = tab with { Sidebar = tab.Sidebar with { Cursor = 2 } };
+
+        tab = Reduce(tab, new SetSidebarFilterCommand("old", 1));
+
+        Assert.Equal((2, 1), (tab.Sidebar.Cursor, tab.Sidebar.FilterCaret));
     }
 
     [Fact]

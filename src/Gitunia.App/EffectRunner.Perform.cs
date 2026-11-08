@@ -1,7 +1,10 @@
+using Gitunia.Core.Keymap;
 using Gitunia.Core.Running;
 using Gitunia.Core.Worktrees;
 using Gitunia.Core.Status;
 using Gitunia.Core.Shell;
+using Gitunia.Core.FileHistory;
+using Gitunia.Core.Blame;
 using Gitunia.Core.Reflog;
 using Gitunia.Core.Picker;
 using Gitunia.Core.Creation;
@@ -25,7 +28,10 @@ public sealed partial class EffectRunner<TSession>
         DiscoverRepositoryEffect discover => new PickerDiscoveryFailed(discover.Request, text),
         InitRepositoryEffect => new InitFailed(text),
         ReadHeadMessageEffect head => new HeadMessageReadFailed(head.TabId, text),
+        ReadFileHistoryDiffEffect diff => new FileHistoryDiffFailed(diff.Generation, text),
+        ReadFileHistoryEffect => new FileHistoryReadFailed(text),
         ReadReflogEffect => new ReflogReadFailed(text),
+        StartBlameEffect blame => new BlameFailed(blame.Generation, text),
         ScanRepositoriesEffect => new PickerScanFinished([]),
         SettingsEffect => new SettingsOperationFailed(text),
         LocateWorktreeEffect locate => new WorktreeLocateFailed(locate.TabId, text),
@@ -66,7 +72,14 @@ public sealed partial class EffectRunner<TSession>
     private void ShowConfirm(ShowConfirmEffect confirm)
     {
         var refusal = new StatusPostedCommand(confirm.UnavailableNotice, StatusSeverity.Warning, _host.Clock.GetUtcNow());
-        _host.Dispatch(new ConfirmRequestedCommand(confirm.Prompt, confirm.OnAccepted, refusal));
+        var prompt = confirm.Prompt;
+        var worded = prompt with
+        {
+            Title = KeyTokens.Resolve(prompt.Title, _keymap),
+            Lines = [.. prompt.Lines.Select(line => KeyTokens.Resolve(line, _keymap))],
+            Consequence = KeyTokens.Resolve(prompt.Consequence, _keymap),
+        };
+        _host.Dispatch(new ConfirmRequestedCommand(worded, confirm.OnAccepted, refusal));
     }
 
     private void Cancel(CancelLoadEffect cancel)

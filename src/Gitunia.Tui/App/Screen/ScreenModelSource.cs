@@ -26,7 +26,8 @@ public sealed class ScreenModelSource(ScreenModelParts parts)
                 tabId => parts.Sessions.GetValueOrDefault(tabId) is { IsLoading: true, IsPending: false },
                 parts.Config.Options.ShowBranchInTab),
             parts.Picker.State,
-            parts.Config.HomeDirectory);
+            parts.Config.HomeDirectory,
+            parts.Config.Keymap.Table);
 
         return model with
         {
@@ -38,6 +39,7 @@ public sealed class ScreenModelSource(ScreenModelParts parts)
             Hints = parts.Lines.CurrentHints(),
             RepeatPane = parts.Lines.Repeat.Active?.Pane,
             SearchLine = parts.Lines.SearchLine(),
+            PickerBranches = model.Picker is null ? null : TabLabelFactory.OpenBranches(host.Workspace),
         };
     }
 

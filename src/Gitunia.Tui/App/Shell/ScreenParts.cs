@@ -37,7 +37,7 @@ public sealed class ScreenParts
             host,
             overlays.Store,
             overlays.Editors,
-            overlays.Reflog,
+            overlays.Screens,
             new HintContext(keys.Repeat, panes.DiffView, config));
         var lines = new StatusLines(hints, overlays.Prompts, Popups, keys.Repeat);
         Content = new ScreenContent(
@@ -70,14 +70,15 @@ public sealed class ScreenParts
         Frames = new OverlayPresenter(
             host,
             foundation.Panes,
-            new OverlayFrames(overlays.Editors, overlays.Reflog, keys.Overlays, Popups, overlays.Cover),
+            new OverlayFrames(overlays.Editors, overlays.Screens, keys.Overlays, Popups, overlays.Cover),
             PopupTracker);
         SizeDragger = new PaneSizeDragger(
             host,
             foundation.Arrangements,
             foundation.Chrome,
             foundation.Sessions,
-            overlays.KeyFocus);
+            overlays.KeyFocus,
+            foundation.WorkingFocus);
     }
 
     /// <summary>The message of the status bar.</summary>

@@ -11,4 +11,7 @@ public enum PaneEdge
 
     /// <summary>The vertical line between the detail pane and the diff pane.</summary>
     Detail,
+
+    /// <summary>The vertical line between the Changes view file lists and the diff.</summary>
+    WorkingLists,
 }

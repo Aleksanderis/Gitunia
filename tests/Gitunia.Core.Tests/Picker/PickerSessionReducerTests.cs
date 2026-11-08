@@ -427,6 +427,81 @@ public class PickerSessionReducerTests
         Assert.Empty(update.Effects.OfType<SetKeyModeEffect>());
     }
 
+    [Fact]
+    public void GivenTheHighlightOnTheMoreLine_WhenAccepting_ThenTheSectionExpandsAndNothingIsOpened()
+    {
+        var state = OnRecentMore();
+
+        var update = AppReducer.Reduce(state, new PickerAcceptPressed());
+
+        Assert.Empty(update.Effects.OfType<DiscoverRepositoryEffect>());
+        var picker = update.State.Shell.Picker;
+        Assert.True(picker.IsOpen);
+        Assert.Equal(PickerSection.Recent, picker.State!.Expanded);
+        Assert.Equal(string.Empty, picker.State.Message);
+    }
+
+    [Fact]
+    public void GivenAnExpandedSection_WhenAcceptingTheLessLine_ThenItCollapsesAgain()
+    {
+        var state = AppReducer.Reduce(OnRecentMore(), new PickerAcceptPressed()).State;
+        state = AppReducer.Reduce(state, new SetHighlightCommand(11, true)).State;
+
+        var update = AppReducer.Reduce(state, new PickerAcceptPressed());
+
+        Assert.Equal(PickerSection.None, update.State.Shell.Picker.State!.Expanded);
+        Assert.Empty(update.Effects.OfType<DiscoverRepositoryEffect>());
+    }
+
+    [Fact]
+    public void GivenTheHighlightOnTheMoreLine_WhenPinningOrRemoving_ThenNothingHappens()
+    {
+        var state = OnRecentMore();
+
+        var pinned = AppReducer.Reduce(state, new PickerPinPressed());
+        var removed = AppReducer.Reduce(state, new PickerRemoveRecentPressed());
+
+        Assert.Equal(state.Workspace, pinned.State.Workspace);
+        Assert.Equal(state.Workspace, removed.State.Workspace);
+        Assert.Equal(state.Shell.Picker.State, pinned.State.Shell.Picker.State);
+        Assert.Equal(state.Shell.Picker.State, removed.State.Shell.Picker.State);
+    }
+
+    [Fact]
+    public void GivenAnExpandedSection_WhenThePickerClosesAndOpensAgain_ThenTheSectionIsCollapsed()
+    {
+        var expanded = AppReducer.Reduce(OnRecentMore(), new PickerAcceptPressed()).State;
+
+        var closed = AppReducer.Reduce(expanded, new PickerCloseRequested()).State;
+        var reopened = AppReducer.Reduce(closed, Open(Start.AddMinutes(1))).State;
+
+        Assert.Equal(PickerSection.None, reopened.Shell.Picker.State!.Expanded);
+    }
+
+    [Fact]
+    public void GivenAClickOnTheMoreLine_WhenMovingDownFromIt_ThenTheHighlightGoesToTheNextSectionsFirstRow()
+    {
+        var state = AppReducer.Reduce(OnRecentMore(), new MoveHighlightCommand(1)).State;
+
+        var picker = state.Shell.Picker.State!;
+
+        Assert.False(picker.IsOnToggle);
+        Assert.Equal(PickerTags.Discovered, picker.HighlightedRow!.Tags & PickerTags.Discovered);
+    }
+
+    // Twelve recents and four found repositories, the highlight on the "N more" line of the recents.
+    private static AppState OnRecentMore()
+    {
+        var recents = Enumerable.Range(1, 12).Select(number => PickerFixtures.PathOf("code", $"recent{number:00}"));
+        var found = Enumerable.Range(1, 4).Select(number => PickerFixtures.PathOf("code", $"found{number:00}"));
+        var state = Empty();
+        state = state with { Workspace = state.Workspace with { Recents = [.. recents] } };
+        state = AppReducer.Reduce(state, Open()).State;
+        state = AppReducer.Reduce(state, new PickerScanFinished([.. found])).State;
+
+        return AppReducer.Reduce(state, new SetHighlightCommand(4, true)).State;
+    }
+
     private static PickerOpenRequested Open(DateTimeOffset? now = null, string initialQuery = "") =>
         new(null, initialQuery, now ?? Start);
 

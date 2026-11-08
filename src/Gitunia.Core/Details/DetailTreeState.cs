@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using Gitunia.Core.Editing;
 
 namespace Gitunia.Core.Details;
 
@@ -8,6 +9,7 @@ namespace Gitunia.Core.Details;
 /// saved with the session.
 /// </summary>
 /// <param name="Filter">The text a path must contain to be listed, empty for no filter.</param>
+/// <param name="Caret">The caret column in <see cref="Filter"/> while it is edited (see <see cref="PromptCaret"/>).</param>
 /// <param name="IsEditingFilter">The filter box is open (typed keys edit <see cref="Filter"/>).</param>
 /// <param name="OpenDirectories">The directories of the Files tab the user opened (kept while the selection moves to
 /// other commits, so a path stays open).</param>
@@ -16,7 +18,8 @@ public sealed record DetailTreeState(
     string Filter,
     bool IsEditingFilter,
     ImmutableHashSet<string> OpenDirectories,
-    ImmutableHashSet<string> ClosedFolders)
+    ImmutableHashSet<string> ClosedFolders,
+    int Caret = PromptCaret.End)
 {
     /// <summary>No filter, nothing opened, nothing closed.</summary>
     public static DetailTreeState Empty { get; } = new(

@@ -152,7 +152,8 @@ public class ResetReducerTests
             string.Join(' ', confirm.Prompt.Lines),
             StringComparison.Ordinal);
         Assert.Contains("cannot be recovered from the reflog", confirm.Prompt.Consequence, StringComparison.Ordinal);
-        Assert.Contains($"git reset --mixed {Tip}", confirm.Prompt.Consequence, StringComparison.Ordinal);
+        Assert.Contains(UndoNotes.Reflog, confirm.Prompt.Consequence, StringComparison.Ordinal);
+        Assert.DoesNotContain("git reset", confirm.Prompt.Consequence, StringComparison.Ordinal);
         Assert.Equal(new ResetConfirmed(Tab, target), confirm.OnAccepted);
         Assert.Equal("The screen is too small to ask: nothing was reset", confirm.UnavailableNotice);
     }
@@ -174,8 +175,8 @@ public class ResetReducerTests
         Assert.Contains("1 file with uncommitted changes will be overwritten", lines, StringComparison.Ordinal);
         Assert.Contains("  a.txt", lines, StringComparison.Ordinal);
         Assert.Contains("Untracked files stay unless", lines, StringComparison.Ordinal);
-        Assert.Contains($"git reset --hard {Tip}", confirm.Prompt.Consequence, StringComparison.Ordinal);
-        Assert.Contains("ORIG_HEAD", confirm.Prompt.Consequence, StringComparison.Ordinal);
+        Assert.Contains(UndoNotes.Reflog, confirm.Prompt.Consequence, StringComparison.Ordinal);
+        Assert.DoesNotContain("git reset", confirm.Prompt.Consequence, StringComparison.Ordinal);
         Assert.Contains("cannot be restored", confirm.Prompt.Consequence, StringComparison.Ordinal);
         Assert.Equal(new ResetConfirmed(Tab, target), confirm.OnAccepted);
     }

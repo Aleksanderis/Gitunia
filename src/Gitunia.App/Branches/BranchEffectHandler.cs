@@ -1,4 +1,5 @@
 using Gitunia.Core.Branches;
+using Gitunia.Core.Status;
 using Gitunia.Core.Text;
 using Gitunia.Git.Branches;
 using Gitunia.Git.Refs;
@@ -93,10 +94,9 @@ public sealed class BranchEffectHandler(IBranchWriter writer, IDispatcher dispat
         }
 
         await writer.DeleteAsync(effect.Location, effect.Name, effect.Force, token).ConfigureAwait(false);
-        var text = $"Deleted branch {effect.Name} (was {ShortHash.Of(effect.CommitHash)}; restore: "
-            + $"git branch {effect.Name} {effect.CommitHash})";
+        var text = $"Deleted branch {effect.Name} (was {ShortHash.Of(effect.CommitHash)})";
 
-        return Done(effect, text);
+        return Done(effect, text, UndoNotes.Restore($"git branch {effect.Name} {effect.CommitHash}"));
     }
 
     private async Task<BranchCommand> SetUpstreamAsync(SetUpstreamEffect effect, CancellationToken token)
@@ -112,7 +112,7 @@ public sealed class BranchEffectHandler(IBranchWriter writer, IDispatcher dispat
         await writer.UnsetUpstreamAsync(effect.Location, effect.Name, token).ConfigureAwait(false);
         var restore = $"git branch --set-upstream-to={effect.Upstream} {effect.Name}";
 
-        return Done(effect, $"{effect.Name} no longer tracks {effect.Upstream} (restore: {restore})");
+        return Done(effect, $"{effect.Name} no longer tracks {effect.Upstream}", UndoNotes.Restore(restore));
     }
 
     private async Task<BranchCommand> FastForwardAsync(FastForwardBranchEffect effect, CancellationToken token)
@@ -120,10 +120,9 @@ public sealed class BranchEffectHandler(IBranchWriter writer, IDispatcher dispat
         await writer.FastForwardAsync(effect.Location, effect.Name, effect.UpstreamFullName, token)
             .ConfigureAwait(false);
         var moved = $"from {ShortHash.Of(effect.OldHash)} to {ShortHash.Of(effect.NewHash)}";
-        var text = $"Fast-forwarded {effect.Name} {moved} "
-            + $"(undo: git update-ref {GitRefPrefixes.Heads}{effect.Name} {effect.OldHash})";
+        var undo = $"git update-ref {GitRefPrefixes.Heads}{effect.Name} {effect.OldHash}";
 
-        return Done(effect, text);
+        return Done(effect, $"Fast-forwarded {effect.Name} {moved}", UndoNotes.Undo(undo));
     }
 
     private async Task EnsureValidAsync(BranchEffect effect, string name, CancellationToken token)
@@ -134,8 +133,8 @@ public sealed class BranchEffectHandler(IBranchWriter writer, IDispatcher dispat
         }
     }
 
-    private static BranchOperationSucceeded Done(BranchEffect effect, string text) =>
-        new(effect.TabId, text, effect.Follow);
+    private static BranchOperationSucceeded Done(BranchEffect effect, string text, string? detail = null) =>
+        new(effect.TabId, text, effect.Follow, detail);
 
     private static string FailureOf(BranchEffect effect) => effect switch
     {

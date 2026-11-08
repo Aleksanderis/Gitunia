@@ -33,7 +33,8 @@ public class IntegrationEffectHandlerTests
         Assert.Equal(first, repository.Head);
         Assert.Equal("M  a.txt", repository.Git("status", "--porcelain").TrimEnd());
         Assert.Contains($"was {old[..7]}", success.Text, StringComparison.Ordinal);
-        Assert.Contains($"git reset --soft {old}", success.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("git reset", success.Text, StringComparison.Ordinal);
+        Assert.Equal($"Undo: git reset --soft {old} (or ORIG_HEAD, the reflog)", success.Detail);
         Assert.Equal(StatusSeverity.Info, success.Severity);
     }
 
@@ -48,7 +49,7 @@ public class IntegrationEffectHandlerTests
 
         var result = await RunAsync(new ResetBranchEffect(Tab, location, Target(first, ResetMode.Hard)));
 
-        Assert.Contains("git reset --hard", Assert.IsType<IntegrationSucceeded>(result).Text, StringComparison.Ordinal);
+        Assert.StartsWith("Undo: git reset --hard ", Assert.IsType<IntegrationSucceeded>(result).Detail, StringComparison.Ordinal);
         Assert.Equal(first, repository.Head);
         Assert.Equal("1", File.ReadAllText(Path.Combine(repository.WorkingTreePath, "a.txt")));
         Assert.Equal("keep", File.ReadAllText(Path.Combine(repository.WorkingTreePath, "untracked.txt")));
@@ -155,10 +156,11 @@ public class IntegrationEffectHandlerTests
 
         var result = await RunAsync(Merge(location, "refs/heads/topic", "topic", MergeMode.Default));
 
-        var text = Assert.IsType<IntegrationSucceeded>(result).Text;
+        var success = Assert.IsType<IntegrationSucceeded>(result);
         Assert.Equal(topic, repository.Head);
-        Assert.StartsWith("Fast-forwarded main", text, StringComparison.Ordinal);
-        Assert.Contains($"git reset --hard {old[..7]}", text, StringComparison.Ordinal);
+        Assert.StartsWith("Fast-forwarded main", success.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("git reset", success.Text, StringComparison.Ordinal);
+        Assert.Equal($"Undo: git reset --hard {old} (or ORIG_HEAD, the reflog)", success.Detail);
     }
 
     [Fact]
@@ -204,7 +206,7 @@ public class IntegrationEffectHandlerTests
     }
 
     [Theory]
-    [InlineData(MergeMode.Default, "<space>gc")]
+    [InlineData(MergeMode.Default, "{key:operation.continue|continue}")]
     [InlineData(MergeMode.Squash, "no operation is in progress")]
     public async Task GivenConflictingBranches_WhenMerging_ThenAWarningSaysHowToGoOn(MergeMode mode, string expected)
     {

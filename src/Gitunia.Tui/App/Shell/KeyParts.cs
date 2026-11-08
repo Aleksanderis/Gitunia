@@ -1,4 +1,5 @@
 using Gitunia.Core.Mouse;
+using Gitunia.Tui.App.Clipboard;
 using Gitunia.Tui.App.Overlays;
 using Gitunia.Tui.App.Overlays.Clicks;
 using Gitunia.Tui.App.Panes;
@@ -36,13 +37,22 @@ public sealed class KeyParts
         Hits = new OverlayHitTests(route.Overlays, Overlays, foundation.Chrome);
         Mouse = new MouseController(DefaultMouseMap.Create(), route.ActionInput, foundation.Gate);
         Clicks = new OverlayClickRouter(ClickTargets(overlays));
-        OverlayGestures = new OverlayGestures(Mouse, Clicks, overlays.Guard, overlays.Editors, overlays.Cover);
+        OverlayGestures = new OverlayGestures(
+            Mouse,
+            Clicks,
+            overlays.Guard,
+            overlays.Editors,
+            overlays.Cover,
+            overlays.Blame);
         GestureRouter = new GestureRouter(
             Mouse,
             panes.Visual,
             new GestureServices(overlays.Guard, overlays.Cover, overlays.Editors, foundation.Panes));
         Quit = new QuitRequests(host);
-        Input = new KeyInput(host, Keys, Quit, overlays.KeyFocus, overlays.Editors);
+        // Wires itself to the pointer events of the panes and the blame view.
+        _ = new CopyOnSelect(host, panes.Visual, overlays.Blame, foundation.Config);
+        var ctrlC = new CtrlCHandler(host, panes.Visual, overlays.Blame, Quit);
+        Input = new KeyInput(host, Keys, ctrlC, overlays.KeyFocus, overlays.Editors);
     }
 
     /// <summary>The sticky repeat mode.</summary>
@@ -81,6 +91,8 @@ public sealed class KeyParts
         [OverlayClickTarget.ConflictEditor] = new ConflictEditorClickTarget(overlays.ConflictEditor, overlays.Cover),
         [OverlayClickTarget.RebaseEditor] = new RebaseEditorClickTarget(overlays.RebaseEditor),
         [OverlayClickTarget.Reflog] = new ReflogClickTarget(overlays.Reflog),
+        [OverlayClickTarget.Blame] = new BlameClickTarget(overlays.Blame),
+        [OverlayClickTarget.FileHistory] = new FileHistoryClickTarget(overlays.FileHistory),
         [OverlayClickTarget.HelpTab] = new HelpTabClickTarget(Hits),
         [OverlayClickTarget.Palette] = new PaletteClickTarget(Hits),
         [OverlayClickTarget.ContextMenu] = new ContextMenuClickTarget(Hits),

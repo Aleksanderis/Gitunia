@@ -1,4 +1,6 @@
 using Gitunia.Core.Input;
+using Gitunia.Tui.App.Blame;
+using Gitunia.Tui.App.FileHistory;
 using Gitunia.Tui.App.Conflicts;
 using Gitunia.Tui.App.Overlays;
 using Gitunia.Tui.App.Pick;
@@ -37,8 +39,15 @@ public sealed class OverlayParts
         Prompts = new PromptDisplays(
             [panes.DiffPane, panes.WorkingDiff, panes.QuickJump, panes.FileTree, OpenPrompt, Pick, RefJump, Search]);
         Reflog = new ReflogInput(host, panes.Rows, glyphs);
+        Blame = new BlameInput(
+            host,
+            foundation.Services.BlameStore,
+            new BlameTargets(foundation.Panes, foundation.Sessions, panes.Graph),
+            glyphs);
+        FileHistory = new FileHistoryInput(host, glyphs);
+        Screens = new ListScreens(Reflog, Blame, FileHistory);
         Settings = new SettingsScreenInput(host, glyphs);
-        Others = new OtherOverlays(route.Overlays, Reflog, Settings, Pick, Prompts);
+        Others = new OtherOverlays(route.Overlays, Screens, Settings, Pick, Prompts);
         RebaseEditor = new RebaseEditorInput(host, panes.Rows, Others, glyphs, foundation.Keys);
         ConflictEditor = new ConflictEditorInput(host, glyphs, foundation.Keys);
         Editors = new EditorOverlays(RebaseEditor, ConflictEditor, Settings);
@@ -68,6 +77,15 @@ public sealed class OverlayParts
 
     /// <summary>The reflog list.</summary>
     public ReflogInput Reflog { get; }
+
+    /// <summary>The blame view.</summary>
+    public BlameInput Blame { get; }
+
+    /// <summary>The file history.</summary>
+    public FileHistoryInput FileHistory { get; }
+
+    /// <summary>The reflog list, the blame view and the file history.</summary>
+    public ListScreens Screens { get; }
 
     /// <summary>The settings screen.</summary>
     public SettingsScreenInput Settings { get; }
@@ -107,6 +125,8 @@ public sealed class OverlayParts
             .Add(InputHandler.ConflictEditor, ConflictEditor)
             .Add(InputHandler.RebaseEditor, RebaseEditor)
             .Add(InputHandler.Reflog, Reflog)
+            .Add(InputHandler.Blame, Blame)
+            .Add(InputHandler.FileHistory, FileHistory)
             .Add(InputHandler.FileTree, panes.FileTree)
             .Add(InputHandler.QuickJump, panes.QuickJump)
             .Add(InputHandler.RefJump, RefJump)

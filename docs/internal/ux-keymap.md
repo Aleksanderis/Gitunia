@@ -14,18 +14,19 @@ Notation: `Ctrl-w c` is a chord, `<space>o` a leader chord, `<` is a literal `<`
 Modes: a row's `modes` say where its keys are active; `Visual` repeats the Lists motions; global `Ctrl-`/`Alt-` rows also work in Insert; `Esc` is bound in every mode; Insert/Command `Enter` accept the input; Confirm mode has only `y` (yes), `n` (no) and `Esc` (no), so a stray `Enter` never confirms a destructive action. `Picker` keys are Insert mode and `Palette` keys Command mode.
 Key notes that the tables cannot carry:
 
-- `Ctrl-c` force-quits from any mode or modal (cancels running git work, leaves at once; a failed session save still warns once, like `q`); it is matched before the keymap, so it cannot be remapped away.
+- `Ctrl-c` force-quits from any mode or modal (cancels running git work, leaves at once; a failed session save still warns once, like `q`); it is matched before the keymap, so it cannot be remapped away. Exception (#1188, #1189): while a Visual selection of a pane or of the blame view is active the first `Ctrl-c` copies it and keeps it (the reflex after selecting text), and only a second `Ctrl-c` within 2 s quits; with no selection it quits at once.
 - `Alt-1`..`Alt-9` jump to tab N; terminal multiplexers may take `Alt-N` for themselves, `3gt` (a count before `gt`) does the same and never conflicts.
 - `Ctrl-h` `Ctrl-j` `Ctrl-k` `Ctrl-l` and `Ctrl-Backspace` focus panes in Normal mode only. `Ctrl-j` arrives as `Ctrl+Enter`, distinct from `Enter`; `Ctrl-h` is `Backspace` (0x08) in many terminals, so `Ctrl-Backspace` (focus left) is bound too and plain `Backspace` stays unbound in Normal mode. Where a terminal or multiplexer swallows them, `Tab` and `Ctrl-w h/j/k/l` still work; remap in the config file.
-- `Ctrl-w >` `Ctrl-w <` move the divider beside the focused pane by 2 columns (a count multiplies; dragging a divider does the same); `Ctrl-w +` `Ctrl-w -` move the edge between the graph and the bottom panes by 1 row; `Ctrl-w =` resets the sizes. The `ResizeRepeat` and `ContextRepeat` views are the short-lived repeat modes after such a step: any other key ends the mode.
+- `Ctrl-w >` `Ctrl-w <` move the divider beside the focused pane by 2 columns (a count multiplies; dragging a divider does the same); `Ctrl-w +` `Ctrl-w -` move the edge between the graph and the bottom panes by 1 row; `Ctrl-w =` resets the sizes. In the Changes view `Ctrl-w >` `Ctrl-w <` move the divider between the file lists and the diff (a list grows with `>`, the diff and the message box shrink the lists; the width is not saved with the session), the height keys leave it alone with the status line `This pane cannot be resized further`; the keys start the repeat mode like in the other views, and dragging that divider moves it the same way (#1239). The height keys and saving the width are tracked in #1237. The `ResizeRepeat` and `ContextRepeat` views are the short-lived repeat modes after such a step: any other key ends the mode.
 - `Ctrl-^` has a second binding, `<space><Tab>`, for terminals that drop it.
 - `Esc` ladder in Normal mode: cancels a pending chord, then clears the search highlight, leaves Insert, cancels running remote work in the graph, else dismisses the status message.
+- Character-wise selection (#1161): `v` stays row-wise; `Alt-v` starts a selection by character in the diff (history, Changes view and file content, also with word wrap or side by side on) and on the Details tab of the detail pane, turns a row-wise one into it, or ends it. The second key is `Alt-v` because the free vim-like keys (`V`, `Ctrl-v`) keep their vim meaning for later and a bare letter would clash with the vim rule; inside it `h` `l` `w` `b` `0` `$` move the cursor end on its line (a count repeats `h` `l` `w` `b`), `j` `k` change the row, `iw` selects the word and `il` the line's text, and `v` turns it into whole rows. In the blame view it selects characters of the code column (#1175; the key mode is Visual while a range is active, so `y`, `<space>L` and the motions are Visual-mode rows of the Blame view); elsewhere (the graph, the Changes and Files tabs, the file lists) a notice says it is not available. With word wrap on, a row that wraps counts once: positions are the screen line plus the index of the character in the row's text, `h` `l` `w` `b` `0` `$` work on the whole row (the cursor line follows the column onto the wrapped line that shows it) and a wrapped row is copied without a line feed inside it. Side by side, the selection belongs to the side it started on (the right one, or the left one when only that side has a row on the cursor line, or the side the pointer pressed): only that side's rows are drawn selected and copied, the other side's removed or added rows between are left out, and a line with no row on the side moves the selection's end to the nearest row that has one. `y` copies exactly the selected characters (lines joined with a line feed, no gutter or markers, notes skipped) and ends it.
 - Visual `y` copies the range without `+`/`-`/space markers or gutter, a wrapped row once, notes skipped; above about 75 KB it refuses, and a failed copy keeps the range.
 - `<space>bd` asks a second Confirm when the branch is unmerged; `<space>gr` with no conflicted file says so in the status bar.
 - Changes view, `Enter` on a screen under 80 columns: the diff replaces the list until `Esc`.
 - Graph search prefixes: `author:`, `hash:`, `body:`.
 
-**Actions menu** (`<space>.` in the graph or sidebar, a double-click on a graph row, or a click on the `...` marker at the right edge of the selected sidebar row; #471, #479, #482).
+**Actions menu** (`<space>.` in the graph, the sidebar or a file list, a double-click on a graph row, or a click on the `...` marker at the right edge of the selected sidebar row or file row; #471, #479, #482, #1132).
 A small popup that hangs under the row (above it near the bottom of the screen), titled `Actions`, one line per action of that row with its key at the right edge, so the menu teaches the keyboard path.
 The menu is as wide as its longest title plus key needs, up to 96 columns, so no title is cut at 120 columns or more (a test renders every row menu at 100, 120 and 160; titles in `ActionCatalog` stay short, details belong in the Confirm; #573).
 It is not the command palette (`:`): no text field, no filter.
@@ -35,6 +36,7 @@ The same holds for the other popups (#597): Help and which-key take up to 96 col
 A resize closes it.
 There is no right-, middle- or Ctrl-click binding (they feel like a desktop app and multiplexers may swallow them, #479): the mouse path is a double-click on a graph row (the first click selects it) or a plain left click on the `...` marker that the selected sidebar row shows in its last three columns (not shown in panes narrower than 20 columns; a first click on another row only selects it, as before).
 Graph rows have no marker and use their full width (#482).
+The selected file row of the commit Changes and Files tabs and of both Changes view lists shows the same marker (#1132, no folder rows) in the last three columns of its line (every row of those lists keeps them free, like the sidebar); a double-click there keeps its own action (open the diff, stage); its menu, titled `File`, offers the file history (`<space>H`) and the blame (`<space>gb`). `<space>vv` keeps opening the view options of those lists.
 Actions without a key in the pane are not listed.
 The list depends on the row:
 
@@ -78,7 +80,7 @@ Counts, read from `DefaultKeymap` and `ActionIds` at this commit: 245 action ids
 1. **One noun, one prefix.** Every `<space>` group is one noun and a noun has exactly one group: `b` branch, `t` tag, `w` worktree, `k` stash, `r` remote, `o` repositories and tabs, `g` operation in progress, `e` external tools, `v` view options.
 2. **No lowercase/uppercase pair with unrelated meanings.** Gone: `s`/`S` (Changes view / stash), `t`/`T` (tools / tags), `r`/`R` (refresh / remotes), `l`/`L` (reflog / pull), `c`/`C` (commit / cancel), and `b`/`B`, `r`/`R` in the conflict editor. Kept, because the two keys are one action in two strengths or its direct opposite: `p`/`P` (pull / push, #918), `bc`/`bC` (create and check out / create only), `bu`/`bU` (set / unset upstream), `bm`/`bM`, `bd`/`bD` (local / remote branch), `rp`/`rP` (push / force push), `td`/`tD`, `a`/`A`, `u`/`U` (stage and unstage, one file / all), `n`/`N`, `o`/`O`, `t`/`T`, `y`/`Y`, `j`/`J`, `k`/`K`.
 3. **All branch work under `<space>b`.** Create, switch, rename, delete (local `bd`, remote `bD`), upstream, fast-forward, merge (three kinds), rebase (the sub-group `<space>br`, which also holds fixup, reword and drop), reset, cherry-pick and revert. Tags and worktrees are nouns of their own (rule 1) and keep their own groups, listed next to `b` in the which-key popup.
-4. **Tabs and repositories together under `<space>o`** (`oo` open, `or` refresh, `oc` close tab, `on` rename tab, `op` pin, `ol` last tab). `Ctrl-t` (named in the `<space>o` which-key entry, the Graph and Sidebar hints and the empty screen, #918), `Ctrl-w c`, `Ctrl-w r`, `Ctrl-^`, `<space><Tab>`, `gt`, `gT` and `Alt-1`..`Alt-9` stay (aliases, or the tab-switching keys).
+4. **Tabs and repositories together under `<space>o`** (`oo` open, `or` refresh, `oc` close tab, `on` rename tab, `op` pin, `ol` last tab, `o <` / `o>` move the active tab left or right, #1200; Advanced level). `Ctrl-t` (named in the `<space>o` which-key entry, the Graph and Sidebar hints and the empty screen, #918), `Ctrl-w c`, `Ctrl-w r`, `Ctrl-^`, `<space><Tab>`, `gt`, `gT` and `Alt-1`..`Alt-9` stay (aliases, or the tab-switching keys).
 5. **Aliases on one row.** Help, palette and the tables below show one row per action: main key first, then the other keys (`Tab  also Ctrl-w w`). The main key is the first one in the "New" column. Built by #838 (help); the palette shows the same main-key-first list.
 6. **Vim-clash rule unchanged** (#335): Gitunia actions are `<space>` chords or `Ctrl-`/`Alt-` keys. The bare letters of the modal screens (rebase todo, conflict editor, settings) stay: they are keys of a modal list.
 
@@ -127,12 +129,12 @@ It cycles Everyday, Advanced, Advanced+ and back to Everyday. It changes the sam
 - **Three levels, each includes the ones below.** Everyday shows only Everyday actions; Advanced adds the Advanced ones; Advanced+ shows everything (rare or risky commands such as upstream set/unset, interactive rebase from the root, remote URL, worktree lock/unlock, stash with untracked, reflog). One setting, `Command level`, holds the choice.
 
 - **Hidden, never disabled.** An Advanced or Advanced+ action keeps its key, its palette id and its command (typing its exact id in `:` still runs it); it is only left out of the places that teach keys: the help tabs, the which-key popup, the palette list, the row menu and the status bar hints. A user `keys` entry for a hidden action keeps working.
-- **Messages keep their keys.** A message or confirm text that names a key (`<space>vl` load all, the reflog hint after a reset, the retry key) always names it, whatever the level; only the lists that teach keys (help, which-key, palette, row menu, status hints) filter. So an undo hint never points at nothing.
+- **Messages keep their keys.** A message or confirm text that names a key (load all, the reflog hint after a reset, the retry key) always names it, whatever the level; only the lists that teach keys (help, which-key, palette, row menu, status hints) filter. So an undo hint never points at nothing. The undo hints, the worktree refusals and the conflict save dialog follow the effective keymap (#1196, #1198): Core writes `KeyTokens` (`{key:status.history|the message history}`), the effect runner resolves them against the running keymap before a status message or dialog is shown, giving `the message history (<space>m)`, or just the name when the action is unbound. The same holds for the operation-in-progress texts (`gc`/`ga`/`gs`), the Branch, Merge, Pick and Rebase texts, the mergetool and commit-editor hints, the load-all notes of the diff stores, the diff staging refusals and the commit failure output (resolved in the stores, `ActionExecutor` and `CommitEffectHandler`), and the operation banner (chips and hint read the running keymap; an unbound action leaves its hint out). Left literal on purpose: the status-bar hints and buttons (`PaneHints`, taught by their own tests), the reflog and blame frame hints, the settings help text, the `<space>od` retry note of the file tree and the startup config notice, which are not command hints resolved through a text effect.
 - **Default Everyday.** `Command level` defaults to Everyday (advanced commands off); Settings (Keys) and `<space>*` change it. The owner sets Advanced in their own config.
 - **Where the level lives.** One level per action in `ActionCatalog` (metadata like the group; a test fails when an action has none), so every surface reads the same list. A which-key group whose actions are all above the current level is hidden with them (`<space>e` and `<space>br` disappear at Everyday; `<space>t` stays visible because it holds two Everyday actions).
 - **Modal screens.** The keys of a screen follow the level of the way into it: the rebase todo keys are Advanced because rebasing is; the conflict editor keys are Everyday except base, re-create, redo, the diff jumps and the side scroll. While a screen is open its footer and help show all its keys, whatever the level, since a screen hiding its own keys is unusable.
 - **How the proposal was made.** It starts from the issue (Everyday: move and search, details and diff, tabs and opening repositories, stage/unstage/discard, commit/amend, branch create/switch/delete, merge, fetch/pull/push, stash push/pop, worktree add/switch, copy; Advanced: reflog, reset, interactive and quick rebase, cherry-pick/revert, upstream, fast-forward, remote management, tag push and remote delete, force push, difftool/mergetool/`$EDITOR` commit, squash and no-ff merge, extra view options, status history) and fills the rest with one test: would someone who just wants to commit and push see this daily? Judgement calls have a note. `conflict.open` is plain Everyday (the `g` group is shown even with no operation running; the row only acts in a conflict). Counts of the first proposal: 165 Everyday, 81 Advanced (246 ids with the new action; the nine `tab.go-to.N` are Everyday and not counted).
-- **The Level column is the approved list** (owner-edited, #847): 188 Everyday, 47 Advanced, 9 Advanced+ rows. #839 implements it (`ActionLevels`, read through `ActionCatalog.LevelOf`) with these corrections to the ids, since the code is the truth: the rows `conflict-editor.reset`, `next-diff`, `previous-diff`, `scroll-down` and `scroll-up` named actions that do not exist (the Ctrl-d/Ctrl-u scroll and the `]c` jump are the list and diff actions) and are dropped; `conflict-editor.take`, `untake`, `scroll-left` and `scroll-right` (#862) were missing and are added (take and untake Everyday, the side scroll Advanced, per the rule above). The counts of the table are now 191 Everyday, 45 Advanced, 9 Advanced+ (245 ids, plus the nine `tab.go-to.N`).
+- **The Level column is the approved list** (owner-edited, #847): 188 Everyday, 47 Advanced, 9 Advanced+ rows. #839 implements it (`ActionLevels`, read through `ActionCatalog.LevelOf`) with these corrections to the ids, since the code is the truth: the rows `conflict-editor.reset`, `next-diff`, `previous-diff`, `scroll-down` and `scroll-up` named actions that do not exist (the Ctrl-d/Ctrl-u scroll and the `]c` jump are the list and diff actions) and are dropped; `conflict-editor.take`, `untake`, `scroll-left` and `scroll-right` (#862) were missing and are added (take and untake Everyday, the side scroll Advanced, per the rule above). The counts of the table were 191 Everyday, 45 Advanced, 9 Advanced+ (245 ids, plus the nine `tab.go-to.N`). #1146 moved `file-history.open`, `line-history.open` and `blame.open` to Everyday (194 and 42): at Advanced they were left out of the which-key popup and the status bar hints at the default level, so the keys of the history and blame views were never shown where they are pressed.
 - **What the setting and the toggle do (#839).** `commandLevel` in `config.json` (`everyday`, `advanced`, `advanced+`; Settings, Keys, row "Command level") and `<space>*` change the level at once, without a restart. The hidden surfaces are the help tabs (the all-commands tabs and the contextual ones; the `Commands` tab ends with "N advanced commands hidden" and the toggle key), the palette list, the which-key popup (a chord group disappears with its last listed action), the row and view-options menus and the status bar hints (a hint whose actions are all above the level is left out). Not filtered: the `Custom` help tab (the user's own bindings), messages and confirm texts, the keys of the screen that is open (see "Modal screens"), and a command typed by its exact id in the palette, which still runs.
 
 ### Old key and new key, level per action
@@ -273,7 +275,11 @@ Grouped as the palette groups them (`ActionCatalog.GroupOf`). "Old" lists every 
 | `working-tree.message-line-start` | Message box: line start | `0` | same | Everyday |  |
 | `working-tree.message-new-line` | Start a new line in the commit message | `Enter` | same | Everyday |  |
 | `working-tree.message-open-line` | Message box: open a line below and insert | `o` | same | Everyday |  |
+| `working-tree.message-redo` | Message box: redo | `Ctrl-r` | same | Everyday |  |
 | `working-tree.message-right` | Message box: cursor right | `l` | same | Everyday |  |
+| `working-tree.message-scroll-down` | Message box: scroll down (3 lines) | `Ctrl-d` | same | Everyday |  |
+| `working-tree.message-scroll-up` | Message box: scroll up (3 lines) | `Ctrl-u` | same | Everyday |  |
+| `working-tree.message-select-word` | Message box: select the word at the cursor | `viw` | same | Everyday |  |
 | `working-tree.message-undo` | Message box: undo | `u` | same | Everyday |  |
 | `working-tree.message-up` | Message box: cursor up | `k` | same | Everyday |  |
 | `working-tree.message-word-next` | Message box: next word | `w` | same | Everyday |  |
@@ -375,6 +381,15 @@ Grouped as the palette groups them (`ActionCatalog.GroupOf`). "Old" lists every 
 | `list.top` | Go to the top | `gg` | same | Everyday |  |
 | `list.up` | Move up | `k` `Up` | same | Everyday |  |
 | `navigate.back` | Go back | `h` `Esc` | same | Everyday |  |
+| `file-history.open` | Open the history of the selected file, renames followed | `<space>H` | same | Everyday |  |
+| `line-history.open` | Open the history of the selected diff lines (the Visual range, else the cursor line) | `<space>L` | same | Everyday |  |
+| `file-history.select-commit` | Select the file history commit in the graph | `Enter` | same | Advanced |  |
+| `blame.open` | Blame the selected file (at the shown commit, or the working tree file) | `<space>gb` | same | Everyday |  |
+| `blame.show-commit` | Select the blame line's commit in the graph | `Enter` | same | Advanced |  |
+| `blame.parent` | Blame the file at the parent of the highlighted line's commit (Esc steps back) | `Alt-p` | same | Advanced |  |
+| `blame.toggle-whitespace` | Blame: ignore whitespace changes (-w) | `Alt-w` | same | Advanced |  |
+| `blame.toggle-moves` | Blame: detect lines moved inside the file (-M) | `Alt-m` | same | Advanced |  |
+| `blame.toggle-copies` | Blame: detect lines copied from other files (-C) | `Alt-c` | same | Advanced |  |
 | `reflog.open` | Open the reflog of HEAD (of the branch under the sidebar cursor) | `<space>l` | same | Advanced+ |  |
 | `reflog.select-commit` | Select the reflog entry's commit in the graph | `Enter` | same | Advanced+ |  |
 | `search.next` | Next search match | `n` | same | Everyday |  |
@@ -386,6 +401,15 @@ Grouped as the palette groups them (`ActionCatalog.GroupOf`). "Old" lists every 
 | `sidebar.filter` | Filter the sidebar | `/` | same | Everyday |  |
 | `view.quick-jump-to-row` | Quick jump to a visible row | `<space>j` | same | Everyday |  |
 | `visual.toggle` | Start or end range selection | `v` | same | Everyday |  |
+| `visual.char-left` | Move the character selection one character left | none | `h` | Advanced | #1161; Visual mode only |
+| `visual.char-right` | Move the character selection one character right | none | `l` | Advanced | #1161; Visual mode only |
+| `visual.line-end` | Move the character selection to the end of the line | none | `$` | Advanced | #1161; Visual mode only |
+| `visual.line-start` | Move the character selection to the start of the line | none | `0` | Advanced | #1161; Visual mode only |
+| `visual.select-line` | Select the text of the line (or the line under the pointer) | none | `il` | Everyday | #1161; Visual mode only |
+| `visual.select-word` | Select the word under the cursor (or the pointer) | none | `iw` | Everyday | #1161; Visual mode only |
+| `visual.toggle-chars` | Start or end character selection | none | `Alt-v` | Everyday | #1161; Normal and Visual mode |
+| `visual.word-next` | Move the character selection to the next word | none | `w` | Advanced | #1161; Visual mode only |
+| `visual.word-previous` | Move the character selection to the previous word | none | `b` | Advanced | #1161; Visual mode only |
 
 **View**
 
@@ -424,8 +448,12 @@ Grouped as the palette groups them (`ActionCatalog.GroupOf`). "Old" lists every 
 | `confirm.no` | Answer no | `n` | same | Everyday |  |
 | `confirm.yes` | Answer yes | `y` | same | Everyday |  |
 | `help.show` | Show keys for this view | `?` | same | Everyday |  |
-| `help.tab-next` | Next help section | `Tab` `l` | same | Everyday |  |
-| `help.tab-previous` | Previous help section | `Shift-Tab` `h` | same | Everyday |  |
+| `help.scroll-down` | Scroll the help page down one line | `J` | same | Everyday |  |
+| `help.scroll-up` | Scroll the help page up one line | `K` | same | Everyday |  |
+| `help.scroll-half-page-down` | Scroll the help page down half a page | `D` | same | Everyday |  |
+| `help.scroll-half-page-up` | Scroll the help page up half a page | `U` | same | Everyday |  |
+| `help.tab-next` | Next help section | `Tab` `j` `Down` | same | Everyday |  |
+| `help.tab-previous` | Previous help section | `Shift-Tab` `k` `Up` | same | Everyday |  |
 | `help.search` | Filter the help rows by key, title or action id | `/` | same | Everyday |  |
 | `help.tab-select` | Show the clicked help section | none | same | Everyday |  |
 | `input.accept` | Accept the input | `Enter` | same | Everyday |  |

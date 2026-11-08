@@ -21,6 +21,23 @@ public class WorkingTreeLayoutTests
     }
 
     [Fact]
+    public void GivenAListWidthTheUserSet_WhenComputing_ThenTheListsAndTheDiffShareTheWidthAsAsked()
+    {
+        var rects = WorkingTreeLayout.Compute(120, 36, PaneKind.WorkingUnstaged, listWidth: 50);
+
+        Assert.Equal(new PaneRect(1, 2, 50, 16), rects.Unstaged);
+        Assert.Equal(new PaneRect(52, 2, 67, 26), rects.Diff);
+    }
+
+    [Fact]
+    public void GivenAListWidthTooWideForTheDiff_WhenComputing_ThenTheDiffKeepsItsMinimum()
+    {
+        var rects = WorkingTreeLayout.Compute(120, 36, PaneKind.WorkingUnstaged, listWidth: 500);
+
+        Assert.True(rects.Diff.Width >= PaneSizing.MinimumDiffWidth);
+    }
+
+    [Fact]
     public void GivenAWideScreen_WhenComputing_ThenTheMessageBoxSplitsIntoEditorRowsAndOneOptionRow()
     {
         var rects = WorkingTreeLayout.Compute(120, 36, PaneKind.WorkingMessage);

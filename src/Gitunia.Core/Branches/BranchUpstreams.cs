@@ -1,3 +1,4 @@
+using Gitunia.Core.Keymap;
 using System.Collections.Immutable;
 using Gitunia.Core.Effects;
 using Gitunia.Core.Prompts;
@@ -108,7 +109,7 @@ internal static class BranchUpstreams
         var name = branch.Name;
         if (branch.IsCurrent)
         {
-            return $"{name} is checked out: pull it with <space>p instead";
+            return $"{name} is checked out: {KeyTokens.Of(ActionIds.RemotePull, "pull it")} instead";
         }
 
         if (branch.CheckedOutIn is { } path)

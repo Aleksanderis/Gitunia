@@ -54,7 +54,11 @@ public sealed class StagingEffectHandler(
 
                 var text = StagingReports.Paths(paths.Plan, paths.IsStage);
 
-                return new StagingSucceeded(effect.TabId, text, StatusSeverity.Info, paths.Follow);
+                var detail = paths.Plan.IsResolve
+                    ? UndoNotes.Undo($"git checkout --merge -- {string.Join(' ', paths.Plan.Paths)} (overwrites the file)")
+                    : null;
+
+                return new StagingSucceeded(effect.TabId, text, StatusSeverity.Info, paths.Follow, detail);
             case StageSelectionEffect selection:
                 return await StageSelectionAsync(selection, token).ConfigureAwait(false);
             default:

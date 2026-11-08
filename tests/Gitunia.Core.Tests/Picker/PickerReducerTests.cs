@@ -1,3 +1,6 @@
+using Gitunia.Core.Editing;
+using Gitunia.Core.Keymap;
+using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Picker;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Tabs;
@@ -49,6 +52,68 @@ public class PickerReducerTests
         state = PickerReducer.Reduce(state, new BackspaceCommand(), Context());
 
         Assert.Equal("a", state.Query);
+    }
+
+    private static PickerState Key(PickerState state, KeyEvent key) => PickerReducer.Reduce(state, new EditQueryCommand(key), Context());
+
+    [Fact]
+    public void GivenTheCaretMovedLeft_WhenTyping_ThenTheTextIsInsertedAtTheCaret()
+    {
+        var state = Type(PickerReducer.Open(Context()), "ap");
+
+        state = Key(state, new KeyEvent(KeyNames.Left));
+        state = Key(state, new KeyEvent("l"));
+
+        Assert.Equal("alp", state.Query);
+        Assert.Equal(2, state.Caret);
+        Assert.Equal(["alpha"], state.Rows.Select(row => row.Name));
+    }
+
+    [Fact]
+    public void GivenTheCaretInTheMiddle_WhenBackspacingAndDeleting_ThenTheCharactersAroundItGo()
+    {
+        var state = Type(PickerReducer.Open(Context()), "alpxha");
+        state = Key(state, new KeyEvent(KeyNames.Left));
+        state = Key(state, new KeyEvent(KeyNames.Left));
+
+        state = Key(state, new KeyEvent(KeyNames.Backspace));
+        Assert.Equal(("alpha", 3), (state.Query, state.Caret));
+
+        state = Key(state, new KeyEvent(KeyNames.Delete));
+        Assert.Equal(("alpa", 3), (state.Query, state.Caret));
+    }
+
+    [Fact]
+    public void GivenACaretMoveOnly_WhenReducing_ThenTheHighlightAndRowsStay()
+    {
+        var state = Type(PickerReducer.Open(Context()), "a");
+        state = PickerReducer.Reduce(state, new MoveHighlightCommand(1), Context());
+
+        var moved = Key(state, new KeyEvent(KeyNames.Home));
+
+        Assert.Equal(0, moved.Caret);
+        Assert.Equal(state.Highlight, moved.Highlight);
+        Assert.Equal(state.Rows, moved.Rows);
+    }
+
+    [Fact]
+    public void GivenTheCaretAtTheStart_WhenBackspacing_ThenNothingChanges()
+    {
+        var state = Key(Type(PickerReducer.Open(Context()), "al"), new KeyEvent(KeyNames.Home));
+
+        Assert.Same(state, Key(state, new KeyEvent(KeyNames.Backspace)));
+    }
+
+    [Fact]
+    public void GivenACaretInTheMiddle_WhenThePathIsCompleted_ThenTheCaretIsAtTheEndOfTheNewQuery()
+    {
+        var state = Type(PickerReducer.Open(Context()), "alp");
+        state = Key(state, new KeyEvent(KeyNames.Home));
+
+        state = PickerReducer.Reduce(state, new CompletePathCommand(), Context());
+
+        Assert.NotEqual("alp", state.Query);
+        Assert.Equal(state.Query.Length, PromptCaret.Clamp(state.Query, state.Caret));
     }
 
     [Fact]

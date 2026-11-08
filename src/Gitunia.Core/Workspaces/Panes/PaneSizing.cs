@@ -42,6 +42,14 @@ public static class PaneSizing
     /// <summary>Columns that stay for the diff when the detail pane is widened.</summary>
     public const int MinimumDiffWidth = 20;
 
+    /// <summary>Narrowest screen that shows the Changes view lists beside the diff; narrower ones show one pane at a time.</summary>
+    public const int MinimumWidthForWorkingSideBySide = 80;
+
+    /// <summary>Narrowest file list column the user can drag or key the Changes view to.</summary>
+    public const int MinimumWorkingListWidth = 12;
+
+    private const int MinimumAutomaticWorkingListWidth = 24;
+    private const int MaximumAutomaticWorkingListWidth = 50;
     private const int MinimumDetailWidth = 24;
     private const int MaximumDetailWidth = 60;
     private const int MinimumPaneHeight = 6;
@@ -96,6 +104,27 @@ public static class PaneSizing
         var maximum = Math.Max(MinimumResizedDetailWidth, InnerWidth(screenWidth) - 1 - MinimumDiffWidth);
 
         return Math.Clamp(wanted, MinimumResizedDetailWidth, maximum);
+    }
+
+    /// <summary>Columns of the Changes view file lists beside the diff, honouring the user's size; 0 while the screen is too narrow for both.</summary>
+    /// <param name="screenWidth">Terminal columns.</param>
+    /// <param name="wanted">The width the user set, null for automatic.</param>
+    public static int WorkingListWidth(int screenWidth, int? wanted)
+    {
+        if (screenWidth < MinimumWidthForWorkingSideBySide)
+        {
+            return 0;
+        }
+
+        var inner = InnerWidth(screenWidth);
+        if (wanted is not { } width)
+        {
+            return Math.Clamp(inner / 3, MinimumAutomaticWorkingListWidth, MaximumAutomaticWorkingListWidth);
+        }
+
+        var maximum = Math.Max(MinimumWorkingListWidth, inner - 1 - MinimumDiffWidth);
+
+        return Math.Clamp(width, MinimumWorkingListWidth, maximum);
     }
 
     /// <summary>Columns of the sidebar list (without its divider), honouring the user's size; 0 while the screen is too narrow for it.</summary>

@@ -1,3 +1,4 @@
+using Gitunia.Core.Operations;
 using Gitunia.Core.Integration;
 using Gitunia.Git.Merge;
 using Gitunia.Git.Refs.Models;
@@ -58,7 +59,7 @@ public class MergeReducerTests
 
         var text = Warning(effects);
         Assert.Contains($"finish or abort the {name} first", text, StringComparison.Ordinal);
-        Assert.Contains("<space>gc", text, StringComparison.Ordinal);
+        Assert.Contains(OperationKeys.Continue, text, StringComparison.Ordinal);
     }
 
     [Fact]

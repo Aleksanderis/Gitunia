@@ -1,3 +1,4 @@
+using Gitunia.Core.Operations;
 using Gitunia.Core.Effects;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Pick;
@@ -80,7 +81,7 @@ public class PickReducerTests
         var revert = PickReducer.Reduce(Request(PickKind.Revert, null, First), context);
 
         Assert.Contains($"finish or abort the {name} first", Warning(cherry.Effects), StringComparison.Ordinal);
-        Assert.Contains("<space>gc", Warning(revert.Effects), StringComparison.Ordinal);
+        Assert.Contains(OperationKeys.Continue, Warning(revert.Effects), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -304,10 +305,9 @@ public class PickReducerTests
             new PickFinished(Tab, PickKind.Revert, result, "main", "2 commits"),
             Context(busy: true));
 
-        var text = Assert.IsType<PostStatusEffect>(update.Effects[0]).Text;
-        Assert.Equal(
-            "Reverted 2 commits onto main (2222222), was 1111111; undo: git reset --hard 1111111 (the reflog has it)",
-            text);
+        var post = Assert.IsType<PostStatusEffect>(update.Effects[0]);
+        Assert.Equal("Reverted 2 commits onto main (2222222), was 1111111", post.Text);
+        Assert.Equal($"Undo: git reset --hard {First} (the reflog has it)", post.Detail);
     }
 
     [Fact]

@@ -136,7 +136,7 @@ public class RemoteReducerTests
         var confirm = Assert.IsType<ShowConfirmEffect>(Assert.Single(effects));
         Assert.Equal("Remove the remote origin (u1)?", confirm.Prompt.Lines[0]);
         Assert.Equal("2 remote-tracking branches disappear: origin/main, origin/topic.", confirm.Prompt.Lines[1]);
-        Assert.Equal("Undo: git remote add origin u1, then fetch it", confirm.Prompt.Consequence);
+        Assert.Equal(UndoNotes.FromHistory, confirm.Prompt.Consequence);
         Assert.Equal(new RemoteRemoveConfirmed(Tab, "origin", "u1"), confirm.OnAccepted);
     }
 

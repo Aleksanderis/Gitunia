@@ -109,7 +109,8 @@ public sealed record BranchForceDeleteConfirmed(TabId TabId, string Name, string
 /// <param name="TabId">The tab.</param>
 /// <param name="Text">What to tell the user.</param>
 /// <param name="Follow">The commit the graph cursor moves to, null to leave it.</param>
-public sealed record BranchOperationSucceeded(TabId TabId, string Text, string? Follow)
+/// <param name="Detail">The restore command, kept in the message history; null when there is none.</param>
+public sealed record BranchOperationSucceeded(TabId TabId, string Text, string? Follow, string? Detail = null)
     : BranchCommand(TabId), IOperationResult
 {
     RunningOperationKind IOperationResult.Kind => RunningOperationKind.Branches;

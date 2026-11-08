@@ -1,7 +1,9 @@
+using Gitunia.Core.Keymap;
 using System.Collections.Immutable;
 using Gitunia.Core.Effects;
 using Gitunia.Core.Overlays;
 using Gitunia.Core.Prompts;
+using Gitunia.Core.Status;
 using Gitunia.Core.Text;
 using Gitunia.Git.Refs.Models;
 using Gitunia.Git.Remotes.Models;
@@ -132,7 +134,7 @@ internal static class SyncPushQuestions
             return
             [
                 SyncReducer.Post(
-                    $"{remote}/{rejection.Branch} is not known here: fetch first, then force push (<space>rP)"),
+                    $"{remote}/{rejection.Branch} is not known here: fetch first, then {KeyTokens.Of(ActionIds.RemotePushForce, "force push")}"),
             ];
         }
 
@@ -186,13 +188,14 @@ internal static class SyncPushQuestions
                 "A lease: refused when the remote moved since your last fetch.",
                 "Commits that are only on the remote branch are no longer on it afterwards.",
             ],
-            $"Undo: git push --force-with-lease {target.Remote} {upstreamHash}:{target.Branch}",
+            UndoNotes.FromHistory,
             "Force push");
         var lease = new PushLease(target.Branch, upstreamHash);
         var request = new PushRequest(target.Remote, branch, setUpstream, lease);
         var done = $"Force pushed {branch} to {name} (was {ShortHash.Of(upstreamHash)})";
+        var undo = $"git push --force-with-lease {target.Remote} {upstreamHash}:{target.Branch}";
 
-        var accepted = new SyncForceConfirmed(context.TabId, request, done);
+        var accepted = new SyncForceConfirmed(context.TabId, request, done, UndoNotes.Undo(undo));
 
         return [new ShowConfirmEffect(prompt, accepted, SyncReducer.TooSmallNotice)];
     }

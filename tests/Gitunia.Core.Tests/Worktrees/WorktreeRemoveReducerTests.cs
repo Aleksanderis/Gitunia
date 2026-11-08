@@ -22,7 +22,9 @@ public class WorktreeRemoveReducerTests
         Assert.Equal("Remove worktree", confirm.Prompt.Title);
         Assert.Equal($"Remove the worktree {Linked}?", confirm.Prompt.Lines[0]);
         Assert.Equal("Its branch wt is kept.", confirm.Prompt.Lines[1]);
-        Assert.Equal("Undo: git worktree add <path> wt checks the branch out again.", confirm.Prompt.Consequence);
+        Assert.Equal(
+            "The branch stays; wt can be checked out again with {key:worktree.add|a new worktree}.",
+            confirm.Prompt.Consequence);
         Assert.Equal(new WorktreeRemoveConfirmed(Tab, Linked), confirm.OnAccepted);
         Assert.Equal(WorktreeTexts.TooSmallNotice, confirm.UnavailableNotice);
     }
@@ -37,7 +39,7 @@ public class WorktreeRemoveReducerTests
         var confirm = Assert.IsType<ShowConfirmEffect>(Assert.Single(update.Effects));
         Assert.Equal("It has a detached HEAD: commits that no branch reaches are lost.", confirm.Prompt.Lines[1]);
         Assert.Equal(
-            "Undo: git worktree add <path> 2222222 checks that commit out again.",
+            "No undo is offered for commits that no branch reaches.",
             confirm.Prompt.Consequence);
     }
 
@@ -67,7 +69,7 @@ public class WorktreeRemoveReducerTests
 
         var update = Reduce(new WorktreeRemoveRequested(Tab, WorktreeRow(Linked)), context);
 
-        Assert.Equal($"{Linked} is locked: unlock it first (<space>wu)", Warning(update.Effects));
+        Assert.Equal($"{Linked} is locked: {{key:worktree.unlock|unlock it}} first", Warning(update.Effects));
     }
 
     [Fact]
@@ -77,7 +79,7 @@ public class WorktreeRemoveReducerTests
 
         var update = Reduce(new WorktreeRemoveRequested(Tab, WorktreeRow(Linked)), context);
 
-        Assert.Equal($"{Linked} is missing on disk: prune it instead (<space>wp)", Warning(update.Effects));
+        Assert.Equal($"{Linked} is missing on disk: {{key:worktree.prune|prune it}} instead", Warning(update.Effects));
     }
 
     [Fact]

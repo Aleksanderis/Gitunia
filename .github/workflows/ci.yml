@@ -1,16 +1,18 @@
 name: CI
 
-# Minutes are limited on the free plan (decision 2026-10-18): CI never runs on PRs or pushes. Local builds are
-# the gate. It runs on release tags and on demand (`gh workflow run ci.yml`).
+# Runs on pull requests, pushes to main, release tags and on demand (`gh workflow run ci.yml`). Re-enabled when the
+# repository went public (minutes are free there; supersedes the manual-only decision of 2026-10-18).
 on:
+  pull_request:
   push:
+    branches: [main]
     tags: ["v*"]
   workflow_dispatch:
     inputs:
       platform:
-        description: Which leg to run (all = linux and windows; macOS costs 10x minutes, so only macos runs it; tags run all three)
+        description: Which leg to run (all = linux-x64 and windows-x64; macOS costs 10x minutes, so only macos runs it; arm64 runs the two arm64 legs; tags run all of them)
         type: choice
-        options: [all, linux, windows, macos]
+        options: [all, linux, windows, macos, arm64]
         default: all
 
 permissions:
@@ -20,7 +22,9 @@ permissions:
 # a draft GitHub release by the `release` job. The `check` job (#937) looks for a green full dispatch run on the tagged
 # commit: if there is one the tag run skips build and tests (#899), else it builds and tests itself. It never waits.
 # The macOS leg (#455) runs on tags and when chosen in a dispatch, never as part of `all` (10x minutes); macos-14 is pinned because it is Apple silicon. It always
-# builds and tests (the green-run lookup covers Linux and Windows only). linux-arm64 follows with its own leg.
+# builds and tests (the green-run lookup covers Linux and Windows x64 only). The arm64 legs (#1247, linux-arm64 and windows-arm64)
+# build on native arm64 runners (AOT cannot cross-compile), run on tags and `platform=arm64` dispatches, never in `all`, and
+# always build and test; like macOS, a red arm64 leg does not block the x64 assets.
 
 concurrency:
   group: ci-${{ github.ref }}-${{ inputs.platform }}
@@ -63,7 +67,7 @@ jobs:
   linux-x64:
     needs: check
     # `check` is skipped off tags; if it failed, `green` is empty and the tag run tests (fail closed).
-    if: ${{ !cancelled() && github.event.pull_request.draft != true && (inputs.platform == 'all' || inputs.platform == 'linux' || github.event_name == 'push') }}
+    if: ${{ !cancelled() && github.event.pull_request.draft != true && (github.event_name != 'workflow_dispatch' || inputs.platform == 'all' || inputs.platform == 'linux') }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -87,6 +91,8 @@ jobs:
         # names the running test. The step timeout also covers a host that died with no test in flight.
         timeout-minutes: 10
         run: dotnet test -c Release --no-build --blame-hang-timeout 3m --blame-hang-dump-type none
+      - name: Install script test (fake release on disk, #1248)
+        run: scripts/test-install.sh
       - name: Decide whether the AOT publish is needed
         id: aot
         env:
@@ -138,7 +144,7 @@ jobs:
 
   windows-x64:
     needs: check
-    if: ${{ !cancelled() && (inputs.platform == 'all' || inputs.platform == 'windows' || github.event_name == 'push') }}
+    if: ${{ !cancelled() && github.event.pull_request.draft != true && (github.event_name != 'workflow_dispatch' || inputs.platform == 'all' || inputs.platform == 'windows') }}
     runs-on: windows-latest
     timeout-minutes: 25
     defaults:
@@ -188,6 +194,10 @@ jobs:
             dotnet test "tests/Gitunia.$project.Tests" -c Release --no-build --filter "Os!=Independent" \
               --blame-hang-timeout 10m --blame-hang-dump-type none || exit 1
           done
+      - name: Install script test (Windows PowerShell 5.1 and pwsh, fake release on disk, #1248)
+        run: |
+          powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-install.ps1
+          pwsh -NoProfile -File scripts/test-install.ps1
       - name: AOT publish (any IL* warning fails)
         run: |
           version_arg=""; if [[ "$GITHUB_REF" == refs/tags/v* ]]; then version_arg="-p:Version=${GITHUB_REF_NAME#v}"; fi
@@ -218,7 +228,7 @@ jobs:
   macos-arm64:
     # Tags and an explicit `platform: macos` dispatch only (#455): macOS minutes cost 10x on the free plan.
     needs: check
-    if: ${{ !cancelled() && (inputs.platform == 'macos' || github.event_name == 'push') }}
+    if: ${{ !cancelled() && (inputs.platform == 'macos' || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v'))) }}
     runs-on: macos-14
     timeout-minutes: 20
     steps:
@@ -275,11 +285,115 @@ jobs:
           path: dist/*
           if-no-files-found: error
 
+  linux-arm64:
+    # Tags and an explicit `platform: arm64` dispatch only (#1247); native arm64 runner, free for public repositories.
+    needs: check
+    if: ${{ !cancelled() && (inputs.platform == 'arm64' || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v'))) }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - name: Native AOT prerequisites
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends clang zlib1g-dev
+      - name: Build (warnings, including IL*, are errors)
+        run: dotnet build -c Release
+      - name: Test
+        timeout-minutes: 12
+        run: dotnet test -c Release --no-build --blame-hang-timeout 3m --blame-hang-dump-type none
+      - name: AOT publish (any IL* warning fails)
+        run: |
+          version_arg=""; if [[ "$GITHUB_REF" == refs/tags/v* ]]; then version_arg="-p:Version=${GITHUB_REF_NAME#v}"; fi
+          dotnet publish src/Gitunia.Tui -c Release -r linux-arm64 -p:TreatWarningsAsErrors=true $version_arg -o out 2>&1 | tee publish.log
+          test "${PIPESTATUS[0]}" -eq 0
+          if grep -E "warning IL[0-9]+" publish.log; then echo "::error::trim/AOT warnings found"; exit 1; fi
+      - name: Smoke run
+        run: |
+          out="$(./out/gitunia)"
+          echo "$out"
+          echo "$out" | grep -q "gitunia"
+      - name: Smoke run (graph frame of this repository)
+        run: |
+          frame="$(./out/gitunia "$GITHUB_WORKSPACE" --print-frame 100x12)"
+          echo "$frame"
+          echo "$frame" | grep -q "Gitunia"
+          echo "$frame" | grep -q "NORMAL"
+      - name: Package (release tags only)
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+        run: scripts/package.sh linux-arm64 out "${GITHUB_REF_NAME#v}" dist
+      - name: Package .deb, .rpm and Arch (release tags only)
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+        run: |
+          go install github.com/goreleaser/nfpm/v2/cmd/nfpm@v2.43.0
+          PATH="$(go env GOPATH)/bin:$PATH" scripts/package-linux.sh out "${GITHUB_REF_NAME#v}" dist arm64
+      - uses: actions/upload-artifact@v4
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+        with:
+          name: dist-linux-arm64
+          path: dist/*
+          if-no-files-found: error
+
+  windows-arm64:
+    # Tags and an explicit `platform: arm64` dispatch only (#1247); native arm64 runner, free for public repositories.
+    needs: check
+    if: ${{ !cancelled() && (inputs.platform == 'arm64' || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v'))) }}
+    runs-on: windows-11-arm
+    # No D: temp and NuGet speed-up as in windows-x64 (#624): rarely run, and the arm64 runner may have no D: drive.
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - name: Build (warnings, including IL*, are errors)
+        run: dotnet build -c Release
+      - name: Test (one project at a time, OS-sensitive tests only)
+        run: |
+          for project in Core Platform Git App Tui; do
+            dotnet test "tests/Gitunia.$project.Tests" -c Release --no-build --filter "Os!=Independent" \
+              --blame-hang-timeout 10m --blame-hang-dump-type none || exit 1
+          done
+      - name: AOT publish (any IL* warning fails)
+        run: |
+          version_arg=""; if [[ "$GITHUB_REF" == refs/tags/v* ]]; then version_arg="-p:Version=${GITHUB_REF_NAME#v}"; fi
+          dotnet publish src/Gitunia.Tui -c Release -r win-arm64 -p:TreatWarningsAsErrors=true $version_arg -o out 2>&1 | tee publish.log
+          test "${PIPESTATUS[0]}" -eq 0
+          if grep -E "warning IL[0-9]+" publish.log; then echo "::error::trim/AOT warnings found"; exit 1; fi
+      - name: Smoke run
+        run: |
+          out="$(./out/gitunia.exe)"
+          echo "$out"
+          echo "$out" | grep -q "gitunia"
+      - name: Smoke run (graph frame of this repository)
+        run: |
+          frame="$(./out/gitunia.exe "$GITHUB_WORKSPACE" --print-frame 100x12)"
+          echo "$frame"
+          echo "$frame" | grep -q "Gitunia"
+          echo "$frame" | grep -q "NORMAL"
+      - name: Package (release tags only)
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+        run: scripts/package.sh win-arm64 out "${GITHUB_REF_NAME#v}" dist
+      - uses: actions/upload-artifact@v4
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+        with:
+          name: dist-win-arm64
+          path: dist/*
+          if-no-files-found: error
+
   release:
-    # Draft release so the owner reads the notes and publishes it; never runs for dispatch or branches. A red macOS leg
-    # (lowest priority, never run before the first tag) does not block the Linux and Windows assets (#455).
+    # Draft release so the owner reads the notes and publishes it; never runs for dispatch or branches. A red macOS or arm64 leg
+    # does not block the x64 assets (#455, #1247).
     if: ${{ !cancelled() && github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && needs.linux-x64.result == 'success' && needs.windows-x64.result == 'success' }}
-    needs: [linux-x64, windows-x64, macos-arm64]
+    needs: [linux-x64, windows-x64, macos-arm64, linux-arm64, windows-arm64]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:

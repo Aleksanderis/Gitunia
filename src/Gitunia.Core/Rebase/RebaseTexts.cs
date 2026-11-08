@@ -1,3 +1,5 @@
+using Gitunia.Core.Keymap;
+using Gitunia.Core.Operations;
 using Gitunia.Core.Overlays;
 using Gitunia.Core.Status;
 using Gitunia.Core.Text;
@@ -22,8 +24,8 @@ public static class RebaseTexts
         {
             lines.Add(
                 $"{RebaseCounts.Plural(merges, "merge commit")} in that range will be flattened: the merge " +
-                "itself is dropped and the commits are replayed as one line. <space>bri keeps merges " +
-                "(interactive rebase, --rebase-merges).");
+                $"itself is dropped and the commits are replayed as one line. {KeyTokens.Of(ActionIds.RebaseInteractive, "Interactive rebase")} keeps merges " +
+                "(--rebase-merges).");
         }
 
         if (RebaseGuard.UpstreamWarning(current) is { } warning)
@@ -39,8 +41,8 @@ public static class RebaseTexts
         return new ConfirmPrompt(
             "Rebase",
             lines,
-            $"Undo: git reset --keep {target.OldTip} (also ORIG_HEAD, the reflog). A stop on conflicts leaves a " +
-            "rebase in progress: <space>gc continues, <space>ga aborts.",
+            $"{UndoNotes.FromReflog} A stop on conflicts leaves a " +
+            $"rebase in progress: you can {OperationKeys.Continue} or {OperationKeys.Abort} it.",
             "Rebase");
     }
 
@@ -51,8 +53,8 @@ public static class RebaseTexts
         {
             return new PostedText(
                 $"Rebase of {target.BranchName} onto {target.Label} stopped on conflicts: resolve the files " +
-                $"marked !, then <space>gc (continue), <space>ga (abort, back to " +
-                $"{ShortHash.Of(target.OldTip)})",
+                $"marked !, then {OperationKeys.Continue}, or {OperationKeys.Abort} to go back to " +
+                $"{ShortHash.Of(target.OldTip)}",
                 StatusSeverity.Warning);
         }
 
@@ -67,9 +69,9 @@ public static class RebaseTexts
         var was = ShortHash.Of(target.OldTip);
 
         return new PostedText(
-            $"Rebased {target.BranchName} onto {target.Label} ({head}), was {was}; " +
-            $"undo: git reset --keep {target.OldTip} (or ORIG_HEAD, the reflog)",
-            StatusSeverity.Info);
+            $"Rebased {target.BranchName} onto {target.Label} ({head}), was {was}",
+            StatusSeverity.Info,
+            UndoNotes.Undo($"git reset --keep {target.OldTip} (or ORIG_HEAD, the reflog)"));
     }
 
     /// <summary>The failure line of a rebase that did not run.</summary>

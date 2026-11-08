@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using Gitunia.Core.Effects;
 using Gitunia.Core.Jump;
 using Gitunia.Core.Jump.Models;
+using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Tabs;
@@ -111,6 +112,19 @@ public class QuickJumpReducerTests
 
         Assert.Null(transition.Session);
         Assert.Empty(transition.Effects);
+    }
+
+    [Fact]
+    public void GivenCaretInsideTheText_WhenTyping_ThenTheKeyIsInsertedThereAndTheStatusLineShowsTheCaret()
+    {
+        var session = new QuickJumpSession(Tab, PaneKind.Diff, "fx");
+
+        var left = QuickJumpReducer.Reduce(session, new QuickJumpKeyPressed(new KeyEvent(KeyNames.Left), [])).Session!;
+        var typed = QuickJumpReducer.Reduce(left, new QuickJumpKeyPressed(new KeyEvent("i"), [])).Session!;
+
+        Assert.Equal("fix", typed.Text);
+        Assert.Equal(2, typed.Caret);
+        Assert.Equal("jump fi|x  2 in view", QuickJumpReducer.StatusLine(typed.Text, 2, typed.Caret));
     }
 
     [Theory]

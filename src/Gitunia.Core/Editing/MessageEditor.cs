@@ -61,6 +61,8 @@ public sealed partial class MessageEditor
         copy._lines.Clear();
         copy._lines.AddRange(_lines);
         copy._undo.AddRange(_undo);
+        copy._redo.AddRange(_redo);
+        copy._anchor = _anchor;
         copy.CursorRow = CursorRow;
         copy.CursorColumn = CursorColumn;
         copy._desiredWidth = _desiredWidth;
@@ -72,6 +74,8 @@ public sealed partial class MessageEditor
     public void SetText(string text)
     {
         _undo.Clear();
+        _redo.Clear();
+        _anchor = null;
         _lines.Clear();
         _lines.Add(string.Empty);
         CursorRow = 0;
@@ -86,6 +90,7 @@ public sealed partial class MessageEditor
     public void LoadLines(IReadOnlyList<string> lines)
     {
         _undo.Clear();
+        _redo.Clear();
         _lines.Clear();
         _lines.AddRange(lines);
         if (_lines.Count == 0)
@@ -169,9 +174,13 @@ public sealed partial class MessageEditor
     /// <summary>Empties the editor.</summary>
     public void Clear() => SetText(string.Empty);
 
-    /// <summary>Inserts text at the cursor (typing or a paste): line endings become new lines, other controls are dropped.</summary>
+    /// <summary>
+    /// Inserts text at the cursor (typing or a paste): line endings become new lines, other controls are dropped. A
+    /// selection is replaced.
+    /// </summary>
     public void Insert(string text)
     {
+        DeleteSelection();
         var normalized = text.Replace(WindowsLineEnding, NewLine.ToString()).Replace(CarriageReturn, NewLine);
         var builder = new StringBuilder(normalized.Length);
         foreach (var character in normalized)
@@ -200,6 +209,7 @@ public sealed partial class MessageEditor
     /// <summary>Remembers the text and cursor so <see cref="Undo"/> can return to them (the start of a change).</summary>
     public void MarkUndoPoint()
     {
+        _redo.Clear();
         _undo.Add(new EditorSnapshot([.. _lines], CursorRow, CursorColumn));
         if (_undo.Count > MaximumUndo)
         {
@@ -226,9 +236,8 @@ public sealed partial class MessageEditor
 
         var snapshot = _undo[^1];
         _undo.RemoveAt(_undo.Count - 1);
-        _lines.Clear();
-        _lines.AddRange(snapshot.Lines);
-        MoveTo(snapshot.Row, snapshot.Column);
+        _redo.Add(new RedoStep(new EditorSnapshot([.. _lines], CursorRow, CursorColumn), snapshot));
+        Restore(snapshot);
         return true;
     }
 

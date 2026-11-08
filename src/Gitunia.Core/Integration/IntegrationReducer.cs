@@ -17,7 +17,8 @@ public static class IntegrationReducer
         {
             IntegrationCancelled => [],
             IntegrationFailed failed => Finished(failed.Text, StatusSeverity.Error, failed.Refresh, context),
-            IntegrationSucceeded succeeded => Finished(succeeded.Text, succeeded.Severity, true, context),
+            IntegrationSucceeded succeeded =>
+                Finished(succeeded.Text, succeeded.Severity, true, context, succeeded.Detail),
             MergeRequested merge => MergeReducer.Reduce(merge, context),
             OperationAbortConfirmed or OperationRequested or OperationSkipConfirmed =>
                 OperationReducer.Reduce(command, context),
@@ -30,13 +31,14 @@ public static class IntegrationReducer
         string text,
         StatusSeverity severity,
         bool refresh,
-        IntegrationContext context)
+        IntegrationContext context,
+        string? detail = null)
     {
         if (!refresh)
         {
-            return [new PostStatusEffect(text, severity)];
+            return [new PostStatusEffect(text, severity, detail)];
         }
 
-        return [new PostStatusEffect(text, severity), new RefreshTabEffect(context.TabId)];
+        return [new PostStatusEffect(text, severity, detail), new RefreshTabEffect(context.TabId)];
     }
 }

@@ -91,7 +91,9 @@ public sealed record RemotesListFailed(TabId TabId, string Text) : RemoteCommand
 /// <summary>Result: a remote operation finished.</summary>
 /// <param name="TabId">The tab.</param>
 /// <param name="Text">What to tell the user.</param>
-public sealed record RemoteOperationSucceeded(TabId TabId, string Text) : RemoteCommand(TabId), IOperationResult
+/// <param name="Detail">The restore command, kept in the message history; null when there is none.</param>
+public sealed record RemoteOperationSucceeded(TabId TabId, string Text, string? Detail = null)
+    : RemoteCommand(TabId), IOperationResult
 {
     RunningOperationKind IOperationResult.Kind => RunningOperationKind.Remotes;
 }

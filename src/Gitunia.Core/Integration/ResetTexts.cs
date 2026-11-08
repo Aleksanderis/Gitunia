@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using Gitunia.Core.Overlays;
 using Gitunia.Core.Prompts;
+using Gitunia.Core.Status;
 using Gitunia.Core.Text;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Reset;
@@ -47,10 +48,14 @@ public static class ResetTexts
     public static string UndoCommand(ResetMode mode, string oldHash) =>
         mode == ResetMode.Hard ? $"git reset --hard {oldHash}" : $"git reset {OptionOf(mode)} {oldHash}";
 
-    /// <summary>The status line after a reset: where the branch is and how to go back.</summary>
+    /// <summary>The status line after a reset: where the branch is and where it was.</summary>
     public static string Done(ResetTarget target, string oldHash) =>
         $"Reset {target.BranchName} to {ShortHash.Of(target.CommitHash)} ({ModeName(target.Mode)}), " +
-        $"was {ShortHash.Of(oldHash)}; undo: {UndoCommand(target.Mode, oldHash)} (or ORIG_HEAD, the reflog)";
+        $"was {ShortHash.Of(oldHash)}";
+
+    /// <summary>The message history detail after a reset: the command that goes back.</summary>
+    public static string DoneDetail(ResetTarget target, string oldHash) =>
+        UndoNotes.Undo($"{UndoCommand(target.Mode, oldHash)} (or ORIG_HEAD, the reflog)");
 
     /// <summary>The status line when the status could not be read.</summary>
     public static string StatusFailure(string reason) =>
@@ -65,7 +70,7 @@ public static class ResetTexts
             or StatusEntryKind.Unmerged;
 
     /// <summary>The dialog of a hard reset: what is overwritten and the undo.</summary>
-    public static ConfirmPrompt HardPrompt(ResetTarget target, string oldHash, ImmutableArray<StatusEntry> changes)
+    public static ConfirmPrompt HardPrompt(ResetTarget target, ImmutableArray<StatusEntry> changes)
     {
         List<string> lines =
         [
@@ -91,13 +96,13 @@ public static class ResetTexts
         return new ConfirmPrompt(
             "Hard reset",
             lines,
-            $"Undo for the commits: {UndoCommand(ResetMode.Hard, oldHash)} (or ORIG_HEAD, the reflog). " +
+            $"The commits can be brought back afterwards from {UndoNotes.Reflog}. " +
             "Uncommitted changes are never in the reflog and cannot be restored.",
             "Reset hard");
     }
 
     /// <summary>The dialog of a mixed reset that clears staged changes.</summary>
-    public static ConfirmPrompt MixedPrompt(ResetTarget target, string oldHash, ImmutableArray<StatusEntry> changes)
+    public static ConfirmPrompt MixedPrompt(ResetTarget target, ImmutableArray<StatusEntry> changes)
     {
         var staged = changes.Count(entry => entry.IsStaged);
         var partial = changes.Count(entry => entry is { IsStaged: true, IsUnstaged: true });
@@ -110,8 +115,8 @@ public static class ResetTexts
                 "the files in the working tree stay.",
                 $"{CountText.Plural(staged, "file")} {(staged == 1 ? "loses" : "lose")} the staged state{detail}.",
             ],
-            "The staged state cannot be recovered from the reflog. Undo for the commits: " +
-            $"{UndoCommand(ResetMode.Mixed, oldHash)} (or ORIG_HEAD, the reflog).",
+            "The staged state cannot be recovered from the reflog. The commits can be brought back afterwards " +
+            $"from {UndoNotes.Reflog}.",
             "Reset mixed");
     }
 

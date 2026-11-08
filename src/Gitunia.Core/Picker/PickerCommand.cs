@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using Gitunia.Core.Keymap.Models;
 
 namespace Gitunia.Core.Picker;
 
@@ -10,11 +11,15 @@ public abstract record PickerCommand : AppCommand
     }
 }
 
-/// <summary>Text typed into the query.</summary>
+/// <summary>Text typed into the query, inserted at the caret.</summary>
 /// <param name="Text">The typed characters.</param>
 public sealed record TypeTextCommand(string Text) : PickerCommand;
 
-/// <summary>Delete the last character of the query.</summary>
+/// <summary>A key typed into the query: text is inserted at the caret, the editing keys move it or delete (see <see cref="Editing.PromptTextEditor"/>).</summary>
+/// <param name="Key">The typed key.</param>
+public sealed record EditQueryCommand(KeyEvent Key) : PickerCommand;
+
+/// <summary>Delete the character before the caret of the query.</summary>
 public sealed record BackspaceCommand : PickerCommand;
 
 /// <summary>Clear the query.</summary>
@@ -23,6 +28,14 @@ public sealed record ClearQueryCommand : PickerCommand;
 /// <summary>Move the highlight; the list does not wrap.</summary>
 /// <param name="Delta">Rows to move, negative for up.</param>
 public sealed record MoveHighlightCommand(int Delta) : PickerCommand;
+
+/// <summary>Put the highlight on a row, or on the "more" or "less" line after it (a click).</summary>
+/// <param name="Row">The index in the rows (the anchor row of a toggle line).</param>
+/// <param name="IsOnToggle">Whether the highlight goes on the toggle line after the row.</param>
+public sealed record SetHighlightCommand(int Row, bool IsOnToggle) : PickerCommand;
+
+/// <summary>Expand the section whose "more" line is highlighted, or collapse the one whose "less" line is.</summary>
+public sealed record ToggleSectionCommand : PickerCommand;
 
 /// <summary>Complete the typed path (to the common prefix of the directories, or to the highlighted one).</summary>
 public sealed record CompletePathCommand : PickerCommand;

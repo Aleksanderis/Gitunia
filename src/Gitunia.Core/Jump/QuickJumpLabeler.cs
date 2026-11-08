@@ -1,7 +1,7 @@
 using System.Text;
+using Gitunia.Core.Editing;
 using Gitunia.Core.Jump.Models;
 using Gitunia.Core.Keymap.Models;
-using Gitunia.Core.Search;
 using Gitunia.Core.Text;
 
 namespace Gitunia.Core.Jump;
@@ -59,7 +59,7 @@ public static class QuickJumpLabeler
     }
 
     /// <summary>Applies a key to the prompt text: a label key jumps, any other key edits the text.</summary>
-    public static QuickJumpUpdate Apply(string text, KeyEvent key, IReadOnlyList<JumpLabel> labels)
+    public static QuickJumpUpdate Apply(string text, int caret, KeyEvent key, IReadOnlyList<JumpLabel> labels)
     {
         var normalized = key.Normalize();
         if (text.Length > 0 && normalized.IsPrintable && normalized.Name.Length == 1)
@@ -69,12 +69,17 @@ public static class QuickJumpLabeler
             {
                 if (label.HasLetter && label.Letter == letter)
                 {
-                    return new QuickJumpUpdate(text, label.Row);
+                    return new QuickJumpUpdate(text, label.Row, caret);
                 }
             }
         }
 
-        return new QuickJumpUpdate(PromptTextEditor.Apply(text, key) ?? text, null);
+        if (PromptTextEditor.Apply(text, caret, key) is { } edit)
+        {
+            return new QuickJumpUpdate(edit.Text, null, edit.Caret);
+        }
+
+        return new QuickJumpUpdate(text, null, caret);
     }
 
     // Every character that follows an occurrence of the text in this subject (lowercase and uppercase forms).

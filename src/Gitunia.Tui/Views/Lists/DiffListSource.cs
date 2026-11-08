@@ -3,6 +3,8 @@ using System.Collections.Specialized;
 using Gitunia.Core.Diff;
 using Gitunia.Core.Jump.Models;
 using Gitunia.Core.Lists;
+using Gitunia.Core.Text;
+using Gitunia.Core.Visual;
 using Gitunia.Tui.Rendering.Diff;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Panes;
@@ -13,7 +15,8 @@ using Terminal.Gui.Views;
 namespace Gitunia.Tui.Views.Lists;
 
 /// <summary>List source over the rows of a <see cref="DiffDocument"/>: only the visible rows are drawn, so a 50k-line diff costs no more per frame than a small one.</summary>
-public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource, IRangeSource, IJumpSource, IButtonSource
+public sealed class DiffListSource(GraphGlyphSet glyphs)
+    : IListDataSource, IRangeSource, IJumpSource, IButtonSource, ITextSource
 {
     private readonly JumpLabelCache _jump = new();
     private DiffWrapMap? _map;
@@ -88,6 +91,71 @@ public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource, IRan
     public bool SuspendCollectionChangedEvent { get; set; }
 
     public RowRange? Range { get; set; }
+
+    /// <summary>The characters of a character-wise selection, drawn instead of the whole rows of <see cref="Range"/>.</summary>
+    public TextSelection? Text { get; set; }
+
+    /// <summary>The selection is on the left (old) side of the side-by-side view.</summary>
+    public bool IsOldSide { get; set; }
+
+    /// <summary>There are rows to select characters in (wrapped, side by side or not).</summary>
+    public bool SupportsText => Document.Rows.Count > 0;
+
+    /// <summary>The text of the row screen line <paramref name="item"/> shows (on a side, side by side).</summary>
+    /// <param name="item">The screen line.</param>
+    /// <param name="isOldSide">The left side of the side-by-side view.</param>
+    public string TextOf(int item, bool isOldSide)
+    {
+        var geometry = Geometry(Width);
+
+        return geometry.RowOf(item, isOldSide) is { } row ? geometry.TextOf(row) : string.Empty;
+    }
+
+    /// <summary>The character under a pointer position: the pane padding and the row prefix (line numbers, marker) count as the first character.</summary>
+    /// <param name="listView">The list this source is shown in.</param>
+    /// <param name="column">The pointer column inside the list view.</param>
+    /// <param name="row">The pointer row inside the list view.</param>
+    /// <param name="isOldSide">
+    /// Stay on this side of the side-by-side view; null takes the side the pointer is on.
+    /// </param>
+    public TextHit? HitAt(ListView listView, int column, int row, bool? isOldSide)
+    {
+        if (!SupportsText || Count == 0)
+        {
+            return null;
+        }
+
+        var padding = ScreenPadding.Columns(listView);
+        var width = PanePadding.TextWidth(listView.Viewport.Width, padding);
+        var item = Math.Clamp(listView.Viewport.Y + row, 0, Count - 1);
+
+        return Geometry(width).PositionAt(item, column - padding, isOldSide);
+    }
+
+    /// <summary>The first character screen line <paramref name="item"/> shows.</summary>
+    /// <param name="item">The screen line.</param>
+    /// <param name="isOldSide">The left side of the side-by-side view.</param>
+    public TextPosition StartAt(int item, bool isOldSide) => Geometry(Width).StartOf(item, isOldSide);
+
+    /// <summary>The screen line that shows the character at <paramref name="position"/>.</summary>
+    /// <param name="position">The position.</param>
+    /// <param name="isOldSide">The left side of the side-by-side view.</param>
+    public int ItemShowing(TextPosition position, bool isOldSide) => Geometry(Width).ItemShowing(position, isOldSide);
+
+    /// <summary>
+    /// The characters of a selection as they are copied: lines joined with a line feed, notes and the other side's rows
+    /// left out.
+    /// </summary>
+    /// <param name="selection">The selection, in screen lines.</param>
+    /// <param name="isOldSide">The left side of the side-by-side view.</param>
+    public string CopyText(TextSelection selection, bool isOldSide)
+    {
+        var geometry = Geometry(Width);
+
+        return geometry.ToRows(selection, isOldSide) is { } rows
+            ? rows.TextIn(new DiffRowLines(Document, geometry, isOldSide))
+            : string.Empty;
+    }
 
     public event Action? RangeInvalidated;
 
@@ -213,11 +281,12 @@ public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource, IRan
         var columns = ScreenPadding.Columns(listView);
         var current = Map();
         width = PanePadding.TextWidth(width, columns);
-        var isRange = Range?.Contains(item) == true;
+        var isRange = Range?.Contains(item) == true && Text is null;
         var isRangeCursor = isRange && selected;
         selected |= isRange;
         var jump = ShowsSideBySide ? null : JumpLabelAt(listView, current, item);
         var line = LineAt(listView, current, item, width, selected, jump);
+        line = MarkText(line, item, width);
         var padded = PanePadding.Wrap(line, columns);
         if (IsInCursorGroup(listView, item))
         {
@@ -234,6 +303,34 @@ public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource, IRan
 
     public void Dispose()
     {
+    }
+
+    // The layout of the text for the current wrap and side-by-side state, in a text area of the given width.
+    private DiffTextGeometry Geometry(int width) => new(
+        Document,
+        ShowsSideBySide ? null : Map(),
+        ShowsSideBySide ? SplitMap() : null,
+        width,
+        _gutterDigits);
+
+    // The line with the selected characters of a character-wise selection in the selection tint.
+    private StyledLine MarkText(StyledLine line, int item, int width)
+    {
+        if (Text is not { } selection || item < 0 || item >= Count)
+        {
+            return line;
+        }
+
+        var geometry = Geometry(width);
+        if (geometry.ToRows(selection, IsOldSide) is not { } rows
+            || geometry.RowOf(item, IsOldSide) is not { } row
+            || rows.SpanOn(row, geometry.TextOf(row)) is not { } span
+            || geometry.ColumnsOf(item, IsOldSide, span) is not { } columns)
+        {
+            return line;
+        }
+
+        return SelectionMarker.Mark(line, columns.From, columns.To);
     }
 
     /// <summary>

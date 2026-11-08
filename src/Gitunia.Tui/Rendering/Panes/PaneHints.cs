@@ -85,6 +85,8 @@ public static partial class PaneHints
         new("<space>s", "Changes view", [ActionIds.WorkingTreeToggle]),
         new("]/[", "tabs", [ActionIds.DetailNextTab, ActionIds.DetailPreviousTab]),
         new("Enter", "open", [ActionIds.DetailOpenDiff]),
+        new("<space>H", "file history", [ActionIds.FileHistoryOpen]),
+        new("<space>gb", "blame", [ActionIds.BlameOpen]),
         new("<space>j", "quick jump", [ActionIds.QuickJump]),
         new("Esc", "back", [ActionIds.NavigateBack]),
         PaneMove,
@@ -104,6 +106,7 @@ public static partial class PaneHints
         new("]c/[c", "hunk", [ActionIds.DiffNextHunk, ActionIds.DiffPreviousHunk]),
         new("]f/[f", "file", [ActionIds.DiffNextFile, ActionIds.DiffPreviousFile]),
         new("/", "search", [ActionIds.DiffSearchOpen]),
+        new("<space>L", "line history", [ActionIds.LineHistoryOpen]),
         ViewOptions,
         new("Esc", "back", [ActionIds.NavigateBack]),
         new("<space>j", "quick jump", [ActionIds.QuickJump]),
@@ -137,6 +140,7 @@ public static partial class PaneHints
     [
         new("]c/[c", "change", [ActionIds.DiffNextHunk, ActionIds.DiffPreviousHunk]),
         new("/", "search", [ActionIds.DiffSearchOpen]),
+        new("<space>L", "line history", [ActionIds.LineHistoryOpen]),
         ViewOptions,
         new("Esc", "back", [ActionIds.NavigateBack]),
         new("<space>j", "quick jump", [ActionIds.QuickJump]),
@@ -172,6 +176,8 @@ public static partial class PaneHints
         new("<space>A", "stage all", [ActionIds.WorkingTreeStageAll]),
         new("Enter", "diff", [ActionIds.WorkingTreeOpenDiff]),
         new("<space>d", "discard", [ActionIds.WorkingTreeDiscard]),
+        new("<space>H", "file history", [ActionIds.FileHistoryOpen]),
+        new("<space>gb", "blame", [ActionIds.BlameOpen]),
         new("<space>j", "quick jump", [ActionIds.QuickJump]),
         new("<space>c", "message", [ActionIds.WorkingTreeWriteMessage]),
         PaneJumps,
@@ -214,6 +220,8 @@ public static partial class PaneHints
         new("<space>u", "unstage", [ActionIds.WorkingTreeUnstage]),
         new("<space>U", "unstage all", [ActionIds.WorkingTreeUnstageAll]),
         new("Enter", "diff", [ActionIds.WorkingTreeOpenDiff]),
+        new("<space>H", "file history", [ActionIds.FileHistoryOpen]),
+        new("<space>gb", "blame", [ActionIds.BlameOpen]),
         new("<space>j", "quick jump", [ActionIds.QuickJump]),
         new("<space>c", "message", [ActionIds.WorkingTreeWriteMessage]),
         PaneJumps,
@@ -238,17 +246,6 @@ public static partial class PaneHints
         new("Alt-s/Alt-n/Alt-a", "options", [ActionIds.WorkingTreeToggleSignOff, ActionIds.WorkingTreeToggleNoVerify, ActionIds.WorkingTreeToggleAmend]),
     ];
 
-    private static readonly ImmutableArray<KeyHint> Picker =
-    [
-        new("Enter", "open", [ActionIds.PickerAccept]),
-        new("Tab", "accept", [ActionIds.PickerCompletePath]),
-        new("Alt-p", "pin to top", [ActionIds.PickerPin]),
-        new("Alt-d", "forget", [ActionIds.PickerRemoveRecent]),
-        new("Alt-c", "clone", [ActionIds.PickerClone]),
-        new("Alt-i", "init", [ActionIds.PickerInit]),
-        new("Esc", "close", [ActionIds.Cancel]),
-    ];
-
     private static readonly ImmutableArray<KeyHint> Palette =
     [
         new("Ctrl-j/k", "move", [ActionIds.PaletteNext, ActionIds.PalettePrevious]),
@@ -260,6 +257,28 @@ public static partial class PaneHints
     [
         new("y", "yes, do it", [ActionIds.ConfirmYes]),
         new("n/Esc", "cancel", [ActionIds.ConfirmNo, ActionIds.Cancel]),
+    ];
+
+    private static readonly ImmutableArray<KeyHint> Blame =
+    [
+        new("Enter", "commit", [ActionIds.BlameShowCommit]),
+        new("Alt-p", "parent", [ActionIds.BlameParent]),
+        new("<space>H", "history", [ActionIds.FileHistoryOpen]),
+        new("<space>L", "line history", [ActionIds.LineHistoryOpen]),
+        new(
+            "Alt-w/m/c",
+            "-w -M -C",
+            [ActionIds.BlameIgnoreWhitespace, ActionIds.BlameDetectMoves, ActionIds.BlameDetectCopies]),
+        new("/", "search", [ActionIds.SearchOpen]),
+        new("n/N", "next/prev", [ActionIds.SearchNext, ActionIds.SearchPrevious]),
+        new("Esc", "close", [ActionIds.NavigateBack]),
+    ];
+
+    private static readonly ImmutableArray<KeyHint> FileHistory =
+    [
+        new("Enter", "graph", [ActionIds.FileHistorySelectCommit]),
+        new("J/K", "scroll", [ActionIds.DiffScrollDown, ActionIds.DiffScrollUp]),
+        new("Esc", "close", [ActionIds.NavigateBack]),
     ];
 
     private static readonly ImmutableArray<KeyHint> Reflog =

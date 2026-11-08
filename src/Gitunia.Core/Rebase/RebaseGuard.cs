@@ -22,7 +22,7 @@ public static class RebaseGuard
         if (tab.Operation is { } info)
         {
             var name = OperationBannerBuilder.NameOf(info.Kind);
-            return $"A {name} is in progress: finish or abort the {name} first (<space>gc continue, <space>ga abort)";
+            return OperationKeys.InProgress(name);
         }
 
         if (tab.Head is not { Kind: HeadKind.Branch, BranchName: not null, CommitHash: not null })

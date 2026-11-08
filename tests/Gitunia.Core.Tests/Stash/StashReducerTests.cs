@@ -116,7 +116,7 @@ public class StashReducerTests
         var confirm = Assert.IsType<ShowConfirmEffect>(Assert.Single(effects));
         Assert.Equal("Drop stash", confirm.Prompt.Title);
         Assert.Equal(["Drop stash@{0}: On main: \"quoted\" work?"], confirm.Prompt.Lines);
-        Assert.Equal("Undo: git stash store -m \"On main: \\\"quoted\\\" work\" abc123", confirm.Prompt.Consequence);
+        Assert.Equal(UndoNotes.FromHistory, confirm.Prompt.Consequence);
         Assert.Equal(new StashDropConfirmed(Tab, Entry), confirm.OnAccepted);
         Assert.Equal("The screen is too small to ask: nothing was dropped", confirm.UnavailableNotice);
     }

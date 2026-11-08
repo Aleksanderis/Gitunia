@@ -319,7 +319,8 @@ public class SyncReducerTests
         Assert.Contains("origin/topic", confirm.Prompt.Lines[0], StringComparison.Ordinal);
         Assert.Contains(Tip[..7], confirm.Prompt.Lines[0], StringComparison.Ordinal);
         Assert.Contains("lease", confirm.Prompt.Lines[1], StringComparison.Ordinal);
-        Assert.Equal($"Undo: git push --force-with-lease origin {Tip}:topic", confirm.Prompt.Consequence);
+        Assert.Equal(UndoNotes.FromHistory, confirm.Prompt.Consequence);
+        Assert.Equal($"Undo: git push --force-with-lease origin {Tip}:topic", Assert.IsType<SyncForceConfirmed>(confirm.OnAccepted).DoneDetail);
         Assert.Equal("Force push", confirm.Prompt.YesLabel);
         var accepted = Assert.IsType<SyncForceConfirmed>(confirm.OnAccepted);
         Assert.Equal(new PushRequest("origin", "topic", false, new PushLease("topic", Tip)), accepted.Request);
@@ -429,7 +430,7 @@ public class SyncReducerTests
         var confirm = Assert.IsType<ShowConfirmEffect>(Assert.Single(update.Effects));
         var accepted = Assert.IsType<SyncForceConfirmed>(confirm.OnAccepted);
         Assert.Equal(new PushRequest("origin", "lonely", true, new PushLease("lonely", Tip)), accepted.Request);
-        Assert.Contains($"{Tip}:lonely", confirm.Prompt.Consequence, StringComparison.Ordinal);
+        Assert.Equal($"Undo: git push --force-with-lease origin {Tip}:lonely", accepted.DoneDetail);
     }
 
     [Fact]
@@ -493,7 +494,7 @@ public class SyncReducerTests
         Assert.Equal("Delete branch on remote", confirm.Prompt.Title);
         Assert.Contains("topic", confirm.Prompt.Lines[0], StringComparison.Ordinal);
         Assert.Contains("origin", confirm.Prompt.Lines[0], StringComparison.Ordinal);
-        Assert.Equal($"Undo: git push origin {Tip}:refs/heads/topic", confirm.Prompt.Consequence);
+        Assert.Equal(UndoNotes.FromHistory, confirm.Prompt.Consequence);
         Assert.Equal(new SyncDeleteConfirmed(Tab, "origin", "topic", Tip), confirm.OnAccepted);
     }
 
@@ -557,7 +558,7 @@ public class SyncReducerTests
 
         var confirm = Assert.IsType<ShowConfirmEffect>(Assert.Single(update.Effects));
         Assert.Contains("Local branches are not touched.", confirm.Prompt.Lines);
-        Assert.Equal($"Undo: git push origin {Tip}:refs/heads/a", confirm.Prompt.Consequence);
+        Assert.Equal(UndoNotes.FromHistory, confirm.Prompt.Consequence);
         Assert.Equal(SyncReducer.TooSmallNotice, confirm.UnavailableNotice);
     }
 

@@ -3,6 +3,7 @@ using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Keymap.Repeat;
 using Gitunia.Core.Workspaces.Panes;
+using Gitunia.Git.History.Models;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Panes;
 using Gitunia.Tui.Rendering.Screen;
@@ -39,6 +40,35 @@ public class PaneHintsTests
             Assert.All(limited, hint => Assert.True(PaneHints.IsListedAt(hint, level)));
             Assert.Equal(hints.Count(hint => PaneHints.IsListedAt(hint, level)), limited.Count);
         }
+    }
+
+    [Theory]
+    [InlineData(PaneKind.Detail, "<space>gb")]
+    [InlineData(PaneKind.Detail, "<space>H")]
+    [InlineData(PaneKind.WorkingUnstaged, "<space>gb")]
+    [InlineData(PaneKind.WorkingUnstaged, "<space>H")]
+    [InlineData(PaneKind.WorkingStaged, "<space>gb")]
+    [InlineData(PaneKind.WorkingStaged, "<space>H")]
+    [InlineData(PaneKind.Diff, "<space>L")]
+    [InlineData(PaneKind.WorkingUnstagedDiff, "<space>L")]
+    [InlineData(PaneKind.WorkingStagedDiff, "<space>L")]
+    public void GivenAPaneWhereHistoryOrBlameWorks_WhenListingItsHints_ThenTheKeyIsShownAtDefaultLevel(
+        PaneKind pane,
+        string keys)
+    {
+        var hints = PaneHints.Limit(PaneHints.For(pane), StatusBarHintMode.Full, CommandLevel.Everyday);
+
+        Assert.Contains(hints, hint => hint.Keys == keys);
+    }
+
+    [Fact]
+    public void GivenALineRange_WhenAskingForLineHistoryHints_ThenTheFirstHintNamesTheRange()
+    {
+        var hints = PaneHints.ForLineHistory(new LineRange(12, 20));
+
+        Assert.Equal("Lines 12-20", hints[0].Keys);
+        Assert.Equal(PaneHints.ForFileHistory().Count + 1, hints.Count);
+        Assert.Equal("Lines 7", PaneHints.ForLineHistory(new LineRange(7, 7))[0].Keys);
     }
 
     [Fact]
@@ -239,15 +269,6 @@ public class PaneHintsTests
         Assert.Equal(PaneHints.For(pane), PaneHints.For(pane, showsFileContent: false, onConflict: true));
     }
 
-    [Fact]
-    public void GivenThePickerHints_WhenListing_ThenEveryHintHasADescription()
-    {
-        foreach (var hint in PaneHints.ForPicker())
-        {
-            Assert.False(string.IsNullOrWhiteSpace(hint.Description), $"The hint {hint.Keys} has no description.");
-        }
-    }
-
     [Theory]
     [MemberData(nameof(Panes))]
     public void GivenAPane_WhenAskingForHints_ThenNoKeyUsesTheCaretNotation(PaneKind pane)
@@ -358,7 +379,6 @@ public class PaneHintsTests
             "ConflictEdit",
             "RebaseMessage",
             "Settings",
-            "Picker",
             "Palette",
         ];
 
@@ -410,9 +430,6 @@ public class PaneHintsTests
                 break;
             case "Settings":
                 AssertKeysTriggerActions(PaneHints.ForSettings(), KeyMode.Normal, DefaultKeymap.SettingsView);
-                break;
-            case "Picker":
-                AssertKeysTriggerActions(PaneHints.ForPicker(), KeyMode.Insert, DefaultKeymap.PickerView);
                 break;
             case "Palette":
                 AssertKeysTriggerActions(PaneHints.ForPalette(), KeyMode.Command, DefaultKeymap.PaletteView);

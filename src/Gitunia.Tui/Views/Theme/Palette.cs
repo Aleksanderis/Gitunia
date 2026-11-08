@@ -31,6 +31,9 @@ public static class Palette
     /// <summary>Distinct lane colours of the configured scheme: the colour slots the graph layout may use.</summary>
     public static int LaneColorCount => table.Lanes.Length;
 
+    // How much of the range tint replaces the changed-word tint under a selection.
+    private const double ChangedWordRangeShare = 0.75;
+
     public static Attribute For(StyledSegment segment, bool isSelected, bool isFocused) => For(segment, isSelected, isFocused, table);
 
     public static Attribute For(StyledSegment segment, SegmentHighlight highlight) => For(segment, highlight, table);
@@ -103,9 +106,23 @@ public static class Palette
             var minimum = segment.Role == SegmentRole.WhitespaceMark ? PaletteTable.SubtleContrast : PaletteTable.ReadableContrast;
             foreground = PaletteTable.EnsureReadable(foreground, background, minimum);
         }
+        else if (IsChangedWord(segment.Role) && background != Color.None && colors.RangeBackground != Color.None)
+        {
+            // A changed word keeps its own tint, so the range tint is mixed in (#1176):
+            // a selected character stays apart from the word around it.
+            background = PaletteTable.Blend(background, colors.RangeBackground, ChangedWordRangeShare);
+            var minimum = segment.Role is SegmentRole.WhitespaceMarkAddedWord or SegmentRole.WhitespaceMarkRemovedWord
+                ? PaletteTable.SubtleContrast
+                : PaletteTable.ReadableContrast;
+            foreground = PaletteTable.EnsureReadable(foreground, background, minimum);
+        }
 
         return new Attribute(foreground, background, style | colors.RangeStyle | (isCursor ? colors.RangeCursorStyle : TextStyle.None));
     }
+
+    private static bool IsChangedWord(SegmentRole role) =>
+        role is SegmentRole.DiffAddedWord or SegmentRole.DiffRemovedWord
+            or SegmentRole.WhitespaceMarkAddedWord or SegmentRole.WhitespaceMarkRemovedWord;
 
     // A branch label of the graph: a chip in the colour of its branch (inverse video where there are no colours).
     private static RoleAppearance LaneLabel(int colorIndex, PaletteTable colors)

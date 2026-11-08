@@ -1,3 +1,4 @@
+using Gitunia.Core.Editing;
 using Gitunia.Core.Keymap.Models;
 
 namespace Gitunia.Core.Overlays;
@@ -17,6 +18,7 @@ namespace Gitunia.Core.Overlays;
 /// <param name="MenuAnchor">Where the actions menu hangs while it is open (the row it was opened on).</param>
 /// <param name="HelpFilter">What was typed in the help filter (<c>/</c>); empty when the help is not filtered.</param>
 /// <param name="IsEditingHelpFilter">The filter line is taking typed text.</param>
+/// <param name="HelpFilterCaret">The caret column in <see cref="HelpFilter"/> (see <see cref="PromptCaret"/>).</param>
 /// <param name="MenuTitle">The title of the open menu; null for the default <c>Actions</c>.</param>
 public sealed record OverlayState(
     OverlayKind Kind,
@@ -30,7 +32,8 @@ public sealed record OverlayState(
     string? MenuTitle = null,
     int HelpTab = 0,
     string HelpFilter = "",
-    bool IsEditingHelpFilter = false)
+    bool IsEditingHelpFilter = false,
+    int HelpFilterCaret = PromptCaret.End)
 {
     public static OverlayState None { get; } = new(OverlayKind.None, string.Empty, 0, null, null, KeyMode.Normal, false);
 
@@ -70,19 +73,20 @@ public sealed record OverlayState(
     public bool IsHelpFiltered => Kind == OverlayKind.Help && (HelpFilter.Length > 0 || IsEditingHelpFilter);
 
     /// <summary>Starts a new help filter: the line takes text.</summary>
-    public OverlayState OpenHelpFilter() => this with { HelpFilter = string.Empty, IsEditingHelpFilter = true, HelpScroll = 0 };
+    public OverlayState OpenHelpFilter() => this with { HelpFilter = string.Empty, HelpFilterCaret = PromptCaret.End, IsEditingHelpFilter = true, HelpScroll = 0 };
 
-    /// <summary>Appends typed text to the help filter, from the first line.</summary>
-    public OverlayState TypeHelpFilter(string text) => this with { HelpFilter = HelpFilter + text, HelpScroll = 0 };
-
-    /// <summary>Removes the last typed character (code point) of the help filter.</summary>
-    public OverlayState DeleteHelpFilterLast() => HelpFilter.Length == 0
-        ? this
-        : this with
+    /// <summary>Applies a key to the help filter (text at the caret, caret moves, deletions); the first line shows again when the text changes. Unchanged when the key does nothing.</summary>
+    public OverlayState EditHelpFilter(KeyEvent key)
+    {
+        if (PromptTextEditor.Apply(HelpFilter, HelpFilterCaret, key) is not { } edit)
         {
-            HelpFilter = HelpFilter.Length > 1 && char.IsLowSurrogate(HelpFilter[^1]) ? HelpFilter[..^2] : HelpFilter[..^1],
-            HelpScroll = 0,
-        };
+            return this;
+        }
+
+        return edit.Text == HelpFilter
+            ? this with { HelpFilterCaret = edit.Caret }
+            : this with { HelpFilter = edit.Text, HelpFilterCaret = edit.Caret, HelpScroll = 0 };
+    }
 
     /// <summary>Stops typing but keeps the filter, so the rows can be scrolled.</summary>
     public OverlayState AcceptHelpFilter() => this with { IsEditingHelpFilter = false };

@@ -1,3 +1,4 @@
+using Gitunia.Core.Operations;
 using System.Collections.Immutable;
 using Gitunia.Core.Effects;
 using Gitunia.Core.Rebase;
@@ -133,7 +134,8 @@ public class RebaseReducerTests
 
         var show = Assert.IsType<ShowConfirmEffect>(Assert.Single(effects));
         Assert.Equal("Rebase main onto topic?", show.Prompt.Lines[0]);
-        Assert.Contains($"git reset --keep {Tip}", show.Prompt.Consequence, StringComparison.Ordinal);
+        Assert.Contains(UndoNotes.Reflog, show.Prompt.Consequence, StringComparison.Ordinal);
+        Assert.DoesNotContain("git reset", show.Prompt.Consequence, StringComparison.Ordinal);
         Assert.Equal(new RebaseOntoConfirmed(Tab, OntoTarget()), show.OnAccepted);
         Assert.Equal(RebaseReducer.TooSmallNotice, show.UnavailableNotice);
         Assert.DoesNotContain(show.Prompt.Lines, line => line.Contains("force push", StringComparison.Ordinal));
@@ -228,9 +230,8 @@ public class RebaseReducerTests
 
         var post = Assert.IsType<PostStatusEffect>(effects[0]);
         Assert.Equal(StatusSeverity.Info, post.Severity);
-        Assert.Equal(
-            $"Rebased main onto topic (3333333), was 1111111; undo: git reset --keep {Tip} (or ORIG_HEAD, the reflog)",
-            post.Text);
+        Assert.Equal("Rebased main onto topic (3333333), was 1111111", post.Text);
+        Assert.Equal($"Undo: git reset --keep {Tip} (or ORIG_HEAD, the reflog)", post.Detail);
         Assert.Equal(new RefreshTabEffect(Tab), effects[1]);
     }
 
@@ -255,8 +256,8 @@ public class RebaseReducerTests
 
         var post = Assert.IsType<PostStatusEffect>(effects[0]);
         Assert.Equal(StatusSeverity.Warning, post.Severity);
-        Assert.Contains("<space>gc", post.Text, StringComparison.Ordinal);
-        Assert.Contains("abort, back to 1111111", post.Text, StringComparison.Ordinal);
+        Assert.Contains(OperationKeys.Continue, post.Text, StringComparison.Ordinal);
+        Assert.Contains($"{OperationKeys.Abort} to go back to 1111111", post.Text, StringComparison.Ordinal);
     }
 
     [Fact]

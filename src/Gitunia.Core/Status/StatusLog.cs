@@ -30,11 +30,12 @@ public sealed record StatusLog
     public StatusMessage? Current(DateTimeOffset now) =>
         Latest is { } latest && !StatusLifetime.IsExpired(latest, now) ? latest : null;
 
-    public StatusLog Post(string text, StatusSeverity severity, DateTimeOffset postedAt)
+    public StatusLog Post(string text, StatusSeverity severity, DateTimeOffset postedAt, string? detail = null)
     {
         text = string.Join(' ', text.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
         var sequence = History.Count > 0 ? History[^1].Sequence + 1 : DismissedThrough + 1;
-        var history = new List<StatusMessage>(History) { new(sequence, text, severity, postedAt) };
+        var kept = string.IsNullOrWhiteSpace(detail) ? null : detail.Trim();
+        var history = new List<StatusMessage>(History) { new(sequence, text, severity, postedAt, kept) };
         if (history.Count > HistoryCapacity)
         {
             history.RemoveRange(0, history.Count - HistoryCapacity);

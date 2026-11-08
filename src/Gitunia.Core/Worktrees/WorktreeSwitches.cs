@@ -1,3 +1,4 @@
+using Gitunia.Core.Keymap;
 using System.Collections.Immutable;
 using Gitunia.Core.Effects;
 using Gitunia.Core.Status;
@@ -89,7 +90,7 @@ internal static class WorktreeSwitches
 
         if (worktree.IsPrunable)
         {
-            return $"{worktree.Path} is gone from disk: prune it with <space>wp";
+            return $"{worktree.Path} is gone from disk: {KeyTokens.Of(ActionIds.WorktreePrune, "prune it")}";
         }
 
         if (RepositoryPathComparer.Instance.Equals(worktree.Path, context.Tab.CommandPath))
@@ -99,7 +100,7 @@ internal static class WorktreeSwitches
 
         if (isSwitch && OtherTabShowing(context, worktree.Path) is { } other)
         {
-            return $"{worktree.Path} is already open in tab {other.Title}: <space>wt goes there";
+            return $"{worktree.Path} is already open in tab {other.Title}: {KeyTokens.Of(ActionIds.WorktreeOpen, "go there")}";
         }
 
         return string.Empty;

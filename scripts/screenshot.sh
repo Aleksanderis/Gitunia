@@ -5,7 +5,7 @@
 # Windows is unsupported here (no tmux): the script says so and exits 2; use scripts/screenshot.ps1 (psmux, resvg). See the screenshots skill (.claude/skills/screenshots/SKILL.md).
 #
 # Usage:
-#   scripts/screenshot.sh render  --binary <gitunia> [--out <dir>] [--scenarios default,opener,diff,split,narrow,light,files,files-filter,file-content,palette,help,help-lists,help-all,help-filter,whichkey,level-toggle,menu,menu-sidebar,sidebar-ref,prompt,prompt-narrow,picker,picker-narrow,jump,jump-narrow,jump-diff,jump-working,working,working-narrow,working-diff,working-diff-narrow,working-zoom,zoom-both,repeat,repeat-resize,view-menu,working-view-menu,list-view-menu,files-view-menu,working-list-menu,working-stage,working-hunk,working-lines,working-commit,working-hook,working-discard,working-resolve,working-empty-staged,status-fresh,status-settled,settings,settings-choice,settings-narrow,settings-keys,settings-keys-entry,theme-preview,theme-kept,theme-tokyo,theme-latte,rebase-editor,rebase-reword,rebase-confirm,rebase-narrow,conflict-editor,conflict-editor-two,conflict-editor-narrow,conflict-editor-visual,conflict-editor-lines,conflict-editor-result,conflict-editor-edit,conflict-editor-click,conflict-editor-double-click,conflict-editor-untake,conflict-editor-hscroll,conflict-entry,conflict-entry-keys,conflict-add-add-entry,conflict-add-add,conflict-add-add-save,conflict-add-add-done,conflict-delete-modify-entry,stash,whitespace] [--repo <dir>]
+#   scripts/screenshot.sh render  --binary <gitunia> [--out <dir>] [--scenarios default,opener,diff,split,narrow,light,files,files-filter,files-whichkey,file-content,palette,help,help-lists,help-all,help-filter,whichkey,level-toggle,menu,menu-sidebar,sidebar-ref,prompt,prompt-narrow,picker,picker-narrow,jump,jump-narrow,jump-diff,jump-working,working,working-narrow,working-diff,working-diff-narrow,working-zoom,zoom-both,repeat,repeat-resize,view-menu,working-view-menu,list-view-menu,files-view-menu,working-list-menu,working-stage,working-hunk,working-lines,working-selection,working-commit,working-hook,working-discard,working-resolve,working-empty-staged,status-fresh,status-settled,settings,settings-choice,settings-narrow,settings-keys,settings-keys-entry,theme-preview,theme-kept,theme-tokyo,theme-latte,rebase-editor,rebase-reword,rebase-confirm,rebase-narrow,conflict-editor,conflict-editor-two,conflict-editor-narrow,conflict-editor-visual,conflict-editor-lines,conflict-editor-result,conflict-editor-edit,conflict-editor-click,conflict-editor-double-click,conflict-editor-untake,conflict-editor-hscroll,conflict-entry,conflict-entry-keys,conflict-add-add-entry,conflict-add-add,conflict-add-add-save,conflict-add-add-done,conflict-delete-modify-entry,stash,whitespace,file-history,file-history-narrow,line-history,blame-lines,blame-chars,diff-chars,diff-chars-drag,diff-chars-word,diff-chars-wrap,diff-chars-split,details-chars] [--repo <dir>]
 #   scripts/screenshot.sh publish --pr <number> [--out <dir>]     push the PNGs of `render` to the screenshots repository,
 #                                                                  print markdown for a PR comment
 #   scripts/screenshot.sh clean                                    remove images of merged/closed PRs from the screenshots repository
@@ -13,8 +13,9 @@
 # so the code repository never carries them. It is private: links are github.com/<screenshots repo>/raw/<commit>/... (render for
 # logged-in viewers; raw.githubusercontent.com needs a token). They are pinned to the screenshots commit, so later pushes never break
 # them; `clean` deletes the files of merged PRs from the branch tip, but history keeps them (the owner may reset that repository).
-# Scenarios: theme-preview (the theme list with the light theme previewed) and theme-kept (the same after Enter: the theme is saved and stays), theme-tokyo and theme-latte (the same with the built-in tokyo-night and catppuccin-latte previewed); settings, settings-choice (an open choice) and settings-narrow (64x24, collapsed layout) show the settings screen (<space>,); settings-keys (the Keys category: the key reference) and settings-keys-entry (Enter on a key: its config entry in the status bar); default (120x36), diff (diff pane open), split (170 columns, side-by-side diff), narrow (64x30), light (light terminal background), files (gf Enter Enter: the Files tab with the first directory opened), files-filter (gf Enter / then mul: the tree filter) and file-content (gf Enter Enter j Enter: the content of the first file of the first directory in the diff pane's place),
-# opener (130 columns, <space>o: the repository opener with the tab row and its keyed chips), picker and picker-narrow (sidebar focus, <space>bs: the branch checkout filter picker with its candidate list), prompt and prompt-narrow (<space>bc then feat: the new-branch prompt popup), jump and jump-narrow (<space>j then c: the quick jump labels in the graph), jump-diff (the same in the file diff, typing e) and jump-working (the same in the Unstaged list of the Changes view), working, working-narrow, working-stage (after <space>a twice), working-hunk (the hunk of a file staged in its diff) and working-lines (a Visual range selected in the diff), working-zoom (the diff zoomed with <space>z), zoom-both (the history diff zoomed with <space>z: Changes and diff side by side), repeat (+ in the diff: the repeat mode with its [repeat] title marker and hint line) and repeat-resize (Ctrl-w h, Ctrl-w > then > on the sidebar: the resize repeat mode), view-menu and working-view-menu (<space>vv: the view ▾ dropdown of the history and the Changes view diff title), list-view-menu, files-view-menu and working-list-menu (<space>vv in the Changes list, the Files tree and the Unstaged list: their view ▾ dropdowns), working-diff and working-diff-narrow (<space>s, then the diff of a file with Enter: the Changes view of a copy of the throwaway repository with a conflict, staged and unstaged changes and untracked files; not for --repo).
+# Scenarios: theme-preview (the theme list with the light theme previewed) and theme-kept (the same after Enter: the theme is saved and stays), theme-tokyo and theme-latte (the same with the built-in tokyo-night and catppuccin-latte previewed); settings, settings-choice (an open choice) and settings-narrow (64x24, collapsed layout) show the settings screen (<space>,); settings-keys (the Key mapping category: the key reference) and settings-keys-entry (Enter on a key: its config entry in the status bar); default (120x36), diff (diff pane open), split (170 columns, side-by-side diff), narrow (64x30), light (light terminal background), files (gf Enter Enter: the Files tab with the first directory opened), files-filter (gf Enter / then mul: the tree filter) and file-content (gf Enter Enter j Enter: the content of the first file of the first directory in the diff pane's place),
+# blame-lines (the blame view after <space>gb, v and two j: a range of whole lines, status line VISUAL) and blame-chars (a real mouse drag across the code of two blame lines: characters), diff-chars (Enter Enter, five j, Alt-v then l and w motions: a character-wise selection inside one diff line, not the whole row), diff-chars-drag (a real mouse drag across diff text, sent as SGR reports: press, two moves with the button held, release), diff-chars-word (a real double-click on a word), diff-chars-wrap (the same drag with word wrap on, 76 columns), diff-chars-split (a drag over the old half of the side-by-side diff) and details-chars (gd, then a drag over the commit Details tab), line-history (Enter Enter, four j, v j j <space>L: the history of the Visual range of the diff), file-history and file-history-narrow (Enter j <space>H: the history of the first file of the selected commit with its diff), opener (130 columns, <space>o: the repository opener with the tab row and its keyed chips), picker and picker-narrow (sidebar focus, <space>bs: the branch checkout filter picker with its candidate list), prompt and prompt-narrow (<space>bc then feat: the new-branch prompt popup), jump and jump-narrow (<space>j then c: the quick jump labels in the graph), jump-diff (the same in the file diff, typing e) and jump-working (the same in the Unstaged list of the Changes view), working, working-narrow, working-stage (after <space>a twice), working-hunk (the hunk of a file staged in its diff) and working-lines (a Visual range selected in the diff), working-zoom (the diff zoomed with <space>z), zoom-both (the history diff zoomed with <space>z: Changes and diff side by side), repeat (+ in the diff: the repeat mode with its [repeat] title marker and hint line) and repeat-resize (Ctrl-w h, Ctrl-w > then > on the sidebar: the resize repeat mode), view-menu and working-view-menu (<space>vv: the view ▾ dropdown of the history and the Changes view diff title), list-view-menu, files-view-menu and working-list-menu (<space>vv in the Changes list, the Files tree and the Unstaged list: their view ▾ dropdowns), working-diff and working-diff-narrow (<space>s, then the diff of a file with Enter: the Changes view of a copy of the throwaway repository with a conflict, staged and unstaged changes and untracked files; not for --repo).
+# working-selection (<space>c, a message typed, then Shift-Left x4: the last word selected in the message box; not for --repo).
 # working-commit (staged files, a message typed in the box with SignOff on) and working-hook (the same, committed against a failing pre-commit hook: the output overlay); not for --repo.
 # working-discard (<space>d on README.md, the second file of the Unstaged list; the first is a conflict, which is refused: the Confirm dialog); not for --repo.
 # rebase-editor (G <space>gi, then squash, drop and so on: the interactive rebase todo editor on a linear branch of a copy of the throwaway repository), rebase-reword (r: the message editor of a reword), rebase-confirm (Enter: the Confirm over the editor) and rebase-narrow (64x24); not for --repo.
@@ -306,11 +307,23 @@ render() {
       list-view-menu) keys="Enter Space v v" ;;
       files-view-menu) keys="g f Enter Space v v" ;;
       working-list-menu) keys="Space s Space v v" ;;
-      split) columns=170 keys="Enter Enter S" ;;
+      split) columns=170 keys="Enter Enter Space v s" ;;
       whitespace) keys="Enter Enter Space v c" ;;
       narrow) columns=64 rows=30 ;;
+      diff-chars) keys="Enter Enter j j j j j M-v l l l l w" ;;
+      diff-chars-drag) keys="Enter Enter" mouse_after="drag:62,27:48,29" ;;
+      diff-chars-word) keys="Enter Enter" mouse_after="64,27 64,27" ;;
+      diff-chars-wrap) columns=76 keys="Enter Enter Space v w" mouse_after="drag:62,27:48,29" ;;
+      diff-chars-split) columns=170 keys="Enter Enter" keys_after="Space v s" mouse_after="drag:70,26:84,28" ;;
+      details-chars) keys="g d" mouse_after="drag:5,25:30,28" ;;
+      line-history) keys="Enter Enter j j j j v j j Space L" ;;
+      blame-lines) keys="Enter Space g b" keys_after="j v j j" ;;
+      blame-chars) keys="Enter Space g b" mouse_after="drag:46,3:58,4" ;;
+      file-history) keys="Enter j Space H" ;;
+      file-history-narrow) columns=64 rows=30 keys="Enter j Space H" ;;
       light) theme=light ;;
       files) keys="g f Enter Enter" ;;
+      files-whichkey) keys="g f Enter Space" ;;
       files-filter) keys="g f Enter / m u l" ;;
       file-content) keys="g f Enter Enter j Enter" ;;
       palette) rows=20 keys=": C-j C-j" ;;
@@ -341,14 +354,15 @@ render() {
       working-stage) keys="Space s Space a Space a" ;;
       working-hunk) keys="Space s j Enter" keys_after="Space a" ;;
       working-lines) keys="Space s j Enter" keys_after="j j j j j v" ;;
+      working-selection) keys="Space s Space c" keys_after="f i x : Space s e l e c t Space t e x t S-Left S-Left S-Left S-Left" ;;
       working-discard) keys="Space s j" keys_after="Space d" ;;
       working-resolve) keys="Space s" keys_after="Space a" ;;
       working-empty-staged) keys="Space s Tab" ;;
       settings) keys="Space ," ;;
       settings-choice) keys="Space , Enter Enter j" ;;
       settings-narrow) columns=64 rows=24 keys="Space ," ;;
-      settings-keys) keys="Space , j Enter j j j" ;;
-      settings-keys-entry) keys="Space , j Enter j j j Enter" ;;
+      settings-keys) keys="Space , j j Enter" ;;
+      settings-keys-entry) keys="Space , j j Enter Enter" ;;
       theme-preview) keys="Space , Enter Enter j j" ;;
       theme-kept) keys="Space , Enter Enter j j Enter" ;;
       theme-tokyo) keys="Space ," keys_after="Enter Enter j j j j j j j" ;;
@@ -439,7 +453,20 @@ render() {
       # Mouse clicks as SGR reports ("column,row" 1-based, left button press and release), sent literally.
       local click
       for click in $mouse_after; do
-        tmux_cmd send-keys -t shot -l "$(printf '\033[<0;%d;%dM\033[<0;%d;%dm' "${click%,*}" "${click#*,}" "${click%,*}" "${click#*,}")"
+        if [[ "$click" == drag:* ]]; then
+          # drag:FROM:TO with FROM and TO as "column,row": press, two position reports with the button held, release.
+          local spec="${click#drag:}" from to
+          from="${spec%%:*}" to="${spec#*:}"
+          tmux_cmd send-keys -t shot -l "$(printf '\033[<0;%d;%dM' "${from%,*}" "${from#*,}")"
+          sleep 0.1
+          tmux_cmd send-keys -t shot -l "$(printf '\033[<32;%d;%dM' "$(( ${from%,*} + 1 ))" "${from#*,}")"
+          sleep 0.1
+          tmux_cmd send-keys -t shot -l "$(printf '\033[<32;%d;%dM' "${to%,*}" "${to#*,}")"
+          sleep 0.1
+          tmux_cmd send-keys -t shot -l "$(printf '\033[<0;%d;%dm' "${to%,*}" "${to#*,}")"
+        else
+          tmux_cmd send-keys -t shot -l "$(printf '\033[<0;%d;%dM\033[<0;%d;%dm' "${click%,*}" "${click#*,}" "${click%,*}" "${click#*,}")"
+        fi
         sleep 0.05
       done
       sleep 0.5

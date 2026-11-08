@@ -32,7 +32,7 @@ Reader docs are in `docs/` (user guide, architecture, git-layer, testing). Maint
 - Syncing unpushed local commits with `origin/main`: `git fetch` then `git rebase origin/main`. Never `git merge origin/main` or a bare `git pull` (merge commits are for PR merges only); if a merge slipped in, redo it as a rebase.
 - Changes that address PR review comments (code, docs, skills, CLAUDE.md alike) all go through a PR branch, never straight to `main`. The straight-to-`main` exception above applies only to standalone requests from the owner.
 - After a PR is merged, nothing of it remains: remove its worktree and delete the branch locally and on the remote (spike branches are the exception and stay).
-- Agent identity: every commit, PR body and GitHub comment says which agent (orchestrator, implementer, reviewer) produced it: header, signature and hidden marker on GitHub comments; author name or `Agent:` trailer on commits is a soft convention. Details in the `work-task` skill, "Agent identity". Never add the "🤖 Generated with Claude Code" line to PR bodies or comments.
+- Agent identity: every commit, PR body and GitHub comment says which agent (orchestrator, implementer, reviewer) produced it: header, signature and hidden marker on GitHub comments; author name or `Agent:` trailer on commits is a soft convention. Details: `.claude/workflow.md` when that file exists. Never add the "🤖 Generated with Claude Code" line to PR bodies or comments.
 - Commits: Conventional Commits (`feat:`, `fix:`, `docs:`, `test:`, `refactor:`, `chore:`, `ci:`), optional scope, imperative subject.
 
 ## Which doc to read
@@ -62,9 +62,9 @@ Run from the repo root:
 
 ## Working autonomously
 
-Follow the `work-task` skill (`.claude/skills/work-task/`) for the procedure. To work a whole milestone or the backlog, follow the `work-orchestrator` skill (`.claude/skills/work-orchestrator/`); `work-readiness` prevalidates a milestone first. They hold the issue order, review, PR, merge, loose-end and owner-feedback procedure. Invariants that hold regardless:
+Autonomous work (one issue, a milestone, reviews, PRs) follows the policy in `.claude/workflow.md` (autonomy, `needs-review`, CI, run-time rules) when that file exists; without it, work only on what the owner asks. Invariants that hold regardless:
 
-- `spike` and `needs-review` issues are never merged by an agent: spikes stay on unmerged `spike/` branches and close with findings; `needs-review` stops at an open PR for the owner.
+- `spike` issues are never merged by an agent: they stay on unmerged `spike/` branches and close with findings.
 - Merge commits only, never squash or rebase, never force-push.
 - Every PR carries the reviewer's findings as a PR comment; every owner comment gets an agent-marked reply; loose ends are registered as issues, not left in notes.
 - Don't block on questions: decide from the docs or take the recommended default, log it, and say so in the PR.
