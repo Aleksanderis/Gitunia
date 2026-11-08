@@ -29,7 +29,6 @@ public sealed class CreationEffectHandler(
     private const string CredentialHint =
         "set up a credential helper or an ssh-agent key, credential prompts are not supported yet";
 
-    private static readonly TimeSpan ShutdownWait = TimeSpan.FromSeconds(5);
 
     private readonly ShutdownTasks _tasks = tasks ?? new ShutdownTasks();
     private CancellationTokenSource? _clone;
@@ -66,12 +65,13 @@ public sealed class CreationEffectHandler(
 
     /// <summary>
     /// Stops a running clone and waits for it to clean up (at the end of the program, so a half-made directory does
-    /// not stay); gives up after a few seconds.
+    /// not stay); gives up after <paramref name="timeout"/>.
     /// </summary>
-    public void CancelAndWait()
+    /// <param name="timeout">What is left of the shared shutdown bound.</param>
+    public void CancelAndWait(TimeSpan timeout)
     {
         CancelClone();
-        _cloneTask?.Wait(ShutdownWait);
+        _cloneTask?.Wait(timeout < TimeSpan.Zero ? TimeSpan.Zero : timeout);
     }
 
     private static string FailureText(Exception exception)

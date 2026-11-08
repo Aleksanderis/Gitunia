@@ -6,7 +6,7 @@ using Gitunia.Git.Repositories.Models;
 namespace Gitunia.Git.Repositories;
 
 /// <summary>Resolves any path (root, subdirectory, linked worktree, bare repository, inside a git directory) to a <see cref="RepositoryLocation"/>.</summary>
-public sealed class RepositoryDiscovery
+public sealed class RepositoryDiscovery : IRepositoryDiscovery
 {
     private static readonly string[] BasicsArguments = ["rev-parse", "--path-format=absolute", "--is-bare-repository", "--is-inside-git-dir", "--git-dir", "--git-common-dir"];
 

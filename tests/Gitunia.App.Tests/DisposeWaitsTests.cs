@@ -19,6 +19,8 @@ using Gitunia.Git.Remotes;
 using Gitunia.Git.Remotes.Models;
 using Gitunia.Git.Repositories;
 using Gitunia.App.Tabs;
+using Gitunia.App.Tabs.Models;
+using Gitunia.Core.Worktrees;
 using Gitunia.App.Tests.Fakes;
 using Gitunia.Core;
 using Gitunia.Core.Blame;
@@ -50,6 +52,7 @@ using Gitunia.Git.IssueTracker.Models;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Status;
 using Gitunia.Git.Status.Models;
+using Gitunia.Git.Watching.Models;
 using Xunit;
 
 namespace Gitunia.App.Tests;
@@ -111,7 +114,7 @@ public class DisposeWaitsTests
         Assert.Equal(1, details.WoundDownCount);
     }
 
-    private static async Task<(EffectRunner<TabSession> Effects, TabId TabId, RepositoryLocation Location)> StartAsync(FakeGitServices fakes, GitServices services)
+    private static async Task<(EffectRunner<TabSession> Effects, TabId TabId, RepositoryLocation Location)> StartAsync(FakeGitServices fakes, GitServices services, EffectRunnerOptions<TabSession>? options = null)
     {
         var pump = new UiPump(TestContext.Current.CancellationToken);
         var location = FakeStatusReader.LocationOf("first");
@@ -123,7 +126,7 @@ public class DisposeWaitsTests
             host,
             pump,
             new TabSessionFactory(),
-            new EffectRunnerOptions<TabSession>
+            (options ?? new EffectRunnerOptions<TabSession>()) with
             {
                 Statuses = new StatusReporter(host),
                 Watcher = TestGit.QuietWatcherOptions,
@@ -276,6 +279,225 @@ public class DisposeWaitsTests
         Assert.True(tasks.Wait(Limit));
     }
 
+    // The fingerprint read is plain file reading that cannot be cancelled; a gate holds it so the wait is seen.
+    [Fact]
+    public void GivenFingerprintReadsInFlight_WhenThePollerIsDisposed_ThenTheSharedTasksWaitUntilTheReadsEnd()
+    {
+        using var gate = new GateFingerprint();
+        var tasks = new ShutdownTasks();
+        var poller = new TabPoller(
+            FakeStatusReader.LocationOf("poll"),
+            PollOptions.Default,
+            InlineUi.Instance,
+            new IdleTarget(),
+            tasks: tasks,
+            fingerprint: gate.Read);
+        poller.Start();
+        poller.SetActive(true);
+        Assert.True(gate.WaitEntered(Limit, 2));
+
+        poller.Dispose();
+
+        Assert.False(tasks.Wait(TimeSpan.Zero));
+        gate.Release();
+        Assert.True(tasks.Wait(Limit));
+    }
+
+    [Fact]
+    public void GivenALocateAndADiscoverInFlight_WhenTheShutdownCancelsThem_ThenTheSharedTasksWaitForEachToWindDown()
+    {
+        using var discovery = new BlockingDiscovery();
+        var tasks = new ShutdownTasks();
+        using var shutdown = new CancellationTokenSource();
+        using var files = new GateDirectories();
+        var worktrees = new WorktreeEffectHandler(TestGit.Services.Worktrees, discovery, new RecordingDispatcher(), tasks);
+        var picker = new PickerEffectHandler(discovery, files, new RecordingDispatcher(), PickerTimings.Default, tasks);
+        worktrees.Locate(new LocateWorktreeEffect(new TabId(1), "somewhere", false), shutdown.Token);
+        picker.Handle(new DiscoverRepositoryEffect("elsewhere", 1, null), shutdown.Token);
+        Assert.True(discovery.WaitStarted(Limit, 2));
+
+        shutdown.Cancel();
+
+        Assert.True(tasks.Wait(Limit));
+        Assert.Equal(2, discovery.WoundDownCount);
+    }
+
+    [Fact]
+    public void GivenAListingBlockedInTheFileSystem_WhenTheShutdownCancelsIt_ThenTheSharedTasksStillWaitForTheCall()
+    {
+        using var gate = new GateDirectories();
+        var tasks = new ShutdownTasks();
+        using var shutdown = new CancellationTokenSource();
+        var picker = new PickerEffectHandler(TestGit.Services.Discovery, gate, new RecordingDispatcher(), PickerTimings.Default, tasks);
+        var query = Path.GetTempPath();
+        picker.Handle(new ListPickerDirectoriesEffect(query, query, query), shutdown.Token);
+        Assert.True(gate.WaitEntered(Limit, 1));
+
+        shutdown.Cancel();
+
+        Assert.False(tasks.Wait(TimeSpan.Zero));
+        gate.Release();
+        Assert.True(tasks.Wait(Limit));
+    }
+
+    [Fact]
+    public async Task GivenPickerSettingsAndCloneParentLookupsAndAClone_WhenTheRunnerIsDisposed_ThenItWaitsForEachWithinTheSharedBound()
+    {
+        using var slow = new SlowDirectories();
+        var creator = new BlockingReader();
+        var fakes = new FakeGitServices();
+        var (effects, _, _) = await StartAsync(
+            fakes,
+            fakes.Services with { Creator = creator },
+            new EffectRunnerOptions<TabSession>
+            {
+                Picker = new PickerServices(slow, PickerTimings.Default),
+                Settings = new SettingsServices(
+                    new ConfigWriter(Path.GetTempPath()),
+                    new SettingsEnvironment(Path.GetTempPath(), slow.DirectoryExists),
+                    SettingsRegistry.All,
+                    DefaultKeymap.Create()),
+            });
+        var commit = new SettingsCommit(SettingsRegistry.All[0], SettingValue.OfFlag(true));
+        effects.Run(new ScanRepositoriesEffect(null, "home"));
+        effects.Run(new ResolveCloneParentEffect("source", null, false, null, "home"));
+        effects.Run(new CheckSettingsFolderEffect(new SettingsFolderCheck("folder", "folder", commit)));
+        effects.Run(new CloneRepositoryEffect(new CloneRequest("source", "target")));
+        Assert.True(slow.WaitEntered(Limit, 3));
+        Assert.True(creator.WaitStarted(Limit));
+
+        var started = Stopwatch.GetTimestamp();
+        effects.Dispose();
+        var elapsed = Stopwatch.GetElapsedTime(started);
+
+        Assert.True(elapsed < ShutdownTasks.DefaultWait, $"The shutdown ran into its bound: {elapsed}");
+        Assert.True(slow.FinishedCount >= 3, $"Only {slow.FinishedCount} lookups had ended");
+        Assert.Equal(1, creator.WoundDownCount);
+    }
+
+    private sealed class IdleTarget : IPollTarget
+    {
+        public bool CanPoll => true;
+
+        public void Request(RepositoryChangeKinds kinds)
+        {
+        }
+    }
+
+    private sealed class GateFingerprint : IDisposable
+    {
+        private readonly SemaphoreSlim _entered = new(0);
+        private readonly ManualResetEventSlim _open = new(false);
+
+        public void Dispose() => _open.Set();
+
+        public bool WaitEntered(TimeSpan timeout, int count)
+        {
+            for (var index = 0; index < count; index++)
+            {
+                if (!_entered.Wait(timeout))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        public void Release() => _open.Set();
+
+        public int Read(RepositoryLocation location)
+        {
+            _entered.Release();
+            _open.Wait(Limit);
+
+            return 0;
+        }
+    }
+
+    // A file system call that takes a while and cannot be cancelled: it counts how many calls ran to the end.
+    private sealed class SlowDirectories : IDirectoryLister, IDisposable
+    {
+        private readonly SemaphoreSlim _entered = new(0);
+        private int _finished;
+
+        public int FinishedCount => Volatile.Read(ref _finished);
+
+        public void Dispose() => _entered.Dispose();
+
+        public bool WaitEntered(TimeSpan timeout, int count)
+        {
+            for (var index = 0; index < count; index++)
+            {
+                if (!_entered.Wait(timeout))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        public bool DirectoryExists(string directory)
+        {
+            _entered.Release();
+            Thread.Sleep(WindDown);
+            Interlocked.Increment(ref _finished);
+
+            return false;
+        }
+
+        public IReadOnlyList<string> ListDirectories(string directory) => [];
+
+        public bool IsRepository(string directory) => false;
+    }
+
+    // Plays a discovery whose git process takes a while to die after the cancel.
+    private sealed class BlockingDiscovery : IRepositoryDiscovery, IDisposable
+    {
+        private readonly SemaphoreSlim _started = new(0);
+        private int _woundDown;
+
+        public int WoundDownCount => Volatile.Read(ref _woundDown);
+
+        public void Dispose() => _started.Dispose();
+
+        public bool WaitStarted(TimeSpan timeout, int count)
+        {
+            for (var index = 0; index < count; index++)
+            {
+                if (!_started.Wait(timeout))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        public async Task<RepositoryLocation> DiscoverAsync(string path, CancellationToken cancellationToken)
+        {
+            _started.Release();
+            try
+            {
+                await Task.Delay(Timeout.Infinite, cancellationToken);
+            }
+            catch (OperationCanceledException)
+            {
+                // On a thread of its own, not a pool timer: the shutdown blocks pool threads while it waits (#1269).
+                await Task.Factory.StartNew(
+                    () => Thread.Sleep(WindDown),
+                    CancellationToken.None,
+                    TaskCreationOptions.LongRunning,
+                    TaskScheduler.Default);
+                Interlocked.Increment(ref _woundDown);
+                throw;
+            }
+
+            throw new InvalidOperationException("unreachable");
+        }
+    }
+
     private sealed class GateDirectories : IDirectoryLister, IDisposable
     {
         private readonly SemaphoreSlim _entered = new(0);
@@ -313,7 +535,13 @@ public class DisposeWaitsTests
             return false;
         }
 
-        public IReadOnlyList<string> ListDirectories(string directory) => [];
+        public IReadOnlyList<string> ListDirectories(string directory)
+        {
+            _entered.Release();
+            _open.Wait();
+
+            return [];
+        }
 
         public bool IsRepository(string directory) => false;
     }

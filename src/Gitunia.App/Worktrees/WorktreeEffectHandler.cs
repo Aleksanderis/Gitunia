@@ -17,7 +17,7 @@ namespace Gitunia.App.Worktrees;
 /// <param name="tasks">Remembers the running work so the shutdown can wait for it; the default is a private set.</param>
 public sealed class WorktreeEffectHandler(
     IWorktreeWriter writer,
-    RepositoryDiscovery discovery,
+    IRepositoryDiscovery discovery,
     IDispatcher dispatcher,
     ShutdownTasks? tasks = null)
 {

@@ -17,7 +17,7 @@ namespace Gitunia.App.Picker;
 /// <param name="timings">The listing delays; <see cref="PickerTimings.Default"/> in the app.</param>
 /// <param name="tasks">Remembers the running work so the shutdown can wait for it; the default is a private set.</param>
 public sealed class PickerEffectHandler(
-    RepositoryDiscovery discovery,
+    IRepositoryDiscovery discovery,
     IDirectoryLister files,
     IDispatcher dispatcher,
     PickerTimings timings,
@@ -89,9 +89,8 @@ public sealed class PickerEffectHandler(
         var token = timeout.Token;
         try
         {
-            var work = Task.Run(
-                () => PathCandidates.List(effect.Query, effect.HomeDirectory, effect.BaseDirectory, files, token),
-                CancellationToken.None);
+            var work = _tasks.Start(
+                () => PathCandidates.List(effect.Query, effect.HomeDirectory, effect.BaseDirectory, files, token));
             var first = await Task.WhenAny(work, Task.Delay(timings.ScanningDelay, token)).ConfigureAwait(false);
             if (first != work && !cancellation.IsCancellationRequested)
             {

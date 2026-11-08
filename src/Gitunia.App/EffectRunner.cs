@@ -295,7 +295,7 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
         }
 
         _loads.Wait(ShutdownTasks.DefaultWait - Stopwatch.GetElapsedTime(started));
-        _creation.CancelAndWait();
+        _creation.CancelAndWait(ShutdownTasks.DefaultWait - Stopwatch.GetElapsedTime(started));
         _shutdown.Dispose();
         _cancellation.Dispose();
         _statusAging.Dispose();

@@ -20,6 +20,7 @@ public sealed class TabPoller : IDisposable
     private readonly IPollTarget _target;
     private readonly TimeProvider _time;
     private readonly ShutdownTasks _tasks;
+    private readonly Func<RepositoryLocation, int> _fingerprint;
     private readonly Timer _timer;
     private int? _baseline;
     private long _statusDueAt;
@@ -35,8 +36,10 @@ public sealed class TabPoller : IDisposable
         IUiInvoker ui,
         IPollTarget target,
         TimeProvider? time = null,
-        ShutdownTasks? tasks = null)
+        ShutdownTasks? tasks = null,
+        Func<RepositoryLocation, int>? fingerprint = null)
     {
+        _fingerprint = fingerprint ?? RepositoryFingerprint.Compute;
         _tasks = tasks ?? new ShutdownTasks();
         _location = location;
         _options = options;
@@ -116,7 +119,7 @@ public sealed class TabPoller : IDisposable
 
     private void ReadBaseline()
     {
-        var value = RepositoryFingerprint.Compute(_location);
+        var value = _fingerprint(_location);
         _ui.Post(() => _baseline ??= value);
     }
 
@@ -139,7 +142,7 @@ public sealed class TabPoller : IDisposable
 
     private void ReadFingerprint(int epoch)
     {
-        var value = RepositoryFingerprint.Compute(_location);
+        var value = _fingerprint(_location);
         _ui.Post(() => Compare(value, epoch));
     }
 
