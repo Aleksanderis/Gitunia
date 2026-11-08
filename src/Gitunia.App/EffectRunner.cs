@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Gitunia.Core.Keymap;
 using Gitunia.Git.Discard;
 using Gitunia.Git.Staging;
@@ -109,6 +110,7 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
     private readonly SettingsEffectHandler? _settings;
     private readonly SidebarEffectHandler _sidebar;
     private readonly CancellationTokenSource _shutdown = new();
+    private readonly ShutdownTasks _loads = new();
     private readonly RemoteEffectHandler _remotes;
     private readonly StagingEffectHandler _staging;
     private readonly StashEffectHandler _stash;
@@ -267,13 +269,29 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
 
     public void Dispose()
     {
-        foreach (var refresher in _refreshers.Values)
+        var stopping = _refreshers.Values.ToArray();
+        foreach (var refresher in stopping)
         {
             refresher.Dispose();
         }
 
         _refreshers.Clear();
         _shutdown.Cancel();
+
+        // The refreshes and the initial and incremental graph loads may still run git in the repositories: cancel all,
+        // then wait for them within one shared bound.
+        foreach (var session in _sessions.Values)
+        {
+            session.Cancellation.Cancel();
+        }
+
+        var started = Stopwatch.GetTimestamp();
+        foreach (var refresher in stopping)
+        {
+            refresher.WaitForStop(ShutdownTasks.DefaultWait - Stopwatch.GetElapsedTime(started));
+        }
+
+        _loads.Wait(ShutdownTasks.DefaultWait - Stopwatch.GetElapsedTime(started));
         _creation.CancelAndWait();
         _shutdown.Dispose();
         _cancellation.Dispose();
