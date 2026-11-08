@@ -23,6 +23,7 @@ public class TabSession : IGraphSession, IDisposable
         Tree = parts.Tree;
         DiffStore = parts.DiffStore;
         ContentStore = parts.ContentStore;
+        WorkingDiffStore = parts.WorkingDiffStore;
         StashView = parts.StashView ?? new StashViewSession();
         Graph = new CommitGraph();
     }
@@ -52,6 +53,9 @@ public class TabSession : IGraphSession, IDisposable
 
     /// <summary>The diff of the commit shown in the diff pane; null in sessions built without it (tests).</summary>
     public DiffStore? DiffStore { get; }
+
+    /// <summary>The diff of a changed file; null in sessions built without it (tests).</summary>
+    public WorkingDiffStore? WorkingDiffStore { get; }
 
     /// <summary>Reads the file the Files tab opened; null in sessions built without one (tests).</summary>
     public FileContentStore? ContentStore { get; }
@@ -232,6 +236,16 @@ public class TabSession : IGraphSession, IDisposable
     {
     }
 
+    /// <summary>Cancels the reads of every store (their git processes end) and releases their waits. Safe to call again.</summary>
+    public void CancelReads()
+    {
+        Details.Dispose();
+        Tree?.Dispose();
+        DiffStore?.Dispose();
+        ContentStore?.Dispose();
+        WorkingDiffStore?.Dispose();
+    }
+
     /// <summary>Releases the stores; a derived class releases its own views too and calls this.</summary>
     protected virtual void Dispose(bool disposing)
     {
@@ -240,8 +254,7 @@ public class TabSession : IGraphSession, IDisposable
             return;
         }
 
-        Details.Dispose();
-        Tree?.Dispose();
+        CancelReads();
         Cancellation.Cancel();
         Cancellation.Dispose();
     }

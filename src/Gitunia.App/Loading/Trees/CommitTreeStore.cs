@@ -26,6 +26,7 @@ public sealed class CommitTreeStore : IDisposable
     private readonly IDelayer _delay;
     private readonly TimeProvider _timeProvider;
     private readonly LinkedList<KeyValuePair<ObjectId, FileTreeModel>> _recentFirst = new();
+    private readonly ShutdownTasks _tasks;
     private CancellationTokenSource? _pending;
     private long? _lastSelectTimestamp;
 
@@ -48,6 +49,7 @@ public sealed class CommitTreeStore : IDisposable
         _debounce = debounce;
         _delay = options?.Delayer ?? TaskDelayer.Instance;
         _timeProvider = options?.TimeProvider ?? TimeProvider.System;
+        _tasks = options?.Tasks ?? new ShutdownTasks();
     }
 
     /// <summary>Raised on the UI thread when <see cref="Current"/> changed.</summary>
@@ -81,7 +83,7 @@ public sealed class CommitTreeStore : IDisposable
         _pending = new CancellationTokenSource();
         var token = _pending.Token;
         var wait = isFresh ? TimeSpan.Zero : _debounce;
-        _ = Task.Run(() => LoadAsync(commit, wait, token), CancellationToken.None);
+        _tasks.Run(() => LoadAsync(commit, wait, token));
     }
 
     /// <summary>Lists the tree again after it failed to load. Does nothing in any other state.</summary>

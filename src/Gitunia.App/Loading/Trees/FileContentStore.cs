@@ -12,11 +12,12 @@ namespace Gitunia.App.Loading.Trees;
 /// (which applies the size cap and the binary check). <see cref="Load"/> sets the loading state at once (the caller
 /// shows <see cref="Current"/> itself; <see cref="Changed"/> comes with the result) and cancels the read before it. A
 /// result that arrives after another file was asked for, or after <see cref="Clear"/>, is dropped. UI thread only;
-/// results come back through <c>ui</c>.
+/// results come back through <c>ui</c>. <c>tasks</c> remembers the running read so the shutdown can wait for it.
 /// </summary>
-public sealed class FileContentStore(IBlobReader reader, RepositoryLocation location, IUiInvoker ui)
+public sealed class FileContentStore(IBlobReader reader, RepositoryLocation location, IUiInvoker ui, ShutdownTasks? tasks = null)
     : IDisposable
 {
+    private readonly ShutdownTasks _tasks = tasks ?? new ShutdownTasks();
     private CancellationTokenSource? _pending;
 
     /// <summary>Raised on the UI thread when <see cref="Current"/> changed.</summary>
@@ -39,7 +40,7 @@ public sealed class FileContentStore(IBlobReader reader, RepositoryLocation loca
             FileContentDocument.Message(path, "Loading..."));
         _pending = new CancellationTokenSource();
         var token = _pending.Token;
-        _ = Task.Run(() => LoadAsync(commit, path, blob, size, delay, token), CancellationToken.None);
+        _tasks.Run(() => LoadAsync(commit, path, blob, size, delay, token));
     }
 
     /// <summary>Forgets the open file and cancels a read in flight.</summary>

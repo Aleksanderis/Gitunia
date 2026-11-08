@@ -18,8 +18,11 @@ namespace Gitunia.App.FileHistory;
 /// <param name="reader">Reads the commits of a file.</param>
 /// <param name="diffs">Reads the diff of a commit.</param>
 /// <param name="dispatcher">Where the result commands go.</param>
-public sealed class FileHistoryEffectHandler(IFileHistoryReader reader, IDiffReader diffs, IDispatcher dispatcher)
+/// <param name="tasks">Remembers the running work so the shutdown can wait for it; the default is a private set.</param>
+public sealed class FileHistoryEffectHandler(IFileHistoryReader reader, IDiffReader diffs, IDispatcher dispatcher, ShutdownTasks? tasks = null)
 {
+    private readonly ShutdownTasks _tasks = tasks ?? new ShutdownTasks();
+
     /// <summary>Diff lines kept of the file; the rest are dropped.</summary>
     public const int MaximumDiffLines = 5000;
 
@@ -38,7 +41,8 @@ public sealed class FileHistoryEffectHandler(IFileHistoryReader reader, IDiffRea
             () => new FileHistoryReadCancelled(),
             exception => new FileHistoryReadFailed(
                 $"Could not read the history of {effect.Path}: {FailureText.Reason(exception)}"),
-            cancellationToken);
+            cancellationToken,
+            _tasks);
 
     /// <summary>Starts the diff read, cancelling the previous one, and returns at once.</summary>
     /// <param name="effect">What to read.</param>
@@ -47,7 +51,7 @@ public sealed class FileHistoryEffectHandler(IFileHistoryReader reader, IDiffRea
     {
         var source = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         CancelPrevious(Interlocked.Exchange(ref _diffSource, source));
-        _ = Task.Run(() => RunDiffAsync(effect, source), CancellationToken.None);
+        _tasks.Run(() => RunDiffAsync(effect, source));
     }
 
     private static void CancelPrevious(CancellationTokenSource? previous)

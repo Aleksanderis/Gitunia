@@ -8,8 +8,24 @@ using Gitunia.Core.Workspaces;
 using Gitunia.Git;
 using Gitunia.Git.Blame;
 using Gitunia.Git.Blame.Models;
+using Gitunia.Git.Blobs;
+using Gitunia.Git.Blobs.Models;
 using Gitunia.Git.Commits;
 using Gitunia.Git.Commits.Models;
+using Gitunia.Git.Diff;
+using Gitunia.Git.Diff.Models;
+using Gitunia.Git.History;
+using Gitunia.Git.History.Models;
+using Gitunia.Git.Staging;
+using Gitunia.Git.Trees;
+using Gitunia.Git.Trees.Models;
+using Gitunia.Core.Commits;
+using Gitunia.Core.Workspaces.Tabs;
+using Gitunia.Git.Tests.Fixtures;
+using Gitunia.Core.FileHistory;
+using Gitunia.Core.Staging;
+using Gitunia.App.Loading.Diff;
+using Gitunia.App.Worktrees;
 using Gitunia.Git.IssueTracker;
 using Gitunia.Git.IssueTracker.Models;
 using Gitunia.Git.Repositories.Models;
@@ -57,6 +73,22 @@ public class DisposeWaitsTests
         var blame = new BlockingReader();
         var details = new BlockingReader();
         var services = fakes.Services with { IssueTracker = issues, Blame = blame, CommitDetails = details };
+        var (effects, tabId, location) = await StartAsync(fakes, services);
+        effects.Run(new StartBlameEffect(tabId, location, "a.txt", null, 1));
+        effects.SessionOf(tabId)!.Details.Select(FakeCommitDetailsReader.Chain(1).Commits[0]);
+        Assert.True(issues.WaitStarted(Limit));
+        Assert.True(blame.WaitStarted(Limit));
+        Assert.True(details.WaitStarted(Limit));
+
+        effects.Dispose();
+
+        Assert.Equal(1, issues.WoundDownCount);
+        Assert.Equal(1, blame.WoundDownCount);
+        Assert.Equal(1, details.WoundDownCount);
+    }
+
+    private static async Task<(EffectRunner<TabSession> Effects, TabId TabId, RepositoryLocation Location)> StartAsync(FakeGitServices fakes, GitServices services)
+    {
         var pump = new UiPump(TestContext.Current.CancellationToken);
         var location = FakeStatusReader.LocationOf("first");
         var scratch = WorkspaceReducer.Reduce(Workspace.Empty, new OpenRepositoryCommand(location)).Workspace;
@@ -74,28 +106,103 @@ public class DisposeWaitsTests
             });
         host.Restore(new WorkspaceUpdate(scratch with { ActiveTabId = tabId }, [new LoadRepositoryEffect(tabId, scratch.Tabs[0].CommandPath)]));
         await pump.RunUntilAsync(() => !effects.SessionOf(tabId)!.IsLoading);
-        effects.Run(new StartBlameEffect(tabId, location, "a.txt", null, 1));
-        effects.SessionOf(tabId)!.Details.Select(FakeCommitDetailsReader.Chain(1).Commits[0]);
-        Assert.True(issues.WaitStarted(Limit));
-        Assert.True(blame.WaitStarted(Limit));
-        Assert.True(details.WaitStarted(Limit));
+
+        return (effects, tabId, location);
+    }
+
+    [Fact]
+    public async Task GivenStoreReadsAndEffectsInFlight_WhenTheRunnerIsDisposed_ThenItWaitsForEachCancelledRead()
+    {
+        var fakes = new FakeGitServices();
+        fakes.CommitLog.AddOnTop("root");
+        var diff = new BlockingReader();
+        var tree = new BlockingReader();
+        var blob = new BlockingReader();
+        var history = new BlockingReader();
+        var commits = new BlockingReader();
+        var index = new BlockingReader();
+        var services = fakes.Services with
+        {
+            Diff = diff,
+            CommitTree = tree,
+            Blob = blob,
+            FileHistory = history,
+            CommitWriter = commits,
+            IndexWriter = index,
+        };
+        var (effects, tabId, location) = await StartAsync(fakes, services);
+        var session = effects.SessionOf(tabId)!;
+        var commit = FakeCommitDetailsReader.Chain(1).Commits[0];
+        var entry = new StatusEntry(StatusEntryKind.Ordinary, "a.txt", null, FileChangeKind.Unmodified, FileChangeKind.Modified, null, ConflictKind.None, null);
+        Assert.True(ObjectId.TryParse(new string('a', 40), out var blobId));
+        session.DiffStore!.Load(commit, null);
+        session.WorkingDiffStore!.Show(new WorkingDiffRequest(WorkingDiffSide.Unstaged, entry), 1);
+        session.Tree!.Store.Select(commit);
+        session.ContentStore!.Load(commit, "a.txt", blobId, null);
+        effects.Run(new ReadFileHistoryEffect(tabId, location, "HEAD", "a.txt", 1));
+        effects.Run(new ReadHeadMessageEffect(tabId, location, null));
+        effects.Run(new StagePathsEffect(tabId, location, new StagingPlan(["a.txt"], "a.txt", 1, 0, string.Empty), true, false, StagingFollow.None));
+        Assert.True(diff.WaitStarted(Limit, 2));
+        Assert.True(tree.WaitStarted(Limit));
+        Assert.True(blob.WaitStarted(Limit));
+        Assert.True(history.WaitStarted(Limit));
+        Assert.True(commits.WaitStarted(Limit));
+        Assert.True(index.WaitStarted(Limit));
 
         effects.Dispose();
 
-        Assert.Equal(1, issues.WoundDownCount);
-        Assert.Equal(1, blame.WoundDownCount);
-        Assert.Equal(1, details.WoundDownCount);
+        Assert.Equal(2, diff.WoundDownCount);
+        Assert.Equal(1, tree.WoundDownCount);
+        Assert.Equal(1, blob.WoundDownCount);
+        Assert.Equal(1, history.WoundDownCount);
+        Assert.Equal(1, commits.WoundDownCount);
+        Assert.Equal(1, index.WoundDownCount);
+    }
+
+    [Fact]
+    public async Task GivenAWorktreePassInFlight_WhenThePollerIsDisposed_ThenWaitForStopWaitsForTheCancelledReadToEnd()
+    {
+        using var repository = TestRepositories.WithWorktree(out _);
+        var host = new Dispatcher(AppState.Empty);
+        var location = await TestGit.Services.Discovery.DiscoverAsync(repository.WorkingTreePath, TestContext.Current.CancellationToken);
+        host.Dispatch(new OpenRepositoryCommand(location));
+        using var session = new FakeGraphSession(host.Workspace.ActiveTabId!.Value);
+        await TestGit.Services.RepositoryLoader
+            .RunAsync(location, session, host, new StatusReporter(host), InlineUi.Instance, TestContext.Current.CancellationToken);
+        var reader = new BlockingReader();
+        var poller = new WorktreeOverviewPoller(reader, host);
+        poller.Start();
+        Assert.True(reader.WaitStarted(Limit));
+
+        poller.Dispose();
+
+        Assert.True(poller.WaitForStop(Limit));
+        Assert.Equal(1, reader.WoundDownCount);
     }
 
     // Plays a read whose process takes a while to die: it blocks until cancelled, then needs time to wind down.
-    private sealed class BlockingReader : IStatusReader, IBlameReader, ICommitDetailsReader, IIssueTrackerReader
+    private sealed class BlockingReader : IStatusReader, IBlameReader, ICommitDetailsReader, IIssueTrackerReader, IDiffReader, ICommitTreeReader, IBlobReader, IFileHistoryReader, ICommitWriter, IIndexWriter
     {
-        private readonly TaskCompletionSource _started = new();
+        private int _started;
         private int _woundDown;
 
         public int WoundDownCount => Volatile.Read(ref _woundDown);
 
-        public bool WaitStarted(TimeSpan timeout) => _started.Task.Wait(timeout);
+        public bool WaitStarted(TimeSpan timeout, int count = 1)
+        {
+            var until = DateTime.UtcNow + timeout;
+            while (Volatile.Read(ref _started) < count)
+            {
+                if (DateTime.UtcNow > until)
+                {
+                    return false;
+                }
+
+                Thread.Sleep(5);
+            }
+
+            return true;
+        }
 
         public async Task<StatusSnapshot> ReadStatusAsync(RepositoryLocation location, bool includeIgnored, UntrackedFilesMode untrackedFiles, CancellationToken cancellationToken)
         {
@@ -156,9 +263,110 @@ public class DisposeWaitsTests
             return [];
         }
 
+        public async IAsyncEnumerable<DiffFile> ReadAsync(
+            RepositoryLocation location,
+            IReadOnlyList<string> command,
+            ICollection<string>? warnings = null,
+            int maximumLinesPerFile = int.MaxValue,
+            [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
+            await BlockAsync(cancellationToken);
+            yield break;
+        }
+
+        public async IAsyncEnumerable<DiffFile> ReadCommitAsync(
+            RepositoryLocation location,
+            ObjectId commit,
+            ObjectId? firstParent,
+            ICollection<string>? warnings = null,
+            int maximumLinesPerFile = int.MaxValue,
+            DiffOptions? options = null,
+            [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
+            await BlockAsync(cancellationToken);
+            yield break;
+        }
+
+        public async IAsyncEnumerable<DiffFile> ReadWorkingFileAsync(
+            RepositoryLocation location,
+            WorkingDiffSide side,
+            StatusEntry entry,
+            ICollection<string>? warnings = null,
+            int maximumLinesPerFile = int.MaxValue,
+            DiffOptions? options = null,
+            [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
+            await BlockAsync(cancellationToken);
+            yield break;
+        }
+
+        public async Task<ObjectId?> ReadFirstParentAsync(RepositoryLocation location, ObjectId commit, CancellationToken cancellationToken)
+        {
+            await BlockAsync(cancellationToken);
+
+            return null;
+        }
+
+        async Task<IReadOnlyList<TreeEntry>> ICommitTreeReader.ReadAsync(RepositoryLocation location, ObjectId commit, ICollection<string>? warnings, CancellationToken cancellationToken)
+        {
+            await BlockAsync(cancellationToken);
+
+            return [];
+        }
+
+        public async Task<BlobContent> ReadAsync(RepositoryLocation location, ObjectId blob, long? knownSize = null, CancellationToken cancellationToken = default)
+        {
+            await BlockAsync(cancellationToken);
+
+            throw new InvalidOperationException("unreachable");
+        }
+
+        public async Task<ParseResult<FileHistoryEntry>> ReadAsync(RepositoryLocation location, string revision, string path, int limit, CancellationToken cancellationToken)
+        {
+            await BlockAsync(cancellationToken);
+
+            throw new InvalidOperationException("unreachable");
+        }
+
+        public async Task<ParseResult<FileHistoryEntry>> ReadRangeAsync(RepositoryLocation location, string revision, string path, LineRange range, int limit, CancellationToken cancellationToken)
+        {
+            await BlockAsync(cancellationToken);
+
+            throw new InvalidOperationException("unreachable");
+        }
+
+        public async Task<CommitResult> CommitAsync(RepositoryLocation location, CommitRequest request, CancellationToken cancellationToken)
+        {
+            await BlockAsync(cancellationToken);
+
+            throw new InvalidOperationException("unreachable");
+        }
+
+        public async Task<string?> ReadHeadMessageAsync(RepositoryLocation location, CancellationToken cancellationToken)
+        {
+            await BlockAsync(cancellationToken);
+
+            return null;
+        }
+
+        public async Task<string?> ReadMergeMessageAsync(RepositoryLocation location, CancellationToken cancellationToken)
+        {
+            await BlockAsync(cancellationToken);
+
+            return null;
+        }
+
+        public async Task StageAsync(RepositoryLocation location, IReadOnlyList<string> paths, CancellationToken cancellationToken) => await BlockAsync(cancellationToken);
+
+        public async Task IntentToAddAsync(RepositoryLocation location, IReadOnlyList<string> paths, CancellationToken cancellationToken) => await BlockAsync(cancellationToken);
+
+        public async Task UnstageAsync(RepositoryLocation location, IReadOnlyList<string> paths, bool isHeadUnborn, CancellationToken cancellationToken) => await BlockAsync(cancellationToken);
+
+        public async Task ApplyPatchAsync(RepositoryLocation location, string patch, PatchDirection direction, CancellationToken cancellationToken) => await BlockAsync(cancellationToken);
+
         private async Task BlockAsync(CancellationToken cancellationToken)
         {
-            _started.TrySetResult();
+            Interlocked.Increment(ref _started);
             try
             {
                 await Task.Delay(Timeout.Infinite, cancellationToken);

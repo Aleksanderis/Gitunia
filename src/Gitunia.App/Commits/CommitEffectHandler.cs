@@ -21,11 +21,14 @@ namespace Gitunia.App.Commits;
 /// <param name="writer">Creates the commit and reads the messages.</param>
 /// <param name="dispatcher">Where the result commands go.</param>
 /// <param name="keymap">The running keymap; the key tokens of the failure output are resolved against it.</param>
+/// <param name="tasks">Remembers the running work so the shutdown can wait for it; the default is a private set.</param>
 public sealed class CommitEffectHandler(
     ICommitWriter writer,
     IDispatcher dispatcher,
-    KeyBindingTable? keymap = null)
+    KeyBindingTable? keymap = null,
+    ShutdownTasks? tasks = null)
 {
+    private readonly ShutdownTasks _tasks = tasks ?? new ShutdownTasks();
     private readonly ConcurrentDictionary<TabId, CancellationTokenSource> _running = new();
 
     /// <summary>Starts the commit and returns at once; the result arrives through the dispatcher.</summary>
@@ -33,13 +36,13 @@ public sealed class CommitEffectHandler(
     {
         var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         _running[effect.TabId] = linked;
-        _ = Task.Run(() => RunAsync(effect, linked), CancellationToken.None);
+        _tasks.Run(() => RunAsync(effect, linked));
     }
 
     /// <summary>Starts a read of a message and returns at once.</summary>
     public void Handle(CommitReadEffect effect, CancellationToken cancellationToken)
     {
-        _ = Task.Run(() => ReadAsync(effect, cancellationToken), CancellationToken.None);
+        _tasks.Run(() => ReadAsync(effect, cancellationToken));
     }
 
     /// <summary>Stops the running commit of the tab; its result is the cancel result. Nothing happens when none

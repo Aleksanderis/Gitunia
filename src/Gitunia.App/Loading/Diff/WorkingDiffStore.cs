@@ -28,6 +28,7 @@ public sealed class WorkingDiffStore(
 
     private readonly WorkingDiffLimits _limits = limits ?? new WorkingDiffLimits();
     private readonly KeyedDiffCache<WorkingDiffRequest> _cache = new();
+    private readonly ShutdownTasks _tasks = limits?.Tasks ?? new ShutdownTasks();
     private CancellationTokenSource? _pending;
     private int _generation;
     private bool _isUnlimited;
@@ -159,7 +160,7 @@ public sealed class WorkingDiffStore(
         _pending = new CancellationTokenSource();
         var token = _pending.Token;
         var limited = !_isUnlimited;
-        _ = Task.Run(() => LoadAsync(request, limited, token), CancellationToken.None);
+        _tasks.Run(() => LoadAsync(request, limited, token));
     }
 
     private void CancelPending()

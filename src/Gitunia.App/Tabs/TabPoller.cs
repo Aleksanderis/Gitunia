@@ -19,6 +19,7 @@ public sealed class TabPoller : IDisposable
     private readonly IUiInvoker _ui;
     private readonly IPollTarget _target;
     private readonly TimeProvider _time;
+    private readonly ShutdownTasks _tasks;
     private readonly Timer _timer;
     private int? _baseline;
     private long _statusDueAt;
@@ -33,8 +34,10 @@ public sealed class TabPoller : IDisposable
         PollOptions options,
         IUiInvoker ui,
         IPollTarget target,
-        TimeProvider? time = null)
+        TimeProvider? time = null,
+        ShutdownTasks? tasks = null)
     {
+        _tasks = tasks ?? new ShutdownTasks();
         _location = location;
         _options = options;
         _ui = ui;
@@ -48,7 +51,12 @@ public sealed class TabPoller : IDisposable
     public TimeSpan StatusInterval => _statusInterval;
 
     /// <summary>Takes the first fingerprint, so a change made while the tab loads is seen by the first tick.</summary>
-    public void Start() => _ = Task.Run(ReadBaseline, CancellationToken.None);
+    public void Start() => _tasks.Run(() =>
+    {
+        ReadBaseline();
+
+        return Task.CompletedTask;
+    });
 
     /// <summary>
     /// A visible tab polls (and checks at once, so switching to it shows outside changes); a hidden one does not.
@@ -120,7 +128,12 @@ public sealed class TabPoller : IDisposable
 
         _isReading = true;
         var epoch = _epoch;
-        _ = Task.Run(() => ReadFingerprint(epoch), CancellationToken.None);
+        _tasks.Run(() =>
+        {
+            ReadFingerprint(epoch);
+
+            return Task.CompletedTask;
+        });
     }
 
     private void ReadFingerprint(int epoch)

@@ -28,7 +28,8 @@ public sealed class WorktreeOverviewPoller : IDisposable
     private TabId? _watchedTabId;
     private ImmutableArray<WorktreeInfo> _watchedWorktrees;
     private string? _watchedPath;
-    private Task? _loop;
+    private readonly ShutdownTasks _tasks = new();
+    private bool _started;
 
     public WorktreeOverviewPoller(
         IStatusReader status,
@@ -45,14 +46,19 @@ public sealed class WorktreeOverviewPoller : IDisposable
     /// <summary>Starts the loop and the watch for changes of the active tab. Calling it twice has no effect.</summary>
     public void Start()
     {
-        if (_loop is not null)
+        if (_started)
         {
             return;
         }
 
         _host.Changed += OnHostChanged;
-        _loop = Task.Run(() => RunAsync(_cancellation.Token), CancellationToken.None);
+        _started = true;
+        var token = _cancellation.Token;
+        _tasks.Run(() => RunAsync(token));
     }
+
+    /// <summary>Waits until the loop has ended after <see cref="Dispose"/> (its git process is gone) or the timeout has passed; true when it has ended.</summary>
+    public bool WaitForStop(TimeSpan timeout) => _tasks.Wait(timeout);
 
     /// <summary>Reads the status of the active tab's other worktrees once and updates the overview.</summary>
     public async Task PollOnceAsync(CancellationToken cancellationToken)

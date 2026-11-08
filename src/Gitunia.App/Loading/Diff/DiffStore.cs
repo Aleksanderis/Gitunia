@@ -36,6 +36,7 @@ public sealed class DiffStore(
     public static readonly TimeSpan PrefetchDelay = TimeSpan.FromMilliseconds(80);
 
     private readonly DiffStoreOptions _options = options ?? new DiffStoreOptions();
+    private readonly ShutdownTasks _tasks = options?.Tasks ?? new ShutdownTasks();
     private readonly DiffCache _cache = options?.Cache ?? new DiffCache();
     private readonly IDelayer _delay = options?.Delayer ?? TaskDelayer.Instance;
     private readonly IBackgroundWork _background = options?.Background ?? UnboundedBackgroundWork.Instance;
@@ -162,7 +163,7 @@ public sealed class DiffStore(
         _pending = new CancellationTokenSource();
         var token = _pending.Token;
         var limited = !_isUnlimited;
-        _ = Task.Run(() => LoadAsync(commit, firstParent, limited, token), CancellationToken.None);
+        _tasks.Run(() => LoadAsync(commit, firstParent, limited, token));
     }
 
     /// <summary>Forgets the diff (the pane was closed), cancelling a load in flight.</summary>
@@ -221,7 +222,7 @@ public sealed class DiffStore(
 
         _prefetching = new CancellationTokenSource();
         var token = _prefetching.Token;
-        _ = Task.Run(() => PrefetchAsync(commits, token), CancellationToken.None);
+        _tasks.Run(() => PrefetchAsync(commits, token));
     }
 
     /// <summary>Reads the neighbours one after the other. Best effort: a cancelled, failed or oversized read is dropped, since the commit is loaded (and its error shown) when it is selected.</summary>

@@ -66,11 +66,11 @@ public sealed partial class EffectRunner<TSession>
                     new StashAwareDiffReader(_services.Diff, _services.StashDetails, stashView.Registry),
                     tab.Location,
                     _ui,
-                    new DiffStoreOptions(Background: _background, Keymap: _keymap)),
-                new WorkingDiffStore(_services.Diff, tab.Location, _ui, new WorkingDiffLimits(Keymap: _keymap)),
+                    new DiffStoreOptions(Background: _background, Keymap: _keymap, Tasks: _loads)),
+                new WorkingDiffStore(_services.Diff, tab.Location, _ui, new WorkingDiffLimits(Keymap: _keymap, Tasks: _loads)),
                 new FileTreeSession(
-                    new CommitTreeStore(_services.CommitTree, tab.Location, _ui, _detailDebounce)),
-                new FileContentStore(_services.Blob, tab.Location, _ui),
+                    new CommitTreeStore(_services.CommitTree, tab.Location, _ui, _detailDebounce, new CommitTreeStoreOptions(Tasks: _loads))),
+                new FileContentStore(_services.Blob, tab.Location, _ui, _loads),
                 stashView));
         _sessions[load.TabId] = session;
         var token = session.Cancellation.Token;

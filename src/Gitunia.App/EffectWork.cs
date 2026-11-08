@@ -16,16 +16,26 @@ public static class EffectWork
     /// <param name="onCancelled">Builds the command for a cancellation requested through the token.</param>
     /// <param name="onFailed">Builds the command for any other exception.</param>
     /// <param name="cancellationToken">The token whose cancellation means the user cancelled.</param>
+    /// <param name="tasks">Remembers the work so the shutdown can wait for it; null leaves it untracked.</param>
     public static void Start<TCommand>(
         IDispatcher dispatcher,
         Func<CancellationToken, Task<TCommand>> perform,
         Func<TCommand> onCancelled,
         Func<Exception, TCommand> onFailed,
-        CancellationToken cancellationToken)
-        where TCommand : AppCommand =>
-        _ = Task.Run(
-            () => RunAsync(perform, onCancelled, onFailed, dispatcher.Post, cancellationToken),
-            CancellationToken.None);
+        CancellationToken cancellationToken,
+        ShutdownTasks? tasks = null)
+        where TCommand : AppCommand
+    {
+        Task Work() => RunAsync(perform, onCancelled, onFailed, dispatcher.Post, cancellationToken);
+        if (tasks is null)
+        {
+            _ = Task.Run(Work, CancellationToken.None);
+        }
+        else
+        {
+            tasks.Run(Work);
+        }
+    }
 
     /// <summary>
     /// Runs the work and hands exactly one result to <paramref name="post"/>. A handler that must do more before the
