@@ -21,13 +21,17 @@ namespace Gitunia.App.Sync;
 /// <param name="manager">Lists the remotes.</param>
 /// <param name="ancestry">Compares a local tip with the remote one.</param>
 /// <param name="dispatcher">Where the progress and result commands go.</param>
+/// <param name="tasks">Remembers the running work so the shutdown can wait for it; the default is a private set.</param>
 public sealed class SyncEffectHandler(
     IRemoteWriter writer,
     IRemoteManager manager,
     IAncestryReader ancestry,
-    IDispatcher dispatcher)
+    IDispatcher dispatcher,
+    ShutdownTasks? tasks = null)
 {
     private const string DeleteNoun = "Remote branch delete";
+
+    private readonly ShutdownTasks _tasks = tasks ?? new ShutdownTasks();
 
     private readonly ConcurrentDictionary<TabId, CancellationTokenSource> _running = new();
 
@@ -36,7 +40,7 @@ public sealed class SyncEffectHandler(
     {
         var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         _running[effect.TabId] = linked;
-        _ = Task.Run(() => RunAsync(effect, linked), CancellationToken.None);
+        _tasks.Run(() => RunAsync(effect, linked));
     }
 
     /// <summary>Stops the running effect of the tab; its result is the cancel result. Nothing happens when none runs.</summary>

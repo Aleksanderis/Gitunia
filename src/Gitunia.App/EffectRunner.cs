@@ -153,17 +153,17 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
             services.ConflictWriter,
             services.ConflictRecreator,
             host);
-        _creation = new CreationEffectHandler(services.Creator, pickerServices.Files, host);
+        _creation = new CreationEffectHandler(services.Creator, pickerServices.Files, host, _loads);
         _diffPane = new DiffPaneEffectHandler(this);
         _discard = new DiscardEffectHandler(new PatchDiscarder(services.Diff, services.Discarder), this, host, _loads);
-        _picker = new PickerEffectHandler(services.Discovery, pickerServices.Files, host, pickerServices.Timings);
+        _picker = new PickerEffectHandler(services.Discovery, pickerServices.Files, host, pickerServices.Timings, _loads);
         _pick = new PickEffectHandler(services.Pick, services.PickCommits, host);
         _rebase = new RebaseEffectHandler(services.Rebase, services.QuickRebase, host);
         _rebaseEditor = new RebaseEditorEffectHandler(services.InteractiveRebase, services.CommitDetails, host);
         _fileHistory = new FileHistoryEffectHandler(services.FileHistory, services.Diff, host, _loads);
         _blame = new BlameEffectHandler(services.Blame, services.BlameStore, host, _loads);
         _reflog = new ReflogEffectHandler(services.Reflog, host);
-        _settings = settings is null ? null : new SettingsEffectHandler(settings, host);
+        _settings = settings is null ? null : new SettingsEffectHandler(settings, host, _loads);
         _sidebar = new SidebarEffectHandler(this, host);
         _integration = IntegrationEffectHandler.Create(services, host);
         _issueLinks = new IssueLinkEffectHandler(new UrlOpener(), host);
@@ -175,9 +175,9 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
             host,
             _loads);
         _stash = new StashEffectHandler(services.StashWriter, host);
-        _sync = new SyncEffectHandler(services.Remote, services.RemoteManager, services.Ancestry, host);
+        _sync = new SyncEffectHandler(services.Remote, services.RemoteManager, services.Ancestry, host, _loads);
         _tags = new TagEffectHandler(services.Tags, host);
-        _worktrees = new WorktreeEffectHandler(services.Worktrees, services.Discovery, host);
+        _worktrees = new WorktreeEffectHandler(services.Worktrees, services.Discovery, host, _loads);
         _pollOptions = options.Poll ?? PollOptions.Default;
         _warmTabLimit = Math.Max(1, options.WarmTabLimit);
         _watcherOptions = options.Watcher ?? RepositoryWatcherOptions.Default;

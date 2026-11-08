@@ -1,6 +1,23 @@
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using Gitunia.App.Creation;
+using Gitunia.App.Picker;
+using Gitunia.App.Settings;
 using Gitunia.App.Status;
+using Gitunia.App.Tests.Tags;
+using Gitunia.Core.Config;
+using Gitunia.Core.Diff;
+using Gitunia.Core.Creation;
+using Gitunia.Core.Keymap;
+using Gitunia.Core.Picker;
+using Gitunia.Core.Settings;
+using Gitunia.Core.Settings.Models;
+using Gitunia.Core.Sync;
+using Gitunia.Core.Discard;
+using Gitunia.Git.Discard;
+using Gitunia.Git.Remotes;
+using Gitunia.Git.Remotes.Models;
+using Gitunia.Git.Repositories;
 using Gitunia.App.Tabs;
 using Gitunia.App.Tests.Fakes;
 using Gitunia.Core;
@@ -25,6 +42,7 @@ using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Tests.Fixtures;
 using Gitunia.Core.FileHistory;
 using Gitunia.Core.Staging;
+using Gitunia.App.Loading;
 using Gitunia.App.Loading.Diff;
 using Gitunia.App.Worktrees;
 using Gitunia.Git.IssueTracker;
@@ -189,8 +207,119 @@ public class DisposeWaitsTests
         Assert.Equal(1, reader.WoundDownCount);
     }
 
+    [Fact]
+    public async Task GivenSyncInitAndDiscardInFlight_WhenTheRunnerIsDisposed_ThenItWaitsForEachCancelledCall()
+    {
+        var fakes = new FakeGitServices();
+        fakes.CommitLog.AddOnTop("root");
+        var blocking = new BlockingReader();
+        var services = fakes.Services with { Remote = blocking, Creator = blocking, Discarder = blocking };
+        var (effects, tabId, location) = await StartAsync(fakes, services);
+        var entry = new StatusEntry(StatusEntryKind.Ordinary, "a.txt", null, FileChangeKind.Unmodified, FileChangeKind.Modified, null, ConflictKind.None, null);
+        effects.Run(new FetchEffect(tabId, location, false));
+        effects.Run(new InitRepositoryEffect("somewhere"));
+        effects.Run(new DiscardFilesEffect(tabId, location, [entry], 0));
+        Assert.True(blocking.WaitStarted(Limit, 3));
+
+        effects.Dispose();
+
+        Assert.Equal(3, blocking.WoundDownCount);
+    }
+
+    [Fact]
+    public void GivenAPrefetchInFlight_WhenTheStoreIsDisposed_ThenTheSharedTasksWaitForTheCancelledRead()
+    {
+        var reader = new BlockingReader();
+        var tasks = new ShutdownTasks();
+        var cache = new DiffCache();
+        Assert.True(ObjectId.TryParse(new string('a', 40), out var shown));
+        Assert.True(ObjectId.TryParse(new string('b', 40), out var next));
+        cache.Add(shown, DiffDocument.Empty);
+        var location = FakeStatusReader.LocationOf("prefetch");
+        var store = new DiffStore(reader, location, InlineUi.Instance, new DiffStoreOptions(Cache: cache, Tasks: tasks));
+        store.Load(shown, null, [next]);
+        Assert.True(reader.WaitStarted(Limit));
+
+        store.Dispose();
+
+        Assert.True(tasks.Wait(Limit));
+        Assert.Equal(1, reader.WoundDownCount);
+    }
+
+    // The work below cannot be cancelled (a file system call): a gate holds it, so what the shutdown waits for is seen.
+    [Fact]
+    public void GivenSettingsPickerScanAndCloneParentLookupsRunning_WhenTheTasksAreWaitedFor_ThenTheyWaitUntilEachEnds()
+    {
+        using var gate = new GateDirectories();
+        var tasks = new ShutdownTasks();
+        var dispatcher = new RecordingDispatcher();
+        var token = TestContext.Current.CancellationToken;
+        var picker = new PickerEffectHandler(TestGit.Services.Discovery, gate, dispatcher, PickerTimings.Default, tasks);
+        var creation = new CreationEffectHandler(new BlockingReader(), gate, dispatcher, tasks);
+        var settings = new SettingsEffectHandler(
+            new SettingsServices(
+                new ConfigWriter(Path.GetTempPath()),
+                new SettingsEnvironment(Path.GetTempPath(), gate.Check),
+                SettingsRegistry.All,
+                DefaultKeymap.Create()),
+            dispatcher,
+            tasks);
+        var commit = new SettingsCommit(SettingsRegistry.All[0], SettingValue.OfFlag(true));
+        picker.Handle(new ScanRepositoriesEffect(null, "home"), token);
+        creation.Handle(new ResolveCloneParentEffect("source", null, false, null, "home"), token);
+        settings.Handle(new CheckSettingsFolderEffect(new SettingsFolderCheck("folder", "folder", commit)), token);
+        Assert.True(gate.WaitEntered(Limit, 3));
+
+        Assert.False(tasks.Wait(TimeSpan.Zero));
+        gate.Release();
+
+        Assert.True(tasks.Wait(Limit));
+    }
+
+    private sealed class GateDirectories : IDirectoryLister, IDisposable
+    {
+        private readonly SemaphoreSlim _entered = new(0);
+        private readonly ManualResetEventSlim _open = new(false);
+
+        public void Dispose()
+        {
+            _open.Set();
+            _entered.Dispose();
+            _open.Dispose();
+        }
+
+        public bool WaitEntered(TimeSpan timeout, int count)
+        {
+            for (var index = 0; index < count; index++)
+            {
+                if (!_entered.Wait(timeout))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        public void Release() => _open.Set();
+
+        public bool Check(string directory) => DirectoryExists(directory);
+
+        public bool DirectoryExists(string directory)
+        {
+            _entered.Release();
+            _open.Wait();
+
+            return false;
+        }
+
+        public IReadOnlyList<string> ListDirectories(string directory) => [];
+
+        public bool IsRepository(string directory) => false;
+    }
+
     // Plays a read whose process takes a while to die: it blocks until cancelled, then needs time to wind down.
-    private sealed class BlockingReader : IStatusReader, IBlameReader, ICommitDetailsReader, IIssueTrackerReader, IDiffReader, ICommitTreeReader, IBlobReader, IFileHistoryReader, ICommitWriter, IIndexWriter, IDisposable
+    private sealed class BlockingReader : IStatusReader, IBlameReader, ICommitDetailsReader, IIssueTrackerReader, IDiffReader, ICommitTreeReader, IBlobReader, IFileHistoryReader, ICommitWriter, IIndexWriter, IRemoteWriter, IRepositoryCreator, IWorkingTreeDiscarder, IDisposable
     {
         private readonly SemaphoreSlim _started = new(0);
         private int _woundDown;
@@ -371,6 +500,41 @@ public class DisposeWaitsTests
         public async Task UnstageAsync(RepositoryLocation location, IReadOnlyList<string> paths, bool isHeadUnborn, CancellationToken cancellationToken) => await BlockAsync(cancellationToken);
 
         public async Task ApplyPatchAsync(RepositoryLocation location, string patch, PatchDirection direction, CancellationToken cancellationToken) => await BlockAsync(cancellationToken);
+
+        public Task FetchAsync(RepositoryLocation location, FetchRequest request, IProgress<RemoteProgress>? progress, CancellationToken cancellationToken) => BlockAsync(cancellationToken);
+
+        public async Task<PullOutcome> PullAsync(RepositoryLocation location, IProgress<RemoteProgress>? progress, CancellationToken cancellationToken)
+        {
+            await BlockAsync(cancellationToken);
+
+            return PullOutcome.UpToDate;
+        }
+
+        public Task PushAsync(RepositoryLocation location, PushRequest request, IProgress<RemoteProgress>? progress, CancellationToken cancellationToken) => BlockAsync(cancellationToken);
+
+        public Task DeleteRemoteBranchAsync(RepositoryLocation location, string remote, string branch, string expectedHash, CancellationToken cancellationToken) => BlockAsync(cancellationToken);
+
+        public async Task<RepositoryLocation> CloneAsync(CloneRequest request, IProgress<RemoteProgress>? progress, CancellationToken cancellationToken)
+        {
+            await BlockAsync(cancellationToken);
+
+            throw new InvalidOperationException("unreachable");
+        }
+
+        public async Task<InitResult> InitAsync(string directory, CancellationToken cancellationToken)
+        {
+            await BlockAsync(cancellationToken);
+
+            throw new InvalidOperationException("unreachable");
+        }
+
+        public bool CanDeleteInvalidNames => true;
+
+        public Task RestoreAsync(RepositoryLocation location, IReadOnlyList<string> paths, CancellationToken cancellationToken) => BlockAsync(cancellationToken);
+
+        public Task DeleteUntrackedAsync(RepositoryLocation location, IReadOnlyList<string> paths, CancellationToken cancellationToken) => BlockAsync(cancellationToken);
+
+        public Task ApplyReversePatchAsync(RepositoryLocation location, string patch, CancellationToken cancellationToken) => BlockAsync(cancellationToken);
 
         // The wind-down runs on its own thread, not on a timer and the pool: the shutdown blocks pool threads while it
         // waits, and a starved pool (a small Windows runner) may delay a pool timer past the shutdown bound (#1269,

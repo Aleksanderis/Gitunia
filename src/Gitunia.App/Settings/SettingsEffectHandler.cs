@@ -11,8 +11,11 @@ namespace Gitunia.App.Settings;
 /// </summary>
 /// <param name="services">The config file, the machine facts, the settings on offer and the key bindings.</param>
 /// <param name="dispatcher">Where the result commands go.</param>
-public sealed class SettingsEffectHandler(SettingsServices services, IDispatcher dispatcher)
+/// <param name="tasks">Remembers the running work so the shutdown can wait for it; the default is a private set.</param>
+public sealed class SettingsEffectHandler(SettingsServices services, IDispatcher dispatcher, ShutdownTasks? tasks = null)
 {
+    private readonly ShutdownTasks _tasks = tasks ?? new ShutdownTasks();
+
     /// <summary>Starts the effect and returns at once; the result arrives through the dispatcher.</summary>
     /// <param name="effect">What to do.</param>
     /// <param name="cancellationToken">Ends the file work when the app is closing.</param>
@@ -38,7 +41,7 @@ public sealed class SettingsEffectHandler(SettingsServices services, IDispatcher
 
     private static string WriteFailure(Exception exception) => $"Could not save the setting: {exception.Message}";
 
-    private void Start(Func<Task<SettingsCommand>> work) => _ = Task.Run(() => RunAsync(work), CancellationToken.None);
+    private void Start(Func<Task<SettingsCommand>> work) => _tasks.Run(() => RunAsync(work));
 
     private async Task RunAsync(Func<Task<SettingsCommand>> work)
     {
