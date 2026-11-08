@@ -89,7 +89,7 @@ public sealed class TabRefresher : IDisposable, IPollTarget
         else
         {
             _busy = watching.Busy ?? NeverBusy.Instance;
-            _poller = new TabPoller(_location, watching.Poll ?? PollOptions.Default, _ui, this);
+            _poller = new TabPoller(_location, watching.Poll ?? PollOptions.Default, _ui, this, tasks: _tasks);
         }
     }
 

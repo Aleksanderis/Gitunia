@@ -146,7 +146,7 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
         _keymap = options.Keymap;
         _shell = options.ShellParts ?? (options.Shell is { } shell ? ShellRoles.From(shell) : ShellRoles.None);
         _branches = new BranchEffectHandler(services.Branches, host);
-        _commits = new CommitEffectHandler(services.CommitWriter, host, options.Keymap);
+        _commits = new CommitEffectHandler(services.CommitWriter, host, options.Keymap, _loads);
         _compare = new CompareEffectHandler(this, host);
         _conflicts = new ConflictEffectHandler(
             services.Conflicts,
@@ -155,12 +155,12 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
             host);
         _creation = new CreationEffectHandler(services.Creator, pickerServices.Files, host);
         _diffPane = new DiffPaneEffectHandler(this);
-        _discard = new DiscardEffectHandler(new PatchDiscarder(services.Diff, services.Discarder), this, host);
+        _discard = new DiscardEffectHandler(new PatchDiscarder(services.Diff, services.Discarder), this, host, _loads);
         _picker = new PickerEffectHandler(services.Discovery, pickerServices.Files, host, pickerServices.Timings);
         _pick = new PickEffectHandler(services.Pick, services.PickCommits, host);
         _rebase = new RebaseEffectHandler(services.Rebase, services.QuickRebase, host);
         _rebaseEditor = new RebaseEditorEffectHandler(services.InteractiveRebase, services.CommitDetails, host);
-        _fileHistory = new FileHistoryEffectHandler(services.FileHistory, services.Diff, host);
+        _fileHistory = new FileHistoryEffectHandler(services.FileHistory, services.Diff, host, _loads);
         _blame = new BlameEffectHandler(services.Blame, services.BlameStore, host, _loads);
         _reflog = new ReflogEffectHandler(services.Reflog, host);
         _settings = settings is null ? null : new SettingsEffectHandler(settings, host);
@@ -172,7 +172,8 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
             services.IndexWriter,
             new PatchStager(services.Diff, services.IndexWriter),
             this,
-            host);
+            host,
+            _loads);
         _stash = new StashEffectHandler(services.StashWriter, host);
         _sync = new SyncEffectHandler(services.Remote, services.RemoteManager, services.Ancestry, host);
         _tags = new TagEffectHandler(services.Tags, host);
@@ -278,13 +279,13 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
         _refreshers.Clear();
         _shutdown.Cancel();
 
-        // The refreshes, the graph loads, the issue links, blame and commit details may still run git in the repositories: cancel all,
+        // The refreshes, the graph loads, the issue links, blame, the staging, discard and commit work and the stores may still run git in the repositories: cancel all,
         // then wait for them within one shared bound.
         _cancellation.CancelAll();
         foreach (var session in _sessions.Values)
         {
             session.Cancellation.Cancel();
-            session.Details.Dispose();
+            session.CancelReads();
         }
 
         var started = Stopwatch.GetTimestamp();

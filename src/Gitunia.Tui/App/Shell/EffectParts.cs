@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Gitunia.Git.Watching;
 using Gitunia.Core.Settings.Models;
 using Gitunia.Core.Config;
@@ -90,12 +91,14 @@ public sealed class EffectParts : IDisposable
     /// <inheritdoc />
     public void Dispose()
     {
+        var started = Stopwatch.GetTimestamp();
         StatusPoller.Dispose();
         WorktreePoller.Dispose();
         Runner.Dispose();
 
-        // The poller was cancelled first, so its read is usually gone by now; the wait is short.
-        StatusPoller.WaitForStop(ShutdownTasks.DefaultWait);
+        // The poller was cancelled first, so its read is usually gone by now; the waits share the bound the runner started.
+        StatusPoller.WaitForStop(ShutdownTasks.DefaultWait - Stopwatch.GetElapsedTime(started));
+        WorktreePoller.WaitForStop(ShutdownTasks.DefaultWait - Stopwatch.GetElapsedTime(started));
         Persistence.Dispose();
     }
 

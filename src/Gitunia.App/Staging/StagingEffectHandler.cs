@@ -15,16 +15,20 @@ namespace Gitunia.App.Staging;
 /// <param name="patchStager">Stages and unstages the hunk or lines picked in a diff.</param>
 /// <param name="refresher">Reads the status again.</param>
 /// <param name="dispatcher">Where the result commands go.</param>
+/// <param name="tasks">Remembers the running work so the shutdown can wait for it; the default is a private set.</param>
 public sealed class StagingEffectHandler(
     IIndexWriter writer,
     PatchStager patchStager,
     IStatusRefresher refresher,
-    IDispatcher dispatcher)
+    IDispatcher dispatcher,
+    ShutdownTasks? tasks = null)
 {
+    private readonly ShutdownTasks _tasks = tasks ?? new ShutdownTasks();
+
     /// <summary>Starts the effect and returns at once; the result arrives through the dispatcher.</summary>
     public void Handle(StagingEffect effect, CancellationToken cancellationToken)
     {
-        _ = Task.Run(() => RunAsync(effect, cancellationToken), CancellationToken.None);
+        _tasks.Run(() => RunAsync(effect, cancellationToken));
     }
 
     // Success and failure wait for the status refresh; a cancellation is posted at once.

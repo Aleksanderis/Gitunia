@@ -16,12 +16,15 @@ namespace Gitunia.App.Discard;
 /// <param name="discarder">Throws away whole files and chosen lines.</param>
 /// <param name="refresher">Reads the status again.</param>
 /// <param name="dispatcher">Where the result commands go.</param>
-public sealed class DiscardEffectHandler(PatchDiscarder discarder, IStatusRefresher refresher, IDispatcher dispatcher)
+/// <param name="tasks">Remembers the running work so the shutdown can wait for it; the default is a private set.</param>
+public sealed class DiscardEffectHandler(PatchDiscarder discarder, IStatusRefresher refresher, IDispatcher dispatcher, ShutdownTasks? tasks = null)
 {
+    private readonly ShutdownTasks _tasks = tasks ?? new ShutdownTasks();
+
     /// <summary>Starts the effect and returns at once; the result arrives through the dispatcher.</summary>
     public void Handle(DiscardEffect effect, CancellationToken cancellationToken)
     {
-        _ = Task.Run(() => RunAsync(effect, cancellationToken), CancellationToken.None);
+        _tasks.Run(() => RunAsync(effect, cancellationToken));
     }
 
     // Success and failure wait for the status refresh; a cancellation is posted at once.
