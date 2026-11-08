@@ -1,33 +1,72 @@
 name: winget
 
-# Opens the winget-pkgs PR for a release (#943). Runs only when the owner publishes a release (the draft made by
-# ci.yml does not trigger it). The first submission of Gitunia.Gitunia is a manual PR by the owner; this job needs the
+# Opens the winget-pkgs PR for a release (#943). Runs when the owner publishes a release (the draft made by ci.yml does
+# not trigger it) or by hand. The first submission of Gitunia.Gitunia is a manual PR by the owner; this job needs the
 # package to exist already. Needs the repo secret WINGET_TOKEN: a classic PAT with public_repo scope (owner creates it).
+#
+# Guard (#1275): winget-pkgs reviews one new package at a time, and a second PR while an earlier version PR is still
+# open only piles up. Before submitting, the job looks for open winget-pkgs PRs by this repository's owner titled
+# "Gitunia.Gitunia ..." (read-only, github.token). If one is open it ends green with a notice naming it and submits
+# nothing. A manual run (Actions > winget > Run workflow) with the tag of a release and force=true submits anyway.
+# The lookup is scripts/winget-open-pr.sh (test: scripts/test-winget-open-pr.sh).
 on:
   release:
     types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to submit, for example v0.7.0 (manual runs only)
+        required: true
+      force:
+        description: Submit even if an earlier Gitunia.Gitunia PR is still open
+        type: boolean
+        default: false
 
 permissions:
   contents: read
 
 jobs:
   submit:
-    if: ${{ !github.event.release.prerelease }}
+    if: ${{ github.event_name == 'workflow_dispatch' || !github.event.release.prerelease }}
     runs-on: windows-latest
     timeout-minutes: 10
+    env:
+      TAG: ${{ github.event.release.tag_name || inputs.tag }}
     steps:
       - uses: actions/checkout@v4
-      - name: Generate manifests from the release
+      - name: Skip while an earlier version PR is open
+        id: guard
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ github.event.release.tag_name }}
-          PUBLISHED_AT: ${{ github.event.release.published_at }}
+          FORCE: ${{ inputs.force }}
+        run: |
+          if [ "$FORCE" = "true" ]; then
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+            echo "force=true: not looking for open Gitunia.Gitunia PRs"
+            exit 0
+          fi
+          gh pr list --repo microsoft/winget-pkgs --author "$GITHUB_REPOSITORY_OWNER" --state open \
+            --search "Gitunia.Gitunia in:title" --json number,title,url --limit 20 > open-prs.json
+          open="$(scripts/winget-open-pr.sh open-prs.json)"
+          if [ -n "$open" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "::notice title=winget submission skipped::$TAG not submitted, an earlier Gitunia.Gitunia PR is still open: $open. Run this workflow by hand with force=true once it is merged or closed."
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Generate manifests from the release
+        if: steps.guard.outputs.skip != 'true'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           version="${TAG#v}"
+          published_at="$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json publishedAt --jq .publishedAt)"
           gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --pattern "gitunia-${version}-win-x64.zip.sha256" --dir dl
-          scripts/winget-manifest.sh "$version" "dl/gitunia-${version}-win-x64.zip.sha256" manifests "${PUBLISHED_AT%%T*}"
+          scripts/winget-manifest.sh "$version" "dl/gitunia-${version}-win-x64.zip.sha256" manifests "${published_at%%T*}"
       - name: Submit to winget-pkgs
+        if: steps.guard.outputs.skip != 'true'
         shell: pwsh
         env:
           WINGET_CREATE_GITHUB_TOKEN: ${{ secrets.WINGET_TOKEN }}
