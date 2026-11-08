@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using Gitunia.App.Status;
 using Gitunia.App.Tabs;
@@ -39,6 +40,7 @@ namespace Gitunia.App.Tests;
 public class DisposeWaitsTests
 {
     private static readonly TimeSpan Limit = TimeSpan.FromSeconds(10);
+    private static readonly TimeSpan WindDown = TimeSpan.FromMilliseconds(300);
 
     [Fact]
     public void GivenAStatusPassInFlight_WhenThePollerIsDisposed_ThenWaitForStopWaitsForTheCancelledReadToEnd()
@@ -80,8 +82,12 @@ public class DisposeWaitsTests
         Assert.True(blame.WaitStarted(Limit));
         Assert.True(details.WaitStarted(Limit));
 
+        var started = Stopwatch.GetTimestamp();
         effects.Dispose();
+        var elapsed = Stopwatch.GetElapsedTime(started);
 
+        // A shutdown that hit its bound is told apart from a read it did not wait for (#1269).
+        Assert.True(elapsed < ShutdownTasks.DefaultWait, $"The shutdown ran into its bound: {elapsed}");
         Assert.Equal(1, issues.WoundDownCount);
         Assert.Equal(1, blame.WoundDownCount);
         Assert.Equal(1, details.WoundDownCount);
@@ -366,6 +372,25 @@ public class DisposeWaitsTests
 
         public async Task ApplyPatchAsync(RepositoryLocation location, string patch, PatchDirection direction, CancellationToken cancellationToken) => await BlockAsync(cancellationToken);
 
+        // The wind-down runs on its own thread, not on a timer and the pool: the shutdown blocks pool threads while it
+        // waits, and a starved pool (a small Windows runner) may delay a pool timer past the shutdown bound (#1269,
+        // suspected, not reproduced). The sleep only plays a slow process death; the asserts wait on Dispose returning.
+        private static Task WindDownAsync()
+        {
+            var finished = new TaskCompletionSource();
+            var thread = new Thread(() =>
+            {
+                Thread.Sleep(WindDown);
+                finished.SetResult();
+            })
+            {
+                IsBackground = true,
+            };
+            thread.Start();
+
+            return finished.Task;
+        }
+
         private async Task BlockAsync(CancellationToken cancellationToken)
         {
             _started.Release();
@@ -375,7 +400,7 @@ public class DisposeWaitsTests
             }
             catch (OperationCanceledException)
             {
-                await Task.Delay(TimeSpan.FromMilliseconds(300), CancellationToken.None);
+                await WindDownAsync();
                 Interlocked.Increment(ref _woundDown);
 
                 throw;
