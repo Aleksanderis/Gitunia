@@ -26,7 +26,7 @@ public sealed partial class EffectRunner<TSession>
 
         var location = tab.Location;
         var token = session.Cancellation.Token;
-        _ = Task.Run(() => QueueIssueLinksAsync(session, location, token), CancellationToken.None);
+        _loads.Run(() => QueueIssueLinksAsync(session, location, token));
     }
 
     private void StartLoad(LoadRepositoryEffect load)
@@ -61,7 +61,7 @@ public sealed partial class EffectRunner<TSession>
                     tab.Location,
                     _ui,
                     _detailDebounce,
-                    new CommitDetailsStoreOptions(Background: _background)),
+                    new CommitDetailsStoreOptions(Background: _background, Tasks: _loads)),
                 new DiffStore(
                     new StashAwareDiffReader(_services.Diff, _services.StashDetails, stashView.Registry),
                     tab.Location,
@@ -105,7 +105,7 @@ public sealed partial class EffectRunner<TSession>
         _refreshers[tabId] = refresher;
         refresher.Start();
         refresher.SetActive(_host.Workspace.ActiveTabId == tabId);
-        _ = Task.Run(() => QueueIssueLinksAsync(session, location, token), CancellationToken.None);
+        _loads.Run(() => QueueIssueLinksAsync(session, location, token));
         _loads.Run(() => _services.RepositoryLoader.RunAsync(location, session, _host, _statuses, _ui, token));
     }
 

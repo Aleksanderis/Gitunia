@@ -92,6 +92,7 @@ public sealed class EffectParts : IDisposable
     {
         StatusPoller.Dispose();
         WorktreePoller.Dispose();
+        StatusPoller.WaitForStop(ShutdownTasks.DefaultWait);
         Runner.Dispose();
         Persistence.Dispose();
     }

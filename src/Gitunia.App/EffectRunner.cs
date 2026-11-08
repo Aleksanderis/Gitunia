@@ -161,7 +161,7 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
         _rebase = new RebaseEffectHandler(services.Rebase, services.QuickRebase, host);
         _rebaseEditor = new RebaseEditorEffectHandler(services.InteractiveRebase, services.CommitDetails, host);
         _fileHistory = new FileHistoryEffectHandler(services.FileHistory, services.Diff, host);
-        _blame = new BlameEffectHandler(services.Blame, services.BlameStore, host);
+        _blame = new BlameEffectHandler(services.Blame, services.BlameStore, host, _loads);
         _reflog = new ReflogEffectHandler(services.Reflog, host);
         _settings = settings is null ? null : new SettingsEffectHandler(settings, host);
         _sidebar = new SidebarEffectHandler(this, host);
@@ -278,11 +278,13 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
         _refreshers.Clear();
         _shutdown.Cancel();
 
-        // The refreshes and the initial and incremental graph loads may still run git in the repositories: cancel all,
+        // The refreshes, the graph loads, the issue links, blame and commit details may still run git in the repositories: cancel all,
         // then wait for them within one shared bound.
+        _cancellation.CancelAll();
         foreach (var session in _sessions.Values)
         {
             session.Cancellation.Cancel();
+            session.Details.Dispose();
         }
 
         var started = Stopwatch.GetTimestamp();

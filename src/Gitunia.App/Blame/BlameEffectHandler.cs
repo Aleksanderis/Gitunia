@@ -15,11 +15,13 @@ namespace Gitunia.App.Blame;
 /// <param name="reader">Reads the lines and the blame.</param>
 /// <param name="store">Holds the lines and their commits for the view.</param>
 /// <param name="dispatcher">Where the results go.</param>
-public sealed class BlameEffectHandler(IBlameReader reader, BlameStore store, IDispatcher dispatcher)
+/// <param name="tasks">Remembers the running read so the shutdown can wait for it; the default is a private set.</param>
+public sealed class BlameEffectHandler(IBlameReader reader, BlameStore store, IDispatcher dispatcher, ShutdownTasks? tasks = null)
 {
     /// <summary>The least time between two progress announcements, so a fast blame does not flood the dispatcher.</summary>
     public static readonly TimeSpan ProgressInterval = TimeSpan.FromMilliseconds(50);
 
+    private readonly ShutdownTasks _tasks = tasks ?? new ShutdownTasks();
     private CancellationTokenSource? _running;
     private long _runningGeneration;
 
@@ -33,7 +35,7 @@ public sealed class BlameEffectHandler(IBlameReader reader, BlameStore store, ID
         _running = source;
         _runningGeneration = effect.Generation;
         var token = source.Token;
-        _ = Task.Run(() => RunAsync(effect, token), CancellationToken.None);
+        _tasks.Run(() => RunAsync(effect, token));
     }
 
     /// <summary>Cancels the blame of the generation and frees its lines.</summary>
