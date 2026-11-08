@@ -26,6 +26,7 @@ public sealed class CommitDetailsStore : IDisposable
     private readonly TimeProvider _timeProvider;
     private readonly IBackgroundWork _background;
     private readonly CommitDetailsCache _cache;
+    private readonly ShutdownTasks _tasks;
     private CancellationTokenSource? _pending;
     private CancellationTokenSource? _parentPending;
     private int _requestedParent;
@@ -48,6 +49,7 @@ public sealed class CommitDetailsStore : IDisposable
         _background = options.Background ?? UnboundedBackgroundWork.Instance;
         _delay = options.Delayer ?? TaskDelayer.Instance;
         _cache = options.Cache ?? new CommitDetailsCache();
+        _tasks = options.Tasks ?? new ShutdownTasks();
         _timeProvider = options.TimeProvider ?? TimeProvider.System;
         _reader = reader;
         _location = location;
@@ -96,7 +98,7 @@ public sealed class CommitDetailsStore : IDisposable
         _pending = new CancellationTokenSource();
         var token = _pending.Token;
         var wait = isFresh ? TimeSpan.Zero : _debounce;
-        _ = Task.Run(() => LoadAsync(commit, wait, wanted, token), CancellationToken.None);
+        _tasks.Run(() => LoadAsync(commit, wait, wanted, token));
     }
 
     /// <summary>Loads the selected commit again after its details failed to load. Does nothing in any other state.</summary>
@@ -134,7 +136,7 @@ public sealed class CommitDetailsStore : IDisposable
         _parentPending = new CancellationTokenSource();
         var token = _parentPending.Token;
         var index = _requestedParent;
-        _ = Task.Run(() => LoadParentAsync(commit, details, index, token), CancellationToken.None);
+        _tasks.Run(() => LoadParentAsync(commit, details, index, token));
         return index;
     }
 
@@ -160,7 +162,7 @@ public sealed class CommitDetailsStore : IDisposable
         _parentPending = new CancellationTokenSource();
         var token = _parentPending.Token;
         var wait = _compareWait;
-        _ = Task.Run(() => LoadComparisonAsync(commit, details, older, newer, wait, token), CancellationToken.None);
+        _tasks.Run(() => LoadComparisonAsync(commit, details, older, newer, wait, token));
 
         return true;
     }
@@ -305,7 +307,7 @@ public sealed class CommitDetailsStore : IDisposable
 
         _pending = new CancellationTokenSource();
         var token = _pending.Token;
-        _ = Task.Run(() => PrefetchAfterDebounceAsync(wanted, token), CancellationToken.None);
+        _tasks.Run(() => PrefetchAfterDebounceAsync(wanted, token));
     }
 
     private async Task PrefetchAfterDebounceAsync(ObjectId[] wanted, CancellationToken token)

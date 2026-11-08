@@ -20,7 +20,8 @@ public sealed class BackgroundStatusPoller : IDisposable
     private readonly TimeSpan _interval;
     private readonly IBackgroundWork _background;
     private readonly CancellationTokenSource _cancellation = new();
-    private Task? _loop;
+    private readonly ShutdownTasks _tasks = new();
+    private bool _started;
 
     public BackgroundStatusPoller(IStatusReader status, Dispatcher host, IUiInvoker ui, TimeSpan? interval = null, IBackgroundWork? background = null)
     {
@@ -32,7 +33,23 @@ public sealed class BackgroundStatusPoller : IDisposable
     }
 
     /// <summary>Starts the loop: one pass now, then one per interval. Calling it twice has no effect.</summary>
-    public void Start() => _loop ??= Task.Run(() => RunAsync(_cancellation.Token), CancellationToken.None);
+    public void Start()
+    {
+        if (_started)
+        {
+            return;
+        }
+
+        _started = true;
+        var token = _cancellation.Token;
+        _tasks.Run(() => RunAsync(token));
+    }
+
+    /// <summary>
+    /// Waits until the loop has ended after <see cref="Dispose"/> (its git process is gone, so the repository directory is free)
+    /// or the timeout has passed; true when it has ended.
+    /// </summary>
+    public bool WaitForStop(TimeSpan timeout) => _tasks.Wait(timeout);
 
     /// <summary>Reads the status of every background tab once, sequentially, and updates the markers that changed.</summary>
     public async Task PollOnceAsync(CancellationToken cancellationToken)
