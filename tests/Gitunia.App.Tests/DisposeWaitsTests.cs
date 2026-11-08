@@ -39,6 +39,7 @@ namespace Gitunia.App.Tests;
 public class DisposeWaitsTests
 {
     private static readonly TimeSpan Limit = TimeSpan.FromSeconds(10);
+    private static readonly TimeSpan WindDown = TimeSpan.FromMilliseconds(300);
 
     [Fact]
     public void GivenAStatusPassInFlight_WhenThePollerIsDisposed_ThenWaitForStopWaitsForTheCancelledReadToEnd()
@@ -366,6 +367,24 @@ public class DisposeWaitsTests
 
         public async Task ApplyPatchAsync(RepositoryLocation location, string patch, PatchDirection direction, CancellationToken cancellationToken) => await BlockAsync(cancellationToken);
 
+        // The wind-down runs on its own thread, not on a timer and the pool: the shutdown blocks pool threads while it
+        // waits, and a starved pool (a small Windows runner) would delay a pool timer past the shutdown bound (#1269).
+        private static Task WindDownAsync()
+        {
+            var finished = new TaskCompletionSource();
+            var thread = new Thread(() =>
+            {
+                Thread.Sleep(WindDown);
+                finished.SetResult();
+            })
+            {
+                IsBackground = true,
+            };
+            thread.Start();
+
+            return finished.Task;
+        }
+
         private async Task BlockAsync(CancellationToken cancellationToken)
         {
             _started.Release();
@@ -375,7 +394,7 @@ public class DisposeWaitsTests
             }
             catch (OperationCanceledException)
             {
-                await Task.Delay(TimeSpan.FromMilliseconds(300), CancellationToken.None);
+                await WindDownAsync();
                 Interlocked.Increment(ref _woundDown);
 
                 throw;
