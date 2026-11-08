@@ -21,7 +21,7 @@ permissions:
 # Release packaging (#48): on a v* tag the AOT binaries of both legs are archived by scripts/package.sh and attached to
 # a draft GitHub release by the `release` job. The `check` job (#937) looks for a green full dispatch run on the tagged
 # commit: if there is one the tag run skips build and tests (#899), else it builds and tests itself. It never waits.
-# The macOS leg (#455) runs on tags and when chosen in a dispatch, never as part of `all` (10x minutes); macos-14 is pinned because it is Apple silicon. It always
+# The macOS leg (#455) runs on tags and when chosen in a dispatch, never as part of `all` (10x minutes); macos-15 is pinned because it is Apple silicon (macos-14 was retired, #1273). It always
 # builds and tests (the green-run lookup covers Linux and Windows x64 only). The arm64 legs (#1247, linux-arm64 and windows-arm64)
 # build on native arm64 runners (AOT cannot cross-compile), run on tags and `platform=arm64` dispatches, never in `all`, and
 # always build and test; like macOS, a red arm64 leg does not block the x64 assets.
@@ -229,7 +229,7 @@ jobs:
     # Tags and an explicit `platform: macos` dispatch only (#455): macOS minutes cost 10x on the free plan.
     needs: check
     if: ${{ !cancelled() && (inputs.platform == 'macos' || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v'))) }}
-    runs-on: macos-14
+    runs-on: macos-15
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
