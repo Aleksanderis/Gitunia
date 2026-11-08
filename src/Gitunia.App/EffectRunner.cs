@@ -279,7 +279,7 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
         _refreshers.Clear();
         _shutdown.Cancel();
 
-        // The refreshes, the graph loads, the issue links, blame, the staging, discard and commit work and the stores may still run git in the repositories: cancel all,
+        // The refreshes, the graph loads, the issue links, blame, the staging, discard, commit, sync, worktree, creation, picker and settings work and the stores may still run git or file calls in the repositories: cancel all,
         // then wait for them within one shared bound.
         _cancellation.CancelAll();
         foreach (var session in _sessions.Values)
