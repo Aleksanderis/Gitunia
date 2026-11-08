@@ -192,7 +192,7 @@ jobs:
         run: |
           for project in Core Platform Git App Tui; do
             dotnet test "tests/Gitunia.$project.Tests" -c Release --no-build --filter "Os!=Independent" \
-              --blame-hang-timeout 10m --blame-hang-dump-type none || exit 1
+              --blame-hang-timeout 3m --blame-hang-dump-type none || exit 1
           done
       - name: Install script test (Windows PowerShell 5.1 and pwsh, fake release on disk, #1248)
         run: |
@@ -360,7 +360,7 @@ jobs:
         run: |
           for project in Core Platform Git App Tui; do
             dotnet test "tests/Gitunia.$project.Tests" -c Release --no-build --filter "Os!=Independent" \
-              --blame-hang-timeout 10m --blame-hang-dump-type none || exit 1
+              --blame-hang-timeout 3m --blame-hang-dump-type none || exit 1
           done
       - name: AOT publish (any IL* warning fails)
         run: |
