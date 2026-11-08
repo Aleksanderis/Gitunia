@@ -1,0 +1,51 @@
+# Updates Formula/gitunia.rb in the tap Aleksanderis/homebrew-tap when the owner publishes a release (#945).
+# Needs the repository secret HOMEBREW_TAP_TOKEN (fine-grained PAT, contents:write on the tap repo only) and the tap
+# repo itself. Without the secret the job ends green with a notice, so releases are not blocked; with a secret but no
+# reachable tap (repo missing, token expired) it fails, so a stale tap is visible. A release without the osx-arm64
+# archive makes it fail too (the formula needs all three hashes).
+# Manual run for a version: `gh workflow run homebrew.yml -f version=1.2.3`.
+name: homebrew
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Release version without the leading v (1.2.3)
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: homebrew
+  cancel-in-progress: false
+
+jobs:
+  tap:
+    if: ${{ github.event_name == 'workflow_dispatch' || !github.event.release.prerelease }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Update the tap
+        env:
+          TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          VERSION_INPUT: ${{ github.event.inputs.version }}
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          if [ -z "$TAP_TOKEN" ]; then echo "::notice::secret HOMEBREW_TAP_TOKEN is not set, tap not updated"; exit 0; fi
+          version="${VERSION_INPUT:-${TAG#v}}"
+          export GIT_ASKPASS="$RUNNER_TEMP/askpass.sh"
+          printf '#!/bin/sh\necho "$TAP_TOKEN"\n' > "$GIT_ASKPASS"; chmod 700 "$GIT_ASKPASS"
+          export GIT_TERMINAL_PROMPT=0
+          if ! git clone -q https://x-access-token@github.com/Aleksanderis/homebrew-tap.git tap; then
+            echo "::error::cannot clone Aleksanderis/homebrew-tap (repo missing, token expired or without access)"; exit 1
+          fi
+          scripts/homebrew-formula.sh "$version" tap/Formula/gitunia.rb
+          cd tap
+          git add Formula/gitunia.rb
+          if git diff --cached --quiet; then echo "tap already up to date"; exit 0; fi
+          git -c user.name="Gitunia release" -c user.email="noreply@users.noreply.github.com" commit -q -m "gitunia $version"
+          git push -q origin HEAD
