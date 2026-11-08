@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using Gitunia.App.Creation;
@@ -268,8 +269,8 @@ public class DisposeWaitsTests
             dispatcher,
             tasks);
         var commit = new SettingsCommit(SettingsRegistry.All[0], SettingValue.OfFlag(true));
-        picker.Handle(new ScanRepositoriesEffect(null, "home"), token);
-        creation.Handle(new ResolveCloneParentEffect("source", null, false, null, "home"), token);
+        picker.Handle(new ScanRepositoriesEffect(null, "scan-home"), token);
+        creation.Handle(new ResolveCloneParentEffect("source", null, false, null, "parent-home"), token);
         settings.Handle(new CheckSettingsFolderEffect(new SettingsFolderCheck("folder", "folder", commit)), token);
         Assert.True(gate.WaitEntered(Limit, 3));
 
@@ -309,9 +310,8 @@ public class DisposeWaitsTests
         using var discovery = new BlockingDiscovery();
         var tasks = new ShutdownTasks();
         using var shutdown = new CancellationTokenSource();
-        using var files = new GateDirectories();
         var worktrees = new WorktreeEffectHandler(TestGit.Services.Worktrees, discovery, new RecordingDispatcher(), tasks);
-        var picker = new PickerEffectHandler(discovery, files, new RecordingDispatcher(), PickerTimings.Default, tasks);
+        var picker = new PickerEffectHandler(discovery, new SlowDirectories(), new RecordingDispatcher(), PickerTimings.Default, tasks);
         worktrees.Locate(new LocateWorktreeEffect(new TabId(1), "somewhere", false), shutdown.Token);
         picker.Handle(new DiscoverRepositoryEffect("elsewhere", 1, null), shutdown.Token);
         Assert.True(discovery.WaitStarted(Limit, 2));
@@ -359,8 +359,8 @@ public class DisposeWaitsTests
                     DefaultKeymap.Create()),
             });
         var commit = new SettingsCommit(SettingsRegistry.All[0], SettingValue.OfFlag(true));
-        effects.Run(new ScanRepositoriesEffect(null, "home"));
-        effects.Run(new ResolveCloneParentEffect("source", null, false, null, "home"));
+        effects.Run(new ScanRepositoriesEffect(null, "scan-home"));
+        effects.Run(new ResolveCloneParentEffect("source", null, false, null, "parent-home"));
         effects.Run(new CheckSettingsFolderEffect(new SettingsFolderCheck("folder", "folder", commit)));
         effects.Run(new CloneRepositoryEffect(new CloneRequest("source", "target")));
         Assert.True(slow.WaitEntered(Limit, 3));
@@ -371,7 +371,23 @@ public class DisposeWaitsTests
         var elapsed = Stopwatch.GetElapsedTime(started);
 
         Assert.True(elapsed < ShutdownTasks.DefaultWait, $"The shutdown ran into its bound: {elapsed}");
-        Assert.True(slow.FinishedCount >= 3, $"Only {slow.FinishedCount} lookups had ended");
+        Assert.Equal(["folder", "parent-home", "scan-home"], slow.FinishedMarkers);
+        Assert.Equal(1, creator.WoundDownCount);
+    }
+
+    [Fact]
+    public void GivenARunningClone_WhenCancelAndWaitHasNoTimeLeft_ThenItReturnsFalseWithoutWaitingAndLaterWaitsForTheCleanUp()
+    {
+        var creator = new BlockingReader();
+        using var files = new SlowDirectories();
+        var handler = new CreationEffectHandler(creator, files, new RecordingDispatcher());
+        using var shutdown = new CancellationTokenSource();
+        handler.Handle(new CloneRepositoryEffect(new CloneRequest("source", "target")), shutdown.Token);
+        Assert.True(creator.WaitStarted(Limit));
+
+        Assert.False(handler.CancelAndWait(TimeSpan.Zero));
+        Assert.True(handler.CancelAndWait(Limit));
+
         Assert.Equal(1, creator.WoundDownCount);
     }
 
@@ -418,10 +434,12 @@ public class DisposeWaitsTests
     // A file system call that takes a while and cannot be cancelled: it counts how many calls ran to the end.
     private sealed class SlowDirectories : IDirectoryLister, IDisposable
     {
-        private readonly SemaphoreSlim _entered = new(0);
-        private int _finished;
+        private static readonly string[] Markers = ["scan-home", "parent-home", "folder"];
 
-        public int FinishedCount => Volatile.Read(ref _finished);
+        private readonly SemaphoreSlim _entered = new(0);
+        private readonly ConcurrentDictionary<string, bool> _finished = new();
+
+        public string[] FinishedMarkers => [.. Markers.Where(_finished.ContainsKey).Order()];
 
         public void Dispose() => _entered.Dispose();
 
@@ -438,11 +456,18 @@ public class DisposeWaitsTests
             return true;
         }
 
+        // Only the first call of each lookup (named by a marker in its path) is slow, so each one counts once.
         public bool DirectoryExists(string directory)
         {
+            var marker = Array.Find(Markers, directory.Contains);
+            if (marker is null || !_finished.TryAdd(marker + ":started", true))
+            {
+                return false;
+            }
+
             _entered.Release();
             Thread.Sleep(WindDown);
-            Interlocked.Increment(ref _finished);
+            _finished.TryAdd(marker, true);
 
             return false;
         }
@@ -530,7 +555,7 @@ public class DisposeWaitsTests
         public bool DirectoryExists(string directory)
         {
             _entered.Release();
-            _open.Wait();
+            _open.Wait(Limit);
 
             return false;
         }
@@ -538,7 +563,7 @@ public class DisposeWaitsTests
         public IReadOnlyList<string> ListDirectories(string directory)
         {
             _entered.Release();
-            _open.Wait();
+            _open.Wait(Limit);
 
             return [];
         }
