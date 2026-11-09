@@ -4,7 +4,7 @@
 
 Needs `git` 2.43 or newer on your `PATH`. Any terminal works. Truecolor looks best.
 
-One line, installs the latest release and updates it when run again. Downloads are retried a few times if GitHub answers with a temporary error.
+One line, installs the latest release and updates it when run again. Downloads are retried a few times if one fails.
 
 **Linux (x64, arm64):**
 

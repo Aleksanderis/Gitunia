@@ -1,5 +1,5 @@
 # Tests scripts/install.ps1 against a fake release on disk (no network, user PATH untouched): install, update, checksum
-# mismatch, unsupported architecture, missing asset (#1248). Run on the Windows CI legs (needs Windows PowerShell or pwsh).
+# mismatch, unsupported architecture, missing asset (#1248), and download retries against a loopback HTTP server (#1281). Run on the Windows CI legs (needs Windows PowerShell or pwsh).
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 $tmp = Join-Path ([IO.Path]::GetTempPath()) ("gitunia-install-test-" + [Guid]::NewGuid().ToString('N'))
@@ -82,7 +82,7 @@ try {
             $context.Response.Close()
         }
     }).AddArgument($listener).AddArgument($web).AddArgument(2)
-    $handle = $server.BeginInvoke()
+    [void]$server.BeginInvoke()
     $env:GITUNIA_RETRY_DELAY = '0'
     try {
         Remove-Item -LiteralPath $exe -ErrorAction SilentlyContinue
