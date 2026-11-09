@@ -5,7 +5,7 @@
 # Windows is unsupported here (no tmux): the script says so and exits 2; use scripts/screenshot.ps1 (psmux, resvg). See the screenshots skill (.claude/skills/screenshots/SKILL.md).
 #
 # Usage:
-#   scripts/screenshot.sh render  --binary <gitunia> [--out <dir>] [--scenarios default,opener,diff,split,narrow,light,files,files-filter,files-whichkey,file-content,palette,help,help-lists,help-all,help-filter,whichkey,level-toggle,menu,menu-sidebar,sidebar-ref,prompt,prompt-narrow,picker,picker-narrow,jump,jump-narrow,jump-diff,jump-working,working,working-narrow,working-diff,working-diff-narrow,working-zoom,zoom-both,repeat,repeat-resize,view-menu,working-view-menu,list-view-menu,files-view-menu,working-list-menu,working-stage,working-hunk,working-lines,working-selection,working-commit,working-hook,working-discard,working-resolve,working-empty-staged,status-fresh,status-settled,settings,settings-choice,settings-narrow,settings-keys,settings-keys-entry,theme-preview,theme-kept,theme-tokyo,theme-latte,rebase-editor,rebase-reword,rebase-confirm,rebase-narrow,conflict-editor,conflict-editor-two,conflict-editor-narrow,conflict-editor-visual,conflict-editor-lines,conflict-editor-result,conflict-editor-edit,conflict-editor-click,conflict-editor-double-click,conflict-editor-untake,conflict-editor-hscroll,conflict-entry,conflict-entry-keys,conflict-add-add-entry,conflict-add-add,conflict-add-add-save,conflict-add-add-done,conflict-delete-modify-entry,stash,whitespace,file-history,file-history-narrow,line-history,blame-lines,blame-chars,diff-chars,diff-chars-drag,diff-chars-word,diff-chars-wrap,diff-chars-split,details-chars] [--repo <dir>]
+#   scripts/screenshot.sh render  --binary <gitunia> [--out <dir>] [--scenarios default,opener,diff,split,narrow,light,files,files-filter,files-whichkey,file-content,palette,help,help-lists,help-all,help-filter,whichkey,level-toggle,menu,menu-sidebar,sidebar-ref,prompt,prompt-narrow,picker,picker-narrow,jump,jump-narrow,jump-diff,jump-working,working,working-narrow,working-diff,working-diff-narrow,working-zoom,zoom-both,repeat,repeat-resize,view-menu,working-view-menu,list-view-menu,files-view-menu,working-list-menu,working-stage,working-hunk,working-lines,working-selection,working-commit,working-hook,working-discard,working-resolve,working-empty-staged,status-fresh,status-settled,settings,settings-choice,settings-narrow,settings-keys,settings-keys-entry,theme-preview,theme-kept,theme-tokyo,theme-latte,rebase-editor,rebase-reword,rebase-confirm,rebase-narrow,conflict-editor,conflict-editor-two,conflict-editor-narrow,conflict-editor-visual,conflict-editor-lines,conflict-editor-result,conflict-editor-edit,conflict-editor-click,conflict-editor-double-click,conflict-editor-untake,conflict-editor-hscroll,conflict-entry,conflict-entry-keys,conflict-add-add-entry,conflict-add-add,conflict-add-add-save,conflict-add-add-done,conflict-delete-modify-entry,stash,reflog,worktrees,whitespace,file-history,file-history-narrow,line-history,blame-lines,blame-chars,diff-chars,diff-chars-drag,diff-chars-word,diff-chars-wrap,diff-chars-split,details-chars] [--repo <dir>]
 #   scripts/screenshot.sh publish --pr <number> [--out <dir>]     push the PNGs of `render` to the screenshots repository,
 #                                                                  print markdown for a PR comment
 #   scripts/screenshot.sh clean                                    remove images of merged/closed PRs from the screenshots repository
@@ -19,6 +19,7 @@
 # working-commit (staged files, a message typed in the box with SignOff on) and working-hook (the same, committed against a failing pre-commit hook: the output overlay); not for --repo.
 # working-discard (<space>d on README.md, the second file of the Unstaged list; the first is a conflict, which is refused: the Confirm dialog); not for --repo.
 # rebase-editor (G <space>gi, then squash, drop and so on: the interactive rebase todo editor on a linear branch of a copy of the throwaway repository), rebase-reword (r: the message editor of a reword), rebase-confirm (Enter: the Confirm over the editor) and rebase-narrow (64x24); not for --repo.
+# reflog (<space>l: the HEAD reflog popup), worktrees (C-w h: the sidebar with its Worktrees section; a copy of the throwaway repository with two linked worktrees; not for --repo),
 # stash (C-w h G Enter: a stash shown in the detail pane, with a tracked and an untracked file; a copy of the throwaway repository with a stash; not for --repo).
 # whitespace (Enter Enter <space>vc: the diff of the latest commit with whitespace marks; meant for --repo with tabs and trailing spaces in it).
 # conflict-editor (<space>s, Enter on a merge conflict with five conflicts over a 72-line file, then o and n: the full-screen conflict editor, base, ours and theirs on top and the whole result below, one conflict taken and the next one current), conflict-editor-two (80 columns, o n: two version panes) and conflict-editor-narrow (64 columns: one version pane); a copy of the throwaway repository stopped on a merge; not for --repo.
@@ -117,6 +118,16 @@ make_stash_repo() { # make_stash_repo SOURCE DIR: a copy of the throwaway reposi
   printf 'Division truncates toward zero.\n' >>"$dir/README.md"
   printf 'todo\n' >"$dir/notes.txt"
   git -C "$dir" stash push -q --include-untracked -m "WIP notes"
+  )
+}
+
+make_worktree_repo() { # make_worktree_repo SOURCE DIR: a copy of the throwaway repository with two linked worktrees (placed next to DIR)
+  local source="$1" dir="$2"
+  cp -r "$source" "$dir"
+  ( # a subshell keeps the GIT_* variables out of the tmux server and the app under test
+  export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_SYSTEM=/dev/null
+  git -C "$dir" worktree add -q "$dir-overflow" fix/overflow
+  git -C "$dir" worktree add -q -b review "$dir-review" v0.1
   )
 }
 
@@ -337,6 +348,8 @@ render() {
       menu-sidebar) keys="C-w h j j Space ." ;;
       sidebar-ref) keys="C-w h j j j" ;;
       stash) keys="C-w h G Enter" ;;
+      reflog) keys="Space l" ;;
+      worktrees) keys="C-w h" ;;
       prompt) keys="Space b c f e a t" ;;
       prompt-narrow) columns=64 rows=30 keys="Space b c f e a t" ;;
       opener) columns=130 keys="Space o" ;;
@@ -415,6 +428,9 @@ render() {
     elif [[ "$scenario" == stash && -z "$source_repo" ]]; then
       scenario_repo="$work/repo-stash"
       [ -d "$scenario_repo" ] || make_stash_repo "$repo" "$scenario_repo"
+    elif [[ "$scenario" == worktrees && -z "$source_repo" ]]; then
+      scenario_repo="$work/repo-worktrees"
+      [ -d "$scenario_repo" ] || make_worktree_repo "$repo" "$scenario_repo"
     elif [[ "$scenario" == working-empty-staged && -z "$source_repo" ]]; then
       scenario_repo="$work/repo-unstaged"
       [ -d "$scenario_repo" ] || make_unstaged_repo "$repo" "$scenario_repo"
