@@ -42,11 +42,18 @@ Not included: submodules, LFS UI, hosting-provider integration, plugins.
 
 Needs Git 2.43 or newer on your `PATH`.
 
-One line, installs the latest release (re-run it to update):
+One line, installs the latest release (re-run it to update).
 
+Linux (x64, arm64):
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/Aleksanderis/Gitunia/main/scripts/install.sh | sh
 ```
-curl -fsSL https://raw.githubusercontent.com/Aleksanderis/Gitunia/main/scripts/install.sh | sh      # Linux (x64, arm64)
-irm https://raw.githubusercontent.com/Aleksanderis/Gitunia/main/scripts/install.ps1 | iex           # Windows PowerShell
+
+Windows (PowerShell):
+
+```powershell
+irm https://raw.githubusercontent.com/Aleksanderis/Gitunia/main/scripts/install.ps1 | iex
 ```
 
 Other ways to install: Linux `.deb`/`.rpm`, Arch/Omarchy `.pkg.tar.zst` (x64 and arm64) (the AUR package `gitunia-bin` is planned, not published yet), Windows `winget install Gitunia.Gitunia` (once its winget-pkgs submission is approved), Homebrew `brew install aleksanderis/tap/gitunia` (macOS and Linux), a Windows or Linux archive (x64 and arm64), a macOS archive (Apple silicon; should work but is not fully tested yet, and unsigned, so Gatekeeper asks you to allow it), or from source. For more details look in the [user guide](docs/user-guide.md#install).

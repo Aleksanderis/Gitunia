@@ -13,6 +13,7 @@
 #   GITUNIA_INSTALL_DIR  where the archive's binary goes (default: ~/.local/bin)
 #   GITUNIA_FORCE        1 = install even when the latest version is already installed
 #   GITUNIA_RELEASE_URL  release JSON to read (default: the GitHub API's latest release; a file:// URL works, for tests)
+#   GITUNIA_RETRY_DELAY  seconds before the first download retry, grows per retry (default 2; 0 in tests)
 #   GITUNIA_OS, GITUNIA_ARCH  override uname -s and uname -m (for tests)
 #
 # POSIX sh, no jq. The whole script is one function called on the last line, so a cut-off download runs nothing.
@@ -26,10 +27,19 @@ fail() { printf 'gitunia install: %s\n' "$*" >&2; exit 1; }
 have() { command -v "$1" >/dev/null 2>&1; }
 
 # Downloads $1 to the file $2 (curl or wget; file:// URLs work with curl). $3 is an optional hint added to the failure.
+# Tries up to 4 times with a growing pause (GitHub answers 502/504 now and then); GITUNIA_RETRY_DELAY is the first pause in seconds.
 download() {
-  if have curl; then curl -fsSL -o "$2" "$1" || fail "download failed: $1 ${3:-}"
-  elif have wget; then wget -q -O "$2" "$1" || fail "download failed: $1 ${3:-}"
-  else fail "need curl or wget"; fi
+  attempt=1
+  while :; do
+    if have curl; then curl -fsSL -o "$2" "$1" && return 0
+    elif have wget; then wget -q -O "$2" "$1" && return 0
+    else fail "need curl or wget"; fi
+    [ "$attempt" -lt 4 ] || fail "download failed after $attempt attempts: $1 ${3:-}(releases: https://github.com/$REPOSITORY/releases)"
+    pause=$((attempt * ${GITUNIA_RETRY_DELAY:-2}))
+    printf 'gitunia install: download failed, retrying in %ss: %s\n' "$pause" "$1" >&2
+    sleep "$pause"
+    attempt=$((attempt + 1))
+  done
 }
 
 sha256_of() {
@@ -140,7 +150,7 @@ main() {
   work="$(mktemp -d)"
   trap 'rm -rf "$work"' EXIT INT TERM HUP
   json="$work/release.json"
-  download "${GITUNIA_RELEASE_URL:-$DEFAULT_RELEASE_URL}" "$json" "(GitHub rate limit? try again later)"
+  download "${GITUNIA_RELEASE_URL:-$DEFAULT_RELEASE_URL}" "$json" "(GitHub rate limit? try again later) "
   tag="$(grep -o '"tag_name": *"[^"]*"' "$json" | head -n 1 | cut -d '"' -f 4)"
   [ -n "$tag" ] || fail "could not read the latest release from $DEFAULT_RELEASE_URL"
   latest="${tag#v}"

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Tests scripts/install.sh against a fake release on disk (no network, no root): archive install, skip when current,
-# update, checksum mismatch, unsupported architecture and system, missing asset (#1248).
+# update, download retries, checksum mismatch, unsupported architecture and system, missing asset (#1248).
 set -euo pipefail
 root="$(cd "$(dirname "$0")/.." && pwd)"
 tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
@@ -79,4 +79,28 @@ printf '%064d  x\n' 0 > "$tmp/r2/gitunia-1.3.0-1-x86_64.pkg.tar.zst.sha256"
 if out="$(run_package GITUNIA_METHOD=package)"; then fail "package checksum mismatch accepted: $out"; fi
 grep -q "checksum mismatch" <<<"$out" || fail "no package checksum message: $out"
 [ ! -e "$tmp/pacman.log" ] || fail "pacman ran despite a bad checksum"
+# Transient download failures: a fake curl in front of the real one fails the first N calls for each URL.
+real_curl="$(command -v curl)" || fail "need curl for the retry test"
+PATH="$tmp/shim:$PATH"
+mkdir -p "$tmp/shim"
+cat > "$tmp/shim/curl" <<SHIM
+#!/bin/sh
+for last; do :; done
+key="$tmp/count.\$(printf %s "\$last" | tr -c 'A-Za-z0-9' _)"
+n=\$(cat "\$key" 2>/dev/null || echo 0)
+echo \$((n + 1)) > "\$key"
+[ "\$n" -lt "\$(cat "$tmp/curl.fail")" ] && exit 22
+exec "$real_curl" "\$@"
+SHIM
+chmod +x "$tmp/shim/curl"
+rm -rf "$tmp/bin"
+rm -f "$tmp"/count.*; echo 2 > "$tmp/curl.fail"
+out="$(run_install "$tmp/r2" GITUNIA_OS=Linux GITUNIA_ARCH=aarch64 GITUNIA_RETRY_DELAY=0)" || fail "no install after two failed downloads: $out"
+[ -x "$tmp/bin/gitunia" ] || fail "binary missing after retried downloads"
+grep -q "retrying" <<<"$out" || fail "no retry message: $out"
+rm -rf "$tmp/bin"; rm -f "$tmp"/count.*; echo 1000 > "$tmp/curl.fail"
+if out="$(run_install "$tmp/r2" GITUNIA_OS=Linux GITUNIA_ARCH=aarch64 GITUNIA_RETRY_DELAY=0)"; then fail "always-failing download accepted"; fi
+grep -q "download failed after 4 attempts: file://$tmp/r2/release.json" <<<"$out" || fail "failure lacks the URL: $out"
+grep -q "github.com/Aleksanderis/Gitunia/releases" <<<"$out" || fail "failure lacks the releases page: $out"
+n="$(cat "$tmp"/count.*release_json)"; [ "$n" = 4 ] || fail "expected 4 attempts, got $n"
 echo "ok"

@@ -11,19 +11,29 @@
 #   GITUNIA_FORCE        1 = install even when the latest version is already installed
 #   GITUNIA_NO_PATH      1 = do not touch the user PATH
 #   GITUNIA_RELEASE_URL  release JSON to read (default: the GitHub API's latest release; a local file path works, for tests)
+#   GITUNIA_RETRY_DELAY  seconds before the first download retry, grows per retry (default 2; 0 in tests)
 #   GITUNIA_ARCH         x64 | arm64 (default: detected; for tests)
 #
 # Everything is in one function called on the last line, so a cut-off download runs nothing.
-function Get-GitumiaFile([string]$Source, [string]$Destination) {
-    # A URL is downloaded; anything else is a local path (tests).
-    if ($Source -match '^https?://') {
-        [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
-        $previous = $ProgressPreference
-        $ProgressPreference = 'SilentlyContinue'
-        try { Invoke-WebRequest -UseBasicParsing -Uri $Source -OutFile $Destination } finally { $ProgressPreference = $previous }
-    } else {
+function Get-GituniaFile([string]$Source, [string]$Destination) {
+    # A URL is downloaded, up to 4 tries with a growing pause (GitHub answers 502/504 now and then); anything else is a local path (tests).
+    if ($Source -notmatch '^https?://') {
         Copy-Item -LiteralPath $Source -Destination $Destination
+        return
     }
+    [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
+    $delay = if ($env:GITUNIA_RETRY_DELAY) { [int]$env:GITUNIA_RETRY_DELAY } else { 2 }
+    $previous = $ProgressPreference
+    $ProgressPreference = 'SilentlyContinue'
+    try {
+        for ($attempt = 1; ; $attempt++) {
+            try { Invoke-WebRequest -UseBasicParsing -Uri $Source -OutFile $Destination; return } catch {
+                if ($attempt -ge 4) { throw "download failed after $attempt attempts: $Source ($($_.Exception.Message)); releases: https://github.com/Aleksanderis/Gitunia/releases" }
+                Write-Host "download failed, retrying in $($attempt * $delay)s: $Source"
+                Start-Sleep -Seconds ($attempt * $delay)
+            }
+        }
+    } finally { $ProgressPreference = $previous }
 }
 
 # Adds a folder to the user PATH without changing how the existing value is stored: read it unexpanded (it may hold
@@ -69,7 +79,7 @@ function Invoke-InstallCore {
     [void](New-Item -ItemType Directory -Path $work)
     try {
         $jsonPath = Join-Path $work 'release.json'
-        Get-GitumiaFile $releaseUrl $jsonPath
+        Get-GituniaFile $releaseUrl $jsonPath
         $release = Get-Content -LiteralPath $jsonPath -Raw | ConvertFrom-Json
         if (-not $release.tag_name) { throw "could not read the latest release from $releaseUrl" }
         $latest = ([string]$release.tag_name).TrimStart('v')
@@ -87,8 +97,8 @@ function Invoke-InstallCore {
         $asset = @($release.assets | Where-Object { $_.browser_download_url -like "*$suffix" }) | Select-Object -First 1
         if (-not $asset) { throw "this release has no win-$architecture zip yet; see https://github.com/$repository/releases" }
         $zip = Join-Path $work ($asset.browser_download_url -split '[/\\]')[-1]
-        Get-GitumiaFile $asset.browser_download_url $zip
-        Get-GitumiaFile "$($asset.browser_download_url).sha256" "$zip.sha256"
+        Get-GituniaFile $asset.browser_download_url $zip
+        Get-GituniaFile "$($asset.browser_download_url).sha256" "$zip.sha256"
         $expected = ((Get-Content -LiteralPath "$zip.sha256" -TotalCount 1).Trim() -split '\s+')[0]
         if (-not $expected) { throw "no checksum for $(Split-Path -Leaf $zip)" }
         $actual = (Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash
