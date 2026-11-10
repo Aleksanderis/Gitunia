@@ -15,8 +15,8 @@ name: release
 # is Apple silicon (macos-14 was retired, #1273). A dry run skips the CI guard.
 # Every leg unpacks its own archive and runs `--version` (scripts/smoke-archive.sh); the Linux legs also install the
 # .deb, .rpm and Arch packages in clean distro containers and remove them again (scripts/smoke-packages.sh, #1296).
-# The `release` job also writes an overview to its step summary of what winget, Homebrew and AUR will do once the
-# draft is published (#1300). It makes a draft release (the owner reads the notes and publishes it); on a re-run after a partial
+# The `release` job also writes an overview to its step summary of what winget, Homebrew and AUR will do once
+# the draft is published (#1300). It makes a draft release (the owner reads the notes and publishes it); on a re-run after a partial
 # failure it replaces the assets of the existing release.
 
 on:
@@ -305,6 +305,8 @@ jobs:
       - name: List the archives
         run: ls -l dist
       - name: Overview of the downstream steps (#1300)
+        # Information only: a failure here must never stop the draft release below.
+        continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
           SWITCH: ${{ vars.WINGET_SUBMIT }}
@@ -322,17 +324,17 @@ jobs:
                  --search "Gitunia.Gitunia in:title" --json number,title,url --limit 20 > open-prs.json; then
               open="$(scripts/winget-open-pr.sh open-prs.json)"
               if [ -n "$open" ]; then winget="skipped: an earlier Gitunia.Gitunia PR is still open: $open (run winget.yml by hand with force=true once it is closed)"
-              else winget="will submit the manifests to winget-pkgs"; fi
+              else winget="will try to submit the manifests to winget-pkgs"; fi
             else
-              winget="will submit unless an earlier Gitunia.Gitunia PR is open (the lookup failed, check winget-pkgs)"
+              winget="unknown: the open-PR lookup failed here (winget.yml fails the same way), check winget-pkgs"
             fi
           else
             winget="skipped: $winget"
           fi
-          if [ "$HAS_TAP_TOKEN" = "true" ]; then brew="will update the tap"; else brew="skipped: secret HOMEBREW_TAP_TOKEN is not set"; fi
-          if [ "$HAS_AUR_KEY" = "true" ]; then aur="will push gitunia-bin"; else aur="skipped: secret AUR_SSH_KEY is not set"; fi
+          if [ "$HAS_TAP_TOKEN" = "true" ]; then brew="will try to update the tap"; else brew="skipped: secret HOMEBREW_TAP_TOKEN is not set"; fi
+          if [ "$HAS_AUR_KEY" = "true" ]; then aur="will try to push gitunia-bin"; else aur="skipped: secret AUR_SSH_KEY is not set"; fi
           {
-            echo "### After you publish $TAG"
+            echo "### After you publish $TAG (as of this run)"
             [ "$DRY_RUN" = "true" ] && echo "_Dry run: no release is made; this is what a real release would do._"
             echo ""
             echo "If you mark the release as a pre-release, all three are skipped."
