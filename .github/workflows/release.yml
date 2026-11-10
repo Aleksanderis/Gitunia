@@ -13,6 +13,8 @@ name: release
 # (#1247) legs are not covered by that run: they always build and test, on native runners (AOT cannot cross-compile),
 # and a red one does not block the x64 assets, so the draft release is made without it. macos-15 is pinned because it
 # is Apple silicon (macos-14 was retired, #1273). A dry run skips the CI guard.
+# Every leg unpacks its own archive and runs `--version` (scripts/smoke-archive.sh); the Linux legs also install the
+# .deb, .rpm and Arch packages in clean distro containers and remove them again (scripts/smoke-packages.sh, #1296).
 # The `release` job makes a draft release (the owner reads the notes and publishes it); on a re-run after a partial
 # failure it replaces the assets of the existing release.
 
@@ -163,12 +165,20 @@ jobs:
           echo "$frame" | grep -q "NORMAL"
       - name: Package
         run: scripts/package.sh "$RID" out "$VERSION" dist
+      - name: Smoke run the archive (#1296)
+        run: |
+          ext=tar.gz; if [[ "$RID" == win-* ]]; then ext=zip; fi
+          archive="dist/gitunia-$VERSION-$RID.$ext"
+          scripts/smoke-archive.sh "$archive" "$VERSION"
       - name: Package .deb, .rpm and Arch (#942)
         if: startsWith(matrix.rid, 'linux-')
         run: |
           # Pinned nfpm, built from source by the runner's Go (module checksums verified by the Go checksum database).
           go install github.com/goreleaser/nfpm/v2/cmd/nfpm@v2.43.0
           PATH="$(go env GOPATH)/bin:$PATH" scripts/package-linux.sh out "$VERSION" dist
+      - name: Install the packages in clean containers (#1296)
+        if: startsWith(matrix.rid, 'linux-')
+        run: scripts/smoke-packages.sh dist "$VERSION"
       - uses: actions/upload-artifact@v4
         with:
           name: dist-${{ matrix.rid }}
@@ -256,11 +266,19 @@ jobs:
           echo "$frame" | grep -q "NORMAL"
       - name: Package
         run: scripts/package.sh "$RID" out "$VERSION" dist
+      - name: Smoke run the archive (#1296)
+        run: |
+          ext=tar.gz; if [[ "$RID" == win-* ]]; then ext=zip; fi
+          archive="dist/gitunia-$VERSION-$RID.$ext"
+          scripts/smoke-archive.sh "$archive" "$VERSION"
       - name: Package .deb, .rpm and Arch (linux-arm64)
         if: matrix.rid == 'linux-arm64'
         run: |
           go install github.com/goreleaser/nfpm/v2/cmd/nfpm@v2.43.0
           PATH="$(go env GOPATH)/bin:$PATH" scripts/package-linux.sh out "$VERSION" dist arm64
+      - name: Install the packages in clean containers (linux-arm64, #1296)
+        if: matrix.rid == 'linux-arm64'
+        run: scripts/smoke-packages.sh dist "$VERSION"
       - uses: actions/upload-artifact@v4
         with:
           name: dist-${{ matrix.rid }}
