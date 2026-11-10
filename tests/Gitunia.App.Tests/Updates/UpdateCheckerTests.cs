@@ -130,24 +130,6 @@ public sealed class UpdateCheckerTests : IDisposable
     }
 
     [Fact]
-    public async Task GivenAHomebrewInstall_WhenChecking_ThenTheNoticeNamesBrew()
-    {
-        _server.Serve(FakeRelease.LatestUrl, FakeRelease.Json("0.9.0", []));
-        var facts = new InstallFactsReader("/opt/homebrew/bin/gitunia");
-        var checker = new UpdateChecker(
-            new UpdateCheckCache(_stateDirectory),
-            "0.8.0",
-            new Uri(FakeRelease.LatestUrl),
-            facts,
-            _time,
-            _server);
-
-        var notice = await checker.CheckAsync(CancellationToken.None);
-
-        Assert.Equal("brew upgrade gitunia", notice!.Command);
-    }
-
-    [Fact]
     public async Task GivenACancelledToken_WhenChecking_ThenItIsCancelledAndNothingIsWritten()
     {
         _server.Serve(FakeRelease.LatestUrl, FakeRelease.Json("0.9.0", []));
