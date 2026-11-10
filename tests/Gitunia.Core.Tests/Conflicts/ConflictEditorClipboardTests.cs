@@ -76,7 +76,7 @@ public class ConflictEditorClipboardTests
     [Fact]
     public void GivenACharacterRangeSelectedInTheResult_WhenYanking_ThenExactlyThoseCharactersAreCopied()
     {
-        var state = State(Single).FocusPane(ConflictPane.Result).MoveToTop().ClickResultLine(0, 0);
+        var state = State(Single).FocusPane(ConflictPane.Result).MoveToTop().ClickResultLine(0);
 
         var selected = state.ExtendResultSelection(0, 2);
 

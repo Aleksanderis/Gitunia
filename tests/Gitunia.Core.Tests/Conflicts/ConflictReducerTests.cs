@@ -575,7 +575,7 @@ public class ConflictReducerTests
     {
         var typing = Press(Opened(Text), ActionIds.ConflictEditorEdit).State;
         var editor = typing.Shell.Conflict.Editor!.EndEdit();
-        var selected = editor.ClickResultLine(0, 0).ExtendResultSelection(0, 10);
+        var selected = editor.ClickResultLine(0).ExtendResultSelection(0, 10);
         var state = typing with
         {
             Shell = typing.Shell with { Conflict = typing.Shell.Conflict with { Editor = selected } },
