@@ -49,7 +49,15 @@ jobs:
         # 3 minutes) must stay below the step timeout, or the step is cancelled before the report is written; it then
         # names the running test. The step timeout also covers a host that died with no test in flight.
         timeout-minutes: 10
-        run: dotnet test -c Release --no-build --blame-hang-timeout 3m --blame-hang-dump-type none
+        run: dotnet test -c Release --no-build --blame-hang-timeout 3m --blame-hang-dump-type none --results-directory TestResults --logger trx
+      - name: Upload test logs and hang report (failure only, #1298)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-linux-x64
+          path: TestResults
+          if-no-files-found: ignore
+          retention-days: 14
       - name: Install script test (fake release on disk, #1248)
         run: scripts/test-install.sh
       - name: Decide whether the AOT publish is needed
@@ -132,8 +140,16 @@ jobs:
         run: |
           for project in Core Platform Git App Tui; do
             dotnet test "tests/Gitunia.$project.Tests" -c Release --no-build --filter "Os!=Independent" \
-              --blame-hang-timeout 10m --blame-hang-dump-type none || exit 1
+              --blame-hang-timeout 10m --blame-hang-dump-type none --results-directory TestResults --logger trx || exit 1
           done
+      - name: Upload test logs and hang report (failure only, #1298)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-windows-x64
+          path: TestResults
+          if-no-files-found: ignore
+          retention-days: 14
       - name: Install script test (Windows PowerShell 5.1 and pwsh, fake release on disk, #1248)
         run: |
           powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-install.ps1
@@ -183,10 +199,18 @@ jobs:
           status=0
           for project in Core Platform Git App Tui; do
             dotnet test "tests/Gitunia.$project.Tests" -c Release --no-build --filter "Os!=Independent" \
-              --logger "console;verbosity=normal" --blame-hang-timeout 3m --blame-hang-dump-type none 2>&1 \
+              --logger "console;verbosity=normal" --blame-hang-timeout 3m --blame-hang-dump-type none --results-directory TestResults --logger trx 2>&1 \
               | tee -a /tmp/test-out.log || status=1
           done
           exit $status
+      - name: Upload test logs and hang report (failure only, #1298)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-macos-arm64
+          path: TestResults
+          if-no-files-found: ignore
+          retention-days: 14
       - name: AOT publish (any IL* warning fails)
         run: |
           dotnet publish src/Gitunia.Tui -c Release -r osx-arm64 -p:TreatWarningsAsErrors=true -o out 2>&1 | tee publish.log
@@ -222,7 +246,15 @@ jobs:
         run: dotnet build -c Release
       - name: Test
         timeout-minutes: 12
-        run: dotnet test -c Release --no-build --blame-hang-timeout 3m --blame-hang-dump-type none
+        run: dotnet test -c Release --no-build --blame-hang-timeout 3m --blame-hang-dump-type none --results-directory TestResults --logger trx
+      - name: Upload test logs and hang report (failure only, #1298)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-linux-arm64
+          path: TestResults
+          if-no-files-found: ignore
+          retention-days: 14
       - name: AOT publish (any IL* warning fails)
         run: |
           dotnet publish src/Gitunia.Tui -c Release -r linux-arm64 -p:TreatWarningsAsErrors=true -o out 2>&1 | tee publish.log
@@ -262,8 +294,16 @@ jobs:
         run: |
           for project in Core Platform Git App Tui; do
             dotnet test "tests/Gitunia.$project.Tests" -c Release --no-build --filter "Os!=Independent" \
-              --blame-hang-timeout 10m --blame-hang-dump-type none || exit 1
+              --blame-hang-timeout 10m --blame-hang-dump-type none --results-directory TestResults --logger trx || exit 1
           done
+      - name: Upload test logs and hang report (failure only, #1298)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-windows-arm64
+          path: TestResults
+          if-no-files-found: ignore
+          retention-days: 14
       - name: AOT publish (any IL* warning fails)
         run: |
           dotnet publish src/Gitunia.Tui -c Release -r win-arm64 -p:TreatWarningsAsErrors=true -o out 2>&1 | tee publish.log
