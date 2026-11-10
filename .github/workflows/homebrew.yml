@@ -3,6 +3,8 @@
 # repo itself. Without the secret the job ends green with a notice, so releases are not blocked; with a secret but no
 # reachable tap (repo missing, token expired) it fails, so a stale tap is visible. A release without the osx-arm64
 # archive makes it fail too (the formula needs all three hashes).
+# Convention shared with winget.yml and aur.yml (#1297): pre-releases never run, a missing token is a green notice, and a
+# run that does nothing says so in its job summary. No switch here: the tap and token exist.
 # Manual run for a version: `gh workflow run homebrew.yml -f version=0.8`.
 name: homebrew
 
@@ -24,18 +26,31 @@ concurrency:
 
 jobs:
   tap:
-    if: ${{ github.event_name == 'workflow_dispatch' || !github.event.release.prerelease }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
+      - name: Skip pre-releases
+        id: gate
+        env:
+          EVENT: ${{ github.event_name }}
+          PRERELEASE: ${{ github.event.release.prerelease }}
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          if [ "$EVENT" != "workflow_dispatch" ] && [ "$PRERELEASE" = "true" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::$TAG is a pre-release, tap not updated"
+            echo "homebrew: did nothing, $TAG is a pre-release, pre-releases never update the tap." >> "$GITHUB_STEP_SUMMARY"
+          fi
       - uses: actions/checkout@v4
+        if: steps.gate.outputs.skip != 'true'
       - name: Update the tap
+        if: steps.gate.outputs.skip != 'true'
         env:
           TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
           VERSION_INPUT: ${{ github.event.inputs.version }}
           TAG: ${{ github.event.release.tag_name }}
         run: |
-          if [ -z "$TAP_TOKEN" ]; then echo "::notice::secret HOMEBREW_TAP_TOKEN is not set, tap not updated"; exit 0; fi
+          if [ -z "$TAP_TOKEN" ]; then echo "::notice::secret HOMEBREW_TAP_TOKEN is not set, tap not updated"; echo "homebrew: did nothing, secret HOMEBREW_TAP_TOKEN is not set, tap not updated." >> "$GITHUB_STEP_SUMMARY"; exit 0; fi
           version="${VERSION_INPUT:-${TAG#v}}"
           export GIT_ASKPASS="$RUNNER_TEMP/askpass.sh"
           printf '#!/bin/sh\necho "$TAP_TOKEN"\n' > "$GIT_ASKPASS"; chmod 700 "$GIT_ASKPASS"
@@ -46,6 +61,6 @@ jobs:
           scripts/homebrew-formula.sh "$version" tap/Formula/gitunia.rb
           cd tap
           git add Formula/gitunia.rb
-          if git diff --cached --quiet; then echo "tap already up to date"; exit 0; fi
+          if git diff --cached --quiet; then echo "tap already up to date"; echo "homebrew: did nothing, tap already up to date for $version." >> "$GITHUB_STEP_SUMMARY"; exit 0; fi
           git -c user.name="Gitunia release" -c user.email="noreply@users.noreply.github.com" commit -q -m "gitunia $version"
           git push -q origin HEAD

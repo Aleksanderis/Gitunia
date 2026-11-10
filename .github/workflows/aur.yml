@@ -2,6 +2,8 @@
 # Needs the repository secret AUR_SSH_KEY (private key of the AUR account that maintains gitunia-bin). Without the
 # secret the job ends green with a notice (the AUR account is still in Backlog, #1261); with a secret but a failing
 # push it fails, so a stale package is visible.
+# Convention shared with winget.yml and homebrew.yml (#1297): pre-releases never run, a missing token is a green notice,
+# and a run that does nothing says so in its job summary. No switch here.
 # Manual run for a version: `gh workflow run aur.yml -f version=0.8`.
 name: aur
 
@@ -23,22 +25,36 @@ concurrency:
 
 jobs:
   aur:
-    # Pre-releases (v1.2.3-rc1) are not pushed: pkgver cannot contain '-'.
-    if: ${{ github.event_name == 'workflow_dispatch' || !github.event.release.prerelease }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     container: archlinux:base-devel
     steps:
+      # Pre-releases (v1.2.3-rc1) are not pushed: pkgver cannot contain '-'.
+      - name: Skip pre-releases
+        id: gate
+        env:
+          EVENT: ${{ github.event_name }}
+          PRERELEASE: ${{ github.event.release.prerelease }}
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          if [ "$EVENT" != "workflow_dispatch" ] && [ "$PRERELEASE" = "true" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::$TAG is a pre-release, AUR not updated"
+            echo "aur: did nothing, $TAG is a pre-release, pre-releases are never pushed." >> "$GITHUB_STEP_SUMMARY"
+          fi
       - name: Install git and ssh
+        if: steps.gate.outputs.skip != 'true'
         run: pacman -Syu --noconfirm --needed git openssh
       - uses: actions/checkout@v4
+        if: steps.gate.outputs.skip != 'true'
       - name: Update gitunia-bin on the AUR
+        if: steps.gate.outputs.skip != 'true'
         env:
           AUR_SSH_KEY: ${{ secrets.AUR_SSH_KEY }}
           VERSION_INPUT: ${{ github.event.inputs.version }}
           TAG: ${{ github.event.release.tag_name }}
         run: |
-          if [ -z "$AUR_SSH_KEY" ]; then echo "::notice::secret AUR_SSH_KEY is not set, AUR not updated"; exit 0; fi
+          if [ -z "$AUR_SSH_KEY" ]; then echo "::notice::secret AUR_SSH_KEY is not set, AUR not updated"; echo "aur: did nothing, secret AUR_SSH_KEY is not set, AUR not updated." >> "$GITHUB_STEP_SUMMARY"; exit 0; fi
           version="${VERSION_INPUT:-${TAG#v}}"
           key="$(mktemp)"; trap 'rm -f "$key"' EXIT
           printf '%s\n' "$AUR_SSH_KEY" > "$key"; chmod 600 "$key"

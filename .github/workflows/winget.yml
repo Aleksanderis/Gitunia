@@ -2,7 +2,7 @@ name: winget
 
 # Opens the winget-pkgs PR for a release (#943). Runs when the owner publishes a release (the draft made by ci.yml does
 # not trigger it) or by hand. The first submission of Gitunia.Gitunia is a manual PR by the owner; this job needs the
-# package to exist already. Needs the repo secret WINGET_TOKEN: a classic PAT with public_repo scope (owner creates it).
+# package to exist already. Needs the repo secret WINGET_TOKEN: a classic PAT with public_repo scope (owner creates it); without it the job ends green with a notice.
 #
 # Guard (#1275): winget-pkgs reviews one new package at a time, and a second PR while an earlier version PR is still
 # open only piles up. Before submitting, the job looks for open winget-pkgs PRs by this repository's owner titled
@@ -10,6 +10,12 @@ name: winget
 # nothing. A manual run (Actions > winget > Run workflow) with the tag of a release and force=true submits anyway.
 # If the lookup itself fails the job goes red and submits nothing. A manual run skips the prerelease check.
 # The lookup is scripts/winget-open-pr.sh (test: scripts/test-winget-open-pr.sh).
+#
+# Switch (#1297): while no Gitunia.Gitunia package is accepted yet, a published release submits only when the repository
+# variable WINGET_SUBMIT is "true" (owner sets it once the first package exists, then it can be removed together with
+# the check below). Unset: the job ends green with a notice and a job summary line, nothing is submitted. A manual run
+# ignores the switch. Convention shared with homebrew.yml and aur.yml: pre-releases never run, a missing token is a green
+# notice, and every run that does nothing says so in its job summary.
 on:
   release:
     types: [published]
@@ -28,15 +34,32 @@ permissions:
 
 jobs:
   submit:
-    if: ${{ github.event_name == 'workflow_dispatch' || !github.event.release.prerelease }}
     runs-on: windows-latest
     timeout-minutes: 10
     env:
       TAG: ${{ github.event.release.tag_name || inputs.tag }}
     steps:
       - uses: actions/checkout@v4
+      - name: Decide whether to submit
+        id: gate
+        shell: bash
+        env:
+          EVENT: ${{ github.event_name }}
+          PRERELEASE: ${{ github.event.release.prerelease }}
+          SWITCH: ${{ vars.WINGET_SUBMIT }}
+          HAS_TOKEN: ${{ secrets.WINGET_TOKEN != '' }}
+        run: |
+          reason="$(scripts/winget-gate.sh)"
+          if [ -n "$reason" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "::notice title=winget submission skipped::$reason"
+            echo "winget: did nothing, $reason." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
       - name: Skip while an earlier version PR is open
         id: guard
+        if: steps.gate.outputs.skip != 'true'
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -52,12 +75,14 @@ jobs:
           open="$(scripts/winget-open-pr.sh open-prs.json)"
           if [ -n "$open" ]; then
             echo "skip=true" >> "$GITHUB_OUTPUT"
-            echo "::notice title=winget submission skipped::$TAG not submitted, an earlier Gitunia.Gitunia PR is still open: $open. Run this workflow by hand with force=true once it is merged or closed."
+            msg="$TAG not submitted, an earlier Gitunia.Gitunia PR is still open: $open. Run this workflow by hand with force=true once it is merged or closed."
+            echo "::notice title=winget submission skipped::$msg"
+            echo "winget: did nothing, $msg" >> "$GITHUB_STEP_SUMMARY"
           else
             echo "skip=false" >> "$GITHUB_OUTPUT"
           fi
       - name: Generate manifests from the release
-        if: steps.guard.outputs.skip != 'true'
+        if: steps.gate.outputs.skip != 'true' && steps.guard.outputs.skip != 'true'
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -67,11 +92,11 @@ jobs:
           gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --pattern "gitunia-${version}-win-x64.zip.sha256" --dir dl
           scripts/winget-manifest.sh "$version" "dl/gitunia-${version}-win-x64.zip.sha256" manifests "${published_at%%T*}"
       - name: Submit to winget-pkgs
-        if: steps.guard.outputs.skip != 'true'
+        if: steps.gate.outputs.skip != 'true' && steps.guard.outputs.skip != 'true'
         shell: pwsh
         env:
           WINGET_CREATE_GITHUB_TOKEN: ${{ secrets.WINGET_TOKEN }}
         run: |
-          if (-not $env:WINGET_CREATE_GITHUB_TOKEN) { throw "Repo secret WINGET_TOKEN is not set" }
           Invoke-WebRequest https://aka.ms/wingetcreate/latest -OutFile wingetcreate.exe
           .\wingetcreate.exe submit manifests
+          "winget: submitted $env:TAG to winget-pkgs." | Out-File -Append -Encoding utf8 $env:GITHUB_STEP_SUMMARY
