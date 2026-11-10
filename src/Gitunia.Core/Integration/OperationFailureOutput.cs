@@ -30,10 +30,16 @@ public static class OperationFailureOutput
 
     private static List<string> Lines(string text)
     {
-        var lines = text.Replace("\r\n", "\n", StringComparison.Ordinal).Split('\n').Select(line => line.TrimEnd('\r')).ToList();
+        var split = text.Replace("\r\n", "\n", StringComparison.Ordinal).Split('\n');
+        var lines = split.Select(line => line.TrimEnd('\r')).ToList();
         while (lines.Count > 0 && lines[^1].Trim().Length == 0)
         {
             lines.RemoveAt(lines.Count - 1);
+        }
+
+        while (lines.Count > 0 && lines[0].Trim().Length == 0)
+        {
+            lines.RemoveAt(0);
         }
 
         return lines;

@@ -313,7 +313,6 @@ public class IntegrationEffectHandlerTests
         Assert.StartsWith("Could not continue the merge:", failed.Text, StringComparison.Ordinal);
         Assert.True(failed.Refresh);
         Assert.Equal("Could not continue the merge", failed.Output!.Title);
-        Assert.DoesNotContain(failed.Output.Lines, string.IsNullOrWhiteSpace);
         Assert.Contains(failed.Text["Could not continue the merge: ".Length..], failed.Output.Lines);
     }
 

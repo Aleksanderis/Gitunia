@@ -74,6 +74,23 @@ public class IntegrationAppReducerTests
     }
 
     [Fact]
+    public void GivenAFailureWithOutput_WhenTheTabIsInTheBackground_ThenOnlyTheStatusLineTells()
+    {
+        var (state, tabId) = Opened();
+        var root = Path.Combine(Path.GetTempPath(), "gitunia-integration-app-tests", "beta");
+        var gitDirectory = Path.Combine(root, ".git");
+        var other = new RepositoryLocation(root, gitDirectory, gitDirectory, false, false);
+        state = AppReducer.Reduce(state, new OpenRepositoryCommand(other)).State;
+        Assert.NotEqual(tabId, state.Workspace.ActiveTabId);
+        var output = new FailureOutput("t", "h", ["a"]);
+
+        var update = AppReducer.Reduce(state, new IntegrationFailed(tabId, "failed", true, output));
+
+        Assert.Null(update.State.Shell.Output);
+        Assert.IsType<PostStatusEffect>(update.Effects[0]);
+    }
+
+    [Fact]
     public void GivenAFailureWithoutOutput_WhenReducing_ThenNoOutputBoxOpens()
     {
         var (state, tabId) = Opened();
