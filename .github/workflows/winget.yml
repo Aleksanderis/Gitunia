@@ -2,7 +2,8 @@ name: winget
 
 # Opens the winget-pkgs PR for a release (#943). Runs when the owner publishes a release (the draft made by ci.yml does
 # not trigger it) or by hand. The first submission of Gitunia.Gitunia is a manual PR by the owner; this job needs the
-# package to exist already. Needs the repo secret WINGET_TOKEN: a classic PAT with public_repo scope (owner creates it); without it the job ends green with a notice.
+# package to exist already. Needs the repo secret WINGET_TOKEN: a classic PAT with public_repo scope (owner creates it);
+# without it the job ends green with a notice, manual runs included.
 #
 # Guard (#1275): winget-pkgs reviews one new package at a time, and a second PR while an earlier version PR is still
 # open only piles up. Before submitting, the job looks for open winget-pkgs PRs by this repository's owner titled
@@ -99,4 +100,5 @@ jobs:
         run: |
           Invoke-WebRequest https://aka.ms/wingetcreate/latest -OutFile wingetcreate.exe
           .\wingetcreate.exe submit manifests
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           "winget: submitted $env:TAG to winget-pkgs." | Out-File -Append -Encoding utf8 $env:GITHUB_STEP_SUMMARY

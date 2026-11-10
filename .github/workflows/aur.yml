@@ -61,4 +61,5 @@ jobs:
           # makepkg refuses to run as root: build as an unprivileged user.
           useradd -m builder
           chown -R builder "$GITHUB_WORKSPACE"; chown builder "$key"
-          su builder -c "git config --global --add safe.directory '$GITHUB_WORKSPACE'; cd '$GITHUB_WORKSPACE' && AUR_SSH_KEY_FILE='$key' packaging/aur/update.sh '$version' /tmp/aur --push"
+          su builder -c "git config --global --add safe.directory '$GITHUB_WORKSPACE'; cd '$GITHUB_WORKSPACE' && AUR_SSH_KEY_FILE='$key' packaging/aur/update.sh '$version' /tmp/aur --push" 2>&1 | tee aur.log
+          if grep -q 'AUR already up to date' aur.log; then echo "aur: did nothing, gitunia-bin is already up to date for $version." >> "$GITHUB_STEP_SUMMARY"; fi
