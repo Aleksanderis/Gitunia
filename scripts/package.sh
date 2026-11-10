@@ -2,7 +2,7 @@
 # Packs an AOT publish directory into a release archive plus a SHA-256 file.
 # Usage: scripts/package.sh <rid> <publish-dir> <version> <out-dir>
 # Non-Windows rids give gitunia-<version>-<rid>.tar.gz, win-* rids give .zip (also what the winget manifest installs, #1156).
-# Used by the release job in ci.yml.
+# Used by the build legs of release.yml.
 # Works with GNU tools and with macOS (shasum, bsdtar) (#455).
 set -euo pipefail
 

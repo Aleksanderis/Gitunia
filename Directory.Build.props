@@ -12,7 +12,7 @@
     <PublishDocumentationFile>false</PublishDocumentationFile>
     <NoWarn>$(NoWarn);CS1573;CS1591</NoWarn>
     <InvariantGlobalization>true</InvariantGlobalization>
-    <!-- Plain builds are dev builds; a release passes -p:Version=<tag without v> (ci.yml). -->
+    <!-- Plain builds are dev builds; a release passes -p:Version=<tag without v> (release.yml). -->
     <Version Condition="'$(Version)' == ''">0.0.0-dev</Version>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
     <IsAotCompatible Condition="'$(IsTestProject)' != 'true'">true</IsAotCompatible>

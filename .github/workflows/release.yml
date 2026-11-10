@@ -1,0 +1,298 @@
+name: release
+
+# Release packaging (#48, split out of ci.yml in #1295). Runs when a `v*` tag is pushed and on demand as a dry run:
+#   Dry run (builds and packs every archive, creates no release and no tag; archives are workflow artifacts):
+#     gh workflow run release.yml --ref <branch> -f tag=v0.0.0-dryrun
+#   Re-run of a real release by hand (the tag must exist; dispatch on the tag):
+#     gh workflow run release.yml --ref v0.8 -f tag=v0.8 -f dry_run=false
+# The `check` job validates the tag and makes sure a green full CI run exists for the tagged commit: it reuses one (a
+# successful `workflow_dispatch` run of ci.yml whose `linux-x64` and `windows-x64` jobs both succeeded, #899, #937) or
+# else dispatches ci.yml on the tag and waits for it (#1295; supersedes the never-wait rule of #937). Because that run
+# built and tested linux-x64 and windows-x64, their legs here only publish, smoke run and package. The AOT publish
+# still builds with warnings as errors and stamps `-p:Version` (the tag without the v). The macOS (#455) and arm64
+# (#1247) legs are not covered by that run: they always build and test, on native runners (AOT cannot cross-compile),
+# and a red one does not block the x64 assets, so the draft release is made without it. macos-15 is pinned because it
+# is Apple silicon (macos-14 was retired, #1273). A dry run skips the CI guard.
+# The `release` job makes a draft release (the owner reads the notes and publishes it); on a re-run after a partial
+# failure it replaces the assets of the existing release.
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag such as v0.8 or v1.2.3 (the version is the tag without the v; a dry run may use any valid name)
+        type: string
+        required: true
+      dry_run:
+        description: Build and pack only, create no release
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+# One release run per tag; a second push never cancels a run that is already packaging.
+concurrency:
+  group: release-${{ github.event_name == 'push' && github.ref_name || inputs.tag }}
+  cancel-in-progress: false
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  TAG: ${{ github.event_name == 'push' && github.ref_name || inputs.tag }}
+  DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    # Waiting for a dispatched CI run takes up to its own timeout (windows-x64: 25 minutes).
+    timeout-minutes: 45
+    permissions:
+      actions: write
+      contents: read
+    outputs:
+      version: ${{ steps.tag.outputs.version }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Validate the tag
+        id: tag
+        run: |
+          # Two-part (v0.8) and three-part (v1.2.3) release tags, optionally with a pre-release suffix (#1279).
+          if ! [[ "$TAG" =~ ^v[0-9]+\.[0-9]+(\.[0-9]+)?(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::tag '$TAG' must look like v0.8, v1.2.3 or v1.2.3-rc.1"
+            exit 1
+          fi
+          echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
+
+      - name: A real release runs on its tag
+        if: ${{ env.DRY_RUN != 'true' }}
+        run: |
+          if [ "$GITHUB_REF" != "refs/tags/$TAG" ]; then
+            echo "::error::a real release runs on its tag: gh workflow run release.yml --ref $TAG -f tag=$TAG -f dry_run=false"
+            exit 1
+          fi
+
+      - name: Ensure a green full CI run for the tagged commit
+        if: ${{ env.DRY_RUN != 'true' }}
+        run: |
+          # Green means a successful `workflow_dispatch` run of ci.yml on this commit whose jobs `linux-x64` and
+          # `windows-x64` both succeeded, not skipped (renaming a leg makes this look for a new run). A lookup error
+          # counts as no green run, so CI is dispatched instead of an unverified run being trusted (fail closed).
+          api="repos/$GITHUB_REPOSITORY/actions"
+          green_run() {
+            local ids id ok
+            ids="$(gh api "$api/workflows/ci.yml/runs?head_sha=$GITHUB_SHA&event=workflow_dispatch&status=success&per_page=100" --jq '.workflow_runs[].id')" || return 1
+            for id in $ids; do
+              if ok="$(gh api "$api/runs/$id/jobs" --jq '[.jobs[] | select((.name == "linux-x64" or .name == "windows-x64") and .conclusion == "success")] | length')" && [ "$ok" = "2" ]; then
+                echo "Full CI run $id is green for $GITHUB_SHA"
+                return 0
+              fi
+            done
+            return 1
+          }
+          if green_run; then exit 0; fi
+
+          echo "No green full CI run for $GITHUB_SHA; dispatching ci.yml on $TAG and waiting for it"
+          before="$(gh run list --workflow ci.yml --event workflow_dispatch --commit "$GITHUB_SHA" --limit 50 --json databaseId --jq '.[].databaseId')"
+          gh workflow run ci.yml --ref "$TAG" -f platform=all
+          id=""
+          for _ in $(seq 1 30); do
+            sleep 10
+            for candidate in $(gh run list --workflow ci.yml --event workflow_dispatch --commit "$GITHUB_SHA" --limit 50 --json databaseId --jq '.[].databaseId'); do
+              if ! grep -qx "$candidate" <<<"$before"; then id="$candidate"; break; fi
+            done
+            [ -n "$id" ] && break
+          done
+          [ -n "$id" ] || { echo "::error::the dispatched CI run did not appear"; exit 1; }
+          echo "Waiting for CI run $id"
+          gh run watch "$id" --exit-status --interval 30 >/dev/null || { echo "::error::CI run $id failed: $(gh run view "$id" --json url --jq .url)"; exit 1; }
+          # The run must have both x64 legs green, not just a green conclusion.
+          green_run || { echo "::error::CI run $id finished without both x64 legs green"; exit 1; }
+
+  # linux-x64 and windows-x64: the green full CI run built and tested them, so they only publish, smoke run and pack.
+  # A dry run skips the CI guard and packs the same way.
+  build-x64:
+    name: ${{ matrix.rid }}
+    needs: check
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-latest, rid: linux-x64 }
+          - { os: windows-latest, rid: win-x64 }
+    defaults:
+      run:
+        shell: bash
+    env:
+      VERSION: ${{ needs.check.outputs.version }}
+      RID: ${{ matrix.rid }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - name: Native AOT prerequisites
+        if: startsWith(matrix.rid, 'linux-')
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends clang zlib1g-dev
+      - name: AOT publish (any IL* warning fails)
+        run: |
+          dotnet publish src/Gitunia.Tui -c Release -r "$RID" -p:TreatWarningsAsErrors=true -p:Version="$VERSION" -o out 2>&1 | tee publish.log
+          test "${PIPESTATUS[0]}" -eq 0
+          if grep -E "warning IL[0-9]+" publish.log; then echo "::error::trim/AOT warnings found"; exit 1; fi
+      - name: Smoke run
+        run: |
+          exe=./out/gitunia; if [[ "$RID" == win-* ]]; then exe=./out/gitunia.exe; fi
+          out="$("$exe")"
+          echo "$out"
+          echo "$out" | grep -q "gitunia"
+          "$exe" --version | tee version.txt
+          grep -F "$VERSION" version.txt
+      - name: Smoke run (graph frame of this repository)
+        run: |
+          exe=./out/gitunia; if [[ "$RID" == win-* ]]; then exe=./out/gitunia.exe; fi
+          frame="$("$exe" "$GITHUB_WORKSPACE" --print-frame 100x12)"
+          echo "$frame"
+          echo "$frame" | grep -q "Gitunia"
+          echo "$frame" | grep -q "NORMAL"
+      - name: Package
+        run: scripts/package.sh "$RID" out "$VERSION" dist
+      - name: Package .deb, .rpm and Arch (#942)
+        if: startsWith(matrix.rid, 'linux-')
+        run: |
+          # Pinned nfpm, built from source by the runner's Go (module checksums verified by the Go checksum database).
+          go install github.com/goreleaser/nfpm/v2/cmd/nfpm@v2.43.0
+          PATH="$(go env GOPATH)/bin:$PATH" scripts/package-linux.sh out "$VERSION" dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist-${{ matrix.rid }}
+          path: dist/*
+          if-no-files-found: error
+
+  # macOS (#455) and arm64 (#1247): not covered by the CI run, so each always builds and tests. They are separate from
+  # build-x64 so that a red one stays red in the run but never blocks the release job (see its `if`).
+  build-extra:
+    name: ${{ matrix.rid }}
+    needs: check
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: ${{ matrix.timeout }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: macos-15, rid: osx-arm64, timeout: 20 }
+          - { os: ubuntu-24.04-arm, rid: linux-arm64, timeout: 25 }
+          - { os: windows-11-arm, rid: win-arm64, timeout: 30 }
+    defaults:
+      run:
+        shell: bash
+    env:
+      VERSION: ${{ needs.check.outputs.version }}
+      RID: ${{ matrix.rid }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - name: Native AOT prerequisites
+        if: matrix.rid == 'linux-arm64'
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends clang zlib1g-dev
+      - name: Build (warnings, including IL*, are errors)
+        run: dotnet build -c Release
+      - name: Test (linux-arm64)
+        if: matrix.rid == 'linux-arm64'
+        timeout-minutes: 12
+        run: dotnet test -c Release --no-build --blame-hang-timeout 3m --blame-hang-dump-type none
+      - name: Test (win-arm64, one project at a time, OS-sensitive tests only)
+        if: matrix.rid == 'win-arm64'
+        run: |
+          for project in Core Platform Git App Tui; do
+            dotnet test "tests/Gitunia.$project.Tests" -c Release --no-build --filter "Os!=Independent" \
+              --blame-hang-timeout 10m --blame-hang-dump-type none || exit 1
+          done
+      - name: Test (osx-arm64, one project at a time, OS-sensitive tests only)
+        if: matrix.rid == 'osx-arm64'
+        # Unlike Windows it runs every project even after a failure, and scripts/ci-hang-watch.sh prints the process
+        # tree and stack samples when no test finishes for 45 s (#959, #960; same step as in ci.yml).
+        run: |
+          set -o pipefail
+          scripts/ci-hang-watch.sh &
+          watcher=$!
+          trap 'kill "$watcher" 2>/dev/null || true' EXIT
+          status=0
+          for project in Core Platform Git App Tui; do
+            dotnet test "tests/Gitunia.$project.Tests" -c Release --no-build --filter "Os!=Independent" \
+              --logger "console;verbosity=normal" --blame-hang-timeout 3m --blame-hang-dump-type none 2>&1 \
+              | tee -a /tmp/test-out.log || status=1
+          done
+          exit $status
+      - name: AOT publish (any IL* warning fails)
+        run: |
+          dotnet publish src/Gitunia.Tui -c Release -r "$RID" -p:TreatWarningsAsErrors=true -p:Version="$VERSION" -o out 2>&1 | tee publish.log
+          test "${PIPESTATUS[0]}" -eq 0
+          if grep -E "warning IL[0-9]+" publish.log; then echo "::error::trim/AOT warnings found"; exit 1; fi
+      - name: Smoke run
+        run: |
+          exe=./out/gitunia; if [[ "$RID" == win-* ]]; then exe=./out/gitunia.exe; fi
+          out="$("$exe")"
+          echo "$out"
+          echo "$out" | grep -q "gitunia"
+          "$exe" --version | tee version.txt
+          grep -F "$VERSION" version.txt
+      - name: Smoke run (graph frame of this repository)
+        run: |
+          exe=./out/gitunia; if [[ "$RID" == win-* ]]; then exe=./out/gitunia.exe; fi
+          frame="$("$exe" "$GITHUB_WORKSPACE" --print-frame 100x12)"
+          echo "$frame"
+          echo "$frame" | grep -q "Gitunia"
+          echo "$frame" | grep -q "NORMAL"
+      - name: Package
+        run: scripts/package.sh "$RID" out "$VERSION" dist
+      - name: Package .deb, .rpm and Arch (linux-arm64)
+        if: matrix.rid == 'linux-arm64'
+        run: |
+          go install github.com/goreleaser/nfpm/v2/cmd/nfpm@v2.43.0
+          PATH="$(go env GOPATH)/bin:$PATH" scripts/package-linux.sh out "$VERSION" dist arm64
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist-${{ matrix.rid }}
+          path: dist/*
+          if-no-files-found: error
+
+  release:
+    # Draft release so the owner reads the notes and publishes it. A red macOS or arm64 leg does not block the x64
+    # assets (#455, #1247); a dry run downloads the archives (proving the artifacts line up) and creates nothing.
+    if: ${{ !cancelled() && needs.build-x64.result == 'success' }}
+    needs: [check, build-x64, build-extra]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: dist-*
+          merge-multiple: true
+          path: dist
+      - name: List the archives
+        run: ls -l dist
+      - name: Create draft release
+        if: ${{ env.DRY_RUN != 'true' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Re-runs after a partial failure replace the assets of the existing release instead of failing.
+          # --verify-tag makes a missing tag an error: this job never creates one.
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$TAG" dist/* --repo "$GITHUB_REPOSITORY" --clobber
+          else
+            gh release create "$TAG" dist/* --repo "$GITHUB_REPOSITORY" --draft --verify-tag --generate-notes --title "$TAG"
+          fi
