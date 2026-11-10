@@ -1,6 +1,6 @@
 name: winget
 
-# Opens the winget-pkgs PR for a release (#943). Runs when the owner publishes a release (the draft made by ci.yml does
+# Opens the winget-pkgs PR for a release (#943). Runs when the owner publishes a release (the draft made by release.yml does
 # not trigger it) or by hand. The first submission of Gitunia.Gitunia is a manual PR by the owner; this job needs the
 # package to exist already. Needs the repo secret WINGET_TOKEN: a classic PAT with public_repo scope (owner creates it);
 # without it the job ends green with a notice, manual runs included.
