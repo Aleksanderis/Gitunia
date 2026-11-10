@@ -164,6 +164,11 @@ Grouped as the palette groups them (`ActionCatalog.GroupOf`). "Old" lists every 
 | `conflict-editor.edit` | Conflict editor: edit the result of the hunk as text | `e` | same | Everyday |  |
 | `conflict-editor.edit-done` | Conflict editor: keep the edited text | `Ctrl-g` | same | Everyday |  |
 | `conflict-editor.edit-newline` | Conflict editor: insert a new line in the edited text | `Enter` | same | Everyday |  |
+| `conflict-editor.copy-selection` | Conflict editor: copy the text selected in the result | `Alt-w` | same | Everyday | #1285 |
+| `conflict-editor.cut-selection` | Conflict editor: cut the text selected in the result while typing | `Ctrl-x` | same | Everyday | #1285 |
+| `conflict-editor.put-after` | Conflict editor: put the copied or deleted lines below the cursor line (text after the cursor) | `p` | same | Everyday | #1285 |
+| `conflict-editor.put-before` | Conflict editor: put the copied or deleted lines above the cursor line (text before the cursor) | `P` | same | Advanced | #1285 |
+| `conflict-editor.yank-line` | Conflict editor: copy the line under the cursor (also kept for p and P) | `yy` | same | Everyday | #1285 |
 | `conflict-editor.next` | Conflict editor: go to the next conflict hunk | `n` | same | Everyday |  |
 | `conflict-editor.ours` | Conflict editor: take our side for the hunk | `o` | same | Everyday |  |
 | `conflict-editor.previous` | Conflict editor: go to the previous conflict hunk | `N` | same | Everyday |  |

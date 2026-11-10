@@ -308,6 +308,16 @@ public static class ActionIds
 
     public static ActionId ConflictEditorEditNewLine { get; } = new("conflict-editor.edit-newline");
 
+    public static ActionId ConflictEditorYankLine { get; } = new("conflict-editor.yank-line");
+
+    public static ActionId ConflictEditorPutAfter { get; } = new("conflict-editor.put-after");
+
+    public static ActionId ConflictEditorPutBefore { get; } = new("conflict-editor.put-before");
+
+    public static ActionId ConflictEditorCopySelection { get; } = new("conflict-editor.copy-selection");
+
+    public static ActionId ConflictEditorCutSelection { get; } = new("conflict-editor.cut-selection");
+
     public static ActionId ConflictEditorScrollLeft { get; } = new("conflict-editor.scroll-left");
 
     public static ActionId ConflictEditorScrollRight { get; } = new("conflict-editor.scroll-right");

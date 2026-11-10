@@ -329,6 +329,7 @@ public static partial class PaneHints
     [
         new("<space>a", "take lines", [ActionIds.ConflictEditorTake]),
         new("<space>u", "untake lines", [ActionIds.ConflictEditorUntake]),
+        new("y", "copy lines", [ActionIds.VisualCopy]),
         new("j/k", "extend", [ActionIds.ListDown, ActionIds.ListUp]),
         new("v", "end selection", [ActionIds.VisualToggle]),
     ];
@@ -338,6 +339,7 @@ public static partial class PaneHints
         new("n/N", "conflict", [ActionIds.ConflictEditorNext, ActionIds.ConflictEditorPrevious]),
         new("<space>u", "untake", [ActionIds.ConflictEditorUntake]),
         new("i", "type", [ActionIds.ConflictEditorEdit]),
+        new("yy/p", "copy/put line", [ActionIds.ConflictEditorYankLine, ActionIds.ConflictEditorPutAfter]),
         new("u", "undo", [ActionIds.ConflictEditorUndo]),
         new("Tab", "pane", [ActionIds.PaneNext]),
         new("Ctrl-s", "save", [ActionIds.ConflictEditorSave]),

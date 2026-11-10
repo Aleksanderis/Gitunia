@@ -506,6 +506,11 @@ Every default key binding, one table per view. The design rules, notation and mo
 | `dd` | Normal | `working-tree.message-delete-line` | Message box and conflict result: delete the line |
 | `Enter` | Insert | `conflict-editor.edit-newline` | Conflict editor: insert a new line in the result |
 | `Ctrl-g` | Insert | `conflict-editor.edit-done` | Conflict editor: stop typing, keep the text |
+| `yy` | Normal | `conflict-editor.yank-line` | Conflict editor: copy the line under the cursor (also kept for p and P) |
+| `p` | Normal | `conflict-editor.put-after` | Conflict editor: put the copied or deleted lines below the cursor line (text after the cursor) |
+| `P` | Normal | `conflict-editor.put-before` | Conflict editor: put the copied or deleted lines above the cursor line (text before the cursor) |
+| `Alt-w` | Normal, Insert | `conflict-editor.copy-selection` | Conflict editor: copy the text selected in the result |
+| `Ctrl-x` | Insert | `conflict-editor.cut-selection` | Conflict editor: cut the text selected in the result while typing |
 
 ## ConflictSide
 
@@ -520,6 +525,7 @@ Every default key binding, one table per view. The design rules, notation and mo
 | `T` | Normal | `conflict-editor.all-theirs` | Conflict editor: take their side for every unresolved conflict of the file |
 | `e` | Normal | `conflict-editor.edit` | Conflict editor: move into the result at this conflict and start typing (Insert mode) |
 | `h` | Normal | `navigate.back` | Go back |
+| `yy` | Normal | `conflict-editor.yank-line` | Conflict editor: copy the line under the cursor (also kept for p and P) |
 
 ## Settings
 

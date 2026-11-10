@@ -36,6 +36,7 @@ namespace Gitunia.Core.Conflicts;
 /// <param name="HorizontalScroll">
 /// Columns the text of the base, ours and theirs panes is scrolled to the left, together (0 shows the line starts).
 /// </param>
+/// <param name="Yank">What the editor last copied or deleted as a line, put back by <c>p</c> and <c>P</c>.</param>
 public sealed partial record ConflictEditorState(
     TabId TabId,
     string Path,
@@ -55,7 +56,8 @@ public sealed partial record ConflictEditorState(
     bool IsEditing = false,
     IReadOnlyList<ConflictSnapshot>? UndoStack = null,
     IReadOnlyList<ConflictSnapshot>? RedoStack = null,
-    int HorizontalScroll = 0)
+    int HorizontalScroll = 0,
+    ConflictYank? Yank = null)
 {
     /// <summary>The most changes one session remembers; older ones are forgotten.</summary>
     public const int UndoLimit = 100;

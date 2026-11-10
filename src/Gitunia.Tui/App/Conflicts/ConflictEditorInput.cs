@@ -24,6 +24,7 @@ public sealed class ConflictEditorInput(Dispatcher host, GraphGlyphSet glyphs, C
     private const int StatusBarRows = 1;
 
     private bool _isDragging;
+    private bool _isResultDragging;
 
     private ConflictSession Session => host.State.Shell.Conflict;
 
@@ -148,7 +149,9 @@ public sealed class ConflictEditorInput(Dispatcher host, GraphGlyphSet glyphs, C
     /// <summary>
     /// A drag began at a frame line and column. Over a row of a version pane the cursor goes there and the mouse view
     /// of the pane is returned for the caller to send the drag through the mouse map, which starts the Visual
-    /// selection like <c>v</c> (taken by <c>&lt;space&gt;a</c> or the take chip). Null when the drag selects nothing.
+    /// selection like <c>v</c> (taken by <c>&lt;space&gt;a</c> or the take chip). Over a line of the result (typing or
+    /// not) the cursor goes there and the drag selects text; null is returned then, the mouse map is not involved.
+    /// Null as well when the drag selects nothing.
     /// </summary>
     /// <param name="isCovered">True while an overlay other than this editor is open.</param>
     /// <param name="frameLine">The frame line.</param>
@@ -156,14 +159,23 @@ public sealed class ConflictEditorInput(Dispatcher host, GraphGlyphSet glyphs, C
     public string? OnDragStarted(bool isCovered, int frameLine, int frameColumn)
     {
         _isDragging = false;
-        if (State is not { IsEditing: false } state || isCovered)
+        _isResultDragging = false;
+        if (State is not { } state || isCovered)
         {
             return null;
         }
 
         var size = EditorArea();
-        if (ConflictEditorFrameBuilder.TargetAt(state, frameLine, frameColumn, size.Width, size.Height, keys)
-            is not { Kind: ConflictTargetKind.VersionRow } target)
+        var target = ConflictEditorFrameBuilder.TargetAt(state, frameLine, frameColumn, size.Width, size.Height, keys);
+        if (target is { Kind: ConflictTargetKind.ResultLine })
+        {
+            host.Dispatch(new ConflictClicked(target, false, Viewports()));
+            _isResultDragging = true;
+
+            return null;
+        }
+
+        if (state.IsEditing || target is not { Kind: ConflictTargetKind.VersionRow })
         {
             return null;
         }
@@ -175,23 +187,58 @@ public sealed class ConflictEditorInput(Dispatcher host, GraphGlyphSet glyphs, C
     }
 
     /// <summary>
-    /// The pointer of a drag started by <see cref="OnDragStarted"/> is at a frame line: the selection reaches the row
-    /// under it (the first or last shown row above or below the panes).
+    /// The pointer of a drag started by <see cref="OnDragStarted"/> is at a frame line and column: a selection in a
+    /// version pane reaches the row under it (the first or last shown row above or below the panes), a selection in
+    /// the result the text position under it (a pointer outside the result text is ignored).
     /// </summary>
     /// <param name="isCovered">True while an overlay other than this editor is open.</param>
     /// <param name="frameLine">The frame line.</param>
-    public void OnDragged(bool isCovered, int frameLine)
+    /// <param name="frameColumn">The frame column.</param>
+    public void OnDragged(bool isCovered, int frameLine, int frameColumn)
     {
-        if (!_isDragging || State is not { IsVisual: true } state || isCovered)
+        if (State is not { } state || isCovered)
         {
             return;
         }
 
         var size = EditorArea();
-        if (ConflictEditorFrameBuilder.VersionRowAtLine(state, frameLine, size.Width, size.Height, keys) is { } row)
+        if (_isResultDragging)
+        {
+            if (ConflictEditorFrameBuilder.TargetAt(state, frameLine, frameColumn, size.Width, size.Height, keys)
+                is { Kind: ConflictTargetKind.ResultLine } target)
+            {
+                host.Dispatch(new ConflictResultDragged(target.Index, target.Column, Viewports()));
+            }
+
+            return;
+        }
+
+        if (_isDragging
+            && state.IsVisual
+            && ConflictEditorFrameBuilder.VersionRowAtLine(state, frameLine, size.Width, size.Height, keys)
+                is { } row)
         {
             host.Dispatch(new ConflictDragged(row, Viewports()));
         }
+    }
+
+    /// <summary>
+    /// A terminal paste while the cursor is in the result in Normal mode: the text is inserted at the cursor (while
+    /// typing a paste is typed as keys instead, see <see cref="HandleTextKey"/>).
+    /// </summary>
+    /// <param name="text">The pasted text.</param>
+    /// <returns>True when the paste was taken.</returns>
+    public bool TryPaste(string text)
+    {
+        if (State is not { IsEditing: false, ActivePane: ConflictPane.Result } state
+            || host.Workspace.ActiveTabId != state.TabId)
+        {
+            return false;
+        }
+
+        host.Dispatch(new ConflictPasted(text, Viewports()));
+
+        return true;
     }
 
     private bool TryOpen(ActionId action, bool isCovered)
