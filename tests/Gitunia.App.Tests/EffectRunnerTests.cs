@@ -7,6 +7,7 @@ using Gitunia.App.Tabs.Models;
 using Gitunia.App.Tests.Fakes;
 using Gitunia.Core.Shell;
 using Gitunia.Core.Workspaces;
+using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Tests.Fixtures;
 using Xunit;
 
@@ -194,6 +195,48 @@ public class EffectRunnerTests
         Assert.Equal(1, firstSession.Graph.Count);
         Assert.False(writer.Token.IsCancellationRequested);
         Assert.False(writer.Finished);
+    }
+
+    [Fact]
+    public async Task GivenSessionsChangingDuringShutdown_WhenDisposing_ThenEverySessionIsCancelledWithoutThrowing()
+    {
+        var fakes = new FakeGitServices();
+        fakes.CommitLog.AddOnTop("root");
+        var pump = new UiPump(TestContext.Current.CancellationToken);
+        var scratch = Workspace.Empty;
+        foreach (var name in new[] { "first", "second" })
+        {
+            scratch = WorkspaceReducer.Reduce(scratch, new OpenRepositoryCommand(FakeStatusReader.LocationOf(name))).Workspace;
+        }
+
+        var ids = scratch.Tabs.Select(tab => tab.Id).ToArray();
+        var host = new Dispatcher(AppState.Empty);
+        var registry = new TabSessionRegistry<TabSession>();
+        var effects = new EffectRunner<TabSession>(
+            fakes.Services,
+            host,
+            pump,
+            new TabSessionFactory(),
+            new EffectRunnerOptions<TabSession>
+            {
+                Statuses = new StatusReporter(host),
+                Watcher = TestGit.QuietWatcherOptions,
+                Sessions = registry,
+            });
+        host.Restore(new WorkspaceUpdate(
+            scratch with { ActiveTabId = ids[0] },
+            [.. scratch.Tabs.Select(tab => new LoadRepositoryEffect(tab.Id, tab.CommandPath))]));
+        await pump.RunUntilAsync(() => !effects.SessionOf(ids[0])!.IsLoading);
+        var first = effects.SessionOf(ids[0])!;
+        var second = effects.SessionOf(ids[1])!;
+
+        // A cancellation callback adds a session while Dispose walks the sessions: the walk must not see the change.
+        var extra = new TabId(ids.Max(id => id.Value) + 1);
+        first.Cancellation.Token.Register(() => registry[extra] = second);
+        effects.Dispose();
+
+        Assert.True(first.Cancellation.IsCancellationRequested);
+        Assert.True(second.Cancellation.IsCancellationRequested);
     }
 
     [Fact]

@@ -11,31 +11,66 @@ namespace Gitunia.App.Tabs;
 public sealed class TabSessionRegistry<TSession>
     where TSession : TabSession
 {
+    private readonly Lock _gate = new();
     private readonly Dictionary<TabId, TSession> _sessions = [];
 
-    /// <summary>The sessions of the open tabs.</summary>
-    public IEnumerable<TSession> Values => _sessions.Values;
+    /// <summary>
+    /// A snapshot of the sessions of the open tabs. Callers iterate it while sessions are added or removed (a cancellation
+    /// callback, a tab switch), so it is never the live collection.
+    /// </summary>
+    public IReadOnlyList<TSession> Values
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return [.. _sessions.Values];
+            }
+        }
+    }
 
     /// <summary>Sets the session of a tab.</summary>
     /// <param name="tabId">The tab.</param>
     public TSession this[TabId tabId]
     {
-        set => _sessions[tabId] = value;
+        set
+        {
+            lock (_gate)
+            {
+                _sessions[tabId] = value;
+            }
+        }
     }
 
     /// <summary>The session of a tab, or null.</summary>
     /// <param name="tabId">The tab.</param>
-    public TSession? GetValueOrDefault(TabId tabId) => _sessions.GetValueOrDefault(tabId);
+    public TSession? GetValueOrDefault(TabId tabId)
+    {
+        lock (_gate)
+        {
+            return _sessions.GetValueOrDefault(tabId);
+        }
+    }
 
     /// <summary>Finds the session of a tab.</summary>
     /// <param name="tabId">The tab.</param>
     /// <param name="session">The session when found.</param>
-    public bool TryGetValue(TabId tabId, [MaybeNullWhen(false)] out TSession session) =>
-        _sessions.TryGetValue(tabId, out session);
+    public bool TryGetValue(TabId tabId, [MaybeNullWhen(false)] out TSession session)
+    {
+        lock (_gate)
+        {
+            return _sessions.TryGetValue(tabId, out session);
+        }
+    }
 
     /// <summary>Removes the session of a tab.</summary>
     /// <param name="tabId">The tab.</param>
     /// <param name="session">The removed session.</param>
-    public bool Remove(TabId tabId, [MaybeNullWhen(false)] out TSession session) =>
-        _sessions.Remove(tabId, out session);
+    public bool Remove(TabId tabId, [MaybeNullWhen(false)] out TSession session)
+    {
+        lock (_gate)
+        {
+            return _sessions.Remove(tabId, out session);
+        }
+    }
 }
