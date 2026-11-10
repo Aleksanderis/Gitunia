@@ -118,6 +118,8 @@ install_archive() {
   cp "$binary" "$target/gitunia.new"
   chmod 755 "$target/gitunia.new"
   mv -f "$target/gitunia.new" "$target/gitunia"
+  # The install-source marker (#1291): tells `gitunia update` that this binary may replace itself.
+  printf 'script\n' > "$target/gitunia.install-source"
   say "Installed $target/gitunia"
   case ":$PATH:" in
     *":$target:"*) ;;

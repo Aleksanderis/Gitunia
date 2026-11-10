@@ -1,10 +1,13 @@
+using System.Runtime.InteropServices;
 using Gitunia.App;
+using Gitunia.App.Updates;
 using Gitunia.Core;
 using Gitunia.Git.Execution;
 using Gitunia.Git.Execution.Exceptions;
 using Gitunia.Git.Rebase;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Platform;
+using Gitunia.Platform.Updates;
 using Gitunia.Tui.App;
 using Gitunia.Tui.App.CommandLine;
 using Gitunia.Tui.App.Config;
@@ -16,6 +19,9 @@ namespace Gitunia.Tui;
 
 public static class Program
 {
+    // Same variable the install scripts read: another release JSON to read (tests, mirrors).
+    private const string ReleaseUrlVariable = "GITUNIA_RELEASE_URL";
+
     public static int Main(string[] arguments)
     {
         if (arguments is [SequenceEditorCommand.ModeArgument, .. var editorArguments])
@@ -23,6 +29,8 @@ public static class Program
             // Git calls this executable as its sequence editor during an interactive rebase: no UI, no discovery.
             return SequenceEditor.Copy(editorArguments);
         }
+
+        RemoveUpdateLeftovers();
 
         var options = CommandLineParser.Parse(arguments);
         if (options.Error is not null)
@@ -36,6 +44,11 @@ public static class Program
         {
             Console.Out.WriteLine($"{AppInfo.Name} {BuildVersion.Value}");
             return 0;
+        }
+
+        if (options.RunsUpdate)
+        {
+            return RunUpdate(options.UpdateCheckOnly);
         }
 
         var capabilities = PlatformInfo.Current.DetectConsole();
@@ -87,5 +100,47 @@ public static class Program
 
         var application = new TuiApplication(services, capabilities, PlatformInfo.Current);
         return application.Run(location);
+    }
+
+    // On Windows an update renames the running .exe aside; the next start removes it. Elsewhere this does nothing.
+    private static void RemoveUpdateLeftovers()
+    {
+        var executable = Environment.ProcessPath;
+        if (!string.IsNullOrEmpty(executable))
+        {
+            new ExecutableSwapper().RemoveLeftovers(executable);
+        }
+    }
+
+    // `gitunia update`: runs without the UI, writes to the console, Ctrl-C cancels the download.
+    private static int RunUpdate(bool checkOnly)
+    {
+        var releaseUrl = Environment.GetEnvironmentVariable(ReleaseUrlVariable);
+        var latestUrl = new Uri(string.IsNullOrEmpty(releaseUrl) ? ReleaseClient.DefaultLatestReleaseUrl : releaseUrl);
+        using var httpClient = ReleaseClient.Create(BuildVersion.Value);
+        var command = new UpdateCommand(new ReleaseClient(httpClient, latestUrl), new ExecutableSwapper(), Console.Out);
+        var request = new UpdateRequest(
+            BuildVersion.Value,
+            new InstallFactsReader().Read(),
+            RuntimeInformation.OSArchitecture,
+            checkOnly);
+        using var cancellation = new CancellationTokenSource();
+        Console.CancelKeyPress += (_, eventArguments) =>
+        {
+            eventArguments.Cancel = true;
+            cancellation.Cancel();
+        };
+
+        try
+        {
+            // A synchronous Main with nothing else running: blocking is safe.
+            return command.RunAsync(request, cancellation.Token).GetAwaiter().GetResult();
+        }
+        catch (OperationCanceledException)
+        {
+            Console.Error.WriteLine("gitunia update: cancelled");
+
+            return UpdateExitCode.Failed;
+        }
     }
 }

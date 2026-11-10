@@ -30,6 +30,46 @@ public class CommandLineParserTests
     }
 
     [Fact]
+    public void GivenUpdate_WhenParsing_ThenTheUpdateRunsAndNothingElseIsRequested()
+    {
+        var options = CommandLineParser.Parse(["update"]);
+
+        Assert.True(options.RunsUpdate);
+        Assert.False(options.UpdateCheckOnly);
+        Assert.Null(options.Error);
+        Assert.Null(options.RepositoryPath);
+    }
+
+    [Fact]
+    public void GivenUpdateWithCheck_WhenParsing_ThenOnlyTheCheckIsRequested()
+    {
+        var options = CommandLineParser.Parse(["update", "--check"]);
+
+        Assert.True(options.RunsUpdate);
+        Assert.True(options.UpdateCheckOnly);
+    }
+
+    [Theory]
+    [InlineData("update", "--force")]
+    [InlineData("update", "--check", "extra")]
+    public void GivenUpdateWithAnotherArgument_WhenParsing_ThenItIsAnError(params string[] arguments)
+    {
+        var options = CommandLineParser.Parse(arguments);
+
+        Assert.False(options.RunsUpdate);
+        Assert.Contains("for update", options.Error);
+    }
+
+    [Fact]
+    public void GivenUpdateAfterAPath_WhenParsing_ThenUpdateIsNotACommandAnymore()
+    {
+        var options = CommandLineParser.Parse(["some/repo", "update"]);
+
+        Assert.False(options.RunsUpdate);
+        Assert.NotNull(options.Error);
+    }
+
+    [Fact]
     public void GivenVersionFlagAfterPath_WhenParsing_ThenVersionIsRequested()
     {
         Assert.True(CommandLineParser.Parse(["some/repo", "--version"]).ShowsVersion);

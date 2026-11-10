@@ -121,6 +121,8 @@ function Invoke-InstallCore {
             throw
         }
         Remove-Item -LiteralPath $old -Force -ErrorAction SilentlyContinue
+        # The install-source marker (#1291): tells `gitunia update` that this binary may replace itself.
+        Set-Content -LiteralPath (Join-Path $target 'gitunia.install-source') -Value 'script'
         Write-Host "Installed $executable"
 
         if ($env:GITUNIA_NO_PATH -ne '1') { Add-ToUserPath $target }

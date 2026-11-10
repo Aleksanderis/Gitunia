@@ -36,6 +36,7 @@ make_release 1.3.0 "$tmp/r2"
 out="$(run_install "$tmp/r1" GITUNIA_OS=Linux GITUNIA_ARCH=x86_64)" || fail "install failed: $out"
 [ -x "$tmp/bin/gitunia" ] || fail "binary not installed"
 [ "$("$tmp/bin/gitunia" --version)" = "gitunia 1.2.3" ] || fail "wrong binary installed"
+[ "$(cat "$tmp/bin/gitunia.install-source")" = "script" ] || fail "install-source marker not written (#1291)"
 
 out="$(run_install "$tmp/r1" GITUNIA_OS=Linux GITUNIA_ARCH=x86_64)" || fail "second run failed: $out"
 grep -q "already installed" <<<"$out" || fail "no skip when current: $out"
