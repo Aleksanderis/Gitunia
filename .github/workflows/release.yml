@@ -19,6 +19,7 @@ name: release
 on:
   push:
     tags: ["v*"]
+    branches: [feature/1295-release-yml] # TEMP dry-run trigger, removed before merge
   workflow_dispatch:
     inputs:
       tag:
@@ -35,14 +36,14 @@ permissions:
 
 # One release run per tag; a second push never cancels a run that is already packaging.
 concurrency:
-  group: release-${{ github.event_name == 'push' && github.ref_name || inputs.tag }}
+  group: release-${{ github.ref_name }}
   cancel-in-progress: false
 
 env:
   DOTNET_NOLOGO: true
   DOTNET_CLI_TELEMETRY_OPTOUT: true
-  TAG: ${{ github.event_name == 'push' && github.ref_name || inputs.tag }}
-  DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
+  TAG: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v0.0.0-dryrun' }}
+  DRY_RUN: ${{ !startsWith(github.ref, 'refs/tags/') }}
 
 jobs:
   check:
