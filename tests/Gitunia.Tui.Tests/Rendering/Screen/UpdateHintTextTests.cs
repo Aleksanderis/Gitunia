@@ -6,6 +6,7 @@ using Xunit;
 
 namespace Gitunia.Tui.Tests.Rendering.Screen;
 
+[Trait("Os", "Independent")]
 public class UpdateHintTextTests
 {
     private static readonly UpdateNotice Notice = new("0.9.0", "gitunia update");

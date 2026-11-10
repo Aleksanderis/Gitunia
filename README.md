@@ -33,7 +33,7 @@ Terminal Git tools are great for quick staging and commits but awkward for many 
 - Interactive rebase editor
 - Reflog browser as the undo path for destructive actions
 - Blame view: who last changed each line of a file, at a commit or in the working tree
-- `gitunia update`: updates itself from the latest release (checksum-verified, no PowerShell on Windows) or prints the package manager's command; `gitunia update --check` is for scripts
+- `gitunia update`: updates itself from the latest release (checksum-verified, no PowerShell on Windows) or prints the package manager's command; `gitunia update --check` is for scripts; the status bar tells when a newer release exists (checked once a day, off with one setting or `GITUNIA_NO_UPDATE_CHECK`)
 - Command palette, configurable vim-style keys and full mouse support
 - Select and copy exactly the text you want from a diff, by character or by line, with keys or the mouse (copies through the terminal clipboard, also over ssh)
 
