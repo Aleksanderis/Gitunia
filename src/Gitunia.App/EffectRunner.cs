@@ -59,6 +59,8 @@ using Gitunia.Core.Staging;
 using Gitunia.Core.Stash;
 using Gitunia.Core.Sync;
 using Gitunia.Core.Tags;
+using Gitunia.Core.Updates;
+using Gitunia.App.Updates;
 using Gitunia.Core.Visual;
 using Gitunia.Core.Shell;
 using Gitunia.Core.Workspaces;
@@ -116,6 +118,7 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
     private readonly StashEffectHandler _stash;
     private readonly SyncEffectHandler _sync;
     private readonly TagEffectHandler _tags;
+    private readonly UpdateCheckEffectHandler _updateCheck;
     private readonly WorktreeEffectHandler _worktrees;
     private readonly IUiInvoker _ui;
     private readonly WorkspaceBusySource _busy;
@@ -177,6 +180,7 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
         _stash = new StashEffectHandler(services.StashWriter, host);
         _sync = new SyncEffectHandler(services.Remote, services.RemoteManager, services.Ancestry, host, _loads);
         _tags = new TagEffectHandler(services.Tags, host);
+        _updateCheck = new UpdateCheckEffectHandler(options.UpdateChecker, _background, host, _loads);
         _worktrees = new WorktreeEffectHandler(services.Worktrees, services.Discovery, host, _loads);
         _pollOptions = options.Poll ?? PollOptions.Default;
         _warmTabLimit = Math.Max(1, options.WarmTabLimit);
@@ -509,6 +513,9 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
                 break;
             case TagEffect tag:
                 _tags.Handle(tag, _cancellation.TokenOf(tag.TabId));
+                break;
+            case CheckForUpdateEffect:
+                _updateCheck.Handle(_shutdown.Token);
                 break;
             case LocateGraphCommitEffect locateCommit:
                 _sidebar.Locate(locateCommit);

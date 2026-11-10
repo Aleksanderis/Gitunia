@@ -1,6 +1,7 @@
 using Gitunia.Core.Operations;
 using Gitunia.Core.Picker;
 using Gitunia.Core.Status;
+using Gitunia.Core.Updates;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Tui.Rendering.Panes;
 using Gitunia.Tui.Rendering.Styling;
@@ -38,6 +39,7 @@ namespace Gitunia.Tui.Rendering.Screen;
 /// <param name="RepeatPane">The pane whose title shows the repeat marker while the repeat mode is on.</param>
 /// <param name="PickerBranches">The checked-out branch of each open tab by repository path, read from the tabs' state
 /// for the picker's branch column; null when the picker is closed.</param>
+/// <param name="Update">A newer release to tell about at the right end of the status bar (#1292); null for none.</param>
 /// <param name="Hints">The key hints of the focused pane for the status bar; null uses the graph's.</param>
 public sealed record ScreenModel(
     string RepositoryName,
@@ -64,4 +66,5 @@ public sealed record ScreenModel(
     ChipKeys? Keys = null,
     string SelectedName = "",
     PaneKind? RepeatPane = null,
-    IReadOnlyDictionary<string, string>? PickerBranches = null);
+    IReadOnlyDictionary<string, string>? PickerBranches = null,
+    UpdateNotice? Update = null);

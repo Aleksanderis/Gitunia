@@ -296,7 +296,7 @@ public class SettingsScreenReducerTests
     [Fact]
     public void GivenTheEditorRow_WhenActivated_ThenTheEditorIsOpenedAndAReturnReadsTheFileAgain()
     {
-        var onEditor = Reduce(Open(), new SettingsActionPressed(ActionIds.ListDown, 5)).Session;
+        var onEditor = Reduce(Open(), new SettingsActionPressed(ActionIds.ListDown, 6)).Session;
         var entered = Reduce(onEditor, new SettingsActionPressed(ActionIds.SettingsActivate, null)).Session;
 
         var opened = Reduce(entered, new SettingsActionPressed(ActionIds.SettingsActivate, null));

@@ -4,6 +4,7 @@ using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Overlays;
 using Gitunia.Core.Prompts;
 using Gitunia.Core.Status;
+using Gitunia.Core.Updates;
 
 namespace Gitunia.Core.Shell;
 
@@ -38,6 +39,7 @@ public static class ShellReducer
         StatusDismissedCommand dismissed => Dismiss(state, dismissed.At),
         StatusPostedCommand posted => Post(state, posted),
         TabRefreshRequested refresh => new ShellUpdate(state, [new RefreshTabEffect(refresh.TabId, refresh.Announce)]),
+        UpdateCheckCommand update => UpdateCheckReducer.Reduce(state, update),
         _ => throw new UnhandledCommandException(command),
     };
 

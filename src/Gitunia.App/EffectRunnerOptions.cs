@@ -3,6 +3,7 @@ using Gitunia.App.Settings;
 using Gitunia.App.Status;
 using Gitunia.App.Tabs;
 using Gitunia.App.Tabs.Models;
+using Gitunia.App.Updates;
 using Gitunia.Core.Keymap;
 using Gitunia.Git.Watching.Models;
 
@@ -42,6 +43,9 @@ public sealed record EffectRunnerOptions<TSession>
 
     /// <summary>The running key bindings: the keys a message names are read from it (#1196); none when null.</summary>
     public KeyBindingTable? Keymap { get; init; }
+
+    /// <summary>The update hint's check (#1292); a check finds nothing when null.</summary>
+    public UpdateChecker? UpdateChecker { get; init; }
 
     /// <summary>The registry the sessions are kept in, when the caller reads it too.</summary>
     public TabSessionRegistry<TSession>? Sessions { get; init; }

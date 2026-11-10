@@ -52,6 +52,10 @@ The install scripts write a one-line marker file `gitunia.install-source` next t
 
 `gitunia update` is always the update command, so a repository folder named `update` is opened with `gitunia ./update`.
 
+### Update hint
+
+Gitunia looks for a newer release in the background, at most once a day (the answer is kept in `update-check.json` in the state directory, the only file the check writes), and then the right end of the status bar says `Gitunia 0.9.0 available: gitunia update` (`brew upgrade gitunia` or `winget upgrade Gitunia.Gitunia` for those installs; the shorter `Gitunia 0.9.0 available` when the terminal is narrow, nothing under about 70 columns). It starts about a second after the first frame, so it never slows startup, and a failed check (offline, no answer) shows nothing and is not tried again before the next day. Only the `User-Agent` is sent, as for `gitunia update`; development builds never check. Turn it off with `Check for updates` in Settings (`<space>,`, Updates), `"updateCheck": false` in `config.json`, or by setting the `GITUNIA_NO_UPDATE_CHECK` environment variable to any value (`GITUNIA_RELEASE_URL` applies here too).
+
 ## Start and open a repository
 
 - `gitunia` restores your last session, or shows the repository picker.

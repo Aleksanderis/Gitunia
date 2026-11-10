@@ -5,6 +5,8 @@ using Gitunia.Core.Config;
 using Gitunia.App.Worktrees;
 using Gitunia.App;
 using Gitunia.App.Settings;
+using Gitunia.App.Updates;
+using Gitunia.Platform.Updates;
 using Gitunia.Core.Config.Models;
 using Gitunia.Core.Settings;
 using Gitunia.Git.Watching.Models;
@@ -38,12 +40,14 @@ public sealed class EffectParts : IDisposable
         var terminal = foundation.Terminal;
         var configWriter = new ConfigWriter(foundation.Platform.ConfigDirectory);
         Persistence = new SessionPersistence(foundation.Store, host, SaveDebounce, statuses, terminal.Invoker);
+        UpdateChecks = new UpdateCheckStarter(host, terminal, foundation.Config);
         var options = new OptionsApplier(
             foundation.Config,
             new OptionTargets(keys.Overlays, panes.Picker, terminal, screen.View),
             foundation.SessionFactory,
             foundation.Registry,
-            foundation.Panes);
+            foundation.Panes,
+            UpdateChecks);
         var shell = new ShellRoles
         {
             Cursor = new CursorEffects(host, panes.WorkingDiff, panes.QuickJump, panes.Graph, panes.Detail),
@@ -67,6 +71,7 @@ public sealed class EffectParts : IDisposable
                 Settings = CreateSettingsServices(foundation, configWriter),
                 Sessions = foundation.Registry,
                 Keymap = foundation.Config.Startup.Keymap.Table,
+                UpdateChecker = CreateUpdateChecker(foundation),
             });
         StatusPoller = new BackgroundStatusPoller(
             foundation.Services.Status,
@@ -75,6 +80,9 @@ public sealed class EffectParts : IDisposable
             background: Runner.Background);
         WorktreePoller = new WorktreeOverviewPoller(foundation.Services.Status, host, background: Runner.Background);
     }
+
+    /// <summary>Asks for the update hint's check.</summary>
+    public UpdateCheckStarter UpdateChecks { get; }
 
     /// <summary>Saves the session with a debounce and at the end.</summary>
     public SessionPersistence Persistence { get; }
@@ -100,6 +108,24 @@ public sealed class EffectParts : IDisposable
         StatusPoller.WaitForStop(ShutdownTasks.DefaultWait - Stopwatch.GetElapsedTime(started));
         WorktreePoller.WaitForStop(ShutdownTasks.DefaultWait - Stopwatch.GetElapsedTime(started));
         Persistence.Dispose();
+    }
+
+    // The address comes from the same variable as `gitunia update`; a bad one means no check, never a crash.
+    private static UpdateChecker? CreateUpdateChecker(ShellFoundation foundation)
+    {
+        var configured = Environment.GetEnvironmentVariable(ReleaseClient.UrlVariable);
+        var wanted = string.IsNullOrEmpty(configured) ? ReleaseClient.DefaultLatestReleaseUrl : configured;
+        if (!Uri.TryCreate(wanted, UriKind.Absolute, out var latestUrl))
+        {
+            return null;
+        }
+
+        return new UpdateChecker(
+            new UpdateCheckCache(foundation.Platform.StateDirectory),
+            BuildVersion.Value,
+            latestUrl,
+            new InstallFactsReader(),
+            TimeProvider.System);
     }
 
     private static SettingsServices CreateSettingsServices(ShellFoundation foundation, ConfigWriter configWriter)

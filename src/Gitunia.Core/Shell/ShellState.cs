@@ -14,6 +14,7 @@ using Gitunia.Core.Reflog;
 using Gitunia.Core.Settings;
 using Gitunia.Core.Sidebar;
 using Gitunia.Core.Status;
+using Gitunia.Core.Updates;
 using Gitunia.Core.Visual;
 using Gitunia.Core.Workspaces;
 
@@ -49,6 +50,7 @@ namespace Gitunia.Core.Shell;
 /// <param name="TabActions">What the tab and pin actions keep between presses (#985).</param>
 /// <param name="Screen">The terminal size, or null until the terminal layer reported it (a dialog then counts as
 /// fitting).</param>
+/// <param name="Update">The in-app update hint (#1292): whether the check is allowed and the newer release it found.</param>
 public sealed record ShellState(
     KeyMode Mode,
     long ModeChanges,
@@ -70,6 +72,7 @@ public sealed record ShellState(
     bool QuitWarned,
     WorkspaceActionSession TabActions,
     ScreenExtent? Screen,
+    UpdateHintState Update,
     VisualSelection? Visual = null,
     OverlayKind Overlay = OverlayKind.None,
     KeyMode OverlayReturnMode = KeyMode.Normal)
@@ -94,7 +97,8 @@ public sealed record ShellState(
         SidebarSession.Empty,
         false,
         WorkspaceActionSession.Empty,
-        null);
+        null,
+        UpdateHintState.Empty);
 
     /// <summary>
     /// The key mode to return to when a dialog or box opened now closes: an open dialog or box replaced by a newer one

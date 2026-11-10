@@ -71,6 +71,18 @@ public sealed class TerminalHost : ITerminalSuspender, IUiDeferral, IDisposable
             return false;
         });
 
+    /// <summary>Runs <paramref name="work"/> once on the UI thread after <paramref name="delay"/>, if the loop is still running then.</summary>
+    /// <param name="delay">The wait.</param>
+    /// <param name="work">What to run.</param>
+    public void RunAfter(TimeSpan delay, Action work) => _application.AddTimeout(
+        delay,
+        () =>
+        {
+            work();
+
+            return false;
+        });
+
     /// <summary>Stops the main loop.</summary>
     public void RequestStop() => _application.RequestStop();
 

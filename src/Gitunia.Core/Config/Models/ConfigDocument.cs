@@ -48,4 +48,10 @@ public sealed record ConfigDocument
     /// <c>OptionsConfigurator</c>.
     /// </summary>
     public JsonElement? CopyOnSelect { get; init; }
+
+    /// <summary>
+    /// <c>true</c> (default) lets the app look for a newer release once a day and say so in the status bar, read by
+    /// <c>OptionsConfigurator</c>.
+    /// </summary>
+    public JsonElement? UpdateCheck { get; init; }
 }
