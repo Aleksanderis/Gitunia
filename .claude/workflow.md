@@ -42,6 +42,7 @@ Owner rules from 2026-11-01, after hour-long runs, except the last bullet (CI de
 - One normal `dotnet test`, then rerun only the affected project after a fix; never full-suite loops.
 - The `reviewer` runs once and must not run tests or builds.
 - Smoke runs of the binary use a private `XDG_STATE_HOME` and `XDG_CONFIG_HOME` (never the owner's real session file).
+- Merge only after a CI run for the PR's head commit exists and is green; if none has appeared a few minutes after the push, say so in the report and stop (open PR), never merge on local tests alone. Before rerunning a failed run, read its failed log; a rerun replaces the log (#1290).
 - After the merge the agent starts no background watch, monitor or polling (no waiting on CI) and ends with its report.
 - Verify locally, open the PR ready, push once; no screenshots without a visual change; no empty commits or comment-only nits.
 
