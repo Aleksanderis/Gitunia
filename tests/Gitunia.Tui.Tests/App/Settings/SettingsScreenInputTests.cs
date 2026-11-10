@@ -582,7 +582,7 @@ public sealed class SettingsScreenInputTests : IDisposable
     {
         _harness.WriteConfig("{ \"tabs\": { \"showBranch\": false } }");
         await _harness.OpenAsync();
-        _harness.Run(ActionIds.ListDown, 5);
+        _harness.Run(ActionIds.ListDown, 6);
         _harness.Run(ActionIds.SettingsActivate);
 
         _harness.Run(ActionIds.SettingsActivate);
@@ -600,7 +600,7 @@ public sealed class SettingsScreenInputTests : IDisposable
     {
         _harness.EditorNotice = "Set $VISUAL or $EDITOR to open config.json";
         await _harness.OpenAsync();
-        _harness.Run(ActionIds.ListDown, 5);
+        _harness.Run(ActionIds.ListDown, 6);
         _harness.Run(ActionIds.SettingsActivate);
 
         _harness.Run(ActionIds.SettingsActivate);

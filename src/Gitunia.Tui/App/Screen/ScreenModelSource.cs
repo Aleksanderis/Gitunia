@@ -31,6 +31,7 @@ public sealed class ScreenModelSource(ScreenModelParts parts)
 
         return model with
         {
+            Update = host.State.Shell.Update.Notice,
             RemoteBusy = parts.Messages.IsRemoteBusy(),
             Keys = parts.Panes.Content.Keys,
             SelectedName = FocusedSidebarName(),

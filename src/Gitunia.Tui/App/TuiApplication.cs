@@ -86,6 +86,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities det
         }
 
         shell.Effects.Persistence.Start();
+        shell.Effects.UpdateChecks.ScheduleFirstRequest();
         foundation.Panes.Graph.SetFocus();
         if (ExitAfterFirstIteration)
         {

@@ -31,7 +31,7 @@ Mouse: the `settings.open` entry of the command palette, reached by the ` : comm
 ╰──────────────────────────────────────────────────────────────────╯
 ```
 
-**Layout.** Categories on the left (Appearance, Keys, Key mapping, Repositories, Git, Tabs, Config file; a category with no setting yet is hidden, Git has none today), the settings of the selected category on the right, a help line under the list (what the setting does, its config key, its default) and a hint row.
+**Layout.** Categories on the left (Appearance, Keys, Key mapping, Repositories, Git, Tabs, Updates, Config file; a category with no setting yet is hidden, Git has none today), the settings of the selected category on the right, a help line under the list (what the setting does, its config key, its default) and a hint row.
 Under 80 columns the categories collapse into one list with category headings; under 40x12 the overlay shows a "terminal too small" line and no layout (Esc still closes it).
 The set of categories and settings is the table below; the screen is generated from it (a registry of setting id, category, control, config key, default, validation), so docs, screen and config reader cannot drift.
 
@@ -45,6 +45,7 @@ The set of categories and settings is the table below; the screen is generated f
 | Keys | Status bar hints | choice (full, minimal, off) | `hints.statusBar` | #837 |
 | Keys | Command level | choice (everyday, advanced, advanced+) | `commandLevel` | #839 |
 | Keys | Copy on select | toggle | `copyOnSelect` | #1188 |
+| Updates | Check for updates | toggle | `updateCheck` | #1292 |
 | Key mapping | Key reference | read-only list from the keymap | none | #50 |
 | Config file | Open config.json in $EDITOR | action | none | #523 |
 

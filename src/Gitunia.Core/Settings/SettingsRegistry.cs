@@ -29,6 +29,9 @@ public static class SettingsRegistry
     /// <summary>The id of the copy on select setting.</summary>
     public const string CopyOnSelectId = "copy-on-select";
 
+    /// <summary>The id of the update check setting (#1292).</summary>
+    public const string UpdateCheckId = "update-check";
+
     /// <summary>The id of the tab branch setting.</summary>
     public const string ShowBranchId = "tabs-show-branch";
 
@@ -81,6 +84,16 @@ public static class SettingsRegistry
             ["tabs", "showBranch"],
             "Tab chips show the checked-out branch after the name. It makes the tabs long.",
             "off",
+            []),
+        new SettingDefinition(
+            UpdateCheckId,
+            SettingCategory.Updates,
+            "Check for updates",
+            SettingControl.Toggle,
+            ["updateCheck"],
+            "Once a day Gitunia asks GitHub for the latest release and the status bar says when a newer one exists. "
+                + "Nothing is sent but the User-Agent. The GITUNIA_NO_UPDATE_CHECK environment variable turns it off too.",
+            "on",
             []),
         new SettingDefinition(
             WhichKeyId,
@@ -164,6 +177,7 @@ public static class SettingsRegistry
         SettingCategory.Repositories => "Repositories",
         SettingCategory.Git => "Git",
         SettingCategory.Tabs => "Tabs",
+        SettingCategory.Updates => "Updates",
         _ => "Config file",
     };
 

@@ -39,6 +39,23 @@ public static class ChromeBuilder
 
     public static StyledLine Status(ScreenModel model, int width, GraphGlyphSet glyphs)
     {
+        var hint = model.Update is { } notice && model.Picker is null ? UpdateHintText.For(notice, width) : string.Empty;
+        if (hint.Length == 0)
+        {
+            return StatusLeft(model, width, glyphs);
+        }
+
+        var left = StatusLeft(model, width - TextWidth.Of(hint) - UpdateHintText.Gap, glyphs);
+
+        return new LineBuilder(width, glyphs.Ellipsis)
+            .Append(left)
+            .Append(new string(' ', UpdateHintText.Gap), SegmentRole.Status)
+            .Append(hint, SegmentRole.StatusNotice)
+            .Build(SegmentRole.Status);
+    }
+
+    private static StyledLine StatusLeft(ScreenModel model, int width, GraphGlyphSet glyphs)
+    {
         var position = model.Picker is { } picker ? PickerPosition(picker) : GraphPosition(model);
         var builder = new LineBuilder(width, glyphs.Ellipsis)
             .Append($" {model.ModeName} ", SegmentRole.StatusMode)

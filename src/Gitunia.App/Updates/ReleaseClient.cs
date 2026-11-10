@@ -12,6 +12,9 @@ namespace Gitunia.App.Updates;
 /// </summary>
 public sealed class ReleaseClient(HttpClient client, Uri latestReleaseUrl)
 {
+    /// <summary>The environment variable that points the update command and the update hint at another release JSON (tests, mirrors).</summary>
+    public const string UrlVariable = "GITUNIA_RELEASE_URL";
+
     public const string DefaultLatestReleaseUrl = "https://api.github.com/repos/Aleksanderis/Gitunia/releases/latest";
 
     private const string UserAgentProduct = "gitunia";

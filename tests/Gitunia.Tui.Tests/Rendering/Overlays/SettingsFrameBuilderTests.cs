@@ -27,7 +27,7 @@ public class SettingsFrameBuilderTests
                 "│  Key mapping   │                                                           │",
                 "│  Repositories  │                                                           │",
                 "│  Tabs          │                                                           │",
-                "│  Config file   │                                                           │",
+                "│  Updates       │                                                           │",
                 "│ ────────────────────────────────────────────────────────────────────────── │",
                 "│ Enter or l opens the category; j and k move between categories.            │",
                 "│                                                                            │",

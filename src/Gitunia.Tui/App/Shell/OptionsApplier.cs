@@ -13,18 +13,26 @@ namespace Gitunia.Tui.App.Shell;
 /// <param name="factory">Builds the sessions of new tabs with the current glyphs.</param>
 /// <param name="registry">The open tabs, whose graphs are redrawn with new glyphs.</param>
 /// <param name="panes">The graph list and the screen to lay out again.</param>
+/// <param name="updateChecks">Starts or ends the update hint's check when its option changes.</param>
 public sealed class OptionsApplier(
     LiveConfig config,
     OptionTargets targets,
     TerminalTabSessionFactory factory,
     TabSessionRegistry<TerminalTabSession> registry,
-    PaneViews panes)
+    PaneViews panes,
+    UpdateCheckStarter updateChecks)
 {
     /// <summary>The settings screen changed the file: the running app takes the new options at once.</summary>
     /// <param name="options">The options now in the file.</param>
     public void ApplyOptions(ConfigOptions options)
     {
+        var updateCheckChanged = config.Options.UpdateCheck != options.UpdateCheck;
         config.ChangeOptions(options);
+        if (updateCheckChanged)
+        {
+            updateChecks.Request();
+        }
+
         ApplyLabelCaps(options.LabelCaps);
         targets.Overlays.OnOptionsChanged();
         if (!SameRoots(targets.Picker.ScanRoots, options.ScanRoots))

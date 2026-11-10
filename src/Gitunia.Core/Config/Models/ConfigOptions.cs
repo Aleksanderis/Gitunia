@@ -15,10 +15,11 @@ namespace Gitunia.Core.Config.Models;
 /// Which commands the help, palette, which-key, menus and hints list (<c>commandLevel</c>, #839); applied at once.
 /// </param>
 /// <param name="CopyOnSelect">Whether a mouse selection is copied to the clipboard when it is made (<c>copyOnSelect</c>); applied at once.</param>
+/// <param name="UpdateCheck">Whether the app looks for a newer release once a day (<c>updateCheck</c>, #1292); applied at once.</param>
 public sealed record ConfigOptions(bool ShowBranchInTab, ImmutableArray<string>? ScanRoots, bool WatchFiles = false,
     LabelCapStyle LabelCaps = LabelCapStyle.Rounded, bool WhichKeyPopup = true,
     StatusBarHintMode StatusBarHints = StatusBarHintMode.Full, CommandLevel CommandLevel = CommandLevels.Default,
-    bool CopyOnSelect = true)
+    bool CopyOnSelect = true, bool UpdateCheck = true)
 {
     /// <summary>What applies when the file sets nothing.</summary>
     public static ConfigOptions Default { get; } = new(false, null);

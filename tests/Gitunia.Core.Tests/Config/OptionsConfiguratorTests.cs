@@ -140,6 +140,36 @@ public sealed class OptionsConfiguratorTests
     }
 
     [Theory]
+    [InlineData("true", true)]
+    [InlineData("false", false)]
+    [InlineData("null", true)]
+    public void GivenAValidUpdateCheckValue_WhenParsing_ThenItFollowsWithoutProblems(string json, bool expected)
+    {
+        var problems = new List<ConfigProblem>();
+
+        Assert.Equal(expected, OptionsConfigurator.ParseUpdateCheck(Json(json), problems));
+        Assert.Empty(problems);
+    }
+
+    [Fact]
+    public void GivenNoUpdateCheckValue_WhenParsing_ThenTheCheckIsOn()
+    {
+        var problems = new List<ConfigProblem>();
+
+        Assert.True(OptionsConfigurator.ParseUpdateCheck(null, problems));
+        Assert.Empty(problems);
+    }
+
+    [Fact]
+    public void GivenAWrongUpdateCheckType_WhenParsing_ThenItIsOnWithAProblem()
+    {
+        var problems = new List<ConfigProblem>();
+
+        Assert.True(OptionsConfigurator.ParseUpdateCheck(Json("\"off\""), problems));
+        Assert.Equal("updateCheck", Assert.Single(problems).Path);
+    }
+
+    [Theory]
     [InlineData("{ \"whichKey\": \"on\" }", true)]
     [InlineData("{ \"whichKey\": \"OFF\" }", false)]
     [InlineData("{ }", true)]

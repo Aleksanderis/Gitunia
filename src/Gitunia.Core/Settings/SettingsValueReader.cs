@@ -50,6 +50,7 @@ public static class SettingsValueReader
         values[SettingsRegistry.StatusBarHintsId] = SettingValue.OfChoice(StatusBarHintName(options.StatusBarHints));
         values[SettingsRegistry.CommandLevelId] = SettingValue.OfChoice(CommandLevels.NameOf(options.CommandLevel));
         values[SettingsRegistry.CopyOnSelectId] = SettingValue.OfFlag(options.CopyOnSelect);
+        values[SettingsRegistry.UpdateCheckId] = SettingValue.OfFlag(options.UpdateCheck);
         values[SettingsRegistry.ShowBranchId] = SettingValue.OfFlag(options.ShowBranchInTab);
         values[SettingsRegistry.ScanRootsId] = ReadScanRoots(document.ScanRoots);
 

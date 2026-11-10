@@ -17,6 +17,7 @@ public static class OptionsConfigurator
     private const string ScanRootsKey = "scanRoots";
     private const string WatchFilesKey = "watchFiles";
     private const string CopyOnSelectKey = "copyOnSelect";
+    private const string UpdateCheckKey = "updateCheck";
     private const string LabelCapsKey = "labelCaps";
     private const string CommandLevelKey = "commandLevel";
     private const string HintsKey = "hints";
@@ -47,7 +48,8 @@ public static class OptionsConfigurator
             ParseWhichKey(document.Hints, problems),
             ParseStatusBar(document.Hints, problems),
             ParseCommandLevel(document.CommandLevel, problems),
-            ParseCopyOnSelect(document.CopyOnSelect, problems));
+            ParseCopyOnSelect(document.CopyOnSelect, problems),
+            ParseUpdateCheck(document.UpdateCheck, problems));
 
     /// <summary>
     /// The <c>commandLevel</c> option (#839): everyday (default), advanced or advanced+, any case; anything else is
@@ -201,6 +203,24 @@ public static class OptionsConfigurator
         }
 
         problems.Add(new ConfigProblem(CopyOnSelectKey, "copyOnSelect must be true or false, using true"));
+
+        return true;
+    }
+
+    /// <summary>The <c>updateCheck</c> flag: on unless the file says false; anything but true or false gives true.</summary>
+    public static bool ParseUpdateCheck(JsonElement? value, ICollection<ConfigProblem> problems)
+    {
+        if (value is null or { ValueKind: JsonValueKind.Null })
+        {
+            return true;
+        }
+
+        if (value.Value.ValueKind is JsonValueKind.True or JsonValueKind.False)
+        {
+            return value.Value.GetBoolean();
+        }
+
+        problems.Add(new ConfigProblem(UpdateCheckKey, "updateCheck must be true or false, using true"));
 
         return true;
     }

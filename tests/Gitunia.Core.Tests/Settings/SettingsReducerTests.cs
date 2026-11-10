@@ -59,6 +59,7 @@ public class SettingsReducerTests
                 SettingCategory.KeyMapping,
                 SettingCategory.Repositories,
                 SettingCategory.Tabs,
+                SettingCategory.Updates,
                 SettingCategory.ConfigFile,
             ],
             state.Categories);
@@ -515,7 +516,7 @@ public class SettingsReducerTests
         var collapsed = state.WithLayout(collapsed: true);
         var expanded = collapsed.WithLayout(collapsed: false);
 
-        Assert.Equal(10, collapsed.Rows.Count);
+        Assert.Equal(11, collapsed.Rows.Count);
         Assert.Equal(SettingsRegistry.ShowBranchId, collapsed.Selected?.Definition.Id);
         Assert.Equal(SettingsRegistry.ShowBranchId, expanded.Selected?.Definition.Id);
         Assert.Equal(SettingCategory.Tabs, expanded.CurrentCategory);
