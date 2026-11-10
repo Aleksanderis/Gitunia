@@ -52,4 +52,22 @@ public static class ConflictNotices
 
     /// <summary>The status line while typing without a conflict under the cursor.</summary>
     public const string TypingInResult = "Typing in the result: Esc or Ctrl-g keeps the text";
+
+    /// <summary>A copy of a line on a filler row or of a Visual selection without text.</summary>
+    public const string NothingToCopy = "Nothing to copy: no text on this line";
+
+    /// <summary>A copy key with no text selected in the result.</summary>
+    public const string NothingSelected = "Nothing is selected: drag with the mouse or Shift with the arrows first";
+
+    /// <summary>A put before anything was copied.</summary>
+    public const string NothingToPut = "Nothing to put yet: copy lines first (yy, Visual y, Alt-w)";
+
+    /// <summary>What a copied line is called in the status message.</summary>
+    public const string LineDescription = "line";
+
+    /// <summary>What copied selected text is called in the status message.</summary>
+    public const string SelectionDescription = "selected text";
+
+    /// <summary>A put key with the cursor in a version pane.</summary>
+    public const string PutInResult = "Put works in the result pane (Tab): move there first";
 }

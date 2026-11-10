@@ -81,12 +81,20 @@ public sealed partial record ConflictEditorState
             ConflictResultCommand.LineStart => Moved(editor.MoveToLineStart),
             ConflictResultCommand.LineEnd => Moved(editor.MoveToLineEnd),
             ConflictResultCommand.DeleteChar => Changed(result => result.Editor.DeleteUnderCursor(), reconcile: true),
-            ConflictResultCommand.DeleteLine => Changed(result => result.Editor.DeleteLine(), reconcile: true),
+            ConflictResultCommand.DeleteLine => DeletedLine(),
             ConflictResultCommand.OpenLine => StartInserting(MessageEditorStart.OpenLine),
             ConflictResultCommand.Append => StartInserting(MessageEditorStart.Append),
             ConflictResultCommand.AppendAtEnd => StartInserting(MessageEditorStart.AppendAtEnd),
             _ => StartInserting(MessageEditorStart.InsertAtStart),
         };
+    }
+
+    // dd keeps the line for p, as vim's register does.
+    private ConflictEditorState DeletedLine()
+    {
+        var deleted = new ConflictYank(Result.Editor.Lines[Result.Editor.CursorRow], true);
+
+        return Changed(result => result.Editor.DeleteLine(), reconcile: true) with { Yank = deleted };
     }
 
     /// <summary>Takes back the latest change and puts the cursor on its conflict.</summary>

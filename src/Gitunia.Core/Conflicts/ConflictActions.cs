@@ -1,3 +1,4 @@
+using Gitunia.Core.Clipboard;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 
@@ -41,6 +42,7 @@ internal static class ConflictActions
         return Move(session, editor, action, count)
             ?? Pane(session, editor, action)
             ?? Pick(session, editor, action)
+            ?? Clipboard(session, editor, action)
             ?? Result(session, editor, action);
     }
 
@@ -56,7 +58,31 @@ internal static class ConflictActions
             || action == ActionIds.Cancel
             || action == ActionIds.NavigateBack;
 
+        if (action == ActionIds.ConflictEditorCopySelection)
+        {
+            return CopySelection(session, editor, isCut: false);
+        }
+
+        if (action == ActionIds.ConflictEditorCutSelection)
+        {
+            return CopySelection(session, editor, isCut: true);
+        }
+
         return isDone ? ConflictFlow.Show(session, editor.EndEdit()) : null;
+    }
+
+    // Copy and cut of the text selected in the result, in Insert and (copy) Normal mode.
+    private static ConflictUpdate CopySelection(ConflictSession session, ConflictEditorState editor, bool isCut)
+    {
+        if (editor.YankResultSelection() is not { } yank)
+        {
+            return ConflictFlow.Warn(session, ConflictNotices.NothingSelected);
+        }
+
+        var copied = editor.Yanked(yank);
+        var effect = new CopyToClipboardEffect(yank.Text, ConflictNotices.SelectionDescription);
+
+        return ConflictFlow.Show(session, isCut ? copied.CutSelection() : copied, effect);
     }
 
     /// <summary>A click on a header or a row.</summary>
@@ -194,8 +220,61 @@ internal static class ConflictActions
             return ToggleVisual(session, editor);
         }
 
-        // The copy key of a Visual selection means nothing here but is still the editor's key.
-        return action == ActionIds.VisualCopy ? ConflictFlow.Done(session) : null;
+        return null;
+    }
+
+    // Copy (yy, Visual y, Alt-w) and put (p, P): the text goes to the terminal clipboard and is kept for the puts.
+    private static ConflictUpdate? Clipboard(ConflictSession session, ConflictEditorState editor, ActionId action)
+    {
+        if (action == ActionIds.VisualCopy)
+        {
+            return CopyLines(session, editor, editor.YankSelectedRows());
+        }
+
+        if (action == ActionIds.ConflictEditorYankLine)
+        {
+            return CopyLines(session, editor, editor.YankLine());
+        }
+
+        if (action == ActionIds.ConflictEditorCopySelection)
+        {
+            return CopySelection(session, editor, isCut: false);
+        }
+
+        if (action == ActionIds.ConflictEditorPutAfter || action == ActionIds.ConflictEditorPutBefore)
+        {
+            return Put(session, editor, action == ActionIds.ConflictEditorPutAfter);
+        }
+
+        return null;
+    }
+
+    private static ConflictUpdate CopyLines(ConflictSession session, ConflictEditorState editor, ConflictYank? yank)
+    {
+        if (yank is null)
+        {
+            return ConflictFlow.Show(session, editor.EndVisual(), ConflictFlow.Warning(ConflictNotices.NothingToCopy));
+        }
+
+        var lines = yank.Text.Split('\n').Length;
+        var description = lines == 1 ? ConflictNotices.LineDescription : $"{lines} lines";
+
+        return ConflictFlow.Show(session, editor.Yanked(yank), new CopyToClipboardEffect(yank.Text, description));
+    }
+
+    private static ConflictUpdate Put(ConflictSession session, ConflictEditorState editor, bool after)
+    {
+        if (editor.IsVersionPane)
+        {
+            return ConflictFlow.Warn(session, ConflictNotices.PutInResult);
+        }
+
+        if (editor.Yank is null)
+        {
+            return ConflictFlow.Warn(session, ConflictNotices.NothingToPut);
+        }
+
+        return ConflictFlow.Show(session, editor.Put(after));
     }
 
     private static ConflictUpdate ToggleVisual(ConflictSession session, ConflictEditorState editor)

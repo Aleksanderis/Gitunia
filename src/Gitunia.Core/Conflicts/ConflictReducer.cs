@@ -42,6 +42,8 @@ public static class ConflictReducer
             ConflictClicked clicked => Click(session, clicked, context),
             ConflictDragged dragged => Drag(session, dragged, context),
             ConflictDragStarted started => StartDrag(session, started, context),
+            ConflictResultDragged dragged => DragResult(session, dragged, context),
+            ConflictPasted pasted => Paste(session, pasted, context),
             ConflictFileRead read => Read(session, read, context),
             ConflictKeyTyped typed => Type(session, typed),
             ConflictOpenRequested open => Open(session, open, context),
@@ -218,6 +220,29 @@ public static class ConflictReducer
         }
 
         return ConflictFlow.Show(session, editor.DragToVersionRow(dragged.Row));
+    }
+
+    private static ConflictUpdate DragResult(
+        ConflictSession session,
+        ConflictResultDragged dragged,
+        ConflictContext context)
+    {
+        if (session.Editor is not { IsVersionPane: false } editor || context.IsCovered)
+        {
+            return ConflictFlow.Done(session);
+        }
+
+        return ConflictFlow.Show(session, editor.ExtendResultSelection(dragged.Line, dragged.Column));
+    }
+
+    private static ConflictUpdate Paste(ConflictSession session, ConflictPasted pasted, ConflictContext context)
+    {
+        if (session.Editor is not { IsEditing: false, IsVersionPane: false } editor || context.IsCovered)
+        {
+            return ConflictFlow.Done(session);
+        }
+
+        return ConflictFlow.Show(session, editor.Paste(pasted.Text));
     }
 
     private static ConflictUpdate Type(ConflictSession session, ConflictKeyTyped typed)

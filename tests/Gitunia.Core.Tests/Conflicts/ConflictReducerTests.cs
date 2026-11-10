@@ -1,4 +1,5 @@
 using Gitunia.Core.Conflicts;
+using Gitunia.Core.Clipboard;
 using Gitunia.Core.Effects;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
@@ -27,6 +28,7 @@ public class ConflictReducerTests
     private const string Path = "file.txt";
     private const string Text =
         "top\n<<<<<<< HEAD\nA1\n=======\nB1\n>>>>>>> other\nmid\n<<<<<<< HEAD\nA2\n=======\nB2\n>>>>>>> other\nend\n";
+    private const string LongText = "top\n<<<<<<< HEAD\na\nb\nc\n=======\nx\ny\n>>>>>>> other\nend\n";
     private const string Single = "top\n<<<<<<< HEAD\nA1\n=======\nB1\n>>>>>>> other\nend\n";
 
     private static readonly ConflictViewports Tall = new(new(10, 6), new(10, 6), new(10, 6), new(10, 6));
@@ -464,6 +466,108 @@ public class ConflictReducerTests
         var update = AppReducer.Reduce(asked, new ConflictActionPressed(ActionIds.ConflictEditorOurs, null, Tall));
 
         Assert.Equal(ConflictPick.None, update.State.Shell.Conflict.Editor!.SelectedPick);
+    }
+
+    [Fact]
+    public void GivenALineInAVersionPane_WhenCopyingItAndPuttingInTheResult_ThenTheClipboardGetsItAndTheResultTheLine()
+    {
+        var copied = Press(Opened(Text), ActionIds.ConflictEditorYankLine);
+
+        var effect = Assert.IsType<CopyToClipboardEffect>(Assert.Single(copied.Effects));
+        Assert.Equal("A1", effect.Text);
+        Assert.Equal("line", effect.Description);
+
+        var inResult = Press(copied.State, ActionIds.PaneFocusDown).State;
+        var put = Press(inResult, ActionIds.ConflictEditorPutAfter);
+
+        Assert.Empty(put.Effects);
+        Assert.Equal(2, put.State.Shell.Conflict.Editor!.ToText().Split('\n').Count(line => line == "A1"));
+    }
+
+    [Fact]
+    public void GivenAVisualSelectionOfTwoRows_WhenCopying_ThenBothLinesGoToTheClipboardAndTheSelectionEnds()
+    {
+        var selecting = Press(Opened(LongText), ActionIds.VisualToggle).State;
+        var moved = Press(selecting, ActionIds.ListDown).State;
+
+        var copied = Press(moved, ActionIds.VisualCopy);
+
+        var effect = Assert.IsType<CopyToClipboardEffect>(
+            Assert.Single(copied.Effects, candidate => candidate is CopyToClipboardEffect));
+        Assert.Equal("a\nb", effect.Text);
+        Assert.Equal("2 lines", effect.Description);
+        Assert.False(copied.State.Shell.Conflict.Editor!.IsVisual);
+    }
+
+    [Fact]
+    public void GivenAFillerRow_WhenCopyingTheLine_ThenItWarnsAndCopiesNothing()
+    {
+        var onTheirs = Press(Opened(LongText), ActionIds.PaneFocusRight).State;
+        var onFiller = Press(Press(onTheirs, ActionIds.ListDown).State, ActionIds.ListDown).State;
+
+        var update = Press(onFiller, ActionIds.ConflictEditorYankLine);
+
+        Assert.DoesNotContain(update.Effects, effect => effect is CopyToClipboardEffect);
+        Assert.Contains(update.Effects, effect => effect is PostStatusEffect { Severity: StatusSeverity.Warning });
+    }
+
+    [Fact]
+    public void GivenNothingCopied_WhenPutting_ThenItWarnsAndTheResultStaysAsItWas()
+    {
+        var inResult = Press(Opened(Text), ActionIds.PaneFocusDown).State;
+
+        var update = Press(inResult, ActionIds.ConflictEditorPutBefore);
+
+        Assert.Contains(update.Effects, effect => effect is PostStatusEffect { Severity: StatusSeverity.Warning });
+        Assert.False(update.State.Shell.Conflict.Editor!.IsModified);
+    }
+
+    [Fact]
+    public void GivenATerminalPaste_WhenInTheResultInNormalMode_ThenTheTextIsInsertedAndInAVersionPaneIgnored()
+    {
+        var versionPane = Opened(Text);
+        var ignored = AppReducer.Reduce(versionPane, new ConflictPasted("zzz", Tall));
+
+        Assert.False(ignored.State.Shell.Conflict.Editor!.IsModified);
+
+        var inResult = Press(versionPane, ActionIds.PaneFocusDown).State;
+        var pasted = AppReducer.Reduce(inResult, new ConflictPasted("zzz", Tall));
+
+        Assert.Contains("zzz", pasted.State.Shell.Conflict.Editor!.ToText());
+        Assert.True(pasted.State.Shell.Conflict.Editor!.IsModified);
+    }
+
+    [Fact]
+    public void GivenTypingWithNothingSelected_WhenCopyingOrCutting_ThenItWarnsAndCopiesNothing()
+    {
+        var typing = Press(Opened(Text), ActionIds.ConflictEditorEdit).State;
+
+        var copy = Press(typing, ActionIds.ConflictEditorCopySelection);
+        var cut = Press(typing, ActionIds.ConflictEditorCutSelection);
+
+        Assert.DoesNotContain(copy.Effects, effect => effect is CopyToClipboardEffect);
+        Assert.DoesNotContain(cut.Effects, effect => effect is CopyToClipboardEffect);
+        Assert.Contains(cut.Effects, effect => effect is PostStatusEffect { Severity: StatusSeverity.Warning });
+    }
+
+    [Fact]
+    public void GivenTypingWithASelection_WhenCuttingThroughTheReducer_ThenTheTextIsCopiedAndRemoved()
+    {
+        var typing = Press(Opened(Text), ActionIds.ConflictEditorEdit).State;
+        var editor = typing.Shell.Conflict.Editor!;
+        var selected = editor.ExtendResultSelection(editor.Result.Editor.CursorRow, 2);
+        var withSelection = typing with
+        {
+            Shell = typing.Shell with { Conflict = typing.Shell.Conflict with { Editor = selected } },
+        };
+
+        var cut = Press(withSelection, ActionIds.ConflictEditorCutSelection);
+
+        var effect = Assert.IsType<CopyToClipboardEffect>(
+            Assert.Single(cut.Effects, candidate => candidate is CopyToClipboardEffect));
+        Assert.Equal("<<", effect.Text);
+        Assert.Contains("<<<<< HEAD", cut.State.Shell.Conflict.Editor!.ToText());
+        Assert.Equal(2, cut.State.Shell.Conflict.Editor!.ToText().Split("<<<<<<< HEAD").Length);
     }
 
     private static AppUpdate Press(AppState state, ActionId action) =>

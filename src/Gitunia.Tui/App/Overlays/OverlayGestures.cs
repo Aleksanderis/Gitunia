@@ -114,7 +114,7 @@ public sealed class OverlayGestures(
             return;
         }
 
-        editors.Conflict.OnDragged(cover.IsOtherThanConflictEditorOpen(), line);
+        editors.Conflict.OnDragged(cover.IsOtherThanConflictEditorOpen(), line, column);
     }
 
     /// <summary>The button was released after a drag over an overlay: the blame view's selection is final.</summary>

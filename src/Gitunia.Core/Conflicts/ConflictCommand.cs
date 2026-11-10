@@ -65,6 +65,18 @@ public sealed record ConflictDragStarted(ConflictPane Pane, int Row, ConflictVie
 /// <param name="Viewports">The pane rows.</param>
 public sealed record ConflictDragged(int Row, ConflictViewports? Viewports) : ConflictInputCommand(Viewports);
 
+/// <summary>The pointer of a drag started in the result reached a text position: the selection reaches it.</summary>
+/// <param name="Line">The result line.</param>
+/// <param name="Column">The display column in the line.</param>
+/// <param name="Viewports">The pane rows.</param>
+public sealed record ConflictResultDragged(int Line, int Column, ConflictViewports? Viewports)
+    : ConflictInputCommand(Viewports);
+
+/// <summary>A terminal paste while the result is in Normal mode (while typing, a paste is typed as keys).</summary>
+/// <param name="Text">The pasted text.</param>
+/// <param name="Viewports">The pane rows.</param>
+public sealed record ConflictPasted(string Text, ConflictViewports? Viewports) : ConflictInputCommand(Viewports);
+
 /// <summary>The tab of the open editor was closed: the editor closes.</summary>
 public sealed record ConflictTabClosed : ConflictCommand;
 

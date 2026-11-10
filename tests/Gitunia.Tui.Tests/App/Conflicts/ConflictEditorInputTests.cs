@@ -802,6 +802,44 @@ public class ConflictEditorInputTests
     }
 
     [Fact]
+    public async Task GivenADragAcrossAResultLine_WhenDragging_ThenTheTextUnderThePointerIsSelected()
+    {
+        using var repository = LongHunk();
+        using var harness = await Harness.CreateAsync(repository);
+        await harness.OpenAsync();
+        var state = harness.Controller.State!;
+        var layout = ConflictEditorFrameBuilder.LayoutFor(state, harness.Screen.Width, harness.Screen.Height - 1)!;
+
+        Assert.Null(harness.Controller.OnDragStarted(layout.ResultStartLine, 3));
+
+        // The hint rows differ per pane, so the result moves once it has the cursor.
+        var resultLayout = ConflictEditorFrameBuilder.LayoutFor(
+            harness.Controller.State!,
+            harness.Screen.Width,
+            harness.Screen.Height - 1)!;
+        harness.Controller.OnDragged(resultLayout.ResultStartLine, 20);
+
+        var editor = harness.Controller.State!.Result.Editor;
+        Assert.True(harness.Controller.IsResultActive);
+        Assert.Equal(editor.Lines[0], editor.SelectedText);
+    }
+
+    [Fact]
+    public async Task GivenTheResultInNormalMode_WhenPastingFromTheTerminal_ThenTheTextIsInsertedAtTheCursor()
+    {
+        using var repository = LongHunk();
+        using var harness = await Harness.CreateAsync(repository);
+        await harness.OpenAsync();
+
+        Assert.False(harness.Controller.TryPaste("zz"));
+
+        harness.Run(ActionIds.PaneFocusDown);
+
+        Assert.True(harness.Controller.TryPaste("zz"));
+        Assert.Contains("zz", harness.Controller.State!.ToText());
+    }
+
+    [Fact]
     public async Task GivenADragWhileTyping_WhenDragging_ThenNoSelectionStarts()
     {
         using var repository = LongHunk();
@@ -1681,7 +1719,9 @@ public class ConflictEditorInputTests
         public string? OnDragStarted(int line, int column) =>
             input.OnDragStarted(harness.IsOtherOverlayOpen, line, column);
 
-        public void OnDragged(int line) => input.OnDragged(harness.IsOtherOverlayOpen, line);
+        public void OnDragged(int line, int column = 0) => input.OnDragged(harness.IsOtherOverlayOpen, line, column);
+
+        public bool TryPaste(string text) => input.TryPaste(text);
 
         public void Close() => host.Dispatch(new ConflictTabClosed());
     }

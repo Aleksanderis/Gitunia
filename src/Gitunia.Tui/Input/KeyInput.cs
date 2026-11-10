@@ -1,5 +1,6 @@
 using Gitunia.App;
 using Gitunia.Core.Commits;
+using Gitunia.Core.Keymap;
 using Gitunia.Tui.App.Overlays;
 using Terminal.Gui.Input;
 
@@ -33,6 +34,14 @@ public sealed class KeyInput(
     {
         if (string.IsNullOrEmpty(paste.Text))
         {
+            return;
+        }
+
+        // Normal mode of the conflict result has no text input to type into: the paste goes in at the cursor.
+        if (focus.ViewName() == DefaultKeymap.ConflictResultView && editors.Conflict.TryPaste(paste.Text))
+        {
+            paste.Handled = true;
+
             return;
         }
 
