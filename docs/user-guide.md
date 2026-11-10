@@ -38,6 +38,18 @@ Other ways:
   - Build: `dotnet publish src/Gitunia.Tui -c Release -o publish`.
   - Run: `publish/gitunia`.
 
+## Update
+
+`gitunia update` compares your version with the latest release and updates it, whichever way you installed:
+
+- **Installed by the install script** (`~/.local/bin`, `%LOCALAPPDATA%\Gitunia`): it downloads the release archive for your system, checks it against the release's `.sha256` file, runs the new binary with `--version`, and only then replaces the old one. If any step fails, nothing is changed and the command prints the archive address and the manual steps. On Windows it needs no PowerShell: the binary downloads the archive itself and renames the running `gitunia.exe` aside (the leftover `gitunia.exe.old` is removed the next time Gitunia starts). It follows your system proxy settings.
+- **Installed by a package manager** (Homebrew, winget, `.deb`, `.rpm`, pacman, AUR): it prints the command to run (`brew upgrade gitunia`, `winget upgrade Gitunia.Gitunia`, or the install script for the Linux packages) and changes nothing, so root-owned files are never touched.
+- **Anything else** (a development build, an archive you unpacked yourself): it prints where to download the release and does not replace the binary.
+
+`gitunia update --check` only reports: exit code 0 when you are up to date, 10 when a newer release exists, 1 when the check failed (no network, no release). The check reads GitHub's latest-release page; the only thing sent is the `User-Agent` (`gitunia/<version>`).
+
+The install scripts write a one-line marker file `gitunia.install-source` next to the binary; it is how `update` knows a script installed that copy. Delete it and `update` falls back to the binary's path.
+
 ## Start and open a repository
 
 - `gitunia` restores your last session, or shows the repository picker.

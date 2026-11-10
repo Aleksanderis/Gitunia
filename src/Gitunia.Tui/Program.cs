@@ -124,17 +124,12 @@ public static class Program
             new InstallFactsReader().Read(),
             RuntimeInformation.OSArchitecture,
             checkOnly);
-        using var cancellation = new CancellationTokenSource();
-        Console.CancelKeyPress += (_, eventArguments) =>
-        {
-            eventArguments.Cancel = true;
-            cancellation.Cancel();
-        };
+        using var interrupt = new InterruptCancellation();
 
         try
         {
             // A synchronous Main with nothing else running: blocking is safe.
-            return command.RunAsync(request, cancellation.Token).GetAwaiter().GetResult();
+            return command.RunAsync(request, interrupt.Token).GetAwaiter().GetResult();
         }
         catch (OperationCanceledException)
         {
