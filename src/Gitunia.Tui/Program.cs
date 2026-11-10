@@ -19,7 +19,8 @@ namespace Gitunia.Tui;
 
 public static class Program
 {
-    // Same variable the install scripts read: another release JSON to read (tests, mirrors).
+    // Same variable the install scripts read: another release JSON to read (tests, mirrors). It moves the archive and
+    // its checksum together, so it is no authenticity check.
     private const string ReleaseUrlVariable = "GITUNIA_RELEASE_URL";
 
     public static int Main(string[] arguments)
@@ -116,7 +117,14 @@ public static class Program
     private static int RunUpdate(bool checkOnly)
     {
         var releaseUrl = Environment.GetEnvironmentVariable(ReleaseUrlVariable);
-        var latestUrl = new Uri(string.IsNullOrEmpty(releaseUrl) ? ReleaseClient.DefaultLatestReleaseUrl : releaseUrl);
+        var wanted = string.IsNullOrEmpty(releaseUrl) ? ReleaseClient.DefaultLatestReleaseUrl : releaseUrl;
+        if (!Uri.TryCreate(wanted, UriKind.Absolute, out var latestUrl))
+        {
+            Console.Error.WriteLine($"gitunia update: {ReleaseUrlVariable} is not a valid address: {wanted}");
+
+            return UpdateExitCode.Failed;
+        }
+
         using var httpClient = ReleaseClient.Create(BuildVersion.Value);
         var command = new UpdateCommand(new ReleaseClient(httpClient, latestUrl), new ExecutableSwapper(), Console.Out);
         var request = new UpdateRequest(

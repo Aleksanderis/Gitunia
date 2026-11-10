@@ -9,6 +9,8 @@ public static class InstallRouteDetector
 {
     private const char Slash = '/';
     private const char Backslash = '\\';
+    private const string UnixScriptBinaryTail = "/.local/bin/gitunia";
+    private const string WindowsScriptBinaryTail = "/appdata/local/gitunia/gitunia.exe";
     private const string IdKey = "ID=";
     private const string IdLikeKey = "ID_LIKE=";
 
@@ -27,6 +29,11 @@ public static class InstallRouteDetector
         }
 
         var path = facts.ExecutablePath.Replace(Backslash, Slash).ToLowerInvariant();
+        if (path.EndsWith(ScriptBinaryTail(facts.System), StringComparison.Ordinal))
+        {
+            // Installs made before the marker existed (or already current when the script last ran) sit in the script's folder.
+            return InstallRoute.Script;
+        }
 
         return facts.System switch
         {
@@ -34,6 +41,12 @@ public static class InstallRouteDetector
             HostSystem.MacOs => DetectHomebrew(path),
             _ => DetectLinux(path, facts.OsReleaseText),
         };
+    }
+
+    // The end of the path the install script uses by default: ~/.local/bin/gitunia, %LOCALAPPDATA%\Gitunia\gitunia.exe.
+    private static string ScriptBinaryTail(HostSystem system)
+    {
+        return system == HostSystem.Windows ? WindowsScriptBinaryTail : UnixScriptBinaryTail;
     }
 
     private static InstallRoute DetectWindows(string path)

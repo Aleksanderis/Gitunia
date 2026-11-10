@@ -3,6 +3,7 @@ using Xunit;
 
 namespace Gitunia.Core.Tests.Updates;
 
+[Trait("Os", "Independent")]
 public class ReleaseVersionTests
 {
     [Theory]

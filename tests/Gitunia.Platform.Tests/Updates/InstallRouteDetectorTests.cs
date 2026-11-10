@@ -62,6 +62,19 @@ public class InstallRouteDetectorTests
     }
 
     [Theory]
+    [InlineData(HostSystem.Linux, "/home/me/.local/bin/gitunia")]
+    [InlineData(HostSystem.MacOs, "/Users/me/.local/bin/gitunia")]
+    [InlineData(HostSystem.Windows, "C:\\Users\\me\\AppData\\Local\\Gitunia\\gitunia.exe")]
+    public void GivenTheInstallScriptsDefaultFolderWithoutMarker_WhenDetecting_ThenTheRouteIsScript(
+        HostSystem system,
+        string path)
+    {
+        var facts = new InstallFacts(path, null, system, ArchRelease);
+
+        Assert.Equal(InstallRoute.Script, InstallRouteDetector.Detect(facts));
+    }
+
+    [Theory]
     [InlineData(HostSystem.Linux, "/home/me/src/Gitunia/publish/gitunia")]
     [InlineData(HostSystem.Linux, "/usr/local/bin/gitunia")]
     [InlineData(HostSystem.MacOs, "/Users/me/bin/gitunia")]

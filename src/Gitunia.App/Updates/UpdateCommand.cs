@@ -108,6 +108,13 @@ public sealed class UpdateCommand(ReleaseClient client, ExecutableSwapper swappe
         catch (Exception exception) when (exception is UpdateException or IOException or UnauthorizedAccessException)
         {
             await output.WriteLineAsync($"gitunia update: {exception.Message}");
+            if (exception is UnauthorizedAccessException)
+            {
+                var folder = Path.GetDirectoryName(facts.ExecutablePath);
+                await output.WriteLineAsync(
+                    $"Gitunia cannot write to {folder}: run the update with the rights that folder needs, or use the install script.");
+            }
+
             await output.WriteLineAsync($"Nothing was changed. Do it by hand: download {asset.Url}, unpack it and replace {facts.ExecutablePath}.");
 
             return UpdateExitCode.Failed;

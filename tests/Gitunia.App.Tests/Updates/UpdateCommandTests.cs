@@ -236,7 +236,7 @@ public sealed class UpdateCommandTests : IDisposable
     }
 
     [Fact]
-    public async Task GivenAnUpdateRun_WhenRequestsAreSent_ThenTheyCarryNoCredentials()
+    public async Task GivenAnUpdateRun_WhenRequestsAreSent_ThenTheyAddNoAuthorizationOrCookieHeader()
     {
         FakeRelease.ServeLinux(_server, "1.3.0");
 

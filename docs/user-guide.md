@@ -46,9 +46,11 @@ Other ways:
 - **Installed by a package manager** (Homebrew, winget, `.deb`, `.rpm`, pacman, AUR): it prints the command to run (`brew upgrade gitunia`, `winget upgrade Gitunia.Gitunia`, or the install script for the Linux packages) and changes nothing, so root-owned files are never touched.
 - **Anything else** (a development build, an archive you unpacked yourself): it prints where to download the release and does not replace the binary.
 
-`gitunia update --check` only reports: exit code 0 when you are up to date, 10 when a newer release exists, 1 when the check failed (no network, no release). The check reads GitHub's latest-release page; the only thing sent is the `User-Agent` (`gitunia/<version>`).
+`gitunia update --check` only reports: exit code 0 when you are up to date, 10 when a newer release exists, 1 when the check failed (no network, no release). The check reads GitHub's latest-release page; no token, account or machine id is sent, only the `User-Agent` (`gitunia/<version>`). Behind a corporate proxy that asks for Windows or Kerberos sign-in, your signed-in user's credentials go to the proxy, as for any program that follows the system proxy. `GITUNIA_RELEASE_URL` points `update` at another release JSON (tests, mirrors); the archive and its checksum then come from the same place, so it is no authenticity check.
 
-The install scripts write a one-line marker file `gitunia.install-source` next to the binary; it is how `update` knows a script installed that copy. Delete it and `update` falls back to the binary's path.
+The install scripts write a one-line marker file `gitunia.install-source` next to the binary; it is how `update` knows a script installed that copy. A copy without the marker is still recognised in the script's default folder (`~/.local/bin`, `%LOCALAPPDATA%\Gitunia`) and, for the package managers, by its path (for example `/usr/bin` or Homebrew's prefix); a script install in another folder needs the install script run once more (`GITUNIA_FORCE=1` for a current version) to get the marker.
+
+`gitunia update` is always the update command, so a repository folder named `update` is opened with `gitunia ./update`.
 
 ## Start and open a repository
 
