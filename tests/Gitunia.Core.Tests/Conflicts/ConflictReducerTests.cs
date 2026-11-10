@@ -570,6 +570,23 @@ public class ConflictReducerTests
         Assert.Equal(2, cut.State.Shell.Conflict.Editor!.ToText().Split("<<<<<<< HEAD").Length);
     }
 
+    [Fact]
+    public void GivenASelectionCopiedInNormalMode_WhenPuttingAtTheLineEnd_ThenTheTextIsInsertedNotReplaced()
+    {
+        var typing = Press(Opened(Text), ActionIds.ConflictEditorEdit).State;
+        var editor = typing.Shell.Conflict.Editor!.EndEdit();
+        var selected = editor.ClickResultLine(0, 0).ExtendResultSelection(0, 10);
+        var state = typing with
+        {
+            Shell = typing.Shell with { Conflict = typing.Shell.Conflict with { Editor = selected } },
+        };
+
+        var copied = Press(state, ActionIds.ConflictEditorCopySelection).State;
+        var put = Press(copied, ActionIds.ConflictEditorPutAfter);
+
+        Assert.Equal("toptop", put.State.Shell.Conflict.Editor!.ToText().Split('\n')[0]);
+    }
+
     private static AppUpdate Press(AppState state, ActionId action) =>
         AppReducer.Reduce(state, new ConflictActionPressed(action, null, Tall));
 

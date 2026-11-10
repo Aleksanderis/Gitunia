@@ -80,6 +80,12 @@ internal static class ConflictActions
         }
 
         var copied = editor.Yanked(yank);
+        if (!isCut && !editor.IsEditing)
+        {
+            // Outside typing a copy ends the selection, as in vim, so a later put or paste does not replace it.
+            copied.Result.Editor.ClearSelection();
+        }
+
         var effect = new CopyToClipboardEffect(yank.Text, ConflictNotices.SelectionDescription);
 
         return ConflictFlow.Show(session, isCut ? copied.CutSelection() : copied, effect);

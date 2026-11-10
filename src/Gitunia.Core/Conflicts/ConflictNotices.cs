@@ -57,7 +57,7 @@ public static class ConflictNotices
     public const string NothingToCopy = "Nothing to copy: no text on this line";
 
     /// <summary>A copy key with no text selected in the result.</summary>
-    public const string NothingSelected = "Nothing is selected: drag with the mouse or Shift with the arrows first";
+    public const string NothingSelected = "Nothing is selected: drag with the mouse, or press i and use Shift with the arrows";
 
     /// <summary>A put before anything was copied.</summary>
     public const string NothingToPut = "Nothing to put yet: copy lines first (yy, Visual y, Alt-w)";

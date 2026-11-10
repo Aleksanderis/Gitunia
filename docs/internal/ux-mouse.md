@@ -166,6 +166,8 @@ Views inherit like in the keymap: `Lists` covers Graph, Detail, Sidebar, Diff an
 | PickerButton.Clone | Click | `picker.clone` | Footer chip `Alt-c clone` in the picker box (when it fits, not while locating), same as `Alt-c` |
 | PickerButton.Init | Click | `picker.init` | Chip `Alt-i init` next to it, same as `Alt-i` |
 
+Not in the table (the editor handles it itself, not through the mouse map): a drag from a result line selects text from the clicked position, also while typing; `Alt-w` copies it and `Ctrl-x` cuts it while typing (#1285).
+
 Pointer-position behaviour that has no action of its own: a click on a pane focuses it, a click on a list row selects it (graph, detail, sidebar, diff; the details pane follows the graph selection as with keys), a click on a picker row highlights it (also on a `▸ N more` or `▴ less` line, which is a row kind of its own with no repository behind it).
 A click on empty space does nothing.
 The wheel moves the selection, not just the view (the keyboard has no pure scroll either), so the details pane follows it as it does for `j`/`k`.
