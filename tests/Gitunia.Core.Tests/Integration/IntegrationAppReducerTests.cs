@@ -59,6 +59,48 @@ public class IntegrationAppReducerTests
     }
 
     [Fact]
+    public void GivenAFailureWithOutput_WhenTheTabIsShown_ThenTheOutputBoxOpensAndTheStatusKeepsTheFirstLine()
+    {
+        var (state, tabId) = Opened();
+        var output = new FailureOutput("Could not continue the merge", "Output of git continue", ["first", "second"]);
+
+        var update = AppReducer.Reduce(
+            state,
+            new IntegrationFailed(tabId, "Could not continue the merge: first", true, output));
+
+        Assert.Equal(["first", "second"], update.State.Shell.Output!.Lines);
+        Assert.Equal("Could not continue the merge", update.State.Shell.Output!.Title);
+        Assert.Equal("Could not continue the merge: first", Assert.IsType<PostStatusEffect>(update.Effects[0]).Text);
+    }
+
+    [Fact]
+    public void GivenAFailureWithOutput_WhenTheTabIsInTheBackground_ThenOnlyTheStatusLineTells()
+    {
+        var (state, tabId) = Opened();
+        var root = Path.Combine(Path.GetTempPath(), "gitunia-integration-app-tests", "beta");
+        var gitDirectory = Path.Combine(root, ".git");
+        var other = new RepositoryLocation(root, gitDirectory, gitDirectory, false, false);
+        state = AppReducer.Reduce(state, new OpenRepositoryCommand(other)).State;
+        Assert.NotEqual(tabId, state.Workspace.ActiveTabId);
+        var output = new FailureOutput("t", "h", ["a"]);
+
+        var update = AppReducer.Reduce(state, new IntegrationFailed(tabId, "failed", true, output));
+
+        Assert.Null(update.State.Shell.Output);
+        Assert.IsType<PostStatusEffect>(update.Effects[0]);
+    }
+
+    [Fact]
+    public void GivenAFailureWithoutOutput_WhenReducing_ThenNoOutputBoxOpens()
+    {
+        var (state, tabId) = Opened();
+
+        var update = AppReducer.Reduce(state, new IntegrationFailed(tabId, "boom"));
+
+        Assert.Null(update.State.Shell.Output);
+    }
+
+    [Fact]
     public void GivenAClosedTab_WhenAResultArrives_ThenItIsDroppedWithoutEffects()
     {
         var (state, _) = Opened();

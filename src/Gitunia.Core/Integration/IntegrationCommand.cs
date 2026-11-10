@@ -88,7 +88,8 @@ public sealed record IntegrationSucceeded(TabId TabId, string Text, StatusSeveri
 /// <param name="Text">The first error line with what was tried.</param>
 /// <param name="Refresh">Read the tab again, because git may have done part of it; false when nothing was
 /// changed.</param>
-public sealed record IntegrationFailed(TabId TabId, string Text, bool Refresh = true)
+/// <param name="Output">Git's whole output for the output box, null when the status line says it all.</param>
+public sealed record IntegrationFailed(TabId TabId, string Text, bool Refresh = true, FailureOutput? Output = null)
     : IntegrationCommand(TabId), IOperationResult
 {
     RunningOperationKind IOperationResult.Kind => RunningOperationKind.Integration;

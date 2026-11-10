@@ -1,5 +1,6 @@
 using Gitunia.Core.Integration;
 using Gitunia.Core.Text;
+using Gitunia.Git.Execution.Exceptions;
 using Gitunia.Git.Repositories;
 
 namespace Gitunia.App.Integration;
@@ -34,7 +35,7 @@ public sealed class IntegrationEffectHandler(
             dispatcher,
             token => PerformAsync(effect, token),
             () => new IntegrationCancelled(effect.TabId),
-            exception => Failure(effect, FailureText.Reason(exception)),
+            exception => WithOutput(Failure(effect, FailureText.Reason(exception)), effect, exception),
             cancellationToken);
     }
 
@@ -48,6 +49,28 @@ public sealed class IntegrationEffectHandler(
         SkipOperationEffect skip => operations.SkipAsync(skip, token),
         _ => throw new UnhandledEffectException(effect),
     };
+
+    // Continue, abort and skip keep the first line in the status bar and give git's whole output to the output box.
+    private static IntegrationFailed WithOutput(IntegrationFailed failed, IntegrationEffect effect, Exception exception)
+    {
+        if (exception is not GitCommandFailedException git)
+        {
+            return failed;
+        }
+
+        var output = effect switch
+        {
+            AbortOperationEffect abort => OperationFailureOutput.Of(
+                "abort", abort.Info, git.StandardError, git.StandardOutput),
+            ContinueOperationEffect proceed => OperationFailureOutput.Of(
+                "continue", proceed.Info, git.StandardError, git.StandardOutput),
+            SkipOperationEffect skip => OperationFailureOutput.Of(
+                "skip", skip.Info, git.StandardError, git.StandardOutput),
+            _ => null,
+        };
+
+        return failed with { Output = output };
+    }
 
     private static IntegrationFailed Failure(IntegrationEffect effect, string reason) => effect switch
     {

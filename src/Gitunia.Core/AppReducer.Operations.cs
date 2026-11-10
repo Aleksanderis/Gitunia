@@ -4,6 +4,7 @@ using Gitunia.Core.Effects;
 using Gitunia.Core.Integration;
 using Gitunia.Core.Operations;
 using Gitunia.Core.Remotes;
+using Gitunia.Core.Shell;
 using Gitunia.Core.Stash;
 using Gitunia.Core.Running;
 using Gitunia.Core.Sync;
@@ -20,8 +21,11 @@ namespace Gitunia.Core;
 public static partial class AppReducer
 {
     // The feature reducers below share one shape (see ReduceInTab): the tab's context is built in a static lambda.
-    private static AppUpdate ReduceIntegration(AppState state, IntegrationCommand command) =>
-        ReduceInTab(state, command.TabId, command, static (_, tab, c) => IntegrationReducer.Reduce(
+    // A failure that carries git's whole output opens it in the scrollable box when the tab is shown (the status line
+    // keeps the first line); in a background tab only the status line tells.
+    private static AppUpdate ReduceIntegration(AppState state, IntegrationCommand command)
+    {
+        var update = ReduceInTab(state, command.TabId, command, static (_, tab, c) => IntegrationReducer.Reduce(
             c,
             new IntegrationContext(
                 tab.Id,
@@ -30,6 +34,19 @@ public static partial class AppReducer
                 tab.Operation,
                 OperationBannerBuilder.ConflictCount(tab.WorkingTree),
                 IsBusy(tab, RunningOperationKind.Integration))));
+        if (command is not IntegrationFailed { Output: { } output }
+            || state.Workspace.ActiveTabId != command.TabId
+            || state.Workspace.FindTab(command.TabId) is null)
+        {
+            return update;
+        }
+
+        var shown = ShellReducer.Reduce(
+            update.State.Shell,
+            new OutputShownCommand(output.Title, output.Heading, output.Lines));
+
+        return update with { State = update.State with { Shell = shown.State } };
+    }
 
     private static AppUpdate ReduceRemote(AppState state, RemoteCommand command) =>
         ReduceInTab(state, command.TabId, command, static (s, tab, c) => RemoteReducer.Reduce(
