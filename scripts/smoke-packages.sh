@@ -36,7 +36,7 @@ run() { # <label> <image> <package file glob in the dist dir> <install command> 
   pkg="$(cd "$dist" && compgen -G "$glob" | head -1 || true)"
   if [ -z "$pkg" ]; then echo "FAIL: $label: no $glob in $dist" >&2; failed=1; return; fi
   echo "::group::$label ($image)"
-  if docker run --rm -v "$dist:/dist:ro" -e PKG="/dist/$pkg" -e VERSION="$version" -e INSTALL="$install" -e REMOVE="$remove" \
+  if timeout 300 docker run --rm -v "$dist:/dist:ro" -e PKG="/dist/$pkg" -e VERSION="$version" -e INSTALL="$install" -e REMOVE="$remove" \
       "$image" bash -c "$inside"; then echo "ok: $label"; else echo "FAIL: $label" >&2; failed=1; fi
   echo "::endgroup::"
 }
