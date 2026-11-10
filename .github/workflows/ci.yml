@@ -156,7 +156,7 @@ jobs:
           echo "$frame" | grep -q "NORMAL"
 
   macos-arm64:
-    # Tags and an explicit `platform: macos` dispatch only (#455): macOS minutes cost 10x on the free plan.
+    # An explicit `platform: macos` dispatch only (#455): macOS minutes cost 10x on the free plan.
     if: ${{ inputs.platform == 'macos' }}
     runs-on: macos-15
     timeout-minutes: 20
@@ -205,7 +205,7 @@ jobs:
           echo "$frame" | grep -q "NORMAL"
 
   linux-arm64:
-    # Tags and an explicit `platform: arm64` dispatch only (#1247); native arm64 runner, free for public repositories.
+    # An explicit `platform: arm64` dispatch only (#1247); native arm64 runner, free for public repositories.
     if: ${{ inputs.platform == 'arm64' }}
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 25
@@ -241,7 +241,7 @@ jobs:
           echo "$frame" | grep -q "NORMAL"
 
   windows-arm64:
-    # Tags and an explicit `platform: arm64` dispatch only (#1247); native arm64 runner, free for public repositories.
+    # An explicit `platform: arm64` dispatch only (#1247); native arm64 runner, free for public repositories.
     if: ${{ inputs.platform == 'arm64' }}
     runs-on: windows-11-arm
     # No D: temp and NuGet speed-up as in windows-x64 (#624): rarely run, and the arm64 runner may have no D: drive.
