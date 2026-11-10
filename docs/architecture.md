@@ -228,6 +228,10 @@ Tests: `StagingReducerTests` and `StagingAppReducerTests` (Core, synchronous: pl
 
 Tests: `DiscardReducerTests` and `DiscardAppReducerTests` (Core, synchronous: dialogs, refusals, target in the command, exclusion, tab closed while the dialog is open, range ends on `y` only), `DiscardEffectHandlerTests` (App: fake discarder for the arguments and the order status read before result, real repositories), `DiscardPipelineTests` (through the real runner), `ListRangeFlowTests` and `WorkingDiffControllerTests` (keys to dialog to git).
 
+### Self-update (#1291)
+
+`gitunia update [--check]` is a command-line path like `--version`: `Program.Main` runs it before any UI or state exists, so it has no reducer and no effects. `Gitunia.Core/Updates/ReleaseVersion` compares versions (pure). `Gitunia.Platform/Updates/` holds what depends on the OS: `InstallFactsReader` reads where the binary is, the install-source marker beside it and `os-release`; `InstallRouteDetector` (pure) turns that into an `InstallRoute`; `ExecutableSwapper` replaces the binary (atomic rename on Linux and macOS, rename-aside on Windows, leftovers removed by `RemoveLeftovers` at the next start). `Gitunia.App/Updates/` holds the rest: `ReleaseClient` (the only HTTP code: `HttpClient` on the system proxy, `User-Agent` only, per-call timeouts, cancellable), `ReleaseArchive` (checksum, tar.gz and zip), `BinaryProbe` (`--version` of the download) and `UpdateCommand`, which writes to the `TextWriter` it is given. Tests use an in-memory `HttpMessageHandler` and temp directories, never the network.
+
 ### Threading
 
 `AppState` and every reducer call live on the UI thread only. One dispatcher interface accepts commands from any thread, queues them and runs the reducer on the UI thread, then hands the effects to the runner (implementation in `Gitunia.App` over a UI-thread invoker that Tui supplies). Handlers run off the UI thread and post result commands back through the dispatcher; they never touch state or views. Stores are the only shared mutable data: written by a handler, read by views, published by swapping a complete snapshot (a reader sees a whole version, never a half-filled one).

@@ -13,8 +13,10 @@ namespace Gitunia.Tui.App.CommandLine;
 /// <param name="Tab">With a printed frame: the tab of the detail pane (default Changes, what a fresh tab shows).</param>
 /// <param name="Colors">With a printed frame: write ANSI colour sequences for this scheme instead of plain text, null for plain text.</param>
 /// <param name="ShowsVersion">Print the version and exit; nothing else is started.</param>
+/// <param name="RunsUpdate"><c>gitunia update</c>: check for a newer release and update; nothing else is started.</param>
+/// <param name="UpdateCheckOnly">With <see cref="RunsUpdate"/>: <c>--check</c>, only report whether a newer release exists.</param>
 /// <param name="Error">Why the arguments are invalid, null when they are fine.</param>
-public sealed record CommandLineOptions(string? RepositoryPath, int? FrameWidth, int? FrameHeight, string? Error, bool OpenDiff = false, PaneKind? Zoom = null, BottomTab Tab = BottomTab.Changes, PaletteSettings? Colors = null, bool ShowsVersion = false)
+public sealed record CommandLineOptions(string? RepositoryPath, int? FrameWidth, int? FrameHeight, string? Error, bool OpenDiff = false, PaneKind? Zoom = null, BottomTab Tab = BottomTab.Changes, PaletteSettings? Colors = null, bool ShowsVersion = false, bool RunsUpdate = false, bool UpdateCheckOnly = false)
 {
     public bool PrintsFrame => FrameWidth is not null && FrameHeight is not null;
 }

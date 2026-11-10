@@ -36,6 +36,7 @@ try {
     $exe = Join-Path $tmp 'bin\gitunia.exe'
     if (-not (Test-Path -LiteralPath $exe)) { Fail "binary not installed: $out" }
     if ((Get-Content -LiteralPath $exe -Raw).Trim() -ne 'fake exe 1.2.3') { Fail 'wrong binary installed' }
+    if ((Get-Content -LiteralPath (Join-Path $tmp 'bin\gitunia.install-source') -Raw).Trim() -ne 'script') { Fail 'install-source marker not written (#1291)' }
 
     # The fake exe cannot answer --version, so an update is the same as a first install here.
     $out = Invoke-Install (Join-Path $tmp 'r2') 'arm64'

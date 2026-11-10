@@ -8,10 +8,18 @@ namespace Gitunia.Tui.App.CommandLine;
 /// <summary>Parses <c>gitunia [--version] [path] [--print-frame WxH [--diff] [--zoom graph|detail|diff] [--tab details|changes|files] [--colors truecolor|16|none [--light]]]</c>.</summary>
 public static class CommandLineParser
 {
-    public const string Usage = "usage: gitunia <repository path> [--print-frame <columns>x<rows> [--diff] [--zoom graph|detail|diff] [--tab details|changes|files] [--colors truecolor|16|none [--light]]] | gitunia --version";
+    public const string Usage = "usage: gitunia <repository path> [--print-frame <columns>x<rows> [--diff] [--zoom graph|detail|diff] [--tab details|changes|files] [--colors truecolor|16|none [--light]]] | gitunia --version | gitunia update [--check]";
+
+    private const string UpdateArgument = "update";
+    private const string CheckArgument = "--check";
 
     public static CommandLineOptions Parse(IReadOnlyList<string> arguments)
     {
+        if (arguments.Count > 0 && arguments[0] == UpdateArgument)
+        {
+            return ParseUpdate(arguments);
+        }
+
         string? path = null;
         int? width = null;
         int? height = null;
@@ -106,6 +114,22 @@ public static class CommandLineParser
             zoom,
             tab ?? BottomTab.Changes,
             colors is { } depth ? new PaletteSettings(depth, isLight) : null);
+    }
+
+    private static CommandLineOptions ParseUpdate(IReadOnlyList<string> arguments)
+    {
+        var checkOnly = false;
+        for (var index = 1; index < arguments.Count; index++)
+        {
+            if (arguments[index] != CheckArgument)
+            {
+                return new CommandLineOptions(null, null, null, $"unexpected argument '{arguments[index]}' for update");
+            }
+
+            checkOnly = true;
+        }
+
+        return new CommandLineOptions(null, null, null, null, RunsUpdate: true, UpdateCheckOnly: checkOnly);
     }
 
     private static bool TryParseColors(string text, out ColorDepth depth)
