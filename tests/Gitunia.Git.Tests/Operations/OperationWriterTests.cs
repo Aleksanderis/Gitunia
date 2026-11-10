@@ -140,6 +140,27 @@ public class OperationWriterTests
         Assert.Equal(RepositoryOperation.None, new RepositoryOperationDetector().Detect(location));
     }
 
+    [Theory]
+    [InlineData(RepositoryOperation.CherryPick)]
+    [InlineData(RepositoryOperation.Revert)]
+    public async Task GivenResolutionEqualToHead_WhenContinuing_ThenTheEmptyCommitIsDroppedNotRefused(
+        RepositoryOperation operation)
+    {
+        using var repository = operation == RepositoryOperation.CherryPick
+            ? TestRepositories.CherryPickConflicted()
+            : TestRepositories.RevertConflicted();
+        var (writer, location) = await CreateAsync(repository);
+        var before = repository.Git("rev-parse", "HEAD").Trim();
+        repository.WriteFile(ConflictFile, repository.Git("show", $"HEAD:{ConflictFile}"));
+        repository.Git("add", ConflictFile);
+
+        var result = await writer.ContinueAsync(location, operation, Token);
+
+        Assert.Equal(OperationOutcome.Emptied, result.Outcome);
+        Assert.Equal(before, result.Head);
+        Assert.Equal(RepositoryOperation.None, new RepositoryOperationDetector().Detect(location));
+    }
+
     [Fact]
     public async Task GivenConflictedCherryPick_WhenSkipping_ThenNothingIsCommittedAndTheTreeIsClean()
     {

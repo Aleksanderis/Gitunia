@@ -22,11 +22,24 @@ public sealed class OperationWriter(OperationRunner runner) : IOperationWriter
     private const string ConfigOption = "-c";
     private const string NoEditor = "core.editor=true";
 
-    public Task<OperationResult> ContinueAsync(
+    public async Task<OperationResult> ContinueAsync(
         RepositoryLocation location,
         RepositoryOperation operation,
-        CancellationToken cancellationToken) =>
-        RunAsync(location, operation, ContinueOption, cancellationToken);
+        CancellationToken cancellationToken)
+    {
+        // The staged resolution is what gets committed. When it leaves nothing (the picked change is already in
+        // HEAD), git refuses with "now empty"; the commit is dropped instead, as a rebase drops one.
+        if (operation is RepositoryOperation.CherryPick or RepositoryOperation.Revert
+            && await runner.HasNothingToCommitAsync(location, cancellationToken).ConfigureAwait(false))
+        {
+            var skipped = await RunAsync(location, operation, SkipOption, cancellationToken).ConfigureAwait(false);
+            return skipped.Outcome == OperationOutcome.Completed
+                ? skipped with { Outcome = OperationOutcome.Emptied }
+                : skipped;
+        }
+
+        return await RunAsync(location, operation, ContinueOption, cancellationToken).ConfigureAwait(false);
+    }
 
     public Task<OperationResult> AbortAsync(
         RepositoryLocation location,

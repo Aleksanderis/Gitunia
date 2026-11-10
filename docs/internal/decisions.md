@@ -275,3 +275,7 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **Process:** AUR workflow green without secret; two-part release versions (#1279, #1278). Without `AUR_SSH_KEY` `aur.yml` ends green with a notice (the AUR account is in Backlog, #1261), like `homebrew.yml`; a set secret with a failing push still fails. Release tags and archives are two-part (`v0.8`, `gitunia-0.8-*`), so `homebrew-formula.sh` and `packaging/aur/update.sh` accept `x.y` and `x.y.z`. Why: every release showed red runs for steps that cannot work yet.
 
 **Process:** Landing page changes are always pushed (owner, 2026-11-09). The landing page repository (`gitunia.github.io`) is pushed in the same task as the change, without asking; this is an exception to the "never push without confirmation" rule in `CLAUDE.md`, which still applies to this repository.
+
+## 2026-11-10
+
+**UX:** Continue of a cherry-pick or revert whose staged resolution equals HEAD drops the commit (`--skip`) with a status line instead of failing with git's "now empty" (#1284). Why: the owner saw "nothing happens" (the reason was cut off in the status bar); a rebase already drops such commits, and dropping loses nothing because HEAD already has the change. `--allow-empty` was the alternative.

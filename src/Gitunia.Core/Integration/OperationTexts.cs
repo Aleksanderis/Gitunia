@@ -61,6 +61,12 @@ public static class OperationTexts
             return StoppedAgain($"Continued the {name}", name);
         }
 
+        if (result.Outcome == OperationOutcome.Emptied)
+        {
+            var emptied = $"Nothing left to commit after resolving: dropped {ShortHash.Of(info.Commit)}";
+            return new IntegrationReport($"{emptied}; {Finished(info, branch, result.Head)}", StatusSeverity.Info);
+        }
+
         return new IntegrationReport(Finished(info, branch, result.Head), StatusSeverity.Info);
     }
 
