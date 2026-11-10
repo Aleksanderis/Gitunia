@@ -29,25 +29,26 @@ hash -r
 if command -v gitunia >/dev/null 2>&1; then echo "gitunia still installed after removal"; exit 1; fi
 '
 
-run() { # <label> <image> <package file> <install command> <remove command>
-  local label="$1" image="$2" pkg="$3" install="$4" remove="$5"
-  if [ ! -f "$dist/$pkg" ]; then echo "FAIL: $label: missing $dist/$pkg" >&2; failed=1; return; fi
+run() { # <label> <image> <package file glob in the dist dir> <install command> <remove command>
+  local label="$1" image="$2" glob="$3" install="$4" remove="$5" pkg
+  # nfpm rewrites a pre-release version in each file name differently (`~` in .deb and .rpm, no hyphen in Arch), so
+  # the package is found by glob and the version is checked in what `gitunia --version` prints.
+  pkg="$(cd "$dist" && compgen -G "$glob" | head -1 || true)"
+  if [ -z "$pkg" ]; then echo "FAIL: $label: no $glob in $dist" >&2; failed=1; return; fi
   echo "::group::$label ($image)"
   if docker run --rm -v "$dist:/dist:ro" -e PKG="/dist/$pkg" -e VERSION="$version" -e INSTALL="$install" -e REMOVE="$remove" \
       "$image" bash -c "$inside"; then echo "ok: $label"; else echo "FAIL: $label" >&2; failed=1; fi
   echo "::endgroup::"
 }
 
-# nfpm writes the version as given for .deb, with `~` for a pre-release hyphen in .rpm and `_` in Arch.
-rpm_version="${version//-/\~}"; arch_version="${version//-/_}"
 for image in ubuntu:24.04 debian:stable; do
-  run ".deb on $image" "$image" "gitunia_${version}_${deb_arch}.deb" \
+  run ".deb on $image" "$image" "gitunia_*_${deb_arch}.deb" \
     'apt-get update -qq && apt-get install -y -qq --no-install-recommends "$PKG"' 'apt-get remove -y -qq gitunia'
 done
-run ".rpm on fedora" fedora:latest "gitunia-${rpm_version}-1.${rpm_arch}.rpm" \
+run ".rpm on fedora" fedora:latest "gitunia-*.${rpm_arch}.rpm" \
   'dnf install -y -q "$PKG"' 'dnf remove -y -q gitunia'
 if [ "$arch_arch" = x86_64 ]; then
-  run "Arch package on archlinux" archlinux:latest "gitunia-${arch_version}-1-${arch_arch}.pkg.tar.zst" \
+  run "Arch package on archlinux" archlinux:latest "gitunia-*-${arch_arch}.pkg.tar.zst" \
     'pacman -Sy --noconfirm && pacman -U --noconfirm "$PKG"' 'pacman -R --noconfirm gitunia'
 else
   echo "notice: no archlinux image for $arch_arch, Arch package not installed"
