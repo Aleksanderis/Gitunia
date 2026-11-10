@@ -20,6 +20,12 @@ public sealed class OperationRunner(GitRunner runner, IRepositoryOperationDetect
 
     private static readonly string[] HeadArguments = ["rev-parse", "--quiet", "--verify", GitOptions.HeadRevision];
 
+    private static readonly string[] StagedDiffArguments = ["diff", "--cached", "--quiet"];
+
+    private static readonly GitRunOptions StagedDiffOptions = new(
+        ReadOnly: true,
+        AcceptedExitCodes: [GitRunOptions.NoMatchExitCode]);
+
     private static readonly GitRunOptions HeadOptions = new(
         ReadOnly: true,
         AcceptedExitCodes: [GitRunOptions.NoMatchExitCode]);
@@ -54,6 +60,24 @@ public sealed class OperationRunner(GitRunner runner, IRepositoryOperationDetect
 
         var head = await ReadHeadAsync(location, cancellationToken).ConfigureAwait(false);
         return new OperationResult(OperationOutcome.Completed, head);
+    }
+
+    /// <summary>
+    /// True when nothing is unmerged and the index equals HEAD: a continue of a cherry-pick or revert then has nothing
+    /// to commit and git refuses it ("now empty").
+    /// </summary>
+    public async Task<bool> HasNothingToCommitAsync(RepositoryLocation location, CancellationToken cancellationToken)
+    {
+        var unmerged = await UnmergedFiles.ReadAsync(runner, location, cancellationToken).ConfigureAwait(false);
+        if (unmerged.Length > 0)
+        {
+            return false;
+        }
+
+        var diff = await runner
+            .RunAsync(location.CommandPath, StagedDiffArguments, StagedDiffOptions, cancellationToken)
+            .ConfigureAwait(false);
+        return diff.ExitCode == 0;
     }
 
     /// <summary>

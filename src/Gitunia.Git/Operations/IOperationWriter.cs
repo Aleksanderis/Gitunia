@@ -9,7 +9,10 @@ namespace Gitunia.Git.Operations;
 /// </summary>
 public interface IOperationWriter
 {
-    /// <summary>Runs <c>&lt;operation&gt; --continue</c>; a rebase may stop again at the next commit.</summary>
+    /// <summary>
+    /// Runs <c>&lt;operation&gt; --continue</c>; a rebase may stop again at the next commit. A cherry-pick or revert
+    /// with nothing left to commit is skipped instead (<see cref="OperationOutcome.Emptied"/>).
+    /// </summary>
     Task<OperationResult> ContinueAsync(
         RepositoryLocation location,
         RepositoryOperation operation,
