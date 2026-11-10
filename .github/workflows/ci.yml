@@ -50,8 +50,6 @@ jobs:
         # names the running test. The step timeout also covers a host that died with no test in flight.
         timeout-minutes: 10
         run: dotnet test -c Release --no-build --blame-hang-timeout 3m --blame-hang-dump-type none --results-directory TestResults --logger trx
-      - name: TEMP deliberate failure (#1298, removed before merge)
-        run: exit 1
       - name: Upload test logs and hang report (failure only, #1298)
         if: failure()
         uses: actions/upload-artifact@v4
