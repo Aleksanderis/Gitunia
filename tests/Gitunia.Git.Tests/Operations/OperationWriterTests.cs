@@ -158,6 +158,7 @@ public class OperationWriterTests
 
         Assert.Equal(OperationOutcome.Emptied, result.Outcome);
         Assert.Equal(before, result.Head);
+        Assert.Equal(string.Empty, repository.Git("status", "--porcelain").Trim());
         Assert.Equal(RepositoryOperation.None, new RepositoryOperationDetector().Detect(location));
     }
 

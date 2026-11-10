@@ -28,7 +28,8 @@ public sealed class OperationWriter(OperationRunner runner) : IOperationWriter
         CancellationToken cancellationToken)
     {
         // The staged resolution is what gets committed. When it leaves nothing (the picked change is already in
-        // HEAD), git refuses with "now empty"; the commit is dropped instead, as a rebase drops one.
+        // HEAD), git refuses with "now empty"; the commit is dropped instead, as a rebase drops one. Check then act:
+        // an index change by another process in between is accepted.
         if (operation is RepositoryOperation.CherryPick or RepositoryOperation.Revert
             && await runner.HasNothingToCommitAsync(location, cancellationToken).ConfigureAwait(false))
         {
