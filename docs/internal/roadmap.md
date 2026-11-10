@@ -81,6 +81,13 @@ Status: planned (owner request 2026-11-02; tracking issue #1114, the open issues
 Goal: answer "how did this file or these lines get here" without leaving the app: file history (`git log --follow`), line-range history (`git log -L`) and blame (`git blame`), each with a diff and a jump to the commit in the graph. This moves blame out of the README's "Not included" list; the README is updated when the feature ships, not before. New Git readers and parsers, Core state/commands/effects, views, keymap rows, large-file performance, docs and Windows/macOS checks.
 Done when: from the graph's commit file list or the Changes view you can open a file's history, a line range's history and a blame view of a large file by keyboard and mouse, jump from a blame line to its commit in the graph, and the user guide, keymap reference and README describe it.
 
+## M12 - Performance and Windows hardening
+
+Status: planned (owner request 2026-11-11; tracking issue #1322, the open issues are the source of truth).
+
+Goal: fix the performance, blocking and Windows findings of the code review of 2026-11-11: locate git safely once at startup and run the version check, back off on slow or failing status reads, refresh only what changed and start fewer git processes per action, runner robustness (pipes held by hook children, start and kill errors), Windows file sharing for Gitunia's own files and `.git` reads, no disk probing before the first frame, reftable repositories, `$EDITOR` and credential prompts on Windows, opt-in watching on Windows, and a Windows performance baseline.
+Done when: every M12 issue is closed and `docs/internal/performance.md` has Windows numbers next to the Linux ones, taken before and after the refresh and process-count changes.
+
 ## Post-MVP candidates
 
 Submodules, PR/issue integration (blame shipped in #1117).
