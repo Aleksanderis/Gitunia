@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Builds the .deb, .rpm and Arch .pkg.tar.zst packages (plus .sha256 files) from the AOT binary with nfpm.
 # Usage: scripts/package-linux.sh <publish-dir> <version> <out-dir> [amd64|arm64]   (default amd64; run from the repository root; needs nfpm on PATH)
-# Used by the linux-x64 and linux-arm64 legs in ci.yml on release tags (#942, #1247).
+# Used by the linux-x64 and linux-arm64 legs of release.yml (#942, #1247, #1295).
 set -euo pipefail
 
 if [ "$#" -lt 3 ] || [ "$#" -gt 4 ]; then

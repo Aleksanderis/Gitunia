@@ -1,16 +1,16 @@
 name: CI
 
-# Runs on pull requests, pushes to main, release tags and on demand (`gh workflow run ci.yml`). Re-enabled when the
-# repository went public (minutes are free there; supersedes the manual-only decision of 2026-10-18).
+# Runs on pull requests, pushes to main and on demand (`gh workflow run ci.yml`). Re-enabled when the repository went
+# public (minutes are free there; supersedes the manual-only decision of 2026-10-18). It does not run on tags: release
+# packaging lives in release.yml (#1295), which reuses or dispatches a full run of this workflow for the tagged commit.
 on:
   pull_request:
   push:
     branches: [main]
-    tags: ["v*"]
   workflow_dispatch:
     inputs:
       platform:
-        description: Which leg to run (all = linux-x64 and windows-x64; macOS costs 10x minutes, so only macos runs it; arm64 runs the two arm64 legs; tags run all of them)
+        description: Which leg to run (all = linux-x64 and windows-x64; macOS costs 10x minutes, so only macos runs it; arm64 runs the two arm64 legs)
         type: choice
         options: [all, linux, windows, macos, arm64]
         default: all
@@ -18,56 +18,19 @@ on:
 permissions:
   contents: read
 
-# Release packaging (#48): on a v* tag the AOT binaries of both legs are archived by scripts/package.sh and attached to
-# a draft GitHub release by the `release` job. The `check` job (#937) looks for a green full dispatch run on the tagged
-# commit: if there is one the tag run skips build and tests (#899), else it builds and tests itself. It never waits.
-# The macOS leg (#455) runs on tags and when chosen in a dispatch, never as part of `all` (10x minutes); macos-15 is pinned because it is Apple silicon (macos-14 was retired, #1273). It always
-# builds and tests (the green-run lookup covers Linux and Windows x64 only). The arm64 legs (#1247, linux-arm64 and windows-arm64)
-# build on native arm64 runners (AOT cannot cross-compile), run on tags and `platform=arm64` dispatches, never in `all`, and
-# always build and test; like macOS, a red arm64 leg does not block the x64 assets.
+# Legs: linux-x64 and windows-x64 run in `all`. macos-arm64 (#455) runs only when chosen in a dispatch (10x minutes);
+# macos-15 is pinned because it is Apple silicon (macos-14 was retired, #1273). The arm64 legs (#1247, linux-arm64 and
+# windows-arm64) build on native arm64 runners (AOT cannot cross-compile) and run on `platform=arm64` dispatches, never
+# in `all`. release.yml builds and tests those legs itself on a tag. A green full dispatch run (jobs `linux-x64` and
+# `windows-x64`, names are matched by release.yml) is what lets a release skip build and test for the x64 legs.
 
 concurrency:
   group: ci-${{ github.ref }}-${{ inputs.platform }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
-  check:
-    # Tag pushes only (#937): looks up, in seconds, whether a green full run exists for the tagged commit. It never
-    # starts a run and never waits on one. Green: the legs only package. Not green: the legs build and test first.
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
-    runs-on: ubuntu-latest
-    timeout-minutes: 2
-    permissions:
-      actions: read
-    outputs:
-      green: ${{ steps.lookup.outputs.green }}
-    steps:
-      - name: Look for a green full CI run for the tagged commit
-        id: lookup
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          # Green means a successful `workflow_dispatch` run on this commit whose jobs `linux-x64` and `windows-x64`
-          # both succeeded, not skipped (renaming a leg makes this report not green). Any lookup error also reports
-          # not green, so the tag run tests instead of trusting an unverified run (fail closed).
-          api="repos/$GITHUB_REPOSITORY/actions"
-          green=false
-          if ids="$(gh api "$api/workflows/ci.yml/runs?head_sha=$GITHUB_SHA&event=workflow_dispatch&status=success&per_page=100" --jq '.workflow_runs[].id')"; then
-            for id in $ids; do
-              if ok="$(gh api "$api/runs/$id/jobs" --jq '[.jobs[] | select((.name == "linux-x64" or .name == "windows-x64") and .conclusion == "success")] | length')" && [ "$ok" = "2" ]; then
-                echo "Full CI run $id is green for $GITHUB_SHA; the legs only package"; green=true; break
-              fi
-            done
-          else
-            echo "::warning::Could not list CI runs; treating as not green"
-          fi
-          [ "$green" = true ] || echo "No green full CI run for $GITHUB_SHA; this run builds and tests before packaging"
-          echo "green=$green" >> "$GITHUB_OUTPUT"
-
   linux-x64:
-    needs: check
-    # `check` is skipped off tags; if it failed, `green` is empty and the tag run tests (fail closed).
-    if: ${{ !cancelled() && github.event.pull_request.draft != true && (github.event_name != 'workflow_dispatch' || inputs.platform == 'all' || inputs.platform == 'linux') }}
+    if: ${{ github.event.pull_request.draft != true && (github.event_name != 'workflow_dispatch' || inputs.platform == 'all' || inputs.platform == 'linux') }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -80,12 +43,8 @@ jobs:
       - name: Native AOT prerequisites
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends clang zlib1g-dev
       - name: Build (warnings, including IL*, are errors)
-        # A tag run with a green full run for the commit only packages (#899, #937); the publish below still builds
-        # with warnings as errors. Without one (or off tags) the build and tests run here.
-        if: ${{ !(github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && needs.check.outputs.green == 'true') }}
         run: dotnet build -c Release
       - name: Test
-        if: ${{ !(github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && needs.check.outputs.green == 'true') }}
         # A hung run costs 10 minutes, not the job's 15 (#666). The blame hang timeout (one test running longer than
         # 3 minutes) must stay below the step timeout, or the step is cancelled before the report is written; it then
         # names the running test. The step timeout also covers a host that died with no test in flight.
@@ -109,8 +68,7 @@ jobs:
       - name: AOT publish (any IL* warning fails)
         if: steps.aot.outputs.run == 'true'
         run: |
-          version_arg=""; if [[ "$GITHUB_REF" == refs/tags/v* ]]; then version_arg="-p:Version=${GITHUB_REF_NAME#v}"; fi
-          dotnet publish src/Gitunia.Tui -c Release -r linux-x64 -p:TreatWarningsAsErrors=true $version_arg -o out 2>&1 | tee publish.log
+          dotnet publish src/Gitunia.Tui -c Release -r linux-x64 -p:TreatWarningsAsErrors=true -o out 2>&1 | tee publish.log
           test "${PIPESTATUS[0]}" -eq 0
           if grep -E "warning IL[0-9]+" publish.log; then echo "::error::trim/AOT warnings found"; exit 1; fi
       - name: Smoke run
@@ -126,25 +84,9 @@ jobs:
           echo "$frame"
           echo "$frame" | grep -q "Gitunia"
           echo "$frame" | grep -q "NORMAL"
-      - name: Package (release tags only)
-        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
-        run: scripts/package.sh linux-x64 out "${GITHUB_REF_NAME#v}" dist
-      - name: Package .deb, .rpm and Arch (release tags only, #942)
-        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
-        run: |
-          # Pinned nfpm, built from source by the runner's Go (module checksums verified by the Go checksum database).
-          go install github.com/goreleaser/nfpm/v2/cmd/nfpm@v2.43.0
-          PATH="$(go env GOPATH)/bin:$PATH" scripts/package-linux.sh out "${GITHUB_REF_NAME#v}" dist
-      - uses: actions/upload-artifact@v4
-        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
-        with:
-          name: dist-linux-x64
-          path: dist/*
-          if-no-files-found: error
 
   windows-x64:
-    needs: check
-    if: ${{ !cancelled() && github.event.pull_request.draft != true && (github.event_name != 'workflow_dispatch' || inputs.platform == 'all' || inputs.platform == 'windows') }}
+    if: ${{ github.event.pull_request.draft != true && (github.event_name != 'workflow_dispatch' || inputs.platform == 'all' || inputs.platform == 'windows') }}
     runs-on: windows-latest
     timeout-minutes: 25
     defaults:
@@ -178,10 +120,8 @@ jobs:
             "NUGET_PACKAGES=D:\gitunia-nuget" >> $env:GITHUB_ENV
           }
       - name: Build (warnings, including IL*, are errors)
-        if: ${{ !(github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && needs.check.outputs.green == 'true') }}
         run: dotnet build -c Release
       - name: Test (one project at a time)
-        if: ${{ !(github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && needs.check.outputs.green == 'true') }}
         # Not yet verified on the runner (#634). `dotnet test` on the solution runs the five assemblies at once, each with 8 xUnit threads, and the tests start
         # thousands of git.exe processes. On the small runner (2-4 vCPU) that made `git init` wait over 30 s (run
         # 39954351890). Sequential projects keep the wall time about the same on a CPU-bound machine but halve the
@@ -200,8 +140,7 @@ jobs:
           pwsh -NoProfile -File scripts/test-install.ps1
       - name: AOT publish (any IL* warning fails)
         run: |
-          version_arg=""; if [[ "$GITHUB_REF" == refs/tags/v* ]]; then version_arg="-p:Version=${GITHUB_REF_NAME#v}"; fi
-          dotnet publish src/Gitunia.Tui -c Release -r win-x64 -p:TreatWarningsAsErrors=true $version_arg -o out 2>&1 | tee publish.log
+          dotnet publish src/Gitunia.Tui -c Release -r win-x64 -p:TreatWarningsAsErrors=true -o out 2>&1 | tee publish.log
           test "${PIPESTATUS[0]}" -eq 0
           if grep -E "warning IL[0-9]+" publish.log; then echo "::error::trim/AOT warnings found"; exit 1; fi
       - name: Smoke run
@@ -215,20 +154,10 @@ jobs:
           echo "$frame"
           echo "$frame" | grep -q "Gitunia"
           echo "$frame" | grep -q "NORMAL"
-      - name: Package (release tags only)
-        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
-        run: scripts/package.sh win-x64 out "${GITHUB_REF_NAME#v}" dist
-      - uses: actions/upload-artifact@v4
-        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
-        with:
-          name: dist-win-x64
-          path: dist/*
-          if-no-files-found: error
 
   macos-arm64:
     # Tags and an explicit `platform: macos` dispatch only (#455): macOS minutes cost 10x on the free plan.
-    needs: check
-    if: ${{ !cancelled() && (inputs.platform == 'macos' || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v'))) }}
+    if: ${{ inputs.platform == 'macos' }}
     runs-on: macos-15
     timeout-minutes: 20
     steps:
@@ -260,8 +189,7 @@ jobs:
           exit $status
       - name: AOT publish (any IL* warning fails)
         run: |
-          version_arg=""; if [[ "$GITHUB_REF" == refs/tags/v* ]]; then version_arg="-p:Version=${GITHUB_REF_NAME#v}"; fi
-          dotnet publish src/Gitunia.Tui -c Release -r osx-arm64 -p:TreatWarningsAsErrors=true $version_arg -o out 2>&1 | tee publish.log
+          dotnet publish src/Gitunia.Tui -c Release -r osx-arm64 -p:TreatWarningsAsErrors=true -o out 2>&1 | tee publish.log
           test "${PIPESTATUS[0]}" -eq 0
           if grep -E "warning IL[0-9]+" publish.log; then echo "::error::trim/AOT warnings found"; exit 1; fi
       - name: Smoke run
@@ -275,20 +203,10 @@ jobs:
           echo "$frame"
           echo "$frame" | grep -q "Gitunia"
           echo "$frame" | grep -q "NORMAL"
-      - name: Package (release tags only)
-        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
-        run: scripts/package.sh osx-arm64 out "${GITHUB_REF_NAME#v}" dist
-      - uses: actions/upload-artifact@v4
-        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
-        with:
-          name: dist-osx-arm64
-          path: dist/*
-          if-no-files-found: error
 
   linux-arm64:
     # Tags and an explicit `platform: arm64` dispatch only (#1247); native arm64 runner, free for public repositories.
-    needs: check
-    if: ${{ !cancelled() && (inputs.platform == 'arm64' || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v'))) }}
+    if: ${{ inputs.platform == 'arm64' }}
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 25
     steps:
@@ -307,8 +225,7 @@ jobs:
         run: dotnet test -c Release --no-build --blame-hang-timeout 3m --blame-hang-dump-type none
       - name: AOT publish (any IL* warning fails)
         run: |
-          version_arg=""; if [[ "$GITHUB_REF" == refs/tags/v* ]]; then version_arg="-p:Version=${GITHUB_REF_NAME#v}"; fi
-          dotnet publish src/Gitunia.Tui -c Release -r linux-arm64 -p:TreatWarningsAsErrors=true $version_arg -o out 2>&1 | tee publish.log
+          dotnet publish src/Gitunia.Tui -c Release -r linux-arm64 -p:TreatWarningsAsErrors=true -o out 2>&1 | tee publish.log
           test "${PIPESTATUS[0]}" -eq 0
           if grep -E "warning IL[0-9]+" publish.log; then echo "::error::trim/AOT warnings found"; exit 1; fi
       - name: Smoke run
@@ -322,25 +239,10 @@ jobs:
           echo "$frame"
           echo "$frame" | grep -q "Gitunia"
           echo "$frame" | grep -q "NORMAL"
-      - name: Package (release tags only)
-        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
-        run: scripts/package.sh linux-arm64 out "${GITHUB_REF_NAME#v}" dist
-      - name: Package .deb, .rpm and Arch (release tags only)
-        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
-        run: |
-          go install github.com/goreleaser/nfpm/v2/cmd/nfpm@v2.43.0
-          PATH="$(go env GOPATH)/bin:$PATH" scripts/package-linux.sh out "${GITHUB_REF_NAME#v}" dist arm64
-      - uses: actions/upload-artifact@v4
-        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
-        with:
-          name: dist-linux-arm64
-          path: dist/*
-          if-no-files-found: error
 
   windows-arm64:
     # Tags and an explicit `platform: arm64` dispatch only (#1247); native arm64 runner, free for public repositories.
-    needs: check
-    if: ${{ !cancelled() && (inputs.platform == 'arm64' || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v'))) }}
+    if: ${{ inputs.platform == 'arm64' }}
     runs-on: windows-11-arm
     # No D: temp and NuGet speed-up as in windows-x64 (#624): rarely run, and the arm64 runner may have no D: drive.
     timeout-minutes: 30
@@ -364,8 +266,7 @@ jobs:
           done
       - name: AOT publish (any IL* warning fails)
         run: |
-          version_arg=""; if [[ "$GITHUB_REF" == refs/tags/v* ]]; then version_arg="-p:Version=${GITHUB_REF_NAME#v}"; fi
-          dotnet publish src/Gitunia.Tui -c Release -r win-arm64 -p:TreatWarningsAsErrors=true $version_arg -o out 2>&1 | tee publish.log
+          dotnet publish src/Gitunia.Tui -c Release -r win-arm64 -p:TreatWarningsAsErrors=true -o out 2>&1 | tee publish.log
           test "${PIPESTATUS[0]}" -eq 0
           if grep -E "warning IL[0-9]+" publish.log; then echo "::error::trim/AOT warnings found"; exit 1; fi
       - name: Smoke run
@@ -379,38 +280,3 @@ jobs:
           echo "$frame"
           echo "$frame" | grep -q "Gitunia"
           echo "$frame" | grep -q "NORMAL"
-      - name: Package (release tags only)
-        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
-        run: scripts/package.sh win-arm64 out "${GITHUB_REF_NAME#v}" dist
-      - uses: actions/upload-artifact@v4
-        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
-        with:
-          name: dist-win-arm64
-          path: dist/*
-          if-no-files-found: error
-
-  release:
-    # Draft release so the owner reads the notes and publishes it; never runs for dispatch or branches. A red macOS or arm64 leg
-    # does not block the x64 assets (#455, #1247).
-    if: ${{ !cancelled() && github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && needs.linux-x64.result == 'success' && needs.windows-x64.result == 'success' }}
-    needs: [linux-x64, windows-x64, macos-arm64, linux-arm64, windows-arm64]
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          pattern: dist-*
-          merge-multiple: true
-          path: dist
-      - name: Create draft release
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          # Re-runs after a partial failure replace the assets of the existing release instead of failing.
-          if gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release upload "$GITHUB_REF_NAME" dist/* --repo "$GITHUB_REPOSITORY" --clobber
-          else
-            gh release create "$GITHUB_REF_NAME" dist/* --repo "$GITHUB_REPOSITORY" --draft --generate-notes --title "$GITHUB_REF_NAME"
-          fi
