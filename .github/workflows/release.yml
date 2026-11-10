@@ -245,9 +245,6 @@ jobs:
               | tee -a /tmp/test-out.log || status=1
           done
           exit $status
-      - name: TEMP failing step (#1303 verification, remove)
-        if: matrix.rid == 'linux-arm64'
-        run: mkdir -p TestResults && echo probe > TestResults/probe.txt && exit 1
       - name: Upload test logs and hang report (failure only, #1303)
         if: failure()
         uses: actions/upload-artifact@v4
