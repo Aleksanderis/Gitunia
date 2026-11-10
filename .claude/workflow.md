@@ -43,6 +43,7 @@ Owner rules from 2026-11-01, after hour-long runs, except the last bullet (CI de
 - The `reviewer` runs once and must not run tests or builds.
 - Smoke runs of the binary use a private `XDG_STATE_HOME` and `XDG_CONFIG_HOME` (never the owner's real session file).
 - Merge only after a CI run for the PR's head commit exists and is green; if none has appeared a few minutes after the push, say so in the report and stop (open PR), never merge on local tests alone. Before rerunning a failed run, read its failed log; a rerun replaces the log (#1290).
+- GitHub API budget (the account has 5000 REST calls an hour, shared by every agent and session; `gh run watch` polls every 3 s by default and ran it dry on 2026-11-10): wait for CI with exactly one `gh run watch <id> --exit-status -i 60` per run, never several watchers for one run and no polling loops of `gh run list` / `gh pr checks`; run `gh api rate_limit` (free) before starting a wait and stop with a report instead of retrying when `remaining` is under 200; save a failed log once with `gh run view <id> --log-failed > file` and read the file.
 - After the merge the agent starts no background watch, monitor or polling (no waiting on CI) and ends with its report.
 - Verify locally, open the PR ready, push once; no screenshots without a visual change; no empty commits or comment-only nits.
 
