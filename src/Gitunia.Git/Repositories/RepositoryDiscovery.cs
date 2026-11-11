@@ -1,6 +1,5 @@
 using Gitunia.Git.Execution;
 using Gitunia.Git.Execution.Exceptions;
-using Gitunia.Git.Execution.Models;
 using Gitunia.Git.Repositories.Models;
 
 namespace Gitunia.Git.Repositories;
@@ -8,7 +7,14 @@ namespace Gitunia.Git.Repositories;
 /// <summary>Resolves any path (root, subdirectory, linked worktree, bare repository, inside a git directory) to a <see cref="RepositoryLocation"/>.</summary>
 public sealed class RepositoryDiscovery : IRepositoryDiscovery
 {
-    private static readonly string[] BasicsArguments = ["rev-parse", "--path-format=absolute", "--is-bare-repository", "--is-inside-git-dir", "--git-dir", "--git-common-dir"];
+    private static readonly string[] BasicsArguments = ["rev-parse", "--path-format=absolute", "--is-bare-repository", "--is-inside-git-dir", "--git-dir", "--git-common-dir", "--show-toplevel"];
+
+    private const string NoWorkTreeMessage = "must be run in a work tree";
+    private const int IsBareLine = 0;
+    private const int IsInsideGitDirectoryLine = 1;
+    private const int GitDirectoryLine = 2;
+    private const int GitCommonDirectoryLine = 3;
+    private const int TopLevelLine = 4;
 
     private static readonly string[] CoreWorktreeArguments = ["config", "--get", "core.worktree"];
 
@@ -28,32 +34,38 @@ public sealed class RepositoryDiscovery : IRepositoryDiscovery
             throw new NotARepositoryException(fullPath, "the directory does not exist");
         }
 
-        // One call answers everything except the toplevel, which fails inside a git directory and in bare repositories.
-        GitResult basics;
+        // One call answers everything. The toplevel is asked last because rev-parse refuses it inside a git directory
+        // and in bare repositories after printing the rest, which the failure still carries.
+        string output;
         try
         {
-            basics = await _runner.RunAsync(
+            var basics = await _runner.RunAsync(
                 fullPath,
                 BasicsArguments,
                 GitRunOptions.ReadOnlyRun,
                 cancellationToken).ConfigureAwait(false);
+            output = basics.StandardOutputText;
         }
         // The runner sets LC_ALL=C, so the message text is stable.
         catch (GitCommandFailedException exception) when (exception.StandardError.Contains("not a git repository", StringComparison.OrdinalIgnoreCase))
         {
             throw new NotARepositoryException(fullPath, "no git repository found here or in any parent directory");
         }
+        catch (GitCommandFailedException exception) when (exception.StandardError.Contains(NoWorkTreeMessage, StringComparison.Ordinal))
+        {
+            output = exception.StandardOutput;
+        }
 
-        var lines = basics.StandardOutputText.Split('\n', StringSplitOptions.RemoveEmptyEntries);
-        if (lines.Length < 4)
+        var lines = output.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        if (lines.Length <= GitCommonDirectoryLine)
         {
             throw new GitException($"Unexpected rev-parse output for '{fullPath}'.");
         }
 
-        var isBare = lines[0].Trim() == "true";
-        var isInsideGitDirectory = lines[1].Trim() == "true";
-        var gitDirectory = Path.GetFullPath(lines[2].Trim());
-        var commonDirectory = Path.GetFullPath(lines[3].Trim());
+        var isBare = lines[IsBareLine].Trim() == "true";
+        var isInsideGitDirectory = lines[IsInsideGitDirectoryLine].Trim() == "true";
+        var gitDirectory = Path.GetFullPath(lines[GitDirectoryLine].Trim());
+        var commonDirectory = Path.GetFullPath(lines[GitCommonDirectoryLine].Trim());
         var isLinkedWorktree = !string.Equals(gitDirectory, commonDirectory, StringComparison.Ordinal);
 
         if (isBare)
@@ -61,12 +73,15 @@ public sealed class RepositoryDiscovery : IRepositoryDiscovery
             return new RepositoryLocation(null, gitDirectory, commonDirectory, true, false);
         }
 
-        var workingTree = await ResolveWorkingTreeAsync(
-            fullPath,
-            gitDirectory,
-            isInsideGitDirectory,
-            isLinkedWorktree,
-            cancellationToken).ConfigureAwait(false);
+        var topLevel = lines.Length > TopLevelLine ? lines[TopLevelLine].Trim() : string.Empty;
+        var workingTree = topLevel.Length > 0 && !isInsideGitDirectory
+            ? Path.GetFullPath(topLevel)
+            : await ResolveWorkingTreeAsync(
+                fullPath,
+                gitDirectory,
+                isInsideGitDirectory,
+                isLinkedWorktree,
+                cancellationToken).ConfigureAwait(false);
 
         return new RepositoryLocation(workingTree, gitDirectory, commonDirectory, false, isLinkedWorktree);
     }

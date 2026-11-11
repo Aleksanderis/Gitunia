@@ -26,13 +26,21 @@ public static class CommitDetailsFormat
 
     private static readonly string[] FileFixedArguments = [.. RenameArguments, "--find-copies"];
 
-    /// <summary>Arguments for the metadata of one commit.</summary>
-    public static IReadOnlyList<string> MetadataArguments(ObjectId id) =>
+    /// <summary>
+    /// Arguments for the metadata and the changed files of one commit in one process: the record in
+    /// <see cref="Format"/>, a NUL, then the raw entries against the first parent (a root commit against the empty
+    /// tree), renames and copies detected as in <see cref="FileArguments"/>.
+    /// </summary>
+    public static IReadOnlyList<string> CombinedArguments(ObjectId id) =>
     [
-        "log",
-        "-1",
+        "show",
+        GitOptions.FirstParent,
         GitOptions.NulTerminated,
         $"--format={Format}",
+        "--raw",
+        "--no-abbrev",
+        "--find-renames",
+        "--find-copies",
         GitOptions.NoColor,
         "--no-show-signature",
         "--encoding=UTF-8",

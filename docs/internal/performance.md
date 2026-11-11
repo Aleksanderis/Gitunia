@@ -146,7 +146,15 @@ A process start costs about 1 ms on Linux and tens of ms on Windows (Defender sc
 | Diff prefetch of one neighbour | 2 (`rev-list --parents`, diff) | 1 (`show --first-parent`) |
 | Graph rows copied per status-only refresh | all rows (a 100k graph is ~800 KB on the large object heap) | none |
 
-Not done yet (#1341): the cached `core.sshCommand` read before each remote call, the 2-process repository open, and the commit-details prefetch (metadata, then files).
+Second part (#1341), asserted in tests the same way:
+
+| Action | Before | After |
+|---|---|---|
+| Fetch, pull or push with `GIT_SSH_COMMAND` unset | 2 (`config --get core.sshCommand`, the command) | 1 while the configuration is unchanged |
+| Repository open | 2 (`rev-parse`, `rev-parse --show-toplevel`) | 1 (`--show-toplevel` is the last argument; in a bare repository or a git directory rev-parse prints the rest, then fails, and the failure carries that stdout) |
+| Commit details of one commit (prefetch of one neighbour) | 2 (`log -1`, `diff-tree`) | 1 (`show --first-parent --raw -z`) |
+
+The `core.sshCommand` value is cached per git directory (`SshConfigCache`) together with the text of the repository, worktree and user-level config files; any difference, an include directive, a `GIT_CONFIG_*` variable or 30 seconds (the system-level file is not read) ends the entry, so a config edit between two calls is never missed.
 
 ## Polling and watching
 

@@ -109,4 +109,21 @@ public class CommitDetailsReaderTests
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => CommitDetails.ReadAsync(location, id, cancellationToken: source.Token));
     }
+
+    [Fact]
+    public async Task GivenACommit_WhenReading_ThenOneProcessRuns()
+    {
+        using var testRepository = TestRepository.Create()
+            .Commit("root", new TestFile("a.txt", "a\n"))
+            .Commit("two\n\nbody", new TestFile("b.txt", "b\n"));
+        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
+        Assert.True(ObjectId.TryParse(testRepository.Head, out var id));
+        var before = Runner.StartedCount;
+
+        var details = await CommitDetails.ReadAsync(location, id, cancellationToken: Token);
+
+        Assert.Equal(1, Runner.StartedCount - before);
+        Assert.Equal("two\n\nbody", details!.Message);
+        Assert.Equal(["b.txt"], details.Files.Select(file => file.Path));
+    }
 }
