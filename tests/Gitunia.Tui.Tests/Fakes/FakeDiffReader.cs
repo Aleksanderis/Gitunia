@@ -20,6 +20,9 @@ public sealed class FakeDiffReader : IDiffReader
     /// <summary>The number of commit diffs started so far.</summary>
     public int ReadCount { get; private set; }
 
+    /// <summary>The number of those reads that did not know the first parent (the prefetch).</summary>
+    public int FirstParentReadCount { get; private set; }
+
     /// <summary>The number of Changes view file diffs started so far.</summary>
     public int WorkingReadCount { get; private set; }
 
@@ -89,6 +92,20 @@ public sealed class FakeDiffReader : IDiffReader
         }
     }
 
+    public IAsyncEnumerable<DiffFile> ReadCommitAgainstFirstParentAsync(
+        RepositoryLocation location,
+        ObjectId commit,
+        ICollection<string>? warnings = null,
+        int maximumLinesPerFile = int.MaxValue,
+        DiffOptions? options = null,
+        CancellationToken cancellationToken = default)
+    {
+        FirstParentReadCount++;
+        var parent = _commits.TryGetValue(commit, out var known) ? known.Parent : null;
+
+        return ReadCommitAsync(location, commit, parent, warnings, maximumLinesPerFile, options, cancellationToken);
+    }
+
     public async IAsyncEnumerable<DiffFile> ReadWorkingFileAsync(
         RepositoryLocation location,
         WorkingDiffSide side,
@@ -112,17 +129,6 @@ public sealed class FakeDiffReader : IDiffReader
         }
     }
 
-    public Task<ObjectId?> ReadFirstParentAsync(RepositoryLocation location, ObjectId commit, CancellationToken cancellationToken)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-
-        if (_commits.TryGetValue(commit, out var known))
-        {
-            return Task.FromResult(known.Parent);
-        }
-
-        throw new GitException($"unknown commit {commit}");
-    }
 
     private static ObjectId IdOf(int number)
     {

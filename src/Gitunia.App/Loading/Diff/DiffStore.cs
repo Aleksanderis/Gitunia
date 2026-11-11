@@ -254,8 +254,10 @@ public sealed class DiffStore(
             try
             {
                 token.ThrowIfCancellationRequested();
-                var parent = await reader.ReadFirstParentAsync(location, commit, token).ConfigureAwait(false);
-                var document = await ReadAsync(commit, parent, PrefetchRowLimit, Math.Min(_options.FileLineLimit, PrefetchRowLimit), token).ConfigureAwait(false);
+                var lineLimit = Math.Min(_options.FileLineLimit, PrefetchRowLimit);
+                var warnings = new List<string>();
+                var files = reader.ReadCommitAgainstFirstParentAsync(location, commit, warnings, lineLimit, Options, token);
+                var document = await ReadAsync(files, PrefetchRowLimit, warnings).ConfigureAwait(false);
                 if (document is { IsCut: false })
                 {
                     ui.Post(() => RememberPrefetched(commit, document.Document, token));
@@ -281,13 +283,14 @@ public sealed class DiffStore(
         }
     }
 
-    private async Task<DiffReadResult> ReadAsync(ObjectId commit, ObjectId? firstParent, int rows, int lineLimit, CancellationToken token)
+    private async Task<DiffReadResult> ReadAsync(
+        IAsyncEnumerable<DiffFile> files,
+        int rows,
+        List<string> warnings)
     {
         var builder = new DiffDocumentBuilder();
-        var warnings = new List<string>();
         var truncated = false;
         var fileCut = false;
-        var files = reader.ReadCommitAsync(location, commit, firstParent, warnings, lineLimit, Options, token);
         await foreach (var file in files.ConfigureAwait(false))
         {
             builder.Add(file, Options.WholeFile ? Options.ContextLines : null);
@@ -314,7 +317,9 @@ public sealed class DiffStore(
         {
             var rows = limited ? _options.RowLimit : int.MaxValue;
             var fileLines = limited ? _options.FileLineLimit : int.MaxValue;
-            var read = await ReadAsync(commit, firstParent, rows, fileLines, token).ConfigureAwait(false);
+            var warnings = new List<string>();
+            var files = reader.ReadCommitAsync(location, commit, firstParent, warnings, fileLines, Options, token);
+            var read = await ReadAsync(files, rows, warnings).ConfigureAwait(false);
             ui.Post(() => Complete(commit, read.Document, string.Empty, read.IsCut, token));
         }
         catch (OperationCanceledException)

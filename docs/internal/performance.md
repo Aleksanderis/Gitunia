@@ -135,6 +135,19 @@ Key mode, status messages, the confirm dialog and the output box are `AppState.S
 
 `EffectRunner` keeps the 5 most recently used loaded tabs (`DefaultWarmTabLimit`, the active one included). A tab beyond that, not running an operation, drops its session and goes back to pending; cursor, scroll and selected commit live in the workspace state and are restored by the background reload (graph search and diff position are lost). With 12 tabs of 20,000 commits, RSS after visiting all fell from ~125 MB to ~98 MB; going back to an evicted tab costs a reload (~100 ms), a recent tab stays instant. Memory is about 5 tabs x size, not the sum.
 
+## Processes per action (#1310)
+
+A process start costs about 1 ms on Linux and tens of ms on Windows (Defender scans each one), so the number of git processes per action is what to keep low. Counted with `GitRunner.StartedCount` in tests (the "after" column is asserted; the "before" column is the call list of the previous code, not a timed run):
+
+| Action | Before | After |
+|---|---|---|
+| Status-only refresh (5 s tick, own stage) | 1 (+ operation-file reads, no process) | 1 |
+| Refresh with HEAD or refs changed, or a manual one | 5 (`symbolic-ref`, `rev-parse`, `for-each-ref`, `worktree list`, `status`) | 3 |
+| Diff prefetch of one neighbour | 2 (`rev-list --parents`, diff) | 1 (`show --first-parent`) |
+| Graph rows copied per status-only refresh | all rows (a 100k graph is ~800 KB on the large object heap) | none |
+
+Not done yet (#1341): the cached `core.sshCommand` read before each remote call, the 2-process repository open, and the commit-details prefetch (metadata, then files).
+
 ## Polling and watching
 
 Cadence and the opt-in watching budget are specified in `docs/git-layer.md`, "Refresh". Cost: one `git status` read (~54 ms on a 1276-file checkout) per 5 s, about 1% of a core while the tab is active, nothing for a hidden tab; a repository whose status takes 2 s polls every 10 s (~20%, the back-off caps growth). Measured on Linux (#894, AOT build, 60 s idle after a 15 s settle, private tmux, CPU ticks from `/proc/<pid>/stat`, the Gitunia process only; the `git status` children add ~1% on top; reproduce with a clone of `scripts/gen-big-repo.sh 5000` plus `git update-ref --stdin` creating the refs, a published binary in a private tmux, and two reads of fields 14+15 of `/proc/<pid>/stat` 60 s apart): the fingerprint on a throwaway clone of the 5000-commit repository with 8,000 loose refs (5,000 branches, 3,000 tags) takes ~13 ms median (8-50 ms) against 0.1 ms with 8 refs (warm file cache; packed refs are one file and cheaper). Idle CPU of the whole app with the poller running is ~2.8% of a core with 8 refs and ~3.4% with 8,000 loose refs, so the fingerprint adds ~0.6% (the 50 ms maximum is a single spike in 30 timed runs after one warm-up, not a cold start); RSS 49 vs 64 MB. That ~2.4-2.8% baseline was above the ~2% bar set in #894; #909 found the cause and fixed it, see "Idle CPU" below. Per-group hashing (#1308) enumerates the same files per tick, minus other worktrees' index and logs, so the tick costs no more; Gitunia's own refreshes (stage, commit, manual) add one such read each, not measured separately. Ignore-aware watching starts in ~2 ms against ~48 ms recursive and registers ~900 of ~9,900 directories off-thread in ~333 ms; the inotify instance limit binds before the 2048-directory cap, then the watcher falls back to polling.

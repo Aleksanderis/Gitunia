@@ -24,12 +24,6 @@ public sealed class DiffReader : IDiffReader
     ];
 
     /// <summary>Index of the first parent in a <c>rev-list --parents</c> line, which starts with the commit itself.</summary>
-    private const int FirstParentField = 1;
-
-    private static readonly string[] FirstParentArguments = ["rev-list", "--parents", "-n", "1"];
-
-    private static readonly char[] FieldSeparators = [' ', '\n'];
-
     private readonly GitRunner _runner;
 
     public DiffReader(GitRunner runner)
@@ -238,10 +232,18 @@ public sealed class DiffReader : IDiffReader
         return ReadAsync(location, showCommand, warnings, maximumLinesPerFile, cancellationToken);
     }
 
-    public async Task<ObjectId?> ReadFirstParentAsync(RepositoryLocation location, ObjectId commit, CancellationToken cancellationToken)
+    public IAsyncEnumerable<DiffFile> ReadCommitAgainstFirstParentAsync(
+        RepositoryLocation location,
+        ObjectId commit,
+        ICollection<string>? warnings = null,
+        int maximumLinesPerFile = int.MaxValue,
+        DiffOptions? options = null,
+        CancellationToken cancellationToken = default)
     {
-        var result = await _runner.RunAsync(location.CommandPath, [.. FirstParentArguments, commit.ToString()], GitRunOptions.ReadOnlyRun, cancellationToken).ConfigureAwait(false);
-        var fields = result.StandardOutputText.Split(FieldSeparators, StringSplitOptions.RemoveEmptyEntries);
-        return fields.Length > FirstParentField && ObjectId.TryParse(fields[FirstParentField], out var parent) ? parent : null;
+        var extra = (options ?? DiffOptions.Default).ToArguments();
+        string[] command = ["show", "--format=", GitOptions.FirstParent, .. extra, commit.ToString()];
+
+        return ReadAsync(location, command, warnings, maximumLinesPerFile, cancellationToken);
     }
+
 }

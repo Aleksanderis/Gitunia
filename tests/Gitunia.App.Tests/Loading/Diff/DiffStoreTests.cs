@@ -219,6 +219,22 @@ public class DiffStoreTests
     }
 
     [Fact]
+    public async Task GivenNeighbours_WhenPrefetching_ThenEachIsReadWithoutALookupOfItsParent()
+    {
+        var reader = new FakeDiffReader();
+        var first = reader.Add(null, FakeDiffReader.FileAdding("a.txt", ["one"]));
+        var second = reader.Add(first, FakeDiffReader.FileAdding("a.txt", ["two"]));
+        var third = reader.Add(second, FakeDiffReader.FileAdding("a.txt", ["three"]));
+        var pump = new UiPump(Token);
+        using var store = CreateStore(pump, reader, delay: (_, _) => Task.CompletedTask);
+        store.Load(third, second, [second, first]);
+
+        await pump.RunUntilAsync(() => store.CachedCount == 3);
+
+        Assert.Equal(2, reader.FirstParentReadCount);
+    }
+
+    [Fact]
     public async Task GivenAPrefetchWaiting_WhenAnotherCommitIsSelected_ThenTheStaleNeighboursAreNotCached()
     {
         var reader = new FakeDiffReader();
