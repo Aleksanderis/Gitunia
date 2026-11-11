@@ -126,7 +126,7 @@ public class RefParserTests
         var refs = RefParser.Parse(output).Items;
 
         Assert.Equal(2, refs.Count);
-        Assert.Equal("/work/odd\nname", refs[0].CheckedOutIn);
+        Assert.Equal("/work/odd\nname".Replace('/', Path.DirectorySeparatorChar), refs[0].CheckedOutIn);
     }
 
     [Fact]
