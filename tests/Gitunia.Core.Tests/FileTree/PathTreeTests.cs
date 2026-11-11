@@ -85,4 +85,14 @@ public class PathTreeTests
         Assert.Equal("src", rows[0].Name);
         Assert.Equal("module0", rows[1].Name);
     }
+
+    [Fact]
+    public void GivenSiblingFoldersInsertedOutOfOrder_WhenBuilt_ThenTheyComeOutInOrdinalOrder()
+    {
+        var rows = PathTree.Rows(["b/x.cs", "a/y.cs", "a/b/z.cs", "a/B/w.cs"]);
+
+        Assert.Equal(["B", "w.cs", "b", "z.cs", "y.cs"], rows.Skip(1).Take(5).Select(row => row.Name));
+        Assert.Equal("a", rows[0].Name);
+        Assert.Equal("b", rows[6].Name);
+    }
 }
