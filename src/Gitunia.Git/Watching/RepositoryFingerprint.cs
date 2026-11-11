@@ -66,7 +66,9 @@ public static class RepositoryFingerprint
         try
         {
             var tree = new DirectoryInfo(directory);
-            foreach (var entry in tree.EnumerateFileSystemInfos("*", SearchOption.AllDirectories))
+            // Files only: a directory's own time changes with the lock files git creates in it (and lags on Windows).
+            // A ref is a file.
+            foreach (var entry in tree.EnumerateFiles("*", SearchOption.AllDirectories))
             {
                 groups.Add(RepositoryChangeKinds.Refs, entry);
             }
