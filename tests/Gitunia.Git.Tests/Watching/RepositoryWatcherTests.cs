@@ -65,15 +65,12 @@ public class RepositoryWatcherTests
             var start = watcher.StartAsync();
             Assert.True(creating.Wait(ConditionTimeout, Token));
 
-            var members = Task.Run(
-                () =>
-                {
-                    watcher.SetActive(false);
-                    watcher.SetActive(true);
-                    watcher.RecordRefresh(TimeSpan.Zero, failed: false);
-                    return watcher.IsStale || watcher.IsActive;
-                },
-                Token);
+            var members = Task.Factory.StartNew(
+                UseUiMembers,
+                watcher,
+                Token,
+                TaskCreationOptions.None,
+                TaskScheduler.Default);
             Assert.True(await members.WaitAsync(TimeSpan.FromSeconds(10), Token));
 
             release.Set();
@@ -507,5 +504,15 @@ public class RepositoryWatcherTests
     private static async Task RunGitAsync(string path, params string[] arguments)
     {
         await Runner.RunAsync(path, arguments, null, Token);
+    }
+
+    private static bool UseUiMembers(object? state)
+    {
+        var watcher = (RepositoryWatcher)state!;
+        watcher.SetActive(false);
+        watcher.SetActive(true);
+        watcher.RecordRefresh(TimeSpan.Zero, failed: false);
+
+        return watcher.IsStale || watcher.IsActive;
     }
 }

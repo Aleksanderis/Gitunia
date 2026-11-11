@@ -55,6 +55,7 @@ public sealed partial class RepositoryWatcher : IDisposable
     private Task<RepositoryFingerprintGroups>? _baseline;
     private Timer? _retryTimer;
     private int _attempt;
+    private int _acknowledgedRefreshes;
     private readonly Action? _creatingWatchers;
     private volatile HashSet<string>? _ignoredDirectories;
 
