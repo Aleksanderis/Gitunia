@@ -19,7 +19,7 @@ public sealed class CommitTreeStore : IDisposable
     /// <summary>Trees kept for a quick return to a commit.</summary>
     public const int CacheCapacity = 4;
 
-    /// <summary>Files (tree nodes) kept across all cached trees; older trees are dropped beyond it. The tree just
+    /// <summary>Files (directory nodes are not counted) kept across all cached trees; older trees are dropped beyond it. The tree just
     /// loaded always stays, so one huge tree is held on its own.</summary>
     public const int CacheFileBudget = 250_000;
 

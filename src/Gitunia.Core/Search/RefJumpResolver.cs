@@ -60,10 +60,9 @@ public static class RefJumpResolver
         for (var index = 0; index < graph.Count && found.Count < MaximumHashCandidates; index++)
         {
             var entry = graph[index];
-            var hash = entry.Id.ToString();
-            if (hash.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+            if (entry.Id.StartsWith(prefix))
             {
-                found.Add(new RefJumpCandidate($"{ShortHash.Of(hash)} {entry.Subject}", entry.Id, null));
+                found.Add(new RefJumpCandidate($"{ShortHash.Of(entry.Id.ToString())} {entry.Subject}", entry.Id, null));
             }
         }
 
