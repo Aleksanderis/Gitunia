@@ -22,7 +22,7 @@ public class GitRunnerTests
     private static readonly TimeSpan SlowConsumerDelay =
         TimeSpan.FromMilliseconds(OperatingSystem.IsWindows() ? 3000 : 1500);
 
-    // The fake's background child lives about six seconds; the grace period is 1.5 s.
+    // The fake's background child lives about ten seconds; the grace period is 1.5 s.
     private static readonly TimeSpan BackgroundChildLimit = TimeSpan.FromSeconds(4);
 
     // Only bounds a hang.
@@ -342,6 +342,7 @@ public class GitRunnerTests
             TestContext.Current.CancellationToken);
 
         Assert.Equal(0, result.ExitCode);
+        Assert.Equal("done", result.StandardOutputText.Trim());
         Assert.True(clock.Elapsed < BackgroundChildLimit, $"took {clock.Elapsed}");
     }
 
@@ -363,6 +364,26 @@ public class GitRunnerTests
 
         Assert.Equal("done", Encoding.UTF8.GetString([.. collected]).Trim());
         Assert.True(clock.Elapsed < BackgroundChildLimit, $"took {clock.Elapsed}");
+    }
+
+    [Fact]
+    public async Task GivenGitExitedWithOutputInPipe_WhenConsumerIsSlowerThanGrace_ThenNoOutputIsLost()
+    {
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "The fake prints with sh.");
+        using var fake = FakeGitExecutable.Create("yes x | head -c 200000", "rem");
+        var total = 0;
+
+        await foreach (var chunk in RunnerFor(fake).StreamAsync(
+            AnyDirectory,
+            ["log"],
+            new GitRunOptions(Timeout: TimeSpan.FromSeconds(60)),
+            TestContext.Current.CancellationToken))
+        {
+            total += chunk.Length;
+            await Task.Delay(TimeSpan.FromMilliseconds(2500), TestContext.Current.CancellationToken);
+        }
+
+        Assert.Equal(200000, total);
     }
 
     private static GitRunner RunnerFor(FakeGitExecutable fake) => new(new GitRunnerOptions(fake.ExecutablePath));

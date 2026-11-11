@@ -278,6 +278,7 @@ public sealed class GitRunner
         var watchTask = CutReadersAfterExitAsync(process, drainSource, watchSource.Token);
         var errorTask = ReadTextAsync(process.StandardError, drainSource.Token, linked.Token);
         await WriteInputAsync(process, null, drainSource.Token, linked.Token).ConfigureAwait(false);
+        var exitTask = process.WaitForExitAsync(linked.Token);
         var output = process.StandardOutput.BaseStream;
         var buffer = ArrayPool<byte>.Shared.Rent(ReadBufferSize);
         try
@@ -289,13 +290,8 @@ public sealed class GitRunner
                 {
                     // The idle timer only runs while waiting for git, never while the consumer handles a chunk.
                     timeoutSource.CancelAfter(timeout);
-                    count = await output.ReadAsync(buffer, drainSource.Token).ConfigureAwait(false);
+                    count = await ReadChunkAsync(output, buffer, exitTask, linked.Token).ConfigureAwait(false);
                     timeoutSource.CancelAfter(Timeout.InfiniteTimeSpan);
-                }
-                catch (OperationCanceledException) when (IsDrainCut(drainSource.Token, linked.Token))
-                {
-                    // Git exited but a background child still holds the pipe.
-                    count = 0;
                 }
                 catch (OperationCanceledException) when (timeoutSource.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
                 {
@@ -319,6 +315,7 @@ public sealed class GitRunner
             KillQuietly(process);
             await watchSource.CancelAsync().ConfigureAwait(false);
             await watchTask.ConfigureAwait(false);
+            await Task.WhenAny(exitTask).ConfigureAwait(false);
             ArrayPool<byte>.Shared.Return(buffer);
         }
     }
@@ -345,6 +342,48 @@ public sealed class GitRunner
         catch (OperationCanceledException) when (timeoutSource.IsCancellationRequested && !callerToken.IsCancellationRequested)
         {
             throw new GitTimeoutException(arguments, timeout);
+        }
+    }
+
+    // The grace period only runs while a read is pending after git exited, never while the consumer is busy, so output
+    // that is still in the pipe is not lost to a slow consumer. A cut ends the stream like end of file.
+    private static async Task<int> ReadChunkAsync(
+        Stream output,
+        byte[] buffer,
+        Task exitTask,
+        CancellationToken hardToken)
+    {
+        using var readSource = CancellationTokenSource.CreateLinkedTokenSource(hardToken);
+        using var stopSource = CancellationTokenSource.CreateLinkedTokenSource(hardToken);
+        var cutTask = CutReadAfterExitAsync(exitTask, readSource, stopSource.Token);
+        try
+        {
+            return await output.ReadAsync(buffer, readSource.Token).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (IsDrainCut(readSource.Token, hardToken))
+        {
+            return 0;
+        }
+        finally
+        {
+            await stopSource.CancelAsync().ConfigureAwait(false);
+            await cutTask.ConfigureAwait(false);
+        }
+    }
+
+    private static async Task CutReadAfterExitAsync(
+        Task exitTask,
+        CancellationTokenSource readSource,
+        CancellationToken stopToken)
+    {
+        try
+        {
+            await exitTask.WaitAsync(stopToken).ConfigureAwait(false);
+            readSource.CancelAfter(DrainGrace);
+        }
+        catch (OperationCanceledException)
+        {
+            // The read ended first.
         }
     }
 
