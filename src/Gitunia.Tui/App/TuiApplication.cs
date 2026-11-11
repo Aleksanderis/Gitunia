@@ -18,7 +18,7 @@ namespace Gitunia.Tui.App;
 /// </summary>
 public sealed class TuiApplication(GitServices services, ConsoleCapabilities detectedCapabilities, IPlatform platform)
 {
-    private static readonly TimeSpan ExistenceTimeout = TimeSpan.FromSeconds(2);
+    private static readonly TimeSpan ExistenceTimeout = TimeSpan.FromSeconds(5);
 
     /// <summary>Terminal.Gui driver to force (smoke tests); null picks the platform default.</summary>
     public string? DriverName { get; init; }
