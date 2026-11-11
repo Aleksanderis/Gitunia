@@ -54,6 +54,8 @@ public sealed partial class RepositoryWatcher : IDisposable
     private bool _hasBaseline;
     private Task<RepositoryFingerprintGroups>? _baseline;
     private Timer? _retryTimer;
+    private int _attempt;
+    private readonly Action? _creatingWatchers;
     private volatile HashSet<string>? _ignoredDirectories;
 
     public RepositoryWatcher(
@@ -62,8 +64,10 @@ public sealed partial class RepositoryWatcher : IDisposable
         RepositoryWatcherOptions options,
         Action<Action>? queueNotification = null,
         IWorkingTreeDirectoryLister? directoryLister = null,
-        IRepositoryFingerprintReader? fingerprintReader = null)
+        IRepositoryFingerprintReader? fingerprintReader = null,
+        Action? creatingWatchers = null)
     {
+        _creatingWatchers = creatingWatchers;
         _fingerprintReader = fingerprintReader ?? new DiskFingerprintReader();
         _directoryLister = directoryLister;
         _perDirectory = directoryLister is not null && options.UsesPerDirectoryWatching;
@@ -173,7 +177,7 @@ public sealed partial class RepositoryWatcher : IDisposable
             // Nobody awaits this task: an unexpected failure must not leave the tab with neither watchers nor polling.
             lock (_gate)
             {
-                if (!_isDisposed)
+                if (!_isDisposed && _pollTimer is null)
                 {
                     StartPolling();
                 }
@@ -222,6 +226,7 @@ public sealed partial class RepositoryWatcher : IDisposable
     private WatchStart TryStartWatching()
     {
         var plan = CreatePlan();
+        int attempt;
         lock (_gate)
         {
             if (_isDisposed || _pollTimer is not null)
@@ -234,24 +239,37 @@ public sealed partial class RepositoryWatcher : IDisposable
                 return WatchStart.Failed;
             }
 
-            _heldSlots = plan.Count;
+            _heldSlots += plan.Count;
+            attempt = _attempt;
         }
 
         var created = new List<FileSystemWatcher>(plan.Count);
         try
         {
+            _creatingWatchers?.Invoke();
             foreach (var entry in plan)
             {
                 created.Add(CreateWatcher(entry.Path, entry.IsRecursive));
             }
         }
-        catch (Exception exception) when (IsWatchFailure(exception))
+        catch (Exception exception)
         {
-            // Typically the inotify watch limit: give the slots back; the caller polls.
             RetireWatchers([.. created]);
+            if (!IsWatchFailure(exception))
+            {
+                // The caller's fallback gives the slots back.
+                throw;
+            }
+
+            // Typically the inotify watch limit: give the slots back; the caller polls.
             lock (_gate)
             {
-                // Releases nothing when Dispose or a fallback already did.
+                // An attempt that Dispose or a fallback already ended has nothing to release (a newer one may hold slots now).
+                if (attempt != _attempt)
+                {
+                    return WatchStart.Abandoned;
+                }
+
                 ReleaseWatchers();
             }
 
@@ -260,7 +278,7 @@ public sealed partial class RepositoryWatcher : IDisposable
 
         lock (_gate)
         {
-            if (_isDisposed || _pollTimer is not null)
+            if (_isDisposed || attempt != _attempt)
             {
                 // The slots went back with Dispose or the fallback.
                 RetireWatchers([.. created]);
@@ -346,6 +364,7 @@ public sealed partial class RepositoryWatcher : IDisposable
             }
 
             _isDisposed = true;
+            _attempt++;
             _disposal.Cancel();
             ReleaseWatchers();
             _pollTimer?.Dispose();

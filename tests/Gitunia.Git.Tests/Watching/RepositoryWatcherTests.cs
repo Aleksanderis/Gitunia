@@ -43,45 +43,108 @@ public class RepositoryWatcherTests
     }
 
     [Fact]
-    public async Task GivenStartRunning_WhenDisposedAtAnyPoint_ThenNoWatcherSlotStaysHeld()
+    public async Task GivenWatchersBeingCreated_WhenUiMembersAreUsed_ThenTheyDoNotWaitForTheCreation()
     {
         using var testRepository = TestRepositories.Linear(1);
         var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
+        var creating = new ManualResetEventSlim();
+        var release = new ManualResetEventSlim();
         var budget = new WatchBudget();
-
-        for (var attempt = 0; attempt < 40; attempt++)
-        {
-            var watcher = new RepositoryWatcher(location, budget, FastOptions);
-            var start = watcher.StartAsync();
-            if (attempt % 2 == 0)
+        var watcher = new RepositoryWatcher(
+            location,
+            budget,
+            FastOptions,
+            creatingWatchers: () =>
             {
-                await Task.Yield();
-            }
+                creating.Set();
+                release.Wait(ConditionTimeout, Token);
+            });
 
-            watcher.Dispose();
+        try
+        {
+            var start = watcher.StartAsync();
+            Assert.True(creating.Wait(ConditionTimeout, Token));
+
+            var members = Task.Run(
+                () =>
+                {
+                    watcher.SetActive(false);
+                    watcher.SetActive(true);
+                    watcher.RecordRefresh(TimeSpan.Zero, failed: false);
+                    return watcher.IsStale || watcher.IsActive;
+                },
+                Token);
+            Assert.True(await members.WaitAsync(TimeSpan.FromSeconds(10), Token));
+
+            release.Set();
             await start;
+            Assert.False(watcher.IsPolling);
+            Assert.True(watcher.WatcherCount > 0);
         }
+        finally
+        {
+            release.Set();
+            watcher.Dispose();
+        }
+    }
 
-        // Watchers created while Dispose ran are retired by the starter; their slots must come back too.
-        await WaitUntilAsync(() => budget.InUse == 0);
+    [Fact]
+    public async Task GivenWatchersBeingCreated_WhenDisposed_ThenTheyAreRetiredAndTheSlotsReleased()
+    {
+        using var testRepository = TestRepositories.Linear(1);
+        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
+        var creating = new ManualResetEventSlim();
+        var release = new ManualResetEventSlim();
+        var budget = new WatchBudget();
+        var watcher = new RepositoryWatcher(
+            location,
+            budget,
+            FastOptions,
+            creatingWatchers: () =>
+            {
+                creating.Set();
+                release.Wait(ConditionTimeout, Token);
+            });
+        var start = watcher.StartAsync();
+        Assert.True(creating.Wait(ConditionTimeout, Token));
+        Assert.True(budget.InUse > 0);
+
+        watcher.Dispose();
+        Assert.Equal(0, budget.InUse);
+        release.Set();
+        await start;
+
+        Assert.Equal(0, watcher.WatcherCount);
         Assert.Equal(0, budget.InUse);
     }
 
     [Fact]
-    public async Task GivenStartAsync_WhenUiMembersAreUsedMeanwhile_ThenWatchingBegins()
+    public async Task GivenWatchersBeingCreated_WhenAWatcherFails_ThenTheTabPollsAndPublishesNothing()
     {
         using var testRepository = TestRepositories.Linear(1);
         var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
-        using var watcher = new RepositoryWatcher(location, new WatchBudget(), FastOptions);
-
+        var creating = new ManualResetEventSlim();
+        var release = new ManualResetEventSlim();
+        var budget = new WatchBudget();
+        using var watcher = new RepositoryWatcher(
+            location,
+            budget,
+            FastOptions,
+            creatingWatchers: () =>
+            {
+                creating.Set();
+                release.Wait(ConditionTimeout, Token);
+            });
         var start = watcher.StartAsync();
-        watcher.SetActive(false);
-        watcher.SetActive(true);
-        _ = watcher.IsStale;
+        Assert.True(creating.Wait(ConditionTimeout, Token));
+
+        watcher.ReportWatcherError(new IOException("limit"));
+        release.Set();
         await start;
 
-        Assert.False(watcher.IsPolling);
-        Assert.True(watcher.WatcherCount > 0);
+        Assert.True(watcher.IsPolling);
+        Assert.Equal(0, watcher.WatcherCount);
+        Assert.Equal(0, budget.InUse);
     }
 
     [Theory]

@@ -18,6 +18,8 @@ public sealed partial class RepositoryWatcher
 
     private void StartPolling()
     {
+        // Ends a watcher creation that runs outside the lock: it must neither publish nor release anything.
+        _attempt++;
         ReleaseWatchers();
 
         // The first fingerprint is read off this thread (Start runs on the UI thread, the path may be slow) and outside the
