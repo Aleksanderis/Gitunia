@@ -192,11 +192,10 @@ public sealed partial class EffectRunner<TSession>
             && _host.Workspace.ActiveTabId is { } active
             && _pendingLoads.Remove(active, out var start))
         {
-            // A tab marked missing after the restore (see TabExistenceChecker) is not started against its gone path.
-            if (_host.Workspace.FindTab(active) is not { IsMissing: true })
-            {
-                start();
-            }
+            // A tab marked missing after the restore (see TabExistenceChecker) is started too: the mark can come from a
+            // slow check on a path that exists, and only a load can clear it (HeadLoadedCommand). If the path is really
+            // gone, the load fails with its message and the tab stays missing.
+            start();
         }
     }
 
