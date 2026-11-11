@@ -42,6 +42,36 @@ public class RepositoryWatcherTests
         Assert.True(watcher.WatcherCount > 0);
     }
 
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task GivenReftableRepository_WhenExternalChange_ThenHeadAndRefsAreReported(bool polling, bool switchBranch)
+    {
+        Assert.SkipUnless(TestRepository.IsReftableSupported, "Needs git 2.45 or later.");
+        using var testRepository = TestRepository.CreateReftable();
+        testRepository.Commit("root", new TestFile("a.txt", "1")).Branch("topic");
+        var recorder = new ChangeRecorder();
+        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
+        using var watcher = new RepositoryWatcher(location, new WatchBudget(polling ? 0 : 64), FastOptions);
+        watcher.Changed += recorder.Record;
+        watcher.Start();
+        Assert.Equal(polling, watcher.IsPolling);
+
+        // The switch changes no file, so only the reftable can report it.
+        if (switchBranch)
+        {
+            testRepository.Checkout("topic");
+        }
+        else
+        {
+            testRepository.Commit("external", new TestFile("later.txt", "x"));
+        }
+
+        await recorder.WaitForAsync(RepositoryChangeKinds.Head | RepositoryChangeKinds.Refs, Token);
+    }
+
     [Fact]
     public async Task GivenWatchedRepository_WhenWorkingTreeFileChanges_ThenWorkingTreeIsReported()
     {

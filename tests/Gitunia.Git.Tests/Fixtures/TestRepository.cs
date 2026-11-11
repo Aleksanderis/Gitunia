@@ -1,3 +1,5 @@
+using System.ComponentModel;
+using System.Diagnostics;
 using System.Globalization;
 using Gitunia.Git.Execution;
 
@@ -11,6 +13,8 @@ namespace Gitunia.Git.Tests.Fixtures;
 public sealed class TestRepository : IDisposable
 {
     private static readonly DateTimeOffset Epoch = new(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
+
+    private static readonly int ProbeTimeout = (int)TimeSpan.FromSeconds(30).TotalMilliseconds;
 
     private readonly string _rootDirectory;
     private readonly string _emptyConfigPath;
@@ -35,6 +39,20 @@ public sealed class TestRepository : IDisposable
         Directory.CreateDirectory(path);
         var repository = new TestRepository(root, path);
         repository.Git(bare ? ["init", "-q", "--bare", "-b", "main"] : ["init", "-q", "-b", "main"]);
+        return repository;
+    }
+
+    /// <summary>Whether the installed git can create reftable repositories (2.45 and later); tests skip otherwise.</summary>
+    public static bool IsReftableSupported { get; } = ProbeReftableSupport();
+
+    /// <summary>Creates an empty reftable-backed repository (<c>--ref-format=reftable</c>), initial branch <c>main</c>.</summary>
+    public static TestRepository CreateReftable()
+    {
+        var root = Path.Combine(Path.GetTempPath(), $"gitunia-repo-{Guid.NewGuid().ToString("N")}");
+        var path = Path.Combine(root, "repo");
+        Directory.CreateDirectory(path);
+        var repository = new TestRepository(root, path);
+        repository.Git("init", "-q", "--ref-format=reftable", "-b", "main");
         return repository;
     }
 
@@ -254,6 +272,39 @@ public sealed class TestRepository : IDisposable
     }
 
     public void Dispose() => DeleteDirectory(_rootDirectory);
+
+
+    private static bool ProbeReftableSupport()
+    {
+        var root = Path.Combine(Path.GetTempPath(), $"gitunia-probe-{Guid.NewGuid().ToString("N")}");
+        try
+        {
+            Directory.CreateDirectory(root);
+            var emptyConfig = Path.Combine(root, "empty.gitconfig");
+            File.WriteAllText(emptyConfig, string.Empty);
+            using var process = Process.Start(new ProcessStartInfo(TestGitSpeed.Executable)
+            {
+                ArgumentList = { "init", "-q", "--ref-format=reftable", Path.Combine(root, "probe") },
+                UseShellExecute = false,
+                Environment = { ["GIT_CONFIG_GLOBAL"] = emptyConfig, ["GIT_CONFIG_NOSYSTEM"] = "1" },
+            });
+            if (!process!.WaitForExit(ProbeTimeout))
+            {
+                process.Kill(entireProcessTree: true);
+                return false;
+            }
+
+            return process.ExitCode == 0;
+        }
+        catch (Exception exception) when (exception is IOException or Win32Exception)
+        {
+            return false;
+        }
+        finally
+        {
+            DeleteDirectory(root);
+        }
+    }
 
     /// <summary>Best effort removal of a temp directory that may hold a repository (read-only object files).</summary>
     public static void DeleteDirectory(string directory)

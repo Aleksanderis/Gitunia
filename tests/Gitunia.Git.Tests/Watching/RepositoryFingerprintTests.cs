@@ -134,6 +134,67 @@ public class RepositoryFingerprintTests
         Assert.True(changed.HasFlag(RepositoryChangeKinds.Operation));
     }
 
+    [Fact]
+    public async Task GivenReftableRepository_WhenCommitted_ThenHeadAndRefsDiffer()
+    {
+        Assert.SkipUnless(TestRepository.IsReftableSupported, "Needs git 2.45 or later.");
+        using var repository = TestRepository.CreateReftable();
+        repository.Commit("root", new TestFile("a.txt", "1"));
+        var location = await DiscoverAsync(repository);
+        var before = RepositoryFingerprint.Compute(location);
+
+        repository.Commit("second", new TestFile("a.txt", "2"));
+
+        Assert.True(RepositoryFingerprint.Compute(location).ChangedKinds(before).HasFlag(RefsKinds));
+    }
+
+    [Fact]
+    public async Task GivenReftableRepository_WhenBranchSwitched_ThenHeadAndRefsDiffer()
+    {
+        Assert.SkipUnless(TestRepository.IsReftableSupported, "Needs git 2.45 or later.");
+        using var repository = TestRepository.CreateReftable();
+        repository.Commit("root", new TestFile("a.txt", "1"));
+        repository.Branch("topic");
+        var location = await DiscoverAsync(repository);
+        var before = RepositoryFingerprint.Compute(location);
+
+        repository.Checkout("topic");
+
+        Assert.True(RepositoryFingerprint.Compute(location).ChangedKinds(before).HasFlag(RefsKinds));
+    }
+
+    [Fact]
+    public async Task GivenReftableRepository_WhenAnotherWorktreeSwitchesBranch_ThenTheWorktreesKindDiffers()
+    {
+        Assert.SkipUnless(TestRepository.IsReftableSupported, "Needs git 2.45 or later.");
+        using var repository = TestRepository.CreateReftable();
+        repository.Commit("root", new TestFile("a.txt", "1"));
+        repository.Branch("topic");
+        var other = repository.AddWorktree("other", "other-branch", createBranch: true);
+        var location = await DiscoverAsync(repository);
+        var before = RepositoryFingerprint.Compute(location);
+
+        repository.GitIn(other, ["checkout", "-q", "topic"]);
+
+        Assert.True(RepositoryFingerprint.Compute(location).ChangedKinds(before).HasFlag(RepositoryChangeKinds.Worktrees));
+    }
+
+    [Fact]
+    public async Task GivenReftableLinkedWorktree_WhenItsBranchSwitches_ThenHeadAndRefsDiffer()
+    {
+        Assert.SkipUnless(TestRepository.IsReftableSupported, "Needs git 2.45 or later.");
+        using var repository = TestRepository.CreateReftable();
+        repository.Commit("root", new TestFile("a.txt", "1"));
+        repository.Branch("topic");
+        var other = repository.AddWorktree("other", "other-branch", createBranch: true);
+        var location = await Discovery.DiscoverAsync(other, TestContext.Current.CancellationToken);
+        var before = RepositoryFingerprint.Compute(location);
+
+        repository.GitIn(other, ["checkout", "-q", "topic"]);
+
+        Assert.True(RepositoryFingerprint.Compute(location).ChangedKinds(before).HasFlag(RefsKinds));
+    }
+
     private static void AssertUnchanged(RepositoryFingerprintGroups before, RepositoryFingerprintGroups after) =>
         Assert.True(after == before, $"Fingerprint groups differ: {before} -> {after}");
 
