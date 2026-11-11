@@ -375,23 +375,24 @@ public class RepositoryWatcherTests
     }
 
     [Fact]
-    public async Task GivenPollingTab_WhenARefreshFails_ThenTheNextPollWaitsLonger()
+    public async Task GivenPollingTab_WhenARefreshFails_ThenTheNextPollWaitsLongerAndASuccessResetsIt()
     {
         using var testRepository = TestRepositories.Linear(1);
-        var recorder = new ChangeRecorder();
         var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
         using var watcher = new RepositoryWatcher(location, new WatchBudget(0), FastOptions);
-        watcher.Changed += recorder.Record;
         watcher.Start();
-        await WaitUntilAsync(() => recorder.CallCount > 0);
-        await Task.Delay(TimeSpan.FromMilliseconds(300), Token);
-        var before = recorder.CallCount;
+        Assert.Equal(FastOptions.PollInterval, watcher.PollInterval);
 
-        // Acknowledged as failed after a long time: the next poll is 5 s or more away, not 60 ms.
+        // The wait is state set by the acknowledgement, so no clock or poll is involved: five times the read, doubled per failure.
         watcher.RecordRefresh(TimeSpan.FromSeconds(1), true);
-        await Task.Delay(TimeSpan.FromMilliseconds(500), Token);
+        var afterOne = watcher.PollInterval;
+        watcher.RecordRefresh(TimeSpan.FromSeconds(1), true);
+        var afterTwo = watcher.PollInterval;
+        watcher.RecordRefresh(TimeSpan.Zero, false);
 
-        Assert.Equal(before, recorder.CallCount);
+        Assert.Equal(TimeSpan.FromSeconds(10), afterOne);
+        Assert.Equal(TimeSpan.FromSeconds(20), afterTwo);
+        Assert.Equal(FastOptions.PollInterval, watcher.PollInterval);
     }
 
     [Fact]

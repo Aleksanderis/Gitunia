@@ -221,7 +221,9 @@ public class TabRefresherTests
     [Fact]
     public async Task GivenRefreshesThatFail_WhenTheyRepeat_ThenTheStatusPollIntervalGrowsAndASuccessResetsIt()
     {
-        using var harness = await FakeHarness.LoadAsync();
+        // A frozen clock: every refresh "takes" zero, so only the failure count moves the interval (a real read that took
+        // longer once than the next one would make the doubling look like it shrank).
+        using var harness = await FakeHarness.LoadAsync(time: new FrozenTime());
         harness.RepositoryRefresher.Failure = new GitException("timed out");
         var applied = 0;
 
@@ -619,6 +621,12 @@ public class TabRefresherTests
         }
     }
 
+    /// <summary>A clock that never moves.</summary>
+    private sealed class FrozenTime : TimeProvider
+    {
+        public override long GetTimestamp() => 0;
+    }
+
     private sealed class FakeHarness : IDisposable
     {
         private FakeHarness(Dispatcher host, TabId tabId, TabSession session, TabRefresher refresher, FakeRepositoryRefresher repositoryRefresher, StatusReporter statuses, UiPump pump)
@@ -651,7 +659,8 @@ public class TabRefresherTests
         /// <summary>Loads a three-commit tab from fakes, starts the refresher and waits until its baseline refresh is done.</summary>
         public static async Task<FakeHarness> LoadAsync(
             int commits = 3,
-            int softRowLimit = GraphLoader.DefaultSoftRowLimit)
+            int softRowLimit = GraphLoader.DefaultSoftRowLimit,
+            TimeProvider? time = null)
         {
             var location = FakeStatusReader.LocationOf("refresher");
             var commitLog = FakeCommitLogReader.Chain(commits);
@@ -674,7 +683,7 @@ public class TabRefresherTests
             var refresher = new TabRefresher(
                 new TabRefreshServices(repositoryRefresher, stashes, new IncrementalGraphLoader(commitLog, graphLoader)),
                 new TabContext(host, session, location, statuses, pump),
-                new TabWatching(new WatchBudget(), TestGit.QuietWatcherOptions, FastPoll));
+                new TabWatching(new WatchBudget(), TestGit.QuietWatcherOptions, FastPoll, Time: time));
             refresher.Start();
             await pump.RunUntilAsync(() => repositoryRefresher.RefreshCount > 0 && !refresher.IsRefreshing);
             return new FakeHarness(host, tabId, session, refresher, repositoryRefresher, statuses, pump);

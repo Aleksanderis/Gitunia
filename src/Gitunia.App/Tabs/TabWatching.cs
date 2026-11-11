@@ -10,7 +10,8 @@ public sealed record TabWatching(
     WatchBudget Budget,
     RepositoryWatcherOptions Options,
     PollOptions? Poll = null,
-    ITabBusySource? Busy = null);
+    ITabBusySource? Busy = null,
+    TimeProvider? Time = null);
 
 internal sealed class NeverBusy : ITabBusySource
 {

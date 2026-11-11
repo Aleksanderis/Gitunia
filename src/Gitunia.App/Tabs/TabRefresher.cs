@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using Gitunia.App.Loading.Graph;
 using Gitunia.App.Status;
 using Gitunia.App.Tabs.Models;
@@ -49,6 +48,7 @@ public sealed class TabRefresher : IDisposable, IPollTarget
     private readonly CancellationTokenSource _stop;
     private readonly ShutdownTasks _tasks = new();
     private readonly ITabBusySource _busy = NeverBusy.Instance;
+    private readonly TimeProvider _time;
     private long _refreshStartedAt;
     private RepositorySnapshot? _snapshot;
     private RepositoryChangeKinds _pending;
@@ -65,6 +65,7 @@ public sealed class TabRefresher : IDisposable, IPollTarget
 
     public TabRefresher(TabRefreshServices services, TabContext context, TabWatching watching)
     {
+        _time = watching.Time ?? TimeProvider.System;
         _config = services.Config;
         _operations = services.Operations ?? new OperationInfoReader();
         _refresher = services.Refresher;
@@ -90,7 +91,7 @@ public sealed class TabRefresher : IDisposable, IPollTarget
         else
         {
             _busy = watching.Busy ?? NeverBusy.Instance;
-            _poller = new TabPoller(_location, watching.Poll ?? PollOptions.Default, _ui, this, tasks: _tasks);
+            _poller = new TabPoller(_location, watching.Poll ?? PollOptions.Default, _ui, this, time: _time, tasks: _tasks);
         }
     }
 
@@ -228,7 +229,7 @@ public sealed class TabRefresher : IDisposable, IPollTarget
         _pending = RepositoryChangeKinds.None;
         _forceGraph = false;
         _isRunning = true;
-        _refreshStartedAt = Stopwatch.GetTimestamp();
+        _refreshStartedAt = _time.GetTimestamp();
         _inFlight = _waiting;
         _waiting = [];
         var previous = _snapshot;
@@ -325,7 +326,7 @@ public sealed class TabRefresher : IDisposable, IPollTarget
             return;
         }
 
-        var took = Stopwatch.GetElapsedTime(_refreshStartedAt);
+        var took = _time.GetElapsedTime(_refreshStartedAt);
         if (reload is null && !isManual)
         {
             _poller?.RecordRefresh(took);
@@ -435,7 +436,7 @@ public sealed class TabRefresher : IDisposable, IPollTarget
         }
 
         // A failed or timed-out read is as costly as a slow one: the next automatic status refresh waits longer each time.
-        var took = Stopwatch.GetElapsedTime(_refreshStartedAt);
+        var took = _time.GetElapsedTime(_refreshStartedAt);
         _poller?.RecordFailure(took);
         _watcher?.RecordRefresh(took, true);
 
