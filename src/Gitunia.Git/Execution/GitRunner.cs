@@ -14,6 +14,9 @@ namespace Gitunia.Git.Execution;
 /// </summary>
 public sealed class GitRunner
 {
+    // Native error codes of "file not found" and "path not found": Windows ERROR_FILE_NOT_FOUND/ERROR_PATH_NOT_FOUND, Unix ENOENT.
+    private const int FileNotFoundCode = 2;
+    private const int PathNotFoundCode = 3;
     private const int ReadBufferSize = 64 * 1024;
     private const int ErrorBufferSize = 4096;
     private const char LineFeed = '\n';
@@ -69,21 +72,6 @@ public sealed class GitRunner
         var all = new List<string>(arguments.Count + 4) { "-C", repositoryPath, "-c", "core.quotepath=off" };
         all.AddRange(arguments);
         return all;
-    }
-
-    private static void KillQuietly(Process process)
-    {
-        try
-        {
-            if (!process.HasExited)
-            {
-                process.Kill(entireProcessTree: true);
-            }
-        }
-        catch (Exception exception) when (exception is InvalidOperationException or Win32Exception)
-        {
-            // Already exited or exiting.
-        }
     }
 
     private static bool IsAccepted(int exitCode, GitRunOptions runOptions) =>
@@ -219,10 +207,15 @@ public sealed class GitRunner
         {
             process.Start();
         }
-        catch (Exception exception) when (exception is Win32Exception or FileNotFoundException)
+        catch (Exception exception) when (exception is FileNotFoundException or Win32Exception { NativeErrorCode: FileNotFoundCode or PathNotFoundCode })
         {
             process.Dispose();
             throw new GitNotFoundException(_options.Executable, exception);
+        }
+        catch (Win32Exception exception)
+        {
+            process.Dispose();
+            throw new GitStartFailedException(_options.Executable, exception);
         }
 
         return process;
@@ -254,12 +247,12 @@ public sealed class GitRunner
         }
         catch (OperationCanceledException) when (timeoutSource.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
         {
-            KillQuietly(process);
+            ProcessKiller.KillQuietly(process);
             throw new GitTimeoutException(arguments, timeout);
         }
         catch
         {
-            KillQuietly(process);
+            ProcessKiller.KillQuietly(process);
             throw;
         }
     }
@@ -312,11 +305,17 @@ public sealed class GitRunner
         finally
         {
             // Early disposal, cancellation, timeout and failures all end here.
-            KillQuietly(process);
-            await watchSource.CancelAsync().ConfigureAwait(false);
-            await watchTask.ConfigureAwait(false);
-            await Task.WhenAny(exitTask).ConfigureAwait(false);
-            ArrayPool<byte>.Shared.Return(buffer);
+            try
+            {
+                ProcessKiller.KillQuietly(process);
+                await watchSource.CancelAsync().ConfigureAwait(false);
+                await watchTask.ConfigureAwait(false);
+                await Task.WhenAny(exitTask).ConfigureAwait(false);
+            }
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(buffer);
+            }
         }
     }
 

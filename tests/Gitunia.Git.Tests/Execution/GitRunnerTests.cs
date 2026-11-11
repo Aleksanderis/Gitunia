@@ -164,6 +164,45 @@ public class GitRunnerTests
     }
 
     [Fact]
+    public async Task GivenExecutableThatCannotBeRun_WhenRunning_ThenStartFailedErrorWithNativeMessage()
+    {
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "A file without the execute bit is a Unix notion.");
+        var directory = Path.Combine(Path.GetTempPath(), $"gitunia-noexec-{Guid.NewGuid().ToString("N")}");
+        Directory.CreateDirectory(directory);
+        try
+        {
+            var path = Path.Combine(directory, "git");
+            await File.WriteAllTextAsync(path, "#!/bin/sh\n", TestContext.Current.CancellationToken);
+            var runner = new GitRunner(new GitRunnerOptions(path));
+
+            var error = await Assert.ThrowsAsync<GitStartFailedException>(
+                () => runner.RunAsync(AnyDirectory, ["status"], cancellationToken: TestContext.Current.CancellationToken));
+
+            Assert.Contains(error.InnerException!.Message, error.Message);
+        }
+        finally
+        {
+            Directory.Delete(directory, true);
+        }
+    }
+
+    [Fact]
+    public async Task GivenTooLongArgument_WhenRunning_ThenStartFailedErrorNotNotFound()
+    {
+        using var fake = FakeGitExecutable.Create("exit 0", "rem");
+        var tooLong = new string('a', 3_000_000);
+
+        await Assert.ThrowsAsync<GitStartFailedException>(
+            () => RunnerFor(fake).RunAsync(AnyDirectory, ["log", tooLong], cancellationToken: TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public void GivenKillThatThrowsAggregate_WhenKillingQuietly_ThenNothingEscapes()
+    {
+        ProcessKiller.KillQuietly(() => throw new AggregateException(new InvalidOperationException("child")));
+    }
+
+    [Fact]
     public async Task GivenOutputProcess_WhenStreaming_ThenChunksConcatenateToOutput()
     {
         using var fake = FakeGitExecutable.Printing("hello");
