@@ -31,7 +31,17 @@ public class RefParserTests
         Assert.Equal(2, reference.Ahead);
         Assert.Equal(1, reference.Behind);
         Assert.True(reference.IsCurrent);
-        Assert.Equal("/work/repo", reference.CheckedOutIn);
+        Assert.Equal(Path.Combine(Path.DirectorySeparatorChar.ToString(), "work", "repo"), reference.CheckedOutIn);
+    }
+
+    [Fact]
+    public void GivenWindowsStyleWorktreePath_WhenParsing_ThenCheckedOutInUsesNativeSeparators()
+    {
+        var output = Line("refs/heads/main", HashOne, head: " ", worktree: "C:/work/repo");
+
+        var reference = Assert.Single(RefParser.Parse(output).Items);
+
+        Assert.Equal($"C:{Path.DirectorySeparatorChar}work{Path.DirectorySeparatorChar}repo", reference.CheckedOutIn);
     }
 
     [Theory]
@@ -116,7 +126,7 @@ public class RefParserTests
         var refs = RefParser.Parse(output).Items;
 
         Assert.Equal(2, refs.Count);
-        Assert.Equal("/work/odd\nname", refs[0].CheckedOutIn);
+        Assert.Equal("/work/odd\nname".Replace('/', Path.DirectorySeparatorChar), refs[0].CheckedOutIn);
     }
 
     [Fact]

@@ -54,7 +54,7 @@ public static class RefParser
                 track.Behind,
                 track.IsGone,
                 fields[5] == "*",
-                NullIfEmpty(fields[6]),
+                NativePath(NullIfEmpty(fields[6])),
                 NullIfEmpty(fields[7])));
         }
 
@@ -74,6 +74,9 @@ public static class RefParser
         var second = fullName.IndexOf('/', GitRefPrefixes.Root.Length);
         return fullName[(second + 1)..];
     }
+
+    // Git prints forward slashes on Windows; WorktreeParser converts the same way so messages and comparisons agree.
+    private static string? NativePath(string? path) => path?.Replace('/', Path.DirectorySeparatorChar);
 
     private static string? NullIfEmpty(string value) => value.Length == 0 ? null : value;
 

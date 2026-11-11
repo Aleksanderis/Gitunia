@@ -8,7 +8,8 @@ public static class Osc52Environment
 
     /// <summary>Detect the delivery mode.</summary>
     /// <param name="lookup">Returns the value of an environment variable, or null when it is unset.</param>
-    public static Osc52Options Detect(Func<string, string?> lookup)
+    /// <param name="isClassicConsole">True on the Windows console host (no Windows Terminal), which ignores OSC 52.</param>
+    public static Osc52Options Detect(Func<string, string?> lookup, bool isClassicConsole = false)
     {
         ArgumentNullException.ThrowIfNull(lookup);
 
@@ -16,6 +17,12 @@ public static class Osc52Environment
         if (string.Equals(terminal, "dumb", StringComparison.Ordinal) || string.Equals(terminal, "linux", StringComparison.Ordinal))
         {
             return new Osc52Options(Osc52Mode.Unsupported, DefaultMaximumEncodedLength, $"the terminal type '{terminal}' has no clipboard support");
+        }
+
+        // Conhost sets neither TERM nor TERM_PROGRAM; mintty, WezTerm, VS Code and Alacritty set one and do handle OSC 52.
+        if (isClassicConsole && string.IsNullOrEmpty(terminal) && string.IsNullOrEmpty(lookup("TERM_PROGRAM")))
+        {
+            return new Osc52Options(Osc52Mode.Unsupported, DefaultMaximumEncodedLength, "the classic Windows console has no clipboard support (use Windows Terminal)");
         }
 
         if (!string.IsNullOrEmpty(lookup("TMUX")))

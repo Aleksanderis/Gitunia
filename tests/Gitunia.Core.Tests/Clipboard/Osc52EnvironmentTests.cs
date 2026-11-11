@@ -44,6 +44,25 @@ public class Osc52EnvironmentTests
         Assert.Contains(terminal, options.UnsupportedReason, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void GivenClassicConsole_WhenDetecting_ThenUnsupportedWithReasonEvenWithoutTerm()
+    {
+        var options = Osc52Environment.Detect(Lookup(), isClassicConsole: true);
+
+        Assert.Equal(Osc52Mode.Unsupported, options.Mode);
+        Assert.Contains("classic Windows console", options.UnsupportedReason, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("TERM", "xterm-256color")]
+    [InlineData("TERM_PROGRAM", "vscode")]
+    public void GivenClassicConsoleFlagButTerminalIdentifies_WhenDetecting_ThenDirect(string name, string value)
+    {
+        var options = Osc52Environment.Detect(Lookup(new EnvironmentVariable(name, value)), isClassicConsole: true);
+
+        Assert.Equal(Osc52Mode.Direct, options.Mode);
+    }
+
     private static Func<string, string?> Lookup(params EnvironmentVariable[] variables)
     {
         var dictionary = variables.ToDictionary(variable => variable.Name, variable => variable.Value);
