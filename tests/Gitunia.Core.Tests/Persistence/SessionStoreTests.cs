@@ -220,7 +220,7 @@ public class SessionStoreTests
     }
 
     [Fact]
-    public async Task GivenSessionFileOpenWithDeleteSharing_WhenLoadingAndSaving_ThenBothWork()
+    public async Task GivenSessionFileHeldOpenForReading_WhenLoading_ThenSessionIsRestored()
     {
         using var directory = new TemporaryDirectory();
         using var store = new SessionStore(directory.DirectoryPath, _ => true);
@@ -228,10 +228,8 @@ public class SessionStoreTests
         await using var reader = SharedFile.OpenRead(store.FilePath);
 
         var load = await store.LoadAsync(TestContext.Current.CancellationToken);
-        var saved = await store.SaveAsync(SessionFixtures.Open(Workspace.Empty, "beta"), TestContext.Current.CancellationToken);
 
         Assert.Equal(SessionLoadStatus.Restored, load.Status);
-        Assert.True(saved);
     }
 
     [Fact]

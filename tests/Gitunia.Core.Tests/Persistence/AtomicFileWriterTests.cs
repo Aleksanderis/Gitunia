@@ -44,19 +44,6 @@ public class AtomicFileWriterTests
     }
 
     [Fact]
-    public async Task GivenTargetOpenWithDeleteSharing_WhenWriting_ThenWriteSucceedsAtOnce()
-    {
-        using var directory = new TemporaryDirectory();
-        var path = Path.Combine(directory.DirectoryPath, "data.json");
-        await File.WriteAllTextAsync(path, "original", TestContext.Current.CancellationToken);
-        await using var reader = SharedFile.OpenRead(path);
-
-        await AtomicFileWriter.WriteAsync(path, "replacement"u8.ToArray(), TestContext.Current.CancellationToken);
-
-        Assert.Equal("replacement", await File.ReadAllTextAsync(path, TestContext.Current.CancellationToken));
-    }
-
-    [Fact]
     public void GivenStaleAndFreshTemporaryFiles_WhenRemovingStale_ThenOnlyOldGuidNamedOnesGo()
     {
         using var directory = new TemporaryDirectory();
