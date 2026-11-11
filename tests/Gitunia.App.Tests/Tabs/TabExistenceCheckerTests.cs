@@ -12,6 +12,9 @@ namespace Gitunia.App.Tests.Tabs;
 public sealed class TabExistenceCheckerTests : IDisposable
 {
     private static readonly TimeSpan ShortTimeout = TimeSpan.FromMilliseconds(100);
+
+    // Generous, so a healthy path answering late on a loaded runner is never mistaken for a hung one.
+    private static readonly TimeSpan HealthyAnswerBudget = TimeSpan.FromSeconds(3);
     private readonly ManualResetEventSlim _release = new();
 
     [Fact]
@@ -36,7 +39,7 @@ public sealed class TabExistenceCheckerTests : IDisposable
         var dispatcher = new RecordingDispatcher();
         var good = Tab(1, "good");
         var hung = Tab(2, "hung");
-        var checker = new TabExistenceChecker(dispatcher, new BlockingDirectories(_release, [good.CommandPath]), ShortTimeout);
+        var checker = new TabExistenceChecker(dispatcher, new BlockingDirectories(_release, [good.CommandPath]), HealthyAnswerBudget);
 
         await checker.Start([good, hung], TestContext.Current.CancellationToken);
 

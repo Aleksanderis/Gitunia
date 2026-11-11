@@ -34,6 +34,18 @@ public interface IDiffReader
         CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Streams the same diff as <see cref="ReadCommitAsync"/> without knowing the first parent: one <c>git show --first-parent</c>
+    /// reads it (a root commit shows whole, a merge against its mainline), so no process looks the parent up first.
+    /// </summary>
+    IAsyncEnumerable<DiffFile> ReadCommitAgainstFirstParentAsync(
+        RepositoryLocation location,
+        ObjectId commit,
+        ICollection<string>? warnings = null,
+        int maximumLinesPerFile = int.MaxValue,
+        DiffOptions? options = null,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Streams the diff of one file of the Changes view: <c>git diff</c> for a file in the Unstaged list (an untracked file as
     /// additions, a conflicted file as git's combined diff), <c>git diff --cached</c> for one in the Staged list. The file is
     /// found by its literal path (and, for a rename, the old path too). A path that is not valid UTF-8 cannot be an argument
@@ -55,7 +67,4 @@ public interface IDiffReader
         int maximumLinesPerFile = int.MaxValue,
         DiffOptions? options = null,
         CancellationToken cancellationToken = default);
-
-    /// <summary>The first parent of <paramref name="commit"/>, or null for a root commit.</summary>
-    Task<ObjectId?> ReadFirstParentAsync(RepositoryLocation location, ObjectId commit, CancellationToken cancellationToken);
 }

@@ -228,11 +228,13 @@ public sealed class TabRefresher : IDisposable, IPollTarget
         var token = _stop.Token;
 
         // A copy, because the background read must not see the graph change; only a refresh that is not forced may reuse the old rows
-        // (the baseline needs them too, to compare the graph with its snapshot).
+        // (the baseline needs them too, to compare the graph with its snapshot). A refresh that reads no refs (a status-only one)
+        // cannot change the graph, so it copies nothing.
         // A cut log reloads its newest rows again instead: the rows below the cut are not loaded, so nothing joins
         // and the count guard cannot hold.
         var isCapped = _session.IsTruncated;
-        IReadOnlyList<GraphEntry> previousRows = reloadGraph || isCapped ? [] : _session.Graph.ToArray();
+        var needsRows = !reloadGraph && !isCapped && (previous is null || ReadsRefs(kinds));
+        IReadOnlyList<GraphEntry> previousRows = needsRows ? _session.Graph.ToArray() : [];
         _tasks.Run(() => RefreshAsync(previous, previousRows, isCapped, kinds, reloadGraph, isManual, isOwn, token));
     }
 
@@ -386,6 +388,10 @@ public sealed class TabRefresher : IDisposable, IPollTarget
         RunAll(applied);
         RunNext();
     }
+
+    // The kinds that make the refresher read refs (see RepositoryRefresher), the only ones that can change the graph.
+    private static bool ReadsRefs(RepositoryChangeKinds kinds) =>
+        (kinds & (RepositoryChangeKinds.Head | RepositoryChangeKinds.Refs | RepositoryChangeKinds.Worktrees)) != RepositoryChangeKinds.None;
 
     // The kinds that make the refresher read the status (see RepositoryRefresher).
     private static bool ReadsStatus(RepositoryChangeKinds kinds) => (kinds & StatusKinds) != RepositoryChangeKinds.None;

@@ -9,7 +9,10 @@ namespace Gitunia.App.Tabs;
 /// Checks, off the UI thread and in parallel, whether the directories of the restored tabs exist, and marks a tab missing
 /// when its check says no or does not answer in time. A dead network drive or a stopped WSL can block a single
 /// <c>Directory.Exists</c> for tens of seconds, so the startup restores every tab without asking the disk and this
-/// runs after it; the blocked call itself cannot be interrupted, it just finishes unobserved.
+/// runs after it; the blocked call itself cannot be interrupted, it just finishes unobserved. Each check gets its own
+/// dedicated thread (<see cref="TaskCreationOptions.LongRunning"/>): on the shared pool, hung checks occupy the few
+/// workers (the pool grows slowly) and a healthy path queued behind them could hit the timeout before it even started
+/// and be marked missing.
 /// </summary>
 /// <param name="dispatcher">Where the missing marks go.</param>
 /// <param name="files">The file system question.</param>
@@ -27,7 +30,12 @@ public sealed class TabExistenceChecker(IDispatcher dispatcher, IDirectoryLister
         var exists = false;
         try
         {
-            exists = await Task.Run(() => files.DirectoryExists(path), CancellationToken.None)
+            exists = await Task.Factory
+                .StartNew(
+                    () => files.DirectoryExists(path),
+                    CancellationToken.None,
+                    TaskCreationOptions.LongRunning,
+                    TaskScheduler.Default)
                 .WaitAsync(timeout, cancellationToken)
                 .ConfigureAwait(false);
         }
