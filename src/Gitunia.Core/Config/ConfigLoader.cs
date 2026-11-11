@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Gitunia.Core.Config.Models;
+using Gitunia.Core.Persistence;
 
 namespace Gitunia.Core.Config;
 
@@ -57,6 +58,7 @@ public sealed class ConfigLoader
     /// <param name="cancellationToken">Cancels the read.</param>
     public async Task<ConfigLoadResult> LoadAsync(CancellationToken cancellationToken)
     {
+        AtomicFileWriter.RemoveStaleTemporaryFiles(Path.GetDirectoryName(FilePath)!);
         var problems = new List<ConfigProblem>();
         var text = await ReadTextAsync(problems, cancellationToken).ConfigureAwait(false);
         var document = text is null ? new ConfigDocument() : Parse(text, problems);
@@ -86,7 +88,7 @@ public sealed class ConfigLoader
                 return null;
             }
 
-            return await File.ReadAllTextAsync(FilePath, cancellationToken).ConfigureAwait(false);
+            return await SharedFile.ReadAllTextAsync(FilePath, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {

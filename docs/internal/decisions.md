@@ -291,3 +291,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 **Testing:** `ci.yml` keeps test evidence on failure only (#1298): trx and blame output uploaded as `test-results-<leg>` by an `if: failure()` step, no hang dump (size; sequence file and `RunningTests` suffice), so success runs cost nothing extra. Why: the #1290 Windows failure log was lost on rerun.
 **Testing:** `release.yml` test legs use the same failure-only trx and blame upload as `ci.yml`, artifact `test-results-<rid>` (#1303), verified on linux-arm64 by a dry run with a temporary failing step (removed); the other legs ran green with the new flags.
+
+**Architecture:** Two Gitunia processes: a lock file, not a merge (#1314). The first instance to load holds `session.lock` in the state directory; a second one warns "Session owned by another Gitunia" and saves nothing. Why: a merge of recents and pins still loses tab changes and needs a conflict policy; detail in `docs/architecture.md`, "Persistence".

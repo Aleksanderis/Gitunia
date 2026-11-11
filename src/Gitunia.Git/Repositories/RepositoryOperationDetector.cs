@@ -43,7 +43,19 @@ public sealed class RepositoryOperationDetector : IRepositoryOperationDetector
         {
             try
             {
-                var firstCommand = File.ReadLines(sequencerTodo).FirstOrDefault(line => line.Length > 0 && line[0] != '#') ?? string.Empty;
+                // Shares read, write and delete so the read never blocks git renaming over the file (Windows).
+                using var reader = new StreamReader(
+                    new FileStream(sequencerTodo, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete));
+                var firstCommand = string.Empty;
+                while (reader.ReadLine() is { } line)
+                {
+                    if (line.Length > 0 && line[0] != '#')
+                    {
+                        firstCommand = line;
+                        break;
+                    }
+                }
+
                 return firstCommand.StartsWith("revert", StringComparison.Ordinal) ? RepositoryOperation.Revert : RepositoryOperation.CherryPick;
             }
             catch (IOException)

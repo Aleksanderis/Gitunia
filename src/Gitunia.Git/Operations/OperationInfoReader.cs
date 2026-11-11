@@ -88,12 +88,31 @@ public sealed class OperationInfoReader : IOperationInfoReader
     {
         try
         {
-            return File.ReadLines(todoPath).Count(line => line.Length > 0 && line[0] != CommentMarker);
+            return CountLines(todoPath);
         }
         catch (IOException)
         {
             return null;
         }
+    }
+
+    // Shares read, write and delete so the read never blocks git renaming over the file (Windows).
+    private static StreamReader OpenShared(string path) =>
+        new(new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete));
+
+    private static int CountLines(string path)
+    {
+        using var reader = OpenShared(path);
+        var count = 0;
+        while (reader.ReadLine() is { } line)
+        {
+            if (line.Length > 0 && line[0] != CommentMarker)
+            {
+                count++;
+            }
+        }
+
+        return count;
     }
 
     private static string? QuotedName(string? message)
@@ -115,7 +134,7 @@ public sealed class OperationInfoReader : IOperationInfoReader
     {
         try
         {
-            using var reader = new StreamReader(path);
+            using var reader = OpenShared(path);
             var line = reader.ReadLine()?.Trim();
             return string.IsNullOrEmpty(line) ? null : line;
         }

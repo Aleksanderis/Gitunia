@@ -110,7 +110,7 @@ public sealed class ConfigWriter
                 return Unusable("config.json is too large to edit");
             }
 
-            var bytes = await File.ReadAllBytesAsync(target, cancellationToken).ConfigureAwait(false);
+            var bytes = await SharedFile.ReadAllBytesAsync(target, cancellationToken).ConfigureAwait(false);
             var hasBom = bytes.AsSpan().StartsWith(ByteOrderMark);
             var offset = hasBom ? ByteOrderMark.Length : 0;
             var strict = new UTF8Encoding(false, true);
