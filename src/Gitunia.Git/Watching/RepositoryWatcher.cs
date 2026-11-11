@@ -153,6 +153,24 @@ public sealed partial class RepositoryWatcher : IDisposable
         }
     }
 
+    /// <summary>
+    /// Starts watching on a thread pool thread: creating the watchers and planning them touches the disk and can be slow on a network
+    /// path, so the UI thread never does it. Completes when the watchers exist (or polling took over); a watcher disposed meanwhile
+    /// is not an error.
+    /// </summary>
+    public Task StartAsync() => Task.Run(() =>
+    {
+        try
+        {
+            Start();
+        }
+        catch (ObjectDisposedException)
+        {
+            // Disposed before the pool thread got to it.
+        }
+    });
+
+    /// <summary>Starts watching on the calling thread (tests and callers that are already off the UI thread; the UI uses <see cref="StartAsync"/>).</summary>
     public void Start()
     {
         lock (_gate)

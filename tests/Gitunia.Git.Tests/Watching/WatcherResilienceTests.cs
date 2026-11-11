@@ -28,6 +28,23 @@ public class WatcherResilienceTests
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
     [Fact]
+    public async Task GivenWatcher_WhenStartedAsync_ThenWatchersAreCreatedAndChangesAreReported()
+    {
+        using var testRepository = TestRepositories.Linear(1);
+        var recorder = new ChangeRecorder();
+        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
+        using var watcher = new RepositoryWatcher(location, new WatchBudget(), FastOptions);
+        watcher.Changed += recorder.Record;
+
+        await watcher.StartAsync();
+
+        Assert.True(watcher.WatcherCount > 0);
+        Assert.False(watcher.IsPolling);
+        testRepository.WriteFile("after-start.txt", "x");
+        await recorder.WaitForAsync(RepositoryChangeKinds.WorkingTree, Token);
+    }
+
+    [Fact]
     public async Task GivenWatcher_WhenBufferOverflows_ThenEverythingIsReportedOnceAndWatchingContinues()
     {
         using var testRepository = TestRepositories.Linear(1);
