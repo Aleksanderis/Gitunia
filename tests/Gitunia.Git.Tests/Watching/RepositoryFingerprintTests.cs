@@ -85,7 +85,7 @@ public class RepositoryFingerprintTests
         await File.WriteAllTextAsync(Path.Combine(other, "c.txt"), "3", TestContext.Current.CancellationToken);
         repository.GitIn(other, ["add", "c.txt"]);
 
-        Assert.Equal(RepositoryChangeKinds.None, RepositoryFingerprint.Compute(location).ChangedKinds(before));
+        AssertUnchanged(before, RepositoryFingerprint.Compute(location));
     }
 
     [Fact]
@@ -100,7 +100,7 @@ public class RepositoryFingerprintTests
         repository.WriteFile("b.txt", "2");
         repository.Git("add", "b.txt");
 
-        Assert.Equal(RepositoryChangeKinds.None, RepositoryFingerprint.Compute(location).ChangedKinds(before));
+        AssertUnchanged(before, RepositoryFingerprint.Compute(location));
     }
 
     [Fact]
@@ -133,6 +133,9 @@ public class RepositoryFingerprintTests
         var changed = RepositoryFingerprint.Compute(location).ChangedKinds(before);
         Assert.True(changed.HasFlag(RepositoryChangeKinds.Operation));
     }
+
+    private static void AssertUnchanged(RepositoryFingerprintGroups before, RepositoryFingerprintGroups after) =>
+        Assert.True(after == before, $"Fingerprint groups differ: {before} -> {after}");
 
     private static Task<RepositoryLocation> DiscoverAsync(TestRepository repository) =>
         Discovery.DiscoverAsync(repository.WorkingTreePath, TestContext.Current.CancellationToken);
