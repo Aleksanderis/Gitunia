@@ -548,8 +548,9 @@ public sealed partial class RepositoryWatcher : IDisposable
     {
         lock (_gate)
         {
-            if (_isDisposed)
+            if (_isDisposed || _pollTimer is not null)
             {
+                // Polling reads no ignored set; a successful retry reads it again.
                 return;
             }
 
