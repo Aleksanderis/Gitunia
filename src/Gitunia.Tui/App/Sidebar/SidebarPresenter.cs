@@ -34,10 +34,18 @@ public sealed class SidebarPresenter
         try
         {
             var tab = _host.Workspace.ActiveTab;
-            _source.Update(tab);
+            var rowsChanged = _source.Update(tab);
             var rowCount = _source.Rows.Length;
-            _list.SelectedItem = rowCount == 0 || tab is null ? null : SidebarBuilder.ClampCursor(tab.Sidebar.Cursor, rowCount);
-            if (_list.SelectedItem is not null)
+            var target = rowCount == 0 || tab is null ? null : (int?)SidebarBuilder.ClampCursor(tab.Sidebar.Cursor, rowCount);
+
+            // A command that changes neither the rows nor the cursor (progress, a result for another pane) leaves the list alone.
+            if (!rowsChanged && _list.SelectedItem == target)
+            {
+                return;
+            }
+
+            _list.SelectedItem = target;
+            if (target is not null)
             {
                 _list.EnsureSelectedItemVisible();
             }

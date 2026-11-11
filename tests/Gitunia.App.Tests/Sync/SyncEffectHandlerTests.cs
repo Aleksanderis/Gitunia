@@ -319,6 +319,32 @@ public class SyncEffectHandlerTests
     }
 
     [Fact]
+    public async Task GivenAThousandReportsInABurst_WhenRunning_ThenFewCommandsArePostedAndTheLastValueIsKept()
+    {
+        var writer = new FakeRemoteWriter();
+        for (var percent = 1; percent <= 1000; percent++)
+        {
+            writer.Reports.Add(new RemoteProgress("Receiving objects", percent));
+        }
+
+        var dispatcher = new RecordingDispatcher();
+
+        new SyncEffectHandler(writer, TestGit.Services.RemoteManager, TestGit.Services.Ancestry, dispatcher)
+            .Handle(new FetchEffect(Tab, FakeLocation(), false), TestContext.Current.CancellationToken);
+
+        var progressed = new List<SyncProgressed>();
+        AppCommand next;
+        while ((next = await dispatcher.NextAsync(TestContext.Current.CancellationToken)) is SyncProgressed report)
+        {
+            progressed.Add(report);
+        }
+
+        Assert.IsType<SyncSucceeded>(next);
+        Assert.InRange(progressed.Count, 1, 20);
+        Assert.Equal(new RemoteProgress("Receiving objects", 1000), progressed[^1].Report);
+    }
+
+    [Fact]
     public async Task GivenARunningFetch_WhenCancelling_ThenGitIsStoppedForThatTabOnlyAndTheResultIsCancelled()
     {
         var writer = new FakeRemoteWriter { Blocks = true };
