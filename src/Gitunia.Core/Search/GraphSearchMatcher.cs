@@ -11,7 +11,7 @@ public static class GraphSearchMatcher
         SearchField.Message => entry.Subject.Contains(query.Text, StringComparison.OrdinalIgnoreCase),
         SearchField.Body => query.BodyHits?.Contains(entry.Id) ?? false,
         SearchField.Author => entry.AuthorName.Contains(query.Text, StringComparison.OrdinalIgnoreCase),
-        _ => entry.Id.ToString().StartsWith(query.Text, StringComparison.OrdinalIgnoreCase),
+        _ => entry.Id.StartsWith(query.Text),
     };
 
     /// <summary>

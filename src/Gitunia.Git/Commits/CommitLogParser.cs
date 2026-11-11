@@ -240,12 +240,17 @@ public sealed class CommitLogParser
     /// <summary>Author names and emails repeat across thousands of commits; share one string per distinct value.</summary>
     private string Intern(ReadOnlySpan<byte> utf8)
     {
-        var text = Encoding.UTF8.GetString(utf8);
-        if (_internedText.TryGetValue(text, out var existing))
+        // Decode into a stack buffer when it fits, so a value seen before allocates nothing.
+        var maxChars = Encoding.UTF8.GetMaxCharCount(utf8.Length);
+        var buffer = maxChars <= 256 ? stackalloc char[256] : new char[maxChars];
+        var chars = buffer[..Encoding.UTF8.GetChars(utf8, buffer)];
+        var lookup = _internedText.GetAlternateLookup<ReadOnlySpan<char>>();
+        if (lookup.TryGetValue(chars, out var existing))
         {
             return existing;
         }
 
+        var text = new string(chars);
         _internedText[text] = text;
         return text;
     }
