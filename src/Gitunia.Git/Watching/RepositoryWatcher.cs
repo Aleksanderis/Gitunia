@@ -243,6 +243,14 @@ public sealed partial class RepositoryWatcher : IDisposable
 
         AddIfExists(plan, Path.Combine(_location.CommonDirectory, "refs"), true);
         AddIfExists(plan, Path.Combine(_location.CommonDirectory, "worktrees"), true);
+
+        // Reftable repositories write ref updates here (a flat directory); the git directory watcher is not recursive.
+        AddIfExists(plan, Path.Combine(_location.CommonDirectory, RepositoryChangeClassifier.ReftableDirectory), false);
+        if (_location.IsLinkedWorktree)
+        {
+            AddIfExists(plan, Path.Combine(_location.GitDirectory, RepositoryChangeClassifier.ReftableDirectory), false);
+        }
+
         if (_location.WorkingTreePath is not null)
         {
             AddIfExists(plan, _location.WorkingTreePath, _directoryLister is null);

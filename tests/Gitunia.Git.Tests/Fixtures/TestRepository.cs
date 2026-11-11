@@ -1,3 +1,5 @@
+using System.ComponentModel;
+using System.Diagnostics;
 using System.Globalization;
 using Gitunia.Git.Execution;
 
@@ -35,6 +37,20 @@ public sealed class TestRepository : IDisposable
         Directory.CreateDirectory(path);
         var repository = new TestRepository(root, path);
         repository.Git(bare ? ["init", "-q", "--bare", "-b", "main"] : ["init", "-q", "-b", "main"]);
+        return repository;
+    }
+
+    /// <summary>Whether the installed git can create reftable repositories (2.45 and later); tests skip otherwise.</summary>
+    public static bool IsReftableSupported { get; } = ProbeReftableSupport();
+
+    /// <summary>Creates an empty reftable-backed repository (<c>--ref-format=reftable</c>), initial branch <c>main</c>.</summary>
+    public static TestRepository CreateReftable()
+    {
+        var root = Path.Combine(Path.GetTempPath(), $"gitunia-repo-{Guid.NewGuid().ToString("N")}");
+        var path = Path.Combine(root, "repo");
+        Directory.CreateDirectory(path);
+        var repository = new TestRepository(root, path);
+        repository.Git("init", "-q", "--ref-format=reftable", "-b", "main");
         return repository;
     }
 
@@ -254,6 +270,34 @@ public sealed class TestRepository : IDisposable
     }
 
     public void Dispose() => DeleteDirectory(_rootDirectory);
+
+    private static bool ProbeReftableSupport()
+    {
+        var root = Path.Combine(Path.GetTempPath(), $"gitunia-probe-{Guid.NewGuid().ToString("N")}");
+        try
+        {
+            Directory.CreateDirectory(root);
+            using var process = Process.Start(new ProcessStartInfo(TestGitSpeed.Executable)
+            {
+                ArgumentList = { "init", "-q", "--ref-format=reftable", root },
+                RedirectStandardError = true,
+                RedirectStandardOutput = true,
+                UseShellExecute = false,
+            });
+            process!.StandardOutput.ReadToEnd();
+            process.StandardError.ReadToEnd();
+            process.WaitForExit();
+            return process.ExitCode == 0;
+        }
+        catch (Exception exception) when (exception is IOException or Win32Exception)
+        {
+            return false;
+        }
+        finally
+        {
+            DeleteDirectory(root);
+        }
+    }
 
     /// <summary>Best effort removal of a temp directory that may hold a repository (read-only object files).</summary>
     public static void DeleteDirectory(string directory)

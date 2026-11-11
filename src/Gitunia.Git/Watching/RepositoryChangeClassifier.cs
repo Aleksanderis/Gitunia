@@ -9,6 +9,12 @@ public static class RepositoryChangeClassifier
     private static readonly StringComparison PathComparison =
         OperatingSystem.IsLinux() ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
 
+    /// <summary>Where a reftable repository (<c>--ref-format=reftable</c>) keeps its refs; <c>HEAD</c> and <c>refs/heads</c> are stubs there.</summary>
+    public const string ReftableDirectory = "reftable";
+
+    /// <summary>A reftable table or <c>tables.list</c> change may move HEAD and any ref.</summary>
+    private const RepositoryChangeKinds ReftableKinds = RepositoryChangeKinds.Head | RepositoryChangeKinds.Refs;
+
     private static readonly HashSet<string> OperationEntries = new(StringComparer.Ordinal)
     {
         "MERGE_HEAD",
@@ -53,6 +59,7 @@ public static class RepositoryChangeClassifier
             "HEAD" => RepositoryChangeKinds.Head,
             "index" => RepositoryChangeKinds.Index,
             "refs" or "packed-refs" or "config" => RepositoryChangeKinds.Refs,
+            ReftableDirectory => ReftableKinds,
             "worktrees" => ClassifyLinkedWorktreeEntry(relative),
             _ when OperationEntries.Contains(first) => RepositoryChangeKinds.Operation,
             _ => RepositoryChangeKinds.None,
@@ -65,6 +72,11 @@ public static class RepositoryChangeClassifier
         if (first is "refs" or "packed-refs" or "config")
         {
             return RepositoryChangeKinds.Refs;
+        }
+
+        if (first == ReftableDirectory)
+        {
+            return ReftableKinds;
         }
 
         if (first == "worktrees")

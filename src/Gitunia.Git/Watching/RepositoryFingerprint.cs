@@ -32,6 +32,12 @@ public static class RepositoryFingerprint
         }
 
         AddRefs(ref groups, Path.Combine(location.CommonDirectory, "refs"));
+        AddReftable(ref groups, Path.Combine(location.CommonDirectory, RepositoryChangeClassifier.ReftableDirectory));
+        if (location.IsLinkedWorktree)
+        {
+            AddReftable(ref groups, Path.Combine(location.GitDirectory, RepositoryChangeClassifier.ReftableDirectory));
+        }
+
         AddWorktrees(ref groups, location, Path.Combine(location.CommonDirectory, "worktrees"));
         return groups.ToGroups();
     }
@@ -72,6 +78,29 @@ public static class RepositoryFingerprint
             {
                 groups.Add(RepositoryChangeKinds.Refs, entry);
             }
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            groups.AddMarker(directory);
+        }
+    }
+
+    /// <summary>
+    /// A reftable repository's refs: the table files and <c>tables.list</c> (names, sizes, times). The directory entry
+    /// itself is not enough, its time may lag on some filesystems. Absent in a files-backend repository.
+    /// </summary>
+    private static void AddReftable(ref Accumulator groups, string directory)
+    {
+        try
+        {
+            foreach (var entry in new DirectoryInfo(directory).EnumerateFiles())
+            {
+                groups.Add(RepositoryChangeKinds.Refs, entry);
+            }
+        }
+        catch (DirectoryNotFoundException)
+        {
+            // Files backend.
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
