@@ -380,10 +380,12 @@ public class RepositoryWatcherTests
         using var testRepository = TestRepositories.Linear(1);
         var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
         using var watcher = new RepositoryWatcher(location, new WatchBudget(0), FastOptions);
+        // A budget of 0 fails watching at once, so the watcher is already polling here.
         watcher.Start();
         Assert.Equal(FastOptions.PollInterval, watcher.PollInterval);
 
-        // The wait is state set by the acknowledgement, so no clock or poll is involved: five times the read, doubled per failure.
+        // Checks the wait the acknowledgement sets (five times the read, doubled per failure), without a clock. That the timer is
+        // re-armed with it is not covered here: asserting it needs a real wait, which is what made this test flaky (#1358).
         watcher.RecordRefresh(TimeSpan.FromSeconds(1), true);
         var afterOne = watcher.PollInterval;
         watcher.RecordRefresh(TimeSpan.FromSeconds(1), true);
