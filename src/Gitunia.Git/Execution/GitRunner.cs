@@ -129,6 +129,7 @@ public sealed class GitRunner
                 timeoutSource.CancelAfter(timeout);
             }
 
+            // Streamed segments are UTF-8 only; the final text is decoded again with the OEM fallback.
             var charCount = decoder.GetChars(bytes, 0, count, chars, 0);
             raw.Write(bytes, 0, count);
             SplitSegments(chars, charCount, segment, runOptions.OnStandardErrorLine);

@@ -51,8 +51,8 @@ public class DetectionTests
     [Fact]
     public void GivenLocale_WhenDetectingUnicode_ThenUtf8LocalesAreSupported()
     {
-        Assert.True(With(new EnvironmentVariable("LANG", "en_US.UTF-8")).DetectUnicode());
-        Assert.False(With(new EnvironmentVariable("LANG", "C")).DetectUnicode());
+        Assert.True(With(new EnvironmentVariable("LANG", "en_US.UTF-8")).DetectUnicode(true));
+        Assert.False(WithOs(false, new EnvironmentVariable("LANG", "C")).DetectUnicode(true));
     }
 
     [Theory]

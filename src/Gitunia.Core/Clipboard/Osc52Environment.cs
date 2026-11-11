@@ -19,7 +19,8 @@ public static class Osc52Environment
             return new Osc52Options(Osc52Mode.Unsupported, DefaultMaximumEncodedLength, $"the terminal type '{terminal}' has no clipboard support");
         }
 
-        if (isClassicConsole)
+        // Conhost sets neither TERM nor TERM_PROGRAM; mintty, WezTerm, VS Code and Alacritty set one and do handle OSC 52.
+        if (isClassicConsole && string.IsNullOrEmpty(terminal) && string.IsNullOrEmpty(lookup("TERM_PROGRAM")))
         {
             return new Osc52Options(Osc52Mode.Unsupported, DefaultMaximumEncodedLength, "the classic Windows console has no clipboard support (use Windows Terminal)");
         }

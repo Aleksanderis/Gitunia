@@ -104,7 +104,7 @@ public sealed class TerminalPlatform(Func<string, string?>? getEnvironmentVariab
 
     /// <param name="interactive">True when attached to a terminal. On Windows only then is UTF-8 assumed: redirected output
     /// and non-UI prints go through the legacy OEM code page (437, 850), where box-drawing characters turn into <c>?</c>.</param>
-    public bool DetectUnicode(bool interactive = true)
+    public bool DetectUnicode(bool interactive)
     {
         // Windows: assumed UTF-8 capable (Windows Terminal / modern conhost); legacy conhost may render boxes poorly.
         if (_isWindows())
