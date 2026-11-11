@@ -29,15 +29,20 @@ public sealed partial class RepositoryWatcher
     }
 
     /// <summary>
-    /// A <c>.gitignore</c> edit in the working tree changes which directories the recursive watcher drops. Only that
-    /// watcher keeps the set (per-directory watching rescans instead); <c>info/exclude</c> lies outside every watched
-    /// directory, so an edit there waits for the next restart.
+    /// A <c>.gitignore</c> edit in the working tree or an edit of <c>info/exclude</c> changes which directories the recursive
+    /// watcher drops. Only that watcher keeps the set (per-directory watching rescans instead); <c>core.excludesFile</c> is
+    /// picked up by the periodic reload.
     /// </summary>
     private bool IsIgnoreFileEdit(string fullPath) =>
-        !_perDirectory
-        && _directoryLister is not null
-        && string.Equals(Path.GetFileName(fullPath), ".gitignore", StringComparison.Ordinal)
-        && IsInWorkingTree(fullPath);
+        UsesIgnoredSet
+        && ((string.Equals(Path.GetFileName(fullPath), ".gitignore", StringComparison.Ordinal) && IsInWorkingTree(fullPath))
+            || IsInfoExclude(fullPath));
+
+    private bool IsInfoExclude(string fullPath) =>
+        string.Equals(
+            fullPath,
+            Path.Combine(_location.CommonDirectory, "info", "exclude"),
+            OperatingSystem.IsLinux() ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase);
 
     private bool IsInWorkingTree(string fullPath)
     {

@@ -18,6 +18,10 @@ namespace Gitunia.Git.Watching.Models;
 /// After a watcher failed (not a buffer overflow, which keeps watching) the tab polls and tries to watch again after this
 /// long (null: 60 s).
 /// </param>
+/// <param name="IgnoredReloadInterval">
+/// How often the recursive watcher (Windows and macOS) re-reads the ignored directories to pick up a <c>core.excludesFile</c>
+/// edit, which lies outside every watched directory (null: 5 minutes). A hidden tab reads once when it is shown again.
+/// </param>
 /// <param name="UseFileWatchers">
 /// Opt-in live watching with <see cref="RepositoryWatcher"/> (config <c>watchFiles</c>). Off by default: each .NET
 /// <c>FileSystemWatcher</c> takes an inotify instance, a scarce per-user resource, so tabs poll instead
@@ -32,7 +36,8 @@ public sealed record RepositoryWatcherOptions(
     int MaximumWorkingTreeDirectories = RepositoryWatcherOptions.DefaultMaximumWorkingTreeDirectories,
     bool UseFileWatchers = false,
     bool? WatchDirectoriesIndividually = null,
-    TimeSpan? WatcherRetryInterval = null)
+    TimeSpan? WatcherRetryInterval = null,
+    TimeSpan? IgnoredReloadInterval = null)
 {
     /// <summary>
     /// Linux defaults to at least 8192 watches per user, shared by every process, so a tab takes at most a quarter.
@@ -44,6 +49,8 @@ public sealed record RepositoryWatcherOptions(
 
     private static readonly TimeSpan DefaultWatcherRetryInterval = TimeSpan.FromSeconds(60);
 
+    private static readonly TimeSpan DefaultIgnoredReloadInterval = TimeSpan.FromMinutes(5);
+
     private static readonly TimeSpan DefaultMaximumPollInterval = TimeSpan.FromSeconds(60);
 
     /// <summary>Whether the working tree is watched directory by directory (see <see cref="WatchDirectoriesIndividually"/>).</summary>
@@ -51,6 +58,9 @@ public sealed record RepositoryWatcherOptions(
 
     /// <summary>How long a tab polls after a watcher failure before it tries to watch again.</summary>
     public TimeSpan WatcherRetryIntervalOrDefault => WatcherRetryInterval ?? DefaultWatcherRetryInterval;
+
+    /// <summary>The period of the recursive watcher's ignored-directory reload.</summary>
+    public TimeSpan IgnoredReloadIntervalOrDefault => IgnoredReloadInterval ?? DefaultIgnoredReloadInterval;
 
     /// <summary>The longest wait the polling fallback backs off to.</summary>
     public TimeSpan PollIntervalLimit => MaximumPollInterval ?? DefaultMaximumPollInterval;
