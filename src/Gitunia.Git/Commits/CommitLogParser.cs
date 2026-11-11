@@ -88,12 +88,14 @@ public sealed class CommitLogParser
 
         var decorations = new List<CommitDecoration>();
         var rest = text.AsSpan();
-        while (true)
+        var more = true;
+        while (more)
         {
             // Walk the parts as spans: no string[] and no copy of a part that is cut down to a name anyway.
             var cut = rest.IndexOf(CommitLogFormat.DecorationSeparator, StringComparison.Ordinal);
             var name = cut < 0 ? rest : rest[..cut];
             rest = cut < 0 ? default : rest[(cut + CommitLogFormat.DecorationSeparator.Length)..];
+            more = cut >= 0;
             var current = false;
             if (name.StartsWith(CommitLogFormat.HeadPointerPrefix, StringComparison.Ordinal))
             {
@@ -103,11 +105,6 @@ public sealed class CommitLogParser
             else if (name.SequenceEqual(GitOptions.HeadRevision))
             {
                 decorations.Add(new CommitDecoration(GitOptions.HeadRevision, GitOptions.HeadRevision, RefKind.Head, true));
-                if (cut < 0)
-                {
-                    break;
-                }
-
                 continue;
             }
 
@@ -118,10 +115,6 @@ public sealed class CommitLogParser
             }
 
             decorations.Add(Decorate(name, isTag, current));
-            if (cut < 0)
-            {
-                break;
-            }
         }
 
         return decorations;
@@ -147,8 +140,9 @@ public sealed class CommitLogParser
             prefix = GitRefPrefixes.Remotes;
         }
 
-        var shortName = fullName.StartsWith(prefix, StringComparison.Ordinal) ? fullName[prefix.Length..] : fullName;
-        return new CommitDecoration(fullName.ToString(), shortName.ToString(), kind, current);
+        var full = fullName.ToString();
+        var shortName = fullName.StartsWith(prefix, StringComparison.Ordinal) ? fullName[prefix.Length..].ToString() : full;
+        return new CommitDecoration(full, shortName, kind, current);
     }
 
     private void ParseRecord(ReadOnlySpan<byte> record, ICollection<CommitInfo> output)
