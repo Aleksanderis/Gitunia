@@ -283,7 +283,7 @@ public class WatcherResilienceTests
         public void Dispose() => Release.Dispose();
     }
 
-    private sealed class SlowReader: IRepositoryFingerprintReader, IDisposable
+    private sealed class SlowReader : IRepositoryFingerprintReader, IDisposable
     {
         private readonly DiskFingerprintReader _inner = new();
 

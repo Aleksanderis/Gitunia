@@ -560,11 +560,12 @@ public sealed partial class RepositoryWatcher : IDisposable
     private async Task LoadIgnoredDirectoriesAsync()
     {
         var directories = await _directoryLister!.ListIgnoredAsync(_location.WorkingTreePath!, _disposal.Token);
-        if (directories is not null)
-        {
-            var comparer = OperatingSystem.IsLinux() ? StringComparer.Ordinal : StringComparer.OrdinalIgnoreCase;
-            _ignoredDirectories = new HashSet<string>(directories.Select(Path.TrimEndingDirectorySeparator), comparer);
-        }
+        var comparer = OperatingSystem.IsLinux() ? StringComparer.Ordinal : StringComparer.OrdinalIgnoreCase;
+
+        // A failed listing (null) empties the set: too many events are reported rather than a stale set hiding some.
+        _ignoredDirectories = new HashSet<string>(
+            (directories ?? []).Select(Path.TrimEndingDirectorySeparator),
+            comparer);
     }
 
     /// <summary>Feeds an error into the path a watcher's <c>Error</c> event takes (for tests, which cannot raise the event).</summary>
