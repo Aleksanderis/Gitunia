@@ -121,7 +121,7 @@ public class SessionStoreTests
 
         var result = await new SessionStore(directory.DirectoryPath, _ => true).LoadAsync(TestContext.Current.CancellationToken);
         Assert.Equal("beta", Assert.Single(result.Update.Workspace.Tabs).DisplayName);
-        Assert.Equal([store.FilePath], Directory.GetFiles(directory.DirectoryPath));
+        Assert.Equal([store.FilePath], DataFiles(directory.DirectoryPath));
     }
 
     [Theory]
@@ -151,7 +151,7 @@ public class SessionStoreTests
         await store.LoadAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal("first", await File.ReadAllTextAsync($"{store.FilePath}.corrupt", TestContext.Current.CancellationToken));
-        Assert.Equal(2, Directory.GetFiles(directory.DirectoryPath).Length);
+        Assert.Equal(2, DataFiles(directory.DirectoryPath).Length);
     }
 
     [Fact]
@@ -181,4 +181,73 @@ public class SessionStoreTests
         Assert.Equal(SessionLoadStatus.Discarded, result.Status);
         Assert.False(File.Exists($"{store.FilePath}.corrupt"));
     }
+
+    [Fact]
+    public async Task GivenAnotherInstanceOwnsTheSession_WhenSecondLoadsAndSaves_ThenItWarnsAndLeavesTheFileAlone()
+    {
+        using var directory = new TemporaryDirectory();
+        using var first = new SessionStore(directory.DirectoryPath, _ => true);
+        using var second = new SessionStore(directory.DirectoryPath, _ => true);
+        var firstLoad = await first.LoadAsync(TestContext.Current.CancellationToken);
+        await first.SaveAsync(SessionFixtures.Open(Workspace.Empty, "alpha"), TestContext.Current.CancellationToken);
+
+        var secondLoad = await second.LoadAsync(TestContext.Current.CancellationToken);
+        var saved = await second.SaveAsync(SessionFixtures.Open(Workspace.Empty, "beta"), TestContext.Current.CancellationToken);
+
+        Assert.Null(firstLoad.Detail);
+        Assert.Contains("owned by another", secondLoad.Detail);
+        Assert.Equal(["alpha"], secondLoad.Update.Workspace.Tabs.Select(tab => tab.DisplayName));
+        Assert.True(saved);
+        var reloaded = await new SessionStore(directory.DirectoryPath, _ => true).LoadAsync(TestContext.Current.CancellationToken);
+        Assert.Equal(["alpha"], reloaded.Update.Workspace.Tabs.Select(tab => tab.DisplayName));
+    }
+
+    [Fact]
+    public async Task GivenOwnerDisposed_WhenAnotherInstanceLoads_ThenItOwnsTheSessionAndSaves()
+    {
+        using var directory = new TemporaryDirectory();
+        var first = new SessionStore(directory.DirectoryPath, _ => true);
+        await first.LoadAsync(TestContext.Current.CancellationToken);
+        first.Dispose();
+        using var second = new SessionStore(directory.DirectoryPath, _ => true);
+
+        var load = await second.LoadAsync(TestContext.Current.CancellationToken);
+        await second.SaveAsync(SessionFixtures.Open(Workspace.Empty, "beta"), TestContext.Current.CancellationToken);
+
+        Assert.Null(load.Detail);
+        var reloaded = await new SessionStore(directory.DirectoryPath, _ => true).LoadAsync(TestContext.Current.CancellationToken);
+        Assert.Equal(["beta"], reloaded.Update.Workspace.Tabs.Select(tab => tab.DisplayName));
+    }
+
+    [Fact]
+    public async Task GivenSessionFileOpenWithDeleteSharing_WhenLoadingAndSaving_ThenBothWork()
+    {
+        using var directory = new TemporaryDirectory();
+        using var store = new SessionStore(directory.DirectoryPath, _ => true);
+        await store.SaveAsync(SessionFixtures.Open(Workspace.Empty, "alpha"), TestContext.Current.CancellationToken);
+        await using var reader = SharedFile.OpenRead(store.FilePath);
+
+        var load = await store.LoadAsync(TestContext.Current.CancellationToken);
+        var saved = await store.SaveAsync(SessionFixtures.Open(Workspace.Empty, "beta"), TestContext.Current.CancellationToken);
+
+        Assert.Equal(SessionLoadStatus.Restored, load.Status);
+        Assert.True(saved);
+    }
+
+    [Fact]
+    public async Task GivenStaleTemporaryFile_WhenLoading_ThenItIsRemoved()
+    {
+        using var directory = new TemporaryDirectory();
+        var stale = Path.Combine(directory.DirectoryPath, $"session.json.{Guid.NewGuid():N}.tmp");
+        await File.WriteAllTextAsync(stale, "x", TestContext.Current.CancellationToken);
+        File.SetLastWriteTimeUtc(stale, DateTime.UtcNow.AddMinutes(-5));
+        using var store = new SessionStore(directory.DirectoryPath);
+
+        await store.LoadAsync(TestContext.Current.CancellationToken);
+
+        Assert.False(File.Exists(stale));
+    }
+
+    private static string[] DataFiles(string directory) =>
+        [.. Directory.GetFiles(directory).Where(file => Path.GetFileName(file) != SessionStore.LockFileName)];
 }

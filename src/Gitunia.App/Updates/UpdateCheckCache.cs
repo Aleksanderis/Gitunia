@@ -26,7 +26,7 @@ public sealed class UpdateCheckCache(string stateDirectory)
                 return null;
             }
 
-            await using var stream = new FileStream(_path, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, useAsync: true);
+            await using var stream = SharedFile.OpenRead(_path, useAsync: true);
 
             return await JsonSerializer.DeserializeAsync(stream, UpdateJsonContext.Default.UpdateCheckRecord, cancellationToken);
         }
