@@ -20,6 +20,10 @@ public sealed class SessionStore : IDisposable
     private const string OwnedByOtherNotice = "Session owned by another Gitunia: tabs opened here are not saved";
     private const long MaximumFileBytes = 4 * 1024 * 1024;
 
+    // Linux and macOS lock exclusively only for FileShare.None. On Windows FileShare.Delete alone still excludes every other
+    // opener with read or write access, and lets a directory (a test's temp directory) be deleted while the lock is held.
+    private static readonly FileShare LockShare = OperatingSystem.IsWindows() ? FileShare.Delete : FileShare.None;
+
     private readonly Func<string, bool> _directoryExists;
     private readonly string _stateDirectory;
     private FileStream? _lock;
@@ -63,6 +67,11 @@ public sealed class SessionStore : IDisposable
         IReadOnlyDictionary<TabId, SessionDraft>? drafts,
         CancellationToken cancellationToken)
     {
+        if (_ownedByOther)
+        {
+            TakeOwnership();
+        }
+
         if (_ownedByOther)
         {
             // Another instance owns the file: its tabs win and this one saves nothing (not a failure, so no error message).
@@ -139,6 +148,11 @@ public sealed class SessionStore : IDisposable
     // instance finds it taken and never writes, so two instances cannot overwrite each other's tabs, pins and recents.
     private void TakeOwnership()
     {
+        if (_lock is not null)
+        {
+            return;
+        }
+
         try
         {
             Directory.CreateDirectory(_stateDirectory);
@@ -146,9 +160,10 @@ public sealed class SessionStore : IDisposable
                 Path.Combine(_stateDirectory, LockFileName),
                 FileMode.OpenOrCreate,
                 FileAccess.ReadWrite,
-                FileShare.None,
+                LockShare,
                 1,
                 FileOptions.DeleteOnClose);
+            _ownedByOther = false;
         }
         catch (IOException)
         {

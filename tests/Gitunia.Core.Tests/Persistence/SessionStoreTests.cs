@@ -248,6 +248,37 @@ public class SessionStoreTests
         Assert.False(File.Exists(stale));
     }
 
+    [Fact]
+    public async Task GivenOwningStore_WhenLoadedTwice_ThenItStillOwnsTheSessionAndSaves()
+    {
+        using var directory = new TemporaryDirectory();
+        using var store = new SessionStore(directory.DirectoryPath, _ => true);
+        await store.LoadAsync(TestContext.Current.CancellationToken);
+
+        var second = await store.LoadAsync(TestContext.Current.CancellationToken);
+        await store.SaveAsync(SessionFixtures.Open(Workspace.Empty, "alpha"), TestContext.Current.CancellationToken);
+
+        Assert.Null(second.Detail);
+        var reloaded = await new SessionStore(directory.DirectoryPath, _ => true).LoadAsync(TestContext.Current.CancellationToken);
+        Assert.Equal(["alpha"], reloaded.Update.Workspace.Tabs.Select(tab => tab.DisplayName));
+    }
+
+    [Fact]
+    public async Task GivenSecondInstanceWaitedOut_WhenOwnerQuitsBeforeItSaves_ThenItTakesOverAndSaves()
+    {
+        using var directory = new TemporaryDirectory();
+        var first = new SessionStore(directory.DirectoryPath, _ => true);
+        await first.LoadAsync(TestContext.Current.CancellationToken);
+        using var second = new SessionStore(directory.DirectoryPath, _ => true);
+        await second.LoadAsync(TestContext.Current.CancellationToken);
+        first.Dispose();
+
+        await second.SaveAsync(SessionFixtures.Open(Workspace.Empty, "beta"), TestContext.Current.CancellationToken);
+
+        var reloaded = await new SessionStore(directory.DirectoryPath, _ => true).LoadAsync(TestContext.Current.CancellationToken);
+        Assert.Equal(["beta"], reloaded.Update.Workspace.Tabs.Select(tab => tab.DisplayName));
+    }
+
     private static string[] DataFiles(string directory) =>
         [.. Directory.GetFiles(directory).Where(file => Path.GetFileName(file) != SessionStore.LockFileName)];
 }

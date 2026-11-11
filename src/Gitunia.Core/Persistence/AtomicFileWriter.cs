@@ -73,7 +73,7 @@ public static class AtomicFileWriter
                 }
             }
         }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or ArgumentException)
         {
             // Best effort: a missing directory or a listing error leaves the files for the next start.
         }

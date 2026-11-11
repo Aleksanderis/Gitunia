@@ -56,8 +56,16 @@ public sealed class CommitWriter(GitRunner runner) : ICommitWriter
         try
         {
             var path = Path.Combine(location.GitDirectory, MergeMessageFile);
-            var lines = await File.ReadAllLinesAsync(path, cancellationToken).ConfigureAwait(false);
-            return string.Join('\n', lines.Where(line => !line.StartsWith(CommentMark))).TrimEnd();
+            // Shares read, write and delete so the read never blocks git renaming over MERGE_MSG (Windows).
+            var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete, 4096, true);
+            await using (stream.ConfigureAwait(false))
+            {
+                using var reader = new StreamReader(stream);
+                var text = await reader.ReadToEndAsync(cancellationToken).ConfigureAwait(false);
+                var lines = text.Split('\n').Select(line => line.TrimEnd('\r'));
+
+                return string.Join('\n', lines.Where(line => !line.StartsWith(CommentMark))).TrimEnd();
+            }
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
