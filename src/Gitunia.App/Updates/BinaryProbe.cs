@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Diagnostics;
 using Gitunia.Core.Updates;
+using Gitunia.Git.Execution;
 
 namespace Gitunia.App.Updates;
 
@@ -60,20 +61,8 @@ public static class BinaryProbe
         }
         catch (OperationCanceledException)
         {
-            KillQuietly(process);
+            ProcessKiller.KillQuietly(process);
             throw;
-        }
-    }
-
-    private static void KillQuietly(Process process)
-    {
-        try
-        {
-            process.Kill(entireProcessTree: true);
-        }
-        catch (Exception exception) when (exception is InvalidOperationException or Win32Exception)
-        {
-            // The probe ended on its own just before: nothing left to stop.
         }
     }
 
