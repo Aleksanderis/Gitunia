@@ -54,8 +54,8 @@ public static class RefParser
                 track.Behind,
                 track.IsGone,
                 fields[5] == "*",
-                NullIfEmpty(fields[6]),
-                NativePath(NullIfEmpty(fields[7]))));
+                NativePath(NullIfEmpty(fields[6])),
+                NullIfEmpty(fields[7])));
         }
 
         return new ParseResult<GitRef>(refs, warnings);
