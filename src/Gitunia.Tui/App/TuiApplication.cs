@@ -1,6 +1,8 @@
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Commits;
 using Gitunia.App;
+using Gitunia.App.Picker;
+using Gitunia.App.Tabs;
 using Gitunia.Git.Execution;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Platform;
@@ -16,6 +18,8 @@ namespace Gitunia.Tui.App;
 /// </summary>
 public sealed class TuiApplication(GitServices services, ConsoleCapabilities detectedCapabilities, IPlatform platform)
 {
+    private static readonly TimeSpan ExistenceTimeout = TimeSpan.FromSeconds(5);
+
     /// <summary>Terminal.Gui driver to force (smoke tests); null picks the platform default.</summary>
     public string? DriverName { get; init; }
 
@@ -76,6 +80,9 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities det
             host.Dispatch(new CommitDraftRestored(tabId, saved));
         }
 
+        // The restored tabs are not probed on the disk before the first frame; a dead path is marked missing a moment later.
+        _ = new TabExistenceChecker(host, DiskDirectories.Instance, ExistenceTimeout)
+            .Start(host.Workspace.Tabs, CancellationToken.None);
         shell.Effects.StatusPoller.Start();
         shell.Effects.WorktreePoller.Start();
         if (location is not null)

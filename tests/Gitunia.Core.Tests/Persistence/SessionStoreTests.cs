@@ -20,13 +20,27 @@ public class SessionStoreTests
     }
 
     [Fact]
+    public async Task GivenTabWhoseDirectoryIsGone_WhenLoading_ThenItIsRestoredWithoutProbingTheDisk()
+    {
+        using var directory = new TemporaryDirectory();
+        var workspace = SessionFixtures.Open(Workspace.Empty, "never-created");
+        await new SessionStore(directory.DirectoryPath).SaveAsync(workspace, TestContext.Current.CancellationToken);
+
+        var result = await new SessionStore(directory.DirectoryPath).LoadAsync(TestContext.Current.CancellationToken);
+
+        var tab = Assert.Single(result.Update.Workspace.Tabs);
+        Assert.False(tab.IsMissing);
+        Assert.IsType<LoadRepositoryEffect>(Assert.Single(result.Update.Effects));
+    }
+
+    [Fact]
     public async Task GivenSavedSession_WhenLoadingInNewStore_ThenSessionIsRestored()
     {
         using var directory = new TemporaryDirectory();
         var workspace = SessionFixtures.Open(Workspace.Empty, "alpha", "beta");
 
         var saved = await new SessionStore(directory.DirectoryPath).SaveAsync(workspace, TestContext.Current.CancellationToken);
-        var result = await new SessionStore(directory.DirectoryPath, _ => true).LoadAsync(TestContext.Current.CancellationToken);
+        var result = await new SessionStore(directory.DirectoryPath).LoadAsync(TestContext.Current.CancellationToken);
 
         Assert.True(saved);
         Assert.Equal(SessionLoadStatus.Restored, result.Status);
@@ -42,7 +56,7 @@ public class SessionStoreTests
         var drafts = new Dictionary<TabId, SessionDraft> { [workspace.Tabs[0].Id] = new("fix: keep it", true, true) };
 
         await new SessionStore(directory.DirectoryPath).SaveAsync(workspace, drafts, TestContext.Current.CancellationToken);
-        var result = await new SessionStore(directory.DirectoryPath, _ => true).LoadAsync(TestContext.Current.CancellationToken);
+        var result = await new SessionStore(directory.DirectoryPath).LoadAsync(TestContext.Current.CancellationToken);
 
         var draft = Assert.Single(result.Drafts);
         Assert.Equal(result.Update.Workspace.Tabs[0].Id, draft.Key);
@@ -119,7 +133,7 @@ public class SessionStoreTests
 
         await store.SaveAsync(SessionFixtures.Open(Workspace.Empty, "beta"), TestContext.Current.CancellationToken);
 
-        var result = await new SessionStore(directory.DirectoryPath, _ => true).LoadAsync(TestContext.Current.CancellationToken);
+        var result = await new SessionStore(directory.DirectoryPath).LoadAsync(TestContext.Current.CancellationToken);
         Assert.Equal("beta", Assert.Single(result.Update.Workspace.Tabs).DisplayName);
         Assert.Equal([store.FilePath], DataFiles(directory.DirectoryPath));
     }
@@ -186,8 +200,8 @@ public class SessionStoreTests
     public async Task GivenAnotherInstanceOwnsTheSession_WhenSecondLoadsAndSaves_ThenItWarnsAndLeavesTheFileAlone()
     {
         using var directory = new TemporaryDirectory();
-        using var first = new SessionStore(directory.DirectoryPath, _ => true);
-        using var second = new SessionStore(directory.DirectoryPath, _ => true);
+        using var first = new SessionStore(directory.DirectoryPath);
+        using var second = new SessionStore(directory.DirectoryPath);
         var firstLoad = await first.LoadAsync(TestContext.Current.CancellationToken);
         await first.SaveAsync(SessionFixtures.Open(Workspace.Empty, "alpha"), TestContext.Current.CancellationToken);
 
@@ -198,7 +212,7 @@ public class SessionStoreTests
         Assert.Contains("owned by another", secondLoad.Detail);
         Assert.Equal(["alpha"], secondLoad.Update.Workspace.Tabs.Select(tab => tab.DisplayName));
         Assert.True(saved);
-        var reloaded = await new SessionStore(directory.DirectoryPath, _ => true).LoadAsync(TestContext.Current.CancellationToken);
+        var reloaded = await new SessionStore(directory.DirectoryPath).LoadAsync(TestContext.Current.CancellationToken);
         Assert.Equal(["alpha"], reloaded.Update.Workspace.Tabs.Select(tab => tab.DisplayName));
     }
 
@@ -206,16 +220,16 @@ public class SessionStoreTests
     public async Task GivenOwnerDisposed_WhenAnotherInstanceLoads_ThenItOwnsTheSessionAndSaves()
     {
         using var directory = new TemporaryDirectory();
-        var first = new SessionStore(directory.DirectoryPath, _ => true);
+        var first = new SessionStore(directory.DirectoryPath);
         await first.LoadAsync(TestContext.Current.CancellationToken);
         first.Dispose();
-        using var second = new SessionStore(directory.DirectoryPath, _ => true);
+        using var second = new SessionStore(directory.DirectoryPath);
 
         var load = await second.LoadAsync(TestContext.Current.CancellationToken);
         await second.SaveAsync(SessionFixtures.Open(Workspace.Empty, "beta"), TestContext.Current.CancellationToken);
 
         Assert.Null(load.Detail);
-        var reloaded = await new SessionStore(directory.DirectoryPath, _ => true).LoadAsync(TestContext.Current.CancellationToken);
+        var reloaded = await new SessionStore(directory.DirectoryPath).LoadAsync(TestContext.Current.CancellationToken);
         Assert.Equal(["beta"], reloaded.Update.Workspace.Tabs.Select(tab => tab.DisplayName));
     }
 
@@ -223,7 +237,7 @@ public class SessionStoreTests
     public async Task GivenSessionFileHeldOpenForReading_WhenLoading_ThenSessionIsRestored()
     {
         using var directory = new TemporaryDirectory();
-        using var store = new SessionStore(directory.DirectoryPath, _ => true);
+        using var store = new SessionStore(directory.DirectoryPath);
         await store.SaveAsync(SessionFixtures.Open(Workspace.Empty, "alpha"), TestContext.Current.CancellationToken);
         await using var reader = SharedFile.OpenRead(store.FilePath);
 
@@ -250,14 +264,14 @@ public class SessionStoreTests
     public async Task GivenOwningStore_WhenLoadedTwice_ThenItStillOwnsTheSessionAndSaves()
     {
         using var directory = new TemporaryDirectory();
-        using var store = new SessionStore(directory.DirectoryPath, _ => true);
+        using var store = new SessionStore(directory.DirectoryPath);
         await store.LoadAsync(TestContext.Current.CancellationToken);
 
         var second = await store.LoadAsync(TestContext.Current.CancellationToken);
         await store.SaveAsync(SessionFixtures.Open(Workspace.Empty, "alpha"), TestContext.Current.CancellationToken);
 
         Assert.Null(second.Detail);
-        var reloaded = await new SessionStore(directory.DirectoryPath, _ => true).LoadAsync(TestContext.Current.CancellationToken);
+        var reloaded = await new SessionStore(directory.DirectoryPath).LoadAsync(TestContext.Current.CancellationToken);
         Assert.Equal(["alpha"], reloaded.Update.Workspace.Tabs.Select(tab => tab.DisplayName));
     }
 
@@ -265,15 +279,15 @@ public class SessionStoreTests
     public async Task GivenSecondInstanceWaitedOut_WhenOwnerQuitsBeforeItSaves_ThenItTakesOverAndSaves()
     {
         using var directory = new TemporaryDirectory();
-        var first = new SessionStore(directory.DirectoryPath, _ => true);
+        var first = new SessionStore(directory.DirectoryPath);
         await first.LoadAsync(TestContext.Current.CancellationToken);
-        using var second = new SessionStore(directory.DirectoryPath, _ => true);
+        using var second = new SessionStore(directory.DirectoryPath);
         await second.LoadAsync(TestContext.Current.CancellationToken);
         first.Dispose();
 
         await second.SaveAsync(SessionFixtures.Open(Workspace.Empty, "beta"), TestContext.Current.CancellationToken);
 
-        var reloaded = await new SessionStore(directory.DirectoryPath, _ => true).LoadAsync(TestContext.Current.CancellationToken);
+        var reloaded = await new SessionStore(directory.DirectoryPath).LoadAsync(TestContext.Current.CancellationToken);
         Assert.Equal(["beta"], reloaded.Update.Workspace.Tabs.Select(tab => tab.DisplayName));
     }
 

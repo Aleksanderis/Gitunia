@@ -24,19 +24,16 @@ public sealed class SessionStore : IDisposable
     // opener with read or write access, and lets a directory (a test's temp directory) be deleted while the lock is held.
     private static readonly FileShare LockShare = OperatingSystem.IsWindows() ? FileShare.Delete : FileShare.None;
 
-    private readonly Func<string, bool> _directoryExists;
     private readonly string _stateDirectory;
     private FileStream? _lock;
     private bool _ownedByOther;
 
     /// <summary>Creates a store for a state directory (from <c>IPlatform.StateDirectory</c>; tests pass a temp directory).</summary>
     /// <param name="stateDirectory">The directory holding the session file.</param>
-    /// <param name="directoryExists">Existence check for repository directories; defaults to the file system.</param>
-    public SessionStore(string stateDirectory, Func<string, bool>? directoryExists = null)
+    public SessionStore(string stateDirectory)
     {
         _stateDirectory = stateDirectory;
         FilePath = Path.Combine(stateDirectory, FileName);
-        _directoryExists = directoryExists ?? Directory.Exists;
     }
 
     /// <summary>The full path of the session file.</summary>
@@ -96,6 +93,9 @@ public sealed class SessionStore : IDisposable
         _lock?.Dispose();
     }
 
+    // Startup must not probe the disk (a dead network drive blocks for tens of seconds): the tabs are checked later.
+    private static bool AssumeExists(string directory) => true;
+
     private async Task<SessionLoadResult> ReadAsync(CancellationToken cancellationToken)
     {
         byte[] content;
@@ -140,7 +140,7 @@ public sealed class SessionStore : IDisposable
             return SetAside("the session file is from another version of gitunia", $".v{document.Version}.bak", SessionLoadStatus.UnsupportedVersion);
         }
 
-        var session = SessionDocumentMapper.ToSession(document, _directoryExists);
+        var session = SessionDocumentMapper.ToSession(document, AssumeExists);
         return new SessionLoadResult(session.Update, SessionLoadStatus.Restored, null) { Drafts = session.Drafts };
     }
 
