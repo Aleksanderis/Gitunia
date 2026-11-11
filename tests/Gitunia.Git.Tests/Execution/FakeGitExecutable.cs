@@ -61,6 +61,12 @@ public sealed class FakeGitExecutable : IDisposable
     public static FakeGitExecutable Printing(string text) =>
         Create($"printf '%s' '{text}'", $"<nul set /p =\"{text}\"");
 
+    /// <summary>Prints text, starts a background child that keeps stdout and stderr open for a few seconds (like a hook's daemon) and exits 0.</summary>
+    public static FakeGitExecutable PrintingWithBackgroundChild(string text) =>
+        Create(
+            $"sleep 10 &\nprintf '%s' '{text}'",
+            $"start /b ping -n 11 127.0.0.1 >nul\r\n<nul set /p =\"{text}\"");
+
     public static FakeGitExecutable PrintingThenSleeping(string text) =>
         Create($"printf '%s' '{text}'\nsleep 30", $"<nul set /p =\"{text}\"\r\nping -n 30 127.0.0.1 >nul");
 

@@ -19,6 +19,9 @@ public sealed class GitRunner
     private const char LineFeed = '\n';
     private const char CarriageReturn = '\r';
 
+    // After git exits, a background child of a hook can still hold the pipes open; this long the readers may drain.
+    private static readonly TimeSpan DrainGrace = TimeSpan.FromMilliseconds(1500);
+
     private readonly GitRunnerOptions _options;
 
     public GitRunner(GitRunnerOptions? options = null)
@@ -106,49 +109,74 @@ public sealed class GitRunner
         }
     }
 
-    // Reports each line-feed or carriage-return terminated segment and restarts the idle timer on every read.
+    // Reports each line-feed or carriage-return terminated segment and restarts the idle timer on every read. A cut of
+    // the drain token (git exited, a pipe is still held) ends the read with what arrived so far.
     private static async Task<string> ReadErrorAsync(
         Process process,
         GitRunOptions runOptions,
         CancellationTokenSource timeoutSource,
         TimeSpan timeout,
-        CancellationToken cancellationToken)
+        CancellationToken drainToken,
+        CancellationToken hardToken)
     {
-        if (runOptions.OnStandardErrorLine is not { } onLine)
-        {
-            return await process.StandardError.ReadToEndAsync(cancellationToken).ConfigureAwait(false);
-        }
-
         var all = new StringBuilder();
         var segment = new StringBuilder();
         var buffer = new char[ErrorBufferSize];
         var reader = process.StandardError;
-        while (true)
+        try
         {
-            var count = await reader.ReadAsync(buffer.AsMemory(), cancellationToken).ConfigureAwait(false);
-            if (count == 0)
+            while (true)
             {
-                break;
-            }
+                var count = await reader.ReadAsync(buffer.AsMemory(), drainToken).ConfigureAwait(false);
+                if (count == 0)
+                {
+                    break;
+                }
 
-            timeoutSource.CancelAfter(timeout);
-            all.Append(buffer, 0, count);
-            for (var index = 0; index < count; index++)
-            {
-                if (buffer[index] is LineFeed or CarriageReturn)
+                if (runOptions.OnStandardErrorLine is not null)
                 {
-                    FlushSegment(segment, onLine);
+                    timeoutSource.CancelAfter(timeout);
                 }
-                else
-                {
-                    segment.Append(buffer[index]);
-                }
+
+                all.Append(buffer, 0, count);
+                SplitSegments(buffer, count, segment, runOptions.OnStandardErrorLine);
             }
         }
+        catch (OperationCanceledException) when (IsDrainCut(drainToken, hardToken))
+        {
+            // Partial stderr is what we have.
+        }
 
-        FlushSegment(segment, onLine);
+        if (runOptions.OnStandardErrorLine is { } onLine)
+        {
+            FlushSegment(segment, onLine);
+        }
+
         return all.ToString();
     }
+
+    private static void SplitSegments(char[] buffer, int count, StringBuilder segment, Action<string>? onLine)
+    {
+        if (onLine is null)
+        {
+            return;
+        }
+
+        for (var index = 0; index < count; index++)
+        {
+            if (buffer[index] is LineFeed or CarriageReturn)
+            {
+                FlushSegment(segment, onLine);
+            }
+            else
+            {
+                segment.Append(buffer[index]);
+            }
+        }
+    }
+
+    private static bool IsDrainCut(CancellationToken drainToken, CancellationToken hardToken) =>
+        drainToken.IsCancellationRequested && !hardToken.IsCancellationRequested;
 
     private static void FlushSegment(StringBuilder segment, Action<string> onLine)
     {
@@ -208,13 +236,15 @@ public sealed class GitRunner
         using var process = await Task.Run(() => Start(arguments, runOptions), CancellationToken.None).ConfigureAwait(false);
         try
         {
-            var outputTask = ReadAllAsync(process.StandardOutput.BaseStream, linked.Token);
-            var errorTask = ReadErrorAsync(process, runOptions, timeoutSource, timeout, linked.Token);
-            var inputTask = WriteInputAsync(process, runOptions.StandardInput, linked.Token);
-            await Task.WhenAll(outputTask, errorTask, inputTask).ConfigureAwait(false);
+            using var drainSource = CancellationTokenSource.CreateLinkedTokenSource(linked.Token);
+            var outputTask = ReadAllAsync(process.StandardOutput.BaseStream, drainSource.Token, linked.Token);
+            var errorTask = ReadErrorAsync(process, runOptions, timeoutSource, timeout, drainSource.Token, linked.Token);
+            var inputTask = WriteInputAsync(process, runOptions.StandardInput, drainSource.Token, linked.Token);
+            var drained = Task.WhenAll(outputTask, errorTask, inputTask);
+            await process.WaitForExitAsync(linked.Token).ConfigureAwait(false);
+            await DrainAsync(drained, drainSource, linked.Token).ConfigureAwait(false);
             var output = outputTask.Result;
             var error = errorTask.Result;
-            await process.WaitForExitAsync(linked.Token).ConfigureAwait(false);
             if (!IsAccepted(process.ExitCode, runOptions))
             {
                 throw new GitCommandFailedException(arguments, process.ExitCode, error, Encoding.UTF8.GetString(output));
@@ -243,8 +273,12 @@ public sealed class GitRunner
         using var timeoutSource = new CancellationTokenSource(Timeout.InfiniteTimeSpan);
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutSource.Token);
         using var process = await Task.Run(() => Start(arguments, runOptions), CancellationToken.None).ConfigureAwait(false);
-        var errorTask = process.StandardError.ReadToEndAsync(linked.Token);
-        await WriteInputAsync(process, null, linked.Token).ConfigureAwait(false);
+        using var drainSource = CancellationTokenSource.CreateLinkedTokenSource(linked.Token);
+        using var watchSource = CancellationTokenSource.CreateLinkedTokenSource(linked.Token);
+        var watchTask = CutReadersAfterExitAsync(process, drainSource, watchSource.Token);
+        var errorTask = ReadTextAsync(process.StandardError, drainSource.Token, linked.Token);
+        await WriteInputAsync(process, null, drainSource.Token, linked.Token).ConfigureAwait(false);
+        var exitTask = process.WaitForExitAsync(linked.Token);
         var output = process.StandardOutput.BaseStream;
         var buffer = ArrayPool<byte>.Shared.Rent(ReadBufferSize);
         try
@@ -256,7 +290,7 @@ public sealed class GitRunner
                 {
                     // The idle timer only runs while waiting for git, never while the consumer handles a chunk.
                     timeoutSource.CancelAfter(timeout);
-                    count = await output.ReadAsync(buffer, linked.Token).ConfigureAwait(false);
+                    count = await ReadChunkAsync(output, buffer, exitTask, linked.Token).ConfigureAwait(false);
                     timeoutSource.CancelAfter(Timeout.InfiniteTimeSpan);
                 }
                 catch (OperationCanceledException) when (timeoutSource.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
@@ -279,6 +313,9 @@ public sealed class GitRunner
         {
             // Early disposal, cancellation, timeout and failures all end here.
             KillQuietly(process);
+            await watchSource.CancelAsync().ConfigureAwait(false);
+            await watchTask.ConfigureAwait(false);
+            await Task.WhenAny(exitTask).ConfigureAwait(false);
             ArrayPool<byte>.Shared.Return(buffer);
         }
     }
@@ -308,8 +345,107 @@ public sealed class GitRunner
         }
     }
 
+    // The grace period only runs while a read is pending after git exited, never while the consumer is busy, so output
+    // that is still in the pipe is not lost to a slow consumer. A cut ends the stream like end of file.
+    private static async Task<int> ReadChunkAsync(
+        Stream output,
+        byte[] buffer,
+        Task exitTask,
+        CancellationToken hardToken)
+    {
+        using var readSource = CancellationTokenSource.CreateLinkedTokenSource(hardToken);
+        using var stopSource = CancellationTokenSource.CreateLinkedTokenSource(hardToken);
+        var cutTask = CutReadAfterExitAsync(exitTask, readSource, stopSource.Token);
+        try
+        {
+            return await output.ReadAsync(buffer, readSource.Token).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (IsDrainCut(readSource.Token, hardToken))
+        {
+            return 0;
+        }
+        finally
+        {
+            await stopSource.CancelAsync().ConfigureAwait(false);
+            await cutTask.ConfigureAwait(false);
+        }
+    }
+
+    private static async Task CutReadAfterExitAsync(
+        Task exitTask,
+        CancellationTokenSource readSource,
+        CancellationToken stopToken)
+    {
+        try
+        {
+            await exitTask.WaitAsync(stopToken).ConfigureAwait(false);
+            readSource.CancelAfter(DrainGrace);
+        }
+        catch (OperationCanceledException)
+        {
+            // The read ended first.
+        }
+    }
+
+    // Once git has exited, gives the readers the grace period, then cuts them.
+    private static async Task CutReadersAfterExitAsync(
+        Process process,
+        CancellationTokenSource drainSource,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
+            await Task.Delay(DrainGrace, cancellationToken).ConfigureAwait(false);
+            await drainSource.CancelAsync().ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            // The call ended first.
+        }
+    }
+
+    private static async Task DrainAsync(Task drained, CancellationTokenSource drainSource, CancellationToken hardToken)
+    {
+        using var graceSource = CancellationTokenSource.CreateLinkedTokenSource(hardToken);
+        var grace = Task.Delay(DrainGrace, graceSource.Token);
+        if (await Task.WhenAny(drained, grace).ConfigureAwait(false) != drained)
+        {
+            await drainSource.CancelAsync().ConfigureAwait(false);
+        }
+
+        await graceSource.CancelAsync().ConfigureAwait(false);
+        await drained.ConfigureAwait(false);
+    }
+
+    private static async Task<string> ReadTextAsync(
+        StreamReader reader,
+        CancellationToken drainToken,
+        CancellationToken hardToken)
+    {
+        var all = new StringBuilder();
+        var buffer = new char[ErrorBufferSize];
+        try
+        {
+            while (await reader.ReadAsync(buffer.AsMemory(), drainToken).ConfigureAwait(false) is var count and > 0)
+            {
+                all.Append(buffer, 0, count);
+            }
+        }
+        catch (OperationCanceledException) when (IsDrainCut(drainToken, hardToken))
+        {
+            // Partial stderr is what we have.
+        }
+
+        return all.ToString();
+    }
+
     /// <summary>Feeds stdin and closes it (git must never wait for input). A git that exits before reading everything is not an error here; its exit code tells.</summary>
-    private static async Task WriteInputAsync(Process process, byte[]? input, CancellationToken cancellationToken)
+    private static async Task WriteInputAsync(
+        Process process,
+        byte[]? input,
+        CancellationToken cancellationToken,
+        CancellationToken hardToken)
     {
         var stream = process.StandardInput.BaseStream;
         try
@@ -324,6 +460,10 @@ public sealed class GitRunner
         {
             // Broken pipe: git stopped reading.
         }
+        catch (OperationCanceledException) when (IsDrainCut(cancellationToken, hardToken))
+        {
+            // Git exited without reading its input.
+        }
         finally
         {
             try
@@ -337,10 +477,21 @@ public sealed class GitRunner
         }
     }
 
-    private static async Task<byte[]> ReadAllAsync(Stream stream, CancellationToken cancellationToken)
+    private static async Task<byte[]> ReadAllAsync(
+        Stream stream,
+        CancellationToken drainToken,
+        CancellationToken hardToken)
     {
         using var memory = new MemoryStream();
-        await stream.CopyToAsync(memory, ReadBufferSize, cancellationToken).ConfigureAwait(false);
+        try
+        {
+            await stream.CopyToAsync(memory, ReadBufferSize, drainToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (IsDrainCut(drainToken, hardToken))
+        {
+            // What arrived before the cut is the output.
+        }
+
         return memory.ToArray();
     }
 }
