@@ -26,7 +26,7 @@ public sealed class GitExecutableLocatorTests : IDisposable
 
         // The extension keeps the case of PATHEXT on Windows (git.EXE), the file system does not care.
         Assert.Equal(real, located, ignoreCase: OperatingSystem.IsWindows());
-        Assert.NotEqual(fake, located, ignoreCase: OperatingSystem.IsWindows());
+        Assert.False(string.Equals(fake, located, StringComparison.OrdinalIgnoreCase));
     }
 
     [Fact]
