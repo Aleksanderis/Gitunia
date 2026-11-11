@@ -10,6 +10,7 @@ using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Execution.Exceptions;
+using Gitunia.Git.Repositories;
 using Gitunia.Git.Refs.Models;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Tests.Fixtures;
@@ -29,6 +30,8 @@ public class TabRefresherTests
         TimeSpan.FromMilliseconds(500),
         TimeSpan.FromMilliseconds(200),
         UseFileWatchers: true);
+
+    private const RepositoryChangeKinds StatusKinds = RepositoryChangeKinds.Index | RepositoryChangeKinds.WorkingTree;
 
     private static readonly PollOptions FastPoll = new(
         TimeSpan.FromMilliseconds(40),
@@ -394,6 +397,65 @@ public class TabRefresherTests
         Assert.Contains(harness.Session.Graph.ToArray(), entry => entry.Decorations.Any(decoration => decoration.Name == "topic"));
     }
 
+    [Fact]
+    public async Task GivenOwnRefreshThatSawARefMove_WhenThePollerTicks_ThenNoRefsRefreshFollows()
+    {
+        using var repository = TestRepository.Create();
+        repository.Commit("root", new TestFile("a.txt", "1"));
+        var counting = new CountingRefresher(TestGit.Services.Refresher);
+        using var harness = await Harness.LoadAsync(repository, polling: true, refresher: counting);
+        harness.Refresher.SetActive(true);
+        await harness.Pump.RunUntilAsync(() => harness.Tab.Status is not null && !harness.Refresher.IsRefreshing);
+        repository.Branch("topic");
+        var before = counting.Count;
+
+        harness.Refresher.RefreshNow(false);
+        await harness.Pump.RunUntilAsync(() => counting.Count > before && !harness.Refresher.IsRefreshing);
+        var afterOwn = counting.Count;
+        var end = DateTime.UtcNow + TimeSpan.FromMilliseconds(700);
+        await harness.Pump.RunUntilAsync(() => DateTime.UtcNow > end);
+
+        Assert.DoesNotContain(counting.KindsFrom(afterOwn), kinds => kinds != StatusKinds);
+    }
+
+    private sealed class CountingRefresher(IRepositoryRefresher inner) : IRepositoryRefresher
+    {
+        private readonly List<RepositoryChangeKinds> _kinds = [];
+
+        public int Count
+        {
+            get
+            {
+                lock (_kinds)
+                {
+                    return _kinds.Count;
+                }
+            }
+        }
+
+        public List<RepositoryChangeKinds> KindsFrom(int index)
+        {
+            lock (_kinds)
+            {
+                return [.. _kinds.Skip(index)];
+            }
+        }
+
+        public Task<RepositoryRefreshResult> RefreshAsync(
+            RepositoryLocation location,
+            RepositorySnapshot? previous,
+            RepositoryChangeKinds kinds,
+            CancellationToken cancellationToken)
+        {
+            lock (_kinds)
+            {
+                _kinds.Add(kinds);
+            }
+
+            return inner.RefreshAsync(location, previous, kinds, cancellationToken);
+        }
+    }
+
     private sealed class Harness : IDisposable
     {
         private readonly Func<int> _runCount;
@@ -433,8 +495,9 @@ public class TabRefresherTests
             TestRepository repository,
             bool start = true,
             bool polling = false,
-            RepositoryWatcherOptions? watcher = null) =>
-            CreateAsync(repository, start, loadFirst: true, polling, watcher);
+            RepositoryWatcherOptions? watcher = null,
+            IRepositoryRefresher? refresher = null) =>
+            CreateAsync(repository, start, loadFirst: true, polling, watcher, refresher);
 
         /// <summary>Starts the refresher while the initial load is still pending; <see cref="FinishLoadAsync"/> completes it.</summary>
         public static Task<Harness> StartBeforeLoadAsync(TestRepository repository) => CreateAsync(repository, start: true, loadFirst: false);
@@ -453,7 +516,8 @@ public class TabRefresherTests
             bool start,
             bool loadFirst,
             bool polling = false,
-            RepositoryWatcherOptions? watcher = null)
+            RepositoryWatcherOptions? watcher = null,
+            IRepositoryRefresher? repositoryRefresher = null)
         {
             var location = await TestGit.Services.Discovery.DiscoverAsync(repository.WorkingTreePath, CancellationToken.None);
             var host = new Dispatcher(AppState.Empty);
@@ -484,7 +548,10 @@ public class TabRefresherTests
                 });
             });
             var refresher = new TabRefresher(
-                new TabRefreshServices(TestGit.Services.Refresher, TestGit.Services.Stashes, TestGit.Services.IncrementalGraphLoader),
+                new TabRefreshServices(
+                    repositoryRefresher ?? TestGit.Services.Refresher,
+                    TestGit.Services.Stashes,
+                    TestGit.Services.IncrementalGraphLoader),
                 new TabContext(host, session, location, statuses, ui),
                 new TabWatching(new WatchBudget(), options, FastPoll));
             refresher.GraphReloaded += reloads.Add;

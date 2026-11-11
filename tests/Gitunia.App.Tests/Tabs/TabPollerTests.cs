@@ -118,7 +118,7 @@ public class TabPollerTests
         harness.Poller.SetActive(true);
         await harness.WaitForAsync(kinds => kinds == StatusOnly);
         repository.Branch("topic");
-        harness.Poller.AcceptRefresh(RepositoryChangeKinds.All);
+        harness.Poller.AcceptRefresh(harness.Poller.ReadFingerprint(), RepositoryChangeKinds.All);
         await harness.DrainForAsync(Settle);
         harness.Requests.Clear();
 

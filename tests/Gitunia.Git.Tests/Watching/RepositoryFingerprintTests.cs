@@ -89,6 +89,21 @@ public class RepositoryFingerprintTests
     }
 
     [Fact]
+    public async Task GivenAnIndexWriteInTheMainWorktree_WhenAWorktreeTabComputes_ThenNothingDiffers()
+    {
+        using var repository = TestRepository.Create();
+        repository.Commit("root", new TestFile("a.txt", "1"));
+        var other = repository.AddWorktree("other", "other-branch", createBranch: true);
+        var location = await Discovery.DiscoverAsync(other, TestContext.Current.CancellationToken);
+        var before = RepositoryFingerprint.Compute(location);
+
+        repository.WriteFile("b.txt", "2");
+        repository.Git("add", "b.txt");
+
+        Assert.Equal(RepositoryChangeKinds.None, RepositoryFingerprint.Compute(location).ChangedKinds(before));
+    }
+
+    [Fact]
     public async Task GivenAnotherWorktreeIsAdded_WhenComputed_ThenTheWorktreesKindDiffers()
     {
         using var repository = TestRepository.Create();

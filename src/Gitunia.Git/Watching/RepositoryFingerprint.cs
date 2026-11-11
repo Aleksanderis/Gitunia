@@ -6,19 +6,29 @@ namespace Gitunia.Git.Watching;
 /// <summary>
 /// A cheap change detector for polling: hashes the name, size and time of the files that carry repository state
 /// (HEAD, index, refs, worktree identity, operation files), one hash per group so a difference says what changed
-/// (see <see cref="RepositoryFingerprintGroups.ChangedKinds"/>). Other worktrees' index and log files are left out, as the
-/// watcher's <see cref="RepositoryChangeClassifier"/> does. Working tree edits are not covered; those need a status read.
+/// (see <see cref="RepositoryFingerprintGroups.ChangedKinds"/>). Other worktrees' index and log files are left out,
+/// as the watcher's <see cref="RepositoryChangeClassifier"/> does, and so is the main worktree's index for a linked
+/// tab. Working tree edits are not covered; those need a status read.
 /// </summary>
 public static class RepositoryFingerprint
 {
+    private const string IndexFile = "index";
+
+    private static readonly HashSet<string> WorktreeIdentityFiles = new(StringComparer.Ordinal)
+    {
+        "HEAD",
+        "gitdir",
+        "locked",
+    };
+
     /// <summary>The hashes of name, size and time of the files that carry repository state.</summary>
     public static RepositoryFingerprintGroups Compute(RepositoryLocation location)
     {
         var groups = new Accumulator();
-        AddRootFiles(ref groups, location, location.GitDirectory);
+        AddRootFiles(ref groups, location, location.GitDirectory, false);
         if (location.IsLinkedWorktree)
         {
-            AddRootFiles(ref groups, location, location.CommonDirectory);
+            AddRootFiles(ref groups, location, location.CommonDirectory, true);
         }
 
         AddRefs(ref groups, Path.Combine(location.CommonDirectory, "refs"));
@@ -26,12 +36,22 @@ public static class RepositoryFingerprint
         return groups.ToGroups();
     }
 
-    private static void AddRootFiles(ref Accumulator groups, RepositoryLocation location, string directory)
+    private static void AddRootFiles(
+        ref Accumulator groups,
+        RepositoryLocation location,
+        string directory,
+        bool isCommonOfLinked)
     {
         try
         {
             foreach (var entry in new DirectoryInfo(directory).EnumerateFileSystemInfos())
             {
+                // The main worktree's index changes on every status there; a linked tab does not show it.
+                if (isCommonOfLinked && entry.Name == IndexFile)
+                {
+                    continue;
+                }
+
                 groups.Add(RepositoryChangeClassifier.Classify(location, entry.FullName), entry);
             }
         }
@@ -57,7 +77,10 @@ public static class RepositoryFingerprint
         }
     }
 
-    /// <summary>Only the top level of each linked worktree's directory (HEAD, gitdir, locked); its index and logs change on every status.</summary>
+    /// <summary>
+    /// Only the identity files of each linked worktree's directory (HEAD, gitdir, locked); its index, logs and the
+    /// files a commit or fetch there writes change too often.
+    /// </summary>
     private static void AddWorktrees(ref Accumulator groups, RepositoryLocation location, string directory)
     {
         var own = Path.TrimEndingDirectorySeparator(location.GitDirectory);
@@ -65,7 +88,8 @@ public static class RepositoryFingerprint
         {
             foreach (var worktree in new DirectoryInfo(directory).EnumerateDirectories())
             {
-                if (string.Equals(Path.TrimEndingDirectorySeparator(worktree.FullName), own, StringComparison.OrdinalIgnoreCase))
+                var name = Path.TrimEndingDirectorySeparator(worktree.FullName);
+                if (string.Equals(name, own, StringComparison.OrdinalIgnoreCase))
                 {
                     // This tab's own directory is covered as the git directory.
                     continue;
@@ -74,7 +98,10 @@ public static class RepositoryFingerprint
                 // The directory entry itself is not hashed: its time changes with every lock file git creates inside.
                 foreach (var entry in worktree.EnumerateFiles())
                 {
-                    groups.Add(RepositoryChangeClassifier.Classify(location, entry.FullName), entry);
+                    if (WorktreeIdentityFiles.Contains(entry.Name))
+                    {
+                        groups.Add(RepositoryChangeKinds.Worktrees, entry);
+                    }
                 }
             }
         }
@@ -121,7 +148,7 @@ public static class RepositoryFingerprint
             }
         }
 
-        /// <summary>A directory that cannot be read: every group sees it, so the state is not mistaken for "no files".</summary>
+        /// <summary>A directory that cannot be read: every group sees it, so it is not mistaken for "no files".</summary>
         public void AddMarker(string directory)
         {
             _head.Add(directory);
@@ -131,8 +158,12 @@ public static class RepositoryFingerprint
             _operation.Add(directory);
         }
 
-        public readonly RepositoryFingerprintGroups ToGroups() =>
-            new(_head.ToHashCode(), _refs.ToHashCode(), _index.ToHashCode(), _worktrees.ToHashCode(), _operation.ToHashCode());
+        public readonly RepositoryFingerprintGroups ToGroups() => new(
+            _head.ToHashCode(),
+            _refs.ToHashCode(),
+            _index.ToHashCode(),
+            _worktrees.ToHashCode(),
+            _operation.ToHashCode());
 
         private static void AddEntry(ref HashCode hash, FileSystemInfo entry)
         {

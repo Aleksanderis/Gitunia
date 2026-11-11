@@ -4,8 +4,8 @@ namespace Gitunia.Git.Watching.Models;
 public readonly record struct RepositoryFingerprintGroups(int Head, int Refs, int Index, int Worktrees, int Operation)
 {
     /// <summary>
-    /// The refresh kinds that cover the groups that differ from <paramref name="previous"/>: HEAD and refs together read
-    /// HEAD, refs and worktrees, the index reads the status, an operation file reads the status too.
+    /// The refresh kinds that cover the groups that differ from <paramref name="previous"/>: HEAD and refs together
+    /// read HEAD, refs and worktrees, the index reads the status, an operation file reads the status too.
     /// <see cref="RepositoryChangeKinds.None"/> when nothing differs.
     /// </summary>
     public RepositoryChangeKinds ChangedKinds(RepositoryFingerprintGroups previous)
@@ -34,11 +34,15 @@ public readonly record struct RepositoryFingerprintGroups(int Head, int Refs, in
         return kinds;
     }
 
-    /// <summary>These groups, except that those a refresh of <paramref name="covered"/> kinds has read take their value from <paramref name="current"/>.</summary>
+    /// <summary>
+    /// These groups, except that those a refresh of <paramref name="covered"/> kinds has read take their value from
+    /// <paramref name="current"/>.
+    /// </summary>
     public RepositoryFingerprintGroups Accept(RepositoryFingerprintGroups current, RepositoryChangeKinds covered)
     {
         var refsCovered = covered.HasFlag(RepositoryChangeKinds.Head) && covered.HasFlag(RepositoryChangeKinds.Refs);
-        var statusCovered = covered.HasFlag(RepositoryChangeKinds.Index) && covered.HasFlag(RepositoryChangeKinds.WorkingTree);
+        var statusCovered = covered.HasFlag(RepositoryChangeKinds.Index)
+            && covered.HasFlag(RepositoryChangeKinds.WorkingTree);
         return new RepositoryFingerprintGroups(
             refsCovered ? current.Head : Head,
             refsCovered ? current.Refs : Refs,

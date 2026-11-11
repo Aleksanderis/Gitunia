@@ -7,8 +7,8 @@ namespace Gitunia.App.Tabs;
 
 /// <summary>
 /// Notices changes made outside Gitunia without file watchers: while its tab is active it reads the repository
-/// fingerprint every <see cref="PollOptions.RefsInterval"/> (off the UI thread) and asks for a refresh of what changed (see <see cref="RepositoryFingerprintGroups"/>) when it
-/// changed, else for a status refresh once the status interval has passed. Never overlaps itself, skips a tick while
+/// fingerprint every <see cref="PollOptions.RefsInterval"/> (off the UI thread) and asks for a refresh of what changed
+/// (see <see cref="RepositoryFingerprintGroups"/>), else for a status refresh once the status interval has passed. Never overlaps itself, skips a tick while
 /// the tab refreshes or runs an action, stops when the tab is hidden or disposed (a late result is dropped), and
 /// lengthens the status interval after a slow refresh. All members except the timer callback run on the UI thread.
 /// </summary>
@@ -111,24 +111,26 @@ public sealed class TabPoller : IDisposable
     }
 
     /// <summary>
-    /// A refresh of <paramref name="covered"/> kinds that Gitunia ran itself has been applied: takes a new fingerprint for those groups, so
-    /// its own writes (stage, commit) are not mistaken for outside changes. A change outside during the refresh still shows in the
-    /// status refreshes that follow every few seconds.
+    /// Reads the fingerprint now, on the calling (background) thread. A refresh Gitunia runs itself takes it before its own
+    /// reads, so its own writes are in it and an outside change made during the refresh still differs at the next tick.
     /// </summary>
-    public void AcceptRefresh(RepositoryChangeKinds covered)
+    public RepositoryFingerprintGroups ReadFingerprint() => _fingerprint(_location);
+
+    /// <summary>
+    /// A refresh of <paramref name="covered"/> kinds that Gitunia ran itself has been applied: the groups it covered take
+    /// their value from <paramref name="before"/> (read by <see cref="ReadFingerprint()"/> before that refresh), so its own
+    /// writes (stage, commit) are not mistaken for outside changes. A read in flight is dropped: it may predate the accept.
+    /// </summary>
+    public void AcceptRefresh(RepositoryFingerprintGroups before, RepositoryChangeKinds covered)
     {
-        if (_isDisposed || covered == RepositoryChangeKinds.None)
+        if (_isDisposed || _baseline is not { } baseline)
         {
             return;
         }
 
-        _tasks.Run(() =>
-        {
-            var value = _fingerprint(_location);
-            _ui.Post(() => AcceptValue(value, covered));
-
-            return Task.CompletedTask;
-        });
+        _baseline = baseline.Accept(before, covered);
+        _epoch++;
+        _isReading = false;
     }
 
     public void Dispose()
@@ -142,14 +144,6 @@ public sealed class TabPoller : IDisposable
     {
         var value = _fingerprint(_location);
         _ui.Post(() => _baseline ??= value);
-    }
-
-    private void AcceptValue(RepositoryFingerprintGroups value, RepositoryChangeKinds covered)
-    {
-        if (!_isDisposed && _baseline is { } baseline)
-        {
-            _baseline = baseline.Accept(value, covered);
-        }
     }
 
     private void Tick()

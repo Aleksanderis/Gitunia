@@ -54,6 +54,7 @@ public sealed class TabRefresher : IDisposable, IPollTarget
     private RepositoryChangeKinds _pending;
     private bool _forceGraph;
     private bool _announce;
+    private bool _isOwnRequest;
     private bool _isReady;
     private bool _sawChange;
     private bool _isRunning;
@@ -138,6 +139,7 @@ public sealed class TabRefresher : IDisposable, IPollTarget
     public void RefreshNow(bool announce = true)
     {
         _announce = announce;
+        _isOwnRequest = true;
         Request(RepositoryChangeKinds.All, true);
     }
 
@@ -148,6 +150,7 @@ public sealed class TabRefresher : IDisposable, IPollTarget
     public void RefreshStatus(Action applied)
     {
         _waiting.Add(applied);
+        _isOwnRequest = true;
         Request(RepositoryChangeKinds.Index | RepositoryChangeKinds.WorkingTree, false);
     }
 
@@ -212,6 +215,8 @@ public sealed class TabRefresher : IDisposable, IPollTarget
         var kinds = _pending;
         var isManual = _announce;
         _announce = false;
+        var isOwn = _isOwnRequest;
+        _isOwnRequest = false;
         var reloadGraph = _forceGraph || (_snapshot is null && (_sawChange || _watcher?.IsStale == true));
         _pending = RepositoryChangeKinds.None;
         _forceGraph = false;
@@ -228,7 +233,7 @@ public sealed class TabRefresher : IDisposable, IPollTarget
         // and the count guard cannot hold.
         var isCapped = _session.IsTruncated;
         IReadOnlyList<GraphEntry> previousRows = reloadGraph || isCapped ? [] : _session.Graph.ToArray();
-        _tasks.Run(() => RefreshAsync(previous, previousRows, isCapped, kinds, reloadGraph, isManual, token));
+        _tasks.Run(() => RefreshAsync(previous, previousRows, isCapped, kinds, reloadGraph, isManual, isOwn, token));
     }
 
     private async Task RefreshAsync(
@@ -238,10 +243,13 @@ public sealed class TabRefresher : IDisposable, IPollTarget
         RepositoryChangeKinds kinds,
         bool reloadGraph,
         bool isManual,
+        bool isOwn,
         CancellationToken token)
     {
         try
         {
+            // Before the reads: Gitunia's own writes are in it, an outside change during the refresh shows at the next tick.
+            var before = isOwn ? _poller?.ReadFingerprint() : null;
             var result = await _refresher.RefreshAsync(_location, previous, kinds, token).ConfigureAwait(false);
             var refsMoved = kinds.HasFlag(RepositoryChangeKinds.Head) || kinds.HasFlag(RepositoryChangeKinds.Refs) || previous is null;
             var stashes = refsMoved ? (await _stashes.ReadStashesAsync(_location, token).ConfigureAwait(false)).Items : null;
@@ -275,7 +283,10 @@ public sealed class TabRefresher : IDisposable, IPollTarget
             _ui.Post(() =>
             {
                 Apply(previous is null, isManual, result, stashes, reload, ReadsStatus(kinds), operation, autoStash);
-                _poller?.AcceptRefresh(kinds);
+                if (before is { } fingerprint)
+                {
+                    _poller?.AcceptRefresh(fingerprint, kinds);
+                }
             });
         }
         catch (OperationCanceledException)
