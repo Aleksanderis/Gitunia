@@ -1,4 +1,5 @@
 using Gitunia.App;
+using Gitunia.App.Shell;
 using Gitunia.Core;
 using Gitunia.Core.Input;
 using Gitunia.Core.Keymap;
@@ -34,12 +35,46 @@ public class ActionExecutorTests : IInputFocusSource
         }
 
         // The table keeps the dictionary, so a test can put another handler in place of one.
-        _executor = new ActionExecutor(new InputHandlers(_handlers, textKeys), _repeat, new NoSessions());
+        _executor = new ActionExecutor(new InputHandlers(_handlers, textKeys), _host, _repeat, new NoSessions());
         _host.EffectRaised += effect => _executor.RouteAction((RouteActionEffect)effect);
         _input = new ActionInput(_host, this);
     }
 
     InputFocus IInputFocusSource.Current() => _focus;
+
+    [Fact]
+    public void GivenInsertModeNobodyOwns_WhenEscIsPressed_ThenTheModeIsNormal()
+    {
+        // The real Navigation handler is the last one and always answers true.
+        _handlers[InputHandler.Navigation] = new Recorder(InputHandler.Navigation, _asked) { Takes = true };
+        _host.SetKeyMode(KeyMode.Insert);
+
+        _input.Route(ActionIds.Cancel, null);
+
+        Assert.Equal(KeyMode.Normal, _host.State.Shell.Mode);
+    }
+
+    [Fact]
+    public void GivenAHandlerTakesEscInInsertMode_WhenEscIsPressed_ThenTheModeStaysInsert()
+    {
+        _handlers[InputHandler.OpenPrompt] = new Recorder(InputHandler.OpenPrompt, _asked) { Takes = true };
+        _host.SetKeyMode(KeyMode.Insert);
+
+        _input.Route(ActionIds.Cancel, null);
+
+        Assert.Equal(KeyMode.Insert, _host.State.Shell.Mode);
+    }
+
+    [Fact]
+    public void GivenInsertModeNobodyOwns_WhenAnotherActionRuns_ThenTheModeStaysInsert()
+    {
+        _handlers[InputHandler.Navigation] = new Recorder(InputHandler.Navigation, _asked) { Takes = true };
+        _host.SetKeyMode(KeyMode.Insert);
+
+        _input.Route(ActionIds.ListDown, null);
+
+        Assert.Equal(KeyMode.Insert, _host.State.Shell.Mode);
+    }
 
     [Fact]
     public void GivenNobodyTakesTheAction_WhenInvoked_ThenEveryHandlerIsAskedInTheReducersOrder()
