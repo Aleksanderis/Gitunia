@@ -11,6 +11,13 @@ public static class BinaryProbe
     private const string VersionArgument = "--version";
     private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(10);
 
+    // Linux refuses to execute a file while any process still holds it open for writing (ETXTBSY). A process forked by
+    // another thread while we were unpacking the binary keeps that descriptor until its own exec, so the first start of a
+    // freshly written binary can fail although nothing is wrong with it; the window closes within milliseconds.
+    private const int TextFileBusyErrorCode = 26;
+    private const int MaxStartAttempts = 10;
+    private static readonly TimeSpan StartRetryDelay = TimeSpan.FromMilliseconds(25);
+
     /// <summary>
     /// The version the binary reports (its output is <c>gitunia &lt;version&gt;</c>), null when it does not start, times out
     /// or prints something else.
@@ -30,7 +37,7 @@ public static class BinaryProbe
         timeout.CancelAfter(Timeout);
         try
         {
-            using var process = Process.Start(startInfo);
+            using var process = await StartAsync(startInfo, timeout.Token);
             if (process is null)
             {
                 return null;
@@ -45,6 +52,22 @@ public static class BinaryProbe
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
             return null;
+        }
+    }
+
+    private static async Task<Process?> StartAsync(ProcessStartInfo startInfo, CancellationToken cancellationToken)
+    {
+        for (var attempt = 1; ; attempt++)
+        {
+            try
+            {
+                return Process.Start(startInfo);
+            }
+            catch (Win32Exception exception) when (exception.NativeErrorCode == TextFileBusyErrorCode
+                && attempt < MaxStartAttempts)
+            {
+                await Task.Delay(StartRetryDelay, cancellationToken);
+            }
         }
     }
 
