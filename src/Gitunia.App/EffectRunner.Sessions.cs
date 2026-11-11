@@ -193,7 +193,7 @@ public sealed partial class EffectRunner<TSession>
             && _pendingLoads.Remove(active, out var start))
         {
             // A tab marked missing after the restore (see TabExistenceChecker) is started too: the mark can come from a
-            // slow check on a path that exists, and only a load can clear it (HeadLoadedCommand). If the path is really
+            // slow check on a path that exists, and a background tab's mark is only cleared by its first load (HeadLoadedCommand). If the path is really
             // gone, the load fails with its message and the tab stays missing.
             start();
         }
