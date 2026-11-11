@@ -217,6 +217,28 @@ public class TabRefresherTests
     }
 
     [Fact]
+    public async Task GivenRefreshesThatFail_WhenTheyRepeat_ThenTheStatusPollIntervalGrowsAndASuccessResetsIt()
+    {
+        using var harness = await FakeHarness.LoadAsync();
+        harness.RepositoryRefresher.Failure = new GitException("timed out");
+        var applied = 0;
+
+        harness.Refresher.RefreshStatus(() => applied++);
+        await harness.Pump.RunUntilAsync(() => applied == 1);
+        var afterOne = harness.Refresher.StatusPollInterval;
+        harness.Refresher.RefreshStatus(() => applied++);
+        await harness.Pump.RunUntilAsync(() => applied == 2);
+        var afterTwo = harness.Refresher.StatusPollInterval;
+        harness.RepositoryRefresher.Failure = null;
+        harness.Refresher.RefreshStatus(() => applied++);
+        await harness.Pump.RunUntilAsync(() => applied == 3);
+
+        Assert.True(afterOne > FastPoll.StatusInterval);
+        Assert.True(afterTwo > afterOne);
+        Assert.Equal(FastPoll.StatusInterval, harness.Refresher.StatusPollInterval);
+    }
+
+    [Fact]
     public async Task GivenSlowManualRefresh_WhenItIsApplied_ThenTheStatusPollIntervalStays()
     {
         using var harness = await FakeHarness.LoadAsync();

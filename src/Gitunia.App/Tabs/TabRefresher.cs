@@ -316,10 +316,14 @@ public sealed class TabRefresher : IDisposable, IPollTarget
             return;
         }
 
+        var took = Stopwatch.GetElapsedTime(_refreshStartedAt);
         if (reload is null && !isManual)
         {
-            _poller?.RecordRefresh(Stopwatch.GetElapsedTime(_refreshStartedAt));
+            _poller?.RecordRefresh(took);
         }
+
+        // Every finished refresh acknowledges the watcher's last poll, so its next status refresh is not queued behind it.
+        _watcher?.RecordRefresh(took, false);
 
         _lastError = string.Empty;
         _snapshot = result.Snapshot;
@@ -416,6 +420,11 @@ public sealed class TabRefresher : IDisposable, IPollTarget
         {
             return;
         }
+
+        // A failed or timed-out read is as costly as a slow one: the next automatic status refresh waits longer each time.
+        var took = Stopwatch.GetElapsedTime(_refreshStartedAt);
+        _poller?.RecordFailure(took);
+        _watcher?.RecordRefresh(took, true);
 
         // A repository that keeps failing (polling every few seconds) is reported once, not on every tick.
         var message = $"{RepositoryName()}: could not refresh: {FailureText.Reason(exception)}";

@@ -20,4 +20,27 @@ public class PollOptionsTests
 
         Assert.Equal(TimeSpan.FromMilliseconds(expectedMilliseconds), interval);
     }
+
+    [Theory]
+    [InlineData(1, 10000)] // A failure that was quick still doubles the minimum.
+    [InlineData(2, 20000)]
+    [InlineData(3, 40000)]
+    [InlineData(4, 60000)] // Capped at the maximum.
+    [InlineData(9, 60000)]
+    public void GivenRepeatedFailures_WhenIntervalIsComputed_ThenItDoublesEachTimeUpToTheMaximum(
+        int failures,
+        int expectedMilliseconds)
+    {
+        var interval = Options.StatusIntervalAfter(TimeSpan.FromMilliseconds(10), failures);
+
+        Assert.Equal(TimeSpan.FromMilliseconds(expectedMilliseconds), interval);
+    }
+
+    [Fact]
+    public void GivenAFailureAfterTheTimeout_WhenIntervalIsComputed_ThenItIsTheMaximum()
+    {
+        var interval = Options.StatusIntervalAfter(TimeSpan.FromSeconds(30), 1);
+
+        Assert.Equal(Options.MaximumStatusInterval, interval);
+    }
 }

@@ -13,6 +13,21 @@ public class PickWriterTests
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
     [Fact]
+    public async Task GivenMoreCommitsThanTheLimit_WhenPicking_ThenRefusedWithClearMessageBeforeRunning()
+    {
+        using var repository = Diverged();
+        var before = repository.Head;
+        var (writer, location) = await CreateAsync(repository);
+        var commits = Enumerable.Repeat(Hash(repository, "topic"), PickWriter.MaxCommits + 1).ToList();
+
+        var error = await Assert.ThrowsAsync<GitException>(
+            () => writer.PickAsync(location, PickKind.CherryPick, commits, null, Token));
+
+        Assert.Contains("limit is 500", error.Message);
+        Assert.Equal(before, repository.Head);
+    }
+
+    [Fact]
     public async Task GivenACommitOfAnotherBranch_WhenCherryPicking_ThenItIsAppliedWithTheOriginalMessage()
     {
         using var repository = Diverged();

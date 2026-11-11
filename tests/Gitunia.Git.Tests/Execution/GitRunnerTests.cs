@@ -22,6 +22,9 @@ public class GitRunnerTests
     private static readonly TimeSpan SlowConsumerDelay =
         TimeSpan.FromMilliseconds(OperatingSystem.IsWindows() ? 3000 : 1500);
 
+    // The fake's background child lives about ten seconds; the grace period is 1.5 s.
+    private static readonly TimeSpan BackgroundChildLimit = TimeSpan.FromSeconds(4);
+
     // Only bounds a hang.
     private static readonly TimeSpan SignalGuardTimeout = TimeSpan.FromSeconds(30);
 
@@ -158,6 +161,45 @@ public class GitRunnerTests
 
         await Assert.ThrowsAsync<GitNotFoundException>(
             () => runner.RunAsync(AnyDirectory, ["status"], cancellationToken: TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task GivenExecutableThatCannotBeRun_WhenRunning_ThenStartFailedErrorWithNativeMessage()
+    {
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "A file without the execute bit is a Unix notion.");
+        var directory = Path.Combine(Path.GetTempPath(), $"gitunia-noexec-{Guid.NewGuid().ToString("N")}");
+        Directory.CreateDirectory(directory);
+        try
+        {
+            var path = Path.Combine(directory, "git");
+            await File.WriteAllTextAsync(path, "#!/bin/sh\n", TestContext.Current.CancellationToken);
+            var runner = new GitRunner(new GitRunnerOptions(path));
+
+            var error = await Assert.ThrowsAsync<GitStartFailedException>(
+                () => runner.RunAsync(AnyDirectory, ["status"], cancellationToken: TestContext.Current.CancellationToken));
+
+            Assert.Contains(error.InnerException!.Message, error.Message);
+        }
+        finally
+        {
+            Directory.Delete(directory, true);
+        }
+    }
+
+    [Fact]
+    public async Task GivenTooLongArgument_WhenRunning_ThenStartFailedErrorNotNotFound()
+    {
+        using var fake = FakeGitExecutable.Create("exit 0", "rem");
+        var tooLong = new string('a', 3_000_000);
+
+        await Assert.ThrowsAsync<GitStartFailedException>(
+            () => RunnerFor(fake).RunAsync(AnyDirectory, ["log", tooLong], cancellationToken: TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public void GivenKillThatThrowsAggregate_WhenKillingQuietly_ThenNothingEscapes()
+    {
+        ProcessKiller.KillQuietly(() => throw new AggregateException(new InvalidOperationException("child")));
     }
 
     [Fact]
@@ -307,6 +349,80 @@ public class GitRunnerTests
         var result = await runner.RunAsync(testRepository.WorkingTreePath, ["config", "--get", "no.such.key"], GitRunOptions.ReadOnlyRunAllowingNoMatch, TestContext.Current.CancellationToken);
 
         Assert.Equal(GitRunOptions.NoMatchExitCode, result.ExitCode);
+    }
+
+    [Fact]
+    public async Task GivenBackgroundChildHoldsPipes_WhenGitExits_ThenRunReturnsAfterGraceNotTimeout()
+    {
+        using var fake = FakeGitExecutable.PrintingWithBackgroundChild("done");
+        var clock = Stopwatch.StartNew();
+
+        var result = await RunnerFor(fake).RunAsync(
+            AnyDirectory,
+            ["commit"],
+            new GitRunOptions(Timeout: TimeSpan.FromSeconds(60)),
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Equal("done", result.StandardOutputText.Trim());
+        Assert.True(clock.Elapsed < BackgroundChildLimit, $"took {clock.Elapsed}");
+    }
+
+    [Fact]
+    public async Task GivenBackgroundChildHoldsPipes_WhenGitExitsWithStderrCallback_ThenRunReturnsAfterGrace()
+    {
+        using var fake = FakeGitExecutable.PrintingWithBackgroundChild("done");
+        var clock = Stopwatch.StartNew();
+
+        var result = await RunnerFor(fake).RunAsync(
+            AnyDirectory,
+            ["fetch"],
+            new GitRunOptions(Timeout: TimeSpan.FromSeconds(60), OnStandardErrorLine: _ => { }),
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Equal("done", result.StandardOutputText.Trim());
+        Assert.True(clock.Elapsed < BackgroundChildLimit, $"took {clock.Elapsed}");
+    }
+
+    [Fact]
+    public async Task GivenBackgroundChildHoldsPipes_WhenGitExits_ThenStreamEndsAfterGraceNotTimeout()
+    {
+        using var fake = FakeGitExecutable.PrintingWithBackgroundChild("done");
+        var collected = new List<byte>();
+        var clock = Stopwatch.StartNew();
+
+        await foreach (var chunk in RunnerFor(fake).StreamAsync(
+            AnyDirectory,
+            ["log"],
+            new GitRunOptions(Timeout: TimeSpan.FromSeconds(60)),
+            TestContext.Current.CancellationToken))
+        {
+            collected.AddRange(chunk.Span);
+        }
+
+        Assert.Equal("done", Encoding.UTF8.GetString([.. collected]).Trim());
+        Assert.True(clock.Elapsed < BackgroundChildLimit, $"took {clock.Elapsed}");
+    }
+
+    [Fact]
+    public async Task GivenGitExitedWithOutputInPipe_WhenConsumerIsSlowerThanGrace_ThenNoOutputIsLost()
+    {
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "The fake prints with sh.");
+        using var fake = FakeGitExecutable.Create("yes x | head -c 200000", "rem");
+        var total = 0;
+
+        await foreach (var chunk in RunnerFor(fake).StreamAsync(
+            AnyDirectory,
+            ["log"],
+            new GitRunOptions(Timeout: TimeSpan.FromSeconds(60)),
+            TestContext.Current.CancellationToken))
+        {
+            total += chunk.Length;
+            await Task.Delay(TimeSpan.FromMilliseconds(2500), TestContext.Current.CancellationToken);
+        }
+
+        Assert.Equal(200000, total);
     }
 
     private static GitRunner RunnerFor(FakeGitExecutable fake) => new(new GitRunnerOptions(fake.ExecutablePath));

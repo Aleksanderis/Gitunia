@@ -232,6 +232,67 @@ public class RepositoryWatcherTests
     }
 
     [Fact]
+    public async Task GivenPollingHiddenTab_WhenTimePasses_ThenItDoesNotPollAndActivatingPollsAtOnce()
+    {
+        using var testRepository = TestRepositories.Linear(1);
+        var recorder = new ChangeRecorder();
+        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
+        using var watcher = new RepositoryWatcher(location, new WatchBudget(0), FastOptions);
+        watcher.Changed += recorder.Record;
+        watcher.Start();
+        watcher.SetActive(false);
+        await Task.Delay(TimeSpan.FromMilliseconds(200), Token);
+        var before = recorder.CallCount;
+
+        await Task.Delay(TimeSpan.FromMilliseconds(400), Token);
+
+        Assert.Equal(before, recorder.CallCount);
+        Assert.False(watcher.IsStale);
+        watcher.SetActive(true);
+        await WaitUntilAsync(() => recorder.CallCount > before);
+    }
+
+    [Fact]
+    public async Task GivenPollingTab_WhenTheLastRefreshIsNotDone_ThenNoNewStatusRefreshIsQueuedUntilItIs()
+    {
+        using var testRepository = TestRepositories.Linear(1);
+        var recorder = new ChangeRecorder();
+        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
+        using var watcher = new RepositoryWatcher(location, new WatchBudget(0), FastOptions);
+        watcher.Changed += recorder.Record;
+        watcher.Start();
+        await WaitUntilAsync(() => recorder.CallCount > 0);
+        await Task.Delay(TimeSpan.FromMilliseconds(300), Token);
+        var before = recorder.CallCount;
+
+        await Task.Delay(TimeSpan.FromMilliseconds(500), Token);
+
+        Assert.Equal(before, recorder.CallCount);
+        watcher.RecordRefresh(TimeSpan.Zero, false);
+        await WaitUntilAsync(() => recorder.CallCount > before);
+    }
+
+    [Fact]
+    public async Task GivenPollingTab_WhenARefreshFails_ThenTheNextPollWaitsLonger()
+    {
+        using var testRepository = TestRepositories.Linear(1);
+        var recorder = new ChangeRecorder();
+        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
+        using var watcher = new RepositoryWatcher(location, new WatchBudget(0), FastOptions);
+        watcher.Changed += recorder.Record;
+        watcher.Start();
+        await WaitUntilAsync(() => recorder.CallCount > 0);
+        await Task.Delay(TimeSpan.FromMilliseconds(300), Token);
+        var before = recorder.CallCount;
+
+        // Acknowledged as failed after a long time: the next poll is 5 s or more away, not 60 ms.
+        watcher.RecordRefresh(TimeSpan.FromSeconds(1), true);
+        await Task.Delay(TimeSpan.FromMilliseconds(500), Token);
+
+        Assert.Equal(before, recorder.CallCount);
+    }
+
+    [Fact]
     public async Task GivenSharedBudget_WhenManyTabsStart_ThenWatchersStayWithinCapAndOthersPoll()
     {
         using var first = TestRepositories.Linear(1);

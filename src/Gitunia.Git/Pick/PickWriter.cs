@@ -40,6 +40,12 @@ public sealed class PickWriter(
     private const string MainlineOption = "-m";
     private const int UsageExitCode = 129;
 
+    /// <summary>
+    /// The most commits one call takes: each adds a 40 character hash to the command line, which Windows caps at
+    /// 32,767 characters (about 790 commits), so longer lists are refused with a clear message.
+    /// </summary>
+    public const int MaxCommits = 500;
+
     private static readonly string[] HeadArguments = ["rev-parse", "--quiet", "--verify", GitOptions.HeadRevision];
 
     private static readonly GitRunOptions NoMatchOptions = new(
@@ -55,6 +61,13 @@ public sealed class PickWriter(
     {
         // A cancel before the start must not run a write that a short-lived process would finish before it is noticed.
         cancellationToken.ThrowIfCancellationRequested();
+        if (commits.Count > MaxCommits)
+        {
+            throw new GitException(
+                $"Too many commits for one {NameOf(kind)} ({commits.Count}); the limit is {MaxCommits}. " +
+                "Split it into smaller ranges.");
+        }
+
         var before = await ReadHeadAsync(location, cancellationToken).ConfigureAwait(false);
         var wasInProgress = detector.Detect(location) != RepositoryOperation.None;
         OperationResult result;
@@ -79,6 +92,8 @@ public sealed class PickWriter(
         var outcome = result.Head == before ? PickOutcome.NothingToApply : PickOutcome.Completed;
         return new PickResult(outcome, result.Head, before);
     }
+
+    private static string NameOf(PickKind kind) => kind == PickKind.CherryPick ? "cherry-pick" : "revert";
 
     private List<string> ArgumentsOf(PickKind kind, IReadOnlyList<string> commits, int? mainline, bool dropEmpty)
     {

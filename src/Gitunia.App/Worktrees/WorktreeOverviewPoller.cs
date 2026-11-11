@@ -29,18 +29,24 @@ public sealed class WorktreeOverviewPoller : IDisposable
     private ImmutableArray<WorktreeInfo> _watchedWorktrees;
     private string? _watchedPath;
     private readonly ShutdownTasks _tasks = new();
+    private readonly TimeProvider _time;
+    private readonly ReadBackoff _backoff;
     private bool _started;
+    private bool _skipBackoff;
 
     public WorktreeOverviewPoller(
         IStatusReader status,
         Dispatcher host,
         TimeSpan? interval = null,
-        IBackgroundWork? background = null)
+        IBackgroundWork? background = null,
+        TimeProvider? time = null)
     {
+        _time = time ?? TimeProvider.System;
         _background = background ?? UnboundedBackgroundWork.Instance;
         _status = status;
         _host = host;
         _interval = interval ?? TimeSpan.FromSeconds(30);
+        _backoff = new ReadBackoff(_interval, _time);
     }
 
     /// <summary>Starts the loop and the watch for changes of the active tab. Calling it twice has no effect.</summary>
@@ -115,11 +121,21 @@ public sealed class WorktreeOverviewPoller : IDisposable
     {
         // Only the working tree path matters to the status read, so the shared directories of the tab are reused.
         var location = new RepositoryLocation(path, origin.CommonDirectory, origin.CommonDirectory, false, true);
+
+        // A worktree whose last read failed, timed out or was slow is skipped for a growing period (#1307).
+        if (!_skipBackoff && !_backoff.IsDue(path))
+        {
+            return null;
+        }
+
+        var started = _time.GetTimestamp();
         try
         {
             var snapshot = await _status
                 .ReadStatusAsync(location, false, UntrackedFilesMode.All, token)
                 .ConfigureAwait(false);
+            _backoff.RecordSuccess(path, _time.GetElapsedTime(started));
+
             return WorktreeStatus.From(snapshot);
         }
         catch (OperationCanceledException)
@@ -129,6 +145,8 @@ public sealed class WorktreeOverviewPoller : IDisposable
         catch (Exception)
         {
             // A worktree that cannot be read keeps its last value and never stops the others or the loop.
+            _backoff.RecordFailure(path, _time.GetElapsedTime(started));
+
             return null;
         }
     }
@@ -140,7 +158,9 @@ public sealed class WorktreeOverviewPoller : IDisposable
             while (!token.IsCancellationRequested)
             {
                 await PollGuardedAsync(token).ConfigureAwait(false);
-                await _wake.WaitAsync(_interval, token).ConfigureAwait(false);
+
+                // A change of the tab or its worktrees (the user's doing) reads every worktree again; only the timer backs off.
+                _skipBackoff = await _wake.WaitAsync(_interval, token).ConfigureAwait(false);
             }
         }
         catch (OperationCanceledException)
