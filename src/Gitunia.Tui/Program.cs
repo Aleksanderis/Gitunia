@@ -4,6 +4,7 @@ using Gitunia.App.Updates;
 using Gitunia.Core;
 using Gitunia.Git.Execution;
 using Gitunia.Git.Execution.Exceptions;
+using Gitunia.Git.Execution.Models;
 using Gitunia.Git.Rebase;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Platform;
@@ -57,7 +58,12 @@ public static class Program
             return 0;
         }
 
-        var services = GitServices.Create(new GitRunner(), new PaletteLaneColors());
+        // Resolved once from PATH (never the working directory); the version check runs while the repository is discovered.
+        // The same path goes to the terminal hand-offs (difftool, mergetool, credential retry) through TuiApplication.
+        var gitExecutable = GitExecutableLocator.FromEnvironment().Locate();
+        var runner = new GitRunner(new GitRunnerOptions(gitExecutable));
+        var versionCheck = new GitVersionDetector(runner).DetectAsync(CancellationToken.None);
+        var services = GitServices.Create(runner, new PaletteLaneColors());
         RepositoryLocation? location = null;
         if (options.RepositoryPath is not null)
         {
@@ -71,6 +77,12 @@ public static class Program
                 Console.Error.WriteLine($"gitunia: {exception.Message}");
                 return 1;
             }
+        }
+
+        // A discovery failure above returns first, with the same git message; the check's task is then abandoned at exit.
+        if (!CheckGitVersion(versionCheck))
+        {
+            return 1;
         }
 
         if (options.PrintsFrame)
@@ -95,8 +107,26 @@ public static class Program
             return 0;
         }
 
-        var application = new TuiApplication(services, capabilities, PlatformInfo.Current);
+        var application = new TuiApplication(services, capabilities, PlatformInfo.Current)
+        {
+            GitExecutable = gitExecutable,
+        };
         return application.Run(location);
+    }
+
+    // Entry point of a synchronous Main: blocking on the check started above is safe.
+    private static bool CheckGitVersion(Task<GitVersion> versionCheck)
+    {
+        try
+        {
+            versionCheck.GetAwaiter().GetResult();
+            return true;
+        }
+        catch (GitException exception)
+        {
+            Console.Error.WriteLine($"gitunia: {exception.Message}");
+            return false;
+        }
     }
 
     // On Windows an update renames the running .exe aside; the next start removes it. Elsewhere this does nothing.

@@ -1,6 +1,7 @@
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Commits;
 using Gitunia.App;
+using Gitunia.Git.Execution;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Platform;
 using Gitunia.Tui.App.Config;
@@ -21,6 +22,9 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities det
     /// <summary>Home directory for config paths and picker scans (smoke tests); null uses the user profile.</summary>
     public string? HomeDirectory { get; init; }
 
+    /// <summary>The located git executable for terminal hand-offs (difftool, mergetool, credential retry).</summary>
+    public string GitExecutable { get; init; } = GitExecutableLocator.BareName;
+
     /// <summary>Stop the main loop right after it starts, so a smoke test builds the shell and returns.</summary>
     public bool ExitAfterFirstIteration { get; init; }
 
@@ -38,7 +42,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities det
             services,
             platform,
             detectedCapabilities,
-            new TuiLaunch(DriverName, HomeDirectory));
+            new TuiLaunch(DriverName, HomeDirectory, GitExecutable));
         new ShellWiring(shell).Connect();
         Start(shell, location);
         try
