@@ -12,6 +12,8 @@ public class TabPollerTests
 {
     private const RepositoryChangeKinds StatusOnly = RepositoryChangeKinds.Index | RepositoryChangeKinds.WorkingTree;
 
+    private const RepositoryChangeKinds RefsKinds = RepositoryChangeKinds.Head | RepositoryChangeKinds.Refs;
+
     private static readonly PollOptions Fast = new(
         TimeSpan.FromMilliseconds(30),
         TimeSpan.FromMilliseconds(100),
@@ -39,7 +41,7 @@ public class TabPollerTests
 
         repository.Commit("second", new TestFile("b.txt", "2"));
 
-        await harness.WaitForAsync(kinds => kinds == RepositoryChangeKinds.All);
+        await harness.WaitForAsync(kinds => kinds.HasFlag(RefsKinds));
     }
 
     [Fact]
@@ -57,7 +59,7 @@ public class TabPollerTests
 
         harness.Poller.CheckNow();
 
-        await harness.WaitForAsync(kinds => kinds == RepositoryChangeKinds.All);
+        await harness.WaitForAsync(kinds => kinds.HasFlag(RefsKinds));
     }
 
     [Fact]
@@ -73,7 +75,7 @@ public class TabPollerTests
         harness.Poller.CheckNow();
 
         await harness.WaitForAsync(kinds => kinds == StatusOnly);
-        Assert.DoesNotContain(RepositoryChangeKinds.All, harness.Requests);
+        Assert.DoesNotContain(harness.Requests, kinds => kinds != StatusOnly);
     }
 
     [Fact]
@@ -91,6 +93,63 @@ public class TabPollerTests
     }
 
     [Fact]
+    public async Task GivenActiveTab_WhenARefMovesElsewhere_ThenOnlyAHeadAndRefsRefreshIsRequested()
+    {
+        using var repository = TestRepository.Create();
+        repository.Commit("root", new TestFile("a.txt", "1"));
+        using var harness = await Harness.StartAsync(repository, Slow);
+        harness.Poller.SetActive(true);
+        await harness.WaitForAsync(kinds => kinds == StatusOnly);
+        harness.Requests.Clear();
+
+        repository.Branch("topic");
+        harness.Poller.CheckNow();
+
+        await harness.WaitForAsync(kinds => kinds == RefsKinds);
+        Assert.DoesNotContain(harness.Requests, kinds => kinds.HasFlag(RepositoryChangeKinds.Worktrees));
+    }
+
+    [Fact]
+    public async Task GivenARefMoveThatOwnRefreshCovered_WhenCheckedNow_ThenNoRefsRefreshIsRequested()
+    {
+        using var repository = TestRepository.Create();
+        repository.Commit("root", new TestFile("a.txt", "1"));
+        using var harness = await Harness.StartAsync(repository, Slow);
+        harness.Poller.SetActive(true);
+        await harness.WaitForAsync(kinds => kinds == StatusOnly);
+        repository.Branch("topic");
+        harness.Poller.AcceptRefresh(harness.Poller.ReadFingerprint(), RepositoryChangeKinds.All);
+        await harness.DrainForAsync(Settle);
+        harness.Requests.Clear();
+
+        harness.Poller.CheckNow();
+
+        await harness.WaitForAsync(kinds => kinds == StatusOnly);
+        await harness.DrainForAsync(Settle);
+        Assert.DoesNotContain(harness.Requests, kinds => kinds != StatusOnly);
+    }
+
+    [Fact]
+    public async Task GivenAnIndexWriteInAnotherWorktree_WhenCheckedNow_ThenOnlyAStatusRefreshIsRequested()
+    {
+        using var repository = TestRepository.Create();
+        repository.Commit("root", new TestFile("a.txt", "1"));
+        var other = repository.AddWorktree("other", "other-branch", createBranch: true);
+        using var harness = await Harness.StartAsync(repository, Slow);
+        harness.Poller.SetActive(true);
+        await harness.WaitForAsync(kinds => kinds == StatusOnly);
+        harness.Requests.Clear();
+
+        await File.WriteAllTextAsync(Path.Combine(other, "c.txt"), "3", TestContext.Current.CancellationToken);
+        repository.GitIn(other, ["add", "c.txt"]);
+        harness.Poller.CheckNow();
+
+        await harness.WaitForAsync(kinds => kinds == StatusOnly);
+        await harness.DrainForAsync(Settle);
+        Assert.DoesNotContain(harness.Requests, kinds => kinds != StatusOnly);
+    }
+
+    [Fact]
     public async Task GivenActiveTab_WhenNothingChanges_ThenOnlyStatusRefreshesAreRequested()
     {
         using var repository = TestRepository.Create();
@@ -101,7 +160,7 @@ public class TabPollerTests
 
         await harness.WaitForAsync(kinds => kinds == StatusOnly);
         await harness.DrainForAsync(Settle);
-        Assert.DoesNotContain(RepositoryChangeKinds.All, harness.Requests);
+        Assert.DoesNotContain(harness.Requests, kinds => kinds != StatusOnly);
     }
 
     [Fact]
@@ -121,7 +180,7 @@ public class TabPollerTests
 
         Assert.True(harness.Posted.IsEmpty);
         harness.Poller.SetActive(true);
-        await harness.WaitForAsync(kinds => kinds == RepositoryChangeKinds.All);
+        await harness.WaitForAsync(kinds => kinds.HasFlag(RefsKinds));
     }
 
     [Fact]

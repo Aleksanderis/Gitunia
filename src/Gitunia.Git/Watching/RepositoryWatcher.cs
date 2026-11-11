@@ -35,7 +35,7 @@ public sealed partial class RepositoryWatcher : IDisposable
     private bool _isActive = true;
     private bool _isStarted;
     private bool _isDisposed;
-    private int _lastFingerprint;
+    private RepositoryFingerprintGroups _lastFingerprint;
     private bool _isRescanning;
     private bool _rescanAgain;
     private bool _hasScanned;

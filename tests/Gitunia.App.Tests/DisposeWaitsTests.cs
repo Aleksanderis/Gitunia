@@ -422,12 +422,12 @@ public class DisposeWaitsTests
 
         public void Release() => _open.Set();
 
-        public int Read(RepositoryLocation location)
+        public RepositoryFingerprintGroups Read(RepositoryLocation location)
         {
             _entered.Release();
             _open.Wait(Limit);
 
-            return 0;
+            return default;
         }
     }
 

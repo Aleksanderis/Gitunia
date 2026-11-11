@@ -7,8 +7,8 @@ namespace Gitunia.App.Tabs;
 
 /// <summary>
 /// Notices changes made outside Gitunia without file watchers: while its tab is active it reads the repository
-/// fingerprint every <see cref="PollOptions.RefsInterval"/> (off the UI thread) and asks for a full refresh when it
-/// changed, else for a status refresh once the status interval has passed. Never overlaps itself, skips a tick while
+/// fingerprint every <see cref="PollOptions.RefsInterval"/> (off the UI thread) and asks for a refresh of what changed
+/// (see <see cref="RepositoryFingerprintGroups"/>), else for a status refresh once the status interval has passed. Never overlaps itself, skips a tick while
 /// the tab refreshes or runs an action, stops when the tab is hidden or disposed (a late result is dropped), and
 /// lengthens the status interval after a slow refresh. All members except the timer callback run on the UI thread.
 /// </summary>
@@ -20,9 +20,9 @@ public sealed class TabPoller : IDisposable
     private readonly IPollTarget _target;
     private readonly TimeProvider _time;
     private readonly ShutdownTasks _tasks;
-    private readonly Func<RepositoryLocation, int> _fingerprint;
+    private readonly Func<RepositoryLocation, RepositoryFingerprintGroups> _fingerprint;
     private readonly Timer _timer;
-    private int? _baseline;
+    private RepositoryFingerprintGroups? _baseline;
     private long _statusDueAt;
     private TimeSpan _statusInterval;
     private int _epoch;
@@ -37,7 +37,7 @@ public sealed class TabPoller : IDisposable
         IPollTarget target,
         TimeProvider? time = null,
         ShutdownTasks? tasks = null,
-        Func<RepositoryLocation, int>? fingerprint = null)
+        Func<RepositoryLocation, RepositoryFingerprintGroups>? fingerprint = null)
     {
         _fingerprint = fingerprint ?? RepositoryFingerprint.Compute;
         _tasks = tasks ?? new ShutdownTasks();
@@ -110,6 +110,29 @@ public sealed class TabPoller : IDisposable
         _statusDueAt = _time.GetTimestamp() + ToTimestampTicks(_statusInterval);
     }
 
+    /// <summary>
+    /// Reads the fingerprint now, on the calling (background) thread. A refresh Gitunia runs itself takes it before its own
+    /// reads, so its own writes are in it and an outside change made during the refresh still differs at the next tick.
+    /// </summary>
+    public RepositoryFingerprintGroups ReadFingerprint() => _fingerprint(_location);
+
+    /// <summary>
+    /// A refresh of <paramref name="covered"/> kinds that Gitunia ran itself has been applied: the groups it covered take
+    /// their value from <paramref name="before"/> (read by <see cref="ReadFingerprint()"/> before that refresh), so its own
+    /// writes (stage, commit) are not mistaken for outside changes. A read in flight is dropped: it may predate the accept.
+    /// </summary>
+    public void AcceptRefresh(RepositoryFingerprintGroups before, RepositoryChangeKinds covered)
+    {
+        if (_isDisposed || _baseline is not { } baseline)
+        {
+            return;
+        }
+
+        _baseline = baseline.Accept(before, covered);
+        _epoch++;
+        _isReading = false;
+    }
+
     public void Dispose()
     {
         _isDisposed = true;
@@ -146,7 +169,7 @@ public sealed class TabPoller : IDisposable
         _ui.Post(() => Compare(value, epoch));
     }
 
-    private void Compare(int value, int epoch)
+    private void Compare(RepositoryFingerprintGroups value, int epoch)
     {
         if (epoch != _epoch)
         {
@@ -160,13 +183,13 @@ public sealed class TabPoller : IDisposable
             return;
         }
 
-        var changed = _baseline is { } baseline && baseline != value;
+        var changed = _baseline is { } baseline ? value.ChangedKinds(baseline) : RepositoryChangeKinds.None;
         _baseline = value;
         var now = _time.GetTimestamp();
-        if (changed)
+        if (changed != RepositoryChangeKinds.None)
         {
             _statusDueAt = now + ToTimestampTicks(_statusInterval);
-            _target.Request(RepositoryChangeKinds.All);
+            _target.Request(changed);
         }
         else if (now >= _statusDueAt)
         {
