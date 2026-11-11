@@ -134,7 +134,29 @@ public static class RepositoryFingerprint
                         groups.Add(RepositoryChangeKinds.Worktrees, entry);
                     }
                 }
+
+                // Reftable: the worktree's HEAD is a stub, its own refs live here.
+                AddWorktreeReftable(ref groups, Path.Combine(worktree.FullName, RepositoryChangeClassifier.ReftableDirectory));
             }
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            groups.AddMarker(directory);
+        }
+    }
+
+    private static void AddWorktreeReftable(ref Accumulator groups, string directory)
+    {
+        try
+        {
+            foreach (var entry in new DirectoryInfo(directory).EnumerateFiles())
+            {
+                groups.Add(RepositoryChangeKinds.Worktrees, entry);
+            }
+        }
+        catch (DirectoryNotFoundException)
+        {
+            // Files backend.
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {

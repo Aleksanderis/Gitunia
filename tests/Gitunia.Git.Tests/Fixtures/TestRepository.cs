@@ -14,6 +14,8 @@ public sealed class TestRepository : IDisposable
 {
     private static readonly DateTimeOffset Epoch = new(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
 
+    private static readonly int ProbeTimeout = (int)TimeSpan.FromSeconds(30).TotalMilliseconds;
+
     private readonly string _rootDirectory;
     private readonly string _emptyConfigPath;
     private int _commitCounter;
@@ -271,22 +273,27 @@ public sealed class TestRepository : IDisposable
 
     public void Dispose() => DeleteDirectory(_rootDirectory);
 
+
     private static bool ProbeReftableSupport()
     {
         var root = Path.Combine(Path.GetTempPath(), $"gitunia-probe-{Guid.NewGuid().ToString("N")}");
         try
         {
             Directory.CreateDirectory(root);
+            var emptyConfig = Path.Combine(root, "empty.gitconfig");
+            File.WriteAllText(emptyConfig, string.Empty);
             using var process = Process.Start(new ProcessStartInfo(TestGitSpeed.Executable)
             {
-                ArgumentList = { "init", "-q", "--ref-format=reftable", root },
-                RedirectStandardError = true,
-                RedirectStandardOutput = true,
+                ArgumentList = { "init", "-q", "--ref-format=reftable", Path.Combine(root, "probe") },
                 UseShellExecute = false,
+                Environment = { ["GIT_CONFIG_GLOBAL"] = emptyConfig, ["GIT_CONFIG_NOSYSTEM"] = "1" },
             });
-            process!.StandardOutput.ReadToEnd();
-            process.StandardError.ReadToEnd();
-            process.WaitForExit();
+            if (!process!.WaitForExit(ProbeTimeout))
+            {
+                process.Kill(entireProcessTree: true);
+                return false;
+            }
+
             return process.ExitCode == 0;
         }
         catch (Exception exception) when (exception is IOException or Win32Exception)

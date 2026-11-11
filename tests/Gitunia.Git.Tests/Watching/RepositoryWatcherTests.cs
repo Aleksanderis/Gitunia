@@ -42,41 +42,32 @@ public class RepositoryWatcherTests
         Assert.True(watcher.WatcherCount > 0);
     }
 
-    [Fact]
-    public async Task GivenWatchedReftableRepository_WhenExternalCommitAndBranchSwitch_ThenRefsAreReported()
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task GivenReftableRepository_WhenExternalChange_ThenHeadAndRefsAreReported(bool polling, bool switchBranch)
     {
         Assert.SkipUnless(TestRepository.IsReftableSupported, "Needs git 2.45 or later.");
         using var testRepository = TestRepository.CreateReftable();
         testRepository.Commit("root", new TestFile("a.txt", "1")).Branch("topic");
         var recorder = new ChangeRecorder();
         var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
-        using var watcher = new RepositoryWatcher(location, new WatchBudget(), FastOptions);
+        using var watcher = new RepositoryWatcher(location, new WatchBudget(polling ? 0 : 64), FastOptions);
         watcher.Changed += recorder.Record;
         watcher.Start();
+        Assert.Equal(polling, watcher.IsPolling);
 
-        testRepository.Commit("external", new TestFile("later.txt", "x"));
-        await recorder.WaitForAsync(RepositoryChangeKinds.Head | RepositoryChangeKinds.Refs, Token);
-        var callsAfterCommit = recorder.CallCount;
-        testRepository.Checkout("topic");
-        await WaitUntilAsync(() => recorder.CallCount > callsAfterCommit);
-
-        Assert.False(watcher.IsPolling);
-    }
-
-    [Fact]
-    public async Task GivenPollingReftableRepository_WhenExternalCommit_ThenRefsAreReported()
-    {
-        Assert.SkipUnless(TestRepository.IsReftableSupported, "Needs git 2.45 or later.");
-        using var testRepository = TestRepository.CreateReftable();
-        testRepository.Commit("root", new TestFile("a.txt", "1"));
-        var recorder = new ChangeRecorder();
-        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
-        using var watcher = new RepositoryWatcher(location, new WatchBudget(0), FastOptions);
-        watcher.Changed += recorder.Record;
-        watcher.Start();
-        Assert.True(watcher.IsPolling);
-
-        testRepository.Commit("external", new TestFile("later.txt", "x"));
+        // The switch changes no file, so only the reftable can report it.
+        if (switchBranch)
+        {
+            testRepository.Checkout("topic");
+        }
+        else
+        {
+            testRepository.Commit("external", new TestFile("later.txt", "x"));
+        }
 
         await recorder.WaitForAsync(RepositoryChangeKinds.Head | RepositoryChangeKinds.Refs, Token);
     }
