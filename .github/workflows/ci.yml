@@ -137,7 +137,7 @@ jobs:
         # time every git call waits (2 CPUs, local: Git.Tests 6m27 -> 2m43). The loop stops at the first failing
         # project so a broken run does not burn the Tui.Tests minutes. A hung test is named and its host killed after 4 min
         # (#1290: the one failed run took 18 min where a pass takes 9, which fits a hang that only the old 10 min limit
-        # ended; its log was lost), and the step timeout below covers a host that died with no test running.
+        # ended; its log was lost), and the step's `timeout-minutes` covers a host that died with no test running.
         # Only OS-sensitive tests run here (#637): classes marked [Trait("Os", "Independent")] are proven by Linux
         # and skipped; an unmarked test still runs, so a forgotten mark costs time, never coverage.
         run: |
