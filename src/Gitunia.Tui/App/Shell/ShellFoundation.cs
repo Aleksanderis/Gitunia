@@ -37,6 +37,7 @@ public sealed class ShellFoundation
     {
         Services = services;
         Platform = platform;
+        GitExecutable = launch.GitExecutable;
 
         // First of all: the background query below makes .NET switch the terminal to no-echo, line-less input.
         var handOff = new TerminalHandOff(CaptureTerminalModes());
@@ -69,6 +70,9 @@ public sealed class ShellFoundation
 
     /// <summary>The git readers and writers.</summary>
     public GitServices Services { get; }
+
+    /// <summary>The git executable located at startup, for hand-offs to the terminal.</summary>
+    public string GitExecutable { get; }
 
     /// <summary>The platform's directories and terminal queries.</summary>
     public IPlatform Platform { get; }

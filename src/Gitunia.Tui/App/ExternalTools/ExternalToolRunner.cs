@@ -1,6 +1,7 @@
 using Gitunia.App;
 using Gitunia.App.Status;
 using Gitunia.Core.Shell;
+using Gitunia.Git.Execution;
 using Gitunia.Git.ExternalTools;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Platform.ExternalTools;
@@ -16,10 +17,9 @@ public sealed class ExternalToolRunner(
     ITerminalSuspender terminal,
     StatusReporter statuses,
     Dispatcher host,
-    IUserPause pause)
+    IUserPause pause,
+    string gitExecutable = GitExecutableLocator.BareName)
 {
-    private const string GitExecutable = "git";
-
     private bool _running;
     private ExternalToolResult _result = new(ExternalToolResult.NotStartedExitCode, "did not run");
 
@@ -49,7 +49,7 @@ public sealed class ExternalToolRunner(
             return "External tools are not supported on this operating system";
         }
 
-        var request = new ExternalToolRequest(GitExecutable, arguments, location.CommandPath);
+        var request = new ExternalToolRequest(gitExecutable, arguments, location.CommandPath);
         _running = true;
         try
         {

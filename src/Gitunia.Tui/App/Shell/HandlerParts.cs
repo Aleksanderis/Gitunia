@@ -45,7 +45,13 @@ public sealed class HandlerParts
         var pause = new ConsolePause();
         Statuses = new StatusActionHandler(foundation.Statuses, foundation.Sessions);
         Staging = new StagingActions(host);
-        Tools = new ExternalToolRunner(new ExternalToolLauncher(), foundation.Terminal, foundation.Statuses, host, pause);
+        Tools = new ExternalToolRunner(
+            new ExternalToolLauncher(),
+            foundation.Terminal,
+            foundation.Statuses,
+            host,
+            pause,
+            foundation.GitExecutable);
         Retry = new TerminalRetry(
             host,
             foundation.Statuses,

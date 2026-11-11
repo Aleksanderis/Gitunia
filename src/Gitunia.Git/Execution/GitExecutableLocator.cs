@@ -46,7 +46,7 @@ public sealed class GitExecutableLocator
         foreach (var entry in _path.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
         {
             var directory = entry.Trim('"');
-            if (!Path.IsPathRooted(directory))
+            if (!Path.IsPathFullyQualified(directory))
             {
                 continue;
             }

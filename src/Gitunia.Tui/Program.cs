@@ -59,7 +59,9 @@ public static class Program
         }
 
         // Resolved once from PATH (never the working directory); the version check runs while the repository is discovered.
-        var runner = new GitRunner(new GitRunnerOptions(GitExecutableLocator.FromEnvironment().Locate()));
+        // The same path goes to the terminal hand-offs (difftool, mergetool, credential retry) through TuiApplication.
+        var gitExecutable = GitExecutableLocator.FromEnvironment().Locate();
+        var runner = new GitRunner(new GitRunnerOptions(gitExecutable));
         var versionCheck = new GitVersionDetector(runner).DetectAsync(CancellationToken.None);
         var services = GitServices.Create(runner, new PaletteLaneColors());
         RepositoryLocation? location = null;
@@ -77,6 +79,7 @@ public static class Program
             }
         }
 
+        // A discovery failure above returns first, with the same git message; the check's task is then abandoned at exit.
         if (!CheckGitVersion(versionCheck))
         {
             return 1;
@@ -104,7 +107,10 @@ public static class Program
             return 0;
         }
 
-        var application = new TuiApplication(services, capabilities, PlatformInfo.Current);
+        var application = new TuiApplication(services, capabilities, PlatformInfo.Current)
+        {
+            GitExecutable = gitExecutable,
+        };
         return application.Run(location);
     }
 

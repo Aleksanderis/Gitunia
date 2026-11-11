@@ -61,6 +61,23 @@ public class ExternalToolRunnerTests
     }
 
     [Fact]
+    public void GivenALocatedGit_WhenLaunchingInTheTerminal_ThenTheToolRunsThatExecutable()
+    {
+        var located = Path.Combine(Path.GetTempPath(), "located", "git");
+        var runner = new ExternalToolRunner(
+            _launcher,
+            _terminal,
+            _statuses,
+            _host,
+            new RecordingPause(_events),
+            located);
+
+        runner.LaunchGit("fetch", ["fetch"], Location);
+
+        Assert.Contains($"run {located} -C /r fetch in /r", _events);
+    }
+
+    [Fact]
     public void GivenAFailingTool_WhenLaunching_ThenTheExitCodeIsAnError()
     {
         _launcher.Result = new ExternalToolResult(3);

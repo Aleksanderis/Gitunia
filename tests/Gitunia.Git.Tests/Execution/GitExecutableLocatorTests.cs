@@ -13,47 +13,32 @@ public sealed class GitExecutableLocatorTests : IDisposable
     }
 
     [Fact]
-    public void GivenFakeGitInWorkingDirectoryAndRealOneInPath_WhenLocating_ThenPathEntryWins()
+    public void GivenFakeGitInRelativeEntryAndRealOneInPath_WhenLocating_ThenPathEntryWins()
     {
-        var workingDirectory = Directory.CreateDirectory(Path.Combine(_root, "work")).FullName;
+        var fakeDirectory = Directory.CreateDirectory(Path.Combine(_root, "work")).FullName;
         var binDirectory = Directory.CreateDirectory(Path.Combine(_root, "bin")).FullName;
-        var fake = CreateGit(workingDirectory, GitName());
+        var fake = CreateGit(fakeDirectory, GitName());
         var real = CreateGit(binDirectory, GitName());
-        var path = string.Join(Path.PathSeparator, ".", string.Empty, "work", binDirectory);
-        var previous = Environment.CurrentDirectory;
+        var relativeToCurrent = Path.GetRelativePath(Environment.CurrentDirectory, fakeDirectory);
+        var path = string.Join(Path.PathSeparator, ".", string.Empty, relativeToCurrent, binDirectory);
 
-        try
-        {
-            Environment.CurrentDirectory = workingDirectory;
-            var located = new GitExecutableLocator(path, null, OperatingSystem.IsWindows()).Locate();
+        var located = new GitExecutableLocator(path, null, OperatingSystem.IsWindows()).Locate();
 
-            Assert.Equal(real, located);
-            Assert.NotEqual(fake, located);
-        }
-        finally
-        {
-            Environment.CurrentDirectory = previous;
-        }
+        Assert.Equal(real, located);
+        Assert.NotEqual(fake, located);
     }
 
     [Fact]
     public void GivenOnlyRelativeEntries_WhenLocating_ThenBareNameIsTheFallback()
     {
-        var workingDirectory = Directory.CreateDirectory(Path.Combine(_root, "work")).FullName;
-        CreateGit(workingDirectory, GitName());
-        var previous = Environment.CurrentDirectory;
+        var fakeDirectory = Directory.CreateDirectory(Path.Combine(_root, "work")).FullName;
+        CreateGit(fakeDirectory, GitName());
+        var relativeToCurrent = Path.GetRelativePath(Environment.CurrentDirectory, fakeDirectory);
+        var path = string.Join(Path.PathSeparator, ".", relativeToCurrent);
 
-        try
-        {
-            Environment.CurrentDirectory = workingDirectory;
-            var located = new GitExecutableLocator($".{Path.PathSeparator}", null, OperatingSystem.IsWindows()).Locate();
+        var located = new GitExecutableLocator(path, null, OperatingSystem.IsWindows()).Locate();
 
-            Assert.Equal(GitExecutableLocator.BareName, located);
-        }
-        finally
-        {
-            Environment.CurrentDirectory = previous;
-        }
+        Assert.Equal(GitExecutableLocator.BareName, located);
     }
 
     [Fact]
@@ -105,7 +90,7 @@ public sealed class GitExecutableLocatorTests : IDisposable
     {
         var located = GitExecutableLocator.FromEnvironment().Locate();
 
-        Assert.True(Path.IsPathRooted(located), located);
+        Assert.True(Path.IsPathFullyQualified(located), located);
     }
 
     public void Dispose()
