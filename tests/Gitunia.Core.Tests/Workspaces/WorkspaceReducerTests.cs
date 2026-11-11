@@ -432,6 +432,56 @@ public class WorkspaceReducerTests
     }
 
     [Fact]
+    public void GivenCheckTimedOutAndLoadSucceeded_WhenTheLateMissingMarkArrives_ThenTheTabIsNotMissing()
+    {
+        var workspace = Open(Workspace.Empty, "alpha");
+        var id = IdOf(workspace, "alpha");
+        var path = Location("alpha").CommandPath;
+
+        workspace = WorkspaceReducer.Reduce(workspace, new TabCommand(id, new HeadLoadedCommand(new HeadState(HeadKind.Branch, "main", "abc")))).Workspace;
+        workspace = WorkspaceReducer.Reduce(workspace, new TabCommand(id, new SetMissingCommand(true, path))).Workspace;
+
+        Assert.False(workspace.FindTab(id)!.IsMissing);
+    }
+
+    [Fact]
+    public void GivenTabMarkedMissingByASlowCheck_WhenTheLoadSucceedsLater_ThenTheMarkIsCleared()
+    {
+        var workspace = Open(Workspace.Empty, "alpha");
+        var id = IdOf(workspace, "alpha");
+
+        workspace = WorkspaceReducer.Reduce(workspace, new TabCommand(id, new SetMissingCommand(true, Location("alpha").CommandPath))).Workspace;
+        Assert.True(workspace.FindTab(id)!.IsMissing);
+        workspace = WorkspaceReducer.Reduce(workspace, new TabCommand(id, new HeadLoadedCommand(new HeadState(HeadKind.Branch, "main", "abc")))).Workspace;
+
+        Assert.False(workspace.FindTab(id)!.IsMissing);
+    }
+
+    [Fact]
+    public void GivenTabRelocatedDuringTheCheck_WhenTheLateMissingMarkForTheOldPathArrives_ThenTheTabIsNotMissing()
+    {
+        var workspace = Open(Workspace.Empty, "alpha");
+        var id = IdOf(workspace, "alpha");
+        var oldPath = Location("alpha").CommandPath;
+
+        workspace = WorkspaceReducer.Reduce(workspace, new SwitchWorktreeCommand(id, Location("alpha-wt"))).Workspace;
+        workspace = WorkspaceReducer.Reduce(workspace, new TabCommand(id, new SetMissingCommand(true, oldPath))).Workspace;
+
+        Assert.False(workspace.FindTab(id)!.IsMissing);
+    }
+
+    [Fact]
+    public void GivenTabStillOnTheCheckedPath_WhenTheMissingMarkArrives_ThenTheTabIsMissing()
+    {
+        var workspace = Open(Workspace.Empty, "alpha");
+        var id = IdOf(workspace, "alpha");
+
+        workspace = WorkspaceReducer.Reduce(workspace, new TabCommand(id, new SetMissingCommand(true, Location("alpha").CommandPath))).Workspace;
+
+        Assert.True(workspace.FindTab(id)!.IsMissing);
+    }
+
+    [Fact]
     public void GivenAnotherTabOnTheWorktree_WhenSwitchingToIt_ThenNothingChanges()
     {
         var workspace = Open(Workspace.Empty, "alpha", "alpha-wt");

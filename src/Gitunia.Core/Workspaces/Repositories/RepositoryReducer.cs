@@ -34,7 +34,7 @@ public static class RepositoryReducer
             }),
         SetPathStyleCommand set => WithStyle(state, set.Style),
         ToggleWorkingFolderCommand folder => ToggleFolder(state, folder),
-        HeadLoadedCommand head => state with { Head = head.Head },
+        HeadLoadedCommand head => state with { Head = head.Head, IsMissing = false },
         RefsLoadedCommand refs => state with { Refs = refs.Refs },
         StatusLoadedCommand status => state with { Status = status.Summary },
         WorkingTreeLoadedCommand loaded => ReduceWorkingTree(state, loaded),
@@ -46,9 +46,22 @@ public static class RepositoryReducer
         RebaseAutoStashLoadedCommand autoStash => state with { RebaseAutoStash = autoStash.IsOn },
         SidebarCommand sidebar => SidebarReducer.Reduce(state, sidebar),
         SetTabNameCommand rename => state with { CustomName = RepositoryState.NormalizeName(rename.Name) },
-        SetMissingCommand missing => state with { IsMissing = missing.IsMissing },
+        SetMissingCommand missing => ReduceMissing(state, missing),
         _ => state,
     };
+
+    // A late "missing" answer must not undo what happened meanwhile: a relocation (another path) or a load that
+    // succeeded (a head is there) means the check is stale.
+    private static RepositoryState ReduceMissing(RepositoryState state, SetMissingCommand missing)
+    {
+        if (missing is { IsMissing: true, CheckedPath: { } path }
+            && (state.Head is not null || !RepositoryPathComparer.Instance.Equals(state.CommandPath, path)))
+        {
+            return state;
+        }
+
+        return state with { IsMissing = missing.IsMissing };
+    }
 
     private static RepositoryState WithStyle(RepositoryState state, FilePathStyle style)
     {

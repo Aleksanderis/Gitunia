@@ -50,7 +50,7 @@ public sealed class TabExistenceChecker(IDispatcher dispatcher, IDirectoryLister
 
         if (!exists)
         {
-            dispatcher.Post(new TabCommand(id, new SetMissingCommand(true)));
+            dispatcher.Post(new TabCommand(id, new SetMissingCommand(true, path)));
         }
     }
 }
