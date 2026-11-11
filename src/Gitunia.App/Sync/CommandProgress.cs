@@ -7,18 +7,15 @@ namespace Gitunia.App.Sync;
 /// <summary>
 /// Turns the reports of git into <see cref="SyncProgressed"/> commands for the tab, at most one per
 /// <see cref="Interval"/>. A report that arrives sooner is kept (the latest wins) until <see cref="Flush"/>, so the
-/// last value is never lost.
+/// last value is never lost. A held report waits for the next report or the end of the transfer.
 /// </summary>
 /// <param name="dispatcher">Where the commands go (any thread may report).</param>
 /// <param name="tabId">The tab the transfer runs for.</param>
-/// <param name="time">The clock for the interval (null: the system clock).</param>
-internal sealed class CommandProgress(IDispatcher dispatcher, TabId tabId, TimeProvider? time = null)
-    : IProgress<RemoteProgress>
+internal sealed class CommandProgress(IDispatcher dispatcher, TabId tabId) : IProgress<RemoteProgress>
 {
     public static readonly TimeSpan Interval = TimeSpan.FromMilliseconds(50);
 
     private readonly Lock _gate = new();
-    private readonly TimeProvider _time = time ?? TimeProvider.System;
     private long _lastPosted;
     private bool _hasPosted;
     private RemoteProgress? _pending;
@@ -27,8 +24,8 @@ internal sealed class CommandProgress(IDispatcher dispatcher, TabId tabId, TimeP
     {
         lock (_gate)
         {
-            var now = _time.GetTimestamp();
-            if (_hasPosted && _time.GetElapsedTime(_lastPosted, now) < Interval)
+            var now = TimeProvider.System.GetTimestamp();
+            if (_hasPosted && TimeProvider.System.GetElapsedTime(_lastPosted, now) < Interval)
             {
                 _pending = value;
                 return;
