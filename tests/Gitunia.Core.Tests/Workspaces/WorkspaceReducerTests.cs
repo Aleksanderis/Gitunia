@@ -438,7 +438,7 @@ public class WorkspaceReducerTests
         var id = IdOf(workspace, "alpha");
         var path = Location("alpha").CommandPath;
 
-        workspace = WorkspaceReducer.Reduce(workspace, new TabCommand(id, new HeadLoadedCommand(new HeadState(HeadKind.Branch, "main", "abc")))).Workspace;
+        workspace = Send(workspace, id, new HeadLoadedCommand(new HeadState(HeadKind.Branch, "main", "abc")));
         workspace = WorkspaceReducer.Reduce(workspace, new TabCommand(id, new SetMissingCommand(true, path))).Workspace;
 
         Assert.False(workspace.FindTab(id)!.IsMissing);
@@ -450,9 +450,9 @@ public class WorkspaceReducerTests
         var workspace = Open(Workspace.Empty, "alpha");
         var id = IdOf(workspace, "alpha");
 
-        workspace = WorkspaceReducer.Reduce(workspace, new TabCommand(id, new SetMissingCommand(true, Location("alpha").CommandPath))).Workspace;
+        workspace = Send(workspace, id, new SetMissingCommand(true, Location("alpha").CommandPath));
         Assert.True(workspace.FindTab(id)!.IsMissing);
-        workspace = WorkspaceReducer.Reduce(workspace, new TabCommand(id, new HeadLoadedCommand(new HeadState(HeadKind.Branch, "main", "abc")))).Workspace;
+        workspace = Send(workspace, id, new HeadLoadedCommand(new HeadState(HeadKind.Branch, "main", "abc")));
 
         Assert.False(workspace.FindTab(id)!.IsMissing);
     }
@@ -465,7 +465,7 @@ public class WorkspaceReducerTests
         var oldPath = Location("alpha").CommandPath;
 
         workspace = WorkspaceReducer.Reduce(workspace, new SwitchWorktreeCommand(id, Location("alpha-wt"))).Workspace;
-        workspace = WorkspaceReducer.Reduce(workspace, new TabCommand(id, new SetMissingCommand(true, oldPath))).Workspace;
+        workspace = Send(workspace, id, new SetMissingCommand(true, oldPath));
 
         Assert.False(workspace.FindTab(id)!.IsMissing);
     }
@@ -476,7 +476,7 @@ public class WorkspaceReducerTests
         var workspace = Open(Workspace.Empty, "alpha");
         var id = IdOf(workspace, "alpha");
 
-        workspace = WorkspaceReducer.Reduce(workspace, new TabCommand(id, new SetMissingCommand(true, Location("alpha").CommandPath))).Workspace;
+        workspace = Send(workspace, id, new SetMissingCommand(true, Location("alpha").CommandPath));
 
         Assert.True(workspace.FindTab(id)!.IsMissing);
     }
@@ -591,6 +591,9 @@ public class WorkspaceReducerTests
         var gitDirectory = Path.Combine(root, ".git");
         return new RepositoryLocation(root, gitDirectory, gitDirectory, false, false);
     }
+
+    private static Workspace Send(Workspace workspace, TabId id, RepositoryCommand command) =>
+        WorkspaceReducer.Reduce(workspace, new TabCommand(id, command)).Workspace;
 
     private static Workspace Open(Workspace workspace, params string[] names)
     {

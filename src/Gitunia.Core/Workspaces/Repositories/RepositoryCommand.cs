@@ -52,7 +52,7 @@ public sealed record RefsLoadedCommand(ImmutableArray<GitRef> Refs) : Repository
 /// <param name="IsMissing">Whether it is missing.</param>
 /// <param name="CheckedPath">
 /// The command path a slow existence check asked about, or null for an unconditional change. A mark carrying a path
-/// is dropped when the tab has moved to another path or has loaded successfully since (the check answered late).
+/// is dropped when the tab has moved to another path or has loaded successfully since the check started.
 /// </param>
 public sealed record SetMissingCommand(bool IsMissing, string? CheckedPath = null) : RepositoryCommand;
 

@@ -50,7 +50,7 @@ public static class RepositoryReducer
         _ => state,
     };
 
-    // A late "missing" answer must not undo what happened meanwhile: a relocation (another path) or a load that
+    // A "missing" mark posted after a timeout must not undo what happened meanwhile: a relocation (another path) or a load that
     // succeeded (a head is there) means the check is stale.
     private static RepositoryState ReduceMissing(RepositoryState state, SetMissingCommand missing)
     {
