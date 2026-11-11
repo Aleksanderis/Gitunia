@@ -2,7 +2,7 @@
 
 Key bindings are `keys` entries in `config.json`. Defaults are in the [keymap reference](keymap.md). The file format is in [ux-look.md](internal/ux-look.md).
 
-- **File:** `~/.config/gitunia/config.json` (`$XDG_CONFIG_HOME/gitunia/config.json` if set). Settings (`<space>,`) opens it in `$EDITOR`. JSON with comments. Create it with `{}` if missing.
+- **File:** `~/.config/gitunia/config.json` (`$XDG_CONFIG_HOME/gitunia/config.json` if set). Settings (`<space>,`) opens it in `$VISUAL`/`$EDITOR` (quoted words work, e.g. `"C:\Program Files\Notepad++\notepad++.exe" -multiInst`; on Windows `code --wait` and other `.cmd` shims are found through `PATH`/`PATHEXT`; values that only work in git's `sh`, such as `/usr/bin/vim`, do not). JSON with comments. Create it with `{}` if missing.
 - **Entry fields:** `action` (action id, or `none` to unbind), `key` (key or chord, `<space>` is the leader), `view` (default `Global`, names are the keymap headings), `mode` (`Normal` default, `Visual`, `Insert`, `Command`, `Confirm`). One entry binds one view and one mode.
 
 ```jsonc

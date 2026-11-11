@@ -44,6 +44,43 @@ public sealed class ConfigEditorLauncherTests : IDisposable
     }
 
     [Fact]
+    public void GivenAQuotedEditorPath_WhenLaunching_ThenItIsOneProgramWord()
+    {
+        _variables["VISUAL"] = "'/opt/my editor/ed' -w";
+        var file = Path.Combine(_directory, "config.json");
+
+        CreateLauncher().Launch(file, () => { });
+
+        Assert.Equal($"run /opt/my editor/ed -w {file} in {_directory}", _events[1]);
+    }
+
+    [Fact]
+    public void GivenCodeOnWindows_WhenLaunching_ThenTheCmdShimIsStarted()
+    {
+        _variables["VISUAL"] = "code --wait";
+        _variables["PATH"] = "C:\\bin";
+        _variables["PATHEXT"] = ".EXE;.CMD";
+        var shim = Path.Combine("C:\\bin", "code.CMD");
+        var file = Path.Combine(_directory, "config.json");
+
+        var notice = CreateLauncher(true, path => path == shim).Launch(file, () => { });
+
+        Assert.Empty(notice);
+        Assert.Equal($"run {shim} --wait {file} in {_directory}", _events[1]);
+    }
+
+    [Fact]
+    public void GivenAMissingEditorOnWindows_WhenLaunching_ThenTheReasonIsReturnedAndNothingIsSuspended()
+    {
+        _variables["VISUAL"] = "/usr/bin/vim";
+
+        var notice = CreateLauncher(true, _ => false).Launch(Path.Combine(_directory, "config.json"), () => { });
+
+        Assert.Equal("Could not find the editor /usr/bin/vim", notice);
+        Assert.Empty(_events);
+    }
+
+    [Fact]
     public void GivenOnlyEditor_WhenLaunching_ThenEditorIsUsed()
     {
         _variables["EDITOR"] = "nano";
@@ -107,8 +144,15 @@ public sealed class ConfigEditorLauncherTests : IDisposable
         Assert.Empty(_events);
     }
 
-    private ConfigEditorLauncher CreateLauncher() =>
-        new(_launcher, _terminal, _statuses, name => _variables.GetValueOrDefault(name), new RecordingPause(_events));
+    private ConfigEditorLauncher CreateLauncher(bool isWindows = false, Func<string, bool>? fileExists = null) =>
+        new(
+            _launcher,
+            _terminal,
+            _statuses,
+            name => _variables.GetValueOrDefault(name),
+            new RecordingPause(_events),
+            isWindows,
+            fileExists);
 
     private sealed class FakeLauncher(List<string> events) : IExternalToolLauncher
     {
