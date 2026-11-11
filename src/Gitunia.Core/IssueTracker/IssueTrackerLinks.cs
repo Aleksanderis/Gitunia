@@ -49,7 +49,8 @@ public sealed class IssueTrackerLinks
 
     /// <summary>
     /// The references in <paramref name="line"/>, left to right. A match overlapping an earlier one (or one from an
-    /// earlier rule at the same place) is dropped, as is one whose address is not http or https.
+    /// earlier rule at the same place) is dropped, as is one whose address is not http or https, or one from a rule that
+    /// timed out on this line.
     /// </summary>
     public IReadOnlyList<IssueReference> Find(string line)
     {

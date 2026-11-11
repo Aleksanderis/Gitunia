@@ -95,7 +95,7 @@ public class IssueTrackerLinksTests
     {
         var partial = new IssueTrackerRule("slow", "#\\d+|(a+)+$", "https://a.example.org/$1");
         var later = new IssueTrackerRule("b", "(#\\d+)", "https://b.example.org/$1");
-        var links = new IssueTrackerLinks([partial, later], TimeSpan.FromMilliseconds(50));
+        var links = new IssueTrackerLinks([partial, later], TimeSpan.FromMilliseconds(250));
 
         var found = links.Find($"#1 #2 {new string('a', 40)}!");
 
