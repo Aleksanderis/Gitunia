@@ -65,4 +65,34 @@ public class PathTreeTests
         Assert.Equal(0, rows.RowOfClosedAncestor("src/b.cs"));
         Assert.Equal([0, 1], rows.EntriesOfRows(0, 0));
     }
+
+    [Fact]
+    public void GivenHundredThousandPaths_WhenBuilt_ThenNoSubstringIsMadePerKnownFolder()
+    {
+        var paths = new List<string>();
+        for (var index = 0; index < 100_000; index++)
+        {
+            paths.Add($"src/module{index % 20}/sub{index % 300}/deep/file{index}.cs");
+        }
+
+        PathTree.Rows(paths);
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        var rows = PathTree.Rows(paths);
+        var allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        // Measured 33.1 MB with a substring per component, 19.1 MB with span lookups.
+        Assert.True(allocated < 25_000_000, $"allocated {allocated} bytes");
+        Assert.Equal("src", rows[0].Name);
+        Assert.Equal("module0", rows[1].Name);
+    }
+
+    [Fact]
+    public void GivenSiblingFoldersInsertedOutOfOrder_WhenBuilt_ThenTheyComeOutInOrdinalOrder()
+    {
+        var rows = PathTree.Rows(["b/x.cs", "a/y.cs", "a/b/z.cs", "a/B/w.cs"]);
+
+        Assert.Equal(["B", "w.cs", "b", "z.cs", "y.cs"], rows.Skip(1).Take(5).Select(row => row.Name));
+        Assert.Equal("a", rows[0].Name);
+        Assert.Equal("b", rows[6].Name);
+    }
 }
