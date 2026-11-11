@@ -3,6 +3,9 @@ using Gitunia.Core;
 using Gitunia.App.Tests.Fakes;
 using Gitunia.App.Worktrees;
 using Gitunia.Core.Workspaces;
+using Gitunia.Git.Repositories.Models;
+using Gitunia.Git.Status;
+using Gitunia.Git.Status.Models;
 using Gitunia.Git.Tests.Fixtures;
 using Xunit;
 
@@ -62,6 +65,53 @@ public sealed class WorktreeOverviewPollerTests
         await poller.PollOnceAsync(Token);
 
         Assert.Null(host.Workspace.ActiveTab!.WorktreeStatuses);
+    }
+
+    [Fact]
+    public async Task GivenWorktreeThatKeepsFailing_WhenPolledRepeatedly_ThenItIsSkippedForLongerEachTime()
+    {
+        using var repository = TestRepositories.WithWorktree(out _);
+        var host = await OpenAsync(repository.WorkingTreePath);
+        var reader = new FailingStatusReader();
+        var clock = new ManualClock();
+        using var poller = new WorktreeOverviewPoller(reader, host, time: clock);
+        var step = TimeSpan.FromSeconds(30);
+        var gaps = new List<TimeSpan>();
+
+        for (var failure = 0; failure < 3; failure++)
+        {
+            await poller.PollOnceAsync(Token);
+            var reads = reader.Reads;
+            var gap = TimeSpan.Zero;
+            while (reader.Reads == reads)
+            {
+                clock.Advance(step);
+                gap += step;
+                await poller.PollOnceAsync(Token);
+            }
+
+            gaps.Add(gap);
+        }
+
+        Assert.True(gaps[0] >= step);
+        Assert.True(gaps[1] > gaps[0]);
+        Assert.True(gaps[2] > gaps[1]);
+    }
+
+    private sealed class FailingStatusReader : IStatusReader
+    {
+        public int Reads { get; private set; }
+
+        public Task<StatusSnapshot> ReadStatusAsync(
+            RepositoryLocation location,
+            bool includeIgnored,
+            UntrackedFilesMode untrackedFiles,
+            CancellationToken cancellationToken)
+        {
+            Reads++;
+
+            return Task.FromException<StatusSnapshot>(new TimeoutException("status timed out"));
+        }
     }
 
     private static async Task<Dispatcher> OpenAsync(string path)

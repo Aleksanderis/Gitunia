@@ -24,6 +24,8 @@ public sealed class TabPoller : IDisposable
     private readonly Timer _timer;
     private RepositoryFingerprintGroups? _baseline;
     private long _statusDueAt;
+    private long? _lastCheckAt;
+    private int _failures;
     private TimeSpan _statusInterval;
     private int _epoch;
     private bool _isActive;
@@ -97,7 +99,15 @@ public sealed class TabPoller : IDisposable
             return;
         }
 
-        _statusDueAt = _time.GetTimestamp();
+        // Rapid focus changes (alt-tab, tmux panes) would start one status read each.
+        var now = _time.GetTimestamp();
+        if (_lastCheckAt is { } last && now - last < ToTimestampTicks(_options.FocusCheckGap))
+        {
+            return;
+        }
+
+        _lastCheckAt = now;
+        _statusDueAt = now;
         Tick();
     }
 
@@ -106,7 +116,19 @@ public sealed class TabPoller : IDisposable
     /// </summary>
     public void RecordRefresh(TimeSpan took)
     {
+        _failures = 0;
         _statusInterval = _options.StatusIntervalAfter(took);
+        _statusDueAt = _time.GetTimestamp() + ToTimestampTicks(_statusInterval);
+    }
+
+    /// <summary>
+    /// A refresh failed or timed out after <paramref name="took"/>: it counts like a slow one, and the wait doubles for each
+    /// failure in a row until a refresh succeeds (<see cref="RecordRefresh"/>).
+    /// </summary>
+    public void RecordFailure(TimeSpan took)
+    {
+        _failures++;
+        _statusInterval = _options.StatusIntervalAfter(took, _failures);
         _statusDueAt = _time.GetTimestamp() + ToTimestampTicks(_statusInterval);
     }
 

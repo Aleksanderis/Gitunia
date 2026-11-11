@@ -28,7 +28,29 @@ public sealed partial class RepositoryWatcher
     {
         ReleaseWatchers();
         _lastFingerprint = RepositoryFingerprint.Compute(_location);
-        _pollTimer = new Timer(_ => Poll(), null, _options.PollInterval, _options.PollInterval);
+        _pollInterval = _options.PollInterval;
+
+        // One-shot: the next poll is scheduled when this one ends, so callbacks never overlap and the wait can change.
+        _pollTimer = new Timer(_ => Poll(), null, _pollInterval, Timeout.InfiniteTimeSpan);
+    }
+
+    /// <summary>
+    /// A refresh this watcher caused took <paramref name="took"/> (or failed or timed out, <paramref name="failed"/>): while the
+    /// watcher polls, the next poll waits at least five times as long, and doubles for each failure in a row (#1307).
+    /// No effect while the watcher watches files.
+    /// </summary>
+    public void RecordRefresh(TimeSpan took, bool failed)
+    {
+        lock (_gate)
+        {
+            _pollFailures = failed ? _pollFailures + 1 : 0;
+            _pollInterval = RefreshBackoff.Interval(
+                _options.PollInterval,
+                _options.PollIntervalLimit,
+                _options.PollBackoffFactor,
+                took,
+                _pollFailures);
+        }
     }
 
     private void ReleaseWatchers()
@@ -54,6 +76,15 @@ public sealed partial class RepositoryWatcher
 
     private void Poll()
     {
+        lock (_gate)
+        {
+            // A hidden tab does not poll: activating it polls at once (see SetActive).
+            if (_isDisposed || !_isActive)
+            {
+                return;
+            }
+        }
+
         var fingerprint = RepositoryFingerprint.Compute(_location);
         lock (_gate)
         {
@@ -69,6 +100,7 @@ public sealed partial class RepositoryWatcher
             _lastFingerprint = fingerprint;
 
             EnqueueLocked(kinds);
+            _pollTimer?.Change(_pollInterval, Timeout.InfiniteTimeSpan);
         }
     }
 

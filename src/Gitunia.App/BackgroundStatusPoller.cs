@@ -21,15 +21,25 @@ public sealed class BackgroundStatusPoller : IDisposable
     private readonly IBackgroundWork _background;
     private readonly CancellationTokenSource _cancellation = new();
     private readonly ShutdownTasks _tasks = new();
+    private readonly TimeProvider _time;
+    private readonly ReadBackoff _backoff;
     private bool _started;
 
-    public BackgroundStatusPoller(IStatusReader status, Dispatcher host, IUiInvoker ui, TimeSpan? interval = null, IBackgroundWork? background = null)
+    public BackgroundStatusPoller(
+        IStatusReader status,
+        Dispatcher host,
+        IUiInvoker ui,
+        TimeSpan? interval = null,
+        IBackgroundWork? background = null,
+        TimeProvider? time = null)
     {
+        _time = time ?? TimeProvider.System;
         _background = background ?? UnboundedBackgroundWork.Instance;
         _status = status;
         _host = host;
         _ui = ui;
         _interval = interval ?? TimeSpan.FromSeconds(30);
+        _backoff = new ReadBackoff(_interval, _time);
     }
 
     /// <summary>Starts the loop: one pass now, then one per interval. Calling it twice has no effect.</summary>
@@ -67,9 +77,18 @@ public sealed class BackgroundStatusPoller : IDisposable
                 continue;
             }
 
+            // A repository whose last read failed, timed out or was slow is skipped for a growing period (#1307).
+            var key = tab.Location.RootPath;
+            if (!_backoff.IsDue(key))
+            {
+                continue;
+            }
+
+            var started = _time.GetTimestamp();
             try
             {
                 var status = await _status.ReadStatusAsync(tab.Location, false, UntrackedFilesMode.Normal, cancellationToken).ConfigureAwait(false);
+                _backoff.RecordSuccess(key, _time.GetElapsedTime(started));
                 var summary = RepositoryStatusSummary.From(status);
                 var tabId = tab.Id;
                 _ui.Post(() => Apply(tabId, summary));
@@ -81,6 +100,7 @@ public sealed class BackgroundStatusPoller : IDisposable
             catch (Exception)
             {
                 // A background tab that cannot be read keeps its last markers (the error shows when the tab is opened); it must never stop the other tabs or the loop.
+                _backoff.RecordFailure(key, _time.GetElapsedTime(started));
             }
         }
     }
