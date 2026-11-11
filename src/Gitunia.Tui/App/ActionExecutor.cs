@@ -1,8 +1,8 @@
 using Gitunia.App;
 using Gitunia.App.Shell;
+using Gitunia.Core.Input;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
-using Gitunia.Core.Input;
 using Gitunia.Tui.App.Panes;
 using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.Input;
@@ -56,7 +56,8 @@ public sealed class ActionExecutor(
                 _message = KeyTokens.Resolve(notice.Notice, keymap);
             }
 
-            isTaken = true;
+            // Navigation always answers true as the last handler: for Esc that is the status fallback, not an owner.
+            isTaken = handler != InputHandler.Navigation || effect.Action != ActionIds.Cancel;
 
             break;
         }

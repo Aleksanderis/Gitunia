@@ -45,6 +45,8 @@ public class ActionExecutorTests : IInputFocusSource
     [Fact]
     public void GivenInsertModeNobodyOwns_WhenEscIsPressed_ThenTheModeIsNormal()
     {
+        // The real Navigation handler is the last one and always answers true.
+        _handlers[InputHandler.Navigation] = new Recorder(InputHandler.Navigation, _asked) { Takes = true };
         _host.SetKeyMode(KeyMode.Insert);
 
         _input.Route(ActionIds.Cancel, null);
@@ -66,6 +68,7 @@ public class ActionExecutorTests : IInputFocusSource
     [Fact]
     public void GivenInsertModeNobodyOwns_WhenAnotherActionRuns_ThenTheModeStaysInsert()
     {
+        _handlers[InputHandler.Navigation] = new Recorder(InputHandler.Navigation, _asked) { Takes = true };
         _host.SetKeyMode(KeyMode.Insert);
 
         _input.Route(ActionIds.ListDown, null);
