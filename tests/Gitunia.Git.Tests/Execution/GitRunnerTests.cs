@@ -9,6 +9,8 @@ namespace Gitunia.Git.Tests.Execution;
 
 public class GitRunnerTests
 {
+    private const int GitFatalExitCode = 128;
+
     private static readonly string AnyDirectory = Path.GetTempPath();
 
     // The runner's timer also covers process start-up, which can exceed a few hundred ms under CPU load; the fake must have recorded its id before the kill.
@@ -172,7 +174,7 @@ public class GitRunnerTests
         var error = await Assert.ThrowsAsync<GitCommandFailedException>(
             () => runner.RunAsync(missing, ["status"], cancellationToken: TestContext.Current.CancellationToken));
 
-        Assert.NotEqual(0, error.ExitCode);
+        Assert.Equal(GitFatalExitCode, error.ExitCode);
     }
 
     [Fact]
