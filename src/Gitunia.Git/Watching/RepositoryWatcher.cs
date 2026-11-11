@@ -193,36 +193,85 @@ public sealed partial class RepositoryWatcher : IDisposable
             }
 
             _isStarted = true;
-            if (!TryStartWatchingLocked())
+        }
+
+        if (TryStartWatching() == WatchStart.Failed)
+        {
+            lock (_gate)
             {
-                StartPolling();
+                if (!_isDisposed && _pollTimer is null)
+                {
+                    StartPolling();
+                }
             }
         }
     }
 
-    /// <summary>Creates the watchers of the plan. False when polling is needed instead (no slots, or a watcher could not be created).</summary>
-    private bool TryStartWatchingLocked()
+    private enum WatchStart
+    {
+        Started,
+        Failed,
+        Abandoned,
+    }
+
+    /// <summary>
+    /// Plans and creates the watchers without holding the gate (the disk can be slow), so the UI-thread members that take it never
+    /// wait for the creation. Only taking the slots and publishing the result happen under the lock. Failed: polling is needed
+    /// instead (no slots, or a watcher could not be created). Abandoned: disposed or fell back to polling meanwhile.
+    /// </summary>
+    private WatchStart TryStartWatching()
     {
         var plan = CreatePlan();
-        if (!_budget.TryAcquire(plan.Count))
+        lock (_gate)
         {
-            return false;
+            if (_isDisposed || _pollTimer is not null)
+            {
+                return WatchStart.Abandoned;
+            }
+
+            if (!_budget.TryAcquire(plan.Count))
+            {
+                return WatchStart.Failed;
+            }
+
+            _heldSlots = plan.Count;
         }
 
-        _heldSlots = plan.Count;
+        var created = new List<FileSystemWatcher>(plan.Count);
         try
         {
             foreach (var entry in plan)
             {
-                _watchers.Add(CreateWatcher(entry.Path, entry.IsRecursive));
-                _watchedPaths.Add(entry.Path);
+                created.Add(CreateWatcher(entry.Path, entry.IsRecursive));
             }
         }
         catch (Exception exception) when (IsWatchFailure(exception))
         {
-            // Typically the inotify watch limit: the caller gives the slots back and polls.
-            ReleaseWatchers();
-            return false;
+            // Typically the inotify watch limit: give the slots back; the caller polls.
+            RetireWatchers([.. created]);
+            lock (_gate)
+            {
+                // Releases nothing when Dispose or a fallback already did.
+                ReleaseWatchers();
+            }
+
+            return WatchStart.Failed;
+        }
+
+        lock (_gate)
+        {
+            if (_isDisposed || _pollTimer is not null)
+            {
+                // The slots went back with Dispose or the fallback.
+                RetireWatchers([.. created]);
+                return WatchStart.Abandoned;
+            }
+
+            _watchers.AddRange(created);
+            foreach (var entry in plan)
+            {
+                _watchedPaths.Add(entry.Path);
+            }
         }
 
         if (!_perDirectory && _directoryLister is not null && _location.WorkingTreePath is not null)
@@ -231,7 +280,7 @@ public sealed partial class RepositoryWatcher : IDisposable
         }
 
         RequestRescan();
-        return true;
+        return WatchStart.Started;
     }
 
     /// <summary>Marks the tab visible or hidden. Activating reports everything that changed while it was hidden.</summary>
@@ -501,7 +550,17 @@ public sealed partial class RepositoryWatcher : IDisposable
             _pollTimer = null;
             _usesRecursiveRoot = false;
             _hasScanned = false;
-            if (TryStartWatchingLocked())
+        }
+
+        var result = TryStartWatching();
+        lock (_gate)
+        {
+            if (_isDisposed)
+            {
+                return;
+            }
+
+            if (result == WatchStart.Started)
             {
                 _retryTimer?.Dispose();
                 _retryTimer = null;
@@ -509,7 +568,11 @@ public sealed partial class RepositoryWatcher : IDisposable
                 return;
             }
 
-            StartPolling();
+            if (_pollTimer is null)
+            {
+                StartPolling();
+            }
+
             _retryTimer?.Change(_options.WatcherRetryIntervalOrDefault, Timeout.InfiniteTimeSpan);
         }
     }

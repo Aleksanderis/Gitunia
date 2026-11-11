@@ -42,6 +42,48 @@ public class RepositoryWatcherTests
         Assert.True(watcher.WatcherCount > 0);
     }
 
+    [Fact]
+    public async Task GivenStartRunning_WhenDisposedAtAnyPoint_ThenNoWatcherSlotStaysHeld()
+    {
+        using var testRepository = TestRepositories.Linear(1);
+        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
+        var budget = new WatchBudget();
+
+        for (var attempt = 0; attempt < 40; attempt++)
+        {
+            var watcher = new RepositoryWatcher(location, budget, FastOptions);
+            var start = watcher.StartAsync();
+            if (attempt % 2 == 0)
+            {
+                await Task.Yield();
+            }
+
+            watcher.Dispose();
+            await start;
+        }
+
+        // Watchers created while Dispose ran are retired by the starter; their slots must come back too.
+        await WaitUntilAsync(() => budget.InUse == 0);
+        Assert.Equal(0, budget.InUse);
+    }
+
+    [Fact]
+    public async Task GivenStartAsync_WhenUiMembersAreUsedMeanwhile_ThenWatchingBegins()
+    {
+        using var testRepository = TestRepositories.Linear(1);
+        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
+        using var watcher = new RepositoryWatcher(location, new WatchBudget(), FastOptions);
+
+        var start = watcher.StartAsync();
+        watcher.SetActive(false);
+        watcher.SetActive(true);
+        _ = watcher.IsStale;
+        await start;
+
+        Assert.False(watcher.IsPolling);
+        Assert.True(watcher.WatcherCount > 0);
+    }
+
     [Theory]
     [InlineData(false, false)]
     [InlineData(false, true)]
