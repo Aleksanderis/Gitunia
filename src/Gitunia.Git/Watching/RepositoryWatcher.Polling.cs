@@ -32,12 +32,14 @@ public sealed partial class RepositoryWatcher
 
         // One-shot: the next poll is scheduled when this one ends, so callbacks never overlap and the wait can change.
         _pollTimer = new Timer(_ => Poll(), null, _pollInterval, Timeout.InfiniteTimeSpan);
+        _awaitsRefresh = false;
     }
 
     /// <summary>
     /// A refresh this watcher caused took <paramref name="took"/> (or failed or timed out, <paramref name="failed"/>): while the
     /// watcher polls, the next poll waits at least five times as long, and doubles for each failure in a row (#1307).
-    /// No effect while the watcher watches files.
+    /// It also acknowledges the status refresh a poll asked for: until it arrives, polls ask only for what the fingerprint
+    /// shows changed, so a slow or failing status read is not queued again behind itself. No effect while the watcher watches files.
     /// </summary>
     public void RecordRefresh(TimeSpan took, bool failed)
     {
@@ -50,6 +52,12 @@ public sealed partial class RepositoryWatcher
                 _options.PollBackoffFactor,
                 took,
                 _pollFailures);
+            _awaitsRefresh = false;
+            if (_pollTimer is not null && _isActive && !_isPolling)
+            {
+                // Measured from the end of the refresh, so the new wait applies to the very next poll.
+                _pollTimer.Change(_pollInterval, Timeout.InfiniteTimeSpan);
+            }
         }
     }
 
@@ -83,23 +91,31 @@ public sealed partial class RepositoryWatcher
             {
                 return;
             }
+
+            _isPolling = true;
         }
 
         var fingerprint = RepositoryFingerprint.Compute(_location);
         lock (_gate)
         {
+            _isPolling = false;
             if (_isDisposed)
             {
                 return;
             }
 
-            // Working tree edits cannot be seen cheaply, so a polling tab asks for a status refresh on every tick;
-            // the refresher drops it when nothing differs.
-            var kinds = RepositoryChangeKinds.WorkingTree;
+            // Working tree edits cannot be seen cheaply, so a polling tab asks for a status refresh on every tick
+            // (the refresher drops it when nothing differs), but not while the last one is still outstanding.
+            var kinds = _awaitsRefresh ? RepositoryChangeKinds.None : RepositoryChangeKinds.WorkingTree;
             kinds |= fingerprint.ChangedKinds(_lastFingerprint);
             _lastFingerprint = fingerprint;
+            _awaitsRefresh |= kinds != RepositoryChangeKinds.None;
 
-            EnqueueLocked(kinds);
+            if (kinds != RepositoryChangeKinds.None)
+            {
+                EnqueueLocked(kinds);
+            }
+
             _pollTimer?.Change(_pollInterval, Timeout.InfiniteTimeSpan);
         }
     }

@@ -1,3 +1,4 @@
+using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Git.Watching;
 
 namespace Gitunia.App.Background;
@@ -16,7 +17,7 @@ public sealed class ReadBackoff
     private readonly TimeSpan _interval;
     private readonly TimeSpan _maximum;
     private readonly TimeProvider _time;
-    private readonly Dictionary<string, Entry> _entries = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, Entry> _entries = new(RepositoryPathComparer.Instance);
     private readonly object _gate = new();
 
     public ReadBackoff(TimeSpan interval, TimeProvider? time = null, TimeSpan? maximum = null)

@@ -316,12 +316,14 @@ public sealed class TabRefresher : IDisposable, IPollTarget
             return;
         }
 
+        var took = Stopwatch.GetElapsedTime(_refreshStartedAt);
         if (reload is null && !isManual)
         {
-            var took = Stopwatch.GetElapsedTime(_refreshStartedAt);
             _poller?.RecordRefresh(took);
-            _watcher?.RecordRefresh(took, false);
         }
+
+        // Every finished refresh acknowledges the watcher's last poll, so its next status refresh is not queued behind it.
+        _watcher?.RecordRefresh(took, false);
 
         _lastError = string.Empty;
         _snapshot = result.Snapshot;

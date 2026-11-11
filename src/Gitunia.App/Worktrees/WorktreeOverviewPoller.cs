@@ -32,6 +32,7 @@ public sealed class WorktreeOverviewPoller : IDisposable
     private readonly TimeProvider _time;
     private readonly ReadBackoff _backoff;
     private bool _started;
+    private bool _skipBackoff;
 
     public WorktreeOverviewPoller(
         IStatusReader status,
@@ -122,7 +123,7 @@ public sealed class WorktreeOverviewPoller : IDisposable
         var location = new RepositoryLocation(path, origin.CommonDirectory, origin.CommonDirectory, false, true);
 
         // A worktree whose last read failed, timed out or was slow is skipped for a growing period (#1307).
-        if (!_backoff.IsDue(path))
+        if (!_skipBackoff && !_backoff.IsDue(path))
         {
             return null;
         }
@@ -157,7 +158,9 @@ public sealed class WorktreeOverviewPoller : IDisposable
             while (!token.IsCancellationRequested)
             {
                 await PollGuardedAsync(token).ConfigureAwait(false);
-                await _wake.WaitAsync(_interval, token).ConfigureAwait(false);
+
+                // A change of the tab or its worktrees (the user's doing) reads every worktree again; only the timer backs off.
+                _skipBackoff = await _wake.WaitAsync(_interval, token).ConfigureAwait(false);
             }
         }
         catch (OperationCanceledException)

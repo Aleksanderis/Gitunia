@@ -106,6 +106,12 @@ public sealed class TabPoller : IDisposable
             return;
         }
 
+        if (!_target.CanPoll || _isReading)
+        {
+            // Nothing is checked, so it must not swallow the next focus-in either.
+            return;
+        }
+
         _lastCheckAt = now;
         _statusDueAt = now;
         Tick();

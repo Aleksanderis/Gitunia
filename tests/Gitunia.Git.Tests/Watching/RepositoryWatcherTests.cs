@@ -223,7 +223,7 @@ public class RepositoryWatcherTests
     }
 
     [Fact]
-    public async Task GivenPollingTab_WhenARefreshFails_ThenThePollsBackOff()
+    public async Task GivenPollingTab_WhenTheLastRefreshIsNotDone_ThenNoNewStatusRefreshIsQueuedUntilItIs()
     {
         using var testRepository = TestRepositories.Linear(1);
         var recorder = new ChangeRecorder();
@@ -232,10 +232,31 @@ public class RepositoryWatcherTests
         watcher.Changed += recorder.Record;
         watcher.Start();
         await WaitUntilAsync(() => recorder.CallCount > 0);
-
-        watcher.RecordRefresh(TimeSpan.FromSeconds(1), true);
         await Task.Delay(TimeSpan.FromMilliseconds(300), Token);
         var before = recorder.CallCount;
+
+        await Task.Delay(TimeSpan.FromMilliseconds(500), Token);
+
+        Assert.Equal(before, recorder.CallCount);
+        watcher.RecordRefresh(TimeSpan.Zero, false);
+        await WaitUntilAsync(() => recorder.CallCount > before);
+    }
+
+    [Fact]
+    public async Task GivenPollingTab_WhenARefreshFails_ThenTheNextPollWaitsLonger()
+    {
+        using var testRepository = TestRepositories.Linear(1);
+        var recorder = new ChangeRecorder();
+        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
+        using var watcher = new RepositoryWatcher(location, new WatchBudget(0), FastOptions);
+        watcher.Changed += recorder.Record;
+        watcher.Start();
+        await WaitUntilAsync(() => recorder.CallCount > 0);
+        await Task.Delay(TimeSpan.FromMilliseconds(300), Token);
+        var before = recorder.CallCount;
+
+        // Acknowledged as failed after a long time: the next poll is 5 s or more away, not 60 ms.
+        watcher.RecordRefresh(TimeSpan.FromSeconds(1), true);
         await Task.Delay(TimeSpan.FromMilliseconds(500), Token);
 
         Assert.Equal(before, recorder.CallCount);
