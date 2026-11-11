@@ -58,6 +58,8 @@ public sealed partial class RepositoryWatcher : IDisposable
     private int _acknowledgedRefreshes;
     private readonly Action? _creatingWatchers;
     private volatile HashSet<string>? _ignoredDirectories;
+    private bool _isReloadingIgnored;
+    private bool _reloadIgnoredAgain;
 
     public RepositoryWatcher(
         RepositoryLocation location,
@@ -295,7 +297,7 @@ public sealed partial class RepositoryWatcher : IDisposable
 
         if (!_perDirectory && _directoryLister is not null && _location.WorkingTreePath is not null)
         {
-            _ = Task.Run(LoadIgnoredDirectoriesAsync);
+            RequestIgnoredReload();
         }
 
         RequestRescan();
@@ -505,21 +507,65 @@ public sealed partial class RepositoryWatcher : IDisposable
     private static bool IsSeparator(char value) =>
         value == Path.DirectorySeparatorChar || value == Path.AltDirectorySeparatorChar;
 
-    private async Task LoadIgnoredDirectoriesAsync()
+    /// <summary>
+    /// Reads the ignored directories on a pool thread. Requests that arrive while a read runs collapse into one more
+    /// read after it, so a burst of <c>.gitignore</c> saves costs at most two git calls and the last edit always wins.
+    /// </summary>
+    private void RequestIgnoredReload()
     {
-        try
+        lock (_gate)
         {
-            var directories = await _directoryLister!.ListIgnoredAsync(_location.WorkingTreePath!, _disposal.Token);
-            if (directories is not null)
+            if (_isDisposed)
             {
-                var comparer = OperatingSystem.IsLinux() ? StringComparer.Ordinal : StringComparer.OrdinalIgnoreCase;
-                _ignoredDirectories = new HashSet<string>(directories.Select(Path.TrimEndingDirectorySeparator), comparer);
+                return;
+            }
+
+            if (_isReloadingIgnored)
+            {
+                _reloadIgnoredAgain = true;
+                return;
+            }
+
+            _isReloadingIgnored = true;
+        }
+
+        _ = Task.Run(ReloadIgnoredDirectoriesAsync);
+    }
+
+    private async Task ReloadIgnoredDirectoriesAsync()
+    {
+        var again = true;
+        while (again)
+        {
+            try
+            {
+                await LoadIgnoredDirectoriesAsync();
+            }
+            catch (Exception exception) when (exception is OperationCanceledException or ObjectDisposedException)
+            {
+                // Disposed while listing.
+            }
+            finally
+            {
+                lock (_gate)
+                {
+                    again = _reloadIgnoredAgain && !_isDisposed;
+                    _reloadIgnoredAgain = false;
+                    _isReloadingIgnored = again;
+                }
             }
         }
-        catch (Exception exception) when (exception is OperationCanceledException or ObjectDisposedException)
-        {
-            // Disposed while listing.
-        }
+    }
+
+    private async Task LoadIgnoredDirectoriesAsync()
+    {
+        var directories = await _directoryLister!.ListIgnoredAsync(_location.WorkingTreePath!, _disposal.Token);
+        var comparer = OperatingSystem.IsLinux() ? StringComparer.Ordinal : StringComparer.OrdinalIgnoreCase;
+
+        // A failed listing (null) empties the set: too many events are reported rather than a stale set hiding some.
+        _ignoredDirectories = new HashSet<string>(
+            (directories ?? []).Select(Path.TrimEndingDirectorySeparator),
+            comparer);
     }
 
     /// <summary>Feeds an error into the path a watcher's <c>Error</c> event takes (for tests, which cannot raise the event).</summary>

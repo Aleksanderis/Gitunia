@@ -129,6 +129,54 @@ public class WatcherResilienceTests
     }
 
     [Fact]
+    public async Task GivenGitignoreEdit_WhenWatchingRecursively_ThenTheIgnoredSetIsReloadedAndDropsItsEvents()
+    {
+        using var testRepository = TestRepositories.Linear(1);
+        var ignored = Path.Combine(testRepository.WorkingTreePath, "build");
+        Directory.CreateDirectory(ignored);
+        var recorder = new ChangeRecorder();
+        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
+        var lister = new SwitchableLister();
+        using var watcher = new RepositoryWatcher(location, new WatchBudget(), FastOptions, directoryLister: lister);
+        watcher.Changed += recorder.Record;
+        watcher.Start();
+        await WaitForAsync(() => lister.CallCount == 1);
+        lister.Ignored = [ignored];
+
+        testRepository.WriteFile(".gitignore", "build/\n");
+        await WaitForAsync(() => watcher.IgnoredDirectoryCount == 1);
+        await Task.Delay(QuietWindow, Token);
+        var before = recorder.CallCount;
+        testRepository.WriteFile(Path.Combine("build", "out.bin"), "x");
+        await Task.Delay(QuietWindow, Token);
+
+        Assert.Equal(before, recorder.CallCount);
+    }
+
+    [Fact]
+    public async Task GivenBurstOfGitignoreEdits_WhenAListingIsRunning_ThenTheyCollapseIntoOneMoreListing()
+    {
+        using var testRepository = TestRepositories.Linear(1);
+        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
+        using var lister = new SwitchableLister { Blocking = true };
+        using var watcher = new RepositoryWatcher(location, new WatchBudget(), FastOptions, directoryLister: lister);
+        watcher.Start();
+        await WaitForAsync(() => lister.CallCount == 1);
+
+        for (var edit = 0; edit < 5; edit++)
+        {
+            testRepository.WriteFile(".gitignore", $"edit{edit}\n");
+            await Task.Delay(30, Token);
+        }
+
+        lister.Release.Set();
+        await WaitForAsync(() => lister.CallCount == 2);
+        await Task.Delay(QuietWindow, Token);
+
+        Assert.Equal(2, lister.CallCount);
+    }
+
+    [Fact]
     public async Task GivenSlowFingerprint_WhenStartFallsBackToPolling_ThenStartDoesNotComputeItOnTheCallingThread()
     {
         using var testRepository = TestRepositories.Linear(1);
@@ -201,6 +249,38 @@ public class WatcherResilienceTests
 
         public Task<IReadOnlyList<string>?> ListIgnoredAsync(string workingTreePath, CancellationToken cancellationToken) =>
             Task.FromResult<IReadOnlyList<string>?>(ignored);
+    }
+
+    private sealed class SwitchableLister : IWorkingTreeDirectoryLister, IDisposable
+    {
+        private int _callCount;
+
+        public int CallCount => Volatile.Read(ref _callCount);
+
+        public volatile bool Blocking;
+
+        public IReadOnlyList<string> Ignored { get; set; } = [];
+
+        public ManualResetEventSlim Release { get; } = new();
+
+        public Task<IReadOnlyList<string>?> ListAsync(string workingTreePath, CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyList<string>?>(null);
+
+        public async Task<IReadOnlyList<string>?> ListIgnoredAsync(
+            string workingTreePath,
+            CancellationToken cancellationToken)
+        {
+            var current = Ignored;
+            Interlocked.Increment(ref _callCount);
+            if (Blocking)
+            {
+                await Task.Run(() => Release.Wait(cancellationToken), cancellationToken);
+            }
+
+            return current;
+        }
+
+        public void Dispose() => Release.Dispose();
     }
 
     private sealed class SlowReader : IRepositoryFingerprintReader, IDisposable
