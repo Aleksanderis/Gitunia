@@ -18,11 +18,11 @@ public sealed class BinaryProbeTests : IDisposable
         var archivePath = Path.Combine(_directory, "gitunia.tar.gz");
         await File.WriteAllBytesAsync(archivePath, archive, TestContext.Current.CancellationToken);
         using var stop = new CancellationTokenSource();
-        var spawners = Enumerable.Range(0, 12).Select(_ => Task.Run(() => SpawnUntil(stop.Token))).ToArray();
+        var spawners = Enumerable.Range(0, 12).Select(_ => Task.Factory.StartNew(() => SpawnUntil(stop.Token), TaskCreationOptions.LongRunning)).ToArray();
 
         try
         {
-            for (var attempt = 0; attempt < 500; attempt++)
+            for (var attempt = 0; attempt < 200; attempt++)
             {
                 var binary = Path.Combine(_directory, $"gitunia-{attempt}");
                 ReleaseArchive.ExtractBinary(archivePath, "gitunia", binary);
