@@ -4,14 +4,6 @@ namespace Gitunia.Git.Watching;
 
 public sealed partial class RepositoryWatcher
 {
-    private void FallBackToPolling()
-    {
-        lock (_gate)
-        {
-            FallBackToPollingLocked();
-        }
-    }
-
     private void FallBackToPollingLocked()
     {
         if (_isDisposed || _pollTimer is not null)
