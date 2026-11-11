@@ -182,4 +182,28 @@ public class RepositoryDiscoveryTests
 
     private static string Canonical(TestRepository testRepository, string path) =>
         Normalize(testRepository.Git(["-C", path, "rev-parse", "--path-format=absolute", "--show-toplevel"], null).Trim());
+
+    [Fact]
+    public async Task GivenAWorkingTreeSubdirectory_WhenDiscovering_ThenOneProcessRuns()
+    {
+        using var testRepository = TestRepository.Create().Commit("Nested", new TestFile(Path.Combine("a", "file.txt"), "x\n"));
+        var before = Runner.StartedCount;
+
+        await Discovery.DiscoverAsync(Path.Combine(testRepository.WorkingTreePath, "a"), Token);
+
+        Assert.Equal(1, Runner.StartedCount - before);
+    }
+
+    [Fact]
+    public async Task GivenABareRepositoryOrAGitDirectoryPath_WhenDiscovering_ThenOneProcessRunsForEach()
+    {
+        using var bare = TestRepository.Create(bare: true);
+        using var testRepository = TestRepositories.Linear(1);
+        var before = Runner.StartedCount;
+
+        await Discovery.DiscoverAsync(bare.WorkingTreePath, Token);
+        await Discovery.DiscoverAsync(Path.Combine(testRepository.WorkingTreePath, ".git", "refs"), Token);
+
+        Assert.Equal(2, Runner.StartedCount - before);
+    }
 }

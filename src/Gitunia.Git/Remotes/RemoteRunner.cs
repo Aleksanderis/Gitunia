@@ -26,6 +26,8 @@ public sealed class RemoteRunner(GitRunner runner, Func<string, string?> environ
 
     private static readonly TimeSpan IdleTimeout = TimeSpan.FromMinutes(2);
 
+    private readonly SshConfigCache _sshConfigCache = new(environmentLookup, TimeProvider.System);
+
     public RemoteRunner(GitRunner runner)
         : this(runner, Environment.GetEnvironmentVariable)
     {
@@ -88,7 +90,9 @@ public sealed class RemoteRunner(GitRunner runner, Func<string, string?> environ
         // Git's order is the variable, then core.sshCommand, then GIT_SSH.
         if (string.IsNullOrWhiteSpace(sshCommand))
         {
-            configured = await ReadConfiguredSshAsync(location, cancellationToken).ConfigureAwait(false);
+            configured = await _sshConfigCache
+                .GetAsync(location, () => ReadConfiguredSshAsync(location, cancellationToken), cancellationToken)
+                .ConfigureAwait(false);
         }
 
         if (SshCommandPolicy.BatchCommand(sshCommand, sshProgram, configured) is { } batch)
