@@ -348,11 +348,17 @@ public class IgnoreAwareWatchingTests
 
             return directories;
         }
+
+        public Task<IReadOnlyList<string>?> ListIgnoredAsync(string workingTreePath, CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyList<string>?>(null);
     }
 
     private sealed class FailingLister : IWorkingTreeDirectoryLister
     {
         public Task<IReadOnlyList<string>?> ListAsync(string workingTreePath, CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyList<string>?>(null);
+
+        public Task<IReadOnlyList<string>?> ListIgnoredAsync(string workingTreePath, CancellationToken cancellationToken) =>
             Task.FromResult<IReadOnlyList<string>?>(null);
     }
 }

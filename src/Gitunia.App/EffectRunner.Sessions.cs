@@ -98,7 +98,7 @@ public sealed partial class EffectRunner<TSession>
                 _services.Stashes,
                 _services.IncrementalGraphLoader,
                 _services.OperationInfo,
-                OperatingSystem.IsLinux() ? _services.WatchedDirectories : null,
+                _services.WatchedDirectories,
                 _services.Config),
             new TabContext(_host, session, location, _statuses, _ui),
             new TabWatching(_watchBudget, _watcherOptions, _pollOptions, _busy));
