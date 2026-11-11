@@ -328,6 +328,51 @@ public class RemoteWriterTests
         }
     }
 
+    [Fact]
+    public async Task GivenUnchangedConfig_WhenFetchingTwice_ThenTheSshCommandIsReadOnce()
+    {
+        using var repository = TestRepositories.WithOrigin();
+        var runner = repository.CreateIsolatedRunner();
+        var writer = new RemoteWriter(new RemoteRunner(runner, EmptyHome(repository)));
+        var location = await LocateAsync(repository);
+        var request = new FetchRequest("origin", false, false);
+
+        var beforeFirst = runner.StartedCount;
+        await writer.FetchAsync(location, request, null, Token);
+        var first = runner.StartedCount - beforeFirst;
+        var beforeSecond = runner.StartedCount;
+        await writer.FetchAsync(location, request, null, Token);
+        var second = runner.StartedCount - beforeSecond;
+
+        Assert.Equal(first - 1, second);
+    }
+
+    [Fact]
+    public async Task GivenTheSshCommandEditedBetweenFetches_WhenFetchingAgain_ThenItIsReadAgain()
+    {
+        using var repository = TestRepositories.WithOrigin();
+        var runner = repository.CreateIsolatedRunner();
+        var writer = new RemoteWriter(new RemoteRunner(runner, EmptyHome(repository)));
+        var location = await LocateAsync(repository);
+        var request = new FetchRequest("origin", false, false);
+        await writer.FetchAsync(location, request, null, Token);
+        await writer.FetchAsync(location, request, null, Token);
+        var before = runner.StartedCount;
+
+        repository.Git("config", "core.sshCommand", "ssh -i key");
+        await writer.FetchAsync(location, request, null, Token);
+
+        Assert.Equal(2, runner.StartedCount - before);
+    }
+
+    private static Func<string, string?> EmptyHome(TestRepository repository)
+    {
+        var home = Path.Combine(Path.GetDirectoryName(repository.OriginPath)!, "home");
+        Directory.CreateDirectory(home);
+
+        return name => name is "HOME" or "XDG_CONFIG_HOME" ? home : null;
+    }
+
     private static async Task<RepositoryLocation> LocateAsync(TestRepository repository) =>
         await new RepositoryDiscovery(repository.CreateIsolatedRunner())
             .DiscoverAsync(repository.WorkingTreePath, Token);

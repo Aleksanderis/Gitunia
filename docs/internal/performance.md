@@ -146,7 +146,15 @@ A process start costs about 1 ms on Linux and tens of ms on Windows (Defender sc
 | Diff prefetch of one neighbour | 2 (`rev-list --parents`, diff) | 1 (`show --first-parent`) |
 | Graph rows copied per status-only refresh | all rows (a 100k graph is ~800 KB on the large object heap) | none |
 
-Not done yet (#1341): the cached `core.sshCommand` read before each remote call, the 2-process repository open, and the commit-details prefetch (metadata, then files).
+Second part (#1341), asserted in tests the same way:
+
+| Action | Before | After |
+|---|---|---|
+| Fetch, pull or push with `GIT_SSH_COMMAND` unset | 2 (`config --get core.sshCommand`, the command) | 1 while the configuration is unchanged |
+| Repository open | 2 (`rev-parse`, `rev-parse --show-toplevel`) | 1 (`--show-toplevel` is the last argument; in a bare repository or a git directory rev-parse prints the rest, then fails, and the failure carries that stdout) |
+| Commit details of one commit (prefetch of one neighbour) | 2 (`log -1`, `diff-tree`) | 1 (`show --first-parent --raw -z`) |
+
+The `core.sshCommand` value is cached per git directory (`SshConfigCache`) together with the text of the repository, worktree and user-level config files; any difference, an include directive, a `GIT_CONFIG_*` variable or 30 seconds (the system-level file is not read) ends the entry, so a config edit between two calls is never missed.
 
 ## Polling and watching
 
@@ -166,4 +174,4 @@ The full-screen conflict editor (#742) works on the whole file. Measured with a 
 
 ## Memory and allocations (#1318)
 
-Not benchmarked (run-time rules forbid A/B rounds per issue); the figures below are counted from the code, not timed. The Files-tab tree cache keeps at most 4 trees and at most `CommitTreeStore.CacheFileBudget` (250,000) files across them, the tree just loaded always stays: four 100k-file trees were up to 400k nodes per tab, now 2 trees (test: three 100k-file trees leave the oldest evicted). Hash search (`ObjectId.StartsWith`) compares nibbles in place: no 40-char string (about 100 bytes) per row, so ~10 MB less garbage per search over 100k commits. The log parser's `Intern` decodes into a stack buffer and looks up through `GetAlternateLookup<ReadOnlySpan<char>>`, so a name or email seen before allocates nothing (before: one string per record for each of the two fields). Not done: sharing the intern table across reloads, decoration `Split`, `PathTree` substrings, `WorkingTreeState`, the doubled `ObjectId` per graph row: all registered in #1347.
+Not benchmarked (run-time rules forbid A/B rounds per issue); the figures below are counted from the code, not timed. The Files-tab tree cache keeps at most 4 trees and at most `CommitTreeStore.CacheFileBudget` (250,000) files across them, the tree just loaded always stays: four 100k-file trees were up to 400k nodes per tab, now 2 trees (test: three 100k-file trees leave the oldest evicted). Hash search (`ObjectId.StartsWith`) compares nibbles in place: no 40-char string (about 100 bytes) per row, so ~10 MB less garbage per search over 100k commits. The log parser's `Intern` decodes into a stack buffer and looks up through `GetAlternateLookup<ReadOnlySpan<char>>`, so a name or email seen before allocates nothing (before: one string per record for each of the two fields). Done in #1347 (counted from the code, not timed): decoration parts are walked as spans instead of `Split` (no `string[]` and no per-part copy that is cut down to a name), and `GraphEntry` reads its id from `GraphRow` instead of storing it twice (an `ObjectId` is 20 bytes plus padding, about 4 MB per 100k commits). Counted in #1359 (allocated bytes, 100k items, not timed): `PathTree.Rows` over 100k five-level paths allocated 33.1 MB with a substring per component and 19.1 MB with span lookups (done, test `GivenHundredThousandPaths_WhenBuilt_ThenNoSubstringIsMadePerKnownFolder`). Not done, no gain: a shared intern table saves 17 KB of 36 MB per 100k-commit parse (50 distinct authors); `WorkingTreeState.SameContent` allocates 40 bytes, `SelectedEntry` about 24 KB per call (a linear scan, not memory), `Reconcile` 3-4 MB for 100k entries, mostly the lists themselves.

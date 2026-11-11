@@ -19,7 +19,7 @@ public class CommitGraphTests
     private static GraphEntry Entry(int number, int laneCount)
     {
         var row = new GraphRow(Id(number), 0, laneCount, []);
-        return new GraphEntry(Id(number), $"commit {number}", "Author", DateTimeOffset.UnixEpoch, [], row);
+        return new GraphEntry($"commit {number}", "Author", DateTimeOffset.UnixEpoch, [], row);
     }
 
     [Fact]
@@ -91,6 +91,6 @@ public class CommitGraphTests
     {
         var row = new GraphRow(Id(number), 0, 1, []);
 
-        return new GraphEntry(Id(number), $"commit {number}", "Author", DateTimeOffset.UnixEpoch, [decoration], row);
+        return new GraphEntry($"commit {number}", "Author", DateTimeOffset.UnixEpoch, [decoration], row);
     }
 }

@@ -17,18 +17,29 @@ public sealed class CommitDetailsReader : ICommitDetailsReader
     public async Task<CommitDetails?> ReadAsync(RepositoryLocation location, ObjectId id, ICollection<string>? warnings = null, CancellationToken cancellationToken = default)
     {
         var collected = warnings ?? [];
-        var metadata = await _runner.RunAsync(location.CommandPath, CommitDetailsFormat.MetadataArguments(id), GitRunOptions.ReadOnlyRun, cancellationToken).ConfigureAwait(false);
-        var details = CommitDetailsParser.Parse(metadata.StandardOutput, collected);
+        var result = await _runner.RunAsync(location.CommandPath, CommitDetailsFormat.CombinedArguments(id), GitRunOptions.ReadOnlyRun, cancellationToken).ConfigureAwait(false);
+        var output = result.StandardOutput.AsSpan();
+        var details = CommitDetailsParser.Parse(output, collected);
         if (details is null)
         {
             return null;
         }
 
-        var firstParent = details.Parents.Count > 0 ? details.Parents[0] : (ObjectId?)null;
-        var changes = await ReadFilesAsync(location, id, firstParent, collected, cancellationToken)
-            .ConfigureAwait(false);
+        // The raw entries follow the record's NUL; the first of them starts with a newline.
+        var terminator = output.IndexOf((byte)0);
+        var rest = terminator < 0 ? default : output[(terminator + 1)..];
+        if (rest.Length > 0 && rest[0] == (byte)'\n')
+        {
+            rest = rest[1..];
+        }
 
-        return details with { Files = changes };
+        var changes = CommitFileChangeParser.Parse(rest);
+        foreach (var warning in changes.Warnings)
+        {
+            collected.Add(warning);
+        }
+
+        return details with { Files = changes.Items };
     }
 
     public async Task<IReadOnlyList<CommitFileChange>> ReadFilesAsync(

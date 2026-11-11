@@ -55,7 +55,7 @@ public sealed class StashViewController(
             return null;
         }
 
-        return new GraphEntry(commit, stash.Message, string.Empty, default, [], new GraphRow(commit, 0, 1, []));
+        return new GraphEntry(stash.Message, string.Empty, default, [], new GraphRow(commit, 0, 1, []));
     }
 
     /// <summary>
