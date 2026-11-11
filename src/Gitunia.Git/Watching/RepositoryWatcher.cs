@@ -15,6 +15,11 @@ public sealed partial class RepositoryWatcher : IDisposable
     private const int MaximumNewSubdirectories = 64;
     private const int RelistPasses = 2;
 
+    // A Windows watcher holds its buffer in non-paged kernel memory. The working tree sees build output, so it keeps the
+    // maximum; git directories see a few small files at a time.
+    private const int WorkingTreeBufferSize = 64 * 1024;
+    private const int GitDirectoryBufferSize = 16 * 1024;
+
     private static readonly NotifyFilters GitDirectoryFilters = NotifyFilters.FileName | NotifyFilters.DirectoryName | NotifyFilters.LastWrite | NotifyFilters.Size;
 
     private readonly RepositoryLocation _location;
@@ -44,15 +49,24 @@ public sealed partial class RepositoryWatcher : IDisposable
     private bool _rescanAgain;
     private bool _hasScanned;
     private bool _usesRecursiveRoot;
+    private readonly bool _perDirectory;
+    private readonly IRepositoryFingerprintReader _fingerprintReader;
+    private bool _hasBaseline;
+    private Task<RepositoryFingerprintGroups>? _baseline;
+    private Timer? _retryTimer;
+    private volatile HashSet<string>? _ignoredDirectories;
 
     public RepositoryWatcher(
         RepositoryLocation location,
         WatchBudget budget,
         RepositoryWatcherOptions options,
         Action<Action>? queueNotification = null,
-        IWorkingTreeDirectoryLister? directoryLister = null)
+        IWorkingTreeDirectoryLister? directoryLister = null,
+        IRepositoryFingerprintReader? fingerprintReader = null)
     {
+        _fingerprintReader = fingerprintReader ?? new DiskFingerprintReader();
         _directoryLister = directoryLister;
+        _perDirectory = directoryLister is not null && options.UsesPerDirectoryWatching;
         _location = location;
         _budget = budget;
         _options = options;
@@ -109,6 +123,9 @@ public sealed partial class RepositoryWatcher : IDisposable
         }
     }
 
+    /// <summary>Number of ignored directories whose events the recursive working tree watcher drops (zero until git listed them).</summary>
+    public int IgnoredDirectoryCount => _ignoredDirectories?.Count ?? 0;
+
     /// <summary>Number of file system watchers this tab currently holds.</summary>
     public int WatcherCount
     {
@@ -136,6 +153,35 @@ public sealed partial class RepositoryWatcher : IDisposable
         }
     }
 
+    /// <summary>
+    /// Starts watching on a thread pool thread: creating the watchers and planning them touches the disk and can be slow on a network
+    /// path, so the UI thread never does it. Completes when the watchers exist (or polling took over); a watcher disposed meanwhile
+    /// is not an error.
+    /// </summary>
+    public Task StartAsync() => Task.Run(() =>
+    {
+        try
+        {
+            Start();
+        }
+        catch (ObjectDisposedException)
+        {
+            // Disposed before the pool thread got to it.
+        }
+        catch (Exception exception) when (exception is not OutOfMemoryException)
+        {
+            // Nobody awaits this task: an unexpected failure must not leave the tab with neither watchers nor polling.
+            lock (_gate)
+            {
+                if (!_isDisposed)
+                {
+                    StartPolling();
+                }
+            }
+        }
+    });
+
+    /// <summary>Starts watching on the calling thread (tests and callers that are already off the UI thread; the UI uses <see cref="StartAsync"/>).</summary>
     public void Start()
     {
         lock (_gate)
@@ -147,31 +193,45 @@ public sealed partial class RepositoryWatcher : IDisposable
             }
 
             _isStarted = true;
-            var plan = CreatePlan();
-            if (!_budget.TryAcquire(plan.Count))
+            if (!TryStartWatchingLocked())
             {
                 StartPolling();
-                return;
             }
-
-            _heldSlots = plan.Count;
-            try
-            {
-                foreach (var entry in plan)
-                {
-                    _watchers.Add(CreateWatcher(entry.Path, entry.IsRecursive));
-                    _watchedPaths.Add(entry.Path);
-                }
-            }
-            catch (Exception exception) when (exception is IOException or ArgumentException or UnauthorizedAccessException or PlatformNotSupportedException or InvalidOperationException)
-            {
-                // Typically the inotify watch limit: give the slots back and poll.
-                StartPolling();
-                return;
-            }
-
-            RequestRescan();
         }
+    }
+
+    /// <summary>Creates the watchers of the plan. False when polling is needed instead (no slots, or a watcher could not be created).</summary>
+    private bool TryStartWatchingLocked()
+    {
+        var plan = CreatePlan();
+        if (!_budget.TryAcquire(plan.Count))
+        {
+            return false;
+        }
+
+        _heldSlots = plan.Count;
+        try
+        {
+            foreach (var entry in plan)
+            {
+                _watchers.Add(CreateWatcher(entry.Path, entry.IsRecursive));
+                _watchedPaths.Add(entry.Path);
+            }
+        }
+        catch (Exception exception) when (IsWatchFailure(exception))
+        {
+            // Typically the inotify watch limit: the caller gives the slots back and polls.
+            ReleaseWatchers();
+            return false;
+        }
+
+        if (!_perDirectory && _directoryLister is not null && _location.WorkingTreePath is not null)
+        {
+            _ = Task.Run(LoadIgnoredDirectoriesAsync);
+        }
+
+        RequestRescan();
+        return true;
     }
 
     /// <summary>Marks the tab visible or hidden. Activating reports everything that changed while it was hidden.</summary>
@@ -241,6 +301,8 @@ public sealed partial class RepositoryWatcher : IDisposable
             ReleaseWatchers();
             _pollTimer?.Dispose();
             _pollTimer = null;
+            _retryTimer?.Dispose();
+            _retryTimer = null;
         }
 
         _debounceTimer.Dispose();
@@ -268,7 +330,7 @@ public sealed partial class RepositoryWatcher : IDisposable
 
         if (_location.WorkingTreePath is not null)
         {
-            AddIfExists(plan, _location.WorkingTreePath, _directoryLister is null);
+            AddIfExists(plan, _location.WorkingTreePath, !_perDirectory);
         }
 
         return plan;
@@ -300,22 +362,155 @@ public sealed partial class RepositoryWatcher : IDisposable
 
     private FileSystemWatcher BuildWatcher(string path, bool isRecursive)
     {
+        var isWorkingTreeRoot = isRecursive && IsWorkingTreeRoot(path);
         var watcher = new FileSystemWatcher(path)
         {
             IncludeSubdirectories = isRecursive,
             NotifyFilter = GitDirectoryFilters,
-            InternalBufferSize = 64 * 1024,
+            InternalBufferSize = isWorkingTreeRoot ? WorkingTreeBufferSize : GitDirectoryBufferSize,
         };
-        watcher.Created += (_, arguments) => OnPathChanged(arguments.FullPath, isCreation: true);
-        watcher.Changed += (_, arguments) => OnPathChanged(arguments.FullPath, isCreation: false);
-        watcher.Deleted += (_, arguments) => OnPathChanged(arguments.FullPath, isCreation: false);
+
+        watcher.Created += (_, arguments) => HandleEvent(arguments.FullPath, isCreation: true, isWorkingTreeRoot);
+        watcher.Changed += (_, arguments) => HandleEvent(arguments.FullPath, isCreation: false, isWorkingTreeRoot);
+        watcher.Deleted += (_, arguments) => HandleEvent(arguments.FullPath, isCreation: false, isWorkingTreeRoot);
         watcher.Renamed += (_, arguments) =>
         {
-            OnPathChanged(arguments.OldFullPath, isCreation: false);
-            OnPathChanged(arguments.FullPath, isCreation: true);
+            HandleEvent(arguments.OldFullPath, isCreation: false, isWorkingTreeRoot);
+            HandleEvent(arguments.FullPath, isCreation: true, isWorkingTreeRoot);
         };
-        watcher.Error += (_, _) => FallBackToPolling();
+        watcher.Error += (_, arguments) => OnWatcherError(arguments.GetException(), isWorkingTreeRoot);
 
         return watcher;
+    }
+
+    private void HandleEvent(string fullPath, bool isCreation, bool isWorkingTreeRoot)
+    {
+        if (!isWorkingTreeRoot || !IsDroppedInWorkingTreeRoot(fullPath))
+        {
+            OnPathChanged(fullPath, isCreation);
+        }
+    }
+
+    private bool IsWorkingTreeRoot(string path) =>
+        _location.WorkingTreePath is { } root
+        && string.Equals(
+            Path.TrimEndingDirectorySeparator(path),
+            Path.TrimEndingDirectorySeparator(root),
+            OperatingSystem.IsLinux() ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Events the recursive working tree watcher drops: the git directory inside the tree (its own watchers cover what
+    /// matters) and anything under an ignored directory (build output, dependencies).
+    /// </summary>
+    private bool IsDroppedInWorkingTreeRoot(string fullPath)
+    {
+        var comparison = OperatingSystem.IsLinux() ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
+        var gitDirectory = Path.TrimEndingDirectorySeparator(_location.GitDirectory);
+        if (fullPath.StartsWith(gitDirectory, comparison)
+            && (fullPath.Length == gitDirectory.Length || IsSeparator(fullPath[gitDirectory.Length])))
+        {
+            return true;
+        }
+
+        var ignored = _ignoredDirectories;
+        if (ignored is null || ignored.Count == 0)
+        {
+            return false;
+        }
+
+        // The ignored directory itself (created or deleted) counts too.
+        var current = fullPath;
+        while (!string.IsNullOrEmpty(current))
+        {
+            if (ignored.Contains(current))
+            {
+                return true;
+            }
+
+            current = Path.GetDirectoryName(current);
+        }
+
+        return false;
+    }
+
+    private static bool IsSeparator(char value) =>
+        value == Path.DirectorySeparatorChar || value == Path.AltDirectorySeparatorChar;
+
+    private async Task LoadIgnoredDirectoriesAsync()
+    {
+        try
+        {
+            var directories = await _directoryLister!.ListIgnoredAsync(_location.WorkingTreePath!, _disposal.Token);
+            if (directories is not null)
+            {
+                var comparer = OperatingSystem.IsLinux() ? StringComparer.Ordinal : StringComparer.OrdinalIgnoreCase;
+                _ignoredDirectories = new HashSet<string>(directories.Select(Path.TrimEndingDirectorySeparator), comparer);
+            }
+        }
+        catch (Exception exception) when (exception is OperationCanceledException or ObjectDisposedException)
+        {
+            // Disposed while listing.
+        }
+    }
+
+    /// <summary>Feeds an error into the path a watcher's <c>Error</c> event takes (for tests, which cannot raise the event).</summary>
+    public void ReportWatcherError(Exception exception, bool fromWorkingTree = false) =>
+        OnWatcherError(exception, fromWorkingTree);
+
+    /// <summary>
+    /// A buffer overflow only means events were lost (routine during an install or a build): report everything once and keep
+    /// watching. Any other error ends watching; the tab polls and tries to watch again later.
+    /// </summary>
+    private void OnWatcherError(Exception? exception, bool fromWorkingTree)
+    {
+        if (exception is InternalBufferOverflowException)
+        {
+            // The working tree overflows during a build: asking for more than its own kind would re-read refs every 2 s.
+            Enqueue(fromWorkingTree ? RepositoryChangeKinds.WorkingTree : RepositoryChangeKinds.All);
+            RequestRescan();
+            return;
+        }
+
+        lock (_gate)
+        {
+            if (_isDisposed || _pollTimer is not null)
+            {
+                return;
+            }
+
+            FallBackToPollingLocked();
+            _retryTimer ??= new Timer(
+                _ => RetryWatching(),
+                null,
+                _options.WatcherRetryIntervalOrDefault,
+                Timeout.InfiniteTimeSpan);
+        }
+    }
+
+    /// <summary>The watchers failed earlier: try to watch again; keep polling when that fails too.</summary>
+    private void RetryWatching()
+    {
+        lock (_gate)
+        {
+            if (_isDisposed || _pollTimer is null)
+            {
+                return;
+            }
+
+            _pollTimer.Dispose();
+            _pollTimer = null;
+            _usesRecursiveRoot = false;
+            _hasScanned = false;
+            if (TryStartWatchingLocked())
+            {
+                _retryTimer?.Dispose();
+                _retryTimer = null;
+                EnqueueLocked(RepositoryChangeKinds.All);
+                return;
+            }
+
+            StartPolling();
+            _retryTimer?.Change(_options.WatcherRetryIntervalOrDefault, Timeout.InfiniteTimeSpan);
+        }
     }
 }

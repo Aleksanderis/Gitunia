@@ -17,7 +17,7 @@ public sealed partial class RepositoryWatcher
             Enqueue(kinds);
         }
 
-        if (_directoryLister is not null && IsInWorkingTree(fullPath))
+        if (_perDirectory && IsInWorkingTree(fullPath))
         {
             OnWorkingTreePathChanged(fullPath, isCreation);
         }

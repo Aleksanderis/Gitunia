@@ -13,6 +13,11 @@ public sealed class WorkingTreeDirectoryLister : IWorkingTreeDirectoryLister
         "-c", "core.quotepath=off", "ls-files", "-z", "--cached", "--others", "--exclude-standard",
     ];
 
+    private static readonly string[] IgnoredArguments =
+    [
+        "-c", "core.quotepath=off", "ls-files", "-z", "--others", "--ignored", "--exclude-standard", "--directory",
+    ];
+
     private static readonly GitRunOptions Options = new(Timeout: TimeSpan.FromSeconds(30), ReadOnly: true);
 
     private readonly GitRunner _runner;
@@ -29,6 +34,20 @@ public sealed class WorkingTreeDirectoryLister : IWorkingTreeDirectoryLister
             var result = await _runner.RunAsync(workingTreePath, Arguments, Options, cancellationToken);
 
             return WorkingTreeDirectoryParser.Parse(workingTreePath, result.StandardOutput);
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            return null;
+        }
+    }
+
+    public async Task<IReadOnlyList<string>?> ListIgnoredAsync(string workingTreePath, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _runner.RunAsync(workingTreePath, IgnoredArguments, Options, cancellationToken);
+
+            return WorkingTreeDirectoryParser.ParseDirectories(workingTreePath, result.StandardOutput);
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
         {

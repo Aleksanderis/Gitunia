@@ -8,7 +8,7 @@ public sealed partial class RepositoryWatcher
     {
         lock (_gate)
         {
-            if (_directoryLister is null || _isDisposed || _pollTimer is not null || _location.WorkingTreePath is null)
+            if (!_perDirectory || _isDisposed || _pollTimer is not null || _location.WorkingTreePath is null)
             {
                 return;
             }

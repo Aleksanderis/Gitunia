@@ -110,10 +110,17 @@ public sealed class TabRefresher : IDisposable, IPollTarget
     /// <summary>A refresh is being read or applied right now.</summary>
     public bool IsRefreshing => _isRunning;
 
+    /// <summary>Completes when the file watchers exist (already complete without a watcher).</summary>
+    public Task WatchingReady { get; private set; } = Task.CompletedTask;
+
     /// <summary>Starts watching; changes are collected now and applied once the initial load has finished.</summary>
     public void Start()
     {
-        _watcher?.Start();
+        if (_watcher is not null)
+        {
+            WatchingReady = _watcher.StartAsync();
+        }
+
         _poller?.Start();
         if (_session.IsPending || _session.IsLoading)
         {

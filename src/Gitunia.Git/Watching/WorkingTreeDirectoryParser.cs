@@ -45,6 +45,30 @@ public static class WorkingTreeDirectoryParser
         return result;
     }
 
+    /// <summary>
+    /// Turns NUL-separated <c>--directory</c> output into the absolute directories it lists: the entries that end with a slash
+    /// (a single ignored file has none).
+    /// </summary>
+    public static IReadOnlyList<string> ParseDirectories(string workingTreePath, ReadOnlySpan<byte> output)
+    {
+        var result = new List<string>();
+        while (!output.IsEmpty)
+        {
+            var end = output.IndexOf(Nul);
+            var entry = end < 0 ? output : output[..end];
+            output = end < 0 ? [] : output[(end + 1)..];
+            if (entry.Length < 2 || entry[^1] != (byte)GitSeparator)
+            {
+                continue;
+            }
+
+            var directory = GitPathText.Decode(entry[..^1]);
+            result.Add(Path.Combine(workingTreePath, directory.Replace(GitSeparator, Path.DirectorySeparatorChar)));
+        }
+
+        return result;
+    }
+
     private static void AddWithParents(HashSet<string> directories, string directory)
     {
         while (directory.Length > 0 && directories.Add(directory))

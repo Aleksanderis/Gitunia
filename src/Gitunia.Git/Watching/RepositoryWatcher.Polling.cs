@@ -4,14 +4,6 @@ namespace Gitunia.Git.Watching;
 
 public sealed partial class RepositoryWatcher
 {
-    private void FallBackToPolling()
-    {
-        lock (_gate)
-        {
-            FallBackToPollingLocked();
-        }
-    }
-
     private void FallBackToPollingLocked()
     {
         if (_isDisposed || _pollTimer is not null)
@@ -27,7 +19,12 @@ public sealed partial class RepositoryWatcher
     private void StartPolling()
     {
         ReleaseWatchers();
-        _lastFingerprint = RepositoryFingerprint.Compute(_location);
+
+        // The first fingerprint is read off this thread (Start runs on the UI thread, the path may be slow) and outside the
+        // lock; the first poll waits for it.
+        var location = _location;
+        _hasBaseline = false;
+        _baseline = Task.Run(() => _fingerprintReader.Read(location));
         _pollInterval = _options.PollInterval;
 
         // One-shot: the next poll is scheduled when this one ends, so callbacks never overlap and the wait can change.
@@ -95,12 +92,32 @@ public sealed partial class RepositoryWatcher
             _isPolling = true;
         }
 
-        var fingerprint = RepositoryFingerprint.Compute(_location);
+        var fingerprint = _fingerprintReader.Read(_location);
+        var baseline = _baseline;
+        var baselineValue = baseline is { IsCompleted: true } ? baseline.Result : default;
+        if (baseline is { IsCompleted: false })
+        {
+            baselineValue = baseline.GetAwaiter().GetResult();
+        }
+
         lock (_gate)
         {
             _isPolling = false;
             if (_isDisposed)
             {
+                return;
+            }
+
+            if (!_hasBaseline && baseline == _baseline && baseline is not null)
+            {
+                _lastFingerprint = baselineValue;
+                _hasBaseline = true;
+            }
+
+            if (!_hasBaseline)
+            {
+                // Polling was restarted meanwhile; the new baseline is read by the next poll.
+                _pollTimer?.Change(_pollInterval, Timeout.InfiniteTimeSpan);
                 return;
             }
 

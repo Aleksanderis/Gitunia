@@ -19,7 +19,8 @@ public class IgnoreAwareWatchingTests
     private static readonly RepositoryWatcherOptions FastOptions = new(
         TimeSpan.FromMilliseconds(40),
         TimeSpan.FromMilliseconds(400),
-        TimeSpan.FromMilliseconds(60));
+        TimeSpan.FromMilliseconds(60),
+        WatchDirectoriesIndividually: true);
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
@@ -348,11 +349,17 @@ public class IgnoreAwareWatchingTests
 
             return directories;
         }
+
+        public Task<IReadOnlyList<string>?> ListIgnoredAsync(string workingTreePath, CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyList<string>?>(null);
     }
 
     private sealed class FailingLister : IWorkingTreeDirectoryLister
     {
         public Task<IReadOnlyList<string>?> ListAsync(string workingTreePath, CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyList<string>?>(null);
+
+        public Task<IReadOnlyList<string>?> ListIgnoredAsync(string workingTreePath, CancellationToken cancellationToken) =>
             Task.FromResult<IReadOnlyList<string>?>(null);
     }
 }

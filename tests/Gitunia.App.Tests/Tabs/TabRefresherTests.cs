@@ -82,6 +82,7 @@ public class TabRefresherTests
         repository.WriteFile("a.txt", "changed");
         using var harness = await Harness.LoadAsync(repository, start: false);
         harness.Refresher.Start();
+        await harness.Refresher.WatchingReady;
         await harness.Pump.RunUntilAsync(() => harness.Tab.Status!.IsDirty);
         var heard = 0;
         harness.Session.StatusRead += () => heard++;

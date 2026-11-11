@@ -10,6 +10,14 @@ namespace Gitunia.Git.Watching.Models;
 /// Most non-ignored working tree directories one tab watches (one inotify watch each on Linux);
 /// a bigger tree polls instead.
 /// </param>
+/// <param name="WatchDirectoriesIndividually">
+/// One non-recursive watcher per non-ignored working tree directory (needs a directory lister). Null: on Linux only,
+/// where inotify is per directory; elsewhere one recursive watcher that drops events under ignored directories.
+/// </param>
+/// <param name="WatcherRetryInterval">
+/// After a watcher failed (not a buffer overflow, which keeps watching) the tab polls and tries to watch again after this
+/// long (null: 60 s).
+/// </param>
 /// <param name="UseFileWatchers">
 /// Opt-in live watching with <see cref="RepositoryWatcher"/> (config <c>watchFiles</c>). Off by default: each .NET
 /// <c>FileSystemWatcher</c> takes an inotify instance, a scarce per-user resource, so tabs poll instead
@@ -22,7 +30,9 @@ public sealed record RepositoryWatcherOptions(
     TimeSpan? MaximumPollInterval = null,
     int PollBackoffFactor = RepositoryWatcherOptions.DefaultPollBackoffFactor,
     int MaximumWorkingTreeDirectories = RepositoryWatcherOptions.DefaultMaximumWorkingTreeDirectories,
-    bool UseFileWatchers = false)
+    bool UseFileWatchers = false,
+    bool? WatchDirectoriesIndividually = null,
+    TimeSpan? WatcherRetryInterval = null)
 {
     /// <summary>
     /// Linux defaults to at least 8192 watches per user, shared by every process, so a tab takes at most a quarter.
@@ -32,7 +42,15 @@ public sealed record RepositoryWatcherOptions(
     /// <summary>A poll waits at least five times the refresh it caused.</summary>
     public const int DefaultPollBackoffFactor = 5;
 
+    private static readonly TimeSpan DefaultWatcherRetryInterval = TimeSpan.FromSeconds(60);
+
     private static readonly TimeSpan DefaultMaximumPollInterval = TimeSpan.FromSeconds(60);
+
+    /// <summary>Whether the working tree is watched directory by directory (see <see cref="WatchDirectoriesIndividually"/>).</summary>
+    public bool UsesPerDirectoryWatching => WatchDirectoriesIndividually ?? OperatingSystem.IsLinux();
+
+    /// <summary>How long a tab polls after a watcher failure before it tries to watch again.</summary>
+    public TimeSpan WatcherRetryIntervalOrDefault => WatcherRetryInterval ?? DefaultWatcherRetryInterval;
 
     /// <summary>The longest wait the polling fallback backs off to.</summary>
     public TimeSpan PollIntervalLimit => MaximumPollInterval ?? DefaultMaximumPollInterval;
