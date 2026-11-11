@@ -9,6 +9,7 @@ using Gitunia.Core.Shell;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
+using Gitunia.Git.Execution.Exceptions;
 using Gitunia.Git.Tests.Fixtures;
 using Xunit;
 
@@ -61,7 +62,7 @@ public class EffectRunnerTests
     }
 
     [Fact]
-    public void GivenRestoredTabMarkedMissingLater_WhenActivated_ThenItIsNotStarted()
+    public async Task GivenBackgroundTabMarkedMissingByASlowCheck_WhenActivatedWhilePathExists_ThenItLoadsAndIsNotMissing()
     {
         var fakes = new FakeGitServices();
         fakes.CommitLog.AddOnTop("root");
@@ -73,11 +74,12 @@ public class EffectRunnerTests
 
         var firstId = scratch.Tabs[0].Id;
         var secondId = scratch.Tabs[1].Id;
+        var pump = new UiPump(TestContext.Current.CancellationToken);
         var host = new Dispatcher(AppState.Empty);
         using var effects = new EffectRunner<TabSession>(
             fakes.Services,
             host,
-            new UiPump(TestContext.Current.CancellationToken),
+            pump,
             new TabSessionFactory(),
             new EffectRunnerOptions<TabSession>
             {
@@ -87,11 +89,52 @@ public class EffectRunnerTests
         host.Restore(new WorkspaceUpdate(
             scratch with { ActiveTabId = firstId },
             [new LoadRepositoryEffect(firstId, scratch.Tabs[0].CommandPath), new LoadRepositoryEffect(secondId, scratch.Tabs[1].CommandPath)]));
-        host.Dispatch(new TabCommand(secondId, new SetMissingCommand(true)));
+        host.Dispatch(new TabCommand(secondId, new SetMissingCommand(true, scratch.Tabs[1].CommandPath)));
+        Assert.True(host.Workspace.FindTab(secondId)!.IsMissing);
 
         host.Dispatch(new ActivateTabCommand(secondId));
 
-        Assert.True(effects.SessionOf(secondId)!.IsPending);
+        Assert.False(effects.SessionOf(secondId)!.IsPending);
+        await pump.RunUntilAsync(() => !effects.SessionOf(secondId)!.IsLoading);
+        Assert.Equal(1, effects.SessionOf(secondId)!.Graph.Count);
+        Assert.False(host.Workspace.FindTab(secondId)!.IsMissing);
+    }
+
+    [Fact]
+    public async Task GivenMissingBackgroundTabWhosePathIsGone_WhenActivated_ThenTheLoadFailsAndTheTabStaysMissing()
+    {
+        var fakes = new FakeGitServices();
+        fakes.CommitLog.Failure = new GitException("not a repository");
+        fakes.Refs.HeadFailure = new GitException("not a repository");
+        var scratch = Workspace.Empty;
+        foreach (var name in new[] { "first", "second" })
+        {
+            scratch = WorkspaceReducer.Reduce(scratch, new OpenRepositoryCommand(FakeStatusReader.LocationOf(name))).Workspace;
+        }
+
+        var firstId = scratch.Tabs[0].Id;
+        var secondId = scratch.Tabs[1].Id;
+        var pump = new UiPump(TestContext.Current.CancellationToken);
+        var host = new Dispatcher(AppState.Empty);
+        using var effects = new EffectRunner<TabSession>(
+            fakes.Services,
+            host,
+            pump,
+            new TabSessionFactory(),
+            new EffectRunnerOptions<TabSession>
+            {
+                Statuses = new StatusReporter(host),
+                Watcher = TestGit.QuietWatcherOptions,
+            });
+        host.Restore(new WorkspaceUpdate(
+            scratch with { ActiveTabId = firstId },
+            [new LoadRepositoryEffect(firstId, scratch.Tabs[0].CommandPath), new LoadRepositoryEffect(secondId, scratch.Tabs[1].CommandPath)]));
+        host.Dispatch(new TabCommand(secondId, new SetMissingCommand(true, scratch.Tabs[1].CommandPath)));
+
+        host.Dispatch(new ActivateTabCommand(secondId));
+
+        await pump.RunUntilAsync(() => !effects.SessionOf(secondId)!.IsLoading);
+        Assert.True(host.Workspace.FindTab(secondId)!.IsMissing);
     }
 
     [Fact]
