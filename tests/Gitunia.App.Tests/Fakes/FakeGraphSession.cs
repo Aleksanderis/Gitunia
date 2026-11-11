@@ -11,7 +11,20 @@ public sealed class FakeGraphSession(TabId tabId) : IGraphSession, IDisposable
 
     public TabId TabId { get; } = tabId;
 
-    public CommitGraph Graph { get; } = new();
+    private readonly CommitGraph _graph = new();
+
+    /// <summary>How often <see cref="Graph"/> was read, so a test can tell whether a refresh copied the rows.</summary>
+    public int GraphReadCount { get; private set; }
+
+    public CommitGraph Graph
+    {
+        get
+        {
+            GraphReadCount++;
+
+            return _graph;
+        }
+    }
 
     public int GraphVersion { get; private set; }
 
@@ -29,7 +42,7 @@ public sealed class FakeGraphSession(TabId tabId) : IGraphSession, IDisposable
     {
     }
 
-    public void Append(IReadOnlyList<GraphEntry> batch) => Graph.AddRange(batch);
+    public void Append(IReadOnlyList<GraphEntry> batch) => _graph.AddRange(batch);
 
     public void Truncate(int total) => TruncatedTotal = total;
 
@@ -62,7 +75,7 @@ public sealed class FakeGraphSession(TabId tabId) : IGraphSession, IDisposable
     {
         TruncatedTotal = truncatedTotal;
         IsLoading = false;
-        Graph.Replace(entries);
+        _graph.Replace(entries);
         GraphVersion++;
     }
 

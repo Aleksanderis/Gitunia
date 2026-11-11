@@ -50,6 +50,28 @@ public sealed class StashAwareDiffReader(IDiffReader diffs, IStashDetailsReader 
             cancellationToken);
     }
 
+    public IAsyncEnumerable<DiffFile> ReadCommitAgainstFirstParentAsync(
+        RepositoryLocation location,
+        ObjectId commit,
+        ICollection<string>? warnings = null,
+        int maximumLinesPerFile = int.MaxValue,
+        DiffOptions? options = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (registry.TryGet(commit, out var entry))
+        {
+            return ReadStashAsync(location, entry, warnings, maximumLinesPerFile, options, cancellationToken);
+        }
+
+        return diffs.ReadCommitAgainstFirstParentAsync(
+            location,
+            commit,
+            warnings,
+            maximumLinesPerFile,
+            options,
+            cancellationToken);
+    }
+
     public IAsyncEnumerable<DiffFile> ReadWorkingFileAsync(
         RepositoryLocation location,
         WorkingDiffSide side,
@@ -59,12 +81,6 @@ public sealed class StashAwareDiffReader(IDiffReader diffs, IStashDetailsReader 
         DiffOptions? options = null,
         CancellationToken cancellationToken = default) =>
         diffs.ReadWorkingFileAsync(location, side, entry, warnings, maximumLinesPerFile, options, cancellationToken);
-
-    public Task<ObjectId?> ReadFirstParentAsync(
-        RepositoryLocation location,
-        ObjectId commit,
-        CancellationToken cancellationToken) =>
-        diffs.ReadFirstParentAsync(location, commit, cancellationToken);
 
     private async IAsyncEnumerable<DiffFile> ReadStashAsync(
         RepositoryLocation location,

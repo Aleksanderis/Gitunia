@@ -1,5 +1,6 @@
 using Gitunia.Git.Execution;
 using Gitunia.Git.Refs;
+using Gitunia.Git.Refs.Models;
 using Gitunia.Git.Repositories;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Status;
@@ -100,6 +101,75 @@ public class RepositoryRefresherTests
 
         Assert.Equal(RepositoryOperation.Rebase, second.Snapshot.Operation);
         Assert.Equal(RepositorySections.Operation, second.Changed);
+    }
+
+    [Fact]
+    public async Task GivenAStatusOnlyRefresh_WhenRefreshing_ThenOneProcessRuns()
+    {
+        using var testRepository = TestRepositories.Linear(2);
+        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
+        var first = await Refresher.RefreshAsync(location, null, RepositoryChangeKinds.All, Token);
+        var before = Runner.StartedCount;
+
+        await Refresher.RefreshAsync(
+            location,
+            first.Snapshot,
+            RepositoryChangeKinds.Index | RepositoryChangeKinds.WorkingTree,
+            Token);
+
+        Assert.Equal(1, Runner.StartedCount - before);
+    }
+
+    [Fact]
+    public async Task GivenAFullRefresh_WhenRefreshing_ThenRefsWorktreesAndStatusAreTheOnlyProcesses()
+    {
+        using var testRepository = TestRepositories.Linear(2);
+        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
+        var before = Runner.StartedCount;
+
+        await Refresher.RefreshAsync(location, null, RepositoryChangeKinds.All, Token);
+
+        Assert.Equal(3, Runner.StartedCount - before);
+    }
+
+    [Fact]
+    public async Task GivenADetachedHead_WhenRefreshing_ThenHeadIsDetachedAtTheCommit()
+    {
+        using var testRepository = TestRepositories.Linear(2);
+        testRepository.Checkout("HEAD~1");
+        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
+
+        var result = await Refresher.RefreshAsync(location, null, RepositoryChangeKinds.All, Token);
+
+        Assert.Equal(HeadKind.Detached, result.Snapshot.Head.Kind);
+        Assert.Null(result.Snapshot.Head.BranchName);
+        Assert.Equal(testRepository.Git("rev-parse", "HEAD").Trim(), result.Snapshot.Head.CommitHash);
+    }
+
+    [Fact]
+    public async Task GivenAnUnbornBranch_WhenRefreshing_ThenHeadIsUnbornWithoutACommit()
+    {
+        using var testRepository = TestRepository.Create();
+        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
+
+        var result = await Refresher.RefreshAsync(location, null, RepositoryChangeKinds.All, Token);
+
+        Assert.Equal(new HeadState(HeadKind.Unborn, "main", null), result.Snapshot.Head);
+    }
+
+    [Fact]
+    public async Task GivenACheckedOutOtherBranch_WhenRefreshingHead_ThenTheBranchAndItsCommitChange()
+    {
+        using var testRepository = TestRepositories.Linear(2);
+        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
+        var first = await Refresher.RefreshAsync(location, null, RepositoryChangeKinds.All, Token);
+        testRepository.Branch("topic", "HEAD~1");
+        testRepository.Checkout("topic");
+
+        var second = await Refresher.RefreshAsync(location, first.Snapshot, RepositoryChangeKinds.Head, Token);
+
+        Assert.True(second.Changed.HasFlag(RepositorySections.Head));
+        Assert.Equal(new HeadState(HeadKind.Branch, "topic", testRepository.Git("rev-parse", "HEAD").Trim()), second.Snapshot.Head);
     }
 
     private sealed class StubOperationDetector : IRepositoryOperationDetector
