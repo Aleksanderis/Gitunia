@@ -71,6 +71,7 @@ public sealed class HandlerParts
         Handlers = Register(foundation, panes, overlays, keys).Build();
         Actions = new ActionExecutor(
             Handlers,
+            host,
             new RepeatStarter(host, foundation.Panes, keys.Repeat, PaneSizes),
             foundation.Sessions,
             foundation.Config.Keymap.Table);

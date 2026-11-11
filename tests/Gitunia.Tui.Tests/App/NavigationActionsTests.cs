@@ -121,7 +121,7 @@ public class NavigationActionsTests
             textKeys[handler] = new NoTextKeys();
         }
 
-        var executor = new ActionExecutor(new InputHandlers(handlers, textKeys), new NoRepeat(), new FakeActiveSessions(() => session));
+        var executor = new ActionExecutor(new InputHandlers(handlers, textKeys), new Dispatcher(AppState.Empty), new NoRepeat(), new FakeActiveSessions(() => session));
         executor.RouteAction(new RouteActionEffect(ActionIds.ListBottom, null, [InputHandler.Navigation]));
         Assert.Equal(NavigationActions.StillLoadingNotice, executor.Message);
 

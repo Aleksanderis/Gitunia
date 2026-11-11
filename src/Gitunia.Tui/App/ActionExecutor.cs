@@ -1,5 +1,7 @@
-using Gitunia.Core.Keymap;
 using Gitunia.App;
+using Gitunia.App.Shell;
+using Gitunia.Core.Keymap;
+using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Input;
 using Gitunia.Tui.App.Panes;
 using Gitunia.Tui.App.Tabs;
@@ -13,10 +15,12 @@ namespace Gitunia.Tui.App;
 /// of the pane that took the action and starts the sticky repeat mode.
 /// </summary>
 /// <param name="handlers">The object behind each handler case.</param>
+/// <param name="host">The state, and where the Insert mode safety net sends its command.</param>
 /// <param name="repeat">Starts the sticky repeat mode after a pane took a step.</param>
 /// <param name="sessions">The active tab's session, null when there is none.</param>
 public sealed class ActionExecutor(
     InputHandlers handlers,
+    Dispatcher host,
     IRepeatStarter repeat,
     IActiveSessions sessions,
     KeyBindingTable? keymap = null) : IActionRouteEffects
@@ -31,6 +35,7 @@ public sealed class ActionExecutor(
     public void RouteAction(RouteActionEffect effect)
     {
         var reachedPanes = false;
+        var isTaken = false;
         foreach (var handler in effect.Handlers)
         {
             var isPaneLayer = InputRouting.IsPaneLayer(handler);
@@ -51,7 +56,15 @@ public sealed class ActionExecutor(
                 _message = KeyTokens.Resolve(notice.Notice, keymap);
             }
 
+            isTaken = true;
+
             break;
+        }
+
+        if (!isTaken && effect.Action == ActionIds.Cancel && host.State.Shell.Mode == KeyMode.Insert)
+        {
+            // Insert mode nobody owns any more (#1354): Esc must always get out of it, or no key would work again.
+            host.SetKeyMode(KeyMode.Normal);
         }
 
         if (reachedPanes)
