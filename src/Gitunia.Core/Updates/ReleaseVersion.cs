@@ -3,8 +3,8 @@ using System.Globalization;
 namespace Gitunia.Core.Updates;
 
 /// <summary>
-/// A release version in the <c>major.minor.patch[-prerelease]</c> form the release tags use (a leading <c>v</c> is
-/// accepted). Ordered as semantic versioning orders it: a prerelease is older than its release, build metadata
+/// A release version in the <c>major.minor[.patch][-prerelease]</c> form the release tags use (a leading <c>v</c>
+/// is accepted; the two-part tags of the first releases, <c>v0.9</c>, read as <c>0.9.0</c>). Ordered as semantic versioning orders it: a prerelease is older than its release, build metadata
 /// (<c>+...</c>) is ignored.
 /// </summary>
 public sealed record ReleaseVersion
@@ -13,7 +13,8 @@ public sealed record ReleaseVersion
     private const char PrereleaseSeparator = '-';
     private const char MetadataSeparator = '+';
     private const char NumberSeparator = '.';
-    private const int NumberCount = 3;
+    private const int MinimumNumberCount = 2;
+    private const int MaximumNumberCount = 3;
 
     private ReleaseVersion(int major, int minor, int patch, string prerelease)
     {
@@ -68,12 +69,13 @@ public sealed record ReleaseVersion
         }
 
         var parts = trimmed.Split(NumberSeparator);
-        if (parts.Length != NumberCount || !TryParseNumbers(parts, out var numbers))
+        if (parts.Length is < MinimumNumberCount or > MaximumNumberCount || !TryParseNumbers(parts, out var numbers))
         {
             return false;
         }
 
-        version = new ReleaseVersion(numbers[0], numbers[1], numbers[2], prerelease);
+        var patch = numbers.Length > MinimumNumberCount ? numbers[2] : 0;
+        version = new ReleaseVersion(numbers[0], numbers[1], patch, prerelease);
 
         return true;
     }
