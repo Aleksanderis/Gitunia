@@ -87,18 +87,27 @@ public sealed class CommitLogParser
         }
 
         var decorations = new List<CommitDecoration>();
-        foreach (var part in text.Split(CommitLogFormat.DecorationSeparator))
+        var rest = text.AsSpan();
+        while (true)
         {
-            var name = part;
+            // Walk the parts as spans: no string[] and no copy of a part that is cut down to a name anyway.
+            var cut = rest.IndexOf(CommitLogFormat.DecorationSeparator, StringComparison.Ordinal);
+            var name = cut < 0 ? rest : rest[..cut];
+            rest = cut < 0 ? default : rest[(cut + CommitLogFormat.DecorationSeparator.Length)..];
             var current = false;
             if (name.StartsWith(CommitLogFormat.HeadPointerPrefix, StringComparison.Ordinal))
             {
                 name = name[CommitLogFormat.HeadPointerPrefix.Length..];
                 current = true;
             }
-            else if (name == GitOptions.HeadRevision)
+            else if (name.SequenceEqual(GitOptions.HeadRevision))
             {
                 decorations.Add(new CommitDecoration(GitOptions.HeadRevision, GitOptions.HeadRevision, RefKind.Head, true));
+                if (cut < 0)
+                {
+                    break;
+                }
+
                 continue;
             }
 
@@ -109,12 +118,16 @@ public sealed class CommitLogParser
             }
 
             decorations.Add(Decorate(name, isTag, current));
+            if (cut < 0)
+            {
+                break;
+            }
         }
 
         return decorations;
     }
 
-    private static CommitDecoration Decorate(string fullName, bool isTag, bool current)
+    private static CommitDecoration Decorate(ReadOnlySpan<char> fullName, bool isTag, bool current)
     {
         var kind = RefKind.Other;
         var prefix = string.Empty;
@@ -135,7 +148,7 @@ public sealed class CommitLogParser
         }
 
         var shortName = fullName.StartsWith(prefix, StringComparison.Ordinal) ? fullName[prefix.Length..] : fullName;
-        return new CommitDecoration(fullName, shortName, kind, current);
+        return new CommitDecoration(fullName.ToString(), shortName.ToString(), kind, current);
     }
 
     private void ParseRecord(ReadOnlySpan<byte> record, ICollection<CommitInfo> output)

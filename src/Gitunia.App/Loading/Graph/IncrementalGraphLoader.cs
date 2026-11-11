@@ -47,7 +47,7 @@ public sealed class IncrementalGraphLoader
         await foreach (var commit in _commitLog.ReadAsync(location, CommitOrder.ByDate, [], cancellationToken: cancellationToken).ConfigureAwait(false))
         {
             builder ??= await tipRead.CreateBuilderAsync().ConfigureAwait(false);
-            var entry = new GraphEntry(commit.Id, commit.Subject, commit.AuthorName, commit.AuthorTime, commit.Decorations, builder.Append(commit));
+            var entry = new GraphEntry(commit.Subject, commit.AuthorName, commit.AuthorTime, commit.Decorations, builder.Append(commit));
             rows.Add(entry);
             joinIndex = splicer.Observe(entry);
             if (joinIndex >= 0)

@@ -304,7 +304,6 @@ public class GraphRowRendererTests
             new CommitDecoration($"refs/remotes/origin/{added}", $"origin/{added}", RefKind.RemoteBranch, false));
         var row = new GraphRow(commit.Id, 0, 1, [], 1, 3, true, [new BranchSlot(known, 3)]);
         var entry = new GraphEntry(
-            commit.Id,
             commit.Subject,
             commit.AuthorName,
             commit.AuthorTime,

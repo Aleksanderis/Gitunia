@@ -100,7 +100,7 @@ public sealed class GraphLoader
         {
             builder ??= await tipRead.CreateBuilderAsync().ConfigureAwait(false);
             var row = builder.Append(commit);
-            batch.Add(new GraphEntry(commit.Id, commit.Subject, commit.AuthorName, commit.AuthorTime, commit.Decorations, row));
+            batch.Add(new GraphEntry(commit.Subject, commit.AuthorName, commit.AuthorTime, commit.Decorations, row));
             total++;
             if (total == maximumCommits)
             {

@@ -40,7 +40,7 @@ public static class CommitFactory
         var rows = new GraphLayoutBuilder(tips, BranchColors.SlotCount, extraNames).AppendRange(commits);
         var graph = new CommitGraph();
         graph.AddRange(commits.Select((commit, index) =>
-            new GraphEntry(commit.Id, commit.Subject, commit.AuthorName, commit.AuthorTime, commit.Decorations, rows[index])).ToArray());
+            new GraphEntry(commit.Subject, commit.AuthorName, commit.AuthorTime, commit.Decorations, rows[index])).ToArray());
         return graph;
     }
 }
