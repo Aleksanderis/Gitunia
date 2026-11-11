@@ -44,6 +44,17 @@ public sealed class ConfigEditorLauncherTests : IDisposable
     }
 
     [Fact]
+    public void GivenAQuotedEditorPath_WhenLaunching_ThenItIsOneProgramWord()
+    {
+        _variables["VISUAL"] = "'/opt/my editor/ed' -w";
+        var file = Path.Combine(_directory, "config.json");
+
+        CreateLauncher().Launch(file, () => { });
+
+        Assert.Equal($"run /opt/my editor/ed -w {file} in {_directory}", _events[1]);
+    }
+
+    [Fact]
     public void GivenOnlyEditor_WhenLaunching_ThenEditorIsUsed()
     {
         _variables["EDITOR"] = "nano";
