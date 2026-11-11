@@ -42,6 +42,108 @@ public class RepositoryWatcherTests
         Assert.True(watcher.WatcherCount > 0);
     }
 
+    [Fact]
+    public async Task GivenWatchersBeingCreated_WhenUiMembersAreUsed_ThenTheyDoNotWaitForTheCreation()
+    {
+        using var testRepository = TestRepositories.Linear(1);
+        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
+        var creating = new ManualResetEventSlim();
+        var release = new ManualResetEventSlim();
+        var budget = new WatchBudget();
+        var watcher = new RepositoryWatcher(
+            location,
+            budget,
+            FastOptions,
+            creatingWatchers: () =>
+            {
+                creating.Set();
+                release.Wait(ConditionTimeout, Token);
+            });
+
+        try
+        {
+            var start = watcher.StartAsync();
+            Assert.True(creating.Wait(ConditionTimeout, Token));
+
+            var members = Task.Factory.StartNew(
+                UseUiMembers,
+                watcher,
+                Token,
+                TaskCreationOptions.None,
+                TaskScheduler.Default);
+            Assert.True(await members.WaitAsync(TimeSpan.FromSeconds(10), Token));
+
+            release.Set();
+            await start;
+            Assert.False(watcher.IsPolling);
+            Assert.True(watcher.WatcherCount > 0);
+        }
+        finally
+        {
+            release.Set();
+            watcher.Dispose();
+        }
+    }
+
+    [Fact]
+    public async Task GivenWatchersBeingCreated_WhenDisposed_ThenTheyAreRetiredAndTheSlotsReleased()
+    {
+        using var testRepository = TestRepositories.Linear(1);
+        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
+        var creating = new ManualResetEventSlim();
+        var release = new ManualResetEventSlim();
+        var budget = new WatchBudget();
+        var watcher = new RepositoryWatcher(
+            location,
+            budget,
+            FastOptions,
+            creatingWatchers: () =>
+            {
+                creating.Set();
+                release.Wait(ConditionTimeout, Token);
+            });
+        var start = watcher.StartAsync();
+        Assert.True(creating.Wait(ConditionTimeout, Token));
+        Assert.True(budget.InUse > 0);
+
+        watcher.Dispose();
+        Assert.Equal(0, budget.InUse);
+        release.Set();
+        await start;
+
+        Assert.Equal(0, watcher.WatcherCount);
+        Assert.Equal(0, budget.InUse);
+    }
+
+    [Fact]
+    public async Task GivenWatchersBeingCreated_WhenAWatcherFails_ThenTheTabPollsAndPublishesNothing()
+    {
+        using var testRepository = TestRepositories.Linear(1);
+        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
+        var creating = new ManualResetEventSlim();
+        var release = new ManualResetEventSlim();
+        var budget = new WatchBudget();
+        using var watcher = new RepositoryWatcher(
+            location,
+            budget,
+            FastOptions,
+            creatingWatchers: () =>
+            {
+                creating.Set();
+                release.Wait(ConditionTimeout, Token);
+            });
+        var start = watcher.StartAsync();
+        Assert.True(creating.Wait(ConditionTimeout, Token));
+
+        watcher.ReportWatcherError(new IOException("limit"));
+        release.Set();
+        await start;
+
+        Assert.True(watcher.IsPolling);
+        Assert.Equal(0, watcher.WatcherCount);
+        Assert.Equal(0, budget.InUse);
+    }
+
     [Theory]
     [InlineData(false, false)]
     [InlineData(false, true)]
@@ -402,5 +504,15 @@ public class RepositoryWatcherTests
     private static async Task RunGitAsync(string path, params string[] arguments)
     {
         await Runner.RunAsync(path, arguments, null, Token);
+    }
+
+    private static bool UseUiMembers(object? state)
+    {
+        var watcher = (RepositoryWatcher)state!;
+        watcher.SetActive(false);
+        watcher.SetActive(true);
+        watcher.RecordRefresh(TimeSpan.Zero, failed: false);
+
+        return watcher.IsStale || watcher.IsActive;
     }
 }

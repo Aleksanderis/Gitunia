@@ -18,6 +18,8 @@ public sealed partial class RepositoryWatcher
 
     private void StartPolling()
     {
+        // Ends a watcher creation that runs outside the lock: it must neither publish nor release anything.
+        _attempt++;
         ReleaseWatchers();
 
         // The first fingerprint is read off this thread (Start runs on the UI thread, the path may be slow) and outside the
@@ -50,6 +52,7 @@ public sealed partial class RepositoryWatcher
                 took,
                 _pollFailures);
             _awaitsRefresh = false;
+            _acknowledgedRefreshes++;
             if (_pollTimer is not null && _isActive && !_isPolling)
             {
                 // Measured from the end of the refresh, so the new wait applies to the very next poll.
@@ -81,6 +84,7 @@ public sealed partial class RepositoryWatcher
 
     private void Poll()
     {
+        int acknowledged;
         lock (_gate)
         {
             // A hidden tab does not poll: activating it polls at once (see SetActive).
@@ -90,6 +94,7 @@ public sealed partial class RepositoryWatcher
             }
 
             _isPolling = true;
+            acknowledged = _acknowledgedRefreshes;
         }
 
         var fingerprint = _fingerprintReader.Read(_location);
@@ -123,7 +128,10 @@ public sealed partial class RepositoryWatcher
 
             // Working tree edits cannot be seen cheaply, so a polling tab asks for a status refresh on every tick
             // (the refresher drops it when nothing differs), but not while the last one is still outstanding.
-            var kinds = _awaitsRefresh ? RepositoryChangeKinds.None : RepositoryChangeKinds.WorkingTree;
+            // A refresh acknowledged while this poll was reading already covers the tick it would ask for.
+            var kinds = _awaitsRefresh || acknowledged != _acknowledgedRefreshes
+                ? RepositoryChangeKinds.None
+                : RepositoryChangeKinds.WorkingTree;
             kinds |= fingerprint.ChangedKinds(_lastFingerprint);
             _lastFingerprint = fingerprint;
             _awaitsRefresh |= kinds != RepositoryChangeKinds.None;
