@@ -96,7 +96,7 @@ public class WatcherResilienceTests
 
         Assert.True(watcher.IsPolling);
         Assert.Equal(0, watcher.WatcherCount);
-        await WaitForAsync(() => !watcher.IsPolling);
+        await WaitForAsync(() => !watcher.IsPolling && watcher.WatcherCount == watchers);
         Assert.Equal(watchers, watcher.WatcherCount);
         Assert.Equal(watchers, budget.InUse);
     }
