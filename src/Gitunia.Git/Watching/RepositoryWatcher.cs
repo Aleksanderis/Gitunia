@@ -168,6 +168,17 @@ public sealed partial class RepositoryWatcher : IDisposable
         {
             // Disposed before the pool thread got to it.
         }
+        catch (Exception exception) when (exception is not OutOfMemoryException)
+        {
+            // Nobody awaits this task: an unexpected failure must not leave the tab with neither watchers nor polling.
+            lock (_gate)
+            {
+                if (!_isDisposed)
+                {
+                    StartPolling();
+                }
+            }
+        }
     });
 
     /// <summary>Starts watching on the calling thread (tests and callers that are already off the UI thread; the UI uses <see cref="StartAsync"/>).</summary>
