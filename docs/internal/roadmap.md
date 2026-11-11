@@ -53,11 +53,11 @@ Status: done (tracking issue #867).
 Goal (#833, owner feedback): fewer keys to learn and every command findable. New leader layout (one prefix per noun, no unrelated case pairs, tabs and repositories together), three command levels (Everyday, Advanced, Advanced+) with a fast toggle, help with all-commands tabs and a Custom tab, optional hints, the keymap as a data file with a generated reference, Ctrl-c always quits, key customisation in the user guide.
 Done when: the owner approved the new layout (#840), `?` lists every bound command once, hints and advanced commands can be turned off, and the keymap reference is generated from the data file.
 
-## M6 - Additional, unreviewed
+## M6 - Release preparation
 
-Status: in progress (tracking issue #893; the open issues are the source of truth).
+Status: done (tracking issue #893).
 
-Backlog of reviewed owner items, release and packaging: help search and wording, stash file restore, older-console readability, release version stamp and packaging flow, idle CPU measurement, conflict editor tests, manual and Windows checks, macOS CI and binary (#455), package managers (#62).
+Reviewed owner items, release and packaging: help search and wording, stash file restore, older-console readability, release version stamp and packaging flow, idle CPU measurement, conflict editor tests, manual and Windows checks, macOS CI and binary (#455), package managers (#62).
 Done when: the first `v*` tag produces verified release archives (#517) and the listed owner checks are done.
 
 ## M7 - Effects-as-data architecture
@@ -80,6 +80,20 @@ Status: planned (owner request 2026-11-02; tracking issue #1114, the open issues
 
 Goal: answer "how did this file or these lines get here" without leaving the app: file history (`git log --follow`), line-range history (`git log -L`) and blame (`git blame`), each with a diff and a jump to the commit in the graph. This moves blame out of the README's "Not included" list; the README is updated when the feature ships, not before. New Git readers and parsers, Core state/commands/effects, views, keymap rows, large-file performance, docs and Windows/macOS checks.
 Done when: from the graph's commit file list or the Changes view you can open a file's history, a line range's history and a blame view of a large file by keyboard and mouse, jump from a blame line to its commit in the graph, and the user guide, keymap reference and README describe it.
+
+## M10 - Bugs and input polish
+
+Status: done. A bug-fix batch with input polish; its remaining work moved to the rolling milestone below.
+
+## M11 - Ongoing improvements (rolling)
+
+Owner, 2026-11-11 (same change as Geeratya): milestones are goals, not conditions. M11 (first "Bugfixing", then renamed, and it absorbed the old "Backlog" milestone) is the one rolling milestone for bugs, follow-ups and loose ends; a new milestone is opened only for a new goal (M8 and M12 are open goals). What blocks an issue is a label, never a milestone, and agents skip these labels:
+
+- `windows-vm`: needs a real Windows machine (or another OS, until a dedicated label is needed)
+- `needs-owner`: only the owner can settle it (decision, accounts, payment, owner steps)
+- `blocked-upstream`: waits on an upstream fix or release
+
+Everything waiting on something other than an agent: [open issues with these labels](https://github.com/Aleksanderis/Gitunia/issues?q=is%3Aopen+label%3Awindows-vm%2Cneeds-owner%2Cblocked-upstream).
 
 ## M12 - Performance and Windows hardening
 
