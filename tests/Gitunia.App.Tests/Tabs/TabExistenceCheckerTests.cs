@@ -29,7 +29,7 @@ public sealed class TabExistenceCheckerTests : IDisposable
         Assert.False(running.IsCompleted);
         var command = Assert.IsType<TabCommand>(await dispatcher.NextAsync(TestContext.Current.CancellationToken));
         Assert.Equal(tab.Id, command.TabId);
-        Assert.Equal(new SetMissingCommand(true), command.Command);
+        Assert.Equal(new SetMissingCommand(true, tab.CommandPath), command.Command);
         await running;
     }
 

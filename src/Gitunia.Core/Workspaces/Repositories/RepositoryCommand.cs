@@ -50,7 +50,11 @@ public sealed record RefsLoadedCommand(ImmutableArray<GitRef> Refs) : Repository
 
 /// <summary>The repository directory vanished or came back.</summary>
 /// <param name="IsMissing">Whether it is missing.</param>
-public sealed record SetMissingCommand(bool IsMissing) : RepositoryCommand;
+/// <param name="CheckedPath">
+/// The command path a slow existence check asked about, or null for an unconditional change. A mark carrying a path
+/// is dropped when the tab has moved to another path or has loaded successfully since the check started.
+/// </param>
+public sealed record SetMissingCommand(bool IsMissing, string? CheckedPath = null) : RepositoryCommand;
 
 /// <summary>The working tree status was (re)loaded.</summary>
 /// <param name="Summary">What the tab bar shows.</param>
