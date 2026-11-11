@@ -11,8 +11,8 @@ namespace Gitunia.App.Tabs;
 /// <c>Directory.Exists</c> for tens of seconds, so the startup restores every tab without asking the disk and this
 /// runs after it; the blocked call itself cannot be interrupted, it just finishes unobserved. Each check gets its own
 /// dedicated thread (<see cref="TaskCreationOptions.LongRunning"/>): on the shared pool, hung checks occupy the few
-/// workers (the pool grows slowly, notably on Windows) and a healthy path queued behind them would hit the timeout
-/// before it even started and be marked missing.
+/// workers (the pool grows slowly) and a healthy path queued behind them could hit the timeout before it even started
+/// and be marked missing.
 /// </summary>
 /// <param name="dispatcher">Where the missing marks go.</param>
 /// <param name="files">The file system question.</param>
