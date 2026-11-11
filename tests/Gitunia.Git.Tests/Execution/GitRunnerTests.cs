@@ -27,6 +27,9 @@ public class GitRunnerTests
     // The fake's background child lives about ten seconds; the grace period is 1.5 s.
     private static readonly TimeSpan BackgroundChildLimit = TimeSpan.FromSeconds(4);
 
+    // The chatty child writes for ten seconds; the absolute bound after the exit is 5 s.
+    private static readonly TimeSpan ChattyChildLimit = TimeSpan.FromSeconds(8);
+
     // Only bounds a hang.
     private static readonly TimeSpan SignalGuardTimeout = TimeSpan.FromSeconds(30);
 
@@ -82,6 +85,25 @@ public class GitRunnerTests
 
         Assert.Equal(["a 1%", "a 2%", "b"], segments);
         Assert.Equal("a 1%\ra 2%\nb", result.StandardError);
+    }
+
+    [Fact]
+    public async Task GivenMultiByteStderrLargerThanOneRead_WhenRunning_ThenNoCharacterIsSplitOrLost()
+    {
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "The fake prints with sh.");
+        const int lineCount = 5000;
+        using var fake = FakeGitExecutable.Create(
+            $"i=0; while [ $i -lt {lineCount} ]; do echo 'ž' >&2; i=$((i+1)); done",
+            "rem");
+
+        var result = await RunnerFor(fake).RunAsync(
+            AnyDirectory,
+            ["fetch"],
+            new GitRunOptions(OnStandardErrorLine: _ => { }),
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(lineCount, result.StandardError.Count(character => character == 'ž'));
+        Assert.DoesNotContain('�', result.StandardError);
     }
 
     [Fact]
@@ -417,6 +439,40 @@ public class GitRunnerTests
 
         Assert.Equal("done", Encoding.UTF8.GetString([.. collected]).Trim());
         Assert.True(clock.Elapsed < BackgroundChildLimit, $"took {clock.Elapsed}");
+    }
+
+    [Fact]
+    public async Task GivenChattyBackgroundChild_WhenGitExits_ThenRunReturnsAtTheAbsoluteBoundWithOutputSoFar()
+    {
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "The fake prints with sh.");
+        using var fake = FakeGitExecutable.Create(
+            "printf '%s' 'done'\n(i=0; while [ $i -lt 100 ]; do printf x; sleep 0.1; i=$((i+1)); done) &",
+            "rem");
+        var clock = Stopwatch.StartNew();
+
+        var result = await RunnerFor(fake).RunAsync(
+            AnyDirectory,
+            ["commit"],
+            new GitRunOptions(Timeout: TimeSpan.FromSeconds(60)),
+            TestContext.Current.CancellationToken);
+
+        Assert.StartsWith("done", result.StandardOutputText);
+        Assert.True(clock.Elapsed < ChattyChildLimit, $"took {clock.Elapsed}");
+    }
+
+    [Fact]
+    public async Task GivenGitExitedWithOutputInPipe_WhenRunIsSlowToRead_ThenNoOutputIsLost()
+    {
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "The fake prints with sh.");
+        using var fake = FakeGitExecutable.Create("yes x | head -c 200000\nsleep 10 &", "rem");
+
+        var result = await RunnerFor(fake).RunAsync(
+            AnyDirectory,
+            ["log"],
+            new GitRunOptions(Timeout: TimeSpan.FromSeconds(60)),
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(200000, result.StandardOutput.Length);
     }
 
     [Fact]
