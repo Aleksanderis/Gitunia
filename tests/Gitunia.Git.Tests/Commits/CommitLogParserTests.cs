@@ -92,6 +92,18 @@ public class CommitLogParserTests
     }
 
     [Fact]
+    public void GivenDetachedHeadBeforeAndAfterOtherRefs_WhenParsing_ThenEveryPartIsKept()
+    {
+        var text = Record(2, [], decorations: "HEAD, refs/heads/a") + Record(1, [], decorations: "refs/heads/b, HEAD");
+
+        var commits = ParseAll(text, 1000, out _);
+
+        Assert.Equal([RefKind.Head, RefKind.LocalBranch], commits[0].Decorations.Select(decoration => decoration.Kind));
+        Assert.Equal([RefKind.LocalBranch, RefKind.Head], commits[1].Decorations.Select(decoration => decoration.Kind));
+        Assert.Equal("b", commits[1].Decorations[0].Name);
+    }
+
+    [Fact]
     public void GivenDetachedHead_WhenParsing_ThenHeadDecoration()
     {
         var commits = ParseAll(Record(1, [], decorations: "HEAD"), 1000, out _);

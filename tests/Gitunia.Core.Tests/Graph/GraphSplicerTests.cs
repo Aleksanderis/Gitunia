@@ -248,7 +248,7 @@ public class GraphSplicerTests
     }
 
     private static GraphEntry ToEntry(CommitInfo commit, GraphRow row) =>
-        new(commit.Id, commit.Subject, commit.AuthorName, commit.AuthorTime, commit.Decorations, row);
+        new(commit.Subject, commit.AuthorName, commit.AuthorTime, commit.Decorations, row);
 
     private static void AssertEqualToFullLayout(IReadOnlyList<CommitInfo> commits, IReadOnlyList<GraphEntry> result)
     {

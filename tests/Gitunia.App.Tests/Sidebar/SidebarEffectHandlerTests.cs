@@ -26,7 +26,6 @@ public sealed class SidebarEffectHandlerTests : IDisposable, ITabSessions
                 new CommitDetailsStore(_reader, FakeCommitDetailsReader.Location, InlineUi.Instance, TimeSpan.Zero)));
         _session.Append(
             [.. _reader.Commits.Select(id => new GraphEntry(
-                id,
                 "x",
                 "A",
                 DateTimeOffset.UnixEpoch,

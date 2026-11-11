@@ -59,7 +59,6 @@ public sealed class CompareInputTests : IDisposable, ICompareSource, ITabSession
         _host.EffectRaised += Run;
         _session.Graph.AddRange(
             [.. Newest.Select(id => new GraphEntry(
-                id,
                 "x",
                 "A",
                 DateTimeOffset.UnixEpoch,

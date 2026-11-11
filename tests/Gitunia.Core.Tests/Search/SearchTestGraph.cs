@@ -22,7 +22,7 @@ public static class SearchTestGraph
         var layout = GraphLayout.Compute(commits);
         var graph = new CommitGraph();
         graph.AddRange(commits.Select((commit, index) =>
-            new GraphEntry(commit.Id, commit.Subject, commit.AuthorName, commit.AuthorTime, commit.Decorations, layout[index])).ToArray());
+            new GraphEntry(commit.Subject, commit.AuthorName, commit.AuthorTime, commit.Decorations, layout[index])).ToArray());
         return graph;
     }
 
