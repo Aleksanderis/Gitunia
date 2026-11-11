@@ -341,15 +341,15 @@ public sealed partial class RepositoryWatcher : IDisposable
             InternalBufferSize = isWorkingTreeRoot ? WorkingTreeBufferSize : GitDirectoryBufferSize,
         };
 
-        watcher.Created += (_, arguments) => HandleEvent(arguments.FullPath, true, isWorkingTreeRoot);
-        watcher.Changed += (_, arguments) => HandleEvent(arguments.FullPath, false, isWorkingTreeRoot);
-        watcher.Deleted += (_, arguments) => HandleEvent(arguments.FullPath, false, isWorkingTreeRoot);
+        watcher.Created += (_, arguments) => HandleEvent(arguments.FullPath, isCreation: true, isWorkingTreeRoot);
+        watcher.Changed += (_, arguments) => HandleEvent(arguments.FullPath, isCreation: false, isWorkingTreeRoot);
+        watcher.Deleted += (_, arguments) => HandleEvent(arguments.FullPath, isCreation: false, isWorkingTreeRoot);
         watcher.Renamed += (_, arguments) =>
         {
-            HandleEvent(arguments.OldFullPath, false, isWorkingTreeRoot);
-            HandleEvent(arguments.FullPath, true, isWorkingTreeRoot);
+            HandleEvent(arguments.OldFullPath, isCreation: false, isWorkingTreeRoot);
+            HandleEvent(arguments.FullPath, isCreation: true, isWorkingTreeRoot);
         };
-        watcher.Error += (_, arguments) => OnWatcherError(arguments.GetException());
+        watcher.Error += (_, arguments) => OnWatcherError(arguments.GetException(), isWorkingTreeRoot);
 
         return watcher;
     }
@@ -404,7 +404,8 @@ public sealed partial class RepositoryWatcher : IDisposable
         return false;
     }
 
-    private static bool IsSeparator(char value) => value == Path.DirectorySeparatorChar || value == Path.AltDirectorySeparatorChar;
+    private static bool IsSeparator(char value) =>
+        value == Path.DirectorySeparatorChar || value == Path.AltDirectorySeparatorChar;
 
     private async Task LoadIgnoredDirectoriesAsync()
     {
@@ -424,17 +425,19 @@ public sealed partial class RepositoryWatcher : IDisposable
     }
 
     /// <summary>Feeds an error into the path a watcher's <c>Error</c> event takes (for tests, which cannot raise the event).</summary>
-    public void ReportWatcherError(Exception exception) => OnWatcherError(exception);
+    public void ReportWatcherError(Exception exception, bool fromWorkingTree = false) =>
+        OnWatcherError(exception, fromWorkingTree);
 
     /// <summary>
     /// A buffer overflow only means events were lost (routine during an install or a build): report everything once and keep
     /// watching. Any other error ends watching; the tab polls and tries to watch again later.
     /// </summary>
-    private void OnWatcherError(Exception? exception)
+    private void OnWatcherError(Exception? exception, bool fromWorkingTree)
     {
         if (exception is InternalBufferOverflowException)
         {
-            Enqueue(RepositoryChangeKinds.All);
+            // The working tree overflows during a build: asking for more than its own kind would re-read refs every 2 s.
+            Enqueue(fromWorkingTree ? RepositoryChangeKinds.WorkingTree : RepositoryChangeKinds.All);
             RequestRescan();
             return;
         }
@@ -447,7 +450,11 @@ public sealed partial class RepositoryWatcher : IDisposable
             }
 
             FallBackToPollingLocked();
-            _retryTimer ??= new Timer(_ => RetryWatching(), null, _options.WatcherRetryIntervalOrDefault, Timeout.InfiniteTimeSpan);
+            _retryTimer ??= new Timer(
+                _ => RetryWatching(),
+                null,
+                _options.WatcherRetryIntervalOrDefault,
+                Timeout.InfiniteTimeSpan);
         }
     }
 
@@ -463,6 +470,8 @@ public sealed partial class RepositoryWatcher : IDisposable
 
             _pollTimer.Dispose();
             _pollTimer = null;
+            _usesRecursiveRoot = false;
+            _hasScanned = false;
             if (TryStartWatchingLocked())
             {
                 _retryTimer?.Dispose();

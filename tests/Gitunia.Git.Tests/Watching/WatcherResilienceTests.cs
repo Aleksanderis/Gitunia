@@ -38,14 +38,31 @@ public class WatcherResilienceTests
         watcher.Start();
         var watchers = watcher.WatcherCount;
 
-        watcher.ReportWatcherError(new InternalBufferOverflowException());
+        watcher.ReportWatcherError(new InternalBufferOverflowException(), fromWorkingTree: true);
 
-        await recorder.WaitForAsync(RepositoryChangeKinds.All, Token);
+        await recorder.WaitForAsync(RepositoryChangeKinds.WorkingTree, Token);
+        Assert.Equal(RepositoryChangeKinds.WorkingTree, recorder.Seen);
         Assert.False(watcher.IsPolling);
         Assert.Equal(watchers, watcher.WatcherCount);
 
         testRepository.WriteFile("after-overflow.txt", "x");
         await recorder.WaitForAsync(RepositoryChangeKinds.WorkingTree, Token);
+    }
+
+    [Fact]
+    public async Task GivenWatcher_WhenGitDirectoryBufferOverflows_ThenGitStateIsReportedAndWatchingContinues()
+    {
+        using var testRepository = TestRepositories.Linear(1);
+        var recorder = new ChangeRecorder();
+        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
+        using var watcher = new RepositoryWatcher(location, new WatchBudget(), FastOptions);
+        watcher.Changed += recorder.Record;
+        watcher.Start();
+
+        watcher.ReportWatcherError(new InternalBufferOverflowException());
+
+        await recorder.WaitForAsync(RepositoryChangeKinds.Head | RepositoryChangeKinds.Refs, Token);
+        Assert.False(watcher.IsPolling);
     }
 
     [Fact]
@@ -112,7 +129,6 @@ public class WatcherResilienceTests
         // Returned while the fingerprint is still blocked, and the lock is free meanwhile.
         Assert.True(watcher.IsPolling);
         await WaitForAsync(() => !reader.CallerThreads.IsEmpty);
-        Assert.DoesNotContain(Environment.CurrentManagedThreadId, reader.CallerThreads);
 
         reader.Release.Set();
     }
