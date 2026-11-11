@@ -41,11 +41,14 @@ public static class PathTree
         var body = path.TrimEnd(Separator);
         while (body.IndexOf(Separator, start) is var slash and >= 0)
         {
-            var name = body[start..slash];
-            if (!node.Folders.TryGetValue(name, out var child))
+            // Look the folder up by span: a substring is only made for a folder seen the first time.
+            var name = body.AsSpan(start, slash - start);
+            var lookup = node.Folders.GetAlternateLookup<ReadOnlySpan<char>>();
+            if (!lookup.TryGetValue(name, out var child))
             {
-                child = new Node(name, body[..slash]);
-                node.Folders.Add(name, child);
+                var folderName = name.ToString();
+                child = new Node(folderName, body[..slash]);
+                node.Folders.Add(folderName, child);
             }
 
             node = child;
@@ -57,7 +60,7 @@ public static class PathTree
 
     private static void AddChildren(List<PathTreeRow> rows, Node node, int depth, IReadOnlySet<string>? collapsed)
     {
-        foreach (var folder in node.Folders.Values)
+        foreach (var folder in node.Folders.Values.OrderBy(candidate => candidate.Name, StringComparer.Ordinal))
         {
             rows.Add(new PathTreeRow(depth, folder.Name, folder.FolderPath, -1));
             if (collapsed is null || !collapsed.Contains(folder.FolderPath))
@@ -78,7 +81,7 @@ public static class PathTree
 
         public string FolderPath { get; } = path;
 
-        public SortedDictionary<string, Node> Folders { get; } = new(StringComparer.Ordinal);
+        public Dictionary<string, Node> Folders { get; } = new(StringComparer.Ordinal);
 
         public List<Leaf> Leaves { get; } = [];
     }
