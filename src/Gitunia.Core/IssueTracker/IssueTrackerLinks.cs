@@ -19,18 +19,23 @@ public sealed class IssueTrackerLinks
     private const string HttpPrefix = "http://";
     private const string HttpsPrefix = "https://";
     private const string UrlSafeCharacters = "-._~/:@!$&'()*+,;=?#%";
-    private static readonly TimeSpan MatchTimeout = TimeSpan.FromMilliseconds(50);
+    private static readonly TimeSpan DefaultMatchTimeout = TimeSpan.FromMilliseconds(50);
 
     private readonly List<CompiledRule> _rules = [];
 
-    /// <summary>Compiles the rules; a rule whose regex does not compile is left out.</summary>
-    public IssueTrackerLinks(IReadOnlyList<IssueTrackerRule> rules)
+    /// <summary>
+    /// Compiles the rules; a rule whose regex does not compile is left out. <paramref name="matchTimeout"/> bounds one
+    /// rule on one line (default 50 ms); a rule that exceeds it makes no links at all.
+    /// </summary>
+    public IssueTrackerLinks(IReadOnlyList<IssueTrackerRule> rules, TimeSpan? matchTimeout = null)
     {
+        var timeout = matchTimeout ?? DefaultMatchTimeout;
+
         foreach (var rule in rules)
         {
             try
             {
-                var pattern = new Regex(rule.Pattern, RegexOptions.CultureInvariant, MatchTimeout);
+                var pattern = new Regex(rule.Pattern, RegexOptions.CultureInvariant, timeout);
                 _rules.Add(new CompiledRule(pattern, rule.UrlTemplate));
             }
             catch (ArgumentException)
@@ -75,6 +80,9 @@ public sealed class IssueTrackerLinks
 
     private static void AddMatches(CompiledRule rule, string line, List<IssueReference> found)
     {
+        // Collected apart and added only when the whole line was scanned: a timeout midway must not leave a rule's
+        // partial matches behind, or a later rule would win the places the timed-out rule had not reached yet.
+        var matches = new List<IssueReference>();
         try
         {
             foreach (var match in rule.Pattern.Matches(line).Where(match => match.Length > 0))
@@ -84,9 +92,11 @@ public sealed class IssueTrackerLinks
                 if (url.StartsWith(HttpsPrefix, StringComparison.OrdinalIgnoreCase)
                     || url.StartsWith(HttpPrefix, StringComparison.OrdinalIgnoreCase))
                 {
-                    found.Add(new IssueReference(match.Index, match.Length, url));
+                    matches.Add(new IssueReference(match.Index, match.Length, url));
                 }
             }
+
+            found.AddRange(matches);
         }
         catch (RegexMatchTimeoutException)
         {

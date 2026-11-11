@@ -91,6 +91,20 @@ public class IssueTrackerLinksTests
     }
 
     [Fact]
+    public void GivenARuleThatTimesOutMidway_WhenFinding_ThenItsPartialMatchesAreDropped()
+    {
+        var partial = new IssueTrackerRule("slow", "#\\d+|(a+)+$", "https://a.example.org/$1");
+        var later = new IssueTrackerRule("b", "(#\\d+)", "https://b.example.org/$1");
+        var links = new IssueTrackerLinks([partial, later], TimeSpan.FromMilliseconds(50));
+
+        var found = links.Find($"#1 #2 {new string('a', 40)}!");
+
+        Assert.Equal(
+            ["https://b.example.org/#1", "https://b.example.org/#2"],
+            found.Select(reference => reference.Url));
+    }
+
+    [Fact]
     public void GivenARunawayRegex_WhenFindingAgain_ThenTheRuleIsSkippedAtOnce()
     {
         var links = new IssueTrackerLinks([new IssueTrackerRule("slow", "^(a+)+$", "https://x.org/$1")]);
@@ -111,7 +125,9 @@ public class IssueTrackerLinksTests
     {
         var first = new IssueTrackerRule("a", "(#\\d+)", "https://a.example.org/$1");
         var second = new IssueTrackerRule("b", "(#\\d+)", "https://b.example.org/$1");
-        var links = new IssueTrackerLinks([first, second]);
+
+        // A generous timeout: under CI load the default 50 ms could expire midway and drop the earlier rule.
+        var links = new IssueTrackerLinks([first, second], TimeSpan.FromMinutes(1));
         var line = string.Join(' ', Enumerable.Range(1, 30).Select(number => $"#{number}"));
 
         var found = links.Find(line);
