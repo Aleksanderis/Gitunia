@@ -129,7 +129,6 @@ public sealed class FakeDiffReader : IDiffReader
         }
     }
 
-
     private static ObjectId IdOf(int number)
     {
         var text = number.ToString("x", CultureInfo.InvariantCulture).PadLeft(HexDigitCount, '0');

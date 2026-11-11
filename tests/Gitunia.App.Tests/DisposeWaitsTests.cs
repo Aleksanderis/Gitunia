@@ -702,7 +702,6 @@ public class DisposeWaitsTests
             yield break;
         }
 
-
         async Task<IReadOnlyList<TreeEntry>> ICommitTreeReader.ReadAsync(RepositoryLocation location, ObjectId commit, ICollection<string>? warnings, CancellationToken cancellationToken)
         {
             await BlockAsync(cancellationToken);

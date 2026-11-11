@@ -290,6 +290,5 @@ public class FileHistoryEffectHandlerTests
             int maximumLinesPerFile = int.MaxValue,
             DiffOptions? options = null,
             CancellationToken cancellationToken = default) => throw new NotSupportedException();
-
     }
 }

@@ -23,7 +23,6 @@ public sealed class DiffReader : IDiffReader
         "--find-copies",
     ];
 
-    /// <summary>Index of the first parent in a <c>rev-list --parents</c> line, which starts with the commit itself.</summary>
     private readonly GitRunner _runner;
 
     public DiffReader(GitRunner runner)
@@ -245,5 +244,4 @@ public sealed class DiffReader : IDiffReader
 
         return ReadAsync(location, command, warnings, maximumLinesPerFile, cancellationToken);
     }
-
 }
