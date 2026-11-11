@@ -78,6 +78,18 @@ public sealed class SyncEffectHandler(
     private async Task<SyncCommand> PerformAsync(SyncEffect effect, CancellationToken token)
     {
         var progress = new CommandProgress(dispatcher, effect.TabId);
+        try
+        {
+            return await PerformAsync(effect, progress, token).ConfigureAwait(false);
+        }
+        finally
+        {
+            progress.Flush();
+        }
+    }
+
+    private async Task<SyncCommand> PerformAsync(SyncEffect effect, CommandProgress progress, CancellationToken token)
+    {
         switch (effect)
         {
             case CheckBehindEffect check:
