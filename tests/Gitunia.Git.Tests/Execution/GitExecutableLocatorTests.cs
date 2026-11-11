@@ -24,8 +24,9 @@ public sealed class GitExecutableLocatorTests : IDisposable
 
         var located = new GitExecutableLocator(path, null, OperatingSystem.IsWindows()).Locate();
 
-        Assert.Equal(real, located);
-        Assert.NotEqual(fake, located);
+        // The extension keeps the case of PATHEXT on Windows (git.EXE), the file system does not care.
+        Assert.Equal(real, located, ignoreCase: OperatingSystem.IsWindows());
+        Assert.NotEqual(fake, located, ignoreCase: OperatingSystem.IsWindows());
     }
 
     [Fact]
