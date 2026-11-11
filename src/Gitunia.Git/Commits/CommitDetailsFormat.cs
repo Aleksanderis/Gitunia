@@ -41,6 +41,7 @@ public static class CommitDetailsFormat
         "--no-abbrev",
         "--find-renames",
         "--find-copies",
+        "--ignore-submodules=none",
         GitOptions.NoColor,
         "--no-show-signature",
         "--encoding=UTF-8",

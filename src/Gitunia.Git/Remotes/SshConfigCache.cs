@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Security.Cryptography;
 using System.Text;
 using Gitunia.Git.Repositories.Models;
 
@@ -7,8 +8,9 @@ namespace Gitunia.Git.Remotes;
 /// <summary>
 /// Remembers the <c>core.sshCommand</c> a repository (or the global configuration) resolved to, so a fetch, pull or
 /// push does not start a <c>git config</c> process first. An entry is valid only while the text of the configuration
-/// files git reads (repository, worktree, user level) is byte for byte what it was when the value was read, so an
-/// edit between two calls is always noticed. Anything the files cannot tell is not cached: an include directive, a
+/// files git reads (repository, worktree, <c>$HOME/.gitconfig</c>, the XDG file; compared by hash) is what it was
+/// when the value was read, so an edit of those files between two calls is noticed (a home directory git finds by
+/// another route, such as <c>HOMEDRIVE</c> + <c>HOMEPATH</c>, is only noticed after <see cref="TimeToLive"/>). Anything the files cannot tell is not cached: an include directive, a
 /// <c>GIT_CONFIG_*</c> variable, a file too large to compare. The system-level file is not read, so an entry also
 /// expires after <see cref="TimeToLive"/>.
 /// </summary>
@@ -78,41 +80,41 @@ public sealed class SshConfigCache(Func<string, string?> environmentLookup, Time
         var snapshot = new StringBuilder();
         foreach (var path in ConfigFiles(location))
         {
-            if (!File.Exists(path))
-            {
-                snapshot.Append('\0').Append(path).Append('\n');
-                continue;
-            }
-
-            if (new FileInfo(path).Length > MaxFileLength)
-            {
-                return null;
-            }
-
-            string text;
+            snapshot.Append('\0').Append(path).Append('\n');
             try
             {
-                text = await File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false);
+                if (!File.Exists(path))
+                {
+                    continue;
+                }
+
+                if (new FileInfo(path).Length > MaxFileLength)
+                {
+                    return null;
+                }
+
+                var text = await File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false);
+
+                // Includes pull in files this snapshot does not cover.
+                if (text.Contains(IncludeDirective, StringComparison.OrdinalIgnoreCase))
+                {
+                    return null;
+                }
+
+                snapshot.Append(text);
             }
             catch (IOException)
             {
+                // The file changed under us (an editor replacing it): not cacheable this time.
                 return null;
             }
             catch (UnauthorizedAccessException)
             {
                 return null;
             }
-
-            // Includes pull in files this snapshot does not cover.
-            if (text.Contains(IncludeDirective, StringComparison.OrdinalIgnoreCase))
-            {
-                return null;
-            }
-
-            snapshot.Append('\0').Append(path).Append('\n').Append(text);
         }
 
-        return snapshot.ToString();
+        return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(snapshot.ToString())));
     }
 
     private IEnumerable<string> ConfigFiles(RepositoryLocation? location)
