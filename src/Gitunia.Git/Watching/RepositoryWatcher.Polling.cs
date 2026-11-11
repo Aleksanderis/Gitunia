@@ -61,6 +61,18 @@ public sealed partial class RepositoryWatcher
         }
     }
 
+    /// <summary>The wait before the next poll while the watcher polls (grows after slow or failed refreshes, see <see cref="RecordRefresh"/>).</summary>
+    public TimeSpan PollInterval
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return _pollInterval;
+            }
+        }
+    }
+
     private void ReleaseWatchers()
     {
         // Disposing can wait for in-flight handlers, which take the gate, so it happens off this thread.

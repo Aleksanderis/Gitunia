@@ -276,12 +276,14 @@ public class WatcherResilienceTests
         testRepository.WriteFile(Path.Combine("node_modules", "pkg", "a.js"), "x");
         testRepository.WriteFile(Path.Combine("src", "bin", "b.dll"), "x");
 
-        var directories = await new WorkingTreeDirectoryLister(Runner).ListIgnoredAsync(testRepository.WorkingTreePath, Token);
+        var root = testRepository.WorkingTreePath;
+
+        var directories = await new WorkingTreeDirectoryLister(Runner).ListIgnoredAsync(root, Token);
 
         Assert.NotNull(directories);
         Assert.Equal(
             new[] { Path.Combine("node_modules"), Path.Combine("src", "bin") }
-                .Select(relative => Path.Combine(testRepository.WorkingTreePath, relative))
+                .Select(relative => Path.Combine(root, relative))
                 .Order(),
             directories.Order());
     }
