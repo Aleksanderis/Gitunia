@@ -29,6 +29,10 @@ public sealed partial class RepositoryWatcher : IDisposable
     private readonly Dictionary<string, FileSystemWatcher> _directoryWatchers = new(StringComparer.Ordinal);
     private readonly CancellationTokenSource _disposal = new();
     private Timer? _pollTimer;
+    private TimeSpan _pollInterval;
+    private int _pollFailures;
+    private bool _awaitsRefresh;
+    private bool _isPolling;
     private RepositoryChangeKinds _pending;
     private DateTime _pendingSince;
     private int _heldSlots;
@@ -185,6 +189,17 @@ public sealed partial class RepositoryWatcher : IDisposable
             if (!isActive && _pending != RepositoryChangeKinds.None)
             {
                 _queueNotification(RaiseBecameStale);
+            }
+
+            if (isActive)
+            {
+                // Hidden tabs skip their polls: look again at once.
+                // A poll that is running re-arms the timer itself.
+                _awaitsRefresh = false;
+                if (!_isPolling)
+                {
+                    _pollTimer?.Change(TimeSpan.Zero, Timeout.InfiniteTimeSpan);
+                }
             }
 
             if (!isActive || _pending == RepositoryChangeKinds.None)

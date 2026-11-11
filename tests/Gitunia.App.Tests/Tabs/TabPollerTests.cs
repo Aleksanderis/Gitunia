@@ -233,6 +233,46 @@ public class TabPollerTests
         Assert.Empty(harness.Requests);
     }
 
+    [Fact]
+    public async Task GivenAFailedRefresh_WhenItIsRecorded_ThenTheNextStatusRefreshWaitsAndTheGapGrowsOnRepeats()
+    {
+        using var repository = TestRepository.Create();
+        repository.Commit("root", new TestFile("a.txt", "1"));
+        using var harness = await Harness.StartAsync(repository);
+        harness.Poller.SetActive(true);
+        await harness.WaitForAsync(kinds => kinds == StatusOnly);
+        harness.Requests.Clear();
+
+        harness.Poller.RecordFailure(TimeSpan.Zero);
+        var afterOne = harness.Poller.StatusInterval;
+        await harness.DrainForAsync(TimeSpan.FromMilliseconds(150));
+        harness.Poller.RecordFailure(TimeSpan.Zero);
+
+        Assert.Empty(harness.Requests);
+        Assert.Equal(TimeSpan.FromMilliseconds(200), afterOne);
+        Assert.Equal(TimeSpan.FromMilliseconds(400), harness.Poller.StatusInterval);
+    }
+
+    [Fact]
+    public async Task GivenABurstOfFocusIns_WhenCheckedNow_ThenOnlyOneCheckStarts()
+    {
+        using var repository = TestRepository.Create();
+        repository.Commit("root", new TestFile("a.txt", "1"));
+        using var harness = await Harness.StartAsync(repository, Slow);
+        harness.Poller.SetActive(true);
+        await harness.WaitForAsync(kinds => kinds == StatusOnly);
+        harness.Requests.Clear();
+
+        harness.Poller.CheckNow();
+        await harness.WaitForAsync(kinds => kinds == StatusOnly);
+        harness.Requests.Clear();
+        harness.Poller.CheckNow();
+        harness.Poller.CheckNow();
+        await harness.DrainForAsync(Settle);
+
+        Assert.Empty(harness.Requests);
+    }
+
     private sealed class Harness : IDisposable, IPollTarget, IUiInvoker
     {
         private Harness(RepositoryLocation location, PollOptions options)
