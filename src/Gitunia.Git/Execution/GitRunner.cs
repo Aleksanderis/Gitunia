@@ -22,7 +22,9 @@ public sealed class GitRunner
     private const char LineFeed = '\n';
     private const char CarriageReturn = '\r';
 
-    // After git exits, a background child of a hook can still hold the pipes open; this long the readers may drain.
+    // After git exits, a background child of a hook can still hold the pipes open; a read that stays pending this long
+    // after the exit ends the output. The cut only cancels a read that has nothing to deliver, so output git wrote
+    // before exiting is never dropped, however late the reader gets scheduled.
     private static readonly TimeSpan DrainGrace = TimeSpan.FromMilliseconds(1500);
 
     private readonly GitRunnerOptions _options;
@@ -98,41 +100,30 @@ public sealed class GitRunner
     }
 
     // Reports each line-feed or carriage-return terminated segment and restarts the idle timer on every read. A cut of
-    // the drain token (git exited, a pipe is still held) ends the read with what arrived so far.
+    // the grace cut (git exited, a pipe is still held and nothing arrives) ends the read with what arrived so far.
     private static async Task<string> ReadErrorAsync(
-        Process process,
+        Stream stream,
         GitRunOptions runOptions,
         CancellationTokenSource timeoutSource,
         TimeSpan timeout,
-        CancellationToken drainToken,
+        Task exitTask,
         CancellationToken hardToken)
     {
         var all = new StringBuilder();
         var segment = new StringBuilder();
-        var buffer = new char[ErrorBufferSize];
-        var reader = process.StandardError;
-        try
+        var bytes = new byte[ErrorBufferSize];
+        var chars = new char[Encoding.UTF8.GetMaxCharCount(ErrorBufferSize)];
+        var decoder = Encoding.UTF8.GetDecoder();
+        while (await ReadChunkAsync(stream, bytes, exitTask, hardToken).ConfigureAwait(false) is var count and > 0)
         {
-            while (true)
+            if (runOptions.OnStandardErrorLine is not null)
             {
-                var count = await reader.ReadAsync(buffer.AsMemory(), drainToken).ConfigureAwait(false);
-                if (count == 0)
-                {
-                    break;
-                }
-
-                if (runOptions.OnStandardErrorLine is not null)
-                {
-                    timeoutSource.CancelAfter(timeout);
-                }
-
-                all.Append(buffer, 0, count);
-                SplitSegments(buffer, count, segment, runOptions.OnStandardErrorLine);
+                timeoutSource.CancelAfter(timeout);
             }
-        }
-        catch (OperationCanceledException) when (IsDrainCut(drainToken, hardToken))
-        {
-            // Partial stderr is what we have.
+
+            var charCount = decoder.GetChars(bytes, 0, count, chars, 0);
+            all.Append(chars, 0, charCount);
+            SplitSegments(chars, charCount, segment, runOptions.OnStandardErrorLine);
         }
 
         if (runOptions.OnStandardErrorLine is { } onLine)
@@ -230,14 +221,19 @@ public sealed class GitRunner
         try
         {
             using var drainSource = CancellationTokenSource.CreateLinkedTokenSource(linked.Token);
-            var outputTask = ReadAllAsync(process.StandardOutput.BaseStream, drainSource.Token, linked.Token);
-            var errorTask = ReadErrorAsync(process, runOptions, timeoutSource, timeout, drainSource.Token, linked.Token);
+            using var watchSource = CancellationTokenSource.CreateLinkedTokenSource(linked.Token);
+            var watchTask = CutReadersAfterExitAsync(process, drainSource, watchSource.Token);
+            var exitTask = process.WaitForExitAsync(linked.Token);
+            var outputTask = ReadAllAsync(process.StandardOutput.BaseStream, exitTask, linked.Token);
+            var errorTask = ReadErrorAsync(
+                process.StandardError.BaseStream, runOptions, timeoutSource, timeout, exitTask, linked.Token);
             var inputTask = WriteInputAsync(process, runOptions.StandardInput, drainSource.Token, linked.Token);
-            var drained = Task.WhenAll(outputTask, errorTask, inputTask);
-            await process.WaitForExitAsync(linked.Token).ConfigureAwait(false);
-            await DrainAsync(drained, drainSource, linked.Token).ConfigureAwait(false);
-            var output = outputTask.Result;
-            var error = errorTask.Result;
+            var output = await outputTask.ConfigureAwait(false);
+            var error = await errorTask.ConfigureAwait(false);
+            await inputTask.ConfigureAwait(false);
+            await exitTask.ConfigureAwait(false);
+            await watchSource.CancelAsync().ConfigureAwait(false);
+            await watchTask.ConfigureAwait(false);
             if (!IsAccepted(process.ExitCode, runOptions))
             {
                 throw new GitCommandFailedException(arguments, process.ExitCode, error, Encoding.UTF8.GetString(output));
@@ -269,9 +265,9 @@ public sealed class GitRunner
         using var drainSource = CancellationTokenSource.CreateLinkedTokenSource(linked.Token);
         using var watchSource = CancellationTokenSource.CreateLinkedTokenSource(linked.Token);
         var watchTask = CutReadersAfterExitAsync(process, drainSource, watchSource.Token);
-        var errorTask = ReadTextAsync(process.StandardError, drainSource.Token, linked.Token);
-        await WriteInputAsync(process, null, drainSource.Token, linked.Token).ConfigureAwait(false);
         var exitTask = process.WaitForExitAsync(linked.Token);
+        var errorTask = ReadTextAsync(process.StandardError.BaseStream, exitTask, linked.Token);
+        await WriteInputAsync(process, null, drainSource.Token, linked.Token).ConfigureAwait(false);
         var output = process.StandardOutput.BaseStream;
         var buffer = ArrayPool<byte>.Shared.Rent(ReadBufferSize);
         try
@@ -404,36 +400,15 @@ public sealed class GitRunner
         }
     }
 
-    private static async Task DrainAsync(Task drained, CancellationTokenSource drainSource, CancellationToken hardToken)
-    {
-        using var graceSource = CancellationTokenSource.CreateLinkedTokenSource(hardToken);
-        var grace = Task.Delay(DrainGrace, graceSource.Token);
-        if (await Task.WhenAny(drained, grace).ConfigureAwait(false) != drained)
-        {
-            await drainSource.CancelAsync().ConfigureAwait(false);
-        }
-
-        await graceSource.CancelAsync().ConfigureAwait(false);
-        await drained.ConfigureAwait(false);
-    }
-
-    private static async Task<string> ReadTextAsync(
-        StreamReader reader,
-        CancellationToken drainToken,
-        CancellationToken hardToken)
+    private static async Task<string> ReadTextAsync(Stream stream, Task exitTask, CancellationToken hardToken)
     {
         var all = new StringBuilder();
-        var buffer = new char[ErrorBufferSize];
-        try
+        var bytes = new byte[ErrorBufferSize];
+        var chars = new char[Encoding.UTF8.GetMaxCharCount(ErrorBufferSize)];
+        var decoder = Encoding.UTF8.GetDecoder();
+        while (await ReadChunkAsync(stream, bytes, exitTask, hardToken).ConfigureAwait(false) is var count and > 0)
         {
-            while (await reader.ReadAsync(buffer.AsMemory(), drainToken).ConfigureAwait(false) is var count and > 0)
-            {
-                all.Append(buffer, 0, count);
-            }
-        }
-        catch (OperationCanceledException) when (IsDrainCut(drainToken, hardToken))
-        {
-            // Partial stderr is what we have.
+            all.Append(chars, 0, decoder.GetChars(bytes, 0, count, chars, 0));
         }
 
         return all.ToString();
@@ -476,19 +451,20 @@ public sealed class GitRunner
         }
     }
 
-    private static async Task<byte[]> ReadAllAsync(
-        Stream stream,
-        CancellationToken drainToken,
-        CancellationToken hardToken)
+    private static async Task<byte[]> ReadAllAsync(Stream stream, Task exitTask, CancellationToken hardToken)
     {
         using var memory = new MemoryStream();
+        var buffer = ArrayPool<byte>.Shared.Rent(ReadBufferSize);
         try
         {
-            await stream.CopyToAsync(memory, ReadBufferSize, drainToken).ConfigureAwait(false);
+            while (await ReadChunkAsync(stream, buffer, exitTask, hardToken).ConfigureAwait(false) is var count and > 0)
+            {
+                memory.Write(buffer, 0, count);
+            }
         }
-        catch (OperationCanceledException) when (IsDrainCut(drainToken, hardToken))
+        finally
         {
-            // What arrived before the cut is the output.
+            ArrayPool<byte>.Shared.Return(buffer);
         }
 
         return memory.ToArray();

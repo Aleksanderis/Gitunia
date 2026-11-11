@@ -85,6 +85,23 @@ public class GitRunnerTests
     }
 
     [Fact]
+    public async Task GivenMultiByteStderrLargerThanOneRead_WhenRunning_ThenNoCharacterIsSplitOrLost()
+    {
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "The fake prints with sh.");
+        const int lineCount = 5000;
+        using var fake = FakeGitExecutable.Create($"i=0; while [ $i -lt {lineCount} ]; do echo 'ž' >&2; i=$((i+1)); done", "rem");
+
+        var result = await RunnerFor(fake).RunAsync(
+            AnyDirectory,
+            ["fetch"],
+            new GitRunOptions(OnStandardErrorLine: _ => { }),
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(lineCount, result.StandardError.Count(character => character == 'ž'));
+        Assert.DoesNotContain('�', result.StandardError);
+    }
+
+    [Fact]
     public async Task GivenStderrKeepsArriving_WhenRunningLongerThanTheTimeout_ThenItIsNotTimedOut()
     {
         Assert.SkipWhen(OperatingSystem.IsWindows(), "The fake prints with sh.");
