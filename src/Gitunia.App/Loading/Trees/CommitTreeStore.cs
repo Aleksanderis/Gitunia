@@ -19,6 +19,10 @@ public sealed class CommitTreeStore : IDisposable
     /// <summary>Trees kept for a quick return to a commit.</summary>
     public const int CacheCapacity = 4;
 
+    /// <summary>Files (directory nodes are not counted) kept across all cached trees; older trees are dropped beyond it. The tree just
+    /// loaded always stays, so one huge tree is held on its own.</summary>
+    public const int CacheFileBudget = 250_000;
+
     private readonly ICommitTreeReader _reader;
     private readonly RepositoryLocation _location;
     private readonly IUiInvoker _ui;
@@ -170,8 +174,15 @@ public sealed class CommitTreeStore : IDisposable
     private void Remember(ObjectId commit, FileTreeModel model)
     {
         _recentFirst.AddFirst(new KeyValuePair<ObjectId, FileTreeModel>(commit, model));
-        while (_recentFirst.Count > CacheCapacity)
+        var files = 0;
+        foreach (var kept in _recentFirst)
         {
+            files += kept.Value.FileCount;
+        }
+
+        while (_recentFirst.Count > CacheCapacity || (_recentFirst.Count > 1 && files > CacheFileBudget))
+        {
+            files -= _recentFirst.Last!.Value.Value.FileCount;
             _recentFirst.RemoveLast();
         }
     }

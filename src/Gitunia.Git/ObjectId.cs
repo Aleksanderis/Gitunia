@@ -89,6 +89,26 @@ public readonly struct ObjectId : IEquatable<ObjectId>
 
     public override int GetHashCode() => HashCode.Combine(_first, _second, _third, _fourth);
 
+    /// <summary>Whether the hex form of this id starts with <paramref name="prefix"/> (case-insensitive), without
+    /// building the string.</summary>
+    public bool StartsWith(ReadOnlySpan<char> prefix)
+    {
+        if (prefix.Length > _byteCount * 2)
+        {
+            return false;
+        }
+
+        for (var index = 0; index < prefix.Length; index++)
+        {
+            if (prefix[index] > 127 || HexValue((byte)prefix[index]) != Nibble(index))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     /// <summary>Lowercase hex, the form git prints.</summary>
     public override string ToString()
     {
@@ -98,6 +118,21 @@ public readonly struct ObjectId : IEquatable<ObjectId>
         BinaryPrimitives.WriteUInt64LittleEndian(bytes[16..], _third);
         BinaryPrimitives.WriteUInt64LittleEndian(bytes[24..], _fourth);
         return Convert.ToHexStringLower(bytes[.._byteCount]);
+    }
+
+    private int Nibble(int index)
+    {
+        var byteIndex = index / 2;
+        var word = (byteIndex / 8) switch
+        {
+            0 => _first,
+            1 => _second,
+            2 => _third,
+            _ => _fourth,
+        };
+        var value = (byte)(word >> ((byteIndex % 8) * 8));
+
+        return index % 2 == 0 ? value >> 4 : value & 0xF;
     }
 
     private static int HexValue(byte digit) => digit switch

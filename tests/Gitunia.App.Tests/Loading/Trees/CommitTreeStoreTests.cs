@@ -190,6 +190,57 @@ public class CommitTreeStoreTests
         Assert.Equal(0, reader.ReadCount);
     }
 
+    [Fact]
+    public async Task GivenTreesOf100000Files_WhenSelectingSeveral_ThenTheOldestIsEvictedForTheFileBudget()
+    {
+        var reader = new FakeCommitTreeReader();
+        var paths = Enumerable.Range(0, 100_000).Select(index => $"dir{index % 100}/file{index}.txt").ToArray();
+        var commits = new[] { FakeObjectIds.Of(1), FakeObjectIds.Of(2), FakeObjectIds.Of(3) };
+        foreach (var commit in commits)
+        {
+            reader.Add(commit, paths);
+        }
+
+        var pump = new UiPump(Token);
+        using var store = new CommitTreeStore(reader, FakeCommitDetailsReader.Location, pump, Debounce);
+
+        foreach (var commit in commits)
+        {
+            store.Select(commit);
+            await WaitForSettledAsync(pump, store, commit);
+        }
+
+        Assert.Equal(3, reader.ReadCount);
+        store.Select(commits[1]);
+        Assert.Equal(3, reader.ReadCount);
+        store.Select(commits[0]);
+        await WaitForSettledAsync(pump, store, commits[0]);
+        Assert.Equal(4, reader.ReadCount);
+    }
+
+    [Fact]
+    public async Task GivenOneTreeAboveTheFileBudget_WhenSelectingItAgain_ThenItIsServedFromTheCache()
+    {
+        var reader = new FakeCommitTreeReader();
+        var commit = FakeObjectIds.Of(1);
+        var other = FakeObjectIds.Of(2);
+        reader.Add(
+            commit,
+            [.. Enumerable.Range(0, CommitTreeStore.CacheFileBudget + 1).Select(index => $"f{index}")]);
+        var pump = new UiPump(Token);
+        using var store = new CommitTreeStore(reader, FakeCommitDetailsReader.Location, pump, Debounce);
+        store.Select(commit);
+        await WaitForSettledAsync(pump, store, commit);
+
+        store.Select(other);
+        await WaitForSettledAsync(pump, store, other);
+
+        store.Select(commit);
+
+        Assert.Equal(CommitDetailsStatus.Loaded, store.Current.Status);
+        Assert.Equal(2, reader.ReadCount);
+    }
+
     private static async Task<CommitTreeState> WaitForSettledAsync(UiPump pump, CommitTreeStore store, ObjectId commit)
     {
         await pump.RunUntilAsync(

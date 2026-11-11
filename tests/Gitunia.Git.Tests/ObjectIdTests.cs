@@ -17,6 +17,28 @@ public class ObjectIdTests
         Assert.True(id.IsValid);
     }
 
+    [Theory]
+    [InlineData(Sha1, "", true)]
+    [InlineData(Sha1, "0123", true)]
+    [InlineData(Sha1, "0123456789ABCDEF", true)]
+    [InlineData(Sha1, Sha1, true)]
+    [InlineData(Sha1, "0124", false)]
+    [InlineData(Sha1, "1", false)]
+    [InlineData(Sha1, Sha1 + "0", false)]
+    [InlineData(Sha1, "0g", false)]
+    [InlineData(Sha256, "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef", true)]
+    [InlineData(Sha256, "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdee", false)]
+    public void GivenAPrefix_WhenCheckingStartsWith_ThenItMatchesTheHexFormCaseInsensitively(
+        string hex,
+        string prefix,
+        bool expected)
+    {
+        Assert.True(ObjectId.TryParse(hex, out var id));
+
+        Assert.Equal(expected, id.StartsWith(prefix));
+        Assert.Equal(hex.StartsWith(prefix, StringComparison.OrdinalIgnoreCase), expected);
+    }
+
     [Fact]
     public void GivenUppercaseHex_WhenParsing_ThenEqualsLowercase()
     {
