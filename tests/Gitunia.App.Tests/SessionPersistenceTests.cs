@@ -223,7 +223,7 @@ public class SessionPersistenceTests
         var directory = Path.Combine(Path.GetTempPath(), $"gitunia-session-{Guid.NewGuid().ToString("N")}");
         try
         {
-            var store = new SessionStore(directory, _ => true);
+            var store = new SessionStore(directory);
             var host = new Dispatcher(AppState.Empty);
             using var persistence = new SessionPersistence(store, host, TimeSpan.FromHours(1), new StatusReporter(host), InlineUi.Instance);
             persistence.Start();
@@ -254,7 +254,7 @@ public class SessionPersistenceTests
             Directory.CreateDirectory(directory);
             var root = Path.Combine(directory, "alpha");
             var gitDirectory = Path.Combine(root, ".git");
-            var store = new SessionStore(directory, _ => true);
+            var store = new SessionStore(directory);
             var escapedRoot = root.Replace("\\", "\\\\", StringComparison.Ordinal);
             var escapedGitDirectory = gitDirectory.Replace("\\", "\\\\", StringComparison.Ordinal);
             var json = $$"""
@@ -286,7 +286,7 @@ public class SessionPersistenceTests
             Directory.CreateDirectory(directory);
             var root = Path.Combine(directory, "alpha");
             var gitDirectory = Path.Combine(root, ".git");
-            var store = new SessionStore(directory, _ => true);
+            var store = new SessionStore(directory);
             var escapedRoot = root.Replace("\\", "\\\\", StringComparison.Ordinal);
             var escapedGitDirectory = gitDirectory.Replace("\\", "\\\\", StringComparison.Ordinal);
             var json = $$"""

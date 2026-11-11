@@ -677,6 +677,18 @@ public class DisposeWaitsTests
             yield break;
         }
 
+        public async IAsyncEnumerable<DiffFile> ReadCommitAgainstFirstParentAsync(
+            RepositoryLocation location,
+            ObjectId commit,
+            ICollection<string>? warnings = null,
+            int maximumLinesPerFile = int.MaxValue,
+            DiffOptions? options = null,
+            [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
+            await BlockAsync(cancellationToken);
+            yield break;
+        }
+
         public async IAsyncEnumerable<DiffFile> ReadWorkingFileAsync(
             RepositoryLocation location,
             WorkingDiffSide side,
@@ -688,13 +700,6 @@ public class DisposeWaitsTests
         {
             await BlockAsync(cancellationToken);
             yield break;
-        }
-
-        public async Task<ObjectId?> ReadFirstParentAsync(RepositoryLocation location, ObjectId commit, CancellationToken cancellationToken)
-        {
-            await BlockAsync(cancellationToken);
-
-            return null;
         }
 
         async Task<IReadOnlyList<TreeEntry>> ICommitTreeReader.ReadAsync(RepositoryLocation location, ObjectId commit, ICollection<string>? warnings, CancellationToken cancellationToken)

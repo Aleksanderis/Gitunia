@@ -42,16 +42,17 @@ public sealed class RepositoryRefresher : IRepositoryRefresher
             || kinds.HasFlag(RepositoryChangeKinds.WorkingTree)
             || kinds.HasFlag(RepositoryChangeKinds.Operation);
 
-        var headTask = readHead ? _refReader.ReadHeadAsync(location, cancellationToken) : null;
         var refsTask = readRefs ? _refReader.ReadRefsAsync(location, cancellationToken) : null;
         var worktreesTask = readWorktrees ? _refReader.ReadWorktreesAsync(location, cancellationToken) : null;
         var statusTask = readStatus ? _statusReader.ReadStatusAsync(location, includeIgnored: false, UntrackedFilesMode.All, cancellationToken) : null;
 
-        var head = headTask is null ? previous!.Head : await headTask.ConfigureAwait(false);
         var refs = refsTask is null ? previous!.Refs : (await refsTask.ConfigureAwait(false)).Items;
         var worktrees = worktreesTask is null ? previous!.Worktrees : (await worktreesTask.ConfigureAwait(false)).Items;
         var status = statusTask is null ? previous!.Status : await statusTask.ConfigureAwait(false);
         var operation = _operationDetector.Detect(location);
+
+        // The status header already names the branch and its commit, so HEAD costs no process of its own (readHead implies readStatus).
+        var head = readHead ? status.Branch.Head : previous!.Head;
 
         if (previous is null)
         {

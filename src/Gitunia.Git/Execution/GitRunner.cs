@@ -31,11 +31,15 @@ public sealed class GitRunner
     private static readonly TimeSpan PostExitLimit = TimeSpan.FromSeconds(5);
 
     private readonly GitRunnerOptions _options;
+    private int _startedCount;
 
     public GitRunner(GitRunnerOptions? options = null)
     {
         _options = options ?? new GitRunnerOptions();
     }
+
+    /// <summary>The number of git processes this runner has started; tests compare it before and after an action to count its processes.</summary>
+    public int StartedCount => Volatile.Read(ref _startedCount);
 
     /// <summary>Runs git in the repository or worktree at <paramref name="repositoryPath"/> and collects all output.</summary>
     /// <exception cref="GitCommandFailedException">Exit code not accepted.</exception>
@@ -198,6 +202,7 @@ public sealed class GitRunner
         ApplyEnvironment(startInfo, _options.EnvironmentOverrides);
 
         var process = new Process { StartInfo = startInfo };
+        Interlocked.Increment(ref _startedCount);
         try
         {
             process.Start();

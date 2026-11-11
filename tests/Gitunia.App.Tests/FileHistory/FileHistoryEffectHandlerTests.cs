@@ -274,6 +274,14 @@ public class FileHistoryEffectHandlerTests
             DiffOptions? options = null,
             CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
+        public IAsyncEnumerable<DiffFile> ReadCommitAgainstFirstParentAsync(
+            RepositoryLocation location,
+            ObjectId commit,
+            ICollection<string>? warnings = null,
+            int maximumLinesPerFile = int.MaxValue,
+            DiffOptions? options = null,
+            CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
         public IAsyncEnumerable<DiffFile> ReadWorkingFileAsync(
             RepositoryLocation location,
             WorkingDiffSide side,
@@ -282,10 +290,5 @@ public class FileHistoryEffectHandlerTests
             int maximumLinesPerFile = int.MaxValue,
             DiffOptions? options = null,
             CancellationToken cancellationToken = default) => throw new NotSupportedException();
-
-        public Task<ObjectId?> ReadFirstParentAsync(
-            RepositoryLocation location,
-            ObjectId commit,
-            CancellationToken cancellationToken) => throw new NotSupportedException();
     }
 }

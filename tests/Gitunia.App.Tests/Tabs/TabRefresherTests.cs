@@ -1,4 +1,5 @@
 using Gitunia.App.Status;
+using Gitunia.App.Tests.Fakes;
 using Gitunia.Core;
 using Gitunia.App.Loading;
 using Gitunia.App.Loading.Commits;
@@ -438,6 +439,37 @@ public class TabRefresherTests
         await harness.Pump.RunUntilAsync(() => DateTime.UtcNow > end);
 
         Assert.DoesNotContain(counting.KindsFrom(afterOwn), kinds => kinds != StatusKinds);
+    }
+
+    [Fact]
+    public async Task GivenALoadedTab_WhenOnlyTheStatusIsRefreshed_ThenTheGraphRowsAreNotCopied()
+    {
+        var location = FakeStatusReader.LocationOf("refresher");
+        var commitLog = FakeCommitLogReader.Chain(3);
+        var host = new Dispatcher(AppState.Empty);
+        host.Dispatch(new OpenRepositoryCommand(location));
+        var tabId = host.Workspace.ActiveTabId!.Value;
+        using var session = new FakeGraphSession(tabId);
+        var pump = new UiPump(TestContext.Current.CancellationToken);
+        var repositoryRefresher = new FakeRepositoryRefresher();
+        using var refresher = new TabRefresher(
+            new TabRefreshServices(
+                repositoryRefresher,
+                new FakeStashReader(),
+                new IncrementalGraphLoader(commitLog, new GraphLoader(commitLog))),
+            new TabContext(host, session, location, new StatusReporter(host), pump),
+            new TabWatching(new WatchBudget(), TestGit.QuietWatcherOptions, FastPoll));
+        session.Complete();
+        refresher.Start();
+        await pump.RunUntilAsync(() => repositoryRefresher.RefreshCount == 1 && !refresher.IsRefreshing);
+        var readsAfterBaseline = session.GraphReadCount;
+        var applied = false;
+
+        refresher.RefreshStatus(() => applied = true);
+        await pump.RunUntilAsync(() => applied);
+
+        Assert.Equal(2, repositoryRefresher.RefreshCount);
+        Assert.Equal(readsAfterBaseline, session.GraphReadCount);
     }
 
     private sealed class CountingRefresher(IRepositoryRefresher inner) : IRepositoryRefresher

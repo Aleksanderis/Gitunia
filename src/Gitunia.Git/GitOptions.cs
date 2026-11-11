@@ -18,6 +18,9 @@ public static class GitOptions
     /// <summary>Put in front of a revision to leave it and its ancestors out of a revision walk.</summary>
     public const string ExcludeRevisionPrefix = "^";
 
+    /// <summary>Follow only the first parent; <c>git show</c> then diffs a merge against its mainline parent.</summary>
+    public const string FirstParent = "--first-parent";
+
     /// <summary>Read the paths from stdin (with <see cref="PathspecFileNul"/> NUL-separated, so any byte sequence survives).</summary>
     public const string PathspecFromStandardInput = "--pathspec-from-file=-";
 

@@ -216,45 +216,6 @@ public class DiffReaderTests
     }
 
     [Fact]
-    public async Task GivenRootCommit_WhenReadingFirstParent_ThenNull()
-    {
-        using var testRepository = TestRepository.Create().Commit("root", new TestFile("a.txt", "1\n"));
-        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
-
-        var parent = await Diff.ReadFirstParentAsync(location, IdOf(testRepository, "HEAD"), Token);
-
-        Assert.Null(parent);
-    }
-
-    [Fact]
-    public async Task GivenNormalCommit_WhenReadingFirstParent_ThenItsParent()
-    {
-        using var testRepository = TestRepository.Create().Commit("root", new TestFile("a.txt", "1\n")).Commit("next", new TestFile("a.txt", "2\n"));
-        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
-
-        var parent = await Diff.ReadFirstParentAsync(location, IdOf(testRepository, "HEAD"), Token);
-
-        Assert.Equal(IdOf(testRepository, "HEAD~1"), parent);
-    }
-
-    [Fact]
-    public async Task GivenMergeCommit_WhenReadingFirstParent_ThenTheMainlineParent()
-    {
-        using var testRepository = TestRepository.Create()
-            .Commit("root", new TestFile("base.txt", "base\n"))
-            .CheckoutNewBranch("side")
-            .Commit("side work", new TestFile("side.txt", "side\n"))
-            .Checkout("main")
-            .Commit("main work", new TestFile("main.txt", "main\n"))
-            .Merge("side");
-        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
-
-        var parent = await Diff.ReadFirstParentAsync(location, IdOf(testRepository, "HEAD"), Token);
-
-        Assert.Equal(IdOf(testRepository, "HEAD^1"), parent);
-    }
-
-    [Fact]
     public async Task GivenMergeCommit_WhenReadingAgainstFirstParent_ThenPlainDiffOfWhatTheMergeBrought()
     {
         using var testRepository = TestRepository.Create()
@@ -282,6 +243,53 @@ public class DiffReaderTests
         var side = Assert.Single(files);
         Assert.Equal("side.txt", side.Path);
         Assert.Equal("side", Assert.Single(side.Hunks).Lines.Single(line => line.Kind == DiffLineKind.Added).Text);
+    }
+
+    [Fact]
+    public async Task GivenMergeCommit_WhenReadingWithoutTheParent_ThenTheSameDiffAsAgainstFirstParentInOneProcess()
+    {
+        using var testRepository = TestRepository.Create()
+            .Commit("root", new TestFile("base.txt", "base\n"))
+            .CheckoutNewBranch("side")
+            .Commit("side work", new TestFile("side.txt", "side\n"))
+            .Checkout("main")
+            .Commit("main work", new TestFile("main.txt", "main\n"))
+            .Merge("side");
+        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
+        var commit = IdOf(testRepository, "HEAD");
+        var expected = await ReadCommitAsync(location, commit, IdOf(testRepository, "HEAD^1"), DiffOptions.Default);
+        var before = Runner.StartedCount;
+
+        var actual = await ReadWithoutParentAsync(location, commit);
+
+        Assert.Equal(1, Runner.StartedCount - before);
+        Assert.Equivalent(expected, Assert.Single(actual));
+    }
+
+    [Fact]
+    public async Task GivenRootCommit_WhenReadingWithoutTheParent_ThenTheWholeCommitIsShown()
+    {
+        using var testRepository = TestRepository.Create().Commit("root", new TestFile("a.txt", "1\n"));
+        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
+
+        var files = await ReadWithoutParentAsync(location, IdOf(testRepository, "HEAD"));
+
+        var added = Assert.Single(files);
+        Assert.Equal("a.txt", added.Path);
+        Assert.Equal(DiffFileStatus.Added, added.Status);
+    }
+
+    [Fact]
+    public async Task GivenNormalCommit_WhenReadingWithoutTheParent_ThenOnlyThatCommitsChange()
+    {
+        using var testRepository = TestRepository.Create()
+            .Commit("root", new TestFile("a.txt", "1\n"), new TestFile("b.txt", "b\n"))
+            .Commit("next", new TestFile("a.txt", "2\n"));
+        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
+
+        var files = await ReadWithoutParentAsync(location, IdOf(testRepository, "HEAD"));
+
+        Assert.Equal("a.txt", Assert.Single(files).Path);
     }
 
     [Fact]
@@ -341,6 +349,17 @@ public class DiffReaderTests
         }
 
         return files.Single();
+    }
+
+    private static async Task<List<DiffFile>> ReadWithoutParentAsync(RepositoryLocation location, ObjectId commit)
+    {
+        var files = new List<DiffFile>();
+        await foreach (var file in Diff.ReadCommitAgainstFirstParentAsync(location, commit, cancellationToken: Token))
+        {
+            files.Add(file);
+        }
+
+        return files;
     }
 
     private static ObjectId IdOf(TestRepository testRepository, string revision)
