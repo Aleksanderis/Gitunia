@@ -60,6 +60,8 @@ public sealed partial class RepositoryWatcher : IDisposable
     private volatile HashSet<string>? _ignoredDirectories;
     private bool _isReloadingIgnored;
     private bool _reloadIgnoredAgain;
+    private Timer? _ignoredTimer;
+    private bool _ignoredReloadDue;
 
     public RepositoryWatcher(
         RepositoryLocation location,
@@ -295,8 +297,9 @@ public sealed partial class RepositoryWatcher : IDisposable
             }
         }
 
-        if (!_perDirectory && _directoryLister is not null && _location.WorkingTreePath is not null)
+        if (UsesIgnoredSet && _location.WorkingTreePath is not null)
         {
+            StartIgnoredTimer();
             RequestIgnoredReload();
         }
 
@@ -319,6 +322,12 @@ public sealed partial class RepositoryWatcher : IDisposable
             if (!isActive && _pending != RepositoryChangeKinds.None)
             {
                 _queueNotification(RaiseBecameStale);
+            }
+
+            if (isActive && _ignoredReloadDue)
+            {
+                _ignoredReloadDue = false;
+                _queueNotification(RequestIgnoredReload);
             }
 
             if (isActive)
@@ -374,6 +383,8 @@ public sealed partial class RepositoryWatcher : IDisposable
             _pollTimer = null;
             _retryTimer?.Dispose();
             _retryTimer = null;
+            _ignoredTimer?.Dispose();
+            _ignoredTimer = null;
         }
 
         _debounceTimer.Dispose();
@@ -397,6 +408,12 @@ public sealed partial class RepositoryWatcher : IDisposable
         if (_location.IsLinkedWorktree)
         {
             AddIfExists(plan, Path.Combine(_location.GitDirectory, RepositoryChangeClassifier.ReftableDirectory), false);
+        }
+
+        if (UsesIgnoredSet && _location.WorkingTreePath is not null)
+        {
+            // info/exclude lies in a subdirectory the (non-recursive) git directory watcher does not see.
+            AddIfExists(plan, Path.Combine(_location.CommonDirectory, "info"), false);
         }
 
         if (_location.WorkingTreePath is not null)
@@ -506,6 +523,46 @@ public sealed partial class RepositoryWatcher : IDisposable
 
     private static bool IsSeparator(char value) =>
         value == Path.DirectorySeparatorChar || value == Path.AltDirectorySeparatorChar;
+
+    private bool UsesIgnoredSet => !_perDirectory && _directoryLister is not null;
+
+    /// <summary>
+    /// <c>core.excludesFile</c> (default or configured) lies outside every watched directory and its path is not known without
+    /// reading the git config, so the set is re-read now and then; a hidden tab waits until it is shown.
+    /// </summary>
+    private void StartIgnoredTimer()
+    {
+        lock (_gate)
+        {
+            if (_isDisposed || _ignoredTimer is not null)
+            {
+                return;
+            }
+
+            var interval = _options.IgnoredReloadIntervalOrDefault;
+            _ignoredTimer = new Timer(_ => OnIgnoredTimer(), null, interval, interval);
+        }
+    }
+
+    private void OnIgnoredTimer()
+    {
+        lock (_gate)
+        {
+            if (_isDisposed || _pollTimer is not null)
+            {
+                // Polling reads no ignored set; a successful retry reads it again.
+                return;
+            }
+
+            if (!_isActive)
+            {
+                _ignoredReloadDue = true;
+                return;
+            }
+        }
+
+        RequestIgnoredReload();
+    }
 
     /// <summary>
     /// Reads the ignored directories on a pool thread. Requests that arrive while a read runs collapse into one more

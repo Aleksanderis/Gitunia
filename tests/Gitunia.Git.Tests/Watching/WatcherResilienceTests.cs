@@ -177,6 +177,60 @@ public class WatcherResilienceTests
     }
 
     [Fact]
+    public async Task GivenInfoExcludeEdit_WhenWatchingRecursively_ThenTheIgnoredSetIsReloaded()
+    {
+        using var testRepository = TestRepositories.Linear(1);
+        var ignored = Path.Combine(testRepository.WorkingTreePath, "build");
+        Directory.CreateDirectory(ignored);
+        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
+        using var lister = new SwitchableLister();
+        using var watcher = new RepositoryWatcher(location, new WatchBudget(), FastOptions, directoryLister: lister);
+        watcher.Start();
+        await WaitForAsync(() => lister.CallCount == 1);
+        lister.Ignored = [ignored];
+
+        File.WriteAllText(Path.Combine(location.CommonDirectory, "info", "exclude"), "build/\n");
+
+        await WaitForAsync(() => watcher.IgnoredDirectoryCount == 1);
+    }
+
+    [Fact]
+    public async Task GivenReloadInterval_WhenItElapses_ThenTheIgnoredSetIsReadAgain()
+    {
+        using var testRepository = TestRepositories.Linear(1);
+        var ignored = Path.Combine(testRepository.WorkingTreePath, "build");
+        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
+        using var lister = new SwitchableLister();
+        var options = FastOptions with { IgnoredReloadInterval = TimeSpan.FromMilliseconds(100) };
+        using var watcher = new RepositoryWatcher(location, new WatchBudget(), options, directoryLister: lister);
+        watcher.Start();
+        await WaitForAsync(() => lister.CallCount == 1);
+        lister.Ignored = [ignored];
+
+        await WaitForAsync(() => watcher.IgnoredDirectoryCount == 1);
+    }
+
+    [Fact]
+    public async Task GivenHiddenTab_WhenReloadIntervalElapses_ThenItReadsOnlyWhenShown()
+    {
+        using var testRepository = TestRepositories.Linear(1);
+        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
+        using var lister = new SwitchableLister();
+        var options = FastOptions with { IgnoredReloadInterval = TimeSpan.FromMilliseconds(100) };
+        using var watcher = new RepositoryWatcher(location, new WatchBudget(), options, directoryLister: lister);
+        watcher.Start();
+        await WaitForAsync(() => lister.CallCount >= 1);
+        watcher.SetActive(false);
+        await Task.Delay(QuietWindow, Token);
+        var hiddenCount = lister.CallCount;
+        await Task.Delay(QuietWindow, Token);
+
+        Assert.Equal(hiddenCount, lister.CallCount);
+        watcher.SetActive(true);
+        await WaitForAsync(() => lister.CallCount > hiddenCount);
+    }
+
+    [Fact]
     public async Task GivenSlowFingerprint_WhenStartFallsBackToPolling_ThenStartDoesNotComputeItOnTheCallingThread()
     {
         using var testRepository = TestRepositories.Linear(1);
