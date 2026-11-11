@@ -19,7 +19,8 @@ public class IgnoreAwareWatchingTests
     private static readonly RepositoryWatcherOptions FastOptions = new(
         TimeSpan.FromMilliseconds(40),
         TimeSpan.FromMilliseconds(400),
-        TimeSpan.FromMilliseconds(60));
+        TimeSpan.FromMilliseconds(60),
+        WatchDirectoriesIndividually: true);
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
