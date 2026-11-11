@@ -3,8 +3,8 @@ using System.Globalization;
 namespace Gitunia.Core.Updates;
 
 /// <summary>
-/// A release version in the <c>major.minor[.patch][-prerelease]</c> form the release tags use (a leading <c>v</c> is
-/// accepted; the two-part tags of the first releases, <c>v0.9</c>, read as <c>0.9.0</c>). Ordered as semantic versioning orders it: a prerelease is older than its release, build metadata
+/// A release version in the <c>major.minor[.patch][-prerelease]</c> form the release tags use (a leading <c>v</c>
+/// is accepted; the two-part tags of the first releases, <c>v0.9</c>, read as <c>0.9.0</c>). Ordered as semantic versioning orders it: a prerelease is older than its release, build metadata
 /// (<c>+...</c>) is ignored.
 /// </summary>
 public sealed record ReleaseVersion

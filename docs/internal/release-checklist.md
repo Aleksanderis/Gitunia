@@ -2,7 +2,7 @@
 
 *Internal note for maintainers. How the pieces fit: `docs/architecture.md`, "Releases"; why: `docs/internal/decisions.md`.*
 
-Tags are three-part from the next release (`v0.10.0`, then `v0.10.1`, ...). Earlier releases are two-part (`v0.9`). Both forms work everywhere: `release.yml` accepts `v0.8`, `v1.2.3` and `v1.2.3-rc.1`; the install scripts, `scripts/homebrew-formula.sh` and `packaging/aur/update.sh` take `x.y` and `x.y.z` (#1278); `gitunia update` reads `v0.9` as `0.9.0`, so `v0.9 < v0.10.0` and `v0.9 == v0.9.0` (`ReleaseVersion`, #1299).
+Tags are three-part from the next release (`v0.10.0`, then `v0.10.1`, ...). Earlier releases are two-part (`v0.9`). Both forms work everywhere: `release.yml` accepts `v0.8`, `v1.2.3` and `v1.2.3-rc.1`; `scripts/homebrew-formula.sh` and `packaging/aur/update.sh` take `x.y` and `x.y.z` (#1278), and the install scripts take the tag as given (strip the `v`, compare as text, pick assets by suffix); `gitunia update` reads `v0.9` as `0.9.0`, so `v0.9 < v0.10.0` and `v0.9 == v0.9.0` (`ReleaseVersion`, #1299).
 
 ## 1. Before tagging
 
@@ -24,6 +24,7 @@ To re-run a real release by hand (the tag must exist; dispatch on the tag): `gh 
 ## 3. Review the draft
 
 - Asset list: archive and `.sha256` for every platform you expect (arm64 and osx files are missing when an extra leg was red), `.deb`, `.rpm`, Arch package.
+- A draft without the `osx-arm64` or `linux-arm64` archives makes Homebrew (and probably AUR) fail after publishing: fix the red leg and re-run `release.yml` first, or expect to catch those steps up by hand.
 - Read and edit the generated notes; read the `release` job's step summary for what the downstream workflows will do.
 - Tick "pre-release" only for a real pre-release: all three downstream workflows skip those.
 
@@ -39,7 +40,7 @@ Every run that does nothing writes the reason to its job summary. After publishi
 
 ## 5. Catch up a downstream step by hand
 
-Manual runs work for a published release and skip the pre-release check.
+Manual runs work for a published release and skip the pre-release check, but still need their secret (`WINGET_TOKEN`, `HOMEBREW_TAP_TOKEN`, `AUR_SSH_KEY`).
 
 - Homebrew: `gh workflow run homebrew.yml -f version=0.10.0` (version without the `v`: `0.9` or `0.10.0`).
 - AUR: `gh workflow run aur.yml -f version=0.10.0`.
