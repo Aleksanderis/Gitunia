@@ -7,7 +7,7 @@ namespace Gitunia.App.Tabs;
 
 /// <summary>
 /// Notices changes made outside Gitunia without file watchers: while its tab is active it reads the repository
-/// fingerprint every <see cref="PollOptions.RefsInterval"/> (off the UI thread) and asks for a full refresh when it
+/// fingerprint every <see cref="PollOptions.RefsInterval"/> (off the UI thread) and asks for a refresh of what changed (see <see cref="RepositoryFingerprintGroups"/>) when it
 /// changed, else for a status refresh once the status interval has passed. Never overlaps itself, skips a tick while
 /// the tab refreshes or runs an action, stops when the tab is hidden or disposed (a late result is dropped), and
 /// lengthens the status interval after a slow refresh. All members except the timer callback run on the UI thread.
@@ -20,9 +20,9 @@ public sealed class TabPoller : IDisposable
     private readonly IPollTarget _target;
     private readonly TimeProvider _time;
     private readonly ShutdownTasks _tasks;
-    private readonly Func<RepositoryLocation, int> _fingerprint;
+    private readonly Func<RepositoryLocation, RepositoryFingerprintGroups> _fingerprint;
     private readonly Timer _timer;
-    private int? _baseline;
+    private RepositoryFingerprintGroups? _baseline;
     private long _statusDueAt;
     private TimeSpan _statusInterval;
     private int _epoch;
@@ -37,7 +37,7 @@ public sealed class TabPoller : IDisposable
         IPollTarget target,
         TimeProvider? time = null,
         ShutdownTasks? tasks = null,
-        Func<RepositoryLocation, int>? fingerprint = null)
+        Func<RepositoryLocation, RepositoryFingerprintGroups>? fingerprint = null)
     {
         _fingerprint = fingerprint ?? RepositoryFingerprint.Compute;
         _tasks = tasks ?? new ShutdownTasks();
@@ -110,6 +110,27 @@ public sealed class TabPoller : IDisposable
         _statusDueAt = _time.GetTimestamp() + ToTimestampTicks(_statusInterval);
     }
 
+    /// <summary>
+    /// A refresh of <paramref name="covered"/> kinds that Gitunia ran itself has been applied: takes a new fingerprint for those groups, so
+    /// its own writes (stage, commit) are not mistaken for outside changes. A change outside during the refresh still shows in the
+    /// status refreshes that follow every few seconds.
+    /// </summary>
+    public void AcceptRefresh(RepositoryChangeKinds covered)
+    {
+        if (_isDisposed || covered == RepositoryChangeKinds.None)
+        {
+            return;
+        }
+
+        _tasks.Run(() =>
+        {
+            var value = _fingerprint(_location);
+            _ui.Post(() => AcceptValue(value, covered));
+
+            return Task.CompletedTask;
+        });
+    }
+
     public void Dispose()
     {
         _isDisposed = true;
@@ -121,6 +142,14 @@ public sealed class TabPoller : IDisposable
     {
         var value = _fingerprint(_location);
         _ui.Post(() => _baseline ??= value);
+    }
+
+    private void AcceptValue(RepositoryFingerprintGroups value, RepositoryChangeKinds covered)
+    {
+        if (!_isDisposed && _baseline is { } baseline)
+        {
+            _baseline = baseline.Accept(value, covered);
+        }
     }
 
     private void Tick()
@@ -146,7 +175,7 @@ public sealed class TabPoller : IDisposable
         _ui.Post(() => Compare(value, epoch));
     }
 
-    private void Compare(int value, int epoch)
+    private void Compare(RepositoryFingerprintGroups value, int epoch)
     {
         if (epoch != _epoch)
         {
@@ -160,13 +189,13 @@ public sealed class TabPoller : IDisposable
             return;
         }
 
-        var changed = _baseline is { } baseline && baseline != value;
+        var changed = _baseline is { } baseline ? value.ChangedKinds(baseline) : RepositoryChangeKinds.None;
         _baseline = value;
         var now = _time.GetTimestamp();
-        if (changed)
+        if (changed != RepositoryChangeKinds.None)
         {
             _statusDueAt = now + ToTimestampTicks(_statusInterval);
-            _target.Request(RepositoryChangeKinds.All);
+            _target.Request(changed);
         }
         else if (now >= _statusDueAt)
         {

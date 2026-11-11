@@ -65,11 +65,8 @@ public sealed partial class RepositoryWatcher
             // Working tree edits cannot be seen cheaply, so a polling tab asks for a status refresh on every tick;
             // the refresher drops it when nothing differs.
             var kinds = RepositoryChangeKinds.WorkingTree;
-            if (fingerprint != _lastFingerprint)
-            {
-                _lastFingerprint = fingerprint;
-                kinds |= RepositoryChangeKinds.All;
-            }
+            kinds |= fingerprint.ChangedKinds(_lastFingerprint);
+            _lastFingerprint = fingerprint;
 
             EnqueueLocked(kinds);
         }

@@ -272,7 +272,11 @@ public sealed class TabRefresher : IDisposable, IPollTarget
                 reload = await _graphLoader.ReloadAsync(_location, previousRows, isCapped, token).ConfigureAwait(false);
             }
 
-            _ui.Post(() => Apply(previous is null, isManual, result, stashes, reload, ReadsStatus(kinds), operation, autoStash));
+            _ui.Post(() =>
+            {
+                Apply(previous is null, isManual, result, stashes, reload, ReadsStatus(kinds), operation, autoStash);
+                _poller?.AcceptRefresh(kinds);
+            });
         }
         catch (OperationCanceledException)
         {
