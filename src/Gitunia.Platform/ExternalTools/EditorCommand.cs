@@ -5,7 +5,8 @@ namespace Gitunia.Platform.ExternalTools;
 
 /// <summary>
 /// Turns an editor setting (<c>$VISUAL</c> / <c>$EDITOR</c>) into the program and arguments to start, without a
-/// shell. Words are split at white space; single or double quotes group a word (so a quoted Program Files path is
+/// shell. Words are split at white space; double quotes (and single quotes at the start of a word, so `O'Brien`
+/// stays literal) group a word (so a quoted Program Files path is
 /// one word) and a backslash is literal, because Windows paths are full of them. On Windows the program is looked up
 /// through <c>PATH</c> and <c>PATHEXT</c>, so <c>code</c> finds <c>code.cmd</c>; <c>CreateProcess</c> starts a
 /// <c>.cmd</c> or <c>.bat</c> file through <c>cmd.exe</c> itself. Values that only work in git's <c>sh</c>, such as
@@ -36,7 +37,7 @@ public static class EditorCommand
                     word.Append(character);
                 }
             }
-            else if (character is '"' or '\'')
+            else if (character == '"' || (character == '\'' && !started))
             {
                 quote = character;
                 started = true;
@@ -109,7 +110,8 @@ public static class EditorCommand
             return null;
         }
 
-        if (IsBatchFile(resolved) && arguments.Any(argument => argument.AsSpan().IndexOfAny(CmdMetaCharacters) >= 0))
+        if (IsBatchFile(resolved)
+            && new[] { resolved }.Concat(arguments).Any(HasCmdMetaCharacter))
         {
             error = $"Cannot pass these arguments to {Path.GetFileName(resolved)} (cmd.exe special characters)";
 
@@ -118,6 +120,8 @@ public static class EditorCommand
 
         return new ExternalToolRequest(resolved, arguments, workingDirectory);
     }
+
+    private static bool HasCmdMetaCharacter(string text) => text.AsSpan().IndexOfAny(CmdMetaCharacters) >= 0;
 
     private static bool IsBatchFile(string path) =>
         path.EndsWith(".cmd", StringComparison.OrdinalIgnoreCase)

@@ -11,7 +11,8 @@ public class EditorCommandTests
     [Theory]
     [InlineData("code --wait", new[] { "code", "--wait" })]
     [InlineData("  nano  ", new[] { "nano" })]
-    [InlineData("\"C:\\Program Files\\Notepad++\\notepad++.exe\" -multiInst", new[] { "C:\\Program Files\\Notepad++\\notepad++.exe", "-multiInst" })]
+    [InlineData("\"C:\\P F\\n.exe\" -multiInst", new[] { "C:\\P F\\n.exe", "-multiInst" })]
+    [InlineData("C:\\Users\\O'Brien\\code.cmd --wait", new[] { "C:\\Users\\O'Brien\\code.cmd", "--wait" })]
     [InlineData("'/opt/my editor/ed' -w", new[] { "/opt/my editor/ed", "-w" })]
     [InlineData("ed \"\" x", new[] { "ed", "", "x" })]
     [InlineData("ed \"unterminated arg", new[] { "ed", "unterminated arg" })]
@@ -21,7 +22,8 @@ public class EditorCommandTests
     [Fact]
     public void GivenQuotedPathOnLinux_WhenBuilding_ThenTheWordsAreUsedAsIs()
     {
-        var request = EditorCommand.Build("'/opt/my editor/ed' -w", File, Cwd, false, _ => null, _ => false, out var error);
+        var request = EditorCommand.Build(
+            "'/opt/my editor/ed' -w", File, Cwd, false, _ => null, _ => false, out var error);
 
         Assert.Empty(error);
         Assert.Equal("/opt/my editor/ed", request?.FileName);
@@ -35,7 +37,7 @@ public class EditorCommandTests
         var shim = Path.Combine("C:\\bin", "code.cmd");
 
         var request = EditorCommand.Build(
-            "code --wait", File, Cwd, true, Env("C:\\other;C:\\bin", ".COM;.EXE;.BAT;.CMD"), path => string.Equals(path, shim, StringComparison.OrdinalIgnoreCase), out _);
+            "code --wait", File, Cwd, true, Env("C:\\other;C:\\bin", ".COM;.EXE;.BAT;.CMD"), IsFile(shim), out _);
 
         Assert.Equal(shim, request?.FileName, ignoreCase: true);
         Assert.Equal(["--wait", File], request?.Arguments);
@@ -58,7 +60,7 @@ public class EditorCommandTests
     {
         const string cmd = "D:\\tools\\sub.cmd";
 
-        var request = EditorCommand.Build("D:\\tools\\sub", File, Cwd, true, Env("", ".CMD"), path => string.Equals(path, cmd, StringComparison.OrdinalIgnoreCase), out _);
+        var request = EditorCommand.Build("D:\\tools\\sub", File, Cwd, true, Env("", ".CMD"), IsFile(cmd), out _);
 
         Assert.Equal(cmd, request?.FileName, ignoreCase: true);
     }
@@ -66,7 +68,8 @@ public class EditorCommandTests
     [Fact]
     public void GivenAMissingProgramOnWindows_WhenBuilding_ThenTheErrorNamesIt()
     {
-        var request = EditorCommand.Build("/usr/bin/vim", File, Cwd, true, Env("C:\\bin", ".EXE"), _ => false, out var error);
+        var request = EditorCommand.Build(
+            "/usr/bin/vim", File, Cwd, true, Env("C:\\bin", ".EXE"), _ => false, out var error);
 
         Assert.Null(request);
         Assert.Equal("Could not find the editor /usr/bin/vim", error);
@@ -76,9 +79,14 @@ public class EditorCommandTests
     [InlineData("code.cmd", "C:\\x\\a&b.json", false)]
     [InlineData("code.cmd", "C:\\x\\a b.json", true)]
     [InlineData("code.exe", "C:\\x\\a&b.json", true)]
-    public void GivenCmdMetaCharacters_WhenBuilding_ThenOnlyBatchFilesAreRefused(string program, string file, bool allowed)
+    [InlineData("code.bat", "C:\\x\\a&b.json", false)]
+    public void GivenCmdMetaCharacters_WhenBuilding_ThenOnlyBatchFilesAreRefused(
+        string program,
+        string file,
+        bool allowed)
     {
-        var request = EditorCommand.Build(program, file, Cwd, true, Env("C:\\bin", ".EXE;.CMD"), _ => true, out var error);
+        var request = EditorCommand.Build(
+            program, file, Cwd, true, Env("C:\\bin", ".EXE;.CMD;.BAT"), _ => true, out var error);
 
         Assert.Equal(allowed, request is not null);
         Assert.Equal(allowed, error.Length == 0);
@@ -92,6 +100,9 @@ public class EditorCommandTests
         Assert.Null(request);
         Assert.NotEmpty(error);
     }
+
+    private static Func<string, bool> IsFile(string expected) =>
+        path => string.Equals(path, expected, StringComparison.OrdinalIgnoreCase);
 
     private static Func<string, string?> Env(string path, string pathext) =>
         name => name switch

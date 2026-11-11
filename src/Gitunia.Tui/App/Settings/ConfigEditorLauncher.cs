@@ -15,12 +15,16 @@ namespace Gitunia.Tui.App.Settings;
 /// <param name="statuses">Where the outcome is reported.</param>
 /// <param name="environment">Reads an environment variable (injected so tests need no real one).</param>
 /// <param name="pause">Waits for a key after a failure, so its message stays readable.</param>
+/// <param name="isWindows">Overrides the OS check (tests); the real OS when null.</param>
+/// <param name="fileExists">Overrides the file lookup used to find the editor (tests); File.Exists when null.</param>
 public sealed class ConfigEditorLauncher(
     IExternalToolLauncher launcher,
     ITerminalSuspender terminal,
     StatusReporter statuses,
     Func<string, string?> environment,
-    IUserPause pause)
+    IUserPause pause,
+    bool? isWindows = null,
+    Func<string, bool>? fileExists = null)
 {
     private const string VisualVariable = "VISUAL";
     private const string EditorVariable = "EDITOR";
@@ -64,9 +68,9 @@ public sealed class ConfigEditorLauncher(
             setting,
             filePath,
             directory,
-            OperatingSystem.IsWindows(),
+            isWindows ?? OperatingSystem.IsWindows(),
             environment,
-            File.Exists,
+            fileExists ?? File.Exists,
             out var problem);
         if (request is null)
         {
