@@ -117,7 +117,7 @@ public sealed class GitRunner
         CancellationToken capToken,
         CancellationToken hardToken)
     {
-        var all = new StringBuilder();
+        using var raw = new MemoryStream();
         var segment = new StringBuilder();
         var bytes = new byte[ErrorBufferSize];
         var chars = new char[Encoding.UTF8.GetMaxCharCount(ErrorBufferSize)];
@@ -130,7 +130,7 @@ public sealed class GitRunner
             }
 
             var charCount = decoder.GetChars(bytes, 0, count, chars, 0);
-            all.Append(chars, 0, charCount);
+            raw.Write(bytes, 0, count);
             SplitSegments(chars, charCount, segment, runOptions.OnStandardErrorLine);
         }
 
@@ -139,7 +139,7 @@ public sealed class GitRunner
             FlushSegment(segment, onLine);
         }
 
-        return all.ToString();
+        return ErrorTextDecoder.Decode(raw.GetBuffer().AsSpan(0, (int)raw.Length));
     }
 
     private static void SplitSegments(char[] buffer, int count, StringBuilder segment, Action<string>? onLine)

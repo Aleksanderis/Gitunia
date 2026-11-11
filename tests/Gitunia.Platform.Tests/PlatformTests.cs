@@ -52,9 +52,14 @@ public class DetectionTests
     public void GivenLocale_WhenDetectingUnicode_ThenUtf8LocalesAreSupported()
     {
         Assert.True(With(new EnvironmentVariable("LANG", "en_US.UTF-8")).DetectUnicode());
-        // Windows assumes a UTF-8 capable terminal whatever the locale.
-        Assert.Equal(OperatingSystem.IsWindows(), With(new EnvironmentVariable("LANG", "C")).DetectUnicode());
+        Assert.False(With(new EnvironmentVariable("LANG", "C")).DetectUnicode());
     }
+
+    [Theory]
+    [InlineData(true, true)]
+    [InlineData(false, false)]
+    public void GivenWindows_WhenDetectingUnicode_ThenOnlyInteractiveOutputIsUnicode(bool interactive, bool expected) =>
+        Assert.Equal(expected, WithOs(true).DetectUnicode(interactive));
 
     [Fact]
     public void GivenXdgVars_WhenReadingDirectories_ThenTheyAreUsed()

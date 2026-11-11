@@ -171,7 +171,7 @@ public sealed class ShellFoundation
         var clipboardWriter = default(ClipboardWriter);
         if (Config.Capabilities.IsInteractive)
         {
-            var environment = Osc52Environment.Detect(Environment.GetEnvironmentVariable);
+            var environment = Osc52Environment.Detect(Environment.GetEnvironmentVariable, Config.Capabilities.IsClassicConsole);
             clipboardWriter = new ClipboardWriter(Console.Out, environment);
         }
 

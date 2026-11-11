@@ -17,7 +17,7 @@ public sealed class TerminalPlatform(Func<string, string?>? getEnvironmentVariab
     public ConsoleCapabilities DetectConsole()
     {
         var interactive = !Console.IsOutputRedirected && !Console.IsInputRedirected;
-        return new ConsoleCapabilities(interactive, DetectColor(interactive), DetectUnicode(), DetectLightBackground(), DetectClassicConsole());
+        return new ConsoleCapabilities(interactive, DetectColor(interactive), DetectUnicode(interactive), DetectLightBackground(), DetectClassicConsole());
     }
 
     public bool? QueryLightBackground(ConsoleCapabilities capabilities)
@@ -102,12 +102,14 @@ public sealed class TerminalPlatform(Func<string, string?>? getEnvironmentVariab
     /// </summary>
     public bool DetectClassicConsole() => _isWindows() && ReadEnvironment("WT_SESSION") is null;
 
-    public bool DetectUnicode()
+    /// <param name="interactive">True when attached to a terminal. On Windows only then is UTF-8 assumed: redirected output
+    /// and non-UI prints go through the legacy OEM code page (437, 850), where box-drawing characters turn into <c>?</c>.</param>
+    public bool DetectUnicode(bool interactive = true)
     {
         // Windows: assumed UTF-8 capable (Windows Terminal / modern conhost); legacy conhost may render boxes poorly.
-        if (OperatingSystem.IsWindows())
+        if (_isWindows())
         {
-            return true;
+            return interactive;
         }
 
         var locale = ReadEnvironment("LC_ALL") ?? ReadEnvironment("LC_CTYPE") ?? ReadEnvironment("LANG") ?? string.Empty;
