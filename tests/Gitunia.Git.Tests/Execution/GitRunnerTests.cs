@@ -164,6 +164,18 @@ public class GitRunnerTests
     }
 
     [Fact]
+    public async Task GivenMissingRepositoryFolder_WhenRunning_ThenCommandFailedNotGitNotFound()
+    {
+        var missing = Path.Combine(Path.GetTempPath(), $"gitunia-missing-{Guid.NewGuid().ToString("N")}");
+        var runner = new GitRunner();
+
+        var error = await Assert.ThrowsAsync<GitCommandFailedException>(
+            () => runner.RunAsync(missing, ["status"], cancellationToken: TestContext.Current.CancellationToken));
+
+        Assert.NotEqual(0, error.ExitCode);
+    }
+
+    [Fact]
     public async Task GivenExecutableThatCannotBeRun_WhenRunning_ThenStartFailedErrorWithNativeMessage()
     {
         Assert.SkipWhen(OperatingSystem.IsWindows(), "A file without the execute bit is a Unix notion.");
