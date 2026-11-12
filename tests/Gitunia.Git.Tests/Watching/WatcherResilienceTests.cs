@@ -204,7 +204,9 @@ public class WatcherResilienceTests
         var options = FastOptions with { IgnoredReloadInterval = TimeSpan.FromMilliseconds(100) };
         using var watcher = new RepositoryWatcher(location, new WatchBudget(), options, directoryLister: lister);
         watcher.Start();
-        await WaitForAsync(() => lister.CallCount == 1);
+        await WaitForAsync(() => lister.CallCount >= 1);
+        // At least one read: with a 100 ms interval a stalled runner lets the next tick pass before this polls, and
+        // "== 1" is then never true (#1384). The timer keeps reading, so the set is picked up either way.
         lister.Ignored = [ignored];
 
         await WaitForAsync(() => watcher.IgnoredDirectoryCount == 1);
