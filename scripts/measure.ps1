@@ -5,7 +5,7 @@
 # Usage: scripts/measure.ps1 <binary> <repo> [-Runs N] [-Keys N] [-Marker TEXT] [-Oldest TEXT] [-Size WxH] [-OnlyStart] [-Blame] [-Timeout SEC]
 # -Blame (#1137, #1321): after cold start, open the blame view of the file in the newest commit (`<space>gb`) and time
 # open, `j`, Ctrl-d, G and the working set instead of the history cases; use a repo from gen-big-file-repo.sh.
-# Times are wall-clock ms measured by polling `capture-pane`; psmux polls cost ~50 ms each (tmux: 1-3 ms), so the
+# Times are wall-clock ms measured by polling `capture-pane`; psmux polls cost ~18 ms each (#1380; tmux: 1-3 ms), so the
 # numbers are only comparable between runs of this script, never with measure.sh.
 param(
     [Parameter(Mandatory, Position = 0)][string]$Binary,
@@ -93,20 +93,36 @@ function Get-AppRssKib { # RSS of the app: the pane pid, or its gitunia child wh
     if ($proc) { [long]($proc.WorkingSet64 / 1024) } else { 'nan' }
 }
 function Get-DetailsHeader([string]$pane) { $pane -split "`n" | Where-Object { $_ -match 'Details ─ Changes' } | Select-Object -First 1 }
-function Get-DiffHash([string]$pane) { if ($pane -match 'Diff  [0-9a-f]{7}') { $Matches[0] } else { '' } }
+# The diff pane's text: the rows under its `┬─ Diff` title, right of the column of that `┬`. Its title no longer
+# names the commit (#1380), so the diff of the next commit is told apart by its content.
+function Get-DiffKey([string]$pane) {
+    $lines = $pane -split "`n"
+    $title = [Array]::FindIndex($lines, [Predicate[string]] { param($line) $line.Contains('┬─ Diff') })
+    if ($title -lt 0) { return '' }
+    $column = $lines[$title].IndexOf('┬─ Diff', [StringComparison]::Ordinal) + 1
+    $rows = for ($i = $title + 1; $i -lt $lines.Count -and $lines[$i] -notmatch '^[└├╰]'; $i++) {
+        if ($lines[$i].Length -gt $column) { $lines[$i].Substring($column) }
+    }
+    $rows -join "`n"
+}
 function Test-DetailsReady([string]$base) {
     $cur = Get-PanePlain
     (Get-DetailsHeader $cur) -ne $base -and -not $cur.Contains('Loading...')
 }
 function Test-DiffReady([string]$base) {
     $cur = Get-PanePlain
-    (Get-DiffHash $cur) -ne $base -and -not $cur.Contains('Loading...') -and $cur.Contains('@@')
+    (Get-DiffKey $cur) -ne $base -and -not $cur.Contains('Loading...') -and $cur.Contains('@@')
 }
 # One `j` per sample, with a 300 ms pause so neighbour prefetch can finish (the forward walk through the history).
 function Measure-Steps([string]$kind) {
     $out = @()
+    # Without a diff pane (a narrow terminal, a zoomed layout) every step would wait out its timeout.
+    if ($kind -eq 'diff' -and -not (Get-PanePlain).Contains('┬─ Diff')) {
+        [Console]::Error.WriteLine('no diff pane on screen; skipping the diff steps')
+        return , $out
+    }
     for ($i = 0; $i -lt $Keys; $i++) {
-        $base = if ($kind -eq 'details') { Get-DetailsHeader (Get-PanePlain) } else { Get-DiffHash (Get-PanePlain) }
+        $base = if ($kind -eq 'details') { Get-DetailsHeader (Get-PanePlain) } else { Get-DiffKey (Get-PanePlain) }
         $t0 = Get-Now
         T send-keys -t m j | Out-Null
         $elapsed = if ($kind -eq 'details') { Wait-Until { Test-DetailsReady $base } } else { Wait-Until { Test-DiffReady $base } }
@@ -236,7 +252,9 @@ try {
     Write-Metric rss_kib (Get-AppRssKib)
 }
 finally {
+    # Fails when the last session already ended (-OnlyStart); that is not the run's result. An `exit 1` above still wins.
     T kill-server 2>$null | Out-Null
+    $global:LASTEXITCODE = 0
     foreach ($name in $savedEnv.Keys) { [Environment]::SetEnvironmentVariable($name, $savedEnv[$name]) }
     Remove-Item -Recurse -Force $isolated, $emptyConfig -ErrorAction SilentlyContinue
 }
