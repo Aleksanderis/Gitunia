@@ -38,6 +38,28 @@ Native AOT linux-x64, 120x40 under tmux, medians (they include 1-3 ms of polling
 
 Known limit: at 80x24 the newest row is cut inside the harness marker; pass `--marker "Commit #97500"` there.
 
+### Windows baseline (#1321)
+
+Windows 11 Pro 26200, Intel i7-14700K, 24 GB, Git 2.53.0.windows.1, Defender real-time protection on; Native AOT win-x64 (22.6 MB), 120x40 under psmux, main @ aa6d8067, 2026-11-12. `scripts/measure.ps1` polls through psmux, which costs far more than tmux: its floor (a new session showing a line of `more.com`) is ~107 ms for cold start, and key latencies carry tens of ms of polling. Compare these numbers only with other `measure.ps1` runs, never with the Linux table above.
+
+| Case | Result |
+|---|---|
+| Cold start to first rows, 5k / 100k commits (10 runs, two rounds) | median 251-281 / 228-233 ms, p95 290-466 / 253-259 ms; minus the ~107 ms harness floor, ~120-175 ms is Gitunia's, above the < 100 ms target (#1378) |
+| `j` / `Ctrl-d` latency, 5k / 100k | median 35 / 40 ms, p95 85 / 78 ms; `Ctrl-d` median 30 / 28 ms |
+| 200 queued `j` settle, 5k / 100k | 59 / 70 ms |
+| Details step (`j` until the details pane shows the next commit), 5k / 100k | median 71 / 71 ms, p95 96 / 98 ms; 10 `j` in one burst 424 / 437 ms |
+| Working set, 5k / 100k (all loaded) | 48 / 85 MB (Windows working set, only loosely comparable with Linux RSS) |
+| Idle CPU over 60 s after a 15 s settle, 5k repository: Gitunia process / its git children | 0.31% / 0.36% of one core (20 git processes in the window); children counted through a Job Object, which keeps the CPU time of exited processes |
+| First `j` after 2 s idle (5/s idle rate) vs 0.3 s after the previous key | median 171 / 55 ms (p95 201 / 59): +116 ms, over the +100 ms budget of "Idle output" (#1379) |
+| One git process, spawn floor (`git --version`) | median 22 ms (Linux ~1 ms) |
+| `git status --porcelain=v2 -z --branch`, 2,397-file checkout (a clone of this repository) | median 113 ms |
+| Full refresh, the 3 processes of #1310 (`status`, `for-each-ref`, `worktree list`) one after the other | ~156 ms; the 5 s status poll alone is ~113 ms, ~2% of the interval |
+| Same git timings with Defender's real-time scanning excluded for the repository folder | no measurable change (status 113 ms, refresh 163 ms): the cost is the process start of `git.exe`, which a folder exclusion does not touch, and repeated reads hit Defender's cache |
+| Blame view (`measure.ps1 -Blame`, `gen-big-file-repo.sh` repository, 50k lines, 501 commits): open until first blamed rows (clock starts at the last key of `<space>gb`) | 363-389 ms over three runs |
+| Blame view: `j` / `Ctrl-d` / `G` | median 75-79 / 75-80 ms (p95 176-202 / 87-97), `G` 70-86 ms; working set 69 MB |
+
+Reading: process start is the cost, ~20 times Linux, so the per-action process counts of "Processes per action" matter most on Windows; a status-only refresh is one process and a full refresh about 0.16 s off the UI thread. Not measured: macOS. Harness faults (diff step always `nan`, psmux port exhaustion on long runs): #1380. Reproduce: `scripts/gen-big-repo.sh` and `gen-big-file-repo.sh` from Git Bash, `scripts/measure.ps1 [-Blame]`; idle CPU and the git timings used throwaway probes (a Job Object around the pane's gitunia process; `git` started 30 times per case after 3 warm-ups with Gitunia's environment), not kept in `scripts/`. Re-run this table after the refresh and spawn issues of this milestone land.
+
 ## Blame and file history (#1125)
 
 Measured on Linux (Release build of the git readers and view code, JIT, one machine) with two throwaway repos: `scripts/gen-big-file-repo.sh` (`big.txt`, 50,000 lines, 501 commits) and `scripts/gen-big-repo.sh` (100,000 commits). No blame or file-history budget existed; the bar used was the graph's: the lines visible at once, the first blamed rows within a frame or two, a frame build far under 16 ms, everything off the UI thread. These numbers are the baseline for later changes.
@@ -70,7 +92,7 @@ Linux, Native AOT Release build (17.7 MB), tmux 120x40, `scripts/gen-big-file-re
 | RSS with the view open | 70-73 MB (50 MB for the same repo in the graph view) |
 | Cold start of the same repo (for scale) | median 76-98 ms |
 
-Reading: the view is usable at once (first rows ~0.25-0.3 s, of which git's blame of the whole file is ~0.2 s, see above) and keys land within about two frames. Key latency is higher than the graph's `j` (~20 ms) (the poll itself adds a full-frame capture per sample, the cause in the view was not investigated); the numbers vary between runs by 2x, so treat them as order of magnitude. The view holds ~20 MB more RSS than the graph (not broken down; the 50 MB figure is from an earlier run of this same case on the same repo with the blame view not yet open). Not measured: Windows and macOS (an optional owner run of `scripts/measure.ps1` / `scripts/measure.sh --blame`; `--blame` is not in `measure.ps1`).
+Reading: the view is usable at once (first rows ~0.25-0.3 s, of which git's blame of the whole file is ~0.2 s, see above) and keys land within about two frames. Key latency is higher than the graph's `j` (~20 ms) (the poll itself adds a full-frame capture per sample, the cause in the view was not investigated); the numbers vary between runs by 2x, so treat them as order of magnitude. The view holds ~20 MB more RSS than the graph (not broken down; the 50 MB figure is from an earlier run of this same case on the same repo with the blame view not yet open). Not measured: macOS. Windows: "Windows baseline" above (`measure.ps1 -Blame`, #1321).
 
 ## Idle CPU (#909)
 
@@ -85,7 +107,7 @@ Fix: `IterationRateGovernor` keeps 100/s while the user is working and for 2 s a
 | `j` after a 3 s pause (20 samples per round, two rounds, tmux poll included) | median 17.6 / 23.1 ms | median 26.8 / 32.4 ms (about +9 ms) |
 | `j` 0.3 s after the previous key (same harness) | median 22.3 / 24.1 ms | median 22.9 / 19.3 ms (unchanged) |
 
-With the `git status` children (~1%) the whole app idles at about 2.5%, so the ~2% bar is met for the Gitunia process alone, not for the total. Not measured: the latency of an automatic refresh or reload that finishes while the screen is idle (its redraw waits for the next iteration: at most ~20 ms at 50/s, up to ~200 ms at the 5/s idle rate since #1209), and Windows/macOS. Going lower costs first-key latency in proportion (25/s idle: ~1.0% but about +30 ms); a loop without idle wakeups needs a change inside Terminal.Gui (blocking wait on input and timers). Reproduce: sum fields 14+15 of every `/proc/<pid>/task/*/stat` twice, 60 s apart, in a private tmux.
+With the `git status` children (~1%) the whole app idles at about 2.5%, so the ~2% bar is met for the Gitunia process alone, not for the total. Not measured: the latency of an automatic refresh or reload that finishes while the screen is idle (its redraw waits for the next iteration: at most ~20 ms at 50/s, up to ~200 ms at the 5/s idle rate since #1209), and macOS (Windows: "Windows baseline" above). Going lower costs first-key latency in proportion (25/s idle: ~1.0% but about +30 ms); a loop without idle wakeups needs a change inside Terminal.Gui (blocking wait on input and timers). Reproduce: sum fields 14+15 of every `/proc/<pid>/task/*/stat` twice, 60 s apart, in a private tmux.
 
 ## Idle output (#1207)
 
