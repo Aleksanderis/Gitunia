@@ -8,7 +8,13 @@ using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
+using System.Runtime.CompilerServices;
+using Gitunia.Git;
+using Gitunia.Git.Commits;
+using Gitunia.Git.Commits.Models;
 using Gitunia.Git.Execution.Exceptions;
+using Gitunia.Git.Refs;
+using Gitunia.Git.Worktrees;
 using Gitunia.Git.Refs.Models;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Status.Models;
@@ -273,6 +279,31 @@ public class RepositoryLoaderTests
         Assert.Equal(1, requests);
     }
 
+    [Fact]
+    public async Task GivenOpenedTab_WhenLoading_ThenTheGraphReadsStartBeforeTheMetadataReads()
+    {
+        // Windows starts processes one at a time, and the first rows wait for the log and its tip read (#1378).
+        using var harness = new Harness();
+        harness.CommitLog.AddOnTop("root");
+        var starts = new List<string>();
+        var loader = new RepositoryLoader(
+            new RecordingRefReader(harness.Refs, starts),
+            harness.Status,
+            new GraphLoader(new RecordingCommitLogReader(harness.CommitLog, starts)),
+            new SidebarDataLoader(new RecordingRefReader(harness.Refs, starts), harness.Stashes));
+
+        await loader.RunAsync(
+            harness.Location,
+            harness.Session,
+            harness.Host,
+            harness.Statuses,
+            InlineUi.Instance,
+            harness.Session.Cancellation.Token);
+
+        Assert.Equal(["log", "tips"], starts.Take(2).Order());
+        Assert.Contains("refs", starts.Skip(2));
+    }
+
     private static void AddCommits(Harness harness, int count)
     {
         for (var number = 1; number <= count; number++)
@@ -343,6 +374,80 @@ public class RepositoryLoaderTests
 
         private void OnExpandRequested()
         {
+        }
+    }
+
+    // Notes when a ref read starts, then reads from the fake.
+    private sealed class RecordingRefReader(FakeRefReader inner, List<string> starts) : IRefReader
+    {
+        public Task<ParseResult<GitRef>> ReadRefsAsync(RepositoryLocation location, CancellationToken cancellationToken)
+        {
+            Note();
+
+            return inner.ReadRefsAsync(location, cancellationToken);
+        }
+
+        public Task<ParseResult<WorktreeInfo>> ReadWorktreesAsync(
+            RepositoryLocation location,
+            CancellationToken cancellationToken)
+        {
+            Note();
+
+            return inner.ReadWorktreesAsync(location, cancellationToken);
+        }
+
+        public Task<HeadState> ReadHeadAsync(RepositoryLocation location, CancellationToken cancellationToken)
+        {
+            Note();
+
+            return inner.ReadHeadAsync(location, cancellationToken);
+        }
+
+        private void Note()
+        {
+            lock (starts)
+            {
+                starts.Add("refs");
+            }
+        }
+    }
+
+    // Notes when the log stream and the tip read start, then reads from the fake.
+    private sealed class RecordingCommitLogReader(FakeCommitLogReader inner, List<string> starts) : ICommitLogReader
+    {
+        public async IAsyncEnumerable<CommitInfo> ReadAsync(
+            RepositoryLocation location,
+            CommitOrder order,
+            IReadOnlyList<string> revisions,
+            ICollection<string>? warnings = null,
+            [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
+            Note("log");
+            var commits = inner.ReadAsync(location, order, revisions, warnings, cancellationToken);
+            await foreach (var commit in commits.ConfigureAwait(false))
+            {
+                yield return commit;
+            }
+        }
+
+        public Task<int> CountAsync(RepositoryLocation location, CancellationToken cancellationToken) =>
+            inner.CountAsync(location, cancellationToken);
+
+        public Task<Dictionary<ObjectId, IReadOnlyList<CommitDecoration>>> ReadTipDecorationsAsync(
+            RepositoryLocation location,
+            CancellationToken cancellationToken)
+        {
+            Note("tips");
+
+            return inner.ReadTipDecorationsAsync(location, cancellationToken);
+        }
+
+        private void Note(string read)
+        {
+            lock (starts)
+            {
+                starts.Add(read);
+            }
         }
     }
 }

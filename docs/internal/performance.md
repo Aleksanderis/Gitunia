@@ -44,7 +44,7 @@ Windows 11 Pro 26200, Intel i7-14700K, 24 GB, Git 2.53.0.windows.1, Defender rea
 
 | Case | Result |
 |---|---|
-| Cold start to first rows, 5k / 100k commits (10 runs, two rounds) | median 251-281 / 228-233 ms, p95 290-466 / 253-259 ms; minus the ~107 ms harness floor, ~120-175 ms is Gitunia's, above the < 100 ms target (#1378) |
+| Cold start to first rows, 5k / 100k commits (10 runs, two rounds) | median 251-281 / 228-233 ms, p95 290-466 / 253-259 ms; minus the ~107 ms harness floor, ~120-175 ms is Gitunia's, above the < 100 ms target; breakdown below (#1378) |
 | `j` / `Ctrl-d` latency, 5k / 100k | median 35 / 40 ms, p95 85 / 78 ms; `Ctrl-d` median 30 / 28 ms |
 | 200 queued `j` settle, 5k / 100k | 59 / 70 ms |
 | Details step (`j` until the details pane shows the next commit), 5k / 100k | median 71 / 71 ms, p95 96 / 98 ms; 10 `j` in one burst 424 / 437 ms |
@@ -60,6 +60,19 @@ Windows 11 Pro 26200, Intel i7-14700K, 24 GB, Git 2.53.0.windows.1, Defender rea
 | Blame view: `j` / `Ctrl-d` / `G` | median 75-79 / 75-80 ms (p95 176-202 / 87-97), `G` 70-86 ms; working set 69 MB |
 
 Reading: process start is the cost, ~20 times Linux, so the per-action process counts of "Processes per action" matter most on Windows; a status-only refresh is one process and a full refresh about 0.16 s off the UI thread. Not measured: macOS. Harness faults fixed in #1380: the diff step keyed on a commit hash the Diff title no longer shows (`measure.sh` has the same check: #1390), and those steps then waited out their 10 s timeouts, about 200 s of nonstop polling at ~18 ms per psmux call that ran Windows out of ephemeral ports (TIME_WAIT); `-OnlyStart` exited 1 because the cleanup `kill-server` found the server already gone. Reproduce: `scripts/gen-big-repo.sh` and `gen-big-file-repo.sh` from Git Bash, `scripts/measure.ps1 [-Blame]`; idle CPU and the git timings used throwaway probes (a Job Object around the pane's gitunia process; `git` started 30 times per case after 3 warm-ups with Gitunia's environment), not kept in `scripts/`. Re-run this table after the refresh and spawn issues of this milestone land.
+
+Cold start breakdown (#1378), from a throwaway build that wrote timestamps (process start time, `Main`, discovery done, shell built, first graph batch appended) next to `GIT_TRACE`, 5k repository under psmux, medians of 8-10 runs:
+
+| Step | Time |
+|---|---|
+| Process start to `Main` | 30-43 ms in a psmux pane, against ~25 ms for a whole `gitunia --version` started as a plain child process, so the pane start adds time (#1393) |
+| `Main` to discovery done (one `rev-parse` process; `git version` runs alongside) | 25-55 ms, serial in front of everything else (#1392) |
+| Discovery to shell built and started (Terminal.Gui, config, session) | ~7 ms |
+| Started to the graph `log` running (dispatch plus ~20 ms of git's own start) | ~31-38 ms |
+| `log` running to the first rows appended | 44.5 ms before #1378, 12.3 ms after |
+| `Main` to the first rows appended | 118.6 ms before, 98.1 ms after |
+
+The first rows wait for the log and for its branch-tip read (`log --no-walk --all`, a second process). .NET starts processes one at a time on Windows, and about eight git reads start together when a tab opens, so the tip read queued behind the refs, status, stash and config reads (their `GIT_TRACE` lines land ~6 ms apart). Since #1378 the loader queues the log and the tip read before the metadata and sidebar reads (the processes start on pool threads, so it is the queue order, not a guarantee). `measure.ps1 -OnlyStart`, two rounds of 10: 5k 253-260 to 223-234 ms; 100k unchanged (243-264 ms in these runs; the 228-233 ms in the table above is an earlier run on the same machine), because there `git log --date-order` itself needs ~54 ms to its first bytes (all commits walked before the first row; ~23 ms without an order), so the tip read was not the critical path. Not a Windows-only cause: the same walk runs on Linux. The OSC 11 background query costs nothing measurable here (theme `auto` 239 ms against `dark` 236 ms), and the headless `--print-frame` (no Terminal.Gui, no psmux, plain process) already takes 251 ms, so the time goes to git and loading, not to the terminal.
 
 ## Blame and file history (#1125)
 
