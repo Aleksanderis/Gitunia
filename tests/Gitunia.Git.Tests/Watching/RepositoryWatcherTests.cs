@@ -169,7 +169,8 @@ public class RepositoryWatcherTests
         if (polling)
         {
             // The baseline is read on a pool thread; a change made before it ends is part of the baseline and never reported
-            // (on a slow runner the commit even landed between the index and the reftable, so only Index was seen).
+            // (on a slow runner the commit likely landed between the index and the reftable: only Index, plus the per-tick
+            // WorkingTree, was seen).
             await reader.FirstRead.WaitAsync(Token);
         }
 
@@ -332,13 +333,15 @@ public class RepositoryWatcherTests
         var recorder = new ChangeRecorder();
         var budget = new WatchBudget(0);
         var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
-        using var watcher = new RepositoryWatcher(location, budget, FastOptions);
+        var reader = new SignallingReader();
+        using var watcher = new RepositoryWatcher(location, budget, FastOptions, fingerprintReader: reader);
         watcher.Changed += recorder.Record;
         watcher.Start();
 
         Assert.True(watcher.IsPolling);
         Assert.Equal(0, watcher.WatcherCount);
         Assert.Equal(0, budget.InUse);
+        await reader.FirstRead.WaitAsync(Token);
 
         testRepository.Commit("polled", new TestFile("polled.txt", "x"));
 
@@ -531,7 +534,7 @@ public class RepositoryWatcherTests
         return watcher.IsStale || watcher.IsActive;
     }
 
-    /// <summary>The disk reader, which tells when the first (baseline) read has finished.</summary>
+    /// <summary>The disk reader, which tells when its first read has finished (the baseline read, unless a poll tick came first, which then waits for it).</summary>
     private sealed class SignallingReader : IRepositoryFingerprintReader
     {
         private readonly DiskFingerprintReader _inner = new();
