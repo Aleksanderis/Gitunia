@@ -306,6 +306,21 @@ public class RemoteWriterTests
         }
     }
 
+    [Fact]
+    public async Task GivenARemoteCall_WhenFetching_ThenGitCredentialManagerMayNotPrompt()
+    {
+        using var repository = TestRepositories.WithOrigin();
+        repository.Git("remote", "add", "remote-ssh", "ssh://example.invalid/repo.git");
+        repository.Git("config", "core.sshCommand", "sh -c 'echo \"gcm=$GCM_INTERACTIVE\" >&2; exit 255'");
+        var writer = new RemoteWriter(new RemoteRunner(repository.CreateIsolatedRunner(), _ => null));
+        var location = await LocateAsync(repository);
+
+        var failure = await Assert.ThrowsAsync<GitCommandFailedException>(
+            () => writer.FetchAsync(location, new FetchRequest("remote-ssh", false, false), null, Token));
+
+        Assert.Contains("gcm=never", failure.StandardError, StringComparison.Ordinal);
+    }
+
     // The new commit's objects exist only on the remote, so a fetch has to transfer a pack.
     private static string CommitOnOriginWithoutFetching(TestRepository repository, string branch = "main")
     {

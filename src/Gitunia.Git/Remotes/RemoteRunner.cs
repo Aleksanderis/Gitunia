@@ -8,7 +8,8 @@ namespace Gitunia.Git.Remotes;
 /// <summary>
 /// Runs git commands that talk to a remote (fetch, pull, push): never read-only, git's <c>--progress</c> stderr is
 /// parsed into <see cref="RemoteProgress"/>, the timeout is an idle limit (a long transfer is fine while it moves
-/// data), a cancel kills the whole process tree, and ssh is told not to prompt (<see cref="SshCommandPolicy"/>).
+/// data), a cancel kills the whole process tree, and neither ssh (<see cref="SshCommandPolicy"/>) nor Git Credential
+/// Manager is allowed to prompt.
 /// </summary>
 /// <param name="runner">The shared git runner.</param>
 /// <param name="environmentLookup">Reads a process environment variable (the real lookup in production).</param>
@@ -18,6 +19,12 @@ public sealed class RemoteRunner(GitRunner runner, Func<string, string?> environ
 
     private const string SshCommandVariable = "GIT_SSH_COMMAND";
     private const string SshProgramVariable = "GIT_SSH";
+
+    // Git Credential Manager's sign-in window ignores GIT_TERMINAL_PROMPT and opens behind the terminal, where a
+    // background call would wait silently for the idle timeout; "never" fails at once and the UI offers the
+    // terminal retry, which sets nothing (#1313).
+    private const string CredentialManagerInteractiveVariable = "GCM_INTERACTIVE";
+    private const string Never = "never";
     private const string Config = "config";
     private const string GetOption = "--get";
     private const string SshCommandKey = "core.sshCommand";
@@ -79,7 +86,7 @@ public sealed class RemoteRunner(GitRunner runner, Func<string, string?> environ
         }
     }
 
-    private async Task<IReadOnlyDictionary<string, string?>?> BuildEnvironmentAsync(
+    private async Task<IReadOnlyDictionary<string, string?>> BuildEnvironmentAsync(
         RepositoryLocation? location,
         CancellationToken cancellationToken)
     {
@@ -95,12 +102,13 @@ public sealed class RemoteRunner(GitRunner runner, Func<string, string?> environ
                 .ConfigureAwait(false);
         }
 
+        var environment = new Dictionary<string, string?> { [CredentialManagerInteractiveVariable] = Never };
         if (SshCommandPolicy.BatchCommand(sshCommand, sshProgram, configured) is { } batch)
         {
-            return new Dictionary<string, string?> { [SshCommandVariable] = batch };
+            environment[SshCommandVariable] = batch;
         }
 
-        return null;
+        return environment;
     }
 
     private async Task<string> ReadConfiguredSshAsync(RepositoryLocation? location, CancellationToken cancellationToken)
