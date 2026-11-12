@@ -48,7 +48,7 @@ Windows 11 Pro 26200, Intel i7-14700K, 24 GB, Git 2.53.0.windows.1, Defender rea
 | `j` / `Ctrl-d` latency, 5k / 100k | median 35 / 40 ms, p95 85 / 78 ms; `Ctrl-d` median 30 / 28 ms |
 | 200 queued `j` settle, 5k / 100k | 59 / 70 ms |
 | Details step (`j` until the details pane shows the next commit), 5k / 100k | median 71 / 71 ms, p95 96 / 98 ms; 10 `j` in one burst 424 / 437 ms |
-| Diff step (`j` until the diff pane shows the next commit's diff), 100k | median 74 ms, p95 87 ms (measured after the #1380 harness fix) |
+| Diff step (`j` until the diff pane shows the next commit's diff), 5k / 100k | median 76 / 74 ms, p95 96 / 87 ms (measured after the #1380 harness fix) |
 | Working set, 5k / 100k (all loaded) | 48 / 85 MB (Windows working set, only loosely comparable with Linux RSS) |
 | Idle CPU over 60 s after a 15 s settle, 5k repository: Gitunia process / its git children | 0.31% / 0.36% of one core (20 git processes in the window); children counted through a Job Object, which keeps the CPU time of exited processes |
 | First `j` after 2 s idle vs 0.3 s after the previous key, by idle rate (#1379, 20 samples each, idle CPU of the app / its git children in the same run) | 5/s: median 171 / 55 ms, +116 ms (a second run: 167 / 44, +123 ms; 0.55% / 0.39%), over the +100 ms budget of "Idle output"; 8/s: 96 / 54 ms, +43 ms, p95 120 ms (0.42% / 0.36%); 10/s: 80 / 55 ms, +25 ms, p95 171 ms (0.60% / 0.42%). Windows idles at 8/s since #1379; the idle CPU differences are within run-to-run noise |

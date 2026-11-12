@@ -5,7 +5,7 @@
 # Usage: scripts/measure.ps1 <binary> <repo> [-Runs N] [-Keys N] [-Marker TEXT] [-Oldest TEXT] [-Size WxH] [-OnlyStart] [-Blame] [-Timeout SEC]
 # -Blame (#1137, #1321): after cold start, open the blame view of the file in the newest commit (`<space>gb`) and time
 # open, `j`, Ctrl-d, G and the working set instead of the history cases; use a repo from gen-big-file-repo.sh.
-# Times are wall-clock ms measured by polling `capture-pane`; psmux polls cost ~50 ms each (tmux: 1-3 ms), so the
+# Times are wall-clock ms measured by polling `capture-pane`; psmux polls cost ~18 ms each (#1380; tmux: 1-3 ms), so the
 # numbers are only comparable between runs of this script, never with measure.sh.
 param(
     [Parameter(Mandatory, Position = 0)][string]$Binary,
@@ -99,7 +99,7 @@ function Get-DiffKey([string]$pane) {
     $lines = $pane -split "`n"
     $title = [Array]::FindIndex($lines, [Predicate[string]] { param($line) $line.Contains('┬─ Diff') })
     if ($title -lt 0) { return '' }
-    $column = $lines[$title].IndexOf('┬─ Diff') + 1
+    $column = $lines[$title].IndexOf('┬─ Diff', [StringComparison]::Ordinal) + 1
     $rows = for ($i = $title + 1; $i -lt $lines.Count -and $lines[$i] -notmatch '^[└├╰]'; $i++) {
         if ($lines[$i].Length -gt $column) { $lines[$i].Substring($column) }
     }
@@ -116,6 +116,11 @@ function Test-DiffReady([string]$base) {
 # One `j` per sample, with a 300 ms pause so neighbour prefetch can finish (the forward walk through the history).
 function Measure-Steps([string]$kind) {
     $out = @()
+    # Without a diff pane (a narrow terminal, a zoomed layout) every step would wait out its timeout.
+    if ($kind -eq 'diff' -and -not (Get-PanePlain).Contains('┬─ Diff')) {
+        [Console]::Error.WriteLine('no diff pane on screen; skipping the diff steps')
+        return , $out
+    }
     for ($i = 0; $i -lt $Keys; $i++) {
         $base = if ($kind -eq 'details') { Get-DetailsHeader (Get-PanePlain) } else { Get-DiffKey (Get-PanePlain) }
         $t0 = Get-Now
