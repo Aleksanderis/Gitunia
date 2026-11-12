@@ -46,15 +46,27 @@ public class SshCommandPolicyTests
     [InlineData("'C:\\Program Files\\Git\\usr\\bin\\ssh.exe' -i key")]
     [InlineData("\"/opt/my tools/ssh\" -i key")]
     [InlineData("C:/Git/usr/bin/SSH.EXE -i key")]
+    [InlineData("\"C:\\Program Files\\Git\\usr\\bin\\ssh.exe\"")]
+    [InlineData("ssh.exe\t-i key")]
     public void GivenAQuotedOrWindowsSshPath_WhenAsked_ThenItGetsBatchMode(string command)
     {
         Assert.Equal($"{command} -o BatchMode=yes", SshCommandPolicy.BatchCommand(null, null, command));
+    }
+
+    [Fact]
+    public void GivenBlanksAroundAQuotedPath_WhenAsked_ThenTheTrimmedCommandGetsBatchMode()
+    {
+        Assert.Equal(
+            "\"/opt/my tools/ssh\"\t-i key -o BatchMode=yes",
+            SshCommandPolicy.BatchCommand(null, null, "  \"/opt/my tools/ssh\"\t-i key"));
     }
 
     [Theory]
     [InlineData("\"C:\\Program Files\\PuTTY\\plink.exe\" -batch")]
     [InlineData("\"C:\\Program Files\\Git\\usr\\bin\\ssh.exe -i key")]
     [InlineData("C:\\Program Files\\Git\\usr\\bin\\ssh.exe -i key")]
+    [InlineData("\"ssh\"-i key")]
+    [InlineData("\"\" -i key")]
     public void GivenAQuotedOtherClientAnUnclosedQuoteOrAnUnquotedSpacedPath_WhenAsked_ThenItIsLeftAlone(
         string command)
     {

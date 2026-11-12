@@ -53,7 +53,7 @@ public static class SshCommandPolicy
 
     /// <summary>
     /// The first word of <paramref name="command"/>: the text inside a leading pair of quotes, else everything up to
-    /// the first blank. An unclosed quote gives null.
+    /// the first blank. An unclosed quote, or text glued to the closing quote, gives null.
     /// </summary>
     private static string? ProgramOf(string command)
     {
@@ -62,7 +62,9 @@ public static class SshCommandPolicy
         if (first is DoubleQuote or SingleQuote)
         {
             var closing = trimmed.IndexOf(first, 1);
-            if (closing < 0)
+            // The shell would join text right after the closing quote into the same word.
+            var glued = closing + 1 < trimmed.Length && Array.IndexOf(WordSeparators, trimmed[closing + 1]) < 0;
+            if (closing < 0 || glued)
             {
                 return null;
             }
