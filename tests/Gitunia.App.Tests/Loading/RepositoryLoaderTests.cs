@@ -301,7 +301,7 @@ public class RepositoryLoaderTests
             harness.Session.Cancellation.Token);
 
         Assert.Equal(["log", "tips"], starts.Take(2).Order());
-        Assert.Contains("refs", starts);
+        Assert.Contains("refs", starts.Skip(2));
     }
 
     private static void AddCommits(Harness harness, int count)

@@ -40,9 +40,10 @@ public sealed class RepositoryLoader
     /// <param name="token">Cancelled when the tab closes; taken by the caller because the session disposes its source.</param>
     public async Task RunAsync(RepositoryLocation location, IGraphSession session, Dispatcher host, StatusReporter statuses, IUiInvoker ui, CancellationToken token)
     {
-        // The graph's git processes (the log and its branch-tip read) start before the metadata and sidebar reads: the
-        // first rows wait for both, and Windows starts processes one at a time, so the other reads queue behind them
-        // instead of in front (#1378: ~45 to ~12 ms from the log's start to the first rows).
+        // The graph's git calls (the log and its branch-tip read) are queued before the metadata and sidebar reads: the
+        // first rows wait for both, and Windows starts processes one at a time, so the other reads usually start after
+        // them instead of in front (#1378: ~45 to ~12 ms from the log's start to the first rows). The processes start
+        // on pool threads, so this is the queue order, not a guarantee.
         var cut = new GraphCut();
         var batches = _graphLoader.StreamCappedAsync(location, cut, token).GetAsyncEnumerator(token);
         await using var disposeBatches = batches.ConfigureAwait(false);

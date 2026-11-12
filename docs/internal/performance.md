@@ -64,14 +64,14 @@ Cold start breakdown (#1378), from a throwaway build that wrote timestamps (proc
 
 | Step | Time |
 |---|---|
-| Process start to `Main` | 30-43 ms (a plain `gitunia --version` takes ~25 ms in total; #1393) |
+| Process start to `Main` | 30-43 ms in a psmux pane, against ~25 ms for a whole `gitunia --version` started as a plain child process, so the pane start adds time (#1393) |
 | `Main` to discovery done (one `rev-parse` process; `git version` runs alongside) | 25-55 ms, serial in front of everything else (#1392) |
 | Discovery to shell built and started (Terminal.Gui, config, session) | ~7 ms |
 | Started to the graph `log` running (dispatch plus ~20 ms of git's own start) | ~31-38 ms |
 | `log` running to the first rows appended | 44.5 ms before #1378, 12.3 ms after |
 | `Main` to the first rows appended | 118.6 ms before, 98.1 ms after |
 
-The first rows wait for the log and for its branch-tip read (`log --no-walk --all`, a second process). .NET starts processes one at a time on Windows, and about eight git reads start together when a tab opens, so the tip read queued behind the refs, status, stash and config reads (their `GIT_TRACE` lines land ~6 ms apart). Since #1378 the loader starts the log and the tip read before the metadata and sidebar reads. `measure.ps1 -OnlyStart`, two rounds of 10: 5k 253-260 to 223-234 ms; 100k unchanged (243-264 ms), because there `git log --date-order` itself needs ~54 ms to its first bytes (all commits walked before the first row; ~23 ms without an order), so the tip read was not the critical path. Not a Windows-only cause: the same walk runs on Linux. The OSC 11 background query costs nothing measurable here (theme `auto` 239 ms against `dark` 236 ms), and the headless `--print-frame` (no Terminal.Gui, no psmux, plain process) already takes 251 ms, so the time goes to git and loading, not to the terminal.
+The first rows wait for the log and for its branch-tip read (`log --no-walk --all`, a second process). .NET starts processes one at a time on Windows, and about eight git reads start together when a tab opens, so the tip read queued behind the refs, status, stash and config reads (their `GIT_TRACE` lines land ~6 ms apart). Since #1378 the loader queues the log and the tip read before the metadata and sidebar reads (the processes start on pool threads, so it is the queue order, not a guarantee). `measure.ps1 -OnlyStart`, two rounds of 10: 5k 253-260 to 223-234 ms; 100k unchanged (243-264 ms in these runs; the 228-233 ms in the table above is an earlier run on the same machine), because there `git log --date-order` itself needs ~54 ms to its first bytes (all commits walked before the first row; ~23 ms without an order), so the tip read was not the critical path. Not a Windows-only cause: the same walk runs on Linux. The OSC 11 background query costs nothing measurable here (theme `auto` 239 ms against `dark` 236 ms), and the headless `--print-frame` (no Terminal.Gui, no psmux, plain process) already takes 251 ms, so the time goes to git and loading, not to the terminal.
 
 ## Blame and file history (#1125)
 
