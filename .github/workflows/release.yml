@@ -59,6 +59,8 @@ jobs:
       version: ${{ steps.tag.outputs.version }}
     env:
       GH_TOKEN: ${{ github.token }}
+      # No checkout in this job: without it `gh workflow run` and `gh run watch` cannot find the repository (#1382).
+      GH_REPO: ${{ github.repository }}
     steps:
       - name: Validate the tag
         id: tag
