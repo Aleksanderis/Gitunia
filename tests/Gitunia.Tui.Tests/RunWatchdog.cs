@@ -4,13 +4,13 @@ using System.Runtime.CompilerServices;
 namespace Gitunia.Tui.Tests;
 
 /// <summary>
-/// Run-level backstop (#384): a project's run still alive after <see cref="Limit"/> (10 minutes: the slowest project takes about 4 minutes on the macOS CI leg, and a 5-minute limit killed a run that was still passing tests, #1384) is hung
+/// Run-level backstop (#384): a project's run still alive after <see cref="Limit"/> (5 minutes; 10 on macOS, where Gitunia.App.Tests took over 5 minutes in run 43175668900 while still passing tests, #1384; the Linux CI step timeout is 10 minutes, so a longer limit there would never print its dump) is hung
 /// (a blocked wait, a stuck child process, or an orphan whose worktree was deleted). It aborts the process with a
 /// message instead of leaving an orphaned testhost that holds its caller open for hours.
 /// </summary>
 internal static class RunWatchdog
 {
-    private static readonly TimeSpan Limit = TimeSpan.FromMinutes(10);
+    private static readonly TimeSpan Limit = TimeSpan.FromMinutes(OperatingSystem.IsMacOS() ? 10 : 5);
 
     [ModuleInitializer]
     internal static void Start()
