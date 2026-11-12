@@ -124,7 +124,7 @@ public sealed class GraphLayoutBuilder
                 {
                     parentLane = FindFreeLane();
                     EnsureLane(parentLane);
-                    _laneSlots[parentLane] = SlotForNewLane(parent);
+                    _laneSlots[parentLane] = SlotAvoiding(SlotForNewLane(parent), EndedSlotOf(edges, parentLane));
                     _lanes[parentLane] = parent;
                     _laneNamedByParent[parentLane] = true;
                 }
@@ -257,6 +257,41 @@ public sealed class GraphLayoutBuilder
         }
 
         return SlotForName(name);
+    }
+
+    // The colour of the lane that ended at this commit in the given lane, or -1 when none did.
+    private static int EndedSlotOf(List<GraphEdge> edges, int lane)
+    {
+        foreach (var edge in edges)
+        {
+            if (edge.Kind == GraphEdgeKind.Incoming && edge.FromLane == lane)
+            {
+                return edge.Color;
+            }
+        }
+
+        return -1;
+    }
+
+    // A lane that starts where another one ends in the same lane never keeps the ending lane's colour, so the two lines
+    // stay apart (a diagonal pair, or a bend and the lane that takes its place). Moves on to the next slot nothing uses.
+    private int SlotAvoiding(int slot, int avoided)
+    {
+        if (slot != avoided || _colorCount == 1)
+        {
+            return slot;
+        }
+
+        for (var offset = 1; offset < _colorCount; offset++)
+        {
+            var candidate = (slot + offset) % _colorCount;
+            if (!IsSlotInUse(candidate))
+            {
+                return candidate;
+            }
+        }
+
+        return (slot + 1) % _colorCount;
     }
 
     private int FreeSlotFrom(int preferred)

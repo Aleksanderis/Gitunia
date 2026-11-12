@@ -8,6 +8,8 @@ namespace Gitunia.Tui.Rendering.Graph;
 /// <param name="MergeNode">A commit with several parents.</param>
 /// <param name="LineNode">A commit in the middle of a branch: one line in and one out on its own lane, drawn as part of the line.</param>
 /// <param name="Lines">Line characters indexed by <see cref="LineDirections"/> flags (16 entries).</param>
+/// <param name="DepartRight">In the cell of a new lane right of the node: the line falls from the node's side to the lane's centre (see <see cref="GraphDiagonals"/>).</param>
+/// <param name="DepartLeft">The same for a new lane left of the node.</param>
 /// <param name="Ellipsis">Shown where text was cut.</param>
 /// <param name="CurrentBranch">Before the name of the branch HEAD is on, inside its label box: the local glyph with a `◉` directly in front, no space (ASCII: `HEAD -> `).</param>
 /// <param name="LocalBranch">
@@ -24,6 +26,8 @@ public sealed record GraphGlyphSet(
     char MergeNode,
     char LineNode,
     string Lines,
+    string DepartRight,
+    string DepartLeft,
     string Ellipsis,
     string CurrentBranch,
     string LocalBranch,
@@ -35,10 +39,10 @@ public sealed record GraphGlyphSet(
 {
     // Index: Up=1, Down=2, Left=4, Right=8. Lone strokes borrow the straight line of their axis.
     public static GraphGlyphSet Unicode { get; } =
-        new('●', '○', '├', " │││─╯╮┤─╰╭├─┴┬┼", "…", "◉ ", "⎇ ", " ", " ✗", PickerGlyphs.Unicode);
+        new('●', '○', '├', " │││─╯╮┤─╰╭├─┴┬┼", "\U0001FBD4", "\U0001FBD6", "…", "◉ ", "⎇ ", " ", " ✗", PickerGlyphs.Unicode);
 
     public static GraphGlyphSet Ascii { get; } =
-        new('*', 'o', '|', " |||-/\\|-\\/|---+", "~", "HEAD -> ", "", " (r)", " (x)", PickerGlyphs.Ascii);
+        new('*', 'o', '|', " |||-/\\|-\\/|---+", "\\", "/", "~", "HEAD -> ", "", " (r)", " (x)", PickerGlyphs.Ascii);
 
     /// <summary>
     /// The set with Powerline caps on the branch labels (#851). Only the Unicode set takes them, and only where the

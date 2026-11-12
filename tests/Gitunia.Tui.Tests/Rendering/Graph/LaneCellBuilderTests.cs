@@ -14,7 +14,7 @@ public class LaneCellBuilderTests
     private static string DrawWith(GraphGlyphSet glyphs, int laneColumns, int nodeLane, bool isDecorated, params GraphEdge[] edges)
     {
         var row = new GraphRow(CommitFactory.Id(1), nodeLane, laneColumns, edges);
-        return new string([.. LaneCellBuilder.Build(row, laneColumns, glyphs, isDecorated).Select(cell => cell.Glyph)]);
+        return string.Concat(LaneCellBuilder.Build(row, laneColumns, glyphs, isDecorated).Select(cell => cell.Glyph));
     }
 
     [Fact]
@@ -115,5 +115,37 @@ public class LaneCellBuilderTests
         };
 
         Assert.Equal("●─╯ ", Draw(GraphGlyphSet.Unicode, 2, 0, edges));
+    }
+
+    [Fact]
+    public void GivenADiagonalMarkInTheRow_WhenDrawing_ThenItTakesTheCellOfItsLaneWithItsColour()
+    {
+        var row = new GraphRow(
+            CommitFactory.Id(1),
+            0,
+            2,
+            [new GraphEdge(GraphEdgeKind.Through, 0, 0, 5), new GraphEdge(GraphEdgeKind.Through, 1, 1, 7)]);
+        var diagonals = new RowDiagonals(RowDiagonals.NoLane, [new DiagonalMark(1, true, 7)]);
+
+        var cells = LaneCellBuilder.Build(row, 2, GraphGlyphSet.Unicode, false, diagonals);
+
+        Assert.Equal("● \U0001FBD4 ", string.Concat(cells.Select(cell => cell.Glyph)));
+        Assert.Equal(7, cells[2].Color);
+    }
+
+    [Fact]
+    public void GivenTheLaneToSkipInTheNodeRow_WhenDrawing_ThenOnlyTheDepartureBendIsLeftOut()
+    {
+        var edges = new[]
+        {
+            new GraphEdge(GraphEdgeKind.Incoming, 1, 0),
+            new GraphEdge(GraphEdgeKind.Outgoing, 0, 0),
+            new GraphEdge(GraphEdgeKind.Outgoing, 0, 1),
+        };
+        var row = new GraphRow(CommitFactory.Id(1), 0, 2, edges);
+
+        var cells = LaneCellBuilder.Build(row, 2, GraphGlyphSet.Unicode, true, new RowDiagonals(1, []));
+
+        Assert.Equal("○─╯ ", string.Concat(cells.Select(cell => cell.Glyph)));
     }
 }

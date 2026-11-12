@@ -350,7 +350,7 @@ public static class ScreenComposer
     {
         if (commitIndex >= 0 && commitIndex < graph.Count)
         {
-            return GraphRowRenderer.Render(graph[commitIndex], options, isSelected);
+            return GraphRowRenderer.Render(graph, commitIndex, options, isSelected);
         }
 
         if (showsCutMarker && commitIndex == graph.Count)

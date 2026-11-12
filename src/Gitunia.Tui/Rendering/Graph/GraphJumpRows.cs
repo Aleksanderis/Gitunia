@@ -15,5 +15,5 @@ public sealed class GraphJumpRows(CommitGraph graph, GraphRowOptions options) : 
 
     public string TextOf(int row) => GraphRowRenderer.MessageText(graph[row], options);
 
-    public int ColumnsOf(int row) => GraphRowRenderer.MessageColumns(graph[row], options);
+    public int ColumnsOf(int row) => GraphRowRenderer.MessageColumns(graph, row, options);
 }

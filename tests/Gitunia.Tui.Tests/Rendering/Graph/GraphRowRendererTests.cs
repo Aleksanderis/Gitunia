@@ -81,7 +81,7 @@ public class GraphRowRendererTests
     }
 
     [Fact]
-    public void GivenEdgeSpanningAThroughLane_WhenRendering_ThenCrossingIsDrawn()
+    public void GivenEdgeSpanningAThroughLane_WhenRendering_ThenTheLaneHasAGapInsteadOfACrossing()
     {
         // Lanes 0, 1 and 2 wait for 10, 11 and 12; commit 12 sits in lane 2 and merges commit 10 in lane 0.
         var rows = Rows(
@@ -92,7 +92,7 @@ public class GraphRowRendererTests
             CommitFactory.Commit(22, "c", [12]),
             CommitFactory.Commit(12, "d", [13, 10]));
 
-        Assert.Equal("├─┼─○  d", rows[3]);
+        Assert.Equal("├───○  d", rows[3]);
     }
 
     [Fact]
@@ -623,5 +623,87 @@ public class GraphRowRendererTests
             segment => segment.Role == SegmentRole.Lane
                 && segment.ColorIndex == nodeColor
                 && segment.Text.Contains('├', StringComparison.Ordinal));
+    }
+
+    // Newest first: B's tip and the main tip both wait for "merge A", which also starts a lane for the merged-in branch A.
+    private static CommitInfo[] EndAndStartOnOneSide() =>
+    [
+        CommitFactory.Commit(8, "b2", [7]),
+        CommitFactory.Commit(9, "m3", [6]),
+        CommitFactory.Commit(7, "b1", [6]),
+        CommitFactory.Commit(6, "merge A", [5, 4]),
+        CommitFactory.Commit(5, "m2", [3]),
+        CommitFactory.Commit(4, "a2", [2]),
+        CommitFactory.Commit(3, "m1", [1]),
+        CommitFactory.Commit(2, "a1", [1]),
+        CommitFactory.Commit(1, "root", []),
+    ];
+
+    private static string[] DiagonalRows(GraphGlyphSet glyphs, params CommitInfo[] commits)
+    {
+        var graph = CommitFactory.Graph(commits);
+        var options = new GraphRowOptions(60, GraphRowOptions.ChooseLaneColumns(graph.MaximumLaneCount, 60), glyphs);
+        return [.. Enumerable.Range(0, graph.Count).Select(index => GraphRowRenderer.Render(graph, index, options, false).Text.TrimEnd())];
+    }
+
+    [Fact]
+    public void GivenALaneEndingAndAnotherStartingAtOneCommit_WhenRendering_ThenTheArrivalKeepsItsBendAndTheDepartureIsADiagonalBelow()
+    {
+        var rows = DiagonalRows(GraphGlyphSet.Unicode, EndAndStartOnOneSide());
+
+        Assert.StartsWith("├ │", rows[2], StringComparison.Ordinal);
+        Assert.StartsWith("○─╯", rows[3], StringComparison.Ordinal);
+        Assert.StartsWith("├ \U0001FBD4", rows[4], StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GivenTheAsciiSet_WhenRenderingTheCommitWithAnEndingAndAStartingLane_ThenTheDepartureIsABackslash()
+    {
+        var rows = DiagonalRows(GraphGlyphSet.Ascii, EndAndStartOnOneSide());
+
+        Assert.StartsWith("o-/", rows[3], StringComparison.Ordinal);
+        Assert.StartsWith("| \\", rows[4], StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GivenTheCommitIsTheLastLoadedRow_WhenRendering_ThenTheDepartureBendStays()
+    {
+        var commits = EndAndStartOnOneSide()[..4];
+
+        var rows = DiagonalRows(GraphGlyphSet.Unicode, commits);
+
+        Assert.StartsWith("○─┤", rows[3], StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GivenDiagonalRows_WhenRendering_ThenEveryRowKeepsTheWidthOfItsTextColumns()
+    {
+        var graph = CommitFactory.Graph(EndAndStartOnOneSide());
+        var options = new GraphRowOptions(60, GraphRowOptions.ChooseLaneColumns(graph.MaximumLaneCount, 60), GraphGlyphSet.Unicode);
+
+        var widths = Enumerable.Range(0, graph.Count)
+            .Select(index => TextWidth.Of(GraphRowRenderer.Render(graph, index, options, false).Text));
+
+        Assert.All(widths, width => Assert.Equal(60, width));
+    }
+
+    [Fact]
+    public void GivenTheCommitBelowTheNodeSitsOnTheNewLane_WhenRendering_ThenTheDiagonalIsTheCommitAndHasNoTick()
+    {
+        var rows = DiagonalRows(
+            GraphGlyphSet.Unicode,
+            CommitFactory.Commit(8, "b2", [7]),
+            CommitFactory.Commit(7, "b1", [6]),
+            CommitFactory.Commit(10, "m4", [9]),
+            CommitFactory.Commit(9, "m3", [6]),
+            CommitFactory.Commit(6, "merge A", [5, 4]),
+            CommitFactory.Commit(4, "a2", [2]),
+            CommitFactory.Commit(5, "m2", [3]),
+            CommitFactory.Commit(2, "a1", [1]),
+            CommitFactory.Commit(3, "m1", [1]),
+            CommitFactory.Commit(1, "root", []));
+
+        Assert.StartsWith("○─╯", rows[4], StringComparison.Ordinal);
+        Assert.StartsWith("│ \U0001FBD4", rows[5], StringComparison.Ordinal);
     }
 }
