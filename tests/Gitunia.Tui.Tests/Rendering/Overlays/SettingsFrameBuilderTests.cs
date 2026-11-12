@@ -24,7 +24,7 @@ public class SettingsFrameBuilderTests
                 "│ / filter                                                                   │",
                 "│  Appearance    │  Theme                                           [auto ▾] │",
                 "│  Keys          │  Branch label caps                            [rounded ▾] │",
-                "│  Key mapping   │                                                           │",
+                "│  Key mapping   │  Graph line style                               [light ▾] │",
                 "│  Repositories  │                                                           │",
                 "│  Tabs          │                                                           │",
                 "│  Updates       │                                                           │",
@@ -72,7 +72,7 @@ public class SettingsFrameBuilderTests
         var state = Open().WithLayout(collapsed: true);
 
         var frame = SettingsFrameBuilder.Build(state, 60, 24, GraphGlyphSet.Unicode)!;
-        var body = frame.Lines.Skip(2).Take(12).Select(line => line.Text).ToList();
+        var body = frame.Lines.Skip(2).Take(13).Select(line => line.Text).ToList();
 
         Assert.Contains(body, line => line.Contains("Appearance", StringComparison.Ordinal));
         Assert.Contains(body, line => line.Contains("Tabs", StringComparison.Ordinal));

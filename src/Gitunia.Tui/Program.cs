@@ -91,14 +91,16 @@ public static class Program
             var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
             var configured = new ConfigStartup(
                 PlatformInfo.Current.ConfigDirectory, home, ConfigStartup.DefaultLabelCaps(capabilities));
-            var labelCaps = configured.Load().Options.LabelCaps;
+            var configuredOptions = configured.Load().Options;
             var hasColors = options.Colors is not null && options.Colors.Depth != ColorDepth.None;
             // The headless frame print is a one-shot command-line path; nothing else is running, so blocking is safe.
             new FramePrinter(services).PrintAsync(
                 location!,
                 options.FrameWidth!.Value,
                 options.FrameHeight!.Value,
-                GraphGlyphSet.For(capabilities.Unicode).WithLabelCaps(labelCaps, hasColors),
+                GraphGlyphSet.For(capabilities.Unicode)
+                    .WithLaneStyle(configuredOptions.LaneStyle)
+                    .WithLabelCaps(configuredOptions.LabelCaps, hasColors),
                 Console.Out,
                 new PaneArrangement(options.OpenDiff, options.Zoom),
                 options.Tab,

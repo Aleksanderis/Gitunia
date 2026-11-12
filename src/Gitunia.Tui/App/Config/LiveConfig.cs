@@ -6,7 +6,7 @@ namespace Gitunia.Tui.App.Config;
 
 /// <summary>
 /// The configuration the running app follows: what the config file said at startup, changed afterwards by the settings
-/// screen (options, theme) and by the label caps, plus what the terminal can show. Readers ask it on each use, so a
+/// screen (options, theme) and by the label caps and the graph line style, plus what the terminal can show. Readers ask it on each use, so a
 /// change shows at once.
 /// </summary>
 /// <param name="startup">What the config file said at startup.</param>
@@ -24,7 +24,7 @@ public sealed class LiveConfig(StartupConfig startup, ConsoleCapabilities capabi
     public string HomeDirectory { get; } = homeDirectory;
 
     /// <summary>The characters the graph and the overlays are drawn with, with the label caps of the options.</summary>
-    public GraphGlyphSet Glyphs { get; private set; } = GlyphsFor(startup.Options.LabelCaps, capabilities);
+    public GraphGlyphSet Glyphs { get; private set; } = GlyphsFor(startup.Options, capabilities);
 
     /// <summary>The options of the config file.</summary>
     public ConfigOptions Options => Startup.Options;
@@ -43,12 +43,12 @@ public sealed class LiveConfig(StartupConfig startup, ConsoleCapabilities capabi
     /// <param name="theme">The theme the settings screen shows.</param>
     public void ChangeTheme(ThemeChoice theme) => Startup = Startup with { Theme = theme };
 
-    /// <summary>Takes the glyph set of new label caps.</summary>
-    /// <param name="style">The label caps.</param>
+    /// <summary>Takes the glyph set of the label caps and the graph line style of new options.</summary>
+    /// <param name="options">The options the settings screen saved.</param>
     /// <returns>True when the glyph set changed.</returns>
-    public bool ChangeLabelCaps(LabelCapStyle style)
+    public bool ChangeGlyphs(ConfigOptions options)
     {
-        var glyphs = GlyphsFor(style, Capabilities);
+        var glyphs = GlyphsFor(options, Capabilities);
         if (glyphs == Glyphs)
         {
             return false;
@@ -59,6 +59,8 @@ public sealed class LiveConfig(StartupConfig startup, ConsoleCapabilities capabi
         return true;
     }
 
-    private static GraphGlyphSet GlyphsFor(LabelCapStyle style, ConsoleCapabilities capabilities) =>
-        GraphGlyphSet.For(capabilities.Unicode).WithLabelCaps(style, capabilities.Color != ColorDepth.None);
+    private static GraphGlyphSet GlyphsFor(ConfigOptions options, ConsoleCapabilities capabilities) =>
+        GraphGlyphSet.For(capabilities.Unicode)
+            .WithLaneStyle(options.LaneStyle)
+            .WithLabelCaps(options.LabelCaps, capabilities.Color != ColorDepth.None);
 }

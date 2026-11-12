@@ -34,6 +34,12 @@ public sealed record ConfigDocument
     /// </summary>
     public JsonElement? LabelCaps { get; init; }
 
+    /// <summary>
+    /// <c>light</c> (default) or <c>heavy</c>: how the graph lines are drawn, read by
+    /// <c>OptionsConfigurator</c>.
+    /// </summary>
+    public JsonElement? LaneStyle { get; init; }
+
     /// <summary>The <c>hints</c> object (<c>whichKey</c>, <c>statusBar</c>), read by <c>OptionsConfigurator</c>.</summary>
     public JsonElement? Hints { get; init; }
 

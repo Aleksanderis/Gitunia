@@ -33,6 +33,18 @@ public class SettingsValueReaderTests
     }
 
     [Theory]
+    [InlineData("{}", "light", LaneStyle.Light)]
+    [InlineData("{ \"laneStyle\": \"heavy\" }", "heavy", LaneStyle.Heavy)]
+    [InlineData("{ \"laneStyle\": \"HEAVY\" }", "heavy", LaneStyle.Heavy)]
+    public void GivenLaneStyle_WhenReading_ThenTheChoiceAndTheOptionHoldIt(string text, string choice, LaneStyle style)
+    {
+        var load = Read(new ConfigSnapshot(true, text, string.Empty));
+
+        Assert.Equal(choice, load.Values[SettingsRegistry.LaneStyleId].Choice);
+        Assert.Equal(style, load.Options.LaneStyle);
+    }
+
+    [Theory]
     [InlineData("{}", "rounded", LabelCapStyle.Rounded)]
     [InlineData("{ \"labelCaps\": \"none\" }", "none", LabelCapStyle.None)]
     [InlineData("{ \"labelCaps\": \"rounded\" }", "rounded", LabelCapStyle.Rounded)]

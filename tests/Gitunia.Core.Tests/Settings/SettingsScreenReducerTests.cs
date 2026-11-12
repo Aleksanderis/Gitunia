@@ -177,7 +177,7 @@ public class SettingsScreenReducerTests
     public void GivenAWriteThatFinds_TheFileChanged_ThenTheNewValuesShowAndTheWarningIsPosted()
     {
         var open = Open();
-        var write = new WriteSettingEffect(new SettingsCommit(SettingsRegistry.All[3], SettingValue.OfFlag(true)),
+        var write = new WriteSettingEffect(new SettingsCommit(SettingsRegistry.All.Single(definition => definition.Id == SettingsRegistry.ShowBranchId), SettingValue.OfFlag(true)),
             "true", open.Snapshot);
         var fresh = new SettingsRead(open.Snapshot, Parse("{ \"tabs\": { \"showBranch\": true } }").Load);
 
@@ -185,7 +185,7 @@ public class SettingsScreenReducerTests
             Result(ConfigWriteStatus.Stale, "changed on disk"), fresh));
 
         Assert.Equal("changed on disk", Assert.Single(Posts(update)).Text);
-        Assert.True(update.Session.Screen!.ValueOf(SettingsRegistry.All[3]).Flag);
+        Assert.True(update.Session.Screen!.ValueOf(SettingsRegistry.All.Single(definition => definition.Id == SettingsRegistry.ShowBranchId)).Flag);
         Assert.False(update.Session.IsBusy);
     }
 
@@ -193,7 +193,7 @@ public class SettingsScreenReducerTests
     public void GivenARefusedWrite_WhenTheAnswerArrives_ThenTheWarningIsPostedAndNothingIsApplied()
     {
         var open = Open();
-        var commit = new SettingsCommit(SettingsRegistry.All[3], SettingValue.OfFlag(true));
+        var commit = new SettingsCommit(SettingsRegistry.All.Single(definition => definition.Id == SettingsRegistry.ShowBranchId), SettingValue.OfFlag(true));
 
         var update = Reduce(open with { IsBusy = true }, new SettingsWritten(commit, Result(ConfigWriteStatus.Refused,
             "cannot edit"), null));
@@ -324,7 +324,7 @@ public class SettingsScreenReducerTests
 
         Assert.True(update.Effects.OfType<ApplySettingsOptionsEffect>().Single().Options.ShowBranchInTab);
         Assert.Equal(SettingsScreenReducer.ReloadedNotice, Assert.Single(Posts(update)).Text);
-        Assert.True(update.Session.Screen!.ValueOf(SettingsRegistry.All[3]).Flag);
+        Assert.True(update.Session.Screen!.ValueOf(SettingsRegistry.All.Single(definition => definition.Id == SettingsRegistry.ShowBranchId)).Flag);
     }
 
     [Fact]

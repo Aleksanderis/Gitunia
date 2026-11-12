@@ -21,6 +21,10 @@ namespace Gitunia.Tui.Rendering.Graph;
 /// <param name="Picker">The marks of the repository picker (#1203).</param>
 /// <param name="LabelCapLeft">Drawn before a branch label box, in the colour of the box over the row background (#851); empty for a plain box.</param>
 /// <param name="LabelCapRight">Drawn after a branch label box, like <paramref name="LabelCapLeft"/>.</param>
+/// <param name="LaneLines">
+/// Line characters of the graph lanes, laid out like <paramref name="Lines"/>, when the lane style draws them
+/// differently from the frames and rules (<see cref="WithLaneStyle"/>); empty for the same ones.
+/// </param>
 public sealed record GraphGlyphSet(
     char Node,
     char MergeNode,
@@ -35,8 +39,12 @@ public sealed record GraphGlyphSet(
     string UpstreamGone,
     PickerGlyphs Picker,
     string LabelCapLeft = "",
-    string LabelCapRight = "")
+    string LabelCapRight = "",
+    string LaneLines = "")
 {
+    private const string HeavyLines = " ┃┃┃━┛┓┫━┗┏┣━┻┳╋";
+    private const char HeavyLineNode = '┣';
+
     // Index: Up=1, Down=2, Left=4, Right=8. Lone strokes borrow the straight line of their axis.
     public static GraphGlyphSet Unicode { get; } =
         new('●', '○', '├', " │││─╯╮┤─╰╭├─┴┬┼", "\U0001FBD4", "\U0001FBD6", "…", "◉ ", "⎇ ", " ", " ✗", PickerGlyphs.Unicode);
@@ -66,6 +74,25 @@ public sealed record GraphGlyphSet(
         };
     }
 
+    /// <summary>
+    /// The set with the lines of the graph lanes drawn in the given style (<c>laneStyle</c>). Only the lanes change: frames,
+    /// rules and overlays keep the light lines. The ASCII set has one weight.
+    /// </summary>
+    /// <param name="style">The configured style.</param>
+    public GraphGlyphSet WithLaneStyle(LaneStyle style)
+    {
+        if (IsAscii)
+        {
+            return this;
+        }
+
+        return style switch
+        {
+            LaneStyle.Heavy => this with { LineNode = HeavyLineNode, LaneLines = HeavyLines },
+            _ => this with { LineNode = Unicode.LineNode, LaneLines = string.Empty },
+        };
+    }
+
     /// <summary>Branch label boxes are closed by caps (no padding inside the box then, #854).</summary>
     public bool HasLabelCaps => LabelCapLeft.Length > 0;
 
@@ -89,6 +116,10 @@ public sealed record GraphGlyphSet(
 
     /// <summary>The character for a cell whose lines go in the given directions.</summary>
     public char For(LineDirections directions) => Lines[(int)directions];
+
+    /// <summary>The character for a cell of the graph lanes whose lines go in the given directions.</summary>
+    /// <param name="directions">The sides the lines leave through.</param>
+    public char ForLane(LineDirections directions) => (LaneLines.Length == 0 ? Lines : LaneLines)[(int)directions];
 
     /// <summary>The set a terminal with the given Unicode support can show.</summary>
     public static GraphGlyphSet For(bool unicode) => unicode ? Unicode : Ascii;

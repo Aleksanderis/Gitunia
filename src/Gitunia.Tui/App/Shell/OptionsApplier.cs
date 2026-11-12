@@ -33,7 +33,7 @@ public sealed class OptionsApplier(
             updateChecks.Request();
         }
 
-        ApplyLabelCaps(options.LabelCaps);
+        ApplyGlyphs(options);
         targets.Overlays.OnOptionsChanged();
         if (!SameRoots(targets.Picker.ScanRoots, options.ScanRoots))
         {
@@ -61,10 +61,10 @@ public sealed class OptionsApplier(
         targets.View.RefreshPalette();
     }
 
-    // The caps change the graph labels only: every tab's graph is redrawn with the set that has (or lacks) them.
-    private void ApplyLabelCaps(LabelCapStyle style)
+    // The caps change the graph labels and the line style the graph lanes: every tab's graph is redrawn with the new set.
+    private void ApplyGlyphs(ConfigOptions options)
     {
-        if (!config.ChangeLabelCaps(style))
+        if (!config.ChangeGlyphs(options))
         {
             return;
         }

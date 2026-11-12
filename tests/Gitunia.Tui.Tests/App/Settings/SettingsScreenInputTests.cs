@@ -95,7 +95,7 @@ public sealed class SettingsScreenInputTests : IDisposable
         Assert.Contains("\"tabs\": { \"showBranch\": true }", text, StringComparison.Ordinal);
         Assert.True(_harness.Applied.Last().ShowBranchInTab);
         Assert.Equal("Saved Show branch in tab name", _harness.Statuses.Log.Latest!.Text);
-        Assert.True(_harness.Settings.State!.ValueOf(SettingsRegistry.All[3]).Flag);
+        Assert.True(_harness.Settings.State!.ValueOf(SettingsRegistry.All.Single(definition => definition.Id == SettingsRegistry.ShowBranchId)).Flag);
     }
 
     [Fact]
@@ -461,7 +461,7 @@ public sealed class SettingsScreenInputTests : IDisposable
 
         Assert.Equal("{ \"tabs\": { \"showBranch\": true } }", _harness.ReadConfig());
         Assert.Contains("changed on disk", _harness.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
-        Assert.True(_harness.Settings.State!.ValueOf(SettingsRegistry.All[3]).Flag);
+        Assert.True(_harness.Settings.State!.ValueOf(SettingsRegistry.All.Single(definition => definition.Id == SettingsRegistry.ShowBranchId)).Flag);
 
         _harness.Run(ActionIds.SettingsToggle);
         await _harness.PumpAsync();

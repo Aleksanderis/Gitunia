@@ -100,6 +100,26 @@ public sealed class OptionsConfiguratorTests
         Assert.Equal("labelCaps", Assert.Single(problems).Path);
     }
 
+    [Theory]
+    [InlineData("\"thick\"")]
+    [InlineData("true")]
+    public void GivenAnInvalidLaneStyleValue_WhenParsing_ThenLightWithAProblemOnTheKey(string json)
+    {
+        var problems = new List<ConfigProblem>();
+
+        Assert.Equal(LaneStyle.Light, OptionsConfigurator.ParseLaneStyle(Json(json), problems));
+        Assert.Equal("laneStyle", Assert.Single(problems).Path);
+    }
+
+    [Fact]
+    public void GivenNoLaneStyleValue_WhenParsing_ThenLightApplies()
+    {
+        var problems = new List<ConfigProblem>();
+
+        Assert.Equal(LaneStyle.Light, OptionsConfigurator.ParseLaneStyle(null, problems));
+        Assert.Empty(problems);
+    }
+
     [Fact]
     public void GivenNoLabelCapsValue_WhenParsing_ThenRoundedCapsApply()
     {

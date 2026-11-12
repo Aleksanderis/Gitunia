@@ -61,7 +61,7 @@ public static class LaneCellBuilder
         var cells = new GraphCell[laneColumns * 2];
         for (var column = 0; column < cells.Length; column++)
         {
-            cells[column] = new GraphCell(glyphs.For(directions[column]).ToString(), colors[column]);
+            cells[column] = new GraphCell(glyphs.ForLane(directions[column]).ToString(), colors[column]);
             if (directions[column] == LineDirections.None)
             {
                 cells[column] = new GraphCell(" ", -1);
