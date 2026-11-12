@@ -142,9 +142,11 @@ try {
         $blameRow = '[0-9a-f]{7} .*[0-9]+ \| ' # a short hash in the first column, then the line number and `|`
         T send-keys -t m Tab | Out-Null # focus the details pane (its file is the one blamed)
         Start-Sleep -Milliseconds 500
+        # psmux drops keys after the first in one call; send the chord key by key and start the clock at its last key,
+        # so the extra psmux sends are not counted (measure.sh sends the chord in one call).
+        T send-keys -t m Space | Out-Null; T send-keys -t m g | Out-Null
         $t0 = Get-Now
-        # psmux drops keys after the first in one call; send the chord key by key.
-        T send-keys -t m Space | Out-Null; T send-keys -t m g | Out-Null; T send-keys -t m b | Out-Null
+        T send-keys -t m b | Out-Null
         if ($null -eq (Wait-Until { (Get-PanePlain) -match $blameRow })) {
             Write-Metric blame_first_rows_ms nan; [Console]::Error.WriteLine('blame view did not open'); exit 1
         }

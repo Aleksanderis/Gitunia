@@ -55,8 +55,8 @@ Windows 11 Pro 26200, Intel i7-14700K, 24 GB, Git 2.53.0.windows.1, Defender rea
 | `git status --porcelain=v2 -z --branch`, 2,397-file checkout (a clone of this repository) | median 113 ms |
 | Full refresh, the 3 processes of #1310 (`status`, `for-each-ref`, `worktree list`) one after the other | ~156 ms; the 5 s status poll alone is ~113 ms, ~2% of the interval |
 | Same git timings with Defender's real-time scanning excluded for the repository folder | no measurable change (status 113 ms, refresh 163 ms): the cost is the process start of `git.exe`, which a folder exclusion does not touch, and repeated reads hit Defender's cache |
-| Blame view (`measure.ps1 -Blame`, `gen-big-file-repo.sh` repository, 50k lines, 500 commits): open until first blamed rows | 389 ms |
-| Blame view: `j` / `Ctrl-d` / `G` | median 75 / 75 ms (p95 190 / 89), `G` 74 ms; working set 69 MB |
+| Blame view (`measure.ps1 -Blame`, `gen-big-file-repo.sh` repository, 50k lines, 501 commits): open until first blamed rows (clock starts at the last key of `<space>gb`) | 363-389 ms over three runs |
+| Blame view: `j` / `Ctrl-d` / `G` | median 75-79 / 75-80 ms (p95 176-202 / 87-97), `G` 70-86 ms; working set 69 MB |
 
 Reading: process start is the cost, ~20 times Linux, so the per-action process counts of "Processes per action" matter most on Windows; a status-only refresh is one process and a full refresh about 0.16 s off the UI thread. Not measured: macOS. Harness faults (diff step always `nan`, psmux port exhaustion on long runs): #1380. Reproduce: `scripts/gen-big-repo.sh` and `gen-big-file-repo.sh` from Git Bash, `scripts/measure.ps1 [-Blame]`; idle CPU and the git timings used throwaway probes (a Job Object around the pane's gitunia process; `git` started 30 times per case after 3 warm-ups with Gitunia's environment), not kept in `scripts/`. Re-run this table after the refresh and spawn issues of this milestone land.
 

@@ -9,7 +9,7 @@ Targets and verified numbers are in `docs/internal/performance.md`; read it firs
 
 ## Measure before optimising
 
-- Write the straightforward version first. Optimise only a path you measured. End-to-end: `scripts/measure.sh`, `scripts/measure-tabs.sh`, `scripts/gen-big-repo.sh`, `scripts/gen-big-file-repo.sh` (a 50k-line file for blame; tmux based; on Windows `scripts/measure.ps1` and `scripts/measure-tabs.ps1` via psmux, numbers not comparable with tmux runs; `gen-big-repo.sh` is Linux/macOS only; contract in `docs/testing.md`). For a pure parser or layout function: an ad hoc timed loop over the output of the 100k-commit repo, with the command in the PR.
+- Write the straightforward version first. Optimise only a path you measured. End-to-end: `scripts/measure.sh`, `scripts/measure-tabs.sh`, `scripts/gen-big-repo.sh`, `scripts/gen-big-file-repo.sh` (a 50k-line file for blame; tmux based; on Windows `scripts/measure.ps1` (`-Blame` too) and `scripts/measure-tabs.ps1` via psmux, numbers not comparable with tmux runs; `gen-big-repo.sh` is Linux/macOS only; contract in `docs/testing.md`). For a pure parser or layout function: an ad hoc timed loop over the output of the 100k-commit repo, with the command in the PR.
 - Record before and after numbers (median plus p95, binary type, repo size) in the PR. An optimisation without a number is not accepted, except a simple, readable change on a path whose cost is clearly proportional to repository size (per commit, per file, per line, per frame); the PR must then say it was not measured. A change that makes code harder to read for an unmeasured gain is never accepted.
 - Measure the Native AOT binary, not `dotnet run`: JIT and AOT numbers differ.
 
