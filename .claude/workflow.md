@@ -28,6 +28,7 @@
 - CI: `automatic` (re-enabled at go-public, 2026-11-07, superseding the manual-only decision of 2026-10-18): runs on PRs, pushes to `main` and dispatch (release tags run `release.yml`). Local build and tests stay the first gate; a run takes about 4-6 minutes
 - extra labels: `needs-owner` (only the owner can settle it; never picked), `blocked-upstream` (waits on an upstream fix or release; never picked), `windows-vm` (needs a Windows VM; the orchestrator never picks it), `tracking` (never picked as work), `owner` (filed by the owner)
 - every issue has a milestone (`gh issue create -m "<milestone>"`); bugs, follow-ups and loose ends go to the rolling "M11 - Ongoing improvements" unless they belong to an open goal milestone; a blocking condition is a label, never a milestone (`docs/internal/roadmap.md`, M11)
+- project board: https://github.com/users/Aleksanderis/projects/4, started work: `In progress`
 - commit message format: Conventional Commits (`feat:`, `fix:`, `docs:`, `test:`, `refactor:`, `chore:`, `ci:`)
 - context limit: 150000
 
