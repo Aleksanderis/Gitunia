@@ -1,6 +1,7 @@
 using System.Globalization;
 using Gitunia.Git.Execution;
 using Gitunia.Git.Repositories;
+using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Tests.Fixtures;
 using Gitunia.Git.Watching;
 using Gitunia.Git.Watching.Models;
@@ -156,10 +157,21 @@ public class RepositoryWatcherTests
         testRepository.Commit("root", new TestFile("a.txt", "1")).Branch("topic");
         var recorder = new ChangeRecorder();
         var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
-        using var watcher = new RepositoryWatcher(location, new WatchBudget(polling ? 0 : 64), FastOptions);
+        var reader = new SignallingReader();
+        using var watcher = new RepositoryWatcher(
+            location,
+            new WatchBudget(polling ? 0 : 64),
+            FastOptions,
+            fingerprintReader: reader);
         watcher.Changed += recorder.Record;
         watcher.Start();
         Assert.Equal(polling, watcher.IsPolling);
+        if (polling)
+        {
+            // The baseline is read on a pool thread; a change made before it ends is part of the baseline and never reported
+            // (on a slow runner the commit even landed between the index and the reftable, so only Index was seen).
+            await reader.FirstRead.WaitAsync(Token);
+        }
 
         // The switch changes no file, so only the reftable can report it.
         if (switchBranch)
@@ -517,5 +529,21 @@ public class RepositoryWatcherTests
         watcher.RecordRefresh(TimeSpan.Zero, failed: false);
 
         return watcher.IsStale || watcher.IsActive;
+    }
+
+    /// <summary>The disk reader, which tells when the first (baseline) read has finished.</summary>
+    private sealed class SignallingReader : IRepositoryFingerprintReader
+    {
+        private readonly DiskFingerprintReader _inner = new();
+        private readonly TaskCompletionSource _firstRead = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public Task FirstRead => _firstRead.Task;
+
+        public RepositoryFingerprintGroups Read(RepositoryLocation location)
+        {
+            var groups = _inner.Read(location);
+            _firstRead.TrySetResult();
+            return groups;
+        }
     }
 }
