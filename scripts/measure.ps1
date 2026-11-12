@@ -2,14 +2,16 @@
 # PowerShell twin of scripts/measure.sh: same options, same key=value output, same contract (docs/testing.md,
 # "Measurement harness"). psmux (`winget install marlocarlo.psmux`) accepts the tmux commands used here.
 #
-# Usage: scripts/measure.ps1 <binary> <repo> [-Runs N] [-Keys N] [-Marker TEXT] [-Oldest TEXT] [-Size WxH] [-OnlyStart] [-Timeout SEC]
+# Usage: scripts/measure.ps1 <binary> <repo> [-Runs N] [-Keys N] [-Marker TEXT] [-Oldest TEXT] [-Size WxH] [-OnlyStart] [-Blame] [-Timeout SEC]
+# -Blame (#1137, #1321): after cold start, open the blame view of the file in the newest commit (`<space>gb`) and time
+# open, `j`, Ctrl-d, G and the working set instead of the history cases; use a repo from gen-big-file-repo.sh.
 # Times are wall-clock ms measured by polling `capture-pane`; psmux polls cost ~50 ms each (tmux: 1-3 ms), so the
 # numbers are only comparable between runs of this script, never with measure.sh.
 param(
     [Parameter(Mandatory, Position = 0)][string]$Binary,
     [Parameter(Mandatory, Position = 1)][string]$Repo,
     [int]$Runs = 5, [int]$Keys = 20, [string]$Marker = '', [string]$Oldest = '',
-    [string]$Size = '120x40', [switch]$OnlyStart, [int]$Timeout = 10)
+    [string]$Size = '120x40', [switch]$OnlyStart, [switch]$Blame, [int]$Timeout = 10)
 
 #requires -Version 7
 $ErrorActionPreference = 'Stop'
@@ -131,6 +133,39 @@ try {
     Write-Stats cold_start_ms $vals -Full
     Write-Metric cold_start_samples $vals.Count
     if ($OnlyStart) { return }
+
+    # --- blame case: the blame view of the file shown in the newest commit, then key latency inside it
+    if ($Blame) {
+        Start-App
+        if ($null -eq (Wait-For $Marker)) { [Console]::Error.WriteLine('app never showed marker; skipping blame'); exit 1 }
+        $null = Wait-Stable
+        $blameRow = '[0-9a-f]{7} .*[0-9]+ \| ' # a short hash in the first column, then the line number and `|`
+        T send-keys -t m Tab | Out-Null # focus the details pane (its file is the one blamed)
+        Start-Sleep -Milliseconds 500
+        $t0 = Get-Now
+        # psmux drops keys after the first in one call; send the chord key by key.
+        T send-keys -t m Space | Out-Null; T send-keys -t m g | Out-Null; T send-keys -t m b | Out-Null
+        if ($null -eq (Wait-Until { (Get-PanePlain) -match $blameRow })) {
+            Write-Metric blame_first_rows_ms nan; [Console]::Error.WriteLine('blame view did not open'); exit 1
+        }
+        Write-Metric blame_first_rows_ms (Format-Ms ((Get-Now) - $t0))
+        Start-Sleep 2; $null = Wait-Stable
+        foreach ($case in @(@{ Key = 'j'; Name = 'blame_j_ms' }, @{ Key = 'C-d'; Name = 'blame_page_ms' })) {
+            $vals = @()
+            for ($i = 0; $i -lt $Keys; $i++) {
+                $base = Get-Pane; $t0 = Get-Now
+                T send-keys -t m $case.Key | Out-Null
+                if ($null -ne (Wait-Change $base)) { $vals += (Get-Now) - $t0 }
+            }
+            Write-Stats $case.Name $vals -Full
+        }
+        $base = Get-Pane; $t0 = Get-Now
+        T send-keys -t m G | Out-Null
+        Write-Metric blame_jump_end_ms $(if ($null -ne (Wait-Change $base)) { Format-Ms ((Get-Now) - $t0) } else { 'nan' })
+        $null = Wait-Stable
+        Write-Metric blame_rss_kib (Get-AppRssKib)
+        return
+    }
 
     # --- navigation measurements in one session
     Start-App
