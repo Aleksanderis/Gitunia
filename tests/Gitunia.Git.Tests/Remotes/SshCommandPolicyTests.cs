@@ -42,6 +42,26 @@ public class SshCommandPolicyTests
     }
 
     [Theory]
+    [InlineData("\"C:\\Program Files\\Git\\usr\\bin\\ssh.exe\" -i key")]
+    [InlineData("'C:\\Program Files\\Git\\usr\\bin\\ssh.exe' -i key")]
+    [InlineData("\"/opt/my tools/ssh\" -i key")]
+    [InlineData("C:/Git/usr/bin/SSH.EXE -i key")]
+    public void GivenAQuotedOrWindowsSshPath_WhenAsked_ThenItGetsBatchMode(string command)
+    {
+        Assert.Equal($"{command} -o BatchMode=yes", SshCommandPolicy.BatchCommand(null, null, command));
+    }
+
+    [Theory]
+    [InlineData("\"C:\\Program Files\\PuTTY\\plink.exe\" -batch")]
+    [InlineData("\"C:\\Program Files\\Git\\usr\\bin\\ssh.exe -i key")]
+    [InlineData("C:\\Program Files\\Git\\usr\\bin\\ssh.exe -i key")]
+    public void GivenAQuotedOtherClientAnUnclosedQuoteOrAnUnquotedSpacedPath_WhenAsked_ThenItIsLeftAlone(
+        string command)
+    {
+        Assert.Null(SshCommandPolicy.BatchCommand(null, null, command));
+    }
+
+    [Theory]
     [InlineData("plink -batch", null)]
     [InlineData(null, "/opt/wrapper")]
     public void GivenAnotherClientOrAProgram_WhenAsked_ThenItIsLeftAlone(string? command, string? program)
