@@ -4,7 +4,9 @@ namespace Gitunia.Tui.Rendering.Graph;
 
 /// <summary>
 /// Decides where a graph draws a diagonal line instead of a bend. It is for one case: a commit where a lane ends and
-/// another lane starts in the same lane, one lane away. Drawn with two bends both would share one character that reads
+/// another lane starts in the same lane, next to the node or further away (the arriving bend then ends a horizontal
+/// run, <c>○───╯</c>, and the diagonal is still in the cell right below its corner). A line that only arrives or only
+/// leaves keeps its rounded corner (<c>╮ ╯ ╭ ╰</c>): it is unambiguous. Drawn with two bends both would share one character that reads
 /// as a lane running straight through (<c>├</c>, <c>┤</c>, <c>┼</c>). The line arriving from above keeps its bend, which shows the
 /// lane ends here; the line leaving towards the parent becomes a diagonal in the row below, where the new lane starts:
 /// <code>
@@ -45,8 +47,8 @@ public static class GraphDiagonals
         DiagonalJunction? found = null;
         foreach (var ending in row.Edges)
         {
-            var isNext = ending.Kind == GraphEdgeKind.Incoming && Math.Abs(ending.FromLane - row.Lane) == 1;
-            if (!isNext || Math.Max(ending.FromLane, row.Lane) >= laneColumns)
+            var isOther = ending.Kind == GraphEdgeKind.Incoming && ending.FromLane != row.Lane;
+            if (!isOther || Math.Max(ending.FromLane, row.Lane) >= laneColumns)
             {
                 continue;
             }

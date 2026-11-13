@@ -8,6 +8,8 @@ public class GraphDiagonalsTests
 {
     private const int LaneColumns = 3;
 
+    private static readonly string[] RoundedCorners = ["●─╯   ", "○─╮   "];
+
     private static CommitGraph GraphOf(params GraphRow[] rows)
     {
         var graph = new CommitGraph();
@@ -100,5 +102,88 @@ public class GraphDiagonalsTests
 
         Assert.Equal(1, plan.SkipLane);
         Assert.Equal("○─┴─╯ ", string.Concat(cells.Select(cell => cell.Glyph)));
+    }
+
+    // Lane 2 ends at the node on lane 0 and a new lane 2 starts there; lane 1 runs through the row.
+    private static GraphRow FarJunction(int number) =>
+        new(
+            CommitFactory.Id(number),
+            0,
+            3,
+            [
+                new GraphEdge(GraphEdgeKind.Incoming, 0, 0, 1),
+                new GraphEdge(GraphEdgeKind.Incoming, 2, 0, 2),
+                new GraphEdge(GraphEdgeKind.Outgoing, 0, 0, 1),
+                new GraphEdge(GraphEdgeKind.Outgoing, 0, 2, 3),
+                new GraphEdge(GraphEdgeKind.Through, 1, 1, 4),
+            ]);
+
+    private static GraphRow PassingTwo(int number) =>
+        new(
+            CommitFactory.Id(number),
+            0,
+            3,
+            [
+                new GraphEdge(GraphEdgeKind.Incoming, 0, 0, 1),
+                new GraphEdge(GraphEdgeKind.Outgoing, 0, 0, 1),
+                new GraphEdge(GraphEdgeKind.Through, 1, 1, 4),
+                new GraphEdge(GraphEdgeKind.Through, 2, 2, 3),
+            ]);
+
+    [Fact]
+    public void GivenALaneTwoAwayEndingAndStartingAtTheNode_WhenDrawing_ThenTheHorizontalRunEndsInTheBendAndTheDiagonalIsBelowIt()
+    {
+        var graph = GraphOf(PassingTwo(1), FarJunction(2), PassingTwo(3));
+
+        var node = GraphDiagonals.PlanFor(graph, 1, LaneColumns);
+        var below = GraphDiagonals.PlanFor(graph, 2, LaneColumns);
+        var nodeCells = LaneCellBuilder.Build(graph[1].Row, LaneColumns, GraphGlyphSet.Unicode, true, node);
+        var belowCells = LaneCellBuilder.Build(graph[2].Row, LaneColumns, GraphGlyphSet.Unicode, false, below);
+
+        Assert.Equal("○───╯ ", string.Concat(nodeCells.Select(cell => cell.Glyph)));
+        Assert.Equal("├ │ ╲ ", string.Concat(belowCells.Select(cell => cell.Glyph)));
+    }
+
+    [Fact]
+    public void GivenALaneTwoAwayInTheAsciiSet_WhenDrawing_ThenTheDiagonalIsABackslash()
+    {
+        var graph = GraphOf(PassingTwo(1), FarJunction(2), PassingTwo(3));
+
+        var below = GraphDiagonals.PlanFor(graph, 2, LaneColumns);
+        var belowCells = LaneCellBuilder.Build(graph[2].Row, LaneColumns, GraphGlyphSet.Ascii, false, below);
+
+        Assert.Equal("| | \\ ", string.Concat(belowCells.Select(cell => cell.Glyph)));
+    }
+
+    [Fact]
+    public void GivenTheFarLaneIsHiddenInTheLastColumn_WhenPlanning_ThenTheBendStays()
+    {
+        var graph = GraphOf(PassingTwo(1), FarJunction(2), PassingTwo(3));
+
+        Assert.Same(RowDiagonals.None, GraphDiagonals.PlanFor(graph, 1, 2));
+    }
+
+    [Fact]
+    public void GivenALaneThatOnlyEndsOrOnlyStartsAtTheNode_WhenPlanning_ThenTheRoundedCornersStay()
+    {
+        var onlyEnds = new GraphRow(
+            CommitFactory.Id(2),
+            0,
+            2,
+            [new GraphEdge(GraphEdgeKind.Incoming, 1, 0, 2), new GraphEdge(GraphEdgeKind.Outgoing, 0, 0, 1)]);
+        var onlyStarts = new GraphRow(
+            CommitFactory.Id(2),
+            0,
+            2,
+            [new GraphEdge(GraphEdgeKind.Outgoing, 0, 0, 1), new GraphEdge(GraphEdgeKind.Outgoing, 0, 1, 3)]);
+
+        foreach (var node in new[] { onlyEnds, onlyStarts })
+        {
+            var graph = GraphOf(Passing(1), node, Passing(3));
+            var cells = LaneCellBuilder.Build(node, LaneColumns, GraphGlyphSet.Unicode, true, GraphDiagonals.PlanFor(graph, 1, LaneColumns));
+
+            Assert.Same(RowDiagonals.None, GraphDiagonals.PlanFor(graph, 1, LaneColumns));
+            Assert.Contains(string.Concat(cells.Select(cell => cell.Glyph)), RoundedCorners);
+        }
     }
 }
