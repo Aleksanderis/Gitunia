@@ -89,6 +89,9 @@ public sealed partial class RepositoryWatcher
     /// created outside the gate; only the bookkeeping happens under it. A subdirectory created after the first listing
     /// but before the new watchers were enabled raises no event anyone sees, so the listing is repeated a
     /// few times once the watchers are live. That narrows the window to almost nothing; the rescan covers the rest.
+    /// No more watchers are created than the per-tab cap leaves room for: every one takes an inotify instance, a
+    /// per-user resource, and a burst of dozens created only to be retired used up the limit, so the tab fell back to
+    /// polling although it could have watched what the cap allows (#1398).
     /// </summary>
     private void WatchNewDirectory(string path)
     {
@@ -122,7 +125,8 @@ public sealed partial class RepositoryWatcher
             }
 
             var candidates = includeSelf ? new[] { path }.Concat(children) : children;
-            wanted = [.. candidates.Where(candidate => !_directoryWatchers.ContainsKey(candidate))];
+            var room = Math.Max(0, _options.MaximumWorkingTreeDirectories - _directoryWatchers.Count);
+            wanted = [.. candidates.Where(candidate => !_directoryWatchers.ContainsKey(candidate)).Take(room)];
         }
 
         if (wanted.Count == 0)

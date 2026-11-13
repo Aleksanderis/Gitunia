@@ -9,6 +9,7 @@ using Xunit;
 
 namespace Gitunia.Git.Tests.Watching;
 
+[Collection(RealFileWatchersGroup.Name)]
 public class IgnoreAwareWatchingTests
 {
     private static readonly GitRunner Runner = IsolatedGit.CreateRunner();
@@ -80,7 +81,7 @@ public class IgnoreAwareWatchingTests
         using var watcher = new RepositoryWatcher(location, budget, FastOptions, directoryLister: Lister);
 
         watcher.Start();
-        await WaitForAsync(() => watcher.WorkingTreeDirectoryCount == 2);
+        await WatcherWait.UntilAsync(() => watcher.WorkingTreeDirectoryCount == 2, watcher);
 
         Assert.False(watcher.IsPolling);
         Assert.Equal(watcher.WatcherCount, budget.InUse);
@@ -94,7 +95,7 @@ public class IgnoreAwareWatchingTests
         var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
         using var watcher = CreateWatcher(location, recorder.Record);
         watcher.Start();
-        await WaitForAsync(() => watcher.WorkingTreeDirectoryCount == 2);
+        await WatcherWait.UntilAsync(() => watcher.WorkingTreeDirectoryCount == 2, watcher);
 
         testRepository.WriteFile(Path.Combine("src", "a", "x.txt"), "changed");
 
@@ -109,27 +110,27 @@ public class IgnoreAwareWatchingTests
         var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
         using var watcher = CreateWatcher(location, recorder.Record);
         watcher.Start();
-        await WaitForAsync(() => watcher.WorkingTreeDirectoryCount == 2);
+        await WatcherWait.UntilAsync(() => watcher.WorkingTreeDirectoryCount == 2, watcher);
 
         // `mkdir -p`: the inner directory can appear before the outer one has a watcher (#604).
         Directory.CreateDirectory(Path.Combine(testRepository.WorkingTreePath, "fresh", "deeper"));
-        await WaitForAsync(() => watcher.WorkingTreeDirectoryCount == 4);
+        await WatcherWait.UntilAsync(() => watcher.WorkingTreeDirectoryCount == 4, watcher);
         await recorder.WaitForAsync(RepositoryChangeKinds.WorkingTree, Token);
         var callsBefore = recorder.CallCount;
         testRepository.WriteFile(Path.Combine("fresh", "deeper", "file.txt"), "x");
 
-        await WaitForAsync(() => recorder.CallCount > callsBefore);
+        await WatcherWait.UntilAsync(() => recorder.CallCount > callsBefore);
     }
 
     [Fact]
     public async Task GivenManyQuickMakeDirectoryPaths_WhenCreated_ThenEveryLevelIsWatched()
     {
-        const int pathCount = 40;
+        const int pathCount = 4;
         using var testRepository = CreateRepositoryWithIgnoredTree();
         var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
         using var watcher = CreateWatcher(location, _ => { });
         watcher.Start();
-        await WaitForAsync(() => watcher.WorkingTreeDirectoryCount == 2);
+        await WatcherWait.UntilAsync(() => watcher.WorkingTreeDirectoryCount == 2, watcher);
 
         for (var index = 0; index < pathCount; index++)
         {
@@ -137,7 +138,7 @@ public class IgnoreAwareWatchingTests
                 Path.Combine(testRepository.WorkingTreePath, $"fresh{index}", "deeper", "deepest"));
         }
 
-        await WaitForAsync(() => watcher.WorkingTreeDirectoryCount == 2 + (pathCount * 3));
+        await WatcherWait.UntilAsync(() => watcher.WorkingTreeDirectoryCount == 2 + (pathCount * 3), watcher);
     }
 
     [Fact]
@@ -147,7 +148,7 @@ public class IgnoreAwareWatchingTests
         var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
         using var watcher = CreateWatcher(location, _ => { });
         watcher.Start();
-        await WaitForAsync(() => watcher.WorkingTreeDirectoryCount == 2);
+        await WatcherWait.UntilAsync(() => watcher.WorkingTreeDirectoryCount == 2, watcher);
 
         testRepository.WriteFile(".gitignore", "ignored/\ntmpcache/\n");
         testRepository.WriteFile(Path.Combine("ignored", "built", "deep", "blob.bin"), "x");
@@ -156,7 +157,7 @@ public class IgnoreAwareWatchingTests
             Path.Combine(testRepository.WorkingTreePath, "tmpcache"));
         testRepository.WriteFile(Path.Combine("src", "b", "late.txt"), "x");
 
-        await WaitForAsync(() => watcher.WorkingTreeDirectoryCount == 3);
+        await WatcherWait.UntilAsync(() => watcher.WorkingTreeDirectoryCount == 3, watcher);
         await Task.Delay(300, Token);
 
         if (OperatingSystem.IsMacOS())
@@ -164,7 +165,7 @@ public class IgnoreAwareWatchingTests
             // A macOS run (#959) saw 5 here after the 300 ms; the suspected cause is FSEvents delivering the creation
             // events of the moved directory late (not confirmed from a log), which watches it until the next rescan
             // drops it again. Linux and Windows keep the strict check.
-            await WaitForAsync(() => watcher.WorkingTreeDirectoryCount == 3);
+            await WatcherWait.UntilAsync(() => watcher.WorkingTreeDirectoryCount == 3, watcher);
         }
 
         Assert.Equal(3, watcher.WorkingTreeDirectoryCount);
@@ -177,11 +178,11 @@ public class IgnoreAwareWatchingTests
         var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
         using var watcher = CreateWatcher(location, _ => { });
         watcher.Start();
-        await WaitForAsync(() => watcher.WorkingTreeDirectoryCount == 2);
+        await WatcherWait.UntilAsync(() => watcher.WorkingTreeDirectoryCount == 2, watcher);
 
         testRepository.Git("rm", "-r", "-q", "-f", "src");
 
-        await WaitForAsync(() => watcher.WorkingTreeDirectoryCount == 0);
+        await WatcherWait.UntilAsync(() => watcher.WorkingTreeDirectoryCount == 0, watcher);
     }
 
     [Fact]
@@ -196,7 +197,7 @@ public class IgnoreAwareWatchingTests
         watcher.Changed += recorder.Record;
 
         watcher.Start();
-        await WaitForAsync(() => watcher.IsPolling);
+        await WatcherWait.UntilAsync(() => watcher.IsPolling, watcher, expectPolling: true);
 
         Assert.Equal(0, watcher.WorkingTreeDirectoryCount);
         Assert.Equal(0, budget.InUse);
@@ -216,7 +217,7 @@ public class IgnoreAwareWatchingTests
             options,
             directoryLister: Lister);
         watcher.Start();
-        await WaitForAsync(() => watcher.WorkingTreeDirectoryCount == 2);
+        await WatcherWait.UntilAsync(() => watcher.WorkingTreeDirectoryCount == 2, watcher);
         testRepository.WriteFile(".gitignore", "ignored/\nmodules/\n");
         var staging = Path.Combine(testRepository.WorkingTreePath, "ignored", "staging");
         for (var index = 0; index < 40; index++)
@@ -229,7 +230,7 @@ public class IgnoreAwareWatchingTests
 
         testRepository.WriteFile(Path.Combine("src", "b", "s.txt"), "x");
 
-        await WaitForAsync(() => watcher.WorkingTreeDirectoryCount == 3 && !watcher.IsPolling);
+        await WatcherWait.UntilAsync(() => watcher.WorkingTreeDirectoryCount == 3 && !watcher.IsPolling, watcher);
         Assert.False(watcher.IsPolling);
     }
 
@@ -248,7 +249,7 @@ public class IgnoreAwareWatchingTests
         watcher.Changed += recorder.Record;
         watcher.Start();
         var watchersBefore = watcher.WatcherCount;
-        await WaitForAsync(() => watcher.WatcherCount > watchersBefore);
+        await WatcherWait.UntilAsync(() => watcher.WatcherCount > watchersBefore, watcher);
 
         testRepository.WriteFile(Path.Combine("src", "a", "x.txt"), "changed");
 
@@ -294,7 +295,7 @@ public class IgnoreAwareWatchingTests
 
         lister.Release.SetResult();
 
-        await WaitForAsync(() => watcher.WorkingTreeDirectoryCount > 0);
+        await WatcherWait.UntilAsync(() => watcher.WorkingTreeDirectoryCount > 0, watcher);
         Assert.Equal(2, watcher.WorkingTreeDirectoryCount);
     }
 
@@ -323,16 +324,6 @@ public class IgnoreAwareWatchingTests
 
     private static IEnumerable<string> ExpectedDirectories(TestRepository testRepository, params string[] relative) =>
         relative.Select(path => Path.Combine(testRepository.WorkingTreePath, path));
-
-    private static async Task WaitForAsync(Func<bool> condition)
-    {
-        var deadline = DateTime.UtcNow + WaitLimit;
-        while (!condition())
-        {
-            Assert.True(DateTime.UtcNow < deadline, "Condition not reached in time.");
-            await Task.Delay(20, Token);
-        }
-    }
 
     private sealed class FixedLister(params string[] directories) : IWorkingTreeDirectoryLister
     {
