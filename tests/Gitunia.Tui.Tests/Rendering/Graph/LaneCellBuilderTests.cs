@@ -129,7 +129,7 @@ public class LaneCellBuilderTests
 
         var cells = LaneCellBuilder.Build(row, 2, GraphGlyphSet.Unicode, false, diagonals);
 
-        Assert.Equal("● \U0001FBD4 ", string.Concat(cells.Select(cell => cell.Glyph)));
+        Assert.Equal("● \\ ", string.Concat(cells.Select(cell => cell.Glyph)));
         Assert.Equal(7, cells[2].Color);
     }
 
