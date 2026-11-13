@@ -15,7 +15,7 @@ public static class UpdateAdvice
     {
         InstallRoute.Homebrew => "brew upgrade gitunia",
         InstallRoute.Winget => "winget upgrade Gitunia.Gitunia",
-        InstallRoute.Pacman => $"yay -S gitunia-bin (AUR), or {InstallScriptCommand}",
+        InstallRoute.Pacman => InstallScriptCommand,
         InstallRoute.Apt => InstallScriptCommand,
         InstallRoute.Dnf => InstallScriptCommand,
         _ => null,
