@@ -653,7 +653,7 @@ public class GraphRowRendererTests
 
         Assert.StartsWith("├ │", rows[2], StringComparison.Ordinal);
         Assert.StartsWith("○─╯", rows[3], StringComparison.Ordinal);
-        Assert.StartsWith("├ \\", rows[4], StringComparison.Ordinal);
+        Assert.StartsWith("├ ╲", rows[4], StringComparison.Ordinal);
     }
 
     [Fact]
@@ -704,6 +704,6 @@ public class GraphRowRendererTests
             CommitFactory.Commit(1, "root", []));
 
         Assert.StartsWith("○─╯", rows[4], StringComparison.Ordinal);
-        Assert.StartsWith("│ \\", rows[5], StringComparison.Ordinal);
+        Assert.StartsWith("│ ╲", rows[5], StringComparison.Ordinal);
     }
 }
