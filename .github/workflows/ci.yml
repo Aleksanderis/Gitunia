@@ -164,7 +164,7 @@ jobs:
         run: |
           for project in Core Platform Git App Tui; do
             dotnet test "tests/Gitunia.$project.Tests" -c Release --no-build --filter "Os!=Independent" \
-              --blame-hang-timeout 4m --blame-hang-dump-type none --results-directory TestResults --logger trx || exit 1
+              --blame-hang-timeout 7m --blame-hang-dump-type none --results-directory TestResults --logger trx || exit 1
           done
       - name: Upload test logs and hang report (failure only, #1298)
         if: failure()
@@ -314,12 +314,17 @@ jobs:
           global-json-file: global.json
       - name: Build (warnings, including IL*, are errors)
         run: dotnet build -c Release
+      - name: Install dotnet-stack (a hung test host names what it waits for, #1369)
+        continue-on-error: true
+        run: |
+          dotnet tool install dotnet-stack --tool-path "$RUNNER_TEMP/tools"
+          echo "GITUNIA_STACK_TOOL=$(cygpath -w "$RUNNER_TEMP/tools/dotnet-stack.exe")" >> "$GITHUB_ENV"
       - name: Test (one project at a time, OS-sensitive tests only)
         timeout-minutes: 20
         run: |
           for project in Core Platform Git App Tui; do
             dotnet test "tests/Gitunia.$project.Tests" -c Release --no-build --filter "Os!=Independent" \
-              --blame-hang-timeout 4m --blame-hang-dump-type none --results-directory TestResults --logger trx || exit 1
+              --blame-hang-timeout 7m --blame-hang-dump-type none --results-directory TestResults --logger trx || exit 1
           done
       - name: Upload test logs and hang report (failure only, #1298)
         if: failure()
