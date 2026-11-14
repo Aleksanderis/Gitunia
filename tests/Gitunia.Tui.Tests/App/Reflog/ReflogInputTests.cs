@@ -490,10 +490,12 @@ public class ReflogInputTests
         Assert.False(harness.Reflog.TryExecute(ActionIds.ListDown, null));
     }
 
-    private static TestRepository TwoCommits() =>
-        TestRepository.Create()
+    // Built with git once per process and copied (TestRepository.FromTemplate, #1409).
+    private static TestRepository TwoCommits() => TestRepository.FromTemplate(
+        "reflog-input-two-commits",
+        () => TestRepository.Create()
             .Commit("one", new TestFile("a.txt", "1"))
-            .Commit("two", new TestFile("a.txt", "2"));
+            .Commit("two", new TestFile("a.txt", "2")));
 
     private static string FirstCommit(TestRepository repository) =>
         repository.Git("rev-list", "--max-parents=0", "HEAD").Trim();

@@ -121,7 +121,7 @@ public class WorkingDiffControllerTests
     public async Task GivenTheDiffFocused_WhenJumpingBetweenHunks_ThenTheCursorLandsOnTheHunkHeaders()
     {
         var original = string.Concat(Enumerable.Range(1, 40).Select(number => $"line {number}\n"));
-        using var repository = TestRepository.Create().Commit("base", new TestFile("long.txt", original));
+        using var repository = TestRepository.CreateCommitted("base", new TestFile("long.txt", original));
         repository.WriteFile("long.txt", original.Replace("line 2\n", "two\n").Replace("line 38\n", "thirty-eight\n"));
         using var harness = await Harness.OpenAsync(repository);
         await harness.ExecuteAsync(ActionIds.WorkingTreeOpenDiff);
@@ -227,7 +227,7 @@ public class WorkingDiffControllerTests
     [Fact]
     public async Task GivenAnEmptyWorkingTree_WhenOpeningTheView_ThenTheDiffBoxSaysNoFileIsSelected()
     {
-        using var repository = TestRepository.Create().Commit("base", new TestFile("a.txt", "1\n"));
+        using var repository = TestRepository.CreateCommitted("base", new TestFile("a.txt", "1\n"));
         using var harness = await Harness.OpenAsync(repository);
 
         Assert.Equal("No file selected", Assert.Single(harness.Document().Rows).Text);
@@ -238,7 +238,7 @@ public class WorkingDiffControllerTests
     [Fact]
     public async Task GivenADeletedFile_WhenSelected_ThenItsLinesShowAsRemoved()
     {
-        using var repository = TestRepository.Create().Commit("base", new TestFile("gone.txt", "x\ny\n"));
+        using var repository = TestRepository.CreateCommitted("base", new TestFile("gone.txt", "x\ny\n"));
         repository.Delete("gone.txt");
         using var harness = await Harness.OpenAsync(repository);
 
@@ -249,7 +249,9 @@ public class WorkingDiffControllerTests
     [Fact]
     public async Task GivenAStagedRename_WhenSelected_ThenTheDiffNamesBothPaths()
     {
-        using var repository = TestRepository.Create().Commit("base", new TestFile("old.txt", "a\nb\nc\nd\ne\nf\ng\nh\n"));
+        using var repository = TestRepository.CreateCommitted(
+            "base",
+            new TestFile("old.txt", "a\nb\nc\nd\ne\nf\ng\nh\n"));
         repository.Git("mv", "old.txt", "new.txt");
         using var harness = await Harness.OpenAsync(repository);
 
@@ -260,7 +262,7 @@ public class WorkingDiffControllerTests
     [Fact]
     public async Task GivenAnUntrackedBinaryFile_WhenSelected_ThenTheDiffSaysThatItIsBinary()
     {
-        using var repository = TestRepository.Create().Commit("base", new TestFile("a.txt", "1\n"));
+        using var repository = TestRepository.CreateCommitted("base", new TestFile("a.txt", "1\n"));
         File.WriteAllBytes(Path.Combine(repository.WorkingTreePath, "logo.bin"), [0, 1, 2, 3, 0, 255]);
         using var harness = await Harness.OpenAsync(repository);
 
@@ -270,10 +272,7 @@ public class WorkingDiffControllerTests
     [Fact]
     public async Task GivenAConflictedFile_WhenSelected_ThenTheCombinedDiffShowsTheConflictMarkers()
     {
-        using var repository = TestRepository.Create().Commit("base", new TestFile("f.txt", "a\nb\nc\n"));
-        repository.CheckoutNewBranch("topic").Commit("topic", new TestFile("f.txt", "a\ntheirs\nc\n"));
-        repository.Checkout("main").Commit("main", new TestFile("f.txt", "a\nours\nc\n"));
-        repository.MergeExpectingConflict("topic");
+        using var repository = TestRepository.FromTemplate("working-diff-conflicted", BuildConflicted);
         using var harness = await Harness.OpenAsync(repository);
 
         Assert.StartsWith("@@@", harness.Document().Rows.First(row => row.Kind == DiffRowKind.HunkHeader).Text, StringComparison.Ordinal);
@@ -286,7 +285,10 @@ public class WorkingDiffControllerTests
     {
         Assert.SkipWhen(OperatingSystem.IsWindows(), "Windows file names cannot contain *.");
 
-        using var repository = TestRepository.Create().Commit("base", new TestFile("a*.txt", "1\n"), new TestFile("ab.txt", "1\n"));
+        using var repository = TestRepository.CreateCommitted(
+            "base",
+            new TestFile("a*.txt", "1\n"),
+            new TestFile("ab.txt", "1\n"));
         repository.WriteFile("a*.txt", "star\n").WriteFile("ab.txt", "b\n");
         using var harness = await Harness.OpenAsync(repository);
 
@@ -298,7 +300,7 @@ public class WorkingDiffControllerTests
     public async Task GivenAPathThatIsNotValidUtf8_WhenSelected_ThenTheDiffBoxShowsItsChanges()
     {
         Assert.SkipUnless(OperatingSystem.IsLinux(), "Only Linux allows file names that are not UTF-8.");
-        using var repository = TestRepository.Create().Commit("base", new TestFile("a.txt", "1\n"));
+        using var repository = TestRepository.CreateCommitted("base", new TestFile("a.txt", "1\n"));
         CreateFileWithInvalidName(repository.WorkingTreePath);
 
         using var harness = await Harness.OpenAsync(repository);
@@ -310,7 +312,7 @@ public class WorkingDiffControllerTests
     public async Task GivenTwoHunks_WhenStagingInTheDiff_ThenTheHunkUnderTheCursorIsStagedAndTheCursorMovesToTheNext()
     {
         var original = string.Concat(Enumerable.Range(1, 40).Select(number => $"line {number}\n"));
-        using var repository = TestRepository.Create().Commit("base", new TestFile("long.txt", original));
+        using var repository = TestRepository.CreateCommitted("base", new TestFile("long.txt", original));
         var changed = original.Replace("line 2\n", "two\n", StringComparison.Ordinal).Replace("line 38\n", "thirty-eight\n", StringComparison.Ordinal);
         repository.WriteFile("long.txt", changed);
         using var harness = await Harness.OpenAsync(repository);
@@ -329,7 +331,7 @@ public class WorkingDiffControllerTests
     public async Task GivenTwoEditsInOneMergedHunk_WhenStagingTheSecondGroup_ThenOnlyItIsStaged()
     {
         var original = string.Concat(Enumerable.Range(1, 12).Select(number => $"line {number}\n"));
-        using var repository = TestRepository.Create().Commit("base", new TestFile("f.txt", original));
+        using var repository = TestRepository.CreateCommitted("base", new TestFile("f.txt", original));
         var changed = original.Replace("line 2\n", "two\n", StringComparison.Ordinal).Replace("line 6\n", "six\n", StringComparison.Ordinal);
         repository.WriteFile("f.txt", changed);
         using var harness = await Harness.OpenAsync(repository);
@@ -348,7 +350,7 @@ public class WorkingDiffControllerTests
     public async Task GivenTwoEditsInOneMergedHunk_WhenDiscardingTheSecondGroup_ThenTheFirstEditRemainsAndTheIndexIsUntouched()
     {
         var original = string.Concat(Enumerable.Range(1, 12).Select(number => $"line {number}\n"));
-        using var repository = TestRepository.Create().Commit("base", new TestFile("f.txt", original));
+        using var repository = TestRepository.CreateCommitted("base", new TestFile("f.txt", original));
         var changed = original.Replace("line 2\n", "two\n", StringComparison.Ordinal).Replace("line 6\n", "six\n", StringComparison.Ordinal);
         repository.WriteFile("f.txt", changed);
         using var harness = await Harness.OpenAsync(repository);
@@ -366,7 +368,7 @@ public class WorkingDiffControllerTests
     [Fact]
     public async Task GivenAVisualRangeOverOneAddedLine_WhenStaging_ThenOnlyThatLineIsStagedAndTheRangeEnds()
     {
-        using var repository = TestRepository.Create().Commit("base", new TestFile("f.txt", "a\nb\nc\n"));
+        using var repository = TestRepository.CreateCommitted("base", new TestFile("f.txt", "a\nb\nc\n"));
         repository.WriteFile("f.txt", "a\nB1\nB2\nc\n");
         using var harness = await Harness.OpenAsync(repository);
         await harness.ExecuteAsync(ActionIds.WorkingTreeOpenDiff);
@@ -431,7 +433,7 @@ public class WorkingDiffControllerTests
     [Fact]
     public async Task GivenARangeInTheStagedDiff_WhenUnstaging_ThenTheCursorIsOnTheNextRemainingChange()
     {
-        using var repository = TestRepository.Create().Commit("base", new TestFile("f.txt", "a\nb\nc\n"));
+        using var repository = TestRepository.CreateCommitted("base", new TestFile("f.txt", "a\nb\nc\n"));
         repository.WriteFile("f.txt", "a\nB1\nB2\nB3\nB4\nc\n");
         repository.Git("add", "f.txt");
         using var harness = await Harness.OpenAsync(repository);
@@ -449,7 +451,7 @@ public class WorkingDiffControllerTests
 
     private static async Task<Harness> OpenRangeAsync(string original, string changed, string firstText, int extraRows)
     {
-        var repository = TestRepository.Create().Commit("base", new TestFile("f.txt", original));
+        var repository = TestRepository.CreateCommitted("base", new TestFile("f.txt", original));
         repository.WriteFile("f.txt", changed);
         var harness = await Harness.OpenAsync(repository);
         try
@@ -472,7 +474,7 @@ public class WorkingDiffControllerTests
     [Fact]
     public async Task GivenAVisualRangeOverContextOnly_WhenStaging_ThenItIsRefusedAndNothingChanges()
     {
-        using var repository = TestRepository.Create().Commit("base", new TestFile("f.txt", "a\nb\nc\n"));
+        using var repository = TestRepository.CreateCommitted("base", new TestFile("f.txt", "a\nb\nc\n"));
         repository.WriteFile("f.txt", "a\nB\nc\n");
         using var harness = await Harness.OpenAsync(repository);
         await harness.ExecuteAsync(ActionIds.WorkingTreeOpenDiff);
@@ -491,7 +493,7 @@ public class WorkingDiffControllerTests
     public async Task GivenAStagedHunk_WhenUnstagingInTheStagedDiff_ThenItReturnsToTheWorkingTree()
     {
         var original = string.Concat(Enumerable.Range(1, 40).Select(number => $"line {number}\n"));
-        using var repository = TestRepository.Create().Commit("base", new TestFile("long.txt", original));
+        using var repository = TestRepository.CreateCommitted("base", new TestFile("long.txt", original));
         repository.WriteFile(
             "long.txt",
             original.Replace("line 2\n", "two\n", StringComparison.Ordinal).Replace("line 38\n", "thirty-eight\n", StringComparison.Ordinal));
@@ -543,7 +545,7 @@ public class WorkingDiffControllerTests
     [Fact]
     public async Task GivenAModifiedBinaryFile_WhenStagingInTheDiff_ThenTheWholeFileIsStagedAndSaysSo()
     {
-        using var repository = TestRepository.Create().Commit("base", new TestFile("a.txt", "a\n"));
+        using var repository = TestRepository.CreateCommitted("base", new TestFile("a.txt", "a\n"));
         File.WriteAllBytes(Path.Combine(repository.WorkingTreePath, "pic.bin"), [0, 1, 2, 0, 255]);
         using var harness = await Harness.OpenAsync(repository);
         await harness.ExecuteAsync(ActionIds.WorkingTreeOpenDiff);
@@ -581,7 +583,7 @@ public class WorkingDiffControllerTests
     [Fact]
     public async Task GivenAConflictedFile_WhenStagingInTheDiff_ThenItIsRefused()
     {
-        using var repository = TestRepository.Create().Commit("base", new TestFile("f.txt", "a\nb\n"));
+        using var repository = TestRepository.CreateCommitted("base", new TestFile("f.txt", "a\nb\n"));
         repository.CheckoutNewBranch("topic").WriteFile("f.txt", "a\ntopic\n");
         repository.Git("commit", "-q", "-am", "topic");
         repository.Checkout("main").WriteFile("f.txt", "a\nmain\n");
@@ -599,7 +601,7 @@ public class WorkingDiffControllerTests
     public async Task GivenTwoHunks_WhenDiscardingTheFirstAndTheDialogIsDropped_ThenNothingChanges()
     {
         var original = string.Concat(Enumerable.Range(1, 40).Select(number => $"line {number}\n"));
-        using var repository = TestRepository.Create().Commit("base", new TestFile("long.txt", original));
+        using var repository = TestRepository.CreateCommitted("base", new TestFile("long.txt", original));
         var changed = original.Replace("line 2\n", "two\n", StringComparison.Ordinal).Replace("line 38\n", "thirty-eight\n", StringComparison.Ordinal);
         repository.WriteFile("long.txt", changed);
         using var harness = await Harness.OpenAsync(repository);
@@ -618,7 +620,7 @@ public class WorkingDiffControllerTests
     public async Task GivenTwoHunks_WhenDiscardingTheFirstAndConfirming_ThenOnlyTheSecondEditRemainsAndTheIndexIsUntouched()
     {
         var original = string.Concat(Enumerable.Range(1, 40).Select(number => $"line {number}\n"));
-        using var repository = TestRepository.Create().Commit("base", new TestFile("long.txt", original));
+        using var repository = TestRepository.CreateCommitted("base", new TestFile("long.txt", original));
         var changed = original.Replace("line 2\n", "two\n", StringComparison.Ordinal).Replace("line 38\n", "thirty-eight\n", StringComparison.Ordinal);
         repository.WriteFile("long.txt", changed);
         using var harness = await Harness.OpenAsync(repository);
@@ -636,7 +638,7 @@ public class WorkingDiffControllerTests
     [Fact]
     public async Task GivenAVisualRangeOverOneAddedLine_WhenDiscarding_ThenTheRangeSurvivesTheDialogAndEndsOnYes()
     {
-        using var repository = TestRepository.Create().Commit("base", new TestFile("f.txt", "a\nb\nc\n"));
+        using var repository = TestRepository.CreateCommitted("base", new TestFile("f.txt", "a\nb\nc\n"));
         repository.WriteFile("f.txt", "a\nB1\nB2\nc\n");
         using var harness = await Harness.OpenAsync(repository);
         await harness.ExecuteAsync(ActionIds.WorkingTreeOpenDiff);
@@ -669,7 +671,7 @@ public class WorkingDiffControllerTests
     [Fact]
     public async Task GivenAModifiedFileInTheList_WhenDiscardingAndConfirming_ThenItIsRestoredAndItsStagedChangesStay()
     {
-        using var repository = TestRepository.Create().Commit("base", new TestFile("a.txt", "one\n"));
+        using var repository = TestRepository.CreateCommitted("base", new TestFile("a.txt", "one\n"));
         repository.WriteFile("a.txt", "staged\n");
         repository.Git("add", "a.txt");
         repository.WriteFile("a.txt", "staged and more\n");
@@ -727,7 +729,20 @@ public class WorkingDiffControllerTests
 
     private static void Handle(Harness harness, ActionId action) => harness.Handler.TryExecute(action, null);
 
-    private static TestRepository DefaultRepository()
+    // Built with git once per process and copied (TestRepository.FromTemplate, #1409).
+    private static TestRepository DefaultRepository() =>
+        TestRepository.FromTemplate("working-diff-default", BuildDefaultRepository);
+
+    private static TestRepository BuildConflicted()
+    {
+        var repository = TestRepository.CreateCommitted("base", new TestFile("f.txt", "a\nb\nc\n"));
+        repository.CheckoutNewBranch("topic").Commit("topic", new TestFile("f.txt", "a\ntheirs\nc\n"));
+        repository.Checkout("main").Commit("main", new TestFile("f.txt", "a\nours\nc\n"));
+
+        return repository.MergeExpectingConflict("topic");
+    }
+
+    private static TestRepository BuildDefaultRepository()
     {
         var repository = TestRepository.Create().Commit(
             "base",

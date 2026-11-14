@@ -174,6 +174,22 @@ public class TestRepositoryTests
     }
 
     [Fact]
+    public void GivenCommittedRepositories_WhenMessageOrContentDiffers_ThenTheyDifferAndEqualOnesMatchPlainCommit()
+    {
+        var file = new TestFile("a.txt", "one\n");
+        using var committed = TestRepository.CreateCommitted("first", file);
+        using var again = TestRepository.CreateCommitted("first", file);
+        using var plain = TestRepository.Create().Commit("first", file);
+        using var otherMessage = TestRepository.CreateCommitted("other", file);
+        using var otherContent = TestRepository.CreateCommitted("first", new TestFile("a.txt", "two\n"));
+
+        Assert.Equal(plain.Head, committed.Head);
+        Assert.Equal(committed.Head, again.Head);
+        Assert.NotEqual(committed.Head, otherMessage.Head);
+        Assert.NotEqual(committed.Head, otherContent.Head);
+    }
+
+    [Fact]
     public void GivenOriginTemplate_WhenCopied_ThenTheRemoteIsTheCopiesOwnBareRepository()
     {
         using var first = TestRepositories.WithOrigin();

@@ -223,11 +223,7 @@ public class ConflictEditorInputTests
     [Fact]
     public async Task GivenOneSideDeletedTheFile_WhenOpening_ThenTheEditorStaysClosedAndNamesTheMergetool()
     {
-        using var repository = TestRepository.Create().Commit("Initial", new TestFile(ConflictPath, "x\n"));
-        repository.CheckoutNewBranch("other").Delete(ConflictPath);
-        repository.Git("commit", "-a", "-m", "Delete");
-        repository.Checkout("main").Commit("Change", new TestFile(ConflictPath, "main\n"))
-            .MergeExpectingConflict("other");
+        using var repository = TestRepository.FromTemplate("conflict-editor-deleted-by-them", BuildDeletedByThem);
         using var harness = await Harness.CreateAsync(repository);
 
         Assert.True(harness.Controller.TryExecute(ActionIds.WorkingTreeOpenDiff, null));
@@ -255,7 +251,7 @@ public class ConflictEditorInputTests
     [Fact]
     public async Task GivenACleanFileUnderTheCursor_WhenPressingEnter_ThenTheKeyIsLeftToTheDiff()
     {
-        using var repository = TestRepository.Create().Commit("Initial", new TestFile("a.txt", "a\n"));
+        using var repository = CleanFile();
         repository.WriteFile("a.txt", "changed\n");
         using var harness = await Harness.CreateAsync(repository);
 
@@ -328,13 +324,7 @@ public class ConflictEditorInputTests
     [Fact]
     public async Task GivenTwoConflictedFilesAndTheGraphFocused_WhenPressingTheEditorKey_ThenTheFirstOpens()
     {
-        using var repository = TestRepository.Create()
-            .Commit("Initial", new TestFile("a.txt", "a\n"), new TestFile("b.txt", "b\n"));
-        repository.CheckoutNewBranch("other")
-            .Commit("Other", new TestFile("a.txt", "a other\n"), new TestFile("b.txt", "b other\n"));
-        repository.Checkout("main")
-            .Commit("Main", new TestFile("a.txt", "a main\n"), new TestFile("b.txt", "b main\n"))
-            .MergeExpectingConflict("other");
+        using var repository = TestRepository.FromTemplate("conflict-editor-two-files", BuildTwoConflictedFiles);
         using var harness = await Harness.CreateAsync(repository);
         harness.Send(new FocusPaneCommand(PaneKind.Graph));
 
@@ -360,7 +350,7 @@ public class ConflictEditorInputTests
     [Fact]
     public async Task GivenTheDiffOfACleanFileFocused_WhenPressingTheEditorKey_ThenItOpensNothingAndSaysSo()
     {
-        using var repository = TestRepository.Create().Commit("Initial", new TestFile("a.txt", "a\n"));
+        using var repository = CleanFile();
         repository.WriteFile("a.txt", "changed\n");
         using var harness = await Harness.CreateAsync(repository);
         harness.Send(new FocusPaneCommand(PaneKind.WorkingUnstagedDiff));
@@ -1399,7 +1389,41 @@ public class ConflictEditorInputTests
         return string.Concat(lines.Select(line => $"{line}\n"));
     }
 
-    private static TestRepository LongHunk()
+    // The fixtures below are built with git once per process and copied (TestRepository.FromTemplate, #1409).
+    private static TestRepository LongHunk() => TestRepository.FromTemplate("conflict-editor-long-hunk", BuildLongHunk);
+
+    // Both branches add the same new file with different contents (add/add: stages 2 and 3, no base).
+    private static TestRepository AddedOnBothSides() =>
+        TestRepository.FromTemplate("conflict-editor-added-on-both-sides", BuildAddedOnBothSides);
+
+    private static TestRepository TwoHunks() => TestRepository.FromTemplate("conflict-editor-two-hunks", BuildTwoHunks);
+
+    private static TestRepository CleanFile() =>
+        TestRepository.CreateCommitted("Initial", new TestFile("a.txt", "a\n"));
+
+    private static TestRepository BuildDeletedByThem()
+    {
+        var repository = TestRepository.CreateCommitted("Initial", new TestFile(ConflictPath, "x\n"));
+        repository.CheckoutNewBranch("other").Delete(ConflictPath);
+        repository.Git("commit", "-a", "-m", "Delete");
+
+        return repository.Checkout("main").Commit("Change", new TestFile(ConflictPath, "main\n"))
+            .MergeExpectingConflict("other");
+    }
+
+    private static TestRepository BuildTwoConflictedFiles()
+    {
+        var repository = TestRepository.Create()
+            .Commit("Initial", new TestFile("a.txt", "a\n"), new TestFile("b.txt", "b\n"));
+        repository.CheckoutNewBranch("other")
+            .Commit("Other", new TestFile("a.txt", "a other\n"), new TestFile("b.txt", "b other\n"));
+
+        return repository.Checkout("main")
+            .Commit("Main", new TestFile("a.txt", "a main\n"), new TestFile("b.txt", "b main\n"))
+            .MergeExpectingConflict("other");
+    }
+
+    private static TestRepository BuildLongHunk()
     {
         var common = string.Concat(Enumerable.Range(1, 40).Select(number => $"c{number}\n"));
         var main = Rewritten(common, "main");
@@ -1414,17 +1438,16 @@ public class ConflictEditorInputTests
         return repository.MergeExpectingConflict("other");
     }
 
-    // Both branches add the same new file with different contents (add/add: stages 2 and 3, no base).
-    private static TestRepository AddedOnBothSides()
+    private static TestRepository BuildAddedOnBothSides()
     {
-        var repository = TestRepository.Create().Commit("Initial", new TestFile("base.txt", "x\n"));
+        var repository = TestRepository.CreateCommitted("Initial", new TestFile("base.txt", "x\n"));
         repository.CheckoutNewBranch("other").Commit("Add", new TestFile(ConflictPath, "other\n"));
 
         return repository.Checkout("main").Commit("Add", new TestFile(ConflictPath, "main\n"))
             .MergeExpectingConflict("other");
     }
 
-    private static TestRepository TwoHunks()
+    private static TestRepository BuildTwoHunks()
     {
         var other = TwoHunkBase.Replace("l2\n", "two\n").Replace("l11\n", "eleven\n");
         var main = TwoHunkBase.Replace("l2\n", "II\n").Replace("l11\n", "XI\n");

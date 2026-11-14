@@ -126,7 +126,7 @@ public class StatusActionHandlerTests : IDisposable
     [Fact]
     public async Task GivenIdleDetails_WhenRetrying_ThenNothingToRetry()
     {
-        using var testRepository = TestRepository.Create().Commit("one", new TestFile("a.txt", "1"));
+        using var testRepository = TestRepository.CreateCommitted("one", new TestFile("a.txt", "1"));
         var pump = new UiPump(Token);
         _session = await CreateSessionAsync(pump, testRepository);
         var handler = new StatusActionHandler(new StatusReporter(new Dispatcher(AppState.Empty)), new FakeActiveSessions(() => _session));
@@ -139,7 +139,7 @@ public class StatusActionHandlerTests : IDisposable
     [Fact]
     public async Task GivenFailedDetails_WhenRetrying_ThenTheLoadStartsAgain()
     {
-        using var testRepository = TestRepository.Create().Commit("one", new TestFile("a.txt", "1"));
+        using var testRepository = TestRepository.CreateCommitted("one", new TestFile("a.txt", "1"));
         var pump = new UiPump(Token);
         _session = await CreateSessionAsync(pump, testRepository);
         Assert.True(ObjectId.TryParse(new string('1', 40), out var missing));
