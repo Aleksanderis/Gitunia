@@ -24,11 +24,8 @@ public sealed class GitRunner
 
     // After git exits, a background child of a hook can still hold the pipes open; a read that stays pending this long
     // after the exit ends the output. The cut only cancels a read that has nothing to deliver, so output git wrote
-    // before exiting is never dropped, however late the reader gets scheduled (the cut waits for a responsive pool).
+    // before exiting is never dropped, however late the reader gets scheduled.
     private static readonly TimeSpan DrainGrace = TimeSpan.FromMilliseconds(1500);
-
-    // A work item that waits longer than this in the pool queue means the pool is starved.
-    private static readonly TimeSpan PoolProbeLimit = TimeSpan.FromMilliseconds(100);
 
     // Absolute bound after the exit for RunAsync, for a background child that keeps writing so the grace never lapses.
     private static readonly TimeSpan PostExitLimit = TimeSpan.FromSeconds(5);
@@ -396,30 +393,11 @@ public sealed class GitRunner
         try
         {
             await exitTask.WaitAsync(stopToken).ConfigureAwait(false);
-            await Task.Delay(DrainGrace, stopToken).ConfigureAwait(false);
-            await WaitForResponsivePoolAsync(stopToken).ConfigureAwait(false);
-            await readSource.CancelAsync().ConfigureAwait(false);
+            readSource.CancelAfter(DrainGrace);
         }
         catch (OperationCanceledException)
         {
             // The read ended first.
-        }
-    }
-
-    // A read that git's output already completed can still be waiting for a worker thread to deliver it (or to start
-    // at all) on a loaded host. Cancelling it then would drop output that was in the pipe before git exited, so the
-    // cut waits until a work item queued now runs promptly, which also means the earlier read work has been served.
-    // Bounded by the stop token, the call's timeout and the absolute bound after the exit.
-    private static async Task WaitForResponsivePoolAsync(CancellationToken stopToken)
-    {
-        while (true)
-        {
-            var started = Stopwatch.GetTimestamp();
-            await Task.Run(static () => { }, stopToken).ConfigureAwait(false);
-            if (Stopwatch.GetElapsedTime(started) < PoolProbeLimit)
-            {
-                return;
-            }
         }
     }
 
