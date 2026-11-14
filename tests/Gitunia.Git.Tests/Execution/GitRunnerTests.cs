@@ -24,13 +24,14 @@ public class GitRunnerTests
     private static readonly TimeSpan SlowConsumerDelay =
         TimeSpan.FromMilliseconds(OperatingSystem.IsWindows() ? 3000 : 1500);
 
-    // The fake's background child lives about ten seconds; the grace period is 1.5 s.
-    private static readonly TimeSpan BackgroundChildLimit = TimeSpan.FromSeconds(4);
+    // The fake's background child lives about ten seconds; the grace period is 1.5 s and the cut may wait up to 2 s
+    // more for a busy thread pool (the limit only tells "ended at the grace" from "waited for the child").
+    private static readonly TimeSpan BackgroundChildLimit = TimeSpan.FromSeconds(8);
 
-    // Around the runner's 1.5 s drain grace; only used to word a failure message.
+    // Around the runner's 1.5 s drain grace (up to 3.5 s with the pool deferral); only used to word a failure message.
     private static readonly TimeSpan GraceWindowStart = TimeSpan.FromSeconds(1.4);
 
-    private static readonly TimeSpan GraceWindowEnd = TimeSpan.FromSeconds(2.5);
+    private static readonly TimeSpan GraceWindowEnd = TimeSpan.FromSeconds(4);
 
     // The chatty child writes for ten seconds; the absolute bound after the exit is 5 s.
     private static readonly TimeSpan ChattyChildLimit = TimeSpan.FromSeconds(8);
