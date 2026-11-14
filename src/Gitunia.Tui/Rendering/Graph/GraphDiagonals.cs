@@ -64,7 +64,12 @@ public static class GraphDiagonals
                 }
 
                 var distance = Math.Abs(ending.FromLane - row.Lane);
-                var foundDistance = found is { } known ? Math.Abs(known.OtherLane - row.Lane) : int.MaxValue;
+                var foundDistance = int.MaxValue;
+                if (found is not null)
+                {
+                    foundDistance = Math.Abs(found.Value.OtherLane - row.Lane);
+                }
+
                 if (distance < foundDistance)
                 {
                     found = new DiagonalJunction(row.Lane, ending.FromLane, starting.Color);

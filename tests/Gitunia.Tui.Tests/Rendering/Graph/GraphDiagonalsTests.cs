@@ -304,6 +304,46 @@ public class GraphDiagonalsTests
         Assert.Equal("├ ╲ │ ", Draw(graph, 2, GraphGlyphSet.Unicode));
     }
 
+    // The node on lane 2; lanes 1 and 0 end at it and start again, the farthest lane first in edge order.
+    private static GraphRow LeftOctopus(int number) =>
+        new(
+            CommitFactory.Id(number),
+            2,
+            3,
+            [
+                new GraphEdge(GraphEdgeKind.Incoming, 0, 2, 2),
+                new GraphEdge(GraphEdgeKind.Incoming, 1, 2, 4),
+                new GraphEdge(GraphEdgeKind.Incoming, 2, 2, 1),
+                new GraphEdge(GraphEdgeKind.Outgoing, 2, 0, 3),
+                new GraphEdge(GraphEdgeKind.Outgoing, 2, 1, 5),
+                new GraphEdge(GraphEdgeKind.Outgoing, 2, 2, 1),
+            ]);
+
+    [Fact]
+    public void GivenTheFarthestLaneFirstInEdgeOrder_WhenFindingTheJunction_ThenTheNearestLaneWins()
+    {
+        Assert.Equal(new DiagonalJunction(2, 1, 5), GraphDiagonals.JunctionOf(LeftOctopus(2), LaneColumns));
+    }
+
+    [Fact]
+    public void GivenATieFollowedByANearerLane_WhenFindingTheJunction_ThenTheNearerLaneWins()
+    {
+        var wide = new GraphRow(
+            CommitFactory.Id(2),
+            2,
+            5,
+            [
+                new GraphEdge(GraphEdgeKind.Incoming, 0, 2, 2),
+                new GraphEdge(GraphEdgeKind.Incoming, 4, 2, 4),
+                new GraphEdge(GraphEdgeKind.Incoming, 3, 2, 6),
+                new GraphEdge(GraphEdgeKind.Outgoing, 2, 0, 3),
+                new GraphEdge(GraphEdgeKind.Outgoing, 2, 4, 5),
+                new GraphEdge(GraphEdgeKind.Outgoing, 2, 3, 7),
+            ]);
+
+        Assert.Equal(new DiagonalJunction(2, 3, 7), GraphDiagonals.JunctionOf(wide, 5));
+    }
+
     [Fact]
     public void GivenTwoLanesAtTheSameDistanceEndingAndStartingAtTheNode_WhenPlanning_ThenBothKeepTheirBends()
     {
@@ -327,9 +367,8 @@ public class GraphDiagonalsTests
 
     private static string Draw(CommitGraph graph, int index, GraphGlyphSet glyphs)
     {
-        var isNodeRow = graph[index].Row.Edges.Any(edge => edge.Kind == GraphEdgeKind.Incoming) && graph[index].Row.Edges.Any(edge => edge.Kind == GraphEdgeKind.Outgoing && edge.ToLane != graph[index].Row.Lane);
         var plan = GraphDiagonals.PlanFor(graph, index, LaneColumns);
-        var cells = LaneCellBuilder.Build(graph[index].Row, LaneColumns, glyphs, isNodeRow, plan);
+        var cells = LaneCellBuilder.Build(graph[index].Row, LaneColumns, glyphs, graph[index].Decorations.Count > 0, plan);
         return string.Concat(cells.Select(cell => cell.Glyph));
     }
 }
