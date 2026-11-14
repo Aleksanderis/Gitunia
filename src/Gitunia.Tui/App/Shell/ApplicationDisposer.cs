@@ -9,7 +9,9 @@ namespace Gitunia.Tui.App.Shell;
 /// </summary>
 public sealed class ApplicationDisposer(ITerminalInputWaker? inputWaker = null, TimeSpan? wakeInterval = null)
 {
-    /// <summary>Names a file that gets one line per disposal that needed a wake-up (the CI loop job reads it).</summary>
+    /// <summary>
+    /// Names a file that gets one line per disposal that needed a wake-up (the CI loop job reads it).
+    /// </summary>
     public const string WakeLogVariable = "GITUNIA_WAKE_LOG";
 
     private static readonly TimeSpan DefaultWakeInterval = TimeSpan.FromMilliseconds(250);
