@@ -55,6 +55,7 @@ public sealed partial class RepositoryWatcher : IDisposable
     private Task<RepositoryFingerprintGroups>? _baseline;
     private Timer? _retryTimer;
     private int _attempt;
+    private int _createdDirectoryWatchers;
     private int _acknowledgedRefreshes;
     private readonly Action? _creatingWatchers;
     private volatile HashSet<string>? _ignoredDirectories;
@@ -146,6 +147,12 @@ public sealed partial class RepositoryWatcher : IDisposable
             }
         }
     }
+
+    /// <summary>
+    /// How many directory watchers were created in total, kept or retired again. Every one takes an inotify instance
+    /// while it exists, so tests use it to check that creation stays within the per-tab cap.
+    /// </summary>
+    public int CreatedDirectoryWatcherCount => Volatile.Read(ref _createdDirectoryWatchers);
 
     /// <summary>
     /// Number of non-ignored working tree directories watched one by one
