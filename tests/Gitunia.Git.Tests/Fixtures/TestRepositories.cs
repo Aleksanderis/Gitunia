@@ -26,6 +26,7 @@ public static class TestRepositories
     {
         var repository = TestRepository.FromTemplate("worktree", BuildWithWorktree);
         worktreePath = repository.WorktreePath(WorktreeName);
+
         return repository;
     }
 
@@ -66,6 +67,7 @@ public static class TestRepositories
         lockedPath = repository.WorktreePath("wt-locked");
         prunablePath = repository.WorktreePath("wt-prunable");
         dirtyPath = repository.WorktreePath("wt-dirty");
+
         return repository;
     }
 
@@ -125,6 +127,7 @@ public static class TestRepositories
     {
         var repository = BuildLinear(2);
         repository.AddWorktree(WorktreeName, "wt-branch", createBranch: true);
+
         return repository;
     }
 
@@ -189,6 +192,7 @@ public static class TestRepositories
         repository.Git("worktree", "lock", "--reason", "test lock", lockedPath);
         Directory.Delete(prunablePath, recursive: true);
         File.WriteAllText(Path.Combine(dirtyPath, "file.txt"), "dirty\n");
+
         return repository;
     }
 

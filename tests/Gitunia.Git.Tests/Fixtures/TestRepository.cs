@@ -15,6 +15,9 @@ public sealed class TestRepository : IDisposable
 {
     private static readonly DateTimeOffset Epoch = new(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
 
+    private static readonly StringComparison PathComparison =
+        OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+
     private static readonly ConcurrentDictionary<string, Lazy<TestRepository>> Templates = new();
 
     private static readonly int ProbeTimeout = (int)TimeSpan.FromSeconds(30).TotalMilliseconds;
@@ -53,10 +56,11 @@ public sealed class TestRepository : IDisposable
     public static TestRepository FromTemplate(string key, Func<TestRepository> build)
     {
         var template = Templates.GetOrAdd(key, _ => new Lazy<TestRepository>(build)).Value;
+
         return template.CopyToNewRoot();
     }
 
-    /// <summary>The directory a linked worktree added with <see cref="AddWorktree"/> under <paramref name="name"/> has.</summary>
+    /// <summary>The directory of the linked worktree added with <see cref="AddWorktree"/> under <paramref name="name"/>.</summary>
     public string WorktreePath(string name) => Path.Combine(_rootDirectory, "worktrees", name);
 
     /// <summary>Whether the installed git can create reftable repositories (2.45 and later); tests skip otherwise.</summary>
@@ -181,6 +185,7 @@ public sealed class TestRepository : IDisposable
         GitIn(clone, ["add", "-A"]);
         GitIn(clone, ["commit", "-q", "-m", message]);
         GitIn(clone, ["push", "-q", "origin", branch]);
+        DeleteDirectory(clone);
         Git("fetch", "-q", "origin");
         return this;
     }
@@ -272,6 +277,7 @@ public sealed class TestRepository : IDisposable
         var root = Path.Combine(Path.GetTempPath(), $"gitunia-repo-{Guid.NewGuid().ToString("N")}");
         CopyDirectory(_rootDirectory, root);
         RewriteAbsolutePaths(root);
+
         return new TestRepository(root, Path.Combine(root, "repo"), _commitCounter);
     }
 
@@ -314,8 +320,8 @@ public sealed class TestRepository : IDisposable
         {
             var text = File.ReadAllText(file);
             var rewritten = text
-                .Replace(_rootDirectory, newRoot, StringComparison.Ordinal)
-                .Replace(Slashed(_rootDirectory), Slashed(newRoot), StringComparison.Ordinal);
+                .Replace(_rootDirectory, newRoot, PathComparison)
+                .Replace(Slashed(_rootDirectory), Slashed(newRoot), PathComparison);
             if (rewritten != text)
             {
                 File.WriteAllText(file, rewritten);

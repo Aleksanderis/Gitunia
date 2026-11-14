@@ -184,7 +184,9 @@ public class TestRepositoryTests
         second.Git("push", "-q", "origin", "main");
 
         Assert.Equal(second.OriginPath, remote);
-        Assert.Equal(first.Git("rev-parse", "main").Trim(), first.GitIn(first.OriginPath, ["rev-parse", "main"]).Trim());
+        Assert.Equal(
+            first.Git("rev-parse", "main").Trim(),
+            first.GitIn(first.OriginPath, ["rev-parse", "main"]).Trim());
         Assert.Equal(second.Head, second.GitIn(second.OriginPath, ["rev-parse", "main"]).Trim());
     }
 
