@@ -21,8 +21,8 @@ on:
         description: "platform=loop only: a dotnet test --filter expression ('' runs the whole project)"
         default: ""
       loop_count:
-        description: "platform=loop only: iterations per job"
-        default: "12"
+        description: "platform=loop only: iterations per job (a Windows Tui or App iteration takes about 1.5 minutes; the step stops at 60 minutes)"
+        default: "6"
       loop_runner:
         description: "platform=loop only: runner label (windows-latest, macos-15, windows-11-arm, ubuntu-latest)"
         default: windows-latest
@@ -40,7 +40,7 @@ permissions:
 # `windows-x64`, names are matched by release.yml) is what lets a release skip build and test for the x64 legs.
 
 concurrency:
-  group: ci-${{ github.ref }}-${{ inputs.platform }}-${{ inputs.loop_project }}-${{ inputs.loop_runner }}
+  group: ci-${{ github.ref }}-${{ inputs.platform }}-${{ inputs.loop_project }}-${{ inputs.loop_runner }}-${{ inputs.loop_filter }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
@@ -148,7 +148,7 @@ jobs:
         # The run watchdog of the test projects runs it against its own process before it aborts. Best effort.
         continue-on-error: true
         run: |
-          dotnet tool install dotnet-stack --tool-path "$RUNNER_TEMP/tools"
+          dotnet tool install dotnet-stack --version 10.0.731102 --tool-path "$RUNNER_TEMP/tools"
           echo "GITUNIA_STACK_TOOL=$(cygpath -w "$RUNNER_TEMP/tools/dotnet-stack.exe")" >> "$GITHUB_ENV"
       - name: Test (one project at a time)
         timeout-minutes: 15
@@ -317,7 +317,7 @@ jobs:
       - name: Install dotnet-stack (a hung test host names what it waits for, #1369)
         continue-on-error: true
         run: |
-          dotnet tool install dotnet-stack --tool-path "$RUNNER_TEMP/tools"
+          dotnet tool install dotnet-stack --version 10.0.731102 --tool-path "$RUNNER_TEMP/tools"
           echo "GITUNIA_STACK_TOOL=$(cygpath -w "$RUNNER_TEMP/tools/dotnet-stack.exe")" >> "$GITHUB_ENV"
       - name: Test (one project at a time, OS-sensitive tests only)
         timeout-minutes: 20
@@ -354,7 +354,8 @@ jobs:
   flake-loop:
     # Repeats one test project to measure a flake (#1395, #1396, #1369): `gh workflow run ci.yml -f platform=loop ...`.
     # Never part of a pull request or `all`; one job per entry of `loop_shards`, each keeps going after a failure
-    # and prints how many iterations passed, failed or hung.
+    # and prints how many iterations passed, failed or hung. Remove this job (and its inputs and the dotnet-stack steps)
+    # when #1369 and #1395 are closed (see docs/testing.md).
     if: ${{ inputs.platform == 'loop' }}
     strategy:
       fail-fast: false
@@ -392,7 +393,7 @@ jobs:
       - name: Install dotnet-stack
         continue-on-error: true
         run: |
-          dotnet tool install dotnet-stack --tool-path "$RUNNER_TEMP/tools"
+          dotnet tool install dotnet-stack --version 10.0.731102 --tool-path "$RUNNER_TEMP/tools"
           if [ "$RUNNER_OS" = "Windows" ]; then exe="$(cygpath -w "$RUNNER_TEMP/tools/dotnet-stack.exe")"; else exe="$RUNNER_TEMP/tools/dotnet-stack"; fi
           echo "GITUNIA_STACK_TOOL=$exe" >> "$GITHUB_ENV"
       - name: Environment
@@ -411,8 +412,12 @@ jobs:
           filter=()
           if [ -n "$FILTER" ]; then filter=(--filter "$FILTER"); fi
           pass=0; fail=0; hang=0
+          loop_start=$(date +%s)
+          # Written however the loop ends (the step timeout, an error).
+          trap 'echo "RESULT $RUNNER_OS $PROJECT filter=\"$FILTER\": pass=$pass fail=$fail hang=$hang" | tee -a "$GITHUB_STEP_SUMMARY"' EXIT
           for i in $(seq 1 "$COUNT"); do
             start=$(date +%s)
+            if [ $((start - loop_start)) -gt 3000 ]; then echo "stopping before iteration $i: 50 minutes used"; break; fi
             rm -rf "TestResults/$i"
             code=0
             dotnet test "tests/Gitunia.$PROJECT.Tests" -c Release --no-build "${filter[@]}" \
@@ -421,13 +426,14 @@ jobs:
             if [ $code -eq 0 ]; then pass=$((pass+1)); result=pass
             elif grep -q "run exceeded" "loop-$i.log"; then hang=$((hang+1)); result=HANG
             else fail=$((fail+1)); result=FAIL; fi
-            echo "iteration $i: $result in ${took}s"
+            echo "iteration $i: $result in ${took}s" | tee -a "$GITHUB_STEP_SUMMARY"
             if [ "$result" != pass ]; then
-              echo "::group::log of iteration $i"; grep -E "\[FAIL\]|Error Message|Assert|Condition|exceeded|Managed stacks" -A6 "loop-$i.log" | head -150; echo "::endgroup::"
+              echo "::group::log of iteration $i"
+              { grep -E "\[FAIL\]|Error Message|Assert|Condition|exceeded|Managed stacks" -A6 "loop-$i.log" | head -150; } || true
+              echo "::endgroup::"
             fi
             if [ "$result" = HANG ]; then break; fi
           done
-          echo "RESULT $RUNNER_OS $PROJECT filter='$FILTER': pass=$pass fail=$fail hang=$hang" | tee -a "$GITHUB_STEP_SUMMARY"
       - name: Upload logs
         if: always()
         uses: actions/upload-artifact@v4
