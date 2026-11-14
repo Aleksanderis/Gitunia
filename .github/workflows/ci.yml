@@ -40,7 +40,7 @@ permissions:
 # `windows-x64`, names are matched by release.yml) is what lets a release skip build and test for the x64 legs.
 
 concurrency:
-  group: ci-${{ github.ref }}-${{ inputs.platform }}
+  group: ci-${{ github.ref }}-${{ inputs.platform }}-${{ inputs.loop_project }}-${{ inputs.loop_runner }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
