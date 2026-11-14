@@ -19,13 +19,14 @@ public sealed class IssueTrackerLinks
     private const string HttpPrefix = "http://";
     private const string HttpsPrefix = "https://";
     private const string UrlSafeCharacters = "-._~/:@!$&'()*+,;=?#%";
-    private static readonly TimeSpan DefaultMatchTimeout = TimeSpan.FromMilliseconds(50);
+    private static readonly TimeSpan DefaultMatchTimeout = TimeSpan.FromMilliseconds(500);
 
     private readonly List<CompiledRule> _rules = [];
 
     /// <summary>
     /// Compiles the rules; a rule whose regex does not compile is left out. <paramref name="matchTimeout"/> bounds one
-    /// rule on one line (default 50 ms); a rule that exceeds it makes no links at all.
+    /// rule on one line (default 500 ms: a cold first match on a slow machine took over the former 50 ms and silently
+    /// disabled the rule); a rule that exceeds it makes no links at all.
     /// </summary>
     public IssueTrackerLinks(IReadOnlyList<IssueTrackerRule> rules, TimeSpan? matchTimeout = null)
     {
