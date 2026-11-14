@@ -85,7 +85,8 @@ public class IssueTrackerLinksTests
     [Fact]
     public void GivenARunawayRegex_WhenFinding_ThenItMakesNoLinksInsteadOfHanging()
     {
-        var links = new IssueTrackerLinks([new IssueTrackerRule("slow", "^(a+)+$", "https://x.org/$1")]);
+        var runaway = new IssueTrackerRule("slow", "^(a+)+$", "https://x.org/$1");
+        var links = new IssueTrackerLinks([runaway], TimeSpan.FromMilliseconds(100));
 
         Assert.Empty(links.Find(new string('a', 40) + "!"));
     }
@@ -107,7 +108,8 @@ public class IssueTrackerLinksTests
     [Fact]
     public void GivenARunawayRegex_WhenFindingAgain_ThenTheRuleIsSkippedAtOnce()
     {
-        var links = new IssueTrackerLinks([new IssueTrackerRule("slow", "^(a+)+$", "https://x.org/$1")]);
+        var runaway = new IssueTrackerRule("slow", "^(a+)+$", "https://x.org/$1");
+        var links = new IssueTrackerLinks([runaway], TimeSpan.FromMilliseconds(100));
         var slow = new string('a', 40) + "!";
         links.Find(slow);
 
@@ -126,7 +128,7 @@ public class IssueTrackerLinksTests
         var first = new IssueTrackerRule("a", "(#\\d+)", "https://a.example.org/$1");
         var second = new IssueTrackerRule("b", "(#\\d+)", "https://b.example.org/$1");
 
-        // A generous timeout: under CI load the default 50 ms could expire midway and drop the earlier rule.
+        // A generous timeout: under CI load a short timeout could expire midway and drop the earlier rule.
         var links = new IssueTrackerLinks([first, second], TimeSpan.FromMinutes(1));
         var line = string.Join(' ', Enumerable.Range(1, 30).Select(number => $"#{number}"));
 
