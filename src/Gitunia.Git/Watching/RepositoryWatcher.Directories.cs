@@ -196,6 +196,7 @@ public sealed partial class RepositoryWatcher
             try
             {
                 created[path] = CreateWatcher(path, isRecursive: false);
+                Interlocked.Increment(ref _createdDirectoryWatchers);
             }
             catch (Exception exception) when (IsWatchFailure(exception))
             {

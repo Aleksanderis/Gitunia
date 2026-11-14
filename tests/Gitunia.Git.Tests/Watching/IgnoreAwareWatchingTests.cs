@@ -17,6 +17,9 @@ public class IgnoreAwareWatchingTests
     private static readonly WorkingTreeDirectoryLister Lister = new(Runner);
     private static readonly TimeSpan WaitLimit = TimeSpan.FromSeconds(60);
 
+    // The cap is 6: the two listed directories, the room left for the new tree, and a few for a repeated pass.
+    private const int MaximumCreatedForBigTree = 14;
+
     private static readonly RepositoryWatcherOptions FastOptions = new(
         TimeSpan.FromMilliseconds(40),
         TimeSpan.FromMilliseconds(400),
@@ -125,6 +128,8 @@ public class IgnoreAwareWatchingTests
     [Fact]
     public async Task GivenManyQuickMakeDirectoryPaths_WhenCreated_ThenEveryLevelIsWatched()
     {
+        // Four paths on purpose (the test once used 40): each level is a watcher and so an inotify instance, and a
+        // shared runner has about a hundred. Four back-to-back mkdir -p calls still race the watcher installs.
         const int pathCount = 4;
         using var testRepository = CreateRepositoryWithIgnoredTree();
         var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
@@ -232,6 +237,11 @@ public class IgnoreAwareWatchingTests
 
         await WatcherWait.UntilAsync(() => watcher.WorkingTreeDirectoryCount == 3 && !watcher.IsPolling, watcher);
         Assert.False(watcher.IsPolling);
+
+        // Without the per-tab room limit a new directory created up to 65 watchers at once, each an inotify instance (#1398).
+        Assert.True(
+            watcher.CreatedDirectoryWatcherCount <= MaximumCreatedForBigTree,
+            $"Created {watcher.CreatedDirectoryWatcherCount} directory watchers for a cap of 6.");
     }
 
     [Fact]
