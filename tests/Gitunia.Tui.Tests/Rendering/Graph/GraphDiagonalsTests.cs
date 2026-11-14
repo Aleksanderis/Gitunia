@@ -1,4 +1,6 @@
 using Gitunia.Core.Graph;
+using Gitunia.Git.Commits.Models;
+using Gitunia.Git.Refs.Models;
 using Gitunia.Tui.Rendering.Graph;
 using Xunit;
 
@@ -7,8 +9,6 @@ namespace Gitunia.Tui.Tests.Rendering.Graph;
 public class GraphDiagonalsTests
 {
     private const int LaneColumns = 3;
-
-    private static readonly string[] RoundedCorners = ["●─╯   ", "○─╮   "];
 
     private static CommitGraph GraphOf(params GraphRow[] rows)
     {
@@ -164,26 +164,211 @@ public class GraphDiagonalsTests
     }
 
     [Fact]
-    public void GivenALaneThatOnlyEndsOrOnlyStartsAtTheNode_WhenPlanning_ThenTheRoundedCornersStay()
+    public void GivenALaneThatOnlyEndsAtTheNode_WhenPlanning_ThenTheRoundedCornerStays()
     {
         var onlyEnds = new GraphRow(
             CommitFactory.Id(2),
             0,
             2,
             [new GraphEdge(GraphEdgeKind.Incoming, 1, 0, 2), new GraphEdge(GraphEdgeKind.Outgoing, 0, 0, 1)]);
+        var graph = GraphOf(Passing(1), onlyEnds, Passing(3));
+
+        Assert.Same(RowDiagonals.None, GraphDiagonals.PlanFor(graph, 1, LaneColumns));
+        Assert.Equal("●─╯   ", Draw(graph, 1, GraphGlyphSet.Unicode));
+    }
+
+    [Fact]
+    public void GivenALaneThatOnlyStartsAtTheNode_WhenPlanning_ThenTheRoundedCornerStays()
+    {
         var onlyStarts = new GraphRow(
             CommitFactory.Id(2),
             0,
             2,
             [new GraphEdge(GraphEdgeKind.Outgoing, 0, 0, 1), new GraphEdge(GraphEdgeKind.Outgoing, 0, 1, 3)]);
+        var graph = GraphOf(Passing(1), onlyStarts, Passing(3));
 
-        foreach (var node in new[] { onlyEnds, onlyStarts })
-        {
-            var graph = GraphOf(Passing(1), node, Passing(3));
-            var cells = LaneCellBuilder.Build(node, LaneColumns, GraphGlyphSet.Unicode, true, GraphDiagonals.PlanFor(graph, 1, LaneColumns));
+        Assert.Same(RowDiagonals.None, GraphDiagonals.PlanFor(graph, 1, LaneColumns));
+        Assert.Equal("○─╮   ", Draw(graph, 1, GraphGlyphSet.Unicode));
+    }
 
-            Assert.Same(RowDiagonals.None, GraphDiagonals.PlanFor(graph, 1, LaneColumns));
-            Assert.Contains(string.Concat(cells.Select(cell => cell.Glyph)), RoundedCorners);
-        }
+    // The node on lane 2; lane 0 ends there and starts again; lane 1 runs through the row.
+    private static GraphRow LeftJunction(int number) =>
+        new(
+            CommitFactory.Id(number),
+            2,
+            3,
+            [
+                new GraphEdge(GraphEdgeKind.Incoming, 2, 2, 1),
+                new GraphEdge(GraphEdgeKind.Incoming, 0, 2, 2),
+                new GraphEdge(GraphEdgeKind.Outgoing, 2, 2, 1),
+                new GraphEdge(GraphEdgeKind.Outgoing, 2, 0, 3),
+                new GraphEdge(GraphEdgeKind.Through, 1, 1, 4),
+            ]);
+
+    private static GraphRow PassingLeft(int number) =>
+        new(
+            CommitFactory.Id(number),
+            2,
+            3,
+            [
+                new GraphEdge(GraphEdgeKind.Incoming, 2, 2, 1),
+                new GraphEdge(GraphEdgeKind.Outgoing, 2, 2, 1),
+                new GraphEdge(GraphEdgeKind.Through, 0, 0, 3),
+                new GraphEdge(GraphEdgeKind.Through, 1, 1, 4),
+            ]);
+
+    [Fact]
+    public void GivenAFarLaneToTheLeft_WhenDrawing_ThenTheRunEndsInTheBendAndTheDiagonalFallsToTheLeft()
+    {
+        var graph = GraphOf(PassingLeft(1), LeftJunction(2), PassingLeft(3));
+
+        Assert.Equal("╰───○ ", Draw(graph, 1, GraphGlyphSet.Unicode));
+        Assert.Equal("╱ │ ├ ", Draw(graph, 2, GraphGlyphSet.Unicode));
+        Assert.Equal("/ | | ", Draw(graph, 2, GraphGlyphSet.Ascii));
+    }
+
+    [Fact]
+    public void GivenAFarLaneInTheLastColumn_WhenPlanning_ThenTheDiagonalFitsAndOneColumnLessKeepsTheBend()
+    {
+        var graph = GraphOf(PassingTwo(1), FarJunction(2), PassingTwo(3));
+
+        Assert.Equal(new DiagonalMark(2, true, 3), Assert.Single(GraphDiagonals.PlanFor(graph, 2, 3).Marks));
+        Assert.Same(RowDiagonals.None, GraphDiagonals.PlanFor(graph, 2, 2));
+    }
+
+    [Fact]
+    public void GivenABendOverTheFarCellInTheRowBelow_WhenPlanning_ThenTheBendStays()
+    {
+        var bend = new GraphRow(
+            CommitFactory.Id(3),
+            0,
+            3,
+            [
+                new GraphEdge(GraphEdgeKind.Incoming, 2, 0, 5),
+                new GraphEdge(GraphEdgeKind.Outgoing, 0, 0, 1),
+                new GraphEdge(GraphEdgeKind.Through, 1, 1, 4),
+            ]);
+        var graph = GraphOf(PassingTwo(1), FarJunction(2), bend);
+
+        Assert.Same(RowDiagonals.None, GraphDiagonals.PlanFor(graph, 1, LaneColumns));
+        Assert.Equal("○───┤ ", Draw(graph, 1, GraphGlyphSet.Unicode));
+    }
+
+    [Fact]
+    public void GivenADecoratedCommitOnTheFarLaneBelow_WhenPlanning_ThenTheBendStays()
+    {
+        var tip = new GraphRow(
+            CommitFactory.Id(3),
+            2,
+            3,
+            [
+                new GraphEdge(GraphEdgeKind.Incoming, 2, 2, 3),
+                new GraphEdge(GraphEdgeKind.Outgoing, 2, 2, 3),
+                new GraphEdge(GraphEdgeKind.Through, 0, 0, 1),
+                new GraphEdge(GraphEdgeKind.Through, 1, 1, 4),
+            ]);
+        var branch = new CommitDecoration("refs/heads/topic", "topic", RefKind.LocalBranch, false);
+        var graph = new CommitGraph();
+        graph.AddRange(
+        [
+            new GraphEntry("subject", "author", DateTimeOffset.UnixEpoch, [], PassingTwo(1)),
+            new GraphEntry("subject", "author", DateTimeOffset.UnixEpoch, [], FarJunction(2)),
+            new GraphEntry("subject", "author", DateTimeOffset.UnixEpoch, [branch], tip),
+        ]);
+
+        Assert.Same(RowDiagonals.None, GraphDiagonals.PlanFor(graph, 1, LaneColumns));
+    }
+
+    // Lanes 1 and 2 end at the node on lane 0 and start again (an octopus merge into freed lanes).
+    private static GraphRow Octopus(int number) =>
+        new(
+            CommitFactory.Id(number),
+            0,
+            3,
+            [
+                new GraphEdge(GraphEdgeKind.Incoming, 0, 0, 1),
+                new GraphEdge(GraphEdgeKind.Incoming, 1, 0, 2),
+                new GraphEdge(GraphEdgeKind.Incoming, 2, 0, 4),
+                new GraphEdge(GraphEdgeKind.Outgoing, 0, 0, 1),
+                new GraphEdge(GraphEdgeKind.Outgoing, 0, 1, 3),
+                new GraphEdge(GraphEdgeKind.Outgoing, 0, 2, 5),
+            ]);
+
+    [Fact]
+    public void GivenTwoLanesEndingAndStartingAtTheNode_WhenDrawing_ThenOnlyTheNearestGetsTheDiagonal()
+    {
+        var graph = GraphOf(PassingTwo(1), Octopus(2), PassingTwo(3));
+
+        Assert.Equal(new DiagonalJunction(0, 1, 3), GraphDiagonals.JunctionOf(graph[1].Row, LaneColumns));
+        Assert.Equal("○─┴─┤ ", Draw(graph, 1, GraphGlyphSet.Unicode));
+        Assert.Equal("├ ╲ │ ", Draw(graph, 2, GraphGlyphSet.Unicode));
+    }
+
+    // The node on lane 2; lanes 1 and 0 end at it and start again, the farthest lane first in edge order.
+    private static GraphRow LeftOctopus(int number) =>
+        new(
+            CommitFactory.Id(number),
+            2,
+            3,
+            [
+                new GraphEdge(GraphEdgeKind.Incoming, 0, 2, 2),
+                new GraphEdge(GraphEdgeKind.Incoming, 1, 2, 4),
+                new GraphEdge(GraphEdgeKind.Incoming, 2, 2, 1),
+                new GraphEdge(GraphEdgeKind.Outgoing, 2, 0, 3),
+                new GraphEdge(GraphEdgeKind.Outgoing, 2, 1, 5),
+                new GraphEdge(GraphEdgeKind.Outgoing, 2, 2, 1),
+            ]);
+
+    [Fact]
+    public void GivenTheFarthestLaneFirstInEdgeOrder_WhenFindingTheJunction_ThenTheNearestLaneWins()
+    {
+        Assert.Equal(new DiagonalJunction(2, 1, 5), GraphDiagonals.JunctionOf(LeftOctopus(2), LaneColumns));
+    }
+
+    [Fact]
+    public void GivenATieFollowedByANearerLane_WhenFindingTheJunction_ThenTheNearerLaneWins()
+    {
+        var wide = new GraphRow(
+            CommitFactory.Id(2),
+            2,
+            5,
+            [
+                new GraphEdge(GraphEdgeKind.Incoming, 0, 2, 2),
+                new GraphEdge(GraphEdgeKind.Incoming, 4, 2, 4),
+                new GraphEdge(GraphEdgeKind.Incoming, 3, 2, 6),
+                new GraphEdge(GraphEdgeKind.Outgoing, 2, 0, 3),
+                new GraphEdge(GraphEdgeKind.Outgoing, 2, 4, 5),
+                new GraphEdge(GraphEdgeKind.Outgoing, 2, 3, 7),
+            ]);
+
+        Assert.Equal(new DiagonalJunction(2, 3, 7), GraphDiagonals.JunctionOf(wide, 5));
+    }
+
+    [Fact]
+    public void GivenTwoLanesAtTheSameDistanceEndingAndStartingAtTheNode_WhenPlanning_ThenBothKeepTheirBends()
+    {
+        var node = new GraphRow(
+            CommitFactory.Id(2),
+            1,
+            3,
+            [
+                new GraphEdge(GraphEdgeKind.Incoming, 1, 1, 1),
+                new GraphEdge(GraphEdgeKind.Incoming, 0, 1, 2),
+                new GraphEdge(GraphEdgeKind.Incoming, 2, 1, 4),
+                new GraphEdge(GraphEdgeKind.Outgoing, 1, 1, 1),
+                new GraphEdge(GraphEdgeKind.Outgoing, 1, 0, 3),
+                new GraphEdge(GraphEdgeKind.Outgoing, 1, 2, 5),
+            ]);
+        var graph = GraphOf(PassingTwo(1), node, PassingTwo(3));
+
+        Assert.Null(GraphDiagonals.JunctionOf(node, LaneColumns));
+        Assert.Same(RowDiagonals.None, GraphDiagonals.PlanFor(graph, 1, LaneColumns));
+    }
+
+    private static string Draw(CommitGraph graph, int index, GraphGlyphSet glyphs)
+    {
+        var plan = GraphDiagonals.PlanFor(graph, index, LaneColumns);
+        var cells = LaneCellBuilder.Build(graph[index].Row, LaneColumns, glyphs, graph[index].Decorations.Count > 0, plan);
+        return string.Concat(cells.Select(cell => cell.Glyph));
     }
 }
