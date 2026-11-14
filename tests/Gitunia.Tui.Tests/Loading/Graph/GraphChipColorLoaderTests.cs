@@ -13,8 +13,7 @@ public class GraphChipColorLoaderTests
     [Fact]
     public async Task GivenBranchStackedOnMainWithRemote_WhenRendering_ThenChipsDifferAndMainWithOriginMainShareOne()
     {
-        using var testRepository = TestRepository.Create();
-        testRepository.Commit("root", new TestFile("a.txt", "1"));
+        using var testRepository = TestRepository.CreateCommitted("root", new TestFile("a.txt", "1"));
         testRepository.Commit("add export", new TestFile("b.txt", "1"));
         testRepository.Git("update-ref", "refs/remotes/origin/main", "HEAD");
         testRepository.CheckoutNewBranch("test").Commit("wip test", new TestFile("c.txt", "1"));
@@ -35,8 +34,7 @@ public class GraphChipColorLoaderTests
     [Fact]
     public async Task GivenRemoteBranchesOfTwoRemotesWithOneName_WhenRendering_ThenTheyShareTheColourOfThatName()
     {
-        using var testRepository = TestRepository.Create();
-        testRepository.Commit("root", new TestFile("a.txt", "1"));
+        using var testRepository = TestRepository.CreateCommitted("root", new TestFile("a.txt", "1"));
         testRepository.Git("update-ref", "refs/remotes/origin/feature", "HEAD");
         testRepository.Git("update-ref", "refs/remotes/upstream/feature", "HEAD");
         testRepository.Git("update-ref", "refs/remotes/origin/other", "HEAD");
@@ -54,8 +52,7 @@ public class GraphChipColorLoaderTests
     [Fact]
     public async Task GivenManyBranchesStackedOnOneLane_WhenRendering_ThenNeighbouringChipsNeverShareAColour()
     {
-        using var testRepository = TestRepository.Create();
-        testRepository.Commit("root", new TestFile("a.txt", "1"));
+        using var testRepository = TestRepository.CreateCommitted("root", new TestFile("a.txt", "1"));
         for (var number = 0; number < 8; number++)
         {
             testRepository.Commit($"step {number}", new TestFile($"f{number}.txt", "1"));

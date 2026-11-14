@@ -23,8 +23,7 @@ public class GraphTabBinderTests
     [Fact]
     public async Task GivenSelectedCommit_WhenTheGraphIsReplacedWithNewCommitsOnTop_ThenTheSameCommitStaysSelected()
     {
-        using var repository = TestRepository.Create();
-        repository.Commit("one", new TestFile("a.txt", "1")).Commit("two", new TestFile("a.txt", "2")).Commit("three", new TestFile("a.txt", "3"));
+        using var repository = WordCommits(3);
         using var harness = await Harness.LoadAsync(repository);
         var selected = harness.Session.Graph[2].Id;
         harness.Host.Dispatch(new TabCommand(harness.TabId, new SelectCommitCommand(selected)));
@@ -44,8 +43,7 @@ public class GraphTabBinderTests
     [Fact]
     public async Task GivenSelectedCommit_WhenTheGraphIsReplaced_ThenTheBinderReportsReplacingOnlyWhileItMovesTheRow()
     {
-        using var repository = TestRepository.Create();
-        repository.Commit("one", new TestFile("a.txt", "1")).Commit("two", new TestFile("a.txt", "2"));
+        using var repository = WordCommits(2);
         using var harness = await Harness.LoadAsync(repository);
         harness.Host.Dispatch(new TabCommand(harness.TabId, new SelectCommitCommand(harness.Session.Graph[1].Id)));
         harness.Graph.SelectedItem = 1;
@@ -67,8 +65,7 @@ public class GraphTabBinderTests
     [Fact]
     public async Task GivenCursorOnHead_WhenANewCommitArrives_ThenSelectionReplacedReportsTheNewTopCommitOnTheSameRow()
     {
-        using var repository = TestRepository.Create();
-        repository.Commit("one", new TestFile("a.txt", "1")).Commit("two", new TestFile("a.txt", "2"));
+        using var repository = WordCommits(2);
         using var harness = await Harness.LoadAsync(repository);
         var oldTop = harness.Session.Graph[0].Id;
         harness.Graph.SelectedItem = 0;
@@ -94,8 +91,7 @@ public class GraphTabBinderTests
     [Fact]
     public async Task GivenSelectedCommit_WhenItDisappearsFromTheGraph_ThenTheNearestRowIsSelectedAndSaved()
     {
-        using var repository = TestRepository.Create();
-        repository.Commit("one", new TestFile("a.txt", "1")).Commit("two", new TestFile("a.txt", "2")).Commit("three", new TestFile("a.txt", "3"));
+        using var repository = WordCommits(3);
         using var harness = await Harness.LoadAsync(repository);
         var selected = harness.Session.Graph[0].Id;
         harness.Host.Dispatch(new TabCommand(harness.TabId, new SelectCommitCommand(selected)));
@@ -115,11 +111,7 @@ public class GraphTabBinderTests
     [Fact]
     public async Task GivenScrolledList_WhenCommitsArriveOnTop_ThenSelectionKeepsItsScreenRow()
     {
-        using var repository = TestRepository.Create();
-        for (var index = 0; index < 30; index++)
-        {
-            repository.Commit($"commit {index}", new TestFile("a.txt", index.ToString()));
-        }
+        using var repository = NumberedCommits(30);
 
         using var harness = await Harness.LoadAsync(repository);
         var selected = harness.Session.Graph[15].Id;
@@ -162,11 +154,7 @@ public class GraphTabBinderTests
     [Fact]
     public async Task GivenCursorOnHead_WhenACommitArrivesOnTop_ThenTheCursorFollowsTheNewHeadAndSavesIt()
     {
-        using var repository = TestRepository.Create();
-        for (var index = 0; index < 30; index++)
-        {
-            repository.Commit($"commit {index}", new TestFile("a.txt", index.ToString()));
-        }
+        using var repository = NumberedCommits(30);
 
         using var harness = await Harness.LoadAsync(repository);
         harness.Graph.SelectedItem = 0;
@@ -188,13 +176,7 @@ public class GraphTabBinderTests
     [Fact]
     public async Task GivenCursorOnHeadScrolledDown_WhenACommitArrivesOnTop_ThenTheListScrollsBackToTheTop()
     {
-        using var repository = TestRepository.Create();
-        for (var index = 0; index < 30; index++)
-        {
-            repository.Commit($"commit {index}", new TestFile("a.txt", index.ToString()));
-        }
-
-        repository.Git("checkout", "--detach", "HEAD~12");
+        using var repository = NumberedCommits(30, 12);
         using var harness = await Harness.LoadAsync(repository);
         Assert.Equal(12, harness.Session.Graph.HeadIndex());
         harness.Graph.SelectedItem = 12;
@@ -217,11 +199,7 @@ public class GraphTabBinderTests
     [Fact]
     public async Task GivenSavedDeepSelection_WhenTheTabOpens_ThenTheCursorIsOnHeadAtTheTop()
     {
-        using var repository = TestRepository.Create();
-        for (var index = 0; index < 30; index++)
-        {
-            repository.Commit($"commit {index}", new TestFile("a.txt", index.ToString()));
-        }
+        using var repository = NumberedCommits(30);
 
         var deep = repository.Git("rev-parse", "HEAD~20").Trim();
         using var harness = await Harness.LoadAsync(repository, deep, 15);
@@ -236,12 +214,7 @@ public class GraphTabBinderTests
     [Fact]
     public async Task GivenDetachedHeadBelowTheNewestCommit_WhenTheTabOpens_ThenTheCursorIsOnTheDetachedHead()
     {
-        using var repository = TestRepository.Create();
-        for (var index = 0; index < 8; index++)
-        {
-            repository.Commit($"commit {index}", new TestFile("a.txt", index.ToString()));
-        }
-
+        using var repository = NumberedCommits(8);
         var head = repository.Git("rev-parse", "HEAD~3").Trim();
         repository.Git("checkout", "--detach", head);
         repository.Git("branch", "-f", "other", "main");
@@ -256,13 +229,10 @@ public class GraphTabBinderTests
     [Fact]
     public async Task GivenTabShownBefore_WhenAnotherTabIsShownAndThisOneAgain_ThenItKeepsItsOwnSelection()
     {
-        using var first = TestRepository.Create();
-        using var second = TestRepository.Create();
-        for (var index = 0; index < 10; index++)
-        {
-            first.Commit($"commit {index}", new TestFile("a.txt", index.ToString()));
-            second.Commit($"other {index}", new TestFile("b.txt", index.ToString()));
-        }
+        using var first = NumberedCommits(10);
+        using var second = TestRepository.FromTemplate(
+            "graph-tab-binder-other-10",
+            () => BuildNumbered(10, "other", "b.txt"));
 
         using var harness = await Harness.LoadAsync(first);
         var deep = harness.Session.Graph[6].Id;
@@ -283,13 +253,7 @@ public class GraphTabBinderTests
     [Fact]
     public async Task GivenCursorOnTheNewestCommitAboveHead_WhenACommitArrives_ThenTheCursorStaysOnItsCommit()
     {
-        using var repository = TestRepository.Create();
-        for (var index = 0; index < 6; index++)
-        {
-            repository.Commit($"commit {index}", new TestFile("a.txt", index.ToString()));
-        }
-
-        repository.Git("checkout", "--detach", "HEAD~3");
+        using var repository = NumberedCommits(6, 3);
         using var harness = await Harness.LoadAsync(repository);
         var newest = harness.Session.Graph[0].Id;
         harness.Graph.SelectedItem = 0;
@@ -303,6 +267,45 @@ public class GraphTabBinderTests
 
         Assert.Equal(newest, harness.Session.Graph[harness.Graph.SelectedItem!.Value].Id);
         Assert.Equal(newest, harness.Host.Workspace.FindTab(harness.TabId)!.View.SelectedCommit);
+    }
+
+    // The repositories are built with git once per process and copied (TestRepository.FromTemplate, #1409).
+    // Commits "one", "two", "three" rewriting a.txt.
+    private static TestRepository WordCommits(int count) => TestRepository.FromTemplate(
+        $"graph-tab-binder-words-{count}",
+        () => BuildWords(count));
+
+    // Commits "commit 0" and on, rewriting a.txt; a detachedBy above 0 checks out that many commits below the tip.
+    private static TestRepository NumberedCommits(int count, int detachedBy = 0) => TestRepository.FromTemplate(
+        $"graph-tab-binder-numbered-{count}-{detachedBy}",
+        () => BuildNumbered(count, "commit", "a.txt", detachedBy));
+
+    private static TestRepository BuildWords(int count)
+    {
+        string[] words = ["one", "two", "three"];
+        var repository = TestRepository.Create();
+        for (var index = 0; index < count; index++)
+        {
+            repository.Commit(words[index], new TestFile("a.txt", (index + 1).ToString()));
+        }
+
+        return repository;
+    }
+
+    private static TestRepository BuildNumbered(int count, string subject, string file, int detachedBy = 0)
+    {
+        var repository = TestRepository.Create();
+        for (var index = 0; index < count; index++)
+        {
+            repository.Commit($"{subject} {index}", new TestFile(file, index.ToString()));
+        }
+
+        if (detachedBy > 0)
+        {
+            repository.Git("checkout", "--detach", $"HEAD~{detachedBy}");
+        }
+
+        return repository;
     }
 
     private sealed class Harness : IDisposable

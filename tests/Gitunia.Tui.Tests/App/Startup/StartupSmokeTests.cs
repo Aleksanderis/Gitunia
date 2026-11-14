@@ -17,8 +17,7 @@ public class StartupSmokeTests
     [Fact]
     public async Task GivenARepository_WhenStartingTheShell_ThenItDrawsTheFirstFrameWithStatusBarAndHistory()
     {
-        using var repository = TestRepository.Create();
-        repository.Commit("root", new TestFile("a.txt", "one\n"));
+        using var repository = TestRepository.CreateCommitted("root", new TestFile("a.txt", "one\n"));
         using var directories = new TempDirectories();
         var location = await TestGit.Services.Discovery.DiscoverAsync(
             repository.WorkingTreePath,

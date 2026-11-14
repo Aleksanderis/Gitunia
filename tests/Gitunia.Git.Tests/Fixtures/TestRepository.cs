@@ -2,6 +2,8 @@ using System.Collections.Concurrent;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
+using System.Security.Cryptography;
+using System.Text;
 using Gitunia.Git.Execution;
 
 namespace Gitunia.Git.Tests.Fixtures;
@@ -58,6 +60,24 @@ public sealed class TestRepository : IDisposable
         var template = Templates.GetOrAdd(key, _ => new Lazy<TestRepository>(build)).Value;
 
         return template.CopyToNewRoot();
+    }
+
+    /// <summary>
+    /// Creates a repository with one commit of <paramref name="files"/>, equal to <c>Create().Commit(message, files)</c>
+    /// but built once per process for each distinct message and file set, then copied
+    /// (<see cref="FromTemplate"/>, #1409).
+    /// </summary>
+    public static TestRepository CreateCommitted(string message, params TestFile[] files)
+    {
+        var description = new StringBuilder(message);
+        foreach (var file in files)
+        {
+            description.Append('\0').Append(file.RelativePath).Append('\0').Append(file.Content);
+        }
+
+        var hash = SHA256.HashData(Encoding.UTF8.GetBytes(description.ToString()));
+
+        return FromTemplate($"committed-{Convert.ToHexString(hash)}", () => Create().Commit(message, files));
     }
 
     /// <summary>The directory of the linked worktree added with <see cref="AddWorktree"/> under <paramref name="name"/>.</summary>
