@@ -76,8 +76,11 @@ public class GraphTabBinderTests
         harness.Graph.ValueChanged += (_, _) => rowEvents++;
 
         var shownOnReplace = new List<ObjectId>();
+        var effects = harness.Effects;
+        var tabId = harness.TabId;
+        var graph = harness.Graph;
         harness.Binder.SelectionReplaced += () =>
-            shownOnReplace.Add(harness.Session.Graph[harness.Graph.SelectedItem!.Value].Id);
+            shownOnReplace.Add(effects.SessionOf(tabId)!.Graph[graph.SelectedItem!.Value].Id);
         repository.Commit("three", new TestFile("a.txt", "3"));
         harness.Effects.Refresh(harness.TabId);
         await harness.Pump.RunUntilAsync(() => shownOnReplace.Count == 1);

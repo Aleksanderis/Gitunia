@@ -136,7 +136,7 @@ public sealed class SshConfigCacheTests : IDisposable
         Assert.Equal(2, _reads);
     }
 
-    private async Task<string> GetAsync() => await _cache.GetAsync(_location, ReadAsync, Token);
+    private async Task GetAsync() => await _cache.GetAsync(_location, ReadAsync, Token);
 
     private Task<string> ReadAsync()
     {

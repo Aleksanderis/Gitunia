@@ -196,8 +196,6 @@ public static class RepositoryFingerprint
                 case RepositoryChangeKinds.Operation:
                     AddEntry(ref _operation, entry);
                     break;
-                default:
-                    break;
             }
         }
 
@@ -211,7 +209,7 @@ public static class RepositoryFingerprint
             _operation.Add(directory);
         }
 
-        public readonly RepositoryFingerprintGroups ToGroups() => new(
+        public RepositoryFingerprintGroups ToGroups() => new(
             _head.ToHashCode(),
             _refs.ToHashCode(),
             _index.ToHashCode(),
