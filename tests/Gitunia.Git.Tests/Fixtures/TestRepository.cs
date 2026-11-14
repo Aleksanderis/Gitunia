@@ -321,13 +321,21 @@ public sealed class TestRepository : IDisposable
             var text = File.ReadAllText(file);
             var rewritten = text
                 .Replace(_rootDirectory, newRoot, PathComparison)
-                .Replace(Slashed(_rootDirectory), Slashed(newRoot), PathComparison);
+                .Replace(Slashed(_rootDirectory), Slashed(newRoot), PathComparison)
+                .Replace(Escaped(_rootDirectory), Escaped(newRoot), PathComparison);
             if (rewritten != text)
             {
+                // Git marks the .git file of a linked worktree hidden on Windows, which makes a plain write fail.
+                var attributes = File.GetAttributes(file);
+                File.SetAttributes(file, FileAttributes.Normal);
                 File.WriteAllText(file, rewritten);
+                File.SetAttributes(file, attributes);
             }
         }
     }
+
+    // Git writes a backslash in a config value as two (the remote URL of the repository on Windows).
+    private static string Escaped(string path) => path.Replace("\\", "\\\\", StringComparison.Ordinal);
 
     private static string Slashed(string path) => path.Replace('\\', '/');
 
