@@ -115,7 +115,9 @@ public class DisposeWaitsTests
         Assert.Equal(1, details.WoundDownCount);
     }
 
-    private static async Task<(EffectRunner<TabSession> Effects, TabId TabId, RepositoryLocation Location)> StartAsync(GitServices services, EffectRunnerOptions<TabSession>? options = null)
+    private static async Task<(EffectRunner<TabSession> Effects, TabId TabId, RepositoryLocation Location)> StartAsync(
+        GitServices services,
+        EffectRunnerOptions<TabSession>? options = null)
     {
         var pump = new UiPump(TestContext.Current.CancellationToken);
         var location = FakeStatusReader.LocationOf("first");
