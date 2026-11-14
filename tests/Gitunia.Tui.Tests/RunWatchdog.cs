@@ -76,7 +76,7 @@ internal static class RunWatchdog
                 return "  (dotnet-stack did not finish in time)";
             }
 
-            return $"{output.Result}{errors.Result}";
+            return StackReportCompactor.Compact($"{output.Result}{errors.Result}");
         }
         catch (Exception exception)
         {
