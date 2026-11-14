@@ -63,11 +63,9 @@ public class PickerInputTests
     {
         var home = Path.Combine(Path.GetPathRoot(Path.GetTempPath())!, "picker-input-tests", "home");
         var recents = Enumerable.Range(1, 12).Select(number => Path.Combine(home, "code", $"recent{number:00}"));
-        var state = AppState.Empty with
-        {
-            Shell = ShellState.Empty with { Picker = PickerSession.Empty with { HomeDirectory = home } },
-            Workspace = Workspace.Empty with { Recents = [.. recents] },
-        };
+        var state = new AppState(
+            Workspace.Empty with { Recents = [.. recents] },
+            ShellState.Empty with { Picker = PickerSession.Empty with { HomeDirectory = home } });
         var host = new Dispatcher(state);
         host.Dispatch(new PickerOpenRequested(null, string.Empty, Now));
 

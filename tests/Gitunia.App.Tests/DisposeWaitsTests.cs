@@ -97,7 +97,7 @@ public class DisposeWaitsTests
         var blame = new BlockingReader();
         var details = new BlockingReader();
         var services = fakes.Services with { IssueTracker = issues, Blame = blame, CommitDetails = details };
-        var (effects, tabId, location) = await StartAsync(fakes, services);
+        var (effects, tabId, location) = await StartAsync(services);
         effects.Run(new StartBlameEffect(tabId, location, "a.txt", null, 1));
         effects.SessionOf(tabId)!.Details.Select(FakeCommitDetailsReader.Chain(1).Commits[0]);
         Assert.True(issues.WaitStarted(Limit));
@@ -115,7 +115,9 @@ public class DisposeWaitsTests
         Assert.Equal(1, details.WoundDownCount);
     }
 
-    private static async Task<(EffectRunner<TabSession> Effects, TabId TabId, RepositoryLocation Location)> StartAsync(FakeGitServices fakes, GitServices services, EffectRunnerOptions<TabSession>? options = null)
+    private static async Task<(EffectRunner<TabSession> Effects, TabId TabId, RepositoryLocation Location)> StartAsync(
+        GitServices services,
+        EffectRunnerOptions<TabSession>? options = null)
     {
         var pump = new UiPump(TestContext.Current.CancellationToken);
         var location = FakeStatusReader.LocationOf("first");
@@ -158,7 +160,7 @@ public class DisposeWaitsTests
             CommitWriter = commits,
             IndexWriter = index,
         };
-        var (effects, tabId, location) = await StartAsync(fakes, services);
+        var (effects, tabId, location) = await StartAsync(services);
         var session = effects.SessionOf(tabId)!;
         var commit = FakeCommitDetailsReader.Chain(1).Commits[0];
         var entry = new StatusEntry(StatusEntryKind.Ordinary, "a.txt", null, FileChangeKind.Unmodified, FileChangeKind.Modified, null, ConflictKind.None, null);
@@ -218,7 +220,7 @@ public class DisposeWaitsTests
         fakes.CommitLog.AddOnTop("root");
         var blocking = new BlockingReader();
         var services = fakes.Services with { Remote = blocking, Creator = blocking, Discarder = blocking };
-        var (effects, tabId, location) = await StartAsync(fakes, services);
+        var (effects, tabId, location) = await StartAsync(services);
         var entry = new StatusEntry(StatusEntryKind.Ordinary, "a.txt", null, FileChangeKind.Unmodified, FileChangeKind.Modified, null, ConflictKind.None, null);
         effects.Run(new FetchEffect(tabId, location, false));
         effects.Run(new InitRepositoryEffect("somewhere"));
@@ -347,7 +349,6 @@ public class DisposeWaitsTests
         var creator = new BlockingReader();
         var fakes = new FakeGitServices();
         var (effects, _, _) = await StartAsync(
-            fakes,
             fakes.Services with { Creator = creator },
             new EffectRunnerOptions<TabSession>
             {

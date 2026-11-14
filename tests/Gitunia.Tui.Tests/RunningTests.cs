@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Reflection;
 using Xunit.v3;
 
+// ReSharper disable once RedundantNameQualifier : Attribute precedes the namespace, qualifier required
 [assembly: Gitunia.Tui.Tests.TrackRunningTests]
 
 namespace Gitunia.Tui.Tests;
