@@ -66,7 +66,7 @@ Autonomous work (one issue, a milestone, reviews, PRs) follows the policy in `.c
 
 - `spike` issues are never merged by an agent: they stay on unmerged `spike/` branches and close with findings.
 - Merge commits only, never squash or rebase, never force-push.
-- Every PR carries the reviewer's findings as a PR comment; every owner comment gets an agent-marked reply; loose ends are registered as issues, not left in notes.
+- Every PR carries the reviewer's findings as a PR comment; every owner comment gets an agent-marked reply.
 - Don't block on questions: decide from the docs or take the recommended default, log it, and say so in the PR.
 - Models: use Sonnet for every role, not Opus. Cost is tuned with reasoning effort, set in the skill and agent frontmatter, not repeated in prose.
 - Never: spend money or create paid resources/accounts, delete branches you didn't create, touch anything outside this repo and the scratchpad, or experiment in the owner's real repos (use the `testing` skill's throwaway repos).
