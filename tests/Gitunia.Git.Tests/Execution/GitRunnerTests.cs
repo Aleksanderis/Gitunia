@@ -400,7 +400,7 @@ public class GitRunnerTests
             TestContext.Current.CancellationToken);
 
         Assert.Equal(0, result.ExitCode);
-        Assert.Equal("done", result.StandardOutputText.Trim());
+        AssertOutputDelivered(result.StandardOutputText, clock.Elapsed);
         Assert.True(clock.Elapsed < BackgroundChildLimit, $"took {clock.Elapsed}");
     }
 
@@ -417,7 +417,7 @@ public class GitRunnerTests
             TestContext.Current.CancellationToken);
 
         Assert.Equal(0, result.ExitCode);
-        Assert.Equal("done", result.StandardOutputText.Trim());
+        AssertOutputDelivered(result.StandardOutputText, clock.Elapsed);
         Assert.True(clock.Elapsed < BackgroundChildLimit, $"took {clock.Elapsed}");
     }
 
@@ -437,7 +437,7 @@ public class GitRunnerTests
             collected.AddRange(chunk.Span);
         }
 
-        Assert.Equal("done", Encoding.UTF8.GetString([.. collected]).Trim());
+        AssertOutputDelivered(Encoding.UTF8.GetString([.. collected]), clock.Elapsed);
         Assert.True(clock.Elapsed < BackgroundChildLimit, $"took {clock.Elapsed}");
     }
 
@@ -493,6 +493,19 @@ public class GitRunnerTests
         }
 
         Assert.Equal(200000, total);
+    }
+
+    // Output git wrote before it exited must arrive. When it does not (windows-x64 flake, #1340: empty output after
+    // about the 1.5 s grace) the message says what the run looked like, since the runner has no log of its own.
+    private static void AssertOutputDelivered(string actual, TimeSpan elapsed)
+    {
+        var text = actual.Trim();
+        Assert.True(
+            text == "done",
+            $"Expected \"done\", got \"{text}\" after {elapsed}"
+            + (elapsed < BackgroundChildLimit ? " (a cut at the grace period, 1.5 s, fits an empty read)" : string.Empty)
+            + $". Pool: {ThreadPool.ThreadCount} threads, {ThreadPool.PendingWorkItemCount} queued, "
+            + $"{Environment.ProcessorCount} CPUs.");
     }
 
     private static GitRunner RunnerFor(FakeGitExecutable fake) => new(new GitRunnerOptions(fake.ExecutablePath));
