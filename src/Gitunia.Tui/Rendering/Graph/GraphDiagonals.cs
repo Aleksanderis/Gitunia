@@ -6,9 +6,10 @@ namespace Gitunia.Tui.Rendering.Graph;
 /// Decides where a graph draws a diagonal line instead of a bend. It is for one case: a commit where a lane ends and
 /// another lane starts in the same lane, next to the node or further away (the arriving bend then ends a horizontal
 /// run, <c>○───╯</c>, and the diagonal is still in the cell right below its corner). A line that only arrives or only
-/// leaves keeps its rounded corner (<c>╮ ╯ ╭ ╰</c>): it is unambiguous. Drawn with two bends both would share one character that reads
-/// as a lane running straight through (<c>├</c>, <c>┤</c>, <c>┼</c>). The line arriving from above keeps its bend, which shows the
-/// lane ends here; the line leaving towards the parent becomes a diagonal in the row below, where the new lane starts:
+/// leaves keeps its rounded corner (<c>╮ ╯ ╭ ╰</c>): it is unambiguous. Drawn with two bends both would share one
+/// character that reads as a lane running straight through (<c>├</c>, <c>┤</c>, <c>┼</c>). The line arriving from
+/// above keeps its bend, which shows the lane ends here; the line leaving towards the parent becomes a diagonal in the
+/// row below, where the new lane starts:
 /// <code>
 /// │ │
 /// ○─╯      the right lane ends at the node
@@ -36,15 +37,17 @@ public static class GraphDiagonals
     }
 
     /// <summary>
-    /// The shape of a row on its own: a lane one away from the node ends at it and a new lane starts in the same lane.
-    /// Other merges into the node do not matter; a lane ending and starting on both sides is
-    /// ambiguous and keeps its bends.
+    /// The shape of a row on its own: another lane ends at the node and a new lane starts in the same lane. Other
+    /// merges into the node do not matter. When several lanes end and start again (an octopus merge into freed lanes)
+    /// the one nearest to the node gets the diagonal and the others keep their bends; two equally near ones (one on
+    /// each side) are ambiguous and all keep their bends.
     /// </summary>
     /// <param name="row">The row.</param>
     /// <param name="laneColumns">Lanes shown.</param>
     public static DiagonalJunction? JunctionOf(GraphRow row, int laneColumns)
     {
         DiagonalJunction? found = null;
+        var tied = false;
         foreach (var ending in row.Edges)
         {
             var isOther = ending.Kind == GraphEdgeKind.Incoming && ending.FromLane != row.Lane;
@@ -60,16 +63,21 @@ public static class GraphDiagonals
                     continue;
                 }
 
-                if (found is not null)
+                var distance = Math.Abs(ending.FromLane - row.Lane);
+                var foundDistance = found is { } known ? Math.Abs(known.OtherLane - row.Lane) : int.MaxValue;
+                if (distance < foundDistance)
                 {
-                    return null;
+                    found = new DiagonalJunction(row.Lane, ending.FromLane, starting.Color);
+                    tied = false;
                 }
-
-                found = new DiagonalJunction(row.Lane, ending.FromLane, starting.Color);
+                else if (distance == foundDistance && found is { } same && same.OtherLane != ending.FromLane)
+                {
+                    tied = true;
+                }
             }
         }
 
-        return found;
+        return tied ? null : found;
     }
 
     // The junction of a row when its departing line is drawn as a diagonal: the row below exists and has room for it.
