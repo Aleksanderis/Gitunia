@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
@@ -14,15 +15,20 @@ public sealed class TestRepository : IDisposable
 {
     private static readonly DateTimeOffset Epoch = new(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
 
+    private static readonly ConcurrentDictionary<string, Lazy<TestRepository>> Templates = new();
+
     private static readonly int ProbeTimeout = (int)TimeSpan.FromSeconds(30).TotalMilliseconds;
 
     private readonly string _rootDirectory;
     private readonly string _emptyConfigPath;
     private int _commitCounter;
 
-    private TestRepository(string rootDirectory, string path)
+    static TestRepository() => AppDomain.CurrentDomain.ProcessExit += (_, _) => DeleteTemplates();
+
+    private TestRepository(string rootDirectory, string path, int commitCounter = 0)
     {
         _rootDirectory = rootDirectory;
+        _commitCounter = commitCounter;
         WorkingTreePath = path;
         _emptyConfigPath = Path.Combine(rootDirectory, "empty.gitconfig");
         File.WriteAllText(_emptyConfigPath, string.Empty);
@@ -31,16 +37,27 @@ public sealed class TestRepository : IDisposable
     /// <summary>The working tree of the main repository.</summary>
     public string WorkingTreePath { get; }
 
-    /// <summary>Creates an empty repository whose initial branch is <c>main</c>.</summary>
-    public static TestRepository Create(bool bare = false)
+    /// <summary>
+    /// Creates an empty repository whose initial branch is <c>main</c>. It is a copy of one <c>git init</c> made per
+    /// process (a git process costs far more on macOS and Windows than copying a few files, #1388).
+    /// </summary>
+    public static TestRepository Create(bool bare = false) =>
+        FromTemplate(bare ? "empty-bare" : "empty", () => CreateByInit(bare));
+
+    /// <summary>
+    /// Builds the repository with <paramref name="build"/> once per test process, then hands every caller its own copy
+    /// (same files, same commit hashes, same fake clock position) without spawning git again. The copy's absolute
+    /// paths (origin remote, linked worktrees) are rewritten to its own directory. <paramref name="build"/> must be
+    /// deterministic and must not touch state outside the repository's own directory.
+    /// </summary>
+    public static TestRepository FromTemplate(string key, Func<TestRepository> build)
     {
-        var root = Path.Combine(Path.GetTempPath(), $"gitunia-repo-{Guid.NewGuid().ToString("N")}");
-        var path = Path.Combine(root, "repo");
-        Directory.CreateDirectory(path);
-        var repository = new TestRepository(root, path);
-        repository.Git(bare ? ["init", "-q", "--bare", "-b", "main"] : ["init", "-q", "-b", "main"]);
-        return repository;
+        var template = Templates.GetOrAdd(key, _ => new Lazy<TestRepository>(build)).Value;
+        return template.CopyToNewRoot();
     }
+
+    /// <summary>The directory a linked worktree added with <see cref="AddWorktree"/> under <paramref name="name"/> has.</summary>
+    public string WorktreePath(string name) => Path.Combine(_rootDirectory, "worktrees", name);
 
     /// <summary>Whether the installed git can create reftable repositories (2.45 and later); tests skip otherwise.</summary>
     public static bool IsReftableSupported { get; } = ProbeReftableSupport();
@@ -126,7 +143,7 @@ public sealed class TestRepository : IDisposable
     /// <summary>Adds a linked worktree in a sibling directory and returns its path.</summary>
     public string AddWorktree(string name, string branch, bool createBranch = false)
     {
-        var path = Path.Combine(_rootDirectory, "worktrees", name);
+        var path = WorktreePath(name);
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         Git(createBranch ? ["worktree", "add", "-q", "-b", branch, path] : ["worktree", "add", "-q", path, branch]);
         return path;
@@ -228,6 +245,85 @@ public sealed class TestRepository : IDisposable
     /// </summary>
     public GitRunner CreateIsolatedRunner(IReadOnlyDictionary<string, string?>? extraEnvironment = null) =>
         CreateRunner(Epoch.AddMinutes(_commitCounter++), extraEnvironment);
+
+    private static void DeleteTemplates()
+    {
+        foreach (var template in Templates.Values)
+        {
+            if (template.IsValueCreated)
+            {
+                DeleteDirectory(template.Value._rootDirectory);
+            }
+        }
+    }
+
+    private static TestRepository CreateByInit(bool bare)
+    {
+        var root = Path.Combine(Path.GetTempPath(), $"gitunia-repo-{Guid.NewGuid().ToString("N")}");
+        var path = Path.Combine(root, "repo");
+        Directory.CreateDirectory(path);
+        var repository = new TestRepository(root, path);
+        repository.Git(bare ? ["init", "-q", "--bare", "-b", "main"] : ["init", "-q", "-b", "main"]);
+        return repository;
+    }
+
+    private TestRepository CopyToNewRoot()
+    {
+        var root = Path.Combine(Path.GetTempPath(), $"gitunia-repo-{Guid.NewGuid().ToString("N")}");
+        CopyDirectory(_rootDirectory, root);
+        RewriteAbsolutePaths(root);
+        return new TestRepository(root, Path.Combine(root, "repo"), _commitCounter);
+    }
+
+    private static void CopyDirectory(string source, string target)
+    {
+        Directory.CreateDirectory(target);
+        foreach (var file in Directory.EnumerateFiles(source))
+        {
+            File.Copy(file, Path.Combine(target, Path.GetFileName(file)));
+        }
+
+        foreach (var directory in Directory.EnumerateDirectories(source))
+        {
+            CopyDirectory(directory, Path.Combine(target, Path.GetFileName(directory)));
+        }
+    }
+
+    // The files git writes absolute paths into: the remote URL of the repository and the links between the main
+    // repository and its linked worktrees (git writes them with forward slashes on Windows).
+    private void RewriteAbsolutePaths(string newRoot)
+    {
+        var candidates = new List<string>
+        {
+            Path.Combine(newRoot, "repo", ".git", "config"),
+            Path.Combine(newRoot, "origin.git", "config"),
+        };
+        var worktreeAdmin = Path.Combine(newRoot, "repo", ".git", "worktrees");
+        if (Directory.Exists(worktreeAdmin))
+        {
+            candidates.AddRange(Directory.EnumerateFiles(worktreeAdmin, "gitdir", SearchOption.AllDirectories));
+        }
+
+        var worktrees = Path.Combine(newRoot, "worktrees");
+        if (Directory.Exists(worktrees))
+        {
+            candidates.AddRange(Directory.EnumerateFiles(worktrees, ".git", SearchOption.AllDirectories));
+        }
+
+        foreach (var file in candidates.Where(File.Exists))
+        {
+            var text = File.ReadAllText(file);
+            var rewritten = text
+                .Replace(_rootDirectory, newRoot, StringComparison.Ordinal)
+                .Replace(Slashed(_rootDirectory), Slashed(newRoot), StringComparison.Ordinal);
+            if (rewritten != text)
+            {
+                File.WriteAllText(file, rewritten);
+            }
+        }
+    }
+
+    private static string Slashed(string path) => path.Replace('\\', '/');
 
     private GitRunner CreateRunner(DateTimeOffset moment, IReadOnlyDictionary<string, string?>? extraEnvironment = null)
     {

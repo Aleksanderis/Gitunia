@@ -156,4 +156,50 @@ public class TestRepositoryTests
         Assert.Contains("dir with space/nested file.txt", files);
         Assert.Contains("with space.txt", files);
     }
+
+    [Fact]
+    public void GivenTwoCopiesOfATemplate_WhenCommittingInOne_ThenTheOtherIsUnchangedAndTheClockContinues()
+    {
+        using var first = TestRepositories.Linear(2);
+        using var second = TestRepositories.Linear(2);
+        var original = second.Head;
+
+        first.Commit("Extra", new TestFile("extra.txt", "x\n"));
+        using var third = TestRepositories.Linear(2).Commit("Extra", new TestFile("extra.txt", "x\n"));
+
+        Assert.Equal(original, second.Head);
+        Assert.NotEqual(original, first.Head);
+        Assert.Equal(first.Head, third.Head);
+        Assert.NotEqual(first.WorkingTreePath, second.WorkingTreePath);
+    }
+
+    [Fact]
+    public void GivenOriginTemplate_WhenCopied_ThenTheRemoteIsTheCopiesOwnBareRepository()
+    {
+        using var first = TestRepositories.WithOrigin();
+        using var second = TestRepositories.WithOrigin();
+
+        var remote = second.Git("remote", "get-url", "origin").Trim();
+        second.Commit("Only in the copy", new TestFile("copy.txt", "c\n"));
+        second.Git("push", "-q", "origin", "main");
+
+        Assert.Equal(second.OriginPath, remote);
+        Assert.Equal(first.Git("rev-parse", "main").Trim(), first.GitIn(first.OriginPath, ["rev-parse", "main"]).Trim());
+        Assert.Equal(second.Head, second.GitIn(second.OriginPath, ["rev-parse", "main"]).Trim());
+    }
+
+    [Fact]
+    public void GivenWorktreeTemplate_WhenCopied_ThenTheLinkedWorktreeBelongsToTheCopy()
+    {
+        using var repository = TestRepositories.WithWorktree(out var worktreePath);
+
+        var listing = repository.Git("worktree", "list", "--porcelain");
+
+        Assert.Contains("wt-branch", repository.GitIn(worktreePath, ["rev-parse", "--abbrev-ref", "HEAD"]));
+        Assert.Equal(
+            Path.GetFullPath(repository.GitIn(worktreePath, ["rev-parse", "--git-common-dir"]).Trim()),
+            Path.GetFullPath(Path.Combine(repository.WorkingTreePath, ".git")));
+        Assert.Contains(Path.GetFileName(worktreePath), listing);
+        Assert.DoesNotContain("prunable", listing);
+    }
 }
