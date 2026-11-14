@@ -85,7 +85,8 @@ public class IssueTrackerLinksTests
     [Fact]
     public void GivenARunawayRegex_WhenFinding_ThenItMakesNoLinksInsteadOfHanging()
     {
-        var links = new IssueTrackerLinks([new IssueTrackerRule("slow", "^(a+)+$", "https://x.org/$1")]);
+        var runaway = new IssueTrackerRule("slow", "^(a+)+$", "https://x.org/$1");
+        var links = new IssueTrackerLinks([runaway], TimeSpan.FromMilliseconds(100));
 
         Assert.Empty(links.Find(new string('a', 40) + "!"));
     }
@@ -107,7 +108,8 @@ public class IssueTrackerLinksTests
     [Fact]
     public void GivenARunawayRegex_WhenFindingAgain_ThenTheRuleIsSkippedAtOnce()
     {
-        var links = new IssueTrackerLinks([new IssueTrackerRule("slow", "^(a+)+$", "https://x.org/$1")]);
+        var runaway = new IssueTrackerRule("slow", "^(a+)+$", "https://x.org/$1");
+        var links = new IssueTrackerLinks([runaway], TimeSpan.FromMilliseconds(100));
         var slow = new string('a', 40) + "!";
         links.Find(slow);
 
