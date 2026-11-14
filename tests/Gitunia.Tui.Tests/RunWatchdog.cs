@@ -76,44 +76,12 @@ internal static class RunWatchdog
                 return "  (dotnet-stack did not finish in time)";
             }
 
-            return Compact($"{output.Result}{errors.Result}");
+            return StackReportCompactor.Compact($"{output.Result}{errors.Result}");
         }
         catch (Exception exception)
         {
             return $"  unavailable: {exception.GetType().Name}: {exception.Message}";
         }
-    }
-
-    // The test platform cuts a crashed host's stderr at about 8 KB; the first Windows capture (#1369, run 43584745497) ended in the
-    // middle of the test thread's xunit frames, before any other thread. The async plumbing frames say nothing, so they are dropped
-    // and each thread keeps its innermost frames.
-    private const int FramesPerThread = 14;
-    private static readonly string[] NoiseFrames = ["!Xunit.", "AsyncMethodBuilder", "ExecutionContext.RunInternal", "ExceptionAggregator"];
-
-    private static string Compact(string report)
-    {
-        var lines = new List<string>();
-        var frames = 0;
-        foreach (var line in report.Split('\n', StringSplitOptions.RemoveEmptyEntries))
-        {
-            var text = line.TrimEnd('\r');
-            if (text.StartsWith("Thread", StringComparison.Ordinal))
-            {
-                frames = 0;
-                lines.Add(text);
-
-                continue;
-            }
-
-            if (NoiseFrames.Any(text.Contains) || ++frames > FramesPerThread)
-            {
-                continue;
-            }
-
-            lines.Add(text.Replace("System.Private.CoreLib.il!", string.Empty, StringComparison.Ordinal));
-        }
-
-        return string.Join(Environment.NewLine, lines);
     }
 
     private static string DescribeThreads()

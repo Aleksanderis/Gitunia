@@ -3,9 +3,10 @@ using System.Runtime.InteropServices;
 namespace Gitunia.Platform.Terminal;
 
 /// <summary>
-/// Windows: writes one key press into the console input buffer through a handle of its own, which satisfies a read that
-/// waits for input and is still there for a read that has not started yet. Linux and macOS: nothing, the toolkit polls
-/// the descriptor with a timeout and sees its cancellation. Any other OS: nothing.
+/// Windows: <see cref="Wake"/> writes one key press into the console input buffer through a handle of its own, which
+/// satisfies a read that waits for input and is still there for a read that has not started yet; <see cref="Settle"/>
+/// empties that buffer. Linux and macOS: nothing, Terminal.Gui there polls without blocking and sleeps with a
+/// cancellable delay. Any other OS: nothing.
 /// </summary>
 public sealed class TerminalInputWaker : ITerminalInputWaker
 {
@@ -25,25 +26,56 @@ public sealed class TerminalInputWaker : ITerminalInputWaker
             return;
         }
 
-        var handle = CreateFile(
-            InputDevice,
-            GenericRead | GenericWrite,
-            ShareReadWrite,
-            nint.Zero,
-            OpenExisting,
-            0,
-            nint.Zero);
+        var handle = OpenInput();
         if (handle == InvalidHandle)
         {
             return;
         }
 
-        var record = new InputRecord { EventType = KeyEvent, KeyDown = 1, RepeatCount = 1, UnicodeChar = Space };
-        _ = WriteConsoleInput(handle, [record], 1, out _);
-        _ = CloseHandle(handle);
+        try
+        {
+            var record = new InputRecord { EventType = KeyEvent, KeyDown = 1, RepeatCount = 1, UnicodeChar = Space };
+            _ = WriteConsoleInput(handle, [record], 1, out _);
+        }
+        finally
+        {
+            _ = CloseHandle(handle);
+        }
     }
 
-    [DllImport("kernel32", EntryPoint = "CreateFileW", CharSet = CharSet.Unicode, SetLastError = true)]
+    public void Settle()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        var handle = OpenInput();
+        if (handle == InvalidHandle)
+        {
+            return;
+        }
+
+        try
+        {
+            _ = FlushConsoleInputBuffer(handle);
+        }
+        finally
+        {
+            _ = CloseHandle(handle);
+        }
+    }
+
+    private static nint OpenInput() => CreateFile(
+        InputDevice,
+        GenericRead | GenericWrite,
+        ShareReadWrite,
+        nint.Zero,
+        OpenExisting,
+        0,
+        nint.Zero);
+
+    [DllImport("kernel32", EntryPoint = "CreateFileW", CharSet = CharSet.Unicode)]
     private static extern nint CreateFile(
         string name,
         uint access,
@@ -53,9 +85,13 @@ public sealed class TerminalInputWaker : ITerminalInputWaker
         uint attributes,
         nint template);
 
-    [DllImport("kernel32", EntryPoint = "WriteConsoleInputW", SetLastError = true)]
+    [DllImport("kernel32", EntryPoint = "WriteConsoleInputW")]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool WriteConsoleInput(nint handle, InputRecord[] records, uint length, out uint written);
+
+    [DllImport("kernel32", EntryPoint = "FlushConsoleInputBuffer")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool FlushConsoleInputBuffer(nint handle);
 
     [DllImport("kernel32", EntryPoint = "CloseHandle")]
     [return: MarshalAs(UnmanagedType.Bool)]

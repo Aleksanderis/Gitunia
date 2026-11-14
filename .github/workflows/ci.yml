@@ -419,6 +419,8 @@ jobs:
             start=$(date +%s)
             if [ $((start - loop_start)) -gt 3000 ]; then echo "stopping before iteration $i: 50 minutes used"; break; fi
             rm -rf "TestResults/$i"
+            # One line per disposal of a Terminal.Gui application that needed a wake-up (#1369): proves the lost-wake-up path was hit and recovered.
+            export GITUNIA_WAKE_LOG="$PWD/wake-$i.log"
             code=0
             dotnet test "tests/Gitunia.$PROJECT.Tests" -c Release --no-build "${filter[@]}" \
               --blame-hang-timeout 9m --blame-hang-dump-type none --results-directory "TestResults/$i" --logger trx > "loop-$i.log" 2>&1 || code=$?
@@ -426,7 +428,9 @@ jobs:
             if [ $code -eq 0 ]; then pass=$((pass+1)); result=pass
             elif grep -q "run exceeded" "loop-$i.log"; then hang=$((hang+1)); result=HANG
             else fail=$((fail+1)); result=FAIL; fi
-            echo "iteration $i: $result in ${took}s" | tee -a "$GITHUB_STEP_SUMMARY"
+            wakes=0
+            if [ -s "wake-$i.log" ]; then wakes=$(wc -l < "wake-$i.log"); fi
+            echo "iteration $i: $result in ${took}s, disposals that needed a wake-up: $wakes" | tee -a "$GITHUB_STEP_SUMMARY"
             if [ "$result" != pass ]; then
               echo "::group::log of iteration $i"
               { grep -E "\[FAIL\]|Error Message|Assert|Condition|exceeded|Managed stacks" -A6 "loop-$i.log" | head -150; } || true
@@ -441,6 +445,7 @@ jobs:
           name: loop-${{ strategy.job-index }}
           path: |
             loop-*.log
+            wake-*.log
             TestResults
           if-no-files-found: ignore
           retention-days: 7
