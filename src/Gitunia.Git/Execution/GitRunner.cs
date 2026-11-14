@@ -24,13 +24,17 @@ public sealed class GitRunner
 
     // After git exits, a background child of a hook can still hold the pipes open; a read that stays pending this long
     // after the exit ends the output. The cut only cancels a read that has nothing to deliver, so output git wrote
-    // before exiting is never dropped, however late the reader gets scheduled.
+    // before exiting is not dropped when the reader is scheduled late (the cut waits for a busy pool, up to a bound).
     private static readonly TimeSpan DrainGrace = TimeSpan.FromMilliseconds(1500);
 
     // Absolute bound after the exit for RunAsync, for a background child that keeps writing so the grace never lapses.
     private static readonly TimeSpan PostExitLimit = TimeSpan.FromSeconds(5);
 
+    // The most the cut waits for a busy thread pool to start a queued read (see DrainingReader).
+    private static readonly TimeSpan PoolDeferralLimit = TimeSpan.FromSeconds(2);
+
     private readonly GitRunnerOptions _options;
+    private readonly DrainingReader _reader = new(DrainGrace, PoolDeferralLimit);
     private int _startedCount;
 
     public GitRunner(GitRunnerOptions? options = null)
@@ -108,7 +112,7 @@ public sealed class GitRunner
 
     // Reports each line-feed or carriage-return terminated segment and restarts the idle timer on every read. A grace
     // cut (git exited, a pipe is still held and nothing arrives) ends the read with what arrived so far.
-    private static async Task<string> ReadErrorAsync(
+    private async Task<string> ReadErrorAsync(
         Stream stream,
         GitRunOptions runOptions,
         CancellationTokenSource timeoutSource,
@@ -122,7 +126,8 @@ public sealed class GitRunner
         var bytes = new byte[ErrorBufferSize];
         var chars = new char[Encoding.UTF8.GetMaxCharCount(ErrorBufferSize)];
         var decoder = Encoding.UTF8.GetDecoder();
-        while (await ReadChunkAsync(stream, bytes, exitTask, capToken, hardToken).ConfigureAwait(false) is var count and > 0)
+        while (await _reader.ReadChunkAsync(stream, bytes, exitTask, capToken, hardToken).ConfigureAwait(false)
+            is var count and > 0)
         {
             if (runOptions.OnStandardErrorLine is not null)
             {
@@ -162,9 +167,6 @@ public sealed class GitRunner
             }
         }
     }
-
-    private static bool IsDrainCut(CancellationToken drainToken, CancellationToken hardToken) =>
-        drainToken.IsCancellationRequested && !hardToken.IsCancellationRequested;
 
     private static void FlushSegment(StringBuilder segment, Action<string> onLine)
     {
@@ -295,7 +297,9 @@ public sealed class GitRunner
                 {
                     // The idle timer only runs while waiting for git, never while the consumer handles a chunk.
                     timeoutSource.CancelAfter(timeout);
-                    count = await ReadChunkAsync(output, buffer, exitTask, CancellationToken.None, linked.Token).ConfigureAwait(false);
+                    count = await _reader
+                        .ReadChunkAsync(output, buffer, exitTask, CancellationToken.None, linked.Token)
+                        .ConfigureAwait(false);
                     timeoutSource.CancelAfter(Timeout.InfiniteTimeSpan);
                 }
                 catch (OperationCanceledException) when (timeoutSource.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
@@ -356,51 +360,6 @@ public sealed class GitRunner
         }
     }
 
-    // The grace period only runs while a read is pending after git exited, never while the consumer is busy, so output
-    // that is still in the pipe is not lost to a slow consumer. A cut ends the stream like end of file. The cap token is
-    // an absolute bound after the exit (a chatty background child would otherwise keep the grace restarting); it cancels
-    // a pending read only, so pass none where a consumer can be busy.
-    private static async Task<int> ReadChunkAsync(
-        Stream output,
-        byte[] buffer,
-        Task exitTask,
-        CancellationToken capToken,
-        CancellationToken hardToken)
-    {
-        using var readSource = CancellationTokenSource.CreateLinkedTokenSource(hardToken, capToken);
-        using var stopSource = CancellationTokenSource.CreateLinkedTokenSource(hardToken);
-        var cutTask = CutReadAfterExitAsync(exitTask, readSource, stopSource.Token);
-        try
-        {
-            return await output.ReadAsync(buffer, readSource.Token).ConfigureAwait(false);
-        }
-        catch (OperationCanceledException) when (IsDrainCut(readSource.Token, hardToken))
-        {
-            return 0;
-        }
-        finally
-        {
-            await stopSource.CancelAsync().ConfigureAwait(false);
-            await cutTask.ConfigureAwait(false);
-        }
-    }
-
-    private static async Task CutReadAfterExitAsync(
-        Task exitTask,
-        CancellationTokenSource readSource,
-        CancellationToken stopToken)
-    {
-        try
-        {
-            await exitTask.WaitAsync(stopToken).ConfigureAwait(false);
-            readSource.CancelAfter(DrainGrace);
-        }
-        catch (OperationCanceledException)
-        {
-            // The read ended first.
-        }
-    }
-
     // Once git has exited, gives the readers the grace period, then cuts them.
     private static async Task CutReadersAfterExitAsync(
         Process process,
@@ -419,7 +378,7 @@ public sealed class GitRunner
         }
     }
 
-    private static async Task<string> ReadTextAsync(
+    private async Task<string> ReadTextAsync(
         Stream stream,
         Task exitTask,
         CancellationToken capToken,
@@ -429,7 +388,8 @@ public sealed class GitRunner
         var bytes = new byte[ErrorBufferSize];
         var chars = new char[Encoding.UTF8.GetMaxCharCount(ErrorBufferSize)];
         var decoder = Encoding.UTF8.GetDecoder();
-        while (await ReadChunkAsync(stream, bytes, exitTask, capToken, hardToken).ConfigureAwait(false) is var count and > 0)
+        while (await _reader.ReadChunkAsync(stream, bytes, exitTask, capToken, hardToken).ConfigureAwait(false)
+            is var count and > 0)
         {
             all.Append(chars, 0, decoder.GetChars(bytes, 0, count, chars, 0));
         }
@@ -457,7 +417,7 @@ public sealed class GitRunner
         {
             // Broken pipe: git stopped reading.
         }
-        catch (OperationCanceledException) when (IsDrainCut(cancellationToken, hardToken))
+        catch (OperationCanceledException) when (DrainingReader.IsCut(cancellationToken, hardToken))
         {
             // Git exited without reading its input.
         }
@@ -474,7 +434,7 @@ public sealed class GitRunner
         }
     }
 
-    private static async Task<byte[]> ReadAllAsync(
+    private async Task<byte[]> ReadAllAsync(
         Stream stream,
         Task exitTask,
         CancellationToken capToken,
@@ -484,7 +444,8 @@ public sealed class GitRunner
         var buffer = ArrayPool<byte>.Shared.Rent(ReadBufferSize);
         try
         {
-            while (await ReadChunkAsync(stream, buffer, exitTask, capToken, hardToken).ConfigureAwait(false) is var count and > 0)
+            while (await _reader.ReadChunkAsync(stream, buffer, exitTask, capToken, hardToken).ConfigureAwait(false)
+                is var count and > 0)
             {
                 memory.Write(buffer, 0, count);
             }
