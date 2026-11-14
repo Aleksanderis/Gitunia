@@ -1,4 +1,5 @@
 using Gitunia.Platform;
+using Gitunia.Platform.Terminal;
 using Gitunia.Tui.App.Config;
 using Gitunia.Tui.App.ExternalTools;
 using Gitunia.Tui.Input;
@@ -29,10 +30,12 @@ public sealed class TerminalHost : ITerminalSuspender, IUiDeferral, IDisposable
     private const int HeadlessColumns = 120;
     private const int HeadlessRows = 40;
     private static readonly TimeSpan IdleAfter = TimeSpan.FromSeconds(2);
+    private static readonly TimeSpan InputWakeInterval = TimeSpan.FromMilliseconds(250);
 
     private readonly string? _driverName;
     private readonly LiveConfig _config;
     private readonly TerminalHandOff _handOff;
+    private readonly ITerminalInputWaker _inputWaker;
     private readonly IterationRateGovernor _iterationRate = new(ActiveIterationsPerSecond, IdleIterationsPerSecond, IdleAfter);
     private IApplication _application;
     private Action? _suspendedWork;
@@ -42,11 +45,17 @@ public sealed class TerminalHost : ITerminalSuspender, IUiDeferral, IDisposable
     /// <param name="driverName">The Terminal.Gui driver to force (smoke tests); null picks the platform default.</param>
     /// <param name="config">The theme and the terminal's capabilities the palette is chosen from.</param>
     /// <param name="handOff">Gives the terminal to a tool and takes it back.</param>
-    public TerminalHost(string? driverName, LiveConfig config, TerminalHandOff handOff)
+    /// <param name="inputWaker">Ends a console read the toolkit cannot cancel; null uses the platform's.</param>
+    public TerminalHost(
+        string? driverName,
+        LiveConfig config,
+        TerminalHandOff handOff,
+        ITerminalInputWaker? inputWaker = null)
     {
         _driverName = driverName;
         _config = config;
         _handOff = handOff;
+        _inputWaker = inputWaker ?? new TerminalInputWaker();
         Application.MaximumIterationsPerSecond = ActiveIterationsPerSecond;
         _application = CreateApplication();
         Invoker = new SuspendableUiInvoker(_application.Invoke);
@@ -146,7 +155,7 @@ public sealed class TerminalHost : ITerminalSuspender, IUiDeferral, IDisposable
             Invoker.Close();
             StopFocusReporting();
             _isApplicationDisposed = true;
-            _application.Dispose();
+            DisposeApplication();
         }
     }
 
@@ -165,6 +174,14 @@ public sealed class TerminalHost : ITerminalSuspender, IUiDeferral, IDisposable
         _isApplicationDisposed = true;
         Invoker.Close();
         StopFocusReporting();
+        DisposeApplication();
+    }
+
+    // Terminal.Gui stops its input thread by waiting for it, and on Windows that thread can sit in a console read that
+    // nothing wakes (#1369: a lost wake-up, seen as a test host that never exited); the loop wakes it until the wait ends.
+    private void DisposeApplication()
+    {
+        using var wakeLoop = new TerminalInputWakeLoop(_inputWaker, InputWakeInterval);
         _application.Dispose();
     }
 
@@ -175,7 +192,7 @@ public sealed class TerminalHost : ITerminalSuspender, IUiDeferral, IDisposable
         _suspendedWork = null;
         _resumed = null;
         StopFocusReporting();
-        _application.Dispose();
+        DisposeApplication();
         try
         {
             _handOff.Run(work ?? DoNothing);
