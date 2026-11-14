@@ -27,6 +27,11 @@ public class GitRunnerTests
     // The fake's background child lives about ten seconds; the grace period is 1.5 s.
     private static readonly TimeSpan BackgroundChildLimit = TimeSpan.FromSeconds(4);
 
+    // Around the runner's 1.5 s drain grace; only used to word a failure message.
+    private static readonly TimeSpan GraceWindowStart = TimeSpan.FromSeconds(1.4);
+
+    private static readonly TimeSpan GraceWindowEnd = TimeSpan.FromSeconds(2.5);
+
     // The chatty child writes for ten seconds; the absolute bound after the exit is 5 s.
     private static readonly TimeSpan ChattyChildLimit = TimeSpan.FromSeconds(8);
 
@@ -496,16 +501,20 @@ public class GitRunnerTests
     }
 
     // Output git wrote before it exited must arrive. When it does not (windows-x64 flake, #1340: empty output after
-    // about the 1.5 s grace) the message says what the run looked like, since the runner has no log of its own.
+    // about the grace period), the message says what the run looked like.
     private static void AssertOutputDelivered(string actual, TimeSpan elapsed)
     {
         var text = actual.Trim();
+        var nearGrace = elapsed >= GraceWindowStart && elapsed <= GraceWindowEnd;
+        var hint = nearGrace ? "consistent with a read cut at the drain grace" : "not near the drain grace";
+        ThreadPool.GetMinThreads(out var minimum, out _);
+        ThreadPool.GetAvailableThreads(out var available, out _);
+
         Assert.True(
             text == "done",
-            $"Expected \"done\", got \"{text}\" after {elapsed}"
-            + (elapsed < BackgroundChildLimit ? " (a cut at the grace period, 1.5 s, fits an empty read)" : string.Empty)
-            + $". Pool: {ThreadPool.ThreadCount} threads, {ThreadPool.PendingWorkItemCount} queued, "
-            + $"{Environment.ProcessorCount} CPUs.");
+            $"Expected \"done\", got \"{text}\" after {elapsed} ({hint}). Pool after the run: "
+            + $"{ThreadPool.ThreadCount} threads (minimum {minimum}, {available} available), "
+            + $"{ThreadPool.PendingWorkItemCount} queued, {Environment.ProcessorCount} CPUs.");
     }
 
     private static GitRunner RunnerFor(FakeGitExecutable fake) => new(new GitRunnerOptions(fake.ExecutablePath));
