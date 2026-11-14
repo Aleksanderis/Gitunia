@@ -222,9 +222,10 @@ echo "details_step_samples=$(printf '%s' "$vals" | grep -c . || true)"
 # the key is the pane's text: the rows under the `┬─ Diff` title, right of the column of that `┬`, up to the next border row.
 # Same 300 ms pause between steps as the details metric.
 diff_key() { # $1 = plain pane capture; prints the diff pane's text (empty without a diff pane)
-  printf '%s\n' "$1" | awk '
-    !found { i = index($0, "┬─ Diff"); if (i) { found = 1; col = length(substr($0, 1, i - 1)) + 1 } next }
-    /^[└├╰]/ { exit }
+  # C.UTF-8 so gawk and mawk both count characters; no bracket class on the box glyphs (bytes in a byte-based awk)
+  printf '%s\n' "$1" | LC_ALL=C.UTF-8 awk '
+    !found { i = index($0, "┬─ Diff"); if (i) { found = 1; col = i } next }
+    index($0, "└") == 1 || index($0, "├") == 1 || index($0, "╰") == 1 { exit }
     { print substr($0, col + 1) }'
 }
 diff_ready() { # $1 = diff pane text before the key
