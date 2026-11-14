@@ -367,7 +367,9 @@ public class PickerEffectHandlerTests
         });
         var dispatcher = new RecordingDispatcher();
         var discovery = TestGit.Services.Discovery;
-        var handler = new PickerEffectHandler(discovery, files, dispatcher, PickerTimings.Default);
+        // The scanning notice is off: with the real 150 ms delay a test thread starved for that long between the start and
+        // the cancel legitimately gets ShowScanningCommand posted first (#1407).
+        var handler = new PickerEffectHandler(discovery, files, dispatcher, new PickerTimings(TimeSpan.FromSeconds(30), Timeout.InfiniteTimeSpan));
         var home = PickerFiles.Home;
         using var shutdown = new CancellationTokenSource();
 
