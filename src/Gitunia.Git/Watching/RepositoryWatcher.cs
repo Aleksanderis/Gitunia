@@ -632,6 +632,14 @@ public sealed partial class RepositoryWatcher : IDisposable
             comparer);
     }
 
+    /// <summary>
+    /// Feeds a changed path into the handler a watcher event takes (for tests that need the effect of a burst of events at
+    /// a known moment: the time an operating system takes to deliver them is not under the test's control, #1396).
+    /// It enters below <c>HandleEvent</c>, so it skips the working-tree drop filter (<c>IsDroppedInWorkingTreeRoot</c>:
+    /// ignored directories and the git directory): never use it to test that filter.
+    /// </summary>
+    public void ReportPathChange(string fullPath, bool isCreation = false) => OnPathChanged(fullPath, isCreation);
+
     /// <summary>Feeds an error into the path a watcher's <c>Error</c> event takes (for tests, which cannot raise the event).</summary>
     public void ReportWatcherError(Exception exception, bool fromWorkingTree = false) =>
         OnWatcherError(exception, fromWorkingTree);

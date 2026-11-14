@@ -23,7 +23,11 @@ public static class WatcherWait
     /// Waits until <paramref name="condition"/> holds. With a <paramref name="watcher"/>, fails when it keeps polling
     /// for more than a grace period, unless the test expects that (<paramref name="expectPolling"/>).
     /// </summary>
-    public static async Task UntilAsync(Func<bool> condition, RepositoryWatcher? watcher, bool expectPolling = false)
+    public static async Task UntilAsync(
+        Func<bool> condition,
+        RepositoryWatcher? watcher,
+        bool expectPolling = false,
+        ChangeRecorder? recorder = null)
     {
         var deadline = DateTime.UtcNow + Limit;
         DateTime? pollingSince = null;
@@ -38,7 +42,9 @@ public static class WatcherWait
                     $"The watcher keeps polling, so the awaited state cannot be reached. {Cause()}{Describe(watcher)}");
             }
 
-            Assert.True(DateTime.UtcNow < deadline, $"Condition not reached in time. {Describe(watcher)}");
+            Assert.True(
+                DateTime.UtcNow < deadline,
+                $"Condition not reached in time. {Describe(watcher)}{Describe(recorder)}");
             await Task.Delay(PollDelay, Token);
         }
     }
@@ -64,14 +70,20 @@ public static class WatcherWait
             + "(fs.inotify.max_user_instances, shared with every other process of the user). ";
     }
 
+    private static string Describe(ChangeRecorder? recorder) =>
+        recorder is null ? string.Empty : $" Recorder: {recorder.CallCount} calls, saw {recorder.Seen}.";
+
     private static string Describe(RepositoryWatcher? watcher)
     {
+        // A starved pool (the timers and the event callbacks run on it) shows as queued work and many threads.
+        var pool = $"Pool: {ThreadPool.ThreadCount} threads, {ThreadPool.PendingWorkItemCount} queued, "
+            + $"{Environment.ProcessorCount} CPUs.";
         if (watcher is null)
         {
-            return string.Empty;
+            return pool;
         }
 
         return $"Watcher: polling {watcher.IsPolling}, watchers {watcher.WatcherCount}, "
-            + $"directories {watcher.WorkingTreeDirectoryCount}.";
+            + $"directories {watcher.WorkingTreeDirectoryCount}. {pool}";
     }
 }

@@ -12,8 +12,23 @@ on:
       platform:
         description: Which leg to run (all = linux-x64 and windows-x64; macOS costs 10x minutes, so only macos runs it; arm64 runs the two arm64 legs)
         type: choice
-        options: [all, linux, windows, macos, arm64]
+        options: [all, linux, windows, macos, arm64, loop]
         default: all
+      loop_project:
+        description: "platform=loop only: the test project to repeat (Core, Platform, Git, App, Tui)"
+        default: Tui
+      loop_filter:
+        description: "platform=loop only: a dotnet test --filter expression ('' runs the whole project)"
+        default: ""
+      loop_count:
+        description: "platform=loop only: iterations per job (a Windows Tui or App iteration takes about 1.5 minutes; the step stops at 60 minutes)"
+        default: "6"
+      loop_runner:
+        description: "platform=loop only: runner label (windows-latest, macos-15, windows-11-arm, ubuntu-latest)"
+        default: windows-latest
+      loop_shards:
+        description: "platform=loop only: parallel jobs, as a JSON array"
+        default: "[1,2,3]"
 
 permissions:
   contents: read
@@ -25,7 +40,7 @@ permissions:
 # `windows-x64`, names are matched by release.yml) is what lets a release skip build and test for the x64 legs.
 
 concurrency:
-  group: ci-${{ github.ref }}-${{ inputs.platform }}
+  group: ci-${{ github.ref }}-${{ inputs.platform }}-${{ inputs.loop_project }}-${{ inputs.loop_runner }}-${{ inputs.loop_filter }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
@@ -129,6 +144,12 @@ jobs:
           }
       - name: Build (warnings, including IL*, are errors)
         run: dotnet build -c Release
+      - name: Install dotnet-stack (a hung test host names what it waits for, #1369)
+        # The run watchdog of the test projects runs it against its own process before it aborts. Best effort.
+        continue-on-error: true
+        run: |
+          dotnet tool install dotnet-stack --version 10.0.731102 --tool-path "$RUNNER_TEMP/tools"
+          echo "GITUNIA_STACK_TOOL=$(cygpath -w "$RUNNER_TEMP/tools/dotnet-stack.exe")" >> "$GITHUB_ENV"
       - name: Test (one project at a time)
         timeout-minutes: 15
         # Not yet verified on the runner (#634). `dotnet test` on the solution runs the five assemblies at once, each with 8 xUnit threads, and the tests start
@@ -143,7 +164,7 @@ jobs:
         run: |
           for project in Core Platform Git App Tui; do
             dotnet test "tests/Gitunia.$project.Tests" -c Release --no-build --filter "Os!=Independent" \
-              --blame-hang-timeout 4m --blame-hang-dump-type none --results-directory TestResults --logger trx || exit 1
+              --blame-hang-timeout 7m --blame-hang-dump-type none --results-directory TestResults --logger trx || exit 1
           done
       - name: Upload test logs and hang report (failure only, #1298)
         if: failure()
@@ -293,12 +314,17 @@ jobs:
           global-json-file: global.json
       - name: Build (warnings, including IL*, are errors)
         run: dotnet build -c Release
+      - name: Install dotnet-stack (a hung test host names what it waits for, #1369)
+        continue-on-error: true
+        run: |
+          dotnet tool install dotnet-stack --version 10.0.731102 --tool-path "$RUNNER_TEMP/tools"
+          echo "GITUNIA_STACK_TOOL=$(cygpath -w "$RUNNER_TEMP/tools/dotnet-stack.exe")" >> "$GITHUB_ENV"
       - name: Test (one project at a time, OS-sensitive tests only)
         timeout-minutes: 20
         run: |
           for project in Core Platform Git App Tui; do
             dotnet test "tests/Gitunia.$project.Tests" -c Release --no-build --filter "Os!=Independent" \
-              --blame-hang-timeout 4m --blame-hang-dump-type none --results-directory TestResults --logger trx || exit 1
+              --blame-hang-timeout 7m --blame-hang-dump-type none --results-directory TestResults --logger trx || exit 1
           done
       - name: Upload test logs and hang report (failure only, #1298)
         if: failure()
@@ -324,3 +350,97 @@ jobs:
           echo "$frame"
           echo "$frame" | grep -q "Gitunia"
           echo "$frame" | grep -q "NORMAL"
+
+  flake-loop:
+    # Repeats one test project to measure a flake (#1395, #1396, #1369): `gh workflow run ci.yml -f platform=loop ...`.
+    # Never part of a pull request or `all`; one job per entry of `loop_shards`, each keeps going after a failure
+    # and prints how many iterations passed, failed or hung. Remove this job (and its inputs and the dotnet-stack steps)
+    # when #1369 and #1395 are closed (see docs/testing.md).
+    if: ${{ inputs.platform == 'loop' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: ${{ fromJSON(inputs.loop_shards) }}
+    runs-on: ${{ inputs.loop_runner }}
+    timeout-minutes: 70
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - name: Faster temp (as windows-x64)
+        if: ${{ runner.os == 'Windows' }}
+        shell: pwsh
+        run: |
+          if (Test-Path D:\) {
+            foreach ($directory in "D:\gitunia-tmp", "D:\gitunia-artifacts", "D:\gitunia-nuget") {
+              New-Item -ItemType Directory -Force $directory | Out-Null
+              try { Add-MpPreference -ExclusionPath $directory -ErrorAction Stop } catch { Write-Warning $_ }
+            }
+            "TMP=D:\gitunia-tmp" >> $env:GITHUB_ENV
+            "TEMP=D:\gitunia-tmp" >> $env:GITHUB_ENV
+            "UseArtifactsOutput=true" >> $env:GITHUB_ENV
+            "ArtifactsPath=D:\gitunia-artifacts" >> $env:GITHUB_ENV
+            "NUGET_PACKAGES=D:\gitunia-nuget" >> $env:GITHUB_ENV
+          }
+      - name: Build
+        run: dotnet build -c Release
+      - name: Install dotnet-stack
+        continue-on-error: true
+        run: |
+          dotnet tool install dotnet-stack --version 10.0.731102 --tool-path "$RUNNER_TEMP/tools"
+          if [ "$RUNNER_OS" = "Windows" ]; then exe="$(cygpath -w "$RUNNER_TEMP/tools/dotnet-stack.exe")"; else exe="$RUNNER_TEMP/tools/dotnet-stack"; fi
+          echo "GITUNIA_STACK_TOOL=$exe" >> "$GITHUB_ENV"
+      - name: Environment
+        run: |
+          echo "cpus: $(getconf _NPROCESSORS_ONLN 2>/dev/null || echo $NUMBER_OF_PROCESSORS)"
+          (ulimit -n) 2>/dev/null || true
+          sysctl kern.maxfilesperproc kern.maxfiles 2>/dev/null || true
+          cat /proc/sys/fs/inotify/max_user_instances 2>/dev/null || true
+      - name: Repeat
+        timeout-minutes: 60
+        env:
+          PROJECT: ${{ inputs.loop_project }}
+          FILTER: ${{ inputs.loop_filter }}
+          COUNT: ${{ inputs.loop_count }}
+        run: |
+          filter=()
+          if [ -n "$FILTER" ]; then filter=(--filter "$FILTER"); fi
+          pass=0; fail=0; hang=0
+          loop_start=$(date +%s)
+          # Written however the loop ends (the step timeout, an error).
+          trap 'echo "RESULT $RUNNER_OS $PROJECT filter=\"$FILTER\": pass=$pass fail=$fail hang=$hang" | tee -a "$GITHUB_STEP_SUMMARY"' EXIT
+          for i in $(seq 1 "$COUNT"); do
+            start=$(date +%s)
+            if [ $((start - loop_start)) -gt 3000 ]; then echo "stopping before iteration $i: 50 minutes used"; break; fi
+            rm -rf "TestResults/$i"
+            code=0
+            dotnet test "tests/Gitunia.$PROJECT.Tests" -c Release --no-build "${filter[@]}" \
+              --blame-hang-timeout 9m --blame-hang-dump-type none --results-directory "TestResults/$i" --logger trx > "loop-$i.log" 2>&1 || code=$?
+            took=$(( $(date +%s) - start ))
+            if [ $code -eq 0 ]; then pass=$((pass+1)); result=pass
+            elif grep -q "run exceeded" "loop-$i.log"; then hang=$((hang+1)); result=HANG
+            else fail=$((fail+1)); result=FAIL; fi
+            echo "iteration $i: $result in ${took}s" | tee -a "$GITHUB_STEP_SUMMARY"
+            if [ "$result" != pass ]; then
+              echo "::group::log of iteration $i"
+              { grep -E "\[FAIL\]|Error Message|Assert|Condition|exceeded|Managed stacks" -A6 "loop-$i.log" | head -150; } || true
+              echo "::endgroup::"
+            fi
+            if [ "$result" = HANG ]; then break; fi
+          done
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: loop-${{ strategy.job-index }}
+          path: |
+            loop-*.log
+            TestResults
+          if-no-files-found: ignore
+          retention-days: 7
