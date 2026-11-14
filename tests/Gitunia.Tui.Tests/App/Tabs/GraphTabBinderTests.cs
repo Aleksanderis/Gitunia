@@ -282,6 +282,7 @@ public class GraphTabBinderTests
 
     private static TestRepository BuildWords(int count)
     {
+        // Only the first three counts have a word.
         string[] words = ["one", "two", "three"];
         var repository = TestRepository.Create();
         for (var index = 0; index < count; index++)

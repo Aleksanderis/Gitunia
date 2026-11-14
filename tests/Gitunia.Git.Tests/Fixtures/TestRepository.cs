@@ -63,9 +63,9 @@ public sealed class TestRepository : IDisposable
     }
 
     /// <summary>
-    /// Creates a repository with one commit of <paramref name="files"/>, equal to <c>Create().Commit(message, files)</c>
-    /// but built once per process for each distinct message and file set, then copied
-    /// (<see cref="FromTemplate"/>, #1409).
+    /// Creates a repository with one commit of <paramref name="files"/>, equal to
+    /// <c>Create().Commit(message, files)</c> but built once per process for each distinct message and file set,
+    /// then copied (<see cref="FromTemplate"/>, #1409).
     /// </summary>
     public static TestRepository CreateCommitted(string message, params TestFile[] files)
     {

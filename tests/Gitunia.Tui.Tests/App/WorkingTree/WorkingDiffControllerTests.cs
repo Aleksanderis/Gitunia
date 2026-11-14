@@ -249,7 +249,9 @@ public class WorkingDiffControllerTests
     [Fact]
     public async Task GivenAStagedRename_WhenSelected_ThenTheDiffNamesBothPaths()
     {
-        using var repository = TestRepository.CreateCommitted("base", new TestFile("old.txt", "a\nb\nc\nd\ne\nf\ng\nh\n"));
+        using var repository = TestRepository.CreateCommitted(
+            "base",
+            new TestFile("old.txt", "a\nb\nc\nd\ne\nf\ng\nh\n"));
         repository.Git("mv", "old.txt", "new.txt");
         using var harness = await Harness.OpenAsync(repository);
 
@@ -283,7 +285,10 @@ public class WorkingDiffControllerTests
     {
         Assert.SkipWhen(OperatingSystem.IsWindows(), "Windows file names cannot contain *.");
 
-        using var repository = TestRepository.CreateCommitted("base", new TestFile("a*.txt", "1\n"), new TestFile("ab.txt", "1\n"));
+        using var repository = TestRepository.CreateCommitted(
+            "base",
+            new TestFile("a*.txt", "1\n"),
+            new TestFile("ab.txt", "1\n"));
         repository.WriteFile("a*.txt", "star\n").WriteFile("ab.txt", "b\n");
         using var harness = await Harness.OpenAsync(repository);
 
