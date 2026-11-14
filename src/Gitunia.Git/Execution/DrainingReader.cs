@@ -4,7 +4,8 @@ namespace Gitunia.Git.Execution;
 
 /// <summary>
 /// Reads one chunk of a process pipe and ends the read when it stays pending too long after the process exited (a
-/// background child of a hook can hold the pipe open for ever). The cut only cancels a read that has nothing to deliver.
+/// background child of a hook can hold the pipe open for ever). The cut only cancels a read that has nothing to
+/// deliver.
 /// </summary>
 /// <remarks>
 /// On Windows the pipe is a synchronous <c>FileStream</c>: <c>ReadAsync</c> first hops to the thread pool and checks
@@ -25,7 +26,9 @@ public sealed class DrainingReader
 
     /// <param name="grace">How long a read may stay pending after the exit before it is cut.</param>
     /// <param name="maxDeferral">The longest the cut waits for the thread pool queue to drain (zero: never).</param>
-    /// <param name="queuedWorkItems">The number of queued thread pool work items (a seam for tests; default: the pool's).</param>
+    /// <param name="queuedWorkItems">
+    /// The number of queued thread pool work items (a seam for tests; default: the pool's own count).
+    /// </param>
     public DrainingReader(TimeSpan grace, TimeSpan maxDeferral, Func<long>? queuedWorkItems = null)
     {
         _grace = grace;
@@ -38,9 +41,10 @@ public sealed class DrainingReader
         drainToken.IsCancellationRequested && !hardToken.IsCancellationRequested;
 
     /// <summary>
-    /// Reads up to <paramref name="buffer"/>.Length bytes. Returns 0 at the end of the stream and when the read was cut
-    /// (<paramref name="exitTask"/> completed and the grace passed with nothing to read). <paramref name="capToken"/> is
-    /// an absolute bound that cancels a pending read without deferral; <paramref name="hardToken"/> propagates.
+    /// Reads up to <paramref name="buffer"/>.Length bytes. Returns 0 at the end of the stream and when the read was
+    /// cut (<paramref name="exitTask"/> completed and the grace passed with nothing to read).
+    /// <paramref name="capToken"/> is an absolute bound that cancels a pending read without deferral;
+    /// <paramref name="hardToken"/> propagates.
     /// </summary>
     public async Task<int> ReadChunkAsync(
         Stream stream,
@@ -87,20 +91,17 @@ public sealed class DrainingReader
         }
     }
 
-    // A work item that is no longer queued is running, so a read that hopped through the pool has reached the pipe.
+    // A work item that is no longer queued has been taken by a worker, so a read that hopped through the pool is about
+    // to reach the pipe; the settle delay covers the moment between taking it and checking its token. This narrows the
+    // race, it does not close it (a worker can be preempted for longer, and the deferral is bounded).
     private async Task WaitForPoolQueueAsync(CancellationToken stopToken)
     {
         var started = Stopwatch.GetTimestamp();
-        var deferred = false;
         while (_queuedWorkItems() > 0 && Stopwatch.GetElapsedTime(started) < _maxDeferral)
         {
-            deferred = true;
             await Task.Delay(PoolPollInterval, stopToken).ConfigureAwait(false);
         }
 
-        if (deferred)
-        {
-            await Task.Delay(SettleDelay, stopToken).ConfigureAwait(false);
-        }
+        await Task.Delay(SettleDelay, stopToken).ConfigureAwait(false);
     }
 }
