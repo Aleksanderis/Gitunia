@@ -163,10 +163,14 @@ public class WatcherResilienceTests
         watcher.Start();
         await WatcherWait.UntilAsync(() => lister.CallCount == 1);
 
+        // The edits reach the handler as watcher events do, but at a known moment: waiting for the operating system to
+        // deliver five real ones before the release is a race, and on a loaded Windows runner they can come late enough
+        // to split into more listings (#1396). That a real .gitignore edit reaches the handler is covered by the
+        // test above that writes .gitignore for real.
+        var ignoreFile = Path.Combine(testRepository.WorkingTreePath, ".gitignore");
         for (var edit = 0; edit < 5; edit++)
         {
-            testRepository.WriteFile(".gitignore", $"edit{edit}\n");
-            await Task.Delay(30, Token);
+            watcher.ReportPathChange(ignoreFile);
         }
 
         lister.Release.Set();

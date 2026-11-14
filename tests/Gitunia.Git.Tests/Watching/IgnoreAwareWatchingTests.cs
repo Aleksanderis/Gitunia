@@ -119,7 +119,7 @@ public class IgnoreAwareWatchingTests
         var callsBefore = recorder.CallCount;
         testRepository.WriteFile(Path.Combine("fresh", "deeper", "file.txt"), "x");
 
-        await WatcherWait.UntilAsync(() => recorder.CallCount > callsBefore);
+        await WatcherWait.UntilAsync(() => recorder.CallCount > callsBefore, watcher, recorder: recorder);
     }
 
     [Fact]
