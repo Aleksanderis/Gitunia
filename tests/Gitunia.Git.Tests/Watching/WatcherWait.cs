@@ -42,7 +42,9 @@ public static class WatcherWait
                     $"The watcher keeps polling, so the awaited state cannot be reached. {Cause()}{Describe(watcher)}");
             }
 
-            Assert.True(DateTime.UtcNow < deadline, $"Condition not reached in time. {Describe(watcher)}{Describe(recorder)}");
+            Assert.True(
+                DateTime.UtcNow < deadline,
+                $"Condition not reached in time. {Describe(watcher)}{Describe(recorder)}");
             await Task.Delay(PollDelay, Token);
         }
     }
@@ -73,7 +75,7 @@ public static class WatcherWait
 
     private static string Describe(RepositoryWatcher? watcher)
     {
-        // A starved pool (the timers and the event callbacks run on it) shows as queued work and a thread count far above the CPUs.
+        // A starved pool (the timers and the event callbacks run on it) shows as queued work and many threads.
         var pool = $"Pool: {ThreadPool.ThreadCount} threads, {ThreadPool.PendingWorkItemCount} queued, "
             + $"{Environment.ProcessorCount} CPUs.";
         if (watcher is null)
