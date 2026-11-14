@@ -27,6 +27,11 @@ public class GitRunnerTests
     // The fake's background child lives about ten seconds; the grace period is 1.5 s.
     private static readonly TimeSpan BackgroundChildLimit = TimeSpan.FromSeconds(4);
 
+    // Around the runner's 1.5 s drain grace; only used to word a failure message.
+    private static readonly TimeSpan GraceWindowStart = TimeSpan.FromSeconds(1.4);
+
+    private static readonly TimeSpan GraceWindowEnd = TimeSpan.FromSeconds(2.5);
+
     // The chatty child writes for ten seconds; the absolute bound after the exit is 5 s.
     private static readonly TimeSpan ChattyChildLimit = TimeSpan.FromSeconds(8);
 
@@ -400,7 +405,7 @@ public class GitRunnerTests
             TestContext.Current.CancellationToken);
 
         Assert.Equal(0, result.ExitCode);
-        Assert.Equal("done", result.StandardOutputText.Trim());
+        AssertOutputDelivered(result.StandardOutputText, clock.Elapsed);
         Assert.True(clock.Elapsed < BackgroundChildLimit, $"took {clock.Elapsed}");
     }
 
@@ -417,7 +422,7 @@ public class GitRunnerTests
             TestContext.Current.CancellationToken);
 
         Assert.Equal(0, result.ExitCode);
-        Assert.Equal("done", result.StandardOutputText.Trim());
+        AssertOutputDelivered(result.StandardOutputText, clock.Elapsed);
         Assert.True(clock.Elapsed < BackgroundChildLimit, $"took {clock.Elapsed}");
     }
 
@@ -437,7 +442,7 @@ public class GitRunnerTests
             collected.AddRange(chunk.Span);
         }
 
-        Assert.Equal("done", Encoding.UTF8.GetString([.. collected]).Trim());
+        AssertOutputDelivered(Encoding.UTF8.GetString([.. collected]), clock.Elapsed);
         Assert.True(clock.Elapsed < BackgroundChildLimit, $"took {clock.Elapsed}");
     }
 
@@ -493,6 +498,23 @@ public class GitRunnerTests
         }
 
         Assert.Equal(200000, total);
+    }
+
+    // Output git wrote before it exited must arrive. When it does not (windows-x64 flake, #1340: empty output after
+    // about the grace period), the message says what the run looked like.
+    private static void AssertOutputDelivered(string actual, TimeSpan elapsed)
+    {
+        var text = actual.Trim();
+        var nearGrace = elapsed >= GraceWindowStart && elapsed <= GraceWindowEnd;
+        var hint = nearGrace ? "consistent with a read cut at the drain grace" : "not near the drain grace";
+        ThreadPool.GetMinThreads(out var minimum, out _);
+        ThreadPool.GetAvailableThreads(out var available, out _);
+
+        Assert.True(
+            text == "done",
+            $"Expected \"done\", got \"{text}\" after {elapsed} ({hint}). Pool after the run: "
+            + $"{ThreadPool.ThreadCount} threads (minimum {minimum}, {available} available), "
+            + $"{ThreadPool.PendingWorkItemCount} queued, {Environment.ProcessorCount} CPUs.");
     }
 
     private static GitRunner RunnerFor(FakeGitExecutable fake) => new(new GitRunnerOptions(fake.ExecutablePath));
