@@ -409,9 +409,9 @@ jobs:
           for i in $(seq 1 "$COUNT"); do
             start=$(date +%s)
             rm -rf "TestResults/$i"
+            code=0
             dotnet test "tests/Gitunia.$PROJECT.Tests" -c Release --no-build "${filter[@]}" \
-              --blame-hang-timeout 4m --blame-hang-dump-type none --results-directory "TestResults/$i" --logger trx > "loop-$i.log" 2>&1
-            code=$?
+              --blame-hang-timeout 9m --blame-hang-dump-type none --results-directory "TestResults/$i" --logger trx > "loop-$i.log" 2>&1 || code=$?
             took=$(( $(date +%s) - start ))
             if [ $code -eq 0 ]; then pass=$((pass+1)); result=pass
             elif grep -q "run exceeded" "loop-$i.log"; then hang=$((hang+1)); result=HANG

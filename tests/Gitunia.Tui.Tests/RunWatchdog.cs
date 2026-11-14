@@ -28,6 +28,8 @@ internal static class RunWatchdog
             Console.Error.WriteLine($"{name}: run exceeded {Limit.TotalMinutes} minutes, aborting (see issue #384).");
             Console.Error.WriteLine($"Tests still running (the runner names only the last one it saw start):{Environment.NewLine}{RunningTests.Describe()}");
             Console.Error.WriteLine($"Process threads (id, state, wait reason):{Environment.NewLine}{DescribeThreads()}");
+            Console.Error.WriteLine("Capturing managed stacks (up to 90 s)...");
+            Console.Error.Flush();
             Console.Error.WriteLine($"Managed stacks:{Environment.NewLine}{DescribeManagedStacks()}");
             Console.Error.Flush();
             Environment.FailFast($"{name} run watchdog expired");
