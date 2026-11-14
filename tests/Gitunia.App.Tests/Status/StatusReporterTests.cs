@@ -77,7 +77,7 @@ public class StatusReporterTests
         var changed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         host.Changed += () => changed.TrySetResult();
         timer.Schedule(TimeSpan.FromMilliseconds(10));
-        Assert.False(changed.Task.IsCompleted);
+        Assert.False(changed.Task.IsCompleted, "Nothing may fire before the clock moves.");
 
         clock.Advance(TimeSpan.FromSeconds(1));
 
@@ -99,10 +99,13 @@ public class StatusReporterTests
         };
         timer.Schedule(TimeSpan.FromMilliseconds(50));
         timer.Schedule(TimeSpan.FromMilliseconds(10));
+        // The replaced wait is gone before any time passes, so it cannot post a second command later.
+        Assert.Equal(1, clock.PendingTimers);
 
         clock.Advance(TimeSpan.FromSeconds(1));
         await changed.Task.WaitAsync(TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken);
 
+        Assert.Equal(0, clock.PendingTimers);
         Assert.Equal(1, Volatile.Read(ref changes.Value));
     }
 }

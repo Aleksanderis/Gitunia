@@ -7,6 +7,18 @@ public sealed class ManualClock : TimeProvider
     private readonly List<ManualTimer> _timers = [];
     private DateTimeOffset _now = new(2026, 10, 18, 12, 0, 0, TimeSpan.Zero);
 
+    /// <summary>How many timers are armed and not yet disposed or fired.</summary>
+    public int PendingTimers
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return _timers.Count;
+            }
+        }
+    }
+
     public override DateTimeOffset GetUtcNow()
     {
         lock (_gate)
@@ -60,10 +72,11 @@ public sealed class ManualClock : TimeProvider
         }
     }
 
-    private void Register(ManualTimer timer)
+    private void Arm(ManualTimer timer, TimeSpan dueTime, TimeSpan period)
     {
         lock (_gate)
         {
+            timer.SetSchedule(_now + dueTime, period);
             if (!_timers.Contains(timer))
             {
                 _timers.Add(timer);
@@ -94,13 +107,18 @@ public sealed class ManualClock : TimeProvider
                 return true;
             }
 
-            _period = period;
-            Due = clock.GetUtcNow() + dueTime;
-            clock.Register(this);
+            clock.Arm(this, dueTime, period);
 
             return true;
         }
 
+        public void SetSchedule(DateTimeOffset due, TimeSpan period)
+        {
+            Due = due;
+            _period = period;
+        }
+
+        // Called with the clock's gate held.
         public void Rearm()
         {
             if (_period == Timeout.InfiniteTimeSpan || _period == TimeSpan.Zero)
