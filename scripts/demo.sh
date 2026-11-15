@@ -92,7 +92,7 @@ repo="$work/demo-repo"
 
   # A git-flow history drawn to read well: main is one straight lane that only receives release merges, develop is a second
   # straight lane, features are short bubbles that go one after another off develop, and every release branch is merged
-  # into main (tagged) and back into develop. Nothing dangles except three short open branches near the tip.
+  # into main (tagged) and back into develop. Nothing dangles except two short open branches near the tip.
   topics=(sidebar-filter graph-lanes ref-badges stash-list diff-wrap rebase-todo tag-dialog remote-fetch config-keys status-bar
           worktree-prune commit-search file-tree hunk-stage reflog-view theme-colors mouse-wheel tab-restore
           conflict-editor cherry-pick revert-flow push-confirm pull-rebase bisect-hint help-overlay session-save)
@@ -110,8 +110,11 @@ repo="$work/demo-repo"
       commit develop "Merge feature/$topic" "$dev_tip" "$feature_tip"; dev_tip=$last
     done
     if [ "$rel" -eq 7 ]; then
-      # Open work near the tip: short branches off develop that stay unmerged (fix/overflow and feature/multiply are used by demo.tape).
-      branch feature/palette "$dev_tip" 3 "Add palette"
+      # Open work near the tip (feature/palette is merged): short branches off develop that stay unmerged (fix/overflow and feature/multiply are used by demo.tape).
+      base=$dev_tip
+      commit develop "Cover the graph view" "$dev_tip"; dev_tip=$last
+      branch feature/palette "$base" 3 "Add palette"; feature_tip=$last
+      commit develop "Merge feature/palette" "$dev_tip" "$feature_tip"; dev_tip=$last
       branch feature/multiply "$dev_tip" 2 "Add multiply"
       branch fix/overflow "$dev_tip" 1 "Add a checked variant"
     fi
