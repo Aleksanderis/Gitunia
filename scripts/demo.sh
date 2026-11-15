@@ -110,20 +110,25 @@ repo="$work/demo-repo"
       commit develop "Merge feature/$topic" "$dev_tip" "$feature_tip"; dev_tip=$last
     done
     if [ "$rel" -eq 7 ]; then
-      # Overlapping branches whose merges cut over the lanes of the others (lines that cross leave a gap in the lane they run over,
-      # lanes that end and start further apart are drawn as diagonals): palette and split-diff are merged, multiply and overflow stay open.
-      commit feature/palette "Add palette" "$dev_tip"; pal=$last
-      commit develop "Cover the graph view" "$dev_tip"; dev_tip=$last
-      commit feature/split-diff "Add split-diff" "$dev_tip"; spl=$last
-      commit feature/palette "Document palette (part 2)" "$pal"; pal=$last
-      commit develop "Fix the config view" "$dev_tip"; dev_tip=$last
-      commit feature/multiply "Add multiply" "$dev_tip"; mul=$last
-      commit feature/split-diff "Refine split-diff (part 2)" "$spl"; spl=$last
-      commit develop "Merge feature/split-diff" "$dev_tip" "$spl"; dev_tip=$last
-      commit feature/palette "Extend palette (part 3)" "$pal"; pal=$last
-      commit feature/multiply "Fix multiply (part 2)" "$mul"
-      commit fix/overflow "Add a checked variant" "$dev_tip"
-      commit develop "Merge feature/palette" "$dev_tip" "$pal"; dev_tip=$last
+      # Six branches open side by side, then merged from the outermost lane inwards: each merge line runs over the lanes of the
+      # branches still open (a gap in each lane it crosses). multiply and overflow stay open (demo.tape uses both).
+      names=(multiply palette split-diff quick-open theme-presets overflow)
+      refs=(feature/multiply feature/palette feature/split-diff feature/quick-open feature/theme-presets fix/overflow)
+      tips=()
+      for i in "${!refs[@]}"; do
+        commit develop "${verbs[$((mark % 8))]} the ${areas[$((mark % 8))]} view" "$dev_tip"; dev_tip=$last
+        commit "${refs[$i]}" "Add ${names[$i]}" "$dev_tip"; tips+=("$last")
+      done
+      for round in 2 3; do
+        for i in 0 1 2 3 4; do
+          commit "${refs[$i]}" "${verbs[$(((mark + i) % 8))]} ${names[$i]} (part $round)" "${tips[$i]}"; tips[$i]=$last
+        done
+        commit develop "${verbs[$((mark % 8))]} the ${areas[$((mark % 8))]} view" "$dev_tip"; dev_tip=$last
+      done
+      for i in 4 3 2 1; do
+        commit develop "Merge ${refs[$i]}" "$dev_tip" "${tips[$i]}"; dev_tip=$last
+        commit develop "${verbs[$((mark % 8))]} the ${areas[$((mark % 8))]} view" "$dev_tip"; dev_tip=$last
+      done
     fi
     # Release cut from develop, merged into main (tagged) and back into develop.
     commit "release/0.$rel" "Prepare release 0.$rel" "$dev_tip"
