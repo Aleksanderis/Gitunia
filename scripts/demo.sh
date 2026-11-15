@@ -110,13 +110,20 @@ repo="$work/demo-repo"
       commit develop "Merge feature/$topic" "$dev_tip" "$feature_tip"; dev_tip=$last
     done
     if [ "$rel" -eq 7 ]; then
-      # Open work near the tip (feature/palette is merged): short branches off develop that stay unmerged (fix/overflow and feature/multiply are used by demo.tape).
-      base=$dev_tip
+      # Overlapping branches whose merges cut over the lanes of the others (lines that cross leave a gap in the lane they run over,
+      # lanes that end and start further apart are drawn as diagonals): palette and split-diff are merged, multiply and overflow stay open.
+      commit feature/palette "Add palette" "$dev_tip"; pal=$last
       commit develop "Cover the graph view" "$dev_tip"; dev_tip=$last
-      branch feature/palette "$base" 3 "Add palette"; feature_tip=$last
-      commit develop "Merge feature/palette" "$dev_tip" "$feature_tip"; dev_tip=$last
-      branch feature/multiply "$dev_tip" 2 "Add multiply"
-      branch fix/overflow "$dev_tip" 1 "Add a checked variant"
+      commit feature/split-diff "Add split-diff" "$dev_tip"; spl=$last
+      commit feature/palette "Document palette (part 2)" "$pal"; pal=$last
+      commit develop "Fix the config view" "$dev_tip"; dev_tip=$last
+      commit feature/multiply "Add multiply" "$dev_tip"; mul=$last
+      commit feature/split-diff "Refine split-diff (part 2)" "$spl"; spl=$last
+      commit develop "Merge feature/split-diff" "$dev_tip" "$spl"; dev_tip=$last
+      commit feature/palette "Extend palette (part 3)" "$pal"; pal=$last
+      commit feature/multiply "Fix multiply (part 2)" "$mul"
+      commit fix/overflow "Add a checked variant" "$dev_tip"
+      commit develop "Merge feature/palette" "$dev_tip" "$pal"; dev_tip=$last
     fi
     # Release cut from develop, merged into main (tagged) and back into develop.
     commit "release/0.$rel" "Prepare release 0.$rel" "$dev_tip"
