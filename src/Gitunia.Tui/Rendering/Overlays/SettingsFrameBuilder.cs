@@ -1,5 +1,4 @@
 using System.Globalization;
-using Gitunia.Core.Editing;
 using Gitunia.Core.Settings;
 using Gitunia.Core.Settings.Models;
 using Gitunia.Tui.Rendering.Graph;
@@ -200,7 +199,7 @@ public static class SettingsFrameBuilder
     {
         if (state.IsEditingFilter)
         {
-            return OverlayBox.Text($"/{PromptCaret.Mark(state.Filter, state.FilterCaret)}", layout.Width, glyphs);
+            return OverlayBox.Input(new CaretField("/", state.Filter, state.FilterCaret), layout.Width, glyphs);
         }
 
         if (state.IsReadOnly)

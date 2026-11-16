@@ -2,7 +2,6 @@ using System.Globalization;
 using System.Text;
 using Gitunia.App.Blame;
 using Gitunia.Core.Blame;
-using Gitunia.Core.Editing;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Mouse;
 using Gitunia.Core.Text;
@@ -117,7 +116,12 @@ public static class BlameFrameBuilder
             SegmentRole.OverlayKey,
             SegmentRole.Faint));
         lines.Add(HintChipRows.Line(ToggleChips.Select(WithKey).ToArray(), screenWidth, glyphs));
-        lines.Add(OverlayBox.Hints(FooterHints(state), screenWidth, glyphs, FooterLead(state)));
+        lines.Add(OverlayBox.Hints(
+            FooterHints(state),
+            screenWidth,
+            glyphs,
+            FooterLead(state),
+            field: state is { HasSearch: true, IsEditingSearch: true } ? new CaretField("/", state.SearchText, state.SearchCaret) : null));
         lines.Add(OverlayBox.Bottom(screenWidth, glyphs));
 
         return new OverlayFrame(0, 0, lines);
@@ -396,9 +400,7 @@ public static class BlameFrameBuilder
     {
         if (state.HasSearch)
         {
-            var typed = state.IsEditingSearch ? PromptCaret.Mark(state.SearchText, state.SearchCaret) : state.SearchText;
-
-            return $"/{typed}";
+            return $"/{state.SearchText}";
         }
 
         var position = state.LineCount == 0 ? 0 : state.Cursor + 1;

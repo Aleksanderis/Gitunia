@@ -175,18 +175,27 @@ public class SidebarFrameTests
 
         var frame = Frame(sidebar, 80, 8);
 
-        Assert.StartsWith("│ /feat_             │", frame[5], StringComparison.Ordinal);
+        Assert.StartsWith("│ /feat              │", frame[5], StringComparison.Ordinal);
     }
 
     [Fact]
-    public void GivenTheCaretInTheFilter_WhenComposing_ThenTheFilterLineDrawsItBetweenTheCharacters()
+    public void GivenTheCaretInTheFilter_WhenDrawingTheFilterLine_ThenTheCursorCellCoversTheCharacterUnderIt()
+    {
+        var line = SidebarRowRenderer.FilterLine("feat", true, 20, GraphGlyphSet.Unicode, 2);
+
+        Assert.Equal("/feat", line.Text.TrimEnd());
+        Assert.Equal("a", CursorCell.Of(line));
+    }
+
+    [Fact]
+    public void GivenTheCaretInTheFilter_WhenComposing_ThenTheFilterTextIsNotPushedApart()
     {
         var sidebar = Sidebar(Section(SidebarSection.Branches, "Branches", 1, isExpanded: true), Branch("feature"))
             with { FilterText = "feat", IsEditingFilter = true, FilterCaret = 2 };
 
         var frame = Frame(sidebar, 80, 8);
 
-        Assert.StartsWith("│ /fe|at             │", frame[5], StringComparison.Ordinal);
+        Assert.StartsWith("│ /feat              │", frame[5], StringComparison.Ordinal);
     }
 
     [Fact]

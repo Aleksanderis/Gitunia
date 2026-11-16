@@ -290,7 +290,7 @@ public class ReflogInputTests
         Assert.True(harness.Reflog.HandleTextKey(new KeyEvent("n")));
         Assert.True(harness.Reflog.HandleTextKey(new KeyEvent("i")));
         Assert.Equal(1, harness.Reflog.State!.SelectedIndex);
-        Assert.Contains("/ini_", harness.Reflog.CurrentFrame()!.Lines[^2].Text, StringComparison.Ordinal);
+        Assert.Contains("/ini ", harness.Reflog.CurrentFrame()!.Lines[^2].Text, StringComparison.Ordinal);
 
         harness.Run(ActionIds.InputAccept);
         Assert.Equal(KeyMode.Normal, harness.Mode);
