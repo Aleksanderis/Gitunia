@@ -50,6 +50,12 @@ public sealed partial class WorkingTreeActionHandler(
         ActionIds.PaneTaller,
         ActionIds.PaneShorter,
         ActionIds.PaneResetSizes,
+        // The operation in progress belongs to the whole repository, not to a pane: its banner and hints offer these
+        // keys in this view too (#1431).
+        ActionIds.OperationContinue,
+        ActionIds.OperationAbort,
+        ActionIds.OperationSkip,
+        ActionIds.ToolMergetool,
     ];
 
     /// <summary>A short notice for the status bar from the last action, empty when none.</summary>
