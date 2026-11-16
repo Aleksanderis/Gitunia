@@ -146,6 +146,19 @@ public class PromptPopupFrameBuilderTests
     }
 
     [Fact]
+    public void GivenAWideCharacterTitle_WhenBuilding_ThenTheCountEndsAtTheRightEdge()
+    {
+        var window = new PickerWindow(["a"], 0, "1/1");
+        var prompt = PromptPopup.ForFilter("ブランチ", "C", string.Empty, window, "ok");
+
+        var frame = PromptPopupFrameBuilder.Build(prompt, 80, 24, GraphGlyphSet.Unicode);
+
+        Assert.NotNull(frame);
+        Assert.Equal(frame.Width, TextWidth.Of(frame.Lines[0].Text));
+        Assert.EndsWith("1/1 ", frame.Lines[0].Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void GivenANarrowPopup_WhenTheTitleAndCountDoNotFit_ThenTheCountIsLeftOut()
     {
         var window = new PickerWindow(["a"], 0, "1/1");

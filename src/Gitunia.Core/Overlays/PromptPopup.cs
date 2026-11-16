@@ -39,9 +39,9 @@ public sealed record PromptPopup(
         new(title, [context], input, [], [new("Enter", acceptLabel), Cancel]);
 
     /// <summary>
-    /// A prompt whose text filters candidates (see <see cref="Prompts.PromptPicker"/>); <paramref name="rows"/> is the
-    /// visible candidate list with its highlighted row (-1 for none) and the <c>n/m</c> position shown
-    /// in the title bar and <paramref name="acceptLabel"/> names what <c>Enter</c> does.
+    /// A prompt whose text filters candidates (see <see cref="Prompts.PromptPicker"/>). <paramref name="rows"/> is the
+    /// visible candidate list with its highlighted row (-1 for none) and the <c>n/m</c> position for the title bar;
+    /// <paramref name="acceptLabel"/> names what <c>Enter</c> does.
     /// </summary>
     public static PromptPopup ForFilter(
         string title,
