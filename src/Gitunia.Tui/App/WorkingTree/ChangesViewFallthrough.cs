@@ -5,9 +5,10 @@ namespace Gitunia.Tui.App.WorkingTree;
 
 /// <summary>
 /// Which actions the Changes view lets through to the next handler when it has no use for them. An action bound in the
-/// Global view of the default keymap works in every view, so it falls through unless it is on <see cref="Blocked"/>;
-/// the actions of a list, the graph or the sidebar (not Global) stay swallowed, because the next handlers would apply
-/// them to the graph or sidebar hidden behind the Changes view. A new Global action therefore works here without a change.
+/// Global view of the default keymap (in any mode) works in every view, so it falls through unless it is on
+/// <see cref="Blocked"/>. Every other action (those of a list, the graph or the sidebar, and ones with no key at all)
+/// stays swallowed, because the next handlers would apply them to the graph or sidebar hidden behind the Changes view.
+/// A new Global action therefore works here without a change.
 /// </summary>
 public static class ChangesViewFallthrough
 {
@@ -17,8 +18,8 @@ public static class ChangesViewFallthrough
     public static IReadOnlyDictionary<ActionId, string> Blocked { get; } = new Dictionary<ActionId, string>
     {
         [ActionIds.PaneZoom] =
-            "DiffPaneInput zooms the diff of the history view, which is hidden here; the zoom of the Changes diff is taken "
-            + "by WorkingDiffController before this point",
+            "DiffPaneInput zooms the diff of the history view, which is hidden here; the zoom of the Changes diff "
+            + "is taken by WorkingDiffController before this point",
     };
 
     /// <summary>The actions bound in the Global view of the default keymap.</summary>

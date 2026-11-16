@@ -118,7 +118,7 @@ public sealed partial class WorkingTreeActionHandler(
         {
             if (ChangesViewFallthrough.Applies(action))
             {
-                // A Global action nobody here owns (operation keys, the mergetool, a pin) belongs to the next handler (#1433).
+                // A Global action nobody here owns (operation keys, mergetool, a pin) is for the next handler (#1433).
                 return false;
             }
 

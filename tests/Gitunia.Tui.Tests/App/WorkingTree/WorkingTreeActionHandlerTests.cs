@@ -118,6 +118,9 @@ public class WorkingTreeActionHandlerTests
         ];
         var taken = new List<string>();
 
+        // Walked with the unstaged list focused; the diff and the message box take their own keys first and are covered
+        // by their own tests.
+        Assert.Contains(ActionIds.RepositoryPin, ChangesViewFallthrough.Globals);
         foreach (var action in ChangesViewFallthrough.Globals)
         {
             using var harness = Harness.Open(Modified("a.txt"));
