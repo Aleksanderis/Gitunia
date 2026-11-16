@@ -20,7 +20,8 @@ public class PromptPopupFrameBuilderTests
         var text = frame.Lines.Select(line => line.Text).ToList();
         Assert.Contains("New branch", text[0], StringComparison.Ordinal);
         Assert.Contains("At abc1234", text[1], StringComparison.Ordinal);
-        Assert.Contains("› feat_", text[2], StringComparison.Ordinal);
+        Assert.Contains("› feat ", text[2], StringComparison.Ordinal);
+        Assert.Equal(" ", CursorCell.Of(frame.Lines[2]));
         Assert.Contains("Enter create   Esc cancel", text[^2], StringComparison.Ordinal);
     }
 
@@ -35,8 +36,10 @@ public class PromptPopupFrameBuilderTests
 
         Assert.NotNull(short1);
         Assert.NotNull(long1);
-        Assert.Contains("› fea|ture", short1.Lines[2].Text, StringComparison.Ordinal);
-        Assert.Contains("|", long1.Lines[2].Text, StringComparison.Ordinal);
+        Assert.Contains("› feature", short1.Lines[2].Text, StringComparison.Ordinal);
+        Assert.Equal("t", CursorCell.Of(short1.Lines[2]));
+        Assert.Equal("a", CursorCell.Of(long1.Lines[2]));
+        Assert.Equal(long1.Width, TextWidth.Of(long1.Lines[2].Text));
         Assert.DoesNotContain("XY", long1.Lines[2].Text, StringComparison.Ordinal);
     }
 
@@ -62,7 +65,8 @@ public class PromptPopupFrameBuilderTests
         var frame = PromptPopupFrameBuilder.Build(prompt, 80, 24, GraphGlyphSet.Unicode);
 
         Assert.NotNull(frame);
-        Assert.Contains("TAIL_", frame.Lines[2].Text, StringComparison.Ordinal);
+        Assert.Contains("TAIL ", frame.Lines[2].Text, StringComparison.Ordinal);
+        Assert.Equal(" ", CursorCell.Of(frame.Lines[2]));
         Assert.Equal(frame.Width, TextWidth.Of(frame.Lines[2].Text));
     }
 
@@ -104,7 +108,8 @@ public class PromptPopupFrameBuilderTests
         Assert.NotNull(frame);
         var text = string.Join('\n', frame.Lines.Select(line => line.Text));
         Assert.Matches(@"^ Switch branch +2/2 $", frame.Lines[0].Text);
-        Assert.Contains("> rel_", frame.Lines[2].Text, StringComparison.Ordinal);
+        Assert.Contains("> rel ", frame.Lines[2].Text, StringComparison.Ordinal);
+        Assert.Equal(" ", CursorCell.Of(frame.Lines[2]));
         var release = Assert.Single(frame.Lines, line => line.Text.Contains("release", StringComparison.Ordinal));
         var relay = Assert.Single(frame.Lines, line => line.Text.Contains("relay", StringComparison.Ordinal));
         Assert.False(release.IsSelected);

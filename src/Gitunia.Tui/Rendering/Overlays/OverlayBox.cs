@@ -41,20 +41,36 @@ public static class OverlayBox
         bool isSelected = false) =>
         Wrap(new LineBuilder(InnerWidth(width), glyphs.Ellipsis).Append($" {text}", role).Build(), glyphs, isSelected);
 
+    /// <summary>A body row holding an editable field: the text around a cursor cell, kept in view when it is wider than the row.</summary>
+    public static StyledLine Input(CaretField field, int width, GraphGlyphSet glyphs, SegmentRole role = SegmentRole.Plain)
+    {
+        var builder = new LineBuilder(InnerWidth(width), glyphs.Ellipsis).Append(" ", role);
+        field.AppendTo(builder, role);
+        return Wrap(builder.Build(), glyphs);
+    }
+
     /// <summary>
     /// A footer row of key hints, drawn like the status bar's: bold keys on the bar colours. The keys are named by
     /// the caller, nothing is guessed from the text. An item with empty keys is a plain note.
-    /// <paramref name="lead"/> is plain text before the hints, such as a position.
+    /// <paramref name="lead"/> is plain text before the hints, such as a position; <paramref name="field"/> is a field being edited, drawn instead of it.
     /// </summary>
     public static StyledLine Hints(
         IEnumerable<HintItem> hints,
         int width,
         GraphGlyphSet glyphs,
         string lead = "",
-        string gap = HintGap)
+        string gap = HintGap,
+        CaretField? field = null)
     {
         var builder = new LineBuilder(InnerWidth(width), glyphs.Ellipsis);
-        if (lead.Length > 0)
+        if (field is not null)
+        {
+            // The field being edited replaces the lead; its text is cut so the suffix (a count) still fits.
+            builder.Append(" ", SegmentRole.Status);
+            field.AppendTo(builder, SegmentRole.Status);
+            builder.Append(" ", SegmentRole.Status);
+        }
+        else if (lead.Length > 0)
         {
             builder.Append($" {lead} ", SegmentRole.Status);
         }

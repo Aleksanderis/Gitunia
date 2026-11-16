@@ -22,7 +22,7 @@ public sealed class BlameFrameBuilderTests
 
         var frame = Frame(state);
 
-        Assert.Contains("/to|do", frame, StringComparison.Ordinal);
+        Assert.Contains("/todo", frame, StringComparison.Ordinal);
     }
 
     [Fact]

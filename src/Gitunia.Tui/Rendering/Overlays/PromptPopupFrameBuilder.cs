@@ -1,4 +1,3 @@
-using Gitunia.Core.Editing;
 using Gitunia.Core.Overlays;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Styling;
@@ -45,7 +44,7 @@ public static class PromptPopupFrameBuilder
 
         if (prompt.Input is { } input)
         {
-            lines.Add(InputRow(input, prompt.InputCaret, textWidth, width, glyphs));
+            lines.Add(InputRow(input, prompt.InputCaret, width, glyphs));
         }
 
         var fixedLines = lines.Count + FooterLines;
@@ -105,10 +104,8 @@ public static class PromptPopupFrameBuilder
         return builder.Build(SegmentRole.OverlayTitle);
     }
 
-    private static StyledLine InputRow(string input, int caret, int textWidth, int width, GraphGlyphSet glyphs)
+    private static StyledLine InputRow(string input, int caret, int width, GraphGlyphSet glyphs)
     {
-        var marker = $"{glyphs.Picker.Prompt} ";
-        var room = Math.Max(1, textWidth - TextWidth.Of(marker));
-        return OverlayBox.Text($"{marker}{PromptCaret.Mark(input, caret, room)}", width, glyphs, SegmentRole.OverlayKey);
+        return OverlayBox.Input(new CaretField($"{glyphs.Picker.Prompt} ", input, caret), width, glyphs, SegmentRole.OverlayKey);
     }
 }
