@@ -406,6 +406,22 @@ public class PaletteTests
         }
     }
 
+    [Theory]
+    [InlineData(ColorDepth.None)]
+    [InlineData(ColorDepth.Ansi16)]
+    [InlineData(ColorDepth.TrueColor)]
+    public void GivenAnyScheme_WhenDrawingTheTitleCursor_ThenItSwapsTheChipColoursAndIsNotInverseVideo(ColorDepth depth)
+    {
+        var colors = PaletteTable.For(new PaletteSettings(depth, false));
+
+        var cursor = Palette.For(new StyledSegment(" ", SegmentRole.TitleCursor), false, false, colors);
+        var title = Palette.For(new StyledSegment(" ", SegmentRole.OverlayTitle), false, false, colors);
+
+        Assert.False(cursor.Style.HasFlag(TextStyle.Reverse));
+        Assert.Equal(title.Background, cursor.Foreground);
+        Assert.Equal(title.Foreground, cursor.Background);
+    }
+
     [Fact]
     public void GivenSixteenColourDarkScheme_WhenSelectingMutedText_ThenItIsLighterThanTheSelectionBackground()
     {

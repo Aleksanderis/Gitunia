@@ -1,4 +1,5 @@
 using Gitunia.Core.Config.Models;
+using Gitunia.Core.Editing;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Keymap.Repeat;
@@ -560,7 +561,7 @@ public class PaneHintsTests
         var model = new ScreenModel("repo", null, 1, 1, "INSERT", string.Empty, 3, 9, false, string.Empty)
         {
             SelectedName = "feature/x",
-            SearchLine = "/mul_",
+            SearchLine = new PromptLine("/", "mul", PromptCaret.End),
         };
 
         Assert.DoesNotContain("feature/x", StatusText(model), StringComparison.Ordinal);

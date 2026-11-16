@@ -353,8 +353,15 @@ public static class SettingsFrameBuilder
             .Append(trailing, SegmentRole.Plain)
             .Build(leftRole);
 
-        return [.. line.Segments.Select(segment => segment with { Selection = selection })];
+        return [.. line.Segments.Select(segment => Selected(segment, selection))];
     }
+
+    // The cursor cell of a typed field sits on the selected row: it is the swapped chip and takes no selection style,
+    // so without colour it is the one cell that is not inverse video.
+    private static StyledSegment Selected(StyledSegment segment, SegmentSelection selection) =>
+        segment.Role == SegmentRole.Cursor
+            ? segment with { Role = SegmentRole.TitleCursor }
+            : segment with { Selection = selection };
 
     // The text cut to the columns, or the field drawn with its cursor cell (the indent goes before the prefix).
     private static StyledLine FieldLine(
