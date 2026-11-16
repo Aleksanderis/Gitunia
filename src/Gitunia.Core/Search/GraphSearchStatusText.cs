@@ -10,18 +10,18 @@ public static class GraphSearchStatusText
     /// <param name="state">The tab's search.</param>
     /// <param name="selectedIndex">The selected row, -1 when none.</param>
     /// <param name="loadedCount">Rows loaded so far.</param>
-    /// <returns>The text, empty when no search is open.</returns>
-    public static string Describe(GraphSearchState state, int selectedIndex, int loadedCount)
+    /// <returns>The line (the caret only while typing), empty when no search is open.</returns>
+    public static PromptLine Describe(GraphSearchState state, int selectedIndex, int loadedCount)
     {
         if (!state.IsOpen)
         {
-            return string.Empty;
+            return PromptLine.Empty;
         }
 
-        var text = $"/{(state.Phase == SearchPhase.Editing ? PromptCaret.Mark(state.Text, state.Caret) : state.Text)}";
+        var field = new PromptLine("/", state.Text, state.Phase == SearchPhase.Editing ? state.Caret : null);
         if (state.Query is null)
         {
-            return text;
+            return field;
         }
 
         var matchCount = $"{state.Matches.Length.ToString(CultureInfo.InvariantCulture)}{(state.IsComplete ? string.Empty : "+")}";
@@ -37,6 +37,6 @@ public static class GraphSearchStatusText
             summary = $"{summary} searching {percent.ToString(CultureInfo.InvariantCulture)}%";
         }
 
-        return $"{text}  {summary}";
+        return field.WithSuffix($"  {summary}");
     }
 }

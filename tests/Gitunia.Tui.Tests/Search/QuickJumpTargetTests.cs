@@ -56,7 +56,7 @@ public sealed class QuickJumpTargetTests : IDisposable
 
         Assert.Equal([KeyMode.Insert], _shell.Modes);
         Assert.Equal([string.Empty], _shown);
-        Assert.StartsWith("jump _", Controller.StatusLine, StringComparison.Ordinal);
+        Assert.StartsWith("jump ", Controller.StatusLine.Plain, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -72,7 +72,7 @@ public sealed class QuickJumpTargetTests : IDisposable
         Assert.Equal([1], _jumps);
         Assert.Equal(KeyMode.Normal, _shell.Modes[^1]);
         Assert.Null(_shown[^1]);
-        Assert.Equal(string.Empty, Controller.StatusLine);
+        Assert.Equal(string.Empty, Controller.StatusLine.Plain);
     }
 
     [Fact]
@@ -132,7 +132,7 @@ public sealed class QuickJumpTargetTests : IDisposable
 
         Assert.Null(_shown[^1]);
         Assert.Equal(KeyMode.Normal, _shell.Modes[^1]);
-        Assert.Equal(string.Empty, Controller.StatusLine);
+        Assert.Equal(string.Empty, Controller.StatusLine.Plain);
     }
 
     [Fact]

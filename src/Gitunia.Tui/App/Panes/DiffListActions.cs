@@ -65,8 +65,8 @@ public sealed class DiffListActions
     /// <param name="diff">The diff to jump in.</param>
     public IJumpTarget JumpTarget(PaneKind pane, IDiffViewState diff) => new DiffJumpTarget(this, pane, diff);
 
-    public string StatusLine(IDiffViewState? diff) =>
-        diff is { Search.IsOpen: true } ? diff.Search.Describe(SearchRow(diff)) : string.Empty;
+    public PromptLine StatusLine(IDiffViewState? diff) =>
+        diff is { Search.IsOpen: true } ? diff.Search.Describe(SearchRow(diff)) : PromptLine.Empty;
 
     public DiffPaneModel ModelOf(IDiffViewState diff, DiffOptions options, bool isFocused) => new(
         diff.Source.Document,

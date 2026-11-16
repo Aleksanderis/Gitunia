@@ -14,14 +14,8 @@ public static class PromptCaret
     /// <summary>The caret after the last character of whatever the text is.</summary>
     public const int End = int.MaxValue;
 
-    /// <summary>The caret drawn after the last character (an empty cell).</summary>
-    public const string EndGlyph = "_";
-
     /// <summary>The cursor cell at the end of the text: a blank.</summary>
     public const string EndCell = " ";
-
-    /// <summary>The caret drawn between two characters, in text a style cannot reach.</summary>
-    public const string MiddleGlyph = "|";
 
     /// <summary>The caret limited to the text and moved back to the start of the text element it falls in.</summary>
     public static int Clamp(string text, int caret)
@@ -67,31 +61,6 @@ public static class PromptCaret
     {
         var target = Clamp(text, caret);
         return target >= text.Length ? text.Length : target + StringInfo.GetNextTextElementLength(text.AsSpan(target));
-    }
-
-    /// <summary>
-    /// The text with the caret drawn in, for prompts shown as plain text (the status-bar fallback of a popup that does
-    /// not fit; styled fields draw a cursor cell from <see cref="Split"/> instead): <see cref="EndGlyph"/> after the last
-    /// character, <see cref="MiddleGlyph"/> inside the text. When the result is wider than
-    /// <paramref name="columns"/>, the part around the caret stays: the text before it is cut from the left and the
-    /// text after it from the right.
-    /// </summary>
-    public static string Mark(string text, int caret, int columns = int.MaxValue)
-    {
-        var at = Clamp(text, caret);
-        var glyph = at == text.Length ? EndGlyph : MiddleGlyph;
-        var before = text[..at];
-        var after = text[at..];
-        if (DisplayWidth.Of(text) + glyph.Length <= columns)
-        {
-            return $"{before}{glyph}{after}";
-        }
-
-        var room = Math.Max(0, columns - glyph.Length);
-        var afterRoom = Math.Min(DisplayWidth.Of(after), room / 2);
-        var kept = Tail(before, room - afterRoom);
-
-        return $"{kept}{glyph}{Head(after, room - DisplayWidth.Of(kept))}";
     }
 
     /// <summary>

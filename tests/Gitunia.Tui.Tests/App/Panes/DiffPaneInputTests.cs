@@ -155,7 +155,7 @@ public class DiffPaneInputTests
         harness.Execute(ActionIds.DiffSearchOpen);
         Assert.Equal(KeyMode.Insert, harness.Mode);
         harness.Type("line");
-        Assert.StartsWith("/line_", harness.Controller.StatusLine, StringComparison.Ordinal);
+        Assert.StartsWith("/line", harness.Controller.StatusLine.Plain, StringComparison.Ordinal);
         harness.Execute(ActionIds.InputAccept);
         var first = harness.DiffList.SelectedItem;
         harness.Execute(ActionIds.DiffSearchNext);
@@ -196,7 +196,7 @@ public class DiffPaneInputTests
         harness.Execute(ActionIds.Cancel);
 
         Assert.Equal(KeyMode.Normal, harness.Mode);
-        Assert.Equal(string.Empty, harness.Controller.StatusLine);
+        Assert.Equal(string.Empty, harness.Controller.StatusLine.Plain);
         Assert.True(harness.Tab.View.DiffPane.IsOpen);
     }
 
@@ -430,7 +430,7 @@ public class DiffPaneInputTests
         harness.Send(new FocusPaneCommand(PaneKind.Graph));
 
         Assert.Equal(KeyMode.Normal, harness.Mode);
-        Assert.Equal(string.Empty, harness.Controller.StatusLine);
+        Assert.Equal(string.Empty, harness.Controller.StatusLine.Plain);
         Assert.Null(harness.Session.Diff!.Source.Highlight);
     }
 

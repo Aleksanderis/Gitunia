@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using System.Globalization;
+using Gitunia.Core.Editing;
 using Gitunia.Core.Search;
 using Gitunia.Core.Search.Models;
 using Gitunia.Git;
@@ -36,7 +37,9 @@ public class GraphSearchReducerTests
         Assert.Equal(1, update.State.Caret);
         Assert.Equal(typed.Generation, update.State.Generation);
         Assert.Empty(update.Effects);
-        Assert.StartsWith("/f|ix", GraphSearchStatusText.Describe(update.State, -1, 0), StringComparison.Ordinal);
+        var line = GraphSearchStatusText.Describe(update.State, -1, 0);
+        Assert.StartsWith("/fix", line.Plain, StringComparison.Ordinal);
+        Assert.Equal(1, line.Caret);
     }
 
     [Fact]
@@ -311,9 +314,13 @@ public class GraphSearchReducerTests
         var editing = Editing("fix");
         var state = Apply(editing, Progress(editing, 50, 200, false, 10, 30));
 
-        Assert.Equal("/fix_  2/2+ searching 25%", GraphSearchStatusText.Describe(state, 30, 200));
-        Assert.Equal("/fix_  2+ found searching 25%", GraphSearchStatusText.Describe(state, 11, 200));
-        Assert.Equal(string.Empty, GraphSearchStatusText.Describe(GraphSearchState.Initial, 0, 0));
+        Assert.Equal(
+            new PromptLine("/", "fix", PromptCaret.End, "  2/2+ searching 25%"),
+            GraphSearchStatusText.Describe(state, 30, 200));
+        Assert.Equal(
+            new PromptLine("/", "fix", PromptCaret.End, "  2+ found searching 25%"),
+            GraphSearchStatusText.Describe(state, 11, 200));
+        Assert.True(GraphSearchStatusText.Describe(GraphSearchState.Initial, 0, 0).IsEmpty);
     }
 
     [Fact]
@@ -321,7 +328,7 @@ public class GraphSearchReducerTests
     {
         var state = Apply(Scanned("fix", 10, 4), new AcceptSearchCommand(0));
 
-        Assert.Equal("/fix  1/1", GraphSearchStatusText.Describe(state, 4, 10));
+        Assert.Equal(new PromptLine("/", "fix", null, "  1/1"), GraphSearchStatusText.Describe(state, 4, 10));
     }
 
     [Fact]
@@ -450,6 +457,8 @@ public class GraphSearchReducerTests
     [Fact]
     public void GivenAwaitedBodyQuery_WhenDescribing_ThenTheStatusSaysMessagesAreSearched()
     {
-        Assert.Equal("/body:x_  0+ found searching messages", GraphSearchStatusText.Describe(Editing("body:x"), 0, 10));
+        Assert.Equal(
+            new PromptLine("/", "body:x", PromptCaret.End, "  0+ found searching messages"),
+            GraphSearchStatusText.Describe(Editing("body:x"), 0, 10));
     }
 }

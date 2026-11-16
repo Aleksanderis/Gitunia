@@ -39,7 +39,7 @@ public sealed class ScreenModelSource(ScreenModelParts parts)
             MessageIsFresh = parts.Messages.IsFresh,
             Hints = parts.Lines.CurrentHints(),
             RepeatPane = parts.Lines.Repeat.Active?.Pane,
-            SearchLine = parts.Lines.SearchLine(),
+            SearchLine = parts.Lines.SearchLine() is { IsEmpty: false } line ? line : null,
             PickerBranches = model.Picker is null ? null : TabLabelFactory.OpenBranches(host.Workspace),
         };
     }

@@ -19,24 +19,24 @@ public sealed class RefJumpController(IGraphView view)
 
     public string Notice { get; private set; } = string.Empty;
 
-    public string StatusLine
+    public PromptLine StatusLine
     {
         get
         {
             if (_prompt is null)
             {
-                return string.Empty;
+                return PromptLine.Empty;
             }
 
-            var line = $"ref {PromptCaret.Mark(_prompt.Text, _prompt.Caret)}  ";
             if (_prompt.Selected is not { } selected)
             {
-                return $"{line}no matching ref or commit";
+                return new PromptLine("ref ", _prompt.Text, _prompt.Caret, "  no matching ref or commit");
             }
 
             var position = (_prompt.SelectedIndex + 1).ToString(CultureInfo.InvariantCulture);
             var total = _prompt.Candidates.Length.ToString(CultureInfo.InvariantCulture);
-            return $"{line}{selected.Label} ({position}/{total})";
+
+            return new PromptLine("ref ", _prompt.Text, _prompt.Caret, $"  {selected.Label} ({position}/{total})");
         }
     }
 

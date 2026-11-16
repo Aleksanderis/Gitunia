@@ -10,7 +10,14 @@ namespace Gitunia.Tui.Rendering.Overlays;
 /// <param name="Marker">A one-character mark before the label, <c>!</c> for an invalid value in the file.</param>
 /// <param name="Left">The label.</param>
 /// <param name="Right">The control, empty for none.</param>
-public sealed record SettingsRowText(string Marker, string Left, string Right)
+/// <param name="LeftField">The label as an editable field (a folder being typed), drawn with a cursor cell; null for plain text. <paramref name="Left"/> is then its text with the cursor cell as a blank at the end.</param>
+/// <param name="RightField">The control as an editable field (a number being typed), drawn with a cursor cell; null for plain text. <paramref name="Right"/> is then its text with the cursor cell as a blank at the end.</param>
+public sealed record SettingsRowText(
+    string Marker,
+    string Left,
+    string Right,
+    CaretField? LeftField = null,
+    CaretField? RightField = null)
 {
     /// <summary>The mark before the label of a setting whose value in the file is invalid.</summary>
     public const string Warning = "!";
@@ -54,8 +61,7 @@ public sealed record SettingsRowText(string Marker, string Left, string Right)
     private static SettingsRowText BindingText(KeyReferenceEntry entry) =>
         new(NoMarker, $"{ItemIndent}{entry.Title}", entry.Keys);
 
-    private static SettingsRowText NewItemText(SettingsState state) =>
-        new(NoMarker, $"{ItemIndent}> {TypedText(state)}", string.Empty);
+    private static SettingsRowText NewItemText(SettingsState state) => TypedItem(state);
 
     private static SettingsRowText SettingText(
         SettingsState state,
@@ -70,7 +76,15 @@ public sealed record SettingsRowText(string Marker, string Left, string Right)
             name = $"{SettingsRegistry.TitleOf(definition.Category)}: {definition.Name}";
         }
 
-        return new SettingsRowText(marker, name, ControlText(state, definition, value, glyphs));
+        var control = ControlText(state, definition, value, glyphs);
+        if (definition.Control == SettingControl.Number
+            && state.Input is { Kind: SettingsInputKind.Number } input
+            && input.SettingId == definition.Id)
+        {
+            return new SettingsRowText(marker, name, control, RightField: new CaretField("[", input.Text, input.Caret, "]"));
+        }
+
+        return new SettingsRowText(marker, name, control);
     }
 
     private static string ControlText(
@@ -88,7 +102,7 @@ public sealed record SettingsRowText(string Marker, string Left, string Right)
             case SettingControl.Number:
                 if (state.Input is { Kind: SettingsInputKind.Number } input && input.SettingId == definition.Id)
                 {
-                    return $"[{PromptCaret.Mark(input.Text, input.Caret)}]";
+                    return $"[{Shown(input.Text, input.Caret)}]";
                 }
 
                 return $"[{value.Number}]";
@@ -116,9 +130,12 @@ public sealed record SettingsRowText(string Marker, string Left, string Right)
         var editing = state.Input is { Kind: SettingsInputKind.PathEdit } input
             && input.SettingId == row.Definition.Id
             && input.ItemIndex == row.Index;
-        var left = editing ? $"{ItemIndent}> {TypedText(state)}" : $"{ItemIndent}{value.Paths[row.Index]}";
+        if (editing)
+        {
+            return TypedItem(state, RemoveMarker);
+        }
 
-        return new SettingsRowText(NoMarker, left, RemoveMarker);
+        return new SettingsRowText(NoMarker, $"{ItemIndent}{value.Paths[row.Index]}", RemoveMarker);
     }
 
     private static string OptionText(SettingRow row, SettingValue value, GraphGlyphSet glyphs)
@@ -134,7 +151,17 @@ public sealed record SettingsRowText(string Marker, string Left, string Right)
         return $"{ItemIndent}{radio} {option}";
     }
 
-    // The text typed into the number or folder box, with the caret drawn in.
-    private static string TypedText(SettingsState state) =>
-        state.Input is { } input ? PromptCaret.Mark(input.Text, input.Caret) : PromptCaret.EndGlyph;
+    // The folder box: the typed text as a field, the caret drawn as a cursor cell.
+    private static SettingsRowText TypedItem(SettingsState state, string right = "")
+    {
+        var text = state.Input?.Text ?? string.Empty;
+        var caret = state.Input?.Caret ?? PromptCaret.End;
+        var field = new CaretField($"{ItemIndent}> ", text, caret);
+
+        return new SettingsRowText(NoMarker, $"{ItemIndent}> {Shown(text, caret)}", right, field);
+    }
+
+    // The text as the field takes room for it: the cursor cell at the end of the text is a blank.
+    private static string Shown(string text, int caret) =>
+        PromptCaret.Clamp(text, caret) == text.Length ? $"{text}{PromptCaret.EndCell}" : text;
 }

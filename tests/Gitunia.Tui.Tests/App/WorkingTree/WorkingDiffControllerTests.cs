@@ -182,7 +182,7 @@ public class WorkingDiffControllerTests
 
         await harness.ExecuteAsync(ActionIds.NavigateBack);
         Assert.Equal(PaneKind.WorkingUnstagedDiff, harness.Tab.View.FocusedPane);
-        Assert.Empty(harness.Controller.StatusLine);
+        Assert.Empty(harness.Controller.StatusLine.Plain);
     }
 
     [Fact]

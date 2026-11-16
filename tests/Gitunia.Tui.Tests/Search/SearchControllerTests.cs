@@ -31,7 +31,7 @@ public class SearchControllerTests
         harness.Press(new Key('/'));
         Assert.Equal(KeyMode.Insert, harness.Mode);
         harness.Type("fix");
-        Assert.Equal("/fix_  3 found", harness.StatusLine);
+        Assert.Equal("/fix  3 found", harness.StatusLine.Plain);
         harness.Press(Key.Enter);
 
         Assert.Equal(KeyMode.Normal, harness.Mode);
@@ -76,12 +76,12 @@ public class SearchControllerTests
         using var harness = new PromptHarness(Graph());
         harness.Press(new Key('/'));
         harness.Type("fixx");
-        Assert.Contains("0 found", harness.StatusLine, StringComparison.Ordinal);
+        Assert.Contains("0 found", harness.StatusLine.Plain, StringComparison.Ordinal);
 
         harness.Press(Key.Backspace);
 
-        Assert.StartsWith("/fix_", harness.StatusLine, StringComparison.Ordinal);
-        Assert.Equal("/fix_  1/3", harness.StatusLine);
+        Assert.StartsWith("/fix", harness.StatusLine.Plain, StringComparison.Ordinal);
+        Assert.Equal("/fix  1/3", harness.StatusLine.Plain);
     }
 
     [Fact]
@@ -96,7 +96,7 @@ public class SearchControllerTests
         Assert.Equal(KeyMode.Normal, harness.Mode);
         Assert.Equal(3, harness.SelectedRow);
         Assert.Null(harness.Session.Source.Highlight);
-        Assert.Equal(string.Empty, harness.StatusLine);
+        Assert.Equal(string.Empty, harness.StatusLine.Plain);
     }
 
     [Fact]
@@ -133,7 +133,7 @@ public class SearchControllerTests
         harness.Type("gg q@");
 
         Assert.Equal(1, harness.SelectedRow);
-        Assert.Equal("/gg q@_", harness.StatusLine.Split("  ")[0]);
+        Assert.Equal("/gg q@", harness.StatusLine.Plain.Split("  ")[0]);
     }
 
     [Fact]
@@ -145,7 +145,7 @@ public class SearchControllerTests
         harness.Type("zeta");
         harness.Press(Key.Enter);
         Assert.True(harness.Session.Search.JumpPending);
-        Assert.Contains("0+ found", harness.StatusLine, StringComparison.Ordinal);
+        Assert.Contains("0+ found", harness.StatusLine.Plain, StringComparison.Ordinal);
 
         var more = CommitFactory.Graph(CommitFactory.Commit(9, "the zeta commit", [8]), CommitFactory.Commit(8, "later", []));
         harness.Session.Append([more[0], more[1]]);
@@ -268,7 +268,7 @@ public class SearchControllerTests
 
         Assert.Equal(KeyMode.Normal, harness.Mode);
         Assert.True(harness.Session.Search.IsOpen);
-        Assert.StartsWith("/fix", harness.StatusLine, StringComparison.Ordinal);
+        Assert.StartsWith("/fix", harness.StatusLine.Plain, StringComparison.Ordinal);
     }
 
     private static TaskCompletionSource NewGate() => new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -295,7 +295,7 @@ public class SearchControllerTests
         harness.Press(new Key('/'));
         harness.Type("body:closes #4");
         WaitUntil(harness, h => h.Session.Search is { IsScanning: false, Query.IsAwaitingBodyHits: false });
-        Assert.Equal("/body:closes #4_  2 found", harness.StatusLine);
+        Assert.Equal("/body:closes #4  2 found", harness.StatusLine.Plain);
         harness.Press(Key.Enter);
 
         Assert.Equal("closes #4", searcher.LastText);
@@ -315,7 +315,7 @@ public class SearchControllerTests
         harness.Press(new Key('/'));
         harness.Type("body:x");
 
-        Assert.Contains("searching messages", harness.StatusLine, StringComparison.Ordinal);
+        Assert.Contains("searching messages", harness.StatusLine.Plain, StringComparison.Ordinal);
         harness.Press(Key.Enter);
         Assert.Equal(0, harness.SelectedRow);
         searcher.Gate.SetResult();
@@ -334,8 +334,8 @@ public class SearchControllerTests
         harness.Type("body:x");
         WaitUntil(harness, h => h.Session.Search.IsComplete);
 
-        Assert.Contains("Message search failed: git returned an error", harness.StatusLine, StringComparison.Ordinal);
-        Assert.Contains("0 found", harness.StatusLine, StringComparison.Ordinal);
+        Assert.Contains("Message search failed: git returned an error", harness.StatusLine.Plain, StringComparison.Ordinal);
+        Assert.Contains("0 found", harness.StatusLine.Plain, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -359,7 +359,7 @@ public class SearchControllerTests
         await Task.Delay(100, TestContext.Current.CancellationToken);
 
         Assert.Equal(SearchField.Message, harness.Session.Search.Query!.Field);
-        Assert.Equal("/fix_  1/3", harness.StatusLine);
+        Assert.Equal("/fix  1/3", harness.StatusLine.Plain);
     }
 
     [Fact]
@@ -370,7 +370,7 @@ public class SearchControllerTests
         harness.Press(new Key('/'));
         harness.Type("body:x");
 
-        Assert.Contains(GraphSearchReducer.BodySearchFailedNotice, harness.StatusLine, StringComparison.Ordinal);
+        Assert.Contains(GraphSearchReducer.BodySearchFailedNotice, harness.StatusLine.Plain, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -391,7 +391,7 @@ public class SearchControllerTests
 
         Assert.Equal(KeyMode.Normal, harness.Mode);
         Assert.False(harness.Session.Search.IsOpen);
-        Assert.Equal(string.Empty, harness.StatusLine);
+        Assert.Equal(string.Empty, harness.StatusLine.Plain);
         Assert.Equal(0, harness.SelectedRow);
     }
 
@@ -405,7 +405,7 @@ public class SearchControllerTests
         harness.Type("body:x");
         WaitUntil(harness, h => h.Session.Search is { IsScanning: false, Query.IsAwaitingBodyHits: false });
         Assert.Equal(1, searcher.CallCount);
-        Assert.Contains("1 found", harness.StatusLine, StringComparison.Ordinal);
+        Assert.Contains("1 found", harness.StatusLine.Plain, StringComparison.Ordinal);
 
         searcher.Hits.Add(CommitFactory.Id(1));
         var graph = Graph();
@@ -415,7 +415,7 @@ public class SearchControllerTests
             harness,
             h => searcher.CallCount == 2 && h.Session.Search is { IsScanning: false, Query.IsAwaitingBodyHits: false });
 
-        Assert.Contains("2 found", harness.StatusLine, StringComparison.Ordinal);
+        Assert.Contains("2 found", harness.StatusLine.Plain, StringComparison.Ordinal);
     }
 
     [Fact]

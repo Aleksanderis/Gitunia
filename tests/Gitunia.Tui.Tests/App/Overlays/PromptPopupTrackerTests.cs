@@ -1,3 +1,4 @@
+using Gitunia.Core.Editing;
 using Gitunia.Core.Overlays;
 using Gitunia.Tui.App.Overlays;
 using Gitunia.Tui.Input;
@@ -93,7 +94,7 @@ public class PromptPopupTrackerTests : IPromptDisplay
         Assert.Equal(2, _shows);
     }
 
-    string IPromptDisplay.StatusLine => string.Empty;
+    PromptLine IPromptDisplay.StatusLine => PromptLine.Empty;
 
     PromptPopup? IPromptDisplay.Popup => _popup;
 

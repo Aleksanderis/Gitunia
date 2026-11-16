@@ -38,7 +38,7 @@ public class RefJumpControllerTests
         harness.Press(new Key('J'));
         Assert.Equal(KeyMode.Insert, harness.Mode);
         harness.Type("rel");
-        Assert.StartsWith("ref rel_  release/1.0 (1/1)", harness.StatusLine, StringComparison.Ordinal);
+        Assert.StartsWith("ref rel  release/1.0 (1/1)", harness.StatusLine.Plain, StringComparison.Ordinal);
         harness.Press(Key.Enter);
 
         Assert.Equal(KeyMode.Normal, harness.Mode);
@@ -79,7 +79,7 @@ public class RefJumpControllerTests
         harness.Press(new Key('J'));
 
         harness.Type("zzz");
-        Assert.Contains("no matching ref or commit", harness.StatusLine, StringComparison.Ordinal);
+        Assert.Contains("no matching ref or commit", harness.StatusLine.Plain, StringComparison.Ordinal);
         harness.Press(Key.Enter);
 
         Assert.Equal(2, harness.SelectedRow);
@@ -97,7 +97,7 @@ public class RefJumpControllerTests
 
         Assert.Equal(KeyMode.Normal, harness.Mode);
         Assert.Equal(3, harness.SelectedRow);
-        Assert.Equal(string.Empty, harness.StatusLine);
+        Assert.Equal(string.Empty, harness.StatusLine.Plain);
     }
 
     [Fact]

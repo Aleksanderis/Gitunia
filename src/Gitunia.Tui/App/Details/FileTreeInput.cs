@@ -28,22 +28,24 @@ public sealed class FileTreeInput(Dispatcher host, ListView detailList)
     private const string FilterLabel = "/";
     private const string AppliedFilterLabel = "filter: ";
 
-    public string StatusLine
+    public PromptLine StatusLine
     {
         get
         {
             if (host.Workspace.ActiveTab?.View is not { } view)
             {
-                return string.Empty;
+                return PromptLine.Empty;
             }
 
             var tree = view.DetailTree;
             if ((!tree.IsEditingFilter && tree.Filter.Length == 0) || !DetailTreeRules.IsFilesTab(view))
             {
-                return string.Empty;
+                return PromptLine.Empty;
             }
 
-            return tree.IsEditingFilter ? $"{FilterLabel}{PromptCaret.Mark(tree.Filter, tree.Caret)}" : $"{AppliedFilterLabel}{tree.Filter}";
+            return tree.IsEditingFilter
+                ? new PromptLine(FilterLabel, tree.Filter, tree.Caret)
+                : new PromptLine(AppliedFilterLabel, tree.Filter);
         }
     }
 

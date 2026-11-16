@@ -1,3 +1,4 @@
+using Gitunia.Core.Editing;
 using Gitunia.App;
 using Gitunia.App.Loading.Diff;
 using Gitunia.App.Loading.Trees;
@@ -57,7 +58,7 @@ public sealed class DiffPaneInput : IActionHandler, ITextKeyHandler, IActionNoti
         private set => _actions.Notice = value;
     }
 
-    public string StatusLine => _actions.StatusLine(_sessions.ActiveSession()?.Diff);
+    public PromptLine StatusLine => _actions.StatusLine(_sessions.ActiveSession()?.Diff);
 
     public bool TryExecute(ActionId action, int? count)
     {

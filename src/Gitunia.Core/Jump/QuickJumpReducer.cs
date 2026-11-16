@@ -36,17 +36,16 @@ public static class QuickJumpReducer
     /// <param name="text">The typed text.</param>
     /// <param name="matches">How many rows in view match.</param>
     /// <param name="caret">The caret column in the text.</param>
-    public static string StatusLine(string text, int matches, int caret = PromptCaret.End)
+    public static PromptLine StatusLine(string text, int matches, int caret = PromptCaret.End)
     {
         if (text.Length == 0)
         {
-            return $"{Prefix}{PromptCaret.EndGlyph}  type text, then press a label";
+            return new PromptLine(Prefix, text, caret, "  type text, then press a label");
         }
 
         var count = matches.ToString(CultureInfo.InvariantCulture);
-        var typed = PromptCaret.Mark(text, caret);
 
-        return matches == 0 ? $"{Prefix}{typed}  no match in view" : $"{Prefix}{typed}  {count} in view";
+        return new PromptLine(Prefix, text, caret, matches == 0 ? "  no match in view" : $"  {count} in view");
     }
 
     private static QuickJumpTransition Open(QuickJumpOpenRequested open)

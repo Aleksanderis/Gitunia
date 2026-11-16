@@ -171,6 +171,32 @@ public class SettingsFrameBuilderTests
     }
 
     [Fact]
+    public void GivenANumberBeingTyped_WhenRendering_ThenTheCaretIsACursorCellOnTheCharacterUnderIt()
+    {
+        var definition = new SettingDefinition(
+            "page-size",
+            SettingCategory.Git,
+            "Page size",
+            SettingControl.Number,
+            ["pageSize"],
+            "How many rows a page has.",
+            "10",
+            [],
+            Minimum: 5,
+            Maximum: 50,
+            Step: 5);
+        var load = SettingsValueReader.Read(new ConfigSnapshot(true, "{}", "hash"), Home, _ => true);
+        var state = SettingsState.Create([.. SettingsRegistry.All, definition], load).Reveal(definition);
+        var typing = Reduce(state, SettingsCommandKind.Activate).WithInputText("25", 0);
+
+        var frame = SettingsFrameBuilder.Build(typing, 100, 30, GraphGlyphSet.Unicode)!;
+        var row = frame.Lines.First(line => line.Text.Contains("Page size", StringComparison.Ordinal));
+
+        Assert.Contains("[25]", row.Text, StringComparison.Ordinal);
+        Assert.Equal("2", CursorCell.Of(row));
+    }
+
+    [Fact]
     public void GivenAFolderBeingTyped_WhenRendering_ThenTheTextAndACursorShowOnTheNewRow()
     {
         var adding = Reduce(Open().Reveal(Definition(SettingsRegistry.ScanRootsId)), SettingsCommandKind.Add);
@@ -178,7 +204,8 @@ public class SettingsFrameBuilderTests
 
         var frame = SettingsFrameBuilder.Build(typing, 100, 30, GraphGlyphSet.Unicode)!;
 
-        Assert.Contains("> /sr_", frame.Lines[3].Text, StringComparison.Ordinal);
+        Assert.Contains("> /sr ", frame.Lines[3].Text, StringComparison.Ordinal);
+        Assert.Equal(" ", CursorCell.Of(frame.Lines[3]));
         Assert.Contains("Enter save  Esc cancel", frame.Lines[^2].Text, StringComparison.Ordinal);
     }
 
