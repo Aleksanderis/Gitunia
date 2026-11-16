@@ -1,4 +1,5 @@
 using Gitunia.Core.Config.Models;
+using Gitunia.Core.Editing;
 using Gitunia.Core.Settings;
 using Gitunia.Core.Settings.Models;
 using Gitunia.Tui.Rendering.Graph;
@@ -195,6 +196,58 @@ public class SettingsFrameBuilderTests
         Assert.Contains("[25]", row.Text, StringComparison.Ordinal);
         Assert.Equal("2", string.Concat(row.Segments.Where(segment => segment.Role == SegmentRole.TitleCursor).Select(segment => segment.Text)));
         Assert.All(row.Segments.Where(segment => segment.Role == SegmentRole.TitleCursor), segment => Assert.Equal(SegmentSelection.Inherit, segment.Selection));
+    }
+
+    [Theory]
+    [InlineData("25", 0, 40)]
+    [InlineData("123456789012345678901234567890123456789012345678901234567890", 0, 40)]
+    [InlineData("123456789012345678901234567890123456789012345678901234567890", PromptCaret.End, 40)]
+    [InlineData("123456789012345678901234567890123456789012345678901234567890", 30, 40)]
+    [InlineData("25", 0, 100)]
+    [InlineData("123456789012345678901234567890123456789012345678901234567890", 0, 100)]
+    [InlineData("123456789012345678901234567890123456789012345678901234567890", PromptCaret.End, 100)]
+    [InlineData("123456789012345678901234567890123456789012345678901234567890", 30, 100)]
+    [InlineData("25", 0, 101)]
+    [InlineData("123456789012345678901234567890123456789012345678901234567890", 0, 101)]
+    [InlineData("123456789012345678901234567890123456789012345678901234567890", PromptCaret.End, 101)]
+    [InlineData("123456789012345678901234567890123456789012345678901234567890", 30, 101)]
+    public void GivenANumberBeingTyped_WhenHittingItsFirstDrawnColumn_ThenTheControlIsHitAndOneLeftIsTheRow(string text, int caret, int width)
+    {
+        var state = TypingNumber(text, caret);
+        var frame = SettingsFrameBuilder.Build(state, width, 30, GraphGlyphSet.Unicode)!;
+        var lineIndex = frame.Lines.ToList().FindIndex(line => line.Text.Contains("Page size", StringComparison.Ordinal));
+        var controlStart = frame.Lines[lineIndex].Text.IndexOf("  [", StringComparison.Ordinal) + 2;
+        Assert.StartsWith("[", frame.Lines[lineIndex].Text[controlStart..], StringComparison.Ordinal);
+
+        var onControl = SettingsFrameBuilder.HitAt(state, controlStart, lineIndex, width, 30, GraphGlyphSet.Unicode);
+        var beforeControl = SettingsFrameBuilder.HitAt(state, controlStart - 1, lineIndex, width, 30, GraphGlyphSet.Unicode);
+
+        var lastColumn = frame.Lines[lineIndex].Text.TrimEnd().TrimEnd('│').TrimEnd().Length - 1;
+        var onLastColumn = SettingsFrameBuilder.HitAt(state, lastColumn, lineIndex, width, 30, GraphGlyphSet.Unicode);
+
+        Assert.Equal(SettingsHitKind.Control, onControl.Kind);
+        Assert.Equal(SettingsHitKind.Row, beforeControl.Kind);
+        Assert.Equal(SettingsHitKind.Control, onLastColumn.Kind);
+    }
+
+    private static SettingsState TypingNumber(string text, int caret)
+    {
+        var definition = new SettingDefinition(
+            "page-size",
+            SettingCategory.Git,
+            "Page size",
+            SettingControl.Number,
+            ["pageSize"],
+            "How many rows a page has.",
+            "10",
+            [],
+            Minimum: 5,
+            Maximum: 50,
+            Step: 5);
+        var load = SettingsValueReader.Read(new ConfigSnapshot(true, "{}", "hash"), Home, _ => true);
+        var state = SettingsState.Create([.. SettingsRegistry.All, definition], load).Reveal(definition);
+
+        return Reduce(state, SettingsCommandKind.Activate).WithInputText(text, caret);
     }
 
     [Fact]

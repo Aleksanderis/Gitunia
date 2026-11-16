@@ -1,5 +1,5 @@
-using Gitunia.Core.Editing;
 using System.Globalization;
+using Gitunia.Core.Editing;
 using Gitunia.Core.Picker;
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces.Panes;

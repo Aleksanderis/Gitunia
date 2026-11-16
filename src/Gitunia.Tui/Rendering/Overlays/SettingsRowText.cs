@@ -51,13 +51,6 @@ public sealed record SettingsRowText(
         };
     }
 
-    /// <summary>The control of a row cut to fit the settings column (at most half of it).</summary>
-    /// <param name="right">The control text.</param>
-    /// <param name="settingsWidth">Inner width of the settings column.</param>
-    /// <param name="ellipsis">The cut mark.</param>
-    public static string FitRight(string right, int settingsWidth, string ellipsis) =>
-        TextWidth.Fit(right, Math.Max(0, settingsWidth / 2), ellipsis);
-
     private static SettingsRowText BindingText(KeyReferenceEntry entry) =>
         new(NoMarker, $"{ItemIndent}{entry.Title}", entry.Keys);
 

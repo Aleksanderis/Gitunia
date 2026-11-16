@@ -1,7 +1,7 @@
 using System.Globalization;
+using Gitunia.App;
 using Gitunia.App.Loading.Trees;
 using Gitunia.App.Shell;
-using Gitunia.App;
 using Gitunia.Core.Diff;
 using Gitunia.Core.Editing;
 using Gitunia.Core.Jump.Models;

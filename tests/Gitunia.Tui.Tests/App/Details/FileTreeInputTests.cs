@@ -1,9 +1,9 @@
-using Gitunia.Core.Editing;
 using Gitunia.App.Loading.Commits;
 using Gitunia.App.Loading.Trees;
 using Gitunia.App.Tabs;
 using Gitunia.Core;
 using Gitunia.Core.Details;
+using Gitunia.Core.Editing;
 using Gitunia.Core.Effects;
 using Gitunia.Core.FileTree;
 using Gitunia.Core.Graph;

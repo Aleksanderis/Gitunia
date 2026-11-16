@@ -1,10 +1,10 @@
-using Gitunia.Core.Editing;
 using Gitunia.App;
 using Gitunia.App.Loading.Diff;
 using Gitunia.App.Loading.Trees;
 using Gitunia.Core;
 using Gitunia.Core.Diff;
 using Gitunia.Core.DiffPane;
+using Gitunia.Core.Editing;
 using Gitunia.Core.FileTree;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
