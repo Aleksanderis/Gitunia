@@ -173,11 +173,7 @@ public static class SettingsFrameBuilder
 
         var rowIndex = entries[index].RowIndex;
         var row = state.Rows[rowIndex];
-        var right = SettingsRowText.FitRight(
-            SettingsRowText.Of(state, row, glyphs).Right,
-            layout.SettingsWidth,
-            glyphs.Ellipsis);
-        var rightWidth = TextWidth.Of(right);
+        var rightWidth = TextWidth.Of(RightLine(SettingsRowText.Of(state, row, glyphs), layout.SettingsWidth, glyphs).Text);
         var rightStart = layout.SettingsWidth - rightWidth - 1;
         if (rightWidth == 0 || x < rightStart)
         {
@@ -333,12 +329,7 @@ public static class SettingsFrameBuilder
         GraphGlyphSet glyphs,
         SegmentRole leftRole = SegmentRole.Plain)
     {
-        var rightLine = FieldLine(
-            text.RightField,
-            text.Right,
-            Math.Max(0, width / 2),
-            glyphs,
-            SegmentRole.Plain);
+        var rightLine = RightLine(text, width, glyphs);
         var rightWidth = TextWidth.Of(rightLine.Text);
         var trailing = rightWidth > 0 ? " " : string.Empty;
         var room = Math.Max(0, width - 1 - rightWidth - trailing.Length - (rightWidth > 0 ? 1 : 0));
@@ -355,6 +346,11 @@ public static class SettingsFrameBuilder
 
         return [.. line.Segments.Select(segment => Selected(segment, selection))];
     }
+
+    // The control as drawn, at most half of the column: the click target is measured from this same line, so a number
+    // being typed (cut around its cursor cell) and a wide plain control both match what is on screen.
+    private static StyledLine RightLine(SettingsRowText text, int width, GraphGlyphSet glyphs) =>
+        FieldLine(text.RightField, text.Right, Math.Max(0, width / 2), glyphs, SegmentRole.Plain);
 
     // The cursor cell of a typed field sits on the selected row: it is the swapped chip and takes no selection style,
     // so without colour it is the one cell that is not inverse video.

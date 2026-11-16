@@ -1,6 +1,6 @@
-using Gitunia.Core.Editing;
 using System.Collections.Immutable;
 using Gitunia.App;
+using Gitunia.Core.Editing;
 using Gitunia.Core.Jump;
 using Gitunia.Core.Jump.Models;
 using Gitunia.Core.Keymap;

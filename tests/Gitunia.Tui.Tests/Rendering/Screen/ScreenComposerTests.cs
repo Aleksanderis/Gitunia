@@ -45,6 +45,20 @@ public class ScreenComposerTests
         Assert.Equal(" ", CursorCell.Of(line));
     }
 
+    [Theory]
+    [InlineData(12, 3)]
+    [InlineData(12, PromptCaret.End)]
+    [InlineData(20, 0)]
+    public void GivenAFindBarLongerThanTheScreen_WhenDrawingTheStatusBar_ThenTheLineFitsAndTheCursorCellStays(int width, int caret)
+    {
+        var model = Model(1, 4) with { SearchLine = new PromptLine("/", "abcdefghijklmnopqrstuvwxyz", caret, "  2/3") };
+
+        var line = ChromeBuilder.Status(model, width, GraphGlyphSet.Unicode);
+
+        Assert.True(TextWidth.Of(line.Text) <= width);
+        Assert.NotEqual(string.Empty, CursorCell.Of(line));
+    }
+
     [Fact]
     public void GivenAnAppliedFindBar_WhenDrawingTheStatusBar_ThenThereIsNoCursorCell()
     {

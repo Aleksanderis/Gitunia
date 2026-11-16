@@ -1,5 +1,5 @@
-using Gitunia.Core.Editing;
 using Gitunia.App;
+using Gitunia.Core.Editing;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Overlays;

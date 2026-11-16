@@ -1,5 +1,6 @@
 using Gitunia.Core.Config;
 using Gitunia.Core.Config.Models;
+using Gitunia.Core.Editing;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Overlays;
@@ -170,6 +171,23 @@ public class HelpAllCommandsFrameTests
 
         Assert.Equal(" Keys: Graph  / gc".PadRight(frame.Lines[0].Text.Length), frame.Lines[0].Text);
         Assert.Equal("c", TitleCursor(frame.Lines[0]));
+    }
+
+    [Theory]
+    [InlineData(40, 5)]
+    [InlineData(40, PromptCaret.End)]
+    [InlineData(30, 0)]
+    public void GivenALongFilterOnANarrowScreen_WhenRendering_ThenTheTitleFitsAndKeepsTheCursorCell(int width, int caret)
+    {
+        const string typed = "abcdefghijklmnopqrstuvwxyzabcdefghij";
+        var page = HelpBuilder.Filter(HelpBuilder.Build(Table, DefaultKeymap.GraphView), typed);
+
+        var frame = HelpFrameBuilder.Build(
+            [page], 0, DefaultKeymap.GraphView, 0, width, ScreenHeight, GraphGlyphSet.Unicode,
+            filter: typed, isEditingFilter: true, filterCaret: caret)!;
+
+        Assert.True(TextWidth.Of(frame.Lines[0].Text) <= width);
+        Assert.NotEqual(string.Empty, TitleCursor(frame.Lines[0]));
     }
 
     [Fact]
