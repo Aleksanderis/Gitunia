@@ -26,7 +26,7 @@ public class HintBarTests
     [Fact]
     public void GivenAPromptPopup_WhenBuilding_ThenItsHintKeysAreDrawnAsKeys()
     {
-        var prompt = PromptPopup.ForFilter("Pick", "Context", "ab", ["one", "two"], "choose");
+        var prompt = PromptPopup.ForFilter("Pick", "Context", "ab", new PickerWindow(["one", "two"], 0, "1/2"), "choose");
 
         var frame = PromptPopupFrameBuilder.Build(prompt, 90, 24, GraphGlyphSet.Unicode)!;
 

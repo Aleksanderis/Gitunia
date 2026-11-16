@@ -62,17 +62,12 @@ public sealed record PromptPicker(
         return false;
     }
 
-    /// <summary>The visible rows: a window of the candidates with the highlight and the position, or the no-match row.</summary>
-    public IReadOnlyList<string> Rows()
-    {
-        if (Candidates.Length == 0)
-        {
-            return [NoMatch];
-        }
+    /// <summary>
+    /// The visible rows: a window of the candidates, the highlighted row in it and the position (<c>n/m</c>), or the
+    /// no-match row alone (no highlight, no position).
+    /// </summary>
+    public PickerWindow Rows() =>
+        Candidates.Length == 0 ? new PickerWindow([NoMatch]) : PickerRows.Window([.. Candidates.Select(Text)], Index);
 
-        var rows = PickerRows.Window([.. Candidates.Select(choice => choice.Text)], Index);
-        rows.Add(PickerRows.Position(Index, Candidates.Length));
-
-        return rows;
-    }
+    private static string Text(PromptChoice choice) => choice.Text;
 }

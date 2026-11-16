@@ -6,9 +6,10 @@ using Gitunia.Tui.Rendering.Styling;
 namespace Gitunia.Tui.Rendering.Overlays;
 
 /// <summary>
-/// Lays out a prompt popup: the title, what the answer is for, the text field (its tail when the text is longer
-/// than the popup, with a cursor mark), the rows under it and the answering keys. Centred on the screen; null when
-/// it does not fit, and then the prompt still answers to its keys.
+/// Lays out a prompt popup: the title (with the count or position at its right end), what the answer is for, the
+/// text field (after the picker's prompt glyph; its tail when the text is longer than the popup, with a cursor mark),
+/// the rows under it (the highlighted one drawn as the selection bar, like the repository picker) and the answering
+/// keys. Centred on the screen; null when it does not fit, and then the prompt still answers to its keys.
 /// </summary>
 public static class PromptPopupFrameBuilder
 {
@@ -16,7 +17,7 @@ public static class PromptPopupFrameBuilder
     private const int MinimumPopupWidth = 64;
     private const int ScreenMargin = 2;
     private const int FooterLines = 3;
-    private const string Marker = "> ";
+    private const int MinimumTitleGap = 2;
 
     /// <summary>The popup for a screen, or null when it does not fit.</summary>
     public static OverlayFrame? Build(PromptPopup prompt, int screenWidth, int screenHeight, GraphGlyphSet glyphs)
@@ -24,6 +25,7 @@ public static class PromptPopupFrameBuilder
         var widest = prompt.Lines
             .Concat(prompt.Details)
             .Append(prompt.Hint)
+            .Append(prompt.Count is { } count ? $"{prompt.Title}  {count}" : prompt.Title)
             .Select(TextWidth.Of)
             .DefaultIfEmpty(0)
             .Max();
@@ -34,7 +36,7 @@ public static class PromptPopupFrameBuilder
         }
 
         var textWidth = Math.Max(1, OverlayBox.InnerWidth(width) - 2);
-        var lines = new List<StyledLine> { OverlayBox.Title(prompt.Title, width, glyphs) };
+        var lines = new List<StyledLine> { TitleLine(prompt, width, glyphs) };
         foreach (var paragraph in prompt.Lines)
         {
             lines.AddRange(HelpFrameBuilder.WrapText(paragraph, textWidth)
@@ -48,7 +50,8 @@ public static class PromptPopupFrameBuilder
 
         var fixedLines = lines.Count + FooterLines;
         var rowRoom = screenHeight - ScreenMargin - fixedLines;
-        lines.AddRange(FitRows(prompt.Details, rowRoom).Select(detail => OverlayBox.Text(detail, width, glyphs)));
+        var window = FitRows(prompt.Details, prompt.Highlight, rowRoom);
+        lines.AddRange(window.Rows.Select((row, index) => RowLine(row, index == window.Highlight, width, glyphs)));
         lines.Add(OverlayBox.Text(string.Empty, width, glyphs));
         lines.Add(OverlayBox.Hints(
             prompt.Hints.Select(hint => new HintItem(hint.Keys, hint.Label)),
@@ -64,39 +67,48 @@ public static class PromptPopupFrameBuilder
         return new OverlayFrame((screenWidth - width) / 2, Math.Max(0, (screenHeight - lines.Count) / 2), lines);
     }
 
-    // On a short screen a candidate list shrinks around the highlighted row (marked "> ") instead of making the popup
-    // not fit: a prompt that is not drawn would still take Enter. A trailing "(n/m)" row is kept when two rows fit.
-    private static IReadOnlyList<string> FitRows(IReadOnlyList<string> rows, int room)
+    // On a short screen a candidate list shrinks around the highlighted row instead of making the popup not fit: a
+    // prompt that is not drawn would still take Enter. Rows without a highlight (the options of a choice) are kept.
+    private static PickerWindow FitRows(IReadOnlyList<string> rows, int highlight, int room)
     {
-        if (rows.Count <= room || rows.Count == 0)
+        if (rows.Count <= room || highlight < 0 || highlight >= rows.Count)
         {
-            return rows;
+            return new PickerWindow(rows, highlight);
         }
 
-        var marked = rows.ToList().FindIndex(row => row.StartsWith(PickerRows.Mark, StringComparison.Ordinal));
-        if (marked < 0)
+        var size = Math.Max(1, room);
+        var first = Math.Clamp(highlight - (size / 2), 0, Math.Max(0, rows.Count - size));
+
+        return new PickerWindow([.. rows.Skip(first).Take(size)], highlight - first);
+    }
+
+    private static StyledLine RowLine(string row, bool isSelected, int width, GraphGlyphSet glyphs) =>
+        OverlayBox.Text(row, width, glyphs, isSelected: isSelected);
+
+    // The title bar with the count right-aligned, as the repository picker's; the count is left out when it does not fit.
+    private static StyledLine TitleLine(PromptPopup prompt, int width, GraphGlyphSet glyphs)
+    {
+        if (prompt.Count is not { } count)
         {
-            return rows;
+            return OverlayBox.Title(prompt.Title, width, glyphs);
         }
 
-        // Candidate rows start with two columns ("> " or spaces), so a row starting with a bracket is the position.
-        var hasPosition = rows[^1].StartsWith('(');
-        List<string> items = [.. rows.Take(hasPosition ? rows.Count - 1 : rows.Count)];
-        var keepPosition = hasPosition && room >= 2;
-        var size = Math.Max(1, room - (keepPosition ? 1 : 0));
-        var first = Math.Clamp(marked - (size / 2), 0, Math.Max(0, items.Count - size));
-        List<string> window = [.. items.Skip(first).Take(size)];
-        if (keepPosition)
+        var left = $" {prompt.Title}";
+        var right = $"{count} ";
+        var builder = new LineBuilder(width, glyphs.Ellipsis).Append(left, SegmentRole.OverlayTitle);
+        var gap = width - TextWidth.Of(left) - TextWidth.Of(right);
+        if (gap >= MinimumTitleGap)
         {
-            window.Add(rows[^1]);
+            builder.Append(new string(' ', gap), SegmentRole.OverlayTitle).Append(right, SegmentRole.OverlayTitle);
         }
 
-        return window;
+        return builder.Build(SegmentRole.OverlayTitle);
     }
 
     private static StyledLine InputRow(string input, int caret, int textWidth, int width, GraphGlyphSet glyphs)
     {
-        var room = Math.Max(1, textWidth - Marker.Length);
-        return OverlayBox.Text($"{Marker}{PromptCaret.Mark(input, caret, room)}", width, glyphs, SegmentRole.OverlayKey);
+        var marker = $"{glyphs.Picker.Prompt} ";
+        var room = Math.Max(1, textWidth - TextWidth.Of(marker));
+        return OverlayBox.Text($"{marker}{PromptCaret.Mark(input, caret, room)}", width, glyphs, SegmentRole.OverlayKey);
     }
 }
