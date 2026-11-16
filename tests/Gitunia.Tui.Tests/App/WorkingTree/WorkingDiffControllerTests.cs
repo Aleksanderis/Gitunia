@@ -1,12 +1,11 @@
-using Gitunia.Tui.Views;
 using System.Diagnostics;
 using System.Drawing;
-using Gitunia.App.Status;
-using Gitunia.Core;
 using Gitunia.App;
 using Gitunia.App.Loading.Commits;
 using Gitunia.App.Loading.Diff;
+using Gitunia.App.Status;
 using Gitunia.App.Tabs;
+using Gitunia.Core;
 using Gitunia.Core.Clipboard;
 using Gitunia.Core.Diff;
 using Gitunia.Core.Keymap;
@@ -25,6 +24,7 @@ using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.App.WorkingTree;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Tests.Fakes;
+using Gitunia.Tui.Views;
 using Terminal.Gui.Views;
 using Xunit;
 
