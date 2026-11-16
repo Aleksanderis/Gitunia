@@ -87,6 +87,21 @@ public class WorkingTreeActionHandlerTests
         Assert.Equal(string.Empty, harness.Handler.Message);
     }
 
+    [Theory]
+    [InlineData("operation.continue")]
+    [InlineData("operation.abort")]
+    [InlineData("operation.skip")]
+    [InlineData("tool.mergetool")]
+    public void GivenTheWorkingTreeIsShown_WhenAnOperationActionArrives_ThenTheHandlerLeavesItToTheOperationHandler(
+        string id)
+    {
+        var harness = new Harness(Modified("a.txt"));
+        harness.Handler.TryExecute(ActionIds.WorkingTreeToggle, null);
+
+        Assert.False(harness.Handler.TryExecute(new ActionId(id), null));
+        Assert.Equal(string.Empty, harness.Handler.Message);
+    }
+
     [Fact]
     public void GivenTheHistory_WhenAnyOtherActionArrives_ThenTheHandlerLeavesItToThePanes()
     {
