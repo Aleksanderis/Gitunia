@@ -105,23 +105,6 @@ public class PromptTextEditorTests
     }
 
     [Fact]
-    public void GivenCaret_WhenMarking_ThenItIsUnderscoreAtTheEndAndBarInside()
-    {
-        Assert.Equal("fix_", PromptCaret.Mark("fix", PromptCaret.End));
-        Assert.Equal("f|ix", PromptCaret.Mark("fix", 1));
-        Assert.Equal("|fix", PromptCaret.Mark("fix", 0));
-        Assert.Equal("_", PromptCaret.Mark(string.Empty, 0));
-    }
-
-    [Fact]
-    public void GivenNarrowRoom_WhenMarking_ThenTheCaretStaysVisibleAndTheTotalFits()
-    {
-        Assert.Equal("cdef_", PromptCaret.Mark("abcdef", PromptCaret.End, 5));
-        Assert.Equal("cd|ef", PromptCaret.Mark("abcdefgh", 4, 5));
-        Assert.Equal("|abcd", PromptCaret.Mark("abcdefgh", 0, 5));
-    }
-
-    [Fact]
     public void GivenCaret_WhenSplitting_ThenTheCellIsTheCharacterUnderItOrABlankAtTheEnd()
     {
         Assert.Equal(new CaretText("f", "i", "x"), PromptCaret.Split("fix", 1));

@@ -51,6 +51,9 @@ public sealed class LineBuilder(int width, string ellipsis)
         return new StyledLine(_segments);
     }
 
+    /// <summary>Returns the line as far as it was built, without padding it to the width.</summary>
+    public StyledLine BuildUnfilled() => new(_segments);
+
     /// <summary>Pads the rest of the line with spaces of <paramref name="fillRole"/> and returns it.</summary>
     public StyledLine Build(SegmentRole fillRole = SegmentRole.Plain, bool isSelected = false)
     {

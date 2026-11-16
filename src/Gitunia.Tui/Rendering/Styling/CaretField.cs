@@ -17,7 +17,12 @@ public sealed record CaretField(string Prefix, string Text, int Caret, string Su
     /// <param name="builder">The line.</param>
     /// <param name="role">Role of the prefix, the text and the suffix.</param>
     /// <param name="textRole">Role of the text; defaults to <paramref name="role"/>.</param>
-    public void AppendTo(LineBuilder builder, SegmentRole role, SegmentRole? textRole = null)
+    /// <param name="cursorRole">Role of the cursor cell; <see cref="SegmentRole.TitleCursor"/> in a title bar, whose colours are the cursor's.</param>
+    public void AppendTo(
+        LineBuilder builder,
+        SegmentRole role,
+        SegmentRole? textRole = null,
+        SegmentRole cursorRole = SegmentRole.Cursor)
     {
         builder.Append(Prefix, role);
         var room = Math.Max(1, builder.Remaining - TextWidth.Of(Suffix));
@@ -25,7 +30,7 @@ public sealed record CaretField(string Prefix, string Text, int Caret, string Su
         var cell = split.Cell.Length == 1 && char.IsControl(split.Cell[0]) ? PromptCaret.EndCell : split.Cell;
         builder
             .Append(split.Before, textRole ?? role)
-            .Append(cell, SegmentRole.Cursor)
+            .Append(cell, cursorRole)
             .Append(split.After, textRole ?? role)
             .Append(Suffix, role);
     }

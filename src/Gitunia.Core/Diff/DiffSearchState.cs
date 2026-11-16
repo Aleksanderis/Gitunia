@@ -20,19 +20,20 @@ public sealed record DiffSearchState(DiffSearchPhase Phase, string Text, IReadOn
     /// <summary>The text to highlight in rows, null when no search is open or the query is empty.</summary>
     public string? Highlight => IsOpen && Text.Length > 0 ? Text : null;
 
-    /// <summary>The status bar text: <c>/text_  3/17</c> while typing, <c>/text  3/17</c> afterwards; empty when idle.</summary>
+    /// <summary>The status bar line: <c>/text  3/17</c> with the caret in the text while typing; empty when idle.</summary>
     /// <param name="row">The selected row, to tell which match the cursor is on.</param>
-    public string Describe(int row)
+    public PromptLine Describe(int row)
     {
         if (!IsOpen)
         {
-            return string.Empty;
+            return PromptLine.Empty;
         }
 
-        var shown = Phase == DiffSearchPhase.Editing ? PromptCaret.Mark(Text, Caret) : Text;
         var position = Matches.Count == 0 ? "0" : PositionOf(row);
-        var text = $"/{shown}  {position}/{Matches.Count}";
-        return Notice.Length > 0 ? $"{text}  {Notice}" : text;
+        var suffix = $"  {position}/{Matches.Count}";
+        var field = new PromptLine("/", Text, Phase == DiffSearchPhase.Editing ? Caret : null, suffix);
+
+        return Notice.Length > 0 ? field.WithSuffix($"  {Notice}") : field;
     }
 
     private string PositionOf(int row)

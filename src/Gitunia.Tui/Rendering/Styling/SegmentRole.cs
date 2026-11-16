@@ -142,6 +142,12 @@ public enum SegmentRole
     /// <summary>The text cursor of the message editor: a chip like the mode label, so it shows without colour too.</summary>
     Cursor,
 
+    /// <summary>
+    /// The text cursor inside a title bar (the help filter): the title chip with its colours swapped, so it stands out
+    /// from the chip it sits in; without colour the title is inverse video and the cursor is not.
+    /// </summary>
+    TitleCursor,
+
     /// <summary>The key of a quick-jump target, drawn over the character after the match: a chip like the cursor, so it shows without colour too.</summary>
     JumpLabel,
 }

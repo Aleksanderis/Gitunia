@@ -396,7 +396,7 @@ public sealed class OverlayControllerTests : IDisposable, IActionRoute
         Assert.Equal(KeyMode.Insert, _keys.Mode);
         Assert.Equal("<space>gc", _overlays.State.HelpFilter);
         var text = FrameText();
-        Assert.Contains("/ <space>gc_", text);
+        Assert.Contains("/ <space>gc", text);
         Assert.Contains("<space>gc", text);
         Assert.DoesNotContain("<space>gd", text);
         Assert.Empty(_routed);

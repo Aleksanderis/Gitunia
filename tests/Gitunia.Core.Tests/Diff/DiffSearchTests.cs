@@ -7,7 +7,7 @@ namespace Gitunia.Core.Tests.Diff;
 public class DiffSearchTests
 {
     [Fact]
-    public void GivenOnlyTheCaretMoves_WhenEditing_ThenMatchesAndTextStayAndTheCaretIsDrawnInside()
+    public void GivenOnlyTheCaretMoves_WhenEditing_ThenMatchesAndTextStayAndTheLineCarriesTheCaret()
     {
         var document = Document("Alpha", "beta");
         var state = Typed(document, "alp");
@@ -16,7 +16,7 @@ public class DiffSearchTests
 
         Assert.Equal(state.Matches, moved.Matches);
         Assert.Equal(1, moved.Caret);
-        Assert.Equal("/a|lp  1/1", moved.Describe(0));
+        Assert.Equal(new PromptLine("/", "alp", 1, "  1/1"), moved.Describe(0));
     }
 
     [Fact]
@@ -29,8 +29,8 @@ public class DiffSearchTests
         Assert.Equal(DiffSearchPhase.Editing, state.Phase);
         Assert.Equal([0, 2], state.Matches);
         Assert.Equal("alpha", state.Highlight);
-        Assert.Equal("/alpha_  -/2", state.Describe(1));
-        Assert.Equal("/alpha_  1/2", state.Describe(0));
+        Assert.Equal(new PromptLine("/", "alpha", PromptCaret.End, "  -/2"), state.Describe(1));
+        Assert.Equal(new PromptLine("/", "alpha", PromptCaret.End, "  1/2"), state.Describe(0));
     }
 
     [Fact]

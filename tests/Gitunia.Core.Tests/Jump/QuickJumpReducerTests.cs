@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using Gitunia.Core.Editing;
 using Gitunia.Core.Effects;
 using Gitunia.Core.Jump;
 using Gitunia.Core.Jump.Models;
@@ -124,16 +125,16 @@ public class QuickJumpReducerTests
 
         Assert.Equal("fix", typed.Text);
         Assert.Equal(2, typed.Caret);
-        Assert.Equal("jump fi|x  2 in view", QuickJumpReducer.StatusLine(typed.Text, 2, typed.Caret));
+        Assert.Equal(new PromptLine("jump ", "fix", 2, "  2 in view"), QuickJumpReducer.StatusLine(typed.Text, 2, typed.Caret));
     }
 
     [Theory]
-    [InlineData("", 0, "jump _  type text, then press a label")]
-    [InlineData("fix", 0, "jump fix_  no match in view")]
-    [InlineData("fix", 3, "jump fix_  3 in view")]
-    public void GivenTheTypedText_WhenDrawingTheStatusLine_ThenItSaysWhatIsInView(string text, int matches, string line)
+    [InlineData("", 0, "  type text, then press a label")]
+    [InlineData("fix", 0, "  no match in view")]
+    [InlineData("fix", 3, "  3 in view")]
+    public void GivenTheTypedText_WhenDrawingTheStatusLine_ThenItSaysWhatIsInView(string text, int matches, string suffix)
     {
-        Assert.Equal(line, QuickJumpReducer.StatusLine(text, matches));
+        Assert.Equal(new PromptLine("jump ", text, PromptCaret.End, suffix), QuickJumpReducer.StatusLine(text, matches));
     }
 
     private static string Text(QuickJumpTransition transition) =>

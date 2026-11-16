@@ -32,6 +32,15 @@ public static class OverlayBox
     public static StyledLine Title(string text, int width, GraphGlyphSet glyphs) =>
         new LineBuilder(width, glyphs.Ellipsis).Append($" {text}", SegmentRole.OverlayTitle).Build(SegmentRole.OverlayTitle);
 
+    /// <summary>A title that holds an editable field after <paramref name="title"/> (the help filter), its cursor cell contrasting with the title bar.</summary>
+    public static StyledLine Title(string title, CaretField field, int width, GraphGlyphSet glyphs)
+    {
+        var builder = new LineBuilder(width, glyphs.Ellipsis).Append($" {title}", SegmentRole.OverlayTitle);
+        field.AppendTo(builder, SegmentRole.OverlayTitle, cursorRole: SegmentRole.TitleCursor);
+
+        return builder.Build(SegmentRole.OverlayTitle);
+    }
+
     /// <summary>A body row of plain text; a selected row is drawn as the selection bar across the box.</summary>
     public static StyledLine Text(
         string text,

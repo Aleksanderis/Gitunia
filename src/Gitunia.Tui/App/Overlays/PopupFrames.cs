@@ -1,3 +1,4 @@
+using Gitunia.Core.Editing;
 using Gitunia.Tui.App.Config;
 using Gitunia.Tui.App.Pick;
 using Gitunia.Tui.Input;
@@ -52,13 +53,15 @@ public sealed class PopupFrames(
     }
 
     /// <summary>The status bar carries the prompt only when the screen is too small for its popup.</summary>
-    public string PopupFallbackLine()
+    public PromptLine PopupFallbackLine()
     {
         if (prompts.CurrentPopup() is not { } popup || cover.IsMainlineCovered() || PopupFrame() is not null)
         {
-            return string.Empty;
+            return PromptLine.Empty;
         }
 
-        return popup.Input is { } input ? $"{popup.Title}: {input}_  {popup.Hint}" : $"{popup.Title}  {popup.Hint}";
+        return popup.Input is { } input
+            ? new PromptLine($"{popup.Title}: ", input, popup.InputCaret, $"  {popup.Hint}")
+            : new PromptLine($"{popup.Title}  {popup.Hint}", string.Empty);
     }
 }

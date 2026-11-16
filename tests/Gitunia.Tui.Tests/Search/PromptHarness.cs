@@ -1,3 +1,4 @@
+using Gitunia.Core.Editing;
 using Gitunia.Tui.Tests.App;
 using Gitunia.Tui.App;
 using Gitunia.App.Loading.Commits;
@@ -108,9 +109,9 @@ public sealed class PromptHarness : IDisposable, IQuickJumpHost, IActionRoute, I
 
     public KeyMode Mode => _keys.Mode;
 
-    public string StatusLine => _prompts.OfType<IPromptDisplay>()
+    public PromptLine StatusLine => _prompts.OfType<IPromptDisplay>()
         .Select(prompt => prompt.StatusLine)
-        .FirstOrDefault(line => line.Length > 0) ?? string.Empty;
+        .FirstOrDefault(line => !line.IsEmpty) ?? PromptLine.Empty;
 
     /// <summary>Opens a second tab and makes it the active one, like a tab switch.</summary>
     public void SwitchTab() =>

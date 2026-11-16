@@ -1,3 +1,4 @@
+using Gitunia.Core.Editing;
 using System.Globalization;
 using Gitunia.Core.Picker;
 using Gitunia.Core.Status;
@@ -65,8 +66,16 @@ public static class ChromeBuilder
             builder.Append($"{model.PendingKeys} ", SegmentRole.StatusMode);
         }
 
-        builder.Append($"{(model.SearchLine.Length > 0 ? model.SearchLine : position)} ", SegmentRole.Status);
-        if (model.Picker is null && model.SearchLine.Length == 0 && model.SelectedName.Length > 0)
+        if (model.SearchLine is { } search)
+        {
+            AppendSearch(builder, search);
+        }
+        else
+        {
+            builder.Append($"{position} ", SegmentRole.Status);
+        }
+
+        if (model.Picker is null && model.SearchLine is null && model.SelectedName.Length > 0)
         {
             var name = TextWidth.FitMiddle(model.SelectedName, Math.Max(MinimumNameColumns, width / NameShareDivisor), glyphs.Ellipsis);
             builder.Append($"{name} ", SegmentRole.Status);
@@ -82,12 +91,26 @@ public static class ChromeBuilder
             builder.Append($" {model.Message} ", MessageRole(model));
         }
 
-        if (model.SearchLine.Length == 0 && model.Picker is null)
+        if (model.SearchLine is null && model.Picker is null)
         {
             AppendHints(builder, model.Hints ?? PaneHints.For(PaneKind.Graph));
         }
 
         return builder.Build(SegmentRole.Status);
+    }
+
+    // The caret of a find bar is a cursor cell inside the typed text, like every other field.
+    private static void AppendSearch(LineBuilder builder, PromptLine search)
+    {
+        if (search.Caret is not { } caret)
+        {
+            builder.Append($"{search.Plain} ", SegmentRole.Status);
+
+            return;
+        }
+
+        new CaretField(search.Prefix, search.Text, caret, search.Suffix).AppendTo(builder, SegmentRole.Status);
+        builder.Append(" ", SegmentRole.Status);
     }
 
     // The picker's status bar keeps the mode chip and the position of the highlight; its keys are in the box.

@@ -37,17 +37,18 @@ public sealed class SearchController(
 
     public string Notice { get; private set; } = string.Empty;
 
-    public string StatusLine
+    public PromptLine StatusLine
     {
         get
         {
             if (view.ActiveSession() is not { } session || !session.Search.IsOpen)
             {
-                return string.Empty;
+                return PromptLine.Empty;
             }
 
-            var text = GraphSearchStatusText.Describe(session.Search, view.SelectedRow(), session.Graph.Count);
-            return session.Search.Notice.Length > 0 ? $"{text}  {session.Search.Notice}" : text;
+            var line = GraphSearchStatusText.Describe(session.Search, view.SelectedRow(), session.Graph.Count);
+
+            return session.Search.Notice.Length > 0 ? line.WithSuffix($"  {session.Search.Notice}") : line;
         }
     }
 

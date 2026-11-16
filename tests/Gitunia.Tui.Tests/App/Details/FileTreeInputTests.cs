@@ -1,3 +1,4 @@
+using Gitunia.Core.Editing;
 using Gitunia.App.Loading.Commits;
 using Gitunia.App.Loading.Trees;
 using Gitunia.App.Tabs;
@@ -216,7 +217,7 @@ public class FileTreeInputTests : IDisposable
 
         Assert.Equal(["src/lib/", "  core.cs", "  util.cs"], Labels());
         Assert.Equal(0, Cursor);
-        Assert.Equal("/LIB_", _controller.StatusLine);
+        Assert.Equal(new PromptLine("/", "LIB", 3), _controller.StatusLine);
     }
 
     [Fact]
@@ -226,12 +227,13 @@ public class FileTreeInputTests : IDisposable
         _controller.TryExecute(ActionIds.DetailFilter, null);
         TypeText("main");
         Assert.True(_controller.HandleTextKey(new KeyEvent(KeyNames.Home)));
-        Assert.Equal("/|main", _controller.StatusLine);
+        Assert.Equal("/main", _controller.StatusLine.Plain);
+        Assert.Equal(0, _controller.StatusLine.Caret);
         _controller.TryExecute(ActionIds.InputAccept, null);
 
         _controller.TryExecute(ActionIds.DetailFilter, null);
 
-        Assert.Equal("/main_", _controller.StatusLine);
+        Assert.Equal("/main", _controller.StatusLine.Plain);
     }
 
     [Fact]
@@ -245,7 +247,7 @@ public class FileTreeInputTests : IDisposable
 
         Assert.Equal([KeyMode.Insert, KeyMode.Normal], _shell.Modes);
         Assert.Equal(["src/", "  main.cs"], Labels());
-        Assert.Equal("filter: main", _controller.StatusLine);
+        Assert.Equal("filter: main", _controller.StatusLine.Plain);
         Assert.False(_shell.Host.Workspace.ActiveTab!.View.DetailTree.IsEditingFilter);
     }
 
@@ -260,7 +262,7 @@ public class FileTreeInputTests : IDisposable
 
         Assert.Equal([KeyMode.Insert, KeyMode.Normal], _shell.Modes);
         Assert.Equal(["docs/", "src/", "README"], Labels());
-        Assert.Equal(string.Empty, _controller.StatusLine);
+        Assert.Equal(string.Empty, _controller.StatusLine.Plain);
     }
 
     [Fact]

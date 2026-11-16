@@ -1,3 +1,4 @@
+using Gitunia.Core.Editing;
 using Gitunia.App;
 using Gitunia.App.Loading.Diff;
 using Gitunia.Core.Diff;
@@ -74,7 +75,7 @@ public sealed partial class WorkingDiffController : IActionHandler, ITextKeyHand
         _sessions.ActiveSession()?.WorkingDiff is { IsZoomed: true }
         && WorkingPanes.IsDiff(_host.Workspace.ActiveTab?.View.FocusedPane ?? PaneKind.Graph);
 
-    public string StatusLine => _actions.StatusLine(_sessions.ActiveSession()?.WorkingDiff);
+    public PromptLine StatusLine => _actions.StatusLine(_sessions.ActiveSession()?.WorkingDiff);
 
     /// <summary>The title of the diff box: the side, the hunk the cursor is in and the file, plus the markers of the diff options.</summary>
     /// <param name="isRepeating">The repeat mode is on for the diff box: the title shows its marker.</param>

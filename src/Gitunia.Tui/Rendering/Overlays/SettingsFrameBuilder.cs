@@ -304,7 +304,7 @@ public static class SettingsFrameBuilder
             selection = ColumnSelection(state, SettingsColumn.Settings);
         }
 
-        return Cell(text.Marker, text.Left, text.Right, width, selection, glyphs, SegmentRole.Plain);
+        return Cell(text, width, selection, glyphs);
     }
 
     private static SegmentSelection ColumnSelection(SettingsState state, SettingsColumn column)
@@ -314,7 +314,6 @@ public static class SettingsFrameBuilder
         return focused ? SegmentSelection.Focused : SegmentSelection.Dim;
     }
 
-    // One cell of exactly the given width: the marker, the label, the control pushed to the right edge.
     private static IReadOnlyList<StyledSegment> Cell(
         string marker,
         string left,
@@ -322,24 +321,66 @@ public static class SettingsFrameBuilder
         int width,
         SegmentSelection selection,
         GraphGlyphSet glyphs,
-        SegmentRole leftRole)
+        SegmentRole leftRole) =>
+        Cell(new SettingsRowText(marker, left, right), width, selection, glyphs, leftRole);
+
+    // One cell of exactly the given width: the marker, the label, the control pushed to the right edge. A field being
+    // typed (folder or number) draws its caret as a cursor cell.
+    private static IReadOnlyList<StyledSegment> Cell(
+        SettingsRowText text,
+        int width,
+        SegmentSelection selection,
+        GraphGlyphSet glyphs,
+        SegmentRole leftRole = SegmentRole.Plain)
     {
-        var rightFitted = SettingsRowText.FitRight(right, width, glyphs.Ellipsis);
-        var rightWidth = TextWidth.Of(rightFitted);
+        var rightLine = FieldLine(
+            text.RightField,
+            text.Right,
+            Math.Max(0, width / 2),
+            glyphs,
+            SegmentRole.Plain);
+        var rightWidth = TextWidth.Of(rightLine.Text);
         var trailing = rightWidth > 0 ? " " : string.Empty;
         var room = Math.Max(0, width - 1 - rightWidth - trailing.Length - (rightWidth > 0 ? 1 : 0));
-        var leftFitted = TextWidth.Fit($" {left}", room, glyphs.Ellipsis);
-        var gap = Math.Max(0, width - 1 - TextWidth.Of(leftFitted) - rightWidth - trailing.Length);
-        var markerRole = marker == SettingsRowText.Warning ? SegmentRole.Error : leftRole;
+        var leftLine = FieldLine(text.LeftField, $" {text.Left}", room, glyphs, leftRole, " ");
+        var gap = Math.Max(0, width - 1 - TextWidth.Of(leftLine.Text) - rightWidth - trailing.Length);
+        var markerRole = text.Marker == SettingsRowText.Warning ? SegmentRole.Error : leftRole;
         var line = new LineBuilder(width, glyphs.Ellipsis)
-            .Append(marker, markerRole)
-            .Append(leftFitted, leftRole)
+            .Append(text.Marker, markerRole)
+            .Append(leftLine)
             .Append(new string(' ', gap), leftRole)
-            .Append(rightFitted, SegmentRole.Plain)
+            .Append(rightLine)
             .Append(trailing, SegmentRole.Plain)
             .Build(leftRole);
 
-        return [.. line.Segments.Select(segment => segment with { Selection = selection })];
+        return [.. line.Segments.Select(segment => Selected(segment, selection))];
+    }
+
+    // The cursor cell of a typed field sits on the selected row: it is the swapped chip and takes no selection style,
+    // so without colour it is the one cell that is not inverse video.
+    private static StyledSegment Selected(StyledSegment segment, SegmentSelection selection) =>
+        segment.Role == SegmentRole.Cursor
+            ? segment with { Role = SegmentRole.TitleCursor }
+            : segment with { Selection = selection };
+
+    // The text cut to the columns, or the field drawn with its cursor cell (the indent goes before the prefix).
+    private static StyledLine FieldLine(
+        CaretField? field,
+        string plain,
+        int columns,
+        GraphGlyphSet glyphs,
+        SegmentRole role,
+        string indent = "")
+    {
+        var builder = new LineBuilder(columns, glyphs.Ellipsis);
+        if (field is null)
+        {
+            return builder.Append(plain, role).BuildUnfilled();
+        }
+
+        (field with { Prefix = $"{indent}{field.Prefix}" }).AppendTo(builder, role);
+
+        return builder.BuildUnfilled();
     }
 
     private static StyledLine RuleLine(SettingsLayout layout, GraphGlyphSet glyphs) =>

@@ -29,7 +29,7 @@ public class QuickJumpInputTests
 
         Assert.Equal(KeyMode.Insert, harness.Mode);
         Assert.Equal(string.Empty, harness.Session.Source.JumpText);
-        Assert.StartsWith("jump _", harness.StatusLine, StringComparison.Ordinal);
+        Assert.StartsWith("jump ", harness.StatusLine.Plain, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -46,7 +46,7 @@ public class QuickJumpInputTests
         Assert.Equal(0, harness.SelectedRow);
         Assert.Equal(KeyMode.Normal, harness.Mode);
         Assert.Null(harness.Session.Source.JumpText);
-        Assert.Equal(string.Empty, harness.StatusLine);
+        Assert.Equal(string.Empty, harness.StatusLine.Plain);
     }
 
     [Fact]
@@ -87,7 +87,7 @@ public class QuickJumpInputTests
 
         harness.Type("fix");
 
-        Assert.Equal("jump fix_  1 in view", harness.StatusLine);
+        Assert.Equal("jump fix  1 in view", harness.StatusLine.Plain);
     }
 
     [Fact]
