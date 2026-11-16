@@ -199,7 +199,7 @@ public static class SettingsFrameBuilder
     {
         if (state.IsEditingFilter)
         {
-            return OverlayBox.Input(new CaretField("/", state.Filter, state.FilterCaret), layout.Width, glyphs);
+            return OverlayBox.Input(new CaretField($"{glyphs.Picker.Prompt} ", state.Filter, state.FilterCaret), layout.Width, glyphs);
         }
 
         if (state.IsReadOnly)
@@ -212,7 +212,7 @@ public static class SettingsFrameBuilder
             var count = state.Rows.Count(
                 row => row.Definition.Control != SettingControl.KeyReference || row.Kind == SettingRowKind.Binding);
             var noun = count == 1 ? "match" : "matches";
-            var text = string.Create(CultureInfo.InvariantCulture, $"/{state.Filter}  {count} {noun}");
+            var text = string.Create(CultureInfo.InvariantCulture, $"{glyphs.Picker.Prompt} {state.Filter}  {count} {noun}");
 
             return OverlayBox.Text(text, layout.Width, glyphs);
         }

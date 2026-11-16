@@ -124,7 +124,7 @@ public class ReflogFrameBuilderTests
 
         Assert.Contains("/message 3", search.Lines[^2].Text, StringComparison.Ordinal);
         Assert.Equal("a", CursorCell.Of(search.Lines[^2]));
-        Assert.Contains("> mn", picker.Lines[^2].Text, StringComparison.Ordinal);
+        Assert.Contains("› mn", picker.Lines[^2].Text, StringComparison.Ordinal);
         Assert.Equal("n", CursorCell.Of(picker.Lines[^2]));
     }
 
@@ -138,7 +138,7 @@ public class ReflogFrameBuilderTests
 
         Assert.Contains("choose a ref", frame.Lines[0].Text, StringComparison.Ordinal);
         Assert.Contains("main", frame.Lines[2].Text, StringComparison.Ordinal);
-        Assert.Contains(">  ", frame.Lines[^2].Text, StringComparison.Ordinal);
+        Assert.Contains("›  ", frame.Lines[^2].Text, StringComparison.Ordinal);
         Assert.Equal(" ", CursorCell.Of(frame.Lines[^2]));
         Assert.Equal(1, ReflogFrameBuilder.PickerIndexAt(picker, 2, 24));
         Assert.Null(ReflogFrameBuilder.PickerIndexAt(picker, 3, 24));
