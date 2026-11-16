@@ -13,6 +13,17 @@ public class SettingsFrameBuilderTests
     private const string Home = "/home/user";
 
     [Fact]
+    public void GivenTheFilterIsBeingTyped_WhenRendering_ThenTheCursorCellCoversTheCharacterUnderTheCaret()
+    {
+        var state = Open().WithFilterText("them", 2) with { IsEditingFilter = true };
+
+        var frame = SettingsFrameBuilder.Build(state, 80, 15, GraphGlyphSet.Unicode)!;
+
+        Assert.Contains("/them", frame.Lines[1].Text, StringComparison.Ordinal);
+        Assert.Equal("e", CursorCell.Of(frame.Lines[1]));
+    }
+
+    [Fact]
     public void GivenTheDefaultSettings_WhenRenderingAt80x15_ThenTheCategoriesAndTheFirstSettingsShow()
     {
         var frame = SettingsFrameBuilder.Build(Open(), 80, 15, GraphGlyphSet.Unicode)!;

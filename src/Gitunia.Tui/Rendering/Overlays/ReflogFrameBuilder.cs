@@ -170,15 +170,20 @@ public static class ReflogFrameBuilder
             return string.Create(CultureInfo.InvariantCulture, $"{position}/{state.Entries.Count}");
         }
 
+        return $"/{state.SearchText}  {SearchCount(state)}";
+    }
+
+    private static string SearchCount(ReflogState state)
+    {
         var matches = state.MatchIndexes;
-        var current = matches.ToList().IndexOf(state.SelectedIndex) + 1;
-        var count = "no match";
-        if (matches.Count > 0)
+        if (matches.Count == 0)
         {
-            count = string.Create(CultureInfo.InvariantCulture, $"{current}/{matches.Count} matches");
+            return "no match";
         }
 
-        return $"/{state.SearchText}  {count}";
+        var current = matches.ToList().IndexOf(state.SelectedIndex) + 1;
+
+        return string.Create(CultureInfo.InvariantCulture, $"{current}/{matches.Count} matches");
     }
 
     // The search being typed: drawn with a cursor cell instead of the plain lead.
@@ -189,10 +194,7 @@ public static class ReflogFrameBuilder
             return null;
         }
 
-        var lead = FooterLead(state);
-        var suffix = lead[(1 + state.SearchText.Length)..];
-
-        return new CaretField("/", state.SearchText, state.SearchCaret, suffix);
+        return new CaretField("/", state.SearchText, state.SearchCaret, $"  {SearchCount(state)}");
     }
 
     /// <summary>The entry index of the row on <paramref name="frameLine"/>, or null for none.</summary>

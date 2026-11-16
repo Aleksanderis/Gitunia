@@ -71,7 +71,7 @@ public static class PromptCaret
 
     /// <summary>
     /// The text with the caret drawn in, for prompts shown as plain text (the status-bar fallback of a popup that does
-/// not fit; styled fields draw a cursor cell from <see cref="Split"/> instead): <see cref="EndGlyph"/> after the last
+    /// not fit; styled fields draw a cursor cell from <see cref="Split"/> instead): <see cref="EndGlyph"/> after the last
     /// character, <see cref="MiddleGlyph"/> inside the text. When the result is wider than
     /// <paramref name="columns"/>, the part around the caret stays: the text before it is cut from the left and the
     /// text after it from the right.
