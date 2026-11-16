@@ -19,7 +19,18 @@ public class SettingsFrameBuilderTests
 
         var frame = SettingsFrameBuilder.Build(state, 80, 15, GraphGlyphSet.Unicode)!;
 
-        Assert.Contains("/them", frame.Lines[1].Text, StringComparison.Ordinal);
+        Assert.Contains("› them", frame.Lines[1].Text, StringComparison.Ordinal);
+        Assert.Equal("e", CursorCell.Of(frame.Lines[1]));
+    }
+
+    [Fact]
+    public void GivenTheFilterIsBeingTypedOnAnAsciiTerminal_WhenRendering_ThenThePromptIsAGreaterThanSign()
+    {
+        var state = Open().WithFilterText("them", 2) with { IsEditingFilter = true };
+
+        var frame = SettingsFrameBuilder.Build(state, 80, 15, GraphGlyphSet.Ascii)!;
+
+        Assert.Contains("> them", frame.Lines[1].Text, StringComparison.Ordinal);
         Assert.Equal("e", CursorCell.Of(frame.Lines[1]));
     }
 
@@ -237,7 +248,7 @@ public class SettingsFrameBuilderTests
 
         var frame = SettingsFrameBuilder.Build(accepted, 100, 30, GraphGlyphSet.Unicode)!;
 
-        Assert.Contains("/tab  1 match", frame.Lines[1].Text, StringComparison.Ordinal);
+        Assert.Contains("› tab  1 match", frame.Lines[1].Text, StringComparison.Ordinal);
         Assert.Contains("Tabs: Show branch in tab name", frame.Lines[2].Text, StringComparison.Ordinal);
     }
 
