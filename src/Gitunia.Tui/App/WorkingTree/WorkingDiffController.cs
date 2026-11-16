@@ -1,8 +1,8 @@
-using Gitunia.Core.Editing;
 using Gitunia.App;
 using Gitunia.App.Loading.Diff;
 using Gitunia.Core.Diff;
 using Gitunia.Core.DiffPane;
+using Gitunia.Core.Editing;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Workspaces;
@@ -12,11 +12,11 @@ using Gitunia.Git.Diff.Models;
 using Gitunia.Tui.App.Clipboard;
 using Gitunia.Tui.App.Panes;
 using Gitunia.Tui.App.Tabs;
-using Gitunia.Tui.Views;
 using Gitunia.Tui.Input;
 using Gitunia.Tui.Rendering.Diff;
 using Gitunia.Tui.Rendering.WorkingTree;
 using Gitunia.Tui.Search;
+using Gitunia.Tui.Views;
 using Terminal.Gui.Views;
 
 namespace Gitunia.Tui.App.WorkingTree;
