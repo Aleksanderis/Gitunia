@@ -14,13 +14,17 @@ namespace Gitunia.Core.Overlays;
 /// <param name="Details">Rows under the field: the highlighted candidate, or the options of a choice.</param>
 /// <param name="Hints">The keys that answer the prompt, such as <c>Enter create</c> and <c>Esc cancel</c>.</param>
 /// <param name="InputCaret">The caret column in <see cref="Input"/> (see <see cref="PromptCaret"/>).</param>
+/// <param name="Highlight">The row of <see cref="Details"/> drawn as the selection bar; -1 for none.</param>
+/// <param name="Count">Text at the right end of the title bar, such as the position <c>2/5</c>; null for none.</param>
 public sealed record PromptPopup(
     string Title,
     IReadOnlyList<string> Lines,
     string? Input,
     IReadOnlyList<string> Details,
     IReadOnlyList<PromptHint> Hints,
-    int InputCaret = PromptCaret.End)
+    int InputCaret = PromptCaret.End,
+    int Highlight = -1,
+    string? Count = null)
 {
     private static readonly PromptHint Cancel = new("Esc", "cancel");
 
@@ -36,23 +40,26 @@ public sealed record PromptPopup(
 
     /// <summary>
     /// A prompt whose text filters candidates (see <see cref="Prompts.PromptPicker"/>); <paramref name="rows"/> is the
-    /// visible candidate list and <paramref name="acceptLabel"/> names what <c>Enter</c> does.
+    /// visible candidate list with its highlighted row (-1 for none) and the <c>n/m</c> position shown
+    /// in the title bar and <paramref name="acceptLabel"/> names what <c>Enter</c> does.
     /// </summary>
     public static PromptPopup ForFilter(
         string title,
         string context,
         string input,
-        IReadOnlyList<string> rows,
+        PickerWindow rows,
         string acceptLabel,
         bool canSelect = true) =>
         new(
             title,
             [context],
             input,
-            rows,
+            rows.Rows,
             canSelect
                 ? [new(string.Empty, "Type filters"), new("Ctrl-j/k", "select"), new("Enter", acceptLabel), Cancel]
-                : [new(string.Empty, "Type filters"), new("Enter", acceptLabel), Cancel]);
+                : [new(string.Empty, "Type filters"), new("Enter", acceptLabel), Cancel],
+            Highlight: rows.Highlight,
+            Count: rows.Position);
 
     /// <summary>A prompt answered by one key; each option is written as <c>key  label</c>.</summary>
     public static PromptPopup ForChoice(string title, string context, IReadOnlyList<string> options) =>
@@ -64,6 +71,8 @@ public sealed record PromptPopup(
         && Title == other.Title
         && Input == other.Input
         && InputCaret == other.InputCaret
+        && Highlight == other.Highlight
+        && Count == other.Count
         && Hints.SequenceEqual(other.Hints)
         && Lines.SequenceEqual(other.Lines)
         && Details.SequenceEqual(other.Details);

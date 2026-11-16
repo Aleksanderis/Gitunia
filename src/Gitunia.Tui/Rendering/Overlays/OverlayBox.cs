@@ -32,9 +32,14 @@ public static class OverlayBox
     public static StyledLine Title(string text, int width, GraphGlyphSet glyphs) =>
         new LineBuilder(width, glyphs.Ellipsis).Append($" {text}", SegmentRole.OverlayTitle).Build(SegmentRole.OverlayTitle);
 
-    /// <summary>A body row of plain text.</summary>
-    public static StyledLine Text(string text, int width, GraphGlyphSet glyphs, SegmentRole role = SegmentRole.Plain) =>
-        Wrap(new LineBuilder(InnerWidth(width), glyphs.Ellipsis).Append($" {text}", role).Build(), glyphs);
+    /// <summary>A body row of plain text; a selected row is drawn as the selection bar across the box.</summary>
+    public static StyledLine Text(
+        string text,
+        int width,
+        GraphGlyphSet glyphs,
+        SegmentRole role = SegmentRole.Plain,
+        bool isSelected = false) =>
+        Wrap(new LineBuilder(InnerWidth(width), glyphs.Ellipsis).Append($" {text}", role).Build(), glyphs, isSelected);
 
     /// <summary>
     /// A footer row of key hints, drawn like the status bar's: bold keys on the bar colours. The keys are named by

@@ -38,14 +38,16 @@ public class ListOnlyPromptTests
     }
 
     [Fact]
-    public void GivenTheList_WhenDrawn_ThenThePositionIsInTheContextAndTheHintsNameTheLetters()
+    public void GivenTheList_WhenDrawn_ThenTheFirstRowIsHighlightedThePositionIsTheCountAndTheHintsNameTheLetters()
     {
         var popup = OpenPromptPopup.Of(Open().Prompt!);
 
         Assert.Equal("Delete branch", popup.Title);
-        Assert.Equal(["Branch to delete at here (1/3)"], popup.Lines);
+        Assert.Equal("1/3", popup.Count);
+        Assert.Equal(["Branch to delete at here"], popup.Lines);
         Assert.Null(popup.Input);
-        Assert.Equal(["> a", "  b", "  c"], popup.Details);
+        Assert.Equal(["a", "b", "c"], popup.Details);
+        Assert.Equal(0, popup.Highlight);
         var hints = popup.Hints.Select(hint => $"{hint.Keys} {hint.Label}");
         Assert.Equal(["Enter choose", "j/k/h/l select", "Esc cancel"], hints);
     }
