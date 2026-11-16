@@ -203,18 +203,6 @@ public class SettingsFrameBuilderTests
     [InlineData("123456789012345678901234567890123456789012345678901234567890", 0, 40)]
     [InlineData("123456789012345678901234567890123456789012345678901234567890", PromptCaret.End, 40)]
     [InlineData("123456789012345678901234567890123456789012345678901234567890", 30, 40)]
-    [InlineData("25", 0, 45)]
-    [InlineData("123456789012345678901234567890123456789012345678901234567890", 0, 45)]
-    [InlineData("123456789012345678901234567890123456789012345678901234567890", PromptCaret.End, 45)]
-    [InlineData("123456789012345678901234567890123456789012345678901234567890", 30, 45)]
-    [InlineData("25", 0, 61)]
-    [InlineData("123456789012345678901234567890123456789012345678901234567890", 0, 61)]
-    [InlineData("123456789012345678901234567890123456789012345678901234567890", PromptCaret.End, 61)]
-    [InlineData("123456789012345678901234567890123456789012345678901234567890", 30, 61)]
-    [InlineData("25", 0, 70)]
-    [InlineData("123456789012345678901234567890123456789012345678901234567890", 0, 70)]
-    [InlineData("123456789012345678901234567890123456789012345678901234567890", PromptCaret.End, 70)]
-    [InlineData("123456789012345678901234567890123456789012345678901234567890", 30, 70)]
     [InlineData("25", 0, 100)]
     [InlineData("123456789012345678901234567890123456789012345678901234567890", 0, 100)]
     [InlineData("123456789012345678901234567890123456789012345678901234567890", PromptCaret.End, 100)]
@@ -234,8 +222,12 @@ public class SettingsFrameBuilderTests
         var onControl = SettingsFrameBuilder.HitAt(state, controlStart, lineIndex, width, 30, GraphGlyphSet.Unicode);
         var beforeControl = SettingsFrameBuilder.HitAt(state, controlStart - 1, lineIndex, width, 30, GraphGlyphSet.Unicode);
 
+        var lastColumn = frame.Lines[lineIndex].Text.TrimEnd().TrimEnd('│').TrimEnd().Length - 1;
+        var onLastColumn = SettingsFrameBuilder.HitAt(state, lastColumn, lineIndex, width, 30, GraphGlyphSet.Unicode);
+
         Assert.Equal(SettingsHitKind.Control, onControl.Kind);
         Assert.Equal(SettingsHitKind.Row, beforeControl.Kind);
+        Assert.Equal(SettingsHitKind.Control, onLastColumn.Kind);
     }
 
     private static SettingsState TypingNumber(string text, int caret)

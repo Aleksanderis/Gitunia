@@ -187,7 +187,8 @@ public class HelpAllCommandsFrameTests
             filter: typed, isEditingFilter: true, filterCaret: caret)!;
 
         Assert.True(TextWidth.Of(frame.Lines[0].Text) <= width);
-        Assert.NotEqual(string.Empty, TitleCursor(frame.Lines[0]));
+        var expected = caret == PromptCaret.End ? " " : typed[caret].ToString();
+        Assert.Equal(expected, TitleCursor(frame.Lines[0]));
     }
 
     [Fact]

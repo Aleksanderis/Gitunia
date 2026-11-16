@@ -1,4 +1,3 @@
-using Gitunia.Tui.Tests.App;
 using Gitunia.App.Loading.Commits;
 using Gitunia.App.Tabs;
 using Gitunia.Core;
@@ -7,13 +6,14 @@ using Gitunia.Core.Jump;
 using Gitunia.Core.Jump.Models;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
-using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces;
+using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Search;
+using Gitunia.Tui.Tests.App;
 using Gitunia.Tui.Tests.Fakes;
 using Xunit;
 

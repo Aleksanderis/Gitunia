@@ -56,7 +56,8 @@ public class ScreenComposerTests
         var line = ChromeBuilder.Status(model, width, GraphGlyphSet.Unicode);
 
         Assert.True(TextWidth.Of(line.Text) <= width);
-        Assert.NotEqual(string.Empty, CursorCell.Of(line));
+        var cursor = CursorCell.Of(line);
+        Assert.Equal(caret == PromptCaret.End ? " " : "abcdefghijklmnopqrstuvwxyz"[caret].ToString(), cursor);
     }
 
     [Fact]

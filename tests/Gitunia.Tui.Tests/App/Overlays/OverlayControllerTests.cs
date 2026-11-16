@@ -1,11 +1,11 @@
-using Gitunia.Core.Status;
-using Gitunia.Tui.App;
 using System.Collections.Concurrent;
 using Gitunia.App.Shell;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Overlays;
 using Gitunia.Core.Shell;
+using Gitunia.Core.Status;
+using Gitunia.Tui.App;
 using Gitunia.Tui.App.Overlays;
 using Gitunia.Tui.Input;
 using Gitunia.Tui.Tests.Fakes;

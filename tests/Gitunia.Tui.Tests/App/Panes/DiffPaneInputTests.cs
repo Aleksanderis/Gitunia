@@ -1,12 +1,12 @@
-using Gitunia.App.Loading;
-using Gitunia.App.Status;
-using Gitunia.Core;
-using Gitunia.App.Tabs;
 using System.Drawing;
 using System.Text;
 using Gitunia.App;
+using Gitunia.App.Loading;
 using Gitunia.App.Loading.Commits;
 using Gitunia.App.Loading.Diff;
+using Gitunia.App.Status;
+using Gitunia.App.Tabs;
+using Gitunia.Core;
 using Gitunia.Core.Clipboard;
 using Gitunia.Core.Diff;
 using Gitunia.Core.Keymap;
