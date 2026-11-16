@@ -50,12 +50,6 @@ public sealed partial class WorkingTreeActionHandler(
         ActionIds.PaneTaller,
         ActionIds.PaneShorter,
         ActionIds.PaneResetSizes,
-        // The operation in progress belongs to the whole repository, not to a pane: its banner and hints offer these
-        // keys in this view too (#1431).
-        ActionIds.OperationContinue,
-        ActionIds.OperationAbort,
-        ActionIds.OperationSkip,
-        ActionIds.ToolMergetool,
     ];
 
     /// <summary>A short notice for the status bar from the last action, empty when none.</summary>
@@ -122,6 +116,12 @@ public sealed partial class WorkingTreeActionHandler(
         }
         else if (!TryFocus(tab, action) && !TryOpenDiff(tab, action) && !TryMove(tab, action, count) && !TryCopy(tab, action) && !TryStage(tab, action) && !TryDiscard(tab, action))
         {
+            if (ChangesViewFallthrough.Applies(action))
+            {
+                // A Global action nobody here owns (operation keys, mergetool, a pin) is for the next handler (#1433).
+                return false;
+            }
+
             Message = $"{ActionCatalog.Describe(action)}: not available in the Changes view";
         }
 
