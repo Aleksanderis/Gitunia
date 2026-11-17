@@ -21,7 +21,8 @@ public sealed class MainViewFixture : IDisposable
     public MainViewFixture()
     {
         var chrome = new PaneChrome();
-        var gate = new MouseGate();
+        Gate = new MouseGate();
+        var gate = Gate;
         var geometry = new PaneGeometry(chrome, new FixedArrangement(), new FixedWorkingFocus());
         Panes = new PaneViews(
             chrome,
@@ -41,6 +42,9 @@ public sealed class MainViewFixture : IDisposable
     }
 
     public PaneViews Panes { get; }
+
+    /// <summary>The gate that suppresses the panes while an overlay is open.</summary>
+    public MouseGate Gate { get; }
 
     public WorkingTreeChrome Working { get; }
 

@@ -648,6 +648,7 @@ No default key; reached from the command palette (`:`), the actions menu, the mo
 |---|---|
 | `help.tab-select` | Show the clicked help section |
 | `pick.mainline` | Choose the mainline parent in the open cherry-pick or revert prompt |
+| `prompt.row` | Choose the clicked row of the open prompt popup |
 | `remote.fetch-all` | Fetch all remotes (prunes) |
 | `settings.open-theme` | Open the settings at the theme |
 | `working-tree.open` | Open the Changes view |

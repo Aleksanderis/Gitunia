@@ -82,7 +82,7 @@ public static partial class HintSet
         SettingsMove,
         SettingsEnterOpen,
         new("/", "new filter", [ActionIds.SettingsFilter]),
-        new("Esc", HintVerb.Clear, [ActionIds.Cancel]),
+        new("Esc", HintVerb.Clear, [ActionIds.NavigateBack]),
     ];
 
     private static readonly ImmutableArray<KeyHint> SettingsCategories =

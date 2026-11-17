@@ -227,7 +227,8 @@ public class InputRoutingTests
     {
         var targets = InputRouting.ClickTargets();
 
-        Assert.Equal(OverlayClickTarget.Settings, targets[0]);
+        Assert.Equal(OverlayClickTarget.Frame, targets[0]);
+        Assert.Equal(OverlayClickTarget.Settings, targets[1]);
         Assert.True(targets.IndexOf(OverlayClickTarget.Reflog) < targets.IndexOf(OverlayClickTarget.HelpTab));
         Assert.True(targets.IndexOf(OverlayClickTarget.Palette) < targets.IndexOf(OverlayClickTarget.ContextMenu));
         Assert.Equal(OverlayClickTarget.Confirm, targets[^1]);

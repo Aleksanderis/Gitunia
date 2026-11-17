@@ -29,7 +29,7 @@ public class HintSetTests
         var sets = new List<IReadOnlyList<KeyHint>>
         {
             HintSet.ForDetailChanges(), HintSet.ForGraphComparing(), HintSet.ForMessageEditing(),
-            HintSet.ForConfirm(), HintSet.ForBlameList(), HintSet.ForFileHistory(), HintSet.ForReflogList(),
+            HintSet.ForConfirm(), HintSet.ForMainline(), HintSet.ForBlameList(), HintSet.ForFileHistory(), HintSet.ForReflogList(),
             HintSet.ForRebaseEditor(), HintSet.ForConflictVersions(), HintSet.ForConflictVisual(),
             HintSet.ForConflictResult(), HintSet.ForConflictEdit(), HintSet.ForRebaseMessage(),
             HintSet.ForPalette(), HintSet.ForRepeat(RepeatKind.Context),

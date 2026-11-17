@@ -27,8 +27,8 @@ public sealed record SettingsRowText(
     private const string AsciiChoiceArrow = "v";
     private const string ItemIndent = "  ";
     private static readonly string RemoveMarker = ButtonLabel.Bracketed("x");
-    private const string CheckedBox = "[x]";
-    private const string EmptyBox = "[ ]";
+    private static readonly string CheckedBox = ButtonLabel.Bracketed("x");
+    private static readonly string EmptyBox = ButtonLabel.Bracketed(" ");
 
     /// <summary>The <c>[+]</c> marker at the end of a path list's row.</summary>
     public static readonly string AddMarker = ButtonLabel.Bracketed("+");

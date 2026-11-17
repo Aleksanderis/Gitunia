@@ -5,6 +5,7 @@ using Gitunia.Tui.Views;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Mouse;
+using Gitunia.Core.Editing;
 using Gitunia.Core.Overlays;
 using Gitunia.Tui.App;
 using Gitunia.App.Blame;
@@ -34,9 +35,11 @@ public sealed class GestureRouterTests : IDisposable, IActionRoute
     private readonly MainViewFixture _screen = new();
     private readonly OverlayClickGuard _guard = new();
     private readonly List<ActionId> _routed = [];
+    private readonly List<int?> _counts = [];
     private readonly OverlayStore _store;
     private readonly VisualRangeInput _visual;
     private readonly GestureRouter _router;
+    private readonly OpenPrompt _prompt = new();
 
     public GestureRouterTests()
     {
@@ -51,7 +54,7 @@ public sealed class GestureRouterTests : IDisposable, IActionRoute
                 new FileHistoryInput(host, GraphGlyphSet.Unicode)),
             settings,
             new PickActions(host, new NoPicks()),
-            new PromptDisplays([]));
+            new PromptDisplays([_prompt]));
         var editors = new EditorOverlays(
             new RebaseEditorInput(host, new NoSelection(), others, GraphGlyphSet.Unicode),
             new ConflictEditorInput(host, GraphGlyphSet.Unicode),
@@ -70,7 +73,11 @@ public sealed class GestureRouterTests : IDisposable, IActionRoute
         _screen.Dispose();
     }
 
-    void IActionRoute.Route(ActionId action, int? count) => _routed.Add(action);
+    void IActionRoute.Route(ActionId action, int? count)
+    {
+        _routed.Add(action);
+        _counts.Add(count);
+    }
 
     [Fact]
     public void GivenNoOverlay_WhenDoubleClickingTheGraph_ThenItRunsTheDoubleClickAction()
@@ -149,6 +156,40 @@ public sealed class GestureRouterTests : IDisposable, IActionRoute
         Assert.Equal([ActionIds.TabNext, ActionIds.WorkingTreeOpen], _routed);
     }
 
+    [Fact]
+    public void GivenAPromptPopup_WhenScrollingTheWheelOverAPaneBehindIt_ThenThePopupHighlightMovesOneRow()
+    {
+        _prompt.Popup = PromptPopup.ForText("New branch", "Name", string.Empty, "create");
+
+        _router.OnGestured(DefaultKeymap.GraphView, MouseGesture.WheelDown, null);
+        _router.OnGestured(DefaultKeymap.GraphView, MouseGesture.WheelUp, null);
+
+        Assert.Equal([ActionIds.ListDown, ActionIds.ListUp], _routed);
+        Assert.Equal(
+            [DefaultMouseMap.PopupWheelLines, DefaultMouseMap.PopupWheelLines],
+            _counts);
+    }
+
+    [Fact]
+    public void GivenAPromptPopup_WhenClickingAPaneBehindIt_ThenItCancelsLikeEsc()
+    {
+        _prompt.Popup = PromptPopup.ForText("New branch", "Name", string.Empty, "create");
+
+        _router.OnGestured(DefaultKeymap.GraphView, MouseGesture.Click, null);
+
+        Assert.Equal([ActionIds.Cancel], _routed);
+    }
+
+    [Fact]
+    public void GivenAnOpenOverlay_WhenATitleRowTheBannerOrTheStatusBarIsClicked_ThenTheBackdropClickClosesIt()
+    {
+        _shell.Confirm(new ConfirmPrompt("Delete", ["Delete branch x?"], "Cannot be undone.", "Delete"));
+
+        _router.OnGestured(DefaultMouseMap.BackdropView, MouseGesture.Click, null);
+
+        Assert.Equal([ActionIds.Cancel], _routed);
+    }
+
     private void OpenTabWithRange()
     {
         var root = Path.Combine(Path.GetTempPath(), "gitunia-gesture-router");
@@ -170,5 +211,12 @@ public sealed class GestureRouterTests : IDisposable, IActionRoute
         public void EndRange()
         {
         }
+    }
+
+    private sealed class OpenPrompt : IPromptDisplay
+    {
+        public PromptLine StatusLine => PromptLine.Empty;
+
+        public PromptPopup? Popup { get; set; }
     }
 }
