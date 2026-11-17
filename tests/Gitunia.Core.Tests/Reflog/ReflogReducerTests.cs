@@ -370,7 +370,7 @@ public class ReflogReducerTests
         var update = AppReducer.Reduce(state, Pressed(ActionIds.ReflogOpen));
 
         var picker = update.State.Shell.Reflog.List!.Picker!;
-        Assert.Equal(["HEAD", "main", "topic"], picker.Names);
+        Assert.Equal(["HEAD", "main", "topic"], picker.Candidates);
         Assert.Equal(KeyMode.Insert, Assert.IsType<SetKeyModeEffect>(Assert.Single(update.Effects)).Mode);
     }
 
@@ -391,16 +391,20 @@ public class ReflogReducerTests
     }
 
     [Fact]
-    public void GivenTheRefPicker_WhenMovingWithTheNavigationKeys_ThenTheHighlightStopsAtTheLast()
+    public void GivenTheRefPicker_WhenMovingWithTheFilterActions_ThenTheHighlightStopsAtTheEnds()
     {
         var state = WithRefs(OpenList(Opened("alpha"), 3), Branch("main"));
         state = Press(state, ActionIds.ReflogOpen);
 
-        var down = AppReducer.Reduce(state, new ReflogKeyTyped(new KeyEvent(KeyNames.Down))).State;
-        var stopped = AppReducer.Reduce(down, new ReflogKeyTyped(new KeyEvent(KeyNames.Down))).State;
+        var down = AppReducer.Reduce(state, Pressed(ActionIds.FilterNext)).State;
+        var stopped = AppReducer.Reduce(down, Pressed(ActionIds.FilterNext)).State;
+        var up = AppReducer.Reduce(stopped, Pressed(ActionIds.FilterPrevious)).State;
 
         Assert.Equal(1, down.Shell.Reflog.List!.Picker!.Index);
         Assert.Equal(1, stopped.Shell.Reflog.List!.Picker!.Index);
+        Assert.Equal(0, up.Shell.Reflog.List!.Picker!.Index);
+        var typed = AppReducer.Reduce(down, new ReflogKeyTyped(new KeyEvent(KeyNames.Down))).State;
+        Assert.Equal(1, typed.Shell.Reflog.List!.Picker!.Index);
     }
 
     [Fact]

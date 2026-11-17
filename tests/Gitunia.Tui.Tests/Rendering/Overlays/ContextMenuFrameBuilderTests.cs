@@ -17,7 +17,7 @@ public class ContextMenuFrameBuilderTests
 
     private static PaletteState Menu(int selected = 0) => new(
         ContextMenuBuilder.Build(Table, DefaultKeymap.GraphView, RowActions.OfGraphRow),
-        SelectedIndex: selected);
+        selectedIndex: selected);
 
     private static OverlayFrame Frame(PaletteState menu, MenuAnchor anchor, int width = 80, int height = 24) =>
         ContextMenuFrameBuilder.Build(menu, anchor, width, height, GraphGlyphSet.Unicode)!;
@@ -201,7 +201,7 @@ public class ContextMenuFrameBuilderTests
             return;
         }
 
-        var menu = new PaletteState(entries, SelectedIndex: 0);
+        var menu = new PaletteState(entries, selectedIndex: 0);
         var frame = ContextMenuFrameBuilder.Build(menu, new MenuAnchor(0, 0), width, 60, GraphGlyphSet.Unicode)!;
         var text = string.Join('\n', frame.Lines.Select(line => line.Text));
 

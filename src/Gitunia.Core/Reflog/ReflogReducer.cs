@@ -196,6 +196,11 @@ public static class ReflogReducer
             return Accept(session, list, picker, context);
         }
 
+        if (action == ActionIds.FilterNext || action == ActionIds.FilterPrevious)
+        {
+            return With(session, list with { Picker = picker.Move(action == ActionIds.FilterNext ? 1 : -1) });
+        }
+
         if (action == ActionIds.Cancel || action == ActionIds.NavigateBack)
         {
             return With(session, list with { Picker = null }, new SetKeyModeEffect(KeyMode.Normal));
@@ -311,12 +316,6 @@ public static class ReflogReducer
 
         if (list.Picker is { } picker)
         {
-            var normalized = key.Normalize();
-            if (normalized is { Name: KeyNames.Up or KeyNames.Down or KeyNames.Tab, Modifiers: KeyModifiers.None })
-            {
-                return With(session, list with { Picker = picker.Move(normalized.Name == KeyNames.Up ? -1 : 1) });
-            }
-
             if (picker.Field.Apply(key) is { } text)
             {
                 return With(session, list with { Picker = picker.WithEdit(text) });

@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using Gitunia.Core.Filtering;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Git.Refs;
 using Gitunia.Git.Refs.Models;
@@ -154,9 +155,7 @@ public static class SidebarBuilder
         new(SidebarRowKind.Stash, SidebarSection.Stashes, stash.Name, stash.Message, stash.CommitHash, false, false, 0, null, null);
 
     private static bool Matches(SidebarRow row, string filter) =>
-        filter.Length == 0
-        || row.Label.Contains(filter, StringComparison.OrdinalIgnoreCase)
-        || row.Annotation.Contains(filter, StringComparison.OrdinalIgnoreCase);
+        ContainsMatcher.IsMatch(filter, row.Label) || ContainsMatcher.IsMatch(filter, row.Annotation);
 
     private static string DirectoryName(string path)
     {

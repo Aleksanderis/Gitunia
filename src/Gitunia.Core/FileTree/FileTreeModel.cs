@@ -1,3 +1,4 @@
+using Gitunia.Core.Filtering;
 using Gitunia.Git.Trees.Models;
 
 namespace Gitunia.Core.FileTree;
@@ -144,7 +145,7 @@ public sealed class FileTreeModel
     }
 
     private static bool Matches(FileTreeNode file, string filter) =>
-        file.Path.Contains(filter, StringComparison.OrdinalIgnoreCase);
+        ContainsMatcher.IsMatch(filter, file.Path);
 
     private static void AddChildren(
         List<FileTreeRow> rows,

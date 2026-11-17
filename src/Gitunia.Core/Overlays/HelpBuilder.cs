@@ -1,3 +1,4 @@
+using Gitunia.Core.Filtering;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Keymap.Repeat;
@@ -34,6 +35,7 @@ public static class HelpBuilder
     [
         DefaultKeymap.PickerView,
         DefaultKeymap.PaletteView,
+        DefaultKeymap.FilterListView,
         DefaultKeymap.ContextMenuView,
         DefaultKeymap.HelpView,
     ];
@@ -149,34 +151,36 @@ public static class HelpBuilder
     /// <param name="query">The typed filter; whitespace around it is ignored.</param>
     public static HelpTab Filter(IReadOnlyList<HelpTab> tabs, string query)
     {
-        var needle = query.Trim();
-        var seen = new HashSet<(string?, string, string)>();
-        var sections = new List<HelpSection>();
+        var items = new List<FilterItem<HelpFilterRow>>();
         foreach (var tab in tabs)
         {
-            var rows = tab.Rows
-                .Where(row => Matches(row, needle) && seen.Add((row.Action?.Value, row.Keys, row.Text)))
-                .Select(row => row with { GapBefore = false })
+            items.AddRange(tab.Rows.Select(row => new FilterItem<HelpFilterRow>(
+                new HelpFilterRow(tab.Title, row),
+                [row.Keys, row.Text, row.Action?.Value ?? string.Empty])));
+        }
+
+        var list = FilterLists.Of([.. items], MatcherKind.Contains, UiTexts.NoMatch("action"), query);
+        var seen = new HashSet<(string?, string, string)>();
+        var sections = new List<HelpSection>();
+        foreach (var group in list.Candidates.GroupBy(candidate => candidate.Tab))
+        {
+            var rows = group
+                .Where(candidate => seen.Add((candidate.Row.Action?.Value, candidate.Row.Keys, candidate.Row.Text)))
+                .Select(candidate => candidate.Row with { GapBefore = false })
                 .ToList();
             if (rows.Count > 0)
             {
-                sections.Add(new HelpSection(tab.Title, rows));
+                sections.Add(new HelpSection(group.Key, rows));
             }
         }
 
         if (sections.Count == 0)
         {
-            sections.Add(new HelpSection(FilterTitle, [new HelpRow(string.Empty, UiTexts.NoMatch("action"))]));
+            sections.Add(new HelpSection(FilterTitle, [new HelpRow(string.Empty, list.EmptyText ?? string.Empty, IsEmptyText: true)]));
         }
 
         return new HelpTab(FilterTitle, sections);
     }
-
-    private static bool Matches(HelpRow row, string needle) =>
-        needle.Length == 0
-        || row.Keys.Contains(needle, StringComparison.OrdinalIgnoreCase)
-        || row.Text.Contains(needle, StringComparison.OrdinalIgnoreCase)
-        || (row.Action?.Value.Contains(needle, StringComparison.OrdinalIgnoreCase) ?? false);
 
     /// <summary>The all-commands tabs: every bound action of every screen once, whatever the focused view.</summary>
     /// <param name="table">The bindings.</param>
@@ -450,4 +454,6 @@ public static class HelpBuilder
     private sealed record HelpDraft(ActionId Action, string Keys, string Also, string Description);
 
     private sealed record CustomEntry(KeyBinding Binding, string Text, bool IsUnbound = false);
+
+    private readonly record struct HelpFilterRow(string Tab, HelpRow Row);
 }

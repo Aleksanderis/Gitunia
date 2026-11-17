@@ -406,10 +406,11 @@ public static class SettingsFrameBuilder
         }
 
         var texts = HelpTexts(state, layout);
+        var hasNoRow = state.Selected is null && (state.Column != SettingsColumn.Categories || state.ListsAllCategories);
 
         return
         [
-            OverlayBox.Text(texts[0], layout.Width, glyphs, SegmentRole.Faint),
+            OverlayBox.Text(texts[0], layout.Width, glyphs, hasNoRow ? SegmentRole.EmptyText : SegmentRole.Faint),
             OverlayBox.Text(texts[1], layout.Width, glyphs, SegmentRole.Faint),
         ];
     }

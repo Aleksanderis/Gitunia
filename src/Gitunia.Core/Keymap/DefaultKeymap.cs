@@ -28,6 +28,10 @@ public static class DefaultKeymap
     public const string WorkingMessageView = "WorkingMessage";
     public const string PickerView = "Picker";
     public const string PaletteView = "Palette";
+
+    /// <summary>A filter list that takes the keys: a prompt picker, the reflog branch picker or the ref jump.</summary>
+    public const string FilterListView = "FilterList";
+
     public const string ContextMenuView = "ContextMenu";
     public const string HelpView = "Help";
     public const string MessagesView = "Messages";
@@ -61,6 +65,7 @@ public static class DefaultKeymap
         [ListsView] = KeyBindingTable.GlobalView,
         [PickerView] = KeyBindingTable.GlobalView,
         [PaletteView] = KeyBindingTable.GlobalView,
+        [FilterListView] = KeyBindingTable.GlobalView,
         [ContextMenuView] = KeyBindingTable.GlobalView,
         [HelpView] = ListsView,
         [MessagesView] = ListsView,

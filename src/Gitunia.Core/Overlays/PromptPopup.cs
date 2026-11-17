@@ -18,7 +18,8 @@ namespace Gitunia.Core.Overlays;
 /// <param name="Details">Rows under the field: the highlighted candidate, or the options of a choice.</param>
 /// <param name="Hints">The keys that answer the prompt, such as <c>Enter create</c> and <c>Esc cancel</c>.</param>
 /// <param name="Highlight">The row of <see cref="Details"/> drawn as the selection bar; -1 for none.</param>
-/// <param name="Count">Text at the right end of the title bar, such as the position <c>2/5</c>; null for none.</param>
+/// <param name="Position">Text at the right end of the title bar, the position <c>2/5</c> (<see cref="Text.PositionText"/>); null for none.</param>
+/// <param name="EmptyText">What the list says instead of rows (no match, loading), drawn in the empty-text role; null for none.</param>
 public sealed record PromptPopup(
     string Title,
     IReadOnlyList<string> Lines,
@@ -26,7 +27,8 @@ public sealed record PromptPopup(
     IReadOnlyList<string> Details,
     IReadOnlyList<PromptHint> Hints,
     int Highlight = -1,
-    string? Count = null)
+    string? Position = null,
+    string? EmptyText = null)
 {
     private static readonly PromptHint Cancel = new("Esc", HintVerb.Cancel, [ActionIds.Cancel]);
 
@@ -69,7 +71,8 @@ public sealed record PromptPopup(
                 ]
                 : [new(string.Empty, HintVerb.TypeToFilter), Accept(acceptLabel), Cancel],
             Highlight: rows.Highlight,
-            Count: rows.Position);
+            Position: rows.Position,
+            EmptyText: rows.EmptyText);
 
     /// <summary>A prompt answered by one key; each option is written as <c>key  label</c>.</summary>
     public static PromptPopup ForChoice(string title, string context, IReadOnlyList<string> options) =>
@@ -85,7 +88,8 @@ public sealed record PromptPopup(
         && Title == other.Title
         && Input == other.Input
         && Highlight == other.Highlight
-        && Count == other.Count
+        && Position == other.Position
+        && EmptyText == other.EmptyText
         && Hint == other.Hint
         && Lines.SequenceEqual(other.Lines)
         && Details.SequenceEqual(other.Details);

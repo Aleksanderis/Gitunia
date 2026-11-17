@@ -1,70 +1,64 @@
 using System.Collections.Immutable;
-using Gitunia.Core.Lists;
+using Gitunia.Core.Editing;
+using Gitunia.Core.Filtering;
 using Gitunia.Core.Overlays;
-using ChoiceMatcher = Gitunia.Core.Search.FuzzyMatcher;
 
 namespace Gitunia.Core.Prompts;
 
 /// <summary>
-/// The candidate list of a picker prompt as immutable data: every
-/// choice, those matching the typed text best first, and the highlighted row.
+/// The candidate list of a picker prompt: a <see cref="FilterList{T}"/> over the choices (fuzzy, best match first) with
+/// the typed text as its query.
 /// </summary>
-/// <param name="All">Every choice.</param>
-/// <param name="Candidates">The choices matching the text, best match first.</param>
-/// <param name="Index">The highlighted candidate.</param>
-/// <param name="NoMatch">The row shown (and the notice given) when nothing matches.</param>
-public sealed record PromptPicker(
-    ImmutableArray<PromptChoice> All,
-    ImmutableArray<PromptChoice> Candidates,
-    int Index,
-    string NoMatch)
+/// <param name="List">The filtered choices and the highlighted row.</param>
+public sealed record PromptPicker(FilterList<PromptChoice> List)
 {
+    /// <summary>Every choice.</summary>
+    public ImmutableArray<PromptChoice> All => [.. List.Items.Select(item => item.Value)];
+
+    /// <summary>The choices matching the text, best match first.</summary>
+    public ImmutableArray<PromptChoice> Candidates => List.Candidates;
+
+    /// <summary>The highlighted candidate.</summary>
+    public int Index => List.Selected;
+
+    /// <summary>The text shown (and the notice given) when nothing matches.</summary>
+    public string NoMatch => List.NoMatch;
+
     /// <summary>A picker over <paramref name="choices"/> filtered by <paramref name="text"/>, the best match highlighted.</summary>
-    public static PromptPicker Of(ImmutableArray<PromptChoice> choices, string noMatch, string text) =>
-        new PromptPicker(choices, choices, 0, noMatch).Filtered(text);
-
-    /// <summary>Keeps the choices matching <paramref name="text"/>, best first, and highlights the first.</summary>
-    public PromptPicker Filtered(string text)
+    public static PromptPicker Of(ImmutableArray<PromptChoice> choices, string noMatch, TextField text)
     {
-        var pattern = text.Trim();
+        var items = choices.Select(choice => FilterItems.Of(choice, choice.Match ?? choice.Text));
 
-        return this with
-        {
-            Candidates =
-            [
-                .. All
-                    .Select(choice => (Choice: choice, Score: ChoiceMatcher.Score(pattern, choice.Match ?? choice.Text)))
-                    .Where(pair => pair.Score is not null)
-                    .OrderByDescending(pair => pair.Score)
-                    .Select(pair => pair.Choice),
-            ],
-            Index = 0,
-        };
+        return new PromptPicker(FilterLists.Of([.. items], MatcherKind.Fuzzy, noMatch, text));
     }
 
+    /// <summary>Keeps the choices matching the edited text, best first, and highlights the first.</summary>
+    public PromptPicker Filtered(TextField text) => this with { List = List.WithField(text) };
+
     /// <summary>Moves the highlight by <paramref name="step"/>, stopping at the ends.</summary>
-    public PromptPicker Moved(int step) =>
-        this with { Index = ListViewport.ClampIndex(Index + step, Candidates.Length) };
+    public PromptPicker Moved(int step) => this with { List = List.Move(step) };
 
     /// <summary>The highlighted candidate, or false when nothing matches.</summary>
     public bool TryGetSelected(out PromptChoice selected)
     {
-        if (Index >= 0 && Index < Candidates.Length)
+        if (List.TryGetSelected(out selected))
         {
-            selected = Candidates[Index];
             return true;
         }
 
         selected = new PromptChoice(string.Empty, string.Empty);
+
         return false;
     }
 
     /// <summary>
-    /// The visible rows: a window of the candidates, the highlighted row in it and the position (<c>n/m</c>), or the
-    /// no-match row alone (no highlight, no position).
+    /// The candidate rows with the highlight and the position (<c>n/m</c>), or the empty text alone (no highlight, no
+    /// position) when nothing matches.
     /// </summary>
     public PickerWindow Rows() =>
-        Candidates.Length == 0 ? new PickerWindow([NoMatch]) : PickerRows.Rows([.. Candidates.Select(Text)], Index);
-
-    private static string Text(PromptChoice choice) => choice.Text;
+        new(
+            [.. List.Candidates.Select(choice => choice.Text)],
+            List.Count == 0 ? -1 : List.Selected,
+            List.Position,
+            List.EmptyText);
 }

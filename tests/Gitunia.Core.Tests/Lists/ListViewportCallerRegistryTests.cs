@@ -22,12 +22,9 @@ public sealed partial class ListViewportCallerRegistryTests
     {
         // State cursors: the move stops at both ends (Core contract surfaces).
         ["src/Gitunia.Core/FileHistory/FileHistoryState.cs"] = CoreContract,
-        ["src/Gitunia.Core/Overlays/PaletteState.cs"] = CoreContract,
-        ["src/Gitunia.Core/Prompts/PromptPicker.cs"] = CoreContract,
+        ["src/Gitunia.Core/Filtering/FilterList.cs"] = CoreContract,
         ["src/Gitunia.Core/Rebase/RebaseEditorState.cs"] = CoreContract,
-        ["src/Gitunia.Core/Reflog/ReflogRefPicker.cs"] = CoreContract,
         ["src/Gitunia.Core/Reflog/ReflogState.cs"] = CoreContract,
-        ["src/Gitunia.Core/Search/Models/RefJumpState.cs"] = CoreContract,
         ["src/Gitunia.Core/Settings/SettingsState.cs"] = CoreContract,
         ["src/Gitunia.Core/Conflicts/ConflictEditorState.cs"] = CoreContract,
 

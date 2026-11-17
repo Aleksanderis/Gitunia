@@ -45,6 +45,12 @@ public enum SegmentRole
     Faint,
 
     /// <summary>
+    /// What a list says instead of rows: no match, loading, a failure (<see cref="Gitunia.Core.Text.UiTexts"/>). Muted like
+    /// <see cref="Faint"/>, but named by meaning so a list's empty state is told apart from a dimmed value.
+    /// </summary>
+    EmptyText,
+
+    /// <summary>
     /// A whitespace mark of the diff (<c>·</c>, <c>→</c>): much dimmer than <see cref="Faint"/>, still readable.
     /// </summary>
     WhitespaceMark,

@@ -1,4 +1,5 @@
 using Gitunia.Core.Editing;
+using Gitunia.Core.Filtering;
 using Gitunia.Core.Lists;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Reflog.Models;
@@ -60,9 +61,9 @@ public sealed record ReflogState(
     public bool IsMatch(ReflogEntry entry) =>
         SearchText.Length > 0
         && (entry.Hash.StartsWith(SearchText, StringComparison.OrdinalIgnoreCase)
-            || $"{Title}@{{{entry.Index}}}".Contains(SearchText, StringComparison.OrdinalIgnoreCase)
-            || entry.Action.Contains(SearchText, StringComparison.OrdinalIgnoreCase)
-            || entry.Message.Contains(SearchText, StringComparison.OrdinalIgnoreCase));
+            || ContainsMatcher.IsMatch(SearchText, $"{Title}@{{{entry.Index}}}")
+            || ContainsMatcher.IsMatch(SearchText, entry.Action)
+            || ContainsMatcher.IsMatch(SearchText, entry.Message));
 
     /// <summary>Starts a fresh search in the box.</summary>
     public ReflogState OpenSearch() => this with { Search = new TextField(), IsEditingSearch = true };

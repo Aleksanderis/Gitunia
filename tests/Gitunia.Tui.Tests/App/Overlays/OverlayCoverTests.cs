@@ -26,6 +26,7 @@ public sealed class OverlayCoverTests : IDisposable
     private readonly WhichKeyTimer _timer = new(TimeSpan.FromHours(1), InlineUi.Instance);
     private readonly MouseGate _gate = new();
     private readonly OverlayCover _cover;
+    private readonly FakeFilterFocus _filter = new();
 
     public OverlayCoverTests()
     {
@@ -45,7 +46,7 @@ public sealed class OverlayCoverTests : IDisposable
             new RebaseEditorInput(host, new NoSelection(), others, GraphGlyphSet.Unicode),
             new ConflictEditorInput(host, GraphGlyphSet.Unicode),
             settings);
-        _cover = new OverlayCover(store, others, editors, host, _gate);
+        _cover = new OverlayCover(store, others, editors, host, _gate, [_filter]);
     }
 
     public void Dispose() => _timer.Dispose();
@@ -70,6 +71,25 @@ public sealed class OverlayCoverTests : IDisposable
 
         Assert.False(_cover.IsAnyOverlayOpen());
         Assert.False(_gate.IsSuppressed);
+    }
+
+    [Fact]
+    public void GivenAFilterListIsOpen_WhenAskingForTheView_ThenTheFilterListViewHasTheKeys()
+    {
+        Assert.NotEqual(DefaultKeymap.FilterListView, _cover.ViewName());
+
+        _filter.HasFilterList = true;
+
+        Assert.Equal(DefaultKeymap.FilterListView, _cover.ViewName());
+
+        _filter.HasFilterList = false;
+
+        Assert.NotEqual(DefaultKeymap.FilterListView, _cover.ViewName());
+    }
+
+    private sealed class FakeFilterFocus : IFilterFocus
+    {
+        public bool HasFilterList { get; set; }
     }
 
     private sealed class NoSelection : IBranchSelectionSource

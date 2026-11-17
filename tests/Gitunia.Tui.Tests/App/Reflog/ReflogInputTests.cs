@@ -391,7 +391,7 @@ public class ReflogInputTests
     }
 
     [Fact]
-    public async Task GivenTheRefPicker_WhenClickingAnActionRowOrTypingNavigationKeys_ThenOnlyThePickerActs()
+    public async Task GivenTheRefPicker_WhenClickingAnActionRowOrMovingWithTheFilterActions_ThenOnlyThePickerActs()
     {
         using var repository = TwoCommits();
         repository.CheckoutNewBranch("topic");
@@ -400,9 +400,9 @@ public class ReflogInputTests
         harness.Run(ActionIds.ReflogOpen);
 
         Assert.False(harness.Click(harness.ActionLine(0) + 5));
-        harness.Reflog.HandleTextKey(new KeyEvent("Down"));
+        harness.Run(ActionIds.FilterNext);
         var moved = harness.Reflog.State!.Picker!.Selected;
-        harness.Reflog.HandleTextKey(new KeyEvent("Up"));
+        harness.Run(ActionIds.FilterPrevious);
 
         Assert.NotEqual(moved, harness.Reflog.State.Picker!.Selected);
         Assert.Equal(0, harness.Reflog.State.SelectedIndex);

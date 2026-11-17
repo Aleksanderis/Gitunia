@@ -15,8 +15,11 @@ namespace Gitunia.Tui.App.Prompts;
 /// and knows no feature: what a prompt means is its result command, reduced in Core.
 /// </summary>
 /// <param name="host">Holds the state the popup is drawn from and takes the commands.</param>
-public sealed class PromptInputHandler(Dispatcher host) : IActionHandler, ITextKeyHandler, IPromptDisplay
+public sealed class PromptInputHandler(Dispatcher host) : IActionHandler, ITextKeyHandler, IPromptDisplay, IFilterFocus
 {
+    /// <inheritdoc />
+    public bool HasFilterList => host.State.Shell.Prompt is { Picker: not null, KeyChoices: null };
+
     public PromptLine StatusLine => PromptLine.Empty;
 
     public PromptPopup? Popup => host.State.Shell.Prompt is { } prompt ? OpenPromptPopup.Of(prompt) : null;
@@ -41,6 +44,14 @@ public sealed class PromptInputHandler(Dispatcher host) : IActionHandler, ITextK
             // The wheel and the move hint of the popup; a prompt without candidates takes it and does nothing.
             var step = count ?? 1;
             host.Dispatch(new PromptMovedCommand(action == ActionIds.ListDown ? step : -step));
+        }
+        else if (action == ActionIds.FilterNext && HasFilterList)
+        {
+            host.Dispatch(new PromptMovedCommand(1));
+        }
+        else if (action == ActionIds.FilterPrevious && HasFilterList)
+        {
+            host.Dispatch(new PromptMovedCommand(-1));
         }
         else if (action == ActionIds.PromptRow)
         {

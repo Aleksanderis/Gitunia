@@ -2,6 +2,7 @@ using Gitunia.App;
 using Gitunia.Core.Keymap;
 using Gitunia.Tui.App.Conflicts;
 using Gitunia.Tui.App.Rebase;
+using Gitunia.Tui.Input;
 using Gitunia.Tui.Views;
 
 namespace Gitunia.Tui.App.Overlays;
@@ -17,19 +18,23 @@ public sealed class OverlayCover : IConflictCover, IOverlayCover
     private readonly RebaseEditorInput _rebaseEditor;
     private readonly ConflictEditorInput _conflictEditor;
     private readonly MouseGate _gate;
+    private readonly IReadOnlyList<IFilterFocus> _filters;
 
     /// <param name="store">The help, palette, menu and confirm dialog.</param>
     /// <param name="others">The overlays that cover the editors.</param>
     /// <param name="editors">The two editors.</param>
     /// <param name="host">Raises the changes the gate follows.</param>
     /// <param name="gate">Told whether any overlay is open.</param>
+    /// <param name="filters">The surfaces with a filter list; the keys of one that is open are looked up in the filter list view.</param>
     public OverlayCover(
         OverlayStore store,
         OtherOverlays others,
         EditorOverlays editors,
         Dispatcher host,
-        MouseGate gate)
+        MouseGate gate,
+        IReadOnlyList<IFilterFocus>? filters = null)
     {
+        _filters = filters ?? [];
         _store = store;
         _others = others;
         _rebaseEditor = editors.Rebase;
@@ -57,6 +62,11 @@ public sealed class OverlayCover : IConflictCover, IOverlayCover
     /// <summary>The keymap view of the overlay that has the keys, or the focused pane's when none is open.</summary>
     public string ViewName()
     {
+        if (_filters.Any(filter => filter.HasFilterList))
+        {
+            return DefaultKeymap.FilterListView;
+        }
+
         if (_others.IsSettingsOpen)
         {
             return DefaultKeymap.SettingsView;

@@ -4,7 +4,6 @@ using Gitunia.App.Tests.Fakes;
 using Gitunia.Core;
 using Gitunia.Core.Branches;
 using Gitunia.Core.Editing;
-using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Overlays;
 using Gitunia.Core.Prompts;
@@ -111,7 +110,7 @@ public class BranchPipelineTests
         using var pipeline = await Pipeline.OpenAsync(repository);
 
         pipeline.Dispatch(new BranchSwitchRequested(pipeline.TabId, new BranchTarget(null, null, null)));
-        pipeline.Dispatch(new PromptKeyPressedCommand(new KeyEvent(KeyNames.Down)));
+        pipeline.Dispatch(new PromptMovedCommand(1));
         pipeline.Dispatch(new PromptAcceptedCommand());
         await pipeline.Pump.RunUntilAsync(() => !pipeline.IsBranchRunning && pipeline.IsCurrent("topic"));
 

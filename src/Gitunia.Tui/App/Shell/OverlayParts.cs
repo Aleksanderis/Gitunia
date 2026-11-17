@@ -53,7 +53,7 @@ public sealed class OverlayParts
         ConflictEditor = new ConflictEditorInput(host, glyphs, foundation.Keys);
         Editors = new EditorOverlays(RebaseEditor, ConflictEditor, Settings);
         Guard = new OverlayClickGuard();
-        Cover = new OverlayCover(route.Overlays, Others, Editors, host, foundation.Gate);
+        Cover = new OverlayCover(route.Overlays, Others, Editors, host, foundation.Gate, [OpenPrompt, RefJump, Reflog]);
         KeyFocus = new KeyFocus(panes.Picker, Cover);
         Handlers = RegisterTextKeyHandlers(panes);
     }

@@ -597,9 +597,16 @@ Every default key binding, one table per view. The design rules, notation and mo
 
 | Keys | Modes | Action | What |
 |---|---|---|---|
-| `Up` `Ctrl-k` | Command | `palette.previous` | Previous palette entry |
-| `Down` `Ctrl-j` | Command | `palette.next` | Next palette entry |
+| `Up` `Ctrl-k` `Shift-Tab` | Command | `palette.previous` | Previous palette entry |
+| `Down` `Ctrl-j` `Tab` | Command | `palette.next` | Next palette entry |
 | `Ctrl-l` | Command | `command.execute` | Run the command |
+
+## FilterList
+
+| Keys | Modes | Action | What |
+|---|---|---|---|
+| `Up` `Ctrl-k` `Shift-Tab` | Insert | `filter.previous` | Previous row of a filter list (prompt picker, reflog branch picker, ref jump) |
+| `Down` `Ctrl-j` `Tab` | Insert | `filter.next` | Next row of a filter list (prompt picker, reflog branch picker, ref jump) |
 
 ## ContextMenu
 

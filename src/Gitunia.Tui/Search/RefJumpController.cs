@@ -1,4 +1,3 @@
-using System.Globalization;
 using Gitunia.App.Shell;
 using Gitunia.Core.Editing;
 using Gitunia.Core.Keymap;
@@ -11,14 +10,17 @@ using Gitunia.Tui.Input;
 
 namespace Gitunia.Tui.Search;
 
-/// <summary>The ref jump prompt (<c>&lt;space&gt;f</c>): type to filter refs (fuzzy) or a hash prefix, <c>Up</c>/<c>Down</c> or <c>Tab</c> to choose, <c>Enter</c> to select that commit.</summary>
+/// <summary>The ref jump prompt (<c>&lt;space&gt;f</c>): type to filter refs (fuzzy) or a hash prefix, the filter list keys (<c>filter.next</c>, <c>filter.previous</c>) to choose, <c>Enter</c> to select that commit.</summary>
 public sealed class RefJumpController(IGraphView view)
-    : IActionHandler, ITextKeyHandler, IActionNotice, IPromptDisplay, IGraphObserver
+    : IActionHandler, ITextKeyHandler, IActionNotice, IPromptDisplay, IGraphObserver, IFilterFocus
 {
     private RefJumpState? _prompt;
     private ObjectId? _pendingCommit;
 
     public string Notice { get; private set; } = string.Empty;
+
+    /// <inheritdoc />
+    public bool HasFilterList => _prompt is not null;
 
     public PromptLine StatusLine
     {
@@ -31,13 +33,10 @@ public sealed class RefJumpController(IGraphView view)
 
             if (_prompt.Selected is not { } selected)
             {
-                return PromptLine.Editing("ref ", _prompt.Field, $"  {UiTexts.NoMatch("ref or commit")}");
+                return PromptLine.Editing("ref ", _prompt.Field, $"  {_prompt.List.EmptyText}");
             }
 
-            var position = (_prompt.SelectedIndex + 1).ToString(CultureInfo.InvariantCulture);
-            var total = _prompt.Candidates.Length.ToString(CultureInfo.InvariantCulture);
-
-            return PromptLine.Editing("ref ", _prompt.Field, $"  {selected.Label} ({position}/{total})");
+            return PromptLine.Editing("ref ", _prompt.Field, $"  {selected.Label} ({_prompt.List.Position})");
         }
     }
 
@@ -46,7 +45,7 @@ public sealed class RefJumpController(IGraphView view)
         Notice = string.Empty;
         if (action == ActionIds.GraphJumpToRef && view.ActiveSession() is { } session)
         {
-            _prompt = RefJumpResolver.Resolve(string.Empty, view.ActiveRefs(), session.Graph);
+            _prompt = RefJumpResolver.Resolve(new TextField(), view.ActiveRefs(), session.Graph);
             view.Dispatcher.SetKeyMode(KeyMode.Insert);
         }
         else if (action == ActionIds.InputAccept && _prompt is not null)
@@ -55,6 +54,14 @@ public sealed class RefJumpController(IGraphView view)
             _prompt = null;
             view.Dispatcher.SetKeyMode(KeyMode.Normal);
             Jump(selected);
+        }
+        else if (action == ActionIds.FilterNext && _prompt is not null)
+        {
+            _prompt = _prompt.Move(1);
+        }
+        else if (action == ActionIds.FilterPrevious && _prompt is not null)
+        {
+            _prompt = _prompt.Move(-1);
         }
         else if (action == ActionIds.Cancel && _prompt is not null)
         {
@@ -77,20 +84,11 @@ public sealed class RefJumpController(IGraphView view)
             return false;
         }
 
-        var normalized = key.Normalize();
-        if (normalized is { Name: KeyNames.Up, Modifiers: KeyModifiers.None })
-        {
-            _prompt = _prompt.Move(-1);
-        }
-        else if (normalized is { Name: KeyNames.Down or KeyNames.Tab, Modifiers: KeyModifiers.None })
-        {
-            _prompt = _prompt.Move(1);
-        }
-        else if (_prompt.Field.Apply(key) is { } edit)
+        if (_prompt.Field.Apply(key) is { } edit)
         {
             _prompt = edit.Text == _prompt.Text
-                ? _prompt with { Field = edit }
-                : RefJumpResolver.Resolve(edit.Text, view.ActiveRefs(), session.Graph) with { Field = edit };
+                ? _prompt with { List = _prompt.List.WithField(edit) }
+                : RefJumpResolver.Resolve(edit, view.ActiveRefs(), session.Graph);
         }
 
         view.Redraw();
@@ -118,7 +116,7 @@ public sealed class RefJumpController(IGraphView view)
     {
         if (candidate is null)
         {
-            Notice = UiTexts.NoMatch("ref or commit");
+            Notice = UiTexts.NoMatch(RefJumpResolver.Subject);
             return;
         }
 

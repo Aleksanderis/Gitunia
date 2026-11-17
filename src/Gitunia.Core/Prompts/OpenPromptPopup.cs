@@ -55,6 +55,7 @@ public static class OpenPromptPopup
                 new("Esc", HintVerb.Cancel, [ActionIds.Cancel]),
             ],
             Highlight: window.Highlight,
-            Count: window.Position);
+            Position: window.Position,
+            EmptyText: window.EmptyText);
     }
 }

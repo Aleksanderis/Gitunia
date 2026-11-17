@@ -117,7 +117,7 @@ public class TagActionsTests
         _host.Dispatch(new TagRemotesLoaded(tabId, "v1", true, ["origin", "backup"]));
         Assert.Contains("> origin", PopupText.Of(_prompt), StringComparison.Ordinal);
 
-        Assert.True(_prompt.HandleTextKey(new KeyEvent(KeyNames.Down)));
+        Assert.True(_prompt.TryExecute(ActionIds.FilterNext, null));
 
         Assert.Equal(1, _host.State.Shell.Prompt!.Picker!.Index);
         Assert.Contains("> backup", PopupText.Of(_prompt), StringComparison.Ordinal);

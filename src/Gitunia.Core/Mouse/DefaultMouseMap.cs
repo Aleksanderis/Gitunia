@@ -488,6 +488,8 @@ public static class DefaultMouseMap
         new(DefaultKeymap.PaletteView, MouseGesture.Click, ActionIds.CommandExecute),
         new(DefaultKeymap.PaletteView, MouseGesture.WheelUp, ActionIds.PalettePrevious, PopupWheelLines),
         new(DefaultKeymap.PaletteView, MouseGesture.WheelDown, ActionIds.PaletteNext, PopupWheelLines),
+        new(DefaultKeymap.FilterListView, MouseGesture.WheelUp, ActionIds.FilterPrevious, PopupWheelLines),
+        new(DefaultKeymap.FilterListView, MouseGesture.WheelDown, ActionIds.FilterNext, PopupWheelLines),
         new(DefaultKeymap.ContextMenuView, MouseGesture.Click, ActionIds.CommandExecute),
         new(DefaultKeymap.ContextMenuView, MouseGesture.WheelUp, ActionIds.PalettePrevious, PopupWheelLines),
         new(DefaultKeymap.ContextMenuView, MouseGesture.WheelDown, ActionIds.PaletteNext, PopupWheelLines),
