@@ -12,16 +12,20 @@ namespace Gitunia.App.Loading.Graph;
 public sealed class GraphPrefetch : IDisposable
 {
     /// <summary>How long an unclaimed read lives before it is cancelled.</summary>
-    public static readonly TimeSpan Expiry = TimeSpan.FromSeconds(10);
+    public static readonly TimeSpan DefaultExpiry = TimeSpan.FromSeconds(10);
 
     private readonly GraphLoader _loader;
+    private readonly TimeSpan _expiry;
     private readonly Lock _gate = new();
     private PrefetchedGraph? _pending;
     private RepositoryLocation? _confirmed;
 
-    public GraphPrefetch(GraphLoader loader)
+    /// <param name="loader">Streams the rows.</param>
+    /// <param name="expiry">How long an unclaimed read lives; <see cref="DefaultExpiry"/> when null.</param>
+    public GraphPrefetch(GraphLoader loader, TimeSpan? expiry = null)
     {
         _loader = loader;
+        _expiry = expiry ?? DefaultExpiry;
     }
 
     /// <summary>Starts the read from <paramref name="path"/>; does nothing when the path is not an existing directory.</summary>
@@ -42,7 +46,7 @@ public sealed class GraphPrefetch : IDisposable
             return;
         }
 
-        var source = new CancellationTokenSource(Expiry);
+        var source = new CancellationTokenSource(_expiry);
         var cut = new GraphCut();
         var provisional = new RepositoryLocation(fullPath, fullPath, fullPath, false, false);
         var batches = _loader.StreamCappedAsync(provisional, cut, source.Token).GetAsyncEnumerator(source.Token);
@@ -74,6 +78,7 @@ public sealed class GraphPrefetch : IDisposable
             _pending = null;
         }
 
+        // The suspended enumerator is not disposed: cancelling kills git, the rest goes at process exit.
         pending?.Cancel();
         pending?.Dispose();
     }
@@ -94,6 +99,14 @@ public sealed class GraphPrefetch : IDisposable
             _pending = null;
             _confirmed = null;
             claimed.KeepAlive();
+
+            // The expiry may have fired between the check above and ending its timer.
+            if (claimed.IsCancelled)
+            {
+                claimed.Dispose();
+
+                return null;
+            }
 
             return claimed;
         }

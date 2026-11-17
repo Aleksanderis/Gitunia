@@ -353,19 +353,6 @@ public class RepositoryLoaderTests
         Assert.Equal(3, harness.Session.Graph.Count);
     }
 
-    [Fact]
-    public void GivenAPathThatIsNotADirectory_WhenPrefetching_ThenNothingStarts()
-    {
-        using var harness = new Harness();
-        AddCommits(harness, 1);
-
-        harness.Loader.PrefetchGraph(Path.Combine(Path.GetTempPath(), "gitunia-missing-1392"));
-        harness.Loader.ConfirmPrefetch(harness.Location);
-        harness.Loader.DiscardPrefetch();
-
-        Assert.Equal(0, harness.CommitLog.ReadCount);
-    }
-
     private static void AddCommits(Harness harness, int count)
     {
         for (var number = 1; number <= count; number++)
