@@ -114,7 +114,7 @@ public static partial class ConflictEditorFrameBuilder
             SegmentRole.Faint);
         if (state.IsEditing)
         {
-            builder.Append("  INSERT  typing in the result, Esc keeps the text", SegmentRole.StatusOperation);
+            builder.Append("  INSERT  typing in the result", SegmentRole.StatusOperation);
         }
         else if (isActive)
         {
@@ -128,7 +128,7 @@ public static partial class ConflictEditorFrameBuilder
     {
         if (state.Result.IsUnresolved(state.Index))
         {
-            return state.SelectedPick == ConflictPick.None ? "unresolved, still holds its markers" : "markers left";
+            return state.SelectedPick == ConflictPick.None ? "still holds its markers" : "markers left";
         }
 
         return state.SelectedPick switch

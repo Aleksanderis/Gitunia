@@ -1,3 +1,5 @@
+using Gitunia.Core.Overlays;
+
 namespace Gitunia.Tui.Rendering.Overlays;
 
 /// <summary>
@@ -51,7 +53,7 @@ public sealed record SettingsLayout(int Width, int BodyRows, int CategoryWidth, 
             return null;
         }
 
-        var width = Math.Min(MaximumWidth, screenWidth - ScreenMargin);
+        var width = OverlayMetrics.WidthFor(MaximumWidth, screenWidth, ScreenMargin);
         var tooSmall = screenWidth < MinimumScreenWidth || screenHeight < MinimumScreenHeight;
         var collapsed = screenWidth < CollapseBelowWidth;
         var body = Math.Clamp(screenHeight - ScreenMargin - ChromeRows, 1, MaximumBodyRows);

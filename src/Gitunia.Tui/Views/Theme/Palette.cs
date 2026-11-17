@@ -201,6 +201,7 @@ public static class Palette
                     colors.SelectionDimStyle | TextStyle.Bold,
                     true),
             SegmentRole.Error => new RoleAppearance(colors.Bad, Color.None, TextStyle.Bold, false),
+            SegmentRole.Warning => new RoleAppearance(colors.Warn, Color.None, TextStyle.Bold, false),
             SegmentRole.SearchMatch => new RoleAppearance(colors.MatchForeground, colors.MatchBackground, colors.MatchStyle, true),
             SegmentRole.SectionTitle => new RoleAppearance(colors.Accent, Color.None, TextStyle.Bold, false),
             SegmentRole.Border => new RoleAppearance(colors.Border, Color.None, TextStyle.None, false),

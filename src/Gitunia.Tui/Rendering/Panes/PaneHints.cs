@@ -348,8 +348,7 @@ public static partial class PaneHints
 
     private static readonly ImmutableArray<KeyHint> ConflictEdit =
     [
-        new("Esc", "keep", [ActionIds.Cancel]),
-        new("Ctrl-g", "keep", [ActionIds.ConflictEditorEditDone]),
+        new("Esc/Ctrl-g", "keep text", [ActionIds.Cancel, ActionIds.ConflictEditorEditDone]),
         new("Enter", "new line", [ActionIds.ConflictEditorEditNewLine]),
     ];
 

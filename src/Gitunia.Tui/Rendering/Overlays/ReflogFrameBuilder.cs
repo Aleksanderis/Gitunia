@@ -1,5 +1,6 @@
 using System.Globalization;
 using Gitunia.Core.Mouse;
+using Gitunia.Git.Reflog.Models;
 using Gitunia.Core.Reflog;
 using Gitunia.Core.Text;
 using Gitunia.Tui.Rendering.Graph;
@@ -49,12 +50,13 @@ public static class ReflogFrameBuilder
             lines.Add(OverlayBox.Text("no reflog entries", width, glyphs, SegmentRole.Faint));
         }
 
+        var selectorWidth = SelectorWidth(state, window.Top, window.RowCount);
         for (var offset = 0; offset < window.RowCount && window.Top + offset < state.Entries.Count; offset++)
         {
             var entry = state.Entries[window.Top + offset];
             var hash = ShortHash.Of(entry.Hash);
             var message = entry.Message.Length == 0 ? entry.Action : $"{entry.Action}: {entry.Message}";
-            var selector = $"{state.Title}@{{{entry.Index.ToString(CultureInfo.InvariantCulture)}}}";
+            var selector = Selector(state, entry).PadRight(selectorWidth);
             lines.Add(OverlayBox.TwoColumns(
                 $"{hash}  {selector}  {message}",
                 entry.RelativeDate,
@@ -150,6 +152,21 @@ public static class ReflogFrameBuilder
         lines.Add(OverlayBox.Hints(PickerHints, width, glyphs, field: new CaretField($"{glyphs.Picker.Prompt} ", picker.Text, picker.Caret)));
         lines.Add(OverlayBox.Bottom(width, glyphs));
         return new OverlayFrame((screenWidth - width) / 2, 1, lines);
+    }
+
+    private static string Selector(ReflogState state, ReflogEntry entry) =>
+        $"{state.Title}@{{{entry.Index.ToString(CultureInfo.InvariantCulture)}}}";
+
+    // The selector column is as wide as the widest selector shown, so the message column does not move at HEAD@{10}.
+    private static int SelectorWidth(ReflogState state, int top, int rowCount)
+    {
+        var widest = 0;
+        for (var index = top; index < top + rowCount && index < state.Entries.Count; index++)
+        {
+            widest = Math.Max(widest, TextWidth.Of(Selector(state, state.Entries[index])));
+        }
+
+        return widest;
     }
 
     private static HintItem[] FooterHints(ReflogState state)

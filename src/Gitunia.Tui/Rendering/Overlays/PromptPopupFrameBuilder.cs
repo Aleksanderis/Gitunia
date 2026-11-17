@@ -28,7 +28,9 @@ public static class PromptPopupFrameBuilder
             .Select(TextWidth.Of)
             .DefaultIfEmpty(0)
             .Max();
-        var width = OverlayBox.FitWidth(widest, MinimumPopupWidth, MaximumWidth, screenWidth, ScreenMargin);
+        var width = OverlayMetrics.Snap(
+            OverlayBox.FitWidth(widest, MinimumPopupWidth, MaximumWidth, screenWidth, ScreenMargin),
+            screenWidth);
         if (width < OverlayBox.MinimumWidth)
         {
             return null;
@@ -106,6 +108,6 @@ public static class PromptPopupFrameBuilder
 
     private static StyledLine InputRow(string input, int caret, int width, GraphGlyphSet glyphs)
     {
-        return OverlayBox.Input(new CaretField($"{glyphs.Picker.Prompt} ", input, caret), width, glyphs, SegmentRole.OverlayKey);
+        return OverlayBox.Input(new CaretField($"{glyphs.Picker.Prompt} ", input, caret), width, glyphs);
     }
 }

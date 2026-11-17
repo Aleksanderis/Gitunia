@@ -40,7 +40,7 @@ public sealed class WorkingListButtons(PaneGeometry geometry, PaneViews panes)
             ListButtonKind.View => WorkingListTitleButtons.ViewButton(section, title, rect.Width, keys, hasDiffButton),
             ListButtonKind.Resolve => ResolveButton(title, rect, hasDiffButton),
             ListButtonKind.Diff => DiffButton(section, title, rect, hasDiffButton),
-            _ => WorkingListTitleButtons.Layout(section, title, rect.Width, keys),
+            _ => WorkingListTitleButtons.Layout(section, title, rect.Width, keys, hasDiffButton),
         };
     }
 

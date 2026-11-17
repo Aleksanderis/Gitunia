@@ -9,6 +9,7 @@ using Gitunia.Core.Shell;
 using Gitunia.Tui.Input;
 using Gitunia.Tui.Rendering.Overlays;
 using Gitunia.Tui.Rendering.Screen;
+using Gitunia.Tui.Rendering.Sidebar;
 
 namespace Gitunia.Tui.App.Overlays;
 
@@ -167,7 +168,11 @@ public sealed class OverlayController : IActionHandler
     {
         if (action == ActionIds.HelpShow)
         {
-            _store.HelpTabs = HelpBuilder.Build(Engine.Table, BaseView, Level);
+            _store.HelpTabs = HelpBuilder.Build(
+                Engine.Table,
+                BaseView,
+                Level,
+                SidebarGlyphs.For(_services.Config.Glyphs).UpstreamGone);
             _store.Open(OverlayState.OpenHelp(BaseView, _keys.Mode), KeyMode.Normal);
             return true;
         }

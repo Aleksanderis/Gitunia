@@ -1,4 +1,5 @@
 using System.Globalization;
+using Gitunia.Core.Editing;
 using Gitunia.Core.Overlays;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Panes;
@@ -32,7 +33,7 @@ public static class PaletteFrameBuilder
         var rowCount = window.RowCount;
         var top = window.Top;
 
-        var lines = new List<StyledLine> { OverlayBox.Title($": {palette.Query}_", width, glyphs) };
+        var lines = new List<StyledLine> { OverlayBox.Title(":", new CaretField(" ", palette.Query, PromptCaret.End), width, glyphs) };
         if (visible.Count == 0)
         {
             lines.Add(OverlayBox.Text("no matching action", width, glyphs, SegmentRole.Faint));

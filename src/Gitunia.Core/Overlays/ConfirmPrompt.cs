@@ -1,3 +1,5 @@
+using Gitunia.Core.Status;
+
 namespace Gitunia.Core.Overlays;
 
 /// <summary>
@@ -6,6 +8,10 @@ namespace Gitunia.Core.Overlays;
 /// </summary>
 /// <param name="Title">The dialog title, such as <c>Discard changes</c>.</param>
 /// <param name="Lines">What will happen, one entry per paragraph (wrapped to the dialog width).</param>
-/// <param name="Consequence">What cannot be undone, or the undo hint (shown in the warning colour).</param>
+/// <param name="Consequence">What cannot be undone, or the undo hint (shown in the warning colour; an undo hint is plain).</param>
 /// <param name="YesLabel">What <c>y</c> does, such as <c>Discard changes</c>.</param>
-public sealed record ConfirmPrompt(string Title, IReadOnlyList<string> Lines, string Consequence, string YesLabel);
+public sealed record ConfirmPrompt(string Title, IReadOnlyList<string> Lines, string Consequence, string YesLabel)
+{
+    /// <summary>The consequence is a reassuring undo hint, not a warning: drawn plain, so the warning colour stays for what is lost.</summary>
+    public bool IsUndoNote => UndoNotes.IsUndoNote(Consequence);
+}

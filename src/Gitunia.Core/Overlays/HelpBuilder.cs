@@ -21,7 +21,9 @@ public static class HelpBuilder
     public const string CommandsTitle = "Commands";
 
     private const string MarkersTitle = "Markers";
-    private const string UpstreamGoneKeys = "✗ / (x)";
+    /// <summary>The upstream-gone mark of the Unicode glyph set, used when the caller names none.</summary>
+    public const string DefaultUpstreamGoneMark = "✗";
+
     private const string UpstreamGoneText = "Upstream gone: deleted on the remote, can be pruned";
     private const string OtherTitle = "Other";
     private const string AlsoSeparator = ", ";
@@ -116,12 +118,14 @@ public static class HelpBuilder
     /// <c>Commands</c> tab closes with the number hidden. Defaults to every command. While the focused view is a modal
     /// screen its own keys are all listed.
     /// </param>
+    /// <param name="upstreamGoneMark">The glyph set's mark after a branch whose upstream is gone, shown on the Markers page.</param>
     public static IReadOnlyList<HelpTab> Build(
         KeyBindingTable table,
         string view,
-        CommandLevel level = CommandLevel.AdvancedPlus)
+        CommandLevel level = CommandLevel.AdvancedPlus,
+        string upstreamGoneMark = DefaultUpstreamGoneMark)
     {
-        var tabs = Contextual(table, view, level);
+        var tabs = Contextual(table, view, level, upstreamGoneMark);
         tabs.AddRange(AllCommandsTabs(table, level, view));
         tabs.Add(new HelpTab(CommandsTitle, [.. CommandsSections(), .. HiddenSections(table, level, view)]));
         if (CustomSections(table) is { Count: > 0 } custom)
@@ -208,7 +212,8 @@ public static class HelpBuilder
     public static List<HelpTab> Contextual(
         KeyBindingTable table,
         string view,
-        CommandLevel level = CommandLevel.AdvancedPlus)
+        CommandLevel level = CommandLevel.AdvancedPlus,
+        string upstreamGoneMark = DefaultUpstreamGoneMark)
     {
         var shown = ModalScreenViews.Contains(view) ? CommandLevel.AdvancedPlus : level;
         var normal = table.EffectiveBindings(KeyMode.Normal, view)
@@ -236,7 +241,7 @@ public static class HelpBuilder
 
         if (view is DefaultKeymap.GraphView or DefaultKeymap.SidebarView)
         {
-            tabs.Add(new HelpTab(MarkersTitle, [MarkersSection()]));
+            tabs.Add(new HelpTab(MarkersTitle, [MarkersSection(upstreamGoneMark)]));
         }
 
         return tabs;
@@ -431,9 +436,9 @@ public static class HelpBuilder
             .Select(binding => KeyFormatter.Display(binding.Sequence)),
     ];
 
-    // What the marks after a branch name mean (the Unicode mark, then its ASCII fallback); not tied to a key.
-    private static HelpSection MarkersSection() =>
-        new(MarkersTitle, [new HelpRow(UpstreamGoneKeys, UpstreamGoneText)]);
+    // What the marks after a branch name mean (the mark of the active glyph set); not tied to a key.
+    private static HelpSection MarkersSection(string upstreamGoneMark) =>
+        new(MarkersTitle, [new HelpRow(upstreamGoneMark, UpstreamGoneText)]);
 
     private sealed record AllTabSpec(string Title, string[] Views);
 

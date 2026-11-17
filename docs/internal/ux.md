@@ -5,7 +5,7 @@
 Spec for workflows and keys.
 Keyboard and mouse are both fully supported: every action is reachable with either.
 Bindings live in the keymap and mouse tables; the other sections give the behaviour the tables cannot.
-How decisions came about and which issue built what: `docs/history/ux.md` and the issues.
+How decisions came about and which issue built what: `docs/internal/history/ux.md` and the issues.
 
 ## Parts
 

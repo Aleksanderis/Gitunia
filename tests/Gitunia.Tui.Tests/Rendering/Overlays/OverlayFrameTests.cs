@@ -203,6 +203,16 @@ public class OverlayFrameTests
     }
 
     [Fact]
+    public void GivenATypedQuery_WhenRenderingThePalette_ThenTheCaretIsTheCursorCellNotAnUnderscore()
+    {
+        var frame = PaletteFrameBuilder.Build(Palette().Type("stash"), 80, 24, GraphGlyphSet.Unicode)!;
+
+        Assert.Equal(" : stash ", frame.Lines[0].Text[..9]);
+        Assert.DoesNotContain('_', frame.Lines[0].Text);
+        Assert.Contains(frame.Lines[0].Segments, segment => segment.Role == SegmentRole.TitleCursor);
+    }
+
+    [Fact]
     public void GivenPalette_WhenRenderingAt80x24_ThenItListsActionsWithTheirKeys()
     {
         var frame = PaletteFrameBuilder.Build(Palette(), 80, 24, GraphGlyphSet.Unicode);
@@ -210,7 +220,7 @@ public class OverlayFrameTests
         Assert.Equal(
             string.Join(
                 '\n',
-                " : _                                                                          ",
+                " :                                                                            ",
                 "│ Branch                                                                     │",
                 "│ Create a branch and check it out                                 <space>bc │",
                 "│ Create a branch without checking out                             <space>bC │",
@@ -237,7 +247,7 @@ public class OverlayFrameTests
         Assert.Equal(
             string.Join(
                 '\n',
-                " : _                                  ",
+                " :                                    ",
                 "| Branch                             |",
                 "| Create a branch and ch~  <space>bc |",
                 "| Create a branch withou~  <space>bC |",
@@ -323,7 +333,7 @@ public class OverlayFrameTests
         Assert.Equal(
             string.Join(
                 '\n',
-                " : tab_                                                   ",
+                " : tab                                                    ",
                 "│ Tabs                                                   │",
                 "│ Next tab                                            gt │",
                 "│ Previous tab                                        gT │",
@@ -425,7 +435,7 @@ public class OverlayFrameTests
         Assert.Equal(
             string.Join(
                 '\n',
-                " : zzzzqq_                            ",
+                " : zzzzqq                             ",
                 "| no matching action                 |",
                 "| 0/0 Ctrl-j/k move  Enter run  Esc ~|",
                 "+------------------------------------+"),
@@ -509,6 +519,18 @@ public class OverlayFrameTests
             Text(frame));
         Assert.Equal(60 - frame!.Width, frame.Column);
         Assert.Equal(11 - frame.Height, frame.Row);
+    }
+
+    [Fact]
+    public void GivenAWhichKeyPopup_WhenRendering_ThenTheTitleChipFillsTheWholeTitleRow()
+    {
+        var rows = new[] { new WhichKeyRow("o", "Open the conflict editor") };
+
+        var frame = WhichKeyFrameBuilder.Build("<space>o", rows, 100, 24, GraphGlyphSet.Unicode)!;
+
+        var title = frame.Lines[0];
+        Assert.Equal(frame.Width, TextWidth.Of(title.Text));
+        Assert.All(title.Segments, segment => Assert.Equal(SegmentRole.OverlayTitle, segment.Role));
     }
 
     [Fact]
@@ -658,7 +680,7 @@ public class OverlayFrameTests
 
         var frame = OverlayFrameFactory.Create(state, [], "g", [new WhichKeyRow("g", "Go to the top")], 80, 24, GraphGlyphSet.Unicode);
 
-        Assert.StartsWith(" : _", frame!.Lines[0].Text, StringComparison.Ordinal);
+        Assert.StartsWith(" : ", frame!.Lines[0].Text, StringComparison.Ordinal);
     }
 
     [Fact]

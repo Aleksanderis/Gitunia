@@ -1,3 +1,4 @@
+using Gitunia.Core.Overlays;
 using Gitunia.Core.Picker;
 
 namespace Gitunia.Tui.Rendering.Screen;
@@ -60,7 +61,7 @@ public sealed record PickerLayout(
         if (width >= MinimumFramedWidth && height >= chrome + 1)
         {
             var all = ListLines(picker, height, true);
-            var boxWidth = Math.Min(MaximumWidth, width - Margin);
+            var boxWidth = OverlayMetrics.WidthFor(MaximumWidth, width, Margin);
             var listHeight = Math.Min(Math.Min(MaximumListRows, height - chrome), Math.Max(MinimumListRows, all.Count));
             var boxHeight = chrome + listHeight;
             var messageLine = hasMessage ? 3 + listHeight : -1;

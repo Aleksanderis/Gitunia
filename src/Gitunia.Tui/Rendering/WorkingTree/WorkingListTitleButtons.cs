@@ -42,21 +42,7 @@ public static class WorkingListTitleButtons
         // The stage all key goes before the view chip does: it is dropped when that is what keeps the chip.
         foreach (var showStageKey in (bool[])[true, false])
         {
-            var stage = Layout(section, title, paneWidth, keys, showStageKey);
-
-            // One column of line stays between the two chips, or between the chip and the corner of the box.
-            var rightEdge = stage is null ? paneWidth - EndGap : stage.Start - 1;
-            if (hasDiffButton)
-            {
-                rightEdge = DiffButton(section, title, paneWidth, keys, showStageKey)?.Start - 1 ?? rightEdge;
-            }
-
-            var chip = ViewChip.Layout(
-                DefaultMouseMap.ListViewButton,
-                ListViewOf(section),
-                TextWidth.Of(title) + TitleOverhead,
-                rightEdge,
-                keys);
+            var chip = ViewButton(section, title, paneWidth, keys, hasDiffButton, showStageKey);
             if (chip is not null || !showStageKey)
             {
                 return chip;
@@ -64,6 +50,31 @@ public static class WorkingListTitleButtons
         }
 
         return null;
+    }
+
+    private static TitleButton? ViewButton(
+        WorkingTreeSection section,
+        string title,
+        int paneWidth,
+        ChipKeys? keys,
+        bool hasDiffButton,
+        bool showStageKey)
+    {
+        var stage = StageButton(section, title, paneWidth, keys, showStageKey);
+
+        // One column of line stays between the two chips, or between the chip and the corner of the box.
+        var rightEdge = stage is null ? paneWidth - EndGap : stage.Start - 1;
+        if (hasDiffButton)
+        {
+            rightEdge = DiffButton(section, title, paneWidth, keys, showStageKey)?.Start - 1 ?? rightEdge;
+        }
+
+        return ViewChip.Layout(
+            DefaultMouseMap.ListViewButton,
+            ListViewOf(section),
+            TextWidth.Of(title) + TitleOverhead,
+            rightEdge,
+            keys);
     }
 
     /// <summary>The <c>resolve</c> chip of the Unstaged list (the mouse path of <c>&lt;space&gt;gr</c>, #701), left of
@@ -77,7 +88,7 @@ public static class WorkingListTitleButtons
     public static TitleButton? ResolveButton(string title, int paneWidth, ChipKeys? keys, bool hasDiffButton = false)
     {
         var section = WorkingTreeSection.Unstaged;
-        var stageStart = Layout(section, title, paneWidth, keys)?.Start ?? paneWidth;
+        var stageStart = Layout(section, title, paneWidth, keys, hasDiffButton)?.Start ?? paneWidth;
         var viewStart = ViewButton(section, title, paneWidth, keys, hasDiffButton)?.Start ?? paneWidth;
         var diffStart = hasDiffButton ? DiffButton(section, title, paneWidth, keys)?.Start ?? paneWidth : paneWidth;
         var rightEdge = Math.Min(Math.Min(stageStart, viewStart), diffStart) - 1;
@@ -119,7 +130,7 @@ public static class WorkingListTitleButtons
         ChipKeys? keys,
         bool showStageKey)
     {
-        var stage = Layout(section, title, paneWidth, keys, showStageKey);
+        var stage = StageButton(section, title, paneWidth, keys, showStageKey);
         var rightEdge = stage is null ? paneWidth - EndGap : stage.Start - 1;
         var view = ListViewOf(section);
         var key = (keys ?? ChipKeys.Default).For(DefaultMouseMap.ListDiffButton, view);
@@ -146,10 +157,33 @@ public static class WorkingListTitleButtons
     /// <param name="paneWidth">Columns of the list's content (the title row is one column wider on each side).</param>
     /// <param name="keys">Where the key text comes from; null uses the default keymap.</param>
     /// <returns>The button, with its start column counted from the first content column.</returns>
-    public static TitleButton? Layout(WorkingTreeSection section, string title, int paneWidth, ChipKeys? keys = null) =>
-        Layout(section, title, paneWidth, keys, true);
+    public static TitleButton? Layout(
+        WorkingTreeSection section,
+        string title,
+        int paneWidth,
+        ChipKeys? keys = null,
+        bool hasDiffButton = false) =>
+        StageButton(section, title, paneWidth, keys, ShowsStageKey(section, title, paneWidth, keys, hasDiffButton));
 
-    private static TitleButton? Layout(
+    // The stage all chip loses its key when that is what lets the view chip or the diff chip keep its place: the
+    // chips left of it are laid out against the narrower chip, so the one drawn must be that narrower chip too.
+    private static bool ShowsStageKey(
+        WorkingTreeSection section,
+        string title,
+        int paneWidth,
+        ChipKeys? keys,
+        bool hasDiffButton)
+    {
+        var viewNeedsRoom = ViewButton(section, title, paneWidth, keys, hasDiffButton, true) is null
+            && ViewButton(section, title, paneWidth, keys, hasDiffButton, false) is not null;
+        var diffNeedsRoom = hasDiffButton
+            && DiffButton(section, title, paneWidth, keys, true) is null
+            && DiffButton(section, title, paneWidth, keys, false) is not null;
+
+        return !viewNeedsRoom && !diffNeedsRoom;
+    }
+
+    private static TitleButton? StageButton(
         WorkingTreeSection section,
         string title,
         int paneWidth,
