@@ -172,17 +172,17 @@ public static class Palette
             SegmentRole.BarButton => new RoleAppearance(colors.Accent, colors.BarBackground, TextStyle.Bold, true),
             SegmentRole.Status => new RoleAppearance(colors.Muted, colors.BarBackground, muted, true),
             SegmentRole.BarTypedText => new RoleAppearance(Color.None, colors.BarBackground, TextStyle.None, true),
-            SegmentRole.StatusKey => new RoleAppearance(colors.Accent, colors.BarBackground, TextStyle.Bold, true),
-            SegmentRole.StatusError => new RoleAppearance(colors.Bad, colors.BarBackground, TextStyle.Bold, true),
-            SegmentRole.StatusNotice => new RoleAppearance(colors.Good, colors.BarBackground, TextStyle.Bold, true),
-            SegmentRole.StatusProgress => new RoleAppearance(colors.Info, colors.BarBackground, TextStyle.Bold, true),
-            SegmentRole.StatusWarning => new RoleAppearance(colors.Warn, colors.BarBackground, TextStyle.Bold, true),
+            SegmentRole.BarKeyLabel => new RoleAppearance(colors.Accent, colors.BarBackground, TextStyle.Bold, true),
+            SegmentRole.StatusError => new RoleAppearance(colors.Bad, colors.BarBackground, colors.ErrorStyle, true),
+            SegmentRole.StatusNotice => new RoleAppearance(colors.Good, colors.BarBackground, colors.NoticeStyle, true),
+            SegmentRole.StatusProgress => new RoleAppearance(colors.Info, colors.BarBackground, colors.ProgressStyle, true),
+            SegmentRole.StatusWarning => new RoleAppearance(colors.Warn, colors.BarBackground, colors.WarnStyle, true),
             SegmentRole.StatusNoticeFresh =>
-                new RoleAppearance(colors.ChipForeground, colors.Good, colors.ChipStyle, true),
+                new RoleAppearance(colors.ChipForeground, colors.Good, colors.NoticeFreshStyle ?? colors.ChipStyle, true),
             SegmentRole.StatusWarningFresh =>
-                new RoleAppearance(colors.ChipForeground, colors.Warn, colors.ChipStyle, true),
+                new RoleAppearance(colors.ChipForeground, colors.Warn, colors.WarnFreshStyle ?? colors.ChipStyle, true),
             SegmentRole.StatusErrorFresh =>
-                new RoleAppearance(colors.ChipForeground, colors.Bad, colors.ChipStyle, true),
+                new RoleAppearance(colors.ChipForeground, colors.Bad, colors.ErrorFreshStyle ?? colors.ChipStyle, true),
             SegmentRole.StatusOperation =>
                 new RoleAppearance(colors.ChipForeground, colors.Warn, colors.ChipStyle, true),
             SegmentRole.StatusMode or SegmentRole.ActiveTab or SegmentRole.OverlayTitle or SegmentRole.Cursor or SegmentRole.JumpLabel => new RoleAppearance(colors.ChipForeground, colors.ChipBackground, colors.ChipStyle, true),
@@ -191,20 +191,26 @@ public static class Palette
                 colors.ChipForeground,
                 colors.ChipStyle & ~TextStyle.Reverse,
                 true),
-            SegmentRole.RepositoryTab => new RoleAppearance(Color.None, colors.TabButtonBackground, colors.SelectionDimStyle, true),
+            SegmentRole.RepositoryTab => new RoleAppearance(Color.None, colors.TabButtonBackground, colors.ButtonStyle, true),
             SegmentRole.RepositoryTabKey =>
                 new RoleAppearance(
-                    Color.None, colors.TabButtonBackground, colors.SelectionDimStyle | TextStyle.Bold, true),
+                    PaletteTable.EnsureReadable(colors.Accent, colors.TabButtonBackground, PaletteTable.ReadableContrast),
+                    colors.TabButtonBackground,
+                    colors.ButtonStyle | TextStyle.Bold,
+                    true),
             SegmentRole.SelectedTab =>
                 new RoleAppearance(
                     colors.Accent,
                     colors.SelectedTabBackground == Color.None ? colors.SelectionFocused : colors.SelectedTabBackground,
-                    colors.SelectionDimStyle | TextStyle.Bold,
+                    TextStyle.Bold,
                     true),
-            SegmentRole.Error => new RoleAppearance(colors.Bad, Color.None, TextStyle.Bold, false),
-            SegmentRole.Warning => new RoleAppearance(colors.Warn, Color.None, TextStyle.Bold, false),
+            SegmentRole.Error => new RoleAppearance(colors.Bad, Color.None, colors.ErrorStyle, false),
+            SegmentRole.Warning => new RoleAppearance(colors.Warn, Color.None, colors.WarnStyle, false),
             SegmentRole.SearchMatch => new RoleAppearance(colors.MatchForeground, colors.MatchBackground, colors.MatchStyle, true),
-            SegmentRole.SectionTitle => new RoleAppearance(colors.Accent, Color.None, TextStyle.Bold, false),
+            SegmentRole.Heading => new RoleAppearance(colors.Accent, Color.None, TextStyle.Bold, false),
+            SegmentRole.DirectoryName => new RoleAppearance(Color.None, Color.None, TextStyle.None, false),
+            SegmentRole.Divider => new RoleAppearance(colors.Border, Color.None, TextStyle.None, false),
+            SegmentRole.Loading => new RoleAppearance(colors.Info, Color.None, muted, false),
             SegmentRole.Border => new RoleAppearance(colors.Border, Color.None, TextStyle.None, false),
             SegmentRole.FocusedBorder => new RoleAppearance(colors.Accent, Color.None, TextStyle.Bold, false),
             SegmentRole.FileName => new RoleAppearance(Color.None, Color.None, TextStyle.Bold, false),
@@ -221,8 +227,7 @@ public static class Palette
             SegmentRole.DiffHunk => new RoleAppearance(colors.Info, Color.None, TextStyle.None, false),
             SegmentRole.DiffGroupBar => new RoleAppearance(colors.Accent, Color.None, TextStyle.Bold, false),
             SegmentRole.DiffFile => new RoleAppearance(colors.Accent, Color.None, TextStyle.Bold, false),
-            SegmentRole.Button => new RoleAppearance(colors.Accent, Color.None, TextStyle.Bold, false),
-            SegmentRole.OverlayKey => new RoleAppearance(colors.Warn, Color.None, TextStyle.Bold, false),
+            SegmentRole.KeyLabel => new RoleAppearance(colors.Accent, Color.None, TextStyle.Bold, false),
             _ => new RoleAppearance(Color.None, Color.None, TextStyle.None, false),
         };
     }

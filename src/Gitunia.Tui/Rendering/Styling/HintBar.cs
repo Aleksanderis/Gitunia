@@ -58,7 +58,7 @@ public static class HintBar
             return;
         }
 
-        builder.Append(KeyFormatter.BreakLigatures(item.Keys), SegmentRole.StatusKey);
+        builder.Append(KeyFormatter.BreakLigatures(item.Keys), SegmentRole.BarKeyLabel);
         builder.Append($" {item.Label}", SegmentRole.Status);
     }
 }

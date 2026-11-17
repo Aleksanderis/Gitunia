@@ -67,7 +67,7 @@ public static class WhichKeyFrameBuilder
 
             var keys = row.Key + new string(' ', keysWidth - TextWidth.Of(row.Key));
             var builder = new LineBuilder(OverlayBox.InnerWidth(width), glyphs.Ellipsis)
-                .Append($" {keys}", SegmentRole.OverlayKey)
+                .Append($" {keys}", SegmentRole.KeyLabel)
                 .Append(new string(' ', KeyGap) + row.Description, SegmentRole.Plain);
             lines.Add(OverlayBox.Wrap(builder.Build(), glyphs));
         }

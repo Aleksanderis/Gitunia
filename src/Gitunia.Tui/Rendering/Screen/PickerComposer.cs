@@ -125,7 +125,7 @@ public static class PickerComposer
     private static StyledLine QueryLine(PickerState picker, int width, GraphGlyphSet glyphs, bool withHint, ChipKeys? keys)
     {
         var builder = new LineBuilder(width, glyphs.Ellipsis)
-            .Append($" {glyphs.Picker.Prompt} ", SegmentRole.SectionTitle);
+            .Append($" {glyphs.Picker.Prompt} ", SegmentRole.Heading);
         CaretField.Of(string.Empty, picker.Field, placeholder: QueryPlaceholder)
             .AppendTo(builder, FieldRoles.Body);
 
@@ -272,7 +272,7 @@ public static class PickerComposer
     private static StyledLine HeaderLine(PickerListEntry entry, int width, GraphGlyphSet glyphs)
     {
         var builder = new LineBuilder(width, glyphs.Ellipsis)
-            .Append($" {SectionName(entry.Section)}", SegmentRole.SectionTitle);
+            .Append($" {SectionName(entry.Section)}", SegmentRole.Heading);
         if (entry.Shown < entry.Total)
         {
             var shown = entry.Shown.ToString(CultureInfo.InvariantCulture);

@@ -65,7 +65,7 @@ public class FieldRolesTests
         var line = LineOf(surface).Line;
 
         Assert.Contains(line.Segments, segment => segment.Role == SegmentRole.TypedText && segment.Text == "a");
-        Assert.DoesNotContain(line.Segments, segment => segment.Role == SegmentRole.OverlayKey && segment.Text == "a");
+        Assert.DoesNotContain(line.Segments, segment => segment.Role == SegmentRole.KeyLabel && segment.Text == "a");
     }
 
     [Fact]

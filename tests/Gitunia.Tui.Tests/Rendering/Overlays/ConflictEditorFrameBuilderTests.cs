@@ -90,6 +90,16 @@ public class ConflictEditorFrameBuilderTests
     }
 
     [Fact]
+    public void GivenTheSideTitles_WhenRendering_ThenEachFollowsTheColourOfItsContent()
+    {
+        var frame = Build(State(Text));
+
+        var header = frame.Lines[1].Segments;
+        Assert.Contains(header, segment => segment.Text.Contains("HEAD", StringComparison.Ordinal) && segment.Role == SegmentRole.DiffRemoved);
+        Assert.Contains(header, segment => segment.Text.Contains("feature", StringComparison.Ordinal) && segment.Role == SegmentRole.DiffAdded);
+    }
+
+    [Fact]
     public void GivenAWideScreen_WhenRendering_ThenBaseOursAndTheirsAreSideBySideWithTheirLabels()
     {
         var frame = Build(State(Text));

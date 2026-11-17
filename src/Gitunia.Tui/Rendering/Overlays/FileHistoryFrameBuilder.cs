@@ -160,7 +160,7 @@ public static class FileHistoryFrameBuilder
         if (state.Diff is not { } diff)
         {
             var text = state.DiffFailure.Length > 0 ? state.DiffFailure : LoadingText;
-            var role = state.DiffFailure.Length > 0 ? SegmentRole.Error : SegmentRole.Faint;
+            var role = state.DiffFailure.Length > 0 ? SegmentRole.Error : SegmentRole.Loading;
 
             return builder.Append(row == 0 ? $" {text}" : string.Empty, role).Build();
         }
@@ -180,7 +180,7 @@ public static class FileHistoryFrameBuilder
     private static StyledLine Body(StyledLine list, StyledLine diff, int inner, GraphGlyphSet glyphs)
     {
         var rule = glyphs.For(LineDirections.Up | LineDirections.Down).ToString();
-        var divider = new StyledSegment(rule, SegmentRole.Border);
+        var divider = new StyledSegment(rule, SegmentRole.Divider);
         var builder = new LineBuilder(inner, glyphs.Ellipsis).Append(list);
         builder.Append(new StyledLine([divider]));
 

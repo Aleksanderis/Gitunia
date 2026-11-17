@@ -70,7 +70,7 @@ public static class ActionRow
             description,
             width,
             glyphs,
-            isAvailable ? SegmentRole.OverlayKey : SegmentRole.Faint,
+            isAvailable ? SegmentRole.KeyLabel : SegmentRole.Faint,
             SegmentRole.Faint);
 
     /// <summary>
@@ -85,7 +85,7 @@ public static class ActionRow
     public static StyledLine Answer(string keys, string label, int width, GraphGlyphSet glyphs, bool isAvailable = true)
     {
         var builder = new LineBuilder(OverlayBox.InnerWidth(width), glyphs.Ellipsis)
-            .Append($" {keys}", isAvailable ? SegmentRole.OverlayKey : SegmentRole.Faint)
+            .Append($" {keys}", isAvailable ? SegmentRole.KeyLabel : SegmentRole.Faint)
             .Append($"{AnswerGap}{label}", isAvailable ? SegmentRole.Plain : SegmentRole.Faint);
 
         return OverlayBox.Wrap(builder.Build(), glyphs);

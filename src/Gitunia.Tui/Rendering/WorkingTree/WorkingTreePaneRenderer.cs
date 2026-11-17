@@ -99,7 +99,7 @@ public static class WorkingTreePaneRenderer
             var sentence = WrapWords(EmptyText(tree, section), width);
             if (item < sentence.Count)
             {
-                builder.Append(sentence[item], SegmentRole.Faint);
+                builder.Append(sentence[item], tree is null ? SegmentRole.Loading : SegmentRole.Faint);
             }
         }
 

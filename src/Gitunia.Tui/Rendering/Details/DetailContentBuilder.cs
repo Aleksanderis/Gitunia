@@ -198,7 +198,7 @@ public static class DetailContentBuilder
             var indent = new string(' ', row.Depth * ChangesTreeIndent);
             if (row.IsFolder)
             {
-                var segments = new List<StyledSegment> { new($"{indent}{row.Name}/", SegmentRole.SectionTitle) };
+                var segments = new List<StyledSegment> { new($"{indent}{row.Name}/", SegmentRole.DirectoryName) };
                 if (collapsed is not null && collapsed.Contains(row.FolderPath))
                 {
                     var count = files.Count(file => FileTreePath.IsUnder(row.FolderPath, file.Path));
@@ -237,7 +237,7 @@ public static class DetailContentBuilder
             || commit != entry.Id
             || state.Status == CommitDetailsStatus.Loading)
         {
-            return [Faint(UiTexts.Loading)];
+            return [new DetailRow([new StyledSegment(UiTexts.Loading, SegmentRole.Loading)])];
         }
 
         if (state.Status == CommitDetailsStatus.Failed)
@@ -262,7 +262,7 @@ public static class DetailContentBuilder
             var segments = new List<StyledSegment>
             {
                 new($"{indent}{chevron} ", SegmentRole.Faint),
-                new(row.Label, SegmentRole.SectionTitle),
+                new(row.Label, SegmentRole.Heading),
             };
             if (!row.IsExpanded)
             {
@@ -297,13 +297,12 @@ public static class DetailContentBuilder
     private static DetailRow Status(GraphEntry entry, CommitDetailsState state, string? stashName)
     {
         var what = stashName is null ? "commit" : "stash";
-        var text = UiTexts.Loading;
         if (state.Commit == entry.Id && state.Status == CommitDetailsStatus.Failed)
         {
-            text = $"Could not load the {what} (r retries): {state.Error}";
+            return Faint($"Could not load the {what} (r retries): {state.Error}");
         }
 
-        return new DetailRow([new StyledSegment(text, SegmentRole.Faint)]);
+        return new DetailRow([new StyledSegment(UiTexts.Loading, SegmentRole.Loading)]);
     }
 
     private static string HashOf(ObjectId id) => ShortHash.Of(id.ToString());

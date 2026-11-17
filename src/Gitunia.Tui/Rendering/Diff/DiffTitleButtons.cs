@@ -1,5 +1,6 @@
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Mouse;
+using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Styling;
 
 namespace Gitunia.Tui.Rendering.Diff;
@@ -28,7 +29,7 @@ public static class DiffTitleButtons
     // dropdown here (#758); a file's content has no dropdown and shows ContentCandidates instead.
     private static readonly ButtonSpecification[] Candidates =
     [
-        new(DefaultMouseMap.DiffViewButton, " view ▾ "),
+        new(DefaultMouseMap.DiffViewButton, $" view {GlyphLiterals.Dropdown} "),
         new(DefaultMouseMap.DiffNextHunkButton, " hunk › "),
         new(DefaultMouseMap.DiffPreviousHunkButton, " ‹ hunk "),
         new(DefaultMouseMap.DiffNextFileButton, " file › "),

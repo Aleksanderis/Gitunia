@@ -23,7 +23,7 @@ public sealed record SettingsRowText(
     /// <summary>The mark before the label of a setting whose value in the file is invalid.</summary>
     public const string Warning = "!";
     private const string NoMarker = " ";
-    private const string ChoiceArrow = "▾";
+    private const string ChoiceArrow = GlyphLiterals.Choice;
     private const string AsciiChoiceArrow = "v";
     private const string ItemIndent = "  ";
     private static readonly string RemoveMarker = ButtonLabel.Bracketed("x");
@@ -136,7 +136,7 @@ public sealed record SettingsRowText(
     {
         var option = row.Definition.Choices[row.Index];
         var isCurrent = string.Equals(option, value.Choice, StringComparison.OrdinalIgnoreCase);
-        var radio = isCurrent ? "●" : "○";
+        var radio = isCurrent ? GlyphLiterals.RadioOn : GlyphLiterals.RadioOff;
         if (glyphs.IsAscii)
         {
             radio = isCurrent ? "(*)" : "( )";

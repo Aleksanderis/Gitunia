@@ -185,7 +185,7 @@ public class PaletteTests
                 var background = attribute.Background == Color.None ? terminalBackground : ToRgb(attribute.Background);
                 var foreground = attribute.Foreground == Color.None ? terminalText : ToRgb(attribute.Foreground);
                 var minimum = SelectionContrast.Minimum(MinimumFor(role), highlight.IsSelected, foreground, colors);
-                if (role is SegmentRole.Border && highlight.IsSelected)
+                if (role is SegmentRole.Border or SegmentRole.Divider && highlight.IsSelected)
                 {
                     // A divider is never on a selected row.
                     continue;
@@ -335,14 +335,15 @@ public class PaletteTests
     [Theory]
     [InlineData(ColorDepth.Ansi16)]
     [InlineData(ColorDepth.None)]
-    public void GivenAColourlessScheme_WhenDrawingARepositoryTab_ThenItIsUnderlinedWithoutABackground(ColorDepth depth)
+    public void GivenAColourlessScheme_WhenDrawingARepositoryTab_ThenItIsItalicWithoutABackground(ColorDepth depth)
     {
         var colors = PaletteTable.For(new PaletteSettings(depth, false));
 
         var tab = Palette.For(new StyledSegment(" 2 beta ", SegmentRole.RepositoryTab), false, false, colors);
 
         Assert.Equal(Color.None, tab.Background);
-        Assert.True(tab.Style.HasFlag(TextStyle.Underline));
+        Assert.True(tab.Style.HasFlag(TextStyle.Italic));
+        Assert.False(tab.Style.HasFlag(TextStyle.Underline));
     }
 
     [Theory]
@@ -363,13 +364,14 @@ public class PaletteTests
     [Theory]
     [InlineData(ColorDepth.Ansi16)]
     [InlineData(ColorDepth.None)]
-    public void GivenAColourlessScheme_WhenDrawingATabButton_ThenItIsUnderlined(ColorDepth depth)
+    public void GivenAColourlessScheme_WhenDrawingATabButton_ThenItIsItalicNotUnderlined(ColorDepth depth)
     {
         var colors = PaletteTable.For(new PaletteSettings(depth, false));
 
         var button = Palette.For(new StyledSegment(" Files ", SegmentRole.RepositoryTab), false, false, colors);
 
-        Assert.True(button.Style.HasFlag(TextStyle.Underline));
+        Assert.True(button.Style.HasFlag(TextStyle.Italic));
+        Assert.False(button.Style.HasFlag(TextStyle.Underline));
     }
 
     [Theory]
@@ -837,7 +839,7 @@ public class PaletteTests
 
     private static double MinimumFor(SegmentRole role) => role switch
     {
-        SegmentRole.Border => DecorationRatio,
+        SegmentRole.Border or SegmentRole.Divider => DecorationRatio,
         SegmentRole.WhitespaceMark or SegmentRole.WhitespaceMarkAddedWord
             or SegmentRole.WhitespaceMarkRemovedWord => SubtleRatio,
         _ => ReadableRatio,

@@ -242,7 +242,7 @@ public static class HelpFrameBuilder
                 builder.Append(" ", SegmentRole.Plain);
             }
 
-            builder.Append(labels[index].Text, labels[index].IsActive ? SegmentRole.SectionTitle : SegmentRole.Faint);
+            builder.Append(labels[index].Text, labels[index].IsActive ? SegmentRole.Heading : SegmentRole.Faint);
         }
 
         return OverlayBox.Wrap(builder.Build(), glyphs);
@@ -326,7 +326,7 @@ public static class HelpFrameBuilder
             {
                 var isActive = entry == active;
                 var marker = isActive ? MenuMarker : MenuIndent;
-                menu.Append($"{marker}{tabs[entry].Title}", isActive ? SegmentRole.SectionTitle : SegmentRole.Faint);
+                menu.Append($"{marker}{tabs[entry].Title}", isActive ? SegmentRole.Heading : SegmentRole.Faint);
             }
 
             // A content line is [side, ...inner, side]: keep its inner part and put the menu before it.
@@ -386,7 +386,7 @@ public static class HelpFrameBuilder
                 lines.Add(OverlayBox.Text(string.Empty, width, glyphs));
             }
 
-            lines.Add(OverlayBox.Text(section.Title, width, glyphs, SegmentRole.SectionTitle));
+            lines.Add(OverlayBox.Text(section.Title, width, glyphs, SegmentRole.Heading));
             foreach (var row in section.Rows)
             {
                 if (row.GapBefore)
@@ -417,7 +417,7 @@ public static class HelpFrameBuilder
         }
 
         var builder = new LineBuilder(inner, glyphs.Ellipsis)
-            .Append($"{KeysIndent}{keys}", SegmentRole.OverlayKey)
+            .Append($"{KeysIndent}{keys}", SegmentRole.KeyLabel)
             .Append($"{ColumnPadding}{glyphs.For(LineDirections.Up | LineDirections.Down)}{ColumnPadding}", SegmentRole.Faint)
             .Append(description, SegmentRole.Plain);
         return OverlayBox.Wrap(builder.Build(), glyphs);

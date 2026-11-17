@@ -22,7 +22,7 @@ internal static class ConflictPaneRows
     private const char MixedMark = '~';
     private const string NotTakenMark = "·";
     private const string NotTakenMarkAscii = ".";
-    private const string ResolvedMark = "✓";
+    private const string ResolvedMark = GlyphLiterals.Check;
     private const string ResolvedMarkAscii = "v";
     private const int MinimumGutter = 2;
     private const string Space = " ";

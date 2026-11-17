@@ -155,7 +155,7 @@ public class RemoteChipsTests
     {
         var line = ChromeBuilder.Tabs(Model(false), Keyed, GraphGlyphSet.Unicode);
 
-        Assert.Contains(line.Segments, segment => segment.Text == "<space>f" && segment.Role == SegmentRole.StatusKey);
+        Assert.Contains(line.Segments, segment => segment.Text == "<space>f" && segment.Role == SegmentRole.BarKeyLabel);
         Assert.Contains(line.Segments, segment => segment.Text == " fetch" && segment.Role == SegmentRole.Status);
     }
 

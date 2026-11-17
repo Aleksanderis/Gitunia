@@ -21,8 +21,10 @@ public static class SettingsFrameBuilder
 
     private const string TooSmallText = "Terminal too small for the settings";
     private const string TooSmallHint = "Needs 40x12. Esc closes.";
-    private const string AnswerYes = "y  remove it";
-    private const string AnswerNo = "n  keep it";
+    private const string AnswerYesKey = "y";
+    private const string AnswerYesLabel = "  remove it";
+    private const string AnswerNoKey = "n";
+    private const string AnswerNoLabel = "  keep it";
     private const string CategoryHelp = "Enter or l opens the category; j and k move between categories.";
     private const int MaximumHelpLines = 2;
 
@@ -225,7 +227,7 @@ public static class SettingsFrameBuilder
             glyphs.For(LineDirections.Up | LineDirections.Down).ToString(),
             SegmentRole.FocusedBorder,
             Selection: SegmentSelection.None);
-        var divider = side with { Role = SegmentRole.Border };
+        var divider = side with { Role = SegmentRole.Divider };
         for (var offset = 0; offset < layout.BodyRows; offset++)
         {
             var segments = new List<StyledSegment> { side };
@@ -285,7 +287,7 @@ public static class SettingsFrameBuilder
                 width,
                 SegmentSelection.None,
                 glyphs,
-                SegmentRole.SectionTitle);
+                SegmentRole.Heading);
         }
 
         var row = state.Rows[entry.RowIndex];
@@ -384,6 +386,23 @@ public static class SettingsFrameBuilder
             glyphs,
             SegmentRole.Faint);
 
+    // The two answers side by side: the keys are key labels, what they do is plain.
+    private static StyledLine RemovalAnswers(int width, GraphGlyphSet glyphs)
+    {
+        var inner = OverlayBox.InnerWidth(width);
+        var left = $" {AnswerYesKey}{AnswerYesLabel}";
+        var right = $"{AnswerNoKey}{AnswerNoLabel} ";
+        var gap = new string(' ', Math.Max(1, inner - TextWidth.Of(left) - TextWidth.Of(right)));
+        var builder = new LineBuilder(inner, glyphs.Ellipsis)
+            .Append(" ", SegmentRole.Plain)
+            .Append(AnswerYesKey, SegmentRole.KeyLabel)
+            .Append($"{AnswerYesLabel}{gap}", SegmentRole.Plain)
+            .Append(AnswerNoKey, SegmentRole.KeyLabel)
+            .Append($"{AnswerNoLabel} ", SegmentRole.Plain);
+
+        return OverlayBox.Wrap(builder.Build(), glyphs);
+    }
+
     private static List<StyledLine> HelpLines(SettingsState state, SettingsLayout layout, GraphGlyphSet glyphs)
     {
         if (state.Removal is { } removal)
@@ -395,13 +414,7 @@ public static class SettingsFrameBuilder
             return
             [
                 OverlayBox.Text(question, layout.Width, glyphs),
-                OverlayBox.TwoColumns(
-                    AnswerYes,
-                    AnswerNo,
-                    layout.Width,
-                    glyphs,
-                    SegmentRole.OverlayKey,
-                    SegmentRole.OverlayKey),
+                RemovalAnswers(layout.Width, glyphs),
             ];
         }
 

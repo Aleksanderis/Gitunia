@@ -117,6 +117,33 @@ public sealed partial class PaletteTable
     /// <summary>Added to selected text of the focused pane (bold where the tint alone is too faint, reverse without colour).</summary>
     public TextStyle SelectionFocusedStyle { get; init; } = TextStyle.None;
 
+    /// <summary>
+    /// The text style of the buttons without a fill of their own: an inactive tab and a hint chip. Kept apart from <see cref="SelectionDimStyle"/>
+    /// and the bold of the selected tab, so the three never share a look where there is no colour to tell them apart.
+    /// </summary>
+    public TextStyle ButtonStyle { get; init; } = TextStyle.None;
+
+    /// <summary>Failures in a body row and on the bar (settled): colour plus this style; underline too where there is no colour.</summary>
+    public TextStyle ErrorStyle { get; init; } = TextStyle.Bold;
+
+    /// <summary>Warnings in a body row and on the bar (settled).</summary>
+    public TextStyle WarnStyle { get; init; } = TextStyle.Bold;
+
+    /// <summary>Success and info notices on the bar (settled).</summary>
+    public TextStyle NoticeStyle { get; init; } = TextStyle.Bold;
+
+    /// <summary>Progress of a running operation on the bar.</summary>
+    public TextStyle ProgressStyle { get; init; } = TextStyle.Bold;
+
+    /// <summary>Style of a fresh notice chip; null is <see cref="ChipStyle"/>. Only where the severities need telling apart without colour.</summary>
+    public TextStyle? NoticeFreshStyle { get; init; }
+
+    /// <summary>Style of a fresh warning chip; null is <see cref="ChipStyle"/>.</summary>
+    public TextStyle? WarnFreshStyle { get; init; }
+
+    /// <summary>Style of a fresh failure chip; null is <see cref="ChipStyle"/>.</summary>
+    public TextStyle? ErrorFreshStyle { get; init; }
+
     /// <summary>Added to selected text of a pane without focus.</summary>
     public TextStyle SelectionDimStyle { get; init; } = TextStyle.None;
 
@@ -280,11 +307,12 @@ public sealed partial class PaletteTable
     private static PaletteTable Ansi16Dark(bool paintsBase, IReadOnlyDictionary<string, string>? ansi, bool classicConsole) => new()
     {
         Accent = Named(ansi, ThemeRoles.Accent, classicConsole ? ColorName16.BrightCyan : ColorName16.BrightBlue),
+        ButtonStyle = TextStyle.Italic,
         Good = Named(ansi, ThemeRoles.Good, ColorName16.BrightGreen),
         Bad = Named(ansi, ThemeRoles.Bad, ColorName16.BrightRed),
         Remote = Named(ansi, ThemeRoles.Remote, ColorName16.BrightMagenta),
         Warn = Named(ansi, ThemeRoles.Warn, ColorName16.BrightYellow),
-        Info = Named(ansi, ThemeRoles.Info, ColorName16.BrightCyan),
+        Info = Named(ansi, ThemeRoles.Info, classicConsole ? ColorName16.BrightBlue : ColorName16.BrightCyan),
         Muted = Named(ansi, ThemeRoles.Muted, classicConsole ? ColorName16.Gray : ColorName16.DarkGray),
         MutedOnSelection = Named(
             ansi,
@@ -329,10 +357,11 @@ public sealed partial class PaletteTable
     private static PaletteTable Ansi16Light(bool paintsBase, IReadOnlyDictionary<string, string>? ansi) => new()
     {
         Accent = Named(ansi, ThemeRoles.Accent, ColorName16.Blue),
+        ButtonStyle = TextStyle.Italic,
         Good = Named(ansi, ThemeRoles.Good, ColorName16.Green),
         Bad = Named(ansi, ThemeRoles.Bad, ColorName16.Red),
-        Remote = Named(ansi, ThemeRoles.Remote, ColorName16.Blue),
-        Warn = Named(ansi, ThemeRoles.Warn, ColorName16.Magenta),
+        Remote = Named(ansi, ThemeRoles.Remote, ColorName16.Magenta),
+        Warn = Named(ansi, ThemeRoles.Warn, ColorName16.Yellow),
         Info = Named(ansi, ThemeRoles.Info, ColorName16.Cyan),
         Muted = Named(ansi, ThemeRoles.Muted, ColorName16.DarkGray),
         MutedOnSelection = Named(ansi, ThemeRoles.MutedOnSelection, ColorName16.DarkGray),
@@ -395,6 +424,14 @@ public sealed partial class PaletteTable
         ChipStyle = TextStyle.Bold | TextStyle.Reverse,
         MatchStyle = TextStyle.Bold | TextStyle.Underline,
         CurrentStyle = TextStyle.Underline,
+        ButtonStyle = TextStyle.Italic,
+        ErrorStyle = TextStyle.Bold | TextStyle.Underline,
+        WarnStyle = TextStyle.Bold,
+        NoticeStyle = TextStyle.None,
+        ProgressStyle = TextStyle.Italic,
+        NoticeFreshStyle = TextStyle.Reverse,
+        WarnFreshStyle = TextStyle.Bold | TextStyle.Reverse,
+        ErrorFreshStyle = TextStyle.Bold | TextStyle.Underline | TextStyle.Reverse,
     };
 
     // A theme file: the colours as written. The base colours are always painted, so the theme looks the same on any

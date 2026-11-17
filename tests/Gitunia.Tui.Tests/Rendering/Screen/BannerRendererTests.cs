@@ -53,7 +53,7 @@ public class BannerRendererTests
         var segments = BannerRenderer.Build(banner, 160, GraphGlyphSet.Unicode).Line.Segments;
 
         var key = segments.Single(segment => segment.Text == "<space>gr");
-        Assert.Equal(SegmentRole.StatusKey, key.Role);
+        Assert.Equal(SegmentRole.BarKeyLabel, key.Role);
         var label = segments[segments.ToList().IndexOf(key) + 1];
         Assert.Equal(SegmentRole.Status, label.Role);
         Assert.Equal(" open conflict editor", label.Text);
@@ -67,7 +67,7 @@ public class BannerRendererTests
         var segments = BannerRenderer.Build(banner, 160, GraphGlyphSet.Unicode).Line.Segments;
 
         var key = segments.Single(segment => segment.Text == "Ctrl-w c");
-        Assert.Equal(SegmentRole.StatusKey, key.Role);
+        Assert.Equal(SegmentRole.BarKeyLabel, key.Role);
         var label = segments[segments.ToList().IndexOf(key) + 1];
         Assert.Equal(" open conflict editor", label.Text);
     }
