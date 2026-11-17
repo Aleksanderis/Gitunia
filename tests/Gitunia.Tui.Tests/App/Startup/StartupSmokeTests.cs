@@ -1,3 +1,4 @@
+using Gitunia.Git.Execution.Exceptions;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Tests.Fixtures;
 using Gitunia.Platform;
@@ -23,7 +24,7 @@ public class StartupSmokeTests
             repository.WorkingTreePath,
             TestContext.Current.CancellationToken);
 
-        var result = Start(directories, location);
+        var result = Start(directories, Task.FromResult<RepositoryLocation?>(location));
 
         Assert.Equal(0, result.ExitCode);
         Assert.Contains("NORMAL", result.Frame);
@@ -35,13 +36,45 @@ public class StartupSmokeTests
     {
         using var directories = new TempDirectories();
 
-        var result = Start(directories, null);
+        var result = Start(directories, Task.FromResult<RepositoryLocation?>(null));
 
         Assert.Equal(0, result.ExitCode);
         Assert.Contains("no repository open", result.Frame);
     }
 
-    private static StartResult Start(TempDirectories directories, RepositoryLocation? location)
+    [Fact]
+    public async Task GivenDiscoveryStillRunning_WhenStartingTheShell_ThenTheShellWaitsAndOpensTheRepository()
+    {
+        using var repository = TestRepository.CreateCommitted("root", new TestFile("a.txt", "one\n"));
+        using var directories = new TempDirectories();
+        var location = await TestGit.Services.Discovery.DiscoverAsync(
+            repository.WorkingTreePath,
+            TestContext.Current.CancellationToken);
+        var pending = new TaskCompletionSource<RepositoryLocation?>();
+        _ = Task.Run(() => pending.SetResult(location), TestContext.Current.CancellationToken);
+
+        var result = Start(directories, pending.Task);
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Contains("History", result.Frame);
+    }
+
+    [Fact]
+    public void GivenDiscoveryFails_WhenStartingTheShell_ThenTheFailureReachesTheCallerAndTheShellIsTornDown()
+    {
+        using var directories = new TempDirectories();
+        var failed = Task.FromException<RepositoryLocation?>(new GitException("not a git repository"));
+
+        var exception = Assert.Throws<GitException>(() => Start(directories, failed));
+
+        Assert.Equal("not a git repository", exception.Message);
+
+        // The terminal driver was shut down with the shell: a second shell starts and draws.
+        var next = Start(directories, Task.FromResult<RepositoryLocation?>(null));
+        Assert.Contains("no repository open", next.Frame);
+    }
+
+    private static StartResult Start(TempDirectories directories, Task<RepositoryLocation?> discovery)
     {
         var capabilities = new ConsoleCapabilities(IsInteractive: true, Color: ColorDepth.TrueColor, Unicode: true);
         var platform = new TestPlatform(directories, capabilities);
@@ -54,7 +87,7 @@ public class StartupSmokeTests
             FrameCaptured = text => frame = text,
         };
 
-        var exitCode = application.Run(location);
+        var exitCode = application.Run(discovery);
 
         return new StartResult(exitCode, frame);
     }

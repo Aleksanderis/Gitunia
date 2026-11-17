@@ -64,40 +64,23 @@ public static class Program
         var runner = new GitRunner(new GitRunnerOptions(gitExecutable));
         var versionCheck = new GitVersionDetector(runner).DetectAsync(CancellationToken.None);
         var services = GitServices.Create(runner, new PaletteLaneColors());
-        RepositoryLocation? location = null;
-        if (options.RepositoryPath is not null)
+        if (options.RepositoryPath is not null && !options.PrintsFrame)
         {
-            if (!options.PrintsFrame)
-            {
-                // The graph read starts from the given path while discovery resolves it (#1392): one process start
-                // less in front of the first rows. Dropped when discovery fails.
-                services.RepositoryLoader.PrefetchGraph(options.RepositoryPath);
-            }
-
-            try
-            {
-                // Entry point of a synchronous Main, nothing else is running yet: blocking is safe.
-                location = services.Discovery.DiscoverAsync(options.RepositoryPath, CancellationToken.None).GetAwaiter().GetResult();
-            }
-            catch (GitException exception)
-            {
-                services.RepositoryLoader.DiscardPrefetch();
-                Console.Error.WriteLine($"gitunia: {exception.Message}");
-                return 1;
-            }
-
-            services.RepositoryLoader.ConfirmPrefetch(location);
+            // The graph read starts from the given path while discovery resolves it (#1392): one process start
+            // less in front of the first rows. Dropped when discovery fails.
+            services.RepositoryLoader.PrefetchGraph(options.RepositoryPath);
         }
 
-        // A discovery failure above returns first, with the same git message; the check's task is then abandoned at exit.
-        if (!CheckGitVersion(versionCheck))
-        {
-            services.RepositoryLoader.DiscardPrefetch();
-            return 1;
-        }
+        // Runs while the shell is built (#1450); a failure surfaces when the task is awaited.
+        var discovery = ResolveStartupAsync(services, options.RepositoryPath, versionCheck);
 
         if (options.PrintsFrame)
         {
+            if (!TryAwait(discovery, out var location))
+            {
+                return 1;
+            }
+
             // The frame follows the user's config for the label caps (#851), so a capture shows what the app draws.
             var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
             var configured = new ConfigStartup(
@@ -124,20 +107,59 @@ public static class Program
         {
             GitExecutable = gitExecutable,
         };
-        return application.Run(location);
+        try
+        {
+            return application.Run(discovery);
+        }
+        catch (GitException exception)
+        {
+            // The shell is already disposed: the message goes to the normal screen.
+            Console.Error.WriteLine($"gitunia: {exception.Message}");
+
+            return 1;
+        }
     }
 
-    // Entry point of a synchronous Main: blocking on the check started above is safe.
-    private static bool CheckGitVersion(Task<GitVersion> versionCheck)
+    // Discovery, then the git version check (the first failure wins). A failure drops the unclaimed prefetch.
+    private static async Task<RepositoryLocation?> ResolveStartupAsync(
+        GitServices services,
+        string? repositoryPath,
+        Task<GitVersion> versionCheck)
+    {
+        RepositoryLocation? location = null;
+        try
+        {
+            if (repositoryPath is not null)
+            {
+                location = await services.Discovery.DiscoverAsync(repositoryPath, CancellationToken.None);
+                services.RepositoryLoader.ConfirmPrefetch(location);
+            }
+
+            await versionCheck;
+        }
+        catch (GitException)
+        {
+            services.RepositoryLoader.DiscardPrefetch();
+            throw;
+        }
+
+        return location;
+    }
+
+    // Entry point of a synchronous Main: blocking on the startup task is safe. Prints a failure and returns false.
+    private static bool TryAwait(Task<RepositoryLocation?> discovery, out RepositoryLocation? location)
     {
         try
         {
-            versionCheck.GetAwaiter().GetResult();
+            location = discovery.GetAwaiter().GetResult();
+
             return true;
         }
         catch (GitException exception)
         {
             Console.Error.WriteLine($"gitunia: {exception.Message}");
+            location = null;
+
             return false;
         }
     }
