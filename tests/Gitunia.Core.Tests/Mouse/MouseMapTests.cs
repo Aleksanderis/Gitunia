@@ -164,6 +164,7 @@ public class MouseMapTests
             DefaultKeymap.PickerView,
             DefaultKeymap.PaletteView,
             DefaultKeymap.ContextMenuView,
+            DefaultKeymap.FilterListView,
             DefaultMouseMap.PromptPopupView,
         ];
         var wheel = DefaultMouseMap.CreateBindings()

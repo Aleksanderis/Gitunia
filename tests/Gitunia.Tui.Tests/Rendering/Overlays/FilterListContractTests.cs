@@ -104,11 +104,11 @@ public class FilterListContractTests
     [MemberData(nameof(ListSurfaces))]
     public void GivenAListSurface_WhenTheWheelTurns_ThenTheHighlightMoves(string surface)
     {
-        var (view, _, next, previous) = KeysOf(surface);
+        var wheel = WheelOf(surface);
         var bindings = DefaultMouseMap.CreateBindings();
 
-        Assert.Equal(next, bindings.Single(binding => binding.View == view && binding.Gesture == MouseGesture.WheelDown).Action);
-        Assert.Equal(previous, bindings.Single(binding => binding.View == view && binding.Gesture == MouseGesture.WheelUp).Action);
+        Assert.Equal(wheel.Next, bindings.Single(binding => binding.View == wheel.View && binding.Gesture == MouseGesture.WheelDown).Action);
+        Assert.Equal(wheel.Previous, bindings.Single(binding => binding.View == wheel.View && binding.Gesture == MouseGesture.WheelUp).Action);
     }
 
     private static ActionId? ActionOf(string view, KeyMode mode, string name, KeyModifiers modifiers)
@@ -123,6 +123,14 @@ public class FilterListContractTests
     private static KeySurface KeysOf(string surface) => surface == "palette"
         ? new KeySurface(DefaultKeymap.PaletteView, KeyMode.Command, ActionIds.PaletteNext, ActionIds.PalettePrevious)
         : new KeySurface(DefaultKeymap.FilterListView, KeyMode.Insert, ActionIds.FilterNext, ActionIds.FilterPrevious);
+
+    // The prompt popup has its own wheel view (it is drawn over any pane); the others take the view of their keys.
+    private static WheelSurface WheelOf(string surface) => surface switch
+    {
+        "prompt-picker" => new WheelSurface(DefaultMouseMap.PromptPopupView, ActionIds.ListDown, ActionIds.ListUp),
+        "palette" => new WheelSurface(DefaultKeymap.PaletteView, ActionIds.PaletteNext, ActionIds.PalettePrevious),
+        _ => new WheelSurface(DefaultKeymap.FilterListView, ActionIds.FilterNext, ActionIds.FilterPrevious),
+    };
 
     private static object NoMatchState(string surface) => surface switch
     {
@@ -209,6 +217,8 @@ public class FilterListContractTests
 
         return state.WithFilterText(TextField.Of(Query));
     }
+
+    private sealed record WheelSurface(string View, ActionId Next, ActionId Previous);
 
     private sealed record KeySurface(string View, KeyMode Mode, ActionId Next, ActionId Previous);
 }
