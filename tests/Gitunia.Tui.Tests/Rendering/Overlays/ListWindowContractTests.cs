@@ -19,10 +19,11 @@ namespace Gitunia.Tui.Tests.Rendering.Overlays;
 /// <summary>
 /// The window half of the list contract (see <c>ListViewportContractTests</c> in Core): every renderer that windows a
 /// list keeps the selected row inside the rows it shows at the top, in the middle, at the end, in a smaller window and
-/// for an empty list. A new windowing renderer adds a row to <see cref="Surfaces"/>.
+/// for an empty list. A new windowing renderer adds a row to <see cref="Surfaces"/>, <see cref="FrameSurfaces"/> or
+/// <c>HighlightSurfaces</c> (in <c>ListWindowContractTests.Surfaces.cs</c>).
 /// </summary>
 [Trait("Os", "Independent")]
-public class ListWindowContractTests
+public partial class ListWindowContractTests
 {
     private const int Items = 40;
 
