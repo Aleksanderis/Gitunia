@@ -1,7 +1,8 @@
+using System.Reflection;
 using System.Text.RegularExpressions;
 using Xunit;
 
-namespace Gitunia.Tui.Tests.Rendering.Styling;
+namespace Gitunia.Core.Tests.Conventions;
 
 /// <summary>
 /// Source-level guards of the colour roles (#1449). Heuristics, not proofs: a key label line must sit in a file that draws keys and near
@@ -83,16 +84,9 @@ public partial class RendererSourceLintTests
     private static IEnumerable<string> RendererFiles() =>
         Directory.EnumerateFiles(Path.Combine(SourceRoot(), "src", "Gitunia.Tui", "Rendering"), "*.cs", SearchOption.AllDirectories);
 
-    private static string SourceRoot()
-    {
-        var directory = new DirectoryInfo(AppContext.BaseDirectory);
-        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "global.json")))
-        {
-            directory = directory.Parent;
-        }
-
-        return directory?.FullName ?? throw new InvalidOperationException("The repository root was not found.");
-    }
+    private static string SourceRoot() =>
+        typeof(RendererSourceLintTests).Assembly.GetCustomAttributes<AssemblyMetadataAttribute>()
+            .FirstOrDefault(attribute => attribute.Key == "RepoRoot")?.Value ?? string.Empty;
 
     [GeneratedRegex(@"SegmentRole\.(Bar)?KeyLabel")]
     private static partial Regex KeyLabelRole();
