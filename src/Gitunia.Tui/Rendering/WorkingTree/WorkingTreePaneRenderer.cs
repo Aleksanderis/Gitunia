@@ -230,22 +230,6 @@ public static class WorkingTreePaneRenderer
     public static IReadOnlyList<StyledLine> MessagePlaceholderLines(PaneRect rect, int padding, GraphGlyphSet glyphs) =>
         PlaceholderLines(MessagePlaceholderText, rect, padding, glyphs);
 
-    /// <summary>The rows a list scrolled so that <paramref name="cursor"/> stays visible starts at.</summary>
-    public static int TopFor(int cursor, int top, int height)
-    {
-        if (height <= 0 || cursor < 0)
-        {
-            return Math.Max(0, top);
-        }
-
-        if (cursor < top)
-        {
-            return cursor;
-        }
-
-        return cursor >= top + height ? cursor - height + 1 : top;
-    }
-
     // Greedy word wrap, so a long empty-state sentence stays whole in a narrow list.
     private static List<string> WrapWords(string text, int width)
     {

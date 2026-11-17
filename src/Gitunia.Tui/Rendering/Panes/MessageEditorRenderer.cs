@@ -1,5 +1,6 @@
 using System.Globalization;
 using Gitunia.Core.Editing;
+using Gitunia.Core.Lists;
 using Gitunia.Tui.Rendering.Styling;
 
 namespace Gitunia.Tui.Rendering.Panes;
@@ -14,28 +15,6 @@ namespace Gitunia.Tui.Rendering.Panes;
 public static class MessageEditorRenderer
 {
     private const string Blank = " ";
-
-    /// <summary>
-    /// The first visible row once the cursor row must show: <paramref name="top"/> is kept while the cursor is inside the window, so
-    /// moving up inside a long message does not shift the text.
-    /// </summary>
-    /// <param name="cursorRow">The cursor's line.</param>
-    /// <param name="top">The first visible row so far.</param>
-    /// <param name="height">Visible rows.</param>
-    public static int ScrollTop(int cursorRow, int top, int height)
-    {
-        if (height <= 0)
-        {
-            return 0;
-        }
-
-        if (cursorRow < top)
-        {
-            return cursorRow;
-        }
-
-        return cursorRow >= top + height ? cursorRow - height + 1 : Math.Max(0, top);
-    }
 
     /// <summary>
     /// Display columns the cursor's line is scrolled sideways while it is drawn with the cursor in a box of
@@ -57,7 +36,7 @@ public static class MessageEditorRenderer
     /// <param name="height">Rows.</param>
     /// <param name="showCursor">Draw the cursor.</param>
     /// <param name="marksSubject">Mark the first line past the soft limit (a commit subject, not code).</param>
-    /// <param name="scrollTop">The first visible row kept by the caller (see <see cref="ScrollTop"/>); null scrolls statelessly: the cursor row is the last visible row once the text is taller than the box.</param>
+    /// <param name="scrollTop">The first visible row kept by the caller (see <see cref="ListViewport.EdgeTopFor"/>); null scrolls statelessly: the cursor row is the last visible row once the text is taller than the box.</param>
     public static IReadOnlyList<StyledLine> Render(
         MessageEditor editor,
         int width,
@@ -69,7 +48,7 @@ public static class MessageEditorRenderer
         height = Math.Max(0, height);
         width = Math.Max(0, width);
         var lines = new List<StyledLine>(height);
-        var top = scrollTop ?? Math.Max(0, editor.CursorRow - height + 1);
+        var top = scrollTop ?? ListViewport.EdgeTopFor(editor.CursorRow, 0, height);
         var selection = editor.Selection;
         for (var row = top; row < top + height; row++)
         {

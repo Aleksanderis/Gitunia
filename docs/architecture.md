@@ -282,19 +282,22 @@ Tests: steps 2, 3 and 5 are synchronous Core tests (including "second create ref
 - Startup and key latency stay within the budgets in `docs/internal/performance.md`.
 - Build, tests and the AOT smoke run green.
 
-## Principles
-
-- **Workspace model.** `AppState` holds a `Workspace` (ordered repo tabs, active tab, recent/pinned repos). Each tab owns an independent `RepositoryState` (view state and small data; big loaded data lives in the tab's stores). Commands are routed to a tab by id; effects carry the repo path they run against. Only the 5 most recently used tabs keep a loaded graph (about 350 bytes per commit); colder tabs are evicted and reload on activation (`EffectRunner`, docs/internal/performance.md). The app starts with no repo (the picker shows) and restores the previous session when there is one.
-- **Persistence.** Open tabs, recents, pins, per-tab view state and config live in the user config/state dir and are written atomically. A corrupt or missing file never prevents startup. Windows file sharing (#1314): the replace is retried (5 tries, 25 to 100 ms) and every read of our own files and of `.git` operation files shares read, write and delete (`SharedFile`, `AtomicFileWriter`); stale `<name>.<guid>.tmp` files older than a minute are removed when the session and config load. One instance owns the session: it holds `session.lock` (`FileShare.None`, released by the OS on exit or kill); a second instance loads the session but never saves it and shows a warning.
-- **Pure state.** Effects (run a git command, open an editor, copy to clipboard) are returned as data; the runner executes them and feeds the results back as commands ("Effects as data").
-- **Async git.** Every git call is async, cancellable and time-bounded; the UI never blocks on one.
-- **Shared prompt components.** Prompts are data, not views: `PromptPopup` (Core) is drawn by the one `PromptPopupFrameBuilder`. A prompt lives in state as `OpenPrompt` with a `PromptPicker` for the candidates (#971). A new picker is a `PromptRequest` with choices, never a new copy. Behaviour: `docs/internal/ux.md`, "Prompt popups".
-- **Shared key hints and chips.** A "key plus what it does" is drawn by one of two builders in `Rendering/Styling`: `HintBar` for a row of hints and `KeyedChip` for a clickable chip (`ChipStyle` picks the roles, the key comes from the keymap through `ChipKeys`). Footers pass explicit `HintItem` lists to `OverlayBox.Hints`; keys are never guessed from text. Prompt footers are a renderer-agnostic `PromptHint` list in Core (`PromptPopup.Hints`) mapped to `HintItem` by `PromptPopupFrameBuilder`. A new hint row or button uses these; rules: `.claude/rules/ui-changes.md`; what is not converted yet is listed under "UI components" below.
-- **UI toolkit.** Terminal.Gui v2, wrapped by the rendering layer; Core never sees it. Custom drawing (graph, diff) uses custom views, and modal keys and chords are handled at the application level by our keymap engine. Keep Terminal.Gui types out of Core and keep view models and key events renderer-agnostic (no abstraction interface until a second renderer exists; see `docs/internal/decisions.md`). Settings, pitfalls and measured numbers: `docs/internal/history/architecture.md` (cell widths: `DisplayWidth` follows Terminal.Gui per character, ZWJ sequences differ).
-
 ## UI components
 
-The pieces every screen should draw with, so that the same thing looks and behaves the same everywhere. A change that needs one of these extends it; it does not copy it. The audit behind this list, with the planned components, is `docs/internal/ui-consistency.md`.
+Shared components are extended, never copied; a surface that needs something new adds it to the component.
+
+| Component | State | Renderer | Used by |
+|---|---|---|---|
+| `ListViewport` (`Gitunia.Core/Lists`) | `(Selected, Top, Count, Rows)`, with `Follow(ScrollPolicy)` and `Move(action, count, policy)` on top of `ListMotion`; `ListWindow` is the slice a renderer reads | none (data) | Palette, menus (`GroupedRows`), prompt picker, reflog, file history, rebase editor, settings, help, blame, picker, message editor, conflict editor, working tree pane |
+
+- Two scroll policies (`ScrollPolicy`): `Edge` for panes and editors (the window stays put until the selection leaves it), `Centre` for overlays and popups (the selection stays in the middle of a long list).
+- Lists stop at their ends (no wrap), like vim and `ListMotion`. Scroll-top and clamp arithmetic for lists lives in `ListViewport` (`GroupedRows` keeps only its gap-skip adjustment on top of it).
+- Not converted yet: the scroll-by-offset views that own a Terminal.Gui `ListView` (graph, diff, sidebar, detail lists) keep the framework's viewport; the one-third `zz` placement in the conflict editor is its own jump, not a follow rule.
+- The contract test `ListViewportContractTests` runs the same scenarios (k at the top, G, Ctrl-d at the end, a count, a smaller window, an empty list) against every surface in its registry; a new list surface adds a row there.
+
+### Other shared pieces
+
+The pieces every screen should draw with, so that the same thing looks and behaves the same everywhere. The audit behind this list, with the planned components, is `docs/internal/ui-consistency.md`.
 
 | Component | What it does | Surfaces that use it |
 |---|---|---|
@@ -317,6 +320,16 @@ Roles are chosen by meaning, not by how they look: plain for typed text and for 
 - Hand-built brackets: `[+]` and `[x]` in the settings rows, and the Help `[Tab] n/m` position.
 - The palette footer (position and hints are appended by hand).
 - Overlays other than settings, picker and prompt (palette, help, reflog, rebase editor, confirm, mainline) still leave a one-column margin, so the app frame shows beside their border (#1456).
+
+## Principles
+
+- **Workspace model.** `AppState` holds a `Workspace` (ordered repo tabs, active tab, recent/pinned repos). Each tab owns an independent `RepositoryState` (view state and small data; big loaded data lives in the tab's stores). Commands are routed to a tab by id; effects carry the repo path they run against. Only the 5 most recently used tabs keep a loaded graph (about 350 bytes per commit); colder tabs are evicted and reload on activation (`EffectRunner`, docs/internal/performance.md). The app starts with no repo (the picker shows) and restores the previous session when there is one.
+- **Persistence.** Open tabs, recents, pins, per-tab view state and config live in the user config/state dir and are written atomically. A corrupt or missing file never prevents startup. Windows file sharing (#1314): the replace is retried (5 tries, 25 to 100 ms) and every read of our own files and of `.git` operation files shares read, write and delete (`SharedFile`, `AtomicFileWriter`); stale `<name>.<guid>.tmp` files older than a minute are removed when the session and config load. One instance owns the session: it holds `session.lock` (`FileShare.None`, released by the OS on exit or kill); a second instance loads the session but never saves it and shows a warning.
+- **Pure state.** Effects (run a git command, open an editor, copy to clipboard) are returned as data; the runner executes them and feeds the results back as commands ("Effects as data").
+- **Async git.** Every git call is async, cancellable and time-bounded; the UI never blocks on one.
+- **Shared prompt components.** Prompts are data, not views: `PromptPopup` (Core) is drawn by the one `PromptPopupFrameBuilder`. A prompt lives in state as `OpenPrompt` with a `PromptPicker` for the candidates (#971). A new picker is a `PromptRequest` with choices, never a new copy. Behaviour: `docs/internal/ux.md`, "Prompt popups".
+- **Shared key hints and chips.** A "key plus what it does" is drawn by one of two builders in `Rendering/Styling`: `HintBar` for a row of hints and `KeyedChip` for a clickable chip (`ChipStyle` picks the roles, the key comes from the keymap through `ChipKeys`). Footers pass explicit `HintItem` lists to `OverlayBox.Hints`; keys are never guessed from text. Prompt footers are a renderer-agnostic `PromptHint` list in Core (`PromptPopup.Hints`) mapped to `HintItem` by `PromptPopupFrameBuilder`. A new hint row or button uses these; rules: `.claude/rules/ui-changes.md`; what is not converted yet is listed under "UI components".
+- **UI toolkit.** Terminal.Gui v2, wrapped by the rendering layer; Core never sees it. Custom drawing (graph, diff) uses custom views, and modal keys and chords are handled at the application level by our keymap engine. Keep Terminal.Gui types out of Core and keep view models and key events renderer-agnostic (no abstraction interface until a second renderer exists; see `docs/internal/decisions.md`). Settings, pitfalls and measured numbers: `docs/internal/history/architecture.md` (cell widths: `DisplayWidth` follows Terminal.Gui per character, ZWJ sequences differ).
 
 ## Solution layout
 

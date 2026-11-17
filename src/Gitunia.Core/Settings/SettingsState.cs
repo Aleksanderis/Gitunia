@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using Gitunia.Core.Config.Models;
 using Gitunia.Core.Editing;
+using Gitunia.Core.Lists;
 using Gitunia.Core.Settings.Models;
 
 namespace Gitunia.Core.Settings;
@@ -81,7 +82,7 @@ public sealed record SettingsState(
         get
         {
             var rows = Rows;
-            return rows.Count == 0 ? null : rows[Math.Clamp(Cursor, 0, rows.Count - 1)];
+            return rows.Count == 0 ? null : rows[ListViewport.ClampIndex(Cursor, rows.Count)];
         }
     }
 
@@ -91,7 +92,7 @@ public sealed record SettingsState(
         get
         {
             var categories = Categories;
-            return categories.Count == 0 ? null : categories[Math.Clamp(CategoryIndex, 0, categories.Count - 1)];
+            return categories.Count == 0 ? null : categories[ListViewport.ClampIndex(CategoryIndex, categories.Count)];
         }
     }
 
@@ -172,8 +173,8 @@ public sealed record SettingsState(
     {
         var rows = Rows.Count;
         var categories = Categories.Count;
-        var cursor = rows == 0 ? 0 : Math.Clamp(Cursor, 0, rows - 1);
-        var category = categories == 0 ? 0 : Math.Clamp(CategoryIndex, 0, categories - 1);
+        var cursor = ListViewport.ClampIndex(Cursor, rows);
+        var category = ListViewport.ClampIndex(CategoryIndex, categories);
 
         return this with { Cursor = cursor, CategoryIndex = category };
     }

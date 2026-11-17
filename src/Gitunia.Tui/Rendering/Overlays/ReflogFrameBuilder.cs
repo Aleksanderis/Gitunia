@@ -1,4 +1,5 @@
 using System.Globalization;
+using Gitunia.Core.Lists;
 using Gitunia.Core.Mouse;
 using Gitunia.Git.Reflog.Models;
 using Gitunia.Core.Reflog;
@@ -237,13 +238,6 @@ public static class ReflogFrameBuilder
             state.SelectedIndex,
             Math.Min(MaximumRows, screenHeight - ScreenMargin - ChromeRows)).RowCount;
 
-    private static PaletteWindow Window(int count, int selectedIndex, int maximumRows)
-    {
-        var rowCount = Math.Max(1, Math.Min(maximumRows, count));
-        var selected = count == 0 ? 0 : Math.Clamp(selectedIndex, 0, count - 1);
-        return new PaletteWindow(
-            rowCount,
-            selected,
-            Math.Clamp(selected - (rowCount / 2), 0, Math.Max(0, count - rowCount)));
-    }
+    private static ListWindow Window(int count, int selectedIndex, int maximumRows) =>
+        ListViewport.Of(selectedIndex, count, maximumRows).Follow(ScrollPolicy.Centre).Window;
 }

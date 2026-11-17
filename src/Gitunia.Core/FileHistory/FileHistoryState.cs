@@ -1,4 +1,5 @@
 using Gitunia.Core.Diff;
+using Gitunia.Core.Lists;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.History.Models;
 
@@ -31,7 +32,7 @@ public sealed record FileHistoryState(
 {
     /// <summary>The highlighted commit, null when the history is empty.</summary>
     public FileHistoryEntry? Selected =>
-        Entries.Count == 0 ? null : Entries[Math.Clamp(SelectedIndex, 0, Entries.Count - 1)];
+        Entries.Count == 0 ? null : Entries[ListViewport.ClampIndex(SelectedIndex, Entries.Count)];
 
     /// <summary>Moves the highlight to <paramref name="index"/>, clamped to the entries; the diff is dropped.</summary>
     public FileHistoryState MoveTo(int index) =>

@@ -1,3 +1,4 @@
+using Gitunia.Core.Lists;
 using Gitunia.Core.Overlays;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Styling;
@@ -68,19 +69,20 @@ public static class PromptPopupFrameBuilder
         return new OverlayFrame((screenWidth - width) / 2, Math.Max(0, (screenHeight - lines.Count) / 2), lines);
     }
 
-    // On a short screen a candidate list shrinks around the highlighted row instead of making the popup not fit: a
-    // prompt that is not drawn would still take Enter. Rows without a highlight (the options of a choice) are kept.
+    // A candidate list shows at most PickerRows.VisibleRows rows and shrinks around the highlighted row on a short screen
+    // instead of making the popup not fit: a prompt that is not drawn would still take Enter. Rows without a highlight
+    // (the options of a choice) are kept.
     private static PickerWindow FitRows(IReadOnlyList<string> rows, int highlight, int room)
     {
-        if (rows.Count <= room || highlight < 0 || highlight >= rows.Count)
+        if (highlight < 0 || highlight >= rows.Count)
         {
             return new PickerWindow(rows, highlight);
         }
 
-        var size = Math.Max(1, room);
-        var first = Math.Clamp(highlight - (size / 2), 0, Math.Max(0, rows.Count - size));
+        var maximumRows = Math.Min(PickerRows.VisibleRows, room);
+        var window = ListViewport.Of(highlight, rows.Count, maximumRows).Follow(ScrollPolicy.Centre).Window;
 
-        return new PickerWindow([.. rows.Skip(first).Take(size)], highlight - first);
+        return new PickerWindow([.. rows.Skip(window.Top).Take(window.RowCount)], highlight - window.Top);
     }
 
     private static StyledLine RowLine(string row, bool isSelected, int width, GraphGlyphSet glyphs) =>

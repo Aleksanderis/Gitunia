@@ -1,3 +1,4 @@
+using Gitunia.Core.Lists;
 using Gitunia.Core.Editing;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
@@ -164,10 +165,10 @@ public class MessageBoxRendererTests
     [Fact]
     public void GivenTheCursorAboveTheWindow_WhenScrolling_ThenTheWindowFollowsIt()
     {
-        Assert.Equal(2, MessageEditorRenderer.ScrollTop(2, 6, 4));
-        Assert.Equal(7, MessageEditorRenderer.ScrollTop(10, 6, 4));
-        Assert.Equal(6, MessageEditorRenderer.ScrollTop(8, 6, 4));
-        Assert.Equal(0, MessageEditorRenderer.ScrollTop(3, 0, 0));
+        Assert.Equal(2, ListViewport.EdgeTopFor(2, 6, 4));
+        Assert.Equal(7, ListViewport.EdgeTopFor(10, 6, 4));
+        Assert.Equal(6, ListViewport.EdgeTopFor(8, 6, 4));
+        Assert.Equal(0, ListViewport.EdgeTopFor(3, 0, 0));
     }
 
     [Fact]

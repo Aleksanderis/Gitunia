@@ -152,7 +152,7 @@ internal static class ConflictActions
 
         if (action == ActionIds.ListHalfPageDown || action == ActionIds.ListHalfPageUp)
         {
-            var half = Math.Max(1, ConflictFlow.PaneRows(session, editor) / 2);
+            var half = Math.Max(1, ConflictFlow.PaneRows(session, editor) / 2) * steps;
 
             return ConflictFlow.Show(session, editor.MoveCursor(action == ActionIds.ListHalfPageDown ? half : -half));
         }

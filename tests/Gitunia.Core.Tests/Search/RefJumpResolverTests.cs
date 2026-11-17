@@ -76,12 +76,12 @@ public class RefJumpResolverTests
     }
 
     [Fact]
-    public void GivenCandidates_WhenMoving_ThenTheHighlightWrapsAround()
+    public void GivenCandidates_WhenMoving_ThenTheHighlightStopsAtTheEnds()
     {
         var state = RefJumpResolver.Resolve(string.Empty, Refs, SearchTestGraph.Numbered(3));
 
-        Assert.Equal("v1.0", state.Move(-1).Selected?.Label);
+        Assert.Equal("main", state.Move(-1).Selected?.Label);
         Assert.Equal("feature/login-form", state.Move(1).Selected?.Label);
-        Assert.Equal("main", state.Move(4).Selected?.Label);
+        Assert.Equal("v1.0", state.Move(40).Selected?.Label);
     }
 }

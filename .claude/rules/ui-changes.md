@@ -26,6 +26,7 @@ Specs start at `docs/internal/ux.md`, which links the parts; the key reference i
 
 - Terminal.Gui types stay in `Gitunia.Tui` (`Views`, `Input`); `Rendering` and Core know only styled text frames and renderer-agnostic key events.
 - Key hints and buttons: a row of hints is drawn by `HintBar` (footers by `OverlayBox.Hints`), a clickable chip by `KeyedChip` with its key from `ChipKeys`; new hint rows and buttons do not hand-build key and label segments or bracket buttons (`docs/architecture.md`, "Shared key hints and chips", and its "UI components" section list what is not converted yet).
+- A list keeps its selection visible and moves it through `ListViewport` (`Edge` policy in panes, `Centre` in overlays, stops at the ends): no scroll-top or clamp arithmetic of its own. A new list surface joins the registry in `ListViewportContractTests` (`docs/architecture.md`, "UI components").
 - Colours are decided in one place: `PaletteTable` and `Palette`. Never hard-code a colour in a view. Contrast is tested (4.5, dividers 3.0).
 - A chip that starts a bar line (mode badge, operation banner title) starts at column 0; an in-progress operation uses the warning chip role (`StatusOperation`), not the plain mode chip.
 - Every colour tier has a path: 24-bit, 16-colour, `NO_COLOR`/`TERM=dumb`, and the ASCII glyph set. Focus and selection never rely on colour alone.

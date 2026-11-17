@@ -1,6 +1,7 @@
 using System.Globalization;
 using Gitunia.Core.Diff;
 using Gitunia.Core.FileHistory;
+using Gitunia.Core.Lists;
 using Gitunia.Core.Mouse;
 using Gitunia.Core.Text;
 using Gitunia.Tui.Rendering.Graph;
@@ -115,7 +116,7 @@ public static class FileHistoryFrameBuilder
 
     private static StyledLine ListCell(
         FileHistoryState state,
-        PaletteWindow window,
+        ListWindow window,
         int row,
         int width,
         GraphGlyphSet glyphs)
@@ -202,13 +203,6 @@ public static class FileHistoryFrameBuilder
         return string.Create(CultureInfo.InvariantCulture, $"{position}/{state.Entries.Count}");
     }
 
-    private static PaletteWindow Window(int count, int selectedIndex, int maximumRows)
-    {
-        var rowCount = Math.Max(1, Math.Min(maximumRows, count));
-        var selected = count == 0 ? 0 : Math.Clamp(selectedIndex, 0, count - 1);
-
-        var top = Math.Clamp(selected - (rowCount / 2), 0, Math.Max(0, count - rowCount));
-
-        return new PaletteWindow(rowCount, selected, top);
-    }
+    private static ListWindow Window(int count, int selectedIndex, int maximumRows) =>
+        ListViewport.Of(selectedIndex, count, maximumRows).Follow(ScrollPolicy.Centre).Window;
 }
