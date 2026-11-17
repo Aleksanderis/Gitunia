@@ -172,7 +172,7 @@ public sealed record RebaseEditorState(
         }
 
         var drafts = Drafts?.ToDictionary() ?? [];
-        if (edit.IsChanged)
+        if (edit.IsChanged && EditorHosts.Reword.Escape == DraftPolicy.Keep)
         {
             drafts[edit.Hash] = edit.Editor.Text;
         }

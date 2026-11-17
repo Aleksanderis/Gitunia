@@ -253,7 +253,8 @@ public sealed record SettingsState(
             return this;
         }
 
-        var draft = input.Text == StartTextOf(input) ? null : input;
+        var keeps = EditorHosts.SettingsInput.Escape == DraftPolicy.Keep && input.Text != StartTextOf(input);
+        var draft = keeps ? input : null;
 
         return (this with { Input = null, InputDraft = draft }).Clamped();
     }
