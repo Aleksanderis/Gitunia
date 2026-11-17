@@ -11,11 +11,11 @@ using Xunit;
 namespace Gitunia.Git.Tests.Watching;
 
 /// <summary>Watching that survives a buffer overflow, drops ignored directories and starts without touching the disk (#1317).</summary>
+[Collection(RealFileWatchersGroup.Name)]
 public class WatcherResilienceTests
 {
     private static readonly GitRunner Runner = IsolatedGit.CreateRunner();
     private static readonly RepositoryDiscovery Discovery = new(Runner);
-    private static readonly TimeSpan WaitLimit = TimeSpan.FromSeconds(60);
     private static readonly TimeSpan QuietWindow = TimeSpan.FromMilliseconds(600);
 
     private static readonly RepositoryWatcherOptions FastOptions = new(
@@ -96,7 +96,7 @@ public class WatcherResilienceTests
 
         Assert.True(watcher.IsPolling);
         Assert.Equal(0, watcher.WatcherCount);
-        await WaitForAsync(() => !watcher.IsPolling && watcher.WatcherCount == watchers);
+        await WatcherWait.UntilAsync(() => !watcher.IsPolling && watcher.WatcherCount == watchers);
         Assert.Equal(watchers, watcher.WatcherCount);
         Assert.Equal(watchers, budget.InUse);
     }
@@ -116,7 +116,7 @@ public class WatcherResilienceTests
             directoryLister: new IgnoredLister(ignored));
         watcher.Changed += recorder.Record;
         watcher.Start();
-        await WaitForAsync(() => watcher.IgnoredDirectoryCount > 0);
+        await WatcherWait.UntilAsync(() => watcher.IgnoredDirectoryCount > 0);
 
         testRepository.WriteFile(Path.Combine("node_modules", "pkg", "index.js"), "x");
         testRepository.WriteFile(Path.Combine("node_modules", "top.js"), "x");
@@ -140,11 +140,11 @@ public class WatcherResilienceTests
         using var watcher = new RepositoryWatcher(location, new WatchBudget(), FastOptions, directoryLister: lister);
         watcher.Changed += recorder.Record;
         watcher.Start();
-        await WaitForAsync(() => lister.CallCount == 1);
+        await WatcherWait.UntilAsync(() => lister.CallCount == 1);
         lister.Ignored = [ignored];
 
         testRepository.WriteFile(".gitignore", "build/\n");
-        await WaitForAsync(() => watcher.IgnoredDirectoryCount == 1);
+        await WatcherWait.UntilAsync(() => watcher.IgnoredDirectoryCount == 1);
         await Task.Delay(QuietWindow, Token);
         var before = recorder.CallCount;
         testRepository.WriteFile(Path.Combine("build", "out.bin"), "x");
@@ -161,16 +161,20 @@ public class WatcherResilienceTests
         using var lister = new SwitchableLister { Blocking = true };
         using var watcher = new RepositoryWatcher(location, new WatchBudget(), FastOptions, directoryLister: lister);
         watcher.Start();
-        await WaitForAsync(() => lister.CallCount == 1);
+        await WatcherWait.UntilAsync(() => lister.CallCount == 1);
 
+        // The edits reach the handler as watcher events do, but at a known moment: waiting for the operating system to
+        // deliver five real ones before the release is a race, and on a loaded Windows runner they can come late enough
+        // to split into more listings (#1396). That a real .gitignore edit reaches the handler is covered by the
+        // test above that writes .gitignore for real.
+        var ignoreFile = Path.Combine(testRepository.WorkingTreePath, ".gitignore");
         for (var edit = 0; edit < 5; edit++)
         {
-            testRepository.WriteFile(".gitignore", $"edit{edit}\n");
-            await Task.Delay(30, Token);
+            watcher.ReportPathChange(ignoreFile);
         }
 
         lister.Release.Set();
-        await WaitForAsync(() => lister.CallCount == 2);
+        await WatcherWait.UntilAsync(() => lister.CallCount == 2);
         await Task.Delay(QuietWindow, Token);
 
         Assert.Equal(2, lister.CallCount);
@@ -186,12 +190,12 @@ public class WatcherResilienceTests
         using var lister = new SwitchableLister();
         using var watcher = new RepositoryWatcher(location, new WatchBudget(), FastOptions, directoryLister: lister);
         watcher.Start();
-        await WaitForAsync(() => lister.CallCount == 1);
+        await WatcherWait.UntilAsync(() => lister.CallCount == 1);
         lister.Ignored = [ignored];
 
         File.WriteAllText(Path.Combine(location.CommonDirectory, "info", "exclude"), "build/\n");
 
-        await WaitForAsync(() => watcher.IgnoredDirectoryCount == 1);
+        await WatcherWait.UntilAsync(() => watcher.IgnoredDirectoryCount == 1);
     }
 
     [Fact]
@@ -204,12 +208,12 @@ public class WatcherResilienceTests
         var options = FastOptions with { IgnoredReloadInterval = TimeSpan.FromMilliseconds(100) };
         using var watcher = new RepositoryWatcher(location, new WatchBudget(), options, directoryLister: lister);
         watcher.Start();
-        await WaitForAsync(() => lister.CallCount >= 1);
+        await WatcherWait.UntilAsync(() => lister.CallCount >= 1);
         // At least one read: with a 100 ms interval a stalled runner lets the next tick pass before this polls, and
         // "== 1" is then never true (#1384). The timer keeps reading, so the set is picked up either way.
         lister.Ignored = [ignored];
 
-        await WaitForAsync(() => watcher.IgnoredDirectoryCount == 1);
+        await WatcherWait.UntilAsync(() => watcher.IgnoredDirectoryCount == 1);
     }
 
     [Fact]
@@ -221,7 +225,7 @@ public class WatcherResilienceTests
         var options = FastOptions with { IgnoredReloadInterval = TimeSpan.FromMilliseconds(100) };
         using var watcher = new RepositoryWatcher(location, new WatchBudget(), options, directoryLister: lister);
         watcher.Start();
-        await WaitForAsync(() => lister.CallCount >= 1);
+        await WatcherWait.UntilAsync(() => lister.CallCount >= 1);
         watcher.SetActive(false);
         await Task.Delay(QuietWindow, Token);
         var hiddenCount = lister.CallCount;
@@ -229,7 +233,7 @@ public class WatcherResilienceTests
 
         Assert.Equal(hiddenCount, lister.CallCount);
         watcher.SetActive(true);
-        await WaitForAsync(() => lister.CallCount > hiddenCount);
+        await WatcherWait.UntilAsync(() => lister.CallCount > hiddenCount);
     }
 
     [Fact]
@@ -249,7 +253,7 @@ public class WatcherResilienceTests
 
         // Returned while the fingerprint is still blocked, and the lock is free meanwhile.
         Assert.True(watcher.IsPolling);
-        await WaitForAsync(() => !reader.CallerThreads.IsEmpty);
+        await WatcherWait.UntilAsync(() => !reader.CallerThreads.IsEmpty);
 
         reader.Release.Set();
     }
@@ -288,16 +292,6 @@ public class WatcherResilienceTests
                 .Select(relative => Path.Combine(root, relative))
                 .Order(),
             directories.Order());
-    }
-
-    private static async Task WaitForAsync(Func<bool> condition)
-    {
-        var deadline = DateTime.UtcNow + WaitLimit;
-        while (!condition())
-        {
-            Assert.True(DateTime.UtcNow < deadline, "Condition not reached in time.");
-            await Task.Delay(20, Token);
-        }
     }
 
     private sealed class IgnoredLister(params string[] ignored) : IWorkingTreeDirectoryLister

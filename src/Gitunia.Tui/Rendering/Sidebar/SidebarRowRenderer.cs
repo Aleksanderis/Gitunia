@@ -72,9 +72,16 @@ public static class SidebarRowRenderer
         var builder = new LineBuilder(width, glyphs.Ellipsis);
         if (isEditing || filterText.Length > 0)
         {
-            // The caret is part of the text while editing, so the row keeps it in view when the filter is wider than the pane.
-            var shown = isEditing ? PromptCaret.Mark(filterText, caret, Math.Max(1, width - 1)) : filterText;
-            builder.Append("/", SegmentRole.SectionTitle).Append(shown, SegmentRole.Plain);
+            builder.Append("/", SegmentRole.SectionTitle);
+            if (isEditing)
+            {
+                // The cursor cell keeps the caret in view when the filter is wider than the pane.
+                new CaretField(string.Empty, filterText, caret).AppendTo(builder, SegmentRole.Plain);
+            }
+            else
+            {
+                builder.Append(filterText, SegmentRole.Plain);
+            }
         }
 
         return builder.Build();

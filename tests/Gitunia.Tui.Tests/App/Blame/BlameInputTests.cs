@@ -314,7 +314,7 @@ public sealed class BlameInputTests
     [Fact]
     public async Task GivenTheWordMotions_WhenSelectingWithIwAndIl_ThenTheWordAndTheLineAreCopied()
     {
-        using var repository = TestRepository.Create().Commit("first", new TestFile("a.txt", "foo bar baz\n"));
+        using var repository = TestRepository.CreateCommitted("first", new TestFile("a.txt", "foo bar baz\n"));
         using var harness = await Harness.LoadAsync(repository, new FixedTargets("a.txt", repository.Head));
         await harness.OpenAsync();
 
@@ -332,7 +332,7 @@ public sealed class BlameInputTests
     [Fact]
     public async Task GivenADragFromTheCode_WhenCopying_ThenTheCharactersUnderThePointerAreCopiedTabsIncluded()
     {
-        using var repository = TestRepository.Create().Commit("first", new TestFile("a.txt", "ab\tcd\nsecond\n"));
+        using var repository = TestRepository.CreateCommitted("first", new TestFile("a.txt", "ab\tcd\nsecond\n"));
         using var harness = await Harness.LoadAsync(repository, new FixedTargets("a.txt", repository.Head));
         await harness.OpenAsync();
         var code = BlameFrameBuilder.CodeStart(Width);
@@ -361,7 +361,7 @@ public sealed class BlameInputTests
     [Fact]
     public async Task GivenDoubleAndTripleClicks_WhenOnTheCode_ThenTheWordAndTheLineAreSelectedAndTheGutterIsIgnored()
     {
-        using var repository = TestRepository.Create().Commit("first", new TestFile("a.txt", "foo bar baz\n"));
+        using var repository = TestRepository.CreateCommitted("first", new TestFile("a.txt", "foo bar baz\n"));
         using var harness = await Harness.LoadAsync(repository, new FixedTargets("a.txt", repository.Head));
         await harness.OpenAsync();
         var code = BlameFrameBuilder.CodeStart(Width);
@@ -378,7 +378,7 @@ public sealed class BlameInputTests
     [Fact]
     public async Task GivenADragFromTheCode_WhenTheButtonIsReleased_ThenThePointerSelectionIsReported()
     {
-        using var repository = TestRepository.Create().Commit("first", new TestFile("a.txt", "ab\tcd\nsecond\n"));
+        using var repository = TestRepository.CreateCommitted("first", new TestFile("a.txt", "ab\tcd\nsecond\n"));
         using var harness = await Harness.LoadAsync(repository, new FixedTargets("a.txt", repository.Head));
         await harness.OpenAsync();
         var reported = 0;
@@ -398,7 +398,7 @@ public sealed class BlameInputTests
     [Fact]
     public async Task GivenADoubleClickOnTheCode_WhenItSelectsTheWord_ThenThePointerSelectionIsReported()
     {
-        using var repository = TestRepository.Create().Commit("first", new TestFile("a.txt", "foo bar baz\n"));
+        using var repository = TestRepository.CreateCommitted("first", new TestFile("a.txt", "foo bar baz\n"));
         using var harness = await Harness.LoadAsync(repository, new FixedTargets("a.txt", repository.Head));
         await harness.OpenAsync();
         var reported = 0;
@@ -417,7 +417,7 @@ public sealed class BlameInputTests
     public async Task GivenASelection_WhenCopiedOnSelectOrWithCtrlC_ThenTheTextIsCopiedAndTheSelectionStays(
         VisualCopyMode mode)
     {
-        using var repository = TestRepository.Create().Commit("first", new TestFile("a.txt", "foo bar baz\n"));
+        using var repository = TestRepository.CreateCommitted("first", new TestFile("a.txt", "foo bar baz\n"));
         using var harness = await Harness.LoadAsync(repository, new FixedTargets("a.txt", repository.Head));
         await harness.OpenAsync();
         harness.Input.OnTextClicked(1, BlameFrameBuilder.CodeStart(Width) + 5, true);
@@ -431,7 +431,7 @@ public sealed class BlameInputTests
     [Fact]
     public async Task GivenABlameSelection_WhenCtrlCIsPressedTwice_ThenTheFirstCopiesAndTheSecondQuits()
     {
-        using var repository = TestRepository.Create().Commit("first", new TestFile("a.txt", "foo bar baz\n"));
+        using var repository = TestRepository.CreateCommitted("first", new TestFile("a.txt", "foo bar baz\n"));
         using var harness = await Harness.LoadAsync(repository, new FixedTargets("a.txt", repository.Head));
         await harness.OpenAsync();
         harness.Input.OnTextClicked(1, BlameFrameBuilder.CodeStart(Width) + 5, true);
@@ -453,7 +453,7 @@ public sealed class BlameInputTests
     [Fact]
     public async Task GivenABlameSelection_WhenCopyOnSelectIsOn_ThenAMouseSelectionIsCopiedWhenTheDragIsReleased()
     {
-        using var repository = TestRepository.Create().Commit("first", new TestFile("a.txt", "ab\tcd\nsecond\n"));
+        using var repository = TestRepository.CreateCommitted("first", new TestFile("a.txt", "ab\tcd\nsecond\n"));
         using var harness = await Harness.LoadAsync(repository, new FixedTargets("a.txt", repository.Head));
         await harness.OpenAsync();
         using var source = new RangeSource(0);
@@ -482,7 +482,7 @@ public sealed class BlameInputTests
     [Fact]
     public async Task GivenABlameSelection_WhenCopyOnSelectIsOff_ThenAReleasedDragCopiesNothing()
     {
-        using var repository = TestRepository.Create().Commit("first", new TestFile("a.txt", "ab\tcd\nsecond\n"));
+        using var repository = TestRepository.CreateCommitted("first", new TestFile("a.txt", "ab\tcd\nsecond\n"));
         using var harness = await Harness.LoadAsync(repository, new FixedTargets("a.txt", repository.Head));
         await harness.OpenAsync();
         using var source = new RangeSource(0);
@@ -524,7 +524,7 @@ public sealed class BlameInputTests
     [Fact]
     public async Task GivenYankOnASelection_WhenCopying_ThenTheSelectionEnds()
     {
-        using var repository = TestRepository.Create().Commit("first", new TestFile("a.txt", "foo bar baz\n"));
+        using var repository = TestRepository.CreateCommitted("first", new TestFile("a.txt", "foo bar baz\n"));
         using var harness = await Harness.LoadAsync(repository, new FixedTargets("a.txt", repository.Head));
         await harness.OpenAsync();
         harness.Input.OnTextClicked(1, BlameFrameBuilder.CodeStart(Width) + 5, true);
@@ -554,7 +554,7 @@ public sealed class BlameInputTests
     [Fact]
     public async Task GivenTwoLinesOfTheSameCommit_WhenOpeningTheLineHistoryOfTheWorkingTreeFile_ThenTheWalkStartsAtThatCommit()
     {
-        using var repository = TestRepository.Create().Commit("first", new TestFile("a.txt", "one\ntwo\nthree\n"));
+        using var repository = TestRepository.CreateCommitted("first", new TestFile("a.txt", "one\ntwo\nthree\n"));
         repository.WriteFile("a.txt", "one\ntwo\nthree\nfour\n");
         using var harness = await Harness.LoadAsync(repository, new FixedTargets("a.txt", null));
         await harness.OpenAsync();
@@ -591,7 +591,7 @@ public sealed class BlameInputTests
     public async Task GivenAFileLongerThanTheScreen_WhenDraggingAndDoubleClicking_ThenTheLinesDoNotScrollUnderThePointer()
     {
         var text = string.Concat(Enumerable.Range(1, 100).Select(number => $"word{number} tail\n"));
-        using var repository = TestRepository.Create().Commit("first", new TestFile("a.txt", text));
+        using var repository = TestRepository.CreateCommitted("first", new TestFile("a.txt", text));
         using var harness = await Harness.LoadAsync(repository, new FixedTargets("a.txt", repository.Head));
         await harness.OpenAsync();
         harness.Input.TryExecute(ActionIds.ListBottom, null);
@@ -612,7 +612,7 @@ public sealed class BlameInputTests
     public async Task GivenAFileLongerThanTheScreen_WhenDoubleClickingAfterAClick_ThenTheWordOfThatRowIsSelected()
     {
         var text = string.Concat(Enumerable.Range(1, 100).Select(number => $"word{number} tail\n"));
-        using var repository = TestRepository.Create().Commit("first", new TestFile("a.txt", text));
+        using var repository = TestRepository.CreateCommitted("first", new TestFile("a.txt", text));
         using var harness = await Harness.LoadAsync(repository, new FixedTargets("a.txt", repository.Head));
         await harness.OpenAsync();
         harness.Input.TryExecute(ActionIds.ListBottom, null);
@@ -631,7 +631,7 @@ public sealed class BlameInputTests
     public async Task GivenAPinnedTop_WhenAKeyIsPressed_ThenTheViewCentresTheCursorAgain()
     {
         var text = string.Concat(Enumerable.Range(1, 100).Select(number => $"line{number}\n"));
-        using var repository = TestRepository.Create().Commit("first", new TestFile("a.txt", text));
+        using var repository = TestRepository.CreateCommitted("first", new TestFile("a.txt", text));
         using var harness = await Harness.LoadAsync(repository, new FixedTargets("a.txt", repository.Head));
         await harness.OpenAsync();
         harness.Input.TryExecute(ActionIds.ListBottom, null);
@@ -695,9 +695,12 @@ public sealed class BlameInputTests
         Assert.True(harness.Input.IsOpen);
     }
 
-    private static TestRepository TwoCommits() => TestRepository.Create()
-        .Commit("first", new TestFile("a.txt", "one\nthree\n"))
-        .Commit("second", new TestFile("a.txt", "one\nTWO\nthree\n"));
+    // Built with git once per process and copied (TestRepository.FromTemplate, #1409).
+    private static TestRepository TwoCommits() => TestRepository.FromTemplate(
+        "blame-input-two-commits",
+        () => TestRepository.Create()
+            .Commit("first", new TestFile("a.txt", "one\nthree\n"))
+            .Commit("second", new TestFile("a.txt", "one\nTWO\nthree\n")));
 
     private sealed class FixedTargets(string? path, string? revision) : IBlameTargets
     {

@@ -24,6 +24,7 @@
     <Compile Include="..\Gitunia.Tui.Tests\Fakes\*.cs" Exclude="..\Gitunia.Tui.Tests\Fakes\DiffPaneWiring.cs;..\Gitunia.Tui.Tests\Fakes\FakePaneLists.cs;..\Gitunia.Tui.Tests\Fakes\PopupText.cs;..\Gitunia.Tui.Tests\Fakes\StagingWiring.cs;..\Gitunia.Tui.Tests\Fakes\TestCommitInput.cs;..\Gitunia.Tui.Tests\Fakes\FakeActiveSessions.cs;..\Gitunia.Tui.Tests\Fakes\FakePaneChrome.cs;..\Gitunia.Tui.Tests\Fakes\FakeGraphDetailLists.cs;..\Gitunia.Tui.Tests\Fakes\CountingQuit.cs;..\Gitunia.Tui.Tests\Fakes\TestFocusedView.cs;..\Gitunia.Tui.Tests\Fakes\FakeActiveWorkingTree.cs;..\Gitunia.Tui.Tests\Fakes\FixedGroupButtons.cs;..\Gitunia.Tui.Tests\Fakes\RecordingJumpTarget.cs" Link="Fakes\%(Filename)%(Extension)" />
     <Compile Include="..\Gitunia.Tui.Tests\TestGit.cs" Link="Shared\TestGit.cs" />
     <Compile Include="..\Gitunia.Tui.Tests\RunWatchdog.cs" Link="Shared\RunWatchdog.cs" />
+    <Compile Include="..\Gitunia.Tui.Tests\StackReportCompactor.cs" Link="Shared\StackReportCompactor.cs" />
     <Compile Include="..\Gitunia.Tui.Tests\RunningTests.cs" Link="Shared\RunningTests.cs" />
     <Compile Include="..\Gitunia.Tui.Tests\App\UiPump.cs" Link="Shared\UiPump.cs" />
     <Compile Include="..\Gitunia.Tui.Tests\App\InlineUi.cs" Link="Shared\InlineUi.cs" />

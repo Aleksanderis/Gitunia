@@ -2,6 +2,7 @@ using Gitunia.App;
 using Gitunia.App.Loading.Diff;
 using Gitunia.Core.Diff;
 using Gitunia.Core.DiffPane;
+using Gitunia.Core.Editing;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Workspaces;
@@ -11,11 +12,11 @@ using Gitunia.Git.Diff.Models;
 using Gitunia.Tui.App.Clipboard;
 using Gitunia.Tui.App.Panes;
 using Gitunia.Tui.App.Tabs;
-using Gitunia.Tui.Views;
 using Gitunia.Tui.Input;
 using Gitunia.Tui.Rendering.Diff;
 using Gitunia.Tui.Rendering.WorkingTree;
 using Gitunia.Tui.Search;
+using Gitunia.Tui.Views;
 using Terminal.Gui.Views;
 
 namespace Gitunia.Tui.App.WorkingTree;
@@ -74,7 +75,7 @@ public sealed partial class WorkingDiffController : IActionHandler, ITextKeyHand
         _sessions.ActiveSession()?.WorkingDiff is { IsZoomed: true }
         && WorkingPanes.IsDiff(_host.Workspace.ActiveTab?.View.FocusedPane ?? PaneKind.Graph);
 
-    public string StatusLine => _actions.StatusLine(_sessions.ActiveSession()?.WorkingDiff);
+    public PromptLine StatusLine => _actions.StatusLine(_sessions.ActiveSession()?.WorkingDiff);
 
     /// <summary>The title of the diff box: the side, the hunk the cursor is in and the file, plus the markers of the diff options.</summary>
     /// <param name="isRepeating">The repeat mode is on for the diff box: the title shows its marker.</param>

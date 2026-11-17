@@ -1,11 +1,11 @@
-using Gitunia.Core.Status;
-using Gitunia.Tui.App;
 using System.Collections.Concurrent;
 using Gitunia.App.Shell;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Overlays;
 using Gitunia.Core.Shell;
+using Gitunia.Core.Status;
+using Gitunia.Tui.App;
 using Gitunia.Tui.App.Overlays;
 using Gitunia.Tui.Input;
 using Gitunia.Tui.Tests.Fakes;
@@ -396,7 +396,7 @@ public sealed class OverlayControllerTests : IDisposable, IActionRoute
         Assert.Equal(KeyMode.Insert, _keys.Mode);
         Assert.Equal("<space>gc", _overlays.State.HelpFilter);
         var text = FrameText();
-        Assert.Contains("/ <space>gc_", text);
+        Assert.Contains("/ <space>gc", text);
         Assert.Contains("<space>gc", text);
         Assert.DoesNotContain("<space>gd", text);
         Assert.Empty(_routed);

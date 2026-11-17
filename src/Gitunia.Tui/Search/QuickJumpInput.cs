@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using Gitunia.App;
+using Gitunia.Core.Editing;
 using Gitunia.Core.Jump;
 using Gitunia.Core.Jump.Models;
 using Gitunia.Core.Keymap;
@@ -22,13 +23,13 @@ public sealed class QuickJumpInput(Dispatcher host, IQuickJumpHost view)
 {
     private IJumpTarget? _target;
 
-    public string StatusLine
+    public PromptLine StatusLine
     {
         get
         {
             if (_target is null || host.State.Shell.QuickJump is not { } session || IsStale(session))
             {
-                return string.Empty;
+                return PromptLine.Empty;
             }
 
             return QuickJumpReducer.StatusLine(session.Text, _target.Labels(session.Text).Count, session.Caret);

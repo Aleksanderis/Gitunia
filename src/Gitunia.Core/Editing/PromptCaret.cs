@@ -14,11 +14,8 @@ public static class PromptCaret
     /// <summary>The caret after the last character of whatever the text is.</summary>
     public const int End = int.MaxValue;
 
-    /// <summary>The caret drawn after the last character (an empty cell).</summary>
-    public const string EndGlyph = "_";
-
-    /// <summary>The caret drawn between two characters, in text a style cannot reach.</summary>
-    public const string MiddleGlyph = "|";
+    /// <summary>The cursor cell at the end of the text: a blank.</summary>
+    public const string EndCell = " ";
 
     /// <summary>The caret limited to the text and moved back to the start of the text element it falls in.</summary>
     public static int Clamp(string text, int caret)
@@ -67,27 +64,31 @@ public static class PromptCaret
     }
 
     /// <summary>
-    /// The text with the caret drawn in, for prompts shown as plain text: <see cref="EndGlyph"/> after the last
-    /// character, <see cref="MiddleGlyph"/> inside the text. When the result is wider than
-    /// <paramref name="columns"/>, the part around the caret stays: the text before it is cut from the left and the
-    /// text after it from the right.
+    /// The text split around the caret for a field drawn with a cursor cell: the text element under the caret is the
+    /// cell (a blank at the end), so the text is not pushed apart. When the text is wider than
+    /// <paramref name="columns"/>, the part around the caret stays: before it is cut from the left and after it from
+    /// the right. Text elements are never split.
     /// </summary>
-    public static string Mark(string text, int caret, int columns = int.MaxValue)
+    /// <param name="text">The field text.</param>
+    /// <param name="caret">The caret column (<see cref="End"/> for after the last character).</param>
+    /// <param name="columns">Columns the whole field, cursor cell included, may take.</param>
+    public static CaretText Split(string text, int caret, int columns = int.MaxValue)
     {
         var at = Clamp(text, caret);
-        var glyph = at == text.Length ? EndGlyph : MiddleGlyph;
+        var cell = at == text.Length ? EndCell : text[at..(at + StringInfo.GetNextTextElementLength(text.AsSpan(at)))];
         var before = text[..at];
-        var after = text[at..];
-        if (DisplayWidth.Of(text) + glyph.Length <= columns)
+        var after = text[(at + (at == text.Length ? 0 : cell.Length))..];
+        var cellWidth = Math.Max(1, DisplayWidth.Of(cell));
+        if (DisplayWidth.Of(before) + DisplayWidth.Of(after) + cellWidth <= columns)
         {
-            return $"{before}{glyph}{after}";
+            return new CaretText(before, cell, after);
         }
 
-        var room = Math.Max(0, columns - glyph.Length);
+        var room = Math.Max(0, columns - cellWidth);
         var afterRoom = Math.Min(DisplayWidth.Of(after), room / 2);
         var kept = Tail(before, room - afterRoom);
 
-        return $"{kept}{glyph}{Head(after, room - DisplayWidth.Of(kept))}";
+        return new CaretText(kept, cell, Head(after, room - DisplayWidth.Of(kept)));
     }
 
     private static string Tail(string text, int columns)
@@ -131,3 +132,9 @@ public static class PromptCaret
         return builder.ToString();
     }
 }
+
+/// <summary>A field text split around its caret: <see cref="Cell"/> is drawn as the cursor.</summary>
+/// <param name="Before">Text before the cursor cell.</param>
+/// <param name="Cell">The character under the caret, or a blank at the end of the text.</param>
+/// <param name="After">Text after the cursor cell.</param>
+public readonly record struct CaretText(string Before, string Cell, string After);

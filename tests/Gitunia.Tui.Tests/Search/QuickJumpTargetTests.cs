@@ -1,4 +1,3 @@
-using Gitunia.Tui.Tests.App;
 using Gitunia.App.Loading.Commits;
 using Gitunia.App.Tabs;
 using Gitunia.Core;
@@ -7,13 +6,14 @@ using Gitunia.Core.Jump;
 using Gitunia.Core.Jump.Models;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
-using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces;
+using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Search;
+using Gitunia.Tui.Tests.App;
 using Gitunia.Tui.Tests.Fakes;
 using Xunit;
 
@@ -56,7 +56,7 @@ public sealed class QuickJumpTargetTests : IDisposable
 
         Assert.Equal([KeyMode.Insert], _shell.Modes);
         Assert.Equal([string.Empty], _shown);
-        Assert.StartsWith("jump _", Controller.StatusLine, StringComparison.Ordinal);
+        Assert.StartsWith("jump ", Controller.StatusLine.Plain, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -72,7 +72,7 @@ public sealed class QuickJumpTargetTests : IDisposable
         Assert.Equal([1], _jumps);
         Assert.Equal(KeyMode.Normal, _shell.Modes[^1]);
         Assert.Null(_shown[^1]);
-        Assert.Equal(string.Empty, Controller.StatusLine);
+        Assert.Equal(string.Empty, Controller.StatusLine.Plain);
     }
 
     [Fact]
@@ -132,7 +132,7 @@ public sealed class QuickJumpTargetTests : IDisposable
 
         Assert.Null(_shown[^1]);
         Assert.Equal(KeyMode.Normal, _shell.Modes[^1]);
-        Assert.Equal(string.Empty, Controller.StatusLine);
+        Assert.Equal(string.Empty, Controller.StatusLine.Plain);
     }
 
     [Fact]

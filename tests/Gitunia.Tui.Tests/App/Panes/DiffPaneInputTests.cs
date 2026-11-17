@@ -1,12 +1,12 @@
-using Gitunia.App.Loading;
-using Gitunia.App.Status;
-using Gitunia.Core;
-using Gitunia.App.Tabs;
 using System.Drawing;
 using System.Text;
 using Gitunia.App;
+using Gitunia.App.Loading;
 using Gitunia.App.Loading.Commits;
 using Gitunia.App.Loading.Diff;
+using Gitunia.App.Status;
+using Gitunia.App.Tabs;
+using Gitunia.Core;
 using Gitunia.Core.Clipboard;
 using Gitunia.Core.Diff;
 using Gitunia.Core.Keymap;
@@ -155,7 +155,7 @@ public class DiffPaneInputTests
         harness.Execute(ActionIds.DiffSearchOpen);
         Assert.Equal(KeyMode.Insert, harness.Mode);
         harness.Type("line");
-        Assert.StartsWith("/line_", harness.Controller.StatusLine, StringComparison.Ordinal);
+        Assert.StartsWith("/line", harness.Controller.StatusLine.Plain, StringComparison.Ordinal);
         harness.Execute(ActionIds.InputAccept);
         var first = harness.DiffList.SelectedItem;
         harness.Execute(ActionIds.DiffSearchNext);
@@ -196,7 +196,7 @@ public class DiffPaneInputTests
         harness.Execute(ActionIds.Cancel);
 
         Assert.Equal(KeyMode.Normal, harness.Mode);
-        Assert.Equal(string.Empty, harness.Controller.StatusLine);
+        Assert.Equal(string.Empty, harness.Controller.StatusLine.Plain);
         Assert.True(harness.Tab.View.DiffPane.IsOpen);
     }
 
@@ -430,7 +430,7 @@ public class DiffPaneInputTests
         harness.Send(new FocusPaneCommand(PaneKind.Graph));
 
         Assert.Equal(KeyMode.Normal, harness.Mode);
-        Assert.Equal(string.Empty, harness.Controller.StatusLine);
+        Assert.Equal(string.Empty, harness.Controller.StatusLine.Plain);
         Assert.Null(harness.Session.Diff!.Source.Highlight);
     }
 
@@ -482,7 +482,7 @@ public class DiffPaneInputTests
     [Fact]
     public async Task GivenWrapOn_WhenThePaneWidthChangesWithoutAKey_ThenTheCursorStaysOnItsRow()
     {
-        using var testRepository = TestRepository.Create().Commit("long", new TestFile("a.txt", $"{new string('x', 150)}\nshort\n"));
+        using var testRepository = LongLineAndShortRepository();
         using var harness = await DiffHarness.LoadAsync(testRepository);
         await harness.OpenAsync("a.txt");
         var source = harness.Session.Diff!.Source;
@@ -637,13 +637,7 @@ public class DiffPaneInputTests
     [Fact]
     public async Task GivenAMergeCommitSelected_WhenOpeningAFile_ThenTheFirstParentDiffShows()
     {
-        using var testRepository = TestRepository.Create()
-            .Commit("root", new TestFile("base.txt", "base\n"))
-            .CheckoutNewBranch("side")
-            .Commit("side work", new TestFile("side.txt", "side\n"))
-            .Checkout("main")
-            .Commit("main work", new TestFile("main.txt", "main\n"))
-            .Merge("side");
+        using var testRepository = MergeCommitRepository();
         using var harness = await DiffHarness.LoadAsync(testRepository);
         harness.SelectFile("side.txt");
 
@@ -688,7 +682,7 @@ public class DiffPaneInputTests
     [Fact]
     public async Task GivenALongLine_WhenTogglingWrap_ThenItTakesMoreLinesAndTheCursorKeepsItsRow()
     {
-        using var testRepository = TestRepository.Create().Commit("long", new TestFile("a.txt", $"{new string('x', 150)}\n"));
+        using var testRepository = LongLineRepository();
         using var harness = await DiffHarness.LoadAsync(testRepository);
         await harness.OpenAsync("a.txt");
         var source = harness.Session.Diff!.Source;
@@ -711,7 +705,7 @@ public class DiffPaneInputTests
     [Fact]
     public async Task GivenWrapOn_WhenThePaneWidthChanges_ThenTheCursorStaysOnItsRow()
     {
-        using var testRepository = TestRepository.Create().Commit("long", new TestFile("a.txt", $"{new string('x', 150)}\nshort\n"));
+        using var testRepository = LongLineAndShortRepository();
         using var harness = await DiffHarness.LoadAsync(testRepository);
         await harness.OpenAsync("a.txt");
         var source = harness.Session.Diff!.Source;
@@ -987,7 +981,7 @@ public class DiffPaneInputTests
     [Fact]
     public async Task GivenWrapOnAndTheCursorOnAContinuationLine_WhenCopyingTheLine_ThenTheWholeRowIsCopied()
     {
-        using var testRepository = TestRepository.Create().Commit("long", new TestFile("a.txt", $"{new string('x', 150)}\n"));
+        using var testRepository = LongLineRepository();
         using var harness = await DiffHarness.LoadAsync(testRepository);
         await harness.OpenAsync("a.txt");
         harness.Execute(ActionIds.DiffToggleWrap);
@@ -1106,17 +1100,36 @@ public class DiffPaneInputTests
         Assert.Equal(2, harness.Session.Diff!.Source.Document.FilePaths.Count);
     }
 
-    private static TestRepository FolderRepository() => TestRepository.Create()
-        .Commit(
-            "root",
-            new TestFile("top.txt", "top\n"),
-            new TestFile("src/one.txt", "one\n"),
-            new TestFile("src/sub/two.txt", "two\n"))
-        .Commit(
-            "edit",
-            new TestFile("top.txt", "top changed\n"),
-            new TestFile("src/one.txt", "one changed\n"),
-            new TestFile("src/sub/two.txt", "two changed\n"));
+    // The repositories below are built once per process and copied (TestRepository.FromTemplate, #1409).
+    private static TestRepository LongLineAndShortRepository() =>
+        TestRepository.CreateCommitted("long", new TestFile("a.txt", $"{new string('x', 150)}\nshort\n"));
+
+    private static TestRepository LongLineRepository() =>
+        TestRepository.CreateCommitted("long", new TestFile("a.txt", $"{new string('x', 150)}\n"));
+
+    private static TestRepository MergeCommitRepository() => TestRepository.FromTemplate(
+        "diff-pane-merge-commit",
+        () => TestRepository.Create()
+            .Commit("root", new TestFile("base.txt", "base\n"))
+            .CheckoutNewBranch("side")
+            .Commit("side work", new TestFile("side.txt", "side\n"))
+            .Checkout("main")
+            .Commit("main work", new TestFile("main.txt", "main\n"))
+            .Merge("side"));
+
+    private static TestRepository FolderRepository() => TestRepository.FromTemplate(
+        "diff-pane-folders",
+        () => TestRepository.Create()
+            .Commit(
+                "root",
+                new TestFile("top.txt", "top\n"),
+                new TestFile("src/one.txt", "one\n"),
+                new TestFile("src/sub/two.txt", "two\n"))
+            .Commit(
+                "edit",
+                new TestFile("top.txt", "top changed\n"),
+                new TestFile("src/one.txt", "one changed\n"),
+                new TestFile("src/sub/two.txt", "two changed\n")));
 
     private sealed class DiffHarness : IDisposable
     {
@@ -1320,12 +1333,21 @@ public class DiffPaneInputTests
             _ownedRepository?.Dispose();
         }
 
-        private static TestRepository CreateDefaultRepository() => TestRepository.Create()
-            .Commit("root", new TestFile("a.txt", string.Concat(Enumerable.Range(1, 40).Select(index => $"line {index}\n"))), new TestFile("b.txt", "b\n"))
-            .Commit(
-                "edit",
-                new TestFile("a.txt", string.Concat(Enumerable.Range(1, 40).Select(index => index is 3 or 38 ? $"line {index} changed\n" : $"line {index}\n"))),
-                new TestFile("b.txt", "b changed\n"));
+        private static TestRepository CreateDefaultRepository() => TestRepository.FromTemplate(
+            "diff-pane-default",
+            () => TestRepository.Create()
+                .Commit(
+                    "root",
+                    new TestFile("a.txt", string.Concat(Enumerable.Range(1, 40).Select(index => $"line {index}\n"))),
+                    new TestFile("b.txt", "b\n"))
+                .Commit(
+                    "edit",
+                    new TestFile(
+                        "a.txt",
+                        string.Concat(
+                            Enumerable.Range(1, 40)
+                                .Select(index => index is 3 or 38 ? $"line {index} changed\n" : $"line {index}\n"))),
+                    new TestFile("b.txt", "b changed\n")));
 
         private void ShowCurrentChanges()
         {

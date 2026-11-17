@@ -4,6 +4,7 @@ using Gitunia.App.Loading.Trees;
 using Gitunia.Core;
 using Gitunia.Core.Diff;
 using Gitunia.Core.DiffPane;
+using Gitunia.Core.Editing;
 using Gitunia.Core.FileTree;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
@@ -57,7 +58,7 @@ public sealed class DiffPaneInput : IActionHandler, ITextKeyHandler, IActionNoti
         private set => _actions.Notice = value;
     }
 
-    public string StatusLine => _actions.StatusLine(_sessions.ActiveSession()?.Diff);
+    public PromptLine StatusLine => _actions.StatusLine(_sessions.ActiveSession()?.Diff);
 
     public bool TryExecute(ActionId action, int? count)
     {

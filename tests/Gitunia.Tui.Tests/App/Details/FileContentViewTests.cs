@@ -537,14 +537,7 @@ public class FileContentViewTests
 
                 public static async Task<Harness> LoadAsync(int width = 60)
         {
-            var repository = TestRepository.Create()
-                .Commit("root", new TestFile("a.txt", "one\ntwo\nthree\n"))
-                .Commit(
-                    "second",
-                    new TestFile("docs/guide.md", "# Guide\n"),
-                    new TestFile("data.bin", "ab\0cd"),
-                    new TestFile("big.txt", new string('x', BlobReader.MaximumBytes + 1)),
-                    new TestFile("empty.txt", string.Empty));
+            var repository = TestRepository.FromTemplate("file-content-view", BuildRepository);
             var location = await TestGit.Services.Discovery.DiscoverAsync(repository.WorkingTreePath, Token);
             var host = new Dispatcher(AppState.Empty);
             host.Dispatch(new OpenRepositoryCommand(location));
@@ -657,6 +650,16 @@ public class FileContentViewTests
             Session.Dispose();
             _repository.Dispose();
         }
+
+        // Built with git once per process and copied (TestRepository.FromTemplate, #1409).
+        private static TestRepository BuildRepository() => TestRepository.Create()
+            .Commit("root", new TestFile("a.txt", "one\ntwo\nthree\n"))
+            .Commit(
+                "second",
+                new TestFile("docs/guide.md", "# Guide\n"),
+                new TestFile("data.bin", "ab\0cd"),
+                new TestFile("big.txt", new string('x', BlobReader.MaximumBytes + 1)),
+                new TestFile("empty.txt", string.Empty));
 
         private void OnEffect(AppEffect effect)
         {

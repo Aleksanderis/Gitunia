@@ -3,9 +3,7 @@ using Gitunia.Platform;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Views.Lists;
 using Gitunia.Tui.Views.Theme;
-using Terminal.Gui.App;
 using Terminal.Gui.Drawing;
-using Terminal.Gui.Drivers;
 using Terminal.Gui.ViewBase;
 using Terminal.Gui.Views;
 using Xunit;
@@ -24,8 +22,8 @@ public class EmptyListBackgroundTests
     public void GivenAnEmptyListPane_WhenDrawn_ThenEveryCellHasThePaletteBackground(ColorDepth depth, bool focused)
     {
         var table = PaletteTable.For(new PaletteSettings(depth, false, PaintsBase: true));
-        using var application = Application.Create();
-        application.Init(DriverRegistry.Names.ANSI);
+        using var headless = new HeadlessApplication();
+        var application = headless.Application;
         application.Driver!.SetScreenSize(20, 6);
         var pane = new PaneListView
         {

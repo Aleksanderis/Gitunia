@@ -38,14 +38,15 @@ public static class OpenPromptPopup
 
     private static PromptPopup ListPopup(OpenPrompt prompt, PromptPicker picker)
     {
-        var names = picker.Candidates.Select(choice => choice.Text).ToList();
-        var position = PickerRows.Position(picker.Index, names.Count);
+        var window = picker.Rows();
 
         return new PromptPopup(
             prompt.Title,
-            [$"{prompt.Context} {position}"],
+            [prompt.Context],
             null,
-            PickerRows.Window(names, picker.Index),
-            [new("Enter", prompt.AcceptLabel), new("j/k/h/l", "select"), new("Esc", "cancel")]);
+            window.Rows,
+            [new("Enter", prompt.AcceptLabel), new("j/k/h/l", "select"), new("Esc", "cancel")],
+            Highlight: window.Highlight,
+            Count: window.Position);
     }
 }

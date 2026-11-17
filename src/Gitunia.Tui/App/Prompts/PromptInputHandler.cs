@@ -1,4 +1,5 @@
 using Gitunia.App;
+using Gitunia.Core.Editing;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Overlays;
@@ -16,7 +17,7 @@ namespace Gitunia.Tui.App.Prompts;
 /// <param name="host">Holds the state the popup is drawn from and takes the commands.</param>
 public sealed class PromptInputHandler(Dispatcher host) : IActionHandler, ITextKeyHandler, IPromptDisplay
 {
-    public string StatusLine => string.Empty;
+    public PromptLine StatusLine => PromptLine.Empty;
 
     public PromptPopup? Popup => host.State.Shell.Prompt is { } prompt ? OpenPromptPopup.Of(prompt) : null;
 

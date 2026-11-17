@@ -217,17 +217,31 @@ echo "details_step_ms_p95=$p95"
 echo "details_step_ms_max=$max"
 echo "details_step_samples=$(printf '%s' "$vals" | grep -c . || true)"
 
-# diff latency (#225): `j`, then the diff pane (beside the Changes file list) must show the diff of another commit: its title
-# hash changed, no "Loading..." and a hunk header is on screen. Same 300 ms pause between steps as the details metric.
-diff_hash() { t capture-pane -t m -p | grep -m1 -o 'Diff  [0-9a-f]\{7\}' || true; }
-diff_ready() { # $1 = diff title hash before the key
+# diff latency (#225, #1390): `j`, then the diff pane (beside the Changes file list) must show the diff of another commit:
+# its text changed, no "Loading..." and a hunk header is on screen. The pane title no longer names the commit (#1380), so
+# the key is the pane's text: the rows under the `┬─ Diff` title, right of the column of that `┬`, up to the next border row.
+# Same 300 ms pause between steps as the details metric.
+diff_key() { # $1 = plain pane capture; prints the diff pane's text (empty without a diff pane)
+  # C.UTF-8 so gawk and mawk both count characters; no bracket class on the box glyphs (bytes in a byte-based awk)
+  printf '%s\n' "$1" | LC_ALL=C.UTF-8 awk '
+    !found { i = index($0, "┬─ Diff"); if (i) { found = 1; col = i } next }
+    index($0, "└") == 1 || index($0, "├") == 1 || index($0, "╰") == 1 { exit }
+    { print substr($0, col + 1) }'
+}
+diff_ready() { # $1 = diff pane text before the key
   local cur
   cur="$(t capture-pane -t m -p)"
-  [ "$(printf '%s' "$cur" | grep -m1 -o 'Diff  [0-9a-f]\{7\}' || true)" != "$1" ] && ! printf '%s' "$cur" | grep -qF 'Loading...' && printf '%s' "$cur" | grep -qF '@@'
+  [ "$(diff_key "$cur")" != "$1" ] && ! printf '%s' "$cur" | grep -qF 'Loading...' && printf '%s' "$cur" | grep -qF '@@'
 }
 vals=""
-for _ in $(seq "$keys"); do
-  base="$(diff_hash)"
+keys_diff="$keys"
+if ! t capture-pane -t m -p | grep -qF '┬─ Diff'; then
+  # without a diff pane (a narrow terminal) every step would wait out its timeout
+  echo "no diff pane on screen; skipping the diff steps" >&2
+  keys_diff=0
+fi
+for _ in $(seq "$keys_diff"); do
+  base="$(diff_key "$(t capture-pane -t m -p)")"
   t0=$(now_us)
   t send-keys -t m j
   until diff_ready "$base"; do

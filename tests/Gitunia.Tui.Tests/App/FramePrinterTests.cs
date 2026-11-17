@@ -16,8 +16,7 @@ public class FramePrinterTests
     [Fact]
     public async Task GivenNoArrangementOnTheDetailsTab_WhenPrinting_ThenOnlyTheDetailPaneIsShown()
     {
-        using var repository = TestRepository.Create();
-        repository.Commit("root", new TestFile("a.txt", "one\n"));
+        using var repository = TestRepository.CreateCommitted("root", new TestFile("a.txt", "one\n"));
 
         var lines = await PrintAsync(repository, 100, 30, null, BottomTab.Details);
 
@@ -28,8 +27,7 @@ public class FramePrinterTests
     [Fact]
     public async Task GivenNoArrangementOnTheChangesTab_WhenPrinting_ThenTheDiffOfTheFirstFileSitsBesideTheFileList()
     {
-        using var repository = TestRepository.Create();
-        repository.Commit("root", new TestFile("a.txt", "one\n"));
+        using var repository = TestRepository.CreateCommitted("root", new TestFile("a.txt", "one\n"));
 
         var lines = await PrintAsync(repository, 100, 30, null);
 
@@ -40,8 +38,7 @@ public class FramePrinterTests
     [Fact]
     public async Task GivenANarrowScreenOnTheChangesTab_WhenPrinting_ThenTheDiffStaysClosed()
     {
-        using var repository = TestRepository.Create();
-        repository.Commit("root", new TestFile("a.txt", "one\n"));
+        using var repository = TestRepository.CreateCommitted("root", new TestFile("a.txt", "one\n"));
 
         var lines = await PrintAsync(repository, 71, 30, null);
 
@@ -53,8 +50,7 @@ public class FramePrinterTests
     [InlineData(100)]
     public async Task GivenAnOpenDiff_WhenPrinting_ThenFileListAndDiffRowsShareTheFrame(int width)
     {
-        using var repository = TestRepository.Create();
-        repository.Commit("root", new TestFile("a.txt", "one\n"));
+        using var repository = TestRepository.CreateCommitted("root", new TestFile("a.txt", "one\n"));
         repository.Commit("second", new TestFile("a.txt", "one\ntwo added\n"));
 
         var lines = await PrintAsync(repository, width, 30, new PaneArrangement(true, null));
@@ -66,8 +62,7 @@ public class FramePrinterTests
     [Fact]
     public async Task GivenAZoomedDiffOfARootCommit_WhenPrinting_ThenTheDiffFillsTheFrame()
     {
-        using var repository = TestRepository.Create();
-        repository.Commit("root", new TestFile("a.txt", "first line\n"));
+        using var repository = TestRepository.CreateCommitted("root", new TestFile("a.txt", "first line\n"));
 
         var lines = await PrintAsync(repository, 80, 24, new PaneArrangement(true, PaneKind.Diff), BottomTab.Details);
 
@@ -81,8 +76,7 @@ public class FramePrinterTests
     public async Task GivenAZoomOnTheChangesTabBesideTheDiff_WhenPrinting_ThenFileListAndDiffZoomTogether(
         PaneKind zoomed)
     {
-        using var repository = TestRepository.Create();
-        repository.Commit("root", new TestFile("a.txt", "one\n"));
+        using var repository = TestRepository.CreateCommitted("root", new TestFile("a.txt", "one\n"));
 
         var lines = await PrintAsync(repository, 100, 30, new PaneArrangement(false, zoomed));
 
@@ -98,8 +92,7 @@ public class FramePrinterTests
     public async Task GivenAZoomOnTheFilesTabBesideTheContent_WhenPrinting_ThenTreeAndContentZoomTogether(
         PaneKind zoomed)
     {
-        using var repository = TestRepository.Create();
-        repository.Commit("root", new TestFile("a.txt", "one\n"));
+        using var repository = TestRepository.CreateCommitted("root", new TestFile("a.txt", "one\n"));
 
         var lines = await PrintAsync(repository, 100, 30, new PaneArrangement(false, zoomed), BottomTab.Files);
 
@@ -114,8 +107,7 @@ public class FramePrinterTests
     [Fact]
     public async Task GivenTheFilesTabWithoutAZoom_WhenPrinting_ThenTheContentPaneSitsBesideTheTree()
     {
-        using var repository = TestRepository.Create();
-        repository.Commit("root", new TestFile("a.txt", "one\n"));
+        using var repository = TestRepository.CreateCommitted("root", new TestFile("a.txt", "one\n"));
 
         var wide = await PrintAsync(repository, 100, 30, null, BottomTab.Files);
         var narrow = await PrintAsync(repository, 60, 30, null, BottomTab.Files);
@@ -129,8 +121,7 @@ public class FramePrinterTests
     [Fact]
     public async Task GivenEachTab_WhenPrinting_ThenThePaneShowsThatTabsContent()
     {
-        using var repository = TestRepository.Create();
-        repository.Commit("root commit message", new TestFile("a.txt", "one\n"));
+        using var repository = TestRepository.CreateCommitted("root commit message", new TestFile("a.txt", "one\n"));
 
         var details = await PrintAsync(repository, 100, 30, null, BottomTab.Details);
         var changes = await PrintAsync(repository, 100, 30, null);
@@ -148,8 +139,7 @@ public class FramePrinterTests
     [Fact]
     public async Task GivenAnOpenDiffAndTheFilesTab_WhenPrinting_ThenTheTreeSitsBesideTheDiff()
     {
-        using var repository = TestRepository.Create();
-        repository.Commit("root", new TestFile("a.txt", "first line\n"));
+        using var repository = TestRepository.CreateCommitted("root", new TestFile("a.txt", "first line\n"));
 
         var lines = await PrintAsync(repository, 100, 30, new PaneArrangement(true, null), BottomTab.Files);
 
@@ -160,8 +150,7 @@ public class FramePrinterTests
     [Fact]
     public async Task GivenColours_WhenPrinting_ThenTheGraphRowHasTheFocusedTintAndTheSidebarCursorTheDimOne()
     {
-        using var repository = TestRepository.Create();
-        repository.Commit("root", new TestFile("a.txt", "one\n"));
+        using var repository = TestRepository.CreateCommitted("root", new TestFile("a.txt", "one\n"));
         repository.Branch("topic");
         var table = PaletteTable.For(PaletteSettings.Default);
 
@@ -179,8 +168,7 @@ public class FramePrinterTests
     [Fact]
     public async Task GivenNoColours_WhenPrinting_ThenTheFrameHasNoEscapeSequences()
     {
-        using var repository = TestRepository.Create();
-        repository.Commit("root", new TestFile("a.txt", "one\n"));
+        using var repository = TestRepository.CreateCommitted("root", new TestFile("a.txt", "one\n"));
 
         var lines = await PrintAsync(repository, 100, 30, null);
 

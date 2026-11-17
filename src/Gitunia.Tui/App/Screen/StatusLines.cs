@@ -1,7 +1,8 @@
-using Gitunia.Tui.Rendering.Panes;
+using Gitunia.Core.Editing;
 using Gitunia.Tui.App.Overlays;
 using Gitunia.Tui.App.Panes;
 using Gitunia.Tui.Input;
+using Gitunia.Tui.Rendering.Panes;
 
 namespace Gitunia.Tui.App.Screen;
 
@@ -13,11 +14,11 @@ namespace Gitunia.Tui.App.Screen;
 public sealed record StatusLines(StatusHints Hints, PromptDisplays Prompts, PopupFrames Popups, RepeatController Repeat)
 {
     /// <summary>The line of the open prompt, else the popup's fallback.</summary>
-    public string SearchLine()
+    public PromptLine SearchLine()
     {
         var line = Prompts.StatusLine();
 
-        return line.Length > 0 ? line : Popups.PopupFallbackLine();
+        return !line.IsEmpty ? line : Popups.PopupFallbackLine();
     }
 
     /// <summary>The key hints to show now.</summary>

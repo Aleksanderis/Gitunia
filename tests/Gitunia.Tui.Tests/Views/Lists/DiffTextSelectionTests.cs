@@ -9,7 +9,6 @@ using Gitunia.Tui.Views.Lists;
 using Gitunia.Tui.Views.Theme;
 using Terminal.Gui.App;
 using Terminal.Gui.Drawing;
-using Terminal.Gui.Drivers;
 using Terminal.Gui.ViewBase;
 using Terminal.Gui.Views;
 using Xunit;
@@ -78,8 +77,8 @@ public class DiffTextSelectionTests
     [Fact]
     public void GivenASelectionInsideOneRow_WhenDrawn_ThenOnlyThoseCharactersHaveTheRangeTint()
     {
-        using var application = Application.Create();
-        application.Init(DriverRegistry.Names.ANSI);
+        using var headless = new HeadlessApplication();
+        var application = headless.Application;
         application.Driver!.SetScreenSize(Columns, Rows);
         using var source = NewSource();
         source.Range = new RowRange(0, 0);
@@ -100,8 +99,8 @@ public class DiffTextSelectionTests
     [Fact]
     public void GivenASelectionOverSeveralRows_WhenDrawn_ThenTheFirstRowStartsAtItsColumnAndTheLastEndsAtItsColumn()
     {
-        using var application = Application.Create();
-        application.Init(DriverRegistry.Names.ANSI);
+        using var headless = new HeadlessApplication();
+        var application = headless.Application;
         application.Driver!.SetScreenSize(Columns, Rows);
         using var source = NewSource();
         source.Range = new RowRange(0, 2);
@@ -125,8 +124,8 @@ public class DiffTextSelectionTests
     [Fact]
     public void GivenATabInTheSelection_WhenDrawn_ThenItsExpandedColumnsAreTinted()
     {
-        using var application = Application.Create();
-        application.Init(DriverRegistry.Names.ANSI);
+        using var headless = new HeadlessApplication();
+        var application = headless.Application;
         application.Driver!.SetScreenSize(Columns, Rows);
         using var source = NewSource();
         source.Range = new RowRange(1, 1);

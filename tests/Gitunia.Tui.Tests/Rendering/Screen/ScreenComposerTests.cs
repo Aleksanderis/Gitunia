@@ -1,3 +1,4 @@
+using Gitunia.Core.Editing;
 using Gitunia.Core.Graph;
 using Gitunia.Core.Status;
 using Gitunia.Tui.Rendering.Graph;
@@ -21,6 +22,53 @@ public class ScreenComposerTests
         CommitFactory.Commit(2, "main work", [1]),
         CommitFactory.Commit(3, "side work", [1]),
         CommitFactory.Commit(1, "root", []));
+
+    [Fact]
+    public void GivenAFindBarBeingTyped_WhenDrawingTheStatusBar_ThenTheCaretIsACursorCellInTheText()
+    {
+        var model = Model(1, 4) with { SearchLine = new PromptLine("/", "fix", 1, "  2/3") };
+
+        var line = ChromeBuilder.Status(model, 80, GraphGlyphSet.Unicode);
+
+        Assert.Contains(" /fix  2/3 ", line.Text, StringComparison.Ordinal);
+        Assert.Equal("i", CursorCell.Of(line));
+    }
+
+    [Fact]
+    public void GivenAFindBarWithTheCaretAtTheEnd_WhenDrawingTheStatusBar_ThenTheCursorCellIsABlankAfterTheText()
+    {
+        var model = Model(1, 4) with { SearchLine = new PromptLine("/", "fix", PromptCaret.End, "  2/3") };
+
+        var line = ChromeBuilder.Status(model, 80, GraphGlyphSet.Unicode);
+
+        Assert.Contains(" /fix   2/3 ", line.Text, StringComparison.Ordinal);
+        Assert.Equal(" ", CursorCell.Of(line));
+    }
+
+    [Theory]
+    [InlineData(12, 3)]
+    [InlineData(12, PromptCaret.End)]
+    [InlineData(20, 0)]
+    public void GivenAFindBarLongerThanTheScreen_WhenDrawingTheStatusBar_ThenTheLineFitsAndTheCursorCellStays(int width, int caret)
+    {
+        var model = Model(1, 4) with { SearchLine = new PromptLine("/", "abcdefghijklmnopqrstuvwxyz", caret, "  2/3") };
+
+        var line = ChromeBuilder.Status(model, width, GraphGlyphSet.Unicode);
+
+        Assert.True(TextWidth.Of(line.Text) <= width);
+        var cursor = CursorCell.Of(line);
+        Assert.Equal(caret == PromptCaret.End ? " " : "abcdefghijklmnopqrstuvwxyz"[caret].ToString(), cursor);
+    }
+
+    [Fact]
+    public void GivenAnAppliedFindBar_WhenDrawingTheStatusBar_ThenThereIsNoCursorCell()
+    {
+        var model = Model(1, 4) with { SearchLine = new PromptLine("/", "fix", null, "  2/3") };
+
+        var line = ChromeBuilder.Status(model, 80, GraphGlyphSet.Unicode);
+
+        Assert.Equal(string.Empty, CursorCell.Of(line));
+    }
 
     [Fact]
     public void GivenNoRepositoryName_WhenComposing_ThenSidebarTitleFallsBackToRepository()

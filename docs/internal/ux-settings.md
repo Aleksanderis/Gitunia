@@ -39,6 +39,7 @@ The set of categories and settings is the table below; the screen is generated f
 |---|---|---|---|---|
 | Appearance | Theme | choice list with live preview | `theme` | #47, #61 |
 | Appearance | Branch label caps | choice (none, rounded, angled) | `labelCaps` | #851 |
+| Appearance | Graph line style | choice (light, heavy) | `laneStyle` | owner request |
 | Tabs | Show branch in tab name | toggle | `tabs.showBranch` | #453 |
 | Repositories | Scan roots | path list | `scanRoots` | #453 |
 | Keys | Which-key popup | choice (on, off) | `hints.whichKey` | #837 |

@@ -14,7 +14,6 @@ using Gitunia.Tui.Views.Lists;
 using Gitunia.Tui.Views.Theme;
 using Terminal.Gui.App;
 using Terminal.Gui.Drawing;
-using Terminal.Gui.Drivers;
 using Terminal.Gui.ViewBase;
 using Terminal.Gui.Views;
 using Xunit;
@@ -39,8 +38,8 @@ public class DiffWrappedSelectionDrawTests
     [Fact]
     public void GivenASelectionAcrossAWrappedRowsBreak_WhenDrawn_ThenBothLinesAreTintedOnlyWhereTheCharactersAre()
     {
-        using var application = Application.Create();
-        application.Init(DriverRegistry.Names.ANSI);
+        using var headless = new HeadlessApplication();
+        var application = headless.Application;
         application.Driver!.SetScreenSize(Columns, Rows);
         using var source = new DiffListSource(GraphGlyphSet.Unicode);
         source.Update(Document(new DiffRow(DiffRowKind.Context, new string('x', 100), 1, 1, 0)));
@@ -68,8 +67,8 @@ public class DiffWrappedSelectionDrawTests
     [Fact]
     public void GivenASelectionOnTheNewSideOfTheSideBySideView_WhenDrawn_ThenOnlyTheNewHalfIsTinted()
     {
-        using var application = Application.Create();
-        application.Init(DriverRegistry.Names.ANSI);
+        using var headless = new HeadlessApplication();
+        var application = headless.Application;
         application.Driver!.SetScreenSize(Columns, Rows);
         using var source = new DiffListSource(GraphGlyphSet.Unicode);
         source.Update(Document(
@@ -96,8 +95,8 @@ public class DiffWrappedSelectionDrawTests
     [Fact]
     public void GivenASelectionOnTheOldSideOfTheSideBySideView_WhenDrawn_ThenOnlyTheOldHalfIsTinted()
     {
-        using var application = Application.Create();
-        application.Init(DriverRegistry.Names.ANSI);
+        using var headless = new HeadlessApplication();
+        var application = headless.Application;
         application.Driver!.SetScreenSize(Columns, Rows);
         using var source = new DiffListSource(GraphGlyphSet.Unicode);
         source.Update(Document(
@@ -125,8 +124,8 @@ public class DiffWrappedSelectionDrawTests
     [Fact]
     public void GivenASelectionInTheDetailsTab_WhenDrawn_ThenOnlyThoseCharactersHaveTheRangeTint()
     {
-        using var application = Application.Create();
-        application.Init(DriverRegistry.Names.ANSI);
+        using var headless = new HeadlessApplication();
+        var application = headless.Application;
         application.Driver!.SetScreenSize(Columns, Rows);
         using var source = new DetailListSource(GraphGlyphSet.Unicode);
         source.Update(new DetailContent(

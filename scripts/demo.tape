@@ -3,8 +3,8 @@ Output demo.gif
 Output demo.webm
 Set Shell "bash"
 Set FontSize 16
-Set Width 1400
-Set Height 760
+Set Width 1800
+Set Height 1000
 Set Padding 8
 Set Framerate 20
 Set TypingSpeed 70ms

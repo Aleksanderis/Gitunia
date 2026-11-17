@@ -1,4 +1,5 @@
 using Gitunia.App;
+using Gitunia.Core.Editing;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Pick;
@@ -21,13 +22,13 @@ public sealed class PickActions(Dispatcher host, IPickSelectionSource selection)
     : IActionHandler, ITextKeyHandler, IPromptDisplay
 {
     /// <summary>The mainline question as a status line, for a screen too small for the overlay.</summary>
-    public string StatusLine
+    public PromptLine StatusLine
     {
         get
         {
             if (OpenQuestion() is not { } question)
             {
-                return string.Empty;
+                return PromptLine.Empty;
             }
 
             return PickTexts.MainlinePrompt(question.Kind, question.Merge);

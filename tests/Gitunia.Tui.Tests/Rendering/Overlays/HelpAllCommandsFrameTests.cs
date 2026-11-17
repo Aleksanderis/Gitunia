@@ -1,10 +1,12 @@
 using Gitunia.Core.Config;
 using Gitunia.Core.Config.Models;
+using Gitunia.Core.Editing;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Overlays;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Overlays;
+using Gitunia.Tui.Rendering.Styling;
 using Xunit;
 
 namespace Gitunia.Tui.Tests.Rendering.Overlays;
@@ -138,16 +140,21 @@ public class HelpAllCommandsFrameTests
             HelpText(Table, "Commands", 80));
     }
 
+    private static string TitleCursor(StyledLine line) =>
+        string.Concat(line.Segments.Where(segment => segment.Role == SegmentRole.TitleCursor).Select(segment => segment.Text));
+
     [Fact]
     public void GivenAFilterBeingTyped_WhenRendering_ThenTheTitleShowsItWithACursorAndTheFooterOffersEnterAndEsc()
     {
         var page = HelpBuilder.Filter(HelpBuilder.Build(Table, DefaultKeymap.GraphView), "<space>gc");
 
-        var lines = HelpFrameBuilder.Build(
+        var frame = HelpFrameBuilder.Build(
             [page], 0, DefaultKeymap.GraphView, 0, 80, ScreenHeight, GraphGlyphSet.Unicode,
-            filter: "<space>gc", isEditingFilter: true)!.Lines.Select(line => line.Text).ToList();
+            filter: "<space>gc", isEditingFilter: true)!;
+        var lines = frame.Lines.Select(line => line.Text).ToList();
 
-        Assert.Equal(" Keys: Graph  / <space>gc_".PadRight(lines[0].Length), lines[0]);
+        Assert.Equal(" Keys: Graph  / <space>gc ".PadRight(lines[0].Length), lines[0]);
+        Assert.Equal(" ", TitleCursor(frame.Lines[0]));
         Assert.Contains("Esc clear filter  Enter keep filter", lines[^2]);
         Assert.Contains(lines, line => line.Contains("<space>gc"));
         Assert.DoesNotContain(lines, line => line.Contains("<space>gd"));
@@ -158,11 +165,42 @@ public class HelpAllCommandsFrameTests
     {
         var page = HelpBuilder.Filter(HelpBuilder.Build(Table, DefaultKeymap.GraphView), "gc");
 
-        var lines = HelpFrameBuilder.Build(
+        var frame = HelpFrameBuilder.Build(
             [page], 0, DefaultKeymap.GraphView, 0, 80, ScreenHeight, GraphGlyphSet.Unicode,
-            filter: "gc", isEditingFilter: true, filterCaret: 1)!.Lines.Select(line => line.Text).ToList();
+            filter: "gc", isEditingFilter: true, filterCaret: 1)!;
 
-        Assert.Equal(" Keys: Graph  / g|c".PadRight(lines[0].Length), lines[0]);
+        Assert.Equal(" Keys: Graph  / gc".PadRight(frame.Lines[0].Text.Length), frame.Lines[0].Text);
+        Assert.Equal("c", TitleCursor(frame.Lines[0]));
+    }
+
+    [Theory]
+    [InlineData(40, 5)]
+    [InlineData(40, PromptCaret.End)]
+    [InlineData(30, 0)]
+    public void GivenALongFilterOnANarrowScreen_WhenRendering_ThenTheTitleFitsAndKeepsTheCursorCell(int width, int caret)
+    {
+        const string typed = "abcdefghijklmnopqrstuvwxyzabcdefghij";
+        var page = HelpBuilder.Filter(HelpBuilder.Build(Table, DefaultKeymap.GraphView), typed);
+
+        var frame = HelpFrameBuilder.Build(
+            [page], 0, DefaultKeymap.GraphView, 0, width, ScreenHeight, GraphGlyphSet.Unicode,
+            filter: typed, isEditingFilter: true, filterCaret: caret)!;
+
+        Assert.True(TextWidth.Of(frame.Lines[0].Text) <= width);
+        var expected = caret == PromptCaret.End ? " " : typed[caret].ToString();
+        Assert.Equal(expected, TitleCursor(frame.Lines[0]));
+    }
+
+    [Fact]
+    public void GivenAKeptFilter_WhenRendering_ThenTheTitleHasNoCursorCell()
+    {
+        var page = HelpBuilder.Filter(HelpBuilder.Build(Table, DefaultKeymap.GraphView), "gc");
+
+        var frame = HelpFrameBuilder.Build(
+            [page], 0, DefaultKeymap.GraphView, 0, 80, ScreenHeight, GraphGlyphSet.Unicode,
+            filter: "gc", isEditingFilter: false)!;
+
+        Assert.Equal(string.Empty, TitleCursor(frame.Lines[0]));
     }
 
     [Fact]

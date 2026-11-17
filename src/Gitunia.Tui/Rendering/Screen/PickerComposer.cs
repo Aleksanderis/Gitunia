@@ -1,5 +1,4 @@
 using System.Globalization;
-using Gitunia.Core.Editing;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Picker;
@@ -129,8 +128,8 @@ public static class PickerComposer
     private static StyledLine QueryLine(PickerState picker, int width, GraphGlyphSet glyphs, bool withHint, ChipKeys? keys)
     {
         var builder = new LineBuilder(width, glyphs.Ellipsis)
-            .Append($" {glyphs.Picker.Prompt} ", SegmentRole.SectionTitle)
-            .Append(PromptCaret.Mark(picker.Query, picker.Caret, Math.Max(1, width - 3)), SegmentRole.Plain);
+            .Append($" {glyphs.Picker.Prompt} ", SegmentRole.SectionTitle);
+        new CaretField(string.Empty, picker.Query, picker.Caret).AppendTo(builder, SegmentRole.Plain);
         if (picker.Query.Length == 0)
         {
             builder.Append($" {QueryPlaceholder}", SegmentRole.Faint);

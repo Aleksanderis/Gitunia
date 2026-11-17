@@ -19,6 +19,7 @@ public static class OptionsConfigurator
     private const string CopyOnSelectKey = "copyOnSelect";
     private const string UpdateCheckKey = "updateCheck";
     private const string LabelCapsKey = "labelCaps";
+    private const string LaneStyleKey = "laneStyle";
     private const string CommandLevelKey = "commandLevel";
     private const string HintsKey = "hints";
     private const string WhichKeyKey = "hints.whichKey";
@@ -49,7 +50,8 @@ public static class OptionsConfigurator
             ParseStatusBar(document.Hints, problems),
             ParseCommandLevel(document.CommandLevel, problems),
             ParseCopyOnSelect(document.CopyOnSelect, problems),
-            ParseUpdateCheck(document.UpdateCheck, problems));
+            ParseUpdateCheck(document.UpdateCheck, problems),
+            ParseLaneStyle(document.LaneStyle, problems));
 
     /// <summary>
     /// The <c>commandLevel</c> option (#839): everyday (default), advanced or advanced+, any case; anything else is
@@ -187,6 +189,30 @@ public static class OptionsConfigurator
         problems.Add(new ConfigProblem(LabelCapsKey, "labelCaps must be none, rounded or angled, using rounded"));
 
         return LabelCapStyle.Rounded;
+    }
+
+    /// <summary>The <c>laneStyle</c> option: light (default) or heavy (any case); anything else is reported and gives light.</summary>
+    public static LaneStyle ParseLaneStyle(JsonElement? value, ICollection<ConfigProblem> problems)
+    {
+        if (value is null or { ValueKind: JsonValueKind.Null })
+        {
+            return LaneStyle.Light;
+        }
+
+        var text = value.Value.ValueKind == JsonValueKind.String ? value.Value.GetString() : null;
+        if (string.Equals(text, "light", StringComparison.OrdinalIgnoreCase))
+        {
+            return LaneStyle.Light;
+        }
+
+        if (string.Equals(text, "heavy", StringComparison.OrdinalIgnoreCase))
+        {
+            return LaneStyle.Heavy;
+        }
+
+        problems.Add(new ConfigProblem(LaneStyleKey, "laneStyle must be light or heavy, using light"));
+
+        return LaneStyle.Light;
     }
 
     /// <summary>The <c>copyOnSelect</c> flag: on unless the file says false; anything but true or false gives true.</summary>

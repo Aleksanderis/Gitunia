@@ -1,4 +1,5 @@
 using Gitunia.Core.Config.Models;
+using Gitunia.Core.Editing;
 using Gitunia.Core.Settings;
 using Gitunia.Core.Settings.Models;
 using Gitunia.Tui.Rendering.Graph;
@@ -13,6 +14,28 @@ public class SettingsFrameBuilderTests
     private const string Home = "/home/user";
 
     [Fact]
+    public void GivenTheFilterIsBeingTyped_WhenRendering_ThenTheCursorCellCoversTheCharacterUnderTheCaret()
+    {
+        var state = Open().WithFilterText("them", 2) with { IsEditingFilter = true };
+
+        var frame = SettingsFrameBuilder.Build(state, 80, 15, GraphGlyphSet.Unicode)!;
+
+        Assert.Contains("› them", frame.Lines[1].Text, StringComparison.Ordinal);
+        Assert.Equal("e", CursorCell.Of(frame.Lines[1]));
+    }
+
+    [Fact]
+    public void GivenTheFilterIsBeingTypedOnAnAsciiTerminal_WhenRendering_ThenThePromptIsAGreaterThanSign()
+    {
+        var state = Open().WithFilterText("them", 2) with { IsEditingFilter = true };
+
+        var frame = SettingsFrameBuilder.Build(state, 80, 15, GraphGlyphSet.Ascii)!;
+
+        Assert.Contains("> them", frame.Lines[1].Text, StringComparison.Ordinal);
+        Assert.Equal("e", CursorCell.Of(frame.Lines[1]));
+    }
+
+    [Fact]
     public void GivenTheDefaultSettings_WhenRenderingAt80x15_ThenTheCategoriesAndTheFirstSettingsShow()
     {
         var frame = SettingsFrameBuilder.Build(Open(), 80, 15, GraphGlyphSet.Unicode)!;
@@ -24,7 +47,7 @@ public class SettingsFrameBuilderTests
                 "│ / filter                                                                   │",
                 "│  Appearance    │  Theme                                           [auto ▾] │",
                 "│  Keys          │  Branch label caps                            [rounded ▾] │",
-                "│  Key mapping   │                                                           │",
+                "│  Key mapping   │  Graph line style                               [light ▾] │",
                 "│  Repositories  │                                                           │",
                 "│  Tabs          │                                                           │",
                 "│  Updates       │                                                           │",
@@ -72,7 +95,7 @@ public class SettingsFrameBuilderTests
         var state = Open().WithLayout(collapsed: true);
 
         var frame = SettingsFrameBuilder.Build(state, 60, 24, GraphGlyphSet.Unicode)!;
-        var body = frame.Lines.Skip(2).Take(12).Select(line => line.Text).ToList();
+        var body = frame.Lines.Skip(2).Take(13).Select(line => line.Text).ToList();
 
         Assert.Contains(body, line => line.Contains("Appearance", StringComparison.Ordinal));
         Assert.Contains(body, line => line.Contains("Tabs", StringComparison.Ordinal));
@@ -149,6 +172,85 @@ public class SettingsFrameBuilderTests
     }
 
     [Fact]
+    public void GivenANumberBeingTyped_WhenRendering_ThenTheCaretIsACursorCellOnTheCharacterUnderIt()
+    {
+        var definition = new SettingDefinition(
+            "page-size",
+            SettingCategory.Git,
+            "Page size",
+            SettingControl.Number,
+            ["pageSize"],
+            "How many rows a page has.",
+            "10",
+            [],
+            Minimum: 5,
+            Maximum: 50,
+            Step: 5);
+        var load = SettingsValueReader.Read(new ConfigSnapshot(true, "{}", "hash"), Home, _ => true);
+        var state = SettingsState.Create([.. SettingsRegistry.All, definition], load).Reveal(definition);
+        var typing = Reduce(state, SettingsCommandKind.Activate).WithInputText("25", 0);
+
+        var frame = SettingsFrameBuilder.Build(typing, 100, 30, GraphGlyphSet.Unicode)!;
+        var row = frame.Lines.First(line => line.Text.Contains("Page size", StringComparison.Ordinal));
+
+        Assert.Contains("[25]", row.Text, StringComparison.Ordinal);
+        Assert.Equal("2", string.Concat(row.Segments.Where(segment => segment.Role == SegmentRole.TitleCursor).Select(segment => segment.Text)));
+        Assert.All(row.Segments.Where(segment => segment.Role == SegmentRole.TitleCursor), segment => Assert.Equal(SegmentSelection.Inherit, segment.Selection));
+    }
+
+    [Theory]
+    [InlineData("25", 0, 40)]
+    [InlineData("123456789012345678901234567890123456789012345678901234567890", 0, 40)]
+    [InlineData("123456789012345678901234567890123456789012345678901234567890", PromptCaret.End, 40)]
+    [InlineData("123456789012345678901234567890123456789012345678901234567890", 30, 40)]
+    [InlineData("25", 0, 100)]
+    [InlineData("123456789012345678901234567890123456789012345678901234567890", 0, 100)]
+    [InlineData("123456789012345678901234567890123456789012345678901234567890", PromptCaret.End, 100)]
+    [InlineData("123456789012345678901234567890123456789012345678901234567890", 30, 100)]
+    [InlineData("25", 0, 101)]
+    [InlineData("123456789012345678901234567890123456789012345678901234567890", 0, 101)]
+    [InlineData("123456789012345678901234567890123456789012345678901234567890", PromptCaret.End, 101)]
+    [InlineData("123456789012345678901234567890123456789012345678901234567890", 30, 101)]
+    public void GivenANumberBeingTyped_WhenHittingItsFirstDrawnColumn_ThenTheControlIsHitAndOneLeftIsTheRow(string text, int caret, int width)
+    {
+        var state = TypingNumber(text, caret);
+        var frame = SettingsFrameBuilder.Build(state, width, 30, GraphGlyphSet.Unicode)!;
+        var lineIndex = frame.Lines.ToList().FindIndex(line => line.Text.Contains("Page size", StringComparison.Ordinal));
+        var controlStart = frame.Lines[lineIndex].Text.IndexOf("  [", StringComparison.Ordinal) + 2;
+        Assert.StartsWith("[", frame.Lines[lineIndex].Text[controlStart..], StringComparison.Ordinal);
+
+        var onControl = SettingsFrameBuilder.HitAt(state, controlStart, lineIndex, width, 30, GraphGlyphSet.Unicode);
+        var beforeControl = SettingsFrameBuilder.HitAt(state, controlStart - 1, lineIndex, width, 30, GraphGlyphSet.Unicode);
+
+        var lastColumn = frame.Lines[lineIndex].Text.TrimEnd().TrimEnd('│').TrimEnd().Length - 1;
+        var onLastColumn = SettingsFrameBuilder.HitAt(state, lastColumn, lineIndex, width, 30, GraphGlyphSet.Unicode);
+
+        Assert.Equal(SettingsHitKind.Control, onControl.Kind);
+        Assert.Equal(SettingsHitKind.Row, beforeControl.Kind);
+        Assert.Equal(SettingsHitKind.Control, onLastColumn.Kind);
+    }
+
+    private static SettingsState TypingNumber(string text, int caret)
+    {
+        var definition = new SettingDefinition(
+            "page-size",
+            SettingCategory.Git,
+            "Page size",
+            SettingControl.Number,
+            ["pageSize"],
+            "How many rows a page has.",
+            "10",
+            [],
+            Minimum: 5,
+            Maximum: 50,
+            Step: 5);
+        var load = SettingsValueReader.Read(new ConfigSnapshot(true, "{}", "hash"), Home, _ => true);
+        var state = SettingsState.Create([.. SettingsRegistry.All, definition], load).Reveal(definition);
+
+        return Reduce(state, SettingsCommandKind.Activate).WithInputText(text, caret);
+    }
+
+    [Fact]
     public void GivenAFolderBeingTyped_WhenRendering_ThenTheTextAndACursorShowOnTheNewRow()
     {
         var adding = Reduce(Open().Reveal(Definition(SettingsRegistry.ScanRootsId)), SettingsCommandKind.Add);
@@ -156,7 +258,8 @@ public class SettingsFrameBuilderTests
 
         var frame = SettingsFrameBuilder.Build(typing, 100, 30, GraphGlyphSet.Unicode)!;
 
-        Assert.Contains("> /sr_", frame.Lines[3].Text, StringComparison.Ordinal);
+        Assert.Contains("> /sr ", frame.Lines[3].Text, StringComparison.Ordinal);
+        Assert.Equal(" ", string.Concat(frame.Lines[3].Segments.Where(segment => segment.Role == SegmentRole.TitleCursor).Select(segment => segment.Text)));
         Assert.Contains("Enter save  Esc cancel", frame.Lines[^2].Text, StringComparison.Ordinal);
     }
 
@@ -226,7 +329,7 @@ public class SettingsFrameBuilderTests
 
         var frame = SettingsFrameBuilder.Build(accepted, 100, 30, GraphGlyphSet.Unicode)!;
 
-        Assert.Contains("/tab  1 match", frame.Lines[1].Text, StringComparison.Ordinal);
+        Assert.Contains("› tab  1 match", frame.Lines[1].Text, StringComparison.Ordinal);
         Assert.Contains("Tabs: Show branch in tab name", frame.Lines[2].Text, StringComparison.Ordinal);
     }
 

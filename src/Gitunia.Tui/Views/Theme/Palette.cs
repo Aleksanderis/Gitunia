@@ -185,6 +185,11 @@ public static class Palette
             SegmentRole.StatusOperation =>
                 new RoleAppearance(colors.ChipForeground, colors.Warn, colors.ChipStyle, true),
             SegmentRole.StatusMode or SegmentRole.ActiveTab or SegmentRole.OverlayTitle or SegmentRole.Cursor or SegmentRole.JumpLabel => new RoleAppearance(colors.ChipForeground, colors.ChipBackground, colors.ChipStyle, true),
+            SegmentRole.TitleCursor => new RoleAppearance(
+                colors.ChipBackground,
+                colors.ChipForeground,
+                colors.ChipStyle & ~TextStyle.Reverse,
+                true),
             SegmentRole.RepositoryTab => new RoleAppearance(Color.None, colors.TabButtonBackground, colors.SelectionDimStyle, true),
             SegmentRole.RepositoryTabKey =>
                 new RoleAppearance(

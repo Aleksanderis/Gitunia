@@ -9,6 +9,7 @@ using Xunit;
 
 namespace Gitunia.Git.Tests.Watching;
 
+[Collection(RealFileWatchersGroup.Name)]
 public class RepositoryWatcherTests
 {
     private const int MaximumLateEvents = 10;
@@ -22,7 +23,6 @@ public class RepositoryWatcherTests
         TimeSpan.FromMilliseconds(60));
 
     private static readonly TimeSpan ConditionTimeout = TimeSpan.FromSeconds(30);
-    private static readonly TimeSpan PollInterval = TimeSpan.FromMilliseconds(20);
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
@@ -250,7 +250,7 @@ public class RepositoryWatcherTests
         for (var attempt = 0; attempt < MaximumLateEvents && !HasSeenRefs(recorder); attempt++)
         {
             watcher.SetActive(false);
-            await WaitUntilAsync(() => watcher.IsStale || HasSeenRefs(recorder));
+            await WatcherWait.UntilAsync(() => watcher.IsStale || HasSeenRefs(recorder));
             watcher.SetActive(true);
         }
 
@@ -366,7 +366,7 @@ public class RepositoryWatcherTests
         Assert.Equal(before, recorder.CallCount);
         Assert.False(watcher.IsStale);
         watcher.SetActive(true);
-        await WaitUntilAsync(() => recorder.CallCount > before);
+        await WatcherWait.UntilAsync(() => recorder.CallCount > before);
     }
 
     [Fact]
@@ -378,7 +378,7 @@ public class RepositoryWatcherTests
         using var watcher = new RepositoryWatcher(location, new WatchBudget(0), FastOptions);
         watcher.Changed += recorder.Record;
         watcher.Start();
-        await WaitUntilAsync(() => recorder.CallCount > 0);
+        await WatcherWait.UntilAsync(() => recorder.CallCount > 0);
         await Task.Delay(TimeSpan.FromMilliseconds(300), Token);
         var before = recorder.CallCount;
 
@@ -386,7 +386,7 @@ public class RepositoryWatcherTests
 
         Assert.Equal(before, recorder.CallCount);
         watcher.RecordRefresh(TimeSpan.Zero, false);
-        await WaitUntilAsync(() => recorder.CallCount > before);
+        await WatcherWait.UntilAsync(() => recorder.CallCount > before);
     }
 
     [Fact]
@@ -508,16 +508,6 @@ public class RepositoryWatcherTests
     }
 
     private static bool HasSeenRefs(ChangeRecorder recorder) => recorder.Seen.HasFlag(RepositoryChangeKinds.Refs);
-
-    private static async Task WaitUntilAsync(Func<bool> condition)
-    {
-        var deadline = DateTime.UtcNow + ConditionTimeout;
-        while (!condition())
-        {
-            Assert.True(DateTime.UtcNow < deadline, "Condition not reached in time.");
-            await Task.Delay(PollInterval, Token);
-        }
-    }
 
     private static async Task RunGitAsync(string path, params string[] arguments)
     {

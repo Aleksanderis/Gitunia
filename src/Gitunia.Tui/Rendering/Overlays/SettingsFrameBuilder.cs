@@ -1,5 +1,4 @@
 using System.Globalization;
-using Gitunia.Core.Editing;
 using Gitunia.Core.Settings;
 using Gitunia.Core.Settings.Models;
 using Gitunia.Tui.Rendering.Graph;
@@ -174,11 +173,7 @@ public static class SettingsFrameBuilder
 
         var rowIndex = entries[index].RowIndex;
         var row = state.Rows[rowIndex];
-        var right = SettingsRowText.FitRight(
-            SettingsRowText.Of(state, row, glyphs).Right,
-            layout.SettingsWidth,
-            glyphs.Ellipsis);
-        var rightWidth = TextWidth.Of(right);
+        var rightWidth = TextWidth.Of(RightLine(SettingsRowText.Of(state, row, glyphs), layout.SettingsWidth, glyphs).Text);
         var rightStart = layout.SettingsWidth - rightWidth - 1;
         if (rightWidth == 0 || x < rightStart)
         {
@@ -200,7 +195,7 @@ public static class SettingsFrameBuilder
     {
         if (state.IsEditingFilter)
         {
-            return OverlayBox.Text($"/{PromptCaret.Mark(state.Filter, state.FilterCaret)}", layout.Width, glyphs);
+            return OverlayBox.Input(new CaretField($"{glyphs.Picker.Prompt} ", state.Filter, state.FilterCaret), layout.Width, glyphs);
         }
 
         if (state.IsReadOnly)
@@ -213,7 +208,7 @@ public static class SettingsFrameBuilder
             var count = state.Rows.Count(
                 row => row.Definition.Control != SettingControl.KeyReference || row.Kind == SettingRowKind.Binding);
             var noun = count == 1 ? "match" : "matches";
-            var text = string.Create(CultureInfo.InvariantCulture, $"/{state.Filter}  {count} {noun}");
+            var text = string.Create(CultureInfo.InvariantCulture, $"{glyphs.Picker.Prompt} {state.Filter}  {count} {noun}");
 
             return OverlayBox.Text(text, layout.Width, glyphs);
         }
@@ -305,7 +300,7 @@ public static class SettingsFrameBuilder
             selection = ColumnSelection(state, SettingsColumn.Settings);
         }
 
-        return Cell(text.Marker, text.Left, text.Right, width, selection, glyphs, SegmentRole.Plain);
+        return Cell(text, width, selection, glyphs);
     }
 
     private static SegmentSelection ColumnSelection(SettingsState state, SettingsColumn column)
@@ -315,7 +310,6 @@ public static class SettingsFrameBuilder
         return focused ? SegmentSelection.Focused : SegmentSelection.Dim;
     }
 
-    // One cell of exactly the given width: the marker, the label, the control pushed to the right edge.
     private static IReadOnlyList<StyledSegment> Cell(
         string marker,
         string left,
@@ -323,24 +317,66 @@ public static class SettingsFrameBuilder
         int width,
         SegmentSelection selection,
         GraphGlyphSet glyphs,
-        SegmentRole leftRole)
+        SegmentRole leftRole) =>
+        Cell(new SettingsRowText(marker, left, right), width, selection, glyphs, leftRole);
+
+    // One cell of exactly the given width: the marker, the label, the control pushed to the right edge. A field being
+    // typed (folder or number) draws its caret as a cursor cell.
+    private static IReadOnlyList<StyledSegment> Cell(
+        SettingsRowText text,
+        int width,
+        SegmentSelection selection,
+        GraphGlyphSet glyphs,
+        SegmentRole leftRole = SegmentRole.Plain)
     {
-        var rightFitted = SettingsRowText.FitRight(right, width, glyphs.Ellipsis);
-        var rightWidth = TextWidth.Of(rightFitted);
+        var rightLine = RightLine(text, width, glyphs);
+        var rightWidth = TextWidth.Of(rightLine.Text);
         var trailing = rightWidth > 0 ? " " : string.Empty;
         var room = Math.Max(0, width - 1 - rightWidth - trailing.Length - (rightWidth > 0 ? 1 : 0));
-        var leftFitted = TextWidth.Fit($" {left}", room, glyphs.Ellipsis);
-        var gap = Math.Max(0, width - 1 - TextWidth.Of(leftFitted) - rightWidth - trailing.Length);
-        var markerRole = marker == SettingsRowText.Warning ? SegmentRole.Error : leftRole;
+        var leftLine = FieldLine(text.LeftField, $" {text.Left}", room, glyphs, leftRole, " ");
+        var gap = Math.Max(0, width - 1 - TextWidth.Of(leftLine.Text) - rightWidth - trailing.Length);
+        var markerRole = text.Marker == SettingsRowText.Warning ? SegmentRole.Error : leftRole;
         var line = new LineBuilder(width, glyphs.Ellipsis)
-            .Append(marker, markerRole)
-            .Append(leftFitted, leftRole)
+            .Append(text.Marker, markerRole)
+            .Append(leftLine)
             .Append(new string(' ', gap), leftRole)
-            .Append(rightFitted, SegmentRole.Plain)
+            .Append(rightLine)
             .Append(trailing, SegmentRole.Plain)
             .Build(leftRole);
 
-        return [.. line.Segments.Select(segment => segment with { Selection = selection })];
+        return [.. line.Segments.Select(segment => Selected(segment, selection))];
+    }
+
+    // The control as drawn, at most half of the column: the click target is measured from this same line, so a number
+    // being typed (cut around its cursor cell) and a wide plain control both match what is on screen.
+    private static StyledLine RightLine(SettingsRowText text, int width, GraphGlyphSet glyphs) =>
+        FieldLine(text.RightField, text.Right, Math.Max(0, width / 2), glyphs, SegmentRole.Plain);
+
+    // The cursor cell of a typed field sits on the selected row: it is the swapped chip and takes no selection style,
+    // so without colour it is the one cell that is not inverse video.
+    private static StyledSegment Selected(StyledSegment segment, SegmentSelection selection) =>
+        segment.Role == SegmentRole.Cursor
+            ? segment with { Role = SegmentRole.TitleCursor }
+            : segment with { Selection = selection };
+
+    // The text cut to the columns, or the field drawn with its cursor cell (the indent goes before the prefix).
+    private static StyledLine FieldLine(
+        CaretField? field,
+        string plain,
+        int columns,
+        GraphGlyphSet glyphs,
+        SegmentRole role,
+        string indent = "")
+    {
+        var builder = new LineBuilder(columns, glyphs.Ellipsis);
+        if (field is null)
+        {
+            return builder.Append(plain, role).BuildUnfilled();
+        }
+
+        (field with { Prefix = $"{indent}{field.Prefix}" }).AppendTo(builder, role);
+
+        return builder.BuildUnfilled();
     }
 
     private static StyledLine RuleLine(SettingsLayout layout, GraphGlyphSet glyphs) =>

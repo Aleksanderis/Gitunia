@@ -108,12 +108,13 @@ public class ReflogFrameBuilderTests
         var editing = ReflogFrameBuilder.Build(state, 80, 24, GraphGlyphSet.Unicode)!;
         var accepted = ReflogFrameBuilder.Build(state.AcceptSearch(), 80, 24, GraphGlyphSet.Unicode)!;
 
-        Assert.Contains("/message 3_  1/1 matches", editing.Lines[^2].Text, StringComparison.Ordinal);
+        Assert.Contains("/message 3   1/1 matches", editing.Lines[^2].Text, StringComparison.Ordinal);
+        Assert.Equal(" ", CursorCell.Of(editing.Lines[^2]));
         Assert.Contains("/message 3  1/1 matches  Esc clear", accepted.Lines[^2].Text, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void GivenCaretsInsideTheTexts_WhenRendering_ThenTheSearchBoxAndThePickerShowThem()
+    public void GivenCaretsInsideTheTexts_WhenRendering_ThenTheCursorCellCoversTheCharacterUnderIt()
     {
         var searching = State(5).OpenSearch().EditSearch("message 3", 4);
         var picking = State(3) with { Picker = new ReflogRefPicker(["HEAD", "main"], "mn", 0, 1) };
@@ -121,8 +122,10 @@ public class ReflogFrameBuilderTests
         var search = ReflogFrameBuilder.Build(searching, 80, 24, GraphGlyphSet.Unicode)!;
         var picker = ReflogFrameBuilder.Build(picking, 80, 24, GraphGlyphSet.Unicode)!;
 
-        Assert.Contains("/mess|age 3", search.Lines[^2].Text, StringComparison.Ordinal);
-        Assert.Contains("> m|n", picker.Lines[^2].Text, StringComparison.Ordinal);
+        Assert.Contains("/message 3", search.Lines[^2].Text, StringComparison.Ordinal);
+        Assert.Equal("a", CursorCell.Of(search.Lines[^2]));
+        Assert.Contains("› mn", picker.Lines[^2].Text, StringComparison.Ordinal);
+        Assert.Equal("n", CursorCell.Of(picker.Lines[^2]));
     }
 
     [Fact]
@@ -135,7 +138,8 @@ public class ReflogFrameBuilderTests
 
         Assert.Contains("choose a ref", frame.Lines[0].Text, StringComparison.Ordinal);
         Assert.Contains("main", frame.Lines[2].Text, StringComparison.Ordinal);
-        Assert.Contains("> _", frame.Lines[^2].Text, StringComparison.Ordinal);
+        Assert.Contains("›  ", frame.Lines[^2].Text, StringComparison.Ordinal);
+        Assert.Equal(" ", CursorCell.Of(frame.Lines[^2]));
         Assert.Equal(1, ReflogFrameBuilder.PickerIndexAt(picker, 2, 24));
         Assert.Null(ReflogFrameBuilder.PickerIndexAt(picker, 3, 24));
         Assert.Null(ReflogFrameBuilder.ActionAt(state, 4, 24));

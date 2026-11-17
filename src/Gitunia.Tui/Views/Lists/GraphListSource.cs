@@ -172,7 +172,7 @@ public sealed class GraphListSource(CommitGraph graph, GraphGlyphSet initialGlyp
     {
         if (commitIndex >= 0 && commitIndex < graph.Count)
         {
-            return GraphRowRenderer.Render(graph[commitIndex], options, selected, JumpLabelOf(listView, commitIndex));
+            return GraphRowRenderer.Render(graph, commitIndex, options, selected, JumpLabelOf(listView, commitIndex));
         }
 
         if (ShowsCutMarker && commitIndex == graph.Count)

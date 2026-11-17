@@ -160,7 +160,7 @@ public sealed class TabBarViewDragTests
         public IReadOnlyList<string> Names => _content.Names;
 
         public int ColumnOf(int number) =>
-            TabBarLayout.Layout(_content.Model().Tabs!, RowWidth, GraphGlyphSet.Unicode, null)
+            TabBarLayout.Layout(_content.Model().Tabs!, RowWidth, GraphGlyphSet.Unicode)
                 .First(cell => cell.Number == number).Start + 3;
 
         public void Press(int column) => Send(MouseFlags.LeftButtonPressed, column, 0);

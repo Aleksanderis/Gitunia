@@ -11,10 +11,16 @@ namespace Gitunia.Tui.Tests.App.Sidebar;
 
 public class SidebarInputTests
 {
-    private static TestRepository MergedFeatureBranchRepository()
+    // Built with git once per process and copied (TestRepository.FromTemplate, #1409).
+    private static TestRepository MergedFeatureBranchRepository() => TestRepository.FromTemplate(
+        "sidebar-input-merged-feature-branch",
+        BuildMergedFeatureBranchRepository);
+
+    private static TestRepository BuildMergedFeatureBranchRepository()
     {
         var repository = TestRepository.Create();
         repository.Commit("one", new TestFile("a.txt", "1")).Branch("old").Commit("two", new TestFile("a.txt", "2")).Tag("v2").Branch("feature");
+
         return repository;
     }
 

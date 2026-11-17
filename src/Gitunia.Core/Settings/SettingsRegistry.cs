@@ -17,6 +17,9 @@ public static class SettingsRegistry
     /// <summary>The id of the label caps setting.</summary>
     public const string LabelCapsId = "label-caps";
 
+    /// <summary>The id of the graph line style setting.</summary>
+    public const string LaneStyleId = "lane-style";
+
     /// <summary>The id of the which-key popup setting.</summary>
     public const string WhichKeyId = "hints-which-key";
 
@@ -67,6 +70,16 @@ public static class SettingsRegistry
                 + "caps and need a Nerd Font or Powerline-patched font.",
             "rounded",
             ["none", "rounded", "angled"]),
+        new SettingDefinition(
+            LaneStyleId,
+            SettingCategory.Appearance,
+            "Graph line style",
+            SettingControl.Choice,
+            ["laneStyle"],
+            "How the lines of the commit graph are drawn: light (rounded corners) or heavy (thick lines, square "
+                + "corners).",
+            "light",
+            ["light", "heavy"]),
         new SettingDefinition(
             ScanRootsId,
             SettingCategory.Repositories,

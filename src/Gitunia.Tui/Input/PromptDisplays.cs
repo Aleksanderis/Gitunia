@@ -1,3 +1,4 @@
+using Gitunia.Core.Editing;
 using Gitunia.Core.Overlays;
 
 namespace Gitunia.Tui.Input;
@@ -14,6 +15,6 @@ public sealed class PromptDisplays(IReadOnlyList<IPromptDisplay> displays)
         displays.Select(prompt => prompt.Popup).FirstOrDefault(popup => popup is not null);
 
     /// <summary>What the open prompt shows in the status bar, empty when none does.</summary>
-    public string StatusLine() =>
-        displays.Select(prompt => prompt.StatusLine).FirstOrDefault(line => line.Length > 0) ?? string.Empty;
+    public PromptLine StatusLine() =>
+        displays.Select(prompt => prompt.StatusLine).FirstOrDefault(line => !line.IsEmpty) ?? PromptLine.Empty;
 }

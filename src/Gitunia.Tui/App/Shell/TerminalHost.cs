@@ -33,6 +33,7 @@ public sealed class TerminalHost : ITerminalSuspender, IUiDeferral, IDisposable
     private readonly string? _driverName;
     private readonly LiveConfig _config;
     private readonly TerminalHandOff _handOff;
+    private readonly ApplicationDisposer _disposer = new();
     private readonly IterationRateGovernor _iterationRate = new(ActiveIterationsPerSecond, IdleIterationsPerSecond, IdleAfter);
     private IApplication _application;
     private Action? _suspendedWork;
@@ -146,7 +147,7 @@ public sealed class TerminalHost : ITerminalSuspender, IUiDeferral, IDisposable
             Invoker.Close();
             StopFocusReporting();
             _isApplicationDisposed = true;
-            _application.Dispose();
+            _disposer.Dispose(_application);
         }
     }
 
@@ -165,7 +166,7 @@ public sealed class TerminalHost : ITerminalSuspender, IUiDeferral, IDisposable
         _isApplicationDisposed = true;
         Invoker.Close();
         StopFocusReporting();
-        _application.Dispose();
+        _disposer.Dispose(_application);
     }
 
     private void RunSuspended()
@@ -175,7 +176,7 @@ public sealed class TerminalHost : ITerminalSuspender, IUiDeferral, IDisposable
         _suspendedWork = null;
         _resumed = null;
         StopFocusReporting();
-        _application.Dispose();
+        _disposer.Dispose(_application);
         try
         {
             _handOff.Run(work ?? DoNothing);

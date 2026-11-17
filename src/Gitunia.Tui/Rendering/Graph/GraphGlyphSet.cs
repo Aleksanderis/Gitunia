@@ -8,6 +8,8 @@ namespace Gitunia.Tui.Rendering.Graph;
 /// <param name="MergeNode">A commit with several parents.</param>
 /// <param name="LineNode">A commit in the middle of a branch: one line in and one out on its own lane, drawn as part of the line.</param>
 /// <param name="Lines">Line characters indexed by <see cref="LineDirections"/> flags (16 entries).</param>
+/// <param name="DepartRight">In the cell of a new lane right of the node: the line falls from the node's side to the lane's centre (see <see cref="GraphDiagonals"/>).</param>
+/// <param name="DepartLeft">The same for a new lane left of the node.</param>
 /// <param name="Ellipsis">Shown where text was cut.</param>
 /// <param name="CurrentBranch">Before the name of the branch HEAD is on, inside its label box: the local glyph with a `◉` directly in front, no space (ASCII: `HEAD -> `).</param>
 /// <param name="LocalBranch">
@@ -19,11 +21,17 @@ namespace Gitunia.Tui.Rendering.Graph;
 /// <param name="Picker">The marks of the repository picker (#1203).</param>
 /// <param name="LabelCapLeft">Drawn before a branch label box, in the colour of the box over the row background (#851); empty for a plain box.</param>
 /// <param name="LabelCapRight">Drawn after a branch label box, like <paramref name="LabelCapLeft"/>.</param>
+/// <param name="LaneLines">
+/// Line characters of the graph lanes, laid out like <paramref name="Lines"/>, when the lane style draws them
+/// differently from the frames and rules (<see cref="WithLaneStyle"/>); empty for the same ones.
+/// </param>
 public sealed record GraphGlyphSet(
     char Node,
     char MergeNode,
     char LineNode,
     string Lines,
+    string DepartRight,
+    string DepartLeft,
     string Ellipsis,
     string CurrentBranch,
     string LocalBranch,
@@ -31,14 +39,18 @@ public sealed record GraphGlyphSet(
     string UpstreamGone,
     PickerGlyphs Picker,
     string LabelCapLeft = "",
-    string LabelCapRight = "")
+    string LabelCapRight = "",
+    string LaneLines = "")
 {
+    private const string HeavyLines = " ┃┃┃━┛┓┫━┗┏┣━┻┳╋";
+    private const char HeavyLineNode = '┣';
+
     // Index: Up=1, Down=2, Left=4, Right=8. Lone strokes borrow the straight line of their axis.
     public static GraphGlyphSet Unicode { get; } =
-        new('●', '○', '├', " │││─╯╮┤─╰╭├─┴┬┼", "…", "◉ ", "⎇ ", " ", " ✗", PickerGlyphs.Unicode);
+        new('●', '○', '├', " │││─╯╮┤─╰╭├─┴┬┼", "╲", "╱", "…", "◉ ", "⎇ ", " ", " ✗", PickerGlyphs.Unicode);
 
     public static GraphGlyphSet Ascii { get; } =
-        new('*', 'o', '|', " |||-/\\|-\\/|---+", "~", "HEAD -> ", "", " (r)", " (x)", PickerGlyphs.Ascii);
+        new('*', 'o', '|', " |||-/\\|-\\/|---+", "\\", "/", "~", "HEAD -> ", "", " (r)", " (x)", PickerGlyphs.Ascii);
 
     /// <summary>
     /// The set with Powerline caps on the branch labels (#851). Only the Unicode set takes them, and only where the
@@ -59,6 +71,25 @@ public sealed record GraphGlyphSet(
             LabelCapStyle.Rounded => this with { LabelCapLeft = "\uE0B6", LabelCapRight = "\uE0B4" },
             LabelCapStyle.Angled => this with { LabelCapLeft = "\uE0B2", LabelCapRight = "\uE0B0" },
             _ => this,
+        };
+    }
+
+    /// <summary>
+    /// The set with the lines of the graph lanes drawn in the given style (<c>laneStyle</c>). Only the lanes change: frames,
+    /// rules and overlays keep the light lines. The ASCII set has one weight.
+    /// </summary>
+    /// <param name="style">The configured style.</param>
+    public GraphGlyphSet WithLaneStyle(LaneStyle style)
+    {
+        if (IsAscii)
+        {
+            return this;
+        }
+
+        return style switch
+        {
+            LaneStyle.Heavy => this with { LineNode = HeavyLineNode, LaneLines = HeavyLines },
+            _ => this with { LineNode = Unicode.LineNode, LaneLines = string.Empty },
         };
     }
 
@@ -85,6 +116,10 @@ public sealed record GraphGlyphSet(
 
     /// <summary>The character for a cell whose lines go in the given directions.</summary>
     public char For(LineDirections directions) => Lines[(int)directions];
+
+    /// <summary>The character for a cell of the graph lanes whose lines go in the given directions.</summary>
+    /// <param name="directions">The sides the lines leave through.</param>
+    public char ForLane(LineDirections directions) => (LaneLines.Length == 0 ? Lines : LaneLines)[(int)directions];
 
     /// <summary>The set a terminal with the given Unicode support can show.</summary>
     public static GraphGlyphSet For(bool unicode) => unicode ? Unicode : Ascii;

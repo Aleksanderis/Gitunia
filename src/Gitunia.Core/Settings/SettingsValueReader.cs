@@ -46,6 +46,7 @@ public static class SettingsValueReader
         var values = ImmutableDictionary.CreateBuilder<string, SettingValue>();
         values[SettingsRegistry.ThemeId] = SettingValue.OfChoice(ThemeName(theme));
         values[SettingsRegistry.LabelCapsId] = SettingValue.OfChoice(LabelCapName(options.LabelCaps));
+        values[SettingsRegistry.LaneStyleId] = SettingValue.OfChoice(LaneStyleName(options.LaneStyle));
         values[SettingsRegistry.WhichKeyId] = SettingValue.OfChoice(options.WhichKeyPopup ? "on" : "off");
         values[SettingsRegistry.StatusBarHintsId] = SettingValue.OfChoice(StatusBarHintName(options.StatusBarHints));
         values[SettingsRegistry.CommandLevelId] = SettingValue.OfChoice(CommandLevels.NameOf(options.CommandLevel));
@@ -73,6 +74,14 @@ public static class SettingsValueReader
         LabelCapStyle.Rounded => "rounded",
         LabelCapStyle.Angled => "angled",
         _ => "none",
+    };
+
+    /// <summary>The option a graph line style shows as (and is written as).</summary>
+    /// <param name="style">The style.</param>
+    public static string LaneStyleName(LaneStyle style) => style switch
+    {
+        LaneStyle.Heavy => "heavy",
+        _ => "light",
     };
 
     /// <summary>The option a status bar hint mode shows as (and is written as).</summary>

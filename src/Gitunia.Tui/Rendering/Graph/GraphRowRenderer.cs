@@ -27,13 +27,32 @@ public static class GraphRowRenderer
     private static readonly string CompactGapText = new(' ', GraphColumnLayout.CompactColumnGap);
     private static readonly string SpaciousGapText = new(' ', GraphColumnLayout.SpaciousColumnGap);
 
-    public static StyledLine Render(GraphEntry entry, GraphRowOptions options, bool isSelected, JumpLabel? jump = null)
+    /// <summary>One row of the graph with the diagonal lines its neighbouring rows ask for (see <see cref="GraphDiagonals"/>).</summary>
+    /// <param name="graph">The loaded rows.</param>
+    /// <param name="index">The row to draw.</param>
+    /// <param name="options">The layout of the graph rows.</param>
+    /// <param name="isSelected">The cursor is on the row.</param>
+    /// <param name="jump">The quick jump label shown on the row, if any.</param>
+    public static StyledLine Render(CommitGraph graph, int index, GraphRowOptions options, bool isSelected, JumpLabel? jump = null) =>
+        Render(graph[index], options, isSelected, jump, GraphDiagonals.PlanFor(graph, index, options.LaneColumns));
+
+    /// <param name="entry">The commit.</param>
+    /// <param name="options">The layout of the graph rows.</param>
+    /// <param name="isSelected">The cursor is on the row.</param>
+    /// <param name="jump">The quick jump label shown on the row, if any.</param>
+    /// <param name="diagonals">The diagonal lines of the row; null draws every lane with bends.</param>
+    public static StyledLine Render(
+        GraphEntry entry,
+        GraphRowOptions options,
+        bool isSelected,
+        JumpLabel? jump = null,
+        RowDiagonals? diagonals = null)
     {
         var columns = options.Columns;
         var ellipsis = options.Glyphs.Ellipsis;
         var isMatch = options.Highlight is { } query && GraphSearchMatcher.IsMatch(query, entry);
         var builder = new LineBuilder(options.Width, ellipsis);
-        var layout = MessageLayoutOf(entry, options);
+        var layout = MessageLayoutOf(entry, options, diagonals);
         AppendLanes(builder, layout.Cells[..layout.UsedLaneWidth]);
         builder.Append(new string(' ', layout.Gap), SegmentRole.Plain);
 
@@ -77,7 +96,14 @@ public static class GraphRowRenderer
     /// <summary>Columns the message of a row (ref labels and subject) can use: what a quick jump label must fit in.</summary>
     /// <param name="entry">The commit.</param>
     /// <param name="options">The layout of the graph rows.</param>
-    public static int MessageColumns(GraphEntry entry, GraphRowOptions options) => MessageLayoutOf(entry, options).MessageWidth;
+    public static int MessageColumns(GraphEntry entry, GraphRowOptions options) => MessageLayoutOf(entry, options, null).MessageWidth;
+
+    /// <summary>Columns the message of a row can use, with the diagonal lines of the row.</summary>
+    /// <param name="graph">The loaded rows.</param>
+    /// <param name="index">The row.</param>
+    /// <param name="options">The layout of the graph rows.</param>
+    public static int MessageColumns(CommitGraph graph, int index, GraphRowOptions options) =>
+        MessageLayoutOf(graph[index], options, GraphDiagonals.PlanFor(graph, index, options.LaneColumns)).MessageWidth;
 
     /// <summary>The message of a row as plain text, ref labels then subject: the text a quick jump matches against.</summary>
     /// <param name="entry">The commit.</param>
@@ -105,9 +131,9 @@ public static class GraphRowRenderer
         return builder.Build(SegmentRole.Plain, isSelected);
     }
 
-    private static GraphMessageLayout MessageLayoutOf(GraphEntry entry, GraphRowOptions options)
+    private static GraphMessageLayout MessageLayoutOf(GraphEntry entry, GraphRowOptions options, RowDiagonals? diagonals)
     {
-        var cells = LaneCellBuilder.Build(entry.Row, options.LaneColumns, options.Glyphs, entry.Decorations.Count > 0);
+        var cells = LaneCellBuilder.Build(entry.Row, options.LaneColumns, options.Glyphs, entry.Decorations.Count > 0, diagonals);
         var usedLaneWidth = UsedLaneWidth(cells);
         var areaWidth = options.Columns.LaneWidth + 1;
         var gap = Math.Min(MinimumLaneGap, areaWidth - usedLaneWidth);
@@ -119,7 +145,7 @@ public static class GraphRowRenderer
     private static int UsedLaneWidth(GraphCell[] cells)
     {
         var used = cells.Length;
-        while (used > 1 && cells[used - 1].Glyph == ' ')
+        while (used > 1 && cells[used - 1].Glyph == " ")
         {
             used--;
         }
@@ -161,14 +187,9 @@ public static class GraphRowRenderer
                 continue;
             }
 
-            var run = new char[index - start];
-            for (var position = 0; position < run.Length; position++)
-            {
-                run[position] = cells[start + position].Glyph;
-            }
-
+            var run = string.Concat(cells[start..index].Select(cell => cell.Glyph));
             var color = cells[start].Color;
-            builder.Append(new string(run), color < 0 ? SegmentRole.Plain : SegmentRole.Lane, Math.Max(color, 0));
+            builder.Append(run, color < 0 ? SegmentRole.Plain : SegmentRole.Lane, Math.Max(color, 0));
             start = index;
         }
     }

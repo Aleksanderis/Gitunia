@@ -1,6 +1,7 @@
 using Gitunia.Core.Editing;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
+using Gitunia.Core.Text;
 using Xunit;
 
 namespace Gitunia.Core.Tests.Editing;
@@ -104,19 +105,28 @@ public class PromptTextEditorTests
     }
 
     [Fact]
-    public void GivenCaret_WhenMarking_ThenItIsUnderscoreAtTheEndAndBarInside()
+    public void GivenCaret_WhenSplitting_ThenTheCellIsTheCharacterUnderItOrABlankAtTheEnd()
     {
-        Assert.Equal("fix_", PromptCaret.Mark("fix", PromptCaret.End));
-        Assert.Equal("f|ix", PromptCaret.Mark("fix", 1));
-        Assert.Equal("|fix", PromptCaret.Mark("fix", 0));
-        Assert.Equal("_", PromptCaret.Mark(string.Empty, 0));
+        Assert.Equal(new CaretText("f", "i", "x"), PromptCaret.Split("fix", 1));
+        Assert.Equal(new CaretText(string.Empty, "f", "ix"), PromptCaret.Split("fix", 0));
+        Assert.Equal(new CaretText("fix", " ", string.Empty), PromptCaret.Split("fix", PromptCaret.End));
+        Assert.Equal(new CaretText(string.Empty, " ", string.Empty), PromptCaret.Split(string.Empty, 0));
     }
 
     [Fact]
-    public void GivenNarrowRoom_WhenMarking_ThenTheCaretStaysVisibleAndTheTotalFits()
+    public void GivenNarrowRoom_WhenSplitting_ThenTheCaretStaysVisibleAndTheTotalFits()
     {
-        Assert.Equal("cdef_", PromptCaret.Mark("abcdef", PromptCaret.End, 5));
-        Assert.Equal("cd|ef", PromptCaret.Mark("abcdefgh", 4, 5));
-        Assert.Equal("|abcd", PromptCaret.Mark("abcdefgh", 0, 5));
+        Assert.Equal(new CaretText("cdef", " ", string.Empty), PromptCaret.Split("abcdef", PromptCaret.End, 5));
+        Assert.Equal(new CaretText("cd", "e", "fg"), PromptCaret.Split("abcdefgh", 4, 5));
+        Assert.Equal(new CaretText(string.Empty, "a", "bcde"), PromptCaret.Split("abcdefgh", 0, 5));
+    }
+
+    [Fact]
+    public void GivenWideCharacters_WhenSplitting_ThenNoneIsCutInHalf()
+    {
+        var split = PromptCaret.Split("\u4e2d\u6587\u5b57ab", 2, 5);
+
+        Assert.Equal("\u5b57", split.Cell);
+        Assert.True(DisplayWidth.Of(split.Before) + DisplayWidth.Of(split.Cell) + DisplayWidth.Of(split.After) <= 5);
     }
 }

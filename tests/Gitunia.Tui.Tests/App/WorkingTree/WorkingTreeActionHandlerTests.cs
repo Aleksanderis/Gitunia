@@ -87,6 +87,53 @@ public class WorkingTreeActionHandlerTests
         Assert.Equal(string.Empty, harness.Handler.Message);
     }
 
+    [Theory]
+    [InlineData("operation.continue")]
+    [InlineData("operation.abort")]
+    [InlineData("operation.skip")]
+    [InlineData("tool.mergetool")]
+    public void GivenTheWorkingTreeIsShown_WhenAnOperationActionArrives_ThenTheHandlerLeavesItToTheOperationHandler(
+        string id)
+    {
+        var harness = new Harness(Modified("a.txt"));
+        harness.Handler.TryExecute(ActionIds.WorkingTreeToggle, null);
+
+        Assert.False(harness.Handler.TryExecute(new ActionId(id), null));
+        Assert.Equal(string.Empty, harness.Handler.Message);
+    }
+
+    [Fact]
+    public void GivenTheWorkingTreeIsShown_WhenAnyGlobalActionArrives_ThenOnlyTheOwnedAndTheBlockedOnesAreTaken()
+    {
+        // The actions the Changes view really handles itself; every other Global action must reach the next handler.
+        HashSet<ActionId> owned =
+        [
+            ActionIds.WorkingTreeToggle,
+            ActionIds.PaneNext,
+            ActionIds.PanePrevious,
+            ActionIds.PaneFocusUp,
+            ActionIds.PaneFocusDown,
+            ActionIds.PaneFocusLeft,
+            ActionIds.PaneFocusRight,
+        ];
+        var taken = new List<string>();
+
+        // Walked with the unstaged list focused; the diff and the message box take their own keys first and are covered
+        // by their own tests.
+        Assert.Contains(ActionIds.RepositoryPin, ChangesViewFallthrough.Globals);
+        foreach (var action in ChangesViewFallthrough.Globals)
+        {
+            using var harness = Harness.Open(Modified("a.txt"));
+            var isAllowed = owned.Contains(action) || ChangesViewFallthrough.Blocked.ContainsKey(action);
+            if (harness.Handler.TryExecute(action, null) && !isAllowed)
+            {
+                taken.Add(action.Value);
+            }
+        }
+
+        Assert.Empty(taken);
+    }
+
     [Fact]
     public void GivenTheHistory_WhenAnyOtherActionArrives_ThenTheHandlerLeavesItToThePanes()
     {

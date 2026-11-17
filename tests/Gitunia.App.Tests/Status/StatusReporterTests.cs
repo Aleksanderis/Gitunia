@@ -71,12 +71,15 @@ public class StatusReporterTests
     [Fact]
     public async Task GivenAScheduledAging_WhenTheDelayPasses_ThenTheHostReducesAnAgedCommandAndRaisesChanged()
     {
-        var host = new Dispatcher(AppState.Empty);
+        var clock = new ManualClock();
+        var host = new Dispatcher(AppState.Empty, clock: clock);
         using var timer = new StatusAgingTimer(host);
         var changed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         host.Changed += () => changed.TrySetResult();
-
         timer.Schedule(TimeSpan.FromMilliseconds(10));
+        Assert.False(changed.Task.IsCompleted, "Nothing may fire before the clock moves.");
+
+        clock.Advance(TimeSpan.FromSeconds(1));
 
         await changed.Task.WaitAsync(TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken);
     }
@@ -84,15 +87,25 @@ public class StatusReporterTests
     [Fact]
     public async Task GivenTwoSchedules_WhenTheSecondReplacesTheFirst_ThenOnlyOneAgedCommandArrives()
     {
-        var host = new Dispatcher(AppState.Empty);
+        var clock = new ManualClock();
+        var host = new Dispatcher(AppState.Empty, clock: clock);
         using var timer = new StatusAgingTimer(host);
         var changes = new StrongBox<int>();
-        host.Changed += () => Interlocked.Increment(ref changes.Value);
-
+        var changed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        host.Changed += () =>
+        {
+            Interlocked.Increment(ref changes.Value);
+            changed.TrySetResult();
+        };
         timer.Schedule(TimeSpan.FromMilliseconds(50));
         timer.Schedule(TimeSpan.FromMilliseconds(10));
-        await Task.Delay(TimeSpan.FromMilliseconds(300), TestContext.Current.CancellationToken);
+        // The replaced wait is gone before any time passes, so it cannot post a second command later.
+        Assert.Equal(1, clock.PendingTimers);
 
+        clock.Advance(TimeSpan.FromSeconds(1));
+        await changed.Task.WaitAsync(TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken);
+
+        Assert.Equal(0, clock.PendingTimers);
         Assert.Equal(1, Volatile.Read(ref changes.Value));
     }
 }

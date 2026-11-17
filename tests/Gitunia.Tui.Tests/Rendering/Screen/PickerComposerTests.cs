@@ -40,8 +40,8 @@ public class PickerComposerTests
 
         Assert.Equal(SegmentRole.OverlayTitle, lines[TitleLine].Segments[0].Role);
         Assert.Contains("Open repository", lines[TitleLine].Text, StringComparison.Ordinal);
-        Assert.Contains(" al_", lines[QueryRow].Text, StringComparison.Ordinal);
-        Assert.Contains(" › al_", lines[QueryRow].Text, StringComparison.Ordinal);
+        Assert.Contains(" › al ", lines[QueryRow].Text, StringComparison.Ordinal);
+        Assert.Equal(" ", CursorCell.Of(lines[QueryRow]));
         Assert.Contains(
             lines[QueryRow].Segments,
             segment => segment.Role == ChipStyle.Pane.Key && segment.Text == "Tab");
@@ -175,21 +175,23 @@ public class PickerComposerTests
     }
 
     [Fact]
-    public void GivenTheCaretInTheQuery_WhenComposing_ThenTheQueryLineDrawsItBetweenTheCharacters()
+    public void GivenTheCaretInTheQuery_WhenComposing_ThenTheCursorCellCoversTheCharacterUnderIt()
     {
         var picker = new PickerState("abcd", 0, [], string.Empty, null, Caret: 2);
 
         var lines = Compose(picker);
 
-        Assert.Contains(" ab|cd", lines[1].Text, StringComparison.Ordinal);
+        Assert.Contains(" abcd", lines[1].Text, StringComparison.Ordinal);
+        Assert.Equal("c", CursorCell.Of(lines[1]));
     }
 
     [Fact]
-    public void GivenTheCaretAtTheEnd_WhenComposing_ThenTheQueryLineEndsWithTheEndGlyph()
+    public void GivenTheCaretAtTheEnd_WhenComposing_ThenTheQueryLineEndsWithABlankCursorCell()
     {
         var lines = Compose(new PickerState("abcd", 0, [], string.Empty, null));
 
-        Assert.Contains(" abcd_", lines[1].Text, StringComparison.Ordinal);
+        Assert.Contains(" abcd ", lines[1].Text, StringComparison.Ordinal);
+        Assert.Equal(" ", CursorCell.Of(lines[1]));
     }
 
     [Fact]

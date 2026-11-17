@@ -82,7 +82,7 @@ public class PickActionsTests
     {
         Assert.False(_actions.HandleTextKey(new KeyEvent("1")));
         Assert.Null(_actions.Prompt);
-        Assert.Equal(string.Empty, _actions.StatusLine);
+        Assert.Equal(string.Empty, _actions.StatusLine.Plain);
     }
 
     [Fact]
@@ -95,8 +95,8 @@ public class PickActionsTests
         Assert.Equal(2, prompt.Parents.Count);
         Assert.Contains("topic two", prompt.Parents[1], StringComparison.Ordinal);
         Assert.Equal(2, prompt.UsableParents);
-        Assert.Contains("[1]", _actions.StatusLine, StringComparison.Ordinal);
-        Assert.Contains("[2]", _actions.StatusLine, StringComparison.Ordinal);
+        Assert.Contains("[1]", _actions.StatusLine.Plain, StringComparison.Ordinal);
+        Assert.Contains("[2]", _actions.StatusLine.Plain, StringComparison.Ordinal);
     }
 
     [Fact]

@@ -20,9 +20,11 @@ public sealed class BlameFrameBuilderTests
     {
         var state = new BlameState(new TabId(1), "a.txt", "a.txt", LineCount: 4, SearchText: "todo", IsEditingSearch: true, SearchCaret: 2);
 
-        var frame = Frame(state);
+        var data = new BlameData(1, ["a", "b", "c", "d"]);
+        var built = BlameFrameBuilder.Build(state, data, DateTimeOffset.UnixEpoch, Width, Height, GraphGlyphSet.Unicode)!;
 
-        Assert.Contains("/to|do", frame, StringComparison.Ordinal);
+        Assert.Contains("/todo", string.Join('\n', built.Lines.Select(line => line.Text)), StringComparison.Ordinal);
+        Assert.Equal("d", CursorCell.Of(built.Lines[^2]));
     }
 
     [Fact]
