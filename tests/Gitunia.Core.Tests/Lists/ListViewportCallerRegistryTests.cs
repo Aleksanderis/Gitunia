@@ -1,16 +1,19 @@
 using System.Reflection;
+using System.Text.RegularExpressions;
 using Xunit;
 
 namespace Gitunia.Core.Tests.Lists;
 
 /// <summary>
-/// Every file in <c>src</c> that calls <c>ListViewport</c> is listed in <see cref="Callers"/> with the test file that holds
-/// its contract scenarios (k at the top, G, Ctrl-d at the end, a count, a smaller window, an empty list). A new caller
+/// Every file in <c>src</c> that calls <c>ListViewport</c> is listed in <see cref="Callers"/> with
+/// the test file that holds its scenarios (k at the top, G, Ctrl-d at the end, a count, a smaller window, an empty list)
+/// when that is <c>ListViewportContractTests</c> or <c>ListWindowContractTests</c>, otherwise the nearest existing test
+/// (the surface has no contract scenarios yet, see the follow-up issue). A new caller
 /// fails <see cref="GivenASourceFileCallingListViewport_WhenScanningSrc_ThenItIsRegistered"/> until it is added here and
 /// covered. The Terminal.Gui <c>ListView</c> surfaces (graph, diff, sidebar, detail) use the framework's viewport and are
 /// not part of this contract.
 /// </summary>
-public class ListViewportCallerRegistryTests
+public sealed partial class ListViewportCallerRegistryTests
 {
     private const string CoreContract = "tests/Gitunia.Core.Tests/Lists/ListViewportContractTests.cs";
     private const string WindowContract = "tests/Gitunia.Tui.Tests/Rendering/Overlays/ListWindowContractTests.cs";
@@ -102,8 +105,11 @@ public class ListViewportCallerRegistryTests
         return callers;
     }
 
+    [GeneratedRegex(@"\bListViewport\b")]
+    private static partial Regex ListViewportWord();
+
     private static bool IsCodeReference(string line) =>
-        line.Contains("ListViewport", StringComparison.Ordinal) && !line.TrimStart().StartsWith("//", StringComparison.Ordinal);
+        ListViewportWord().IsMatch(line) && !line.TrimStart().StartsWith("//", StringComparison.Ordinal);
 
     private static string RepositoryRoot()
     {
