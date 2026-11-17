@@ -3,7 +3,10 @@ using Xunit;
 
 namespace Gitunia.Tui.Tests.Rendering.Styling;
 
-/// <summary>Source-level guards of the colour roles (#1449): key labels only on keys, no literal glyphs outside the glyph tables.</summary>
+/// <summary>
+/// Source-level guards of the colour roles (#1449). Heuristics, not proofs: a key label line must sit in a file that draws keys and near
+/// a "key" name; the glyph lint polices the box, arrow, check, cross and bullet characters listed in its pattern.
+/// </summary>
 public partial class RendererSourceLintTests
 {
     private const int KeyContextLines = 6;

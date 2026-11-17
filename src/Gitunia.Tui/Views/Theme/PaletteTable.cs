@@ -123,7 +123,7 @@ public sealed partial class PaletteTable
     /// </summary>
     public TextStyle ButtonStyle { get; init; } = TextStyle.None;
 
-    /// <summary>Failures in a body row and on the bar (settled): colour plus this style; underline too where there is no colour.</summary>
+    /// <summary>Failures in a body row and on the bar (settled): colour plus this style; reverse underline where there is no colour, which no other role uses.</summary>
     public TextStyle ErrorStyle { get; init; } = TextStyle.Bold;
 
     /// <summary>Warnings in a body row and on the bar (settled).</summary>
@@ -307,7 +307,7 @@ public sealed partial class PaletteTable
     private static PaletteTable Ansi16Dark(bool paintsBase, IReadOnlyDictionary<string, string>? ansi, bool classicConsole) => new()
     {
         Accent = Named(ansi, ThemeRoles.Accent, classicConsole ? ColorName16.BrightCyan : ColorName16.BrightBlue),
-        ButtonStyle = TextStyle.Italic,
+        ButtonStyle = classicConsole ? TextStyle.Underline : TextStyle.Italic,
         Good = Named(ansi, ThemeRoles.Good, ColorName16.BrightGreen),
         Bad = Named(ansi, ThemeRoles.Bad, ColorName16.BrightRed),
         Remote = Named(ansi, ThemeRoles.Remote, ColorName16.BrightMagenta),
@@ -425,7 +425,7 @@ public sealed partial class PaletteTable
         MatchStyle = TextStyle.Bold | TextStyle.Underline,
         CurrentStyle = TextStyle.Underline,
         ButtonStyle = TextStyle.Italic,
-        ErrorStyle = TextStyle.Bold | TextStyle.Underline,
+        ErrorStyle = TextStyle.Reverse | TextStyle.Underline,
         WarnStyle = TextStyle.Bold,
         NoticeStyle = TextStyle.None,
         ProgressStyle = TextStyle.Italic,

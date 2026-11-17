@@ -8,6 +8,7 @@ using StyledSegment = Gitunia.Tui.Rendering.Styling.StyledSegment;
 namespace Gitunia.Tui.Tests.Views.Theme;
 
 /// <summary>One role per meaning (#1449): key labels, 16-colour slots and the NO_COLOR styles.</summary>
+[Trait("Os", "Independent")]
 public class ColourRoleTests
 {
     public static TheoryData<ColorDepth, bool, bool> Tiers =>
@@ -71,7 +72,11 @@ public class ColourRoleTests
         var error = Palette.For(new StyledSegment("x", SegmentRole.Error), false, false, colors).Style;
         var warning = Palette.For(new StyledSegment("x", SegmentRole.Warning), false, false, colors).Style;
         Assert.NotEqual(warning, error);
-        Assert.True(error.HasFlag(TextStyle.Underline));
+        foreach (var other in new[] { SegmentRole.SearchMatch, SegmentRole.CurrentBranch, SegmentRole.DiffAddedWord })
+        {
+            Assert.NotEqual(error, Palette.For(new StyledSegment("x", other), false, false, colors).Style);
+        }
+
         var unfocused = Palette.For(new StyledSegment("x", SegmentRole.Plain), true, false, colors).Style;
         var button = Palette.For(new StyledSegment("x", SegmentRole.RepositoryTab), false, false, colors).Style;
         var title = Palette.For(new StyledSegment("x", SegmentRole.SelectedTab), false, false, colors).Style;
