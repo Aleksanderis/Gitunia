@@ -93,6 +93,8 @@ Owner, 2026-11-11 (same change as Geeratya): milestones are goals, not condition
 - `needs-owner`: only the owner can settle it (decision, accounts, payment, owner steps)
 - `blocked-upstream`: waits on an upstream fix or release
 
+UI consistency (owner, 2026-11-17): the audit, the shared UI components it proposes and the decisions taken are in `ui-consistency.md`; the work is seven phase issues in M11, #1443 to #1449.
+
 Everything waiting on something other than an agent: [open issues with these labels](https://github.com/Aleksanderis/Gitunia/issues?q=is%3Aopen+label%3Awindows-vm%2Cneeds-owner%2Cblocked-upstream).
 
 ## M12 - Performance and Windows hardening
