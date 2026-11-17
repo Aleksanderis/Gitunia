@@ -399,7 +399,7 @@ public static class HelpFrameBuilder
                 var wrapped = WrapText(row.Text, descriptionWidth);
                 for (var index = 0; index < wrapped.Count; index++)
                 {
-                    lines.Add(KeysAndDescription(index == 0 ? padded : blankKeys, wrapped[index], width, glyphs));
+                    lines.Add(KeysAndDescription(index == 0 ? padded : blankKeys, wrapped[index], width, glyphs, row.IsEmptyText));
                 }
             }
         }
@@ -407,19 +407,25 @@ public static class HelpFrameBuilder
         return lines;
     }
 
-    private static StyledLine KeysAndDescription(string keys, string description, int width, GraphGlyphSet glyphs)
+    private static StyledLine KeysAndDescription(
+        string keys,
+        string description,
+        int width,
+        GraphGlyphSet glyphs,
+        bool isEmptyText)
     {
+        var role = isEmptyText ? SegmentRole.EmptyText : SegmentRole.Plain;
         var inner = OverlayBox.InnerWidth(width);
         if (keys.Length == 0)
         {
             // Plain text rows (the output of a failed command) have no keys column and no separator.
-            return OverlayBox.Wrap(new LineBuilder(inner, glyphs.Ellipsis).Append($"{KeysIndent}{description}", SegmentRole.Plain).Build(), glyphs);
+            return OverlayBox.Wrap(new LineBuilder(inner, glyphs.Ellipsis).Append($"{KeysIndent}{description}", role).Build(), glyphs);
         }
 
         var builder = new LineBuilder(inner, glyphs.Ellipsis)
             .Append($"{KeysIndent}{keys}", SegmentRole.OverlayKey)
             .Append($"{ColumnPadding}{glyphs.For(LineDirections.Up | LineDirections.Down)}{ColumnPadding}", SegmentRole.Faint)
-            .Append(description, SegmentRole.Plain);
+            .Append(description, role);
         return OverlayBox.Wrap(builder.Build(), glyphs);
     }
 }

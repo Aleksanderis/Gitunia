@@ -1,5 +1,5 @@
 using System.Collections.Immutable;
-using Gitunia.Core.Overlays;
+using Gitunia.Core.Filtering;
 using Gitunia.Core.Workspaces.Repositories;
 
 namespace Gitunia.Core.Picker;

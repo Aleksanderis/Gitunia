@@ -46,7 +46,7 @@ public class HelpAllCommandsTests
         Assert.All(
             unlisted,
             binding => Assert.True(
-                binding.View is "Picker" or "Palette" or "ContextMenu" or "Help"
+                binding.View is "Picker" or "Palette" or "FilterList" or "ContextMenu" or "Help"
                     || binding.Action.Value is "input.accept" or "confirm.yes" or "confirm.no",
                 $"{binding.View} {binding.Action.Value} is hidden from the help."));
     }

@@ -150,6 +150,10 @@ public static class ActionIds
 
     public static ActionId OperationSkip { get; } = new("operation.skip");
 
+    public static ActionId FilterNext { get; } = new("filter.next");
+
+    public static ActionId FilterPrevious { get; } = new("filter.previous");
+
     public static ActionId PaletteNext { get; } = new("palette.next");
 
     public static ActionId PaletteOpen { get; } = new("palette.open");

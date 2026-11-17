@@ -156,7 +156,7 @@ public static class Palette
         {
             SegmentRole.Lane => new RoleAppearance(colors.Lanes[segment.ColorIndex % colors.Lanes.Length], Color.None, TextStyle.None, false),
             SegmentRole.LaneLabel => LaneLabel(segment.ColorIndex, colors),
-            SegmentRole.Hash or SegmentRole.Faint => new RoleAppearance(colors.Muted, Color.None, muted, false),
+            SegmentRole.Hash or SegmentRole.Faint or SegmentRole.EmptyText => new RoleAppearance(colors.Muted, Color.None, muted, false),
             SegmentRole.WhitespaceMark => new RoleAppearance(colors.Subtle, Color.None, colors.SubtleStyle, false),
             SegmentRole.WhitespaceMarkAddedWord =>
                 new RoleAppearance(

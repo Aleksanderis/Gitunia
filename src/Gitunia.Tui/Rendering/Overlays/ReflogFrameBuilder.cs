@@ -130,10 +130,11 @@ public static class ReflogFrameBuilder
     {
         var candidates = picker.Candidates;
         var window = Window(candidates.Count, picker.Index, maximumRows);
-        var lines = new List<StyledLine> { OverlayBox.Title("Reflog: choose a ref", width, glyphs) };
-        if (candidates.Count == 0)
+        var title = FilterListFrame.Title("Reflog: choose a ref", null, picker.List.Position, width, glyphs);
+        var lines = new List<StyledLine> { title };
+        if (picker.List.EmptyText is { } empty)
         {
-            lines.Add(OverlayBox.Text(UiTexts.NoMatch("branch"), width, glyphs, SegmentRole.Faint));
+            lines.Add(FilterListFrame.EmptyRow(empty, width, glyphs));
         }
 
         for (var offset = 0; offset < window.RowCount && window.Top + offset < candidates.Count; offset++)

@@ -28,7 +28,7 @@ public sealed class ReflogInput(
     IBranchSelectionSource selection,
     GraphGlyphSet glyphs,
     TimeProvider? clock = null,
-    ChipKeys? keys = null) : IActionHandler, ITextKeyHandler
+    ChipKeys? keys = null) : IActionHandler, ITextKeyHandler, IFilterFocus
 {
     private readonly TimeProvider _clock = clock ?? TimeProvider.System;
 
@@ -40,6 +40,9 @@ public sealed class ReflogInput(
 
     /// <summary>The list state, null when the list is closed.</summary>
     public ReflogState? State => Session.List;
+
+    /// <inheritdoc />
+    public bool HasFilterList => Session.List is { Picker: not null };
 
     /// <summary>The frame to draw, or null when the list is closed or the screen is too small for it.</summary>
     public OverlayFrame? CurrentFrame()

@@ -1,7 +1,7 @@
-using Gitunia.Core.Search;
+using Gitunia.Core.Filtering;
 using Xunit;
 
-namespace Gitunia.Core.Tests.Search;
+namespace Gitunia.Core.Tests.Filtering;
 
 [Trait("Os", "Independent")]
 public class FuzzyMatcherTests

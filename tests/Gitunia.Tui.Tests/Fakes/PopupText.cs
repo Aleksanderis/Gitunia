@@ -16,8 +16,10 @@ public static class PopupText
         }
 
         var input = popup.Input is { } text ? $"> {text.Text}_" : string.Empty;
-        var title = popup.Count is { } count ? $"{popup.Title} {count}" : popup.Title;
+        var title = popup.Position is { } count ? $"{popup.Title} {count}" : popup.Title;
         var rows = popup.Details.Select((row, index) => index == popup.Highlight ? $"> {row}" : $"  {row}");
-        return string.Join('\n', [title, .. popup.Lines, input, .. rows, popup.Hint]);
+        var empty = popup.EmptyText is { } message ? [$"  {message}"] : Array.Empty<string>();
+
+        return string.Join('\n', [title, .. popup.Lines, input, .. rows, .. empty, popup.Hint]);
     }
 }

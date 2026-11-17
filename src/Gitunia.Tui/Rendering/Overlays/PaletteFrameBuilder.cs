@@ -1,7 +1,5 @@
-using System.Globalization;
 using Gitunia.Core.Hints;
 using Gitunia.Core.Overlays;
-using Gitunia.Core.Text;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Styling;
 
@@ -32,10 +30,11 @@ public static class PaletteFrameBuilder
         var rowCount = window.RowCount;
         var top = window.Top;
 
-        var lines = new List<StyledLine> { OverlayBox.Title(":", CaretField.Of(" ", palette.Field), width, glyphs) };
-        if (visible.Count == 0)
+        var title = FilterListFrame.Title(":", CaretField.Of(" ", palette.Field), palette.List.Position, width, glyphs);
+        var lines = new List<StyledLine> { title };
+        if (palette.List.EmptyText is { } empty)
         {
-            lines.Add(OverlayBox.Text(UiTexts.NoMatch("action"), width, glyphs, SegmentRole.Faint));
+            lines.Add(FilterListFrame.EmptyRow(empty, width, glyphs));
         }
 
         for (var offset = 0; offset < rowCount && top + offset < rows.Lines.Count; offset++)
@@ -67,14 +66,7 @@ public static class PaletteFrameBuilder
         }
 
         var targets = new List<FrameTarget>();
-        var position = visible.Count == 0 ? 0 : selectedEntry + 1;
-        lines.Add(OverlayBox.Hints(
-            HintSet.ForPalette(),
-            targets,
-            lines.Count,
-            width,
-            glyphs,
-            string.Create(CultureInfo.InvariantCulture, $"{position}/{visible.Count}")));
+        lines.Add(OverlayBox.Hints(HintSet.ForPalette(), targets, lines.Count, width, glyphs));
         lines.Add(OverlayBox.Bottom(width, glyphs));
         return new OverlayFrame((screenWidth - width) / 2, 1, lines, targets);
     }

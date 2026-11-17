@@ -1,3 +1,4 @@
+using Gitunia.Core.Filtering;
 using System.Collections.Immutable;
 using System.Globalization;
 using Gitunia.Core.Config.Models;
@@ -318,8 +319,7 @@ public sealed record SettingsState(
     }
 
     private bool Matches(SettingDefinition definition) =>
-        definition.Name.Contains(Filter, StringComparison.OrdinalIgnoreCase)
-        || definition.Help.Contains(Filter, StringComparison.OrdinalIgnoreCase);
+        ContainsMatcher.IsMatch(Filter, definition.Name) || ContainsMatcher.IsMatch(Filter, definition.Help);
 
     // The key lines whose title, keys or action id contain the filter (indexes into the reference).
     private IEnumerable<int> MatchingBindings(SettingDefinition definition)
@@ -332,9 +332,9 @@ public sealed record SettingsState(
         var reference = Reference;
 
         return Enumerable.Range(0, reference.Count).Where(index =>
-            reference[index].Title.Contains(Filter, StringComparison.OrdinalIgnoreCase)
-            || reference[index].Keys.Contains(Filter, StringComparison.OrdinalIgnoreCase)
-            || reference[index].ActionId.Contains(Filter, StringComparison.OrdinalIgnoreCase));
+            ContainsMatcher.IsMatch(Filter, reference[index].Title)
+            || ContainsMatcher.IsMatch(Filter, reference[index].Keys)
+            || ContainsMatcher.IsMatch(Filter, reference[index].ActionId));
     }
 
     private void AddRows(List<SettingRow> rows, SettingDefinition definition)

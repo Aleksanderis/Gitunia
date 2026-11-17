@@ -36,7 +36,7 @@ public sealed class OverlayHitTests(OverlayStore store, OverlayController overla
             return false;
         }
 
-        store.State = store.State.WithPalette(palette with { SelectedIndex = index });
+        store.State = store.State.WithPalette(palette.MoveTo(index));
         store.RaiseChanged();
 
         return true;
@@ -56,7 +56,7 @@ public sealed class OverlayHitTests(OverlayStore store, OverlayController overla
             return false;
         }
 
-        store.State = store.State.WithPalette(menu with { SelectedIndex = index });
+        store.State = store.State.WithPalette(menu.MoveTo(index));
         store.RaiseChanged();
 
         return true;

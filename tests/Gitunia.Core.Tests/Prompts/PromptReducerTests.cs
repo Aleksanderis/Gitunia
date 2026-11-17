@@ -37,7 +37,7 @@ public class PromptReducerTests
     {
         var state = Reduce(ShellState.Empty, Picker("origin", "backup", "bak")).State;
         state = Press(state, new KeyEvent("b"));
-        state = Press(state, new KeyEvent(KeyNames.Down));
+        state = Reduce(state, new PromptMovedCommand(1)).State;
         var before = state.Prompt!.Picker!;
 
         state = Press(state, new KeyEvent(KeyNames.Home));
@@ -45,17 +45,6 @@ public class PromptReducerTests
         Assert.Equal(0, state.Prompt!.Field.Caret);
         Assert.Equal(before.Index, state.Prompt.Picker!.Index);
         Assert.Equal(before.Candidates, state.Prompt.Picker.Candidates);
-    }
-
-    [Fact]
-    public void GivenAPicker_WhenCtrlKIsPressed_ThenItMovesTheHighlightInsteadOfDeletingText()
-    {
-        var state = Reduce(ShellState.Empty, Picker("origin", "backup")).State;
-        state = Press(state, new KeyEvent("o"));
-
-        state = Press(state, new KeyEvent("k", KeyModifiers.Ctrl));
-
-        Assert.Equal("o", state.Prompt!.Text);
     }
 
     [Fact]
@@ -257,22 +246,45 @@ public class PromptReducerTests
     }
 
     [Fact]
-    public void GivenAPicker_WhenMovingWithCtrlJAndTabAndDown_ThenTheHighlightAdvancesEachTime()
+    public void GivenAPicker_WhenTheFilterActionsMoveIt_ThenTheHighlightAdvancesAndStopsAtTheEnds()
     {
-        var state = Reduce(ShellState.Empty, Picker("a", "b", "c", "d")).State;
+        var state = Reduce(ShellState.Empty, Picker("a", "b", "c")).State;
 
-        state = Press(state, new KeyEvent("j", KeyModifiers.Ctrl));
-        state = Press(state, new KeyEvent(KeyNames.Tab));
-        state = Press(state, new KeyEvent(KeyNames.Down));
+        state = Reduce(state, new PromptMovedCommand(1)).State;
+        state = Reduce(state, new PromptMovedCommand(1)).State;
+        state = Reduce(state, new PromptMovedCommand(1)).State;
 
-        Assert.Equal(3, state.Prompt!.Picker!.Index);
+        Assert.Equal(2, state.Prompt!.Picker!.Index);
+        Assert.Equal(1, Reduce(state, new PromptMovedCommand(-1)).State.Prompt!.Picker!.Index);
+    }
+
+    [Theory]
+    [InlineData(KeyNames.Down)]
+    [InlineData(KeyNames.Up)]
+    [InlineData(KeyNames.Tab)]
+    public void GivenAPicker_WhenAMoveKeyIsTyped_ThenItIsNoTextAndMovesNothing(string name)
+    {
+        var state = Reduce(ShellState.Empty, Picker("a", "b", "c")).State;
+
+        var typed = Press(state, new KeyEvent(name));
+
+        Assert.Equal(0, typed.Prompt!.Picker!.Index);
+        Assert.Equal(state.Prompt!.Text, typed.Prompt.Text);
+    }
+
+    [Fact]
+    public void GivenNoPicker_WhenTheFilterActionsMove_ThenNothingChanges()
+    {
+        var state = Reduce(ShellState.Empty, Request()).State;
+
+        Assert.Same(state, Reduce(state, new PromptMovedCommand(1)).State);
     }
 
     [Fact]
     public void GivenAHighlightedCandidate_WhenAccepting_ThenTheAnswerCarriesItsValueAndTheTypedFilter()
     {
         var state = Reduce(ShellState.Empty, Picker("origin", "backup")).State;
-        state = Press(state, new KeyEvent(KeyNames.Down));
+        state = Reduce(state, new PromptMovedCommand(1)).State;
 
         var update = Reduce(state, new PromptAcceptedCommand());
 
@@ -320,13 +332,14 @@ public class PromptReducerTests
 
         Assert.Equal(["origin", "backup"], severalPopup.Details);
         Assert.Equal(0, severalPopup.Highlight);
-        Assert.Equal("1/2", severalPopup.Count);
+        Assert.Equal("1/2", severalPopup.Position);
         Assert.Contains("Ctrl-j/k move", severalPopup.Hint, StringComparison.Ordinal);
         Assert.DoesNotContain("Ctrl-j/k", OpenPromptPopup.Of(single).Hint, StringComparison.Ordinal);
         var nonePopup = OpenPromptPopup.Of(none);
-        Assert.Equal(["No matching remote"], nonePopup.Details);
+        Assert.Empty(nonePopup.Details);
+        Assert.Equal("No matching remote", nonePopup.EmptyText);
         Assert.Equal(-1, nonePopup.Highlight);
-        Assert.Null(nonePopup.Count);
+        Assert.Null(nonePopup.Position);
     }
 
     [Fact]

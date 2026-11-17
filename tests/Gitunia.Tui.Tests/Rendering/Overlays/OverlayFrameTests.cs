@@ -612,7 +612,7 @@ public class OverlayFrameTests
 
         for (var index = 0; index < palette.Entries.Count; index++)
         {
-            var scrolled = palette with { SelectedIndex = index };
+            var scrolled = palette.MoveTo(index);
             var frame = PaletteFrameBuilder.Build(scrolled, 120, 30, GraphGlyphSet.Unicode)!;
 
             Assert.Contains(palette.Entries[index].Title, Text(frame), StringComparison.Ordinal);

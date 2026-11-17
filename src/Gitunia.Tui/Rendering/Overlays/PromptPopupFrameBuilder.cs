@@ -20,7 +20,6 @@ public static class PromptPopupFrameBuilder
     private const int MinimumPopupWidth = 64;
     private const int ScreenMargin = 2;
     private const int FooterLines = 3;
-    private const int MinimumTitleGap = 2;
 
     /// <summary>The popup for a screen, or null when it does not fit.</summary>
     public static OverlayFrame? Build(PromptPopup prompt, int screenWidth, int screenHeight, GraphGlyphSet glyphs)
@@ -28,7 +27,8 @@ public static class PromptPopupFrameBuilder
         var widest = prompt.Lines
             .Concat(prompt.Details)
             .Append(prompt.Hint)
-            .Append(prompt.Count is { } count ? $"{prompt.Title}  {count}" : prompt.Title)
+            .Append(prompt.EmptyText ?? string.Empty)
+            .Append(prompt.Position is { } position ? $"{prompt.Title}  {position}" : prompt.Title)
             .Select(TextWidth.Of)
             .DefaultIfEmpty(0)
             .Max();
@@ -39,7 +39,7 @@ public static class PromptPopupFrameBuilder
         }
 
         var textWidth = Math.Max(1, OverlayBox.InnerWidth(width) - 2);
-        var lines = new List<StyledLine> { TitleLine(prompt, width, glyphs) };
+        var lines = new List<StyledLine> { FilterListFrame.Title(prompt.Title, null, prompt.Position, width, glyphs) };
         foreach (var paragraph in prompt.Lines)
         {
             lines.AddRange(HelpFrameBuilder.WrapText(paragraph, textWidth)
@@ -53,12 +53,17 @@ public static class PromptPopupFrameBuilder
 
         var fixedLines = lines.Count + FooterLines;
         var rowRoom = screenHeight - ScreenMargin - fixedLines;
-        var window = FitRows(prompt.Details, prompt.Highlight, rowRoom);
+        var window = FitRows(prompt.Details, prompt.Highlight, rowRoom) with { EmptyText = prompt.EmptyText };
         var targets = new List<FrameTarget>();
-        for (var index = 0; index < window.Rows.Count; index++)
+        var rowLines = FilterListFrame.Rows(window, width, glyphs).ToList();
+        for (var index = 0; index < rowLines.Count; index++)
         {
-            targets.Add(RowTarget(lines.Count, index, window.Highlight, width));
-            lines.Add(RowLine(window.Rows[index], index == window.Highlight, width, glyphs));
+            if (index < window.Rows.Count)
+            {
+                targets.Add(RowTarget(lines.Count, index, window.Highlight, width));
+            }
+
+            lines.Add(rowLines[index]);
         }
 
         lines.Add(OverlayBox.Text(string.Empty, width, glyphs));
@@ -114,29 +119,6 @@ public static class PromptPopupFrameBuilder
         var window = ListViewport.Of(highlight, rows.Count, maximumRows).Follow(ScrollPolicy.Centre).Window;
 
         return new PickerWindow([.. rows.Skip(window.Top).Take(window.RowCount)], highlight - window.Top);
-    }
-
-    private static StyledLine RowLine(string row, bool isSelected, int width, GraphGlyphSet glyphs) =>
-        OverlayBox.Text(row, width, glyphs, isSelected: isSelected);
-
-    // The title bar with the count right-aligned, as the repository picker's; the count is left out when it does not fit.
-    private static StyledLine TitleLine(PromptPopup prompt, int width, GraphGlyphSet glyphs)
-    {
-        if (prompt.Count is not { } count)
-        {
-            return OverlayBox.Title(prompt.Title, width, glyphs);
-        }
-
-        var left = $" {prompt.Title}";
-        var right = $"{count} ";
-        var builder = new LineBuilder(width, glyphs.Ellipsis).Append(left, SegmentRole.OverlayTitle);
-        var gap = width - TextWidth.Of(left) - TextWidth.Of(right);
-        if (gap >= MinimumTitleGap)
-        {
-            builder.Append(new string(' ', gap), SegmentRole.OverlayTitle).Append(right, SegmentRole.OverlayTitle);
-        }
-
-        return builder.Build(SegmentRole.OverlayTitle);
     }
 
     private static StyledLine InputRow(TextField input, int width, GraphGlyphSet glyphs)

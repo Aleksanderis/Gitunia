@@ -1,5 +1,4 @@
 using System.Collections.Immutable;
-using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Prompts;
 using Gitunia.Core.Shell;
@@ -16,7 +15,6 @@ public class ListOnlyPromptTests
     [InlineData("l", 1)]
     [InlineData("k", 0)]
     [InlineData("h", 0)]
-    [InlineData(KeyNames.Down, 1)]
     public void GivenTheList_WhenAMoveKeyIsPressed_ThenTheHighlightMovesAndStopsAtTheTop(string key, int expected)
     {
         var opened = Open();
@@ -43,7 +41,7 @@ public class ListOnlyPromptTests
         var popup = OpenPromptPopup.Of(Open().Prompt!);
 
         Assert.Equal("Delete branch", popup.Title);
-        Assert.Equal("1/3", popup.Count);
+        Assert.Equal("1/3", popup.Position);
         Assert.Equal(["Branch to delete at here"], popup.Lines);
         Assert.Null(popup.Input);
         Assert.Equal(["a", "b", "c"], popup.Details);

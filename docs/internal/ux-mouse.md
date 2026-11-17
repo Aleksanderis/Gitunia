@@ -43,6 +43,8 @@ Views inherit like in the keymap: `Lists` covers Graph, Detail, Sidebar, Diff, t
 | Palette | Click | `command.execute` | Run the clicked entry (it is highlighted first) |
 | Palette | Wheel up | `palette.previous` | Move the highlight up one row |
 | Palette | Wheel down | `palette.next` | Move the highlight down one row |
+| FilterList | Wheel up | `filter.previous` | A prompt picker, the reflog branch picker or the ref jump is open: move the highlight up one row |
+| FilterList | Wheel down | `filter.next` | Move the highlight down one row |
 | ContextMenu | Click | `command.execute` | Run the clicked entry of the actions menu (it is highlighted first); a click outside closes the menu |
 | ContextMenu | Wheel up | `palette.previous` | Move the highlight up one row |
 | ContextMenu | Wheel down | `palette.next` | Move the highlight down one row |

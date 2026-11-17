@@ -1,5 +1,6 @@
 using System.Globalization;
 using Gitunia.Core.FileHistory;
+using Gitunia.Core.Filtering;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Lists;
 using Gitunia.Core.Overlays;
@@ -264,7 +265,10 @@ public class ListViewportContractTests
             state => state.SelectedIndex);
 
         private static Surface RefJump(int count) => Of(
-            new RefJumpState(string.Empty, [.. Enumerable.Range(0, count).Select(Candidate)], 0),
+            new RefJumpState(FilterLists.Of(
+                [.. Enumerable.Range(0, count).Select(index => FilterItems.Of(Candidate(index), Name(index)))],
+                MatcherKind.Fuzzy,
+                "none")),
             state => state.Move,
             state => state.SelectedIndex);
     }

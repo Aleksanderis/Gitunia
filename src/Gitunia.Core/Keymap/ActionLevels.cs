@@ -120,6 +120,8 @@ internal static class ActionLevels
             ["operation.abort"] = CommandLevel.Everyday,
             ["operation.continue"] = CommandLevel.Everyday,
             ["operation.skip"] = CommandLevel.Everyday,
+            ["filter.next"] = CommandLevel.Everyday,
+            ["filter.previous"] = CommandLevel.Everyday,
             ["palette.next"] = CommandLevel.Everyday,
             ["palette.open"] = CommandLevel.Everyday,
             ["palette.previous"] = CommandLevel.Everyday,

@@ -21,7 +21,6 @@ public static class PickerComposer
     private const int MinimumPathColumns = 10;
     private const int ColumnGap = 2;
     private const int GlyphGap = 2;
-    private const int MinimumTitleGap = 2;
     private const string QueryPlaceholder = "type to filter, or a path";
     private const string AcceptLabel = " accepts a path";
 
@@ -103,16 +102,8 @@ public static class PickerComposer
     private static StyledLine TitleLine(PickerState picker, int width, GraphGlyphSet glyphs)
     {
         var title = picker.LocatingTabId is null ? "Open repository" : "Locate repository";
-        var left = $" {title}";
-        var count = $"{RowCountText(picker)} ";
-        var builder = new LineBuilder(width, glyphs.Ellipsis).Append(left, SegmentRole.OverlayTitle);
-        var gap = width - TextWidth.Of(left) - TextWidth.Of(count);
-        if (gap >= MinimumTitleGap)
-        {
-            builder.Append(new string(' ', gap), SegmentRole.OverlayTitle).Append(count, SegmentRole.OverlayTitle);
-        }
 
-        return builder.Build(SegmentRole.OverlayTitle);
+        return FilterListFrame.Title(title, null, RowCountText(picker), width, glyphs);
     }
 
     private static string RowCountText(PickerState picker)

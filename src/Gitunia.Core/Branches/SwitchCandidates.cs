@@ -1,4 +1,4 @@
-using Gitunia.Core.Search;
+using Gitunia.Core.Filtering;
 using Gitunia.Core.Text;
 using Gitunia.Git.Refs.Models;
 

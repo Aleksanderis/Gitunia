@@ -2,7 +2,6 @@ using System.Collections.Immutable;
 using Gitunia.Core.Editing;
 using Gitunia.Core.Effects;
 using Gitunia.Core.Keymap.Models;
-using Gitunia.Core.Overlays;
 using Gitunia.Core.Shell;
 using Gitunia.Core.Status;
 using Gitunia.Core.Text;
@@ -72,8 +71,7 @@ public static class PromptReducer
             return KeyChosen(state, prompt, keys, normalized);
         }
 
-        if (prompt.Picker is { } picker && (PickerKeys.IsMove(normalized, out var step)
-            || prompt is { ListOnly: true } && IsLetterMove(normalized, out step)))
+        if (prompt is { ListOnly: true, Picker: { } picker } && IsLetterMove(normalized, out var step))
         {
             return Replace(state, prompt with { Picker = picker.Moved(step) });
         }
@@ -88,9 +86,7 @@ public static class PromptReducer
             return new ShellUpdate(state, []);
         }
 
-        var filtered = edited.Text == prompt.Text ? prompt.Picker : prompt.Picker?.Filtered(edited.Text);
-
-        return Replace(state, prompt with { Field = edited, Picker = filtered });
+        return Replace(state, prompt with { Field = edited, Picker = prompt.Picker?.Filtered(edited) });
     }
 
     private static ShellUpdate Moved(ShellState state, int step)

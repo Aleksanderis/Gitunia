@@ -13,7 +13,7 @@ public abstract record PromptCommand : ShellCommand;
 /// <param name="Request">What to ask.</param>
 public sealed record PromptRequestedCommand(PromptRequest Request) : PromptCommand;
 
-/// <summary>A key typed in the open prompt: text editing, or the move keys of a picker.</summary>
+/// <summary>A key typed in the open prompt: text editing (and the letter moves of a list-only picker).</summary>
 /// <param name="Key">The key.</param>
 public sealed record PromptKeyPressedCommand(KeyEvent Key) : PromptCommand;
 
