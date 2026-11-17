@@ -4,12 +4,14 @@ using Gitunia.Core.Hints;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Overlays;
 using Gitunia.Core.Reflog;
+using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Commits.Models;
 using Gitunia.Git.History.Models;
 using Gitunia.Git.Reflog.Models;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Overlays;
+using Gitunia.Tui.Rendering.Screen;
 using Gitunia.Tui.Rendering.Styling;
 using Xunit;
 
@@ -135,8 +137,8 @@ public class FooterHintClickTests
     [Fact]
     public void GivenAChordGroupOrANote_WhenTheStatusBarIsDrawn_ThenOnlyHintsWithActionsAreClickable()
     {
-        var hints = HintSet.For(Gitunia.Core.Workspaces.Panes.PaneKind.Diff);
-        var model = new Gitunia.Tui.Rendering.Screen.ScreenModel(
+        var hints = HintSet.For(PaneKind.Diff);
+        var model = new ScreenModel(
             "repo",
             null,
             1,
@@ -149,8 +151,8 @@ public class FooterHintClickTests
             string.Empty,
             Hints: hints);
 
-        var targets = Gitunia.Tui.Rendering.Screen.ChromeBuilder.StatusTargets(model, 200, GraphGlyphSet.Unicode);
-        var text = string.Concat(Gitunia.Tui.Rendering.Screen.ChromeBuilder
+        var targets = ChromeBuilder.StatusTargets(model, 200, GraphGlyphSet.Unicode);
+        var text = string.Concat(ChromeBuilder
             .Status(model, 200, GraphGlyphSet.Unicode).Segments.Select(segment => segment.Text));
 
         Assert.Equal(ActionIds.HelpShow, targets.First(target => target.Contains(0, text.IndexOf("? help", StringComparison.Ordinal))).Action);
@@ -162,10 +164,10 @@ public class FooterHintClickTests
     [Fact]
     public void GivenTheStatusBarIsCutShort_WhenAHintDoesNotFit_ThenItHasNoTargetBeyondTheBar()
     {
-        var model = new Gitunia.Tui.Rendering.Screen.ScreenModel(
+        var model = new ScreenModel(
             "repo", null, 1, 1, "NORMAL", string.Empty, 1, 1, false, string.Empty);
 
-        var targets = Gitunia.Tui.Rendering.Screen.ChromeBuilder.StatusTargets(model, 60, GraphGlyphSet.Unicode);
+        var targets = ChromeBuilder.StatusTargets(model, 60, GraphGlyphSet.Unicode);
 
         Assert.All(targets, target => Assert.True(target.End <= 60));
     }
