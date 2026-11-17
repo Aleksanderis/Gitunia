@@ -3,6 +3,7 @@ using Gitunia.App.Loading.Diff;
 using Gitunia.Core.Diff;
 using Gitunia.Core.Lists;
 using Gitunia.Core.Staging;
+using Gitunia.Core.Text;
 using Gitunia.Git.Status.Models;
 using Gitunia.Tui.Rendering.WorkingTree;
 
@@ -49,7 +50,7 @@ public sealed partial class WorkingDiffController
 
         if (document.FileRows.Count == 0)
         {
-            return DiffStagingCapture.Refused("There is nothing to stage here");
+            return DiffStagingCapture.Refused($"There is {UiTexts.NothingTo("stage")} here");
         }
 
         var row = _actions.CursorRow(diff);

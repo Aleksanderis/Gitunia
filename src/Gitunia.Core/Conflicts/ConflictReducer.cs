@@ -1,6 +1,7 @@
 using Gitunia.Core.Effects;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Overlays;
+using Gitunia.Core.Text;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Conflicts.Models;
@@ -268,7 +269,7 @@ public static class ConflictReducer
         }
 
         var name = ConflictFlow.Name(editor.Path);
-        var unresolved = Plural(editor.UnresolvedCount, "unresolved conflict");
+        var unresolved = CountText.Plural(editor.UnresolvedCount, "unresolved conflict");
         var prompt = new ConfirmPrompt(
             "Save with unresolved conflicts",
             [
@@ -308,7 +309,7 @@ public static class ConflictReducer
 
         if (context.IsBusy)
         {
-            return ConflictFlow.Warn(session, $"{ConflictNotices.Busy}; nothing was saved");
+            return ConflictFlow.Warn(session, $"{ConflictNotices.Busy}; {UiTexts.NothingWas("saved")}");
         }
 
         var write = new WriteConflictEffect(
@@ -433,8 +434,7 @@ public static class ConflictReducer
             return $"Saved {name}";
         }
 
-        return $"Saved {name}: {Plural(editor.UnresolvedCount, "conflict")} still unresolved";
+        return $"Saved {name}: {CountText.Plural(editor.UnresolvedCount, "conflict")} still unresolved";
     }
 
-    private static string Plural(int count, string noun) => count == 1 ? $"1 {noun}" : $"{count} {noun}s";
 }

@@ -1,3 +1,4 @@
+using Gitunia.Core.Text;
 using Gitunia.Tui.Rendering.Panes;
 
 namespace Gitunia.Tui.Rendering.Graph;
@@ -30,7 +31,7 @@ public static class GraphColumnLayout
     public const int DateWidth = 16;
 
     /// <summary>Columns of the short hash.</summary>
-    public const int HashWidth = 7;
+    public const int HashWidth = ShortHash.Length;
 
     /// <summary>Row width (after the lanes) from which the columns get roomy gaps and a right margin (#244).</summary>
     public const int SpaciousRowWidth = 100;

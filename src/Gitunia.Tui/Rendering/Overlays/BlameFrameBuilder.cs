@@ -38,11 +38,11 @@ public static class BlameFrameBuilder
     private const string Divider = "|";
     private const int PercentScale = 100;
 
-    private static readonly HintItem[] PlainHints = [new("/", "search"), new("Esc", "close")];
+    private static readonly HintItem[] PlainHints = [new("/", "search"), new("Esc", HintVerb.Close)];
 
-    private static readonly HintItem[] SelectionHints = [new("y", "copy"), new("Esc", "cancel")];
+    private static readonly HintItem[] SelectionHints = [new("y", "copy"), new("Esc", HintVerb.Cancel)];
 
-    private static readonly HintItem[] SteppedHints = [new("/", "search"), new("Esc", "back")];
+    private static readonly HintItem[] SteppedHints = [new("/", "search"), new("Esc", HintVerb.Back)];
 
     private static readonly HintChip[] ToggleChips =
     [
@@ -90,7 +90,7 @@ public static class BlameFrameBuilder
 
         lines.Add(OverlayBox.TwoColumns(
             "Enter",
-            "show the line's commit in the graph",
+            $"{HintVerb.Select} the line's commit in the graph",
             screenWidth,
             glyphs,
             SegmentRole.OverlayKey,
@@ -311,7 +311,7 @@ public static class BlameFrameBuilder
             return string.Empty;
         }
 
-        return BlameDates.Relative(owner.AuthorTime, now);
+        return ValueFormat.Relative(owner.AuthorTime, now);
     }
 
     private static string Pad(string text, int columns, GraphGlyphSet glyphs)
@@ -360,7 +360,7 @@ public static class BlameFrameBuilder
     {
         if (state.HasSearch)
         {
-            return [new("Esc", state.IsEditingSearch ? "cancel" : "clear")];
+            return [new("Esc", state.IsEditingSearch ? HintVerb.Cancel : HintVerb.Clear)];
         }
 
         return state.Selection is null ? Plain(state) : SelectionHints;
@@ -388,9 +388,8 @@ public static class BlameFrameBuilder
 
         var lines = selection.RangeTo(state.Cursor).Count;
         var kind = selection.Kind == VisualKind.Chars ? " chars," : string.Empty;
-        var unit = lines == 1 ? "line" : "lines";
-
-        return string.Create(CultureInfo.InvariantCulture, $"  VISUAL{kind} {lines} {unit}");
+        
+        return $"  VISUAL{kind} {CountText.Plural(lines, "line")}";
     }
 
     private static string FooterLead(BlameState state)

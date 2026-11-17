@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using Gitunia.Core.Effects;
 using Gitunia.Core.Operations;
 using Gitunia.Core.Status;
+using Gitunia.Core.Text;
 using Gitunia.Git.Refs.Models;
 
 namespace Gitunia.Core.Integration;
@@ -64,7 +65,7 @@ public static class MergeReducer
         {
             if (context.Head?.Kind == HeadKind.Unborn)
             {
-                return "The branch has no commits yet: nothing to merge into";
+                return $"The branch has no commits yet: {UiTexts.NothingTo("merge")} into";
             }
 
             return "HEAD is detached: switch to a branch first";

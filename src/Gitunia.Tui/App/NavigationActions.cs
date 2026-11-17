@@ -2,6 +2,7 @@ using Gitunia.App;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Lists;
+using Gitunia.Core.Text;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Repositories;
@@ -171,7 +172,7 @@ public sealed class NavigationActions(
         }
 
         var hash = session.Graph[commitIndex].Id.ToString();
-        services.Clipboard.Copy(hash, $"commit hash {hash[..Math.Min(7, hash.Length)]}");
+        services.Clipboard.Copy(hash, $"commit hash {ShortHash.Of(hash)}");
     }
 
     private void CopySelectedPath() =>

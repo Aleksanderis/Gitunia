@@ -37,7 +37,7 @@ public sealed class FileContentStore(IBlobReader reader, RepositoryLocation loca
             commit,
             path,
             CommitDetailsStatus.Loading,
-            FileContentDocument.Message(path, "Loading..."));
+            FileContentDocument.Message(path, UiTexts.Loading));
         _pending = new CancellationTokenSource();
         var token = _pending.Token;
         _tasks.Run(() => LoadAsync(commit, path, blob, size, delay, token));

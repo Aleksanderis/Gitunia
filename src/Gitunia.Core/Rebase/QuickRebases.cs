@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using Gitunia.Core.Effects;
 using Gitunia.Core.Prompts;
+using Gitunia.Core.Text;
 using Gitunia.Git.Rebase;
 
 namespace Gitunia.Core.Rebase;
@@ -16,7 +17,7 @@ internal static class QuickRebases
 {
     private const string SelectNotice = "Select a commit in the graph first";
     private const string EmptySubjectNotice = "The subject is empty: type one or Esc to cancel";
-    private const string UnchangedSubjectNotice = "The subject is unchanged: edit it or Esc to cancel";
+    private static readonly string UnchangedSubjectNotice = $"{UiTexts.Unchanged("Subject")}: edit it or Esc to cancel";
 
     public static ImmutableArray<AppEffect> Request(QuickRebaseRequested request, RebaseContext context)
     {
@@ -95,7 +96,7 @@ internal static class QuickRebases
         var tab = context.Tab;
         if (context.IsBusy)
         {
-            return [RebaseReducer.Post($"{RebaseReducer.BusyNotice}; nothing was rebased")];
+            return [RebaseReducer.Post($"{RebaseReducer.BusyNotice}; {UiTexts.NothingWas("rebased")}")];
         }
 
         if (RebaseGuard.Refusal(tab, null) is { } refusal)

@@ -9,5 +9,5 @@ namespace Gitunia.Git.Reflog.Models;
 /// <param name="Message">
 /// The rest of git's reflog message (<c>moving from a to b</c>, the commit subject); may be empty.
 /// </param>
-/// <param name="RelativeDate">When it happened, as git words it (<c>3 hours ago</c>).</param>
-public sealed record ReflogEntry(int Index, string Hash, string Action, string Message, string RelativeDate);
+/// <param name="Date">When it happened.</param>
+public sealed record ReflogEntry(int Index, string Hash, string Action, string Message, DateTimeOffset Date);

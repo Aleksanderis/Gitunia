@@ -23,9 +23,9 @@ public static class TagReducer
     public const string BusyNotice = "Busy: the last tag operation is still running";
 
     /// <summary>The row (and the notice on Enter) of the remote picker when nothing matches.</summary>
-    public const string NoRemoteMatch = "No matching remote";
+    public static readonly string NoRemoteMatch = UiTexts.NoMatch("remote");
 
-    private const string TooSmallNotice = "The screen is too small to ask: nothing was changed";
+    private static readonly string TooSmallNotice = $"The screen is too small to ask: {UiTexts.NothingWas("changed")}";
     private const string SelectNotice = "Select a tag (sidebar) or a commit with one tag on it";
 
     /// <summary>Applies a command and returns the effects to run.</summary>
@@ -79,7 +79,7 @@ public static class TagReducer
         var name = accepted.Name.Trim();
         if (name.Length == 0)
         {
-            return [new ReopenPromptEffect("No name: nothing was created")];
+            return [new ReopenPromptEffect($"{UiTexts.Empty("name")}: {UiTexts.NothingWas("created")}")];
         }
 
         if (context.Refs.Any(reference => reference.Kind == RefKind.Tag && reference.Name == name))
@@ -156,7 +156,7 @@ public static class TagReducer
     {
         if (context.IsBusy)
         {
-            return [Post($"{BusyNotice}; nothing was deleted")];
+            return [Post($"{BusyNotice}; {UiTexts.NothingWas("deleted")}")];
         }
 
         return [new DeleteTagEffect(context.TabId, context.Location, confirmed.Name, confirmed.ObjectHash)];
@@ -168,7 +168,7 @@ public static class TagReducer
     {
         if (context.IsBusy)
         {
-            return [Post($"{BusyNotice}; nothing was deleted")];
+            return [Post($"{BusyNotice}; {UiTexts.NothingWas("deleted")}")];
         }
 
         return [new DeleteTagOnRemoteEffect(context.TabId, context.Location, confirmed.Remote, confirmed.Name)];

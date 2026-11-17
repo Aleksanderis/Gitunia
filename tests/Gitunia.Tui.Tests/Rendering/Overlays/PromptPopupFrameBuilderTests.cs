@@ -117,8 +117,8 @@ public class PromptPopupFrameBuilderTests
         Assert.Equal(1, frame.Lines.Count(line => line.IsSelected));
         Assert.DoesNotContain("> relay", text, StringComparison.Ordinal);
         Assert.DoesNotContain("(2/2)", text, StringComparison.Ordinal);
-        Assert.Contains("Type filters   Ctrl-j/k select   Enter switch   Esc cancel", text, StringComparison.Ordinal);
-        Assert.Contains("Ctrl-j/k select", text, StringComparison.Ordinal);
+        Assert.Contains("type to filter   Ctrl-j/k move   Enter switch   Esc cancel", text, StringComparison.Ordinal);
+        Assert.Contains("Ctrl-j/k move", text, StringComparison.Ordinal);
     }
 
     [Theory]

@@ -8,6 +8,7 @@ using Gitunia.Core.Jump.Models;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Lists;
+using Gitunia.Core.Text;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Git.Diff.Models;
 using Gitunia.Tui.App.Clipboard;
@@ -383,7 +384,7 @@ public sealed class DiffListActions
             || (!wholeFile && document.Rows[row].Kind is DiffRowKind.Note or DiffRowKind.Warning)
             || (document.IsFileContent && document.Rows[row].Kind == DiffRowKind.Note))
         {
-            Notice = "Nothing to copy";
+            Notice = UiTexts.Nothing("copy");
         }
         else if (document.IsFileContent)
         {

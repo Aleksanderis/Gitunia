@@ -1,6 +1,7 @@
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Keymap.Repeat;
+using Gitunia.Core.Text;
 
 namespace Gitunia.Core.Overlays;
 
@@ -161,7 +162,7 @@ public static class HelpBuilder
 
         if (sections.Count == 0)
         {
-            sections.Add(new HelpSection(FilterTitle, [new HelpRow(string.Empty, "Nothing matches the filter.")]));
+            sections.Add(new HelpSection(FilterTitle, [new HelpRow(string.Empty, UiTexts.NoMatch("action"))]));
         }
 
         return new HelpTab(FilterTitle, sections);
@@ -263,8 +264,7 @@ public static class HelpBuilder
             return [];
         }
 
-        var noun = hidden == 1 ? "advanced command" : "advanced commands";
-        var cycleKey = table.Bindings
+                var cycleKey = table.Bindings
             .FirstOrDefault(binding => binding.Action == ActionIds.ViewCycleCommandLevel);
         var keys = cycleKey is null ? string.Empty : KeyFormatter.Display(cycleKey.Sequence);
 
@@ -275,7 +275,7 @@ public static class HelpBuilder
                 [
                     new HelpRow(
                         keys,
-                        $"{hidden} {noun} hidden (level: {CommandLevels.LabelOf(level)}); this key shows more",
+                        $"{CountText.Plural(hidden, "advanced command")} hidden (level: {CommandLevels.LabelOf(level)}); this key shows more",
                         string.Empty,
                         ActionIds.ViewCycleCommandLevel),
                 ]),

@@ -4,5 +4,9 @@ namespace Gitunia.Core.Text;
 public static class CountText
 {
     /// <summary>The count with its noun, with an <c>s</c> unless it is one: <c>1 file</c>, <c>3 files</c>.</summary>
-    public static string Plural(int count, string noun) => count == 1 ? $"1 {noun}" : $"{count} {noun}s";
+    public static string Plural(int count, string noun) => Plural(count, noun, noun + "s");
+
+    /// <summary>The count with its singular or irregular plural noun: <c>1 directory</c>, <c>3 directories</c>.</summary>
+    public static string Plural(int count, string singular, string plural) =>
+        count == 1 ? $"1 {singular}" : $"{count} {plural}";
 }

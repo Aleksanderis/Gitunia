@@ -23,13 +23,15 @@ namespace Gitunia.Core.Rebase;
 public static class RebaseEditorReducer
 {
     /// <summary>Shown when the state changed while the todo was open or being read.</summary>
-    public const string ChangedNotice = "The tab changed while the todo was open: nothing was rebased";
+    public static readonly string ChangedNotice =
+        $"The tab changed while the todo was open: {UiTexts.NothingWas("rebased")}";
 
     /// <summary>Shown when the confirm dialog does not fit the screen.</summary>
-    public const string TooSmallNotice = "The screen is too small to ask: nothing was rebased";
+    public static readonly string TooSmallNotice = $"The screen is too small to ask: {UiTexts.NothingWas("rebased")}";
 
     /// <summary>Shown when the range holds no commit.</summary>
-    public const string EmptyRangeNotice = "Nothing to rebase: the branch has no commits the target lacks";
+    public static readonly string EmptyRangeNotice =
+        $"{UiTexts.Nothing("rebase")}: the branch has no commits the target lacks";
 
     /// <summary>Shown when a reword is saved without a message.</summary>
     public const string BlankMessageNotice = "A reword needs a message: type one, or press Esc to cancel";
@@ -385,7 +387,7 @@ public static class RebaseEditorReducer
         var tab = context.Tab;
         if (context.IsBusy)
         {
-            return Done(session, Post($"{BusyNotice}; nothing was rebased"));
+            return Done(session, Post($"{BusyNotice}; {UiTexts.NothingWas("rebased")}"));
         }
 
         var moved = !string.Equals(tab.Head?.CommitHash, state.OldTip, StringComparison.Ordinal);

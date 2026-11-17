@@ -31,7 +31,7 @@ public class ReflogReaderTests
         Assert.Equal(first, result.Items[0].Hash);
         Assert.Equal("moving from main to topic", result.Items[0].Message);
         Assert.Equal("two amended", result.Items[2].Message);
-        Assert.All(result.Items, entry => Assert.NotEqual(string.Empty, entry.RelativeDate));
+        Assert.All(result.Items, entry => Assert.NotEqual(default, entry.Date));
     }
 
     [Fact]

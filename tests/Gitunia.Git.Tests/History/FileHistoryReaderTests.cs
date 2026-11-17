@@ -35,6 +35,16 @@ public class FileHistoryReaderTests
     }
 
     [Fact]
+    public async Task GivenACommit_WhenReadingItsHistory_ThenTheDateIsTheListFormatWithTheTime()
+    {
+        using var repository = TestRepository.Create().Commit("add", new TestFile("f.txt", "one\n"));
+
+        var entries = await ReadAsync(repository, "f.txt");
+
+        Assert.Matches(@"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$", Assert.Single(entries).Date);
+    }
+
+    [Fact]
     public async Task GivenAFileChangedOnTwoBranchesAndMerged_WhenReadingItsHistory_ThenBothBranchesCommitsAreListed()
     {
         using var repository = TestRepository.Create().Commit("base", new TestFile("f.txt", "1\n2\n3\n"));

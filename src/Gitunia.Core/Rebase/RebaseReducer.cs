@@ -22,10 +22,11 @@ public static class RebaseReducer
     public const string BusyNotice = "Busy: another operation of this tab is still running";
 
     /// <summary>Shown when the state changed while a question was being prepared.</summary>
-    public const string ChangedNotice = "The tab or the screen changed while asking: nothing was rebased";
+    public static readonly string ChangedNotice =
+        $"The tab or the screen changed while asking: {UiTexts.NothingWas("rebased")}";
 
     /// <summary>Shown when the confirm dialog does not fit the screen.</summary>
-    public const string TooSmallNotice = "The screen is too small to ask: nothing was rebased";
+    public static readonly string TooSmallNotice = $"The screen is too small to ask: {UiTexts.NothingWas("rebased")}";
 
     private const string SelectNotice = "Select a commit (graph) or a branch or tag (sidebar) to rebase onto";
 
@@ -105,7 +106,7 @@ public static class RebaseReducer
         var tab = context.Tab;
         if (context.IsBusy)
         {
-            return [Post($"{BusyNotice}; nothing was rebased")];
+            return [Post($"{BusyNotice}; {UiTexts.NothingWas("rebased")}")];
         }
 
         if (RebaseGuard.Refusal(tab, target.CommitHash) is { } refusal)

@@ -1,6 +1,7 @@
 using Gitunia.App.Status;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
+using Gitunia.Core.Text;
 using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.Input;
 
@@ -38,7 +39,7 @@ public sealed class StatusActionHandler(StatusReporter statuses, IActiveSessions
             var session = sessions.ActiveSession();
             var retried = session?.Details.Retry() == true;
             retried |= session?.Tree?.Store.Retry() == true;
-            Message = retried ? "retrying..." : "nothing to retry";
+            Message = retried ? "retrying..." : $"{UiTexts.NothingTo("retry")}";
             return true;
         }
 

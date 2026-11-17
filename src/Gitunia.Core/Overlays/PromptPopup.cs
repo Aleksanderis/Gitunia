@@ -1,4 +1,5 @@
 using Gitunia.Core.Editing;
+using Gitunia.Core.Text;
 
 namespace Gitunia.Core.Overlays;
 
@@ -26,7 +27,7 @@ public sealed record PromptPopup(
     int Highlight = -1,
     string? Count = null)
 {
-    private static readonly PromptHint Cancel = new("Esc", "cancel");
+    private static readonly PromptHint Cancel = new("Esc", HintVerb.Cancel);
 
     /// <summary>The text between two hints of a prompt footer, also the gap the footer is drawn with.</summary>
     public const string HintGap = "   ";
@@ -56,8 +57,8 @@ public sealed record PromptPopup(
             input,
             rows.Rows,
             canSelect
-                ? [new(string.Empty, "Type filters"), new("Ctrl-j/k", "select"), new("Enter", acceptLabel), Cancel]
-                : [new(string.Empty, "Type filters"), new("Enter", acceptLabel), Cancel],
+                ? [new(string.Empty, HintVerb.TypeToFilter), new("Ctrl-j/k", HintVerb.Move), new("Enter", acceptLabel), Cancel]
+                : [new(string.Empty, HintVerb.TypeToFilter), new("Enter", acceptLabel), Cancel],
             Highlight: rows.Highlight,
             Count: rows.Position);
 

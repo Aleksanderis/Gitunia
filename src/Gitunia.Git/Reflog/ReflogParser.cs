@@ -1,3 +1,4 @@
+using System.Globalization;
 using Gitunia.Git.Reflog.Models;
 
 namespace Gitunia.Git.Reflog;
@@ -8,9 +9,10 @@ namespace Gitunia.Git.Reflog;
 public static class ReflogParser
 {
     /// <summary>
-    /// The <c>--date</c> value that makes the selector carry the relative time (<c>HEAD@{3 hours ago}</c>).
+    /// The <c>--date</c> value that makes the selector carry the time as Unix seconds (<c>HEAD@{1763380000}</c>), so
+    /// the app words the age itself.
     /// </summary>
-    public const string DateOption = "--date=relative";
+    public const string DateOption = "--date=unix";
 
     /// <summary>
     /// The <c>--format</c> value the parser expects: hash, selector and reflog subject, each entry ended by a
@@ -51,21 +53,35 @@ public static class ReflogParser
             var separator = subject.IndexOf(ActionSeparator, StringComparison.Ordinal);
             var action = separator < 0 ? subject : subject[..separator];
             var message = separator < 0 ? string.Empty : subject[(separator + ActionSeparator.Length)..];
-            entries.Add(new ReflogEntry(entries.Count, fields[0], action, message, DateOf(fields[1])));
+            if (!TryDateOf(fields[1], out var date))
+            {
+                warnings.Add($"Skipped reflog line with an unreadable date: '{line}'");
+                continue;
+            }
+
+            entries.Add(new ReflogEntry(entries.Count, fields[0], action, message, date));
         }
 
         return new ParseResult<ReflogEntry>(entries, warnings);
     }
 
-    private static string DateOf(string selector)
+    private static bool TryDateOf(string selector, out DateTimeOffset date)
     {
+        date = default;
         var open = selector.IndexOf(SelectorOpen, StringComparison.Ordinal);
         if (open < 0 || !selector.EndsWith(SelectorClose, StringComparison.Ordinal))
         {
-            return string.Empty;
+            return false;
         }
 
         var start = open + SelectorOpen.Length;
-        return selector[start..^SelectorClose.Length];
+        var text = selector[start..^SelectorClose.Length];
+        if (!long.TryParse(text, NumberStyles.None, CultureInfo.InvariantCulture, out var seconds))
+        {
+            return false;
+        }
+
+        date = DateTimeOffset.FromUnixTimeSeconds(seconds);
+        return true;
     }
 }

@@ -300,7 +300,7 @@ public class BranchReducerTests
     {
         var effects = Reduce(new BranchRenameAccepted(Tab, "topic", typed), MainAndTopic());
 
-        Assert.Equal("The name is unchanged: nothing was renamed", PromptRejections.Reason(effects));
+        Assert.Equal("Name unchanged: nothing was renamed", PromptRejections.Reason(effects));
     }
 
     [Fact]

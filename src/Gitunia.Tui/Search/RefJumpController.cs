@@ -5,6 +5,7 @@ using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Search;
 using Gitunia.Core.Search.Models;
+using Gitunia.Core.Text;
 using Gitunia.Git;
 using Gitunia.Tui.Input;
 
@@ -30,7 +31,7 @@ public sealed class RefJumpController(IGraphView view)
 
             if (_prompt.Selected is not { } selected)
             {
-                return new PromptLine("ref ", _prompt.Text, _prompt.Caret, "  no matching ref or commit");
+                return new PromptLine("ref ", _prompt.Text, _prompt.Caret, $"  {UiTexts.NoMatch("ref or commit")}");
             }
 
             var position = (_prompt.SelectedIndex + 1).ToString(CultureInfo.InvariantCulture);
@@ -117,7 +118,7 @@ public sealed class RefJumpController(IGraphView view)
     {
         if (candidate is null)
         {
-            Notice = "No matching ref or commit";
+            Notice = UiTexts.NoMatch("ref or commit");
             return;
         }
 

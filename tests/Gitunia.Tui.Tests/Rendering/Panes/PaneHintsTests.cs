@@ -3,6 +3,7 @@ using Gitunia.Core.Editing;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Keymap.Repeat;
+using Gitunia.Core.Text;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Git.History.Models;
 using Gitunia.Tui.Rendering.Graph;
@@ -15,6 +16,42 @@ namespace Gitunia.Tui.Tests.Rendering.Panes;
 public class PaneHintsTests
 {
     public static TheoryData<PaneKind> Panes() => [.. Enum.GetValues<PaneKind>()];
+
+    // Keys that mean the same on every screen: their label is one word of the closed vocabulary.
+    // Enter on a conflicted file names the editor it opens; the label is shared with WithConflictEditor.
+    private const string ConflictEditorLabel = "conflict editor";
+
+    private static readonly string[] SharedKeys = ["Esc", "Enter", "j/k", "Ctrl-g", "Ctrl-s", "n/Esc", "Ctrl-j/k"];
+
+    [Fact]
+    public void GivenEverySetOfHints_WhenReadingTheSharedKeys_ThenTheirLabelIsAHintVerb()
+    {
+        var sets = new List<IReadOnlyList<KeyHint>>
+        {
+            PaneHints.ForDetailChanges(), PaneHints.ForGraphComparing(), PaneHints.ForMessageEditing(),
+            PaneHints.ForConfirm(), PaneHints.ForBlame(), PaneHints.ForFileHistory(), PaneHints.ForReflog(),
+            PaneHints.ForRebaseEditor(), PaneHints.ForConflictVersions(), PaneHints.ForConflictVisual(),
+            PaneHints.ForConflictResult(), PaneHints.ForConflictEdit(), PaneHints.ForRebaseMessage(),
+            PaneHints.ForSettings(), PaneHints.ForPalette(), PaneHints.ForRepeat(RepeatKind.Context),
+            PaneHints.ForRepeat(RepeatKind.Resize), PaneHints.ForLineHistory(new LineRange(1, 2)),
+        };
+        foreach (var pane in Enum.GetValues<PaneKind>())
+        {
+            sets.Add(PaneHints.For(pane));
+            sets.Add(PaneHints.For(pane, showsFileContent: true));
+            sets.Add(PaneHints.For(pane, showsFileContent: false, onConflict: true));
+            sets.Add(PaneHints.For(pane, showsFileContent: false, onRefusedConflict: true));
+        }
+
+        var offenders = sets.SelectMany(set => set)
+            .Where(hint => SharedKeys.Contains(hint.Keys) && !HintVerb.All.Contains(hint.Description))
+            .Where(hint => hint.Description != ConflictEditorLabel)
+            .Select(hint => $"{hint.Keys} {hint.Description}")
+            .Distinct()
+            .ToList();
+
+        Assert.True(offenders.Count == 0, $"Not in HintVerb: {string.Join("; ", offenders)}");
+    }
 
     [Theory]
     [MemberData(nameof(Panes))]
@@ -165,7 +202,7 @@ public class PaneHintsTests
         var hints = PaneHints.ForGraphComparing();
 
         Assert.Contains(hints, hint => hint.Keys == "<space>=" && hint.Description == "move mark");
-        Assert.Contains(hints, hint => hint.Keys == "Esc" && hint.Description == "end compare");
+        Assert.Contains(hints, hint => hint.Keys == "Esc" && hint.Description == HintVerb.Cancel);
         Assert.Contains(hints, hint => hint.Keys == "gg/G");
         AssertKeysTriggerActions(hints, KeyMode.Normal, DefaultKeymap.GraphView);
     }

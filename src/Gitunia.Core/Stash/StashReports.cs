@@ -19,7 +19,7 @@ public static class StashReports
         if (result.Outcome == StashOutcome.NothingToStash)
         {
             var hint = includeUntracked ? string.Empty : $" (untracked files are stashed with {KeyTokens.Of(ActionIds.StashPushUntracked, "stash with untracked files")})";
-            return new StashReport($"Nothing to stash{hint}", StatusSeverity.Warning);
+            return new StashReport($"{UiTexts.Nothing("stash")}{hint}", StatusSeverity.Warning);
         }
 
         var named = message.Length > 0 ? $" \"{message}\"" : string.Empty;
@@ -75,10 +75,10 @@ public static class StashReports
         {
             StashRestoreState.Missing => Gone(target.Entry),
             StashRestoreState.NotInStash => new StashReport(
-                $"{name} holds no copy of {path} to restore (the stash deletes it): nothing was changed",
+                $"{name} holds no copy of {path} to restore (the stash deletes it): {UiTexts.NothingWas("changed")}",
                 StatusSeverity.Warning),
             StashRestoreState.Identical => new StashReport(
-                $"{path} already matches {name}: nothing to restore",
+                $"{path} already matches {name}: {UiTexts.NothingTo("restore")}",
                 StatusSeverity.Info),
             _ => Restored(result, path, name),
         };
@@ -99,5 +99,5 @@ public static class StashReports
     }
 
     private static StashReport Gone(StashEntry entry) =>
-        new($"{entry.Name} is no longer in the stash list: nothing was changed", StatusSeverity.Warning);
+        new($"{entry.Name} is no longer in the stash list: {UiTexts.NothingWas("changed")}", StatusSeverity.Warning);
 }

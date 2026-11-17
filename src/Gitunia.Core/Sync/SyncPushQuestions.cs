@@ -32,7 +32,7 @@ internal static class SyncPushQuestions
     {
         if (current is null)
         {
-            return [SyncReducer.Post("No branch is checked out: nothing to force push")];
+            return [SyncReducer.Post($"No branch is checked out: {UiTexts.NothingTo("force")} push")];
         }
 
         if (!SyncReducer.HasUpstream(current))
@@ -73,7 +73,7 @@ internal static class SyncPushQuestions
         {
             return new SyncUpdate(
                 context.State,
-                [SyncReducer.Post("The checked-out branch changed: nothing was pushed")]);
+                [SyncReducer.Post($"The checked-out branch changed: {UiTexts.NothingWas("pushed")}")]);
         }
 
         var request = new PushRequest(remote, branch, true);

@@ -46,11 +46,11 @@ public static class DiscardReports
             PatchStagingOutcome.WholeFile when selection.Lines.Count == 0 => $"Discarded all changes to {name}",
             PatchStagingOutcome.WholeFile => $"Discarded all changes to {name}: it has no hunks to pick",
             PatchStagingOutcome.NotSplittable =>
-                $"{name} cannot be split into hunks or lines (binary, not valid UTF-8 or renamed): nothing was "
-                + "discarded; discard the whole file from the list",
+                $"{name} cannot be split into hunks or lines (binary, not valid UTF-8 or renamed): {UiTexts.NothingWas("discarded")}; "
+                + "discard the whole file from the list",
             PatchStagingOutcome.FileChanged =>
-                $"{name} changed since the diff was read: nothing was discarded, the diff is read again",
-            _ => "Nothing to discard in the selection",
+                $"{name} changed since the diff was read: {UiTexts.NothingWas("discarded")}, the diff is read again",
+            _ => $"{UiTexts.Nothing("discard")} in the selection",
         };
     }
 

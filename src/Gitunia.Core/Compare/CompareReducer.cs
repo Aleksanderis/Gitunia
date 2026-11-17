@@ -1,5 +1,6 @@
 using Gitunia.Core.Effects;
 using Gitunia.Core.Status;
+using Gitunia.Core.Text;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
@@ -22,7 +23,6 @@ public static class CompareReducer
     /// <summary>Shown when the mark is cleared.</summary>
     public const string ClearedNotice = "Comparison mark cleared";
 
-    private const int HashLength = 7;
 
     /// <summary>Applies a command to the follow state of its tab.</summary>
     public static CompareUpdate Reduce(CompareFollow follow, CompareCommand command, CompareContext context) =>
@@ -119,5 +119,5 @@ public static class CompareReducer
 
     private static PostStatusEffect Notice(string text) => new(text, StatusSeverity.Info);
 
-    private static string Short(ObjectId id) => id.ToString()[..HashLength];
+    private static string Short(ObjectId id) => ShortHash.Of(id.ToString());
 }

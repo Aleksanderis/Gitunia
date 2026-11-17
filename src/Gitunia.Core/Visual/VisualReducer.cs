@@ -2,6 +2,7 @@ using Gitunia.Core.Effects;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Lists;
 using Gitunia.Core.Status;
+using Gitunia.Core.Text;
 using Gitunia.Core.Workspaces.Panes;
 
 namespace Gitunia.Core.Visual;
@@ -21,7 +22,7 @@ public static class VisualReducer
     public const string SidebarNotice = "No range selection in the sidebar";
 
     /// <summary>The notice for <c>v</c> on a pane without rows.</summary>
-    public const string NothingToSelectNotice = "Nothing to select";
+    public static readonly string NothingToSelectNotice = UiTexts.Nothing("select");
 
     /// <summary>The notice for the character-wise key where no text can be selected by character.</summary>
     public const string NoCharsNotice = "No character selection here (only in diffs, file content and the Details tab)";

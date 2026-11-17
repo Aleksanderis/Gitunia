@@ -31,7 +31,8 @@ public static class DiscardReducer
     /// <summary>Shown when another operation of the tab is changing the index or the working tree.</summary>
     public const string BlockedNotice = "Busy: another operation of this tab is still running";
 
-    private const string TooSmallNotice = "The screen is too small to ask: nothing was discarded";
+    private static readonly string TooSmallNotice =
+        $"The screen is too small to ask: {UiTexts.NothingWas("discarded")}";
     private const string NotLoadedNotice = "The status is not loaded yet";
     private const string SelectNotice = "Select a file first";
 
@@ -240,7 +241,7 @@ public static class DiscardReducer
     {
         if (Busy(context) is { } busy)
         {
-            return Refuse($"{busy}; nothing was discarded");
+            return Refuse($"{busy}; {UiTexts.NothingWas("discarded")}");
         }
 
         var tabId = context.TabId;

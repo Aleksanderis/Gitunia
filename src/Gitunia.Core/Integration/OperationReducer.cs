@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using Gitunia.Core.Effects;
 using Gitunia.Core.Status;
+using Gitunia.Core.Text;
 using Gitunia.Git.Operations.Models;
 using Gitunia.Git.Repositories.Models;
 
@@ -17,7 +18,7 @@ public static class OperationReducer
     /// <summary>Shown when an action is asked for while another call of the tab runs.</summary>
     public const string BusyNotice = "Busy: another operation of this tab is still running";
 
-    private const string TooSmallNotice = "The screen is too small to ask: nothing was changed";
+    private static readonly string TooSmallNotice = $"The screen is too small to ask: {UiTexts.NothingWas("changed")}";
 
     /// <summary>Applies a continue, abort or skip request or the answer of one of the dialogs.</summary>
     public static ImmutableArray<AppEffect> Reduce(IntegrationCommand command, IntegrationContext context) =>
@@ -91,7 +92,7 @@ public static class OperationReducer
     {
         if (context.IsBusy)
         {
-            return [Post($"{BusyNotice}; nothing was aborted")];
+            return [Post($"{BusyNotice}; {UiTexts.NothingWas("aborted")}")];
         }
 
         return [new AbortOperationEffect(context.TabId, context.Location, confirmed.Info, confirmed.Branch)];
@@ -104,13 +105,13 @@ public static class OperationReducer
     {
         if (context.IsBusy)
         {
-            return [Post($"{BusyNotice}; nothing was skipped")];
+            return [Post($"{BusyNotice}; {UiTexts.NothingWas("skipped")}")];
         }
 
         var info = confirmed.Info;
         if (context.Operation is not { } current || current.Kind != info.Kind || current.Commit != info.Commit)
         {
-            return [Post("The operation moved on while asking: nothing was skipped")];
+            return [Post($"The operation moved on while asking: {UiTexts.NothingWas("skipped")}")];
         }
 
         return [new SkipOperationEffect(context.TabId, context.Location, info)];

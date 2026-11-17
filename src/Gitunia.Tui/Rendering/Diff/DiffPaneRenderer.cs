@@ -1,6 +1,7 @@
 using System.Globalization;
 using Gitunia.Core.Diff;
 using Gitunia.Core.Keymap.Repeat;
+using Gitunia.Core.Text;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Panes;
 using Gitunia.Tui.Rendering.Styling;
@@ -129,8 +130,7 @@ public static class DiffPaneRenderer
             if (pane.Document.MaximumLineNumber > 0)
             {
                 var count = pane.Document.MaximumLineNumber;
-                var unit = count == 1 ? "line" : "lines";
-                builder.Append($"  {count.ToString(CultureInfo.InvariantCulture)} {unit}", SegmentRole.Faint);
+                builder.Append($"  {CountText.Plural(count, "line")}", SegmentRole.Faint);
             }
 
             AppendWrapMarker(builder, pane);
@@ -152,7 +152,7 @@ public static class DiffPaneRenderer
             var files = string.Empty;
             if (pane.IsFolder && pane.FileCount > 0)
             {
-                files = $"  folder, {fileCount} {(pane.FileCount == 1 ? "file" : "files")}";
+                files = $"  folder, {CountText.Plural(pane.FileCount, "file")}";
             }
             else if (pane.FileCount > 0)
             {

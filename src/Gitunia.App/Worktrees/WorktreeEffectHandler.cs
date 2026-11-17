@@ -120,7 +120,7 @@ public sealed class WorktreeEffectHandler(
     private async Task<WorktreeCommand> PruneAsync(PruneWorktreesEffect effect, CancellationToken token)
     {
         var removed = await writer.PruneAsync(effect.Location, token).ConfigureAwait(false);
-        var text = removed.Count == 1 ? "Pruned 1 worktree entry" : $"Pruned {removed.Count} worktree entries";
+        var text = $"Pruned {CountText.Plural(removed.Count, "worktree entry", "worktree entries")}";
 
         return new WorktreeOperationSucceeded(effect.TabId, text, null);
     }

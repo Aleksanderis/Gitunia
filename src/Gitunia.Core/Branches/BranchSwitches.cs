@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using Gitunia.Core.Effects;
 using Gitunia.Core.Prompts;
+using Gitunia.Core.Text;
 using Gitunia.Git.Refs;
 
 namespace Gitunia.Core.Branches;
@@ -8,7 +9,7 @@ namespace Gitunia.Core.Branches;
 /// <summary>The switch actions of <see cref="BranchReducer"/>: check out the branch under the cursor or pick.</summary>
 internal static class BranchSwitches
 {
-    private const string NoMatch = "No matching branch";
+    private static readonly string NoMatch = UiTexts.NoMatch("branch");
 
     // The branch under the cursor is checked out at once; a prompt opens only when the cursor names none, or
     // several (a graph commit with more than one branch label: the prompt lists just those).

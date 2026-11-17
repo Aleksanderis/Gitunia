@@ -1,6 +1,7 @@
 using System.Globalization;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Mouse;
+using Gitunia.Core.Text;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Styling;
 
@@ -157,9 +158,7 @@ public static class TabBarLayout
         markers += label.HasOperation ? "!" : string.Empty;
         var aheadGlyph = glyphs.IsAscii ? "+" : "↑";
         var behindGlyph = glyphs.IsAscii ? "-" : "↓";
-        markers += label.Ahead > 0 ? $"{aheadGlyph}{label.Ahead.ToString(CultureInfo.InvariantCulture)}" : string.Empty;
-        var behind = label.Behind.ToString(CultureInfo.InvariantCulture);
-        markers += label.Behind > 0 ? $"{behindGlyph}{behind}" : string.Empty;
+        markers += ValueFormat.AheadBehind(label.Ahead, label.Behind, aheadGlyph, behindGlyph);
         markers += label.IsLoading ? glyphs.Ellipsis : string.Empty;
         if (markers.Length == 0)
         {

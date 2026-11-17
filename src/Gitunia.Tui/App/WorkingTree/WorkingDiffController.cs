@@ -5,6 +5,7 @@ using Gitunia.Core.DiffPane;
 using Gitunia.Core.Editing;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
+using Gitunia.Core.Text;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Repositories;
@@ -291,7 +292,7 @@ public sealed partial class WorkingDiffController : IActionHandler, ITextKeyHand
         }
         else if (action == ActionIds.DiffLoadAnyway)
         {
-            Notice = diff.Store.LoadAnyway() ? "Loading the whole diff..." : "Nothing was cut short";
+            Notice = diff.Store.LoadAnyway() ? "Loading the whole diff..." : UiTexts.Nothing("load");
         }
         else if (TryChangeOptions(diff, action))
         {

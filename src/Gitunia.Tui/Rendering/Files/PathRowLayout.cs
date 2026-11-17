@@ -1,3 +1,4 @@
+using Gitunia.Core.Text;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Tui.Rendering.Styling;
 
@@ -15,7 +16,6 @@ public static class PathRowLayout
 {
     private const char Separator = '/';
     private const string DirectoryGap = "  ";
-    private const string FromArrow = " <- ";
     private const string FullPathArrow = " -> ";
 
     // The ellipsis and at least one character of the directory.
@@ -73,7 +73,7 @@ public static class PathRowLayout
 
         if (oldPath is not null && isDirectoryWhole)
         {
-            var from = $"{FromArrow}{OldText(directory, oldPath)}";
+            var from = $"{ValueFormat.RenamedFromArrow}{OldText(directory, oldPath)}";
             if (TextWidth.Of(from) <= remaining)
             {
                 segments.Add(new StyledSegment(from, SegmentRole.Faint));

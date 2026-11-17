@@ -112,7 +112,7 @@ public static class BranchReducer
         var name = accepted.Name.Trim();
         if (name.Length == 0)
         {
-            return [new ReopenPromptEffect("No name: nothing was created")];
+            return [new ReopenPromptEffect($"{UiTexts.Empty("name")}: {UiTexts.NothingWas("created")}")];
         }
 
         if (BranchResolver.HasLocal(context.Refs, name))
@@ -184,7 +184,7 @@ public static class BranchReducer
         var name = accepted.Name.Trim();
         if (name.Length == 0 || name == accepted.From)
         {
-            return [new ReopenPromptEffect("The name is unchanged: nothing was renamed")];
+            return [new ReopenPromptEffect(UiTexts.Unchanged("Name", "renamed"))];
         }
 
         if (BranchResolver.HasLocal(context.Refs, name))
@@ -203,7 +203,7 @@ public static class BranchReducer
             reference.Kind == RefKind.LocalBranch && reference.Name == chosen.Name);
 
         return branch is null
-            ? [Post("That branch is gone: nothing was deleted")]
+            ? [Post($"That branch is gone: {UiTexts.NothingWas("deleted")}")]
             : BranchDeletes.Ask(branch, context);
     }
 
@@ -211,7 +211,7 @@ public static class BranchReducer
     {
         if (context.IsBusy)
         {
-            return [Post($"{BranchRefusals.BusyNotice}; nothing was deleted")];
+            return [Post($"{BranchRefusals.BusyNotice}; {UiTexts.NothingWas("deleted")}")];
         }
 
         var effect = new DeleteBranchEffect(
@@ -238,7 +238,8 @@ public static class BranchReducer
             UndoNotes.FromHistory,
             "Delete anyway");
         var accepted = new BranchForceDeleteConfirmed(needsForce.TabId, needsForce.Name, needsForce.CommitHash);
-        var unavailable = $"{needsForce.Name} is unmerged and the screen is too small to ask: nothing was deleted";
+        var unavailable =
+            $"{needsForce.Name} is unmerged and the screen is too small to ask: {UiTexts.NothingWas("deleted")}";
 
         return [new ShowConfirmEffect(prompt, accepted, unavailable)];
     }
@@ -249,7 +250,7 @@ public static class BranchReducer
     {
         if (context.IsBusy)
         {
-            return [Post($"{BranchRefusals.BusyNotice}; nothing was deleted")];
+            return [Post($"{BranchRefusals.BusyNotice}; {UiTexts.NothingWas("deleted")}")];
         }
 
         var effect = new DeleteBranchEffect(

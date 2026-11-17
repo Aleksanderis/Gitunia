@@ -18,7 +18,7 @@ public static class PickTexts
     {
         if (commits.Count != 1)
         {
-            return RebaseCounts.Plural(commits.Count, "commit");
+            return CountText.Plural(commits.Count, "commit");
         }
 
         var commit = commits[0];
@@ -52,7 +52,7 @@ public static class PickTexts
                 StatusSeverity.Info,
                 UndoNotes.Undo($"git reset --hard {result.OldHead} (the reflog has it)")),
             PickOutcome.NothingToApply => new PostedText(
-                $"Nothing to {verb}: {target} already has the changes of {what}",
+                $"{UiTexts.Nothing(verb)}: {target} already has the changes of {what}",
                 StatusSeverity.Info),
             _ => new PostedText(
                 $"The {verb} of {what} stopped on conflicts: resolve the files marked !, then " +

@@ -26,7 +26,8 @@ public static class StagingReducer
     /// <summary>Shown when another operation of the tab is changing the index or the working tree.</summary>
     public const string BlockedNotice = "Busy: another operation of this tab is still running";
 
-    private const string TooSmallNotice = "The screen is too small to ask: nothing was marked resolved";
+    private static readonly string TooSmallNotice =
+        $"The screen is too small to ask: {UiTexts.NothingWas("marked")} resolved";
     private const string NotLoadedNotice = "The status is not loaded yet";
 
     /// <summary>Applies a command and returns the effects to run and the commands that follow.</summary>
@@ -181,7 +182,7 @@ public static class StagingReducer
         {
             var notice = context.IsBusy ? BusyNotice : BlockedNotice;
 
-            return Refuse($"{notice}; nothing was marked resolved");
+            return Refuse($"{notice}; {UiTexts.NothingWas("marked")} resolved");
         }
 
         var plan = StagingPlanner.Resolve(confirmed.Entry, false);

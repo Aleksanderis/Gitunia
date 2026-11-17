@@ -2,6 +2,7 @@ using Gitunia.Core.Keymap;
 using System.Collections.Immutable;
 using Gitunia.Core.Effects;
 using Gitunia.Core.Prompts;
+using Gitunia.Core.Text;
 using Gitunia.Git.Refs.Models;
 
 namespace Gitunia.Core.Branches;
@@ -33,7 +34,7 @@ internal static class BranchUpstreams
             "set",
             new BranchUpstreamAnswer(context.TabId, branch.Name),
             Choices: [.. remotes.Select(candidate => new PromptChoice(candidate.Target, candidate.Label))],
-            NoMatch: "No matching remote branch",
+            NoMatch: UiTexts.NoMatch("remote branch"),
             Owner: context.TabId);
 
         return [new ShowPromptEffect(request)];
@@ -125,7 +126,7 @@ internal static class BranchUpstreams
         var upstreamRef = context.Refs.FirstOrDefault(reference => reference.FullName == upstream);
         if (branch.IsUpstreamGone || upstreamRef is null)
         {
-            return $"The upstream of {name} is gone: nothing changed";
+            return $"The upstream of {name} is gone: {UiTexts.NothingWas("changed")}";
         }
 
         if (upstreamRef.CommitHash == branch.CommitHash)
@@ -133,6 +134,6 @@ internal static class BranchUpstreams
             return $"{name} is up to date with its upstream";
         }
 
-        return branch.Ahead is > 0 ? $"{name} has commits its upstream lacks (diverged): nothing changed" : null;
+        return branch.Ahead is > 0 ? $"{name} has commits its upstream lacks (diverged): {UiTexts.NothingWas("changed")}" : null;
     }
 }

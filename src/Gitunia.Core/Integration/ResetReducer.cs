@@ -102,7 +102,7 @@ public static class ResetReducer
     {
         if (context.IsBusy)
         {
-            return [Post($"{ResetTexts.BusyNotice}; nothing was reset")];
+            return [Post($"{ResetTexts.BusyNotice}; {UiTexts.NothingWas("reset")}")];
         }
 
         return [new ResetBranchEffect(context.TabId, context.Location, confirmed.Target)];
@@ -121,7 +121,7 @@ public static class ResetReducer
         {
             if (context.Head?.Kind == HeadKind.Unborn)
             {
-                return "The branch has no commits yet: nothing to reset";
+                return $"The branch has no commits yet: {UiTexts.NothingTo("reset")}";
             }
 
             return "HEAD is detached: switch to a branch first";

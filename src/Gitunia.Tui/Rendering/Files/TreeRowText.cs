@@ -1,3 +1,5 @@
+using Gitunia.Core.Text;
+
 namespace Gitunia.Tui.Rendering.Files;
 
 /// <summary>Text shared by the tree style of the Changes tab and of the Changes view lists.</summary>
@@ -5,7 +7,6 @@ public static class TreeRowText
 {
     private const int IndentColumns = 2;
     private const char Separator = '/';
-    private const string RenameArrow = " -> ";
 
     /// <summary>The blank columns in front of a row <paramref name="depth"/> folders down.</summary>
     public static string Indent(int depth) => new(' ', depth * IndentColumns);
@@ -31,6 +32,6 @@ public static class TreeRowText
             old = oldPath[directory.Length..];
         }
 
-        return $"{old}{RenameArrow}{name}";
+        return ValueFormat.RenameText(old, name);
     }
 }

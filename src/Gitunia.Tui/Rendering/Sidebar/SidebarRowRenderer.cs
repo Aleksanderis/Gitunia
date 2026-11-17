@@ -1,6 +1,7 @@
 using System.Globalization;
 using Gitunia.Core.Editing;
 using Gitunia.Core.Sidebar;
+using Gitunia.Core.Text;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Styling;
@@ -120,8 +121,7 @@ public static class SidebarRowRenderer
     private static List<SidebarExtra> ExtrasOf(SidebarRow row, SidebarGlyphs sidebarGlyphs)
     {
         var extras = new List<SidebarExtra>();
-        var tracking = (row.Ahead is > 0 ? sidebarGlyphs.Ahead + row.Ahead.Value.ToString(CultureInfo.InvariantCulture) : string.Empty)
-            + (row.Behind is > 0 ? sidebarGlyphs.Behind + row.Behind.Value.ToString(CultureInfo.InvariantCulture) : string.Empty);
+        var tracking = ValueFormat.AheadBehind(row.Ahead, row.Behind, sidebarGlyphs.Ahead, sidebarGlyphs.Behind);
         if (tracking.Length > 0)
         {
             extras.Add(new SidebarExtra(tracking, SegmentRole.Punctuation));

@@ -1,6 +1,7 @@
 using Gitunia.Core.Editing;
 using Gitunia.Core.Settings;
 using Gitunia.Core.Settings.Models;
+using Gitunia.Core.Text;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Styling;
 
@@ -102,7 +103,7 @@ public sealed record SettingsRowText(
             case SettingControl.PathList:
                 return $"{PathSummary(value)} {AddMarker}";
             case SettingControl.KeyReference:
-                return state.Reference.Count == 1 ? "1 key" : $"{state.Reference.Count} keys";
+                return CountText.Plural(state.Reference.Count, "key");
             default:
                 return string.Empty;
         }
@@ -115,7 +116,7 @@ public sealed record SettingsRowText(
             return value.IsDefault ? "default folders" : "none";
         }
 
-        return value.Paths.Length == 1 ? "1 folder" : $"{value.Paths.Length} folders";
+        return CountText.Plural(value.Paths.Length, "folder");
     }
 
     private static SettingsRowText ItemText(SettingsState state, SettingRow row, SettingValue value)
