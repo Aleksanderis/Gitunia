@@ -60,7 +60,7 @@ public class StartupSmokeTests
     }
 
     [Fact]
-    public void GivenDiscoveryFails_WhenStartingTheShell_ThenTheFailureReachesTheCallerAndTheShellIsTornDown()
+    public void GivenDiscoveryFails_WhenStartingTheShell_ThenTheFailureReachesTheCallerAndANewShellStarts()
     {
         using var directories = new TempDirectories();
         var failed = Task.FromException<RepositoryLocation?>(new GitException("not a git repository"));

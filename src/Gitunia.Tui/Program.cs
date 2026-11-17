@@ -113,7 +113,7 @@ public static class Program
         }
         catch (GitException exception)
         {
-            // The shell is already disposed: the message goes to the normal screen.
+            // A discovery failure: the shell is already disposed, the message goes to the normal screen.
             Console.Error.WriteLine($"gitunia: {exception.Message}");
 
             return 1;
@@ -131,11 +131,11 @@ public static class Program
         {
             if (repositoryPath is not null)
             {
-                location = await services.Discovery.DiscoverAsync(repositoryPath, CancellationToken.None);
+                location = await services.Discovery.DiscoverAsync(repositoryPath, CancellationToken.None).ConfigureAwait(false);
                 services.RepositoryLoader.ConfirmPrefetch(location);
             }
 
-            await versionCheck;
+            await versionCheck.ConfigureAwait(false);
         }
         catch (GitException)
         {
