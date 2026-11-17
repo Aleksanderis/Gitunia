@@ -269,8 +269,9 @@ public static class GraphRowRenderer
                 AppendCap(builder, glyphs.LabelCapLeft, colorIndex);
                 // The caps already round the box off, so with them the text sits tight against them (#854).
                 var padding = glyphs.HasLabelCaps ? "" : " ";
-                builder.Add(
-                    new StyledSegment($"{padding}{prefix}{label.Name}{suffix}{padding}", SegmentRole.LaneLabel, colorIndex));
+                var trailing = TrailingPadding(suffix, glyphs);
+                var text = $"{padding}{prefix}{label.Name}{suffix}{trailing}";
+                builder.Add(new StyledSegment(text, SegmentRole.LaneLabel, colorIndex));
                 AppendCap(builder, glyphs.LabelCapRight, colorIndex);
                 break;
             case RefKind.Tag:
@@ -288,6 +289,18 @@ public static class GraphRowRenderer
         {
             builder.Add(new StyledSegment(glyphs.UpstreamGone, SegmentRole.Faint));
         }
+    }
+
+    // The remote glyph is a Nerd Font icon: terminals such as kitty, Ghostty and WezTerm draw it over the next cell
+    // only when that cell is blank and clip it to one cell otherwise, so it keeps a space before the right cap.
+    private static string TrailingPadding(string suffix, GraphGlyphSet glyphs)
+    {
+        if (!glyphs.HasLabelCaps || suffix.Length > 0)
+        {
+            return " ";
+        }
+
+        return "";
     }
 
     private static void AppendCap(List<StyledSegment> builder, string cap, int colorIndex)

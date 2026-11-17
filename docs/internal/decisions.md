@@ -305,3 +305,7 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 ## 2026-11-14
 
 **Git layer:** The post-exit read cut waits up to 2 s while the thread pool has queued work (#1340), in `DrainingReader`. Why: on Windows a redirected pipe is a synchronous `FileStream`, whose `ReadAsync` hops to the pool and checks its token before `ReadFile` (dotnet/runtime `AsyncOverSyncWithIoCancellation`), so a cut that beats a read still queued loses output git wrote before exiting (windows-x64 flake, empty stdout). Keyed on the global `PendingWorkItemCount` (zero means the read was taken by a worker) plus a 10 ms settle; probabilistic by nature. Rejected: a test-only fix (the bug is real under load), dropping the token on reads (a held pipe could then never be cut), a probe work item (its queue position says nothing about the read).
+
+## 2026-11-17
+
+**UI:** Remote glyph on capped branch labels (owner): the Nerd Font cloud (U+EBAA) stays and keeps one space before the right cap (`◉ main  `). Why: terminals such as Ghostty, kitty and WezTerm draw a Private Use Area icon or a fallback-font glyph over the next cell and clip it when that cell is not blank. Tried and dropped: `⇅` (JetBrains Mono lacks it, so it came from a fallback font and clipped too) and `↕` (fits, but the owner found it uglier than the cloud with a space). Labels without a remote stay tight against their caps.

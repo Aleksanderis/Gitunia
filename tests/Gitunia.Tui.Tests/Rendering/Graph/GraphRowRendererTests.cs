@@ -225,6 +225,25 @@ public class GraphRowRendererTests
     }
 
     [Fact]
+    public void GivenCapsAndARemote_WhenRendering_ThenTheRemoteGlyphKeepsABlankCellBeforeTheRightCap()
+    {
+        var commit = CommitFactory.Commit(
+            1,
+            "release",
+            [],
+            new CommitDecoration("refs/heads/main", "main", RefKind.LocalBranch, true),
+            new CommitDecoration("refs/remotes/origin/main", "origin/main", RefKind.RemoteBranch, false));
+
+        var graph = CommitFactory.Graph(commit);
+        var glyphs = GraphGlyphSet.Unicode.WithLabelCaps(LabelCapStyle.Rounded, hasColors: true);
+
+        var line = GraphRowRenderer.Render(graph[0], new GraphRowOptions(120, 1, glyphs), false);
+
+        var box = Assert.Single(line.Segments, segment => segment.Role == SegmentRole.LaneLabel);
+        Assert.Equal($"{glyphs.CurrentBranch}main{glyphs.Remote} ", box.Text);
+    }
+
+    [Fact]
     public void GivenAGlyphSetWithCaps_WhenAskingIfItHasCaps_ThenOnlyTheCappedSetSaysYes()
     {
         Assert.True(GraphGlyphSet.Unicode.WithLabelCaps(LabelCapStyle.Rounded, hasColors: true).HasLabelCaps);
