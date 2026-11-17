@@ -99,7 +99,7 @@ public static class WorktreeReducer
         var name = accepted.Name.Trim();
         if (name.Length == 0)
         {
-            return [Warn("No branch given: nothing was added")];
+            return [new ReopenPromptEffect("No branch given: nothing was added")];
         }
 
         var tab = context.Tab;
@@ -107,7 +107,7 @@ public static class WorktreeReducer
             candidate => candidate.Kind == RefKind.LocalBranch && candidate.Name == name);
         if (existing?.CheckedOutIn is { } holder)
         {
-            return [Warn($"{name} is already checked out in {holder}: a branch can be in one worktree only")];
+            return [new ReopenPromptEffect($"{name} is already checked out in {holder}: a branch can be in one worktree only")];
         }
 
         var start = existing is null ? accepted.SelectedStart ?? tab.Head?.CommitHash ?? GitOptions.HeadRevision : null;
@@ -135,7 +135,7 @@ public static class WorktreeReducer
         var text = accepted.Text.Trim();
         if (text.Length == 0)
         {
-            return [Warn("No path given: nothing was added")];
+            return [new ReopenPromptEffect("No path given: nothing was added")];
         }
 
         if (context.IsBusy)

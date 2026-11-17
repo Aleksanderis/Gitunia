@@ -519,7 +519,7 @@ public class ConflictEditorFrameBuilderTests
         Assert.DoesNotContain("reset", versions + result, StringComparison.Ordinal);
         Assert.Contains("take lines", visual, StringComparison.Ordinal);
         Assert.Contains("<space>u untake lines", visual, StringComparison.Ordinal);
-        Assert.Contains("Ctrl-g keep", typing, StringComparison.Ordinal);
+        Assert.Contains("Ctrl-g done", typing, StringComparison.Ordinal);
         Assert.DoesNotContain("Enter save", typing, StringComparison.Ordinal);
     }
 

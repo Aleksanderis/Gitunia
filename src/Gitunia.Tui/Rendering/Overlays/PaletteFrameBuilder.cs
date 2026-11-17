@@ -1,5 +1,4 @@
 using System.Globalization;
-using Gitunia.Core.Editing;
 using Gitunia.Core.Overlays;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Panes;
@@ -19,7 +18,7 @@ public static class PaletteFrameBuilder
     /// <summary>The palette frame for a screen, or null when the screen is too small to show it.</summary>
     public static OverlayFrame? Build(PaletteState palette, int screenWidth, int screenHeight, GraphGlyphSet glyphs)
     {
-        var width = Math.Min(MaximumWidth, screenWidth - ScreenMargin);
+        var width = OverlayMetrics.WidthFor(MaximumWidth, screenWidth, ScreenMargin);
         var maximumRows = Math.Min(MaximumRows, screenHeight - ScreenMargin - ChromeRows);
         if (width < OverlayBox.MinimumWidth || maximumRows < 1)
         {
@@ -33,8 +32,7 @@ public static class PaletteFrameBuilder
         var rowCount = window.RowCount;
         var top = window.Top;
 
-        var query = new CaretField(" ", palette.Query, PromptCaret.End);
-        var lines = new List<StyledLine> { OverlayBox.Title(":", query, width, glyphs) };
+        var lines = new List<StyledLine> { OverlayBox.Title(":", new CaretField(" ", palette.Field.Text, palette.Field.Caret), width, glyphs) };
         if (visible.Count == 0)
         {
             lines.Add(OverlayBox.Text("no matching action", width, glyphs, SegmentRole.Faint));

@@ -47,7 +47,7 @@ public class MainlineFrameBuilderTests
         Assert.NotNull(narrow);
         Assert.Equal((80 - 72) / 2, before.Column);
         Assert.Equal((120 - 72) / 2, wider.Column);
-        Assert.Equal((40 - 38) / 2, narrow.Column);
+        Assert.Equal(0, narrow.Column);
         Assert.Equal((40 - 5) / 2, wider.Row);
     }
 

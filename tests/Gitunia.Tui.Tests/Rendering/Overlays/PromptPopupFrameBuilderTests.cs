@@ -51,7 +51,7 @@ public class PromptPopupFrameBuilderTests
         var frame = PromptPopupFrameBuilder.Build(prompt, 80, 24, GraphGlyphSet.Unicode)!;
 
         var typed = frame.Lines[2].Segments.Where(segment => segment.Text.Contains("feat", StringComparison.Ordinal));
-        Assert.All(typed, segment => Assert.Equal(SegmentRole.Plain, segment.Role));
+        Assert.All(typed, segment => Assert.Equal(SegmentRole.TypedText, segment.Role));
         Assert.DoesNotContain(frame.Lines[2].Segments, segment => segment.Role == SegmentRole.OverlayKey);
     }
 

@@ -112,12 +112,12 @@ public static class BranchReducer
         var name = accepted.Name.Trim();
         if (name.Length == 0)
         {
-            return [Post("No name: nothing was created")];
+            return [new ReopenPromptEffect("No name: nothing was created")];
         }
 
         if (BranchResolver.HasLocal(context.Refs, name))
         {
-            return [Post($"Branch {name} already exists")];
+            return [new ReopenPromptEffect($"Branch {name} already exists")];
         }
 
         var follow = BranchResolver.CommitOf(context.Refs, accepted.StartPoint);
@@ -184,12 +184,12 @@ public static class BranchReducer
         var name = accepted.Name.Trim();
         if (name.Length == 0 || name == accepted.From)
         {
-            return [Post("The name is unchanged: nothing was renamed")];
+            return [new ReopenPromptEffect("The name is unchanged: nothing was renamed")];
         }
 
         if (BranchResolver.HasLocal(context.Refs, name))
         {
-            return [Post($"Branch {name} already exists")];
+            return [new ReopenPromptEffect($"Branch {name} already exists")];
         }
 
         var follow = BranchResolver.CommitOf(context.Refs, $"{GitRefPrefixes.Heads}{accepted.From}");

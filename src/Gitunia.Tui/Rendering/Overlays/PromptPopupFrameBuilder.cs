@@ -29,9 +29,7 @@ public static class PromptPopupFrameBuilder
             .Select(TextWidth.Of)
             .DefaultIfEmpty(0)
             .Max();
-        var width = OverlayMetrics.Snap(
-            OverlayBox.FitWidth(widest, MinimumPopupWidth, MaximumWidth, screenWidth, ScreenMargin),
-            screenWidth);
+        var width = OverlayBox.FitWidth(widest, MinimumPopupWidth, MaximumWidth, screenWidth, ScreenMargin);
         if (width < OverlayBox.MinimumWidth)
         {
             return null;

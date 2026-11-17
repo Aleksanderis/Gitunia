@@ -1,3 +1,4 @@
+using Gitunia.Core.Tests.Prompts;
 using System.Collections.Immutable;
 using Gitunia.Core.Effects;
 using Gitunia.Core.Tests.Fixtures;
@@ -66,7 +67,7 @@ public class TagReducerTests
     {
         var effects = Reduce(new TagNameAccepted(Tab, Commit, "1111111", " v1 "), Tags(("v1", Commit, Commit)));
 
-        Assert.Equal("Tag v1 already exists", Warning(effects));
+        Assert.Equal("Tag v1 already exists", PromptRejections.Reason(effects));
         Assert.DoesNotContain(effects, effect => effect is TagEffect or ShowPromptEffect);
     }
 
@@ -75,7 +76,7 @@ public class TagReducerTests
     {
         var effects = Reduce(new TagNameAccepted(Tab, Commit, "1111111", "  "));
 
-        Assert.Equal("No name: nothing was created", Warning(effects));
+        Assert.Equal("No name: nothing was created", PromptRejections.Reason(effects));
         Assert.DoesNotContain(effects, effect => effect is TagEffect or ShowPromptEffect);
     }
 

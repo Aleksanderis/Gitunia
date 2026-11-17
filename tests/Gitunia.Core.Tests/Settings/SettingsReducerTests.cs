@@ -1,3 +1,4 @@
+using Gitunia.Core.Editing;
 using Gitunia.Core.Config.Models;
 using Gitunia.Core.Settings;
 using Gitunia.Core.Settings.Models;
@@ -411,6 +412,40 @@ public class SettingsReducerTests
         Assert.Equal(SettingsColumn.Settings, jumped.Column);
         Assert.Equal(SettingCategory.Tabs, jumped.CurrentCategory);
         Assert.Equal(SettingsRegistry.ShowBranchId, jumped.Selected?.Definition.Id);
+    }
+
+    [Fact]
+    public void GivenATypedNumber_WhenLeavingWithEscAndOpeningTheBoxAgain_ThenTheTypedTextComesBack()
+    {
+        var typing = Reduce(WithPageSize(), SettingsCommandKind.Activate).State.WithInputText("25x");
+
+        var left = Reduce(typing, SettingsCommandKind.Back).State;
+        var reopened = Reduce(left, SettingsCommandKind.Activate).State;
+
+        Assert.Null(left.Input);
+        Assert.Equal("25x", reopened.Input?.Text);
+        Assert.Equal(PromptCaret.End, reopened.Input?.Caret);
+    }
+
+    [Fact]
+    public void GivenAnUntouchedNumber_WhenLeavingWithEsc_ThenNoDraftIsKept()
+    {
+        var typing = Reduce(WithPageSize(), SettingsCommandKind.Activate).State;
+
+        var left = Reduce(typing, SettingsCommandKind.Back).State;
+
+        Assert.Null(left.InputDraft);
+    }
+
+    [Fact]
+    public void GivenADraftOfANumber_WhenAnotherSettingsBoxOpens_ThenItStartsWithItsOwnText()
+    {
+        var typing = Reduce(WithPageSize(), SettingsCommandKind.Activate).State.WithInputText("25x");
+        var left = Reduce(typing, SettingsCommandKind.Back).State;
+
+        var other = left with { Input = left.Resume(new SettingsInput(SettingsInputKind.PathAdd, "other", -1, string.Empty)) };
+
+        Assert.Equal(string.Empty, other.Input?.Text);
     }
 
     [Fact]

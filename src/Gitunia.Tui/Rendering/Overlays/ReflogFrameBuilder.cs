@@ -1,6 +1,7 @@
 using System.Globalization;
 using Gitunia.Core.Lists;
 using Gitunia.Core.Mouse;
+using Gitunia.Core.Overlays;
 using Gitunia.Core.Reflog;
 using Gitunia.Core.Text;
 using Gitunia.Git.Reflog.Models;
@@ -32,7 +33,7 @@ public static class ReflogFrameBuilder
     /// <summary>The reflog frame for a screen, or null when the screen is too small to show it.</summary>
     public static OverlayFrame? Build(ReflogState state, int screenWidth, int screenHeight, GraphGlyphSet glyphs)
     {
-        var width = Math.Min(MaximumWidth, screenWidth - ScreenMargin);
+        var width = OverlayMetrics.WidthFor(MaximumWidth, screenWidth, ScreenMargin);
         var maximumRows = Math.Min(MaximumRows, screenHeight - ScreenMargin - ChromeRows);
         if (width < OverlayBox.MinimumWidth || maximumRows < 1)
         {

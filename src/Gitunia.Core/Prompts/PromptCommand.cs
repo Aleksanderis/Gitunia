@@ -23,5 +23,12 @@ public sealed record PromptKeyPressedCommand(KeyEvent Key) : PromptCommand;
 /// </summary>
 public sealed record PromptAcceptedCommand : PromptCommand;
 
+/// <summary>
+/// A feature rejected the answer of the prompt that just closed: it opens again with what was typed and the status line
+/// says why (<see cref="ReopenPromptEffect"/>). Ignored when another prompt is open or nothing was answered.
+/// </summary>
+/// <param name="Reason">Why the answer was rejected.</param>
+public sealed record PromptReopenedCommand(string Reason) : PromptCommand;
+
 /// <summary>Esc in the open prompt, or its tab was left: it closes and nothing else happens.</summary>
 public sealed record PromptCancelledCommand : PromptCommand;

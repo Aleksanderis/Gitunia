@@ -52,7 +52,7 @@ public static class SettingsReducer
 
         if (state.Input is not null)
         {
-            return new SettingsOutcome((state with { Input = null }).Clamped());
+            return new SettingsOutcome(state.WithInputLeft());
         }
 
         if (state.IsEditingFilter)
@@ -159,7 +159,7 @@ public static class SettingsReducer
                     -1,
                     value.Number.ToString(CultureInfo.InvariantCulture));
 
-                return new SettingsOutcome(state with { Input = number });
+                return new SettingsOutcome(state with { Input = state.Resume(number) });
             case SettingControl.PathList:
                 return StartPathAdd(state, definition);
             default:
@@ -187,7 +187,7 @@ public static class SettingsReducer
     {
         var count = state.ValueOf(definition).Paths.Length;
         var input = new SettingsInput(SettingsInputKind.PathAdd, definition.Id, -1, string.Empty);
-        var typing = state with { Input = input };
+        var typing = state with { Input = state.Resume(input) };
 
         return new SettingsOutcome(typing.Reveal(definition, SettingRowKind.NewItem, count));
     }
@@ -197,7 +197,7 @@ public static class SettingsReducer
         var path = state.ValueOf(row.Definition).Paths[row.Index];
         var input = new SettingsInput(SettingsInputKind.PathEdit, row.Definition.Id, row.Index, path);
 
-        return new SettingsOutcome(state with { Input = input });
+        return new SettingsOutcome(state with { Input = state.Resume(input) });
     }
 
     private static SettingsOutcome Toggle(SettingsState state)

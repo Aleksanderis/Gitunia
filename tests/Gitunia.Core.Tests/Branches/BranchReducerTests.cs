@@ -1,3 +1,4 @@
+using Gitunia.Core.Tests.Prompts;
 using Gitunia.Core.Operations;
 using Gitunia.Core.Branches;
 using Gitunia.Core.Effects;
@@ -183,7 +184,7 @@ public class BranchReducerTests
     {
         var effects = Reduce(new BranchNameAccepted(Tab, Main, "1111111", true, "topic"), MainAndTopic());
 
-        Assert.Equal("Branch topic already exists", Warning(effects));
+        Assert.Equal("Branch topic already exists", PromptRejections.Reason(effects));
     }
 
     [Fact]
@@ -191,7 +192,7 @@ public class BranchReducerTests
     {
         var effects = Reduce(new BranchNameAccepted(Tab, Main, "1111111", true, "  "), MainAndTopic());
 
-        Assert.Equal("No name: nothing was created", Warning(effects));
+        Assert.Equal("No name: nothing was created", PromptRejections.Reason(effects));
     }
 
     [Fact]
@@ -299,7 +300,7 @@ public class BranchReducerTests
     {
         var effects = Reduce(new BranchRenameAccepted(Tab, "topic", typed), MainAndTopic());
 
-        Assert.Equal("The name is unchanged: nothing was renamed", Warning(effects));
+        Assert.Equal("The name is unchanged: nothing was renamed", PromptRejections.Reason(effects));
     }
 
     [Fact]
@@ -307,7 +308,7 @@ public class BranchReducerTests
     {
         var effects = Reduce(new BranchRenameAccepted(Tab, "topic", "main"), MainAndTopic());
 
-        Assert.Equal("Branch main already exists", Warning(effects));
+        Assert.Equal("Branch main already exists", PromptRejections.Reason(effects));
     }
 
     [Fact]

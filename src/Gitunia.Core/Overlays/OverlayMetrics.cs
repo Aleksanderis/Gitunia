@@ -43,6 +43,8 @@ public static class OverlayMetrics
     public static int FitWidth(int contentWidth, int floor, int cap, int screenWidth, int margin)
     {
         var available = screenWidth - margin;
-        return Math.Min(Math.Min(cap, available), Math.Max(floor, contentWidth + BorderWidth + TextPadding));
+        var width = Math.Min(Math.Min(cap, available), Math.Max(floor, contentWidth + BorderWidth + TextPadding));
+
+        return Snap(width, screenWidth);
     }
 }

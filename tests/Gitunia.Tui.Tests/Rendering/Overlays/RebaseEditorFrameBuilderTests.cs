@@ -151,7 +151,7 @@ public class RebaseEditorFrameBuilderTests
         var frame = RebaseEditorFrameBuilder.Build(State(3), 40, 24, GraphGlyphSet.Ascii);
 
         Assert.All(frame!.Lines, line => Assert.Equal(frame.Width, TextWidth.Of(line.Text)));
-        Assert.Equal(38, frame.Width);
+        Assert.Equal(40, frame.Width);
     }
 
     [Fact]
@@ -176,7 +176,7 @@ public class RebaseEditorFrameBuilderTests
         Assert.Contains("Reword 1111111", lines[0], StringComparison.Ordinal);
         Assert.Contains("subject line", lines[1], StringComparison.Ordinal);
         Assert.Contains("body line", lines[3], StringComparison.Ordinal);
-        Assert.Contains("Ctrl-g keeps the message", lines[^2], StringComparison.Ordinal);
+        Assert.Contains("Ctrl-g done", lines[^2], StringComparison.Ordinal);
         var keys = frame.Lines[^2].Segments.Where(segment => segment.Role == SegmentRole.StatusKey);
         Assert.Equal(["Ctrl-g", "Enter", "Esc"], keys.Select(segment => segment.Text));
         Assert.Contains(frame.Lines.SelectMany(line => line.Segments), segment => segment.Role == SegmentRole.Cursor);

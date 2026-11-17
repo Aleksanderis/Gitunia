@@ -57,15 +57,27 @@ public sealed partial class MessageEditor
         return ApplyKey(key);
     }
 
+    // Keys that only exist in several lines are handled here; the rest is the shared line table (LineEditKeys).
     private bool ApplyKey(KeyEvent key)
     {
-        return key.Modifiers switch
+        if (key.Modifiers is KeyModifiers.None or KeyModifiers.Shift && ApplyMultiLine(key.Name))
         {
-            KeyModifiers.None or KeyModifiers.Shift => ApplyPlain(key.Name),
-            KeyModifiers.Ctrl => ApplyControl(key.Name),
-            KeyModifiers.Alt => ApplyAlt(key.Name),
-            _ => false,
-        };
+            return true;
+        }
+
+        if (key is { Modifiers: KeyModifiers.Ctrl, Name: KeyNames.Home })
+        {
+            MoveTo(0, 0);
+            return true;
+        }
+
+        if (key is { Modifiers: KeyModifiers.Ctrl, Name: KeyNames.End })
+        {
+            MoveTo(_lines.Count - 1, _lines[^1].Length);
+            return true;
+        }
+
+        return LineEditKeys.Resolve(key) is { } action && ApplyLine(action);
     }
 
     // Keys that move the cursor; with Shift they extend the selection (Ctrl and Alt make them word or text steps).
@@ -88,13 +100,8 @@ public sealed partial class MessageEditor
     }
 
     // Keys that delete before or after the cursor; with a selection they delete the selection and nothing else.
-    private static bool DeletesText(KeyEvent key) => key.Modifiers switch
-    {
-        KeyModifiers.None or KeyModifiers.Shift => key.Name is KeyNames.Backspace or KeyNames.Delete,
-        KeyModifiers.Ctrl => key.Name is KeyNames.Backspace or KeyNames.Delete or "w" or "u" or "k",
-        KeyModifiers.Alt => key.Name is KeyNames.Backspace or "d",
-        _ => false,
-    };
+    private static bool DeletesText(KeyEvent key) =>
+        LineEditKeys.Resolve(key) is { } action && LineEditKeys.Deletes(action);
 
     private static int NextBoundary(string line, int column) =>
         column + StringInfo.GetNextTextElementLength(line.AsSpan(column));
@@ -110,24 +117,12 @@ public sealed partial class MessageEditor
         return previous;
     }
 
-    private bool ApplyPlain(string name)
+    private bool ApplyMultiLine(string name)
     {
         switch (name)
         {
             case KeyNames.Enter:
                 Insert(NewLine.ToString());
-                return true;
-            case KeyNames.Backspace:
-                DeleteBackward();
-                return true;
-            case KeyNames.Delete:
-                DeleteForward();
-                return true;
-            case KeyNames.Left:
-                MoveLeft();
-                return true;
-            case KeyNames.Right:
-                MoveRight();
                 return true;
             case KeyNames.Up:
                 MoveVertically(-1);
@@ -139,79 +134,56 @@ public sealed partial class MessageEditor
                 DeleteSelection();
                 Insert(UsesTabCharacters ? Tab.ToString() : new string(' ', TabWidth - CursorDisplayColumn % TabWidth));
                 return true;
-            case KeyNames.Home:
-                MoveTo(CursorRow, 0);
-                return true;
-            case KeyNames.End:
-                MoveTo(CursorRow, _lines[CursorRow].Length);
-                return true;
             default:
                 return false;
         }
     }
 
-    private bool ApplyControl(string name)
+    private bool ApplyLine(LineEditAction action)
     {
-        switch (name)
+        switch (action)
         {
-            case "a":
+            case LineEditAction.Backspace:
+                DeleteBackward();
+                break;
+            case LineEditAction.Delete:
+                DeleteForward();
+                break;
+            case LineEditAction.Left:
+                MoveLeft();
+                break;
+            case LineEditAction.Right:
+                MoveRight();
+                break;
+            case LineEditAction.LineStart:
                 MoveTo(CursorRow, 0);
-                return true;
-            case "e":
+                break;
+            case LineEditAction.LineEnd:
                 MoveTo(CursorRow, _lines[CursorRow].Length);
-                return true;
-            case "u":
+                break;
+            case LineEditAction.WordLeft:
+                MoveWordLeft();
+                break;
+            case LineEditAction.WordRight:
+                MoveWordRight();
+                break;
+            case LineEditAction.DeleteToStart:
                 DeleteTo(0);
-                return true;
-            case "k":
+                break;
+            case LineEditAction.DeleteToEnd:
                 DeleteTo(_lines[CursorRow].Length);
-                return true;
-            case "w":
-            case KeyNames.Backspace:
+                break;
+            case LineEditAction.DeleteWordBack:
                 DeleteWordBackward();
-                return true;
-            case KeyNames.Delete:
+                break;
+            case LineEditAction.DeleteWordForward:
                 DeleteWordForward();
-                return true;
-            case KeyNames.Left:
-                MoveWordLeft();
-                return true;
-            case KeyNames.Right:
-                MoveWordRight();
-                return true;
-            case KeyNames.Home:
-                MoveTo(0, 0);
-                return true;
-            case KeyNames.End:
-                MoveTo(_lines.Count - 1, _lines[^1].Length);
-                return true;
+                break;
             default:
                 return false;
         }
-    }
 
-    // Alt-arrows too: many terminals report Ctrl-arrows as Alt-arrows (docs/internal/ux-workflows.md, message box).
-    private bool ApplyAlt(string name)
-    {
-        switch (name)
-        {
-            case "b":
-            case KeyNames.Left:
-                MoveWordLeft();
-                return true;
-            case "f":
-            case KeyNames.Right:
-                MoveWordRight();
-                return true;
-            case "d":
-                DeleteWordForward();
-                return true;
-            case KeyNames.Backspace:
-                DeleteWordBackward();
-                return true;
-            default:
-                return false;
-        }
+        return true;
     }
 
     // Word steps wrap to the neighbouring line at the line edges, like Left and Right.

@@ -171,12 +171,12 @@ public static class RemoteReducer
         var name = accepted.Name.Trim();
         if (name.Length == 0)
         {
-            return [Post("No name: nothing was added")];
+            return [new ReopenPromptEffect("No name: nothing was added")];
         }
 
         if (accepted.Remotes.Any(remote => remote.Name == name))
         {
-            return [Post($"Remote {name} already exists")];
+            return [new ReopenPromptEffect($"Remote {name} already exists")];
         }
 
         var request = new PromptRequest(
@@ -194,7 +194,7 @@ public static class RemoteReducer
         var url = accepted.Url.Trim();
         if (url.Length == 0)
         {
-            return [Post("No URL: nothing was added")];
+            return [new ReopenPromptEffect("No URL: nothing was added")];
         }
 
         if (context.IsBusy)
@@ -215,12 +215,12 @@ public static class RemoteReducer
         var newName = accepted.NewName.Trim();
         if (newName.Length == 0 || newName == accepted.OldName)
         {
-            return [Post("Same or empty name: nothing was renamed")];
+            return [new ReopenPromptEffect("Same or empty name: nothing was renamed")];
         }
 
         if (accepted.Remotes.Any(remote => remote.Name == newName))
         {
-            return [Post($"Remote {newName} already exists")];
+            return [new ReopenPromptEffect($"Remote {newName} already exists")];
         }
 
         if (context.IsBusy)
@@ -241,7 +241,7 @@ public static class RemoteReducer
         var url = accepted.Url.Trim();
         if (url.Length == 0 || url == accepted.OldUrl)
         {
-            return [Post("Same or empty URL: nothing was changed")];
+            return [new ReopenPromptEffect("Same or empty URL: nothing was changed")];
         }
 
         if (context.IsBusy)

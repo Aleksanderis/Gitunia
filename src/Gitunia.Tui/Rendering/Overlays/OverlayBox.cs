@@ -36,7 +36,7 @@ public static class OverlayBox
     public static StyledLine Title(string title, CaretField field, int width, GraphGlyphSet glyphs)
     {
         var builder = new LineBuilder(width, glyphs.Ellipsis).Append($" {title}", SegmentRole.OverlayTitle);
-        field.AppendTo(builder, SegmentRole.OverlayTitle, cursorRole: SegmentRole.TitleCursor);
+        field.AppendTo(builder, FieldRoles.Title);
 
         return builder.Build(SegmentRole.OverlayTitle);
     }
@@ -51,10 +51,10 @@ public static class OverlayBox
         Wrap(new LineBuilder(InnerWidth(width), glyphs.Ellipsis).Append($" {text}", role).Build(), glyphs, isSelected);
 
     /// <summary>A body row holding an editable field: the text around a cursor cell, kept in view when it is wider than the row.</summary>
-    public static StyledLine Input(CaretField field, int width, GraphGlyphSet glyphs, SegmentRole role = SegmentRole.Plain)
+    public static StyledLine Input(CaretField field, int width, GraphGlyphSet glyphs)
     {
-        var builder = new LineBuilder(InnerWidth(width), glyphs.Ellipsis).Append(" ", role);
-        field.AppendTo(builder, role);
+        var builder = new LineBuilder(InnerWidth(width), glyphs.Ellipsis).Append(" ", SegmentRole.Plain);
+        field.AppendTo(builder, FieldRoles.Body);
         return Wrap(builder.Build(), glyphs);
     }
 
@@ -76,7 +76,7 @@ public static class OverlayBox
         {
             // The field being edited replaces the lead; its text is cut so the suffix (a count) still fits.
             builder.Append(" ", SegmentRole.Status);
-            field.AppendTo(builder, SegmentRole.Status);
+            field.AppendTo(builder, FieldRoles.Bar);
             builder.Append(" ", SegmentRole.Status);
         }
         else if (lead.Length > 0)

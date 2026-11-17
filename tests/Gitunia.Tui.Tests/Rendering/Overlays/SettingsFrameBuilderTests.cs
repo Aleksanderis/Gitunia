@@ -269,7 +269,7 @@ public class SettingsFrameBuilderTests
 
         Assert.Contains("> /sr ", frame.Lines[3].Text, StringComparison.Ordinal);
         Assert.Equal(" ", string.Concat(frame.Lines[3].Segments.Where(segment => segment.Role == SegmentRole.TitleCursor).Select(segment => segment.Text)));
-        Assert.Contains("Enter save  Esc cancel", frame.Lines[^2].Text, StringComparison.Ordinal);
+        Assert.Contains("Enter save  Esc keep", frame.Lines[^2].Text, StringComparison.Ordinal);
     }
 
     [Fact]

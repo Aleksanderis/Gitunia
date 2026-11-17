@@ -44,19 +44,19 @@ public class OverlayFrameTests
         Assert.Equal(
             string.Join(
                 '\n',
-                " Discard changes".PadRight(64),
-                "│ Discard all unstaged changes to                              │",
-                "│ src/Gitunia.Tui/App/WorkingTree/DiscardActions.cs?           │",
-                "│ Its staged changes are kept.                                 │",
-                "│                                                              │",
-                "│ The changes are removed from the file on disk. Nothing keeps │",
-                "│ a copy: this cannot be undone.                               │",
-                "│                                                              │",
-                "│ y  Discard changes                                           │",
-                "│ n  Cancel (Esc does the same)                                │",
-                "╰──────────────────────────────────────────────────────────────╯"),
+                " Discard changes".PadRight(66),
+                "│ Discard all unstaged changes to                                │",
+                "│ src/Gitunia.Tui/App/WorkingTree/DiscardActions.cs?             │",
+                "│ Its staged changes are kept.                                   │",
+                "│                                                                │",
+                "│ The changes are removed from the file on disk. Nothing keeps a │",
+                "│ copy: this cannot be undone.                                   │",
+                "│                                                                │",
+                "│ y  Discard changes                                             │",
+                "│ n  Cancel (Esc does the same)                                  │",
+                "╰────────────────────────────────────────────────────────────────╯"),
             Text(frame));
-        Assert.Equal(1, frame!.Column);
+        Assert.Equal(0, frame!.Column);
         Assert.Equal(6, frame.Row);
     }
 
@@ -70,17 +70,17 @@ public class OverlayFrameTests
         Assert.Equal(
             string.Join(
                 '\n',
-                " Discard changes".PadRight(58),
-                "| Discard all unstaged changes to                        |",
-                "| src/Gitunia.Tui/App/WorkingTree/DiscardActions.cs?     |",
-                "| Its staged changes are kept.                           |",
-                "|                                                        |",
-                "| The changes are removed from the file on disk. Nothing |",
-                "| keeps a copy: this cannot be undone.                   |",
-                "|                                                        |",
-                "| y  Discard changes                                     |",
-                "| n  Cancel (Esc does the same)                          |",
-                "+--------------------------------------------------------+"),
+                " Discard changes".PadRight(60),
+                "| Discard all unstaged changes to                          |",
+                "| src/Gitunia.Tui/App/WorkingTree/DiscardActions.cs?       |",
+                "| Its staged changes are kept.                             |",
+                "|                                                          |",
+                "| The changes are removed from the file on disk. Nothing   |",
+                "| keeps a copy: this cannot be undone.                     |",
+                "|                                                          |",
+                "| y  Discard changes                                       |",
+                "| n  Cancel (Esc does the same)                            |",
+                "+----------------------------------------------------------+"),
             Text(frame));
     }
 
@@ -220,23 +220,23 @@ public class OverlayFrameTests
         Assert.Equal(
             string.Join(
                 '\n',
-                " :                                                                            ",
-                "│ Branch                                                                     │",
-                "│ Create a branch and check it out                                 <space>bc │",
-                "│ Create a branch without checking out                             <space>bC │",
-                "│ Switch to a branch (check out)                                   <space>bs │",
-                "│ Rename the branch                                                <space>bn │",
-                "│ Delete the branch (asks first)                                   <space>bd │",
-                "│ Set the branch upstream                                          <space>bu │",
-                "│ Unset the branch upstream                                        <space>bU │",
-                "│ Fast-forward the branch to its upstream (no checkout)            <space>bf │",
-                "│                                                                            │",
-                "│ Merge and rebase                                                           │",
-                "│ Rebase the current branch onto the selection                    <space>brr │",
-                "│ 1/195 Ctrl-j/k move  Enter run  Esc close                                  │",
-                "╰────────────────────────────────────────────────────────────────────────────╯"),
+                " :                                                                              ",
+                "│ Branch                                                                       │",
+                "│ Create a branch and check it out                                   <space>bc │",
+                "│ Create a branch without checking out                               <space>bC │",
+                "│ Switch to a branch (check out)                                     <space>bs │",
+                "│ Rename the branch                                                  <space>bn │",
+                "│ Delete the branch (asks first)                                     <space>bd │",
+                "│ Set the branch upstream                                            <space>bu │",
+                "│ Unset the branch upstream                                          <space>bU │",
+                "│ Fast-forward the branch to its upstream (no checkout)              <space>bf │",
+                "│                                                                              │",
+                "│ Merge and rebase                                                             │",
+                "│ Rebase the current branch onto the selection                      <space>brr │",
+                "│ 1/195 Ctrl-j/k move  Enter run  Esc close                                    │",
+                "╰──────────────────────────────────────────────────────────────────────────────╯"),
             Text(frame));
-        Assert.Equal(1, frame!.Column);
+        Assert.Equal(0, frame!.Column);
     }
 
     [Fact]
@@ -247,12 +247,12 @@ public class OverlayFrameTests
         Assert.Equal(
             string.Join(
                 '\n',
-                " :                                    ",
-                "| Branch                             |",
-                "| Create a branch and ch~  <space>bc |",
-                "| Create a branch withou~  <space>bC |",
-                "| 1/195 Ctrl-j/k move  Enter run  Esc|",
-                "+------------------------------------+"),
+                " :                                      ",
+                "| Branch                               |",
+                "| Create a branch and chec~  <space>bc |",
+                "| Create a branch without ~  <space>bC |",
+                "| 1/195 Ctrl-j/k move  Enter run  Esc ~|",
+                "+--------------------------------------+"),
             Text(frame));
         Assert.Equal(SegmentRole.SectionTitle, frame.Lines[1].Segments[1].Role);
     }
@@ -333,16 +333,16 @@ public class OverlayFrameTests
         Assert.Equal(
             string.Join(
                 '\n',
-                " : tab                                                    ",
-                "│ Tabs                                                   │",
-                "│ Next tab                                            gt │",
-                "│ Previous tab                                        gT │",
-                "│ Go to tab 1 (same as 1gt)                        Alt-1 │",
-                "│ Go to tab 2 (same as 2gt)                        Alt-2 │",
-                "│ Go to tab 3 (same as 3gt)                        Alt-3 │",
-                "│ Go to tab 4 (same as 4gt)                        Alt-4 │",
-                "│ 2/40 Ctrl-j/k move  Enter run  Esc close               │",
-                "╰────────────────────────────────────────────────────────╯"),
+                " : tab                                                      ",
+                "│ Tabs                                                     │",
+                "│ Next tab                                              gt │",
+                "│ Previous tab                                          gT │",
+                "│ Go to tab 1 (same as 1gt)                          Alt-1 │",
+                "│ Go to tab 2 (same as 2gt)                          Alt-2 │",
+                "│ Go to tab 3 (same as 3gt)                          Alt-3 │",
+                "│ Go to tab 4 (same as 4gt)                          Alt-4 │",
+                "│ 2/40 Ctrl-j/k move  Enter run  Esc close                 │",
+                "╰──────────────────────────────────────────────────────────╯"),
             Text(frame));
         Assert.Equal([false, false, true, false], [.. frame!.Lines.Skip(1).Take(4).Select(line => line.IsSelected)]);
     }
@@ -435,10 +435,10 @@ public class OverlayFrameTests
         Assert.Equal(
             string.Join(
                 '\n',
-                " : zzzzqq                             ",
-                "| no matching action                 |",
-                "| 0/0 Ctrl-j/k move  Enter run  Esc ~|",
-                "+------------------------------------+"),
+                " : zzzzqq                               ",
+                "| no matching action                   |",
+                "| 0/0 Ctrl-j/k move  Enter run  Esc cl~|",
+                "+--------------------------------------+"),
             Text(frame));
     }
 
@@ -450,28 +450,28 @@ public class OverlayFrameTests
         Assert.Equal(
             string.Join(
                 '\n',
-                " Keys: Graph                                                    ",
-                "│ [Graph]  Lists   Global   Markers                            │",
-                "│ Branch                                                       │",
-                "│  <space>bc  │ Create a branch and check it out               │",
-                "│  <space>bC  │ Create a branch without checking out           │",
-                "│  <space>bs  │ Switch to a branch (check out)                 │",
-                "│  <space>bn  │ Rename the branch                              │",
-                "│  <space>bd  │ Delete the branch (asks first)                 │",
-                "│  <space>bu  │ Set the branch upstream                        │",
-                "│  <space>bU  │ Unset the branch upstream                      │",
-                "│  <space>bf  │ Fast-forward the branch to its upstream (no    │",
-                "│             │ checkout)                                      │",
-                "│                                                              │",
-                "│ Merge and rebase                                             │",
-                "│  <space>brr │ Rebase the current branch onto the selection   │",
-                "│  <space>bri │ Interactive rebase onto the selection (edit the│",
-                "│             │ todo)                                          │",
-                "│  <space>brI │ Interactive rebase from the root commit        │",
-                "│             │ (selection ignored)                            │",
-                "│  <space>brf │ Fix up the commit into the one before it (asks │",
-                "│ 1-18/65  Esc close  Tab next tab  list keys scroll           │",
-                "╰──────────────────────────────────────────────────────────────╯"),
+                " Keys: Graph                                                      ",
+                "│ [Graph]  Lists   Global   Markers                              │",
+                "│ Branch                                                         │",
+                "│  <space>bc  │ Create a branch and check it out                 │",
+                "│  <space>bC  │ Create a branch without checking out             │",
+                "│  <space>bs  │ Switch to a branch (check out)                   │",
+                "│  <space>bn  │ Rename the branch                                │",
+                "│  <space>bd  │ Delete the branch (asks first)                   │",
+                "│  <space>bu  │ Set the branch upstream                          │",
+                "│  <space>bU  │ Unset the branch upstream                        │",
+                "│  <space>bf  │ Fast-forward the branch to its upstream (no      │",
+                "│             │ checkout)                                        │",
+                "│                                                                │",
+                "│ Merge and rebase                                               │",
+                "│  <space>brr │ Rebase the current branch onto the selection     │",
+                "│  <space>bri │ Interactive rebase onto the selection (edit the  │",
+                "│             │ todo)                                            │",
+                "│  <space>brI │ Interactive rebase from the root commit          │",
+                "│             │ (selection ignored)                              │",
+                "│  <space>brf │ Fix up the commit into the one before it (asks   │",
+                "│ 1-18/64  Esc close  Tab next tab  list keys scroll             │",
+                "╰────────────────────────────────────────────────────────────────╯"),
             Text(frame));
     }
 
@@ -740,7 +740,7 @@ public class OverlayFrameTests
         Assert.DoesNotContain(frame.Lines, line => line.Text.Contains("Body 3", StringComparison.Ordinal));
         Assert.DoesNotContain(frame.Lines, line => line.Text.Contains("[Page", StringComparison.Ordinal));
         Assert.Contains("next section", frame.Lines[^2].Text, StringComparison.Ordinal);
-        Assert.All(frame.Lines, line => Assert.Equal(78, line.Text.Length));
+        Assert.All(frame.Lines, line => Assert.Equal(80, line.Text.Length));
     }
 
     [Fact]

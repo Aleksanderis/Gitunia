@@ -171,6 +171,7 @@ public static class Palette
             SegmentRole.Tag => new RoleAppearance(colors.Warn, Color.None, TextStyle.Bold, false),
             SegmentRole.BarButton => new RoleAppearance(colors.Accent, colors.BarBackground, TextStyle.Bold, true),
             SegmentRole.Status => new RoleAppearance(colors.Muted, colors.BarBackground, muted, true),
+            SegmentRole.BarTypedText => new RoleAppearance(Color.None, colors.BarBackground, TextStyle.None, true),
             SegmentRole.StatusKey => new RoleAppearance(colors.Accent, colors.BarBackground, TextStyle.Bold, true),
             SegmentRole.StatusError => new RoleAppearance(colors.Bad, colors.BarBackground, TextStyle.Bold, true),
             SegmentRole.StatusNotice => new RoleAppearance(colors.Good, colors.BarBackground, TextStyle.Bold, true),

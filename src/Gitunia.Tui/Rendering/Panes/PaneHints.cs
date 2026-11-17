@@ -348,15 +348,16 @@ public static partial class PaneHints
 
     private static readonly ImmutableArray<KeyHint> ConflictEdit =
     [
-        new("Esc/Ctrl-g", "keep text", [ActionIds.Cancel, ActionIds.ConflictEditorEditDone]),
+        new("Esc", "keep", [ActionIds.Cancel]),
+        new("Ctrl-g", "done", [ActionIds.ConflictEditorEditDone]),
         new("Enter", "new line", [ActionIds.ConflictEditorEditNewLine]),
     ];
 
     private static readonly ImmutableArray<KeyHint> RebaseMessage =
     [
-        new("Ctrl-g", "keep", [ActionIds.RebaseEditorMessageSave]),
+        new("Ctrl-g", "done", [ActionIds.RebaseEditorMessageSave]),
         new("Enter", "new line", [ActionIds.RebaseEditorMessageNewLine]),
-        new("Esc", "cancel", [ActionIds.Cancel]),
+        new("Esc", "keep", [ActionIds.Cancel]),
     ];
 
     private static readonly ImmutableArray<KeyHint> Settings =

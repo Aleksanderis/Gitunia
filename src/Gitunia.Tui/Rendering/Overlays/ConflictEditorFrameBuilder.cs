@@ -81,7 +81,7 @@ public static partial class ConflictEditorFrameBuilder
 
     private static readonly HintChip[] EditingChips =
     [
-        new("keep", DefaultMouseMap.ConflictEditDoneButton),
+        new("done", DefaultMouseMap.ConflictEditDoneButton),
     ];
 
     /// <summary>

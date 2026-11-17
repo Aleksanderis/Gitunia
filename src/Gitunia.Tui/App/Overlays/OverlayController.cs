@@ -448,19 +448,13 @@ public sealed class OverlayController : IActionHandler
             return;
         }
 
-        if (key.Name == KeyNames.Backspace)
-        {
-            State = State.WithPalette(palette.DeleteLast());
-        }
-        else if (key.IsPrintable)
-        {
-            State = State.WithPalette(palette.Type(key.Name));
-        }
-        else
+        var changed = palette.Edit(key);
+        if (changed == palette)
         {
             return;
         }
 
+        State = State.WithPalette(changed);
         _store.RaiseChanged();
     }
 

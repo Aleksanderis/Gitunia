@@ -114,7 +114,7 @@ public static partial class ConflictEditorFrameBuilder
             SegmentRole.Faint);
         if (state.IsEditing)
         {
-            builder.Append("  INSERT  typing in the result", SegmentRole.StatusOperation);
+            builder.Append("  INSERT  typing in the result, Esc keeps the text", SegmentRole.StatusOperation);
         }
         else if (isActive)
         {
