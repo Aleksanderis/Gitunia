@@ -60,7 +60,7 @@ public static class SettingsReducer
         {
             var cleared = state with
             {
-                FilterField = new TextField(),
+                Matches = state.Matches.WithField(new TextField()),
                 IsEditingFilter = false,
                 Column = SettingsColumn.Categories,
                 Cursor = 0,
@@ -325,7 +325,7 @@ public static class SettingsReducer
 
         var opened = state with
         {
-            FilterField = new TextField(),
+            Matches = state.Matches.WithField(new TextField()),
             IsEditingFilter = true,
             Column = SettingsColumn.Settings,
             Cursor = 0,
@@ -439,7 +439,7 @@ public static class SettingsReducer
     private static SettingsState LeaveFilter(SettingsState state)
     {
         var selected = state.Selected;
-        var cleared = state with { FilterField = new TextField(), IsEditingFilter = false };
+        var cleared = state with { Matches = state.Matches.WithField(new TextField()), IsEditingFilter = false };
 
         if (selected is null)
         {

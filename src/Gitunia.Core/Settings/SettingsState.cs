@@ -5,6 +5,7 @@ using Gitunia.Core.Editing;
 using Gitunia.Core.Filtering;
 using Gitunia.Core.Lists;
 using Gitunia.Core.Settings.Models;
+using Gitunia.Core.Text;
 
 namespace Gitunia.Core.Settings;
 
@@ -21,7 +22,7 @@ namespace Gitunia.Core.Settings;
 /// <param name="CategoryIndex">The selected category, an index into <see cref="Categories"/>.</param>
 /// <param name="Cursor">The selected row of the settings column, an index into <see cref="Rows"/>.</param>
 /// <param name="IsCollapsed">The screen is too narrow for two columns: one list with category headings.</param>
-/// <param name="FilterField">The filter text and its caret; empty text for none.</param>
+/// <param name="Matches">The filter: a <see cref="FilterList{T}"/> over every setting row and key line (contains matcher) whose query is the typed text and caret; empty text for none.</param>
 /// <param name="IsEditingFilter">The filter box takes typed text.</param>
 /// <param name="Choice">The choice whose options are listed, null for none.</param>
 /// <param name="Input">The text being typed into a setting, null for none.</param>
@@ -37,7 +38,7 @@ public sealed record SettingsState(
     int CategoryIndex = 0,
     int Cursor = 0,
     bool IsCollapsed = false,
-    TextField? FilterField = null,
+    FilterList<SettingRow>? Matches = null,
     bool IsEditingFilter = false,
     ChoiceEdit? Choice = null,
     SettingsInput? Input = null,
@@ -45,11 +46,20 @@ public sealed record SettingsState(
     IReadOnlyList<KeyReferenceEntry>? KeyReference = null,
     SettingsInput? InputDraft = null)
 {
+    /// <summary>
+    /// The filter list: the settings and key lines holding the typed text (in the screen's order), or every row while
+    /// nothing is typed. The cursor stays <see cref="Cursor"/>, so the column keeps one cursor for filtered and plain rows.
+    /// </summary>
+    public FilterList<SettingRow> Matches { get; init; } = Matches ?? FilterLists.Of(
+        FilterRows(Definitions, KeyReference ?? []),
+        MatcherKind.Contains,
+        UiTexts.NoMatch("setting"));
+
     /// <summary>What was typed in the filter box and its caret.</summary>
-    public TextField FilterField { get; init; } = FilterField ?? new TextField();
+    public TextField FilterField => Matches.Field;
 
     /// <summary>What was typed in the filter box.</summary>
-    public string Filter => FilterField.Text;
+    public string Filter => Matches.Text;
 
     /// <summary>The lines of the key reference, in the order they are listed.</summary>
     public IReadOnlyList<KeyReferenceEntry> Reference => KeyReference ?? [];
@@ -62,7 +72,7 @@ public sealed record SettingsState(
     public bool IsReadOnly => Banner.Length > 0;
 
     /// <summary>A filter is narrowing the list.</summary>
-    public bool IsFiltering => Filter.Length > 0;
+    public bool IsFiltering => Filter.Trim().Length > 0;
 
     /// <summary>The settings column lists the settings of every category (a filter or the collapsed layout).</summary>
     public bool ListsAllCategories => IsCollapsed || IsFiltering;
@@ -75,6 +85,11 @@ public sealed record SettingsState(
     {
         get
         {
+            if (IsFiltering)
+            {
+                return Matches.Candidates;
+            }
+
             var rows = new List<SettingRow>();
             foreach (var definition in ScopeDefinitions())
             {
@@ -284,8 +299,8 @@ public sealed record SettingsState(
     /// <param name="field">The filter now typed and its caret; when only the caret changed, the list stays where it is.</param>
     public SettingsState WithFilterText(TextField field) =>
         field.Text == Filter
-            ? this with { FilterField = field }
-            : this with { FilterField = field, Cursor = 0, Column = SettingsColumn.Settings };
+            ? this with { Matches = Matches.WithField(field) }
+            : this with { Matches = Matches.WithField(field), Cursor = 0, Column = SettingsColumn.Settings };
 
     // While a choice is open the cursor stays among its options.
     private int WithinOptions(int target)
@@ -299,13 +314,6 @@ public sealed record SettingsState(
 
     private IEnumerable<SettingDefinition> ScopeDefinitions()
     {
-        if (IsFiltering)
-        {
-            return Definitions
-                .Where(definition => Matches(definition) || MatchingBindings(definition).Any())
-                .OrderBy(definition => definition.Category);
-        }
-
         if (IsCollapsed)
         {
             // The long key reference goes last, so the other categories are reachable without passing it.
@@ -318,35 +326,39 @@ public sealed record SettingsState(
         return Definitions.Where(definition => definition.Category == category);
     }
 
-    private bool Matches(SettingDefinition definition) =>
-        ContainsMatcher.IsMatch(Filter, definition.Name) || ContainsMatcher.IsMatch(Filter, definition.Help);
-
-    // The key lines whose title, keys or action id contain the filter (indexes into the reference).
-    private IEnumerable<int> MatchingBindings(SettingDefinition definition)
+    // Every row the filter can show, in the order of the filtered column (by category): a setting is matched by its name
+    // and help (a key reference also by any of its lines, so it stays while one matches), a key line by its title, keys
+    // and action id.
+    private static ImmutableArray<FilterItem<SettingRow>> FilterRows(
+        IReadOnlyList<SettingDefinition> definitions,
+        IReadOnlyList<KeyReferenceEntry> reference)
     {
-        if (definition.Control != SettingControl.KeyReference)
+        var items = ImmutableArray.CreateBuilder<FilterItem<SettingRow>>();
+        foreach (var definition in definitions.OrderBy(definition => definition.Category))
         {
-            return [];
+            var isReference = definition.Control == SettingControl.KeyReference;
+            var texts = new List<string> { definition.Name, definition.Help };
+            if (isReference)
+            {
+                texts.AddRange(reference.SelectMany(entry => new[] { entry.Title, entry.Keys, entry.ActionId }));
+            }
+
+            items.Add(new FilterItem<SettingRow>(new SettingRow(definition, SettingRowKind.Setting, 0), [.. texts]));
+            for (var index = 0; isReference && index < reference.Count; index++)
+            {
+                var entry = reference[index];
+                items.Add(new FilterItem<SettingRow>(
+                    new SettingRow(definition, SettingRowKind.Binding, index),
+                    [entry.Title, entry.Keys, entry.ActionId]));
+            }
         }
 
-        var reference = Reference;
-
-        return Enumerable.Range(0, reference.Count).Where(index =>
-            ContainsMatcher.IsMatch(Filter, reference[index].Title)
-            || ContainsMatcher.IsMatch(Filter, reference[index].Keys)
-            || ContainsMatcher.IsMatch(Filter, reference[index].ActionId));
+        return items.ToImmutable();
     }
 
     private void AddRows(List<SettingRow> rows, SettingDefinition definition)
     {
         rows.Add(new SettingRow(definition, SettingRowKind.Setting, 0));
-        if (IsFiltering)
-        {
-            rows.AddRange(MatchingBindings(definition)
-                .Select(index => new SettingRow(definition, SettingRowKind.Binding, index)));
-
-            return;
-        }
 
         if (definition.Control == SettingControl.PathList)
         {

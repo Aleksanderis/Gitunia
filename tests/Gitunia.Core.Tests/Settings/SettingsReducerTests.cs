@@ -1,3 +1,4 @@
+using Gitunia.Core.Filtering;
 using Gitunia.Core.Editing;
 using Gitunia.Core.Config.Models;
 using Gitunia.Core.Settings;
@@ -375,6 +376,8 @@ public class SettingsReducerTests
     {
         var state = Reduce(Open(), SettingsCommandKind.FilterOpen).State;
         Assert.True(state.IsEditingFilter);
+        Assert.Equal(MatcherKind.Contains, state.Matches.Kind);
+        Assert.False(state.WithFilterText(TextField.Of("  ")).IsFiltering);
 
         var byName = state.WithFilterText(TextField.Of("theme"));
         var byHelp = state.WithFilterText(TextField.Of("PICKER"));
