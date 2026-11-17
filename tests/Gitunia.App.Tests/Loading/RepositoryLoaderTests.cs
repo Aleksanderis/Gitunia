@@ -304,6 +304,68 @@ public class RepositoryLoaderTests
         Assert.Contains("refs", starts.Skip(2));
     }
 
+    [Fact]
+    public async Task GivenPrefetchedGraphConfirmedByDiscovery_WhenLoading_ThenTheRunningReadFeedsTheTab()
+    {
+        // The log starts before discovery has answered (#1392) and is read once, not started again by the load.
+        using var harness = new Harness();
+        AddCommits(harness, 3);
+
+        harness.Loader.PrefetchGraph(Path.GetTempPath());
+        var started = harness.WaitForLogStart();
+        harness.Loader.ConfirmPrefetch(harness.Location);
+        await harness.RunAsync();
+
+        Assert.True(started);
+        Assert.Equal(1, harness.CommitLog.ReadCount);
+        Assert.Equal(3, harness.Session.Graph.Count);
+        Assert.False(harness.Session.IsLoading);
+    }
+
+    [Fact]
+    public async Task GivenPrefetchedGraphDiscardedAfterFailedDiscovery_WhenLoading_ThenTheLoadReadsTheLogItself()
+    {
+        using var harness = new Harness();
+        AddCommits(harness, 3);
+        harness.Loader.PrefetchGraph(Path.GetTempPath());
+        harness.Loader.ConfirmPrefetch(harness.Location);
+        harness.Loader.DiscardPrefetch();
+
+        await harness.RunAsync();
+
+        Assert.Equal(3, harness.Session.Graph.Count);
+        Assert.False(harness.Session.IsLoading);
+        Assert.Equal(string.Empty, harness.Session.LoadError);
+    }
+
+    [Fact]
+    public async Task GivenPrefetchedGraphConfirmedForAnotherRepository_WhenLoading_ThenItIsNotUsed()
+    {
+        using var harness = new Harness();
+        AddCommits(harness, 3);
+        harness.Loader.PrefetchGraph(Path.GetTempPath());
+        harness.Loader.ConfirmPrefetch(FakeStatusReader.LocationOf("other"));
+        harness.WaitForLogStart();
+
+        await harness.RunAsync();
+
+        Assert.Equal(2, harness.CommitLog.ReadCount);
+        Assert.Equal(3, harness.Session.Graph.Count);
+    }
+
+    [Fact]
+    public void GivenAPathThatIsNotADirectory_WhenPrefetching_ThenNothingStarts()
+    {
+        using var harness = new Harness();
+        AddCommits(harness, 1);
+
+        harness.Loader.PrefetchGraph(Path.Combine(Path.GetTempPath(), "gitunia-missing-1392"));
+        harness.Loader.ConfirmPrefetch(harness.Location);
+        harness.Loader.DiscardPrefetch();
+
+        Assert.Equal(0, harness.CommitLog.ReadCount);
+    }
+
     private static void AddCommits(Harness harness, int count)
     {
         for (var number = 1; number <= count; number++)
@@ -370,7 +432,14 @@ public class RepositoryLoaderTests
                 Session.Cancellation.Token);
         }
 
-        public void Dispose() => Session.Dispose();
+        // Bounded wait for the log read the prefetch starts on a pool thread.
+        public bool WaitForLogStart() => SpinWait.SpinUntil(() => CommitLog.ReadCount == 1, TimeSpan.FromSeconds(10));
+
+        public void Dispose()
+        {
+            Loader.Dispose();
+            Session.Dispose();
+        }
 
         private void OnExpandRequested()
         {

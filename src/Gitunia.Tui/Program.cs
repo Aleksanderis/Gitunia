@@ -67,6 +67,13 @@ public static class Program
         RepositoryLocation? location = null;
         if (options.RepositoryPath is not null)
         {
+            if (!options.PrintsFrame)
+            {
+                // The graph read starts from the given path while discovery resolves it (#1392): one process start
+                // less in front of the first rows. Dropped when discovery fails.
+                services.RepositoryLoader.PrefetchGraph(options.RepositoryPath);
+            }
+
             try
             {
                 // Entry point of a synchronous Main, nothing else is running yet: blocking is safe.
@@ -74,14 +81,18 @@ public static class Program
             }
             catch (GitException exception)
             {
+                services.RepositoryLoader.DiscardPrefetch();
                 Console.Error.WriteLine($"gitunia: {exception.Message}");
                 return 1;
             }
+
+            services.RepositoryLoader.ConfirmPrefetch(location);
         }
 
         // A discovery failure above returns first, with the same git message; the check's task is then abandoned at exit.
         if (!CheckGitVersion(versionCheck))
         {
+            services.RepositoryLoader.DiscardPrefetch();
             return 1;
         }
 
