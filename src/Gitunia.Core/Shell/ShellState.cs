@@ -51,6 +51,8 @@ namespace Gitunia.Core.Shell;
 /// <param name="Screen">The terminal size, or null until the terminal layer reported it (a dialog then counts as
 /// fitting).</param>
 /// <param name="Update">The in-app update hint (#1292): whether the check is allowed and the newer release it found.</param>
+/// <param name="AnsweredPrompt">The text prompt that was just accepted, so a feature that rejects the answer can reopen it
+/// with what was typed (<see cref="Prompts.ReopenPromptEffect"/>); replaced by the next accepted prompt.</param>
 public sealed record ShellState(
     KeyMode Mode,
     long ModeChanges,
@@ -75,7 +77,8 @@ public sealed record ShellState(
     UpdateHintState Update,
     VisualSelection? Visual = null,
     OverlayKind Overlay = OverlayKind.None,
-    KeyMode OverlayReturnMode = KeyMode.Normal)
+    KeyMode OverlayReturnMode = KeyMode.Normal,
+    OpenPrompt? AnsweredPrompt = null)
 {
     public static ShellState Empty { get; } = new(
         KeyMode.Normal,

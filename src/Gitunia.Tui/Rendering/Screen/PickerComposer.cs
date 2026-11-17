@@ -129,11 +129,8 @@ public static class PickerComposer
     {
         var builder = new LineBuilder(width, glyphs.Ellipsis)
             .Append($" {glyphs.Picker.Prompt} ", SegmentRole.SectionTitle);
-        new CaretField(string.Empty, picker.Query, picker.Caret).AppendTo(builder, SegmentRole.Plain);
-        if (picker.Query.Length == 0)
-        {
-            builder.Append($" {QueryPlaceholder}", SegmentRole.Faint);
-        }
+        new CaretField(string.Empty, picker.Query, picker.Caret, Placeholder: QueryPlaceholder)
+            .AppendTo(builder, FieldRoles.Body);
 
         var used = width - builder.Remaining;
         if (!withHint)

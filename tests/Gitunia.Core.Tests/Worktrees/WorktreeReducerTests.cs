@@ -1,3 +1,4 @@
+using Gitunia.Core.Tests.Prompts;
 using Gitunia.Core.Effects;
 using Gitunia.Core.Sidebar;
 using Gitunia.Core.Status;
@@ -115,7 +116,7 @@ public class WorktreeReducerTests
 
         Assert.Equal(
             $"topic is already checked out in {Sibling("other")}: a branch can be in one worktree only",
-            Warning(update.Effects));
+            PromptRejections.Reason(update.Effects));
     }
 
     [Fact]
@@ -123,7 +124,7 @@ public class WorktreeReducerTests
     {
         var update = Reduce(new WorktreeBranchAccepted(Tab, null, "   "), Context());
 
-        Assert.Equal("No branch given: nothing was added", Warning(update.Effects));
+        Assert.Equal("No branch given: nothing was added", PromptRejections.Reason(update.Effects));
     }
 
     [Fact]
@@ -154,7 +155,7 @@ public class WorktreeReducerTests
     {
         var update = Reduce(new WorktreePathAccepted(Tab, "fresh", null, false, " "), Context());
 
-        Assert.Equal("No path given: nothing was added", Warning(update.Effects));
+        Assert.Equal("No path given: nothing was added", PromptRejections.Reason(update.Effects));
     }
 
     [Fact]

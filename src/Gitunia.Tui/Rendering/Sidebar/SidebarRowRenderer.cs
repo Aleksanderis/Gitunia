@@ -76,7 +76,7 @@ public static class SidebarRowRenderer
             if (isEditing)
             {
                 // The cursor cell keeps the caret in view when the filter is wider than the pane.
-                new CaretField(string.Empty, filterText, caret).AppendTo(builder, SegmentRole.Plain);
+                new CaretField(string.Empty, filterText, caret).AppendTo(builder, FieldRoles.Body);
             }
             else
             {

@@ -432,7 +432,7 @@ internal static class ConflictActions
         var text = ConflictNotices.TypingInResult;
         if (edited.Hunks.Count > 0)
         {
-            text = $"Typing in the result at conflict {edited.Index + 1}: Esc or Ctrl-g keeps the text";
+            text = $"Typing in the result at conflict {edited.Index + 1}: Esc keeps the text, Ctrl-g is done";
         }
 
         return ConflictFlow.Show(session, edited, ConflictFlow.Post(text));

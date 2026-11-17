@@ -248,7 +248,7 @@ public static class RebaseEditorReducer
 
         if (action == ActionIds.RebaseEditorMessageNewLine)
         {
-            return With(session, state with { Edit = state.Edit!.Typed(new KeyEvent(KeyNames.Enter)) });
+            return TypeInto(session, state, new KeyEvent(KeyNames.Enter));
         }
 
         if (action == ActionIds.Cancel || action == ActionIds.NavigateBack)
@@ -264,12 +264,19 @@ public static class RebaseEditorReducer
         KeyEvent key,
         RebaseEditorContext context)
     {
-        if (session.Editor is not { Edit: { } edit } state || !context.IsActive)
+        if (session.Editor is not { Edit: not null } state || !context.IsActive)
         {
             return Done(session);
         }
 
-        return With(session, state with { Edit = edit.Typed(key) });
+        return TypeInto(session, state, key);
+    }
+
+    private static RebaseEditorUpdate TypeInto(RebaseEditorSession session, RebaseEditorState state, KeyEvent key)
+    {
+        var edit = state.Edit!.Typed(key, out var effects);
+
+        return Done(session with { Editor = state with { Edit = edit } }, effects);
     }
 
     private static RebaseEditorUpdate ClickRow(RebaseEditorSession session, int index) =>
@@ -278,7 +285,7 @@ public static class RebaseEditorReducer
     // An edited todo is not thrown away by one stray Esc: the first press warns, the second closes.
     private static RebaseEditorUpdate RequestClose(RebaseEditorSession session, RebaseEditorState state)
     {
-        if (state.IsModified && !state.IsDiscardPending)
+        if ((state.IsModified || state.HasDrafts) && !state.IsDiscardPending)
         {
             return With(session, state.AskDiscard());
         }

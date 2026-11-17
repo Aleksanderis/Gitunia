@@ -29,13 +29,13 @@ public static class RebaseEditorFrameBuilder
     private const int ListStartLine = 2;
     private const string Note = "oldest first: the top commit is replayed first; squash and fixup meld upwards";
     private const string DiscardHint = "Esc again discards the changes to the todo";
-    private const string BlankMessageHint = "A reword needs a message: type one, or Esc to cancel";
+    private const string BlankMessageHint = "A reword needs a message: type one, or Esc to leave";
 
     private static readonly HintItem[] MessageHints =
     [
-        new("Ctrl-g", "keeps the message"),
+        new("Ctrl-g", "done"),
         new("Enter", "new line"),
-        new("Esc", "cancel"),
+        new("Esc", "keep"),
     ];
 
     private static readonly HintChip[] ChipLabels =

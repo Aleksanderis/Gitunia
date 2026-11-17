@@ -108,6 +108,6 @@ public static class PromptPopupFrameBuilder
 
     private static StyledLine InputRow(string input, int caret, int width, GraphGlyphSet glyphs)
     {
-        return OverlayBox.Input(new CaretField($"{glyphs.Picker.Prompt} ", input, caret), width, glyphs, SegmentRole.OverlayKey);
+        return OverlayBox.Input(new CaretField($"{glyphs.Picker.Prompt} ", input, caret), width, glyphs);
     }
 }

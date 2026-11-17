@@ -1,3 +1,5 @@
+using Gitunia.Core.Clipboard;
+using Gitunia.Core.Editing;
 using Gitunia.Core.Operations;
 using Gitunia.Core.Effects;
 using Gitunia.Core.Keymap;
@@ -449,6 +451,97 @@ public class RebaseEditorReducerTests
         Assert.Equal("one!\nb", row.Message);
         Assert.Null(saved.Session.Editor.Edit);
         Assert.Equal(KeyMode.Normal, Assert.Single(saved.Effects.OfType<SetKeyModeEffect>()).Mode);
+    }
+
+    [Fact]
+    public void GivenTypedTextInTheMessageEditor_WhenLeavingWithEscAndRewordingAgain_ThenTheTextComesBack()
+    {
+        var session = Opened() with { Editor = Opened().Editor!.BeginEdit("one") };
+        session = Reduce(session, new RebaseEditorKeyTyped(Tab, new KeyEvent("!"))).Session;
+
+        session = Reduce(session, Press(ActionIds.Cancel)).Session;
+        var reopened = session with { Editor = session.Editor!.BeginEdit("one") };
+
+        Assert.Equal("one!", reopened.Editor!.Edit!.Editor.Text);
+        Assert.Equal(RebaseTodoAction.Pick, reopened.Editor.Rows[0].Action);
+    }
+
+    [Fact]
+    public void GivenAnUntouchedMessageEditor_WhenLeavingWithEsc_ThenNoDraftIsKept()
+    {
+        var session = Opened() with { Editor = Opened().Editor!.BeginEdit("one") };
+
+        session = Reduce(session, Press(ActionIds.Cancel)).Session;
+
+        Assert.False(session.Editor!.HasDrafts);
+    }
+
+    [Fact]
+    public void GivenAKeptDraft_WhenClosingTheTodoWithEsc_ThenItAsksBeforeThrowingTheTextAway()
+    {
+        var session = Opened() with { Editor = Opened().Editor!.BeginEdit("one") };
+        session = Reduce(session, new RebaseEditorKeyTyped(Tab, new KeyEvent("!"))).Session;
+        session = Reduce(session, Press(ActionIds.Cancel)).Session;
+
+        var asked = Reduce(session, Press(ActionIds.NavigateBack));
+        var closed = Reduce(asked.Session, Press(ActionIds.NavigateBack));
+
+        Assert.True(asked.Session.Editor!.IsDiscardPending);
+        Assert.Null(closed.Session.Editor);
+    }
+
+    [Fact]
+    public void GivenTheMessageEditor_WhenSavingAfterADraft_ThenTheDraftIsGone()
+    {
+        var session = Opened() with { Editor = Opened().Editor!.BeginEdit("one") };
+        session = Reduce(session, new RebaseEditorKeyTyped(Tab, new KeyEvent("!"))).Session;
+        session = Reduce(session, Press(ActionIds.Cancel)).Session;
+        session = session with { Editor = session.Editor!.BeginEdit("one") };
+
+        var saved = Reduce(session, Press(ActionIds.RebaseEditorMessageSave)).Session;
+
+        Assert.False(saved.Editor!.HasDrafts);
+        Assert.Equal("one!", saved.Editor.Rows[0].Message);
+    }
+
+    [Fact]
+    public void GivenTheMessageEditor_WhenUndoIsPressed_ThenTheTypedTextGoesBack()
+    {
+        var session = Opened() with { Editor = Opened().Editor!.BeginEdit("one") };
+        session = Reduce(session, new RebaseEditorKeyTyped(Tab, new KeyEvent("!"))).Session;
+
+        var undone = Reduce(session, new RebaseEditorKeyTyped(Tab, new KeyEvent("z", KeyModifiers.Ctrl)));
+
+        Assert.Equal("one", undone.Session.Editor!.Edit!.Editor.Text);
+    }
+
+    [Fact]
+    public void GivenTheMessageEditorWithNothingToUndo_WhenUndoIsPressed_ThenANoticeSaysSo()
+    {
+        var session = Opened() with { Editor = Opened().Editor!.BeginEdit("one") };
+        session = Reduce(session, new RebaseEditorKeyTyped(Tab, new KeyEvent("z", KeyModifiers.Ctrl))).Session;
+
+        var undone = Reduce(session, new RebaseEditorKeyTyped(Tab, new KeyEvent("z", KeyModifiers.Ctrl)));
+
+        Assert.Equal(EditorHostKeys.NothingToUndoNotice, Assert.Single(undone.Effects.OfType<PostStatusEffect>()).Text);
+    }
+
+    [Theory]
+    [InlineData("x", KeyModifiers.Ctrl, "")]
+    [InlineData("w", KeyModifiers.Alt, "one")]
+    public void GivenASelectionInTheMessageEditor_WhenCopyingOrCutting_ThenTheClipboardGetsItAndOnlyCutRemovesIt(
+        string key,
+        KeyModifiers modifiers,
+        string remaining)
+    {
+        var session = Opened() with { Editor = Opened().Editor!.BeginEdit("one") };
+        session = Reduce(session, new RebaseEditorKeyTyped(Tab, new KeyEvent(KeyNames.Home, KeyModifiers.Shift))).Session;
+
+        var update = Reduce(session, new RebaseEditorKeyTyped(Tab, new KeyEvent(key, modifiers)));
+
+        var copied = Assert.Single(update.Effects.OfType<CopyToClipboardEffect>());
+        Assert.Equal("one", copied.Text);
+        Assert.Equal(remaining, update.Session.Editor!.Edit!.Editor.Text);
     }
 
     [Fact]

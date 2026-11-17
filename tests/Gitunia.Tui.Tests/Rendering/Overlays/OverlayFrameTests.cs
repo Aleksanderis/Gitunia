@@ -210,7 +210,7 @@ public class OverlayFrameTests
         Assert.Equal(
             string.Join(
                 '\n',
-                " : _                                                                          ",
+                " :                                                                            ",
                 "│ Branch                                                                     │",
                 "│ Create a branch and check it out                                 <space>bc │",
                 "│ Create a branch without checking out                             <space>bC │",
@@ -237,7 +237,7 @@ public class OverlayFrameTests
         Assert.Equal(
             string.Join(
                 '\n',
-                " : _                                  ",
+                " :                                    ",
                 "| Branch                             |",
                 "| Create a branch and ch~  <space>bc |",
                 "| Create a branch withou~  <space>bC |",
@@ -323,7 +323,7 @@ public class OverlayFrameTests
         Assert.Equal(
             string.Join(
                 '\n',
-                " : tab_                                                   ",
+                " : tab                                                    ",
                 "│ Tabs                                                   │",
                 "│ Next tab                                            gt │",
                 "│ Previous tab                                        gT │",
@@ -425,7 +425,7 @@ public class OverlayFrameTests
         Assert.Equal(
             string.Join(
                 '\n',
-                " : zzzzqq_                            ",
+                " : zzzzqq                             ",
                 "| no matching action                 |",
                 "| 0/0 Ctrl-j/k move  Enter run  Esc ~|",
                 "+------------------------------------+"),
@@ -658,7 +658,7 @@ public class OverlayFrameTests
 
         var frame = OverlayFrameFactory.Create(state, [], "g", [new WhichKeyRow("g", "Go to the top")], 80, 24, GraphGlyphSet.Unicode);
 
-        Assert.StartsWith(" : _", frame!.Lines[0].Text, StringComparison.Ordinal);
+        Assert.StartsWith(" : ", frame!.Lines[0].Text, StringComparison.Ordinal);
     }
 
     [Fact]

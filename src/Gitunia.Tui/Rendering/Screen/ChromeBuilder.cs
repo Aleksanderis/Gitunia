@@ -109,7 +109,7 @@ public static class ChromeBuilder
             return;
         }
 
-        new CaretField(search.Prefix, search.Text, caret, search.Suffix).AppendTo(builder, SegmentRole.Status);
+        new CaretField(search.Prefix, search.Text, caret, search.Suffix).AppendTo(builder, FieldRoles.Bar);
         builder.Append(" ", SegmentRole.Status);
     }
 

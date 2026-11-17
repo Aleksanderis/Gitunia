@@ -1,3 +1,4 @@
+using Gitunia.Core.Tests.Prompts;
 using System.Collections.Immutable;
 using Gitunia.Core.Effects;
 using Gitunia.Core.Remotes;
@@ -218,13 +219,13 @@ public class RemoteReducerTests
     {
         var effects = Reduce(new RemoteAddNameAccepted(Tab, Origin, " origin "));
 
-        Assert.Equal("Remote origin already exists", Warning(effects));
+        Assert.Equal("Remote origin already exists", PromptRejections.Reason(effects));
     }
 
     [Fact]
     public void GivenAnEmptyName_WhenAddingTheName_ThenNothingIsAdded()
     {
-        Assert.Equal("No name: nothing was added", Warning(Reduce(new RemoteAddNameAccepted(Tab, Origin, "  "))));
+        Assert.Equal("No name: nothing was added", PromptRejections.Reason(Reduce(new RemoteAddNameAccepted(Tab, Origin, "  "))));
     }
 
     [Fact]
@@ -251,7 +252,7 @@ public class RemoteReducerTests
     {
         var effects = Reduce(new RemoteAddUrlAccepted(Tab, "backup", " "));
 
-        Assert.Equal("No URL: nothing was added", Warning(effects));
+        Assert.Equal("No URL: nothing was added", PromptRejections.Reason(effects));
     }
 
     [Fact]
@@ -278,7 +279,7 @@ public class RemoteReducerTests
     {
         var effects = Reduce(new RemoteRenameAccepted(Tab, Origin, "origin", name));
 
-        Assert.Equal("Same or empty name: nothing was renamed", Warning(effects));
+        Assert.Equal("Same or empty name: nothing was renamed", PromptRejections.Reason(effects));
     }
 
     [Fact]
@@ -288,7 +289,7 @@ public class RemoteReducerTests
 
         var effects = Reduce(new RemoteRenameAccepted(Tab, remotes, "origin", "other"));
 
-        Assert.Equal("Remote other already exists", Warning(effects));
+        Assert.Equal("Remote other already exists", PromptRejections.Reason(effects));
     }
 
     [Fact]
@@ -307,7 +308,7 @@ public class RemoteReducerTests
     {
         var effects = Reduce(new RemoteUrlAccepted(Tab, "origin", "old", url));
 
-        Assert.Equal("Same or empty URL: nothing was changed", Warning(effects));
+        Assert.Equal("Same or empty URL: nothing was changed", PromptRejections.Reason(effects));
     }
 
     [Fact]

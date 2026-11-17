@@ -1,13 +1,22 @@
+using Gitunia.Core.Editing;
+using Gitunia.Core.Keymap;
+using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Lists;
 
 namespace Gitunia.Core.Overlays;
 
 /// <summary>The command palette: all entries, the typed filter and the highlighted row. Immutable and pure.</summary>
 /// <param name="Entries">Every action.</param>
-/// <param name="Query">What was typed.</param>
+/// <param name="Field">The typed filter with its caret, edited like every other text field.</param>
 /// <param name="SelectedIndex">Index into <see cref="Visible"/>.</param>
-public sealed record PaletteState(IReadOnlyList<PaletteEntry> Entries, string Query = "", int SelectedIndex = 0)
+public sealed record PaletteState(IReadOnlyList<PaletteEntry> Entries, TextField? Field = null, int SelectedIndex = 0)
 {
+    /// <summary>The typed filter with its caret.</summary>
+    public TextField Field { get; init; } = Field ?? new TextField();
+
+    /// <summary>What was typed.</summary>
+    public string Query => Field.Text;
+
     /// <summary>The highlighted entry, null when nothing matches.</summary>
     public PaletteEntry? Selected
     {
@@ -41,16 +50,25 @@ public sealed record PaletteState(IReadOnlyList<PaletteEntry> Entries, string Qu
             .Select(item => item.Entry)];
     }
 
-    public PaletteState Type(string text) => this with { Query = Query + text, SelectedIndex = 0 };
+    /// <summary>The palette after text is typed or pasted at the caret; the highlight goes back to the first row.</summary>
+    /// <param name="text">The text.</param>
+    public PaletteState Type(string text) =>
+        Field.Insert(text) is { } field ? this with { Field = field, SelectedIndex = 0 } : this;
 
-    public PaletteState DeleteLast() => Query.Length == 0 ? this : this with { Query = TrimLastCodePoint(Query), SelectedIndex = 0 };
+    /// <summary>The palette after a key edits the filter (caret moves, word and line deletions, Backspace on a grapheme); unchanged when the key does nothing.</summary>
+    /// <param name="key">The key.</param>
+    public PaletteState Edit(KeyEvent key) =>
+        Field.Apply(key) is { } field ? With(field) : this;
+
+    /// <summary>The palette after Backspace.</summary>
+    public PaletteState DeleteLast() => Edit(new KeyEvent(KeyNames.Backspace));
 
     /// <summary>Moves the highlight by <paramref name="delta"/> rows, stopping at the ends.</summary>
     public PaletteState Move(int delta) =>
         this with { SelectedIndex = ListViewport.ClampIndex(SelectedIndex + delta, Visible().Count) };
 
-    private static string TrimLastCodePoint(string text) =>
-        text.Length > 1 && char.IsLowSurrogate(text[^1]) ? text[..^2] : text[..^1];
+    private PaletteState With(TextField field) =>
+        this with { Field = field, SelectedIndex = field.Text == Field.Text ? SelectedIndex : 0 };
 
     private int? BestScore(PaletteEntry entry)
     {
