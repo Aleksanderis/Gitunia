@@ -1,6 +1,7 @@
 using Gitunia.Core.Editing;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
+using Gitunia.Core.Mouse;
 using Gitunia.Core.Workspaces.Panes;
 
 namespace Gitunia.Core.Commits;
@@ -60,7 +61,7 @@ internal static class CommitMessageKeys
 
     /// <summary>The mouse paths of the box (double-click, wheel), which act in any mode.</summary>
     /// <param name="action">One of the pointer actions.</param>
-    /// <param name="count">The rows of a wheel notch (the mouse map says how many), null for one.</param>
+    /// <param name="count">The rows of a wheel notch (the mouse map says how many), null for the keys, which scroll the same.</param>
     /// <param name="context">The tab and the facts around it.</param>
     public static CommitUpdate RunPointer(ActionId action, int? count, CommitContext context)
     {
@@ -76,7 +77,7 @@ internal static class CommitMessageKeys
         }
         else
         {
-            var lines = count ?? 1;
+            var lines = count ?? DefaultMouseMap.WheelLines;
             draft.Editor.MoveLines(action == ActionIds.WorkingTreeMessageScrollDown ? lines : -lines);
         }
 

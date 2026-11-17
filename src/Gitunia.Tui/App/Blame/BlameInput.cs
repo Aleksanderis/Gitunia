@@ -63,7 +63,14 @@ public sealed class BlameInput(
 
         var screen = Screen;
 
-        return BlameFrameBuilder.Build(view, DataOf(Session), _clock.GetUtcNow(), screen.Width, screen.Height, glyphs, keys);
+        return BlameFrameBuilder.Build(
+            view,
+            DataOf(Session),
+            _clock.GetUtcNow(),
+            screen.Width,
+            screen.Height,
+            glyphs,
+            keys);
     }
 
     /// <summary>Opens the view on <see cref="ActionIds.BlameOpen"/> and, while it is open, consumes every action.

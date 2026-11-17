@@ -32,7 +32,11 @@ public static class ActionRow
     /// <param name="keyView">The keymap view the row sits in.</param>
     /// <param name="mode">The key mode the keys are looked up in.</param>
     /// <param name="keys">The lookup; null uses the default keymap.</param>
-    public static string KeysOf(ActionId action, string keyView, KeyMode mode = KeyMode.Normal, ChipKeys? keys = null) =>
+    public static string KeysOf(
+        ActionId action,
+        string keyView,
+        KeyMode mode = KeyMode.Normal,
+        ChipKeys? keys = null) =>
         (keys ?? ChipKeys.Default).ForAction(action, keyView, mode) ?? string.Empty;
 
     /// <summary>One row of a hint that has a sentence.</summary>
@@ -41,7 +45,12 @@ public static class ActionRow
     /// <param name="width">The frame width.</param>
     /// <param name="glyphs">The characters to draw with.</param>
     /// <param name="keys">The lookup; null uses the default keymap.</param>
-    public static StyledLine Line(KeyHint hint, string keyView, int width, GraphGlyphSet glyphs, ChipKeys? keys = null) =>
+    public static StyledLine Line(
+        KeyHint hint,
+        string keyView,
+        int width,
+        GraphGlyphSet glyphs,
+        ChipKeys? keys = null) =>
         Line(KeysOf(hint.Actions[0], keyView, keys: keys), hint.Detail ?? hint.Description, width, glyphs);
 
     /// <summary>One row: <paramref name="keys"/> left, <paramref name="description"/> right.</summary>
@@ -50,7 +59,12 @@ public static class ActionRow
     /// <param name="width">The frame width.</param>
     /// <param name="glyphs">The characters to draw with.</param>
     /// <param name="isAvailable">False draws the row dimmed (an answer that is not possible).</param>
-    public static StyledLine Line(string keys, string description, int width, GraphGlyphSet glyphs, bool isAvailable = true) =>
+    public static StyledLine Line(
+        string keys,
+        string description,
+        int width,
+        GraphGlyphSet glyphs,
+        bool isAvailable = true) =>
         OverlayBox.TwoColumns(
             keys,
             description,

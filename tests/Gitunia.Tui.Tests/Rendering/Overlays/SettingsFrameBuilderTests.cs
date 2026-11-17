@@ -1,5 +1,6 @@
 using Gitunia.Core.Config.Models;
 using Gitunia.Core.Editing;
+using Gitunia.Core.Hints;
 using Gitunia.Core.Settings;
 using Gitunia.Core.Settings.Models;
 using Gitunia.Tui.Rendering.Graph;
@@ -503,6 +504,32 @@ public class SettingsFrameBuilderTests
 
     private static SettingDefinition Definition(string id) =>
         SettingsRegistry.All.First(definition => definition.Id == id);
+
+    [Fact]
+    public void GivenTheSettingsStates_WhenDrawingTheFooter_ThenEveryHintWithAnActionIsAClickTarget()
+    {
+        SettingsState[] states =
+        [
+            Open().WithFilterText("them", 2) with { IsEditingFilter = true },
+            Open().WithLayout(collapsed: true) with { Column = SettingsColumn.Settings },
+            Open().WithFilterText("them"),
+            Open() with { Removal = new PendingRemoval("x", 0, "/b") },
+        ];
+        foreach (var state in states)
+        {
+            var frame = SettingsFrameBuilder.Build(state, 100, 30, GraphGlyphSet.Unicode)!;
+            var line = frame.Lines.Count - 2;
+            var text = frame.Lines[line].Text;
+
+            foreach (var hint in HintSet.ForSettings(state).Where(hint => !hint.Actions.IsDefaultOrEmpty))
+            {
+                var column = text.IndexOf($"{hint.Keys} {hint.Description}", StringComparison.Ordinal);
+
+                Assert.True(column >= 0, $"{hint.Keys} {hint.Description} is not in the footer.");
+                Assert.Equal(hint.Actions[0], frame.TargetAt(line, column)?.Action);
+            }
+        }
+    }
 
     private static SettingsState Open(string text = "{}")
     {

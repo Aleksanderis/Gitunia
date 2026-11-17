@@ -486,20 +486,21 @@ public sealed class MainView : IDisposable
         }
     }
 
-    // A click on the status bar runs the hint under it, like the key; with an overlay open it is a click outside.
+    // A click on the status bar runs the hint under it, like the key; elsewhere on it with an overlay open it is a click
+    // outside.
     private void OnStatusClicked(int column)
     {
-        if (CloseOverlayBehind())
-        {
-            return;
-        }
-
         var model = _parts.Content.Model();
         var target = ChromeBuilder.StatusTargets(model, _parts.Geometry.ScreenWidth, _parts.Panes.Content.Glyphs)
             .FirstOrDefault(hint => hint.Contains(0, column));
         if (target?.Action is { } action)
         {
+            // While an overlay is open the bar shows that overlay's own hints, so the hint runs like its key.
             HintClicked?.Invoke(action);
+        }
+        else
+        {
+            CloseOverlayBehind();
         }
     }
 

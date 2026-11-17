@@ -182,6 +182,13 @@ public class RebaseEditorFrameBuilderTests
         Assert.Contains(frame.Lines.SelectMany(line => line.Segments), segment => segment.Role == SegmentRole.Cursor);
         Assert.Null(RebaseEditorFrameBuilder.ChipAt(state, 5, 5, 80, 24));
         Assert.Null(RebaseEditorFrameBuilder.EntryIndexAt(state, 2, 80, 24));
+        var footer = frame.Lines.Count - 2;
+        Assert.Equal(
+            ActionIds.RebaseEditorMessageSave,
+            frame.TargetAt(footer, frame.Lines[footer].Text.IndexOf("Ctrl-g", StringComparison.Ordinal))?.Action);
+        Assert.Equal(
+            ActionIds.Cancel,
+            frame.TargetAt(footer, frame.Lines[footer].Text.IndexOf("Esc", StringComparison.Ordinal))?.Action);
     }
 
     [Fact]

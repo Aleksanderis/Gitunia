@@ -49,7 +49,10 @@ public static class OpenPromptPopup
             window.Rows,
             [
                 PromptPopup.Accept(prompt.AcceptLabel),
-                new("j/k/h/l", HintVerb.Move, [ActionIds.ListDown, ActionIds.ListUp, ActionIds.ListUp, ActionIds.ListDown]),
+                new(
+                    "j/k/h/l",
+                    HintVerb.Move,
+                    [ActionIds.ListDown, ActionIds.ListUp, ActionIds.ListUp, ActionIds.ListDown]),
                 new("Esc", HintVerb.Cancel, [ActionIds.Cancel]),
             ],
             Highlight: window.Highlight,

@@ -2,11 +2,11 @@ using Gitunia.Core.Operations;
 using Gitunia.App;
 using Gitunia.Core.Commits;
 using Gitunia.Core.Conflicts;
+using Gitunia.Core.Hints;
 using Gitunia.Core.Overlays;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Tui.App.Overlays;
-using Gitunia.Core.Hints;
 
 namespace Gitunia.Tui.App.Screen;
 

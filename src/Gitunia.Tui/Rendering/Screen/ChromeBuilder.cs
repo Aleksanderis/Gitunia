@@ -71,7 +71,11 @@ public static class ChromeBuilder
         return HintTargets.Of(model.Hints ?? HintSet.For(PaneKind.Graph), spans, 0, 0);
     }
 
-    private static StyledLine StatusLeft(ScreenModel model, int width, GraphGlyphSet glyphs, List<HintSpan>? spans = null)
+    private static StyledLine StatusLeft(
+        ScreenModel model,
+        int width,
+        GraphGlyphSet glyphs,
+        List<HintSpan>? spans = null)
     {
         var position = model.Picker is { } picker ? PickerPosition(picker) : GraphPosition(model);
         var builder = new LineBuilder(width, glyphs.Ellipsis)

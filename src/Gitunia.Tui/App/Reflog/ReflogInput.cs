@@ -46,7 +46,12 @@ public sealed class ReflogInput(
     {
         var screen = Screen;
 
-        return Session.List is { } list ? ReflogFrameBuilder.Build(list, screen.Width, screen.Height, glyphs, _clock.GetUtcNow(), keys) : null;
+        if (Session.List is not { } list)
+        {
+            return null;
+        }
+
+        return ReflogFrameBuilder.Build(list, screen.Width, screen.Height, glyphs, _clock.GetUtcNow(), keys);
     }
 
     /// <summary>Opens the list on <see cref="ActionIds.ReflogOpen"/> and, while it is open, consumes every action.

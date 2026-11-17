@@ -1,8 +1,10 @@
 using System.Drawing;
 using Gitunia.Core.Keymap;
+using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Mouse;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Overlays;
+using Gitunia.Tui.Rendering.Screen;
 using Gitunia.Tui.Views;
 using Gitunia.Tui.App.Overlays.Clicks;
 using Terminal.Gui.Input;
@@ -14,6 +16,9 @@ namespace Gitunia.Tui.Tests.Views;
 // the status bar), and a click on a hint of the frame runs the action of its key.
 public sealed class OverlayClickOutsideTests
 {
+    private const int StatusWidth = 80;
+    private const int StatusHeight = 24;
+
     [Fact]
     public void GivenAnOpenOverlay_WhenATitleRowTheBannerOrTheStatusBarIsClicked_ThenEachRaisesTheBackdropClick()
     {
@@ -77,5 +82,44 @@ public sealed class OverlayClickOutsideTests
 
         Assert.Equal(ActionIds.Cancel, hint?.Action);
         Assert.Null(elsewhere);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void GivenAHintOfTheStatusBar_WhenItIsClicked_ThenTheViewRaisesItsActionAlsoWhileAnOverlayIsOpen(
+        bool isOverlayOpen)
+    {
+        using var fixture = new MainViewFixture();
+        var actions = new List<ActionId>();
+        var backdrops = 0;
+        fixture.View.HintClicked += actions.Add;
+        fixture.View.Gestured += (view, _, _) => backdrops += view == DefaultMouseMap.BackdropView ? 1 : 0;
+        fixture.Gate.Set(isOverlayOpen);
+        fixture.Panes.Window.Width = StatusWidth;
+        fixture.Panes.Window.Height = StatusHeight;
+        fixture.Panes.Window.Layout();
+        var status = fixture.Panes.Window.SubViews.OfType<LineView>().Last();
+
+        var column = StatusColumnOfHelp();
+
+        status.NewMouseEvent(new Mouse
+        {
+            Flags = MouseFlags.LeftButtonClicked,
+            Position = new Point(column, 0),
+            ScreenPosition = new Point(column, 0),
+        });
+
+        Assert.Equal([ActionIds.HelpShow], actions);
+        Assert.Equal(0, backdrops);
+    }
+
+    private static int StatusColumnOfHelp()
+    {
+        var model = new ScreenModel("repository", null, 1, 1, "Normal", string.Empty, 0, 0, false, string.Empty);
+        var text = string.Concat(
+            ChromeBuilder.Status(model, StatusWidth, GraphGlyphSet.Unicode).Segments.Select(segment => segment.Text));
+
+        return text.IndexOf("? help", StringComparison.Ordinal);
     }
 }

@@ -87,7 +87,8 @@ public static class BlameFrameBuilder
             lines.Add(OverlayBox.Text(string.Empty, screenWidth, glyphs));
         }
 
-        lines.AddRange(Actions.Select(action => ActionRow.Line(action, DefaultKeymap.BlameView, screenWidth, glyphs, keys)));
+        lines.AddRange(
+            Actions.Select(action => ActionRow.Line(action, DefaultKeymap.BlameView, screenWidth, glyphs, keys)));
         lines.Add(HintChipRows.Line(ToggleChips.Select(WithKey).ToArray(), screenWidth, glyphs));
         var targets = new List<FrameTarget>();
         lines.Add(OverlayBox.Hints(
@@ -97,7 +98,7 @@ public static class BlameFrameBuilder
             screenWidth,
             glyphs,
             FooterLead(state),
-            field: state is { HasSearch: true, IsEditingSearch: true } ? new CaretField("/", state.SearchText, state.SearchCaret) : null));
+            field: SearchField(state)));
         lines.Add(OverlayBox.Bottom(screenWidth, glyphs));
 
         return new OverlayFrame(0, 0, lines, targets);
@@ -131,8 +132,19 @@ public static class BlameFrameBuilder
             return DefaultMouseMap.ClickViewOf(Actions[row - 1].Actions[0]);
         }
 
-        return row == Actions.Count + 1 ? HintChipRows.ViewAt(ToggleChips.Select(WithKey).ToArray(), frameColumn) : null;
+        if (row != Actions.Count + 1)
+        {
+            return null;
+        }
+
+        return HintChipRows.ViewAt(ToggleChips.Select(WithKey).ToArray(), frameColumn);
     }
+
+    // The search being typed, drawn with a cursor cell instead of the plain lead.
+    private static CaretField? SearchField(BlameState state) =>
+        state is { HasSearch: true, IsEditingSearch: true }
+            ? new CaretField("/", state.SearchText, state.SearchCaret)
+            : null;
 
     private static HintChip WithKey(HintChip chip) =>
         chip with { Keys = ChipKeys.Default.For(chip.View, DefaultKeymap.BlameView) ?? string.Empty };

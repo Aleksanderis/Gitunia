@@ -66,7 +66,8 @@ public static class OverlayFrameFactory
                 screenHeight,
                 glyphs,
                 state.HelpView),
-            OverlayKind.Confirm when state.Confirm is { } prompt => ConfirmFrameBuilder.Build(prompt, screenWidth, screenHeight, glyphs, keys),
+            OverlayKind.Confirm when state.Confirm is { } prompt =>
+                ConfirmFrameBuilder.Build(prompt, screenWidth, screenHeight, glyphs, keys),
             OverlayKind.Palette when state.Palette is { } palette => PaletteFrameBuilder.Build(palette, screenWidth, screenHeight, glyphs),
             OverlayKind.ContextMenu when state is { Palette: { } menu, MenuAnchor: { } anchor } =>
                 ContextMenuFrameBuilder.Build(

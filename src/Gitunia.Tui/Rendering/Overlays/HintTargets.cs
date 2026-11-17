@@ -18,7 +18,11 @@ public static class HintTargets
     /// <param name="line">The frame line of the row.</param>
     /// <param name="offset">The column of the builder's first column in the frame (1 inside a box, 0 on the status
     /// bar).</param>
-    public static List<FrameTarget> Of(IReadOnlyList<KeyHint> hints, IReadOnlyList<HintSpan> spans, int line, int offset)
+    public static List<FrameTarget> Of(
+        IReadOnlyList<KeyHint> hints,
+        IReadOnlyList<HintSpan> spans,
+        int line,
+        int offset)
     {
         var targets = new List<FrameTarget>();
         for (var index = 0; index < hints.Count && index < spans.Count; index++)

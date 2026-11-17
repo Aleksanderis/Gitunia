@@ -156,6 +156,8 @@ public class HelpAllCommandsFrameTests
         Assert.Equal(" Keys: Graph  / <space>gc ".PadRight(lines[0].Length), lines[0]);
         Assert.Equal(" ", TitleCursor(frame.Lines[0]));
         Assert.Contains("Esc clear  Enter keep", lines[^2]);
+        Assert.Equal(ActionIds.Cancel, frame.TargetAt(lines.Count - 2, lines[^2].IndexOf("Esc", StringComparison.Ordinal))?.Action);
+        Assert.Equal(ActionIds.InputAccept, frame.TargetAt(lines.Count - 2, lines[^2].IndexOf("Enter", StringComparison.Ordinal))?.Action);
         Assert.Contains(lines, line => line.Contains("<space>gc"));
         Assert.DoesNotContain(lines, line => line.Contains("<space>gd"));
     }

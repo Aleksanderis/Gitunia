@@ -375,8 +375,16 @@ public static class DefaultMouseMap
         new(DefaultKeymap.WorkingStagedView, MouseGesture.DoubleClick, ActionIds.WorkingTreeUnstage),
         new(DefaultKeymap.WorkingMessageView, MouseGesture.Click, ActionIds.WorkingTreeEditMessage),
         new(DefaultKeymap.WorkingMessageView, MouseGesture.DoubleClick, ActionIds.WorkingTreeMessageSelectWord),
-        new(DefaultKeymap.WorkingMessageView, MouseGesture.WheelUp, ActionIds.WorkingTreeMessageScrollUp, WheelLines),
-        new(DefaultKeymap.WorkingMessageView, MouseGesture.WheelDown, ActionIds.WorkingTreeMessageScrollDown, WheelLines),
+        new(
+            DefaultKeymap.WorkingMessageView,
+            MouseGesture.WheelUp,
+            ActionIds.WorkingTreeMessageScrollUp,
+            WheelLines),
+        new(
+            DefaultKeymap.WorkingMessageView,
+            MouseGesture.WheelDown,
+            ActionIds.WorkingTreeMessageScrollDown,
+            WheelLines),
         new(MessageSignOffButton, MouseGesture.Click, ActionIds.WorkingTreeToggleSignOff),
         new(MessageNoVerifyButton, MouseGesture.Click, ActionIds.WorkingTreeToggleNoVerify),
         new(MessageAmendButton, MouseGesture.Click, ActionIds.WorkingTreeToggleAmend),

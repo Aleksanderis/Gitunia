@@ -62,7 +62,13 @@ public sealed record PromptPopup(
             input,
             rows.Rows,
             canSelect
-                ? [new(string.Empty, HintVerb.TypeToFilter), new("Ctrl-j/k", HintVerb.Move, Move), Accept(acceptLabel), Cancel]
+                ?
+                [
+                    new(string.Empty, HintVerb.TypeToFilter),
+                    new("Ctrl-j/k", HintVerb.Move, Move),
+                    Accept(acceptLabel),
+                    Cancel,
+                ]
                 : [new(string.Empty, HintVerb.TypeToFilter), Accept(acceptLabel), Cancel],
             Highlight: rows.Highlight,
             Count: rows.Position);

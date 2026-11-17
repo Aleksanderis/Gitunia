@@ -34,7 +34,13 @@ public sealed class KeyParts
             Keys,
             route.ActionInput,
             host,
-            new OverlayServices(foundation.Engine, foundation.Chrome, foundation.Config, panes.Menus, foundation.Statuses, foundation.Keys));
+            new OverlayServices(
+                foundation.Engine,
+                foundation.Chrome,
+                foundation.Config,
+                panes.Menus,
+                foundation.Statuses,
+                foundation.Keys));
         Hits = new OverlayHitTests(route.Overlays, Overlays, foundation.Chrome);
         Mouse = new MouseController(DefaultMouseMap.Create(), route.ActionInput, foundation.Gate);
         Clicks = new OverlayClickRouter(ClickTargets(overlays, foundation.Panes.Overlay));
@@ -86,7 +92,9 @@ public sealed class KeyParts
     /// <summary>The key presses and pastes of the terminal.</summary>
     public KeyInput Input { get; }
 
-    private Dictionary<OverlayClickTarget, IOverlayClickTarget> ClickTargets(OverlayParts overlays, OverlayView overlay) => new()
+    private Dictionary<OverlayClickTarget, IOverlayClickTarget> ClickTargets(
+        OverlayParts overlays,
+        OverlayView overlay) => new()
     {
         [OverlayClickTarget.Frame] = new FrameClickTarget(overlay),
         [OverlayClickTarget.Settings] = new SettingsClickTarget(overlays.Settings),
