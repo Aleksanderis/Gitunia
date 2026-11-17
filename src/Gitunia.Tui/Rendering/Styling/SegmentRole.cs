@@ -61,6 +61,9 @@ public enum SegmentRole
     /// <summary>A failure notice.</summary>
     Error,
 
+    /// <summary>A warning in a body row (not the status bar): yellow bold, the warning colour of the bar's notices.</summary>
+    Warning,
+
     /// <summary>A failure notice in the status bar (the bar's own background).</summary>
     StatusError,
 

@@ -96,7 +96,7 @@ Native AOT linux-x64 binary (9.9 MB plus the 564 KB native library), 100k-commit
 - Diff while moving (diff pane beside the Changes file list): ~20 ms per step (was ~37 ms) thanks to a bounded LRU `DiffCache` (12 diffs, 16,000 rows in total) and a neighbour prefetch of the same shape with at most 4,000 rows each. Cold start and RSS unchanged on the 100k repo; a tab that is switched away from drops its cache.
 - Known limit: at 80x24 the newest row is cut inside the harness marker, so pass `--marker "Commit #97500"` there (`resize_ms=nan` at that size is the marker, not a redraw failure).
 
-How these were measured, harness faults, noisy-machine comparisons and the RSS re-check: `docs/history/performance.md`.
+How these were measured, harness faults, noisy-machine comparisons and the RSS re-check: `docs/internal/history/performance.md`.
 
 ### Body search: `log --grep` (#509)
 

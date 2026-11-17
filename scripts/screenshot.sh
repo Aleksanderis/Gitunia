@@ -5,7 +5,7 @@
 # Windows is unsupported here (no tmux): the script says so and exits 2; use scripts/screenshot.ps1 (psmux, resvg). See the screenshots skill (.claude/skills/screenshots/SKILL.md).
 #
 # Usage:
-#   scripts/screenshot.sh render  --binary <gitunia> [--out <dir>] [--scenarios default,opener,diff,split,narrow,light,files,files-filter,files-whichkey,file-content,palette,help,help-lists,help-all,help-filter,whichkey,level-toggle,menu,menu-sidebar,sidebar-ref,prompt,prompt-narrow,picker,picker-narrow,jump,jump-narrow,jump-diff,jump-working,working,working-narrow,working-diff,working-diff-narrow,working-zoom,zoom-both,repeat,repeat-resize,view-menu,working-view-menu,list-view-menu,files-view-menu,working-list-menu,working-stage,working-hunk,working-lines,working-selection,working-commit,working-hook,working-discard,working-resolve,working-empty-staged,status-fresh,status-settled,settings,settings-choice,settings-narrow,settings-keys,settings-keys-entry,theme-preview,theme-kept,theme-tokyo,theme-latte,rebase-editor,rebase-reword,rebase-confirm,rebase-narrow,conflict-editor,conflict-editor-two,conflict-editor-narrow,conflict-editor-visual,conflict-editor-lines,conflict-editor-result,conflict-editor-edit,conflict-editor-click,conflict-editor-double-click,conflict-editor-untake,conflict-editor-hscroll,conflict-entry,conflict-entry-keys,conflict-add-add-entry,conflict-add-add,conflict-add-add-save,conflict-add-add-done,conflict-delete-modify-entry,stash,reflog,worktrees,whitespace,file-history,file-history-narrow,line-history,blame-lines,blame-chars,diff-chars,diff-chars-drag,diff-chars-word,diff-chars-wrap,diff-chars-split,details-chars] [--repo <dir>]
+#   scripts/screenshot.sh render  --binary <gitunia> [--out <dir>] [--keep-ans] [--scenarios default,opener,diff,split,narrow,light,files,files-filter,files-whichkey,file-content,palette,help,help-lists,help-all,help-filter,whichkey,level-toggle,menu,menu-sidebar,sidebar-ref,prompt,prompt-narrow,picker,picker-narrow,jump,jump-narrow,jump-diff,jump-working,working,working-narrow,working-diff,working-diff-narrow,working-zoom,zoom-both,repeat,repeat-resize,view-menu,working-view-menu,list-view-menu,files-view-menu,working-list-menu,working-stage,working-hunk,working-lines,working-selection,working-commit,working-hook,working-discard,working-resolve,working-empty-staged,status-fresh,status-settled,settings,settings-choice,settings-narrow,settings-keys,settings-keys-entry,theme-preview,theme-kept,theme-tokyo,theme-latte,rebase-editor,rebase-reword,rebase-confirm,rebase-narrow,conflict-editor,conflict-editor-two,conflict-editor-narrow,conflict-editor-visual,conflict-editor-lines,conflict-editor-result,conflict-editor-edit,conflict-editor-click,conflict-editor-double-click,conflict-editor-untake,conflict-editor-hscroll,conflict-entry,conflict-entry-keys,conflict-add-add-entry,conflict-add-add,conflict-add-add-save,conflict-delete-modify-entry,stash,reflog,worktrees,whitespace,file-history,file-history-narrow,line-history,blame-lines,blame-chars,diff-chars,diff-chars-drag,diff-chars-word,diff-chars-wrap,diff-chars-split,details-chars] [--repo <dir>]
 #   scripts/screenshot.sh publish --pr <number> [--out <dir>]     push the PNGs of `render` to the screenshots repository,
 #                                                                  print markdown for a PR comment
 #   scripts/screenshot.sh clean                                    remove images of merged/closed PRs from the screenshots repository
@@ -14,11 +14,11 @@
 # logged-in viewers; raw.githubusercontent.com needs a token). They are pinned to the screenshots commit, so later pushes never break
 # them; `clean` deletes the files of merged PRs from the branch tip, but history keeps them (the owner may reset that repository).
 # Scenarios: theme-preview (the theme list with the light theme previewed) and theme-kept (the same after Enter: the theme is saved and stays), theme-tokyo and theme-latte (the same with the built-in tokyo-night and catppuccin-latte previewed); settings, settings-choice (an open choice) and settings-narrow (64x24, collapsed layout) show the settings screen (<space>,); settings-keys (the Key mapping category: the key reference) and settings-keys-entry (Enter on a key: its config entry in the status bar); default (120x36), diff (diff pane open), split (170 columns, side-by-side diff), narrow (64x30), light (light terminal background), files (gf Enter Enter: the Files tab with the first directory opened), files-filter (gf Enter / then mul: the tree filter) and file-content (gf Enter Enter j Enter: the content of the first file of the first directory in the diff pane's place),
-# blame-lines (the blame view after <space>gb, v and two j: a range of whole lines, status line VISUAL) and blame-chars (a real mouse drag across the code of two blame lines: characters), diff-chars (Enter Enter, five j, Alt-v then l and w motions: a character-wise selection inside one diff line, not the whole row), diff-chars-drag (a real mouse drag across diff text, sent as SGR reports: press, two moves with the button held, release), diff-chars-word (a real double-click on a word), diff-chars-wrap (the same drag with word wrap on, 76 columns), diff-chars-split (a drag over the old half of the side-by-side diff) and details-chars (gd, then a drag over the commit Details tab), line-history (Enter Enter, four j, v j j <space>L: the history of the Visual range of the diff), file-history and file-history-narrow (Enter j <space>H: the history of the first file of the selected commit with its diff), opener (130 columns, <space>o: the repository opener with the tab row and its keyed chips), picker and picker-narrow (sidebar focus, <space>bs: the branch checkout filter picker with its candidate list), prompt and prompt-narrow (<space>bc then feat: the new-branch prompt popup), jump and jump-narrow (<space>j then c: the quick jump labels in the graph), jump-diff (the same in the file diff, typing e) and jump-working (the same in the Unstaged list of the Changes view), working, working-narrow, working-stage (after <space>a twice), working-hunk (the hunk of a file staged in its diff) and working-lines (a Visual range selected in the diff), working-zoom (the diff zoomed with <space>z), zoom-both (the history diff zoomed with <space>z: Changes and diff side by side), repeat (+ in the diff: the repeat mode with its [repeat] title marker and hint line) and repeat-resize (Ctrl-w h, Ctrl-w > then > on the sidebar: the resize repeat mode), view-menu and working-view-menu (<space>vv: the view ▾ dropdown of the history and the Changes view diff title), list-view-menu, files-view-menu and working-list-menu (<space>vv in the Changes list, the Files tree and the Unstaged list: their view ▾ dropdowns), working-diff and working-diff-narrow (<space>s, then the diff of a file with Enter: the Changes view of a copy of the throwaway repository with a conflict, staged and unstaged changes and untracked files; not for --repo).
+# blame-lines (the blame view after <space>gb, v and two j: a range of whole lines, status line VISUAL) and blame-chars (a real mouse drag across the code of two blame lines: characters), diff-chars (Enter Enter, five j, Alt-v then l and w motions: a character-wise selection inside one diff line, not the whole row), diff-chars-drag (a real mouse drag across diff text, sent as SGR reports: press, two moves with the button held, release), diff-chars-word (a real double-click on a word), diff-chars-wrap (the same drag with word wrap on, 76 columns), diff-chars-split (a drag over the old half of the side-by-side diff) and details-chars (gd, then a drag over the commit Details tab), line-history (Enter Enter, four j, v j j <space>L: the history of the Visual range of the diff), file-history and file-history-narrow (Enter j <space>H: the history of the first file of the selected commit with its diff), opener (130 columns, <space>oo: the repository opener with the tab row and its keyed chips), picker and picker-narrow (sidebar focus, <space>bs: the branch checkout filter picker with its candidate list), prompt and prompt-narrow (<space>bc then feat: the new-branch prompt popup), jump and jump-narrow (<space>j then c: the quick jump labels in the graph), jump-diff (the same in the file diff, typing e) and jump-working (the same in the Unstaged list of the Changes view), working, working-narrow, working-stage (after <space>a twice), working-hunk (the hunk of a file staged in its diff) and working-lines (a Visual range selected in the diff), working-zoom (the diff zoomed with <space>z), zoom-both (the history diff zoomed with <space>z: Changes and diff side by side), repeat (+ in the diff: the repeat mode with its [repeat] title marker and hint line) and repeat-resize (Ctrl-w h, Ctrl-w > then > on the sidebar: the resize repeat mode), view-menu and working-view-menu (<space>vv: the view ▾ dropdown of the history and the Changes view diff title), list-view-menu, files-view-menu and working-list-menu (<space>vv in the Changes list, the Files tree and the Unstaged list: their view ▾ dropdowns), working-diff and working-diff-narrow (<space>s, then the diff of a file with Enter: the Changes view of a copy of the throwaway repository with a conflict, staged and unstaged changes and untracked files; not for --repo).
 # working-selection (<space>c, a message typed, then Shift-Left x4: the last word selected in the message box; not for --repo).
 # working-commit (staged files, a message typed in the box with SignOff on) and working-hook (the same, committed against a failing pre-commit hook: the output overlay); not for --repo.
 # working-discard (<space>d on README.md, the second file of the Unstaged list; the first is a conflict, which is refused: the Confirm dialog); not for --repo.
-# rebase-editor (G <space>gi, then squash, drop and so on: the interactive rebase todo editor on a linear branch of a copy of the throwaway repository), rebase-reword (r: the message editor of a reword), rebase-confirm (Enter: the Confirm over the editor) and rebase-narrow (64x24); not for --repo.
+# rebase-editor (G k <space>bri, then squash, drop and so on: the interactive rebase todo editor on a linear branch of a copy of the throwaway repository), rebase-reword (r: the message editor of a reword), rebase-confirm (Enter: the Confirm over the editor) and rebase-narrow (64x24); not for --repo.
 # reflog (<space>l: the HEAD reflog popup), worktrees (C-w h: the sidebar with its Worktrees section; a copy of the throwaway repository with two linked worktrees; not for --repo),
 # stash (C-w h G Enter: a stash shown in the detail pane, with a tracked and an untracked file; a copy of the throwaway repository with a stash; not for --repo).
 # whitespace (Enter Enter <space>vc: the diff of the latest commit with whitespace marks; meant for --repo with tabs and trailing spaces in it).
@@ -26,9 +26,10 @@
 # conflict-editor-visual (n v j: two lines selected in ours), conflict-editor-lines (n v j <space>a: only those lines taken into the result), conflict-editor-result (o n C-j: the cursor in the result pane, Normal mode) and conflict-editor-edit (o e then typed text: the result in Insert mode); not for --repo.
 # conflict-editor-hscroll (n z l z l: the version panes scrolled 16 columns), conflict-editor-click (a mouse click on a row of the theirs pane: the cursor and focus move there, nothing is taken), conflict-editor-double-click (a double-click there: theirs is taken, the margins show check marks and dots, the title says taken from theirs) and conflict-editor-untake (o n t, then <space>u: the second conflict untaken again); not for --repo.
 # conflict-entry (100x24, <space>s: the Unstaged list on a conflicted file, its status hints leading with the conflict editor, the banner whole) and conflict-entry-keys (the same after <space>t: the which-key popup lists o and sits above the banner); a copy of the throwaway repository stopped on a merge; not for --repo.
-# conflict-add-add-entry (100x30, <space>s: a rebase stopped on a file both branches added; the hints and banner name the conflict editor), conflict-add-add (Enter, o, n: the editor with an empty base pane, one pick), conflict-add-add-save (Enter after O: the Mark resolved Confirm), conflict-add-add-done (y: the file resolved) and conflict-delete-modify-entry (a file one side deleted and the other changed: the hints name the mergetool, the editor key is not offered); not for --repo.
+# conflict-add-add-entry (100x30, <space>s: a rebase stopped on a file both branches added; the hints and banner name the conflict editor), conflict-add-add (Enter, o, n: the editor with an empty base pane, one pick), conflict-add-add-save (Ctrl-s after O: the file saved and staged, the banner says no conflicts left) and conflict-delete-modify-entry (a file one side deleted and the other changed: the hints name the mergetool, the editor key is not offered); not for --repo.
 # working-resolve (<space>a on the conflicted first file: the mark-resolved Confirm dialog); not for --repo.
-# working-empty-staged (<space>s Tab: the empty Staged list focused beside an Unstaged list with one modified file; a copy of the throwaway repository; not for --repo).
+# working-empty-staged (<space>s: an Unstaged list with one modified file, the empty Staged list hidden; a copy of the throwaway repository; not for --repo).
+# Every scenario checks a marker text (scenario_marker) in the captured frame and the run fails, listing them, when a scenario did not reach its screen; --keep-ans keeps the ANSI frame (<scenario>.ans) and the plain text (<scenario>.txt) next to the PNGs. Each scenario starts with an empty session file, so tabs of earlier scenarios never show.
 # Without --repo a deterministic throwaway repo is generated under a temp dir (never a real repo).
 # Fonts differ from the owner's terminal, so glyph widths stay a manual check (#196).
 set -euo pipefail
@@ -50,9 +51,10 @@ script_dir="$(cd "$(dirname "$0")" && pwd)"
 repo_root="$(cd "$script_dir/.." && pwd)"
 cache_dir="${XDG_CACHE_HOME:-$HOME/.cache}/gitunia/screenshot"
 out_dir="$cache_dir/out"
-binary="" scenarios="default,diff,narrow,light" source_repo="" pull_request=""
+binary="" scenarios="default,diff,narrow,light" source_repo="" pull_request="" keep_ans=0
 while [ $# -gt 0 ]; do
   case "$1" in
+    --keep-ans) keep_ans=1; shift ;;
     --binary|--out|--scenarios|--repo|--pr)
       [ $# -ge 2 ] || { echo "$1 needs a value" >&2; usage; }
       case "$1" in
@@ -283,6 +285,118 @@ cleanup() {
 }
 trap cleanup EXIT
 
+scenario_marker() { # scenario_marker SCENARIO: text the captured frame must hold, so a scenario whose keys
+  # no longer reach their screen fails instead of capturing the wrong one
+  case "$1" in
+    default) echo "History" ;;
+    diff) echo "─ Diff" ;;
+    zoom-both) echo "─ Diff" ;;
+    repeat) echo "Diff: 6 context lines" ;;
+    repeat-resize) echo "[repeat]" ;;
+    view-menu) echo "View" ;;
+    working-view-menu) echo "View" ;;
+    list-view-menu) echo "View" ;;
+    files-view-menu) echo "View" ;;
+    working-list-menu) echo "View" ;;
+    split) echo "Side by side on" ;;
+    whitespace) echo "Whitespace characters shown" ;;
+    narrow) echo "History" ;;
+    diff-chars) echo "─ Diff" ;;
+    diff-chars-drag) echo "─ Diff" ;;
+    diff-chars-word) echo "─ Diff" ;;
+    diff-chars-wrap) echo "─ Diff" ;;
+    diff-chars-split) echo "─ Diff" ;;
+    details-chars) echo "Details" ;;
+    line-history) echo "Line history:" ;;
+    blame-lines) echo "VISUAL 3 lines" ;;
+    blame-chars) echo "Blame:" ;;
+    file-history) echo "File history" ;;
+    file-history-narrow) echo "File history" ;;
+    light) echo "History" ;;
+    files) echo "─ Files" ;;
+    files-whichkey) echo "Quick jump to a visible row" ;;
+    files-filter) echo "mul" ;;
+    file-content) echo "─ Files" ;;
+    palette) echo "Ctrl-j/k move" ;;
+    whichkey) echo "Cycle the command level" ;;
+    level-toggle) echo ": ref" ;;
+    help) echo "Keys: Graph" ;;
+    help-lists) echo "> Lists" ;;
+    help-all) echo "> All Graph" ;;
+    help-filter) echo "clear filter" ;;
+    menu) echo "Actions" ;;
+    menu-sidebar) echo "Actions" ;;
+    sidebar-ref) echo "Branches" ;;
+    stash) echo "Stash" ;;
+    reflog) echo "Reflog: HEAD" ;;
+    worktrees) echo "Worktrees" ;;
+    prompt) echo "New branch" ;;
+    prompt-narrow) echo "New branch" ;;
+    opener) echo "Open repository" ;;
+    picker) echo "Switch branch" ;;
+    picker-narrow) echo "Switch branch" ;;
+    jump) echo "jump c" ;;
+    jump-narrow) echo "jump c" ;;
+    jump-diff) echo "jump e" ;;
+    jump-working) echo "jump e" ;;
+    working) echo "─ Unstaged" ;;
+    working-narrow) echo "─ Unstaged" ;;
+    working-diff) echo "─ Diff" ;;
+    working-diff-narrow) echo "─ Diff" ;;
+    working-zoom) echo "─ Diff" ;;
+    working-stage) echo "─ Staged" ;;
+    working-hunk) echo "─ Diff" ;;
+    working-lines) echo "VISUAL" ;;
+    working-selection) echo "select text" ;;
+    working-discard) echo "Discard changes" ;;
+    working-resolve) echo "Mark conflict resolved" ;;
+    working-empty-staged) echo "─ Unstaged 1" ;;
+    settings) echo "Settings" ;;
+    settings-choice) echo "Theme" ;;
+    settings-narrow) echo "Settings" ;;
+    settings-keys) echo "Key reference" ;;
+    settings-keys-entry) echo "config.json keys entry" ;;
+    theme-preview) echo "Settings" ;;
+    theme-kept) echo "Settings" ;;
+    theme-tokyo) echo "Settings" ;;
+    theme-latte) echo "Settings" ;;
+    status-fresh) echo "Fetched" ;;
+    status-settled) echo "Fetched" ;;
+    working-commit) echo "Commit" ;;
+    working-hook) echo "pre-commit" ;;
+    conflict-editor) echo "conflict 2 of 5  1 resolved" ;;
+    conflict-editor-two) echo "conflict 2 of 5  1 resolved" ;;
+    conflict-editor-narrow) echo "conflict 2 of 5  1 resolved" ;;
+    conflict-editor-visual) echo "VISUAL" ;;
+    conflict-editor-lines) echo "lines you picked" ;;
+    conflict-editor-result) echo "conflict 2 of 5  1 resolved" ;;
+    conflict-editor-edit) echo "INSERT" ;;
+    conflict-editor-click) echo "conflict 1 of 5  0 resolved" ;;
+    conflict-editor-double-click) echo "taken from theirs" ;;
+    conflict-editor-untake) echo "conflict 2 of 5  1 resolved" ;;
+    conflict-editor-hscroll) echo "conflict 2 of 5  0 resolved" ;;
+    conflict-entry) echo "MERGING" ;;
+    conflict-entry-keys) echo "conflict editor" ;;
+    conflict-add-add-entry) echo "REBASING" ;;
+    conflict-delete-modify-entry) echo "REBASING" ;;
+    conflict-add-add) echo "Conflict:" ;;
+    conflict-add-add-save) echo "no conflicts left" ;;
+    rebase-editor) echo "Interactive rebase: cleanup onto" ;;
+    rebase-reword) echo "Reword" ;;
+    rebase-confirm) echo "Rebase cleanup onto" ;;
+    rebase-narrow) echo "Interactive rebase" ;;
+    *) echo "" ;;
+  esac
+}
+
+scenario_colour() { # scenario_colour SCENARIO: colour code the ANSI frame must hold (a theme preview shows in colours only)
+  case "$1" in
+    theme-preview | theme-kept | theme-latte) echo "48;2;239;241;245" ;; # the Catppuccin Latte background
+    theme-tokyo) echo "48;2;26;27;38" ;; # the Tokyo Night background
+    *) echo "" ;;
+  esac
+}
+
 render() {
   need tmux "install tmux"
   need rsvg-convert "install librsvg (rsvg-convert)"
@@ -295,6 +409,7 @@ render() {
   socket="gtshot-$$"
   mkdir -p "$out_dir" "$cache_dir"
   rm -f "$out_dir"/*.png # stale images of earlier runs must never be published
+  if [ "$keep_ans" = 1 ]; then rm -f "$out_dir"/*.ans "$out_dir"/*.txt; fi
   local converter repo
   build_converter >/dev/null
   converter="$cache_dir/AnsiToSvg/AnsiToSvg.dll"
@@ -304,7 +419,7 @@ render() {
   mkdir -p "$work/state" "$work/config"
   tmux_cmd start-server \; set -g exit-empty off \; set -g remain-on-exit on \; set -g escape-time 0 \; set -ga terminal-features ',*:RGB' \; set -ga terminal-overrides ',*:Tc'
 
-  local scenario
+  local scenario stale=""
   for scenario in ${scenarios//,/ }; do
     local columns=120 rows=36 theme=dark keys="" keys_after="" mouse_after=""
     case "$scenario" in
@@ -341,18 +456,18 @@ render() {
       whichkey) keys="Space" ;;
       level-toggle) keys="Space * : r e f" ;;
       help) rows=30 keys="?" ;;
-      help-lists) rows=30 keys="? Tab Tab" ;;
+      help-lists) rows=30 keys="? Tab" ;;
       help-all) rows=30 keys="? Tab Tab Tab Tab Tab Tab" ;;
       help-filter) rows=30 keys="? / < s p a c e > g c" ;;
       menu) keys="j j Space ." ;;
-      menu-sidebar) keys="C-w h j j Space ." ;;
+      menu-sidebar) keys="C-w h j j j Space ." ;;
       sidebar-ref) keys="C-w h j j j" ;;
       stash) keys="C-w h G Enter" ;;
       reflog) keys="Space l" ;;
       worktrees) keys="C-w h" ;;
       prompt) keys="Space b c f e a t" ;;
       prompt-narrow) columns=64 rows=30 keys="Space b c f e a t" ;;
-      opener) columns=130 keys="Space o" ;;
+      opener) columns=130 keys="Space o o" ;;
       picker) keys="C-w h Space b s" ;;
       picker-narrow) columns=64 rows=30 keys="C-w h Space b s" ;;
       jump) keys="Space j c" ;;
@@ -370,18 +485,18 @@ render() {
       working-selection) keys="Space s Space c" keys_after="f i x : Space s e l e c t Space t e x t S-Left S-Left S-Left S-Left" ;;
       working-discard) keys="Space s j" keys_after="Space d" ;;
       working-resolve) keys="Space s" keys_after="Space a" ;;
-      working-empty-staged) keys="Space s Tab" ;;
+      working-empty-staged) keys="Space s" ;;
       settings) keys="Space ," ;;
       settings-choice) keys="Space , Enter Enter j" ;;
       settings-narrow) columns=64 rows=24 keys="Space ," ;;
-      settings-keys) keys="Space , j j Enter" ;;
-      settings-keys-entry) keys="Space , j j Enter Enter" ;;
-      theme-preview) keys="Space , Enter Enter j j" ;;
-      theme-kept) keys="Space , Enter Enter j j Enter" ;;
-      theme-tokyo) keys="Space ," keys_after="Enter Enter j j j j j j j" ;;
-      theme-latte) keys="Space ," keys_after="Enter Enter j j j j j j" ;;
-      status-fresh) keys="Space F" ;;
-      status-settled) keys="Space F" keys_after="Space F" ;;
+      settings-keys) keys="Space ," keys_after="j j" ;;
+      settings-keys-entry) keys="Space ," keys_after="j j Enter j Enter" ;;
+      theme-preview) keys="Space ," keys_after="Enter Enter j j j j" ;;
+      theme-kept) keys="Space ," keys_after="Enter Enter j j j j Enter" ;;
+      theme-tokyo) keys="Space ," keys_after="Enter Enter j j j j j" ;;
+      theme-latte) keys="Space ," keys_after="Enter Enter j j j j" ;;
+      status-fresh) keys="Space f" ;;
+      status-settled) keys="Space f" keys_after="Space f" ;;
       working-commit | working-hook) keys="Space s Space a Space a Space c" ;;
       conflict-editor) keys="Space s Enter" keys_after="o n" ;;
       conflict-editor-two) columns=80 rows=30 keys="Space s Enter" keys_after="o n" ;;
@@ -390,22 +505,23 @@ render() {
       conflict-editor-lines) keys="Space s Enter" keys_after="n v j Space a" ;;
       conflict-editor-result) keys="Space s Enter" keys_after="o n C-j" ;;
       conflict-editor-edit) keys="Space s Enter" keys_after="o e t y p e d" ;;
-      conflict-editor-click) keys="Space s Enter" mouse_after="90,7" ;;
-      conflict-editor-double-click) keys="Space s Enter" mouse_after="90,7 90,7" ;;
+      conflict-editor-click) keys="Space s Enter" mouse_after="90,6" ;;
+      conflict-editor-double-click) keys="Space s Enter" mouse_after="90,6 90,6" ;;
       conflict-editor-untake) keys="Space s Enter" keys_after="o n t Space u" ;;
       conflict-editor-hscroll) keys="Space s Enter" keys_after="n z l z l" ;;
       conflict-entry) columns=100 rows=24 keys="Space s" ;;
       conflict-entry-keys) columns=100 rows=24 keys="Space s Space t" ;;
       conflict-add-add-entry | conflict-delete-modify-entry) columns=100 rows=30 keys="Space s" ;;
       conflict-add-add) columns=100 rows=30 keys="Space s Enter" keys_after="o n" ;;
-      conflict-add-add-save) columns=100 rows=30 keys="Space s Enter" keys_after="O Enter" ;;
-      conflict-add-add-done) columns=100 rows=30 keys="Space s Enter" keys_after="O Enter y" ;;
-      rebase-editor) keys="G Space g i" keys_after="j s j j d" ;;
-      rebase-reword) keys="G Space g i" keys_after="j r" ;;
-      rebase-confirm) keys="G Space g i" keys_after="j s j j d Enter" ;;
-      rebase-narrow) columns=64 rows=24 keys="G Space g i" keys_after="j s j j d" ;;
+      conflict-add-add-save) columns=100 rows=30 keys="Space s Enter" keys_after="O C-s" ;;
+      rebase-editor) keys="G k Space b r i" keys_after="j s j j d" ;;
+      rebase-reword) keys="G k Space b r i" keys_after="j r" ;;
+      rebase-confirm) keys="G k Space b r i" keys_after="j s j j d Enter" ;;
+      rebase-narrow) columns=64 rows=24 keys="G k Space b r i" keys_after="j s j j d" ;;
       *) echo "unknown scenario '$scenario'" >&2; exit 2 ;;
     esac
+    local settle=0.5 # the which-key popup shows 0.5 s after its key, so those scenarios wait longer
+    case "$scenario" in whichkey | files-whichkey | conflict-entry-keys) settle=1.2 ;; esac
     local scenario_repo="$repo"
     if [[ "$scenario" == working-commit && -z "$source_repo" ]]; then
       scenario_repo="$work/repo-commit"
@@ -438,23 +554,26 @@ render() {
       scenario_repo="$work/repo-dirty"
       [ -d "$scenario_repo" ] || make_dirty_repo "$repo" "$scenario_repo"
     fi
+    rm -rf "$work/config" && mkdir -p "$work/config" # a scenario that saves a setting (theme-kept) must not change the next one
     if [[ -n "${GITUNIA_SCREENSHOT_CONFIG:-}" ]]; then
       # Optional config.json for the private config directory (options such as frameStyle).
       mkdir -p "$work/config/gitunia"
       cp "$GITUNIA_SCREENSHOT_CONFIG" "$work/config/gitunia/config.json"
     fi
     tmux_cmd kill-session -t shot 2>/dev/null || true
-    tmux_cmd new-session -d -s shot -x "$columns" -y "$rows" "exec env COLORTERM=truecolor XDG_STATE_HOME=$(printf '%q' "$work/state") XDG_CONFIG_HOME=$(printf '%q' "$work/config") GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_SYSTEM=/dev/null $(printf '%q %q' "$binary" "$scenario_repo")"
+    rm -rf "$work/state" && mkdir -p "$work/state" # the saved session of the last scenario would add its tab to this one
+    # A fixed identity, so a commit made by a scenario (working-hook) gets as far as its hook.
+    tmux_cmd new-session -d -s shot -x "$columns" -y "$rows" "exec env COLORTERM=truecolor XDG_STATE_HOME=$(printf '%q' "$work/state") XDG_CONFIG_HOME=$(printf '%q' "$work/config") GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_SYSTEM=/dev/null GIT_AUTHOR_NAME=\"Ada Lovelace\" GIT_AUTHOR_EMAIL=ada@example.com GIT_COMMITTER_NAME=\"Ada Lovelace\" GIT_COMMITTER_EMAIL=ada@example.com $(printf '%q %q' "$binary" "$scenario_repo")"
     wait_stable "$socket"
     if [ -n "$keys" ]; then
       # shellcheck disable=SC2086
       tmux_cmd send-keys -t shot $keys
-      sleep 0.5
+      sleep "$settle"
       wait_stable "$socket"
     fi
     if [[ "$scenario" == working-commit || "$scenario" == working-hook ]]; then
       type_message
-      if [ "$scenario" = "working-hook" ]; then tmux_cmd send-keys -t shot M-Enter; fi
+      if [ "$scenario" = "working-hook" ]; then sleep 0.5; tmux_cmd send-keys -t shot C-g; fi
       sleep 1
       wait_stable "$socket"
     fi
@@ -493,10 +612,30 @@ render() {
       exit 1
     fi
     tmux_cmd capture-pane -t shot -p -e >"$work/$scenario.ansi"
+    tmux_cmd capture-pane -t shot -p >"$work/$scenario.txt"
+    local marker
+    marker="$(scenario_marker "$scenario")"
+    if [ -n "$marker" ] && ! grep -qF -- "$marker" "$work/$scenario.txt"; then
+      echo "scenario '$scenario' did not reach its screen: the frame has no '$marker'. The frame:" >&2
+      cat "$work/$scenario.txt" >&2
+      stale="$stale $scenario"
+    fi
+    local colour
+    colour="$(scenario_colour "$scenario")"
+    if [ -n "$colour" ] && ! grep -qF -- "$colour" "$work/$scenario.ansi"; then
+      echo "scenario '$scenario' did not reach its screen: the frame has no colour $colour" >&2
+      stale="$stale $scenario"
+    fi
+    if [ "$keep_ans" = 1 ]; then cp "$work/$scenario.ansi" "$out_dir/$scenario.ans"; cp "$work/$scenario.txt" "$out_dir/$scenario.txt"; fi
+    case " $stale " in *" $scenario "*) continue ;; esac # no image of a frame that is not the scenario's screen
     dotnet "$converter" --theme "$theme" --columns "$columns" --rows "$rows" <"$work/$scenario.ansi" >"$work/$scenario.svg"
     rsvg-convert "$work/$scenario.svg" -o "$out_dir/$scenario.png"
     echo "wrote $out_dir/$scenario.png" >&2
   done
+  if [ -n "$stale" ]; then
+    echo "scenarios that did not reach their screen (fix their keys or marker):$stale" >&2
+    exit 1
+  fi
 }
 
 wait_stable() { # wait_stable SOCKET: until three identical captures in a row (about 10 s at most)

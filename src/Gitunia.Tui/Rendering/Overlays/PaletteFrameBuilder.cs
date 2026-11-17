@@ -19,7 +19,7 @@ public static class PaletteFrameBuilder
     /// <summary>The palette frame for a screen, or null when the screen is too small to show it.</summary>
     public static OverlayFrame? Build(PaletteState palette, int screenWidth, int screenHeight, GraphGlyphSet glyphs)
     {
-        var width = Math.Min(MaximumWidth, screenWidth - ScreenMargin);
+        var width = OverlayMetrics.WidthFor(MaximumWidth, screenWidth, ScreenMargin);
         var maximumRows = Math.Min(MaximumRows, screenHeight - ScreenMargin - ChromeRows);
         if (width < OverlayBox.MinimumWidth || maximumRows < 1)
         {

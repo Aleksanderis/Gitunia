@@ -29,6 +29,18 @@ public class ReflogFrameBuilderTests
     }
 
     [Fact]
+    public void GivenEntriesAcrossTheTenthSelector_WhenRendering_ThenTheMessageColumnStaysInOnePlace()
+    {
+        var frame = ReflogFrameBuilder.Build(State(12), 100, 24, GraphGlyphSet.Unicode, Now)!;
+
+        var rows = frame.Lines.Skip(1).Take(12).Select(line => line.Text).ToList();
+        var columns = rows.Select(row => row.IndexOf("commit:", StringComparison.Ordinal)).Distinct().ToList();
+        Assert.Single(columns);
+        Assert.Contains("HEAD@{9}   commit", rows[9], StringComparison.Ordinal);
+        Assert.Contains("HEAD@{10}  commit", rows[10], StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void GivenAnEntryWithoutMessage_WhenRendering_ThenOnlyTheActionShows()
     {
         var entries = new[] { new ReflogEntry(0, new string('b', 40), "branch created", string.Empty, Now) };

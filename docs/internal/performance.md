@@ -15,7 +15,7 @@ Targets and verified numbers. The checklist for writing hot-path code is the `pe
 
 ## Verified numbers
 
-Native AOT linux-x64, 120x40 under tmux, medians (they include 1-3 ms of polling). Per-issue logs, harness faults and machine details: `docs/history/performance.md`.
+Native AOT linux-x64, 120x40 under tmux, medians (they include 1-3 ms of polling). Per-issue logs, harness faults and machine details: `docs/internal/history/performance.md`.
 
 | Case | Result |
 |---|---|
@@ -134,7 +134,7 @@ Reading: the view is usable at once (first rows ~0.25-0.3 s, of which git's blam
 
 ## Idle CPU (#909)
 
-Cause: Terminal.Gui 2.5.0 runs its main loop unconditionally, `Application.MaximumIterationsPerSecond` times a second, each ending in `Task.Delay(..).Wait()` (a wakeup of the timer thread, a pool worker and the main thread, plus a size query and a draw check), and its input thread polls every 20 ms. The poller, the 2 s fingerprint and the UI timers are small next to this. Idle CPU is about proportional to the rate (measured at 100/s to 10/s; Linux, AOT, 5000-commit repository, 8 refs, 45 s windows, whole process, threads summed from `/proc/<pid>/task/*/stat`): 100/s 2.56%, 50/s 1.44%, 25/s 1.04%, 10/s 0.91%; 230-390 voluntary context switches per second on each of five threads at 100/s. The rate stays 100/s while working for key latency (the default 25/s gave ~34 ms, `docs/history/decisions.md`).
+Cause: Terminal.Gui 2.5.0 runs its main loop unconditionally, `Application.MaximumIterationsPerSecond` times a second, each ending in `Task.Delay(..).Wait()` (a wakeup of the timer thread, a pool worker and the main thread, plus a size query and a draw check), and its input thread polls every 20 ms. The poller, the 2 s fingerprint and the UI timers are small next to this. Idle CPU is about proportional to the rate (measured at 100/s to 10/s; Linux, AOT, 5000-commit repository, 8 refs, 45 s windows, whole process, threads summed from `/proc/<pid>/task/*/stat`): 100/s 2.56%, 50/s 1.44%, 25/s 1.04%, 10/s 0.91%; 230-390 voluntary context switches per second on each of five threads at 100/s. The rate stays 100/s while working for key latency (the default 25/s gave ~34 ms, `docs/internal/history/decisions.md`).
 
 Fix: `IterationRateGovernor` keeps 100/s while the user is working and for 2 s after the last key, mouse event or paste, and drops to 5/s on an untouched screen (50/s until #1209, see "Idle output"); the first input after an idle spell is handled by one slower iteration, then the rate is back at 100/s.
 

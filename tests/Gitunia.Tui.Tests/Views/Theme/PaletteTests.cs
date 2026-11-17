@@ -276,6 +276,23 @@ public class PaletteTests
     [InlineData(ColorDepth.TrueColor, true)]
     [InlineData(ColorDepth.Ansi16, false)]
     [InlineData(ColorDepth.Ansi16, true)]
+    public void GivenAColourScheme_WhenColouringABodyWarning_ThenItIsTheWarningColourNotTheErrorColour(
+        ColorDepth depth,
+        bool isLight)
+    {
+        var colors = PaletteTable.For(new PaletteSettings(depth, isLight));
+
+        var warning = Palette.For(new StyledSegment("!", SegmentRole.Warning), false, false, colors);
+
+        Assert.Equal(colors.Warn, warning.Foreground);
+        Assert.NotEqual(Palette.For(new StyledSegment("!", SegmentRole.Error), false, false, colors).Foreground, warning.Foreground);
+    }
+
+    [Theory]
+    [InlineData(ColorDepth.TrueColor, false)]
+    [InlineData(ColorDepth.TrueColor, true)]
+    [InlineData(ColorDepth.Ansi16, false)]
+    [InlineData(ColorDepth.Ansi16, true)]
     public void GivenAColourScheme_WhenColouringRemoteBranches_ThenTheyDoNotUseTheColourOfErrorsAndDeletions(ColorDepth depth, bool isLight)
     {
         var colors = PaletteTable.For(new PaletteSettings(depth, isLight));

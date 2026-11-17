@@ -335,7 +335,7 @@ public static class SettingsFrameBuilder
         var room = Math.Max(0, width - 1 - rightWidth - trailing.Length - (rightWidth > 0 ? 1 : 0));
         var leftLine = FieldLine(text.LeftField, $" {text.Left}", room, glyphs, leftRole, " ");
         var gap = Math.Max(0, width - 1 - TextWidth.Of(leftLine.Text) - rightWidth - trailing.Length);
-        var markerRole = text.Marker == SettingsRowText.Warning ? SegmentRole.Error : leftRole;
+        var markerRole = text.Marker == SettingsRowText.Warning ? SegmentRole.Warning : leftRole;
         var line = new LineBuilder(width, glyphs.Ellipsis)
             .Append(text.Marker, markerRole)
             .Append(leftLine)

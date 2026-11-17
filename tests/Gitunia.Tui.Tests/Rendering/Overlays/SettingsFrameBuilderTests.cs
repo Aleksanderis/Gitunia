@@ -43,21 +43,30 @@ public class SettingsFrameBuilderTests
         Assert.Equal(
             string.Join(
                 '\n',
-                " Settings".PadRight(78),
-                "│ / filter                                                                   │",
-                "│  Appearance    │  Theme                                           [auto ▾] │",
-                "│  Keys          │  Branch label caps                            [rounded ▾] │",
-                "│  Key mapping   │  Graph line style                               [light ▾] │",
-                "│  Repositories  │                                                           │",
-                "│  Tabs          │                                                           │",
-                "│  Updates       │                                                           │",
-                "│ ────────────────────────────────────────────────────────────────────────── │",
-                "│ Enter or l opens the category; j and k move between categories.            │",
-                "│                                                                            │",
-                "│ j/k move  l/Enter open  / filter  Esc close                                │",
-                "╰────────────────────────────────────────────────────────────────────────────╯"),
+                " Settings".PadRight(80),
+                "│ / filter                                                                     │",
+                "│  Appearance    │  Theme                                             [auto ▾] │",
+                "│  Keys          │  Branch label caps                              [rounded ▾] │",
+                "│  Key mapping   │  Graph line style                                 [light ▾] │",
+                "│  Repositories  │                                                             │",
+                "│  Tabs          │                                                             │",
+                "│  Updates       │                                                             │",
+                "│ ──────────────────────────────────────────────────────────────────────────── │",
+                "│ Enter or l opens the category; j and k move between categories.              │",
+                "│                                                                              │",
+                "│ j/k move  l/Enter open  / filter  Esc close                                  │",
+                "╰──────────────────────────────────────────────────────────────────────────────╯"),
             string.Join('\n', frame.Lines.Select(line => line.Text)));
-        Assert.Equal(1, frame.Column);
+        Assert.Equal(0, frame.Column);
+    }
+
+    [Fact]
+    public void GivenA64ColumnScreen_WhenRendering_ThenTheBoxTakesTheWholeWidthSoNoAppBorderShowsBesideIt()
+    {
+        var frame = SettingsFrameBuilder.Build(Open().WithLayout(collapsed: true), 64, 24, GraphGlyphSet.Unicode)!;
+
+        Assert.Equal(0, frame.Column);
+        Assert.Equal(64, frame.Width);
     }
 
     [Fact]
@@ -318,6 +327,8 @@ public class SettingsFrameBuilderTests
         var layout = SettingsLayout.For(100, 30)!;
 
         Assert.Contains("! Theme", frame.Lines[2].Text, StringComparison.Ordinal);
+        var marker = frame.Lines[2].Segments.First(segment => segment.Text == SettingsRowText.Warning);
+        Assert.Equal(SegmentRole.Warning, marker.Role);
         Assert.Contains("is not a theme", frame.Lines[layout.RuleLine + 1].Text, StringComparison.Ordinal);
     }
 

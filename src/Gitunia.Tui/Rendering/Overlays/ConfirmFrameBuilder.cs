@@ -5,7 +5,7 @@ using Gitunia.Tui.Rendering.Styling;
 namespace Gitunia.Tui.Rendering.Overlays;
 
 /// <summary>
-/// Lays out a confirm dialog: the title, what will happen, what cannot be undone (in the warning colour) and the two answers, each
+/// Lays out a confirm dialog: the title, what will happen, what cannot be undone (in the warning colour; an undo hint is plain) and the two answers, each
 /// on a row of its own so a click can answer it. Centred on the screen; there is no dialog (null) when it does not fit, and then
 /// the action must not start, because an answer nobody can read is no confirmation.
 /// </summary>
@@ -33,7 +33,8 @@ public static class ConfirmFrameBuilder
         }
 
         lines.Add(OverlayBox.Text(string.Empty, width, glyphs));
-        lines.AddRange(Wrapped(prompt.Consequence, textWidth, width, glyphs, SegmentRole.Error));
+        var consequenceRole = prompt.IsUndoNote ? SegmentRole.Plain : SegmentRole.Error;
+        lines.AddRange(Wrapped(prompt.Consequence, textWidth, width, glyphs, consequenceRole));
         lines.Add(OverlayBox.Text(string.Empty, width, glyphs));
         lines.Add(Answer(YesKey, prompt.YesLabel, width, glyphs));
         lines.Add(Answer(NoKey, NoLabel, width, glyphs));

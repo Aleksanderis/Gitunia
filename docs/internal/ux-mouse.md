@@ -8,9 +8,8 @@ Part of the UX spec; start at [ux.md](ux.md).
 
 Mouse input is optional and goes through the same action path as keys: the mouse map (`DefaultMouseMap`) turns a gesture on a view into the action id a key would produce, and the same handler runs it.
 A test parses the table below and checks it against the defaults, so add a row in the same change that adds a mouse path.
-Views inherit like in the keymap: `Lists` covers Graph, Detail, Sidebar, Diff and the two Changes view lists.
-`CommandsButton`, `NewTabButton`, `Tabs`, `Picker`, the banner chips (`BannerButton.*`), the overlays (`Help`, `Messages`, `Palette`, `Reflog`, `FileHistory`, `Settings` and `Backdrop` for everything outside an open one) and the buttons (`DiffButton.*`, `DetailTab.*`, `PickerButton.*`, `ListButton.*`, one view per button or label) are views of their own.
-`CommandsButton`, `NewTabButton`, `Tabs`, `Picker`, the banner chips (`BannerButton.*`), the overlays (`Help`, `Messages`, `Palette`, `Reflog`, `Blame`, `Settings` and `Backdrop` for everything outside an open one) and the buttons (`DiffButton.*`, `DetailTab.*`, `PickerButton.*`, `ListButton.*`, one view per button or label) are views of their own.
+Views inherit like in the keymap: `Lists` covers Graph, Detail, Sidebar, Diff, the two Changes view lists and the two Changes view diffs.
+`CommandsButton`, `NewTabButton`, `Tabs`, `Picker`, the banner chips (`BannerButton.*`), the overlays (`Help`, `Messages`, `Palette`, `Reflog`, `FileHistory`, `Blame`, `Settings` and `Backdrop` for everything outside an open one) and the buttons (`DiffButton.*`, `DetailTab.*`, `PickerButton.*`, `ListButton.*`, one view per button or label) are views of their own.
 
 | View | Gesture | Action | Effect |
 |---|---|---|---|
@@ -212,4 +211,4 @@ Verified by writing SGR mouse sequences into the pane of a tmux 3.7c session run
 Not yet verified with a physical mouse, over ssh, or in kitty, Windows Terminal and macOS terminals.
 Terminals or ssh paths that drop mouse sequences leave the keyboard path unaffected.
 
-Design history (why things are the way they are, measurements, rejected options): `docs/history/ux.md`. Not needed for routine work.
+Design history (why things are the way they are, measurements, rejected options): `docs/internal/history/ux.md`. Not needed for routine work.

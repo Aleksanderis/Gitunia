@@ -151,7 +151,7 @@ public class RebaseEditorFrameBuilderTests
         var frame = RebaseEditorFrameBuilder.Build(State(3), 40, 24, GraphGlyphSet.Ascii);
 
         Assert.All(frame!.Lines, line => Assert.Equal(frame.Width, TextWidth.Of(line.Text)));
-        Assert.Equal(38, frame.Width);
+        Assert.Equal(40, frame.Width);
     }
 
     [Fact]

@@ -59,7 +59,7 @@ public static class RebaseEditorFrameBuilder
         GraphGlyphSet glyphs,
         ChipKeys? keys = null)
     {
-        var width = Math.Min(MaximumWidth, screenWidth - ScreenMargin);
+        var width = OverlayMetrics.WidthFor(MaximumWidth, screenWidth, ScreenMargin);
         if (width < OverlayBox.MinimumWidth)
         {
             return null;
@@ -247,7 +247,7 @@ public static class RebaseEditorFrameBuilder
         _ => "drop",
     };
 
-    private static int FrameWidth(int screenWidth) => Math.Min(MaximumWidth, screenWidth - ScreenMargin);
+    private static int FrameWidth(int screenWidth) => OverlayMetrics.WidthFor(MaximumWidth, screenWidth, ScreenMargin);
 
     private static ListWindow Window(RebaseEditorState state, int screenWidth, int screenHeight, ChipKeys? keys)
     {

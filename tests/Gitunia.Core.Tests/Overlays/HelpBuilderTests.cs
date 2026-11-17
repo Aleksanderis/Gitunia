@@ -48,7 +48,18 @@ public class HelpBuilderTests
 
         Assert.Contains(
             markers.Rows,
-            row => row.Keys == "✗ / (x)" && row.Description.StartsWith("Upstream gone", StringComparison.Ordinal));
+            row => row.Keys == "✗" && row.Description.StartsWith("Upstream gone", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void GivenAnAsciiMark_WhenBuilding_ThenTheMarkersSectionShowsThatMarkInsteadOfTheUnicodeOne()
+    {
+        var markers = Assert.Single(
+            HelpBuilder.Contextual(Table, DefaultKeymap.GraphView, upstreamGoneMark: "(x)"),
+            section => section.Title == "Markers");
+
+        var row = Assert.Single(markers.Rows);
+        Assert.Equal("(x)", row.Keys);
     }
 
     [Fact]

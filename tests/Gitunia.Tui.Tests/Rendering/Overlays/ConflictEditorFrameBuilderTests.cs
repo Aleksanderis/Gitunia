@@ -175,7 +175,7 @@ public class ConflictEditorFrameBuilderTests
 
         var row = LineWith(frame, "the red fox", "the blue fox");
         Assert.Equal(3, row.Segments.Count(segment => segment.Text == "?" && segment.Role == SegmentRole.Error));
-        Assert.Contains("unresolved, still holds its markers", frame.Lines[0].Text, StringComparison.Ordinal);
+        Assert.Contains("still holds its markers", frame.Lines[0].Text, StringComparison.Ordinal);
     }
 
     [Fact]

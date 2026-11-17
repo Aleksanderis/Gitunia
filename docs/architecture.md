@@ -59,7 +59,7 @@ This keeps the key path flat: `j` is a reducer call that copies a record of a fe
 
 ### Commands and effects
 
-- A **command** is a sealed record in a sealed hierarchy per feature (`BranchCommand`, `StashCommand`, ...), in `Core/<Feature>/`. Features nest into the root through their parent: the root command carries `TabCommand(TabId, RepositoryCommand)`, and a feature's hierarchy is one case of it. User intent (`BranchCreateRequested`, `BranchNameAccepted`) and results (`BranchCreateSucceeded`, `BranchCreateFailed`) are both commands; a handler never changes state, it only posts result commands.
+- A **command** is a sealed record in a sealed hierarchy per feature (`BranchCommand`, `StashCommand`, ...), in `Core/<Feature>/`. Features nest into the root through their parent: the root command carries `TabCommand(TabId, RepositoryCommand)`, and a feature's hierarchy is one case of it. User intent (`BranchCreateRequested`, `BranchNameAccepted`) and results (`BranchOperationSucceeded`, `BranchOperationFailed`) are both commands; a handler never changes state, it only posts result commands.
 - An **effect** is a sealed record too and coarse: one effect is one git-layer operation or one external action (`CreateBranch(Repo, Name, StartPoint)`, `LoadDiff(...)`, `CopyToClipboard(...)`, `ScheduleStatusExpiry(...)`), never a script of several steps. A sequence ("create, switch, refresh") is the reducer reacting to each result command with the next effect, so every step shows in a Core test.
 - A **feature reducer** is a pure static function `(FeatureState, FeatureCommand) -> (FeatureState, Effects)` in `Core/<Feature>/`. A feature owns its slice of state and does not read another feature's slice; shared facts (active tab, busy) come from the root.
 - A reducer does no I/O and reads no clock or random source; time and ids arrive as part of a command.
@@ -206,7 +206,7 @@ Tests: `VisualReducerTests`, `DiffPaneReducerTests`, `DiffShownTests` (Core, syn
 - **One operation per tab.** Busy is the `Staging` mark. Staging is also refused (`BlockedNotice`) while a discard or an operation that writes the index or the tree runs in the tab (branch, integration, pick, rebase, stash), and those reducers refuse while a stage or discard runs; both come from the exclusion table.
 - **Terminal side.** `MoveDiffCursorEffect` goes to `IShellEffects.MoveDiffCursor` (the diff cursor is view state in `WorkingDiffController`; it moves to the next hunk or change once the diff of the staged file is read again). `WorkingDiffController.CaptureStaging` (what the diff shows to stage or discard) stays a view method of the controller (#994): it reads the live widget document and cursor, which are not state; both features turn its result into a `StagingSelection` (`DiffStagingRequest.ToSelection`).
 
-Tests: `StagingReducerTests` and `StagingAppReducerTests` (Core, synchronous: planning, refusals, dialog, exclusion, tab closed while the dialog is open, report and cursor after a resolved file), `StagingEffectHandlerTests` (App: fake writer for the arguments and the order status read before result, real git for the index), `StagingPipelineTests` (through the real runner), `StagingActionsTests`, `ListRangeFlowTests`, `WorkingDiffControllerTests` and `CommitScriptTests` (Tui, through `StagingWiring`, which runs the real handler as the runner does).
+Tests: `StagingReducerTests` and `StagingAppReducerTests` (Core, synchronous: planning, refusals, dialog, exclusion, tab closed while the dialog is open, report and cursor after a resolved file), `StagingEffectHandlerTests` (App: fake writer for the arguments and the order status read before result, real git for the index), `StagingPipelineTests` (through the real runner), `StagingActionsTests`, `ListRangeFlowTests` and `WorkingDiffControllerTests` (Tui, through `StagingWiring`, which runs the real handler as the runner does).
 
 ### Commit (#980)
 
@@ -268,8 +268,8 @@ A new class: if it needs Terminal.Gui or draws, it is Tui; if it spawns git, tou
 1. Tui: the keymap turns `<space>bn` into the action `branch.create`; input translation dispatches the feature's `BranchCreateRequested` for the active tab.
 2. Core, branch reducer: the tab has no running operation, so it opens the name prompt (state change only: prompt open, mode Insert). No effect. Each typed key is a prompt command that changes the prompt text.
 3. Enter dispatches `BranchNameAccepted(name)`. The reducer validates the name (pure), closes the prompt, marks the tab's running operation `CreateBranch`, sets the status "Creating branch ..." and returns the effect `CreateBranch(repo, name, startPoint)`.
-4. App, runner: the type switch routes the effect to the branch handler, which calls the branch writer off the UI thread with the tab's token and posts `BranchCreateSucceeded(tab, name)`.
-5. Core: the reducer clears the running operation, sets "Created branch x" and returns two effects, `LoadRefs(repo)` and `LoadGraph(repo)` (one git-layer operation each). On failure the handler posts `BranchCreateFailed(error)`: the reducer clears the flag, shows the error and returns no refresh.
+4. App, runner: the type switch routes the effect to the branch handler, which calls the branch writer off the UI thread with the tab's token and posts `BranchOperationSucceeded(tab, text, follow)`.
+5. Core: the reducer clears the running operation, sets "Created branch x" and returns two effects, `LoadRefs(repo)` and `LoadGraph(repo)` (one git-layer operation each). On failure the handler posts `BranchOperationFailed(tab, text)`: the reducer clears the flag, shows the error and returns no refresh.
 6. App: the refs handler posts `RefsLoaded(tab, refs)` (refs are small and stay in state, which also feeds the sidebar and name validation); the graph handler fills the tab's graph store and posts `GraphLoaded(tab, version, count, selectedIndex)`, where the handler worked out the new index of the selected hash.
 7. Core: the reducer stores the refs, the version, the count and the selected index (it cannot look up the hash itself); Tui redraws the visible rows from the store.
 
@@ -307,6 +307,31 @@ Shared components are extended, never copied; a surface that needs something new
 
 Surfaces not migrated to `TextField`: every field except the palette (prompt, picker, help filter, settings filter and input, sidebar, file tree and diff search, find bars, reflog and blame search) still holds its own `Text` and `Caret` next to `PromptTextEditor` (same keys, no `TextField` yet). `TextFieldContractTests` covers the ones reduced in Core.
 
+### Other shared pieces
+
+The pieces every screen should draw with, so that the same thing looks and behaves the same everywhere. The audit behind this list, with the planned components, is `docs/internal/ui-consistency.md`.
+
+| Component | What it does | Surfaces that use it |
+|---|---|---|
+| `OverlayBox` (`Rendering/Overlays`) | Box, title bar, body rows, footer and bottom rule of an overlay. Widths come from `OverlayMetrics` (Core): `Snap` widens a popup that would leave one to three columns beside it, so the app frame never shows next to its border | Every overlay builder (the context menu keeps its own margin) |
+| `CaretField` (`Rendering/Styling`) | A one-line text with its caret drawn as a cursor cell; the typed text is plain, never the key colour | Prompts, picker, palette title, sidebar, help, settings, blame, reflog, find bar |
+| `PromptTextEditor` (Core) | One-line editing (caret, word motions, `Ctrl-w`) | Prompts, picker, help, settings, searches, filters, jumps |
+| `MessageEditor` (Core) | Multi-line editing | Commit box, conflict result, reword |
+| `ListMotion` (Core) | `j`/`k`, paging, `gg`/`G` | Most lists and reducers |
+| `HintBar`, `OverlayBox.Hints`, `KeyedChip`, `ChipKeys` | Key plus what it does; keys come from the keymap | Status bar, banner, overlay footers, title chips |
+| `ShortHash`, `CountText.Plural` | The one hash length and the one pluralisation | Core texts, blame, reflog, rebase |
+| `Palette`, `PaletteTable` | Every colour, by role | Everything |
+| `DefaultMouseMap` | Gestures to action ids, checked against `docs/internal/ux-mouse.md` | Every mapped gesture |
+| Glyph tables (`GraphGlyphSet`, `SidebarGlyphs`) | Unicode and ASCII forms of every glyph | Graph, picker, sidebar, help markers |
+
+Roles are chosen by meaning, not by how they look: plain for typed text and for a reassuring undo hint, `Error` for what cannot be undone or failed, `Warning` for a warning in a body row (`StatusWarning` is the status bar's), `OverlayKey` for the key column of an overlay.
+
+**Not converted yet** (these still hand-build what the components above draw; convert them when you touch them, never copy them):
+
+- Hand-built key rows with literal keys: Blame, Reflog, File history, Confirm, Settings (yes/no) and Mainline (`[n]`).
+- Hand-built brackets: `[+]` and `[x]` in the settings rows, and the Help `[Tab] n/m` position.
+- The palette footer (position and hints are appended by hand).
+
 ## Principles
 
 - **Workspace model.** `AppState` holds a `Workspace` (ordered repo tabs, active tab, recent/pinned repos). Each tab owns an independent `RepositoryState` (view state and small data; big loaded data lives in the tab's stores). Commands are routed to a tab by id; effects carry the repo path they run against. Only the 5 most recently used tabs keep a loaded graph (about 350 bytes per commit); colder tabs are evicted and reload on activation (`EffectRunner`, docs/internal/performance.md). The app starts with no repo (the picker shows) and restores the previous session when there is one.
@@ -314,7 +339,7 @@ Surfaces not migrated to `TextField`: every field except the palette (prompt, pi
 - **Pure state.** Effects (run a git command, open an editor, copy to clipboard) are returned as data; the runner executes them and feeds the results back as commands ("Effects as data").
 - **Async git.** Every git call is async, cancellable and time-bounded; the UI never blocks on one.
 - **Shared prompt components.** Prompts are data, not views: `PromptPopup` (Core) is drawn by the one `PromptPopupFrameBuilder`. A prompt lives in state as `OpenPrompt` with a `PromptPicker` for the candidates (#971). A new picker is a `PromptRequest` with choices, never a new copy. Behaviour: `docs/internal/ux.md`, "Prompt popups".
-- **Shared key hints and chips.** A "key plus what it does" is drawn by one of two builders in `Rendering/Styling`: `HintBar` for a row of hints and `KeyedChip` for a clickable chip (`ChipStyle` picks the roles, the key comes from the keymap through `ChipKeys`). Footers pass explicit `HintItem` lists to `OverlayBox.Hints`; keys are never guessed from text. Prompt footers are a renderer-agnostic `PromptHint` list in Core (`PromptPopup.Hints`) mapped to `HintItem` by `PromptPopupFrameBuilder`. A new hint row or button uses these; rules: `.claude/rules/ui-changes.md`.
+- **Shared key hints and chips.** A "key plus what it does" is drawn by one of two builders in `Rendering/Styling`: `HintBar` for a row of hints and `KeyedChip` for a clickable chip (`ChipStyle` picks the roles, the key comes from the keymap through `ChipKeys`). Footers pass explicit `HintItem` lists to `OverlayBox.Hints`; keys are never guessed from text. Prompt footers are a renderer-agnostic `PromptHint` list in Core (`PromptPopup.Hints`) mapped to `HintItem` by `PromptPopupFrameBuilder`. A new hint row or button uses these; rules: `.claude/rules/ui-changes.md`; what is not converted yet is listed under "UI components".
 - **UI toolkit.** Terminal.Gui v2, wrapped by the rendering layer; Core never sees it. Custom drawing (graph, diff) uses custom views, and modal keys and chords are handled at the application level by our keymap engine. Keep Terminal.Gui types out of Core and keep view models and key events renderer-agnostic (no abstraction interface until a second renderer exists; see `docs/internal/decisions.md`). Settings, pitfalls and measured numbers: `docs/internal/history/architecture.md` (cell widths: `DisplayWidth` follows Terminal.Gui per character, ZWJ sequences differ).
 
 ## Solution layout

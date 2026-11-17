@@ -44,6 +44,33 @@ public class PromptPopupFrameBuilderTests
     }
 
     [Fact]
+    public void GivenATypedAnswer_WhenBuilding_ThenTheTextIsPlainLikeThePickerNotTheKeyColour()
+    {
+        var prompt = PromptPopup.ForText("New branch", "At abc1234", "feat", "create");
+
+        var frame = PromptPopupFrameBuilder.Build(prompt, 80, 24, GraphGlyphSet.Unicode)!;
+
+        var typed = frame.Lines[2].Segments.Where(segment => segment.Text.Contains("feat", StringComparison.Ordinal));
+        Assert.All(typed, segment => Assert.Equal(SegmentRole.TypedText, segment.Role));
+        Assert.DoesNotContain(frame.Lines[2].Segments, segment => segment.Role == SegmentRole.OverlayKey);
+    }
+
+    [Theory]
+    [InlineData(62)]
+    [InlineData(64)]
+    [InlineData(66)]
+    public void GivenAScreenJustWiderThanThePopup_WhenBuilding_ThenItTakesTheWholeWidthSoNoAppBorderShowsBesideIt(
+        int screenWidth)
+    {
+        var prompt = PromptPopup.ForText("New branch", "At abc1234", "feat", "create");
+
+        var frame = PromptPopupFrameBuilder.Build(prompt, screenWidth, 30, GraphGlyphSet.Unicode)!;
+
+        Assert.Equal(0, frame.Column);
+        Assert.Equal(screenWidth, frame.Width);
+    }
+
+    [Fact]
     public void GivenAnyPrompt_WhenBuilding_ThenItIsCentredAndEveryRowHasTheSameWidth()
     {
         var prompt = PromptPopup.ForText("Title", "Context", string.Empty, "ok");

@@ -4,7 +4,7 @@
 
 Short dated log of live, non-obvious settled choices that cut across docs. Add an entry only when the choice is not already evident from `ux.md` and its parts (`ux-*.md`), `architecture.md` or the code, or when it overrides an earlier decision; a behaviour change documented in `ux.md` needs none. Agents follow these without asking. Open questions live in `roadmap.md`. Superseded, closed and purely historical entries are archived word for word in `history/decisions.md` (not required reading).
 
-Format: dated heading, entries appended at the end, each starting with a bold topic tag (**Stack**, **Architecture**, **Git layer**, **UI**, **Testing**, **Process**, **Code structure**), one or two lines (decision and why), a blank line between entries. The full text of long entries, implementation detail, measurements and limits live in `docs/history/` (moved there, same wording), the area docs (`architecture.md`, `git-layer.md`, `ux.md`, `testing.md`), or the issue or PR. When a decision changes, append a new entry that supersedes the old one; archive the old entry once the new one states the outcome (see 2026-10-30).
+Format: dated heading, entries appended at the end, each starting with a bold topic tag (**Stack**, **Architecture**, **Git layer**, **UI**, **Testing**, **Process**, **Code structure**), one or two lines (decision and why), a blank line between entries. The full text of long entries, implementation detail, measurements and limits live in `docs/internal/history/` (moved there, same wording), the area docs (`architecture.md`, `git-layer.md`, `ux.md`, `testing.md`), or the issue or PR. When a decision changes, append a new entry that supersedes the old one; archive the old entry once the new one states the outcome (see 2026-10-30).
 
 ## 2026-10-10
 
@@ -24,7 +24,7 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 **Process:** PRs are merged with a merge commit (never squash or rebase) and the branch is deleted afterwards. Why: the owner wants the full branch history visible in the graph.
 
-**UI:** Renderer is Terminal.Gui v2 (2.5.0), not a custom renderer (M0 decision #7, owner chose after the spikes). Why: toolkit widgets are far easier to read and maintain, and it is fast enough; accepted costs are startup near the 100 ms budget, a larger binary and a native library. Numbers: `docs/history/architecture.md`.
+**UI:** Renderer is Terminal.Gui v2 (2.5.0), not a custom renderer (M0 decision #7, owner chose after the spikes). Why: toolkit widgets are far easier to read and maintain, and it is fast enough; accepted costs are startup near the 100 ms budget, a larger binary and a native library. Numbers: `docs/internal/history/architecture.md`.
 
 ## 2026-10-11
 

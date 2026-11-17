@@ -365,7 +365,7 @@ public static class HelpFrameBuilder
     private static IReadOnlyList<HelpSection> SectionsOf(IReadOnlyList<HelpTab> tabs, int tab) =>
         tabs.Count == 0 ? [] : tabs[Math.Clamp(tab, 0, tabs.Count - 1)].Sections;
 
-    private static int WidthFor(int screenWidth) => Math.Min(MaximumWidth, screenWidth - ScreenMargin);
+    private static int WidthFor(int screenWidth) => OverlayMetrics.WidthFor(MaximumWidth, screenWidth, ScreenMargin);
 
     // The same keys column on every tab, so switching tabs does not move the separator.
     private static int KeysWidth(IReadOnlyList<HelpTab> tabs) =>

@@ -30,6 +30,33 @@ public class WorkingListTitleButtonsTests
     }
 
     [Theory]
+    [InlineData(WorkingTreeSection.Unstaged, false)]
+    [InlineData(WorkingTreeSection.Staged, false)]
+    [InlineData(WorkingTreeSection.Unstaged, true)]
+    [InlineData(WorkingTreeSection.Staged, true)]
+    public void GivenAnyRowWidth_WhenLayingOut_ThenTheChipsNeverTouchOrOverlap(
+        WorkingTreeSection section,
+        bool hasDiffButton)
+    {
+        const string title = "Unstaged 12";
+        var sawDroppedKey = false;
+        for (var width = 20; width <= 90; width++)
+        {
+            var stage = WorkingListTitleButtons.Layout(section, title, width, null, hasDiffButton);
+            var view = WorkingListTitleButtons.ViewButton(section, title, width, null, hasDiffButton);
+            if (stage is null || view is null)
+            {
+                continue;
+            }
+
+            Assert.True(view.Start + view.Width < stage.Start, $"width {width}: the view chip touches stage all");
+            sawDroppedKey |= stage.KeyLength == 0 && stage.Width > 0;
+        }
+
+        Assert.True(sawDroppedKey, "no width made stage all drop its key to keep the view chip");
+    }
+
+    [Theory]
     [InlineData(WorkingTreeSection.Unstaged, 24)]
     [InlineData(WorkingTreeSection.Staged, 24)]
     [InlineData(WorkingTreeSection.Unstaged, 0)]
@@ -61,9 +88,9 @@ public class WorkingListTitleButtonsTests
 
     [Theory]
     [InlineData(WorkingTreeSection.Unstaged, 36, " stage all ")]
-    [InlineData(WorkingTreeSection.Unstaged, 37, " <space>A stage all ")]
+    [InlineData(WorkingTreeSection.Unstaged, 37, " stage all ")]
     [InlineData(WorkingTreeSection.Staged, 31, " unstage all ")]
-    public void GivenANarrowList_WhenLayingOut_ThenTheKeyGoesBeforeTheButton(
+    public void GivenANarrowList_WhenLayingOut_ThenTheKeyGoesBeforeTheViewChipDoes(
         WorkingTreeSection section, int width, string label)
     {
         var title = section == WorkingTreeSection.Staged ? "Staged 3" : "Unstaged 12";

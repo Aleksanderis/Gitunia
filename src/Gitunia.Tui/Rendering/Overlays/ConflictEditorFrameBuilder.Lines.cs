@@ -128,7 +128,7 @@ public static partial class ConflictEditorFrameBuilder
     {
         if (state.Result.IsUnresolved(state.Index))
         {
-            return state.SelectedPick == ConflictPick.None ? "unresolved, still holds its markers" : "markers left";
+            return state.SelectedPick == ConflictPick.None ? "still holds its markers" : "markers left";
         }
 
         return state.SelectedPick switch
