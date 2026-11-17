@@ -136,17 +136,17 @@ public class IgnoreAwareWatchingTests
         using var watcher = new RepositoryWatcher(location, new WatchBudget(), FastOptions, directoryLister: lister);
         watcher.Changed += recorder.Record;
         watcher.Start();
-        await WaitForAsync(() => watcher.WorkingTreeDirectoryCount == 2);
+        await WatcherWait.UntilAsync(() => watcher.WorkingTreeDirectoryCount == 2, watcher, recorder: recorder);
 
         // The rescan's listing is stale: the file appears after it was taken, before the disk check (#1395).
         Directory.CreateDirectory(deeper);
         // The third call is the confirming listing; the old code never makes it and times out here or below.
-        await WaitForAsync(() => lister.StaleCalls > 0 && lister.Calls >= 3);
+        await WatcherWait.UntilAsync(() => lister.StaleCalls > 0 && lister.Calls >= 3, watcher, recorder: recorder);
         await recorder.WaitForAsync(RepositoryChangeKinds.WorkingTree, Token);
         var callsBefore = recorder.CallCount;
         testRepository.WriteFile(Path.Combine("fresh", "deeper", "second.txt"), "x");
 
-        await WaitForAsync(() => recorder.CallCount > callsBefore);
+        await WatcherWait.UntilAsync(() => recorder.CallCount > callsBefore, watcher, recorder: recorder);
         Assert.Equal(4, watcher.WorkingTreeDirectoryCount);
     }
 
