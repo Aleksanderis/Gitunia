@@ -1,5 +1,5 @@
-using Gitunia.Core.Filtering;
 using Gitunia.Core.Editing;
+using Gitunia.Core.Filtering;
 using Gitunia.Core.Lists;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Reflog.Models;

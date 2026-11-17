@@ -151,6 +151,29 @@ public class FilterListTests
     }
 
     [Fact]
+    public void GivenAContainsListWithSeveralTexts_WhenFiltering_ThenTheListKeepsItsOrderWhicheverTextMatches()
+    {
+        ImmutableArray<FilterItem<string>> items =
+        [
+            FilterItems.Of("second text", "alpha", "needle"),
+            FilterItems.Of("first text", "needle", "beta"),
+        ];
+
+        var list = FilterLists.Of(items, MatcherKind.Contains, NoMatch, "needle");
+
+        Assert.Equal(["second text", "first text"], list.Candidates);
+    }
+
+    [Fact]
+    public void GivenALoadingOrFailedList_WhenItHadCandidates_ThenTheyAreCleared()
+    {
+        var list = Of(MatcherKind.Fuzzy, Names);
+
+        Assert.Empty(list.Loading().Candidates);
+        Assert.Empty(list.Failed("x").Candidates);
+    }
+
+    [Fact]
     public void GivenAnItemMatchedOnATitleAndAnIdentifier_WhenFiltering_ThenTheTitleOutranksTheIdentifier()
     {
         ImmutableArray<FilterItem<string>> items =

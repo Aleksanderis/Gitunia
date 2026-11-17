@@ -1,5 +1,5 @@
-using Gitunia.Core.Filtering;
 using System.Collections.Immutable;
+using Gitunia.Core.Filtering;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Git.Refs;
 using Gitunia.Git.Refs.Models;

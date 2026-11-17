@@ -32,7 +32,7 @@ public sealed record FilterList<T>(
     string? Failure = null)
 {
     /// <summary>
-    /// What a match on a text other than the first (an identifier next to a title) is worth less, so a title that holds
+    /// What a fuzzy match on a text other than the first (an identifier next to a title) is worth less, so a title that holds
     /// the query ranks above an identifier that does.
     /// </summary>
     public const int AlternatePenalty = 25;
@@ -61,7 +61,10 @@ public sealed record FilterList<T>(
     /// <summary>The highlighted candidate; <paramref name="fallback"/> when there is none.</summary>
     public T SelectedOr(T fallback) => TryGetSelected(out var selected) ? selected : fallback;
 
-    /// <summary>The list after an edit of the query: a caret move keeps the highlight, other text starts at the best match.</summary>
+    /// <summary>
+    /// The list after an edit of the query: a caret move keeps the highlight, other text starts at the best match. Items
+    /// given to <see cref="WithLeading"/> are dropped by a changed text; the caller finds them again.
+    /// </summary>
     public FilterList<T> WithField(TextField field) =>
         field.Text == Field.Text ? this with { Field = field } : (this with { Field = field }).Refiltered([]);
 
@@ -84,10 +87,12 @@ public sealed record FilterList<T>(
         this with { Selected = ListViewport.ClampIndex(index, Candidates.Length) };
 
     /// <summary>The list while its items are still coming.</summary>
-    public FilterList<T> Loading() => this with { Status = FilterStatus.Loading, Failure = null };
+    public FilterList<T> Loading() =>
+        this with { Status = FilterStatus.Loading, Failure = null, Candidates = [], Selected = 0 };
 
     /// <summary>The list whose items could not be read.</summary>
-    public FilterList<T> Failed(string failure) => this with { Status = FilterStatus.Failed, Failure = failure };
+    public FilterList<T> Failed(string failure) =>
+        this with { Status = FilterStatus.Failed, Failure = failure, Candidates = [], Selected = 0 };
 
     /// <summary>The window of <paramref name="rows"/> rows around the highlight, kept centred like every overlay.</summary>
     public ListViewport Viewport(int rows) =>
@@ -161,7 +166,7 @@ public sealed record FilterList<T>(
         int? best = null;
         for (var index = 0; index < item.Texts.Length; index++)
         {
-            var penalty = index == 0 ? 0 : AlternatePenalty;
+            var penalty = index == 0 || Kind == MatcherKind.Contains ? 0 : AlternatePenalty;
             if (Matcher.Score(Kind, query, item.Texts[index]) - penalty is { } score && (best is null || score > best))
             {
                 best = score;

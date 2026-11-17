@@ -18,14 +18,14 @@ public sealed record PaletteState(FilterList<PaletteEntry> List)
 
     /// <summary>A palette over <paramref name="entries"/>.</summary>
     /// <param name="entries">Every action.</param>
-    /// <param name="Field">The typed filter with its caret, edited like every other text field.</param>
-    /// <param name="SelectedIndex">Index into <see cref="Visible"/>.</param>
-    public PaletteState(IReadOnlyList<PaletteEntry> entries, TextField? Field = null, int SelectedIndex = 0)
+    /// <param name="field">The typed filter with its caret, edited like every other text field.</param>
+    /// <param name="selectedIndex">Index into <see cref="Visible"/>.</param>
+    public PaletteState(IReadOnlyList<PaletteEntry> entries, TextField? field = null, int selectedIndex = 0)
         : this(FilterLists.Of(
             [.. entries.Select(entry => FilterItems.Of(entry, entry.Title, entry.Action.Value, entry.Group))],
             MatcherKind.Fuzzy,
             UiTexts.NoMatch(Subject),
-            Field).MoveTo(SelectedIndex))
+            field).MoveTo(selectedIndex))
     {
     }
 

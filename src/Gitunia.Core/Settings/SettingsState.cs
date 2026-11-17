@@ -1,8 +1,8 @@
-using Gitunia.Core.Filtering;
 using System.Collections.Immutable;
 using System.Globalization;
 using Gitunia.Core.Config.Models;
 using Gitunia.Core.Editing;
+using Gitunia.Core.Filtering;
 using Gitunia.Core.Lists;
 using Gitunia.Core.Settings.Models;
 
