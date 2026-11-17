@@ -27,7 +27,8 @@ namespace Gitunia.Tui.Tests.Rendering.Overlays;
 
 // The other surfaces of the contract: each one builds its real frame for a list of Items rows with the selection at the
 // top, one down, in the middle, one before the end and at the end, at several window sizes, and the row the frame
-// highlights must be the selected one. Empty lists show no highlighted row (editors keep their cursor on the empty line).
+// highlights must be the selected one. Empty lists show no highlighted row (editors and the conflict editor keep their
+// cursor on a line that is not an item).
 public partial class ListWindowContractTests
 {
     private const string Prefix = "item";
@@ -36,8 +37,7 @@ public partial class ListWindowContractTests
 
     private static readonly int[] Heights = [40, 24, 16, 12];
 
-    private static readonly string Home =
-        OperatingSystem.IsWindows() ? @"C:\h" : Path.Combine(Path.GetTempPath(), "window-contract-home");
+    private const string Home = "window-contract-home";
 
     /// <summary>Overlays and panes whose frame highlights the selected row; the name picks the frame builder.</summary>
     public static TheoryData<string> HighlightSurfaces =>
@@ -84,8 +84,11 @@ public partial class ListWindowContractTests
     {
         var shown = Highlighted(surface, 0, 0, 24);
 
-        Assert.True(shown is null or 0, $"{surface}: {shown}");
+        Assert.Equal(KeepsCursorOnEmptyList(surface) ? 0 : null, shown);
     }
+
+    private static bool KeepsCursorOnEmptyList(string surface) =>
+        IsEditor(surface) || surface.StartsWith("conflict", StringComparison.Ordinal);
 
     [GeneratedRegex(@"item(\d{3})")]
     private static partial Regex ItemNumber();
@@ -174,7 +177,13 @@ public partial class ListWindowContractTests
         var rows = Enumerable.Range(0, count)
             .Select(index => new PickerRow(Path.Combine(Home, "code", Name(index)), Name(index), TagOf(index, count)))
             .ToImmutableArray();
-        var picker = new PickerState(query, selected, rows, string.Empty, null, Expanded: PickerSection.Open | PickerSection.Recent);
+        var picker = new PickerState(
+            query,
+            selected,
+            rows,
+            string.Empty,
+            null,
+            Expanded: PickerSection.Open | PickerSection.Recent);
 
         return PickerComposer.Compose(picker, Home, 100, height, GraphGlyphSet.Unicode);
     }
@@ -187,6 +196,7 @@ public partial class ListWindowContractTests
         var state = new BlameState(new TabId(1), "a.txt", "a.txt", LineCount: count).MoveTo(selected);
         var data = new BlameData(1, [.. Enumerable.Range(0, count).Select(Name)]);
         var frame = BlameFrameBuilder.Build(state, data, Now, 100, height, GraphGlyphSet.Unicode)!;
+
         var marked = frame.Lines.ToList().FindIndex(line => line.IsSelected);
         if (marked >= 0)
         {
@@ -209,7 +219,11 @@ public partial class ListWindowContractTests
         var frame = ConflictEditorFrameBuilder.Build(state, 100, height, GraphGlyphSet.Unicode)!;
         var resultStart = ConflictEditorFrameBuilder.LayoutFor(state, 100, height)!.ResultStartLine;
         var marked = Enumerable.Range(0, frame.Lines.Count)
-            .First(line => (line >= resultStart) == (pane == ConflictPane.Result) && IsMarked(frame.Lines[line]));
+            .FirstOrDefault(
+                line => (line >= resultStart) == (pane == ConflictPane.Result) && IsMarked(frame.Lines[line]),
+                -1);
+        Assert.True(marked >= 0, $"conflict {pane} at height {height}: no marked line");
+
         var target = ConflictEditorFrameBuilder.TargetAt(state, marked, 2, 100, height)!;
         Assert.Equal(selected, target.Index);
 

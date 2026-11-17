@@ -13,8 +13,8 @@ using Gitunia.Core.Settings;
 using Gitunia.Core.Settings.Models;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git;
-using Gitunia.Git.Conflicts;
 using Gitunia.Git.Commits.Models;
+using Gitunia.Git.Conflicts;
 using Gitunia.Git.History.Models;
 using Gitunia.Git.Rebase;
 using Gitunia.Git.Reflog.Models;
@@ -37,7 +37,7 @@ public class ListViewportContractTests
     private static readonly DateTimeOffset Now = new(2026, 11, 17, 12, 0, 0, TimeSpan.Zero);
 
     /// <summary>Every state type with a list cursor: its name, and how to build it with N items and move it.</summary>
-    public static TheoryData<string> CursorSurfaces => 
+    public static TheoryData<string> CursorSurfaces =>
     [
         "palette",
         "prompt-picker",
