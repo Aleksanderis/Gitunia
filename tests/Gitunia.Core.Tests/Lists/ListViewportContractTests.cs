@@ -1,4 +1,6 @@
 using System.Globalization;
+using Gitunia.Core.Blame;
+using Gitunia.Core.Conflicts;
 using Gitunia.Core.FileHistory;
 using Gitunia.Core.Filtering;
 using Gitunia.Core.Keymap;
@@ -8,9 +10,12 @@ using Gitunia.Core.Prompts;
 using Gitunia.Core.Rebase;
 using Gitunia.Core.Reflog;
 using Gitunia.Core.Search.Models;
+using Gitunia.Core.Settings;
+using Gitunia.Core.Settings.Models;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git;
 using Gitunia.Git.Commits.Models;
+using Gitunia.Git.Conflicts;
 using Gitunia.Git.History.Models;
 using Gitunia.Git.Rebase;
 using Gitunia.Git.Reflog.Models;
@@ -33,7 +38,19 @@ public class ListViewportContractTests
     private static readonly DateTimeOffset Now = new(2026, 11, 17, 12, 0, 0, TimeSpan.Zero);
 
     /// <summary>Every state type with a list cursor: its name, and how to build it with N items and move it.</summary>
-    public static TheoryData<string> CursorSurfaces => ["palette", "prompt-picker", "reflog-ref-picker", "ref-jump", "reflog", "file-history", "rebase"];
+    public static TheoryData<string> CursorSurfaces =>
+    [
+        "palette",
+        "prompt-picker",
+        "reflog-ref-picker",
+        "ref-jump",
+        "reflog",
+        "file-history",
+        "rebase",
+        "settings",
+        "blame",
+        "conflict-editor",
+    ];
 
     public static TheoryData<ScrollPolicy> WindowPolicies => [ScrollPolicy.Edge, ScrollPolicy.Centre];
 
@@ -188,6 +205,9 @@ public class ListViewportContractTests
             "reflog" => Reflog(count),
             "file-history" => FileHistory(count),
             "rebase" => Rebase(count),
+            "settings" => Settings(count),
+            "blame" => Blame(count),
+            "conflict-editor" => ConflictEditor(count),
             _ => throw new ArgumentOutOfRangeException(nameof(name)),
         };
 
@@ -263,6 +283,43 @@ public class ListViewportContractTests
                 [.. Enumerable.Range(0, count).Select(index => new RebaseTodoCommit(Hash, Name(index)))]),
             state => delta => state.MoveTo(state.SelectedIndex + delta),
             state => state.SelectedIndex);
+
+        // The collapsed layout lists every setting in one column, so the cursor runs over all of them.
+        private static Surface Settings(int count) => Of(
+            new SettingsState(
+                [.. Enumerable.Range(0, count).Select(Setting)],
+                [],
+                [],
+                string.Empty,
+                SettingsColumn.Settings,
+                IsCollapsed: true),
+            state => delta => state.MoveTo(state.Cursor + delta),
+            state => state.Cursor);
+
+        private static SettingDefinition Setting(int index) => new(
+            Name(index),
+            SettingCategory.Appearance,
+            Name(index),
+            SettingControl.Toggle,
+            [Name(index)],
+            string.Empty,
+            string.Empty,
+            []);
+
+        private static Surface Blame(int count) => Of(
+            new BlameState(new TabId(1), "a.txt", "a.txt", LineCount: count),
+            state => delta => state.MoveTo(state.Cursor + delta),
+            state => state.Cursor);
+
+        // One conflict whose ours side has N lines: N aligned rows in the version panes.
+        private static Surface ConflictEditor(int count)
+        {
+            var lines = string.Concat(Enumerable.Range(0, count).Select(index => $"{Name(index)}\n"));
+            var text = count == 0 ? string.Empty : $"<<<<<<< ours\n{lines}=======\ntheirs\n>>>>>>> theirs\n";
+            var state = ConflictEditorState.Create(new TabId(1), "a.txt", ConflictParser.Parse(text).Parts ?? []);
+
+            return Of(state, current => current.MoveCursor, current => current.Row);
+        }
 
         private static Surface RefJump(int count) => Of(
             new RefJumpState(FilterLists.Of(
