@@ -39,7 +39,7 @@ public static class StagingPlanner
         if (usable.Count == 0)
         {
             return StagingPlan.Refused(
-                skipped > 0 ? $"Only conflicted files are left ({skipped} skipped)" : "Nothing to do");
+                skipped > 0 ? $"Only conflicted files are left ({skipped} skipped)" : UiTexts.Nothing("do"));
         }
 
         var paths = usable.SelectMany(entry => PathsOf(entry, section));

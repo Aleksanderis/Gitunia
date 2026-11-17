@@ -1,5 +1,6 @@
 using System.Globalization;
 using Gitunia.Core.Overlays;
+using Gitunia.Core.Text;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Panes;
 using Gitunia.Tui.Rendering.Styling;
@@ -35,7 +36,7 @@ public static class PaletteFrameBuilder
         var lines = new List<StyledLine> { OverlayBox.Title(":", new CaretField(" ", palette.Field.Text, palette.Field.Caret), width, glyphs) };
         if (visible.Count == 0)
         {
-            lines.Add(OverlayBox.Text("no matching action", width, glyphs, SegmentRole.Faint));
+            lines.Add(OverlayBox.Text(UiTexts.NoMatch("action"), width, glyphs, SegmentRole.Faint));
         }
 
         for (var offset = 0; offset < rowCount && top + offset < rows.Lines.Count; offset++)

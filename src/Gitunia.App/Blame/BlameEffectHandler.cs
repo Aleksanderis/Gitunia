@@ -79,7 +79,7 @@ public sealed class BlameEffectHandler(IBlameReader reader, BlameStore store, ID
         {
             var selected = chars.TextIn(data);
             var characters = selected.EnumerateRunes().Count();
-            var description = characters == 1 ? "1 selected character" : $"{characters} selected characters";
+            var description = CountText.Plural(characters, "selected character");
 
             return selected.Length == 0 ? null : new CopyToClipboardEffect(selected, description);
         }
@@ -87,7 +87,7 @@ public sealed class BlameEffectHandler(IBlameReader reader, BlameStore store, ID
         var count = last - first + 1;
         var text = string.Join('\n', Enumerable.Range(first, count).Select(data.TextOf));
 
-        return new CopyToClipboardEffect(text, count == 1 ? "1 line of code" : $"{count} lines of code");
+        return new CopyToClipboardEffect(text, CountText.Plural(count, "line of code", "lines of code"));
     }
 
     private void Cancel()

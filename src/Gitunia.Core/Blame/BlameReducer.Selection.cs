@@ -12,7 +12,7 @@ namespace Gitunia.Core.Blame;
 public static partial class BlameReducer
 {
     /// <summary>The warning when a selection is started in a file without lines.</summary>
-    public const string NothingToSelectNotice = "Nothing to select";
+    public static readonly string NothingToSelectNotice = UiTexts.Nothing("select");
 
     /// <summary>The warning for the line history of lines that cannot be told apart in the working tree file.</summary>
     public const string MixedLinesNotice =

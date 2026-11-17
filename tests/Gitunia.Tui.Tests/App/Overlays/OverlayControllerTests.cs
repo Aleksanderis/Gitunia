@@ -425,7 +425,7 @@ public sealed class OverlayControllerTests : IDisposable, IActionRoute
         Press(Key.Backspace);
 
         Assert.Equal("help.ta", _overlays.State.HelpFilter);
-        Assert.Contains("Nothing matches the filter.", FrameText());
+        Assert.Contains("No matching action", FrameText());
     }
 
     [Fact]

@@ -20,12 +20,6 @@ public static class WorkingTreeRowRenderer
     private const string UntrackedMark = "?";
     private const string AddedMark = "A";
     private const string DeletedMark = "D";
-    private const string RenamedMark = "R";
-    private const string CopiedMark = "C";
-    private const string TypeChangedMark = "T";
-    private const string UnmergedMark = "U";
-    private const string ModifiedMark = "M";
-    private const string RenameArrow = " -> ";
 
     /// <summary>The line of an entry, exactly <paramref name="width"/> columns wide.</summary>
     /// <param name="entry">The status entry.</param>
@@ -149,7 +143,7 @@ public static class WorkingTreeRowRenderer
 
         if (closedFileCount is { } count)
         {
-            builder.Append($"  {(count == 1 ? "1 file" : $"{count} files")}", SegmentRole.Faint);
+            builder.Append($"  {CountText.Plural(count, "file")}", SegmentRole.Faint);
         }
 
         return builder.Build(isSelected: isSelected);
@@ -214,7 +208,7 @@ public static class WorkingTreeRowRenderer
     {
         if (section == WorkingTreeSection.Staged && entry.OriginalPath is { } original)
         {
-            return $"{Printable(original)}{RenameArrow}{Printable(entry.Path)}";
+            return ValueFormat.RenameText(Printable(original), Printable(entry.Path));
         }
 
         return Printable(entry.Path);
@@ -244,16 +238,7 @@ public static class WorkingTreeRowRenderer
         _ => SegmentRole.FileChanged,
     };
 
-    private static string Letter(FileChangeKind change) => change switch
-    {
-        FileChangeKind.Added => AddedMark,
-        FileChangeKind.Deleted => DeletedMark,
-        FileChangeKind.Renamed => RenamedMark,
-        FileChangeKind.Copied => CopiedMark,
-        FileChangeKind.TypeChanged => TypeChangedMark,
-        FileChangeKind.UpdatedButUnmerged => UnmergedMark,
-        _ => ModifiedMark,
-    };
+    private static string Letter(FileChangeKind change) => ValueFormat.StatusLetter(change);
 
     private static string ConflictText(ConflictKind conflict) => conflict switch
     {

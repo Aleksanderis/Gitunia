@@ -202,7 +202,7 @@ public class PickerComposerTests
         var lines = Compose(picker);
 
         var layout = PickerLayout.Compute(picker, 100, 30);
-        Assert.Contains("no matching directories", lines[FirstListLine].Text, StringComparison.Ordinal);
+        Assert.Contains("No matching directories", lines[FirstListLine].Text, StringComparison.Ordinal);
         Assert.Contains("not a repository: /x", lines[layout.MessageLine].Text, StringComparison.Ordinal);
         Assert.Contains(lines[layout.MessageLine].Segments, segment => segment.Role == SegmentRole.Error);
     }

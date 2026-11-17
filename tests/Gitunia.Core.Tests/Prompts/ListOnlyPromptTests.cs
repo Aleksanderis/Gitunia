@@ -49,7 +49,7 @@ public class ListOnlyPromptTests
         Assert.Equal(["a", "b", "c"], popup.Details);
         Assert.Equal(0, popup.Highlight);
         var hints = popup.Hints.Select(hint => $"{hint.Keys} {hint.Label}");
-        Assert.Equal(["Enter choose", "j/k/h/l select", "Esc cancel"], hints);
+        Assert.Equal(["Enter choose", "j/k/h/l move", "Esc cancel"], hints);
     }
 
     private static ShellState Open()

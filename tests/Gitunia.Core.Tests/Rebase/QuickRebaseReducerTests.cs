@@ -215,8 +215,8 @@ public class QuickRebaseReducerTests
     [Theory]
     [InlineData("", "The subject is empty: type one or Esc to cancel")]
     [InlineData("   ", "The subject is empty: type one or Esc to cancel")]
-    [InlineData("Add feature", "The subject is unchanged: edit it or Esc to cancel")]
-    [InlineData(" Add feature ", "The subject is unchanged: edit it or Esc to cancel")]
+    [InlineData("Add feature", "Subject unchanged: edit it or Esc to cancel")]
+    [InlineData(" Add feature ", "Subject unchanged: edit it or Esc to cancel")]
     public void GivenTheSubjectPrompt_WhenTheSubjectIsEmptyOrUnchanged_ThenItOpensAgainWithAReason(
         string typed,
         string notice)

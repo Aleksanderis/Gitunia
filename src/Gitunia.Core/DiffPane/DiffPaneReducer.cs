@@ -1,5 +1,6 @@
 using Gitunia.Core.Effects;
 using Gitunia.Core.Status;
+using Gitunia.Core.Text;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Repositories;
@@ -36,7 +37,7 @@ public static class DiffPaneReducer
     public const string ContextLimitNotice = "Context is already at its limit";
 
     /// <summary>The notice when nothing was cut short.</summary>
-    public const string NothingCutNotice = "Nothing was cut short";
+    public static readonly string NothingCutNotice = UiTexts.Nothing("load");
 
     /// <summary>The notice when the whole diff loads.</summary>
     public const string LoadingWholeNotice = "Loading the whole diff...";

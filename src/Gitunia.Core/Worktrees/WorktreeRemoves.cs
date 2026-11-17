@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using Gitunia.Core.Effects;
+using Gitunia.Core.Text;
 
 namespace Gitunia.Core.Worktrees;
 
@@ -39,7 +40,7 @@ internal static class WorktreeRemoves
     {
         if (context.IsBusy)
         {
-            return [WorktreeReducer.Warn($"{WorktreeTexts.BusyNotice}; nothing was removed")];
+            return [WorktreeReducer.Warn($"{WorktreeTexts.BusyNotice}; {UiTexts.NothingWas("removed")}")];
         }
 
         return [new RemoveWorktreeEffect(context.Tab.Id, context.Tab.Location, path, force)];
@@ -50,7 +51,8 @@ internal static class WorktreeRemoves
     {
         var prompt = WorktreeTexts.DirtyRemovePrompt(needsForce.Path, needsForce.Changes);
         var accepted = new WorktreeForceRemoveConfirmed(needsForce.TabId, needsForce.Path);
-        var unavailable = $"{needsForce.Path} has changes and the screen is too small to ask: nothing was removed";
+        var unavailable =
+            $"{needsForce.Path} has changes and the screen is too small to ask: {UiTexts.NothingWas("removed")}";
 
         return [new ShowConfirmEffect(prompt, accepted, unavailable)];
     }

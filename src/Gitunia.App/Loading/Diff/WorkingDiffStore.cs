@@ -153,7 +153,7 @@ public sealed class WorkingDiffStore(
         Status = DiffStatus.Loading;
         if (!keepRows)
         {
-            Document = DiffDocument.Message("Loading...");
+            Document = DiffDocument.Message(UiTexts.Loading);
         }
 
         Changed?.Invoke();
@@ -221,10 +221,9 @@ public sealed class WorkingDiffStore(
 
         if (skipped > 0 && !truncated)
         {
-            var noun = skipped == 1 ? "file" : "files";
             builder.AddTrailingNote(
                 KeyTokens.Resolve(
-                    $"Showing the first {fileLimit} of {entries.Count} files; {skipped} more {noun} left out: "
+                    $"Showing the first {fileLimit} of {entries.Count} files; {CountText.Plural(skipped, "more file")} left out: "
                     + KeyTokens.Of(ActionIds.DiffLoadAnyway, "load all of them"),
                     _limits.Keymap));
         }
@@ -241,7 +240,7 @@ public sealed class WorkingDiffStore(
     private static string? NoteForNoFile(StatusEntry entry) => entry.Kind switch
     {
         StatusEntryKind.Unmerged => $"Conflicted ({DescribeConflict(entry.Conflict)}): git shows no combined diff for it",
-        StatusEntryKind.Untracked => "Nothing to show: an untracked directory or repository, or a file that cannot be read",
+        StatusEntryKind.Untracked => $"{UiTexts.Nothing("show")}: an untracked directory or repository, or a file that cannot be read",
         _ => null,
     };
 

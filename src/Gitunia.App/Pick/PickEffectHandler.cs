@@ -59,6 +59,6 @@ public sealed class PickEffectHandler(IPickWriter writer, IPickCommitReader read
             return new PickFailed(effect.TabId, PickTexts.Failure(run.PickKind, what, run.Target, reason));
         }
 
-        return new PickReadFailed(effect.TabId, $"Could not read the commits, nothing was done: {reason}");
+        return new PickReadFailed(effect.TabId, $"Could not read the commits, {UiTexts.NothingWas("done")}: {reason}");
     }
 }

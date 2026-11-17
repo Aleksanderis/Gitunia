@@ -115,7 +115,7 @@ public sealed class UpdateCommand(ReleaseClient client, ExecutableSwapper swappe
                     $"Gitunia cannot write to {folder}: run the update with the rights that folder needs, or use the install script.");
             }
 
-            await output.WriteLineAsync($"Nothing was changed. Do it by hand: download {asset.Url}, unpack it and replace {facts.ExecutablePath}.");
+            await output.WriteLineAsync($"The installed binary was left as it was. Do it by hand: download {asset.Url}, unpack it and replace {facts.ExecutablePath}.");
 
             return UpdateExitCode.Failed;
         }

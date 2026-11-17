@@ -3,6 +3,7 @@ using Gitunia.Core.Effects;
 using Gitunia.Core.Overlays;
 using Gitunia.Core.Prompts;
 using Gitunia.Core.Status;
+using Gitunia.Core.Text;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Git.Stash;
 using Gitunia.Git.Stash.Models;
@@ -28,8 +29,10 @@ public static class StashReducer
     public const string NoFileNotice =
         "Select a file of a shown stash first (Enter on the stash, Ctrl-j to its files)";
 
-    private const string TooSmallNoRestoreNotice = "The screen is too small to ask: nothing was restored";
-    private const string TooSmallNoDropNotice = "The screen is too small to ask: nothing was dropped";
+    private static readonly string TooSmallNoRestoreNotice =
+        $"The screen is too small to ask: {UiTexts.NothingWas("restored")}";
+    private static readonly string TooSmallNoDropNotice =
+        $"The screen is too small to ask: {UiTexts.NothingWas("dropped")}";
 
     /// <summary>Applies a command and returns the effects to run.</summary>
     public static ImmutableArray<AppEffect> Reduce(StashCommand command, StashContext context) => command switch
@@ -127,7 +130,7 @@ public static class StashReducer
     {
         if (context.IsBusy)
         {
-            return [Post($"{BusyNotice}; nothing was dropped")];
+            return [Post($"{BusyNotice}; {UiTexts.NothingWas("dropped")}")];
         }
 
         return [new DropStashEffect(context.TabId, context.Location, confirmed.Entry)];
@@ -179,7 +182,7 @@ public static class StashReducer
     {
         if (context.IsBusy)
         {
-            return [Post($"{BusyNotice}; nothing was restored")];
+            return [Post($"{BusyNotice}; {UiTexts.NothingWas("restored")}")];
         }
 
         return [new RestoreStashFileEffect(context.TabId, context.Location, confirmed.Target)];

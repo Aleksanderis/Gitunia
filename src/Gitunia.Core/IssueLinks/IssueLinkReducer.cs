@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using Gitunia.Core.Clipboard;
 using Gitunia.Core.Effects;
 using Gitunia.Core.Status;
+using Gitunia.Core.Text;
 
 namespace Gitunia.Core.IssueLinks;
 
@@ -34,9 +35,7 @@ public static class IssueLinkReducer
         var number = request.Number ?? 1;
         if (number < 1 || number > references.Length)
         {
-            var noun = references.Length == 1 ? "issue link" : "issue links";
-
-            return [Warn($"This line has {references.Length} {noun}: there is no link number {number}")];
+            return [Warn($"This line has {CountText.Plural(references.Length, "issue link")}: there is no link number {number}")];
         }
 
         var url = references[number - 1].Url;

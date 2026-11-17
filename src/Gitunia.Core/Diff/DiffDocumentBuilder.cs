@@ -1,3 +1,5 @@
+using Gitunia.Core.Text;
+using Gitunia.Git.Commits.Models;
 using Gitunia.Git.Diff.Models;
 
 namespace Gitunia.Core.Diff;
@@ -17,17 +19,10 @@ public sealed class DiffDocumentBuilder
     /// <summary>The mark and path text of a file header, for example <c>R old.txt -&gt; new.txt</c>.</summary>
     public static string DescribeFile(DiffFile file)
     {
-        var mark = file.Status switch
-        {
-            DiffFileStatus.Added => "A",
-            DiffFileStatus.Deleted => "D",
-            DiffFileStatus.Renamed => "R",
-            DiffFileStatus.Copied => "C",
-            _ => "M",
-        };
+        var mark = ValueFormat.StatusLetter(KindOf(file.Status));
         if (file.Status is DiffFileStatus.Renamed or DiffFileStatus.Copied && file.OldPath is { } oldPath)
         {
-            return $"{mark} {oldPath} -> {file.Path}";
+            return $"{mark} {ValueFormat.RenameText(oldPath, file.Path)}";
         }
 
         return $"{mark} {file.Path}";
@@ -192,4 +187,13 @@ public sealed class DiffDocumentBuilder
     }
 
     private static DiffRow Note(string text, int fileIndex) => new(DiffRowKind.Note, text, null, null, fileIndex);
+
+    private static FileChangeKind KindOf(DiffFileStatus status) => status switch
+    {
+        DiffFileStatus.Added => FileChangeKind.Added,
+        DiffFileStatus.Deleted => FileChangeKind.Deleted,
+        DiffFileStatus.Renamed => FileChangeKind.Renamed,
+        DiffFileStatus.Copied => FileChangeKind.Copied,
+        _ => FileChangeKind.Modified,
+    };
 }

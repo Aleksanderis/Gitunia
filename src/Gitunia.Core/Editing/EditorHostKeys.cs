@@ -2,6 +2,7 @@ using Gitunia.Core.Clipboard;
 using Gitunia.Core.Effects;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Status;
+using Gitunia.Core.Text;
 
 namespace Gitunia.Core.Editing;
 
@@ -13,10 +14,10 @@ namespace Gitunia.Core.Editing;
 public static class EditorHostKeys
 {
     /// <summary>The notice when undo has nothing to take back.</summary>
-    public const string NothingToUndoNotice = "Nothing to undo";
+    public static readonly string NothingToUndoNotice = UiTexts.Nothing("undo");
 
     /// <summary>The notice when redo has nothing to bring back.</summary>
-    public const string NothingToRedoNotice = "Nothing to redo";
+    public static readonly string NothingToRedoNotice = UiTexts.Nothing("redo");
 
     /// <summary>What the clipboard notice calls the copied text.</summary>
     public const string SelectionDescription = "selected text";

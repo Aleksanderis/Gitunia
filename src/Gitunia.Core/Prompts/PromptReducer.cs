@@ -5,6 +5,7 @@ using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Overlays;
 using Gitunia.Core.Shell;
 using Gitunia.Core.Status;
+using Gitunia.Core.Text;
 
 namespace Gitunia.Core.Prompts;
 
@@ -37,7 +38,7 @@ public static class PromptReducer
         PromptPicker? picker = null;
         if (request.Choices is { } choices)
         {
-            picker = PromptPicker.Of(choices, request.NoMatch, request.InitialText);
+            picker = PromptPicker.Of(choices, request.NoMatch ?? UiTexts.NoMatch("item"), request.InitialText);
         }
 
         var prompt = new OpenPrompt(

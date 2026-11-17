@@ -11,12 +11,15 @@ namespace Gitunia.Git.History;
 /// </summary>
 public static class FileHistoryParser
 {
-    /// <summary>The <c>--format</c> value the parser expects: hash, author name, short date and subject.</summary>
+    /// <summary>The <c>--format</c> value the parser expects: hash, author name, date and subject.</summary>
     public const string Format =
         $"--format={GitSeparators.LogRecordSeparatorPlaceholder}%H{Unit}%an{Unit}%ad{Unit}%s";
 
-    /// <summary>The <c>--date</c> value that makes the date field short.</summary>
-    public const string DateOption = "--date=short";
+    /// <summary>
+    /// The <c>--date</c> value that makes the date field the list format of the app (<c>2026-11-17 09:30</c>, in the
+    /// author's zone), the same text as the graph column.
+    /// </summary>
+    public const string DateOption = "--date=format:%Y-%m-%d %H:%M";
 
     /// <summary>Number of header fields in <see cref="Format"/>.</summary>
     public const int FieldCount = 4;

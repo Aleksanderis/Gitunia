@@ -20,9 +20,15 @@ namespace Gitunia.Tui.App.Reflog;
 /// <param name="host">The dispatcher that holds the state.</param>
 /// <param name="selection">What the sidebar cursor is on, to pick the branch whose reflog opens.</param>
 /// <param name="glyphs">The characters the list is drawn with.</param>
-public sealed class ReflogInput(Dispatcher host, IBranchSelectionSource selection, GraphGlyphSet glyphs)
-    : IActionHandler, ITextKeyHandler
+/// <param name="clock">The current time for the ages of the entries.</param>
+public sealed class ReflogInput(
+    Dispatcher host,
+    IBranchSelectionSource selection,
+    GraphGlyphSet glyphs,
+    TimeProvider? clock = null) : IActionHandler, ITextKeyHandler
 {
+    private readonly TimeProvider _clock = clock ?? TimeProvider.System;
+
     private ReflogSession Session => host.State.Shell.Reflog;
 
     private ScreenExtent Screen => host.State.Shell.Screen ?? new ScreenExtent(0, 0);
@@ -34,7 +40,7 @@ public sealed class ReflogInput(Dispatcher host, IBranchSelectionSource selectio
     {
         var screen = Screen;
 
-        return Session.List is { } list ? ReflogFrameBuilder.Build(list, screen.Width, screen.Height, glyphs) : null;
+        return Session.List is { } list ? ReflogFrameBuilder.Build(list, screen.Width, screen.Height, glyphs, _clock.GetUtcNow()) : null;
     }
 
     /// <summary>Opens the list on <see cref="ActionIds.ReflogOpen"/> and, while it is open, consumes every action.

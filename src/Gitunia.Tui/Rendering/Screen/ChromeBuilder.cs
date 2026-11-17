@@ -2,6 +2,7 @@ using System.Globalization;
 using Gitunia.Core.Editing;
 using Gitunia.Core.Picker;
 using Gitunia.Core.Status;
+using Gitunia.Core.Text;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Panes;
@@ -83,7 +84,7 @@ public static class ChromeBuilder
 
         if (model.IsLoading && model.Picker is null)
         {
-            builder.Append("loading... ", SegmentRole.Status);
+            builder.Append($"{UiTexts.Loading} ", SegmentRole.Status);
         }
 
         if (model.Message.Length > 0)

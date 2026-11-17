@@ -321,7 +321,7 @@ public class PromptReducerTests
         Assert.Equal(["origin", "backup"], severalPopup.Details);
         Assert.Equal(0, severalPopup.Highlight);
         Assert.Equal("1/2", severalPopup.Count);
-        Assert.Contains("Ctrl-j/k select", severalPopup.Hint, StringComparison.Ordinal);
+        Assert.Contains("Ctrl-j/k move", severalPopup.Hint, StringComparison.Ordinal);
         Assert.DoesNotContain("Ctrl-j/k", OpenPromptPopup.Of(single).Hint, StringComparison.Ordinal);
         var nonePopup = OpenPromptPopup.Of(none);
         Assert.Equal(["No matching remote"], nonePopup.Details);

@@ -1,7 +1,7 @@
-using System.Globalization;
 using Gitunia.Core.Lists;
 using Gitunia.Core.Settings;
 using Gitunia.Core.Settings.Models;
+using Gitunia.Core.Text;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Styling;
 
@@ -26,10 +26,10 @@ public static class SettingsFrameBuilder
     private const int MaximumHelpLines = 2;
 
 
-    private static readonly HintItem Move = new("j/k", "move");
+    private static readonly HintItem Move = new("j/k", HintVerb.Move);
     private static readonly HintItem Back = new("h", "back");
     private static readonly HintItem Filter = new("/", "filter");
-    private static readonly HintItem Close = new("Esc", "close");
+    private static readonly HintItem Close = new("Esc", HintVerb.Close);
 
     /// <summary>The settings frame for a screen, or null when the screen is too small to show even a title.</summary>
     /// <param name="state">The settings state.</param>
@@ -208,8 +208,7 @@ public static class SettingsFrameBuilder
         {
             var count = state.Rows.Count(
                 row => row.Definition.Control != SettingControl.KeyReference || row.Kind == SettingRowKind.Binding);
-            var noun = count == 1 ? "match" : "matches";
-            var text = string.Create(CultureInfo.InvariantCulture, $"{glyphs.Picker.Prompt} {state.Filter}  {count} {noun}");
+            var text = $"{glyphs.Picker.Prompt} {state.Filter}  {CountText.Plural(count, "match", "matches")}";
 
             return OverlayBox.Text(text, layout.Width, glyphs);
         }
@@ -428,7 +427,7 @@ public static class SettingsFrameBuilder
 
         if (state.Selected is not { } row)
         {
-            return [state.IsFiltering ? "Nothing matches the filter." : "Nothing to show.", string.Empty];
+            return [state.IsFiltering ? UiTexts.NoMatch("setting") : UiTexts.Nothing("show"), string.Empty];
         }
 
         var definition = row.Definition;
@@ -461,39 +460,39 @@ public static class SettingsFrameBuilder
     {
         if (state.Removal is not null)
         {
-            return [new("y", "remove"), new("n", "keep"), new("Esc", "keep")];
+            return [new("y", "remove"), new("n", "keep"), new("Esc", HintVerb.Keep)];
         }
 
         if (state.Input is not null)
         {
-            return [new("Enter", "save"), new("Esc", "keep")];
+            return [new("Enter", HintVerb.Save), new("Esc", HintVerb.Keep)];
         }
 
         if (state.IsEditingFilter)
         {
-            return [new(string.Empty, "type to filter"), new("Enter", "keep"), new("Esc", "clear")];
+            return [new(string.Empty, HintVerb.TypeToFilter), new("Enter", HintVerb.Keep), new("Esc", HintVerb.Clear)];
         }
 
         if (state.Choice is not null)
         {
-            return [new("j/k", "choose"), new("Enter", "keep"), new("Esc", "restore")];
+            return [new("j/k", HintVerb.Move), new("Enter", HintVerb.Keep), new("Esc", HintVerb.Cancel)];
         }
 
         if (state.IsFiltering)
         {
-            return [new("j/k", "move"), new("Enter", "jump to it"), new("/", "new filter"), new("Esc", "clear")];
+            return [new("j/k", HintVerb.Move), new("Enter", HintVerb.Open), new("/", "new filter"), new("Esc", HintVerb.Clear)];
         }
 
         if (state.Column == SettingsColumn.Categories && !state.ListsAllCategories)
         {
-            return [new("j/k", "move"), new("l/Enter", "open"), new("/", "filter"), Close];
+            return [new("j/k", HintVerb.Move), new("l/Enter", HintVerb.Open), new("/", "filter"), Close];
         }
 
         return state.Selected switch
         {
             { Kind: SettingRowKind.Item } =>
             [
-                new("Enter", "edit"),
+                new("Enter", HintVerb.Edit),
                 new("d", "remove"),
                 new("J/K", "reorder"),
                 new("a", "add"),
@@ -503,11 +502,11 @@ public static class SettingsFrameBuilder
             { Definition.Control: SettingControl.PathList } => [new("Enter/a", "add"), Move, Back, Filter, Close],
             { Definition.Control: SettingControl.Toggle } => [new("Enter/x", "flip"), Move, Back, Filter, Close],
             { Definition.Control: SettingControl.Number } =>
-                [new("Enter", "type"), new("+/-", "step"), Move, Back, Close],
-            { Kind: SettingRowKind.Binding } => [new("Enter", "show config entry"), Move, Back, Filter, Close],
+                [new("Enter", HintVerb.Edit), new("+/-", "step"), Move, Back, Close],
+            { Kind: SettingRowKind.Binding } => [new("Enter", HintVerb.Open), Move, Back, Filter, Close],
             { Definition.Control: SettingControl.KeyReference } => [Move, Back, Filter, Close],
-            { Definition.Control: SettingControl.Action } => [new("Enter", "open"), Move, Back, Filter, Close],
-            _ => [Move, new("l/Enter", "edit"), Back, Filter, Close],
+            { Definition.Control: SettingControl.Action } => [new("Enter", HintVerb.Open), Move, Back, Filter, Close],
+            _ => [Move, new("l/Enter", HintVerb.Edit), Back, Filter, Close],
         };
     }
 

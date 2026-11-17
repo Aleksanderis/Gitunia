@@ -12,7 +12,7 @@ namespace Gitunia.Core.Branches;
 /// <summary>The delete action of <see cref="BranchReducer"/>: pick among several branches, then ask.</summary>
 internal static class BranchDeletes
 {
-    private const string TooSmallNotice = "The screen is too small to ask: nothing was deleted";
+    private static readonly string TooSmallNotice = $"The screen is too small to ask: {UiTexts.NothingWas("deleted")}";
 
     // The branch under the cursor goes to the confirm dialog; a folder or a graph commit with several branches opens a
     // list to pick from first.

@@ -1,4 +1,5 @@
 using Gitunia.Core.Lists;
+using Gitunia.Core.Text;
 using Gitunia.Core.Visual;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Repositories;
@@ -17,7 +18,7 @@ public sealed class RangeCopier(
     IActiveSessions sessions,
     IActiveWorkingTree? workingTree = null)
 {
-    private static readonly RangeCopyResult NothingToCopy = new(false, "Nothing to copy");
+    private static readonly RangeCopyResult NothingToCopy = new(false, UiTexts.Nothing("copy"));
 
     /// <summary>Copies the range of <paramref name="pane"/>.</summary>
     /// <returns>Whether the text was copied, with a notice for the status bar when nothing was copied (a failed copy posts its own warning).</returns>
@@ -73,7 +74,7 @@ public sealed class RangeCopier(
         }
 
         var lines = text.Count(character => character == '\n');
-        var copied = clipboard.Copy(text, lines == 1 ? $"1 line of {description}" : $"{lines} lines of {description}");
+        var copied = clipboard.Copy(text, CountText.Plural(lines, $"line of {description}", $"lines of {description}"));
         return new RangeCopyResult(copied, string.Empty);
     }
 
@@ -97,7 +98,7 @@ public sealed class RangeCopier(
         }
 
         var characters = text.EnumerateRunes().Count();
-        var description = characters == 1 ? "1 selected character" : $"{characters} selected characters";
+        var description = CountText.Plural(characters, "selected character");
         var copied = clipboard.Copy(text, description);
 
         return new RangeCopyResult(copied, string.Empty);
@@ -126,7 +127,7 @@ public sealed class RangeCopier(
             return NothingToCopy;
         }
 
-        var description = paths.Count == 1 ? "1 file path" : $"{paths.Count} file paths";
+        var description = CountText.Plural(paths.Count, "file path");
         var copied = clipboard.Copy(string.Join('\n', paths), description);
         return new RangeCopyResult(copied, string.Empty);
     }

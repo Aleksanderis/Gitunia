@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using Gitunia.Core.Search.Models;
+using Gitunia.Core.Text;
 using Gitunia.Git;
 
 namespace Gitunia.Core.Search;
@@ -12,8 +13,8 @@ namespace Gitunia.Core.Search;
 public static class GraphSearchReducer
 {
     public const string WrappedNotice = "Search wrapped";
-    public const string NoSearchNotice = "No search yet; press / to start one";
-    public const string NoMatchNotice = "No match";
+    public const string NoSearchNotice = UiTexts.NoSearch;
+    public static readonly string NoMatchNotice = UiTexts.NoMatch("commit");
     public const string BodySearchFailedNotice = "Message search failed";
 
     public static GraphSearchUpdate Reduce(GraphSearchState state, GraphSearchCommand command) => command switch

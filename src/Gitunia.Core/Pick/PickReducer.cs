@@ -4,6 +4,7 @@ using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Operations;
 using Gitunia.Core.Sidebar;
 using Gitunia.Core.Status;
+using Gitunia.Core.Text;
 using Gitunia.Git.Pick;
 using Gitunia.Git.Refs.Models;
 
@@ -88,7 +89,7 @@ public static class PickReducer
 
         if (!context.IsActive)
         {
-            return Warn(context, "The tab changed: nothing was done");
+            return Warn(context, $"The tab changed: {UiTexts.NothingWas("done")}");
         }
 
         var mainlineCount = read.Commits.Where(commit => commit.IsMerge).Min(commit => commit.Parents.Count);
@@ -173,7 +174,7 @@ public static class PickReducer
             return OperationKeys.InProgress(name);
         }
 
-        return context.Head?.Kind == HeadKind.Unborn ? "The branch has no commits yet: nothing to pick onto" : null;
+        return context.Head?.Kind == HeadKind.Unborn ? $"The branch has no commits yet: {UiTexts.NothingTo("pick")} onto" : null;
     }
 
     private static string TargetOf(HeadState? head) =>

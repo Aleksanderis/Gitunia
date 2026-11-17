@@ -1,3 +1,4 @@
+using Gitunia.Core.Text;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Git.Refs.Models;
 using Gitunia.Git.Repositories.Models;
@@ -17,7 +18,7 @@ public static class CommitCheck
     public const string StatusNotLoaded = "The status is not loaded yet";
 
     /// <summary>Shown when Amend is on but the branch has no commit.</summary>
-    public const string NothingToAmend = "Nothing to amend: there is no commit yet";
+    public static readonly string NothingToAmend = $"{UiTexts.Nothing("amend")}: there is no commit yet";
 
     /// <summary>Shown when Amend is switched on during a merge.</summary>
     public const string AmendDuringMerge = "Amend is not possible while a merge is in progress";

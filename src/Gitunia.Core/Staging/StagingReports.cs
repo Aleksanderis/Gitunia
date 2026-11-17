@@ -61,8 +61,8 @@ public static class StagingReports
             PatchStagingOutcome.NotSplittable =>
                 $"{name} cannot be split into lines (new, deleted or binary file): {verb} its change or the whole file",
             PatchStagingOutcome.FileChanged =>
-                $"{name} changed since the diff was read: nothing was {verb}d, the diff is read again",
-            _ => $"Nothing to {verb} in the selection",
+                $"{name} changed since the diff was read: {UiTexts.NothingWas(verb + "d")}, the diff is read again",
+            _ => $"{UiTexts.Nothing(verb)} in the selection",
         };
     }
 

@@ -157,7 +157,7 @@ public class ScreenComposerTests
     {
         var frame = Frame(Model(12, 3200, isLoading: true, pending: "5g"), Diamond(), 0, 0, 60, 4);
 
-        Assert.EndsWith(" NORMAL  5g 12/3200+ loading...  ? help  : commands  q quit…", frame, StringComparison.Ordinal);
+        Assert.EndsWith(" NORMAL  5g 12/3200+ Loading...  ? help  : commands  q quit…", frame, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -226,7 +226,7 @@ public class ScreenComposerTests
         Assert.Equal(6, lines.Count);
         Assert.All(lines, line => Assert.Equal(40, TextWidth.Of(line.Text)));
         Assert.DoesNotContain(lines, line => line.Segments.Any(segment => segment.Selection is SegmentSelection.Focused or SegmentSelection.Dim));
-        Assert.Contains("0/0+ loading...", lines[^1].Text, StringComparison.Ordinal);
+        Assert.Contains("0/0+ Loading...", lines[^1].Text, StringComparison.Ordinal);
     }
 
     [Theory]

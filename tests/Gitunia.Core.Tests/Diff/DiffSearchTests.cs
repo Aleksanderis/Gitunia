@@ -1,5 +1,6 @@
 using Gitunia.Core.Diff;
 using Gitunia.Core.Editing;
+using Gitunia.Core.Text;
 using Xunit;
 
 namespace Gitunia.Core.Tests.Diff;
@@ -61,7 +62,7 @@ public class DiffSearchTests
 
         Assert.Null(update.RevealRow);
         Assert.False(update.State.IsOpen);
-        Assert.Equal("No match: zzz", update.State.Notice);
+        Assert.Equal("No match for zzz", update.State.Notice);
     }
 
     [Fact]
@@ -96,7 +97,7 @@ public class DiffSearchTests
         var update = DiffSearch.Step(DiffSearchState.Idle, forward: true, count: 1, row: 0);
 
         Assert.Null(update.RevealRow);
-        Assert.Equal("No search", update.State.Notice);
+        Assert.Equal(UiTexts.NoSearch, update.State.Notice);
     }
 
     [Fact]

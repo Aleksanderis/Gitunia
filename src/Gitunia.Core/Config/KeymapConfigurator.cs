@@ -1,6 +1,7 @@
 using Gitunia.Core.Config.Models;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
+using Gitunia.Core.Text;
 
 namespace Gitunia.Core.Config;
 
@@ -51,7 +52,7 @@ public static class KeymapConfigurator
             var candidate = Replace(current, edit);
             if (candidate is null)
             {
-                problems.Add(new ConfigProblem(path, $"{DescribeEdit(edit)} is not bound, nothing to unbind"));
+                problems.Add(new ConfigProblem(path, $"{DescribeEdit(edit)} is not bound, {UiTexts.NothingTo("unbind")}"));
                 continue;
             }
 

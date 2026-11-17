@@ -124,7 +124,7 @@ public class WorktreeReducerTests
     {
         var update = Reduce(new WorktreeBranchAccepted(Tab, null, "   "), Context());
 
-        Assert.Equal("No branch given: nothing was added", PromptRejections.Reason(update.Effects));
+        Assert.Equal("No branch: nothing was added", PromptRejections.Reason(update.Effects));
     }
 
     [Fact]
@@ -155,7 +155,7 @@ public class WorktreeReducerTests
     {
         var update = Reduce(new WorktreePathAccepted(Tab, "fresh", null, false, " "), Context());
 
-        Assert.Equal("No path given: nothing was added", PromptRejections.Reason(update.Effects));
+        Assert.Equal("No path: nothing was added", PromptRejections.Reason(update.Effects));
     }
 
     [Fact]

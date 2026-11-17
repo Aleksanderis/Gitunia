@@ -1,6 +1,7 @@
 using Gitunia.Core.Clipboard;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
+using Gitunia.Core.Text;
 
 namespace Gitunia.Core.Conflicts;
 
@@ -263,7 +264,7 @@ internal static class ConflictActions
         }
 
         var lines = yank.Text.Split('\n').Length;
-        var description = lines == 1 ? ConflictNotices.LineDescription : $"{lines} lines";
+        var description = CountText.Plural(lines, "line");
 
         return ConflictFlow.Show(session, editor.Yanked(yank), new CopyToClipboardEffect(yank.Text, description));
     }

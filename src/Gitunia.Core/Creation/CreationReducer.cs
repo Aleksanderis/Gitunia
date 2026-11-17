@@ -3,6 +3,7 @@ using Gitunia.Core.Effects;
 using Gitunia.Core.Picker;
 using Gitunia.Core.Prompts;
 using Gitunia.Core.Status;
+using Gitunia.Core.Text;
 using Gitunia.Git.Repositories;
 using Gitunia.Git.Repositories.Models;
 
@@ -28,7 +29,7 @@ public static class CreationReducer
     public const string EmptyNotice = "Type something first";
 
     /// <summary>Shown when a clone was cancelled.</summary>
-    public const string CancelledText = "Clone cancelled; nothing was left behind";
+    public static readonly string CancelledText = $"Clone cancelled; {UiTexts.NothingWas("left")} behind";
 
     private const string CloneTitle = "Clone repository";
     private const string CloneSourceContext = "URL or path of the repository to clone";

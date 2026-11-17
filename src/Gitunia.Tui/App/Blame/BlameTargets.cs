@@ -1,4 +1,5 @@
 using Gitunia.Core.FileTree;
+using Gitunia.Core.Text;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Git.Commits.Models;
@@ -23,7 +24,8 @@ public sealed class BlameTargets(IPaneLists lists, IActiveSessions sessions, IGr
     public const string NoFileNotice = "Select a file to blame it";
 
     /// <summary>The notice when the selected file was deleted by the shown commit.</summary>
-    public const string DeletedNotice = "The commit deletes this file: there is nothing to blame";
+    public static readonly string DeletedNotice =
+        $"The commit deletes this file: there is {UiTexts.NothingTo("blame")}";
 
     /// <summary>The notice when no commit is selected.</summary>
     public const string NoCommitNotice = "Select a commit to blame its files";

@@ -99,7 +99,7 @@ public static class WorktreeReducer
         var name = accepted.Name.Trim();
         if (name.Length == 0)
         {
-            return [new ReopenPromptEffect("No branch given: nothing was added")];
+            return [new ReopenPromptEffect($"{UiTexts.Empty("branch")}: {UiTexts.NothingWas("added")}")];
         }
 
         var tab = context.Tab;
@@ -135,12 +135,12 @@ public static class WorktreeReducer
         var text = accepted.Text.Trim();
         if (text.Length == 0)
         {
-            return [new ReopenPromptEffect("No path given: nothing was added")];
+            return [new ReopenPromptEffect($"{UiTexts.Empty("path")}: {UiTexts.NothingWas("added")}")];
         }
 
         if (context.IsBusy)
         {
-            return [Warn($"{WorktreeTexts.BusyNotice}; nothing was changed")];
+            return [Warn($"{WorktreeTexts.BusyNotice}; {UiTexts.NothingWas("changed")}")];
         }
 
         var root = context.Tab.Location.RootPath;
@@ -187,7 +187,7 @@ public static class WorktreeReducer
     {
         if (context.IsBusy)
         {
-            return [Warn($"{WorktreeTexts.BusyNotice}; nothing was changed")];
+            return [Warn($"{WorktreeTexts.BusyNotice}; {UiTexts.NothingWas("changed")}")];
         }
 
         return [new LockWorktreeEffect(context.Tab.Id, context.Tab.Location, accepted.Path, accepted.Reason.Trim())];
@@ -217,7 +217,7 @@ public static class WorktreeReducer
     {
         if (context.IsBusy)
         {
-            return [Warn($"{WorktreeTexts.BusyNotice}; nothing was changed")];
+            return [Warn($"{WorktreeTexts.BusyNotice}; {UiTexts.NothingWas("changed")}")];
         }
 
         return [new PruneWorktreesEffect(context.Tab.Id, context.Tab.Location)];

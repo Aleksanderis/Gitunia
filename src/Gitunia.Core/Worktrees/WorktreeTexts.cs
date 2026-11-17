@@ -21,7 +21,7 @@ public static class WorktreeTexts
     public const string NoWorktreeNotice = "Select a worktree in the sidebar first";
 
     /// <summary>Shown when a confirm cannot be displayed.</summary>
-    public const string TooSmallNotice = "The screen is too small to ask: nothing was changed";
+    public static readonly string TooSmallNotice = $"The screen is too small to ask: {UiTexts.NothingWas("changed")}";
 
     private const int NamedChangeLimit = 5;
 

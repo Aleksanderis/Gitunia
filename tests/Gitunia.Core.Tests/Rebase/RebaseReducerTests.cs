@@ -243,7 +243,7 @@ public class RebaseReducerTests
         var effects = Reduce(new RebaseFinished(Tab, OntoTarget(), result));
 
         Assert.Equal(
-            "main is already based on topic: nothing changed",
+            "main is already based on topic: nothing was changed",
             Assert.IsType<PostStatusEffect>(effects[0]).Text);
     }
 

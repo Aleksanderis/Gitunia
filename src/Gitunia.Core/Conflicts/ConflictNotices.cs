@@ -1,4 +1,5 @@
 using Gitunia.Core.Keymap;
+using Gitunia.Core.Text;
 namespace Gitunia.Core.Conflicts;
 
 /// <summary>The status messages of the conflict editor flow.</summary>
@@ -8,10 +9,10 @@ public static class ConflictNotices
     public const string Busy = "Busy: another operation of this tab is still running";
 
     /// <summary>The screen has no room for the confirm dialog.</summary>
-    public const string TooSmall = "The screen is too small to ask: nothing was saved";
+    public static readonly string TooSmall = $"The screen is too small to ask: {UiTexts.NothingWas("saved")}";
 
     /// <summary>A save without any pick or edit.</summary>
-    public const string NothingPicked = "Nothing is picked or edited yet: nothing to save";
+    public static readonly string NothingPicked = $"Nothing is picked or edited yet: {UiTexts.NothingTo("save")}";
 
     /// <summary>The base was taken from a file without a common ancestor.</summary>
     public const string NoBase = "This conflict has no common ancestor: set merge.conflictStyle=diff3, then R";
@@ -20,14 +21,15 @@ public static class ConflictNotices
     public const string NotInVersion = "Move to the base, ours or theirs pane to take a version (Tab)";
 
     /// <summary>A Visual selection holds no line of the conflict.</summary>
-    public const string NoLines = "The selection holds no line of the current conflict: nothing was taken";
+    public static readonly string NoLines =
+        $"The selection holds no line of the current conflict: {UiTexts.NothingWas("taken")}";
 
     /// <summary>Untake on a conflict nobody decided.</summary>
-    public const string NothingToUntake = "This conflict is unresolved: nothing to untake";
+    public static readonly string NothingToUntake = $"This conflict is unresolved: {UiTexts.NothingTo("untake")}";
 
     /// <summary>Untake of a selection that holds no line of the result.</summary>
-    public const string NoLinesToUntake =
-        "None of the selected lines is in this conflict's result: nothing was untaken";
+    public static readonly string NoLinesToUntake =
+        $"None of the selected lines is in this conflict's result: {UiTexts.NothingWas("untaken")}";
 
     /// <summary>The selection key was pressed with the cursor in the result.</summary>
     public const string SelectInVersion = "Lines are selected in the base, ours or theirs pane (Tab)";
@@ -45,7 +47,8 @@ public static class ConflictNotices
     public const string Covered = "Another view opened while the file was read: the conflict editor was not opened";
 
     /// <summary>The file differs from what the editor was opened on.</summary>
-    public const string FileChanged = "The file changed on disk since it was opened: nothing was saved";
+    public static readonly string FileChanged =
+        $"The file changed on disk since it was opened: {UiTexts.NothingWas("saved")}";
 
     /// <summary>The hint for a conflict the editor refuses.</summary>
     public static readonly string MergetoolHint = $"use {KeyTokens.Of(ActionIds.ToolMergetool, "the mergetool")} instead";
@@ -54,16 +57,14 @@ public static class ConflictNotices
     public const string TypingInResult = "Typing in the result: Esc keeps the text, Ctrl-g is done";
 
     /// <summary>A copy of a line on a filler row or of a Visual selection without text.</summary>
-    public const string NothingToCopy = "Nothing to copy: no text on this line";
+    public static readonly string NothingToCopy = $"{UiTexts.Nothing("copy")}: no text on this line";
 
     /// <summary>A copy key with no text selected in the result.</summary>
     public const string NothingSelected = "Nothing is selected: drag with the mouse, or press i and use Shift with the arrows";
 
     /// <summary>A put before anything was copied.</summary>
-    public const string NothingToPut = "Nothing to put yet: copy lines first (yy, Visual y, Alt-w)";
-
-    /// <summary>What a copied line is called in the status message.</summary>
-    public const string LineDescription = "line";
+    public static readonly string NothingToPut =
+        $"{UiTexts.Nothing("put")} yet: copy lines first (yy, Visual y, Alt-w)";
 
     /// <summary>What copied selected text is called in the status message.</summary>
     public const string SelectionDescription = "selected text";

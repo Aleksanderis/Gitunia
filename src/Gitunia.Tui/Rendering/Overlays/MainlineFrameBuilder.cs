@@ -1,4 +1,5 @@
 using System.Globalization;
+using Gitunia.Core.Text;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Styling;
 
@@ -17,7 +18,7 @@ public static class MainlineFrameBuilder
     // The index "[n]", " unavailable" and the gap before it.
     private const int UnavailableSuffixWidth = 16;
     private const int ScreenMargin = 2;
-    private static readonly HintItem[] Hint = [new("Esc", "or a click outside cancels")];
+    private static readonly HintItem[] Hint = [new("Esc", HintVerb.CancelOrClickOutside)];
 
     /// <summary>The overlay for a screen, or null when it does not fit.</summary>
     public static OverlayFrame? Build(
