@@ -1,9 +1,13 @@
+using System.Collections.Immutable;
+using Gitunia.Core.Keymap.Models;
+
 namespace Gitunia.Core.Overlays;
 
 /// <summary>One key of a prompt footer and what it does; the renderer draws the key in the key style.</summary>
 /// <param name="Keys">The key text, such as <c>Enter</c> or <c>Ctrl-j/k</c>; empty for a plain note.</param>
 /// <param name="Label">What the key does, such as <c>create</c>.</param>
-public readonly record struct PromptHint(string Keys, string Label)
+/// <param name="Actions">The action of each slash-separated alternative in <paramref name="Keys"/>, in order: a click on the hint runs it like the key (the same rule as <c>KeyHint.Actions</c>); empty for a note.</param>
+public readonly record struct PromptHint(string Keys, string Label, ImmutableArray<ActionId> Actions = default)
 {
     /// <summary>The text as written in a status line: the key, a space, the label.</summary>
     public string Text => Keys.Length == 0 ? Label : $"{Keys} {Label}";

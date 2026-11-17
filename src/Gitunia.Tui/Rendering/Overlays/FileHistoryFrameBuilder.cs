@@ -1,6 +1,8 @@
 using System.Globalization;
 using Gitunia.Core.Diff;
 using Gitunia.Core.FileHistory;
+using Gitunia.Core.Hints;
+using Gitunia.Core.Keymap;
 using Gitunia.Core.Lists;
 using Gitunia.Core.Mouse;
 using Gitunia.Core.Text;
@@ -33,15 +35,22 @@ public static class FileHistoryFrameBuilder
     private const string NoHistoryText = "No history: the file is not in any commit";
     private const string NoRangeHistoryText = "No commit changed these lines";
     private const string LoadingText = UiTexts.Loading;
-    private const string SelectKey = "Enter";
-    private static readonly string SelectLabel = $"{HintVerb.Select} the commit in the graph";
+
+    // The one action with a sentence of its own: select the commit in the graph.
+    private static readonly KeyHint SelectHint = ActionRow.RowsOf(HintSet.ForFileHistory())[0];
 
     /// <summary>The frame for a screen, or null when the screen is too small to show it.</summary>
     /// <param name="state">The open history.</param>
     /// <param name="screenWidth">Screen columns.</param>
     /// <param name="screenHeight">Screen rows.</param>
     /// <param name="glyphs">The characters to draw with.</param>
-    public static OverlayFrame? Build(FileHistoryState state, int screenWidth, int screenHeight, GraphGlyphSet glyphs)
+    /// <param name="keys">The keymap lookup for the key of the action row; null uses the default keymap.</param>
+    public static OverlayFrame? Build(
+        FileHistoryState state,
+        int screenWidth,
+        int screenHeight,
+        GraphGlyphSet glyphs,
+        ChipKeys? keys = null)
     {
         var width = Math.Min(MaximumWidth, screenWidth - HorizontalMargin);
         var rows = VisibleRows(screenHeight);
@@ -62,17 +71,18 @@ public static class FileHistoryFrameBuilder
             lines.Add(Body(list, diff, inner, glyphs));
         }
 
-        lines.Add(OverlayBox.TwoColumns(
-            SelectKey,
-            SelectLabel,
+        lines.Add(ActionRow.Line(SelectHint, DefaultKeymap.FileHistoryView, width, glyphs, keys));
+        var targets = new List<FrameTarget>();
+        lines.Add(OverlayBox.Hints(
+            ActionRow.FooterOf(HintSet.ForFileHistory()),
+            targets,
+            lines.Count,
             width,
             glyphs,
-            SegmentRole.OverlayKey,
-            SegmentRole.Faint));
-        lines.Add(OverlayBox.Hints(FooterHints(), width, glyphs, FooterLead(state)));
+            FooterLead(state)));
         lines.Add(OverlayBox.Bottom(width, glyphs));
 
-        return new OverlayFrame((screenWidth - width) / 2, 1, lines);
+        return new OverlayFrame((screenWidth - width) / 2, 1, lines, targets);
     }
 
     /// <summary>Rows the list and the diff show at a screen height (the page size of the half-page motions).</summary>
@@ -191,9 +201,6 @@ public static class FileHistoryFrameBuilder
     // A tab or other control character would shift the columns the frame was measured for.
     private static string Printable(string text) =>
         text.Replace("\t", "    ", StringComparison.Ordinal).Replace("\r", string.Empty, StringComparison.Ordinal);
-
-    private static HintItem[] FooterHints() =>
-        [new("J/K", HintVerb.Scroll), new("Enter", HintVerb.Select), new("Esc", HintVerb.Close)];
 
     private static string FooterLead(FileHistoryState state)
     {

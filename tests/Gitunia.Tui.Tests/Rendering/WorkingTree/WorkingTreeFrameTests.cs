@@ -1,7 +1,7 @@
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Tui.Rendering.Graph;
-using Gitunia.Tui.Rendering.Panes;
+using Gitunia.Core.Hints;
 using Gitunia.Tui.Rendering.Screen;
 using Gitunia.Tui.Rendering.Styling;
 using Gitunia.Tui.Rendering.WorkingTree;
@@ -14,7 +14,7 @@ namespace Gitunia.Tui.Tests.Rendering.WorkingTree;
 public class WorkingTreeFrameTests
 {
     private static ScreenModel Model(PaneKind focused = PaneKind.WorkingUnstaged) =>
-        new("repo", "main", 1, 1, "NORMAL", string.Empty, 1, 1, false, string.Empty, Hints: PaneHints.For(focused));
+        new("repo", "main", 1, 1, "NORMAL", string.Empty, 1, 1, false, string.Empty, Hints: HintSet.For(focused));
 
     private static WorkingTreeState MixedTree() => Tree(
         Modified("src/app.cs"),

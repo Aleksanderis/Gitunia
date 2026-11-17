@@ -38,13 +38,14 @@ public sealed class OverlayParts
             foundation.Services.CommitMessages);
         Prompts = new PromptDisplays(
             [panes.DiffPane, panes.WorkingDiff, panes.QuickJump, panes.FileTree, OpenPrompt, Pick, RefJump, Search]);
-        Reflog = new ReflogInput(host, panes.Rows, glyphs);
+        Reflog = new ReflogInput(host, panes.Rows, glyphs, keys: foundation.Keys);
         Blame = new BlameInput(
             host,
             foundation.Services.BlameStore,
             new BlameTargets(foundation.Panes, foundation.Sessions, panes.Graph),
-            glyphs);
-        FileHistory = new FileHistoryInput(host, glyphs);
+            glyphs,
+            keys: foundation.Keys);
+        FileHistory = new FileHistoryInput(host, glyphs, foundation.Keys);
         Screens = new ListScreens(Reflog, Blame, FileHistory);
         Settings = new SettingsScreenInput(host, glyphs);
         Others = new OtherOverlays(route.Overlays, Screens, Settings, Pick, Prompts);

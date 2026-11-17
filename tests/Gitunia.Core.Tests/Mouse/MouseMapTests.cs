@@ -157,15 +157,61 @@ public class MouseMapTests
     }
 
     [Fact]
+    public void GivenTheDefaultMap_WhenListingTheWheel_ThenEveryStepIsThePaneStepOrThePopupStepAndOnlyPopupsUseOne()
+    {
+        string[] popups =
+        [
+            DefaultKeymap.PickerView,
+            DefaultKeymap.PaletteView,
+            DefaultKeymap.ContextMenuView,
+            DefaultMouseMap.PromptPopupView,
+        ];
+        var wheel = DefaultMouseMap.CreateBindings()
+            .Where(binding => binding.Gesture is MouseGesture.WheelUp or MouseGesture.WheelDown)
+            .ToList();
+
+        Assert.NotEmpty(wheel);
+        Assert.All(
+            wheel,
+            binding => Assert.Equal(
+                popups.Contains(binding.View) ? DefaultMouseMap.PopupWheelLines : DefaultMouseMap.WheelLines,
+                binding.Count));
+        Assert.Equal(3, DefaultMouseMap.WheelLines);
+        Assert.Equal(1, DefaultMouseMap.PopupWheelLines);
+    }
+
+    [Fact]
+    public void GivenAClickOnAPromptRow_WhenResolvingIt_ThenItRunsThePromptRowActionWithTheRowAsTarget()
+    {
+        var binding = DefaultMouseMap.Create().Resolve(DefaultMouseMap.PromptRowButton, MouseGesture.Click);
+
+        Assert.Equal(ActionIds.PromptRow, binding?.Action);
+        Assert.True(binding?.UsesTarget);
+        Assert.Contains(DefaultMouseMap.PromptRowButton, DefaultMouseMap.OverlayViews);
+        Assert.Contains(DefaultMouseMap.PromptPopupView, DefaultMouseMap.OverlayViews);
+    }
+
+    [Fact]
+    public void GivenTheOverlayRowsOfAScreen_WhenAskingForTheirClickView_ThenTheActionNamesItsMouseView()
+    {
+        Assert.Equal(DefaultMouseMap.ReflogResetButton, DefaultMouseMap.ClickViewOf(ActionIds.ResetBranch));
+        Assert.Equal(DefaultMouseMap.BlameParentButton, DefaultMouseMap.ClickViewOf(ActionIds.BlameParent));
+        Assert.Equal(DefaultMouseMap.FileHistorySelectButton, DefaultMouseMap.ClickViewOf(ActionIds.FileHistorySelectCommit));
+        Assert.Null(DefaultMouseMap.ClickViewOf(ActionIds.HelpShow));
+    }
+
+    [Fact]
     public void GivenTheDefaultMap_WhenListingBindings_ThenEveryActionIsReachableByAKeyToo()
     {
         // Opening the working tree (the dirty marker, #331) is the one-way half of the key toggle <space>s.
         // The mainline parent row (#449) is the digit key, which the open prompt reads as typed text in Insert mode.
+        // A row of the prompt popup (#1448) is the highlight keys and Enter, or the option's key, for the clicked row.
         // A help tab label (#652) is the jump straight to a tab that Tab, Shift-Tab, j and k reach one step at a time.
         var keyed = DefaultKeymap.CreateBindings()
             .Select(binding => binding.Action)
             .Append(ActionIds.WorkingTreeOpen)
             .Append(ActionIds.PickMainline)
+            .Append(ActionIds.PromptRow)
             .Append(ActionIds.HelpTabSelect)
             .ToHashSet();
 

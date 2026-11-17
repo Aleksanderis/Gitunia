@@ -29,7 +29,7 @@ public sealed class CommitMessageInput(Dispatcher host, IActionRoute route) : IT
     /// <summary>Runs the action when it concerns the message box; false lets the other handlers have it.</summary>
     /// <param name="tab">The active tab, showing the Changes view.</param>
     /// <param name="action">The action.</param>
-    public bool TryExecute(RepositoryState tab, ActionId action)
+    public bool TryExecute(RepositoryState tab, ActionId action, int? count = null)
     {
         if (!CommitRules.Takes(host.State, tab, action))
         {
@@ -44,7 +44,7 @@ public sealed class CommitMessageInput(Dispatcher host, IActionRoute route) : IT
             return true;
         }
 
-        host.Dispatch(new CommitActionPressed(tab.Id, action));
+        host.Dispatch(new CommitActionPressed(tab.Id, action, count));
 
         return true;
     }

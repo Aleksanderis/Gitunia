@@ -29,6 +29,9 @@ public sealed class OtherOverlays(
         || screens.FileHistory.IsOpen
         || settings.IsOpen;
 
+    /// <summary>A text, filter or choice prompt has its popup (it may still be hidden behind another overlay).</summary>
+    public bool HasPromptPopup => prompts.CurrentPopup() is not null;
+
     /// <summary>The settings screen is open.</summary>
     public bool IsSettingsOpen => settings.IsOpen;
 

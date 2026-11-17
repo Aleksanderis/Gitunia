@@ -32,3 +32,14 @@ public sealed record PromptReopenedCommand(string Reason) : PromptCommand;
 
 /// <summary>Esc in the open prompt, or its tab was left: it closes and nothing else happens.</summary>
 public sealed record PromptCancelledCommand : PromptCommand;
+
+/// <summary>
+/// The highlight of the open picker prompt moves by <paramref name="Step"/> rows, stopping at the ends: the wheel, a click
+/// on a row (relative to the highlighted one) and the move hints of the popup. Ignored by a prompt without candidates.
+/// </summary>
+/// <param name="Step">Rows down (positive) or up (negative).</param>
+public sealed record PromptMovedCommand(int Step) : PromptCommand;
+
+/// <summary>A click on an option of a one-key prompt: it answers like the option's key. Ignored for any other prompt.</summary>
+/// <param name="Index">The option, from 0, in the order the popup lists them.</param>
+public sealed record PromptChoiceSelectedCommand(int Index) : PromptCommand;

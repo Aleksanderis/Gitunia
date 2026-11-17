@@ -1,4 +1,5 @@
 using Gitunia.Core.Keymap;
+using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Mouse;
 using Gitunia.Core.Picker;
 using Gitunia.Core.Workspaces.Panes;
@@ -140,6 +141,9 @@ public sealed class MainView : IDisposable
         add => _working.MessageDragged += value;
         remove => _working.MessageDragged -= value;
     }
+
+    /// <summary>Raised with the action of a hint of the status bar that was clicked.</summary>
+    public event Action<ActionId>? HintClicked;
 
     /// <summary>Raised while a divider or a pane title row is dragged: which edge and the pointer's screen column and row.</summary>
     public event Action<PaneEdge, int, int>? EdgeDragged;
@@ -324,6 +328,7 @@ public sealed class MainView : IDisposable
         _detailTitle.Dragged += (column, row) => EdgeDragged?.Invoke(PaneEdge.Bottom, column, row);
         _diffTitle.Dragged += (column, row) => EdgeDragged?.Invoke(PaneEdge.Bottom, column, row);
         _bottomEdge.Clicked += OnBottomEdgeClicked;
+        _status.Clicked += OnStatusClicked;
         _detailTitle.Clicked += OnDetailTitleClicked;
         _diffTitle.Clicked += OnDiffTitleClicked;
         panes.Overlay.LineClicked += line => OverlayLineClicked?.Invoke(line, panes.Overlay.PointerColumn);
@@ -415,7 +420,7 @@ public sealed class MainView : IDisposable
 
     private void OnDetailTitleClicked(int column)
     {
-        if (_parts.Gate.IsSuppressed)
+        if (CloseOverlayBehind())
         {
             return;
         }
@@ -442,7 +447,7 @@ public sealed class MainView : IDisposable
 
     private void OnDiffTitleClicked(int column)
     {
-        if (_parts.Gate.IsSuppressed)
+        if (CloseOverlayBehind())
         {
             return;
         }
@@ -462,10 +467,14 @@ public sealed class MainView : IDisposable
     // A click on the bottom edge acts on the in-progress operation banner drawn over it (ux-workflows.md, workflow 4).
     private void OnBottomEdgeClicked(int column)
     {
+        if (CloseOverlayBehind())
+        {
+            return;
+        }
+
         var model = _parts.Content.Model();
         var geometry = _parts.Geometry;
-        if (_parts.Gate.IsSuppressed
-            || model.Banner is not { } banner
+        if (model.Banner is not { } banner
             || geometry.ScreenHeight < ScreenLayout.MinimumHeightWithBanner)
         {
             return;
@@ -475,5 +484,37 @@ public sealed class MainView : IDisposable
         {
             Gestured?.Invoke(view, MouseGesture.Click, null);
         }
+    }
+
+    // A click on the status bar runs the hint under it, like the key; elsewhere on it with an overlay open it is a click
+    // outside.
+    private void OnStatusClicked(int column)
+    {
+        var model = _parts.Content.Model();
+        var target = ChromeBuilder.StatusTargets(model, _parts.Geometry.ScreenWidth, _parts.Panes.Content.Glyphs)
+            .FirstOrDefault(hint => hint.Contains(0, column));
+        if (target?.Action is { } action)
+        {
+            // While an overlay is open the bar shows that overlay's own hints, so the hint runs like its key.
+            HintClicked?.Invoke(action);
+        }
+        else
+        {
+            CloseOverlayBehind();
+        }
+    }
+
+    // A click on a title row, the banner or the status bar while an overlay is open is a click outside it: it closes the
+    // overlay like Esc (ux-mouse.md), through the same route as a click on a pane.
+    private bool CloseOverlayBehind()
+    {
+        if (!_parts.Gate.IsSuppressed)
+        {
+            return false;
+        }
+
+        Gestured?.Invoke(DefaultMouseMap.BackdropView, MouseGesture.Click, null);
+
+        return true;
     }
 }

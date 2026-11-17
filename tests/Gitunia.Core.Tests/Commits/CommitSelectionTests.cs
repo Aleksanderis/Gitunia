@@ -2,6 +2,7 @@ using Gitunia.Core.Clipboard;
 using Gitunia.Core.Commits;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
+using Gitunia.Core.Mouse;
 using Gitunia.Core.Running;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Panes;
@@ -169,13 +170,26 @@ public class CommitSelectionTests
         harness.Send(new TabCommand(harness.TabId, new FocusPaneCommand(PaneKind.WorkingMessage)));
         harness.Send(new CommitCursorPlaced(harness.TabId, 0, 0));
 
-        Assert.True(harness.Run(ActionIds.WorkingTreeMessageScrollDown));
+        Assert.True(harness.Run(ActionIds.WorkingTreeMessageScrollDown, DefaultMouseMap.WheelLines));
         Assert.Equal(3, harness.Draft.Editor.CursorRow);
-        harness.Run(ActionIds.WorkingTreeMessageScrollDown);
-        harness.Run(ActionIds.WorkingTreeMessageScrollDown);
+        harness.Run(ActionIds.WorkingTreeMessageScrollDown, DefaultMouseMap.WheelLines);
+        harness.Run(ActionIds.WorkingTreeMessageScrollDown, DefaultMouseMap.WheelLines);
         Assert.Equal(6, harness.Draft.Editor.CursorRow);
-        harness.Run(ActionIds.WorkingTreeMessageScrollUp);
+        harness.Run(ActionIds.WorkingTreeMessageScrollUp, DefaultMouseMap.WheelLines);
         Assert.Equal(3, harness.Draft.Editor.CursorRow);
+    }
+
+    [Fact]
+    public void GivenALongMessage_WhenTheKeyboardScrollsWithoutACount_ThenItMovesTheSameThreeLines()
+    {
+        var harness = new CommitHarness(StagedModified("a.txt"));
+        harness.SetText("1\n2\n3\n4\n5\n6\n7");
+        harness.Send(new TabCommand(harness.TabId, new FocusPaneCommand(PaneKind.WorkingMessage)));
+        harness.Send(new CommitCursorPlaced(harness.TabId, 0, 0));
+
+        Assert.True(harness.Run(ActionIds.WorkingTreeMessageScrollDown));
+
+        Assert.Equal(DefaultMouseMap.WheelLines, harness.Draft.Editor.CursorRow);
     }
 
     // A box in Insert mode holding the text with the end selected from a column.

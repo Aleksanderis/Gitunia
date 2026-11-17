@@ -34,7 +34,7 @@ public static class CommitReducer
     /// <param name="context">The tab the command is for and the facts around it.</param>
     public static CommitUpdate Reduce(CommitCommand command, CommitContext context) => command switch
     {
-        CommitActionPressed pressed => Press(pressed.Action, context),
+        CommitActionPressed pressed => Press(pressed.Action, pressed.Count, context),
         CommitAfterStaging after => AfterStaging(after.Request, context),
         CommitCursorPlaced placed => Place(placed, context),
         CommitSelectionDragged dragged => Drag(dragged, context),
@@ -103,7 +103,7 @@ public static class CommitReducer
         return Same(context, Post(text, StatusSeverity.Error));
     }
 
-    private static CommitUpdate Press(ActionId action, CommitContext context)
+    private static CommitUpdate Press(ActionId action, int? count, CommitContext context)
     {
         var tab = context.Tab;
         var inBox = tab.View.FocusedPane == PaneKind.WorkingMessage;
@@ -127,7 +127,7 @@ public static class CommitReducer
             return Same(context);
         }
 
-        return Run(action, context);
+        return Run(action, count, context);
     }
 
     private static CommitUpdate Next(CommitContext context, AppCommand next) =>
@@ -148,7 +148,7 @@ public static class CommitReducer
         return new CommitUpdate(tab.Commit with { Draft = draft, IsInserting = false }, KeyMode.Normal, null, [], []);
     }
 
-    private static CommitUpdate Run(ActionId action, CommitContext context)
+    private static CommitUpdate Run(ActionId action, int? count, CommitContext context)
     {
         if (context.IsCommitting && action != ActionIds.WorkingTreeMessageNewLine)
         {
@@ -167,7 +167,7 @@ public static class CommitReducer
 
         if (CommitRules.IsPointerAction(action))
         {
-            return CommitMessageKeys.RunPointer(action, context);
+            return CommitMessageKeys.RunPointer(action, count, context);
         }
 
         if (CommitRules.IsNormalKey(action))

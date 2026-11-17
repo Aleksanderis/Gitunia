@@ -1,5 +1,6 @@
 using Gitunia.Core.Config.Models;
 using Gitunia.Core.Editing;
+using Gitunia.Core.Hints;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Keymap.Repeat;
@@ -7,13 +8,12 @@ using Gitunia.Core.Text;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Git.History.Models;
 using Gitunia.Tui.Rendering.Graph;
-using Gitunia.Tui.Rendering.Panes;
 using Gitunia.Tui.Rendering.Screen;
 using Xunit;
 
-namespace Gitunia.Tui.Tests.Rendering.Panes;
+namespace Gitunia.Tui.Tests.Rendering.Hints;
 
-public class PaneHintsTests
+public class HintSetTests
 {
     public static TheoryData<PaneKind> Panes() => [.. Enum.GetValues<PaneKind>()];
 
@@ -28,19 +28,19 @@ public class PaneHintsTests
     {
         var sets = new List<IReadOnlyList<KeyHint>>
         {
-            PaneHints.ForDetailChanges(), PaneHints.ForGraphComparing(), PaneHints.ForMessageEditing(),
-            PaneHints.ForConfirm(), PaneHints.ForBlame(), PaneHints.ForFileHistory(), PaneHints.ForReflog(),
-            PaneHints.ForRebaseEditor(), PaneHints.ForConflictVersions(), PaneHints.ForConflictVisual(),
-            PaneHints.ForConflictResult(), PaneHints.ForConflictEdit(), PaneHints.ForRebaseMessage(),
-            PaneHints.ForSettings(), PaneHints.ForPalette(), PaneHints.ForRepeat(RepeatKind.Context),
-            PaneHints.ForRepeat(RepeatKind.Resize), PaneHints.ForLineHistory(new LineRange(1, 2)),
+            HintSet.ForDetailChanges(), HintSet.ForGraphComparing(), HintSet.ForMessageEditing(),
+            HintSet.ForConfirm(), HintSet.ForMainline(), HintSet.ForBlameList(), HintSet.ForFileHistory(), HintSet.ForReflogList(),
+            HintSet.ForRebaseEditor(), HintSet.ForConflictVersions(), HintSet.ForConflictVisual(),
+            HintSet.ForConflictResult(), HintSet.ForConflictEdit(), HintSet.ForRebaseMessage(),
+            HintSet.ForPalette(), HintSet.ForRepeat(RepeatKind.Context),
+            HintSet.ForRepeat(RepeatKind.Resize), HintSet.ForLineHistory(new LineRange(1, 2)),
         };
         foreach (var pane in Enum.GetValues<PaneKind>())
         {
-            sets.Add(PaneHints.For(pane));
-            sets.Add(PaneHints.For(pane, showsFileContent: true));
-            sets.Add(PaneHints.For(pane, showsFileContent: false, onConflict: true));
-            sets.Add(PaneHints.For(pane, showsFileContent: false, onRefusedConflict: true));
+            sets.Add(HintSet.For(pane));
+            sets.Add(HintSet.For(pane, showsFileContent: true));
+            sets.Add(HintSet.For(pane, showsFileContent: false, onConflict: true));
+            sets.Add(HintSet.For(pane, showsFileContent: false, onRefusedConflict: true));
         }
 
         var offenders = sets.SelectMany(set => set)
@@ -57,10 +57,10 @@ public class PaneHintsTests
     [MemberData(nameof(Panes))]
     public void GivenMinimalMode_WhenLimitingAPanesHints_ThenOnlyHelpCommandsAndQuitRemain(PaneKind pane)
     {
-        var limited = PaneHints.Limit(PaneHints.For(pane), StatusBarHintMode.Minimal);
+        var limited = HintSet.Limit(HintSet.For(pane), StatusBarHintMode.Minimal);
 
         Assert.Equal(["?", ":", "q"], limited.Select(hint => hint.Keys));
-        Assert.All(limited, hint => Assert.Contains(PaneHints.For(pane), other => other == hint));
+        Assert.All(limited, hint => Assert.Contains(HintSet.For(pane), other => other == hint));
     }
 
     [Theory]
@@ -68,15 +68,15 @@ public class PaneHintsTests
     public void GivenFullMode_WhenLimitingAtEachLevel_ThenOnlyHintsWithAListedActionRemainAndEveryoneKeepsThePinnedOnes(
         PaneKind pane)
     {
-        var hints = PaneHints.For(pane);
+        var hints = HintSet.For(pane);
 
         foreach (var level in Enum.GetValues<CommandLevel>())
         {
-            var limited = PaneHints.Limit(hints, StatusBarHintMode.Full, level);
+            var limited = HintSet.Limit(hints, StatusBarHintMode.Full, level);
 
             Assert.Equal(["?", ":", "q"], limited.Take(3).Select(hint => hint.Keys));
-            Assert.All(limited, hint => Assert.True(PaneHints.IsListedAt(hint, level)));
-            Assert.Equal(hints.Count(hint => PaneHints.IsListedAt(hint, level)), limited.Count);
+            Assert.All(limited, hint => Assert.True(HintSet.IsListedAt(hint, level)));
+            Assert.Equal(hints.Count(hint => HintSet.IsListedAt(hint, level)), limited.Count);
         }
     }
 
@@ -94,7 +94,7 @@ public class PaneHintsTests
         PaneKind pane,
         string keys)
     {
-        var hints = PaneHints.Limit(PaneHints.For(pane), StatusBarHintMode.Full, CommandLevel.Everyday);
+        var hints = HintSet.Limit(HintSet.For(pane), StatusBarHintMode.Full, CommandLevel.Everyday);
 
         Assert.Contains(hints, hint => hint.Keys == keys);
     }
@@ -102,49 +102,49 @@ public class PaneHintsTests
     [Fact]
     public void GivenALineRange_WhenAskingForLineHistoryHints_ThenTheFirstHintNamesTheRange()
     {
-        var hints = PaneHints.ForLineHistory(new LineRange(12, 20));
+        var hints = HintSet.ForLineHistory(new LineRange(12, 20));
 
         Assert.Equal("Lines 12-20", hints[0].Keys);
-        Assert.Equal(PaneHints.ForFileHistory().Count + 1, hints.Count);
-        Assert.Equal("Lines 7", PaneHints.ForLineHistory(new LineRange(7, 7))[0].Keys);
+        Assert.Equal(HintSet.ForFileHistory().Count + 1, hints.Count);
+        Assert.Equal("Lines 7", HintSet.ForLineHistory(new LineRange(7, 7))[0].Keys);
     }
 
     [Fact]
     public void GivenTheMessageBoxHints_WhenLimitingByLevel_ThenTheEditorHintAppearsOnlyAtItsLevel()
     {
-        var hints = PaneHints.For(PaneKind.WorkingMessage);
+        var hints = HintSet.For(PaneKind.WorkingMessage);
         var editorLevel = ActionCatalog.LevelOf(ActionIds.ToolCommitEditor)!.Value;
 
         Assert.NotEqual(CommandLevel.Everyday, editorLevel);
         Assert.DoesNotContain(
-            PaneHints.Limit(hints, StatusBarHintMode.Full, CommandLevel.Everyday),
+            HintSet.Limit(hints, StatusBarHintMode.Full, CommandLevel.Everyday),
             hint => hint.Actions.Contains(ActionIds.ToolCommitEditor));
         Assert.Contains(
-            PaneHints.Limit(hints, StatusBarHintMode.Full, editorLevel),
+            HintSet.Limit(hints, StatusBarHintMode.Full, editorLevel),
             hint => hint.Actions.Contains(ActionIds.ToolCommitEditor));
     }
 
     [Fact]
     public void GivenAnAboveLevelHint_WhenLimitingToMinimalOrOff_ThenTheModeStillWins()
     {
-        var hints = PaneHints.For(PaneKind.WorkingMessage);
+        var hints = HintSet.For(PaneKind.WorkingMessage);
 
-        Assert.Equal(3, PaneHints.Limit(hints, StatusBarHintMode.Minimal).Count);
-        Assert.Empty(PaneHints.Limit(hints, StatusBarHintMode.Off));
+        Assert.Equal(3, HintSet.Limit(hints, StatusBarHintMode.Minimal).Count);
+        Assert.Empty(HintSet.Limit(hints, StatusBarHintMode.Off));
     }
 
     [Fact]
     public void GivenOffMode_WhenLimitingHints_ThenNoneRemain()
     {
-        Assert.Empty(PaneHints.Limit(PaneHints.For(PaneKind.Graph), StatusBarHintMode.Off));
+        Assert.Empty(HintSet.Limit(HintSet.For(PaneKind.Graph), StatusBarHintMode.Off));
     }
 
     [Fact]
     public void GivenFullMode_WhenLimitingHints_ThenTheyAreUnchanged()
     {
-        var hints = PaneHints.For(PaneKind.Graph);
+        var hints = HintSet.For(PaneKind.Graph);
 
-        Assert.Same(hints, PaneHints.Limit(hints, StatusBarHintMode.Full));
+        Assert.Same(hints, HintSet.Limit(hints, StatusBarHintMode.Full));
     }
 
     [Theory]
@@ -158,7 +158,7 @@ public class PaneHintsTests
     [InlineData(PaneKind.WorkingStagedDiff, "<space>v")]
     public void GivenAPane_WhenAskingForHints_ThenTheyMentionThatPanesKeys(PaneKind pane, string expectedKeys)
     {
-        Assert.Contains(PaneHints.For(pane), hint => hint.Keys == expectedKeys);
+        Assert.Contains(HintSet.For(pane), hint => hint.Keys == expectedKeys);
     }
 
     [Theory]
@@ -171,7 +171,7 @@ public class PaneHintsTests
     [InlineData(PaneKind.WorkingStagedDiff)]
     public void GivenAPaneWithTheQuickJump_WhenAskingForHints_ThenTheyOfferIt(PaneKind pane)
     {
-        Assert.Contains(PaneHints.For(pane), hint => hint.Keys == "<space>j" && hint.Actions.Contains(ActionIds.QuickJump));
+        Assert.Contains(HintSet.For(pane), hint => hint.Keys == "<space>j" && hint.Actions.Contains(ActionIds.QuickJump));
     }
 
     [Theory]
@@ -180,16 +180,16 @@ public class PaneHintsTests
     [InlineData(PaneKind.Detail)]
     public void GivenAHistoryPane_WhenAskingForHints_ThenTheyShowHowToOpenTheWorkingTree(PaneKind pane)
     {
-        Assert.Contains(PaneHints.For(pane), hint => hint.Keys == "<space>s" && hint.Description == "Changes view");
+        Assert.Contains(HintSet.For(pane), hint => hint.Keys == "<space>s" && hint.Description == "Changes view");
     }
 
     [Theory]
     [MemberData(nameof(Panes))]
     public void GivenAPane_WhenAskingForHints_ThenEveryHintHasKeysAndADescription(PaneKind pane)
     {
-        Assert.NotEmpty(PaneHints.For(pane));
+        Assert.NotEmpty(HintSet.For(pane));
 
-        foreach (var hint in PaneHints.For(pane))
+        foreach (var hint in HintSet.For(pane))
         {
             Assert.False(string.IsNullOrWhiteSpace(hint.Keys), "A hint has no keys.");
             Assert.False(string.IsNullOrWhiteSpace(hint.Description), $"The hint {hint.Keys} has no description.");
@@ -199,7 +199,7 @@ public class PaneHintsTests
     [Fact]
     public void GivenAMarkedCommit_WhenAskingForGraphHints_ThenTheyNameMovingTheMarkAndEndingTheCompare()
     {
-        var hints = PaneHints.ForGraphComparing();
+        var hints = HintSet.ForGraphComparing();
 
         Assert.Contains(hints, hint => hint.Keys == "<space>=" && hint.Description == "move mark");
         Assert.Contains(hints, hint => hint.Keys == "Esc" && hint.Description == HintVerb.Cancel);
@@ -210,30 +210,30 @@ public class PaneHintsTests
     [Fact]
     public void GivenAFilesContentInTheDiffPane_WhenHintsAreAsked_ThenNoHunkFileOrDiffOptionHintsShow()
     {
-        var hints = PaneHints.For(PaneKind.Diff, showsFileContent: true);
+        var hints = HintSet.For(PaneKind.Diff, showsFileContent: true);
 
         string[] diffOnly = ["hunk", "file", "context", "whole file", "side by side", "ignore space"];
         Assert.DoesNotContain(hints, hint => diffOnly.Contains(hint.Description));
         Assert.Contains(hints, hint => hint.Description == "copy file");
-        Assert.Equal(PaneHints.For(PaneKind.Diff), PaneHints.For(PaneKind.Diff, showsFileContent: false));
+        Assert.Equal(HintSet.For(PaneKind.Diff), HintSet.For(PaneKind.Diff, showsFileContent: false));
     }
 
     [Fact]
     public void GivenAConflictedFileInTheUnstagedList_WhenAskingForHints_ThenTheEditorLeadsTheListsOwnHints()
     {
-        var hints = PaneHints.For(PaneKind.WorkingUnstaged, showsFileContent: false, onConflict: true);
+        var hints = HintSet.For(PaneKind.WorkingUnstaged, showsFileContent: false, onConflict: true);
 
         Assert.Equal("Enter", hints[3].Keys);
         Assert.Equal("conflict editor", hints[3].Description);
         Assert.DoesNotContain(hints, hint => hint.Description == "diff");
-        Assert.DoesNotContain(PaneHints.For(PaneKind.WorkingUnstaged), hint => hint.Description == "conflict editor");
+        Assert.DoesNotContain(HintSet.For(PaneKind.WorkingUnstaged), hint => hint.Description == "conflict editor");
         AssertKeysTriggerActions(hints, KeyMode.Normal, DefaultKeymap.WorkingUnstagedView);
     }
 
     [Fact]
     public void GivenAConflictedFileInItsDiff_WhenAskingForHints_ThenTheLeaderKeysOfTheEditorLeadAndAreBound()
     {
-        var hints = PaneHints.For(PaneKind.WorkingUnstagedDiff, showsFileContent: false, onConflict: true);
+        var hints = HintSet.For(PaneKind.WorkingUnstagedDiff, showsFileContent: false, onConflict: true);
 
         Assert.Equal("<space>gr", hints[3].Keys);
         Assert.Equal("conflict editor", hints[3].Description);
@@ -247,18 +247,18 @@ public class PaneHintsTests
     [InlineData(PaneKind.WorkingStaged)]
     public void GivenAConflictPending_WhenAddingTheEditorHint_ThenItFollowsHelpCommandsAndQuitAndIsBound(PaneKind pane)
     {
-        var hints = PaneHints.WithConflictEditor(PaneHints.For(pane));
+        var hints = HintSet.WithConflictEditor(HintSet.For(pane));
 
         Assert.Equal("<space>gr", hints[3].Keys);
         Assert.Equal("conflict editor", hints[3].Description);
-        Assert.Equal(PaneHints.For(pane).Count + 1, hints.Count);
+        Assert.Equal(HintSet.For(pane).Count + 1, hints.Count);
         AssertKeysTriggerActions(hints, KeyMode.Normal, ViewFor(pane));
     }
 
     [Fact]
     public void GivenARefusedConflictedFileInTheUnstagedList_WhenAskingForHints_ThenTheMergetoolLeadsAndTheEditorIsNotOffered()
     {
-        var hints = PaneHints.For(PaneKind.WorkingUnstaged, showsFileContent: false, onRefusedConflict: true);
+        var hints = HintSet.For(PaneKind.WorkingUnstaged, showsFileContent: false, onRefusedConflict: true);
 
         Assert.Equal("<space>em", hints[3].Keys);
         Assert.Equal("mergetool", hints[3].Description);
@@ -269,7 +269,7 @@ public class PaneHintsTests
     [Fact]
     public void GivenARefusedConflictedFileInItsDiff_WhenAskingForHints_ThenTheMergetoolLeads()
     {
-        var hints = PaneHints.For(PaneKind.WorkingUnstagedDiff, showsFileContent: false, onRefusedConflict: true);
+        var hints = HintSet.For(PaneKind.WorkingUnstagedDiff, showsFileContent: false, onRefusedConflict: true);
 
         Assert.Equal("<space>em", hints[3].Keys);
         Assert.DoesNotContain(hints, hint => hint.Description == "conflict editor");
@@ -283,20 +283,20 @@ public class PaneHintsTests
     public void GivenNoConflictedFileTheEditorTakes_WhenAddingTheMergetoolHint_ThenItFollowsHelpCommandsAndQuit(
         PaneKind pane)
     {
-        var hints = PaneHints.WithConflictMergetool(PaneHints.For(pane));
+        var hints = HintSet.WithConflictMergetool(HintSet.For(pane));
 
         Assert.Equal("<space>em", hints[3].Keys);
         Assert.Equal("mergetool", hints[3].Description);
-        Assert.Equal(PaneHints.For(pane).Count + 1, hints.Count);
+        Assert.Equal(HintSet.For(pane).Count + 1, hints.Count);
         AssertKeysTriggerActions(hints, KeyMode.Normal, ViewFor(pane));
     }
 
     [Fact]
     public void GivenHintsThatAlreadyLeadWithTheEditor_WhenAddingTheEditorHint_ThenTheyAreLeftAlone()
     {
-        var hints = PaneHints.For(PaneKind.WorkingUnstaged, showsFileContent: false, onConflict: true);
+        var hints = HintSet.For(PaneKind.WorkingUnstaged, showsFileContent: false, onConflict: true);
 
-        Assert.Same(hints, PaneHints.WithConflictEditor(hints));
+        Assert.Same(hints, HintSet.WithConflictEditor(hints));
     }
 
     [Theory]
@@ -304,20 +304,20 @@ public class PaneHintsTests
     [InlineData(PaneKind.WorkingStaged)]
     public void GivenAConflictedFileButAnotherPane_WhenAskingForHints_ThenTheyAreTheUsualOnes(PaneKind pane)
     {
-        Assert.Equal(PaneHints.For(pane), PaneHints.For(pane, showsFileContent: false, onConflict: true));
+        Assert.Equal(HintSet.For(pane), HintSet.For(pane, showsFileContent: false, onConflict: true));
     }
 
     [Theory]
     [MemberData(nameof(Panes))]
     public void GivenAPane_WhenAskingForHints_ThenNoKeyUsesTheCaretNotation(PaneKind pane)
     {
-        Assert.All(PaneHints.For(pane), hint => Assert.DoesNotContain('^', hint.Keys));
+        Assert.All(HintSet.For(pane), hint => Assert.DoesNotContain('^', hint.Keys));
     }
 
     [Fact]
     public void GivenAFocusedDiffPane_WhenBuildingTheStatusBar_ThenItShowsKeysNextToTheirDescriptions()
     {
-        var model = new ScreenModel("repo", null, 1, 1, "NORMAL", string.Empty, 1, 1, false, string.Empty, Hints: PaneHints.For(PaneKind.Diff));
+        var model = new ScreenModel("repo", null, 1, 1, "NORMAL", string.Empty, 1, 1, false, string.Empty, Hints: HintSet.For(PaneKind.Diff));
 
         var text = StatusText(model);
 
@@ -331,7 +331,7 @@ public class PaneHintsTests
     [InlineData(PaneKind.WorkingStagedDiff)]
     public void GivenADiffPane_WhenAskingForHints_ThenTheViewOptionsAreOneGroupHintAndTheirKeysStayBound(PaneKind pane)
     {
-        var hints = PaneHints.For(pane);
+        var hints = HintSet.For(pane);
 
         Assert.Single(hints, hint => hint.Keys == "<space>v");
         Assert.DoesNotContain(
@@ -367,7 +367,7 @@ public class PaneHintsTests
     [MemberData(nameof(Panes))]
     public void GivenAPaneAt80Columns_WhenBuildingTheStatusBar_ThenHelpAndCommandsStayVisible(PaneKind pane)
     {
-        var model = new ScreenModel("repo", null, 1, 1, "NORMAL", string.Empty, 1, 1, false, "Could not read the stashes: boom", Hints: PaneHints.For(pane));
+        var model = new ScreenModel("repo", null, 1, 1, "NORMAL", string.Empty, 1, 1, false, "Could not read the stashes: boom", Hints: HintSet.For(pane));
 
         var text = string.Concat(ChromeBuilder.Status(model, 80, GraphGlyphSet.Unicode).Segments.Select(segment => segment.Text));
 
@@ -380,19 +380,19 @@ public class PaneHintsTests
     {
         var view = ViewFor(pane);
 
-        AssertKeysTriggerActions(PaneHints.For(pane), KeyMode.Normal, view);
+        AssertKeysTriggerActions(HintSet.For(pane), KeyMode.Normal, view);
     }
 
     [Fact]
     public void GivenTheDetailChangesHints_WhenCheckingThem_ThenTheViewOptionsAreOnlyThereAndTheirKeysAreBound()
     {
         Assert.DoesNotContain(
-            PaneHints.For(PaneKind.Detail),
+            HintSet.For(PaneKind.Detail),
             hint => hint.Keys.StartsWith("<space>v", StringComparison.Ordinal));
         Assert.Contains(
-            PaneHints.ForDetailChanges(),
+            HintSet.ForDetailChanges(),
             hint => hint.Keys == "<space>v" && hint.Description == "view options");
-        AssertKeysTriggerActions(PaneHints.ForDetailChanges(), KeyMode.Normal, DefaultKeymap.DetailChangesView);
+        AssertKeysTriggerActions(HintSet.ForDetailChanges(), KeyMode.Normal, DefaultKeymap.DetailChangesView);
     }
 
     [Theory]
@@ -402,7 +402,7 @@ public class PaneHintsTests
         RepeatKind kind,
         string view)
     {
-        AssertKeysTriggerActions(PaneHints.ForRepeat(kind), KeyMode.Normal, view);
+        AssertKeysTriggerActions(HintSet.ForRepeat(kind), KeyMode.Normal, view);
     }
 
     public static TheoryData<string> ModalHintSets() =>
@@ -416,7 +416,6 @@ public class PaneHintsTests
             "ConflictResult",
             "ConflictEdit",
             "RebaseMessage",
-            "Settings",
             "Palette",
         ];
 
@@ -428,49 +427,46 @@ public class PaneHintsTests
         {
             case "MessageEditing":
                 AssertKeysTriggerActions(
-                    PaneHints.ForMessageEditing(), KeyMode.Insert, DefaultKeymap.WorkingMessageView);
+                    HintSet.ForMessageEditing(), KeyMode.Insert, DefaultKeymap.WorkingMessageView);
                 break;
             case "Confirm":
-                AssertKeysTriggerActions(PaneHints.ForConfirm(), KeyMode.Confirm, DefaultKeymap.ConfirmView);
+                AssertKeysTriggerActions(HintSet.ForConfirm(), KeyMode.Confirm, DefaultKeymap.ConfirmView);
                 break;
             case "Reflog":
-                AssertKeysTriggerActions(PaneHints.ForReflog(), KeyMode.Normal, DefaultKeymap.ReflogView);
+                AssertKeysTriggerActions(HintSet.ForReflogList(), KeyMode.Normal, DefaultKeymap.ReflogView);
                 break;
             case "ConflictVersions":
                 AssertKeysTriggerActions(
-                    PaneHints.ForConflictVersions(),
+                    HintSet.ForConflictVersions(),
                     KeyMode.Normal,
                     DefaultKeymap.ConflictSideView);
                 break;
             case "ConflictVisual":
                 AssertKeysTriggerActions(
-                    PaneHints.ForConflictVisual(),
+                    HintSet.ForConflictVisual(),
                     KeyMode.Visual,
                     DefaultKeymap.ConflictSideView);
                 break;
             case "ConflictResult":
                 AssertKeysTriggerActions(
-                    PaneHints.ForConflictResult(),
+                    HintSet.ForConflictResult(),
                     KeyMode.Normal,
                     DefaultKeymap.ConflictResultView);
                 break;
             case "ConflictEdit":
                 AssertKeysTriggerActions(
-                    PaneHints.ForConflictEdit(),
+                    HintSet.ForConflictEdit(),
                     KeyMode.Insert,
                     DefaultKeymap.ConflictResultView);
                 break;
             case "RebaseEditor":
-                AssertKeysTriggerActions(PaneHints.ForRebaseEditor(), KeyMode.Normal, DefaultKeymap.RebaseEditorView);
+                AssertKeysTriggerActions(HintSet.ForRebaseEditor(), KeyMode.Normal, DefaultKeymap.RebaseEditorView);
                 break;
             case "RebaseMessage":
-                AssertKeysTriggerActions(PaneHints.ForRebaseMessage(), KeyMode.Insert, DefaultKeymap.RebaseEditorView);
-                break;
-            case "Settings":
-                AssertKeysTriggerActions(PaneHints.ForSettings(), KeyMode.Normal, DefaultKeymap.SettingsView);
+                AssertKeysTriggerActions(HintSet.ForRebaseMessage(), KeyMode.Insert, DefaultKeymap.RebaseEditorView);
                 break;
             case "Palette":
-                AssertKeysTriggerActions(PaneHints.ForPalette(), KeyMode.Command, DefaultKeymap.PaletteView);
+                AssertKeysTriggerActions(HintSet.ForPalette(), KeyMode.Command, DefaultKeymap.PaletteView);
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(set), set, "Unknown hint set.");

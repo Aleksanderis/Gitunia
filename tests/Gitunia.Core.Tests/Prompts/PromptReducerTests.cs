@@ -366,6 +366,55 @@ public class PromptReducerTests
     }
 
     [Fact]
+    public void GivenAOneKeyPrompt_WhenAnOptionIsClicked_ThenItClosesAndAnswersLikeItsKey()
+    {
+        var opened = Reduce(ShellState.Empty, KeyRequest()).State;
+
+        var update = Reduce(opened, new PromptChoiceSelectedCommand(1));
+
+        Assert.Null(update.State.Prompt);
+        Assert.Equal("|hard", Assert.IsType<StatusPostedCommand>(update.Next).Text);
+    }
+
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(2)]
+    public void GivenAOneKeyPrompt_WhenAClickNamesNoOption_ThenThePromptStaysOpen(int index)
+    {
+        var opened = Reduce(ShellState.Empty, KeyRequest()).State;
+
+        var update = Reduce(opened, new PromptChoiceSelectedCommand(index));
+
+        Assert.Same(opened.Prompt, update.State.Prompt);
+        Assert.Null(update.Next);
+    }
+
+    [Fact]
+    public void GivenAPicker_WhenTheWheelOrARowClickMovesTheHighlight_ThenItStopsAtTheEndsAndTheTextStays()
+    {
+        var opened = Reduce(ShellState.Empty, Picker("origin", "backup", "bak")).State;
+
+        var down = Reduce(opened, new PromptMovedCommand(2)).State;
+        var past = Reduce(down, new PromptMovedCommand(5)).State;
+        var up = Reduce(past, new PromptMovedCommand(-1)).State;
+
+        Assert.Equal(2, down.Prompt!.Picker!.Index);
+        Assert.Equal(2, past.Prompt!.Picker!.Index);
+        Assert.Equal(1, up.Prompt!.Picker!.Index);
+        Assert.Equal(opened.Prompt!.Text, up.Prompt.Text);
+    }
+
+    [Fact]
+    public void GivenAPromptWithoutCandidates_WhenTheWheelMoves_ThenNothingChanges()
+    {
+        var opened = Reduce(ShellState.Empty, Request(initialText: "a")).State;
+
+        var update = Reduce(opened, new PromptMovedCommand(1));
+
+        Assert.Same(opened.Prompt, update.State.Prompt);
+    }
+
+    [Fact]
     public void GivenAOneKeyPrompt_WhenAnotherKeyOrAModifiedKeyIsPressed_ThenThePromptStaysOpenAndNothingIsTyped()
     {
         var opened = Reduce(ShellState.Empty, KeyRequest()).State;

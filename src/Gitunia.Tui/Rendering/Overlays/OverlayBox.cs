@@ -1,3 +1,4 @@
+using Gitunia.Core.Hints;
 using Gitunia.Core.Overlays;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Styling;
@@ -69,7 +70,43 @@ public static class OverlayBox
         GraphGlyphSet glyphs,
         string lead = "",
         string gap = HintGap,
+        CaretField? field = null) => HintsRow(hints, width, glyphs, lead, gap, field).Line;
+
+    /// <summary>
+    /// A footer row of declared hints (<see cref="HintSet"/>): drawn like <see cref="Hints(IEnumerable{HintItem}, int, GraphGlyphSet, string, string, CaretField?)"/>
+    /// and its clickable stretches added to <paramref name="targets"/>, so a click on a hint runs its action.
+    /// </summary>
+    /// <param name="hints">The hints, left to right.</param>
+    /// <param name="targets">Collects the click targets of the frame being built.</param>
+    /// <param name="line">The frame line the row will have.</param>
+    /// <param name="width">The frame width.</param>
+    /// <param name="glyphs">The characters to draw with.</param>
+    /// <param name="lead">Plain text before the hints, such as a position.</param>
+    /// <param name="gap">The text between two hints.</param>
+    /// <param name="field">A field being edited, drawn instead of the lead.</param>
+    public static StyledLine Hints(
+        IReadOnlyList<KeyHint> hints,
+        List<FrameTarget> targets,
+        int line,
+        int width,
+        GraphGlyphSet glyphs,
+        string lead = "",
+        string gap = HintGap,
         CaretField? field = null)
+    {
+        var row = HintsRow(HintBar.Items(hints), width, glyphs, lead, gap, field);
+        targets.AddRange(HintTargets.Of(hints, row.Spans, line, BorderWidth / 2));
+
+        return row.Line;
+    }
+
+    private static HintsLine HintsRow(
+        IEnumerable<HintItem> hints,
+        int width,
+        GraphGlyphSet glyphs,
+        string lead,
+        string gap,
+        CaretField? field)
     {
         var builder = new LineBuilder(InnerWidth(width), glyphs.Ellipsis);
         if (field is not null)
@@ -84,8 +121,9 @@ public static class OverlayBox
             builder.Append($" {lead} ", SegmentRole.Status);
         }
 
-        HintBar.Append(builder, hints, gap);
-        return Wrap(builder.Build(SegmentRole.Status), glyphs);
+        var spans = HintBar.Append(builder, hints, gap);
+
+        return new HintsLine(Wrap(builder.Build(SegmentRole.Status), glyphs), spans);
     }
 
     /// <summary>A body row with a left part and a right part pushed to the right edge.</summary>

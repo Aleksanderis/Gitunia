@@ -40,7 +40,11 @@ public sealed class OverlayGestures(
             guard.Mark();
         }
 
-        if (click.View is not null)
+        if (click.Action is { } action)
+        {
+            mouse.Run(action);
+        }
+        else if (click.View is not null)
         {
             mouse.Handle(click.View, MouseGesture.Click, click.Target);
         }

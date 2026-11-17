@@ -1,4 +1,5 @@
 using Gitunia.Core.Keymap;
+using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Mouse;
 using Gitunia.Tui.App;
 using Gitunia.Tui.Views;
@@ -14,6 +15,10 @@ namespace Gitunia.Tui.Input;
 /// <param name="gate">Tells whether something modal (an overlay) owns the screen, so pane gestures must not act behind it (the overlays' own views still do).</param>
 public sealed class MouseController(MouseMap map, IActionRoute route, IMouseGate gate)
 {
+    /// <summary>Runs the action of a hint or an action row that was clicked, as if its key had been pressed.</summary>
+    /// <param name="action">The action the hint stands for.</param>
+    public void Run(ActionId action) => route.Route(action, null);
+
     /// <param name="view">The view the pointer was on (a keymap view name, or <see cref="DefaultMouseMap.TabsView"/>).</param>
     /// <param name="gesture">What the user did.</param>
     /// <param name="target">The number of the clicked item for bindings that use it (the tab number), null otherwise.</param>

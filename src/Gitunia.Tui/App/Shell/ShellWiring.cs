@@ -68,6 +68,7 @@ public sealed class ShellWiring(ShellComposition shell)
     {
         var view = shell.Screen.View;
         view.Gestured += shell.Keys.GestureRouter.OnGestured;
+        view.HintClicked += shell.Keys.GestureRouter.OnHintClicked;
         view.MessageClicked += shell.Panes.Commits.PlaceCursor;
         view.MessageDragged += shell.Panes.Commits.DragSelection;
         view.EdgeDragged += shell.Screen.SizeDragger.OnEdgeDragged;
