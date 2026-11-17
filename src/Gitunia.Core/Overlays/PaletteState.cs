@@ -1,3 +1,5 @@
+using Gitunia.Core.Lists;
+
 namespace Gitunia.Core.Overlays;
 
 /// <summary>The command palette: all entries, the typed filter and the highlighted row. Immutable and pure.</summary>
@@ -12,7 +14,7 @@ public sealed record PaletteState(IReadOnlyList<PaletteEntry> Entries, string Qu
         get
         {
             var visible = Visible();
-            return visible.Count == 0 ? null : visible[Math.Clamp(SelectedIndex, 0, visible.Count - 1)];
+            return visible.Count == 0 ? null : visible[ListViewport.ClampIndex(SelectedIndex, visible.Count)];
         }
     }
 
@@ -44,11 +46,8 @@ public sealed record PaletteState(IReadOnlyList<PaletteEntry> Entries, string Qu
     public PaletteState DeleteLast() => Query.Length == 0 ? this : this with { Query = TrimLastCodePoint(Query), SelectedIndex = 0 };
 
     /// <summary>Moves the highlight by <paramref name="delta"/> rows, stopping at the ends.</summary>
-    public PaletteState Move(int delta)
-    {
-        var count = Visible().Count;
-        return this with { SelectedIndex = count == 0 ? 0 : Math.Clamp(SelectedIndex + delta, 0, count - 1) };
-    }
+    public PaletteState Move(int delta) =>
+        this with { SelectedIndex = ListViewport.ClampIndex(SelectedIndex + delta, Visible().Count) };
 
     private static string TrimLastCodePoint(string text) =>
         text.Length > 1 && char.IsLowSurrogate(text[^1]) ? text[..^2] : text[..^1];

@@ -1,4 +1,5 @@
 using Gitunia.Core.Editing;
+using Gitunia.Core.Lists;
 using Gitunia.Core.Overlays;
 using Gitunia.Core.Text;
 using Gitunia.Tui.Rendering.Graph;
@@ -311,7 +312,7 @@ public static class HelpFrameBuilder
 
     // First menu entry shown: the active one stays in view, roughly centred.
     private static int MenuStart(int count, int active, int rows) =>
-        Math.Clamp(active - rows / 2, 0, Math.Max(0, count - rows));
+        ListViewport.TopFor(active, 0, count, rows, ScrollPolicy.Centre);
 
     private static List<StyledLine> MenuRows(
         IReadOnlyList<HelpTab> tabs,

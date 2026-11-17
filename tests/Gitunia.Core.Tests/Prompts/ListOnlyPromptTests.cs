@@ -14,10 +14,10 @@ public class ListOnlyPromptTests
     [Theory]
     [InlineData("j", 1)]
     [InlineData("l", 1)]
-    [InlineData("k", 2)]
-    [InlineData("h", 2)]
+    [InlineData("k", 0)]
+    [InlineData("h", 0)]
     [InlineData(KeyNames.Down, 1)]
-    public void GivenTheList_WhenAMoveKeyIsPressed_ThenTheHighlightMovesAndWraps(string key, int expected)
+    public void GivenTheList_WhenAMoveKeyIsPressed_ThenTheHighlightMovesAndStopsAtTheTop(string key, int expected)
     {
         var opened = Open();
 

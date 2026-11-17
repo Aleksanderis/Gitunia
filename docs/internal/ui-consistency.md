@@ -76,7 +76,7 @@ Seven parallel read-only audits covered forms, pickers and overlays, lists and v
 **3. Behaviour (keys)**
 - ✓ **Esc in multi-line editors**: the commit box and conflict result keep the text, but reword silently discards it (`RebaseEditorReducer.cs:254`). Settings input also drops silently.
 - **Rejected prompt answers**: the prompt closes before the answer is checked, so a rejected answer loses the typed text. Only clone and init re-ask.
-- **List ends**: k at the top wraps in the branch, tag and remote pickers, the reflog ref picker and ref jump. It stops in the palette, repository picker, menus, settings and lists.
+- **List ends**: k at the top wrapped in the branch, tag and remote pickers, the reflog ref picker and ref jump; decision 9 is applied (#1445): every list stops at its ends.
 - **Scrolling**: panes scroll only as far as needed, overlays keep the selection centred.
 - **Tab in pickers** moves down (hard-coded, `PickerKeys.cs:21`). In the repository opener it completes a path. Shift-Tab does nothing.
 - **j/k** type text in pickers, but move in ListOnly prompts, which also take h/l.

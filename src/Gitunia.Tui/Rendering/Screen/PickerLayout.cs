@@ -1,3 +1,4 @@
+using Gitunia.Core.Lists;
 using Gitunia.Core.Picker;
 
 namespace Gitunia.Tui.Rendering.Screen;
@@ -90,9 +91,6 @@ public sealed record PickerLayout(
             Window(compact, picker, compactList));
     }
 
-    /// <summary>The first list row shown for a highlight, so the highlight stays visible.</summary>
-    public static int TopRow(int highlight, int listHeight) => highlight < listHeight ? 0 : highlight - listHeight + 1;
-
     private static List<PickerListEntry> Window(IReadOnlyList<PickerListEntry> all, PickerState picker, int listHeight)
     {
         if (listHeight <= 0)
@@ -101,7 +99,7 @@ public sealed record PickerLayout(
         }
 
         var at = PickerListPlan.PositionOf(all, picker);
-        var top = TopRow(Math.Max(0, at), listHeight);
+        var top = ListViewport.EdgeTopFor(Math.Max(0, at), 0, listHeight);
         if (top < at && all[top].Kind == PickerEntryKind.Spacer)
         {
             top++;

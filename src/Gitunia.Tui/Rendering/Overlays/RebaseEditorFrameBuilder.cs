@@ -1,5 +1,6 @@
 using System.Globalization;
 using Gitunia.Core.Keymap;
+using Gitunia.Core.Lists;
 using Gitunia.Core.Mouse;
 using Gitunia.Core.Overlays;
 using Gitunia.Core.Rebase;
@@ -248,16 +249,11 @@ public static class RebaseEditorFrameBuilder
 
     private static int FrameWidth(int screenWidth) => Math.Min(MaximumWidth, screenWidth - ScreenMargin);
 
-    private static PaletteWindow Window(RebaseEditorState state, int screenWidth, int screenHeight, ChipKeys? keys)
+    private static ListWindow Window(RebaseEditorState state, int screenWidth, int screenHeight, ChipKeys? keys)
     {
         var chromeRows = FixedChromeRows + HintChipRows.Flow(Chips(keys), FrameWidth(screenWidth)).Count;
         var maximumRows = Math.Min(MaximumRows, screenHeight - ScreenMargin - chromeRows);
-        var count = state.Rows.Count;
-        var rowCount = Math.Max(1, Math.Min(maximumRows, count));
-        var selected = count == 0 ? 0 : Math.Clamp(state.SelectedIndex, 0, count - 1);
-        return new PaletteWindow(
-            rowCount,
-            selected,
-            Math.Clamp(selected - (rowCount / 2), 0, Math.Max(0, count - rowCount)));
+
+        return ListViewport.Of(state.SelectedIndex, state.Rows.Count, maximumRows).Follow(ScrollPolicy.Centre).Window;
     }
 }

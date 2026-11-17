@@ -1,3 +1,4 @@
+using Gitunia.Core.Lists;
 using Gitunia.Core.Editing;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
@@ -149,7 +150,7 @@ public static class MessageBoxRenderer
             return HintLines(rect, textWidth, padding, glyphs);
         }
 
-        var top = MessageEditorRenderer.ScrollTop(draft.Editor.CursorRow, draft.Top, rect.Height);
+        var top = ListViewport.EdgeTopFor(draft.Editor.CursorRow, draft.Top, rect.Height);
         draft.Top = top;
         var isCursorShown = showCursor && !isCommitting;
         var lines = MessageEditorRenderer.Render(draft.Editor, textWidth, rect.Height, isCursorShown, top);

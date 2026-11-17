@@ -1,3 +1,5 @@
+using Gitunia.Core.Lists;
+
 namespace Gitunia.Core.Conflicts;
 
 public sealed partial record ConflictEditorState
@@ -28,12 +30,12 @@ public sealed partial record ConflictEditorState
         else if (ActivePane == ConflictPane.Result)
         {
             var line = Result.Editor.CursorRow;
-            result = ScrollTop(line, ResultScroll, resultRows);
+            result = ListViewport.EdgeTopFor(line, ResultScroll, resultRows);
             top = AlignedScroll(Row, TopScroll, versionRows, line - result);
         }
         else
         {
-            top = ScrollTop(Row, TopScroll, versionRows);
+            top = ListViewport.EdgeTopFor(Row, TopScroll, versionRows);
             result = AlignedScroll(ResultLineOfRow(Row), ResultScroll, resultRows, Row - top);
         }
 
@@ -53,15 +55,5 @@ public sealed partial record ConflictEditorState
         }
 
         return line - Math.Min(offset, height - 1);
-    }
-
-    private static int ScrollTop(int cursor, int top, int height)
-    {
-        if (cursor < top)
-        {
-            return cursor;
-        }
-
-        return cursor >= top + height ? cursor - height + 1 : Math.Max(0, top);
     }
 }

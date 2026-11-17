@@ -1,4 +1,5 @@
 using Gitunia.Core.Editing;
+using Gitunia.Core.Lists;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Reflog.Models;
 
@@ -116,7 +117,7 @@ public sealed record ReflogState(
 
     /// <summary>The highlighted entry, null when the reflog is empty.</summary>
     public ReflogEntry? Selected =>
-        Entries.Count == 0 ? null : Entries[Math.Clamp(SelectedIndex, 0, Entries.Count - 1)];
+        Entries.Count == 0 ? null : Entries[ListViewport.ClampIndex(SelectedIndex, Entries.Count)];
 
     /// <summary>Moves the highlight to <paramref name="index"/>, clamped to the entries.</summary>
     public ReflogState MoveTo(int index) =>

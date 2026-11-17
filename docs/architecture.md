@@ -282,6 +282,19 @@ Tests: steps 2, 3 and 5 are synchronous Core tests (including "second create ref
 - Startup and key latency stay within the budgets in `docs/internal/performance.md`.
 - Build, tests and the AOT smoke run green.
 
+## UI components
+
+Shared components are extended, never copied; a surface that needs something new adds it to the component.
+
+| Component | State | Renderer | Used by |
+|---|---|---|---|
+| `ListViewport` (`Gitunia.Core/Lists`) | `(Selected, Top, Count, Rows)`, with `Follow(ScrollPolicy)` and `Move(action, count, policy)` on top of `ListMotion`; `ListWindow` is the slice a renderer reads | none (data) | Palette, menus (`GroupedRows`), prompt picker, reflog, file history, rebase editor, settings, help, blame, picker, message editor, conflict editor, working tree pane |
+
+- Two scroll policies (`ScrollPolicy`): `Edge` for panes and editors (the window stays put until the selection leaves it), `Centre` for overlays and popups (the selection stays in the middle of a long list).
+- Lists stop at their ends (no wrap), like vim and `ListMotion`. Scroll-top and clamp arithmetic for lists lives in `ListViewport` (`GroupedRows` keeps only its gap-skip adjustment on top of it).
+- Not converted yet: the scroll-by-offset views that own a Terminal.Gui `ListView` (graph, diff, sidebar, detail lists) keep the framework's viewport; the one-third `zz` placement in the conflict editor is its own jump, not a follow rule.
+- The contract test `ListViewportContractTests` runs the same scenarios (k at the top, G, Ctrl-d at the end, a count, a smaller window, an empty list) against every surface in its registry; a new list surface adds a row there.
+
 ## Principles
 
 - **Workspace model.** `AppState` holds a `Workspace` (ordered repo tabs, active tab, recent/pinned repos). Each tab owns an independent `RepositoryState` (view state and small data; big loaded data lives in the tab's stores). Commands are routed to a tab by id; effects carry the repo path they run against. Only the 5 most recently used tabs keep a loaded graph (about 350 bytes per commit); colder tabs are evicted and reload on activation (`EffectRunner`, docs/internal/performance.md). The app starts with no repo (the picker shows) and restores the previous session when there is one.
