@@ -76,7 +76,8 @@ public sealed class GraphPrefetchTests : IDisposable
     [Fact]
     public void GivenUnclaimedRead_WhenItExpires_ThenItIsCancelledAndNothingIsClaimable()
     {
-        using var expiring = new GraphPrefetch(new GraphLoader(_commitLog), TimeSpan.FromMilliseconds(50));
+        // Long enough for the tip read to start before the expiry on a cold, slow runner (50 ms lost that race on CI).
+        using var expiring =new GraphPrefetch(new GraphLoader(_commitLog), TimeSpan.FromMilliseconds(500));
         var location = FakeStatusReader.LocationOf("expire");
         expiring.Start(Path.GetTempPath());
         expiring.Confirm(location);
