@@ -126,6 +126,31 @@ public class IgnoreAwareWatchingTests
     }
 
     [Fact]
+    public async Task GivenFileWrittenBetweenListingAndDiskCheck_WhenRescanning_ThenItsDirectoryStaysWatched()
+    {
+        using var testRepository = CreateRepositoryWithIgnoredTree();
+        var recorder = new ChangeRecorder();
+        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
+        var deeper = Path.Combine(testRepository.WorkingTreePath, "fresh", "deeper");
+        var lister = new StaleListingLister(Lister, Path.Combine(deeper, "first.txt"));
+        using var watcher = new RepositoryWatcher(location, new WatchBudget(), FastOptions, directoryLister: lister);
+        watcher.Changed += recorder.Record;
+        watcher.Start();
+        await WatcherWait.UntilAsync(() => watcher.WorkingTreeDirectoryCount == 2, watcher, recorder: recorder);
+
+        // The rescan's listing is stale: the file appears after it was taken, before the disk check (#1395).
+        Directory.CreateDirectory(deeper);
+        // The third call is the confirming listing; the old code never makes it and times out here or below.
+        await WatcherWait.UntilAsync(() => lister.StaleCalls > 0 && lister.Calls >= 3, watcher, recorder: recorder);
+        await recorder.WaitForAsync(RepositoryChangeKinds.WorkingTree, Token);
+        var callsBefore = recorder.CallCount;
+        testRepository.WriteFile(Path.Combine("fresh", "deeper", "second.txt"), "x");
+
+        await WatcherWait.UntilAsync(() => recorder.CallCount > callsBefore, watcher, recorder: recorder);
+        Assert.Equal(4, watcher.WorkingTreeDirectoryCount);
+    }
+
+    [Fact]
     public async Task GivenManyQuickMakeDirectoryPaths_WhenCreated_ThenEveryLevelIsWatched()
     {
         // Four paths on purpose (the test once used 40): each level is a watcher and so an inotify instance, and a
@@ -353,6 +378,35 @@ public class IgnoreAwareWatchingTests
 
         public Task<IReadOnlyList<string>?> ListIgnoredAsync(string workingTreePath, CancellationToken cancellationToken) =>
             Task.FromResult<IReadOnlyList<string>?>(null);
+    }
+
+    private sealed class StaleListingLister(IWorkingTreeDirectoryLister inner, string fileToWrite)
+        : IWorkingTreeDirectoryLister
+    {
+        private int _calls;
+        private int _staleCalls;
+
+        public int Calls => Volatile.Read(ref _calls);
+
+        public int StaleCalls => Volatile.Read(ref _staleCalls);
+
+        public async Task<IReadOnlyList<string>?> ListAsync(
+            string workingTreePath,
+            CancellationToken cancellationToken)
+        {
+            var listing = await inner.ListAsync(workingTreePath, cancellationToken);
+            var call = Interlocked.Increment(ref _calls);
+            if (call >= 2 && Directory.Exists(Path.GetDirectoryName(fileToWrite)) && !File.Exists(fileToWrite))
+            {
+                await File.WriteAllTextAsync(fileToWrite, "x", cancellationToken);
+                Interlocked.Increment(ref _staleCalls);
+            }
+
+            return listing;
+        }
+
+        public Task<IReadOnlyList<string>?> ListIgnoredAsync(string workingTreePath, CancellationToken cancellationToken) =>
+            inner.ListIgnoredAsync(workingTreePath, cancellationToken);
     }
 
     private sealed class FailingLister : IWorkingTreeDirectoryLister
