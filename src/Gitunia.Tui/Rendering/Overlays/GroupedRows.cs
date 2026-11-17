@@ -1,3 +1,4 @@
+using Gitunia.Core.Lists;
 using Gitunia.Core.Overlays;
 
 namespace Gitunia.Tui.Rendering.Overlays;
@@ -54,12 +55,12 @@ public sealed record GroupedRows(IReadOnlyList<GroupedRow> Lines)
     }
 
     /// <summary>The slice around <paramref name="selectedEntry"/>: line count, selected line, first line.</summary>
-    public MenuWindow Window(int selectedEntry, int maximumRows)
+    public ListWindow Window(int selectedEntry, int maximumRows)
     {
-        var rowCount = Math.Max(1, Math.Min(maximumRows, Lines.Count));
         var selectedLine = Lines.Count == 0 ? 0 : Math.Max(0, IndexOfLine(selectedEntry));
+        var viewport = ListViewport.Of(selectedLine, Lines.Count, maximumRows).Follow(ScrollPolicy.Centre);
+        var (rowCount, _, top) = viewport.Window;
         var lastTop = Math.Max(0, Lines.Count - rowCount);
-        var top = Math.Clamp(selectedLine - (rowCount / 2), 0, lastTop);
 
         // A gap at the top of the window is skipped, except in the last window: skipping it would leave a blank row
         // at the bottom.
@@ -68,7 +69,7 @@ public sealed record GroupedRows(IReadOnlyList<GroupedRow> Lines)
             top++;
         }
 
-        return new MenuWindow(rowCount, selectedLine, top);
+        return new ListWindow(rowCount, selectedLine, top);
     }
 
     /// <summary>The entry on list line <paramref name="line"/>, null for a subheader, gap or past the end.</summary>

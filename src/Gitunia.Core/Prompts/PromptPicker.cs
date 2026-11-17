@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using Gitunia.Core.Lists;
 using Gitunia.Core.Overlays;
 using ChoiceMatcher = Gitunia.Core.Search.FuzzyMatcher;
 
@@ -41,13 +42,8 @@ public sealed record PromptPicker(
         };
     }
 
-    /// <summary>Moves the highlight by <paramref name="step"/>, wrapping around.</summary>
-    public PromptPicker Moved(int step)
-    {
-        var count = Candidates.Length;
-
-        return this with { Index = count == 0 ? 0 : (((Index + step) % count) + count) % count };
-    }
+    /// <summary>Moves the highlight by <paramref name="step"/>, stopping at the ends.</summary>
+    public PromptPicker Moved(int step) => this with { Index = ListViewport.ClampIndex(Index + step, Candidates.Length) };
 
     /// <summary>The highlighted candidate, or false when nothing matches.</summary>
     public bool TryGetSelected(out PromptChoice selected)

@@ -1,4 +1,5 @@
 using System.Globalization;
+using Gitunia.Core.Lists;
 using Gitunia.Core.Settings;
 using Gitunia.Core.Settings.Models;
 using Gitunia.Tui.Rendering.Graph;
@@ -526,5 +527,5 @@ public static class SettingsFrameBuilder
 
     // The first shown line that keeps the selection in view, near the middle of a long list.
     private static int Top(int count, int selected, int rows) =>
-        Math.Clamp(selected - (rows / 2), 0, Math.Max(0, count - rows));
+        ListViewport.TopFor(selected, 0, count, rows, ScrollPolicy.Centre);
 }

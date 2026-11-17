@@ -1,4 +1,5 @@
 using Gitunia.Core.Editing;
+using Gitunia.Core.Lists;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Rebase;
 
@@ -52,7 +53,7 @@ public sealed record RebaseEditorState(
 
     /// <summary>The highlighted row, null for an empty todo.</summary>
     public RebaseEditorRow? Selected =>
-        Rows.Count == 0 ? null : Rows[Math.Clamp(SelectedIndex, 0, Rows.Count - 1)];
+        Rows.Count == 0 ? null : Rows[ListViewport.ClampIndex(SelectedIndex, Rows.Count)];
 
     /// <summary>True when the order, an action or a message differs from the todo as read.</summary>
     public bool IsModified => !Rows.Select(Effective).SequenceEqual(Original.Select(Effective));
@@ -135,7 +136,7 @@ public sealed record RebaseEditorState(
         }
 
         var rows = Rows.ToList();
-        rows[Math.Clamp(SelectedIndex, 0, Rows.Count - 1)] = row with { Action = action };
+        rows[ListViewport.ClampIndex(SelectedIndex, Rows.Count)] = row with { Action = action };
         return this with { Rows = rows, IsDiscardPending = false };
     }
 

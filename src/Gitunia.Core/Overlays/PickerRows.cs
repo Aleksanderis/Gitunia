@@ -11,14 +11,12 @@ public static class PickerRows
     /// <summary>How many candidate rows are shown at most; the list scrolls to keep the highlight in view.</summary>
     public const int VisibleRows = 8;
 
-    /// <summary>The window of <paramref name="items"/> around <paramref name="selected"/>, which is highlighted.</summary>
-    public static PickerWindow Window(IReadOnlyList<string> items, int selected)
-    {
-        var first = Math.Clamp(selected - (VisibleRows / 2), 0, Math.Max(0, items.Count - VisibleRows));
-        List<string> rows = [.. items.Skip(first).Take(VisibleRows)];
-
-        return new PickerWindow(rows, selected - first, Position(selected, items.Count));
-    }
+    /// <summary>
+    /// All <paramref name="items"/> with <paramref name="selected"/> highlighted. The popup builder windows them once, to
+    /// <see cref="VisibleRows"/> or what the screen leaves (<c>ListViewport</c>), so the list is not windowed twice.
+    /// </summary>
+    public static PickerWindow Window(IReadOnlyList<string> items, int selected) =>
+        new(items, selected, Position(selected, items.Count));
 
     /// <summary>The <c>n/m</c> text for a 0-based index.</summary>
     public static string Position(int index, int total) =>

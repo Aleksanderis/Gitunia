@@ -1,5 +1,6 @@
 using System.Globalization;
 using Gitunia.Core.Editing;
+using Gitunia.Core.Lists;
 using Gitunia.Tui.Rendering.Styling;
 
 namespace Gitunia.Tui.Rendering.Panes;
@@ -24,17 +25,7 @@ public static class MessageEditorRenderer
     /// <param name="height">Visible rows.</param>
     public static int ScrollTop(int cursorRow, int top, int height)
     {
-        if (height <= 0)
-        {
-            return 0;
-        }
-
-        if (cursorRow < top)
-        {
-            return cursorRow;
-        }
-
-        return cursorRow >= top + height ? cursorRow - height + 1 : Math.Max(0, top);
+        return height <= 0 ? 0 : ListViewport.EdgeTopFor(cursorRow, top, height);
     }
 
     /// <summary>
@@ -69,7 +60,7 @@ public static class MessageEditorRenderer
         height = Math.Max(0, height);
         width = Math.Max(0, width);
         var lines = new List<StyledLine>(height);
-        var top = scrollTop ?? Math.Max(0, editor.CursorRow - height + 1);
+        var top = scrollTop ?? ListViewport.EdgeTopFor(editor.CursorRow, 0, height);
         var selection = editor.Selection;
         for (var row = top; row < top + height; row++)
         {

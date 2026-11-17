@@ -246,13 +246,13 @@ public class PromptReducerTests
     }
 
     [Fact]
-    public void GivenAPicker_WhenMovingUpFromTheFirst_ThenTheHighlightWrapsToTheLast()
+    public void GivenAPicker_WhenMovingUpFromTheFirst_ThenTheHighlightStaysOnTheFirst()
     {
         var state = Reduce(ShellState.Empty, Picker("origin", "backup")).State;
 
         state = Press(state, new KeyEvent(KeyNames.Up));
 
-        Assert.Equal(1, state.Prompt!.Picker!.Index);
+        Assert.Equal(0, state.Prompt!.Picker!.Index);
         Assert.Equal(string.Empty, state.Prompt.Text);
     }
 

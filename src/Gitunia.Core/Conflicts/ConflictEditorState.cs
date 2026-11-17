@@ -1,3 +1,4 @@
+using Gitunia.Core.Lists;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Conflicts.Models;
 
@@ -113,7 +114,7 @@ public sealed partial record ConflictEditorState(
     public bool CanRedo => RedoStack is { Count: > 0 };
 
     /// <summary>The current conflict clamped to the conflicts.</summary>
-    public int Index => Hunks.Count == 0 ? 0 : Math.Clamp(SelectedIndex, 0, Hunks.Count - 1);
+    public int Index => ListViewport.ClampIndex(SelectedIndex, Hunks.Count);
 
     /// <summary>First aligned row of the Visual selection, -1 when none.</summary>
     public int SelectionStart => Anchor is { } anchor ? Math.Min(anchor, Row) : -1;

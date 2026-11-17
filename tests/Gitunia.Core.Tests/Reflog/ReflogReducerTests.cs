@@ -390,16 +390,16 @@ public class ReflogReducerTests
     }
 
     [Fact]
-    public void GivenTheRefPicker_WhenMovingWithTheNavigationKeys_ThenTheHighlightWraps()
+    public void GivenTheRefPicker_WhenMovingWithTheNavigationKeys_ThenTheHighlightStopsAtTheLast()
     {
         var state = WithRefs(OpenList(Opened("alpha"), 3), Branch("main"));
         state = Press(state, ActionIds.ReflogOpen);
 
         var down = AppReducer.Reduce(state, new ReflogKeyTyped(new KeyEvent(KeyNames.Down))).State;
-        var wrapped = AppReducer.Reduce(down, new ReflogKeyTyped(new KeyEvent(KeyNames.Down))).State;
+        var stopped = AppReducer.Reduce(down, new ReflogKeyTyped(new KeyEvent(KeyNames.Down))).State;
 
         Assert.Equal(1, down.Shell.Reflog.List!.Picker!.Index);
-        Assert.Equal(0, wrapped.Shell.Reflog.List!.Picker!.Index);
+        Assert.Equal(1, stopped.Shell.Reflog.List!.Picker!.Index);
     }
 
     [Fact]

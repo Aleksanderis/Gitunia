@@ -1,4 +1,5 @@
 using Gitunia.Core.Editing;
+using Gitunia.Core.Lists;
 
 namespace Gitunia.Core.Reflog;
 
@@ -37,12 +38,9 @@ public sealed record ReflogRefPicker(IReadOnlyList<string> Names, string Text = 
     public ReflogRefPicker WithEdit(PromptEdit edit) =>
         edit.Text == Text ? this with { Caret = edit.Caret } : this with { Text = edit.Text, Caret = edit.Caret, Index = 0 };
 
-    /// <summary>Moves the highlight by <paramref name="step"/>, wrapping around the matches.</summary>
-    public ReflogRefPicker Move(int step)
-    {
-        var count = Candidates.Count;
-        return count == 0 ? this : this with { Index = (((Index + step) % count) + count) % count };
-    }
+    /// <summary>Moves the highlight by <paramref name="step"/>, stopping at the ends.</summary>
+    public ReflogRefPicker Move(int step) =>
+        this with { Index = ListViewport.ClampIndex(Index + step, Candidates.Count) };
 
     /// <summary>Highlights the choice at <paramref name="index"/> of <see cref="Candidates"/>, clamped.</summary>
     public ReflogRefPicker MoveTo(int index) =>

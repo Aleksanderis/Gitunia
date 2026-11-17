@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using Gitunia.Core.Editing;
+using Gitunia.Core.Lists;
 
 namespace Gitunia.Core.Search.Models;
 
@@ -13,15 +14,7 @@ public sealed record RefJumpState(string Text, ImmutableArray<RefJumpCandidate> 
     /// <summary>The candidate <c>Enter</c> picks, null when nothing matches.</summary>
     public RefJumpCandidate? Selected => SelectedIndex >= 0 && SelectedIndex < Candidates.Length ? Candidates[SelectedIndex] : null;
 
-    /// <summary>Moves the highlight by <paramref name="delta"/> candidates, wrapping around.</summary>
-    public RefJumpState Move(int delta)
-    {
-        if (Candidates.IsEmpty)
-        {
-            return this;
-        }
-
-        var count = Candidates.Length;
-        return this with { SelectedIndex = (((SelectedIndex + delta) % count) + count) % count };
-    }
+    /// <summary>Moves the highlight by <paramref name="delta"/> candidates, stopping at the ends.</summary>
+    public RefJumpState Move(int delta) =>
+        this with { SelectedIndex = ListViewport.ClampIndex(SelectedIndex + delta, Candidates.Length) };
 }

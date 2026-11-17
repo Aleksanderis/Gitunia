@@ -3,6 +3,7 @@ using System.Text;
 using Gitunia.App.Blame;
 using Gitunia.Core.Blame;
 using Gitunia.Core.Keymap;
+using Gitunia.Core.Lists;
 using Gitunia.Core.Mouse;
 using Gitunia.Core.Text;
 using Gitunia.Core.Visual;
@@ -175,12 +176,8 @@ public static class BlameFrameBuilder
         return TopOf(state.Cursor, state.LineCount, rows);
     }
 
-    private static int TopOf(int cursor, int count, int rows)
-    {
-        var selected = count == 0 ? 0 : Math.Clamp(cursor, 0, count - 1);
-
-        return Math.Clamp(selected - (rows / 2), 0, Math.Max(0, count - rows));
-    }
+    private static int TopOf(int cursor, int count, int rows) =>
+        ListViewport.TopFor(cursor, 0, count, rows, ScrollPolicy.Centre);
 
     private static StyledLine Row(
         BlameState state,
