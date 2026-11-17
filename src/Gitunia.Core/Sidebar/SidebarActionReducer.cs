@@ -1,6 +1,5 @@
 using System.Collections.Immutable;
 using Gitunia.Core.Clipboard;
-using Gitunia.Core.Editing;
 using Gitunia.Core.Effects;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
@@ -188,9 +187,9 @@ public static class SidebarActionReducer
             return new SidebarActionUpdate(session, [], []);
         }
 
-        if (PromptTextEditor.Apply(tab.Sidebar.FilterText, tab.Sidebar.FilterCaret, typed.Key) is { } edit)
+        if (tab.Sidebar.Filter.Apply(typed.Key) is { } edit)
         {
-            return Tab(session, new SetSidebarFilterCommand(edit.Text, edit.Caret));
+            return Tab(session, new SetSidebarFilterCommand(edit));
         }
 
         return new SidebarActionUpdate(session, [], []);

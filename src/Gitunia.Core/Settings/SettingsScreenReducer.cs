@@ -1,4 +1,3 @@
-using Gitunia.Core.Editing;
 using Gitunia.Core.Effects;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
@@ -246,17 +245,17 @@ public static partial class SettingsScreenReducer
 
         if (screen.Input is { } input)
         {
-            if (PromptTextEditor.Apply(input.Text, input.Caret, key) is { } text)
+            if (input.Field.Apply(key) is { } text)
             {
-                return session with { Screen = screen.WithInputText(text.Text, text.Caret) };
+                return session with { Screen = screen.WithInputText(text) };
             }
 
             return session;
         }
 
-        if (PromptTextEditor.Apply(screen.Filter, screen.FilterCaret, key) is { } filter)
+        if (screen.FilterField.Apply(key) is { } filter)
         {
-            return session with { Screen = screen.WithFilterText(filter.Text, filter.Caret) };
+            return session with { Screen = screen.WithFilterText(filter) };
         }
 
         return session;

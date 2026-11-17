@@ -18,7 +18,7 @@ public static class GraphSearchStatusText
             return PromptLine.Empty;
         }
 
-        var field = new PromptLine("/", state.Text, state.Phase == SearchPhase.Editing ? state.Caret : null);
+        var field = new PromptLine("/", state.Text, state.Phase == SearchPhase.Editing ? state.Field.Caret : null);
         if (state.Query is null)
         {
             return field;

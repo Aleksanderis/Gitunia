@@ -3,6 +3,7 @@ using Gitunia.App.Tabs;
 using Gitunia.App.Tests.Fakes;
 using Gitunia.Core;
 using Gitunia.Core.Branches;
+using Gitunia.Core.Editing;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Overlays;
@@ -43,6 +44,24 @@ public class BranchPipelineTests
         Assert.Equal(ObjectIdOf(first), pipeline.SelectedCommit);
         Assert.Contains("Created branch old at", pipeline.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
         Assert.Equal(KeyMode.Normal, pipeline.Host.State.Shell.Mode);
+    }
+
+    [Fact]
+    public async Task GivenAnExistingName_WhenAccepted_ThenThePromptReopensWithTheTypedTextAndTheReason()
+    {
+        using var repository = RepositoryWithTopic();
+        using var pipeline = await Pipeline.OpenAsync(repository);
+
+        pipeline.Dispatch(new BranchCreateRequested(pipeline.TabId, new BranchTarget(null, null, repository.Head), false));
+        pipeline.Type("topic");
+        pipeline.Dispatch(new PromptAcceptedCommand());
+        await pipeline.Pump.RunUntilAsync(() => pipeline.Prompt is not null);
+
+        Assert.Equal("topic", pipeline.Prompt!.Text);
+        Assert.Equal("topic".Length, PromptCaret.Clamp(pipeline.Prompt.Text, pipeline.Prompt.Field.Caret));
+        Assert.Equal(KeyMode.Insert, pipeline.Host.State.Shell.Mode);
+        Assert.Equal("Branch topic already exists", pipeline.Statuses.Log.Latest!.Text);
+        Assert.Equal(StatusSeverity.Warning, pipeline.Statuses.Log.Latest.Severity);
     }
 
     [Fact]

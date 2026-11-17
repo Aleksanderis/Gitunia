@@ -19,8 +19,7 @@ public static class OpenPromptPopup
 
         if (prompt.Picker is not { } picker)
         {
-            return PromptPopup.ForText(prompt.Title, prompt.Context, prompt.Text, prompt.AcceptLabel)
-                with { InputCaret = prompt.Caret };
+            return PromptPopup.ForText(prompt.Title, prompt.Context, prompt.Field, prompt.AcceptLabel);
         }
 
         if (prompt.ListOnly)
@@ -31,10 +30,10 @@ public static class OpenPromptPopup
         return PromptPopup.ForFilter(
             prompt.Title,
             prompt.Context,
-            prompt.Text,
+            prompt.Field,
             picker.Rows(),
             prompt.AcceptLabel,
-            picker.Candidates.Length > 1) with { InputCaret = prompt.Caret };
+            picker.Candidates.Length > 1);
     }
 
     private static PromptPopup ListPopup(OpenPrompt prompt, PromptPicker picker)

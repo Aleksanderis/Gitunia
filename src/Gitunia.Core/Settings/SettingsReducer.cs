@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using System.Globalization;
 using Gitunia.Core.Config;
+using Gitunia.Core.Editing;
 using Gitunia.Core.Settings.Models;
 
 namespace Gitunia.Core.Settings;
@@ -59,7 +60,7 @@ public static class SettingsReducer
         {
             var cleared = state with
             {
-                Filter = string.Empty,
+                FilterField = new TextField(),
                 IsEditingFilter = false,
                 Column = SettingsColumn.Categories,
                 Cursor = 0,
@@ -324,7 +325,7 @@ public static class SettingsReducer
 
         var opened = state with
         {
-            Filter = string.Empty,
+            FilterField = new TextField(),
             IsEditingFilter = true,
             Column = SettingsColumn.Settings,
             Cursor = 0,
@@ -438,7 +439,7 @@ public static class SettingsReducer
     private static SettingsState LeaveFilter(SettingsState state)
     {
         var selected = state.Selected;
-        var cleared = state with { Filter = string.Empty, IsEditingFilter = false };
+        var cleared = state with { FilterField = new TextField(), IsEditingFilter = false };
 
         if (selected is null)
         {

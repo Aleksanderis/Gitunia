@@ -34,19 +34,20 @@ public static class QuickJumpReducer
     };
 
     /// <summary>The status bar line of an open prompt.</summary>
-    /// <param name="text">The typed text.</param>
+    /// <param name="field">The typed text and its caret.</param>
     /// <param name="matches">How many rows in view match.</param>
-    /// <param name="caret">The caret column in the text.</param>
-    public static PromptLine StatusLine(string text, int matches, int caret = PromptCaret.End)
+    public static PromptLine StatusLine(TextField field, int matches)
     {
-        if (text.Length == 0)
+        if (field.Text.Length == 0)
         {
-            return new PromptLine(Prefix, text, caret, "  type text, then press a label");
+            return PromptLine.Editing(Prefix, field, "  type text, then press a label");
         }
 
         var count = matches.ToString(CultureInfo.InvariantCulture);
 
-        return new PromptLine(Prefix, text, caret, matches == 0 ? $"  {UiTexts.NoMatch("text in view")}" : $"  {count} in view");
+        var suffix = matches == 0 ? $"  {UiTexts.NoMatch("text in view")}" : $"  {count} in view";
+
+        return PromptLine.Editing(Prefix, field, suffix);
     }
 
     private static QuickJumpTransition Open(QuickJumpOpenRequested open)
@@ -86,13 +87,13 @@ public static class QuickJumpReducer
             return new QuickJumpTransition(null, []);
         }
 
-        var update = QuickJumpLabeler.Apply(session.Text, session.Caret, pressed.Key, pressed.Labels);
+        var update = QuickJumpLabeler.Apply(session.Field, pressed.Key, pressed.Labels);
         if (update.JumpRow is { } row)
         {
             return new QuickJumpTransition(null, [new JumpToRowEffect(row)]);
         }
 
-        return new QuickJumpTransition(session with { Text = update.Text, Caret = update.Caret }, []);
+        return new QuickJumpTransition(session with { Field = update.Field }, []);
     }
 
     private static QuickJumpTransition Notice(string text) =>

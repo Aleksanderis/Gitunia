@@ -68,20 +68,20 @@ public static class SidebarRowRenderer
             isSelected);
 
     /// <summary>The last row of the sidebar: the filter being typed or the active one, blank otherwise.</summary>
-    public static StyledLine FilterLine(string filterText, bool isEditing, int width, GraphGlyphSet glyphs, int caret = PromptCaret.End)
+    public static StyledLine FilterLine(TextField filter, bool isEditing, int width, GraphGlyphSet glyphs)
     {
         var builder = new LineBuilder(width, glyphs.Ellipsis);
-        if (isEditing || filterText.Length > 0)
+        if (isEditing || filter.Text.Length > 0)
         {
             builder.Append("/", SegmentRole.SectionTitle);
             if (isEditing)
             {
                 // The cursor cell keeps the caret in view when the filter is wider than the pane.
-                new CaretField(string.Empty, filterText, caret).AppendTo(builder, FieldRoles.Body);
+                CaretField.Of(string.Empty, filter).AppendTo(builder, FieldRoles.Body);
             }
             else
             {
-                builder.Append(filterText, SegmentRole.Plain);
+                builder.Append(filter.Text, SegmentRole.Plain);
             }
         }
 

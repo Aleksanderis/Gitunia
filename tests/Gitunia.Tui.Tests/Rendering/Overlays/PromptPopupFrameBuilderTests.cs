@@ -1,3 +1,4 @@
+using Gitunia.Core.Editing;
 using Gitunia.Core.Overlays;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Overlays;
@@ -28,8 +29,8 @@ public class PromptPopupFrameBuilderTests
     [Fact]
     public void GivenACaretInsideTheText_WhenBuilding_ThenItIsDrawnThereAndLongTextKeepsItVisible()
     {
-        var inside = PromptPopup.ForText("T", "C", "feature", "ok") with { InputCaret = 3 };
-        var longText = PromptPopup.ForText("T", "C", new string('a', 120) + "XY", "ok") with { InputCaret = 60 };
+        var inside = PromptPopup.ForText("T", "C", new TextField("feature", 3), "ok");
+        var longText = PromptPopup.ForText("T", "C", new TextField(new string('a', 120) + "XY", 60), "ok");
 
         var short1 = PromptPopupFrameBuilder.Build(inside, 80, 24, GraphGlyphSet.Unicode);
         var long1 = PromptPopupFrameBuilder.Build(longText, 80, 24, GraphGlyphSet.Unicode);

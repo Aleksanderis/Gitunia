@@ -19,6 +19,14 @@ public sealed record CaretField(
     string Suffix = "",
     string Placeholder = "")
 {
+    /// <summary>A field around the text and caret of <paramref name="field"/>.</summary>
+    /// <param name="prefix">Fixed text before the field.</param>
+    /// <param name="field">The text and caret.</param>
+    /// <param name="suffix">Fixed text after the field.</param>
+    /// <param name="placeholder">Hint drawn while the text is empty.</param>
+    public static CaretField Of(string prefix, TextField field, string suffix = "", string placeholder = "") =>
+        new(prefix, field.Text, field.Caret, suffix, placeholder);
+
     /// <summary>Appends the field to <paramref name="builder"/>: the prefix, the text around the caret cell cut to the remaining columns (the prefix and suffix come first), the suffix.</summary>
     /// <param name="builder">The line.</param>
     /// <param name="roles">The roles of the surface the field sits on.</param>

@@ -114,7 +114,9 @@ public static class DetailReducer
             return new AppUpdate(state, [Notice(WrongTabNotice)]);
         }
 
-        var update = Apply(state, tab, new SetDetailTreeCommand(tab.View.DetailTree with { IsEditingFilter = true, Caret = PromptCaret.End }));
+        var current = tab.View.DetailTree;
+        var tree = current with { IsEditingFilter = true, Field = TextField.Of(current.Filter) };
+        var update = Apply(state, tab, new SetDetailTreeCommand(tree));
 
         return new AppUpdate(WithMode(update.State, KeyMode.Insert), []);
     }
@@ -122,17 +124,17 @@ public static class DetailReducer
     private static AppUpdate TypeFilter(AppState state, RepositoryState tab, KeyEvent key)
     {
         var tree = tab.View.DetailTree;
-        if (!DetailTreeRules.IsEditingFilter(tab.View) || PromptTextEditor.Apply(tree.Filter, tree.Caret, key) is not { } edit)
+        if (!DetailTreeRules.IsEditingFilter(tab.View) || tree.Field.Apply(key) is not { } edit)
         {
             return new AppUpdate(state, []);
         }
 
         if (edit.Text == tree.Filter)
         {
-            return Apply(state, tab, new SetDetailTreeCommand(tree with { Caret = edit.Caret }));
+            return Apply(state, tab, new SetDetailTreeCommand(tree with { Field = edit }));
         }
 
-        return ChangeFilter(state, tab, edit.Text, tree.IsEditingFilter, edit.Caret);
+        return ChangeFilter(state, tab, edit, tree.IsEditingFilter);
     }
 
     private static AppUpdate EndFilter(AppState state, RepositoryState tab, bool clear)
@@ -146,7 +148,7 @@ public static class DetailReducer
         var ended = WithMode(state, KeyMode.Normal);
         if (clear)
         {
-            return ChangeFilter(ended, tab, string.Empty, false);
+            return ChangeFilter(ended, tab, new TextField(), false);
         }
 
         return Apply(ended, tab, new SetDetailTreeCommand(tree with { IsEditingFilter = false }));
@@ -155,17 +157,16 @@ public static class DetailReducer
     private static AppUpdate ClearFilter(AppState state, RepositoryState tab) =>
         tab.View.DetailTree.Filter.Length == 0
             ? new AppUpdate(state, [])
-            : ChangeFilter(state, tab, string.Empty, tab.View.DetailTree.IsEditingFilter);
+            : ChangeFilter(state, tab, new TextField(), tab.View.DetailTree.IsEditingFilter);
 
     // The cursor goes to the top after every change of the filter, so the first match shows.
     private static AppUpdate ChangeFilter(
         AppState state,
         RepositoryState tab,
-        string text,
-        bool editing,
-        int caret = PromptCaret.End)
+        TextField field,
+        bool editing)
     {
-        var filtered = tab.View.DetailTree with { Filter = text, IsEditingFilter = editing, Caret = caret };
+        var filtered = tab.View.DetailTree with { Field = field, IsEditingFilter = editing };
         var update = Apply(state, tab, new SetDetailTreeCommand(filtered));
 
         return new AppUpdate(update.State, [new MoveDetailCursorEffect(0)]);

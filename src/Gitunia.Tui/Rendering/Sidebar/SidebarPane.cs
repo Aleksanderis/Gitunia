@@ -22,7 +22,7 @@ public static class SidebarPane
 
         if (height > 0)
         {
-            lines.Add(SidebarRowRenderer.FilterLine(model.FilterText, model.IsEditingFilter, width, glyphs, model.FilterCaret));
+            lines.Add(SidebarRowRenderer.FilterLine(model.Filter, model.IsEditingFilter, width, glyphs));
         }
 
         return lines;

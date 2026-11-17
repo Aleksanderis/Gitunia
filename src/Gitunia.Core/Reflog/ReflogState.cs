@@ -11,8 +11,7 @@ namespace Gitunia.Core.Reflog;
 /// <param name="Title">The ref as the user sees it (<c>HEAD</c> or <c>main</c>), the prefix of <c>main@{n}</c>.</param>
 /// <param name="Entries">Every entry read.</param>
 /// <param name="SelectedIndex">Index into <paramref name="Entries"/>.</param>
-/// <param name="SearchText">The search text, empty when no search is active.</param>
-/// <param name="SearchCaret">The caret column in <see cref="SearchText"/> (see <see cref="PromptCaret"/>).</param>
+/// <param name="Search">The search text and its caret; empty text when no search is active.</param>
 /// <param name="IsEditingSearch">True while the search box takes typed text.</param>
 /// <param name="Picker">The open ref picker, null when the list itself is shown.</param>
 public sealed record ReflogState(
@@ -21,11 +20,16 @@ public sealed record ReflogState(
     string Title,
     IReadOnlyList<ReflogEntry> Entries,
     int SelectedIndex = 0,
-    string SearchText = "",
+    TextField? Search = null,
     bool IsEditingSearch = false,
-    ReflogRefPicker? Picker = null,
-    int SearchCaret = PromptCaret.End)
+    ReflogRefPicker? Picker = null)
 {
+    /// <summary>The search text and its caret.</summary>
+    public TextField Search { get; init; } = Search ?? new TextField();
+
+    /// <summary>The search text, empty when no search is active.</summary>
+    public string SearchText => Search.Text;
+
     /// <summary>True when a search is active (being typed or accepted).</summary>
     public bool HasSearch => SearchText.Length > 0 || IsEditingSearch;
 
@@ -61,27 +65,24 @@ public sealed record ReflogState(
             || entry.Message.Contains(SearchText, StringComparison.OrdinalIgnoreCase));
 
     /// <summary>Starts a fresh search in the box.</summary>
-    public ReflogState OpenSearch() => this with { SearchText = string.Empty, IsEditingSearch = true };
+    public ReflogState OpenSearch() => this with { Search = new TextField(), IsEditingSearch = true };
 
-    /// <summary>The search with new text; the highlight jumps to the first match at or after the highlight.</summary>
-    public ReflogState EditSearch(string text) => EditSearch(text, PromptCaret.End);
-
-    /// <summary>The state after an edit of the search box; a move of the caret alone keeps the selection.</summary>
-    public ReflogState EditSearch(string text, int caret)
+    /// <summary>The state after an edit of the search box; the highlight jumps to the first match at or after it, and a move of the caret alone keeps the selection.</summary>
+    public ReflogState EditSearch(TextField edit)
     {
-        if (text == SearchText)
+        if (edit.Text == SearchText)
         {
-            return this with { SearchCaret = caret };
+            return this with { Search = edit };
         }
 
-        return (this with { SearchText = text, SearchCaret = caret }).JumpToMatch(true, 0, SelectedIndex);
+        return (this with { Search = edit }).JumpToMatch(true, 0, SelectedIndex);
     }
 
     /// <summary>Leaves the box and keeps the search active (so <c>n</c> and <c>N</c> work).</summary>
     public ReflogState AcceptSearch() => this with { IsEditingSearch = false };
 
     /// <summary>Drops the search.</summary>
-    public ReflogState ClearSearch() => this with { SearchText = string.Empty, IsEditingSearch = false };
+    public ReflogState ClearSearch() => this with { Search = new TextField(), IsEditingSearch = false };
 
     /// <summary>Steps <paramref name="count"/> matches forward or back from the highlight, wrapping around.</summary>
     public ReflogState StepMatch(bool forward, int count) => JumpToMatch(forward, Math.Max(1, count), SelectedIndex);

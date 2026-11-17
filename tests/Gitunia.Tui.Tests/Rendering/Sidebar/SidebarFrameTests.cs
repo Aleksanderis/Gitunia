@@ -1,3 +1,4 @@
+using Gitunia.Core.Editing;
 using Gitunia.Core.Graph;
 using Gitunia.Core.Sidebar;
 using Gitunia.Core.Workspaces.Repositories;
@@ -171,7 +172,7 @@ public class SidebarFrameTests
     [Fact]
     public void GivenActiveFilter_WhenComposing_ThenFilterLineIsTheLastSidebarRow()
     {
-        var sidebar = Sidebar(Section(SidebarSection.Branches, "Branches", 1, isExpanded: true), Branch("feature")) with { FilterText = "feat", IsEditingFilter = true };
+        var sidebar = Sidebar(Section(SidebarSection.Branches, "Branches", 1, isExpanded: true), Branch("feature")) with { Filter = "feat", IsEditingFilter = true };
 
         var frame = Frame(sidebar, 80, 8);
 
@@ -181,7 +182,7 @@ public class SidebarFrameTests
     [Fact]
     public void GivenTheCaretInTheFilter_WhenDrawingTheFilterLine_ThenTheCursorCellCoversTheCharacterUnderIt()
     {
-        var line = SidebarRowRenderer.FilterLine("feat", true, 20, GraphGlyphSet.Unicode, 2);
+        var line = SidebarRowRenderer.FilterLine(new TextField("feat", 2), true, 20, GraphGlyphSet.Unicode);
 
         Assert.Equal("/feat", line.Text.TrimEnd());
         Assert.Equal("a", CursorCell.Of(line));
@@ -191,7 +192,7 @@ public class SidebarFrameTests
     public void GivenTheCaretInTheFilter_WhenComposing_ThenTheFilterTextIsNotPushedApart()
     {
         var sidebar = Sidebar(Section(SidebarSection.Branches, "Branches", 1, isExpanded: true), Branch("feature"))
-            with { FilterText = "feat", IsEditingFilter = true, FilterCaret = 2 };
+            with { Filter = new TextField("feat", 2), IsEditingFilter = true };
 
         var frame = Frame(sidebar, 80, 8);
 
