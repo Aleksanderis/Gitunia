@@ -316,7 +316,7 @@ Roles are chosen by meaning, not by how they look: plain for typed text and for 
 - Hand-built key rows with literal keys: Blame, Reflog, File history, Confirm, Settings (yes/no) and Mainline (`[n]`).
 - Hand-built brackets: `[+]` and `[x]` in the settings rows, and the Help `[Tab] n/m` position.
 - The palette footer (position and hints are appended by hand).
-- Overlays other than settings, picker and prompt still leave a one-column margin at narrow widths, so the app frame shows beside their border.
+- Overlays other than settings, picker and prompt (palette, help, reflog, rebase editor, confirm, mainline) still leave a one-column margin, so the app frame shows beside their border (#1456).
 
 ## Solution layout
 
