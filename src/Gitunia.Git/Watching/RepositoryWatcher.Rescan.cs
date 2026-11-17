@@ -36,6 +36,15 @@ public sealed partial class RepositoryWatcher
                 await Task.Delay(_options.Debounce, token);
                 var directories = await _directoryLister!.ListAsync(_location.WorkingTreePath!, token);
                 var drops = FindDroppableDirectories(directories);
+                if (drops.Count > 0)
+                {
+                    // A file written after the listing but before the disk check makes a new directory look ignored.
+                    // The second listing starts after that check, so it includes such a file; only what it still
+                    // omits is dropped (#1395).
+                    directories = await _directoryLister.ListAsync(_location.WorkingTreePath!, token);
+                    drops = FindDroppableDirectories(directories, drops);
+                }
+
                 if (!ApplyDirectories(directories, drops))
                 {
                     return;
@@ -56,7 +65,9 @@ public sealed partial class RepositoryWatcher
     }
 
     /// <summary>Checks the disk outside the lock: watched directories git does not list, gone or ignored.</summary>
-    private List<string> FindDroppableDirectories(IReadOnlyList<string>? directories)
+    private List<string> FindDroppableDirectories(
+        IReadOnlyList<string>? directories,
+        IReadOnlyCollection<string>? candidates = null)
     {
         var drops = new List<string>();
         if (directories is null)
@@ -67,7 +78,7 @@ public sealed partial class RepositoryWatcher
         string[] watched;
         lock (_gate)
         {
-            watched = [.. _directoryWatchers.Keys];
+            watched = [.. candidates ?? _directoryWatchers.Keys];
         }
 
         var wanted = new HashSet<string>(directories, StringComparer.Ordinal);
