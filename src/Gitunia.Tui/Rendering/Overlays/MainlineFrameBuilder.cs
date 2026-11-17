@@ -1,5 +1,5 @@
 using System.Globalization;
-using Gitunia.Core.Text;
+using Gitunia.Core.Hints;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Styling;
 
@@ -15,10 +15,14 @@ public static class MainlineFrameBuilder
 {
     private const int MaximumWidth = 96;
     private const int MinimumPopupWidth = 72;
-    // The index "[n]", " unavailable" and the gap before it.
+    // The key (a digit), the gap after it and " unavailable".
     private const int UnavailableSuffixWidth = 16;
     private const int ScreenMargin = 2;
-    private static readonly HintItem[] Hint = [new("Esc", HintVerb.CancelOrClickOutside)];
+    private const string Unavailable = " unavailable";
+
+    // The margin, the digit, the gap after it and the margin at the right edge: what is left is the parent's text, so
+    // the text fit cannot cut the mark.
+    private const int KeyColumns = 5;
 
     /// <summary>The overlay for a screen, or null when it does not fit.</summary>
     public static OverlayFrame? Build(
@@ -46,18 +50,24 @@ public static class MainlineFrameBuilder
         for (var index = 0; index < parents.Count; index++)
         {
             var isUsable = index < usableParents;
-            lines.Add(OverlayBox.TwoColumns(
-                parents[index],
-                $"[{(index + 1).ToString(CultureInfo.InvariantCulture)}]{(isUsable ? string.Empty : " unavailable")}",
+            var room = OverlayBox.InnerWidth(width) - KeyColumns - (isUsable ? 0 : Unavailable.Length);
+            // The key of a parent is its number: the digit that answers, not a binding of the keymap.
+            lines.Add(ActionRow.Answer(
+                (index + 1).ToString(CultureInfo.InvariantCulture),
+                $"{TextWidth.Fit(parents[index], room, glyphs.Ellipsis)}{(isUsable ? string.Empty : Unavailable)}",
                 width,
                 glyphs,
-                isUsable ? SegmentRole.Plain : SegmentRole.Faint,
-                isUsable ? SegmentRole.OverlayKey : SegmentRole.Faint));
+                isUsable));
         }
 
-        lines.Add(OverlayBox.Hints(Hint, width, glyphs));
+        var targets = new List<FrameTarget>();
+        lines.Add(OverlayBox.Hints(HintSet.ForMainline(), targets, lines.Count, width, glyphs));
         lines.Add(OverlayBox.Bottom(width, glyphs));
-        return new OverlayFrame((screenWidth - width) / 2, Math.Max(0, (screenHeight - lines.Count) / 2), lines);
+        return new OverlayFrame(
+            (screenWidth - width) / 2,
+            Math.Max(0, (screenHeight - lines.Count) / 2),
+            lines,
+            targets);
     }
 
     /// <summary>The parent (1-based) whose row is the frame line, null for any other line.</summary>

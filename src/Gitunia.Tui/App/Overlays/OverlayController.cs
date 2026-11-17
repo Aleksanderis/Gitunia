@@ -83,7 +83,8 @@ public sealed class OverlayController : IActionHandler
             width,
             height,
             _services.Config.Glyphs,
-            bannerShown);
+            bannerShown,
+            _services.Keys);
     }
 
     bool IActionHandler.TryExecute(ActionId action, int? count) => Handle(action, count);

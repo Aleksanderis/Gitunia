@@ -1,4 +1,7 @@
+using System.Collections.Immutable;
 using Gitunia.Core.Editing;
+using Gitunia.Core.Keymap;
+using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Text;
 
 namespace Gitunia.Core.Overlays;
@@ -27,7 +30,9 @@ public sealed record PromptPopup(
     int Highlight = -1,
     string? Count = null)
 {
-    private static readonly PromptHint Cancel = new("Esc", HintVerb.Cancel);
+    private static readonly PromptHint Cancel = new("Esc", HintVerb.Cancel, [ActionIds.Cancel]);
+
+    private static readonly ImmutableArray<ActionId> Move = [ActionIds.ListDown, ActionIds.ListUp];
 
     /// <summary>The text between two hints of a prompt footer, also the gap the footer is drawn with.</summary>
     public const string HintGap = "   ";
@@ -37,7 +42,7 @@ public sealed record PromptPopup(
 
     /// <summary>A prompt with a text field; <paramref name="acceptLabel"/> names what <c>Enter</c> does.</summary>
     public static PromptPopup ForText(string title, string context, string input, string acceptLabel) =>
-        new(title, [context], input, [], [new("Enter", acceptLabel), Cancel]);
+        new(title, [context], input, [], [new("Enter", acceptLabel, [ActionIds.InputAccept]), Cancel]);
 
     /// <summary>
     /// A prompt whose text filters candidates (see <see cref="Prompts.PromptPicker"/>). <paramref name="rows"/> is the
@@ -57,14 +62,18 @@ public sealed record PromptPopup(
             input,
             rows.Rows,
             canSelect
-                ? [new(string.Empty, HintVerb.TypeToFilter), new("Ctrl-j/k", HintVerb.Move), new("Enter", acceptLabel), Cancel]
-                : [new(string.Empty, HintVerb.TypeToFilter), new("Enter", acceptLabel), Cancel],
+                ? [new(string.Empty, HintVerb.TypeToFilter), new("Ctrl-j/k", HintVerb.Move, Move), Accept(acceptLabel), Cancel]
+                : [new(string.Empty, HintVerb.TypeToFilter), Accept(acceptLabel), Cancel],
             Highlight: rows.Highlight,
             Count: rows.Position);
 
     /// <summary>A prompt answered by one key; each option is written as <c>key  label</c>.</summary>
     public static PromptPopup ForChoice(string title, string context, IReadOnlyList<string> options) =>
         new(title, [context], null, options, [Cancel]);
+
+    /// <summary>The hint of Enter, which answers the prompt; <paramref name="label"/> names what it does.</summary>
+    /// <param name="label">What Enter does.</param>
+    public static PromptHint Accept(string label) => new("Enter", label, [ActionIds.InputAccept]);
 
     /// <summary>True when both show the same text (a record compares its lists by reference).</summary>
     public bool SameText(PromptPopup? other) =>
@@ -74,7 +83,7 @@ public sealed record PromptPopup(
         && InputCaret == other.InputCaret
         && Highlight == other.Highlight
         && Count == other.Count
-        && Hints.SequenceEqual(other.Hints)
+        && Hint == other.Hint
         && Lines.SequenceEqual(other.Lines)
         && Details.SequenceEqual(other.Details);
 }

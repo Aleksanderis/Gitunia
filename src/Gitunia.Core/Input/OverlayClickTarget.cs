@@ -3,6 +3,9 @@ namespace Gitunia.Core.Input;
 /// <summary>What a click on an overlay line may hit, in the order of <see cref="InputRouting.ClickTargets"/>.</summary>
 public enum OverlayClickTarget
 {
+    /// <summary>A hint or a row the frame lists as clickable (<c>OverlayFrame.Targets</c>): it runs its own action.</summary>
+    Frame,
+
     /// <summary>The settings screen.</summary>
     Settings,
 

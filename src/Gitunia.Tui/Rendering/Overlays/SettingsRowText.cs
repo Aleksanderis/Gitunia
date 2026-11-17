@@ -26,12 +26,12 @@ public sealed record SettingsRowText(
     private const string ChoiceArrow = "▾";
     private const string AsciiChoiceArrow = "v";
     private const string ItemIndent = "  ";
-    private const string RemoveMarker = "[x]";
+    private static readonly string RemoveMarker = ButtonLabel.Bracketed("x");
     private const string CheckedBox = "[x]";
     private const string EmptyBox = "[ ]";
 
     /// <summary>The <c>[+]</c> marker at the end of a path list's row.</summary>
-    public const string AddMarker = "[+]";
+    public static readonly string AddMarker = ButtonLabel.Bracketed("+");
 
     /// <summary>The words of a row.</summary>
     /// <param name="state">The settings state (values, what is being typed).</param>

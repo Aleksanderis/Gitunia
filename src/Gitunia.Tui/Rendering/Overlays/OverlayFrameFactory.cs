@@ -1,5 +1,6 @@
 using Gitunia.Core.Overlays;
 using Gitunia.Tui.Rendering.Graph;
+using Gitunia.Tui.Rendering.Styling;
 
 namespace Gitunia.Tui.Rendering.Overlays;
 
@@ -14,6 +15,7 @@ public static class OverlayFrameFactory
     /// <param name="screenHeight">Terminal rows.</param>
     /// <param name="glyphs">The characters to draw rules with.</param>
     /// <param name="bannerShown">Whether the operation banner is drawn above the status bar.</param>
+    /// <param name="keys">The keymap lookup for the keys of a dialog's rows; null uses the default keymap.</param>
     public static OverlayFrame? Create(
         OverlayState state,
         IReadOnlyList<HelpTab> helpTabs,
@@ -22,7 +24,8 @@ public static class OverlayFrameFactory
         int screenWidth,
         int screenHeight,
         GraphGlyphSet glyphs,
-        bool bannerShown = false)
+        bool bannerShown = false,
+        ChipKeys? keys = null)
     {
         return state.Kind switch
         {
@@ -63,7 +66,7 @@ public static class OverlayFrameFactory
                 screenHeight,
                 glyphs,
                 state.HelpView),
-            OverlayKind.Confirm when state.Confirm is { } prompt => ConfirmFrameBuilder.Build(prompt, screenWidth, screenHeight, glyphs),
+            OverlayKind.Confirm when state.Confirm is { } prompt => ConfirmFrameBuilder.Build(prompt, screenWidth, screenHeight, glyphs, keys),
             OverlayKind.Palette when state.Palette is { } palette => PaletteFrameBuilder.Build(palette, screenWidth, screenHeight, glyphs),
             OverlayKind.ContextMenu when state is { Palette: { } menu, MenuAnchor: { } anchor } =>
                 ContextMenuFrameBuilder.Build(

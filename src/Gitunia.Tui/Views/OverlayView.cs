@@ -20,6 +20,9 @@ public sealed class OverlayView : View
         Visible = false;
     }
 
+    /// <summary>The frame being shown, null when the view is hidden.</summary>
+    public OverlayFrame? Shown => _frame;
+
     /// <summary>The column inside the frame (0 is the left border) of the last mouse event over the overlay.</summary>
     public int PointerColumn { get; private set; }
 

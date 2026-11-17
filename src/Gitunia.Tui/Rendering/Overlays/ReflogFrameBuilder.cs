@@ -1,4 +1,6 @@
 using System.Globalization;
+using Gitunia.Core.Hints;
+using Gitunia.Core.Keymap;
 using Gitunia.Core.Lists;
 using Gitunia.Core.Mouse;
 using Gitunia.Core.Overlays;
@@ -15,20 +17,14 @@ public static class ReflogFrameBuilder
 {
     private const int MaximumWidth = 110;
     private const int MaximumRows = 20;
-    private const int ChromeRows = 3 + ActionRows;
-    private const int ActionRows = 4;
+    private static int ChromeRows => 3 + ActionRows;
     private const int ScreenMargin = 2;
 
-    private static readonly HintItem[] PickerHints = [new("Enter", HintVerb.Open), new("Esc", HintVerb.Back)];
+    // What a key does to the highlighted entry, one row each: the hints of the reflog that have a sentence. A click on a
+    // row runs the action (the mouse view of the action says which click binding).
+    private static readonly List<KeyHint> Actions = ActionRow.RowsOf(HintSet.ForReflogList());
 
-    // The mouse paths of an entry: a click on a row runs the action on the highlighted entry.
-    private static readonly ReflogEntryAction[] Actions =
-    [
-        new("Enter", $"{HintVerb.Select} the commit in the graph", DefaultMouseMap.ReflogSelectButton),
-        new("<space>bx", "reset the current branch to it", DefaultMouseMap.ReflogResetButton),
-        new("<space>bc", "create a branch here", DefaultMouseMap.ReflogBranchButton),
-        new("<space>bs", "check it out (detached HEAD)", DefaultMouseMap.ReflogCheckoutButton),
-    ];
+    private static int ActionRows => Actions.Count;
 
     /// <summary>The reflog frame for a screen, or null when the screen is too small to show it.</summary>
     public static OverlayFrame? Build(
@@ -36,7 +32,8 @@ public static class ReflogFrameBuilder
         int screenWidth,
         int screenHeight,
         GraphGlyphSet glyphs,
-        DateTimeOffset now)
+        DateTimeOffset now,
+        ChipKeys? keys = null)
     {
         var width = OverlayMetrics.WidthFor(MaximumWidth, screenWidth, ScreenMargin);
         var maximumRows = Math.Min(MaximumRows, screenHeight - ScreenMargin - ChromeRows);
@@ -47,7 +44,7 @@ public static class ReflogFrameBuilder
 
         if (state.Picker is { } picker)
         {
-            return BuildPicker(picker, screenWidth, width, maximumRows, glyphs);
+            return BuildPicker(state, picker, screenWidth, width, maximumRows, glyphs);
         }
 
         var window = Window(state.Entries.Count, state.SelectedIndex, maximumRows);
@@ -79,20 +76,19 @@ public static class ReflogFrameBuilder
             lines.Add(OverlayBox.Text(string.Empty, width, glyphs));
         }
 
-        foreach (var action in Actions)
-        {
-            lines.Add(OverlayBox.TwoColumns(
-                action.Key,
-                action.Label,
-                width,
-                glyphs,
-                SegmentRole.OverlayKey,
-                SegmentRole.Faint));
-        }
+        lines.AddRange(Actions.Select(action => ActionRow.Line(action, DefaultKeymap.ReflogView, width, glyphs, keys)));
 
-        lines.Add(OverlayBox.Hints(FooterHints(state), width, glyphs, FooterLead(state), field: FooterField(state)));
+        var targets = new List<FrameTarget>();
+        lines.Add(OverlayBox.Hints(
+            ActionRow.FooterOf(HintSet.ForReflog(state)),
+            targets,
+            lines.Count,
+            width,
+            glyphs,
+            FooterLead(state),
+            field: FooterField(state)));
         lines.Add(OverlayBox.Bottom(width, glyphs));
-        return new OverlayFrame((screenWidth - width) / 2, 1, lines);
+        return new OverlayFrame((screenWidth - width) / 2, 1, lines, targets);
     }
 
     /// <summary>The mouse view of the action row drawn on a frame line; null when the line is none.</summary>
@@ -105,7 +101,7 @@ public static class ReflogFrameBuilder
 
         var rows = VisibleRows(state, screenHeight);
         var index = frameLine - 1 - rows;
-        return index >= 0 && index < Actions.Length ? Actions[index].View : null;
+        return index >= 0 && index < Actions.Count ? DefaultMouseMap.ClickViewOf(Actions[index].Actions[0]) : null;
     }
 
     /// <summary>The choice of the picker drawn on a frame line, an index into its candidates; null for none.</summary>
@@ -125,6 +121,7 @@ public static class ReflogFrameBuilder
     }
 
     private static OverlayFrame BuildPicker(
+        ReflogState state,
         ReflogRefPicker picker,
         int screenWidth,
         int width,
@@ -156,9 +153,16 @@ public static class ReflogFrameBuilder
             lines.Add(OverlayBox.Text(string.Empty, width, glyphs));
         }
 
-        lines.Add(OverlayBox.Hints(PickerHints, width, glyphs, field: new CaretField($"{glyphs.Picker.Prompt} ", picker.Text, picker.Caret)));
+        var targets = new List<FrameTarget>();
+        lines.Add(OverlayBox.Hints(
+            HintSet.ForReflog(state),
+            targets,
+            lines.Count,
+            width,
+            glyphs,
+            field: new CaretField($"{glyphs.Picker.Prompt} ", picker.Text, picker.Caret)));
         lines.Add(OverlayBox.Bottom(width, glyphs));
-        return new OverlayFrame((screenWidth - width) / 2, 1, lines);
+        return new OverlayFrame((screenWidth - width) / 2, 1, lines, targets);
     }
 
     private static string Selector(ReflogState state, ReflogEntry entry) =>
@@ -174,16 +178,6 @@ public static class ReflogFrameBuilder
         }
 
         return widest;
-    }
-
-    private static HintItem[] FooterHints(ReflogState state)
-    {
-        if (!state.HasSearch)
-        {
-            return [new("/", "search"), new("Esc", HintVerb.Close)];
-        }
-
-        return [new("Esc", state.IsEditingSearch ? HintVerb.Cancel : HintVerb.Clear)];
     }
 
     private static string FooterLead(ReflogState state)

@@ -2,7 +2,7 @@ using Gitunia.Core.Editing;
 using Gitunia.Tui.App.Overlays;
 using Gitunia.Tui.App.Panes;
 using Gitunia.Tui.Input;
-using Gitunia.Tui.Rendering.Panes;
+using Gitunia.Core.Hints;
 
 namespace Gitunia.Tui.App.Screen;
 

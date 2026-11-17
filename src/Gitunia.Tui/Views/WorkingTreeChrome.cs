@@ -193,7 +193,7 @@ public sealed class WorkingTreeChrome : IDisposable
         };
         view.Clicked += _ =>
         {
-            if (_parts.Gate.IsSuppressed || _buttons.Button(section, kind) is not { } button)
+            if (CloseOverlayBehind() || _buttons.Button(section, kind) is not { } button)
             {
                 return;
             }
@@ -264,7 +264,7 @@ public sealed class WorkingTreeChrome : IDisposable
 
     private void OnDiffTitleClicked(int column)
     {
-        if (_parts.Gate.IsSuppressed)
+        if (CloseOverlayBehind())
         {
             return;
         }
@@ -283,7 +283,7 @@ public sealed class WorkingTreeChrome : IDisposable
     // The checkboxes and the Commit button of the option row are the mouse path of the Alt- chords and the commit key.
     private void OnMessageOptionsClicked(int column)
     {
-        if (_parts.Gate.IsSuppressed)
+        if (CloseOverlayBehind())
         {
             return;
         }
@@ -295,5 +295,18 @@ public sealed class WorkingTreeChrome : IDisposable
         {
             Gestured?.Invoke(buttonView, MouseGesture.Click, null);
         }
+    }
+
+    // A click on a title row or a button strip while an overlay is open is a click outside it and closes it, like Esc.
+    private bool CloseOverlayBehind()
+    {
+        if (!_parts.Gate.IsSuppressed)
+        {
+            return false;
+        }
+
+        Gestured?.Invoke(DefaultMouseMap.BackdropView, MouseGesture.Click, null);
+
+        return true;
     }
 }

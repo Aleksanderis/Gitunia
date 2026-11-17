@@ -1,4 +1,5 @@
 using Gitunia.Core.Editing;
+using Gitunia.Core.Hints;
 using Gitunia.Core.Lists;
 using Gitunia.Core.Overlays;
 using Gitunia.Core.Text;
@@ -130,25 +131,16 @@ public static class HelpFrameBuilder
         }
 
         var lead = content.Count > rowCount ? $"{first + 1}-{first + rowCount}/{content.Count}" : string.Empty;
-        var hints = new List<HintItem> { new("Esc", filter is null ? HintVerb.Close : HintVerb.Clear) };
-        if (isEditingFilter)
-        {
-            hints.Add(new("Enter", HintVerb.Keep));
-        }
-
-        if (tabs.Count > 1)
-        {
-            hints.Add(new("Tab", HasMenu(tabs, screenWidth) ? "next section" : "next tab"));
-        }
-
-        if (content.Count > rowCount)
-        {
-            hints.Add(new(string.Empty, "list keys scroll"));
-        }
-
-        lines.Add(OverlayBox.Hints(hints, width, glyphs, lead));
+        var hints = HintSet.ForHelp(
+            filter is not null,
+            isEditingFilter,
+            tabs.Count > 1,
+            HasMenu(tabs, screenWidth),
+            content.Count > rowCount);
+        var targets = new List<FrameTarget>();
+        lines.Add(OverlayBox.Hints(hints, targets, lines.Count, width, glyphs, lead));
         lines.Add(OverlayBox.Bottom(width, glyphs));
-        return new OverlayFrame((screenWidth - width) / 2, 1, lines);
+        return new OverlayFrame((screenWidth - width) / 2, 1, lines, targets);
     }
 
     /// <summary>
@@ -224,7 +216,7 @@ public static class HelpFrameBuilder
         var column = 2;
         for (var index = 0; index < tabs.Count; index++)
         {
-            var text = index == active ? $"[{tabs[index].Title}]" : $" {tabs[index].Title} ";
+            var text = index == active ? ButtonLabel.Bracketed(tabs[index].Title) : $" {tabs[index].Title} ";
             var width = TextWidth.Of(text);
             labels.Add(new TabLabel(text, column, width, index, index == active));
             column += width + 1;
@@ -236,7 +228,7 @@ public static class HelpFrameBuilder
         }
 
         // Too narrow for every label: the active tab with its position; a click moves on to the next one.
-        var compact = $"[{tabs[active].Title}] {active + 1}/{tabs.Count}";
+        var compact = $"{ButtonLabel.Bracketed(tabs[active].Title)} {active + 1}/{tabs.Count}";
         return [new TabLabel(compact, 2, TextWidth.Of(compact), (active + 1) % tabs.Count, true)];
     }
 

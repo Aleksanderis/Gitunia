@@ -6,6 +6,7 @@ using Gitunia.Git.History.Models;
 using Gitunia.Tui.Input;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Overlays;
+using Gitunia.Tui.Rendering.Styling;
 
 namespace Gitunia.Tui.App.FileHistory;
 
@@ -16,7 +17,8 @@ namespace Gitunia.Tui.App.FileHistory;
 /// </summary>
 /// <param name="host">The dispatcher that holds the state.</param>
 /// <param name="glyphs">The characters the history is drawn with.</param>
-public sealed class FileHistoryInput(Dispatcher host, GraphGlyphSet glyphs) : IActionHandler
+/// <param name="keys">The keymap lookup for the key of the action row; null uses the default keymap.</param>
+public sealed class FileHistoryInput(Dispatcher host, GraphGlyphSet glyphs, ChipKeys? keys = null) : IActionHandler
 {
     private FileHistorySession Session => host.State.Shell.FileHistory;
 
@@ -33,7 +35,7 @@ public sealed class FileHistoryInput(Dispatcher host, GraphGlyphSet glyphs) : IA
         var screen = Screen;
 
         return Session.History is { } history
-            ? FileHistoryFrameBuilder.Build(history, screen.Width, screen.Height, glyphs)
+            ? FileHistoryFrameBuilder.Build(history, screen.Width, screen.Height, glyphs, keys)
             : null;
     }
 

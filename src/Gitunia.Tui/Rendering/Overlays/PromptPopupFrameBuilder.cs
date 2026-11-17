@@ -1,4 +1,6 @@
+using Gitunia.Core.Hints;
 using Gitunia.Core.Lists;
+using Gitunia.Core.Mouse;
 using Gitunia.Core.Overlays;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Styling;
@@ -51,10 +53,18 @@ public static class PromptPopupFrameBuilder
         var fixedLines = lines.Count + FooterLines;
         var rowRoom = screenHeight - ScreenMargin - fixedLines;
         var window = FitRows(prompt.Details, prompt.Highlight, rowRoom);
-        lines.AddRange(window.Rows.Select((row, index) => RowLine(row, index == window.Highlight, width, glyphs)));
+        var targets = new List<FrameTarget>();
+        for (var index = 0; index < window.Rows.Count; index++)
+        {
+            targets.Add(RowTarget(lines.Count, index, window.Highlight, width));
+            lines.Add(RowLine(window.Rows[index], index == window.Highlight, width, glyphs));
+        }
+
         lines.Add(OverlayBox.Text(string.Empty, width, glyphs));
         lines.Add(OverlayBox.Hints(
-            prompt.Hints.Select(hint => new HintItem(hint.Keys, hint.Label)),
+            [.. prompt.Hints.Select(Declared)],
+            targets,
+            lines.Count,
             width,
             glyphs,
             gap: PromptPopup.HintGap));
@@ -64,7 +74,29 @@ public static class PromptPopupFrameBuilder
             return null;
         }
 
-        return new OverlayFrame((screenWidth - width) / 2, Math.Max(0, (screenHeight - lines.Count) / 2), lines);
+        return new OverlayFrame(
+            (screenWidth - width) / 2,
+            Math.Max(0, (screenHeight - lines.Count) / 2),
+            lines,
+            targets);
+    }
+
+    private static KeyHint Declared(PromptHint hint) =>
+        new(hint.Keys, hint.Label, hint.Actions.IsDefault ? [] : hint.Actions);
+
+    // A click on a row of a candidate list moves the highlight there (the target is the distance from the highlighted
+    // row, so the window of the list does not matter); on an option of a one-key prompt (no highlight) it answers (the
+    // target is the option's number).
+    private static FrameTarget RowTarget(int line, int index, int highlight, int width)
+    {
+        var target = highlight < 0 ? index : index - highlight;
+
+        return new FrameTarget(
+            line,
+            1,
+            width - 1,
+            View: DefaultMouseMap.PromptRowButton,
+            Target: target);
     }
 
     // A candidate list shows at most PickerRows.VisibleRows rows and shrinks around the highlighted row on a short screen

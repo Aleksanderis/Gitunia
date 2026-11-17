@@ -1,3 +1,4 @@
+using Gitunia.Core.Hints;
 using Gitunia.Core.Keymap;
 
 namespace Gitunia.Tui.Rendering.Styling;
@@ -21,20 +22,31 @@ public static class HintBar
 {
     private const string Margin = " ";
 
+    /// <summary>The items of <paramref name="hints"/>, in order.</summary>
+    /// <param name="hints">The declared hints.</param>
+    public static IEnumerable<HintItem> Items(IEnumerable<KeyHint> hints) =>
+        hints.Select(hint => new HintItem(hint.Keys, hint.Description));
+
     /// <summary>Appends <paramref name="items"/> separated by <paramref name="gap"/>, starting with a one-column
     /// margin.</summary>
     /// <param name="builder">The line being built.</param>
     /// <param name="items">The hints, left to right.</param>
     /// <param name="gap">The text between two hints.</param>
-    public static void Append(LineBuilder builder, IEnumerable<HintItem> items, string gap)
+    /// <returns>The columns each hint took, one entry per item, in the builder's own columns.</returns>
+    public static IReadOnlyList<HintSpan> Append(LineBuilder builder, IEnumerable<HintItem> items, string gap)
     {
+        var spans = new List<HintSpan>();
         var first = true;
         foreach (var item in items)
         {
             builder.Append(first ? Margin : gap, SegmentRole.Status);
+            var start = builder.Used;
             AppendOne(builder, item);
+            spans.Add(new HintSpan(start, builder.Used - start));
             first = false;
         }
+
+        return spans;
     }
 
     /// <summary>Appends one hint without margin or gap: its key in the key style, then its label.</summary>

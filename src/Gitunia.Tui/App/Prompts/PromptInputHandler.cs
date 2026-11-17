@@ -36,6 +36,16 @@ public sealed class PromptInputHandler(Dispatcher host) : IActionHandler, ITextK
         {
             host.Dispatch(new PromptCancelledCommand());
         }
+        else if (action == ActionIds.ListDown || action == ActionIds.ListUp)
+        {
+            // The wheel and the move hint of the popup; a prompt without candidates takes it and does nothing.
+            var step = count ?? 1;
+            host.Dispatch(new PromptMovedCommand(action == ActionIds.ListDown ? step : -step));
+        }
+        else if (action == ActionIds.PromptRow)
+        {
+            ChooseRow(count ?? 0);
+        }
         else
         {
             return false;
@@ -54,5 +64,18 @@ public sealed class PromptInputHandler(Dispatcher host) : IActionHandler, ITextK
         host.Dispatch(new PromptKeyPressedCommand(key));
 
         return true;
+    }
+
+    // A click on a row of the popup: an option of a one-key prompt answers, a candidate row takes the highlight.
+    private void ChooseRow(int row)
+    {
+        if (host.State.Shell.Prompt is { KeyChoices: not null })
+        {
+            host.Dispatch(new PromptChoiceSelectedCommand(row));
+        }
+        else
+        {
+            host.Dispatch(new PromptMovedCommand(row));
+        }
     }
 }

@@ -4,7 +4,7 @@ using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Git.Diff.Models;
 using Gitunia.Tui.Rendering.Diff;
 using Gitunia.Tui.Rendering.Graph;
-using Gitunia.Tui.Rendering.Panes;
+using Gitunia.Core.Hints;
 using Gitunia.Tui.Rendering.Screen;
 using Gitunia.Tui.Rendering.Styling;
 using Gitunia.Tui.Rendering.WorkingTree;
@@ -17,7 +17,7 @@ namespace Gitunia.Tui.Tests.Rendering.WorkingTree;
 public class WorkingTreeDiffFrameTests
 {
     private static ScreenModel Model(PaneKind focused) =>
-        new("repo", "main", 1, 1, "NORMAL", string.Empty, 1, 1, false, string.Empty, Hints: PaneHints.For(focused));
+        new("repo", "main", 1, 1, "NORMAL", string.Empty, 1, 1, false, string.Empty, Hints: HintSet.For(focused));
 
     private static DiffDocument Document()
     {

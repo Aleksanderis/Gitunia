@@ -1,3 +1,5 @@
+using Gitunia.Core.Keymap;
+using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Overlays;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Styling;
@@ -11,13 +13,15 @@ namespace Gitunia.Tui.Rendering.Overlays;
 /// </summary>
 public static class ConfirmFrameBuilder
 {
-    private const string YesKey = "y";
-    private const string NoKey = "n";
     private const string NoLabel = "Cancel (Esc does the same)";
-    private const string KeyGap = "  ";
 
     /// <summary>The dialog for a screen, or null when it does not fit.</summary>
-    public static OverlayFrame? Build(ConfirmPrompt prompt, int screenWidth, int screenHeight, GraphGlyphSet glyphs)
+    public static OverlayFrame? Build(
+        ConfirmPrompt prompt,
+        int screenWidth,
+        int screenHeight,
+        GraphGlyphSet glyphs,
+        ChipKeys? keys = null)
     {
         if (!ConfirmLayout.Fits(prompt, screenWidth, screenHeight))
         {
@@ -36,8 +40,8 @@ public static class ConfirmFrameBuilder
         var consequenceRole = prompt.IsUndoNote ? SegmentRole.Plain : SegmentRole.Error;
         lines.AddRange(Wrapped(prompt.Consequence, textWidth, width, glyphs, consequenceRole));
         lines.Add(OverlayBox.Text(string.Empty, width, glyphs));
-        lines.Add(Answer(YesKey, prompt.YesLabel, width, glyphs));
-        lines.Add(Answer(NoKey, NoLabel, width, glyphs));
+        lines.Add(ActionRow.Answer(Key(ActionIds.ConfirmYes, keys), prompt.YesLabel, width, glyphs));
+        lines.Add(ActionRow.Answer(Key(ActionIds.ConfirmNo, keys), NoLabel, width, glyphs));
         lines.Add(OverlayBox.Bottom(width, glyphs));
         return new OverlayFrame((screenWidth - width) / 2, Math.Max(0, (screenHeight - lines.Count) / 2), lines);
     }
@@ -65,12 +69,6 @@ public static class ConfirmFrameBuilder
         SegmentRole role) =>
         HelpFrameBuilder.WrapText(text, textWidth).Select(line => OverlayBox.Text(line, width, glyphs, role));
 
-    private static StyledLine Answer(string key, string label, int width, GraphGlyphSet glyphs)
-    {
-        var inner = OverlayBox.InnerWidth(width);
-        var builder = new LineBuilder(inner, glyphs.Ellipsis)
-            .Append($" {key}", SegmentRole.OverlayKey)
-            .Append($"{KeyGap}{label}", SegmentRole.Plain);
-        return OverlayBox.Wrap(builder.Build(), glyphs);
-    }
+    private static string Key(ActionId action, ChipKeys? keys) =>
+        ActionRow.KeysOf(action, KeyBindingTable.GlobalView, KeyMode.Confirm, keys);
 }

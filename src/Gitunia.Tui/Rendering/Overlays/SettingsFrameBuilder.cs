@@ -1,3 +1,4 @@
+using Gitunia.Core.Hints;
 using Gitunia.Core.Lists;
 using Gitunia.Core.Settings;
 using Gitunia.Core.Settings.Models;
@@ -26,10 +27,6 @@ public static class SettingsFrameBuilder
     private const int MaximumHelpLines = 2;
 
 
-    private static readonly HintItem Move = new("j/k", HintVerb.Move);
-    private static readonly HintItem Back = new("h", "back");
-    private static readonly HintItem Filter = new("/", "filter");
-    private static readonly HintItem Close = new("Esc", HintVerb.Close);
 
     /// <summary>The settings frame for a screen, or null when the screen is too small to show even a title.</summary>
     /// <param name="state">The settings state.</param>
@@ -59,10 +56,11 @@ public static class SettingsFrameBuilder
         lines.AddRange(BodyLines(state, layout, glyphs));
         lines.Add(RuleLine(layout, glyphs));
         lines.AddRange(HelpLines(state, layout, glyphs));
-        lines.Add(OverlayBox.Hints(HintText(state), layout.Width, glyphs));
+        var targets = new List<FrameTarget>();
+        lines.Add(OverlayBox.Hints(HintSet.ForSettings(state), targets, lines.Count, layout.Width, glyphs));
         lines.Add(OverlayBox.Bottom(layout.Width, glyphs));
 
-        return new OverlayFrame(left, 1, lines);
+        return new OverlayFrame(left, 1, lines, targets);
     }
 
     /// <summary>The rows the lists show at a screen size (the page of the half-page motions); 0 when none.</summary>
@@ -454,60 +452,6 @@ public static class SettingsFrameBuilder
         }
 
         return [wrapped.FirstOrDefault() ?? string.Empty, second];
-    }
-
-    private static HintItem[] HintText(SettingsState state)
-    {
-        if (state.Removal is not null)
-        {
-            return [new("y", "remove"), new("n", "keep"), new("Esc", HintVerb.Keep)];
-        }
-
-        if (state.Input is not null)
-        {
-            return [new("Enter", HintVerb.Save), new("Esc", HintVerb.Keep)];
-        }
-
-        if (state.IsEditingFilter)
-        {
-            return [new(string.Empty, HintVerb.TypeToFilter), new("Enter", HintVerb.Keep), new("Esc", HintVerb.Clear)];
-        }
-
-        if (state.Choice is not null)
-        {
-            return [new("j/k", HintVerb.Move), new("Enter", HintVerb.Keep), new("Esc", HintVerb.Cancel)];
-        }
-
-        if (state.IsFiltering)
-        {
-            return [new("j/k", HintVerb.Move), new("Enter", HintVerb.Open), new("/", "new filter"), new("Esc", HintVerb.Clear)];
-        }
-
-        if (state.Column == SettingsColumn.Categories && !state.ListsAllCategories)
-        {
-            return [new("j/k", HintVerb.Move), new("l/Enter", HintVerb.Open), new("/", "filter"), Close];
-        }
-
-        return state.Selected switch
-        {
-            { Kind: SettingRowKind.Item } =>
-            [
-                new("Enter", HintVerb.Edit),
-                new("d", "remove"),
-                new("J/K", "reorder"),
-                new("a", "add"),
-                Back,
-                Close,
-            ],
-            { Definition.Control: SettingControl.PathList } => [new("Enter/a", "add"), Move, Back, Filter, Close],
-            { Definition.Control: SettingControl.Toggle } => [new("Enter/x", "flip"), Move, Back, Filter, Close],
-            { Definition.Control: SettingControl.Number } =>
-                [new("Enter", HintVerb.Edit), new("+/-", "step"), Move, Back, Close],
-            { Kind: SettingRowKind.Binding } => [new("Enter", HintVerb.Open), Move, Back, Filter, Close],
-            { Definition.Control: SettingControl.KeyReference } => [Move, Back, Filter, Close],
-            { Definition.Control: SettingControl.Action } => [new("Enter", HintVerb.Open), Move, Back, Filter, Close],
-            _ => [Move, new("l/Enter", HintVerb.Edit), Back, Filter, Close],
-        };
     }
 
     private static int EntriesTop(SettingsState state, IReadOnlyList<SettingsBodyEntry> entries, SettingsLayout layout)

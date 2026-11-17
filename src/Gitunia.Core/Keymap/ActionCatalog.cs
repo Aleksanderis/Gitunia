@@ -64,6 +64,7 @@ public static class ActionCatalog
         ActionIds.SettingsIncrease,
         ActionIds.SettingsDecrease,
         ActionIds.PickMainline,
+        ActionIds.PromptRow,
         ActionIds.RepeatEnd,
         ActionIds.HelpTabNext,
         ActionIds.HelpScrollDown,
@@ -116,6 +117,7 @@ public static class ActionCatalog
     [
         ActionIds.HelpTabSelect,
         ActionIds.PickMainline,
+        ActionIds.PromptRow,
         ActionIds.RemoteFetchAll,
         ActionIds.SettingsOpenTheme,
         ActionIds.WorkingTreeOpen,
@@ -199,6 +201,7 @@ public static class ActionCatalog
         ["merge.branch-squash"] = "Squash-merge the selection (stages changes)",
         ["pick.cherry-pick"] = "Cherry-pick the selection onto the current branch",
         ["pick.mainline"] = "Choose the mainline parent in the open cherry-pick or revert prompt",
+        ["prompt.row"] = "Choose the clicked row of the open prompt popup",
         ["pick.revert"] = "Revert the selection with new commits",
         ["file-history.open"] = "Open the history of the selected file, renames followed",
         ["file-history.select-commit"] = "Select the file history commit in the graph",

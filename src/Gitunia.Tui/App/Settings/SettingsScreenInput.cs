@@ -26,6 +26,9 @@ public sealed class SettingsScreenInput(Dispatcher host, GraphGlyphSet glyphs) :
 
     public bool IsOpen => Session.IsOpen;
 
+    /// <summary>The settings state, null when the screen is closed.</summary>
+    public SettingsState? State => Session.Screen;
+
     /// <summary>The frame to draw, or null when the screen is closed or too small for even a title.</summary>
     public OverlayFrame? CurrentFrame()
     {

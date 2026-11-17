@@ -1,8 +1,8 @@
 using System.Globalization;
+using Gitunia.Core.Hints;
 using Gitunia.Core.Overlays;
 using Gitunia.Core.Text;
 using Gitunia.Tui.Rendering.Graph;
-using Gitunia.Tui.Rendering.Panes;
 using Gitunia.Tui.Rendering.Styling;
 
 namespace Gitunia.Tui.Rendering.Overlays;
@@ -14,7 +14,6 @@ public static class PaletteFrameBuilder
     private const int MaximumRows = 12;
     private const int ChromeRows = 3;
     private const int ScreenMargin = 2;
-    private const string HintGap = "  ";
 
     /// <summary>The palette frame for a screen, or null when the screen is too small to show it.</summary>
     public static OverlayFrame? Build(PaletteState palette, int screenWidth, int screenHeight, GraphGlyphSet glyphs)
@@ -67,18 +66,17 @@ public static class PaletteFrameBuilder
             lines.Add(OverlayBox.Text(string.Empty, width, glyphs));
         }
 
-        lines.Add(Footer(selectedEntry, visible.Count, width, glyphs));
+        var targets = new List<FrameTarget>();
+        var position = visible.Count == 0 ? 0 : selectedEntry + 1;
+        lines.Add(OverlayBox.Hints(
+            HintSet.ForPalette(),
+            targets,
+            lines.Count,
+            width,
+            glyphs,
+            string.Create(CultureInfo.InvariantCulture, $"{position}/{visible.Count}")));
         lines.Add(OverlayBox.Bottom(width, glyphs));
-        return new OverlayFrame((screenWidth - width) / 2, 1, lines);
-    }
-
-    private static StyledLine Footer(int selected, int count, int width, GraphGlyphSet glyphs)
-    {
-        var position = count == 0 ? 0 : selected + 1;
-        var builder = new LineBuilder(OverlayBox.InnerWidth(width), glyphs.Ellipsis)
-            .Append(string.Create(CultureInfo.InvariantCulture, $" {position}/{count}"), SegmentRole.Status);
-        HintBar.Append(builder, PaneHints.ForPalette().Select(hint => hint.Item), HintGap);
-        return OverlayBox.Wrap(builder.Build(SegmentRole.Status), glyphs);
+        return new OverlayFrame((screenWidth - width) / 2, 1, lines, targets);
     }
 
     /// <summary>

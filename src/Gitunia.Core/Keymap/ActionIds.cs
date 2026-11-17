@@ -244,6 +244,8 @@ public static class ActionIds
 
     public static ActionId PickMainline { get; } = new("pick.mainline");
 
+    public static ActionId PromptRow { get; } = new("prompt.row");
+
     public static ActionId ResetBranch { get; } = new("reset.branch");
 
     public static ActionId RebaseOnto { get; } = new("rebase.onto");

@@ -10,8 +10,6 @@ namespace Gitunia.Core.Commits;
 /// can run them from elsewhere).</summary>
 internal static class CommitMessageKeys
 {
-    private const int WheelLines = 3;
-
     /// <summary>Applies a Normal mode key to a copy of the draft.</summary>
     /// <param name="action">One of the box's Normal mode actions.</param>
     /// <param name="context">The tab and the facts around it.</param>
@@ -62,8 +60,9 @@ internal static class CommitMessageKeys
 
     /// <summary>The mouse paths of the box (double-click, wheel), which act in any mode.</summary>
     /// <param name="action">One of the pointer actions.</param>
+    /// <param name="count">The rows of a wheel notch (the mouse map says how many), null for one.</param>
     /// <param name="context">The tab and the facts around it.</param>
-    public static CommitUpdate RunPointer(ActionId action, CommitContext context)
+    public static CommitUpdate RunPointer(ActionId action, int? count, CommitContext context)
     {
         if (context.Tab.Commit.Draft is null)
         {
@@ -77,7 +76,8 @@ internal static class CommitMessageKeys
         }
         else
         {
-            draft.Editor.MoveLines(action == ActionIds.WorkingTreeMessageScrollDown ? WheelLines : -WheelLines);
+            var lines = count ?? 1;
+            draft.Editor.MoveLines(action == ActionIds.WorkingTreeMessageScrollDown ? lines : -lines);
         }
 
         return CommitReducer.Changed(context, draft);

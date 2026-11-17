@@ -6,13 +6,13 @@ using Gitunia.Core.Keymap.Repeat;
 using Gitunia.Core.Text;
 using Gitunia.Core.Workspaces.Panes;
 
-namespace Gitunia.Tui.Rendering.Panes;
+namespace Gitunia.Core.Hints;
 
 /// <summary>
 /// The key hints the status bar shows for the focused pane and for the repository picker. Help, commands and back
 /// come first so a narrow terminal cuts the pane's own hints, not those.
 /// </summary>
-public static partial class PaneHints
+public static partial class HintSet
 {
     private static readonly ImmutableArray<KeyHint> Pinned =
     [
@@ -262,34 +262,53 @@ public static partial class PaneHints
 
     private static readonly ImmutableArray<KeyHint> Blame =
     [
-        new("Enter", HintVerb.Select, [ActionIds.BlameShowCommit]),
-        new("Alt-p", "parent", [ActionIds.BlameParent]),
-        new("<space>H", "history", [ActionIds.FileHistoryOpen]),
-        new("<space>L", "line history", [ActionIds.LineHistoryOpen]),
+        new("Enter", HintVerb.Select, [ActionIds.BlameShowCommit], $"{HintVerb.Select} the line's commit in the graph"),
+        new("Alt-p", "parent", [ActionIds.BlameParent], "blame at the parent of the line's commit"),
+        new("<space>H", "history", [ActionIds.FileHistoryOpen], "history of the file at this revision"),
+        new(
+            "<space>L",
+            "line history",
+            [ActionIds.LineHistoryOpen],
+            "history of this line, from the commit that wrote it"),
         new(
             "Alt-w/m/c",
             "-w -M -C",
-            [ActionIds.BlameIgnoreWhitespace, ActionIds.BlameDetectMoves, ActionIds.BlameDetectCopies]),
+            [ActionIds.BlameIgnoreWhitespace, ActionIds.BlameDetectMoves, ActionIds.BlameDetectCopies],
+            string.Empty),
         new("/", "search", [ActionIds.SearchOpen]),
         new("n/N", "next/prev", [ActionIds.SearchNext, ActionIds.SearchPrevious]),
         new("Esc", HintVerb.Close, [ActionIds.NavigateBack]),
     ];
 
+    private static readonly ImmutableArray<KeyHint> BlameStepped =
+    [
+        .. Blame.Take(Blame.Length - 1),
+        new("Esc", HintVerb.Back, [ActionIds.NavigateBack]),
+    ];
+
     private static readonly ImmutableArray<KeyHint> FileHistory =
     [
-        new("Enter", HintVerb.Select, [ActionIds.FileHistorySelectCommit]),
+        new(
+            "Enter",
+            HintVerb.Select,
+            [ActionIds.FileHistorySelectCommit],
+            $"{HintVerb.Select} the commit in the graph"),
         new("J/K", HintVerb.Scroll, [ActionIds.DiffScrollDown, ActionIds.DiffScrollUp]),
         new("Esc", HintVerb.Close, [ActionIds.NavigateBack]),
     ];
 
     private static readonly ImmutableArray<KeyHint> Reflog =
     [
-        new("Enter", HintVerb.Select, [ActionIds.ReflogSelectCommit]),
+        new(
+            "Enter",
+            HintVerb.Select,
+            [ActionIds.ReflogSelectCommit],
+            $"{HintVerb.Select} the commit in the graph"),
         new("/", "search", [ActionIds.SearchOpen]),
         new("<space>l", "ref", [ActionIds.ReflogOpen]),
-        new("<space>bx", "reset", [ActionIds.ResetBranch]),
-        new("<space>bc", "branch", [ActionIds.BranchCreate]),
-        new("<space>bs", "checkout", [ActionIds.BranchSwitch]),
+        new("<space>bx", "reset", [ActionIds.ResetBranch], "reset the current branch to it"),
+        new("<space>bc", "branch", [ActionIds.BranchCreate], "create a branch here"),
+        new("<space>bs", "checkout", [ActionIds.BranchSwitch], "check it out (detached HEAD)"),
         new("Esc", HintVerb.Close, [ActionIds.NavigateBack]),
     ];
 
@@ -359,15 +378,6 @@ public static partial class PaneHints
         new("Ctrl-g", HintVerb.Done, [ActionIds.RebaseEditorMessageSave]),
         new("Enter", HintVerb.NewLine, [ActionIds.RebaseEditorMessageNewLine]),
         new("Esc", HintVerb.Keep, [ActionIds.Cancel]),
-    ];
-
-    private static readonly ImmutableArray<KeyHint> Settings =
-    [
-        new("j/k", HintVerb.Move, [ActionIds.ListDown, ActionIds.ListUp]),
-        new("l/Enter", HintVerb.Edit, [ActionIds.SettingsActivate, ActionIds.SettingsActivate]),
-        new("h", "back", [ActionIds.NavigateBack]),
-        new("/", "filter", [ActionIds.SettingsFilter]),
-        new("Esc", HintVerb.Close, [ActionIds.NavigateBack]),
     ];
 
     private static readonly ImmutableArray<KeyHint> RepeatContext =

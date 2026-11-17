@@ -12,6 +12,13 @@ public static class ButtonLabel
     private const char AsciiDownArrow = 'v';
 
     /// <summary>
+    /// The text in square brackets, the one spelling of a button drawn inside a text row (the <c>[+]</c> and <c>[x]</c> of a
+    /// settings list, the active tab of the help): no row writes its own brackets.
+    /// </summary>
+    /// <param name="inner">What is inside the brackets.</param>
+    public static string Bracketed(string inner) => $"{AsciiOpen}{inner}{AsciiClose}";
+
+    /// <summary>
     /// The label itself, or in ASCII the same label with the arrows as plain angle brackets (the dropdown arrow as
     /// <c>v</c>) and with square brackets in place of its outer padding columns (the width stays the same).
     /// </summary>

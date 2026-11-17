@@ -137,6 +137,7 @@ internal static class ActionLevels
             ["pane.zoom"] = CommandLevel.Everyday,
             ["pick.cherry-pick"] = CommandLevel.Everyday,
             ["pick.mainline"] = CommandLevel.Advanced,
+            ["prompt.row"] = CommandLevel.Advanced,
             ["pick.revert"] = CommandLevel.Advanced,
             ["picker.accept"] = CommandLevel.Everyday,
             ["picker.clone"] = CommandLevel.Everyday,

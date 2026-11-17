@@ -1,4 +1,5 @@
 using Gitunia.Core.Keymap;
+using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Mouse;
 using Gitunia.Tui.App.Panes;
 using Gitunia.Tui.Input;
@@ -54,6 +55,14 @@ public sealed class GestureRouter(MouseController mouse, VisualRangeInput visual
         services.Panes.Chrome.RefreshChrome();
     }
 
+    /// <summary>A click on a hint of the status bar: its action runs as if its key had been pressed.</summary>
+    /// <param name="action">The action of the hint.</param>
+    public void OnHintClicked(ActionId action)
+    {
+        mouse.Run(action);
+        services.Panes.Chrome.RefreshChrome();
+    }
+
     // While an overlay is open the wheel scrolls it wherever the pointer is (other gestures on the panes behind it are
     // ignored) and a click anywhere outside it closes it, like Esc.
     private string ViewAfterOverlay(string viewName, MouseGesture gesture)
@@ -70,7 +79,7 @@ public sealed class GestureRouter(MouseController mouse, VisualRangeInput visual
                 services.Editors.Settings.FocusColumnAt(services.Panes.Overlay.PointerColumn);
             }
 
-            return services.Cover.ViewName();
+            return services.Cover.IsPromptPopupShowing() ? DefaultMouseMap.PromptPopupView : services.Cover.ViewName();
         }
 
         if (gesture == MouseGesture.Click)
