@@ -28,8 +28,8 @@ public static class SidebarRowRenderer
             var count = $" {row.Count.ToString(CultureInfo.InvariantCulture)}";
             var header = $"{(row.IsExpanded ? sidebarGlyphs.Expanded : sidebarGlyphs.Collapsed)} ";
             builder
-                .Append(header, SegmentRole.SectionTitle)
-                .Append(row.Label, SegmentRole.SectionTitle)
+                .Append(header, SegmentRole.Heading)
+                .Append(row.Label, SegmentRole.Heading)
                 .Append(count, SegmentRole.Faint);
 
             return builder.Build(isSelected: isSelected);
@@ -73,7 +73,7 @@ public static class SidebarRowRenderer
         var builder = new LineBuilder(width, glyphs.Ellipsis);
         if (isEditing || filter.Text.Length > 0)
         {
-            builder.Append("/", SegmentRole.SectionTitle);
+            builder.Append("/", SegmentRole.Heading);
             if (isEditing)
             {
                 // The cursor cell keeps the caret in view when the filter is wider than the pane.

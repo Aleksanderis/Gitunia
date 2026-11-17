@@ -20,6 +20,6 @@ public sealed record ChipStyle(SegmentRole Plain, SegmentRole Edge, SegmentRole 
     public static ChipStyle Bar(bool isAscii) => new(
         SegmentRole.BarButton,
         SegmentRole.BarButton,
-        SegmentRole.StatusKey,
+        SegmentRole.BarKeyLabel,
         isAscii ? SegmentRole.BarButton : SegmentRole.Status);
 }

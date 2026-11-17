@@ -43,7 +43,7 @@ public sealed class ThemeFileContrastTests
         {
             foreach (var highlight in new SegmentHighlight[] { new(false, false), new(true, true), new(true, false), new(true, true, true) })
             {
-                if (role is SegmentRole.Border && highlight.IsSelected)
+                if (role is SegmentRole.Border or SegmentRole.Divider && highlight.IsSelected)
                 {
                     continue;
                 }
@@ -194,7 +194,7 @@ public sealed class ThemeFileContrastTests
                     minimum = QuantizedAccentOnSelectionRatio;
                 }
 
-                if (ratio < minimum && role is not SegmentRole.Border)
+                if (ratio < minimum && role is not (SegmentRole.Border or SegmentRole.Divider))
                 {
                     failures.Add($"{role} (selected={highlight.IsSelected}): {ratio:F2}");
                 }
@@ -283,7 +283,7 @@ public sealed class ThemeFileContrastTests
 
     private static double MinimumFor(SegmentRole role) => role switch
     {
-        SegmentRole.Border => DecorationRatio,
+        SegmentRole.Border or SegmentRole.Divider => DecorationRatio,
         SegmentRole.WhitespaceMark or SegmentRole.WhitespaceMarkAddedWord
             or SegmentRole.WhitespaceMarkRemovedWord => SubtleRatio,
         _ => ReadableRatio,

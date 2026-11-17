@@ -43,7 +43,7 @@ public class ContextMenuFrameBuilderTests
         var frame = Frame(Menu(), new MenuAnchor(0, 0), height: 60);
         var texts = frame.Lines.Select(line => line.Text).ToList();
         var headers = frame.Lines.Select((line, index) => (line, index))
-            .Where(pair => pair.line.Segments.Any(segment => segment.Role == SegmentRole.SectionTitle))
+            .Where(pair => pair.line.Segments.Any(segment => segment.Role == SegmentRole.Heading))
             .Select(pair => pair.index).ToList();
 
         Assert.Equal(GraphMenuGroups, headers.Count);

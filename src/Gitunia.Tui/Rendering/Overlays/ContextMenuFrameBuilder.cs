@@ -46,7 +46,7 @@ public static class ContextMenuFrameBuilder
             var line = rows.Lines[window.Top + offset];
             if (line.Header is { } header)
             {
-                lines.Add(OverlayBox.Text(header, width, glyphs, SegmentRole.SectionTitle));
+                lines.Add(OverlayBox.Text(header, width, glyphs, SegmentRole.Heading));
                 continue;
             }
 
@@ -59,7 +59,7 @@ public static class ContextMenuFrameBuilder
             var index = line.Entry.Value;
             var entry = entries[index];
             var role = entry.IsImplemented ? SegmentRole.Plain : SegmentRole.Faint;
-            var keyRole = entry.IsImplemented ? SegmentRole.OverlayKey : SegmentRole.Faint;
+            var keyRole = entry.IsImplemented ? SegmentRole.KeyLabel : SegmentRole.Faint;
             var isSelected = index == selectedEntry;
             lines.Add(OverlayBox.TwoColumns(entry.Title, entry.Keys, width, glyphs, role, keyRole, isSelected));
         }

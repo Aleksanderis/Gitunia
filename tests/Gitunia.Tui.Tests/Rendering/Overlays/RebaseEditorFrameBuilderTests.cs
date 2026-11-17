@@ -77,7 +77,7 @@ public class RebaseEditorFrameBuilderTests
         Assert.Contains(secondRow, chipRows[1].Text, StringComparison.Ordinal);
         Assert.Contains(
             chipRows[0].Segments,
-            segment => segment.Role == SegmentRole.StatusKey && segment.Text == "r");
+            segment => segment.Role == SegmentRole.BarKeyLabel && segment.Text == "r");
     }
 
     [Fact]
@@ -177,7 +177,7 @@ public class RebaseEditorFrameBuilderTests
         Assert.Contains("subject line", lines[1], StringComparison.Ordinal);
         Assert.Contains("body line", lines[3], StringComparison.Ordinal);
         Assert.Contains("Ctrl-g done", lines[^2], StringComparison.Ordinal);
-        var keys = frame.Lines[^2].Segments.Where(segment => segment.Role == SegmentRole.StatusKey);
+        var keys = frame.Lines[^2].Segments.Where(segment => segment.Role == SegmentRole.BarKeyLabel);
         Assert.Equal(["Ctrl-g", "Enter", "Esc"], keys.Select(segment => segment.Text));
         Assert.Contains(frame.Lines.SelectMany(line => line.Segments), segment => segment.Role == SegmentRole.Cursor);
         Assert.Null(RebaseEditorFrameBuilder.ChipAt(state, 5, 5, 80, 24));

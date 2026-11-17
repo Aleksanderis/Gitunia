@@ -39,8 +39,8 @@ public enum SegmentRole
     /// </summary>
     StatusOperation,
 
-    /// <summary>The keys of a status bar hint (the description is <see cref="Status"/>).</summary>
-    StatusKey,
+    /// <summary>A key label on the bar's own background (a status bar hint, a footer, a chip on the bar): <see cref="KeyLabel"/> with the surface of the bar.</summary>
+    BarKeyLabel,
     Status,
     Faint,
 
@@ -76,7 +76,7 @@ public enum SegmentRole
     /// <summary>A success or info notice in the status bar.</summary>
     StatusNotice,
 
-    /// <summary>A running operation's progress in the status bar.</summary>
+    /// <summary>A running operation's progress or a load in progress on the status bar (<see cref="Loading"/> on the bar's background).</summary>
     StatusProgress,
 
     /// <summary>A warning notice in the status bar.</summary>
@@ -91,8 +91,17 @@ public enum SegmentRole
     /// <summary>A failure in its first moments, settling to <see cref="StatusError"/>.</summary>
     StatusErrorFresh,
 
-    /// <summary>A sidebar section title.</summary>
-    SectionTitle,
+    /// <summary>A heading: a sidebar section, a group header of the palette, help or a menu, a pane title that is not a chip.</summary>
+    Heading,
+
+    /// <summary>The name of a folder in a file tree: plain text, so it never reads as a <see cref="Heading"/>.</summary>
+    DirectoryName,
+
+    /// <summary>A rule inside a box that splits it into parts (the conflict editor's panes, the settings columns, the file history split); the box's own frame is <see cref="Border"/>.</summary>
+    Divider,
+
+    /// <summary>Something that is still loading or being worked out, in a body row; the bar's own is <see cref="StatusProgress"/>.</summary>
+    Loading,
 
     /// <summary>The line between panes while neither side has focus.</summary>
     Border,
@@ -118,8 +127,11 @@ public enum SegmentRole
     /// <summary>The title bar of an overlay (palette, help, which-key).</summary>
     OverlayTitle,
 
-    /// <summary>The keys column of an overlay.</summary>
-    OverlayKey,
+    /// <summary>
+    /// A key label: the keys of a hint, a menu row, the help or the palette, in the accent colour and bold everywhere (#1449).
+    /// Only the key text, never the description.
+    /// </summary>
+    KeyLabel,
 
     /// <summary>Text that matches the active graph search.</summary>
     SearchMatch,
@@ -144,9 +156,6 @@ public enum SegmentRole
 
     /// <summary>The line that starts a file in a diff.</summary>
     DiffFile,
-
-    /// <summary>A clickable button in a pane title or on a picker row.</summary>
-    Button,
 
     /// <summary>Text the user types into a field (see <see cref="FieldRoles"/>): the default text colour, the same in every field.</summary>
     TypedText,

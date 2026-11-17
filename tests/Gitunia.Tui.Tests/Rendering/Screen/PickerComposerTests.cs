@@ -442,7 +442,6 @@ public class PickerComposerTests
 
         var footer = lines[^2];
         Assert.Contains(footer.Segments, segment => segment.Text == "Alt-c" && segment.Role == SegmentRole.RepositoryTabKey);
-        Assert.DoesNotContain(footer.Segments, segment => segment.Role == SegmentRole.Button);
         Assert.Contains(footer.Segments, segment => IsChipKey(segment, "Enter"));
         Assert.Contains(footer.Segments, segment => IsChipKey(segment, "Esc"));
         Assert.Equal(SegmentRole.Faint, lines[^3].Segments[2].Role);
@@ -713,7 +712,7 @@ public class PickerComposerTests
     }
 
     private static bool HasSectionTitle(StyledLine line) =>
-        line.Segments.Any(segment => segment.Role == SegmentRole.SectionTitle);
+        line.Segments.Any(segment => segment.Role == SegmentRole.Heading);
 
     private static bool IsRule(StyledSegment segment) =>
         segment.Role == SegmentRole.Faint && segment.Text.StartsWith('─');
@@ -722,7 +721,7 @@ public class PickerComposerTests
         segment.Text == key && segment.Role == SegmentRole.RepositoryTabKey;
 
     private static string HeaderName(StyledLine line) =>
-        line.Segments.Single(segment => segment.Role == SegmentRole.SectionTitle).Text.Trim();
+        line.Segments.Single(segment => segment.Role == SegmentRole.Heading).Text.Trim();
 
     private static (string Text, SegmentRole Role) GlyphOf(IReadOnlyList<StyledLine> lines, string name)
     {

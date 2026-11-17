@@ -116,7 +116,7 @@ public class TabBarTests
         var row = ChromeBuilder.Tabs(model, 80, GraphGlyphSet.Unicode);
 
         Assert.EndsWith(" <space>p commands  ", row.Text, StringComparison.Ordinal);
-        Assert.DoesNotContain(row.Segments, segment => segment.Role == SegmentRole.StatusKey && segment.Text == ":");
+        Assert.DoesNotContain(row.Segments, segment => segment.Role == SegmentRole.BarKeyLabel && segment.Text == ":");
         Assert.Equal(80, row.Text.Length);
         var start = TabBarLayout.CommandsStart(80, keys)!.Value;
         Assert.True(TabBarLayout.IsOnCommands(80, start, keys));
@@ -130,7 +130,7 @@ public class TabBarTests
         var wide = ChromeBuilder.Tabs(Model(Label(1, "alpha", isActive: true, branch: null)), 80, GraphGlyphSet.Unicode);
         var narrow = ChromeBuilder.Tabs(Model(Label(1, "alpha", isActive: true, branch: null)), 40, GraphGlyphSet.Unicode);
 
-        Assert.Contains(wide.Segments, segment => segment.Role == SegmentRole.StatusKey && segment.Text == ":");
+        Assert.Contains(wide.Segments, segment => segment.Role == SegmentRole.BarKeyLabel && segment.Text == ":");
         Assert.EndsWith($"{TabBarLayout.CommandsChip().Label} ", wide.Text, StringComparison.Ordinal);
         Assert.True(TabBarLayout.IsOnCommands(80, 70));
         Assert.False(TabBarLayout.IsOnCommands(80, 10));

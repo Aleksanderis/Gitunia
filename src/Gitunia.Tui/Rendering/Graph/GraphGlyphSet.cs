@@ -100,7 +100,7 @@ public sealed record GraphGlyphSet(
     public bool IsAscii => Lines == Ascii.Lines;
 
     /// <summary>Drawn in place of a tab's first column when whitespace is shown.</summary>
-    public char TabMark => IsAscii ? '>' : '→';
+    public char TabMark => IsAscii ? '>' : GlyphLiterals.TabArrow;
 
     /// <summary>Drawn in place of a trailing space (a heavier mark than inner ones) when whitespace is shown.</summary>
     public char SpaceMark => IsAscii ? '.' : '•';

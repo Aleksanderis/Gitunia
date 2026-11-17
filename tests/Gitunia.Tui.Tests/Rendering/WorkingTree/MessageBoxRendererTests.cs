@@ -92,7 +92,6 @@ public class MessageBoxRendererTests
             isCommitting: true);
 
         Assert.Contains("committing...", Text(line), StringComparison.Ordinal);
-        Assert.DoesNotContain(line.Segments, segment => segment.Role == SegmentRole.Button);
     }
 
     [Theory]

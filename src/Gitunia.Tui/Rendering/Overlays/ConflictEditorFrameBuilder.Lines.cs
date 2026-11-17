@@ -37,7 +37,7 @@ public static partial class ConflictEditorFrameBuilder
         {
             if (index > 0)
             {
-                inner.Append(divider, SegmentRole.FocusedBorder);
+                inner.Append(divider, SegmentRole.Divider);
             }
 
             inner.Append(PaneHeader(state, layout.Panes[index], widths[index], glyphs));
@@ -52,9 +52,9 @@ public static partial class ConflictEditorFrameBuilder
         var baseLabel = hunk.Base is null ? "no common ancestor" : "common ancestor";
         var (name, label, role) = pane switch
         {
-            ConflictPane.Base => ("base", baseLabel, SegmentRole.SectionTitle),
-            ConflictPane.Ours => ("ours", hunk.OursLabel, SegmentRole.LocalBranch),
-            _ => ("theirs", hunk.TheirsLabel, SegmentRole.RemoteBranch),
+            ConflictPane.Base => ("base", baseLabel, SegmentRole.Plain),
+            ConflictPane.Ours => ("ours", hunk.OursLabel, SegmentRole.DiffRemoved),
+            _ => ("theirs", hunk.TheirsLabel, SegmentRole.DiffAdded),
         };
         var builder = new LineBuilder(width, glyphs.Ellipsis).Append(" ", SegmentRole.Plain);
         builder.Append(name, state.ActivePane == pane ? SegmentRole.ActiveTab : role);
@@ -92,7 +92,7 @@ public static partial class ConflictEditorFrameBuilder
         {
             if (index > 0)
             {
-                inner.Append(divider, SegmentRole.FocusedBorder);
+                inner.Append(divider, SegmentRole.Divider);
             }
 
             inner.Append(ConflictPaneRows.Version(state, layout.Panes[index], row, widths[index], glyphs));
@@ -105,7 +105,7 @@ public static partial class ConflictEditorFrameBuilder
     {
         var isActive = state.ActivePane == ConflictPane.Result;
         var builder = new LineBuilder(OverlayBox.InnerWidth(width), glyphs.Ellipsis).Append(" ", SegmentRole.Plain);
-        builder.Append("result", isActive ? SegmentRole.ActiveTab : SegmentRole.SectionTitle);
+        builder.Append("result", isActive ? SegmentRole.ActiveTab : SegmentRole.Heading);
         var line = state.ActivePane == ConflictPane.Result
             ? state.Result.Editor.CursorRow + 1
             : state.ResultLineOfRow(state.Row) + 1;

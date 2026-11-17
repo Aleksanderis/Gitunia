@@ -10,7 +10,7 @@ namespace Gitunia.Tui.Rendering.Files;
 /// </summary>
 public static class ViewChip
 {
-    private const string Description = "view ▾";
+    private const string Description = "view " + GlyphLiterals.Dropdown;
 
     // A column of line stays between the title text and the chip.
     private const int TitleGap = 1;

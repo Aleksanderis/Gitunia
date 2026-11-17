@@ -31,7 +31,7 @@ public static class TreeRowRenderer
 
         return new LineBuilder(width, ellipsis)
             .Append($"{indent}{chevron} ", SegmentRole.Plain)
-            .Append(TextWidth.FitMiddle(name, Math.Max(1, available), ellipsis), SegmentRole.SectionTitle)
+            .Append(TextWidth.FitMiddle(name, Math.Max(1, available), ellipsis), SegmentRole.DirectoryName)
             .Append(count, SegmentRole.Faint)
             .Build(isSelected: isSelected);
     }

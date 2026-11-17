@@ -103,7 +103,7 @@ public static class ChromeBuilder
 
         if (model.IsLoading && model.Picker is null)
         {
-            builder.Append($"{UiTexts.Loading} ", SegmentRole.Status);
+            builder.Append($"{UiTexts.Loading} ", SegmentRole.StatusProgress);
         }
 
         if (model.Message.Length > 0)

@@ -563,7 +563,7 @@ render() {
     tmux_cmd kill-session -t shot 2>/dev/null || true
     rm -rf "$work/state" && mkdir -p "$work/state" # the saved session of the last scenario would add its tab to this one
     # A fixed identity, so a commit made by a scenario (working-hook) gets as far as its hook.
-    tmux_cmd new-session -d -s shot -x "$columns" -y "$rows" "exec env COLORTERM=truecolor XDG_STATE_HOME=$(printf '%q' "$work/state") XDG_CONFIG_HOME=$(printf '%q' "$work/config") GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_SYSTEM=/dev/null GIT_AUTHOR_NAME=\"Ada Lovelace\" GIT_AUTHOR_EMAIL=ada@example.com GIT_COMMITTER_NAME=\"Ada Lovelace\" GIT_COMMITTER_EMAIL=ada@example.com $(printf '%q %q' "$binary" "$scenario_repo")"
+    tmux_cmd new-session -d -s shot -x "$columns" -y "$rows" "exec env ${SHOT_ENV:-COLORTERM=truecolor} XDG_STATE_HOME=$(printf '%q' "$work/state") XDG_CONFIG_HOME=$(printf '%q' "$work/config") GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_SYSTEM=/dev/null GIT_AUTHOR_NAME=\"Ada Lovelace\" GIT_AUTHOR_EMAIL=ada@example.com GIT_COMMITTER_NAME=\"Ada Lovelace\" GIT_COMMITTER_EMAIL=ada@example.com $(printf '%q %q' "$binary" "$scenario_repo")"
     wait_stable "$socket"
     if [ -n "$keys" ]; then
       # shellcheck disable=SC2086

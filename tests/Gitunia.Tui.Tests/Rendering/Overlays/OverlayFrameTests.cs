@@ -254,7 +254,7 @@ public class OverlayFrameTests
                 "| Ctrl-j/k move  Enter run  Esc close  |",
                 "+--------------------------------------+"),
             Text(frame));
-        Assert.Equal(SegmentRole.SectionTitle, frame.Lines[1].Segments[1].Role);
+        Assert.Equal(SegmentRole.Heading, frame.Lines[1].Segments[1].Role);
     }
 
     [Theory]
@@ -414,7 +414,7 @@ public class OverlayFrameTests
         var frame = PaletteFrameBuilder.Build(Palette(), 80, 24, GraphGlyphSet.Unicode)!;
         var footer = frame.Lines[^2];
 
-        var keys = footer.Segments.Where(segment => segment.Role == SegmentRole.StatusKey).Select(segment => segment.Text);
+        var keys = footer.Segments.Where(segment => segment.Role == SegmentRole.BarKeyLabel).Select(segment => segment.Text);
 
         Assert.Equal(["Ctrl-j/k", "Enter", "Esc"], keys);
     }

@@ -56,6 +56,7 @@ public static class AnsiFrameWriter
         var builder = new StringBuilder();
         AppendStyle(builder, attribute.Style, TextStyle.Bold, 1);
         AppendStyle(builder, attribute.Style, TextStyle.Faint, 2);
+        AppendStyle(builder, attribute.Style, TextStyle.Italic, 3);
         AppendStyle(builder, attribute.Style, TextStyle.Underline, 4);
         AppendStyle(builder, attribute.Style, TextStyle.Reverse, 7);
         AppendColor(builder, attribute.Foreground, isBackground: false, depth);

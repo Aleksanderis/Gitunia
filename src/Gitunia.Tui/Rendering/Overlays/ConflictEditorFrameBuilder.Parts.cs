@@ -85,7 +85,7 @@ public static partial class ConflictEditorFrameBuilder
         [
             new StyledSegment(opening.ToString(), SegmentRole.FocusedBorder),
             new StyledSegment(horizontal, SegmentRole.FocusedBorder),
-            new StyledSegment(label, SegmentRole.SectionTitle),
+            new StyledSegment(label, SegmentRole.Heading),
             new StyledSegment(string.Concat(Enumerable.Repeat(horizontal, fill)), SegmentRole.FocusedBorder),
             new StyledSegment(closing.ToString(), SegmentRole.FocusedBorder),
         ]);

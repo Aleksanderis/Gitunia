@@ -134,11 +134,11 @@ public static class WorkingTreeRowRenderer
         if (jump is { } target)
         {
             var shown = TextWidth.Fit(name, builder.Remaining, glyphs.Ellipsis);
-            JumpOverlay.Append(builder, shown, SegmentRole.SectionTitle, target);
+            JumpOverlay.Append(builder, shown, SegmentRole.DirectoryName, target);
         }
         else
         {
-            builder.Append(name, SegmentRole.SectionTitle);
+            builder.Append(name, SegmentRole.DirectoryName);
         }
 
         if (closedFileCount is { } count)

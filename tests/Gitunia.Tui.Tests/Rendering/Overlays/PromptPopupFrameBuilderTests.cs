@@ -53,7 +53,7 @@ public class PromptPopupFrameBuilderTests
 
         var typed = frame.Lines[2].Segments.Where(segment => segment.Text.Contains("feat", StringComparison.Ordinal));
         Assert.All(typed, segment => Assert.Equal(SegmentRole.TypedText, segment.Role));
-        Assert.DoesNotContain(frame.Lines[2].Segments, segment => segment.Role == SegmentRole.OverlayKey);
+        Assert.DoesNotContain(frame.Lines[2].Segments, segment => segment.Role == SegmentRole.KeyLabel);
     }
 
     [Theory]

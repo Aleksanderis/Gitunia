@@ -20,7 +20,7 @@ public class HintBarTests
         Assert.Contains("> x_  Enter open  Esc back", line.Text, StringComparison.Ordinal);
         Assert.Equal(
             ["Enter", "Esc"],
-            line.Segments.Where(segment => segment.Role == SegmentRole.StatusKey).Select(segment => segment.Text));
+            line.Segments.Where(segment => segment.Role == SegmentRole.BarKeyLabel).Select(segment => segment.Text));
     }
 
     [Fact]
@@ -30,7 +30,7 @@ public class HintBarTests
 
         var frame = PromptPopupFrameBuilder.Build(prompt, 90, 24, GraphGlyphSet.Unicode)!;
 
-        var keys = frame.Lines[^2].Segments.Where(segment => segment.Role == SegmentRole.StatusKey);
+        var keys = frame.Lines[^2].Segments.Where(segment => segment.Role == SegmentRole.BarKeyLabel);
         Assert.Equal(["Ctrl-j/k", "Enter", "Esc"], keys.Select(segment => segment.Text));
     }
 
@@ -46,7 +46,7 @@ public class HintBarTests
 
         var frame = PromptPopupFrameBuilder.Build(prompt, 90, 24, GraphGlyphSet.Unicode)!;
 
-        var keys = frame.Lines[^2].Segments.Where(segment => segment.Role == SegmentRole.StatusKey);
+        var keys = frame.Lines[^2].Segments.Where(segment => segment.Role == SegmentRole.BarKeyLabel);
         Assert.Equal(["Enter", "Esc"], keys.Select(segment => segment.Text));
     }
 
