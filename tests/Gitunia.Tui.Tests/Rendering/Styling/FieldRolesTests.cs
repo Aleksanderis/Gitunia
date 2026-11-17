@@ -135,7 +135,7 @@ public class FieldRolesTests
             ? state.OpenSearch().EditSearch(new TextField(Typed, CaretAt))
             : state with { Picker = new ReflogRefPicker(["HEAD"], new TextField(Typed, CaretAt)) };
 
-        return ReflogFrameBuilder.Build(state, 80, 24, GraphGlyphSet.Unicode)!.Lines[^2];
+        return ReflogFrameBuilder.Build(state, 80, 24, GraphGlyphSet.Unicode, DateTimeOffset.UnixEpoch)!.Lines[^2];
     }
 
     private static StyledLine BlameFooter()

@@ -241,7 +241,7 @@ public class TextFieldAppContractTests
         {
             var reading = AppReducer.Reduce(OpenedTab(), new ReflogOpenRequested(null));
             var read = (ReadReflogEffect)Assert.Single(reading.Effects);
-            var entries = new List<ReflogEntry> { new(0, new string('a', 40), "commit", "message", "now") };
+            var entries = new List<ReflogEntry> { new(0, new string('a', 40), "commit", "message", DateTimeOffset.UnixEpoch) };
             var loaded = new ReflogLoaded(read.TabId, read.Generation, read.Reference, read.Title, read.Refresh, entries);
             var list = AppReducer.Reduce(reading.State, loaded).State;
             var action = isPicker ? ActionIds.ReflogOpen : ActionIds.SearchOpen;
