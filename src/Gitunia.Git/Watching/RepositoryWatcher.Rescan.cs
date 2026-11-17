@@ -36,13 +36,17 @@ public sealed partial class RepositoryWatcher
                 await Task.Delay(_options.Debounce, token);
                 var directories = await _directoryLister!.ListAsync(_location.WorkingTreePath!, token);
                 var drops = FindDroppableDirectories(directories);
-                if (drops.Count > 0)
+                if (drops.Any(Directory.Exists))
                 {
                     // A file written after the listing but before the disk check makes a new directory look ignored.
                     // The second listing starts after that check, so it includes such a file; only what it still
-                    // omits is dropped (#1395).
-                    directories = await _directoryLister.ListAsync(_location.WorkingTreePath!, token);
-                    drops = FindDroppableDirectories(directories, drops);
+                    // omits is dropped (#1395). A gone directory cannot suffer this, so it costs no second listing.
+                    var confirmed = await _directoryLister.ListAsync(_location.WorkingTreePath!, token);
+                    if (confirmed is not null)
+                    {
+                        directories = confirmed;
+                        drops = FindDroppableDirectories(confirmed, drops);
+                    }
                 }
 
                 if (!ApplyDirectories(directories, drops))

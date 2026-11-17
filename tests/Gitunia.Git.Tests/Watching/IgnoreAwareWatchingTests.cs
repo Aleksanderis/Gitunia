@@ -136,6 +136,7 @@ public class IgnoreAwareWatchingTests
 
         // The rescan's listing is stale: the file appears after it was taken, before the disk check (#1395).
         Directory.CreateDirectory(deeper);
+        // The third call is the confirming listing; the old code never makes it and times out here or below.
         await WaitForAsync(() => lister.StaleCalls > 0 && lister.Calls >= 3);
         await recorder.WaitForAsync(RepositoryChangeKinds.WorkingTree, Token);
         var callsBefore = recorder.CallCount;
