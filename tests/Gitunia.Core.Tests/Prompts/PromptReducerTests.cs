@@ -405,6 +405,63 @@ public class PromptReducerTests
         Assert.Single(popup.Hints);
     }
 
+    [Fact]
+    public void GivenARejectedTextAnswer_WhenThePromptIsReopened_ThenItHoldsTheTypedTextWithTheCaretAtTheEndAndTheReasonShows()
+    {
+        var state = Reduce(ShellState.Empty, Request(initialText: "bad name")).State;
+        state = Press(state, new KeyEvent(KeyNames.Left));
+        state = Reduce(state, new PromptAcceptedCommand()).State;
+        Assert.Null(state.Prompt);
+
+        var update = Reduce(state, new PromptReopenedCommand("Name taken"));
+
+        Assert.Equal("bad name", update.State.Prompt!.Text);
+        Assert.Equal(PromptCaret.End, update.State.Prompt.Caret);
+        Assert.Equal(KeyMode.Insert, update.State.Mode);
+        var warning = Assert.IsType<PostStatusEffect>(Assert.Single(update.Effects));
+        Assert.Equal("Name taken", warning.Text);
+        Assert.Equal(StatusSeverity.Warning, warning.Severity);
+    }
+
+    [Fact]
+    public void GivenAnotherPromptIsOpen_WhenAnAnswerIsRejected_ThenOnlyTheReasonShows()
+    {
+        var state = Reduce(ShellState.Empty, Request(initialText: "one")).State;
+        state = Reduce(state, new PromptAcceptedCommand()).State;
+        state = Reduce(state, Request(initialText: "two")).State;
+
+        var update = Reduce(state, new PromptReopenedCommand("Name taken"));
+
+        Assert.Equal("two", update.State.Prompt!.Text);
+        Assert.Single(update.Effects);
+    }
+
+    [Fact]
+    public void GivenAPickerAnswer_WhenItIsRejected_ThenThePromptStaysClosed()
+    {
+        var state = Reduce(ShellState.Empty, Picker("origin")).State;
+        state = Reduce(state, new PromptAcceptedCommand()).State;
+
+        var update = Reduce(state, new PromptReopenedCommand("No such remote"));
+
+        Assert.Null(update.State.Prompt);
+        Assert.Single(update.Effects);
+    }
+
+    [Fact]
+    public void GivenAReopenedPrompt_WhenItIsRejectedAgain_ThenItReopensWithTheLatestText()
+    {
+        var state = Reduce(ShellState.Empty, Request(initialText: "a")).State;
+        state = Reduce(state, new PromptAcceptedCommand()).State;
+        state = Reduce(state, new PromptReopenedCommand("No")).State;
+        state = Press(state, new KeyEvent("b"));
+        state = Reduce(state, new PromptAcceptedCommand()).State;
+
+        var update = Reduce(state, new PromptReopenedCommand("Still no"));
+
+        Assert.Equal("ab", update.State.Prompt!.Text);
+    }
+
     private static PromptRequest KeyRequest() =>
         new(
             "Reset",

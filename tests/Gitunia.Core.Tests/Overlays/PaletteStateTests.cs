@@ -1,4 +1,5 @@
 using Gitunia.Core.Keymap;
+using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Overlays;
 using Xunit;
 
@@ -87,6 +88,42 @@ public class PaletteStateTests
     public void GivenContiguousAndScatteredMatch_WhenScoring_ThenContiguousWins()
     {
         Assert.True(FuzzyMatcher.Score("tab", "Next tab") > FuzzyMatcher.Score("tab", "Take a branch"));
+    }
+
+    [Fact]
+    public void GivenTheCaretInTheQuery_WhenTyping_ThenTheTextGoesInAtTheCaret()
+    {
+        var palette = Palette().Type("ac").Edit(new KeyEvent(KeyNames.Left)).Type("b");
+
+        Assert.Equal("abc", palette.Query);
+        Assert.Equal(2, palette.Field.CaretColumn);
+    }
+
+    [Fact]
+    public void GivenAQueryOfTwoWords_WhenCtrlWIsPressed_ThenTheLastWordGoes()
+    {
+        var palette = Palette().Type("stash pop").Edit(new KeyEvent("w", KeyModifiers.Ctrl));
+
+        Assert.Equal("stash ", palette.Query);
+    }
+
+    [Fact]
+    public void GivenAHighlightedRow_WhenOnlyTheCaretMoves_ThenTheHighlightStays()
+    {
+        var palette = Palette().Type("b").Move(1);
+
+        var moved = palette.Edit(new KeyEvent(KeyNames.Home));
+
+        Assert.Equal(palette.SelectedIndex, moved.SelectedIndex);
+        Assert.Equal(0, moved.Field.CaretColumn);
+    }
+
+    [Fact]
+    public void GivenAKeyThatDoesNotEdit_WhenEditing_ThenThePaletteIsUnchanged()
+    {
+        var palette = Palette().Type("b");
+
+        Assert.Same(palette, palette.Edit(new KeyEvent(KeyNames.Enter)));
     }
 
     [Fact]
