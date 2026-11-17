@@ -314,7 +314,7 @@ scenario_marker() { # scenario_marker SCENARIO: text the captured frame must hol
     file-history-narrow) echo "File history" ;;
     light) echo "History" ;;
     files) echo "─ Files" ;;
-    files-whichkey) echo "Open the Details tab" ;;
+    files-whichkey) echo "Quick jump to a visible row" ;;
     files-filter) echo "mul" ;;
     file-content) echo "─ Files" ;;
     palette) echo ": " ;;
