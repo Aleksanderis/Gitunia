@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using Gitunia.Core.Editing;
 using Gitunia.Core.Search.Models;
 using Gitunia.Core.Text;
 using Gitunia.Git;
@@ -20,7 +21,7 @@ public static class GraphSearchReducer
     public static GraphSearchUpdate Reduce(GraphSearchState state, GraphSearchCommand command) => command switch
     {
         OpenSearchCommand => Plain(GraphSearchState.Initial with { Phase = SearchPhase.Editing, Generation = state.Generation + 1 }),
-        EditSearchTextCommand edit => Edit(state, edit.Text, edit.Caret),
+        EditSearchTextCommand edit => Edit(state, edit.Field),
         AcceptSearchCommand accept => Accept(state, accept.SelectedIndex),
         CancelSearchCommand => Plain(GraphSearchState.Initial with { Generation = state.Generation + 1 }),
         StepMatchCommand step => Step(state, step),
@@ -33,8 +34,9 @@ public static class GraphSearchReducer
 
     private static GraphSearchUpdate Plain(GraphSearchState state) => new(state, []);
 
-    private static GraphSearchUpdate Edit(GraphSearchState state, string text, int caret)
+    private static GraphSearchUpdate Edit(GraphSearchState state, TextField field)
     {
+        var text = field.Text;
         if (state.Phase != SearchPhase.Editing)
         {
             return Plain(state);
@@ -43,14 +45,13 @@ public static class GraphSearchReducer
         // Only the caret moved: the query, its matches and the scan stay.
         if (text == state.Text)
         {
-            return Plain(state with { Caret = caret });
+            return Plain(state with { Field = field });
         }
 
         var query = SearchQueryParser.Parse(text);
         var next = state with
         {
-            Text = text,
-            Caret = caret,
+            Field = field,
             Query = query,
             Matches = [],
             Scanned = 0,

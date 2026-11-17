@@ -122,7 +122,7 @@ public static class BlameFrameBuilder
             screenWidth,
             glyphs,
             FooterLead(state),
-            field: state is { HasSearch: true, IsEditingSearch: true } ? new CaretField("/", state.SearchText, state.SearchCaret) : null));
+            field: state is { HasSearch: true, IsEditingSearch: true } ? CaretField.Of("/", state.Search) : null));
         lines.Add(OverlayBox.Bottom(screenWidth, glyphs));
 
         return new OverlayFrame(0, 0, lines);

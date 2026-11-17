@@ -1,5 +1,6 @@
 using Gitunia.App.Blame;
 using Gitunia.Core.Blame;
+using Gitunia.Core.Editing;
 using Gitunia.Core.Visual;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Tui.Rendering.Graph;
@@ -18,7 +19,7 @@ public sealed class BlameFrameBuilderTests
     [Fact]
     public void GivenTheSearchBoxWithTheCaretInside_WhenBuildingTheFrame_ThenTheFooterDrawsTheCaretThere()
     {
-        var state = new BlameState(new TabId(1), "a.txt", "a.txt", LineCount: 4, SearchText: "todo", IsEditingSearch: true, SearchCaret: 2);
+        var state = new BlameState(new TabId(1), "a.txt", "a.txt", LineCount: 4, Search: new TextField("todo", 2), IsEditingSearch: true);
 
         var data = new BlameData(1, ["a", "b", "c", "d"]);
         var built = BlameFrameBuilder.Build(state, data, DateTimeOffset.UnixEpoch, Width, Height, GraphGlyphSet.Unicode)!;

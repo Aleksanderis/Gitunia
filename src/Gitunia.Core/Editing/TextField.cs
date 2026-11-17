@@ -11,6 +11,14 @@ namespace Gitunia.Core.Editing;
 /// <param name="Caret">The caret column in <paramref name="Text"/> (<see cref="PromptCaret.End"/> for the end).</param>
 public sealed record TextField(string Text = "", int Caret = PromptCaret.End)
 {
+    /// <summary>A field holding <paramref name="text"/> with the caret at its end.</summary>
+    /// <param name="text">The text.</param>
+    public static TextField Of(string text) => new(text);
+
+    /// <summary>A field holding <paramref name="text"/> with the caret at its end.</summary>
+    /// <param name="text">The text.</param>
+    public static implicit operator TextField(string text) => Of(text);
+
     /// <summary>The caret limited to the text.</summary>
     public int CaretColumn => PromptCaret.Clamp(Text, Caret);
 

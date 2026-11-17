@@ -15,11 +15,10 @@ public sealed class SidebarFilterLine(IScreenContent content, GraphGlyphSet glyp
     {
         var chrome = content.SidebarFilter();
         var line = SidebarRowRenderer.FilterLine(
-            chrome.FilterText,
+            chrome.Filter,
             chrome.IsEditingFilter,
             PanePadding.TextWidth(width),
-            glyphs,
-            chrome.FilterCaret);
+            glyphs);
 
         return PanePadding.Wrap(line);
     }

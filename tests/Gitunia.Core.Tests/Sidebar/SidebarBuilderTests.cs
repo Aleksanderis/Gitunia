@@ -83,7 +83,7 @@ public class SidebarBuilderTests
     public void GivenFilter_WhenBuilding_ThenOnlyMatchesRemainAndFoldedSectionsOpen()
     {
         var tab = Tab(refs: [Branch("main"), Branch("feature/login"), Remote("origin/feature/search"), Tag("v1")]);
-        tab = tab with { Sidebar = tab.Sidebar with { FilterText = "FEATURE" } };
+        tab = tab with { Sidebar = tab.Sidebar with { Filter = "FEATURE" } };
 
         var rows = SidebarBuilder.Build(tab);
 
@@ -213,7 +213,7 @@ public class SidebarBuilderTests
     public void GivenFilter_WhenBuildingPrefixedBranches_ThenFoldersWithAMatchAreUnfolded()
     {
         var tab = Tab(refs: [Branch("main", isCurrent: true), Branch("feature/ui/needle"), Branch("fix/other")]);
-        tab = tab with { Sidebar = tab.Sidebar with { FilterText = "needle" } };
+        tab = tab with { Sidebar = tab.Sidebar with { Filter = "needle" } };
 
         var rows = SidebarBuilder.Build(tab);
 
@@ -240,7 +240,7 @@ public class SidebarBuilderTests
     public void GivenFolderWithALeafAndAFolder_WhenBuilding_ThenTheChainIsNotCompressed()
     {
         var tab = Tab(refs: [Branch("main"), Branch("feature/a"), Branch("feature/ui/x")]);
-        tab = tab with { Sidebar = tab.Sidebar with { FilterText = "e" } };
+        tab = tab with { Sidebar = tab.Sidebar with { Filter = "e" } };
 
         Assert.Equal(["Branches", "feature", "feature/a", "ui", "feature/ui/x"], Labels(SidebarBuilder.Build(tab)));
     }
@@ -249,7 +249,7 @@ public class SidebarBuilderTests
     public void GivenFilterMatchingAWorktreeName_WhenBuilding_ThenBranchesInThatWorktreeMatch()
     {
         var tab = Tab(refs: [Branch("feature", "/work/wt-a"), Branch("main", "/work/repo")]);
-        tab = tab with { Sidebar = tab.Sidebar with { FilterText = "wt-a" } };
+        tab = tab with { Sidebar = tab.Sidebar with { Filter = "wt-a" } };
 
         Assert.Equal(["Branches", "feature"], Labels(SidebarBuilder.Build(tab)));
     }

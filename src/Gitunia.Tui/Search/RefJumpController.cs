@@ -31,13 +31,13 @@ public sealed class RefJumpController(IGraphView view)
 
             if (_prompt.Selected is not { } selected)
             {
-                return new PromptLine("ref ", _prompt.Text, _prompt.Caret, $"  {UiTexts.NoMatch("ref or commit")}");
+                return PromptLine.Editing("ref ", _prompt.Field, $"  {UiTexts.NoMatch("ref or commit")}");
             }
 
             var position = (_prompt.SelectedIndex + 1).ToString(CultureInfo.InvariantCulture);
             var total = _prompt.Candidates.Length.ToString(CultureInfo.InvariantCulture);
 
-            return new PromptLine("ref ", _prompt.Text, _prompt.Caret, $"  {selected.Label} ({position}/{total})");
+            return PromptLine.Editing("ref ", _prompt.Field, $"  {selected.Label} ({position}/{total})");
         }
     }
 
@@ -86,11 +86,11 @@ public sealed class RefJumpController(IGraphView view)
         {
             _prompt = _prompt.Move(1);
         }
-        else if (PromptTextEditor.Apply(_prompt.Text, _prompt.Caret, key) is { } edit)
+        else if (_prompt.Field.Apply(key) is { } edit)
         {
             _prompt = edit.Text == _prompt.Text
-                ? _prompt with { Caret = edit.Caret }
-                : RefJumpResolver.Resolve(edit.Text, view.ActiveRefs(), session.Graph) with { Caret = edit.Caret };
+                ? _prompt with { Field = edit }
+                : RefJumpResolver.Resolve(edit.Text, view.ActiveRefs(), session.Graph) with { Field = edit };
         }
 
         view.Redraw();

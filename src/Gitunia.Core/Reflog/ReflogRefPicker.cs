@@ -8,11 +8,16 @@ namespace Gitunia.Core.Reflog;
 /// branch can be opened without leaving the list. Pure.
 /// </summary>
 /// <param name="Names">Every choice, <c>HEAD</c> first, then the local branches.</param>
-/// <param name="Text">The typed filter (case-insensitive substring).</param>
-/// <param name="Caret">The caret column in <see cref="Text"/> (see <see cref="PromptCaret"/>).</param>
+/// <param name="Field">The typed filter (case-insensitive substring) and its caret.</param>
 /// <param name="Index">Index into <see cref="Candidates"/>.</param>
-public sealed record ReflogRefPicker(IReadOnlyList<string> Names, string Text = "", int Index = 0, int Caret = PromptCaret.End)
+public sealed record ReflogRefPicker(IReadOnlyList<string> Names, TextField? Field = null, int Index = 0)
 {
+    /// <summary>The typed filter and its caret.</summary>
+    public TextField Field { get; init; } = Field ?? new TextField();
+
+    /// <summary>The typed filter.</summary>
+    public string Text => Field.Text;
+
     /// <summary>The choices that match the typed text, in their original order.</summary>
     public IReadOnlyList<string> Candidates
     {
@@ -32,11 +37,11 @@ public sealed record ReflogRefPicker(IReadOnlyList<string> Names, string Text = 
         Candidates is { Count: > 0 } candidates ? candidates[Math.Clamp(Index, 0, candidates.Count - 1)] : null;
 
     /// <summary>The picker with new filter text; the highlight returns to the first match.</summary>
-    public ReflogRefPicker WithText(string text) => this with { Text = text, Index = 0 };
+    public ReflogRefPicker WithText(string text) => this with { Field = TextField.Of(text), Index = 0 };
 
     /// <summary>The picker after an edit of the filter; a move of the caret alone keeps the highlight.</summary>
-    public ReflogRefPicker WithEdit(PromptEdit edit) =>
-        edit.Text == Text ? this with { Caret = edit.Caret } : this with { Text = edit.Text, Caret = edit.Caret, Index = 0 };
+    public ReflogRefPicker WithEdit(TextField edit) =>
+        edit.Text == Text ? this with { Field = edit } : this with { Field = edit, Index = 0 };
 
     /// <summary>Moves the highlight by <paramref name="step"/>, stopping at the ends.</summary>
     public ReflogRefPicker Move(int step) =>

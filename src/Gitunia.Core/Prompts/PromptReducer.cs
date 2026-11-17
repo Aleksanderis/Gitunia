@@ -81,14 +81,14 @@ public static class PromptReducer
             return new ShellUpdate(state, []);
         }
 
-        if (PromptTextEditor.Apply(prompt.Text, prompt.Caret, key) is not { } edited)
+        if (prompt.Field.Apply(key) is not { } edited)
         {
             return new ShellUpdate(state, []);
         }
 
         var filtered = edited.Text == prompt.Text ? prompt.Picker : prompt.Picker?.Filtered(edited.Text);
 
-        return Replace(state, prompt with { Text = edited.Text, Caret = edited.Caret, Picker = filtered });
+        return Replace(state, prompt with { Field = edited, Picker = filtered });
     }
 
     // A one-key prompt closes on a listed key and ignores every other, like Enter.
@@ -160,7 +160,7 @@ public static class PromptReducer
             return new ShellUpdate(state, [warning]);
         }
 
-        var prompt = answered with { ReturnMode = state.Mode, Caret = PromptCaret.End };
+        var prompt = answered with { ReturnMode = state.Mode, Field = TextField.Of(answered.Text) };
         var reopened = (state with { Prompt = prompt, AnsweredPrompt = null }).WithMode(KeyMode.Insert);
 
         return new ShellUpdate(reopened, [warning]);

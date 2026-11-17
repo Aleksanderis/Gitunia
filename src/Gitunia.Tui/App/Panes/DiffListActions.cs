@@ -186,9 +186,9 @@ public sealed class DiffListActions
             return false;
         }
 
-        if (PromptTextEditor.Apply(diff.Search.Text, diff.Search.Caret, key) is { } edit)
+        if (diff.Search.Field.Apply(key) is { } edit)
         {
-            ApplySearch(diff, DiffSearch.Edit(diff.Search, edit.Text, edit.Caret, document));
+            ApplySearch(diff, DiffSearch.Edit(diff.Search, edit, document));
         }
 
         return true;

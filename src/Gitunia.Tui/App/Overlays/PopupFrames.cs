@@ -61,7 +61,7 @@ public sealed class PopupFrames(
         }
 
         return popup.Input is { } input
-            ? new PromptLine($"{popup.Title}: ", input, popup.InputCaret, $"  {popup.Hint}")
+            ? PromptLine.Editing($"{popup.Title}: ", input, $"  {popup.Hint}")
             : new PromptLine($"{popup.Title}  {popup.Hint}", string.Empty);
     }
 }

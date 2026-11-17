@@ -65,7 +65,7 @@ public class PickerReducerTests
         state = Key(state, new KeyEvent("l"));
 
         Assert.Equal("alp", state.Query);
-        Assert.Equal(2, state.Caret);
+        Assert.Equal(2, state.Field.Caret);
         Assert.Equal(["alpha"], state.Rows.Select(row => row.Name));
     }
 
@@ -77,10 +77,10 @@ public class PickerReducerTests
         state = Key(state, new KeyEvent(KeyNames.Left));
 
         state = Key(state, new KeyEvent(KeyNames.Backspace));
-        Assert.Equal(("alpha", 3), (state.Query, state.Caret));
+        Assert.Equal(("alpha", 3), (state.Query, state.Field.Caret));
 
         state = Key(state, new KeyEvent(KeyNames.Delete));
-        Assert.Equal(("alpa", 3), (state.Query, state.Caret));
+        Assert.Equal(("alpa", 3), (state.Query, state.Field.Caret));
     }
 
     [Fact]
@@ -91,7 +91,7 @@ public class PickerReducerTests
 
         var moved = Key(state, new KeyEvent(KeyNames.Home));
 
-        Assert.Equal(0, moved.Caret);
+        Assert.Equal(0, moved.Field.Caret);
         Assert.Equal(state.Highlight, moved.Highlight);
         Assert.Equal(state.Rows, moved.Rows);
     }
@@ -113,7 +113,7 @@ public class PickerReducerTests
         state = PickerReducer.Reduce(state, new CompletePathCommand(), Context());
 
         Assert.NotEqual("alp", state.Query);
-        Assert.Equal(state.Query.Length, PromptCaret.Clamp(state.Query, state.Caret));
+        Assert.Equal(state.Query.Length, PromptCaret.Clamp(state.Query, state.Field.Caret));
     }
 
     [Fact]

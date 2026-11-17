@@ -1,3 +1,4 @@
+using Gitunia.Core.Editing;
 using Gitunia.Core.Config.Models;
 using Gitunia.Core.Effects;
 using Gitunia.Core.Keymap;
@@ -511,7 +512,7 @@ public class SettingsScreenReducerTests
     }
 
     private static SettingsSession Typed(SettingsSession session, string text) =>
-        session with { Screen = session.Screen!.WithInputText(text) };
+        session with { Screen = session.Screen!.WithInputText(TextField.Of(text)) };
 
     private static SettingsFolderCheck AcceptedCheck(out SettingsSession busy)
     {

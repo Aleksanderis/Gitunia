@@ -5,22 +5,23 @@ namespace Gitunia.Core.Sidebar;
 
 /// <summary>How a tab's sidebar looks: which sections are folded, the name filter and the cursor row.</summary>
 /// <param name="CollapsedSections">Sections whose entries are hidden.</param>
-/// <param name="FilterText">Case-insensitive name filter, empty when none.</param>
+/// <param name="Filter">Case-insensitive name filter and its caret; empty text when none.</param>
 /// <param name="Cursor">Index of the selected row in the visible rows; clamped when the rows change.</param>
 /// <param name="OpenedFolders">Folders the user opened (<see cref="SidebarRow.Key"/>); per tab, not persisted.</param>
 /// <param name="ClosedFolders">
 /// Folders the user closed. A folder in neither list is open when it holds the current branch or is a remote's own
 /// folder, and closed otherwise.
 /// </param>
-/// <param name="FilterCaret">The caret column in <see cref="FilterText"/> (see <see cref="PromptCaret"/>).</param>
 public sealed record SidebarState(
     ImmutableArray<SidebarSection> CollapsedSections,
-    string FilterText,
+    TextField Filter,
     int Cursor,
     ImmutableArray<string> OpenedFolders,
-    ImmutableArray<string> ClosedFolders,
-    int FilterCaret = PromptCaret.End)
+    ImmutableArray<string> ClosedFolders)
 {
+    /// <summary>Case-insensitive name filter, empty when none.</summary>
+    public string FilterText => Filter.Text;
+
     /// <summary>Branches, worktrees and stashes open; the long remote and tag lists folded; cursor on the first row.</summary>
     public static SidebarState Initial { get; } =
         new([SidebarSection.Remotes, SidebarSection.Tags], string.Empty, 0, [], []);

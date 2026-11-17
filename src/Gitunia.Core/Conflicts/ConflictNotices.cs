@@ -66,9 +66,6 @@ public static class ConflictNotices
     public static readonly string NothingToPut =
         $"{UiTexts.Nothing("put")} yet: copy lines first (yy, Visual y, Alt-w)";
 
-    /// <summary>What copied selected text is called in the status message.</summary>
-    public const string SelectionDescription = "selected text";
-
     /// <summary>A put key with the cursor in a version pane.</summary>
     public const string PutInResult = "Put works in the result pane (Tab): move there first";
 }

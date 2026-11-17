@@ -1,4 +1,3 @@
-using Gitunia.Core.Editing;
 using Gitunia.Core.Effects;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
@@ -318,7 +317,7 @@ public static class ReflogReducer
                 return With(session, list with { Picker = picker.Move(normalized.Name == KeyNames.Up ? -1 : 1) });
             }
 
-            if (PromptTextEditor.Apply(picker.Text, picker.Caret, key) is { } text)
+            if (picker.Field.Apply(key) is { } text)
             {
                 return With(session, list with { Picker = picker.WithEdit(text) });
             }
@@ -326,9 +325,9 @@ public static class ReflogReducer
             return Done(session);
         }
 
-        if (PromptTextEditor.Apply(list.SearchText, list.SearchCaret, key) is { } edited)
+        if (list.Search.Apply(key) is { } edited)
         {
-            return With(session, list.EditSearch(edited.Text, edited.Caret));
+            return With(session, list.EditSearch(edited));
         }
 
         return Done(session);

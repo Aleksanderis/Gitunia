@@ -5,12 +5,11 @@ using Gitunia.Core.Workspaces.Panes;
 namespace Gitunia.Tui.Rendering.Sidebar;
 
 /// <summary>The sidebar state the views around the list need: the filter line and whether the divider is highlighted.</summary>
-/// <param name="FilterText">The name filter, empty when none.</param>
+/// <param name="Filter">The name filter and its caret; empty text when none.</param>
 /// <param name="IsEditingFilter">The filter is being typed.</param>
 /// <param name="IsFocused">The sidebar has focus.</param>
-/// <param name="FilterCaret">The caret column in the filter (see <see cref="PromptCaret"/>).</param>
 // ReSharper disable once NotAccessedPositionalProperty.Global : Part of the full value, not read yet
-public sealed record SidebarChrome(string FilterText, bool IsEditingFilter, bool IsFocused, int FilterCaret = PromptCaret.End)
+public sealed record SidebarChrome(TextField Filter, bool IsEditingFilter, bool IsFocused)
 {
     /// <summary>No filter, not editing, not focused.</summary>
     public static SidebarChrome Idle { get; } = new(string.Empty, false, false);
@@ -25,6 +24,6 @@ public sealed record SidebarChrome(string FilterText, bool IsEditingFilter, bool
 
         var isEditing = state.Shell.Sidebar.IsEditing(tab.Id);
 
-        return new SidebarChrome(tab.Sidebar.FilterText, isEditing, tab.View.FocusedPane == PaneKind.Sidebar, tab.Sidebar.FilterCaret);
+        return new SidebarChrome(tab.Sidebar.Filter, isEditing, tab.View.FocusedPane == PaneKind.Sidebar);
     }
 }
