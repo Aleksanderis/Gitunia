@@ -1,15 +1,17 @@
 using Gitunia.App.Blame;
 using Gitunia.Core.Blame;
 using Gitunia.Core.Config.Models;
-using Gitunia.Core.Reflog;
-using Gitunia.Core.Settings;
-using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Core.Editing;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Overlays;
+using Gitunia.Core.Picker;
+using Gitunia.Core.Reflog;
+using Gitunia.Core.Settings;
+using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Overlays;
+using Gitunia.Tui.Rendering.Screen;
 using Gitunia.Tui.Rendering.Sidebar;
 using Gitunia.Tui.Rendering.Styling;
 using Xunit;
@@ -37,6 +39,8 @@ public class FieldRolesTests
         "reflog search",
         "reflog picker",
         "blame search",
+        "picker query",
+        "status bar",
     ];
 
     [Theory]
@@ -99,6 +103,8 @@ public class FieldRolesTests
         "reflog search" => new FieldLine(ReflogFooter(search: true), FieldRoles.Bar),
         "reflog picker" => new FieldLine(ReflogFooter(search: false), FieldRoles.Bar),
         "blame search" => new FieldLine(BlameFooter(), FieldRoles.Bar),
+        "picker query" => new FieldLine(PickerQuery(), FieldRoles.Body),
+        "status bar" => new FieldLine(StatusBar(), FieldRoles.Bar),
         _ => throw new ArgumentOutOfRangeException(nameof(surface), surface, "Unknown surface"),
     };
 
@@ -136,6 +142,25 @@ public class FieldRolesTests
             : state with { Picker = new ReflogRefPicker(["HEAD"], new TextField(Typed, CaretAt)) };
 
         return ReflogFrameBuilder.Build(state, 80, 24, GraphGlyphSet.Unicode, DateTimeOffset.UnixEpoch)!.Lines[^2];
+    }
+
+    private static StyledLine PickerQuery()
+    {
+        var picker = new PickerState(new TextField(Typed, CaretAt), 0, [], string.Empty, null);
+        var lines = PickerComposer.Compose(picker, "/home/user", 100, 30, GraphGlyphSet.Unicode);
+
+        return lines.First(line => line.Text.Contains(Typed[..1], StringComparison.Ordinal)
+            && line.Segments.Any(segment => segment.Role == FieldRoles.Body.Caret));
+    }
+
+    private static StyledLine StatusBar()
+    {
+        var model = new ScreenModel("repo", "main", 1, 1, "NORMAL", string.Empty, 1, 1, false, string.Empty)
+        {
+            SearchLine = new PromptLine("/", Typed, CaretAt, "  1/2"),
+        };
+
+        return ChromeBuilder.Status(model, 80, GraphGlyphSet.Unicode);
     }
 
     private static StyledLine BlameFooter()

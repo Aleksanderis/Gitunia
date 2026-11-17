@@ -1,5 +1,5 @@
-using Gitunia.Core.Editing;
 using System.Collections.Immutable;
+using Gitunia.Core.Editing;
 using Gitunia.Core.Lists;
 using Gitunia.Core.Workspaces.Repositories;
 

@@ -14,7 +14,16 @@ namespace Gitunia.Core.Picker;
 /// <param name="IsScanningShown">The listing has taken long enough (about 150 ms) to show a "scanning..." notice.</param>
 /// <param name="Expanded">The sections the user expanded past their caps (see <see cref="PickerListPlan"/>); gone when the picker closes.</param>
 /// <param name="IsOnToggle">The highlight sits on the "more" or "less" line that follows row <see cref="Highlight"/> (the last listed row of its section), not on a row.</param>
-public sealed record PickerState(TextField Field, int Highlight, ImmutableArray<PickerRow> Rows, string Message, TabId? LocatingTabId, bool IsListing = false, bool IsScanningShown = false, PickerSection Expanded = PickerSection.None, bool IsOnToggle = false)
+public sealed record PickerState(
+    TextField Field,
+    int Highlight,
+    ImmutableArray<PickerRow> Rows,
+    string Message,
+    TabId? LocatingTabId,
+    bool IsListing = false,
+    bool IsScanningShown = false,
+    PickerSection Expanded = PickerSection.None,
+    bool IsOnToggle = false)
 {
     /// <summary>The typed text.</summary>
     public string Query => Field.Text;

@@ -67,10 +67,7 @@ public sealed record ReflogState(
     /// <summary>Starts a fresh search in the box.</summary>
     public ReflogState OpenSearch() => this with { Search = new TextField(), IsEditingSearch = true };
 
-    /// <summary>The search with new text; the highlight jumps to the first match at or after the highlight.</summary>
-    public ReflogState EditSearch(string text) => EditSearch(TextField.Of(text));
-
-    /// <summary>The state after an edit of the search box; a move of the caret alone keeps the selection.</summary>
+    /// <summary>The state after an edit of the search box; the highlight jumps to the first match at or after it, and a move of the caret alone keeps the selection.</summary>
     public ReflogState EditSearch(TextField edit)
     {
         if (edit.Text == SearchText)

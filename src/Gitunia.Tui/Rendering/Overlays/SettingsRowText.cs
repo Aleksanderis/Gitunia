@@ -96,7 +96,7 @@ public sealed record SettingsRowText(
             case SettingControl.Number:
                 if (state.Input is { Kind: SettingsInputKind.Number } input && input.SettingId == definition.Id)
                 {
-                    return $"[{Shown(input.Text, input.Caret)}]";
+                    return $"[{Shown(input.Text, input.Field.Caret)}]";
                 }
 
                 return $"[{value.Number}]";

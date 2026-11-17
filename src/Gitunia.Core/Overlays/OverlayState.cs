@@ -77,7 +77,8 @@ public sealed record OverlayState(
     public bool IsHelpFiltered => Kind == OverlayKind.Help && (HelpFilter.Length > 0 || IsEditingHelpFilter);
 
     /// <summary>Starts a new help filter: the line takes text.</summary>
-    public OverlayState OpenHelpFilter() => this with { HelpFilterField = new TextField(), IsEditingHelpFilter = true, HelpScroll = 0 };
+    public OverlayState OpenHelpFilter() =>
+        this with { HelpFilterField = new TextField(), IsEditingHelpFilter = true, HelpScroll = 0 };
 
     /// <summary>Applies a key to the help filter (text at the caret, caret moves, deletions); the first line shows again when the text changes. Unchanged when the key does nothing.</summary>
     public OverlayState EditHelpFilter(KeyEvent key)
@@ -96,7 +97,8 @@ public sealed record OverlayState(
     public OverlayState AcceptHelpFilter() => this with { IsEditingHelpFilter = false };
 
     /// <summary>Drops the filter and shows the page that was open before it (from its first line).</summary>
-    public OverlayState ClearHelpFilter() => this with { HelpFilterField = new TextField(), IsEditingHelpFilter = false, HelpScroll = 0 };
+    public OverlayState ClearHelpFilter() =>
+        this with { HelpFilterField = new TextField(), IsEditingHelpFilter = false, HelpScroll = 0 };
 
     public OverlayState WithPalette(PaletteState palette) => this with { Palette = palette };
 

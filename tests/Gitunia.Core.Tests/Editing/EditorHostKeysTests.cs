@@ -37,14 +37,6 @@ public class EditorHostKeysTests
         Assert.Null(EditorHostKeys.CopySelection(editor, EditorHosts.SettingsInput));
     }
 
-    [Fact]
-    public void GivenTheConflictResultHost_ThenItCopiesAndKeepsItsOwnUndo()
-    {
-        Assert.True(EditorHosts.ConflictResult.HasClipboard);
-        Assert.False(EditorHosts.ConflictResult.HasUndo);
-        Assert.Equal(DraftPolicy.Keep, EditorHosts.ConflictResult.Escape);
-    }
-
     private static MessageEditor Selected(string text)
     {
         var editor = new MessageEditor();

@@ -76,11 +76,12 @@ internal static class ConflictActions
     // Copy and cut of the text selected in the result, in Insert and (copy) Normal mode.
     private static ConflictUpdate CopySelection(ConflictSession session, ConflictEditorState editor, bool isCut)
     {
-        if (EditorHostKeys.CopySelection(editor.Result.Editor, EditorHosts.ConflictResult) is not { } effect
-            || editor.YankResultSelection() is not { } yank)
+        if (EditorHostKeys.CopySelection(editor.Result.Editor, EditorHosts.ConflictResult) is not { } effect)
         {
             return ConflictFlow.Warn(session, ConflictNotices.NothingSelected);
         }
+
+        var yank = new ConflictYank(effect.Text, false);
 
         var copied = editor.Yanked(yank);
         if (!isCut && !editor.IsEditing)
