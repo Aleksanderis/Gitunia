@@ -59,8 +59,9 @@ public static class QuickJumpLabeler
     }
 
     /// <summary>Applies a key to the prompt text: a label key jumps, any other key edits the text.</summary>
-    public static QuickJumpUpdate Apply(string text, int caret, KeyEvent key, IReadOnlyList<JumpLabel> labels)
+    public static QuickJumpUpdate Apply(TextField field, KeyEvent key, IReadOnlyList<JumpLabel> labels)
     {
+        var text = field.Text;
         var normalized = key.Normalize();
         if (text.Length > 0 && normalized.IsPrintable && normalized.Name.Length == 1)
         {
@@ -69,17 +70,12 @@ public static class QuickJumpLabeler
             {
                 if (label.HasLetter && label.Letter == letter)
                 {
-                    return new QuickJumpUpdate(text, label.Row, caret);
+                    return new QuickJumpUpdate(field, label.Row);
                 }
             }
         }
 
-        if (PromptTextEditor.Apply(text, caret, key) is { } edit)
-        {
-            return new QuickJumpUpdate(edit.Text, null, edit.Caret);
-        }
-
-        return new QuickJumpUpdate(text, null, caret);
+        return new QuickJumpUpdate(field.Apply(key) ?? field, null);
     }
 
     // Every character that follows an occurrence of the text in this subject (lowercase and uppercase forms).

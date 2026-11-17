@@ -75,7 +75,7 @@ public sealed record SettingsRowText(
             && state.Input is { Kind: SettingsInputKind.Number } input
             && input.SettingId == definition.Id)
         {
-            return new SettingsRowText(marker, name, control, RightField: new CaretField("[", input.Text, input.Caret, "]"));
+            return new SettingsRowText(marker, name, control, RightField: CaretField.Of("[", input.Field, "]"));
         }
 
         return new SettingsRowText(marker, name, control);
@@ -96,7 +96,7 @@ public sealed record SettingsRowText(
             case SettingControl.Number:
                 if (state.Input is { Kind: SettingsInputKind.Number } input && input.SettingId == definition.Id)
                 {
-                    return $"[{Shown(input.Text, input.Caret)}]";
+                    return $"[{Shown(input.Text, input.Field.Caret)}]";
                 }
 
                 return $"[{value.Number}]";
@@ -148,11 +148,10 @@ public sealed record SettingsRowText(
     // The folder box: the typed text as a field, the caret drawn as a cursor cell.
     private static SettingsRowText TypedItem(SettingsState state, string right = "")
     {
-        var text = state.Input?.Text ?? string.Empty;
-        var caret = state.Input?.Caret ?? PromptCaret.End;
-        var field = new CaretField($"{ItemIndent}> ", text, caret);
+        var typed = state.Input?.Field ?? new TextField();
+        var field = CaretField.Of($"{ItemIndent}> ", typed);
 
-        return new SettingsRowText(NoMarker, $"{ItemIndent}> {Shown(text, caret)}", right, field);
+        return new SettingsRowText(NoMarker, $"{ItemIndent}> {Shown(typed.Text, typed.Caret)}", right, field);
     }
 
     // The text as the field takes room for it: the cursor cell at the end of the text is a blank.

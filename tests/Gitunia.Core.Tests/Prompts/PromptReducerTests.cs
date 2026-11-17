@@ -23,13 +23,13 @@ public class PromptReducerTests
     public void GivenCaretMovedLeft_WhenTyping_ThenTheTextIsInsertedAtTheCaret()
     {
         var state = Reduce(ShellState.Empty, Request(initialText: "ac")).State;
-        Assert.Equal(PromptCaret.End, state.Prompt!.Caret);
+        Assert.Equal(PromptCaret.End, state.Prompt!.Field.Caret);
 
         state = Press(state, new KeyEvent(KeyNames.Left));
         state = Press(state, new KeyEvent("b"));
 
         Assert.Equal("abc", state.Prompt!.Text);
-        Assert.Equal(2, state.Prompt.Caret);
+        Assert.Equal(2, state.Prompt.Field.Caret);
     }
 
     [Fact]
@@ -42,7 +42,7 @@ public class PromptReducerTests
 
         state = Press(state, new KeyEvent(KeyNames.Home));
 
-        Assert.Equal(0, state.Prompt!.Caret);
+        Assert.Equal(0, state.Prompt!.Field.Caret);
         Assert.Equal(before.Index, state.Prompt.Picker!.Index);
         Assert.Equal(before.Candidates, state.Prompt.Picker.Candidates);
     }
@@ -465,7 +465,7 @@ public class PromptReducerTests
         var update = Reduce(state, new PromptReopenedCommand("Name taken"));
 
         Assert.Equal("bad name", update.State.Prompt!.Text);
-        Assert.Equal(PromptCaret.End, update.State.Prompt.Caret);
+        Assert.Equal(PromptCaret.End, update.State.Prompt.Field.Caret);
         Assert.Equal(KeyMode.Insert, update.State.Mode);
         var warning = Assert.IsType<PostStatusEffect>(Assert.Single(update.Effects));
         Assert.Equal("Name taken", warning.Text);

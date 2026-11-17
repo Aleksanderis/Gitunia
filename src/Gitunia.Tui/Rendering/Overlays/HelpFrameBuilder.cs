@@ -99,9 +99,8 @@ public static class HelpFrameBuilder
         int screenHeight,
         GraphGlyphSet glyphs,
         string? title = null,
-        string? filter = null,
-        bool isEditingFilter = false,
-        int filterCaret = PromptCaret.End)
+        TextField? filter = null,
+        bool isEditingFilter = false)
     {
         var rowCount = VisibleRows(tabs, tab, screenWidth, screenHeight);
         if (rowCount == 0)
@@ -115,7 +114,7 @@ public static class HelpFrameBuilder
         var content = Flatten(SectionsOf(tabs, tab), KeysWidth(tabs), contentWidth, descriptionWidth, glyphs);
         var first = Math.Clamp(scroll, 0, Math.Max(0, content.Count - rowCount));
 
-        var lines = new List<StyledLine> { TitleLine(title, view, filter, isEditingFilter, filterCaret, width, glyphs) };
+        var lines = new List<StyledLine> { TitleLine(title, view, filter, isEditingFilter, width, glyphs) };
         if (HasMenu(tabs, screenWidth))
         {
             lines.AddRange(MenuRows(tabs, tab, [.. content.Skip(first).Take(rowCount)], rowCount, width, glyphs));
@@ -182,9 +181,8 @@ public static class HelpFrameBuilder
     private static StyledLine TitleLine(
         string? title,
         string view,
-        string? filter,
+        TextField? filter,
         bool isEditing,
-        int caret,
         int width,
         GraphGlyphSet glyphs)
     {
@@ -201,10 +199,10 @@ public static class HelpFrameBuilder
 
         if (!isEditing)
         {
-            return OverlayBox.Title($"{heading}  / {filter}", width, glyphs);
+            return OverlayBox.Title($"{heading}  / {filter.Text}", width, glyphs);
         }
 
-        return OverlayBox.Title(heading, new CaretField("  / ", filter, caret), width, glyphs);
+        return OverlayBox.Title(heading, CaretField.Of("  / ", filter), width, glyphs);
     }
 
     private readonly record struct TabLabel(string Text, int Start, int Width, int Tab, bool IsActive);

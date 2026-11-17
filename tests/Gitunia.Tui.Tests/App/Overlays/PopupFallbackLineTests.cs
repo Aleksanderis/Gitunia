@@ -82,7 +82,7 @@ public sealed class PopupFallbackLineTests : IDisposable, IPromptDisplay
     [Fact]
     public void GivenATextPopupOnATinyScreen_WhenAskingForTheFallback_ThenTheStatusBarGetsTheFieldWithItsCaret()
     {
-        Popup = PromptPopup.ForText("New branch", "From main", "feat", "create") with { InputCaret = 2 };
+        Popup = PromptPopup.ForText("New branch", "From main", new TextField("feat", 2), "create");
         _chrome.ScreenSize = new ScreenSize(20, 6);
 
         var line = _frames.PopupFallbackLine();

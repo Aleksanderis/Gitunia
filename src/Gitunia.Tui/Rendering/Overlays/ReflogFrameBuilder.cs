@@ -160,7 +160,7 @@ public static class ReflogFrameBuilder
             lines.Count,
             width,
             glyphs,
-            field: new CaretField($"{glyphs.Picker.Prompt} ", picker.Text, picker.Caret)));
+            field: CaretField.Of($"{glyphs.Picker.Prompt} ", picker.Field)));
         lines.Add(OverlayBox.Bottom(width, glyphs));
         return new OverlayFrame((screenWidth - width) / 2, 1, lines, targets);
     }
@@ -212,7 +212,7 @@ public static class ReflogFrameBuilder
             return null;
         }
 
-        return new CaretField("/", state.SearchText, state.SearchCaret, $"  {SearchCount(state)}");
+        return CaretField.Of("/", state.Search, $"  {SearchCount(state)}");
     }
 
     /// <summary>The entry index of the row on <paramref name="frameLine"/>, or null for none.</summary>

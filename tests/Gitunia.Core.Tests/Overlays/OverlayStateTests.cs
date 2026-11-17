@@ -35,10 +35,10 @@ public class OverlayStateTests
         }
 
         state = state.EditHelpFilter(new KeyEvent(KeyNames.Left)).EditHelpFilter(new KeyEvent("b"));
-        Assert.Equal(("abc", 2), (state.HelpFilter, state.HelpFilterCaret));
+        Assert.Equal(("abc", 2), (state.HelpFilter, state.HelpFilterField.Caret));
 
         state = state.EditHelpFilter(new KeyEvent(KeyNames.Backspace));
-        Assert.Equal(("ac", 1), (state.HelpFilter, state.HelpFilterCaret));
+        Assert.Equal(("ac", 1), (state.HelpFilter, state.HelpFilterField.Caret));
     }
 
     [Fact]
@@ -47,7 +47,7 @@ public class OverlayStateTests
         var state = OverlayState.OpenHelp("Graph", KeyMode.Normal).OpenHelpFilter().EditHelpFilter(new KeyEvent("a"));
         state = state.ScrollHelpTo(3).EditHelpFilter(new KeyEvent(KeyNames.Home));
 
-        Assert.Equal((3, 0), (state.HelpScroll, state.HelpFilterCaret));
+        Assert.Equal((3, 0), (state.HelpScroll, state.HelpFilterField.Caret));
         Assert.Same(state, state.EditHelpFilter(new KeyEvent(KeyNames.Home)));
     }
 

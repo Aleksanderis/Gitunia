@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using Gitunia.Core.Editing;
 using Gitunia.Core.Lists;
 using Gitunia.Core.Workspaces.Repositories;
 
@@ -19,7 +20,7 @@ public static class SidebarReducer
             ExpandSidebarCommand => Expand(tab, rows, cursor),
             CollapseSidebarCommand => Collapse(tab, rows, cursor),
             ToggleSidebarSectionCommand => Toggle(tab, rows, cursor),
-            SetSidebarFilterCommand filter => SetFilter(tab, filter.Text, filter.Caret),
+            SetSidebarFilterCommand filter => SetFilter(tab, filter.Field),
             _ => tab,
         };
     }
@@ -126,14 +127,15 @@ public static class SidebarReducer
         return tab with { Sidebar = tab.Sidebar with { CollapsedSections = collapsed } };
     }
 
-    private static RepositoryState SetFilter(RepositoryState tab, string text, int caret)
+    private static RepositoryState SetFilter(RepositoryState tab, TextField field)
     {
+        var text = field.Text;
         if (text == tab.Sidebar.FilterText)
         {
-            return tab with { Sidebar = tab.Sidebar with { FilterCaret = caret } };
+            return tab with { Sidebar = tab.Sidebar with { Filter = field } };
         }
 
-        var filtered = tab with { Sidebar = tab.Sidebar with { FilterText = text, FilterCaret = caret, Cursor = 0 } };
+        var filtered = tab with { Sidebar = tab.Sidebar with { Filter = field, Cursor = 0 } };
         var rows = SidebarBuilder.Build(filtered);
         var firstEntry = rows.Length > 1 && text.Length > 0 ? 1 : 0;
         return WithCursor(filtered, firstEntry);

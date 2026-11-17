@@ -5,13 +5,14 @@ namespace Gitunia.Core.Diff;
 
 /// <summary>A search inside one diff document.</summary>
 /// <param name="Phase">None, typing or accepted.</param>
-/// <param name="Text">The query typed so far.</param>
+/// <param name="Field">The query typed so far and its caret (used while typing).</param>
 /// <param name="Matches">Ascending rows whose text contains the query; empty for an empty query.</param>
 /// <param name="Notice">A short remark such as "No match", empty when none.</param>
-/// <param name="Caret">The caret column in <see cref="Text"/> while typing (see <see cref="PromptCaret"/>).</param>
-public sealed record DiffSearchState(DiffSearchPhase Phase, string Text, IReadOnlyList<int> Matches, string Notice,
-    int Caret = PromptCaret.End)
+public sealed record DiffSearchState(DiffSearchPhase Phase, TextField Field, IReadOnlyList<int> Matches, string Notice)
 {
+    /// <summary>The query typed so far.</summary>
+    public string Text => Field.Text;
+
     public static DiffSearchState Idle { get; } = new(DiffSearchPhase.None, string.Empty, [], string.Empty);
 
     /// <summary>The query is shown and highlighted (typing or accepted).</summary>
@@ -31,7 +32,7 @@ public sealed record DiffSearchState(DiffSearchPhase Phase, string Text, IReadOn
 
         var position = Matches.Count == 0 ? "0" : PositionOf(row);
         var suffix = $"  {position}/{Matches.Count}";
-        var field = new PromptLine("/", Text, Phase == DiffSearchPhase.Editing ? Caret : null, suffix);
+        var field = new PromptLine("/", Text, Phase == DiffSearchPhase.Editing ? Field.Caret : null, suffix);
 
         return Notice.Length > 0 ? field.WithSuffix($"  {Notice}") : field;
     }

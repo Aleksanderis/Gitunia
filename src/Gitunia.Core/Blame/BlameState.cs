@@ -16,8 +16,7 @@ namespace Gitunia.Core.Blame;
 /// <param name="BlamedLines">How many lines already know their commit.</param>
 /// <param name="IsComplete">True once git finished the blame.</param>
 /// <param name="Cursor">The highlighted line (zero-based).</param>
-/// <param name="SearchText">The search text, empty when no search is active.</param>
-/// <param name="SearchCaret">The caret column in <see cref="SearchText"/> (see <see cref="PromptCaret"/>).</param>
+/// <param name="Search">The search text and its caret; empty text when no search is active.</param>
 /// <param name="IsEditingSearch">True while the search box takes typed text.</param>
 /// <param name="Revision">The revision blamed, null for the working tree file; <c>&lt;id&gt;^</c> after a re-blame at a
 /// parent.</param>
@@ -35,16 +34,21 @@ public sealed record BlameState(
     int BlamedLines = 0,
     bool IsComplete = false,
     int Cursor = 0,
-    string SearchText = "",
+    TextField? Search = null,
     bool IsEditingSearch = false,
     string? Revision = null,
     BlameOptions? Options = null,
     string? IgnoreRevsFile = null,
     ImmutableArray<BlameStep> Back = default,
-    int SearchCaret = PromptCaret.End,
     BlameSelection? Selection = null,
     int? PinnedTop = null)
 {
+    /// <summary>The search text and its caret.</summary>
+    public TextField Search { get; init; } = Search ?? new TextField();
+
+    /// <summary>The search text, empty when no search is active.</summary>
+    public string SearchText => Search.Text;
+
     /// <summary>The switches in force (none when not set).</summary>
     public BlameOptions ActiveOptions => Options ?? BlameOptions.None;
 
@@ -59,11 +63,11 @@ public sealed record BlameState(
         this with { Cursor = LineCount == 0 ? 0 : Math.Clamp(index, 0, LineCount - 1) };
 
     /// <summary>Starts a fresh search in the box.</summary>
-    public BlameState OpenSearch() => this with { SearchText = string.Empty, IsEditingSearch = true };
+    public BlameState OpenSearch() => this with { Search = new TextField(), IsEditingSearch = true };
 
     /// <summary>Leaves the box and keeps the search active (so <c>n</c> and <c>N</c> work).</summary>
     public BlameState AcceptSearch() => this with { IsEditingSearch = false };
 
     /// <summary>Drops the search.</summary>
-    public BlameState ClearSearch() => this with { SearchText = string.Empty, IsEditingSearch = false };
+    public BlameState ClearSearch() => this with { Search = new TextField(), IsEditingSearch = false };
 }

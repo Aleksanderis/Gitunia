@@ -37,9 +37,8 @@ public static class OverlayFrameFactory
                 screenWidth,
                 screenHeight,
                 glyphs,
-                filter: state.HelpFilter,
-                isEditingFilter: state.IsEditingHelpFilter,
-                filterCaret: state.HelpFilterCaret),
+                filter: state.HelpFilterField,
+                isEditingFilter: state.IsEditingHelpFilter),
             OverlayKind.Help => HelpFrameBuilder.Build(
                 helpTabs,
                 state.HelpTab,

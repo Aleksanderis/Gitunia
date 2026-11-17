@@ -144,7 +144,7 @@ public class TextFieldContractTests
 
         public override string Text => _state.Prompt!.Text;
 
-        public override int Caret => Clamp(Text, _state.Prompt!.Caret);
+        public override int Caret => Clamp(Text, _state.Prompt!.Field.Caret);
 
         public override void Press(KeyEvent key) =>
             _state = PromptReducer.Reduce(_state, new PromptKeyPressedCommand(key)).State;
@@ -156,7 +156,7 @@ public class TextFieldContractTests
 
         public override string Text => _state.HelpFilter;
 
-        public override int Caret => Clamp(Text, _state.HelpFilterCaret);
+        public override int Caret => Clamp(Text, _state.HelpFilterField.Caret);
 
         public override void Press(KeyEvent key) => _state = _state.EditHelpFilter(key);
     }
@@ -167,7 +167,7 @@ public class TextFieldContractTests
 
         public override string Text => _state.Query;
 
-        public override int Caret => Clamp(Text, _state.Caret);
+        public override int Caret => Clamp(Text, _state.Field.Caret);
 
         public override void Press(KeyEvent key) =>
             _state = PickerReducer.Reduce(_state, new EditQueryCommand(key), PickerFixtures.Context());

@@ -303,7 +303,7 @@ public static partial class BlameReducer
             LineCount = 0,
             BlamedLines = 0,
             IsComplete = false,
-            SearchText = string.Empty,
+            Search = new TextField(),
             IsEditingSearch = false,
             Selection = null,
         };
@@ -495,9 +495,9 @@ public static partial class BlameReducer
             return Done(session);
         }
 
-        if (PromptTextEditor.Apply(view.SearchText, view.SearchCaret, key) is { } edited)
+        if (view.Search.Apply(key) is { } edited)
         {
-            return With(session, view with { SearchText = edited.Text, SearchCaret = edited.Caret });
+            return With(session, view with { Search = edited });
         }
 
         return Done(session);

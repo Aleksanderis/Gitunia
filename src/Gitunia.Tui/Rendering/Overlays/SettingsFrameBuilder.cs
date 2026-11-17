@@ -194,7 +194,7 @@ public static class SettingsFrameBuilder
     {
         if (state.IsEditingFilter)
         {
-            return OverlayBox.Input(new CaretField($"{glyphs.Picker.Prompt} ", state.Filter, state.FilterCaret), layout.Width, glyphs);
+            return OverlayBox.Input(CaretField.Of($"{glyphs.Picker.Prompt} ", state.FilterField), layout.Width, glyphs);
         }
 
         if (state.IsReadOnly)

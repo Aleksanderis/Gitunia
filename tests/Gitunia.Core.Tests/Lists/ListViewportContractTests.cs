@@ -1,11 +1,18 @@
 using System.Globalization;
+using Gitunia.Core.FileHistory;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Lists;
 using Gitunia.Core.Overlays;
 using Gitunia.Core.Prompts;
+using Gitunia.Core.Rebase;
 using Gitunia.Core.Reflog;
 using Gitunia.Core.Search.Models;
+using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git;
+using Gitunia.Git.Commits.Models;
+using Gitunia.Git.History.Models;
+using Gitunia.Git.Rebase;
+using Gitunia.Git.Reflog.Models;
 using Xunit;
 
 namespace Gitunia.Core.Tests.Lists;
@@ -20,8 +27,12 @@ public class ListViewportContractTests
 {
     private const int Items = 30;
 
+    private static readonly string Hash = new('a', 40);
+
+    private static readonly DateTimeOffset Now = new(2026, 11, 17, 12, 0, 0, TimeSpan.Zero);
+
     /// <summary>Every state type with a list cursor: its name, and how to build it with N items and move it.</summary>
-    public static TheoryData<string> CursorSurfaces => ["palette", "prompt-picker", "reflog-ref-picker", "ref-jump"];
+    public static TheoryData<string> CursorSurfaces => ["palette", "prompt-picker", "reflog-ref-picker", "ref-jump", "reflog", "file-history", "rebase"];
 
     public static TheoryData<ScrollPolicy> WindowPolicies => [ScrollPolicy.Edge, ScrollPolicy.Centre];
 
@@ -141,6 +152,28 @@ public class ListViewportContractTests
         Assert.Equal(11, viewport.Top);
     }
 
+    [Fact]
+    public void GivenAnEditor_WhenTheCursorIsAboveTheWindow_ThenTheTopFollowsItAndNeverGoesNegative()
+    {
+        Assert.Equal(0, ListViewport.EdgeTopFor(0, 0, 8));
+        Assert.Equal(2, ListViewport.EdgeTopFor(2, 6, 8));
+        Assert.Equal(0, ListViewport.EdgeTopFor(-5, -3, 8));
+    }
+
+    [Fact]
+    public void GivenAnEditor_WhenTheCursorIsBelowTheWindow_ThenTheCursorShowsAtTheBottom()
+    {
+        Assert.Equal(22, ListViewport.EdgeTopFor(29, 0, 8));
+        Assert.Equal(3, ListViewport.EdgeTopFor(10, 3, 8));
+    }
+
+    [Fact]
+    public void GivenAnEditorWindowWithoutRows_WhenScrolling_ThenTheTopStaysWhereItWas()
+    {
+        Assert.Equal(4, ListViewport.EdgeTopFor(20, 4, 0));
+        Assert.Equal(0, ListViewport.EdgeTopFor(0, 0, 0));
+    }
+
     private sealed record Surface(Func<int, Surface> Step, int Selected)
     {
         public Surface Move(int delta) => Step(delta);
@@ -151,6 +184,9 @@ public class ListViewportContractTests
             "prompt-picker" => Picker(count),
             "reflog-ref-picker" => RefPicker(count),
             "ref-jump" => RefJump(count),
+            "reflog" => Reflog(count),
+            "file-history" => FileHistory(count),
+            "rebase" => Rebase(count),
             _ => throw new ArgumentOutOfRangeException(nameof(name)),
         };
 
@@ -187,6 +223,45 @@ public class ListViewportContractTests
             new ReflogRefPicker([.. Enumerable.Range(0, count).Select(Name)]),
             state => state.Move,
             state => state.Index);
+
+        private static Surface Reflog(int count) => Of(
+            new ReflogState(
+                new TabId(1),
+                "HEAD",
+                "HEAD",
+                [.. Enumerable.Range(0, count).Select(index => new ReflogEntry(index, Hash, "commit", Name(index), Now))]),
+            state => delta => state.MoveTo(state.SelectedIndex + delta),
+            state => state.SelectedIndex);
+
+        private static Surface FileHistory(int count) => Of(
+            new FileHistoryState(
+                new TabId(1),
+                "a.txt",
+                "HEAD",
+                [
+                    .. Enumerable.Range(0, count)
+                        .Select(index => new FileHistoryEntry(
+                            Hash,
+                            "Ann",
+                            "2026-11-02",
+                            Name(index),
+                            "a.txt",
+                            null,
+                            FileChangeKind.Modified)),
+                ]),
+            state => delta => state.MoveTo(state.SelectedIndex + delta),
+            state => state.SelectedIndex);
+
+        private static Surface Rebase(int count) => Of(
+            RebaseEditorState.Create(
+                new TabId(1),
+                "topic",
+                "main",
+                RebaseBase.OntoCommit("x"),
+                "tip",
+                [.. Enumerable.Range(0, count).Select(index => new RebaseTodoCommit(Hash, Name(index)))]),
+            state => delta => state.MoveTo(state.SelectedIndex + delta),
+            state => state.SelectedIndex);
 
         private static Surface RefJump(int count) => Of(
             new RefJumpState(string.Empty, [.. Enumerable.Range(0, count).Select(Candidate)], 0),

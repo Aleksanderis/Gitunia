@@ -14,19 +14,17 @@ namespace Gitunia.Core.Overlays;
 /// </summary>
 /// <param name="Title">The popup title, such as <c>New branch</c>.</param>
 /// <param name="Lines">What the answer is for, one entry per paragraph (wrapped to the popup width).</param>
-/// <param name="Input">The text typed so far; null for a prompt without a text field (a choice).</param>
+/// <param name="Input">The text typed so far and its caret; null for a prompt without a text field (a choice).</param>
 /// <param name="Details">Rows under the field: the highlighted candidate, or the options of a choice.</param>
 /// <param name="Hints">The keys that answer the prompt, such as <c>Enter create</c> and <c>Esc cancel</c>.</param>
-/// <param name="InputCaret">The caret column in <see cref="Input"/> (see <see cref="PromptCaret"/>).</param>
 /// <param name="Highlight">The row of <see cref="Details"/> drawn as the selection bar; -1 for none.</param>
 /// <param name="Count">Text at the right end of the title bar, such as the position <c>2/5</c>; null for none.</param>
 public sealed record PromptPopup(
     string Title,
     IReadOnlyList<string> Lines,
-    string? Input,
+    TextField? Input,
     IReadOnlyList<string> Details,
     IReadOnlyList<PromptHint> Hints,
-    int InputCaret = PromptCaret.End,
     int Highlight = -1,
     string? Count = null)
 {
@@ -41,8 +39,8 @@ public sealed record PromptPopup(
     public string Hint => string.Join(HintGap, Hints.Select(hint => hint.Text));
 
     /// <summary>A prompt with a text field; <paramref name="acceptLabel"/> names what <c>Enter</c> does.</summary>
-    public static PromptPopup ForText(string title, string context, string input, string acceptLabel) =>
-        new(title, [context], input, [], [new("Enter", acceptLabel, [ActionIds.InputAccept]), Cancel]);
+    public static PromptPopup ForText(string title, string context, TextField input, string acceptLabel) =>
+        new(title, [context], input, [], [Accept(acceptLabel), Cancel]);
 
     /// <summary>
     /// A prompt whose text filters candidates (see <see cref="Prompts.PromptPicker"/>). <paramref name="rows"/> is the
@@ -52,7 +50,7 @@ public sealed record PromptPopup(
     public static PromptPopup ForFilter(
         string title,
         string context,
-        string input,
+        TextField input,
         PickerWindow rows,
         string acceptLabel,
         bool canSelect = true) =>
@@ -86,7 +84,6 @@ public sealed record PromptPopup(
         other is not null
         && Title == other.Title
         && Input == other.Input
-        && InputCaret == other.InputCaret
         && Highlight == other.Highlight
         && Count == other.Count
         && Hint == other.Hint

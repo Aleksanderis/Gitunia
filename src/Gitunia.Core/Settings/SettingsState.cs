@@ -20,7 +20,7 @@ namespace Gitunia.Core.Settings;
 /// <param name="CategoryIndex">The selected category, an index into <see cref="Categories"/>.</param>
 /// <param name="Cursor">The selected row of the settings column, an index into <see cref="Rows"/>.</param>
 /// <param name="IsCollapsed">The screen is too narrow for two columns: one list with category headings.</param>
-/// <param name="Filter">The filter text; empty for none.</param>
+/// <param name="FilterField">The filter text and its caret; empty text for none.</param>
 /// <param name="IsEditingFilter">The filter box takes typed text.</param>
 /// <param name="Choice">The choice whose options are listed, null for none.</param>
 /// <param name="Input">The text being typed into a setting, null for none.</param>
@@ -36,15 +36,20 @@ public sealed record SettingsState(
     int CategoryIndex = 0,
     int Cursor = 0,
     bool IsCollapsed = false,
-    string Filter = "",
+    TextField? FilterField = null,
     bool IsEditingFilter = false,
     ChoiceEdit? Choice = null,
     SettingsInput? Input = null,
     PendingRemoval? Removal = null,
     IReadOnlyList<KeyReferenceEntry>? KeyReference = null,
-    int FilterCaret = PromptCaret.End,
     SettingsInput? InputDraft = null)
 {
+    /// <summary>What was typed in the filter box and its caret.</summary>
+    public TextField FilterField { get; init; } = FilterField ?? new TextField();
+
+    /// <summary>What was typed in the filter box.</summary>
+    public string Filter => FilterField.Text;
+
     /// <summary>The lines of the key reference, in the order they are listed.</summary>
     public IReadOnlyList<KeyReferenceEntry> Reference => KeyReference ?? [];
 
@@ -162,7 +167,7 @@ public sealed record SettingsState(
     public SettingsState MoveTo(int target)
     {
         var count = ActiveCount;
-        var clamped = count == 0 ? 0 : Math.Clamp(target, 0, count - 1);
+        var clamped = ListViewport.ClampIndex(target, count);
         if (Column == SettingsColumn.Categories && !ListsAllCategories)
         {
             return this with { CategoryIndex = clamped, Cursor = 0 };
@@ -266,22 +271,20 @@ public sealed record SettingsState(
         && draft.Kind == fresh.Kind
         && draft.SettingId == fresh.SettingId
         && draft.ItemIndex == fresh.ItemIndex
-            ? draft with { Caret = PromptCaret.End }
+            ? draft with { Field = TextField.Of(draft.Text) }
             : fresh;
 
     /// <summary>The state with other text in the number or folder box.</summary>
-    /// <param name="text">The text now typed.</param>
-    /// <param name="caret">The caret column in the text.</param>
-    public SettingsState WithInputText(string text, int caret = PromptCaret.End) =>
-        Input is null ? this : this with { Input = Input with { Text = text, Caret = caret } };
+    /// <param name="field">The text now typed and its caret.</param>
+    public SettingsState WithInputText(TextField field) =>
+        Input is null ? this : this with { Input = Input with { Field = field } };
 
     /// <summary>The state with other text in the filter box; the list starts again at its top.</summary>
-    /// <param name="text">The filter now typed.</param>
-    /// <param name="caret">The caret column in the text; when only it changed, the list stays where it is.</param>
-    public SettingsState WithFilterText(string text, int caret = PromptCaret.End) =>
-        text == Filter
-            ? this with { FilterCaret = caret }
-            : this with { Filter = text, FilterCaret = caret, Cursor = 0, Column = SettingsColumn.Settings };
+    /// <param name="field">The filter now typed and its caret; when only the caret changed, the list stays where it is.</param>
+    public SettingsState WithFilterText(TextField field) =>
+        field.Text == Filter
+            ? this with { FilterField = field }
+            : this with { FilterField = field, Cursor = 0, Column = SettingsColumn.Settings };
 
     // While a choice is open the cursor stays among its options.
     private int WithinOptions(int target)

@@ -32,7 +32,7 @@ public sealed class QuickJumpInput(Dispatcher host, IQuickJumpHost view)
                 return PromptLine.Empty;
             }
 
-            return QuickJumpReducer.StatusLine(session.Text, _target.Labels(session.Text).Count, session.Caret);
+            return QuickJumpReducer.StatusLine(session.Field, _target.Labels(session.Text).Count);
         }
     }
 

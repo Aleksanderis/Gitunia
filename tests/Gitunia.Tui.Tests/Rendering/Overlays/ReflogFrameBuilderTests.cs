@@ -1,3 +1,4 @@
+using Gitunia.Core.Editing;
 using Gitunia.Core.Mouse;
 using Gitunia.Core.Reflog;
 using Gitunia.Core.Workspaces.Tabs;
@@ -130,8 +131,8 @@ public class ReflogFrameBuilderTests
     [Fact]
     public void GivenCaretsInsideTheTexts_WhenRendering_ThenTheCursorCellCoversTheCharacterUnderIt()
     {
-        var searching = State(5).OpenSearch().EditSearch("message 3", 4);
-        var picking = State(3) with { Picker = new ReflogRefPicker(["HEAD", "main"], "mn", 0, 1) };
+        var searching = State(5).OpenSearch().EditSearch(new TextField("message 3", 4));
+        var picking = State(3) with { Picker = new ReflogRefPicker(["HEAD", "main"], new TextField("mn", 1)) };
 
         var search = ReflogFrameBuilder.Build(searching, 80, 24, GraphGlyphSet.Unicode, Now)!;
         var picker = ReflogFrameBuilder.Build(picking, 80, 24, GraphGlyphSet.Unicode, Now)!;

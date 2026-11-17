@@ -117,7 +117,7 @@ public class HintSetScreensTests
         var list = new ReflogState(Tab, "HEAD", "HEAD", []);
 
         Assert.Equal([HintVerb.Cancel], HintSet.ForReflog(list.OpenSearch()).Select(hint => hint.Description));
-        Assert.Equal([HintVerb.Clear], HintSet.ForReflog(list.OpenSearch() with { IsEditingSearch = false, SearchText = "x" })
+        Assert.Equal([HintVerb.Clear], HintSet.ForReflog(list.OpenSearch() with { IsEditingSearch = false, Search = "x" })
             .Select(hint => hint.Description));
         Assert.Equal(["Enter", "Esc"], HintSet.ForReflog(list with { Picker = new ReflogRefPicker([]) })
             .Select(hint => hint.Keys));
@@ -132,7 +132,7 @@ public class HintSetScreensTests
 
         Assert.Equal(HintVerb.Close, HintSet.ForBlame(plain)[^1].Description);
         Assert.Equal(["y", "Esc"], HintSet.ForBlame(selected).Select(hint => hint.Keys));
-        Assert.Equal([HintVerb.Cancel], HintSet.ForBlame(plain with { SearchText = "x", IsEditingSearch = true })
+        Assert.Equal([HintVerb.Cancel], HintSet.ForBlame(plain with { Search = "x", IsEditingSearch = true })
             .Select(hint => hint.Description));
         Assert.Equal(HintVerb.Back, HintSet.ForBlame(plain with { Back = [new BlameStep("a.txt", "a", 0)] })[^1].Description);
         AssertBound(HintSet.ForBlame(plain), KeyMode.Normal, DefaultKeymap.BlameView);

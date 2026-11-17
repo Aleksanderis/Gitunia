@@ -143,7 +143,7 @@ public static class BlameFrameBuilder
     // The search being typed, drawn with a cursor cell instead of the plain lead.
     private static CaretField? SearchField(BlameState state) =>
         state is { HasSearch: true, IsEditingSearch: true }
-            ? new CaretField("/", state.SearchText, state.SearchCaret)
+            ? CaretField.Of("/", state.Search)
             : null;
 
     private static HintChip WithKey(HintChip chip) =>

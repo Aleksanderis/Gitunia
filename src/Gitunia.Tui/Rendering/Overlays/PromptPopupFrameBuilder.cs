@@ -1,3 +1,4 @@
+using Gitunia.Core.Editing;
 using Gitunia.Core.Hints;
 using Gitunia.Core.Lists;
 using Gitunia.Core.Mouse;
@@ -47,7 +48,7 @@ public static class PromptPopupFrameBuilder
 
         if (prompt.Input is { } input)
         {
-            lines.Add(InputRow(input, prompt.InputCaret, width, glyphs));
+            lines.Add(InputRow(input, width, glyphs));
         }
 
         var fixedLines = lines.Count + FooterLines;
@@ -138,8 +139,8 @@ public static class PromptPopupFrameBuilder
         return builder.Build(SegmentRole.OverlayTitle);
     }
 
-    private static StyledLine InputRow(string input, int caret, int width, GraphGlyphSet glyphs)
+    private static StyledLine InputRow(TextField input, int width, GraphGlyphSet glyphs)
     {
-        return OverlayBox.Input(new CaretField($"{glyphs.Picker.Prompt} ", input, caret), width, glyphs);
+        return OverlayBox.Input(CaretField.Of($"{glyphs.Picker.Prompt} ", input), width, glyphs);
     }
 }

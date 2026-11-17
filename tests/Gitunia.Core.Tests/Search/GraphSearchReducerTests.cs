@@ -32,9 +32,9 @@ public class GraphSearchReducerTests
     {
         var typed = Editing("fix");
 
-        var update = GraphSearchReducer.Reduce(typed, new EditSearchTextCommand("fix", 1));
+        var update = GraphSearchReducer.Reduce(typed, new EditSearchTextCommand(new TextField("fix", 1)));
 
-        Assert.Equal(1, update.State.Caret);
+        Assert.Equal(1, update.State.Field.Caret);
         Assert.Equal(typed.Generation, update.State.Generation);
         Assert.Empty(update.Effects);
         var line = GraphSearchStatusText.Describe(update.State, -1, 0);
@@ -45,10 +45,10 @@ public class GraphSearchReducerTests
     [Fact]
     public void GivenTextInsertedInTheMiddle_WhenEditing_ThenTheQueryIsRescannedAndTheCaretFollows()
     {
-        var update = GraphSearchReducer.Reduce(Editing("fx"), new EditSearchTextCommand("fix", 2));
+        var update = GraphSearchReducer.Reduce(Editing("fx"), new EditSearchTextCommand(new TextField("fix", 2)));
 
         Assert.Equal(new SearchQuery(SearchField.Message, "fix"), update.State.Query);
-        Assert.Equal(2, update.State.Caret);
+        Assert.Equal(2, update.State.Field.Caret);
         Assert.Single(update.Effects);
     } 
 
