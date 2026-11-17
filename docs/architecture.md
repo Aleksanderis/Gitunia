@@ -291,7 +291,7 @@ Shared components are extended, never copied; a surface that needs something new
 | `ListViewport` (`Gitunia.Core/Lists`) | `(Selected, Top, Count, Rows)`, with `Follow(ScrollPolicy)` and `Move(action, count, policy)` on top of `ListMotion`; `ListWindow` is the slice a renderer reads | none (data) | Palette, menus (`GroupedRows`), prompt picker, reflog, file history, rebase editor, settings, help, blame, picker, message editor, conflict editor, working tree pane |
 
 - Two scroll policies (`ScrollPolicy`): `Edge` for panes and editors (the window stays put until the selection leaves it), `Centre` for overlays and popups (the selection stays in the middle of a long list).
-- Lists stop at their ends (no wrap), like vim and `ListMotion`. Scroll-top and clamp arithmetic lives only in `ListViewport`.
+- Lists stop at their ends (no wrap), like vim and `ListMotion`. Scroll-top and clamp arithmetic for lists lives in `ListViewport` (`GroupedRows` keeps only its gap-skip adjustment on top of it).
 - Not converted yet: the scroll-by-offset views that own a Terminal.Gui `ListView` (graph, diff, sidebar, detail lists) keep the framework's viewport; the one-third `zz` placement in the conflict editor is its own jump, not a follow rule.
 - The contract test `ListViewportContractTests` runs the same scenarios (k at the top, G, Ctrl-d at the end, a count, a smaller window, an empty list) against every surface in its registry; a new list surface adds a row there.
 

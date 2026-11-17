@@ -15,7 +15,7 @@ public static class PickerRows
     /// All <paramref name="items"/> with <paramref name="selected"/> highlighted. The popup builder windows them once, to
     /// <see cref="VisibleRows"/> or what the screen leaves (<c>ListViewport</c>), so the list is not windowed twice.
     /// </summary>
-    public static PickerWindow Window(IReadOnlyList<string> items, int selected) =>
+    public static PickerWindow Rows(IReadOnlyList<string> items, int selected) =>
         new(items, selected, Position(selected, items.Count));
 
     /// <summary>The <c>n/m</c> text for a 0-based index.</summary>

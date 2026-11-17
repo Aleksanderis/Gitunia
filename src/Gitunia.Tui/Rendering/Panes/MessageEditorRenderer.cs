@@ -17,18 +17,6 @@ public static class MessageEditorRenderer
     private const string Blank = " ";
 
     /// <summary>
-    /// The first visible row once the cursor row must show: <paramref name="top"/> is kept while the cursor is inside the window, so
-    /// moving up inside a long message does not shift the text.
-    /// </summary>
-    /// <param name="cursorRow">The cursor's line.</param>
-    /// <param name="top">The first visible row so far.</param>
-    /// <param name="height">Visible rows.</param>
-    public static int ScrollTop(int cursorRow, int top, int height)
-    {
-        return height <= 0 ? 0 : ListViewport.EdgeTopFor(cursorRow, top, height);
-    }
-
-    /// <summary>
     /// Display columns the cursor's line is scrolled sideways while it is drawn with the cursor in a box of
     /// <paramref name="width"/> columns; the other lines are not scrolled. A click at cell <c>c</c> of that line is column
     /// <c>c</c> plus this.
@@ -48,7 +36,7 @@ public static class MessageEditorRenderer
     /// <param name="height">Rows.</param>
     /// <param name="showCursor">Draw the cursor.</param>
     /// <param name="marksSubject">Mark the first line past the soft limit (a commit subject, not code).</param>
-    /// <param name="scrollTop">The first visible row kept by the caller (see <see cref="ScrollTop"/>); null scrolls statelessly: the cursor row is the last visible row once the text is taller than the box.</param>
+    /// <param name="scrollTop">The first visible row kept by the caller (see <see cref="ListViewport.EdgeTopFor"/>); null scrolls statelessly: the cursor row is the last visible row once the text is taller than the box.</param>
     public static IReadOnlyList<StyledLine> Render(
         MessageEditor editor,
         int width,

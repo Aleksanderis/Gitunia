@@ -170,7 +170,7 @@ public static class BlameFrameBuilder
     {
         if (state.PinnedTop is { } pinned)
         {
-            return Math.Clamp(pinned, 0, Math.Max(0, state.LineCount - rows));
+            return ListViewport.Of(0, pinned, state.LineCount, rows).Top;
         }
 
         return TopOf(state.Cursor, state.LineCount, rows);

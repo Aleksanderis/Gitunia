@@ -18,8 +18,9 @@ public readonly record struct ListViewport(int Selected, int Top, int Count, int
     {
         var total = Math.Max(0, count);
         var height = Math.Max(1, Math.Min(rows, Math.Max(1, total)));
+        var lastTop = Math.Max(0, total - height);
 
-        return new ListViewport(ClampIndex(selected, total), Math.Clamp(top, 0, Math.Max(0, total - height)), total, height);
+        return new ListViewport(ClampIndex(selected, total), Math.Clamp(top, 0, lastTop), total, height);
     }
 
     /// <summary>A viewport starting at the first item.</summary>

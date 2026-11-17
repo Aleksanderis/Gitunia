@@ -77,8 +77,8 @@ public static class PromptPopupFrameBuilder
             return new PickerWindow(rows, highlight);
         }
 
-        var viewport = ListViewport.Of(highlight, rows.Count, Math.Min(PickerRows.VisibleRows, room)).Follow(ScrollPolicy.Centre);
-        var window = viewport.Window;
+        var maximumRows = Math.Min(PickerRows.VisibleRows, room);
+        var window = ListViewport.Of(highlight, rows.Count, maximumRows).Follow(ScrollPolicy.Centre).Window;
 
         return new PickerWindow([.. rows.Skip(window.Top).Take(window.RowCount)], highlight - window.Top);
     }

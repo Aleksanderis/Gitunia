@@ -1,7 +1,6 @@
 using System.Globalization;
 using Gitunia.Core.Jump.Models;
 using Gitunia.Core.Keymap.Repeat;
-using Gitunia.Core.Lists;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Tui.Rendering.Diff;
@@ -230,9 +229,6 @@ public static class WorkingTreePaneRenderer
     /// <summary>The rows of the message box until the editor exists.</summary>
     public static IReadOnlyList<StyledLine> MessagePlaceholderLines(PaneRect rect, int padding, GraphGlyphSet glyphs) =>
         PlaceholderLines(MessagePlaceholderText, rect, padding, glyphs);
-
-    /// <summary>The rows a list scrolled so that <paramref name="cursor"/> stays visible starts at.</summary>
-    public static int TopFor(int cursor, int top, int height) => ListViewport.EdgeTopFor(cursor, top, height);
 
     // Greedy word wrap, so a long empty-state sentence stays whole in a narrow list.
     private static List<string> WrapWords(string text, int width)

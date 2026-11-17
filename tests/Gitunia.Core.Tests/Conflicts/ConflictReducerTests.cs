@@ -443,6 +443,18 @@ public class ConflictReducerTests
     }
 
     [Fact]
+    public void GivenAHalfPageActionWithACount_WhenPressed_ThenTheCursorMovesThatManyHalfPages()
+    {
+        var viewports = new ConflictViewports(new(8, 2), new(8, 2), new(8, 2), new(8, 2));
+        var state = Opened(Text);
+
+        var update = AppReducer.Reduce(state, new ConflictActionPressed(ActionIds.ListHalfPageDown, 2, viewports));
+        var expected = AppReducer.Reduce(state, new ConflictActionPressed(ActionIds.ListDown, 8, viewports));
+
+        Assert.Equal(expected.State.Shell.Conflict.Editor!.Row, update.State.Shell.Conflict.Editor!.Row);
+    }
+
+    [Fact]
     public void GivenAHalfPageAction_WhenPressed_ThenTheCursorMovesByHalfTheRowsOfTheActivePane()
     {
         var viewports = new ConflictViewports(new(8, 2), new(8, 2), new(8, 2), new(8, 2));

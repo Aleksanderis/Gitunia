@@ -43,7 +43,8 @@ public sealed record PromptPicker(
     }
 
     /// <summary>Moves the highlight by <paramref name="step"/>, stopping at the ends.</summary>
-    public PromptPicker Moved(int step) => this with { Index = ListViewport.ClampIndex(Index + step, Candidates.Length) };
+    public PromptPicker Moved(int step) =>
+        this with { Index = ListViewport.ClampIndex(Index + step, Candidates.Length) };
 
     /// <summary>The highlighted candidate, or false when nothing matches.</summary>
     public bool TryGetSelected(out PromptChoice selected)
@@ -63,7 +64,7 @@ public sealed record PromptPicker(
     /// no-match row alone (no highlight, no position).
     /// </summary>
     public PickerWindow Rows() =>
-        Candidates.Length == 0 ? new PickerWindow([NoMatch]) : PickerRows.Window([.. Candidates.Select(Text)], Index);
+        Candidates.Length == 0 ? new PickerWindow([NoMatch]) : PickerRows.Rows([.. Candidates.Select(Text)], Index);
 
     private static string Text(PromptChoice choice) => choice.Text;
 }
