@@ -198,7 +198,7 @@ public class TextFieldAppContractTests
 
         public override string Text => _session.Screen!.Input!.Text;
 
-        public override int Caret => Clamp(Text, _session.Screen!.Input!.Caret);
+        public override int Caret => Clamp(Text, _session.Screen!.Input!.Field.Caret);
 
         public override void Press(KeyEvent key) =>
             _session = SettingsScreenReducer.Reduce(_session, new SettingsKeyTyped(key)).Session;

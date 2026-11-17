@@ -153,7 +153,8 @@ public static class ReflogFrameBuilder
             lines.Add(OverlayBox.Text(string.Empty, width, glyphs));
         }
 
-        lines.Add(OverlayBox.Hints(PickerHints, width, glyphs, field: CaretField.Of($"{glyphs.Picker.Prompt} ", picker.Field)));
+        var field = CaretField.Of($"{glyphs.Picker.Prompt} ", picker.Field);
+        lines.Add(OverlayBox.Hints(PickerHints, width, glyphs, field: field));
         lines.Add(OverlayBox.Bottom(width, glyphs));
         return new OverlayFrame((screenWidth - width) / 2, 1, lines);
     }

@@ -36,9 +36,6 @@ public sealed record ReflogRefPicker(IReadOnlyList<string> Names, TextField? Fie
     public string? Selected =>
         Candidates is { Count: > 0 } candidates ? candidates[Math.Clamp(Index, 0, candidates.Count - 1)] : null;
 
-    /// <summary>The picker with new filter text; the highlight returns to the first match.</summary>
-    public ReflogRefPicker WithText(string text) => this with { Field = TextField.Of(text), Index = 0 };
-
     /// <summary>The picker after an edit of the filter; a move of the caret alone keeps the highlight.</summary>
     public ReflogRefPicker WithEdit(TextField edit) =>
         edit.Text == Text ? this with { Field = edit } : this with { Field = edit, Index = 0 };

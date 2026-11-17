@@ -114,7 +114,8 @@ public static class DetailReducer
             return new AppUpdate(state, [Notice(WrongTabNotice)]);
         }
 
-        var tree = tab.View.DetailTree with { IsEditingFilter = true, Field = TextField.Of(tab.View.DetailTree.Filter) };
+        var current = tab.View.DetailTree;
+        var tree = current with { IsEditingFilter = true, Field = TextField.Of(current.Filter) };
         var update = Apply(state, tab, new SetDetailTreeCommand(tree));
 
         return new AppUpdate(WithMode(update.State, KeyMode.Insert), []);

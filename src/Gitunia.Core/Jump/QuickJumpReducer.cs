@@ -45,7 +45,9 @@ public static class QuickJumpReducer
 
         var count = matches.ToString(CultureInfo.InvariantCulture);
 
-        return PromptLine.Editing(Prefix, field, matches == 0 ? $"  {UiTexts.NoMatch("text in view")}" : $"  {count} in view");
+        var suffix = matches == 0 ? $"  {UiTexts.NoMatch("text in view")}" : $"  {count} in view";
+
+        return PromptLine.Editing(Prefix, field, suffix);
     }
 
     private static QuickJumpTransition Open(QuickJumpOpenRequested open)

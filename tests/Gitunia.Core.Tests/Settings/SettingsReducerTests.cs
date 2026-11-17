@@ -424,7 +424,7 @@ public class SettingsReducerTests
 
         Assert.Null(left.Input);
         Assert.Equal("25x", reopened.Input?.Text);
-        Assert.Equal(PromptCaret.End, reopened.Input?.Caret);
+        Assert.Equal(PromptCaret.End, reopened.Input?.Field.Caret);
     }
 
     [Fact]

@@ -83,8 +83,8 @@ public class ReflogStateTests
         Assert.Equal("HEAD", picker.Selected);
         Assert.Equal("HEAD", picker.Move(-1).Selected);
         Assert.Equal("feature/x", picker.Move(9).Selected);
-        Assert.Equal(["main"], picker.WithText("MAI").Candidates);
-        Assert.Null(picker.WithText("zzz").Selected);
+        Assert.Equal(["main"], picker.WithEdit("MAI").Candidates);
+        Assert.Null(picker.WithEdit("zzz").Selected);
         Assert.Equal("main", picker.MoveTo(9).Move(-1).Selected);
     }
 
