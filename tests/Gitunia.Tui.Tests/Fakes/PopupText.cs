@@ -15,7 +15,7 @@ public static class PopupText
             return string.Empty;
         }
 
-        var input = popup.Input is { } text ? $"> {text}_" : string.Empty;
+        var input = popup.Input is { } text ? $"> {text.Text}_" : string.Empty;
         var title = popup.Count is { } count ? $"{popup.Title} {count}" : popup.Title;
         var rows = popup.Details.Select((row, index) => index == popup.Highlight ? $"> {row}" : $"  {row}");
         return string.Join('\n', [title, .. popup.Lines, input, .. rows, popup.Hint]);

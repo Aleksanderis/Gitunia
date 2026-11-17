@@ -1,4 +1,5 @@
 using Gitunia.Core.Clipboard;
+using Gitunia.Core.Editing;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Text;
@@ -75,7 +76,8 @@ internal static class ConflictActions
     // Copy and cut of the text selected in the result, in Insert and (copy) Normal mode.
     private static ConflictUpdate CopySelection(ConflictSession session, ConflictEditorState editor, bool isCut)
     {
-        if (editor.YankResultSelection() is not { } yank)
+        if (EditorHostKeys.CopySelection(editor.Result.Editor, EditorHosts.ConflictResult) is not { } effect
+            || editor.YankResultSelection() is not { } yank)
         {
             return ConflictFlow.Warn(session, ConflictNotices.NothingSelected);
         }
@@ -86,8 +88,6 @@ internal static class ConflictActions
             // Outside typing a copy ends the selection, as in vim, so a later put or paste does not replace it.
             copied.Result.Editor.ClearSelection();
         }
-
-        var effect = new CopyToClipboardEffect(yank.Text, ConflictNotices.SelectionDescription);
 
         return ConflictFlow.Show(session, isCut ? copied.CutSelection() : copied, effect);
     }

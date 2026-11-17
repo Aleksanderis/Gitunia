@@ -1,3 +1,4 @@
+using Gitunia.Core.Editing;
 using Gitunia.Core.Text;
 
 namespace Gitunia.Core.Diff;
@@ -9,18 +10,18 @@ public static class DiffSearch
         new(new DiffSearchState(DiffSearchPhase.Editing, string.Empty, [], string.Empty), null);
 
     /// <summary>The search after an edit; a move of the caret alone keeps the matches and the notice.</summary>
-    public static DiffSearchUpdate Edit(DiffSearchState state, string text, int caret, DiffDocument document)
+    public static DiffSearchUpdate Edit(DiffSearchState state, TextField field, DiffDocument document)
     {
+        var text = field.Text;
         if (text == state.Text && state.Phase == DiffSearchPhase.Editing)
         {
-            return new DiffSearchUpdate(state with { Caret = caret }, null);
+            return new DiffSearchUpdate(state with { Field = field }, null);
         }
 
         var edited = state with
         {
             Phase = DiffSearchPhase.Editing,
-            Text = text,
-            Caret = caret,
+            Field = field,
             Matches = FindMatches(document, text),
             Notice = string.Empty,
         };

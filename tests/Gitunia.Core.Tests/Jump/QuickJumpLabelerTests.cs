@@ -1,4 +1,3 @@
-using Gitunia.Core.Editing;
 using Gitunia.Core.Jump;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Jump.Models;
@@ -91,10 +90,10 @@ public class QuickJumpLabelerTests
         var labels = QuickJumpLabeler.Compute("fix", rows, new JumpWindow(0, 5, 0));
         var letter = labels[1].Letter.ToString().ToUpperInvariant();
 
-        var update = QuickJumpLabeler.Apply("fix", PromptCaret.End, new KeyEvent(letter), labels);
+        var update = QuickJumpLabeler.Apply("fix", new KeyEvent(letter), labels);
 
         Assert.Equal(labels[1].Row, update.JumpRow);
-        Assert.Equal("fix", update.Text);
+        Assert.Equal("fix", update.Field.Text);
     }
 
     [Fact]
@@ -103,19 +102,19 @@ public class QuickJumpLabelerTests
         var rows = new TextJumpRows(Subjects);
         var labels = QuickJumpLabeler.Compute("fix", rows, new JumpWindow(0, 5, 0));
 
-        var update = QuickJumpLabeler.Apply("fix", PromptCaret.End, new KeyEvent(" "), labels);
+        var update = QuickJumpLabeler.Apply("fix", new KeyEvent(" "), labels);
 
         Assert.Null(update.JumpRow);
-        Assert.Equal("fix ", update.Text);
+        Assert.Equal("fix ", update.Field.Text);
     }
 
     [Fact]
     public void GivenEmptyText_WhenApplyingAnyLetter_ThenItIsTextNeverALabel()
     {
-        var update = QuickJumpLabeler.Apply(string.Empty, PromptCaret.End, new KeyEvent("a"), []);
+        var update = QuickJumpLabeler.Apply(string.Empty, new KeyEvent("a"), []);
 
         Assert.Null(update.JumpRow);
-        Assert.Equal("a", update.Text);
+        Assert.Equal("a", update.Field.Text);
     }
 
     [Fact]

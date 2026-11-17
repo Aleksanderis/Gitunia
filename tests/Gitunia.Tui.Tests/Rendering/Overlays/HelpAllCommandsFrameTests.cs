@@ -150,7 +150,7 @@ public class HelpAllCommandsFrameTests
 
         var frame = HelpFrameBuilder.Build(
             [page], 0, DefaultKeymap.GraphView, 0, 80, ScreenHeight, GraphGlyphSet.Unicode,
-            filter: "<space>gc", isEditingFilter: true)!;
+            filter: TextField.Of("<space>gc"), isEditingFilter: true)!;
         var lines = frame.Lines.Select(line => line.Text).ToList();
 
         Assert.Equal(" Keys: Graph  / <space>gc ".PadRight(lines[0].Length), lines[0]);
@@ -167,7 +167,7 @@ public class HelpAllCommandsFrameTests
 
         var frame = HelpFrameBuilder.Build(
             [page], 0, DefaultKeymap.GraphView, 0, 80, ScreenHeight, GraphGlyphSet.Unicode,
-            filter: "gc", isEditingFilter: true, filterCaret: 1)!;
+            filter: new TextField("gc", 1), isEditingFilter: true)!;
 
         Assert.Equal(" Keys: Graph  / gc".PadRight(frame.Lines[0].Text.Length), frame.Lines[0].Text);
         Assert.Equal("c", TitleCursor(frame.Lines[0]));
@@ -184,7 +184,7 @@ public class HelpAllCommandsFrameTests
 
         var frame = HelpFrameBuilder.Build(
             [page], 0, DefaultKeymap.GraphView, 0, width, ScreenHeight, GraphGlyphSet.Unicode,
-            filter: typed, isEditingFilter: true, filterCaret: caret)!;
+            filter: new TextField(typed, caret), isEditingFilter: true)!;
 
         Assert.True(TextWidth.Of(frame.Lines[0].Text) <= width);
         var expected = caret == PromptCaret.End ? " " : typed[caret].ToString();
@@ -198,7 +198,7 @@ public class HelpAllCommandsFrameTests
 
         var frame = HelpFrameBuilder.Build(
             [page], 0, DefaultKeymap.GraphView, 0, 80, ScreenHeight, GraphGlyphSet.Unicode,
-            filter: "gc", isEditingFilter: false)!;
+            filter: TextField.Of("gc"), isEditingFilter: false)!;
 
         Assert.Equal(string.Empty, TitleCursor(frame.Lines[0]));
     }
@@ -209,7 +209,7 @@ public class HelpAllCommandsFrameTests
         var page = HelpBuilder.Filter(HelpBuilder.Build(Table, DefaultKeymap.GraphView), "zzzqqq");
 
         var lines = HelpFrameBuilder.Build(
-            [page], 0, DefaultKeymap.GraphView, 0, 80, ScreenHeight, GraphGlyphSet.Unicode, filter: "zzzqqq")!
+            [page], 0, DefaultKeymap.GraphView, 0, 80, ScreenHeight, GraphGlyphSet.Unicode, filter: TextField.Of("zzzqqq"))!
             .Lines.Select(line => line.Text).ToList();
 
         Assert.StartsWith(" Keys: Graph  / zzzqqq", lines[0]);

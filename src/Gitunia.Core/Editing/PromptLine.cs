@@ -14,6 +14,13 @@ public sealed record PromptLine(string Prefix, string Text, int? Caret = null, s
     /// <summary>No line.</summary>
     public static PromptLine Empty { get; } = new(string.Empty, string.Empty);
 
+    /// <summary>A line around the text of an edited field, with the caret where the field has it.</summary>
+    /// <param name="prefix">Fixed text before the field.</param>
+    /// <param name="field">The text and caret.</param>
+    /// <param name="suffix">Fixed text after the field.</param>
+    public static PromptLine Editing(string prefix, TextField field, string suffix = "") =>
+        new(prefix, field.Text, field.Caret, suffix);
+
     /// <summary>Whether there is nothing to show.</summary>
     public bool IsEmpty => Plain.Length == 0;
 

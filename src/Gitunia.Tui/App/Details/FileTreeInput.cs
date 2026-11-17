@@ -44,7 +44,7 @@ public sealed class FileTreeInput(Dispatcher host, ListView detailList)
             }
 
             return tree.IsEditingFilter
-                ? new PromptLine(FilterLabel, tree.Filter, tree.Caret)
+                ? PromptLine.Editing(FilterLabel, tree.Field)
                 : new PromptLine(AppliedFilterLabel, tree.Filter);
         }
     }

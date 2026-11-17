@@ -16,7 +16,7 @@ public class SettingsFrameBuilderTests
     [Fact]
     public void GivenTheFilterIsBeingTyped_WhenRendering_ThenTheCursorCellCoversTheCharacterUnderTheCaret()
     {
-        var state = Open().WithFilterText("them", 2) with { IsEditingFilter = true };
+        var state = Open().WithFilterText(new TextField("them", 2)) with { IsEditingFilter = true };
 
         var frame = SettingsFrameBuilder.Build(state, 80, 15, GraphGlyphSet.Unicode)!;
 
@@ -27,7 +27,7 @@ public class SettingsFrameBuilderTests
     [Fact]
     public void GivenTheFilterIsBeingTypedOnAnAsciiTerminal_WhenRendering_ThenThePromptIsAGreaterThanSign()
     {
-        var state = Open().WithFilterText("them", 2) with { IsEditingFilter = true };
+        var state = Open().WithFilterText(new TextField("them", 2)) with { IsEditingFilter = true };
 
         var frame = SettingsFrameBuilder.Build(state, 80, 15, GraphGlyphSet.Ascii)!;
 
@@ -188,7 +188,7 @@ public class SettingsFrameBuilderTests
             Step: 5);
         var load = SettingsValueReader.Read(new ConfigSnapshot(true, "{}", "hash"), Home, _ => true);
         var state = SettingsState.Create([.. SettingsRegistry.All, definition], load).Reveal(definition);
-        var typing = Reduce(state, SettingsCommandKind.Activate).WithInputText("25", 0);
+        var typing = Reduce(state, SettingsCommandKind.Activate).WithInputText(new TextField("25", 0));
 
         var frame = SettingsFrameBuilder.Build(typing, 100, 30, GraphGlyphSet.Unicode)!;
         var row = frame.Lines.First(line => line.Text.Contains("Page size", StringComparison.Ordinal));
@@ -247,14 +247,14 @@ public class SettingsFrameBuilderTests
         var load = SettingsValueReader.Read(new ConfigSnapshot(true, "{}", "hash"), Home, _ => true);
         var state = SettingsState.Create([.. SettingsRegistry.All, definition], load).Reveal(definition);
 
-        return Reduce(state, SettingsCommandKind.Activate).WithInputText(text, caret);
+        return Reduce(state, SettingsCommandKind.Activate).WithInputText(new TextField(text, caret));
     }
 
     [Fact]
     public void GivenAFolderBeingTyped_WhenRendering_ThenTheTextAndACursorShowOnTheNewRow()
     {
         var adding = Reduce(Open().Reveal(Definition(SettingsRegistry.ScanRootsId)), SettingsCommandKind.Add);
-        var typing = adding.WithInputText("/sr");
+        var typing = adding.WithInputText(TextField.Of("/sr"));
 
         var frame = SettingsFrameBuilder.Build(typing, 100, 30, GraphGlyphSet.Unicode)!;
 
@@ -324,7 +324,7 @@ public class SettingsFrameBuilderTests
     [Fact]
     public void GivenAFilter_WhenRendering_ThenMatchesShowTheirCategoryAndTheCount()
     {
-        var typing = Reduce(Open(), SettingsCommandKind.FilterOpen).WithFilterText("tab");
+        var typing = Reduce(Open(), SettingsCommandKind.FilterOpen).WithFilterText(TextField.Of("tab"));
         var accepted = Reduce(typing, SettingsCommandKind.InputAccept);
 
         var frame = SettingsFrameBuilder.Build(accepted, 100, 30, GraphGlyphSet.Unicode)!;
@@ -336,7 +336,7 @@ public class SettingsFrameBuilderTests
     [Fact]
     public void GivenAFilterWithoutMatches_WhenRendering_ThenTheHelpLineSaysSo()
     {
-        var typing = Reduce(Open(), SettingsCommandKind.FilterOpen).WithFilterText("zzz");
+        var typing = Reduce(Open(), SettingsCommandKind.FilterOpen).WithFilterText(TextField.Of("zzz"));
 
         var frame = SettingsFrameBuilder.Build(typing, 100, 30, GraphGlyphSet.Unicode)!;
         var layout = SettingsLayout.For(100, 30)!;

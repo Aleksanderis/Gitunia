@@ -1,3 +1,9 @@
+using Gitunia.App.Blame;
+using Gitunia.Core.Blame;
+using Gitunia.Core.Config.Models;
+using Gitunia.Core.Reflog;
+using Gitunia.Core.Settings;
+using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Core.Editing;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
@@ -20,7 +26,18 @@ public class FieldRolesTests
     private const string Typed = "abcd";
     private const int CaretAt = 1;
 
-    public static TheoryData<string> Surfaces => ["prompt popup", "palette", "sidebar filter", "footer bar"];
+    public static TheoryData<string> Surfaces =>
+    [
+        "prompt popup",
+        "palette",
+        "sidebar filter",
+        "footer bar",
+        "help filter",
+        "settings filter",
+        "reflog search",
+        "reflog picker",
+        "blame search",
+    ];
 
     [Theory]
     [MemberData(nameof(Surfaces))]
@@ -73,16 +90,71 @@ public class FieldRolesTests
     {
         "prompt popup" => new FieldLine(PromptPopupLine(), FieldRoles.Body),
         "palette" => new FieldLine(PaletteTitle(), FieldRoles.Title),
-        "sidebar filter" => new FieldLine(SidebarRowRenderer.FilterLine(Typed, true, 30, GraphGlyphSet.Unicode, CaretAt), FieldRoles.Body),
+        "sidebar filter" => new FieldLine(SidebarRowRenderer.FilterLine(new TextField(Typed, CaretAt), true, 30, GraphGlyphSet.Unicode), FieldRoles.Body),
         "footer bar" => new FieldLine(
             OverlayBox.Hints([], 40, GraphGlyphSet.Unicode, field: new CaretField("/", Typed, CaretAt)),
             FieldRoles.Bar),
+        "help filter" => new FieldLine(HelpFilterTitle(), FieldRoles.Title),
+        "settings filter" => new FieldLine(SettingsFilterRow(), FieldRoles.Body),
+        "reflog search" => new FieldLine(ReflogFooter(search: true), FieldRoles.Bar),
+        "reflog picker" => new FieldLine(ReflogFooter(search: false), FieldRoles.Bar),
+        "blame search" => new FieldLine(BlameFooter(), FieldRoles.Bar),
         _ => throw new ArgumentOutOfRangeException(nameof(surface), surface, "Unknown surface"),
     };
 
+    private static StyledLine HelpFilterTitle()
+    {
+        var tabs = HelpBuilder.Build(DefaultKeymap.Create(), DefaultKeymap.GraphView);
+        var frame = HelpFrameBuilder.Build(
+            [HelpBuilder.Filter(tabs, string.Empty)],
+            0,
+            DefaultKeymap.GraphView,
+            0,
+            80,
+            24,
+            GraphGlyphSet.Unicode,
+            filter: new TextField(Typed, CaretAt),
+            isEditingFilter: true);
+
+        return frame!.Lines[0];
+    }
+
+    private static StyledLine SettingsFilterRow()
+    {
+        var load = SettingsValueReader.Read(new ConfigSnapshot(true, "{}", "hash"), "/home/user", _ => true);
+        var state = SettingsState.Create([.. SettingsRegistry.All], load)
+            .WithFilterText(new TextField(Typed, CaretAt)) with { IsEditingFilter = true };
+
+        return SettingsFrameBuilder.Build(state, 80, 15, GraphGlyphSet.Unicode)!.Lines[1];
+    }
+
+    private static StyledLine ReflogFooter(bool search)
+    {
+        var state = new ReflogState(new TabId(1), "HEAD", "HEAD", []);
+        state = search
+            ? state.OpenSearch().EditSearch(new TextField(Typed, CaretAt))
+            : state with { Picker = new ReflogRefPicker(["HEAD"], new TextField(Typed, CaretAt)) };
+
+        return ReflogFrameBuilder.Build(state, 80, 24, GraphGlyphSet.Unicode)!.Lines[^2];
+    }
+
+    private static StyledLine BlameFooter()
+    {
+        var state = new BlameState(
+            new TabId(1),
+            "a.txt",
+            "a.txt",
+            LineCount: 1,
+            Search: new TextField(Typed, CaretAt),
+            IsEditingSearch: true);
+        var data = new BlameData(1, ["a"]);
+
+        return BlameFrameBuilder.Build(state, data, DateTimeOffset.UnixEpoch, 100, 30, GraphGlyphSet.Unicode)!.Lines[^2];
+    }
+
     private static StyledLine PromptPopupLine()
     {
-        var prompt = PromptPopup.ForText("T", "C", Typed, "ok") with { InputCaret = CaretAt };
+        var prompt = PromptPopup.ForText("T", "C", new TextField(Typed, CaretAt), "ok");
         var frame = PromptPopupFrameBuilder.Build(prompt, 80, 24, GraphGlyphSet.Unicode);
 
         return frame!.Lines[2];

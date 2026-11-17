@@ -218,7 +218,7 @@ public class SettingsReducerTests
         var typing = Reduce(state, SettingsCommandKind.Activate).State;
         Assert.Equal("10", typing.Input?.Text);
 
-        var outcome = Reduce(typing.WithInputText("25"), SettingsCommandKind.InputAccept);
+        var outcome = Reduce(typing.WithInputText(TextField.Of("25")), SettingsCommandKind.InputAccept);
 
         Assert.Equal(25, outcome.Commit?.Value.Number);
         Assert.Equal("25", outcome.Commit?.Value.ToJson(SettingControl.Number));
@@ -232,7 +232,7 @@ public class SettingsReducerTests
     [InlineData("1.5")]
     public void GivenANumber_WhenTypingAValueOutOfRange_ThenItIsRefusedWithTheRangeAndTheBoxStaysOpen(string text)
     {
-        var typing = Reduce(WithPageSize(), SettingsCommandKind.Activate).State.WithInputText(text);
+        var typing = Reduce(WithPageSize(), SettingsCommandKind.Activate).State.WithInputText(TextField.Of(text));
 
         var outcome = Reduce(typing, SettingsCommandKind.InputAccept);
 
@@ -265,7 +265,7 @@ public class SettingsReducerTests
 
         var typing = Reduce(state, SettingsCommandKind.Add).State;
         Assert.Equal(SettingRowKind.NewItem, typing.Selected?.Kind);
-        var outcome = Reduce(typing.WithInputText("~/Projects"), SettingsCommandKind.InputAccept);
+        var outcome = Reduce(typing.WithInputText(TextField.Of("~/Projects")), SettingsCommandKind.InputAccept);
 
         var check = outcome.CheckFolder;
         Assert.Null(outcome.Commit);
@@ -288,7 +288,7 @@ public class SettingsReducerTests
             .Replace("<sep>", Path.DirectorySeparatorChar.ToString(), StringComparison.Ordinal);
         var state = Open($"{{ \"scanRoots\": [{Quote(SrvGit)}, \"~/code\"] }}")
             .Reveal(Definition(SettingsRegistry.ScanRootsId));
-        var typing = Reduce(state, SettingsCommandKind.Add).State.WithInputText(typed);
+        var typing = Reduce(state, SettingsCommandKind.Add).State.WithInputText(TextField.Of(typed));
 
         var outcome = Reduce(typing, SettingsCommandKind.InputAccept);
 
@@ -307,7 +307,7 @@ public class SettingsReducerTests
 
         var typing = Reduce(state, SettingsCommandKind.Activate).State;
         Assert.Equal(SrvGit, typing.Input?.Text);
-        var outcome = Reduce(typing.WithInputText(SrvNew), SettingsCommandKind.InputAccept);
+        var outcome = Reduce(typing.WithInputText(TextField.Of(SrvNew)), SettingsCommandKind.InputAccept);
 
         Assert.Equal([SrvNew, SrvOther], outcome.CheckFolder?.Commit.Value.Paths);
         Assert.Equal(0, outcome.CheckFolder?.Commit.SelectItem);
@@ -376,9 +376,9 @@ public class SettingsReducerTests
         var state = Reduce(Open(), SettingsCommandKind.FilterOpen).State;
         Assert.True(state.IsEditingFilter);
 
-        var byName = state.WithFilterText("theme");
-        var byHelp = state.WithFilterText("PICKER");
-        var none = state.WithFilterText("zzz");
+        var byName = state.WithFilterText(TextField.Of("theme"));
+        var byHelp = state.WithFilterText(TextField.Of("PICKER"));
+        var none = state.WithFilterText(TextField.Of("zzz"));
 
         Assert.Equal([SettingsRegistry.ThemeId], byName.Rows.Select(row => row.Definition.Id));
         Assert.Equal([SettingsRegistry.ScanRootsId], byHelp.Rows.Select(row => row.Definition.Id));
@@ -388,20 +388,20 @@ public class SettingsReducerTests
     [Fact]
     public void GivenAFilter_WhenOnlyTheCaretMoves_ThenTheListCursorStays()
     {
-        var typed = Reduce(Open(), SettingsCommandKind.FilterOpen).State.WithFilterText("t");
+        var typed = Reduce(Open(), SettingsCommandKind.FilterOpen).State.WithFilterText(TextField.Of("t"));
         var lowered = typed with { Cursor = 1 };
 
-        var moved = lowered.WithFilterText("t", 0);
+        var moved = lowered.WithFilterText(new TextField("t", 0));
 
         Assert.Equal(1, moved.Cursor);
-        Assert.Equal(0, moved.FilterCaret);
-        Assert.Equal(0, lowered.WithFilterText("th").Cursor);
+        Assert.Equal(0, moved.FilterField.Caret);
+        Assert.Equal(0, lowered.WithFilterText(TextField.Of("th")).Cursor);
     }
 
     [Fact]
     public void GivenAcceptedFilter_WhenActivatingAMatch_ThenTheCursorJumpsToTheSettingInItsCategoryAndTheFilterClears()
     {
-        var typing = Reduce(Open(), SettingsCommandKind.FilterOpen).State.WithFilterText("tab name");
+        var typing = Reduce(Open(), SettingsCommandKind.FilterOpen).State.WithFilterText(TextField.Of("tab name"));
         var accepted = Reduce(typing, SettingsCommandKind.InputAccept).State;
         Assert.False(accepted.IsTyping);
         Assert.True(accepted.IsFiltering);
@@ -417,7 +417,7 @@ public class SettingsReducerTests
     [Fact]
     public void GivenATypedNumber_WhenLeavingWithEscAndOpeningTheBoxAgain_ThenTheTypedTextComesBack()
     {
-        var typing = Reduce(WithPageSize(), SettingsCommandKind.Activate).State.WithInputText("25x");
+        var typing = Reduce(WithPageSize(), SettingsCommandKind.Activate).State.WithInputText(TextField.Of("25x"));
 
         var left = Reduce(typing, SettingsCommandKind.Back).State;
         var reopened = Reduce(left, SettingsCommandKind.Activate).State;
@@ -440,7 +440,7 @@ public class SettingsReducerTests
     [Fact]
     public void GivenADraftOfANumber_WhenAnotherSettingsBoxOpens_ThenItStartsWithItsOwnText()
     {
-        var typing = Reduce(WithPageSize(), SettingsCommandKind.Activate).State.WithInputText("25x");
+        var typing = Reduce(WithPageSize(), SettingsCommandKind.Activate).State.WithInputText(TextField.Of("25x"));
         var left = Reduce(typing, SettingsCommandKind.Back).State;
 
         var other = left with { Input = left.Resume(new SettingsInput(SettingsInputKind.PathAdd, "other", -1, string.Empty)) };
@@ -451,7 +451,7 @@ public class SettingsReducerTests
     [Fact]
     public void GivenTheFilterBox_WhenGoingBack_ThenTheFilterClearsAndTheScreenStaysOpen()
     {
-        var typing = Reduce(Open(), SettingsCommandKind.FilterOpen).State.WithFilterText("frame");
+        var typing = Reduce(Open(), SettingsCommandKind.FilterOpen).State.WithFilterText(TextField.Of("frame"));
 
         var outcome = Reduce(typing, SettingsCommandKind.Back);
 
@@ -464,7 +464,7 @@ public class SettingsReducerTests
     [Fact]
     public void GivenAcceptedFilter_WhenGoingBack_ThenTheFilterClearsAndTheSelectedSettingStaysSelected()
     {
-        var typing = Reduce(Open(), SettingsCommandKind.FilterOpen).State.WithFilterText("scan");
+        var typing = Reduce(Open(), SettingsCommandKind.FilterOpen).State.WithFilterText(TextField.Of("scan"));
         var accepted = Reduce(typing, SettingsCommandKind.InputAccept).State;
 
         var outcome = Reduce(accepted, SettingsCommandKind.Back);
@@ -659,7 +659,7 @@ public class SettingsReducerTests
     [InlineData("j / down", "list.down")]
     public void GivenAKeyReference_WhenFilteringByTitleKeysOrActionId_ThenTheLineIsListed(string text, string action)
     {
-        var state = WithReference("{}").WithFilterText(text);
+        var state = WithReference("{}").WithFilterText(TextField.Of(text));
 
         var bindings = state.Rows.Where(row => row.Kind == SettingRowKind.Binding).ToList();
 
@@ -669,7 +669,7 @@ public class SettingsReducerTests
     [Fact]
     public void GivenAFilterMatchingNoKeyLine_WhenListingRows_ThenTheKeyReferenceIsHidden()
     {
-        var state = WithReference("{}").WithFilterText("zzz");
+        var state = WithReference("{}").WithFilterText(TextField.Of("zzz"));
 
         Assert.Empty(state.Rows);
     }
@@ -677,7 +677,7 @@ public class SettingsReducerTests
     [Fact]
     public void GivenAFilteredKeyLine_WhenActivating_ThenTheCursorJumpsToThatLineInTheReference()
     {
-        var typing = Reduce(WithReference("{}"), SettingsCommandKind.FilterOpen).State.WithFilterText("list.up");
+        var typing = Reduce(WithReference("{}"), SettingsCommandKind.FilterOpen).State.WithFilterText(TextField.Of("list.up"));
         var accepted = Reduce(typing, SettingsCommandKind.InputAccept).State;
         Assert.Equal(SettingRowKind.Setting, accepted.Rows[0].Kind);
         var onLine = accepted.MoveTo(1);

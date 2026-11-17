@@ -110,9 +110,9 @@ public sealed class SearchController(
             return false;
         }
 
-        if (PromptTextEditor.Apply(session.Search.Text, session.Search.Caret, key) is { } edit)
+        if (session.Search.Field.Apply(key) is { } edit)
         {
-            Dispatch(session, new EditSearchTextCommand(edit.Text, edit.Caret));
+            Dispatch(session, new EditSearchTextCommand(edit));
         }
 
         // Insert mode swallows every key, so a stray one never moves the list or fires a binding.

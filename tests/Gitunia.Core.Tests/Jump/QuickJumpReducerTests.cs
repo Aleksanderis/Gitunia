@@ -68,7 +68,7 @@ public class QuickJumpReducerTests
     public void GivenALabelKey_WhenTyped_ThenThePromptClosesAndTheRowIsJumpedTo()
     {
         var labels = ImmutableArray.Create(new JumpLabel(4, 0, 1, 'q'));
-        var typing = Open with { Text = "f" };
+        var typing = Open with { Field = "f" };
 
         var transition = QuickJumpReducer.Reduce(typing, new QuickJumpKeyPressed(new KeyEvent("q"), labels));
 
@@ -124,8 +124,8 @@ public class QuickJumpReducerTests
         var typed = QuickJumpReducer.Reduce(left, new QuickJumpKeyPressed(new KeyEvent("i"), [])).Session!;
 
         Assert.Equal("fix", typed.Text);
-        Assert.Equal(2, typed.Caret);
-        Assert.Equal(new PromptLine("jump ", "fix", 2, "  2 in view"), QuickJumpReducer.StatusLine(typed.Text, 2, typed.Caret));
+        Assert.Equal(2, typed.Field.Caret);
+        Assert.Equal(new PromptLine("jump ", "fix", 2, "  2 in view"), QuickJumpReducer.StatusLine(typed.Field, 2));
     }
 
     [Theory]

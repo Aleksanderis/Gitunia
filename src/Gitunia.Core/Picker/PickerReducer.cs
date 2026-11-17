@@ -22,9 +22,9 @@ public static class PickerReducer
 
     public static PickerState Reduce(PickerState state, PickerCommand command, PickerContext context) => command switch
     {
-        TypeTextCommand type => Edit(state, PromptTextEditor.Insert(state.Query, state.Caret, type.Text), context),
-        BackspaceCommand => Edit(state, PromptTextEditor.Apply(state.Query, state.Caret, new KeyEvent(KeyNames.Backspace)), context),
-        EditQueryCommand edit => Edit(state, PromptTextEditor.Apply(state.Query, state.Caret, edit.Key), context),
+        TypeTextCommand type => Edit(state, state.Field.Insert(type.Text), context),
+        BackspaceCommand => Edit(state, state.Field.Apply(new KeyEvent(KeyNames.Backspace)), context),
+        EditQueryCommand edit => Edit(state, state.Field.Apply(edit.Key), context),
         ClearQueryCommand => WithQuery(state, string.Empty, context),
         MoveHighlightCommand move => PickerListPlan.Move(state, move.Delta, context.ListBudget),
         SetHighlightCommand set => SetHighlight(state, set),
@@ -72,7 +72,7 @@ public static class PickerReducer
     }
 
     // A path is listed in the background (the controller starts it when IsListing turns on), so the reducer never touches the file system.
-    private static PickerState Edit(PickerState state, PromptEdit? edit, PickerContext context)
+    private static PickerState Edit(PickerState state, TextField? edit, PickerContext context)
     {
         if (edit is not { } change)
         {
@@ -80,19 +80,19 @@ public static class PickerReducer
         }
 
         // A move of the caret alone keeps the rows and the highlight.
-        return change.Text == state.Query ? state with { Caret = change.Caret } : WithQuery(state, change.Text, context, change.Caret);
+        return change.Text == state.Query ? state with { Field = change } : WithQuery(state, change, context);
     }
 
-    private static PickerState WithQuery(PickerState state, string query, PickerContext context, int caret = PromptCaret.End)
+    private static PickerState WithQuery(PickerState state, TextField field, PickerContext context)
     {
+        var query = field.Text;
         var isPath = PathQuery.IsPath(query);
         if (!isPath)
         {
             var matches = PickerRowBuilder.Build(query, context);
             return state with
             {
-                Query = query,
-                Caret = caret,
+                Field = field,
                 Rows = matches,
                 Highlight = 0,
                 IsOnToggle = false,
@@ -107,8 +107,7 @@ public static class PickerReducer
         var highlight = Math.Clamp(state.Highlight, 0, Math.Max(0, rows.Length - 1));
         return state with
         {
-            Query = query,
-            Caret = caret,
+            Field = field,
             Rows = rows,
             Highlight = highlight,
             IsOnToggle = false,

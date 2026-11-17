@@ -16,8 +16,8 @@ public abstract record GraphSearchCommand
 public sealed record OpenSearchCommand : GraphSearchCommand;
 
 /// <summary>The text in the search box changed.</summary>
-/// <param name="Text">The whole text.</param>
-public sealed record EditSearchTextCommand(string Text, int Caret = PromptCaret.End) : GraphSearchCommand;
+/// <param name="Field">The whole text and the caret.</param>
+public sealed record EditSearchTextCommand(TextField Field) : GraphSearchCommand;
 
 /// <summary>Enter in the search box: keep the matches and jump to the first one at or after the selection.</summary>
 /// <param name="SelectedIndex">The selected row.</param>

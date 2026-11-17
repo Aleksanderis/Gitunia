@@ -37,7 +37,7 @@ public static class EditorHostKeys
         var isCut = key == CutKey;
         if (policy.HasClipboard && (isCut || key == CopyKey))
         {
-            return Clipboard(editor, isCut);
+            return Clipboard(editor, isCut, policy);
         }
 
         if (policy.HasUndo && key == UndoKey)
@@ -55,14 +55,25 @@ public static class EditorHostKeys
         return [];
     }
 
-    private static AppEffect[] Clipboard(MessageEditor editor, bool isCut)
+    /// <summary>
+    /// The clipboard effect for the text selected in <paramref name="editor"/>, null when the host has no clipboard or
+    /// nothing is selected. The editor is not changed: a host that cuts deletes the selection itself (the conflict
+    /// result has to reconcile its alignment after the deletion).
+    /// </summary>
+    /// <param name="editor">The editor.</param>
+    /// <param name="policy">What the host offers.</param>
+    public static CopyToClipboardEffect? CopySelection(MessageEditor editor, EditorHostPolicy policy) =>
+        policy.HasClipboard && editor.HasSelection
+            ? new CopyToClipboardEffect(editor.SelectedText, SelectionDescription)
+            : null;
+
+    private static AppEffect[] Clipboard(MessageEditor editor, bool isCut, EditorHostPolicy policy)
     {
-        if (!editor.HasSelection)
+        if (CopySelection(editor, policy) is not { } copy)
         {
             return [];
         }
 
-        var copy = new CopyToClipboardEffect(editor.SelectedText, SelectionDescription);
         if (isCut)
         {
             editor.DeleteSelection();

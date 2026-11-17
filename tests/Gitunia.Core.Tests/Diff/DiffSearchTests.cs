@@ -13,10 +13,10 @@ public class DiffSearchTests
         var document = Document("Alpha", "beta");
         var state = Typed(document, "alp");
 
-        var moved = DiffSearch.Edit(state, "alp", 1, document).State;
+        var moved = DiffSearch.Edit(state, new TextField("alp", 1), document).State;
 
         Assert.Equal(state.Matches, moved.Matches);
-        Assert.Equal(1, moved.Caret);
+        Assert.Equal(1, moved.Field.Caret);
         Assert.Equal(new PromptLine("/", "alp", 1, "  1/1"), moved.Describe(0));
     }
 
@@ -114,5 +114,5 @@ public class DiffSearchTests
         1);
 
     private static DiffSearchState Typed(DiffDocument document, string text) =>
-        DiffSearch.Edit(DiffSearch.Open().State, text, PromptCaret.End, document).State;
+        DiffSearch.Edit(DiffSearch.Open().State, text, document).State;
 }

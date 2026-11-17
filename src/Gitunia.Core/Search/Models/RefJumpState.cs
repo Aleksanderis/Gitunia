@@ -5,12 +5,14 @@ using Gitunia.Core.Lists;
 namespace Gitunia.Core.Search.Models;
 
 /// <summary>The ref jump prompt (<c>&lt;space&gt;f</c>): the typed text, the ranked candidates and which one <c>Enter</c> picks.</summary>
-/// <param name="Text">The typed text.</param>
+/// <param name="Field">The typed text and its caret.</param>
 /// <param name="Candidates">Best match first.</param>
 /// <param name="SelectedIndex">The highlighted candidate.</param>
-/// <param name="Caret">The caret column in <see cref="Text"/> (see <see cref="PromptCaret"/>).</param>
-public sealed record RefJumpState(string Text, ImmutableArray<RefJumpCandidate> Candidates, int SelectedIndex, int Caret = PromptCaret.End)
+public sealed record RefJumpState(TextField Field, ImmutableArray<RefJumpCandidate> Candidates, int SelectedIndex)
 {
+    /// <summary>The typed text.</summary>
+    public string Text => Field.Text;
+
     /// <summary>The candidate <c>Enter</c> picks, null when nothing matches.</summary>
     public RefJumpCandidate? Selected => SelectedIndex >= 0 && SelectedIndex < Candidates.Length ? Candidates[SelectedIndex] : null;
 

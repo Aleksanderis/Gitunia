@@ -27,6 +27,5 @@ public sealed record CollapseSidebarCommand : SidebarCommand;
 public sealed record ToggleSidebarSectionCommand : SidebarCommand;
 
 /// <summary>Set the name filter and put the cursor on the first match.</summary>
-/// <param name="Text">The filter; empty clears it.</param>
-/// <param name="Caret">The caret column in the text; the end by default. With unchanged text only the caret moves.</param>
-public sealed record SetSidebarFilterCommand(string Text, int Caret = PromptCaret.End) : SidebarCommand;
+/// <param name="Field">The filter and its caret; empty text clears it. With unchanged text only the caret moves.</param>
+public sealed record SetSidebarFilterCommand(TextField Field) : SidebarCommand;

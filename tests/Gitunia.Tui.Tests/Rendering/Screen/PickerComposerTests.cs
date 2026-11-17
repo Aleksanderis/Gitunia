@@ -1,3 +1,4 @@
+using Gitunia.Core.Editing;
 using System.Collections.Immutable;
 using Gitunia.Core.Graph;
 using Gitunia.Core.Keymap;
@@ -34,7 +35,7 @@ public class PickerComposerTests
     [Fact]
     public void GivenAFramedPicker_WhenComposing_ThenTitleWithCountQueryWithPromptAndHintAndBottomRuleAreDrawn()
     {
-        var picker = Picker(Row("alpha", PickerTags.Recent)) with { Query = "al" };
+        var picker = Picker(Row("alpha", PickerTags.Recent)) with { Field = "al" };
 
         var lines = Compose(picker);
 
@@ -133,7 +134,7 @@ public class PickerComposerTests
     [Fact]
     public void GivenAFilteredList_WhenComposing_ThenThereAreNoGroupHeaders()
     {
-        var picker = Picker(Row("alpha", PickerTags.Open), Row("beta", PickerTags.Recent)) with { Query = "a" };
+        var picker = Picker(Row("alpha", PickerTags.Open), Row("beta", PickerTags.Recent)) with { Field = "a" };
 
         var lines = Compose(picker);
 
@@ -177,7 +178,7 @@ public class PickerComposerTests
     [Fact]
     public void GivenTheCaretInTheQuery_WhenComposing_ThenTheCursorCellCoversTheCharacterUnderIt()
     {
-        var picker = new PickerState("abcd", 0, [], string.Empty, null, Caret: 2);
+        var picker = new PickerState(new TextField("abcd", 2), 0, [], string.Empty, null);
 
         var lines = Compose(picker);
 
@@ -502,8 +503,8 @@ public class PickerComposerTests
     {
         var rows = new[] { Row("alpha", PickerTags.Open), Row("beta", PickerTags.Recent) };
 
-        var filtered = PickerLayout.Compute(Picker(rows) with { Query = "a" }, 100, 30);
-        var path = PickerLayout.Compute(Picker(rows) with { Query = "~/" }, 100, 30);
+        var filtered = PickerLayout.Compute(Picker(rows) with { Field = "a" }, 100, 30);
+        var path = PickerLayout.Compute(Picker(rows) with { Field = "~/" }, 100, 30);
 
         Assert.All(filtered.Visible.Concat(path.Visible), line => Assert.True(line.RowIndex >= 0));
     }
