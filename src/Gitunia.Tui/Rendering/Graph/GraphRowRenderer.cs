@@ -11,7 +11,6 @@ namespace Gitunia.Tui.Rendering.Graph;
 /// <summary>Draws one graph row: as a table: lanes, message (refs and subject), author, date and short hash, cut to the width.</summary>
 public static class GraphRowRenderer
 {
-
     // Blank columns between a row's own lines and its message.
     private const int MinimumLaneGap = 2;
 

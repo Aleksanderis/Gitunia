@@ -278,7 +278,7 @@ public static partial class PaneHints
     private static readonly ImmutableArray<KeyHint> FileHistory =
     [
         new("Enter", HintVerb.Select, [ActionIds.FileHistorySelectCommit]),
-        new("J/K", "scroll", [ActionIds.DiffScrollDown, ActionIds.DiffScrollUp]),
+        new("J/K", HintVerb.Scroll, [ActionIds.DiffScrollDown, ActionIds.DiffScrollUp]),
         new("Esc", HintVerb.Close, [ActionIds.NavigateBack]),
     ];
 

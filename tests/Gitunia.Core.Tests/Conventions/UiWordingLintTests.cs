@@ -25,6 +25,9 @@ public sealed partial class UiWordingLintTests
         + @"|unchanged|No search|Loading\.\.\.)")]
     private static partial Regex WordingLiteral();
 
+    [GeneratedRegex(@"new\(""(Esc|Enter|j/k|Ctrl-g|Ctrl-s|n/Esc|Ctrl-j/k)"", ""[^""]")]
+    private static partial Regex HintLiteral();
+
     [GeneratedRegex(@"\[\.\.7\]|HashLength\s*=\s*7|Math\.Min\(7,|ShortHashLength|HashWidth\s*=\s*7")]
     private static partial Regex HashLength();
 
@@ -40,6 +43,17 @@ public sealed partial class UiWordingLintTests
             .ToList();
 
         Assert.True(offenders.Count == 0, $"Use UiTexts instead of a literal: {string.Join("; ", offenders)}");
+    }
+
+    [Fact]
+    public void GivenTheSources_WhenScanningForHintLabels_ThenSharedKeysTakeTheirWordFromHintVerb()
+    {
+        var offenders = Lines(_ => true)
+            .Where(line => HintLiteral().IsMatch(line.Text))
+            .Select(line => line.Where)
+            .ToList();
+
+        Assert.True(offenders.Count == 0, $"Use HintVerb for the label: {string.Join("; ", offenders)}");
     }
 
     [Fact]

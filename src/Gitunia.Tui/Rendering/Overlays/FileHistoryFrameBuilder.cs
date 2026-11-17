@@ -34,7 +34,7 @@ public static class FileHistoryFrameBuilder
     private const string NoRangeHistoryText = "No commit changed these lines";
     private const string LoadingText = UiTexts.Loading;
     private const string SelectKey = "Enter";
-    private const string SelectLabel = "select the commit in the graph";
+    private static readonly string SelectLabel = $"{HintVerb.Select} the commit in the graph";
 
     /// <summary>The frame for a screen, or null when the screen is too small to show it.</summary>
     /// <param name="state">The open history.</param>
@@ -193,7 +193,7 @@ public static class FileHistoryFrameBuilder
         text.Replace("\t", "    ", StringComparison.Ordinal).Replace("\r", string.Empty, StringComparison.Ordinal);
 
     private static HintItem[] FooterHints() =>
-        [new("J/K", "scroll diff"), new("Enter", HintVerb.Select), new("Esc", HintVerb.Close)];
+        [new("J/K", HintVerb.Scroll), new("Enter", HintVerb.Select), new("Esc", HintVerb.Close)];
 
     private static string FooterLead(FileHistoryState state)
     {

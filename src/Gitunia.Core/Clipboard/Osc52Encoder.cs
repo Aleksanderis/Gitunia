@@ -25,7 +25,7 @@ public static class Osc52Encoder
 
         if (text.Length == 0)
         {
-            return Failure(Osc52Status.Empty, $"{UiTexts.Nothing("copy")}.");
+            return Failure(Osc52Status.Empty, UiTexts.Nothing("copy"));
         }
 
         var bytes = Encoding.UTF8.GetBytes(text);

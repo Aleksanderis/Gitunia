@@ -388,7 +388,7 @@ public static class BlameFrameBuilder
 
         var lines = selection.RangeTo(state.Cursor).Count;
         var kind = selection.Kind == VisualKind.Chars ? " chars," : string.Empty;
-        
+
         return $"  VISUAL{kind} {CountText.Plural(lines, "line")}";
     }
 
