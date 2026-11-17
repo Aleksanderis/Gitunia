@@ -375,7 +375,7 @@ public static class SettingsFrameBuilder
             return builder.Append(plain, role).BuildUnfilled();
         }
 
-        (field with { Prefix = $"{indent}{field.Prefix}" }).AppendTo(builder, role);
+        (field with { Prefix = $"{indent}{field.Prefix}" }).AppendTo(builder, FieldRoles.Body);
 
         return builder.BuildUnfilled();
     }
@@ -466,7 +466,7 @@ public static class SettingsFrameBuilder
 
         if (state.Input is not null)
         {
-            return [new("Enter", "save"), new("Esc", "cancel")];
+            return [new("Enter", "save"), new("Esc", "keep")];
         }
 
         if (state.IsEditingFilter)

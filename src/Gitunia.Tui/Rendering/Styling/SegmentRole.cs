@@ -139,6 +139,12 @@ public enum SegmentRole
     /// <summary>A clickable button in a pane title or on a picker row.</summary>
     Button,
 
+    /// <summary>Text the user types into a field (see <see cref="FieldRoles"/>): the default text colour, the same in every field.</summary>
+    TypedText,
+
+    /// <summary>Typed text on the status bar or a footer bar (the find bars): the typed-text look on the bar's own background.</summary>
+    BarTypedText,
+
     /// <summary>The text cursor of the message editor: a chip like the mode label, so it shows without colour too.</summary>
     Cursor,
 

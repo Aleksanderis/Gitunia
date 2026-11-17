@@ -1,4 +1,3 @@
-using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 
 namespace Gitunia.Core.Editing;
@@ -30,48 +29,20 @@ public static class PromptTextEditor
         return inserted.Length == 0 ? null : new PromptEdit(text.Insert(at, inserted), at + inserted.Length);
     }
 
-    private static PromptEdit? Edit(string text, int at, KeyEvent key)
+    private static PromptEdit? Edit(string text, int at, KeyEvent key) => LineEditKeys.Resolve(key) switch
     {
-        return key.Modifiers switch
-        {
-            KeyModifiers.None or KeyModifiers.Shift => Plain(text, at, key.Name),
-            KeyModifiers.Ctrl => Control(text, at, key.Name),
-            KeyModifiers.Alt => Alt(text, at, key.Name),
-            _ => null,
-        };
-    }
-
-    private static PromptEdit? Plain(string text, int at, string name) => name switch
-    {
-        KeyNames.Backspace => DeleteTo(text, at, PromptCaret.Previous(text, at)),
-        KeyNames.Delete => DeleteTo(text, at, PromptCaret.Next(text, at)),
-        KeyNames.Left => new PromptEdit(text, PromptCaret.Previous(text, at)),
-        KeyNames.Right => new PromptEdit(text, PromptCaret.Next(text, at)),
-        KeyNames.Home => new PromptEdit(text, 0),
-        KeyNames.End => new PromptEdit(text, text.Length),
-        _ => null,
-    };
-
-    private static PromptEdit? Control(string text, int at, string name) => name switch
-    {
-        "a" or KeyNames.Home => new PromptEdit(text, 0),
-        "e" or KeyNames.End => new PromptEdit(text, text.Length),
-        "u" => DeleteTo(text, at, 0),
-        "k" => DeleteTo(text, at, text.Length),
-        "w" or KeyNames.Backspace => DeleteTo(text, at, WordBoundaries.Previous(text, at)),
-        KeyNames.Delete => DeleteTo(text, at, WordBoundaries.Next(text, at)),
-        KeyNames.Left => new PromptEdit(text, WordBoundaries.Previous(text, at)),
-        KeyNames.Right => new PromptEdit(text, WordBoundaries.Next(text, at)),
-        _ => null,
-    };
-
-    // Alt-arrows too: many terminals report Ctrl-arrows as Alt-arrows.
-    private static PromptEdit? Alt(string text, int at, string name) => name switch
-    {
-        "b" or KeyNames.Left => new PromptEdit(text, WordBoundaries.Previous(text, at)),
-        "f" or KeyNames.Right => new PromptEdit(text, WordBoundaries.Next(text, at)),
-        "d" => DeleteTo(text, at, WordBoundaries.Next(text, at)),
-        KeyNames.Backspace => DeleteTo(text, at, WordBoundaries.Previous(text, at)),
+        LineEditAction.Backspace => DeleteTo(text, at, PromptCaret.Previous(text, at)),
+        LineEditAction.Delete => DeleteTo(text, at, PromptCaret.Next(text, at)),
+        LineEditAction.Left => new PromptEdit(text, PromptCaret.Previous(text, at)),
+        LineEditAction.Right => new PromptEdit(text, PromptCaret.Next(text, at)),
+        LineEditAction.LineStart => new PromptEdit(text, 0),
+        LineEditAction.LineEnd => new PromptEdit(text, text.Length),
+        LineEditAction.WordLeft => new PromptEdit(text, WordBoundaries.Previous(text, at)),
+        LineEditAction.WordRight => new PromptEdit(text, WordBoundaries.Next(text, at)),
+        LineEditAction.DeleteToStart => DeleteTo(text, at, 0),
+        LineEditAction.DeleteToEnd => DeleteTo(text, at, text.Length),
+        LineEditAction.DeleteWordBack => DeleteTo(text, at, WordBoundaries.Previous(text, at)),
+        LineEditAction.DeleteWordForward => DeleteTo(text, at, WordBoundaries.Next(text, at)),
         _ => null,
     };
 

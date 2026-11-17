@@ -19,6 +19,7 @@ namespace Gitunia.Core.Rebase;
 /// <param name="Original">The todo as read, to tell whether anything changed.</param>
 /// <param name="SelectedIndex">Index into <paramref name="Rows"/>.</param>
 /// <param name="Edit">The open message editor, null when the list is shown.</param>
+/// <param name="Drafts">Messages typed into a reword and left with Esc, by commit hash; they come back when the commit is edited again.</param>
 /// <param name="IsDiscardPending">The first <c>Esc</c> on an edited todo was pressed; the next one closes it.</param>
 public sealed record RebaseEditorState(
     TabId TabId,
@@ -30,7 +31,8 @@ public sealed record RebaseEditorState(
     IReadOnlyList<RebaseEditorRow> Original,
     int SelectedIndex = 0,
     RebaseMessageEdit? Edit = null,
-    bool IsDiscardPending = false)
+    bool IsDiscardPending = false,
+    IReadOnlyDictionary<string, string>? Drafts = null)
 {
     /// <summary>The state for a freshly read range: every commit is a pick.</summary>
     public static RebaseEditorState Create(
@@ -57,6 +59,9 @@ public sealed record RebaseEditorState(
 
     /// <summary>True when the order, an action or a message differs from the todo as read.</summary>
     public bool IsModified => !Rows.Select(Effective).SequenceEqual(Original.Select(Effective));
+
+    /// <summary>True when a typed message was left with Esc and would be lost by closing the todo.</summary>
+    public bool HasDrafts => Drafts is { Count: > 0 };
 
     /// <summary>True when the message editor is open.</summary>
     public bool IsEditingMessage => Edit is not null;
@@ -148,13 +153,36 @@ public sealed record RebaseEditorState(
             return this;
         }
 
+        var text = Drafts is not null && Drafts.TryGetValue(row.Hash, out var draft) ? draft : message;
         var editor = new MessageEditor();
-        editor.SetText(message);
-        return this with { Edit = new RebaseMessageEdit(row.Hash, editor), IsDiscardPending = false };
+        editor.SetText(text);
+        editor.MarkUndoPoint();
+        return this with { Edit = new RebaseMessageEdit(row.Hash, editor, message), IsDiscardPending = false };
     }
 
-    /// <summary>Closes the message editor and keeps the previous action and message.</summary>
-    public RebaseEditorState CancelEdit() => this with { Edit = null };
+    /// <summary>
+    /// Closes the message editor and keeps the previous action and message. What was typed is kept as a draft
+    /// (<see cref="EditorHosts.Reword"/>: Esc keeps the text) and comes back when the commit is edited again.
+    /// </summary>
+    public RebaseEditorState CancelEdit()
+    {
+        if (Edit is not { } edit)
+        {
+            return this;
+        }
+
+        var drafts = Drafts?.ToDictionary() ?? [];
+        if (edit.IsChanged)
+        {
+            drafts[edit.Hash] = edit.Editor.Text;
+        }
+        else
+        {
+            drafts.Remove(edit.Hash);
+        }
+
+        return this with { Edit = null, Drafts = drafts };
+    }
 
     /// <summary>
     /// Makes the commit being edited a reword with the typed message and closes the editor; a blank message changes
@@ -175,7 +203,8 @@ public sealed record RebaseEditorState(
 
         var rows = Rows.ToList();
         rows[index] = rows[index] with { Action = RebaseTodoAction.Reword, Message = edit.Editor.Text.TrimEnd() };
-        return this with { Rows = rows, Edit = null };
+        var drafts = Drafts?.Where(draft => draft.Key != edit.Hash).ToDictionary() ?? [];
+        return this with { Rows = rows, Edit = null, Drafts = drafts };
     }
 
     /// <summary>Remembers that the user asked to close an edited todo; the next close really closes.</summary>

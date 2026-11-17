@@ -51,7 +51,7 @@ public static class ConflictNotices
     public static readonly string MergetoolHint = $"use {KeyTokens.Of(ActionIds.ToolMergetool, "the mergetool")} instead";
 
     /// <summary>The status line while typing without a conflict under the cursor.</summary>
-    public const string TypingInResult = "Typing in the result: Esc or Ctrl-g keeps the text";
+    public const string TypingInResult = "Typing in the result: Esc keeps the text, Ctrl-g is done";
 
     /// <summary>A copy of a line on a filler row or of a Visual selection without text.</summary>
     public const string NothingToCopy = "Nothing to copy: no text on this line";

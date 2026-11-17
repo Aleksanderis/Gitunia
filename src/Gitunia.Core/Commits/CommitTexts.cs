@@ -1,3 +1,4 @@
+using Gitunia.Core.Editing;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Overlays;
 using Gitunia.Core.Status;
@@ -25,13 +26,10 @@ public static class CommitTexts
     public const string AmendOffNotice = "Amend off";
 
     /// <summary>Shown when an undo has nothing to go back to.</summary>
-    public const string NothingToUndoNotice = "Nothing to undo";
-
-    /// <summary>What a copy of the selected message text says it copied.</summary>
-    public const string SelectionDescription = "selected text";
+    public const string NothingToUndoNotice = EditorHostKeys.NothingToUndoNotice;
 
     /// <summary>Shown when a redo has nothing to bring back.</summary>
-    public const string NothingToRedoNotice = "Nothing to redo";
+    public const string NothingToRedoNotice = EditorHostKeys.NothingToRedoNotice;
 
     /// <summary>Shown when HEAD's message could not be read for an amend.</summary>
     public const string HeadMessageFailure = "Could not read the last commit's message";

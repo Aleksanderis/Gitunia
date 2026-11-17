@@ -1,5 +1,4 @@
 using System.Collections.Immutable;
-using Gitunia.Core.Clipboard;
 using Gitunia.Core.Editing;
 using Gitunia.Core.Effects;
 using Gitunia.Core.Keymap;
@@ -30,10 +29,6 @@ namespace Gitunia.Core.Commits;
 /// </summary>
 public static class CommitReducer
 {
-    private static readonly KeyEvent CopyKey = new("w", KeyModifiers.Alt);
-    private static readonly KeyEvent CutKey = new("x", KeyModifiers.Ctrl);
-    private static readonly KeyEvent UndoKey = new("z", KeyModifiers.Ctrl);
-    private static readonly KeyEvent RedoKey = new("y", KeyModifiers.Ctrl);
 
     /// <summary>Applies a command.</summary>
     /// <param name="command">What happened.</param>
@@ -230,46 +225,9 @@ public static class CommitReducer
         }
 
         var draft = DraftOf(context);
-        var effects = EditingKey(key, draft.Editor);
+        var effects = EditorHostKeys.Apply(draft.Editor, key, EditorHosts.CommitBox);
 
         return Changed(context, draft, effects);
-    }
-
-    // Keys that need more than the editor: copy and cut hand the selection to the clipboard, undo and redo post a
-    // notice when there is nothing to go back to. Everything else is the editor's own key.
-    private static AppEffect[] EditingKey(KeyEvent rawKey, MessageEditor editor)
-    {
-        var key = rawKey.Normalize();
-        var isCut = key == CutKey;
-        if ((isCut || key == CopyKey) && editor.HasSelection)
-        {
-            var copy = new CopyToClipboardEffect(editor.SelectedText, CommitTexts.SelectionDescription);
-            if (isCut)
-            {
-                editor.DeleteSelection();
-            }
-
-            return [copy];
-        }
-
-        if (key == CopyKey || isCut)
-        {
-            return [];
-        }
-
-        if (key == UndoKey)
-        {
-            return editor.Undo() ? [] : [Post(CommitTexts.NothingToUndoNotice)];
-        }
-
-        if (key == RedoKey)
-        {
-            return editor.Redo() ? [] : [Post(CommitTexts.NothingToRedoNotice)];
-        }
-
-        editor.Apply(key);
-
-        return [];
     }
 
     private static CommitUpdate Drag(CommitSelectionDragged dragged, CommitContext context)

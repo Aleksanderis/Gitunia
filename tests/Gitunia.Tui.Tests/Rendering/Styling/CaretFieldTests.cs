@@ -13,7 +13,7 @@ public class CaretFieldTests
     {
         var builder = new LineBuilder(10, Ellipsis);
 
-        new CaretField("/", new string('a', 30) + "XYZ", 15).AppendTo(builder, SegmentRole.Plain);
+        new CaretField("/", new string('a', 30) + "XYZ", 15).AppendTo(builder, FieldRoles.Body);
         var line = builder.Build();
 
         Assert.Equal(10, TextWidth.Of(line.Text));
@@ -26,7 +26,7 @@ public class CaretFieldTests
     {
         var builder = new LineBuilder(7, Ellipsis);
 
-        new CaretField(string.Empty, "中文字漢字", 2).AppendTo(builder, SegmentRole.Plain);
+        new CaretField(string.Empty, "中文字漢字", 2).AppendTo(builder, FieldRoles.Body);
         var line = builder.Build();
 
         Assert.Equal(7, TextWidth.Of(line.Text));
@@ -38,7 +38,7 @@ public class CaretFieldTests
     {
         var builder = new LineBuilder(12, Ellipsis);
 
-        new CaretField("> ", "abc", PromptCaret.End, " 1/2").AppendTo(builder, SegmentRole.Status);
+        new CaretField("> ", "abc", PromptCaret.End, " 1/2").AppendTo(builder, FieldRoles.Bar);
         var line = builder.Build();
 
         Assert.StartsWith("> abc  1/2", line.Text, StringComparison.Ordinal);

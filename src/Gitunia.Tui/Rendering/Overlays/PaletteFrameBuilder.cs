@@ -32,7 +32,7 @@ public static class PaletteFrameBuilder
         var rowCount = window.RowCount;
         var top = window.Top;
 
-        var lines = new List<StyledLine> { OverlayBox.Title($": {palette.Query}_", width, glyphs) };
+        var lines = new List<StyledLine> { OverlayBox.Title(":", new CaretField(" ", palette.Field.Text, palette.Field.Caret), width, glyphs) };
         if (visible.Count == 0)
         {
             lines.Add(OverlayBox.Text("no matching action", width, glyphs, SegmentRole.Faint));

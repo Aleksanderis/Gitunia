@@ -493,6 +493,9 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
             case ShowConfirmEffect confirm:
                 ShowConfirm(confirm);
                 break;
+            case ReopenPromptEffect reopen:
+                _host.Dispatch(new PromptReopenedCommand(reopen.Reason));
+                break;
             case ShowPromptEffect prompt:
                 _host.Dispatch(new PromptRequestedCommand(prompt.Request));
                 break;

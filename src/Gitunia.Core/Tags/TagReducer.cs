@@ -79,12 +79,12 @@ public static class TagReducer
         var name = accepted.Name.Trim();
         if (name.Length == 0)
         {
-            return [Post("No name: nothing was created")];
+            return [new ReopenPromptEffect("No name: nothing was created")];
         }
 
         if (context.Refs.Any(reference => reference.Kind == RefKind.Tag && reference.Name == name))
         {
-            return [Post($"Tag {name} already exists")];
+            return [new ReopenPromptEffect($"Tag {name} already exists")];
         }
 
         var request = new PromptRequest(

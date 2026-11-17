@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Globalization;
 using Gitunia.Core.Config.Models;
 using Gitunia.Core.Editing;
 using Gitunia.Core.Lists;
@@ -25,6 +26,7 @@ namespace Gitunia.Core.Settings;
 /// <param name="Input">The text being typed into a setting, null for none.</param>
 /// <param name="Removal">The folder waiting for the answer to the removal question, null for none.</param>
 /// <param name="KeyReference">The lines of the key reference, null for none.</param>
+/// <param name="InputDraft">The text left in a number or folder box with Esc; it comes back when the same box opens again.</param>
 public sealed record SettingsState(
     IReadOnlyList<SettingDefinition> Definitions,
     ImmutableDictionary<string, SettingValue> Values,
@@ -40,7 +42,8 @@ public sealed record SettingsState(
     SettingsInput? Input = null,
     PendingRemoval? Removal = null,
     IReadOnlyList<KeyReferenceEntry>? KeyReference = null,
-    int FilterCaret = PromptCaret.End)
+    int FilterCaret = PromptCaret.End,
+    SettingsInput? InputDraft = null)
 {
     /// <summary>The lines of the key reference, in the order they are listed.</summary>
     public IReadOnlyList<KeyReferenceEntry> Reference => KeyReference ?? [];
@@ -235,8 +238,35 @@ public sealed record SettingsState(
             Banner = load.Banner,
             Choice = null,
             Input = null,
+            InputDraft = null,
             Removal = null,
         }).Clamped();
+
+    /// <summary>
+    /// Closes the number or folder box with Esc and keeps what was typed as a draft (<see cref="EditorHosts.SettingsInput"/>:
+    /// Esc keeps the text), unless it is what the box opened with.
+    /// </summary>
+    public SettingsState WithInputLeft()
+    {
+        if (Input is not { } input)
+        {
+            return this;
+        }
+
+        var draft = input.Text == StartTextOf(input) ? null : input;
+
+        return (this with { Input = null, InputDraft = draft }).Clamped();
+    }
+
+    /// <summary>The box as it opens: with the draft left by Esc when it is the same box, else as <paramref name="fresh"/>.</summary>
+    /// <param name="fresh">The box with the text it opens with.</param>
+    public SettingsInput Resume(SettingsInput fresh) =>
+        InputDraft is { } draft
+        && draft.Kind == fresh.Kind
+        && draft.SettingId == fresh.SettingId
+        && draft.ItemIndex == fresh.ItemIndex
+            ? draft with { Caret = PromptCaret.End }
+            : fresh;
 
     /// <summary>The state with other text in the number or folder box.</summary>
     /// <param name="text">The text now typed.</param>
@@ -341,5 +371,25 @@ public sealed record SettingsState(
                 rows.Add(new SettingRow(definition, SettingRowKind.Option, index));
             }
         }
+    }
+
+    // The text a box opens with: the number, the folder being changed, or nothing for a new folder.
+    private string StartTextOf(SettingsInput input)
+    {
+        var definition = Definitions.FirstOrDefault(candidate => candidate.Id == input.SettingId);
+        if (definition is null)
+        {
+            return string.Empty;
+        }
+
+        var value = ValueOf(definition);
+
+        return input.Kind switch
+        {
+            SettingsInputKind.Number => value.Number.ToString(CultureInfo.InvariantCulture),
+            SettingsInputKind.PathEdit when input.ItemIndex >= 0 && input.ItemIndex < value.Paths.Length =>
+                value.Paths[input.ItemIndex],
+            _ => string.Empty,
+        };
     }
 }

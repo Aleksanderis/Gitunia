@@ -22,6 +22,7 @@ public static class PromptReducer
         PromptAcceptedCommand => Accept(state),
         PromptCancelledCommand => Cancel(state),
         PromptKeyPressedCommand pressed => KeyPressed(state, pressed.Key),
+        PromptReopenedCommand reopened => Reopen(state, reopened.Reason),
         PromptRequestedCommand requested => Open(state, requested.Request),
         _ => throw new UnhandledCommandException(command),
     };
@@ -144,8 +145,24 @@ public static class PromptReducer
         }
 
         var answer = new PromptAnswer(prompt.Text, choice);
+        var closed = Close(state, prompt) with { AnsweredPrompt = prompt.Picker is null ? prompt : null };
 
-        return new ShellUpdate(Close(state, prompt), [], prompt.OnAccepted.Answered(answer));
+        return new ShellUpdate(closed, [], prompt.OnAccepted.Answered(answer));
+    }
+
+    // The feature rejected the answer: the prompt opens again with the typed text, and the reason is on the status line.
+    private static ShellUpdate Reopen(ShellState state, string reason)
+    {
+        var warning = new PostStatusEffect(reason, StatusSeverity.Warning);
+        if (state.Prompt is not null || state.AnsweredPrompt is not { } answered)
+        {
+            return new ShellUpdate(state, [warning]);
+        }
+
+        var prompt = answered with { ReturnMode = state.Mode, Caret = PromptCaret.End };
+        var reopened = (state with { Prompt = prompt, AnsweredPrompt = null }).WithMode(KeyMode.Insert);
+
+        return new ShellUpdate(reopened, [warning]);
     }
 
     private static ShellUpdate Cancel(ShellState state)
