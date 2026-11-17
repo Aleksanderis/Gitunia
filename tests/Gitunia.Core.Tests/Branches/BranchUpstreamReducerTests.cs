@@ -126,7 +126,7 @@ public class BranchUpstreamReducerTests
 
         var effects = Reduce(new BranchFastForwardRequested(Tab, Row("topic")), refs);
 
-        Assert.Equal("topic has commits its upstream lacks (diverged): nothing changed", Warning(effects));
+        Assert.Equal("topic has commits its upstream lacks (diverged): nothing was changed", Warning(effects));
     }
 
     [Fact]
@@ -182,7 +182,7 @@ public class BranchUpstreamReducerTests
 
         var effects = Reduce(new BranchFastForwardRequested(Tab, Row("topic")), refs);
 
-        Assert.Equal("The upstream of topic is gone: nothing changed", Warning(effects));
+        Assert.Equal("The upstream of topic is gone: nothing was changed", Warning(effects));
     }
 
     [Fact]

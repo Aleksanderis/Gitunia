@@ -283,7 +283,7 @@ public class BranchSwitchReducerTests
         var request = Assert.IsType<ShowPromptEffect>(Assert.Single(
             Reduce(new BranchSwitchRequested(Tab, new BranchTarget(null, null, null)), refs))).Request;
 
-        var picker = PromptPicker.Of(request.Choices!.Value, request.NoMatch, "local");
+        var picker = PromptPicker.Of(request.Choices!.Value, request.NoMatch!, "local");
 
         Assert.Empty(picker.Candidates);
     }

@@ -436,7 +436,7 @@ public class OverlayFrameTests
             string.Join(
                 '\n',
                 " : zzzzqq                               ",
-                "| no matching action                   |",
+                "| No matching action                   |",
                 "| 0/0 Ctrl-j/k move  Enter run  Esc cl~|",
                 "+--------------------------------------+"),
             Text(frame));

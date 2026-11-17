@@ -12,8 +12,8 @@ public class ReflogParserTests
     public void GivenEntries_WhenParsing_ThenActionMessageDateAndIndexAreSplit()
     {
         var output =
-            $"{Hash('a')}{Unit}HEAD@{{3 minutes ago}}{Unit}commit (amend): fix typo{Record}\n" +
-            $"{Hash('b')}{Unit}HEAD@{{2 hours ago}}{Unit}checkout: moving from main to topic{Record}\n";
+            $"{Hash('a')}{Unit}HEAD@{{1763380000}}{Unit}commit (amend): fix typo{Record}\n" +
+            $"{Hash('b')}{Unit}HEAD@{{1763376000}}{Unit}checkout: moving from main to topic{Record}\n";
 
         var result = ReflogParser.Parse(output);
 
@@ -23,7 +23,7 @@ public class ReflogParserTests
         Assert.Equal(Hash('a'), result.Items[0].Hash);
         Assert.Equal("commit (amend)", result.Items[0].Action);
         Assert.Equal("fix typo", result.Items[0].Message);
-        Assert.Equal("3 minutes ago", result.Items[0].RelativeDate);
+        Assert.Equal(DateTimeOffset.FromUnixTimeSeconds(1763380000), result.Items[0].Date);
         Assert.Equal(1, result.Items[1].Index);
         Assert.Equal("checkout", result.Items[1].Action);
         Assert.Equal("moving from main to topic", result.Items[1].Message);
@@ -32,17 +32,17 @@ public class ReflogParserTests
     [Fact]
     public void GivenASubjectWithoutAColon_WhenParsing_ThenItIsAllAction()
     {
-        var result = ReflogParser.Parse($"{Hash('a')}{Unit}main@{{now}}{Unit}branch created{Record}");
+        var result = ReflogParser.Parse($"{Hash('a')}{Unit}main@{{1763380000}}{Unit}branch created{Record}");
 
         Assert.Equal("branch created", result.Items[0].Action);
         Assert.Equal(string.Empty, result.Items[0].Message);
-        Assert.Equal("now", result.Items[0].RelativeDate);
+        Assert.Equal(DateTimeOffset.FromUnixTimeSeconds(1763380000), result.Items[0].Date);
     }
 
     [Fact]
     public void GivenAMessageWithColons_WhenParsing_ThenOnlyTheFirstColonSplits()
     {
-        var result = ReflogParser.Parse($"{Hash('a')}{Unit}HEAD@{{1 day ago}}{Unit}commit: feat: add x{Record}");
+        var result = ReflogParser.Parse($"{Hash('a')}{Unit}HEAD@{{1763380000}}{Unit}commit: feat: add x{Record}");
 
         Assert.Equal("commit", result.Items[0].Action);
         Assert.Equal("feat: add x", result.Items[0].Message);

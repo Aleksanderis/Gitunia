@@ -2,6 +2,7 @@ using System.Globalization;
 using Gitunia.Core.Editing;
 using Gitunia.Core.Effects;
 using Gitunia.Core.Status;
+using Gitunia.Core.Text;
 
 namespace Gitunia.Core.Jump;
 
@@ -18,7 +19,7 @@ public static class QuickJumpReducer
     public const string UnavailableNotice = "Quick jump is not available here";
 
     /// <summary>Shown when Enter is pressed and nothing in view matches.</summary>
-    public const string NoMatchNotice = "No match in view";
+    public static readonly string NoMatchNotice = UiTexts.NoMatch("text in view");
 
     private const string Prefix = "jump ";
 
@@ -45,7 +46,7 @@ public static class QuickJumpReducer
 
         var count = matches.ToString(CultureInfo.InvariantCulture);
 
-        return new PromptLine(Prefix, text, caret, matches == 0 ? "  no match in view" : $"  {count} in view");
+        return new PromptLine(Prefix, text, caret, matches == 0 ? $"  {UiTexts.NoMatch("text in view")}" : $"  {count} in view");
     }
 
     private static QuickJumpTransition Open(QuickJumpOpenRequested open)

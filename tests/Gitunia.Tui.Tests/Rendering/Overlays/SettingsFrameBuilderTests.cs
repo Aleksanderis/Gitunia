@@ -140,7 +140,7 @@ public class SettingsFrameBuilderTests
 
         Assert.Contains("● auto", text[3], StringComparison.Ordinal);
         Assert.Contains("○ catppuccin-mocha", text[4], StringComparison.Ordinal);
-        Assert.Contains("Esc restore", text[^2], StringComparison.Ordinal);
+        Assert.Contains("Esc cancel", text[^2], StringComparison.Ordinal);
     }
 
     [Fact]
@@ -352,7 +352,7 @@ public class SettingsFrameBuilderTests
         var frame = SettingsFrameBuilder.Build(typing, 100, 30, GraphGlyphSet.Unicode)!;
         var layout = SettingsLayout.For(100, 30)!;
 
-        Assert.Contains("Nothing matches", frame.Lines[layout.RuleLine + 1].Text, StringComparison.Ordinal);
+        Assert.Contains("No matching setting", frame.Lines[layout.RuleLine + 1].Text, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -473,7 +473,7 @@ public class SettingsFrameBuilderTests
         var text = string.Join('\n', frame.Lines.Select(line => line.Text));
 
         Assert.Contains("Action list.down.", text, StringComparison.Ordinal);
-        Assert.Contains("Enter show config entry", text, StringComparison.Ordinal);
+        Assert.Contains("Enter open", text, StringComparison.Ordinal);
     }
 
     [Fact]

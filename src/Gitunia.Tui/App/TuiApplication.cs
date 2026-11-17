@@ -38,9 +38,15 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities det
     /// </summary>
     public Action<string>? FrameCaptured { get; init; }
 
-    /// <summary>Runs the UI until the user quits.</summary>
-    /// <param name="location">A repository to open on top of the restored session, null for none.</param>
-    public int Run(RepositoryLocation? location)
+    /// <summary>
+    /// Builds the shell while <paramref name="discovery"/> still runs, awaits it just before the first dispatch and runs
+    /// the UI until the user quits.
+    /// </summary>
+    /// <param name="discovery">Resolves the repository to open on top of the restored session (null for none).</param>
+    /// <exception cref="Gitunia.Git.Execution.Exceptions.GitException">
+    /// Discovery failed: the shell (and the terminal driver) is disposed first, so the caller prints on the normal screen.
+    /// </exception>
+    public int Run(Task<RepositoryLocation?> discovery)
     {
         using var shell = new ShellComposition(
             services,
@@ -48,6 +54,9 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities det
             detectedCapabilities,
             new TuiLaunch(DriverName, HomeDirectory, GitExecutable));
         new ShellWiring(shell).Connect();
+        // Entry point of a synchronous Main: nothing else needs this thread, blocking is safe. A failure leaves through
+        // the using above, which tears the terminal down before the caller prints the message.
+        var location = discovery.GetAwaiter().GetResult();
         Start(shell, location);
         try
         {

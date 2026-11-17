@@ -1,4 +1,5 @@
 using Gitunia.Core.Shell;
+using Gitunia.Core.Text;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Tabs;
@@ -189,7 +190,7 @@ public static class PickerSessionReducer
         {
             var example = PathDisplay.ExamplePath(OperatingSystem.IsWindows());
 
-            return Edit(session, new SetMessageCommand($"nothing to open: type a path such as {example}"), workspace, effects);
+            return Edit(session, new SetMessageCommand($"{UiTexts.NothingTo("open")}: type a path such as {example}"), workspace, effects);
         }
 
         if (row.IsOpen && state.LocatingTabId is null && workspace.FindTabByRootPath(row.Path) is { } tab)
@@ -245,7 +246,7 @@ public static class PickerSessionReducer
 
         next.Add(new RemoveRecentCommand(row.Path));
         next.Add(new RefreshRowsCommand());
-        next.Add(new SetMessageCommand("removed from recents (nothing was deleted on disk)"));
+        next.Add(new SetMessageCommand($"removed from recents ({UiTexts.NothingWas("deleted")} on disk)"));
 
         return session;
     }

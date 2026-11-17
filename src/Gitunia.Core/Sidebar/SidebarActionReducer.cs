@@ -7,6 +7,7 @@ using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Lists;
 using Gitunia.Core.Stash;
 using Gitunia.Core.Status;
+using Gitunia.Core.Text;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Git;
@@ -22,7 +23,7 @@ namespace Gitunia.Core.Sidebar;
 public static class SidebarActionReducer
 {
     /// <summary>Shown when copy is pressed with no rows.</summary>
-    public const string NothingToCopyNotice = "Nothing to copy";
+    public static readonly string NothingToCopyNotice = UiTexts.Nothing("copy");
 
     /// <summary>Shown when copy is pressed on a section row.</summary>
     public const string SelectEntryNotice = "Select an entry to copy";

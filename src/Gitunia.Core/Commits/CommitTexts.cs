@@ -26,10 +26,10 @@ public static class CommitTexts
     public const string AmendOffNotice = "Amend off";
 
     /// <summary>Shown when an undo has nothing to go back to.</summary>
-    public const string NothingToUndoNotice = EditorHostKeys.NothingToUndoNotice;
+    public static readonly string NothingToUndoNotice = EditorHostKeys.NothingToUndoNotice;
 
     /// <summary>Shown when a redo has nothing to bring back.</summary>
-    public const string NothingToRedoNotice = EditorHostKeys.NothingToRedoNotice;
+    public static readonly string NothingToRedoNotice = EditorHostKeys.NothingToRedoNotice;
 
     /// <summary>Shown when HEAD's message could not be read for an amend.</summary>
     public const string HeadMessageFailure = "Could not read the last commit's message";

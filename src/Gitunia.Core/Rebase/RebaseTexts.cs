@@ -23,7 +23,7 @@ public static class RebaseTexts
         if (merges > 0)
         {
             lines.Add(
-                $"{RebaseCounts.Plural(merges, "merge commit")} in that range will be flattened: the merge " +
+                $"{CountText.Plural(merges, "merge commit")} in that range will be flattened: the merge " +
                 $"itself is dropped and the commits are replayed as one line. {KeyTokens.Of(ActionIds.RebaseInteractive, "Interactive rebase")} keeps merges " +
                 "(--rebase-merges).");
         }
@@ -61,7 +61,7 @@ public static class RebaseTexts
         if (string.Equals(result.Head, target.OldTip, StringComparison.Ordinal))
         {
             return new PostedText(
-                $"{target.BranchName} is already based on {target.Label}: nothing changed",
+                $"{target.BranchName} is already based on {target.Label}: {UiTexts.NothingWas("changed")}",
                 StatusSeverity.Info);
         }
 

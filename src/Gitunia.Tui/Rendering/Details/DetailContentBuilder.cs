@@ -17,8 +17,6 @@ namespace Gitunia.Tui.Rendering.Details;
 /// <summary>Turns the selected graph entry and its loaded details into the rows of the detail pane.</summary>
 public static class DetailContentBuilder
 {
-    private const int HashLength = 7;
-    private const string TimeFormat = "yyyy-MM-dd HH:mm zzz";
     private const string Indent = "  ";
     private const string EmptyTree = "The commit has no files";
     private const string NoStashTree = "A stash has no file tree: use the Changes tab";
@@ -56,7 +54,7 @@ public static class DetailContentBuilder
     {
         if (file.OldPath is { } oldPath)
         {
-            return $"{Mark(file)} {oldPath} -> {file.Path}";
+            return $"{Mark(file)} {ValueFormat.RenameText(oldPath, file.Path)}";
         }
 
         return $"{Mark(file)} {file.Path}";
@@ -85,7 +83,7 @@ public static class DetailContentBuilder
             _ when stashName is not null => [Faint(NoStashTree)],
             _ => BuildFiles(entry, tree),
         };
-        var shownHash = stashName ?? ShortHash(entry.Id);
+        var shownHash = stashName ?? HashOf(entry.Id);
         if (tab == BottomTab.Files && stashName is null)
         {
             var shown = tree is { State.Commit: { } commit } && commit == entry.Id ? tree : null;
@@ -239,7 +237,7 @@ public static class DetailContentBuilder
             || commit != entry.Id
             || state.Status == CommitDetailsStatus.Loading)
         {
-            return [Faint("Loading...")];
+            return [Faint(UiTexts.Loading)];
         }
 
         if (state.Status == CommitDetailsStatus.Failed)
@@ -292,14 +290,14 @@ public static class DetailContentBuilder
     }
 
     internal static string FileCountText(int count) =>
-        count == 1 ? "1 file" : $"{count.ToString(CultureInfo.InvariantCulture)} files";
+        CountText.Plural(count, "file");
 
     private static DetailRow Faint(string text) => new([new StyledSegment(text, SegmentRole.Faint)]);
 
     private static DetailRow Status(GraphEntry entry, CommitDetailsState state, string? stashName)
     {
         var what = stashName is null ? "commit" : "stash";
-        var text = "Loading...";
+        var text = UiTexts.Loading;
         if (state.Commit == entry.Id && state.Status == CommitDetailsStatus.Failed)
         {
             text = $"Could not load the {what} (r retries): {state.Error}";
@@ -308,7 +306,7 @@ public static class DetailContentBuilder
         return new DetailRow([new StyledSegment(text, SegmentRole.Faint)]);
     }
 
-    private static string ShortHash(ObjectId id) => id.ToString()[..HashLength];
+    private static string HashOf(ObjectId id) => ShortHash.Of(id.ToString());
 
     private static void AddPeople(List<DetailRow> rows, CommitDetails details)
     {
@@ -320,11 +318,11 @@ public static class DetailContentBuilder
     }
 
     private static StyledSegment Person(string name, string email, DateTimeOffset time) =>
-        new($"{name} <{email}>  {time.ToString(TimeFormat, CultureInfo.InvariantCulture)}", SegmentRole.Plain);
+        new($"{name} <{email}>  {ValueFormat.DateTimeZone(time)}", SegmentRole.Plain);
 
     private static void AddParents(List<DetailRow> rows, CommitDetails details)
     {
-        var parents = new StyledSegment(string.Join(' ', details.Parents.Select(ShortHash)), SegmentRole.Hash);
+        var parents = new StyledSegment(string.Join(' ', details.Parents.Select(HashOf)), SegmentRole.Hash);
         if (details.Parents.Count == 0)
         {
             parents = new StyledSegment("none (root commit)", SegmentRole.Faint);
@@ -427,7 +425,7 @@ public static class DetailContentBuilder
         var number = (details.ParentIndex + 1).ToString(CultureInfo.InvariantCulture);
         var which = details.ParentIndex == 0 ? "first parent" : $"parent {number}";
 
-        return $" (merge: against {which} {ShortHash(details.Parents[details.ParentIndex])})";
+        return $" (merge: against {which} {HashOf(details.Parents[details.ParentIndex])})";
     }
 
     /// <summary>A comparison names its two ends, older first, like the <c>git diff</c> it shows.</summary>
@@ -435,7 +433,7 @@ public static class DetailContentBuilder
         details.IsComparison ? $" ({CompareText(details)})" : string.Empty;
 
     private static string CompareText(CommitDetails details) =>
-        $"{ShortHash(details.CompareOlder!.Value)}..{ShortHash(details.CompareNewer!.Value)}";
+        $"{HashOf(details.CompareOlder!.Value)}..{HashOf(details.CompareNewer!.Value)}";
 
     private static string StashHeading(string stashName, CommitDetails details)
     {
@@ -458,16 +456,7 @@ public static class DetailContentBuilder
     private static string Mark(CommitFileChange file, bool isUntracked) =>
         isUntracked ? UntrackedMark : Mark(file);
 
-    private static string Mark(CommitFileChange file) => file.Kind switch
-    {
-        FileChangeKind.Added => "A",
-        FileChangeKind.Deleted => "D",
-        FileChangeKind.Renamed => "R",
-        FileChangeKind.Copied => "C",
-        FileChangeKind.TypeChanged => "T",
-        FileChangeKind.UpdatedButUnmerged => "U",
-        _ => "M",
-    };
+    private static string Mark(CommitFileChange file) => ValueFormat.StatusLetter(file.Kind);
 
     private static StyledSegment Label(string text) => new(text.PadRight(10), SegmentRole.Faint);
 

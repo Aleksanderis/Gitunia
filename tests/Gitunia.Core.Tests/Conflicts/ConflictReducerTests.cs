@@ -487,7 +487,7 @@ public class ConflictReducerTests
 
         var effect = Assert.IsType<CopyToClipboardEffect>(Assert.Single(copied.Effects));
         Assert.Equal("A1", effect.Text);
-        Assert.Equal("line", effect.Description);
+        Assert.Equal("1 line", effect.Description);
 
         var inResult = Press(copied.State, ActionIds.PaneFocusDown).State;
         var put = Press(inResult, ActionIds.ConflictEditorPutAfter);

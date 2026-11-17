@@ -1,3 +1,4 @@
+using Gitunia.Core.Text;
 using Gitunia.Git.Diff.Models;
 using Gitunia.Git.History.Models;
 using Gitunia.Git.Status.Models;
@@ -132,7 +133,7 @@ public static class DiffLineRanges
             return string.Empty;
         }
 
-        var noun = leftOut == 1 ? "1 uncommitted line is" : $"{leftOut} uncommitted lines are";
+        var noun = $"{CountText.Plural(leftOut, "uncommitted line")} {(leftOut == 1 ? "is" : "are")}";
 
         return $"{noun} not in the history";
     }

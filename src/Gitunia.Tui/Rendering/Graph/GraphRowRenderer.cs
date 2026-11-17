@@ -1,8 +1,8 @@
-using System.Globalization;
 using Gitunia.Core.Graph;
 using Gitunia.Core.Jump.Models;
 using Gitunia.Core.Search;
 using Gitunia.Core.Search.Models;
+using Gitunia.Core.Text;
 using Gitunia.Git.Refs.Models;
 using Gitunia.Tui.Rendering.Styling;
 
@@ -11,10 +11,6 @@ namespace Gitunia.Tui.Rendering.Graph;
 /// <summary>Draws one graph row: as a table: lanes, message (refs and subject), author, date and short hash, cut to the width.</summary>
 public static class GraphRowRenderer
 {
-    private const int HashLength = 7;
-    private const string DateFormat = "yyyy-MM-dd";
-    private const string DateTimeFormat = "yyyy-MM-dd HH:mm";
-
     // Blank columns between a row's own lines and its message.
     private const int MinimumLaneGap = 2;
 
@@ -79,15 +75,16 @@ public static class GraphRowRenderer
 
         if (columns.DateWidth > 0)
         {
-            var format = columns.DateWidth == GraphColumnLayout.DateOnlyWidth ? DateFormat : DateTimeFormat;
-            var date = entry.AuthorTime.DateTime.ToString(format, CultureInfo.InvariantCulture);
+            var date = columns.DateWidth == GraphColumnLayout.DateOnlyWidth
+                ? ValueFormat.Date(entry.AuthorTime)
+                : ValueFormat.DateTime(entry.AuthorTime);
             AppendColumn(builder, date, columns.DateWidth, SegmentRole.Faint, columns.ColumnGap, ellipsis);
         }
 
         if (columns.HashWidth > 0)
         {
             var isHashMatch = isMatch && options.Highlight!.Field == SearchField.Hash;
-            AppendColumn(builder, entry.Id.ToString()[..HashLength], columns.HashWidth, isHashMatch ? SegmentRole.SearchMatch : SegmentRole.Hash, columns.ColumnGap, ellipsis);
+            AppendColumn(builder, ShortHash.Of(entry.Id.ToString()), columns.HashWidth, isHashMatch ? SegmentRole.SearchMatch : SegmentRole.Hash, columns.ColumnGap, ellipsis);
         }
 
         return builder.Build(SegmentRole.Plain, isSelected);

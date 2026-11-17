@@ -130,7 +130,7 @@ public class QuickJumpReducerTests
 
     [Theory]
     [InlineData("", 0, "  type text, then press a label")]
-    [InlineData("fix", 0, "  no match in view")]
+    [InlineData("fix", 0, "  No matching text in view")]
     [InlineData("fix", 3, "  3 in view")]
     public void GivenTheTypedText_WhenDrawingTheStatusLine_ThenItSaysWhatIsInView(string text, int matches, string suffix)
     {

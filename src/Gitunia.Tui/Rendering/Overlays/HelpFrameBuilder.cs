@@ -130,10 +130,10 @@ public static class HelpFrameBuilder
         }
 
         var lead = content.Count > rowCount ? $"{first + 1}-{first + rowCount}/{content.Count}" : string.Empty;
-        var hints = new List<HintItem> { new("Esc", filter is null ? "close" : "clear filter") };
+        var hints = new List<HintItem> { new("Esc", filter is null ? HintVerb.Close : HintVerb.Clear) };
         if (isEditingFilter)
         {
-            hints.Add(new("Enter", "keep filter"));
+            hints.Add(new("Enter", HintVerb.Keep));
         }
 
         if (tabs.Count > 1)

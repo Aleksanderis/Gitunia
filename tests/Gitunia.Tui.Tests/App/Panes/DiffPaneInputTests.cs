@@ -895,7 +895,7 @@ public class DiffPaneInputTests
 
         harness.Execute(ActionIds.DiffLoadAnyway);
 
-        Assert.Equal("Nothing was cut short", Assert.Single(harness.Notices));
+        Assert.Equal("Nothing to load", Assert.Single(harness.Notices));
     }
 
     [Fact]

@@ -4,6 +4,7 @@ using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Lists;
 using Gitunia.Core.Status;
+using Gitunia.Core.Text;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Git.Refs;
@@ -31,7 +32,7 @@ public static class ReflogReducer
     public const string StillReadingNotice = "The reflog is still being read: choose again in a moment";
 
     /// <summary>The warning when a search step finds nothing and no search was typed.</summary>
-    public const string NoSearchNotice = "No search: press / first";
+    public const string NoSearchNotice = UiTexts.NoSearch;
 
     /// <summary>Applies a command.</summary>
     /// <param name="session">The session before.</param>
@@ -223,7 +224,7 @@ public static class ReflogReducer
     {
         if (list.MatchIndexes.Count == 0)
         {
-            return Warn(session, list.HasSearch ? $"No match for {list.SearchText}" : NoSearchNotice);
+            return Warn(session, list.HasSearch ? UiTexts.NoMatchFor(list.SearchText) : NoSearchNotice);
         }
 
         return With(session, list.StepMatch(forward, count ?? 1));

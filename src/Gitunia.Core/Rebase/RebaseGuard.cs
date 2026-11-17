@@ -1,4 +1,5 @@
 using Gitunia.Core.Operations;
+using Gitunia.Core.Text;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Git.Refs;
 using Gitunia.Git.Refs.Models;
@@ -30,14 +31,14 @@ public static class RebaseGuard
             return tab.Head?.Kind switch
             {
                 null => "The repository is still loading: try again in a moment",
-                HeadKind.Unborn => "The branch has no commits yet: nothing to rebase",
+                HeadKind.Unborn => $"The branch has no commits yet: {UiTexts.NothingTo("rebase")}",
                 _ => "HEAD is detached: switch to a branch first",
             };
         }
 
         if (sameCommit is not null && string.Equals(tab.Head.CommitHash, sameCommit, StringComparison.Ordinal))
         {
-            return $"{tab.Head.BranchName} is already at that commit: nothing to rebase";
+            return $"{tab.Head.BranchName} is already at that commit: {UiTexts.NothingTo("rebase")}";
         }
 
         if (tab.RebaseAutoStash)
@@ -51,7 +52,7 @@ public static class RebaseGuard
             return null;
         }
 
-        var files = RebaseCounts.Plural(changed, "file");
+        var files = CountText.Plural(changed, "file");
         return $"{files} with uncommitted changes: commit or stash them before a rebase";
     }
 
@@ -67,7 +68,7 @@ public static class RebaseGuard
             return null;
         }
 
-        var files = RebaseCounts.Plural(changed, "file");
+        var files = CountText.Plural(changed, "file");
         return $"{files} with uncommitted changes: git stashes them (rebase.autoStash) " +
             "and restores them afterwards; if that conflicts, the stash is kept.";
     }

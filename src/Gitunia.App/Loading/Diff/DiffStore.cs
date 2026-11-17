@@ -158,7 +158,7 @@ public sealed class DiffStore(
         Commit = commit;
         IsCut = false;
         Status = DiffStatus.Loading;
-        Document = DiffDocument.Message("Loading...");
+        Document = DiffDocument.Message(UiTexts.Loading);
         Changed?.Invoke();
         _pending = new CancellationTokenSource();
         var token = _pending.Token;

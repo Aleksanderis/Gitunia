@@ -4,6 +4,7 @@ using Gitunia.Core.Overlays;
 using Gitunia.Core.Prompts;
 using Gitunia.Core.Sidebar;
 using Gitunia.Core.Status;
+using Gitunia.Core.Text;
 using Gitunia.Git.Refs.Models;
 using Gitunia.Git.Remotes.Models;
 
@@ -26,10 +27,10 @@ public static class RemoteReducer
     public const string SyncRunsNotice = "Busy: a fetch, pull or push of this tab is still running";
 
     /// <summary>The row (and the notice on Enter) of the remote picker when nothing matches.</summary>
-    public const string NoRemoteMatch = "No matching remote";
+    public static readonly string NoRemoteMatch = UiTexts.NoMatch("remote");
 
     private const int ListedBranches = 5;
-    private const string TooSmallNotice = "The screen is too small to ask: nothing was changed";
+    private static readonly string TooSmallNotice = $"The screen is too small to ask: {UiTexts.NothingWas("changed")}";
     private const string NoRemoteNotice = "There is no remote: add one first";
     private const char RemoteSeparator = '/';
 
@@ -171,7 +172,7 @@ public static class RemoteReducer
         var name = accepted.Name.Trim();
         if (name.Length == 0)
         {
-            return [new ReopenPromptEffect("No name: nothing was added")];
+            return [new ReopenPromptEffect($"{UiTexts.Empty("name")}: {UiTexts.NothingWas("added")}")];
         }
 
         if (accepted.Remotes.Any(remote => remote.Name == name))
@@ -194,17 +195,17 @@ public static class RemoteReducer
         var url = accepted.Url.Trim();
         if (url.Length == 0)
         {
-            return [new ReopenPromptEffect("No URL: nothing was added")];
+            return [new ReopenPromptEffect($"{UiTexts.Empty("URL")}: {UiTexts.NothingWas("added")}")];
         }
 
         if (context.IsBusy)
         {
-            return [Post($"{BusyNotice}; nothing was added")];
+            return [Post($"{BusyNotice}; {UiTexts.NothingWas("added")}")];
         }
 
         if (context.IsSyncing)
         {
-            return [Post($"{SyncRunsNotice}; nothing was added")];
+            return [Post($"{SyncRunsNotice}; {UiTexts.NothingWas("added")}")];
         }
 
         return [new AddRemoteEffect(context.TabId, context.Location, accepted.Name, url)];
@@ -215,7 +216,7 @@ public static class RemoteReducer
         var newName = accepted.NewName.Trim();
         if (newName.Length == 0 || newName == accepted.OldName)
         {
-            return [new ReopenPromptEffect("Same or empty name: nothing was renamed")];
+            return [new ReopenPromptEffect(UiTexts.Unchanged("Name", "renamed"))];
         }
 
         if (accepted.Remotes.Any(remote => remote.Name == newName))
@@ -225,12 +226,12 @@ public static class RemoteReducer
 
         if (context.IsBusy)
         {
-            return [Post($"{BusyNotice}; nothing was renamed")];
+            return [Post($"{BusyNotice}; {UiTexts.NothingWas("renamed")}")];
         }
 
         if (context.IsSyncing)
         {
-            return [Post($"{SyncRunsNotice}; nothing was renamed")];
+            return [Post($"{SyncRunsNotice}; {UiTexts.NothingWas("renamed")}")];
         }
 
         return [new RenameRemoteEffect(context.TabId, context.Location, accepted.OldName, newName)];
@@ -241,17 +242,17 @@ public static class RemoteReducer
         var url = accepted.Url.Trim();
         if (url.Length == 0 || url == accepted.OldUrl)
         {
-            return [new ReopenPromptEffect("Same or empty URL: nothing was changed")];
+            return [new ReopenPromptEffect(UiTexts.Unchanged("URL", "changed"))];
         }
 
         if (context.IsBusy)
         {
-            return [Post($"{BusyNotice}; nothing was changed")];
+            return [Post($"{BusyNotice}; {UiTexts.NothingWas("changed")}")];
         }
 
         if (context.IsSyncing)
         {
-            return [Post($"{SyncRunsNotice}; nothing was changed")];
+            return [Post($"{SyncRunsNotice}; {UiTexts.NothingWas("changed")}")];
         }
 
         return [new SetRemoteUrlEffect(context.TabId, context.Location, accepted.Name, accepted.OldUrl, url)];
@@ -299,13 +300,13 @@ public static class RemoteReducer
     {
         if (context.IsBusy)
         {
-            return [Post($"{BusyNotice}; nothing was removed")];
+            return [Post($"{BusyNotice}; {UiTexts.NothingWas("removed")}")];
         }
 
         // A fetch may have started while the dialog was open; it must not race the removal of its remote.
         if (context.IsSyncing)
         {
-            return [Post($"{SyncRunsNotice}; nothing was removed")];
+            return [Post($"{SyncRunsNotice}; {UiTexts.NothingWas("removed")}")];
         }
 
         return [new RemoveRemoteEffect(context.TabId, context.Location, confirmed.Name, confirmed.Url)];

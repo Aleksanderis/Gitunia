@@ -224,7 +224,7 @@ public class HelpAllCommandsTests
         Assert.NotEmpty(byKey.Rows);
         Assert.Contains(byId.Rows, row => row.Action?.Value == "graph.copy-hash");
         Assert.Equal(byKey.Rows.Count(), byKey.Rows.Select(row => (row.Action?.Value, row.Keys)).Distinct().Count());
-        Assert.Equal("Nothing matches the filter.", Assert.Single(none.Rows).Description);
+        Assert.Equal("No matching action", Assert.Single(none.Rows).Description);
     }
 
     [Fact]

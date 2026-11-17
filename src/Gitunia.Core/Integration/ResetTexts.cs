@@ -20,7 +20,7 @@ public static class ResetTexts
     public const string BusyNotice = "Busy: the last reset is still running";
 
     /// <summary>Shown when the dialog does not fit the screen.</summary>
-    public const string TooSmallNotice = "The screen is too small to ask: nothing was reset";
+    public static readonly string TooSmallNotice = $"The screen is too small to ask: {UiTexts.NothingWas("reset")}";
 
     private const int ListedFiles = 6;
 
@@ -59,7 +59,7 @@ public static class ResetTexts
 
     /// <summary>The status line when the status could not be read.</summary>
     public static string StatusFailure(string reason) =>
-        $"Could not read the status, nothing was reset: {reason}";
+        $"Could not read the status, {UiTexts.NothingWas("reset")}: {reason}";
 
     /// <summary>The status line when git refused the reset.</summary>
     public static string Failure(string reason) => $"Could not reset: {reason}";

@@ -155,7 +155,7 @@ public class HelpAllCommandsFrameTests
 
         Assert.Equal(" Keys: Graph  / <space>gc ".PadRight(lines[0].Length), lines[0]);
         Assert.Equal(" ", TitleCursor(frame.Lines[0]));
-        Assert.Contains("Esc clear filter  Enter keep filter", lines[^2]);
+        Assert.Contains("Esc clear  Enter keep", lines[^2]);
         Assert.Contains(lines, line => line.Contains("<space>gc"));
         Assert.DoesNotContain(lines, line => line.Contains("<space>gd"));
     }
@@ -214,9 +214,9 @@ public class HelpAllCommandsFrameTests
 
         Assert.StartsWith(" Keys: Graph  / zzzqqq", lines[0]);
         Assert.DoesNotContain("_", lines[0]);
-        Assert.Contains(lines, line => line.Contains("Nothing matches the filter."));
-        Assert.Contains("Esc clear filter", lines[^2]);
-        Assert.DoesNotContain("Enter keep filter", lines[^2]);
+        Assert.Contains(lines, line => line.Contains("No matching action"));
+        Assert.Contains("Esc clear", lines[^2]);
+        Assert.DoesNotContain("Enter keep", lines[^2]);
     }
 
     [Fact]

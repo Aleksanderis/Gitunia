@@ -93,5 +93,5 @@ public class ReflogStateTests
         "HEAD",
         "HEAD",
         [.. Enumerable.Range(0, count).Select(index =>
-            new ReflogEntry(index, "abc", "commit", $"message {index}", "now"))]);
+            new ReflogEntry(index, "abc", "commit", $"message {index}", DateTimeOffset.UnixEpoch))]);
 }

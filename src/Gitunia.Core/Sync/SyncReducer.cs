@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using Gitunia.Core.Effects;
 using Gitunia.Core.Status;
+using Gitunia.Core.Text;
 using Gitunia.Git.Refs.Models;
 using Gitunia.Git.Remotes.Models;
 
@@ -26,10 +27,10 @@ public static class SyncReducer
     public const string NothingRunningNotice = "No fetch, pull or push is running";
 
     /// <summary>The row (and the notice on Enter) of the pickers when nothing matches.</summary>
-    public const string NoMatch = "No match";
+    public static readonly string NoMatch = UiTexts.NoMatch("branch");
 
     /// <summary>Shown when a confirm cannot be displayed (the screen is too small).</summary>
-    public const string TooSmallNotice = "The screen is too small to ask: nothing was changed";
+    public static readonly string TooSmallNotice = $"The screen is too small to ask: {UiTexts.NothingWas("changed")}";
 
     private const string PlainPushDone = "Pushed the current branch";
 
@@ -197,7 +198,7 @@ public static class SyncReducer
     {
         if (context.IsBusy)
         {
-            return Keep(context, [Post($"{BusyNotice}; nothing was pushed")]);
+            return Keep(context, [Post($"{BusyNotice}; {UiTexts.NothingWas("pushed")}")]);
         }
 
         return SyncPushQuestions.StartFirstPush(chosen.Branch, chosen.Remote, context);
@@ -207,7 +208,7 @@ public static class SyncReducer
     {
         if (context.IsBusy)
         {
-            return Keep(context, [Post($"{BusyNotice}; nothing was pushed")]);
+            return Keep(context, [Post($"{BusyNotice}; {UiTexts.NothingWas("pushed")}")]);
         }
 
         var branch = CurrentBranch(context.Refs)?.Name ?? string.Empty;

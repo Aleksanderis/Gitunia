@@ -279,7 +279,7 @@ public class RemoteReducerTests
     {
         var effects = Reduce(new RemoteRenameAccepted(Tab, Origin, "origin", name));
 
-        Assert.Equal("Same or empty name: nothing was renamed", PromptRejections.Reason(effects));
+        Assert.Equal("Name unchanged: nothing was renamed", PromptRejections.Reason(effects));
     }
 
     [Fact]
@@ -308,7 +308,7 @@ public class RemoteReducerTests
     {
         var effects = Reduce(new RemoteUrlAccepted(Tab, "origin", "old", url));
 
-        Assert.Equal("Same or empty URL: nothing was changed", PromptRejections.Reason(effects));
+        Assert.Equal("URL unchanged: nothing was changed", PromptRejections.Reason(effects));
     }
 
     [Fact]

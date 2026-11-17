@@ -1,6 +1,7 @@
 using System.Globalization;
 using Gitunia.Core.Jump.Models;
 using Gitunia.Core.Keymap.Repeat;
+using Gitunia.Core.Text;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Tui.Rendering.Diff;
@@ -17,7 +18,7 @@ public static class WorkingTreePaneRenderer
     public const string LoadingText = "Loading status...";
 
     /// <summary>Shown in the Unstaged list when nothing at all is changed.</summary>
-    public const string CleanText = "Nothing to commit, working tree clean";
+    public static readonly string CleanText = $"{UiTexts.Nothing("commit")}, working tree clean";
 
     /// <summary>Shown in the Unstaged list when only staged changes exist.</summary>
     public const string NoUnstagedText = "No unstaged changes";

@@ -1,4 +1,5 @@
 using Gitunia.Core.Overlays;
+using Gitunia.Core.Text;
 
 namespace Gitunia.Core.Prompts;
 
@@ -45,7 +46,7 @@ public static class OpenPromptPopup
             [prompt.Context],
             null,
             window.Rows,
-            [new("Enter", prompt.AcceptLabel), new("j/k/h/l", "select"), new("Esc", "cancel")],
+            [new("Enter", prompt.AcceptLabel), new("j/k/h/l", HintVerb.Move), new("Esc", HintVerb.Cancel)],
             Highlight: window.Highlight,
             Count: window.Position);
     }

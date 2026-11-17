@@ -28,7 +28,7 @@ public sealed record PromptRequest(
     IPromptResult OnAccepted,
     string InitialText = "",
     ImmutableArray<PromptChoice>? Choices = null,
-    string NoMatch = "No match",
+    string? NoMatch = null,
     TabId? Owner = null,
     bool ListOnly = false,
     ImmutableArray<PromptKeyChoice>? KeyChoices = null);

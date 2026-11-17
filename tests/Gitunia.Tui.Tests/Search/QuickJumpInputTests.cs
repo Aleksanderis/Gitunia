@@ -130,6 +130,6 @@ public class QuickJumpInputTests
         harness.Press(Key.Enter);
 
         Assert.Equal(1, harness.SelectedRow);
-        Assert.Equal("No match in view", harness.Notice);
+        Assert.Equal("No matching text in view", harness.Notice);
     }
 }

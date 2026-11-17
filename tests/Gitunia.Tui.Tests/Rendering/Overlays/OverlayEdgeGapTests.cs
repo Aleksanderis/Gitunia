@@ -18,6 +18,8 @@ public class OverlayEdgeGapTests
 {
     private static readonly KeyBindingTable Table = DefaultKeymap.Create();
 
+    private static readonly DateTimeOffset Now = new(2026, 11, 17, 12, 0, 0, TimeSpan.Zero);
+
     [Theory]
     [InlineData(40)]
     [InlineData(64)]
@@ -27,7 +29,7 @@ public class OverlayEdgeGapTests
     public void GivenAnyOverlay_WhenRenderingAtCommonWidths_ThenNoOneToThreeColumnGapIsLeftBesideIt(int screenWidth)
     {
         var prompt = new ConfirmPrompt("Delete", ["Delete branch x?"], "Cannot be undone.", "Delete");
-        var entries = new[] { new ReflogEntry(0, new string('a', 40), "commit", "message", "now") };
+        var entries = new[] { new ReflogEntry(0, new string('a', 40), "commit", "message", Now) };
         var frames = new Dictionary<string, OverlayFrame?>
         {
             ["palette"] = PaletteFrameBuilder.Build(
@@ -47,7 +49,8 @@ public class OverlayEdgeGapTests
                 new ReflogState(new TabId(1), "HEAD", "HEAD", entries),
                 screenWidth,
                 30,
-                GraphGlyphSet.Unicode),
+                GraphGlyphSet.Unicode,
+                Now),
             ["confirm"] = ConfirmFrameBuilder.Build(prompt, screenWidth, 30, GraphGlyphSet.Unicode),
             ["mainline"] = MainlineFrameBuilder.Build(
                 "Revert merge commit abc: keep the mainline of",

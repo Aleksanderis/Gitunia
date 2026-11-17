@@ -4,6 +4,7 @@ using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Reflog;
 using Gitunia.Core.Status;
 using Gitunia.Core.Tests.Fixtures;
+using Gitunia.Core.Text;
 using Gitunia.Core.Workspaces;
 using Gitunia.Git.Reflog.Models;
 using Gitunia.Git.Refs.Models;
@@ -321,7 +322,7 @@ public class ReflogReducerTests
     {
         var update = AppReducer.Reduce(OpenList(Opened("alpha"), 3), Pressed(ActionIds.SearchNext));
 
-        Assert.Equal("No search: press / first", Assert.IsType<PostStatusEffect>(Assert.Single(update.Effects)).Text);
+        Assert.Equal(UiTexts.NoSearch, Assert.IsType<PostStatusEffect>(Assert.Single(update.Effects)).Text);
     }
 
     [Fact]
@@ -526,7 +527,7 @@ public class ReflogReducerTests
 
     private static List<ReflogEntry> Entries(int count, Func<int, string>? message = null) =>
         [.. Enumerable.Range(0, count).Select(index => new ReflogEntry(index, Hash(index), "commit",
-            message?.Invoke(index) ?? "msg", "now"))];
+            message?.Invoke(index) ?? "msg", DateTimeOffset.UnixEpoch))];
 
     private static string Hash(int index) => new((char)('a' + index), 40);
 

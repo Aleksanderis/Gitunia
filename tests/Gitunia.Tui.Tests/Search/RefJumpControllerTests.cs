@@ -79,7 +79,7 @@ public class RefJumpControllerTests
         harness.Press(new Key('J'));
 
         harness.Type("zzz");
-        Assert.Contains("no matching ref or commit", harness.StatusLine.Plain, StringComparison.Ordinal);
+        Assert.Contains("No matching ref or commit", harness.StatusLine.Plain, StringComparison.Ordinal);
         harness.Press(Key.Enter);
 
         Assert.Equal(2, harness.SelectedRow);

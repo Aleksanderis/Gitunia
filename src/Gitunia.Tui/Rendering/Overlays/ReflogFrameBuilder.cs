@@ -19,19 +19,24 @@ public static class ReflogFrameBuilder
     private const int ActionRows = 4;
     private const int ScreenMargin = 2;
 
-    private static readonly HintItem[] PickerHints = [new("Enter", "open"), new("Esc", "back")];
+    private static readonly HintItem[] PickerHints = [new("Enter", HintVerb.Open), new("Esc", HintVerb.Back)];
 
     // The mouse paths of an entry: a click on a row runs the action on the highlighted entry.
     private static readonly ReflogEntryAction[] Actions =
     [
-        new("Enter", "select the commit in the graph", DefaultMouseMap.ReflogSelectButton),
+        new("Enter", $"{HintVerb.Select} the commit in the graph", DefaultMouseMap.ReflogSelectButton),
         new("<space>bx", "reset the current branch to it", DefaultMouseMap.ReflogResetButton),
         new("<space>bc", "create a branch here", DefaultMouseMap.ReflogBranchButton),
         new("<space>bs", "check it out (detached HEAD)", DefaultMouseMap.ReflogCheckoutButton),
     ];
 
     /// <summary>The reflog frame for a screen, or null when the screen is too small to show it.</summary>
-    public static OverlayFrame? Build(ReflogState state, int screenWidth, int screenHeight, GraphGlyphSet glyphs)
+    public static OverlayFrame? Build(
+        ReflogState state,
+        int screenWidth,
+        int screenHeight,
+        GraphGlyphSet glyphs,
+        DateTimeOffset now)
     {
         var width = OverlayMetrics.WidthFor(MaximumWidth, screenWidth, ScreenMargin);
         var maximumRows = Math.Min(MaximumRows, screenHeight - ScreenMargin - ChromeRows);
@@ -61,7 +66,7 @@ public static class ReflogFrameBuilder
             var selector = Selector(state, entry).PadRight(selectorWidth);
             lines.Add(OverlayBox.TwoColumns(
                 $"{hash}  {selector}  {message}",
-                entry.RelativeDate,
+                ValueFormat.Relative(entry.Date, now),
                 width,
                 glyphs,
                 SegmentRole.Plain,
@@ -131,7 +136,7 @@ public static class ReflogFrameBuilder
         var lines = new List<StyledLine> { OverlayBox.Title("Reflog: choose a ref", width, glyphs) };
         if (candidates.Count == 0)
         {
-            lines.Add(OverlayBox.Text("no matching branch", width, glyphs, SegmentRole.Faint));
+            lines.Add(OverlayBox.Text(UiTexts.NoMatch("branch"), width, glyphs, SegmentRole.Faint));
         }
 
         for (var offset = 0; offset < window.RowCount && window.Top + offset < candidates.Count; offset++)
@@ -175,10 +180,10 @@ public static class ReflogFrameBuilder
     {
         if (!state.HasSearch)
         {
-            return [new("/", "search"), new("Esc", "close")];
+            return [new("/", "search"), new("Esc", HintVerb.Close)];
         }
 
-        return [new("Esc", state.IsEditingSearch ? "cancel" : "clear")];
+        return [new("Esc", state.IsEditingSearch ? HintVerb.Cancel : HintVerb.Clear)];
     }
 
     private static string FooterLead(ReflogState state)
@@ -197,7 +202,7 @@ public static class ReflogFrameBuilder
         var matches = state.MatchIndexes;
         if (matches.Count == 0)
         {
-            return "no match";
+            return UiTexts.NoMatch("entry");
         }
 
         var current = matches.ToList().IndexOf(state.SelectedIndex) + 1;

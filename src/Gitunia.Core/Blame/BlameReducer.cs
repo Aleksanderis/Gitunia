@@ -29,7 +29,7 @@ public static partial class BlameReducer
     public const string UncommittedHistoryNotice = "This line is not committed yet: it has no history";
 
     /// <summary>The warning when a search step is asked for and no search was typed.</summary>
-    public const string NoSearchNotice = "No search: press / first";
+    public const string NoSearchNotice = UiTexts.NoSearch;
 
     /// <summary>The warning when the highlighted line comes from the first commit of its history.</summary>
     public const string NoParentNotice = "This line comes from the first commit of its history: it has no parent";
@@ -411,7 +411,7 @@ public static partial class BlameReducer
 
         if (found.Index < 0)
         {
-            return Warn(session, $"No match for {found.Query}");
+            return Warn(session, UiTexts.NoMatchFor(found.Query));
         }
 
         return With(session, (view with { PinnedTop = null }).MoveTo(found.Index));

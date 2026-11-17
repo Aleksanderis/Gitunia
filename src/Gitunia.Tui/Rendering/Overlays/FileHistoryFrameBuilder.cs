@@ -29,13 +29,12 @@ public static class FileHistoryFrameBuilder
     private const int ListShareParts = 2;
     private const int DividerWidth = 1;
     private const int MinimumDiffWidth = 10;
-    private const int ShortHashLength = 7;
 
     private const string NoHistoryText = "No history: the file is not in any commit";
     private const string NoRangeHistoryText = "No commit changed these lines";
-    private const string LoadingText = "Loading...";
+    private const string LoadingText = UiTexts.Loading;
     private const string SelectKey = "Enter";
-    private const string SelectLabel = "select the commit in the graph";
+    private static readonly string SelectLabel = $"{HintVerb.Select} the commit in the graph";
 
     /// <summary>The frame for a screen, or null when the screen is too small to show it.</summary>
     /// <param name="state">The open history.</param>
@@ -134,7 +133,7 @@ public static class FileHistoryFrameBuilder
         }
 
         var entry = state.Entries[index];
-        var hash = entry.Hash.Length > ShortHashLength ? entry.Hash[..ShortHashLength] : entry.Hash;
+        var hash = ShortHash.Of(entry.Hash);
         var role = index == window.Selected ? SegmentRole.Cursor : SegmentRole.Plain;
 
         return builder.Append($" {hash} {entry.Date} {Printable(entry.Subject)}", role).Build(role);
@@ -194,7 +193,7 @@ public static class FileHistoryFrameBuilder
         text.Replace("\t", "    ", StringComparison.Ordinal).Replace("\r", string.Empty, StringComparison.Ordinal);
 
     private static HintItem[] FooterHints() =>
-        [new("J/K", "scroll diff"), new("Enter", "graph"), new("Esc", "close")];
+        [new("J/K", HintVerb.Scroll), new("Enter", HintVerb.Select), new("Esc", HintVerb.Close)];
 
     private static string FooterLead(FileHistoryState state)
     {

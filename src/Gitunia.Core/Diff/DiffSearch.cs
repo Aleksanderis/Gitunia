@@ -1,3 +1,5 @@
+using Gitunia.Core.Text;
+
 namespace Gitunia.Core.Diff;
 
 /// <summary>Pure transitions of a diff search: open, edit, accept, step, cancel. Matching is a case-insensitive substring test on the row text.</summary>
@@ -37,7 +39,7 @@ public static class DiffSearch
         var matches = FindMatches(document, state.Text);
         if (matches.Count == 0)
         {
-            return new DiffSearchUpdate(DiffSearchState.Idle with { Notice = $"No match: {state.Text}" }, null);
+            return new DiffSearchUpdate(DiffSearchState.Idle with { Notice = UiTexts.NoMatchFor(state.Text) }, null);
         }
 
         var target = matches.FirstOrDefault(match => match >= row, matches[0]);
@@ -49,7 +51,7 @@ public static class DiffSearch
     {
         if (state.Phase != DiffSearchPhase.Active || state.Matches.Count == 0)
         {
-            return new DiffSearchUpdate(state with { Notice = "No search" }, null);
+            return new DiffSearchUpdate(state with { Notice = UiTexts.NoSearch }, null);
         }
 
         var matches = state.Matches;

@@ -3,6 +3,7 @@ using Gitunia.Core.Config.Models;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Keymap.Repeat;
+using Gitunia.Core.Text;
 using Gitunia.Core.Workspaces.Panes;
 
 namespace Gitunia.Tui.Rendering.Panes;
@@ -48,7 +49,7 @@ public static partial class PaneHints
     private static readonly ImmutableArray<KeyHint> Graph =
     [
         .. Pinned,
-        new("j/k", "move", [ActionIds.ListDown, ActionIds.ListUp]),
+        new("j/k", HintVerb.Move, [ActionIds.ListDown, ActionIds.ListUp]),
         new("<space>s", "Changes view", [ActionIds.WorkingTreeToggle]),
         new("gg/G", "top/end", [ActionIds.ListTop, ActionIds.ListBottom]),
         new("Ctrl-d/u", "page", [ActionIds.ListHalfPageDown, ActionIds.ListHalfPageUp]),
@@ -62,14 +63,14 @@ public static partial class PaneHints
     [
         .. Pinned,
         new("<space>=", "move mark", [ActionIds.GraphCompare]),
-        new("Esc", "end compare", [ActionIds.Cancel]),
+        new("Esc", HintVerb.Cancel, [ActionIds.Cancel]),
         .. Graph.Skip(Pinned.Length),
     ];
 
     private static readonly ImmutableArray<KeyHint> Sidebar =
     [
         .. Pinned,
-        new("j/k", "move", [ActionIds.ListDown, ActionIds.ListUp]),
+        new("j/k", HintVerb.Move, [ActionIds.ListDown, ActionIds.ListUp]),
         new("<space>s", "Changes view", [ActionIds.WorkingTreeToggle]),
         new("l/Enter", "expand", [ActionIds.SidebarExpand, ActionIds.SidebarActivate]),
         new("h", "collapse", [ActionIds.SidebarCollapse]),
@@ -81,14 +82,14 @@ public static partial class PaneHints
     private static readonly ImmutableArray<KeyHint> Detail =
     [
         .. Pinned,
-        new("j/k", "move", [ActionIds.ListDown, ActionIds.ListUp]),
+        new("j/k", HintVerb.Move, [ActionIds.ListDown, ActionIds.ListUp]),
         new("<space>s", "Changes view", [ActionIds.WorkingTreeToggle]),
         new("]/[", "tabs", [ActionIds.DetailNextTab, ActionIds.DetailPreviousTab]),
-        new("Enter", "open", [ActionIds.DetailOpenDiff]),
+        new("Enter", HintVerb.Open, [ActionIds.DetailOpenDiff]),
         new("<space>H", "file history", [ActionIds.FileHistoryOpen]),
         new("<space>gb", "blame", [ActionIds.BlameOpen]),
         new("<space>j", "quick jump", [ActionIds.QuickJump]),
-        new("Esc", "back", [ActionIds.NavigateBack]),
+        new("Esc", HintVerb.Back, [ActionIds.NavigateBack]),
         PaneMove,
     ];
 
@@ -102,13 +103,13 @@ public static partial class PaneHints
     private static readonly ImmutableArray<KeyHint> Diff =
     [
         .. Pinned,
-        new("j/k", "scroll", [ActionIds.ListDown, ActionIds.ListUp]),
+        new("j/k", HintVerb.Move, [ActionIds.ListDown, ActionIds.ListUp]),
         new("]c/[c", "hunk", [ActionIds.DiffNextHunk, ActionIds.DiffPreviousHunk]),
         new("]f/[f", "file", [ActionIds.DiffNextFile, ActionIds.DiffPreviousFile]),
         new("/", "search", [ActionIds.DiffSearchOpen]),
         new("<space>L", "line history", [ActionIds.LineHistoryOpen]),
         ViewOptions,
-        new("Esc", "back", [ActionIds.NavigateBack]),
+        new("Esc", HintVerb.Back, [ActionIds.NavigateBack]),
         new("<space>j", "quick jump", [ActionIds.QuickJump]),
         PaneMove,
     ];
@@ -116,13 +117,13 @@ public static partial class PaneHints
     private static readonly ImmutableArray<KeyHint> FileContent =
     [
         .. Pinned,
-        new("j/k", "scroll", [ActionIds.ListDown, ActionIds.ListUp]),
+        new("j/k", HintVerb.Move, [ActionIds.ListDown, ActionIds.ListUp]),
         new("/", "search", [ActionIds.DiffSearchOpen]),
         new("<space>j", "quick jump", [ActionIds.QuickJump]),
         new("<space>vw", "wrap", [ActionIds.DiffToggleWrap]),
         new("y", "copy line", [ActionIds.DiffCopyLine]),
         new("Y", "copy file", [ActionIds.DiffCopyFile]),
-        new("Esc", "back", [ActionIds.NavigateBack]),
+        new("Esc", HintVerb.Back, [ActionIds.NavigateBack]),
         PaneMove,
     ];
 
@@ -142,7 +143,7 @@ public static partial class PaneHints
         new("/", "search", [ActionIds.DiffSearchOpen]),
         new("<space>L", "line history", [ActionIds.LineHistoryOpen]),
         ViewOptions,
-        new("Esc", "back", [ActionIds.NavigateBack]),
+        new("Esc", HintVerb.Back, [ActionIds.NavigateBack]),
         new("<space>j", "quick jump", [ActionIds.QuickJump]),
         PaneJumps,
     ];
@@ -150,7 +151,7 @@ public static partial class PaneHints
     private static readonly ImmutableArray<KeyHint> WorkingUnstagedDiff =
     [
         .. Pinned,
-        new("j/k", "scroll", [ActionIds.ListDown, ActionIds.ListUp]),
+        new("j/k", HintVerb.Move, [ActionIds.ListDown, ActionIds.ListUp]),
         new("<space>a", "stage change", [ActionIds.WorkingTreeStage]),
         new("<space>d", "discard", [ActionIds.WorkingTreeDiscard]),
         new("v", "select lines", [ActionIds.VisualToggle]),
@@ -161,7 +162,7 @@ public static partial class PaneHints
     private static readonly ImmutableArray<KeyHint> WorkingStagedDiff =
     [
         .. Pinned,
-        new("j/k", "scroll", [ActionIds.ListDown, ActionIds.ListUp]),
+        new("j/k", HintVerb.Move, [ActionIds.ListDown, ActionIds.ListUp]),
         new("<space>u", "unstage change", [ActionIds.WorkingTreeUnstage]),
         new("v", "select lines", [ActionIds.VisualToggle]),
         .. WorkingDiffCommon,
@@ -171,10 +172,10 @@ public static partial class PaneHints
     private static readonly ImmutableArray<KeyHint> WorkingUnstaged =
     [
         .. Pinned,
-        new("j/k", "move", [ActionIds.ListDown, ActionIds.ListUp]),
+        new("j/k", HintVerb.Move, [ActionIds.ListDown, ActionIds.ListUp]),
         new("<space>a", "stage", [ActionIds.WorkingTreeStage]),
         new("<space>A", "stage all", [ActionIds.WorkingTreeStageAll]),
-        new("Enter", "diff", [ActionIds.WorkingTreeOpenDiff]),
+        new("Enter", HintVerb.Open, [ActionIds.WorkingTreeOpenDiff]),
         new("<space>d", "discard", [ActionIds.WorkingTreeDiscard]),
         new("<space>H", "file history", [ActionIds.FileHistoryOpen]),
         new("<space>gb", "blame", [ActionIds.BlameOpen]),
@@ -216,10 +217,10 @@ public static partial class PaneHints
     private static readonly ImmutableArray<KeyHint> WorkingStaged =
     [
         .. Pinned,
-        new("j/k", "move", [ActionIds.ListDown, ActionIds.ListUp]),
+        new("j/k", HintVerb.Move, [ActionIds.ListDown, ActionIds.ListUp]),
         new("<space>u", "unstage", [ActionIds.WorkingTreeUnstage]),
         new("<space>U", "unstage all", [ActionIds.WorkingTreeUnstageAll]),
-        new("Enter", "diff", [ActionIds.WorkingTreeOpenDiff]),
+        new("Enter", HintVerb.Open, [ActionIds.WorkingTreeOpenDiff]),
         new("<space>H", "file history", [ActionIds.FileHistoryOpen]),
         new("<space>gb", "blame", [ActionIds.BlameOpen]),
         new("<space>j", "quick jump", [ActionIds.QuickJump]),
@@ -241,27 +242,27 @@ public static partial class PaneHints
 
     private static readonly ImmutableArray<KeyHint> MessageEditing =
     [
-        new("Esc", "stop writing", [ActionIds.Cancel]),
-        new("Ctrl-g", "commit", [ActionIds.WorkingTreeCommit]),
+        new("Esc", HintVerb.Keep, [ActionIds.Cancel]),
+        new("Ctrl-g", HintVerb.Commit, [ActionIds.WorkingTreeCommit]),
         new("Alt-s/Alt-n/Alt-a", "options", [ActionIds.WorkingTreeToggleSignOff, ActionIds.WorkingTreeToggleNoVerify, ActionIds.WorkingTreeToggleAmend]),
     ];
 
     private static readonly ImmutableArray<KeyHint> Palette =
     [
-        new("Ctrl-j/k", "move", [ActionIds.PaletteNext, ActionIds.PalettePrevious]),
-        new("Enter", "run", [ActionIds.CommandExecute]),
-        new("Esc", "close", [ActionIds.Cancel]),
+        new("Ctrl-j/k", HintVerb.Move, [ActionIds.PaletteNext, ActionIds.PalettePrevious]),
+        new("Enter", HintVerb.Run, [ActionIds.CommandExecute]),
+        new("Esc", HintVerb.Close, [ActionIds.Cancel]),
     ];
 
     private static readonly ImmutableArray<KeyHint> Confirm =
     [
         new("y", "yes, do it", [ActionIds.ConfirmYes]),
-        new("n/Esc", "cancel", [ActionIds.ConfirmNo, ActionIds.Cancel]),
+        new("n/Esc", HintVerb.Cancel, [ActionIds.ConfirmNo, ActionIds.Cancel]),
     ];
 
     private static readonly ImmutableArray<KeyHint> Blame =
     [
-        new("Enter", "commit", [ActionIds.BlameShowCommit]),
+        new("Enter", HintVerb.Select, [ActionIds.BlameShowCommit]),
         new("Alt-p", "parent", [ActionIds.BlameParent]),
         new("<space>H", "history", [ActionIds.FileHistoryOpen]),
         new("<space>L", "line history", [ActionIds.LineHistoryOpen]),
@@ -271,30 +272,30 @@ public static partial class PaneHints
             [ActionIds.BlameIgnoreWhitespace, ActionIds.BlameDetectMoves, ActionIds.BlameDetectCopies]),
         new("/", "search", [ActionIds.SearchOpen]),
         new("n/N", "next/prev", [ActionIds.SearchNext, ActionIds.SearchPrevious]),
-        new("Esc", "close", [ActionIds.NavigateBack]),
+        new("Esc", HintVerb.Close, [ActionIds.NavigateBack]),
     ];
 
     private static readonly ImmutableArray<KeyHint> FileHistory =
     [
-        new("Enter", "graph", [ActionIds.FileHistorySelectCommit]),
-        new("J/K", "scroll", [ActionIds.DiffScrollDown, ActionIds.DiffScrollUp]),
-        new("Esc", "close", [ActionIds.NavigateBack]),
+        new("Enter", HintVerb.Select, [ActionIds.FileHistorySelectCommit]),
+        new("J/K", HintVerb.Scroll, [ActionIds.DiffScrollDown, ActionIds.DiffScrollUp]),
+        new("Esc", HintVerb.Close, [ActionIds.NavigateBack]),
     ];
 
     private static readonly ImmutableArray<KeyHint> Reflog =
     [
-        new("Enter", "select", [ActionIds.ReflogSelectCommit]),
+        new("Enter", HintVerb.Select, [ActionIds.ReflogSelectCommit]),
         new("/", "search", [ActionIds.SearchOpen]),
         new("<space>l", "ref", [ActionIds.ReflogOpen]),
         new("<space>bx", "reset", [ActionIds.ResetBranch]),
         new("<space>bc", "branch", [ActionIds.BranchCreate]),
         new("<space>bs", "checkout", [ActionIds.BranchSwitch]),
-        new("Esc", "close", [ActionIds.NavigateBack]),
+        new("Esc", HintVerb.Close, [ActionIds.NavigateBack]),
     ];
 
     private static readonly ImmutableArray<KeyHint> RebaseEditor =
     [
-        new("j/k", "move", [ActionIds.ListDown, ActionIds.ListUp]),
+        new("j/k", HintVerb.Move, [ActionIds.ListDown, ActionIds.ListUp]),
         new("p/r/s/f/d", "action", [
             ActionIds.RebaseEditorPick,
             ActionIds.RebaseEditorReword,
@@ -303,8 +304,8 @@ public static partial class PaneHints
             ActionIds.RebaseEditorDrop,
         ]),
         new("J/K", "reorder", [ActionIds.RebaseEditorMoveDown, ActionIds.RebaseEditorMoveUp]),
-        new("Enter", "start", [ActionIds.RebaseEditorStart]),
-        new("Esc", "cancel", [ActionIds.NavigateBack]),
+        new("Enter", HintVerb.Start, [ActionIds.RebaseEditorStart]),
+        new("Esc", HintVerb.Cancel, [ActionIds.NavigateBack]),
     ];
 
     private static readonly ImmutableArray<KeyHint> ConflictVersions =
@@ -321,8 +322,8 @@ public static partial class PaneHints
         new("e", "edit in result", [ActionIds.ConflictEditorEdit]),
         new("u", "undo", [ActionIds.ConflictEditorUndo]),
         new("Tab", "pane", [ActionIds.PaneNext]),
-        new("Ctrl-s", "save", [ActionIds.ConflictEditorSave]),
-        new("Esc", "close", [ActionIds.NavigateBack]),
+        new("Ctrl-s", HintVerb.Save, [ActionIds.ConflictEditorSave]),
+        new("Esc", HintVerb.Close, [ActionIds.NavigateBack]),
     ];
 
     private static readonly ImmutableArray<KeyHint> ConflictVisual =
@@ -330,7 +331,7 @@ public static partial class PaneHints
         new("<space>a", "take lines", [ActionIds.ConflictEditorTake]),
         new("<space>u", "untake lines", [ActionIds.ConflictEditorUntake]),
         new("y", "copy lines", [ActionIds.VisualCopy]),
-        new("j/k", "extend", [ActionIds.ListDown, ActionIds.ListUp]),
+        new("j/k", HintVerb.Move, [ActionIds.ListDown, ActionIds.ListUp]),
         new("v", "end selection", [ActionIds.VisualToggle]),
     ];
 
@@ -342,37 +343,37 @@ public static partial class PaneHints
         new("yy/p", "copy/put line", [ActionIds.ConflictEditorYankLine, ActionIds.ConflictEditorPutAfter]),
         new("u", "undo", [ActionIds.ConflictEditorUndo]),
         new("Tab", "pane", [ActionIds.PaneNext]),
-        new("Ctrl-s", "save", [ActionIds.ConflictEditorSave]),
-        new("Esc", "close", [ActionIds.NavigateBack]),
+        new("Ctrl-s", HintVerb.Save, [ActionIds.ConflictEditorSave]),
+        new("Esc", HintVerb.Close, [ActionIds.NavigateBack]),
     ];
 
     private static readonly ImmutableArray<KeyHint> ConflictEdit =
     [
-        new("Esc", "keep", [ActionIds.Cancel]),
-        new("Ctrl-g", "done", [ActionIds.ConflictEditorEditDone]),
-        new("Enter", "new line", [ActionIds.ConflictEditorEditNewLine]),
+        new("Esc", HintVerb.Keep, [ActionIds.Cancel]),
+        new("Ctrl-g", HintVerb.Done, [ActionIds.ConflictEditorEditDone]),
+        new("Enter", HintVerb.NewLine, [ActionIds.ConflictEditorEditNewLine]),
     ];
 
     private static readonly ImmutableArray<KeyHint> RebaseMessage =
     [
-        new("Ctrl-g", "done", [ActionIds.RebaseEditorMessageSave]),
-        new("Enter", "new line", [ActionIds.RebaseEditorMessageNewLine]),
-        new("Esc", "keep", [ActionIds.Cancel]),
+        new("Ctrl-g", HintVerb.Done, [ActionIds.RebaseEditorMessageSave]),
+        new("Enter", HintVerb.NewLine, [ActionIds.RebaseEditorMessageNewLine]),
+        new("Esc", HintVerb.Keep, [ActionIds.Cancel]),
     ];
 
     private static readonly ImmutableArray<KeyHint> Settings =
     [
-        new("j/k", "move", [ActionIds.ListDown, ActionIds.ListUp]),
-        new("l/Enter", "edit", [ActionIds.SettingsActivate, ActionIds.SettingsActivate]),
+        new("j/k", HintVerb.Move, [ActionIds.ListDown, ActionIds.ListUp]),
+        new("l/Enter", HintVerb.Edit, [ActionIds.SettingsActivate, ActionIds.SettingsActivate]),
         new("h", "back", [ActionIds.NavigateBack]),
         new("/", "filter", [ActionIds.SettingsFilter]),
-        new("Esc", "close", [ActionIds.NavigateBack]),
+        new("Esc", HintVerb.Close, [ActionIds.NavigateBack]),
     ];
 
     private static readonly ImmutableArray<KeyHint> RepeatContext =
     [
         new("+/-", "more/fewer context", [ActionIds.DiffMoreContext, ActionIds.DiffLessContext]),
-        new("Esc", "done", [ActionIds.RepeatEnd]),
+        new("Esc", HintVerb.Done, [ActionIds.RepeatEnd]),
     ];
 
     private static readonly ImmutableArray<KeyHint> RepeatResize =
@@ -380,7 +381,7 @@ public static partial class PaneHints
         new(">/<", "wider/narrower", [ActionIds.PaneWider, ActionIds.PaneNarrower]),
         new("+/-", "taller/shorter", [ActionIds.PaneTaller, ActionIds.PaneShorter]),
         new("=", "reset", [ActionIds.PaneResetSizes]),
-        new("Esc", "done", [ActionIds.RepeatEnd]),
+        new("Esc", HintVerb.Done, [ActionIds.RepeatEnd]),
     ];
 
     /// <summary>The only hint line of a pane while its repeat mode is on (#758).</summary>

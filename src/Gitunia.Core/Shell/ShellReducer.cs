@@ -4,6 +4,7 @@ using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Overlays;
 using Gitunia.Core.Prompts;
 using Gitunia.Core.Status;
+using Gitunia.Core.Text;
 using Gitunia.Core.Updates;
 
 namespace Gitunia.Core.Shell;
@@ -15,7 +16,8 @@ namespace Gitunia.Core.Shell;
 public static class ShellReducer
 {
     /// <summary>The warning shown when a resize leaves no room for the open dialog.</summary>
-    public const string ResizedNotice = "The screen became too small for the question: nothing was done";
+    public static readonly string ResizedNotice =
+        $"The screen became too small for the question: {UiTexts.NothingWas("done")}";
 
     /// <summary>Applies a command to the shell state.</summary>
     public static ShellUpdate Reduce(ShellState state, ShellCommand command) => command switch

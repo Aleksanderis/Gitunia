@@ -33,9 +33,9 @@ public static class RebaseEditorFrameBuilder
 
     private static readonly HintItem[] MessageHints =
     [
-        new("Ctrl-g", "done"),
-        new("Enter", "new line"),
-        new("Esc", "keep"),
+        new("Ctrl-g", HintVerb.Done),
+        new("Enter", HintVerb.NewLine),
+        new("Esc", HintVerb.Keep),
     ];
 
     private static readonly HintChip[] ChipLabels =
@@ -233,7 +233,7 @@ public static class RebaseEditorFrameBuilder
         return OverlayBox.Text(text.TrimEnd(), width, glyphs, SegmentRole.Faint);
     }
 
-    private static string Modified(RebaseEditorState state) => state.IsModified ? "edited" : "unchanged";
+    private static string Modified(RebaseEditorState state) => state.IsModified ? "edited" : "not edited";
 
     private static string ActionWord(RebaseTodoAction action) => action switch
     {

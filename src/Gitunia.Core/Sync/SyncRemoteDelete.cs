@@ -75,7 +75,7 @@ internal static class SyncRemoteDelete
     {
         if (context.IsBusy)
         {
-            return [SyncReducer.Post($"{SyncReducer.BusyNotice}; nothing was deleted")];
+            return [SyncReducer.Post($"{SyncReducer.BusyNotice}; {UiTexts.NothingWas("deleted")}")];
         }
 
         var effect = new DeleteRemoteBranchEffect(
@@ -97,7 +97,7 @@ internal static class SyncRemoteDelete
         var name = RemoteBranchName.Split(rowName, remotes);
         if (name is null || !branches.Any(item => item.Name == name))
         {
-            return [SyncReducer.Post($"{rowName} is not a branch on a remote: nothing to delete")];
+            return [SyncReducer.Post($"{rowName} is not a branch on a remote: {UiTexts.NothingTo("delete")}")];
         }
 
         return AskDelete(branches, name.Remote, name.Branch, context);
@@ -130,7 +130,7 @@ internal static class SyncRemoteDelete
         var target = branches.FirstOrDefault(item => item.Name.Remote == remote && item.Name.Branch == branch);
         if (target is null)
         {
-            return [SyncReducer.Post($"{remote}/{branch} is not a branch on a remote: nothing to delete")];
+            return [SyncReducer.Post($"{remote}/{branch} is not a branch on a remote: {UiTexts.NothingTo("delete")}")];
         }
 
         var prompt = new ConfirmPrompt(

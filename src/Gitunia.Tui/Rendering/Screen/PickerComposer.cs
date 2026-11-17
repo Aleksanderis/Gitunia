@@ -2,6 +2,7 @@ using System.Globalization;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Picker;
+using Gitunia.Core.Text;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Overlays;
 using Gitunia.Tui.Rendering.Styling;
@@ -103,7 +104,7 @@ public static class PickerComposer
     {
         var title = picker.LocatingTabId is null ? "Open repository" : "Locate repository";
         var left = $" {title}";
-        var count = $"{CountText(picker)} ";
+        var count = $"{RowCountText(picker)} ";
         var builder = new LineBuilder(width, glyphs.Ellipsis).Append(left, SegmentRole.OverlayTitle);
         var gap = width - TextWidth.Of(left) - TextWidth.Of(count);
         if (gap >= MinimumTitleGap)
@@ -114,15 +115,11 @@ public static class PickerComposer
         return builder.Build(SegmentRole.OverlayTitle);
     }
 
-    private static string CountText(PickerState picker)
+    private static string RowCountText(PickerState picker)
     {
-        var count = picker.Rows.Length.ToString(CultureInfo.InvariantCulture);
-        if (picker.IsPathMode)
-        {
-            return picker.Rows.Length == 1 ? $"{count} directory" : $"{count} directories";
-        }
-
-        return picker.Rows.Length == 1 ? $"{count} repository" : $"{count} repositories";
+        return picker.IsPathMode
+            ? CountText.Plural(picker.Rows.Length, "directory", "directories")
+            : CountText.Plural(picker.Rows.Length, "repository", "repositories");
     }
 
     private static StyledLine QueryLine(PickerState picker, int width, GraphGlyphSet glyphs, bool withHint, ChipKeys? keys)
@@ -402,12 +399,12 @@ public static class PickerComposer
 
         if (picker.IsPathMode)
         {
-            return " no matching directories";
+            return $" {UiTexts.NoMatch("directories")}";
         }
 
         if (picker.Query.Length > 0)
         {
-            return " no matching repositories";
+            return $" {UiTexts.NoMatch("repositories")}";
         }
 
         return " no repositories yet: type a path to open one";

@@ -1,5 +1,6 @@
 using Gitunia.Core.Editing;
 using Gitunia.Core.Lists;
+using Gitunia.Core.Text;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Rebase;
 
@@ -83,7 +84,7 @@ public sealed record RebaseEditorState(
             var first = Rows.FirstOrDefault(row => !row.IsStructure && row.Action != RebaseTodoAction.Drop);
             if (first?.Action is RebaseTodoAction.Squash or RebaseTodoAction.Fixup)
             {
-                return "The first commit that is kept cannot be a squash or a fixup: it has nothing to meld into";
+                return $"The first commit that is kept cannot be a squash or a fixup: it has {UiTexts.NothingTo("meld")} into";
             }
 
             return RebaseTodoValidator.FindProblem(ToEntries());
