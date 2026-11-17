@@ -1,18 +1,23 @@
 using System.Collections.Immutable;
 using Gitunia.Core.Config.Models;
 using Gitunia.Core.Editing;
+using Gitunia.Core.Filtering;
+using Gitunia.Core.Graph;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Mouse;
 using Gitunia.Core.Overlays;
 using Gitunia.Core.Prompts;
 using Gitunia.Core.Reflog;
+using Gitunia.Core.Search;
 using Gitunia.Core.Settings;
 using Gitunia.Core.Text;
 using Gitunia.Core.Workspaces.Tabs;
+using Gitunia.Git.Refs.Models;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Overlays;
 using Gitunia.Tui.Rendering.Styling;
+using Gitunia.Tui.Tests.Rendering.Graph;
 using Xunit;
 
 namespace Gitunia.Tui.Tests.Rendering.Overlays;
@@ -111,6 +116,85 @@ public class FilterListContractTests
         Assert.Equal(wheel.Previous, bindings.Single(binding => binding.View == wheel.View && binding.Gesture == MouseGesture.WheelUp).Action);
     }
 
+    /// <summary>
+    /// The surfaces drawn inside another screen (the settings column, the status bar) whose filter state is still the one
+    /// <c>FilterList</c>: they say loading and no match with the list's own texts.
+    /// </summary>
+    public static TheoryData<string> InlineSurfaces => ["settings-filter", "ref-jump"];
+
+    [Theory]
+    [MemberData(nameof(InlineSurfaces))]
+    public void GivenAnInlineSurface_WhenNothingMatches_ThenItsListSaysNoMatchFromUiTexts(string surface)
+    {
+        var list = InlineList(surface, Query);
+
+        Assert.Equal(NoMatchText(surface), list.EmptyText);
+        Assert.Equal(0, list.Count);
+        Assert.Null(list.Position);
+    }
+
+    [Theory]
+    [MemberData(nameof(InlineSurfaces))]
+    public void GivenAnInlineSurface_WhenItsListIsLoadingOrFailed_ThenItSaysSoFromTheList(string surface)
+    {
+        var list = InlineList(surface, string.Empty);
+
+        Assert.Equal(UiTexts.Loading, list.LoadingText);
+        Assert.Equal("failed", list.FailedText);
+    }
+
+    [Theory]
+    [MemberData(nameof(InlineSurfaces))]
+    public void GivenAnInlineSurface_WhenItsListHasRows_ThenItHasNoEmptyText(string surface)
+    {
+        var list = InlineList(surface, string.Empty);
+
+        Assert.Null(list.EmptyText);
+        Assert.True(list.Count > 0);
+    }
+
+    [Fact]
+    public void GivenARefJumpAndASettingsFilter_WhenTheyChooseAMatcher_ThenItIsTheOneMatcherOfItsKind()
+    {
+        var jump = RefJumpResolver.Resolve(TextField.Of(Query), [RefNamed("main")], RefJumpGraph());
+
+        Assert.Equal(MatcherKind.Fuzzy, jump.List.Kind);
+        Assert.Equal(MatcherKind.Contains, SettingsWithFilter(Query).Matches.Kind);
+    }
+
+    [Fact]
+    public void GivenNoSettingsOnOffer_WhenNothingIsTyped_ThenTheSettingsHelpSaysNothingNotNoMatch()
+    {
+        var load = SettingsValueReader.Read(new ConfigSnapshot(true, "{}", "hash"), HomeDirectory, _ => true);
+        var state = SettingsState.Create([], load);
+
+        var frame = SettingsFrameBuilder.Build(state, Width, Height, GraphGlyphSet.Unicode);
+
+        Assert.DoesNotContain(
+            frame!.Lines,
+            line => line.Text.Contains(UiTexts.NoMatch("setting"), StringComparison.Ordinal));
+    }
+
+    // The no-match status line of the ref jump is driven through the real controller in RefJumpControllerTests
+    // (GivenNoCandidate_WhenAccepting_ThenANoticeIsShownAndSelectionStays).
+    private static InlineFacts InlineList(string surface, string text) => surface == "ref-jump"
+        ? FactsOf(RefJumpResolver.Resolve(TextField.Of(text), [RefNamed("main"), RefNamed("topic")], RefJumpGraph()).List)
+        : FactsOf(SettingsWithFilter(text).Matches);
+
+    private static InlineFacts FactsOf<T>(FilterList<T> list) =>
+        new(list.EmptyText, list.Count, list.Position, list.Loading().EmptyText, list.Failed("failed").EmptyText);
+
+    private static GitRef RefNamed(string name)
+    {
+        var hash = CommitFactory.Id(1).ToString();
+
+        return new GitRef($"refs/heads/{name}", name, RefKind.LocalBranch, hash, hash, null, null, null, false, false, null, null);
+    }
+
+    private static CommitGraph RefJumpGraph() => CommitFactory.Graph(
+        CommitFactory.Commit(2, "two", [1]),
+        CommitFactory.Commit(1, "one", []));
+
     private static ActionId? ActionOf(string view, KeyMode mode, string name, KeyModifiers modifiers)
     {
         var sequence = new KeySequence([new KeyEvent(name, modifiers)]);
@@ -165,6 +249,7 @@ public class FilterListContractTests
         "reflog-picker" => UiTexts.NoMatch("branch"),
         "help-filter" => UiTexts.NoMatch("action"),
         "settings-filter" => UiTexts.NoMatch("setting"),
+        "ref-jump" => UiTexts.NoMatch(RefJumpResolver.Subject),
         _ => throw new ArgumentOutOfRangeException(nameof(surface), surface, null),
     };
 
@@ -210,13 +295,15 @@ public class FilterListContractTests
 
     private static PaletteState Palette() => new(PaletteEntryBuilder.Build(Table, DefaultKeymap.GraphView));
 
-    private static SettingsState SettingsWithFilter()
+    private static SettingsState SettingsWithFilter(string text = Query)
     {
         var load = SettingsValueReader.Read(new ConfigSnapshot(true, "{}", "hash"), HomeDirectory, _ => true);
         var state = SettingsState.Create([.. SettingsRegistry.All], load);
 
-        return state.WithFilterText(TextField.Of(Query));
+        return state.WithFilterText(TextField.Of(text));
     }
+
+    private sealed record InlineFacts(string? EmptyText, int Count, string? Position, string? LoadingText, string? FailedText);
 
     private sealed record WheelSurface(string View, ActionId Next, ActionId Previous);
 
