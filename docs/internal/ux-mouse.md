@@ -112,7 +112,7 @@ Views inherit like in the keymap: `Lists` covers Graph, Detail, Sidebar, Diff an
 | ConflictButton.Untake | Click | `conflict-editor.untake` | Chip `<space>u untake` (`untake lines` during a Visual selection) |
 | ConflictButton.Edit | Click | `conflict-editor.edit` | Chip `e edit in result` (`i type` in the result pane): moves into the result at the current conflict and starts typing |
 | ConflictButton.Recreate | Click | `conflict-editor.recreate` | Chip `Ctrl-x re-create`: asks first |
-| ConflictButton.EditDone | Click | `conflict-editor.edit-done` | Chip `Ctrl-g keep`, the only chip while the result is typed in |
+| ConflictButton.EditDone | Click | `conflict-editor.edit-done` | Chip `Ctrl-g done`, the only chip while the result is typed in |
 | ConflictButton.Next | Click | `conflict-editor.next` | Chip `n next conflict` |
 | ConflictButton.Previous | Click | `conflict-editor.previous` | Chip `N previous conflict` |
 | ConflictButton.Save | Click | `conflict-editor.save` | Chip `Ctrl-s save`: saves and stages (asks first when conflicts are unresolved, and then does not stage) |

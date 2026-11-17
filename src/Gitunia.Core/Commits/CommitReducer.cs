@@ -29,7 +29,6 @@ namespace Gitunia.Core.Commits;
 /// </summary>
 public static class CommitReducer
 {
-
     /// <summary>Applies a command.</summary>
     /// <param name="command">What happened.</param>
     /// <param name="context">The tab the command is for and the facts around it.</param>

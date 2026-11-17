@@ -11,8 +11,9 @@ using Xunit;
 namespace Gitunia.Core.Tests.Editing;
 
 /// <summary>
-/// The same scenario against every text field of the app that edits through <see cref="PromptTextEditor"/>: type,
-/// Left, Ctrl-w, Backspace on a grapheme, paste. A new field adds itself to <see cref="Surfaces"/>.
+/// The same scenario against the text fields whose state is reduced in Core and that edit through
+/// <see cref="PromptTextEditor"/>: type, Left, Ctrl-w, Backspace on a grapheme, paste. A new field adds itself to
+/// <see cref="Surfaces"/>.
 /// </summary>
 [Trait("Os", "Independent")]
 public class TextFieldContractTests
