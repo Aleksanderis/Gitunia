@@ -17,12 +17,13 @@ using Gitunia.Git.Status.Models;
 namespace Gitunia.App.Loading;
 
 /// <summary>Loads everything a freshly opened tab shows (HEAD, refs, the streamed graph) and hands each result to the UI thread.</summary>
-public sealed class RepositoryLoader
+public sealed class RepositoryLoader : IDisposable
 {
     private readonly IRefReader _refs;
     private readonly IStatusReader _status;
     private readonly GraphLoader _graphLoader;
     private readonly SidebarDataLoader _sidebarLoader;
+    private readonly GraphPrefetch _prefetch;
 
     public RepositoryLoader(IRefReader refs, IStatusReader status, GraphLoader graphLoader, SidebarDataLoader sidebarLoader)
     {
@@ -30,7 +31,20 @@ public sealed class RepositoryLoader
         _status = status;
         _graphLoader = graphLoader;
         _sidebarLoader = sidebarLoader;
+        _prefetch = new GraphPrefetch(graphLoader);
     }
+
+    /// <summary>Starts the graph read of a path given at startup before discovery has resolved it (#1392).</summary>
+    public void PrefetchGraph(string path) => _prefetch.Start(path);
+
+    /// <summary>Discovery resolved the prefetched path to this repository: its tab load may take the running read.</summary>
+    public void ConfirmPrefetch(RepositoryLocation location) => _prefetch.Confirm(location);
+
+    /// <summary>Discovery failed: stops the prefetched read.</summary>
+    public void DiscardPrefetch() => _prefetch.Discard();
+
+    /// <summary>Stops a prefetched read nobody claimed.</summary>
+    public void Dispose() => _prefetch.Dispose();
 
     /// <param name="location">The repository of the tab.</param>
     /// <param name="session">Receives the graph rows.</param>
@@ -44,10 +58,13 @@ public sealed class RepositoryLoader
         // first rows wait for both, and Windows starts processes one at a time, so the other reads usually start after
         // them instead of in front (#1378: ~45 to ~12 ms from the log's start to the first rows). The processes start
         // on pool threads, so this is the queue order, not a guarantee.
-        var cut = new GraphCut();
-        var batches = _graphLoader.StreamCappedAsync(location, cut, token).GetAsyncEnumerator(token);
+        using var prefetched = _prefetch.Claim(location);
+        await using var link = prefetched is null ? default : token.Register(prefetched.Cancel);
+        var cut = prefetched?.Cut ?? new GraphCut();
+        var batches = prefetched?.Batches
+            ?? _graphLoader.StreamCappedAsync(location, cut, token).GetAsyncEnumerator(token);
         await using var disposeBatches = batches.ConfigureAwait(false);
-        var next = batches.MoveNextAsync();
+        var next = prefetched is null ? batches.MoveNextAsync() : new ValueTask<bool>(prefetched.First);
         var metadata = LoadMetadataAsync(location, session.TabId, host, statuses, ui, token);
         var sidebarData = _sidebarLoader.LoadAsync(location, session.TabId, host, statuses, ui, token);
         try
