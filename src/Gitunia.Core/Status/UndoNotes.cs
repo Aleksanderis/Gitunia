@@ -14,8 +14,7 @@ public static class UndoNotes
     /// <summary>The reflog and its key; the token is resolved where the keymap is known (#1196).</summary>
     public static readonly string Reflog = KeyTokens.Of(ActionIds.ReflogOpen, "the reflog");
 
-    /// <summary>How an undo note starts; <see cref="IsUndoNote"/> tells a reassuring note from a warning by it.</summary>
-    public const string UndoNotePrefix = "Afterwards ";
+    private const string UndoNotePrefix = "Afterwards ";
 
     /// <summary>For actions that git can undo with a command we know: the message history will hold it.</summary>
     public static readonly string FromHistory = $"{UndoNotePrefix}{MessageHistory} shows how to bring it back.";
@@ -24,8 +23,11 @@ public static class UndoNotes
     public static readonly string FromReflog =
         $"{UndoNotePrefix}you can go back from {Reflog}; {MessageHistory} has the exact command.";
 
-    /// <summary>Whether <paramref name="text"/> is one of the undo notes (reassuring) and not a warning about what is lost.</summary>
-    public static bool IsUndoNote(string text) => text.StartsWith(UndoNotePrefix, StringComparison.Ordinal);
+    /// <summary>
+    /// Whether <paramref name="text"/> is exactly one of the undo notes (reassuring), not a warning that merely
+    /// contains one.
+    /// </summary>
+    public static bool IsUndoNote(string text) => text == FromHistory || text == FromReflog;
 
     /// <summary>The detail line of a status message: what to run, in the message history.</summary>
     public static string Restore(string command) => $"Restore: {command}";

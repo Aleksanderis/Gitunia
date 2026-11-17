@@ -1,9 +1,9 @@
 using System.Globalization;
 using Gitunia.Core.Lists;
 using Gitunia.Core.Mouse;
-using Gitunia.Git.Reflog.Models;
 using Gitunia.Core.Reflog;
 using Gitunia.Core.Text;
+using Gitunia.Git.Reflog.Models;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Styling;
 

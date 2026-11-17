@@ -301,7 +301,7 @@ The pieces every screen should draw with, so that the same thing looks and behav
 
 | Component | What it does | Surfaces that use it |
 |---|---|---|
-| `OverlayBox` (`Rendering/Overlays`) | Box, title bar, body rows, footer and bottom rule of an overlay; `OverlayMetrics.Snap` widens a popup that would leave one or two columns beside it, so the app frame never shows next to its border | Every overlay builder (settings, picker and prompt popups snap; the others follow in a later change) |
+| `OverlayBox` (`Rendering/Overlays`) | Box, title bar, body rows, footer and bottom rule of an overlay. Widths come from `OverlayMetrics` (Core): `Snap` widens a popup that would leave one to three columns beside it, so the app frame never shows next to its border | Every overlay builder (settings, picker and prompt popups snap; the others follow in a later change) |
 | `CaretField` (`Rendering/Styling`) | A one-line text with its caret drawn as a cursor cell; the typed text is plain, never the key colour | Prompts, picker, palette title, sidebar, help, settings, blame, reflog, find bar |
 | `PromptTextEditor` (Core) | One-line editing (caret, word motions, `Ctrl-w`) | Prompts, picker, help, settings, searches, filters, jumps |
 | `MessageEditor` (Core) | Multi-line editing | Commit box, conflict result, reword |

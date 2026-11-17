@@ -8,9 +8,9 @@ Archive of `docs/decisions.md`: decisions that are superseded, closed or purely 
 
 **UI:** External tools (`$EDITOR`, difftool, mergetool) get the terminal by suspending the TUI; clipboard via OSC 52; commit messages use a built-in Insert-mode editor or `$EDITOR` (2026-10-15).
 
-**UI:** Terminal.Gui needs `Application.MaximumIterationsPerSecond` ~100 (default 25 gave ~34 ms key latency), an append-only list source for streamed commits, and key handling at the application level. Why and further pitfalls: `docs/history/architecture.md`.
+**UI:** Terminal.Gui needs `Application.MaximumIterationsPerSecond` ~100 (default 25 gave ~34 ms key latency), an append-only list source for streamed commits, and key handling at the application level. Why and further pitfalls: `docs/internal/history/architecture.md`.
 
-**Git layer:** Standalone launch resolves paths with `git -C <path> rev-parse` and dedupes tabs by the resolved toplevel (spike #3). Detail: `docs/history/git-layer.md`.
+**Git layer:** Standalone launch resolves paths with `git -C <path> rev-parse` and dedupes tabs by the resolved toplevel (spike #3). Detail: `docs/internal/history/git-layer.md`.
 
 ## 2026-10-11
 
@@ -18,17 +18,17 @@ Archive of `docs/decisions.md`: decisions that are superseded, closed or purely 
 
 **UI:** The owner confirmed Terminal.Gui as the renderer, so M1 UI work may start. Key style for M1 (#8): agents draft it from common vim-style patterns, the owner adjusts after use, so the keymap stays data-driven.
 
-**UI:** M1 key design (#8): `Tab` and `Ctrl-w` + direction move pane focus, single keys per view with a `<space>` leader for global actions, chords show which-key after 500 ms and never time out, Insert mode swallows printable keys. Detail: `docs/history/ux.md`.
+**UI:** M1 key design (#8): `Tab` and `Ctrl-w` + direction move pane focus, single keys per view with a `<space>` leader for global actions, chords show which-key after 500 ms and never time out, Insert mode swallows printable keys. Detail: `docs/internal/history/ux.md`.
 
 **Git layer:** Commit ids are a fixed 40-byte `ObjectId` struct (#13) instead of interned strings. Why: no allocation per parent link or comparison; the default log excludes `refs/stash`.
 
-**Git layer:** The diff parser (#15) is incremental, keeps every header and hunk line verbatim so patches reproduce git's text, and partial staging builds patches from hunk and line selections. Limits (combined diffs, invalid UTF-8, binary files): `docs/history/git-layer.md`.
+**Git layer:** The diff parser (#15) is incremental, keeps every header and hunk line verbatim so patches reproduce git's text, and partial staging builds patches from hunk and line selections. Limits (combined diffs, invalid UTF-8, binary files): `docs/internal/history/git-layer.md`.
 
 **Architecture:** Graph lane layout (#16) is incremental with stable columns: a lane waits for exactly one commit id, lanes are not shifted left. Why: columns must not jump while scrolling or loading, and cost is O(open lanes) per commit.
 
 **Architecture:** Workspace state (#17) is immutable records with a pure reducer; tab ids are never reused, late results for closed tabs are dropped, tabs dedupe by root path.
 
-**Architecture:** The graph view (#22) keeps Terminal.Gui code in `Views` and `Input`; `Rendering` has only text frames (`--print-frame WxH` prints one for snapshot tests and CI smoke). Graph rows keep a compact entry, not the full `CommitInfo`. Detail: `docs/history/architecture.md`.
+**Architecture:** The graph view (#22) keeps Terminal.Gui code in `Views` and `Input`; `Rendering` has only text frames (`--print-frame WxH` prints one for snapshot tests and CI smoke). Graph rows keep a compact entry, not the full `CommitInfo`. Detail: `docs/internal/history/architecture.md`.
 
 **Git layer:** File watching (#27) uses one `RepositoryWatcher` per tab and a shared watcher budget, with polling as the fallback where watching fails. Why: `FileSystemWatcher` is cross-platform, so no Platform involvement.
 
@@ -50,7 +50,7 @@ Archive of `docs/decisions.md`: decisions that are superseded, closed or purely 
 
 **Git layer:** Commit details (#24) read the full message with `git log -1` and files with `diff-tree` against the explicit first parent. Why: `diff-tree` shows merges against every parent and ignores `--first-parent`. Loading was later changed in #215.
 
-**UI:** The diff viewer (#25) always loads the whole commit's diff (against its first parent), not one file, because file jumps and rename detection need all files; layout is pure data (`PaneLayout`). Detail: `docs/history/ux.md`.
+**UI:** The diff viewer (#25) always loads the whole commit's diff (against its first parent), not one file, because file jumps and rename detection need all files; layout is pure data (`PaneLayout`). Detail: `docs/internal/history/ux.md`.
 
 **UI:** Status messages (#93) go through one global `StatusChannel` with a log of the last 50; key-action notices stay transient. Dismiss `<space>x`, history `<space>m`.
 
@@ -58,7 +58,7 @@ Archive of `docs/decisions.md`: decisions that are superseded, closed or purely 
 
 **UI:** Diff extras (#106): word wrap is real wrapping, "Load anyway" lifts the row caps, and the diff follows the graph selection. Dropped: progressive display while streaming and binary content.
 
-**UI:** The mouse follows the key path (#64): gestures map to action ids through a mouse map and run the same handlers as keys; the toolkit's own wheel scrolling is replaced. Detail: `docs/history/ux.md`.
+**UI:** The mouse follows the key path (#64): gestures map to action ids through a mouse map and run the same handlers as keys; the toolkit's own wheel scrolling is replaced. Detail: `docs/internal/history/ux.md`.
 
 ## 2026-10-13
 
@@ -80,7 +80,7 @@ Archive of `docs/decisions.md`: decisions that are superseded, closed or purely 
 
 **UI:** Ref label glyphs (owner review of #198): `◆ ` marks the current branch and ` ↔` a branch that also stands for its remote; the bottom pane's tabs are buttons on a panel background. Why: emoji looked odd; both glyphs are one cell wide in common fonts.
 
-**UI:** Diffs are part of the Changes tab (owner decision): at 72 columns or more the diff sits beside the file list and `j`/`k` in the list show that file's diff at once; narrower screens keep the on-demand open. Rules for `h`/`l`: `docs/history/ux.md`.
+**UI:** Diffs are part of the Changes tab (owner decision): at 72 columns or more the diff sits beside the file list and `j`/`k` in the list show that file's diff at once; narrower screens keep the on-demand open. Rules for `h`/`l`: `docs/internal/history/ux.md`.
 
 **Architecture:** Diff prefetch (#225) reads the neighbours of the shown commit into a bounded cache (`diff_step_ms` ~37 to ~20 ms); bigger commits are not prefetched, a partial-diff cache was tried and dropped (#235).
 
@@ -346,4 +346,4 @@ Archive of `docs/decisions.md`: decisions that are superseded, closed or purely 
 
 Short dated log of non-obvious settled choices that cut across docs. Add an entry only when the choice is not already evident from `ux.md`, `architecture.md` or the code, or when it overrides an earlier decision; a behaviour change documented in `ux.md` needs none. Agents follow these without asking. Open questions live in `roadmap.md`.
 
-Format: dated heading, entries appended at the end, each starting with a bold topic tag (**Stack**, **Git layer**, **UI**, **Testing**, **Process**, **Code structure**), one or two lines (decision and why), a blank line between entries. The full text of long entries, implementation detail, measurements and limits live in `docs/history/` (moved there, same wording), the area docs (`architecture.md`, `git-layer.md`, `ux.md`, `testing.md`), or the issue or PR. When a decision changes, append a new entry that supersedes the old one.
+Format: dated heading, entries appended at the end, each starting with a bold topic tag (**Stack**, **Git layer**, **UI**, **Testing**, **Process**, **Code structure**), one or two lines (decision and why), a blank line between entries. The full text of long entries, implementation detail, measurements and limits live in `docs/internal/history/` (moved there, same wording), the area docs (`architecture.md`, `git-layer.md`, `ux.md`, `testing.md`), or the issue or PR. When a decision changes, append a new entry that supersedes the old one.

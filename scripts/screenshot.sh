@@ -317,7 +317,7 @@ scenario_marker() { # scenario_marker SCENARIO: text the captured frame must hol
     files-whichkey) echo "Quick jump to a visible row" ;;
     files-filter) echo "mul" ;;
     file-content) echo "─ Files" ;;
-    palette) echo ": " ;;
+    palette) echo "Ctrl-j/k move" ;;
     whichkey) echo "Cycle the command level" ;;
     level-toggle) echo ": ref" ;;
     help) echo "Keys: Graph" ;;
@@ -352,7 +352,7 @@ scenario_marker() { # scenario_marker SCENARIO: text the captured frame must hol
     working-resolve) echo "Mark conflict resolved" ;;
     working-empty-staged) echo "─ Unstaged 1" ;;
     settings) echo "Settings" ;;
-    settings-choice) echo "Settings" ;;
+    settings-choice) echo "Theme" ;;
     settings-narrow) echo "Settings" ;;
     settings-keys) echo "Key reference" ;;
     settings-keys-entry) echo "config.json keys entry" ;;
@@ -364,17 +364,17 @@ scenario_marker() { # scenario_marker SCENARIO: text the captured frame must hol
     status-settled) echo "Fetched" ;;
     working-commit) echo "Commit" ;;
     working-hook) echo "pre-commit" ;;
-    conflict-editor) echo "Conflict:" ;;
-    conflict-editor-two) echo "Conflict:" ;;
-    conflict-editor-narrow) echo "Conflict:" ;;
+    conflict-editor) echo "conflict 2 of 5  1 resolved" ;;
+    conflict-editor-two) echo "conflict 2 of 5  1 resolved" ;;
+    conflict-editor-narrow) echo "conflict 2 of 5  1 resolved" ;;
     conflict-editor-visual) echo "VISUAL" ;;
-    conflict-editor-lines) echo "Conflict:" ;;
-    conflict-editor-result) echo "Conflict:" ;;
+    conflict-editor-lines) echo "lines you picked" ;;
+    conflict-editor-result) echo "conflict 2 of 5  1 resolved" ;;
     conflict-editor-edit) echo "INSERT" ;;
-    conflict-editor-click) echo "Conflict:" ;;
+    conflict-editor-click) echo "conflict 1 of 5  0 resolved" ;;
     conflict-editor-double-click) echo "taken from theirs" ;;
-    conflict-editor-untake) echo "Conflict:" ;;
-    conflict-editor-hscroll) echo "Conflict:" ;;
+    conflict-editor-untake) echo "conflict 2 of 5  1 resolved" ;;
+    conflict-editor-hscroll) echo "conflict 2 of 5  0 resolved" ;;
     conflict-entry) echo "MERGING" ;;
     conflict-entry-keys) echo "conflict editor" ;;
     conflict-add-add-entry) echo "REBASING" ;;
@@ -385,6 +385,14 @@ scenario_marker() { # scenario_marker SCENARIO: text the captured frame must hol
     rebase-reword) echo "Reword" ;;
     rebase-confirm) echo "Rebase cleanup onto" ;;
     rebase-narrow) echo "Interactive rebase" ;;
+    *) echo "" ;;
+  esac
+}
+
+scenario_colour() { # scenario_colour SCENARIO: colour code the ANSI frame must hold (a theme preview shows in colours only)
+  case "$1" in
+    theme-preview | theme-kept | theme-latte) echo "48;2;239;241;245" ;; # the Catppuccin Latte background
+    theme-tokyo) echo "48;2;26;27;38" ;; # the Tokyo Night background
     *) echo "" ;;
   esac
 }
@@ -546,6 +554,7 @@ render() {
       scenario_repo="$work/repo-dirty"
       [ -d "$scenario_repo" ] || make_dirty_repo "$repo" "$scenario_repo"
     fi
+    rm -rf "$work/config" && mkdir -p "$work/config" # a scenario that saves a setting (theme-kept) must not change the next one
     if [[ -n "${GITUNIA_SCREENSHOT_CONFIG:-}" ]]; then
       # Optional config.json for the private config directory (options such as frameStyle).
       mkdir -p "$work/config/gitunia"
@@ -553,6 +562,7 @@ render() {
     fi
     tmux_cmd kill-session -t shot 2>/dev/null || true
     rm -rf "$work/state" && mkdir -p "$work/state" # the saved session of the last scenario would add its tab to this one
+    # A fixed identity, so a commit made by a scenario (working-hook) gets as far as its hook.
     tmux_cmd new-session -d -s shot -x "$columns" -y "$rows" "exec env COLORTERM=truecolor XDG_STATE_HOME=$(printf '%q' "$work/state") XDG_CONFIG_HOME=$(printf '%q' "$work/config") GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_SYSTEM=/dev/null GIT_AUTHOR_NAME=\"Ada Lovelace\" GIT_AUTHOR_EMAIL=ada@example.com GIT_COMMITTER_NAME=\"Ada Lovelace\" GIT_COMMITTER_EMAIL=ada@example.com $(printf '%q %q' "$binary" "$scenario_repo")"
     wait_stable "$socket"
     if [ -n "$keys" ]; then
@@ -610,7 +620,14 @@ render() {
       cat "$work/$scenario.txt" >&2
       stale="$stale $scenario"
     fi
+    local colour
+    colour="$(scenario_colour "$scenario")"
+    if [ -n "$colour" ] && ! grep -qF -- "$colour" "$work/$scenario.ansi"; then
+      echo "scenario '$scenario' did not reach its screen: the frame has no colour $colour" >&2
+      stale="$stale $scenario"
+    fi
     if [ "$keep_ans" = 1 ]; then cp "$work/$scenario.ansi" "$out_dir/$scenario.ans"; cp "$work/$scenario.txt" "$out_dir/$scenario.txt"; fi
+    case " $stale " in *" $scenario "*) continue ;; esac # no image of a frame that is not the scenario's screen
     dotnet "$converter" --theme "$theme" --columns "$columns" --rows "$rows" <"$work/$scenario.ansi" >"$work/$scenario.svg"
     rsvg-convert "$work/$scenario.svg" -o "$out_dir/$scenario.png"
     echo "wrote $out_dir/$scenario.png" >&2

@@ -209,6 +209,11 @@ public static class HelpBuilder
         return tabs;
     }
 
+    /// <summary>The contextual pages for <paramref name="view"/>, as <see cref="Build"/> lists them first.</summary>
+    /// <param name="table">The bindings.</param>
+    /// <param name="view">The focused view.</param>
+    /// <param name="level">The command level.</param>
+    /// <param name="upstreamGoneMark">The glyph set's mark for a branch whose upstream is gone.</param>
     public static List<HelpTab> Contextual(
         KeyBindingTable table,
         string view,

@@ -28,7 +28,10 @@ public static class OverlayMetrics
         return width >= MinimumWidth && gap > 0 && gap <= SnapGap ? screenWidth : width;
     }
 
-    /// <summary>The outer width of a popup of at most <paramref name="cap"/> columns, kept <paramref name="margin"/> from the screen edges, then snapped.</summary>
+    /// <summary>
+    /// The outer width of a popup of at most <paramref name="cap"/> columns, kept <paramref name="margin"/> from the
+    /// screen edges, then snapped.
+    /// </summary>
     public static int WidthFor(int cap, int screenWidth, int margin) =>
         Snap(Math.Min(cap, screenWidth - margin), screenWidth);
 

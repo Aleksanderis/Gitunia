@@ -26,11 +26,26 @@ public class ConfirmFrameBuilderTests
         var undoFrame = ConfirmFrameBuilder.Build(undo, 100, 30, GraphGlyphSet.Unicode)!;
         var warningFrame = ConfirmFrameBuilder.Build(warning, 100, 30, GraphGlyphSet.Unicode)!;
 
-        Assert.DoesNotContain(undoFrame.Lines.SelectMany(line => line.Segments), segment => segment.Role == SegmentRole.Error);
-        Assert.Contains(warningFrame.Lines.SelectMany(line => line.Segments), segment => segment.Role == SegmentRole.Error);
+        Assert.DoesNotContain(Segments(undoFrame), segment => segment.Role == SegmentRole.Error);
+        Assert.Contains(Segments(warningFrame), segment => segment.Role == SegmentRole.Error);
         Assert.True(UndoNotes.IsUndoNote(UndoNotes.FromReflog));
         Assert.False(UndoNotes.IsUndoNote("Cannot be undone."));
     }
+
+    [Fact]
+    public void GivenAWarningThatContainsAnUndoNote_WhenBuilding_ThenItStaysInTheErrorColour()
+    {
+        var mixed = new ConfirmPrompt(
+            "Rebase",
+            ["Rebase x onto y?"],
+            $"A stop on conflicts leaves a rebase in progress. {UndoNotes.FromReflog}",
+            "Rebase");
+
+        var frame = ConfirmFrameBuilder.Build(mixed, 100, 30, GraphGlyphSet.Unicode)!;
+
+        Assert.Contains(Segments(frame), segment => segment.Role == SegmentRole.Error);
+    }
+
 
     [Fact]
     public void GivenAnyScreenSize_WhenBuilding_ThenTheFrameExistsExactlyWhenTheSharedLayoutSaysItFits()
@@ -50,4 +65,7 @@ public class ConfirmFrameBuilderTests
             }
         }
     }
+
+    private static IEnumerable<StyledSegment> Segments(OverlayFrame frame) =>
+        frame.Lines.SelectMany(line => line.Segments);
 }
