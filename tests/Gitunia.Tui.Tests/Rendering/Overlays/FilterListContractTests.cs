@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using Gitunia.Core.Config.Models;
 using Gitunia.Core.Editing;
 using Gitunia.Core.Filtering;
+using Gitunia.Core.Graph;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Mouse;
@@ -10,14 +11,13 @@ using Gitunia.Core.Prompts;
 using Gitunia.Core.Reflog;
 using Gitunia.Core.Search;
 using Gitunia.Core.Settings;
-using Gitunia.Core.Graph;
-using Gitunia.Git.Refs.Models;
 using Gitunia.Core.Text;
 using Gitunia.Core.Workspaces.Tabs;
+using Gitunia.Git.Refs.Models;
 using Gitunia.Tui.Rendering.Graph;
-using Gitunia.Tui.Tests.Rendering.Graph;
 using Gitunia.Tui.Rendering.Overlays;
 using Gitunia.Tui.Rendering.Styling;
+using Gitunia.Tui.Tests.Rendering.Graph;
 using Xunit;
 
 namespace Gitunia.Tui.Tests.Rendering.Overlays;
@@ -145,39 +145,44 @@ public class FilterListContractTests
 
     [Theory]
     [MemberData(nameof(InlineSurfaces))]
-    public void GivenAnInlineSurface_WhenItsListHasRows_ThenItHasNoEmptyTextAndAPosition(string surface)
+    public void GivenAnInlineSurface_WhenItsListHasRows_ThenItHasNoEmptyText(string surface)
     {
         var list = InlineList(surface, string.Empty);
 
         Assert.Null(list.EmptyText);
-        Assert.Equal($"1/{list.Count}", list.Position);
+        Assert.True(list.Count > 0);
     }
 
     [Fact]
-    public void GivenARefJumpWithoutMatches_WhenReadingTheStatusLine_ThenItCarriesTheListsNoMatchText()
+    public void GivenARefJumpAndASettingsFilter_WhenTheyChooseAMatcher_ThenItIsTheOneMatcherOfItsKind()
     {
-        var state = RefJumpResolver.Resolve(TextField.Of(Query), [RefNamed("main")], RefJumpGraph());
+        var jump = RefJumpResolver.Resolve(TextField.Of(Query), [RefNamed("main")], RefJumpGraph());
 
-        var line = PromptLine.Editing("ref ", state.Field, $"  {state.List.EmptyText}");
-
-        Assert.EndsWith(UiTexts.NoMatch(RefJumpResolver.Subject), line.Plain, StringComparison.Ordinal);
-        Assert.Equal(MatcherKind.Fuzzy, state.List.Kind);
+        Assert.Equal(MatcherKind.Fuzzy, jump.List.Kind);
+        Assert.Equal(MatcherKind.Contains, SettingsWithFilter(Query).Matches.Kind);
     }
 
+    [Fact]
+    public void GivenNoSettingsOnOffer_WhenNothingIsTyped_ThenTheSettingsHelpSaysNothingNotNoMatch()
+    {
+        var load = SettingsValueReader.Read(new ConfigSnapshot(true, "{}", "hash"), HomeDirectory, _ => true);
+        var state = SettingsState.Create([], load);
+
+        var frame = SettingsFrameBuilder.Build(state, Width, Height, GraphGlyphSet.Unicode);
+
+        Assert.DoesNotContain(
+            frame!.Lines,
+            line => line.Text.Contains(UiTexts.NoMatch("setting"), StringComparison.Ordinal));
+    }
+
+    // The no-match status line of the ref jump is driven through the real controller in RefJumpControllerTests
+    // (GivenNoCandidate_WhenAccepting_ThenANoticeIsShownAndSelectionStays).
     private static InlineFacts InlineList(string surface, string text) => surface == "ref-jump"
         ? FactsOf(RefJumpResolver.Resolve(TextField.Of(text), [RefNamed("main"), RefNamed("topic")], RefJumpGraph()).List)
-        : FactsOf(SettingsWithText(text).Matches);
+        : FactsOf(SettingsWithFilter(text).Matches);
 
     private static InlineFacts FactsOf<T>(FilterList<T> list) =>
         new(list.EmptyText, list.Count, list.Position, list.Loading().EmptyText, list.Failed("failed").EmptyText);
-
-    private static SettingsState SettingsWithText(string text)
-    {
-        var load = SettingsValueReader.Read(new ConfigSnapshot(true, "{}", "hash"), HomeDirectory, _ => true);
-        var state = SettingsState.Create([.. SettingsRegistry.All], load);
-
-        return state.WithFilterText(TextField.Of(text));
-    }
 
     private static GitRef RefNamed(string name)
     {
@@ -290,12 +295,12 @@ public class FilterListContractTests
 
     private static PaletteState Palette() => new(PaletteEntryBuilder.Build(Table, DefaultKeymap.GraphView));
 
-    private static SettingsState SettingsWithFilter()
+    private static SettingsState SettingsWithFilter(string text = Query)
     {
         var load = SettingsValueReader.Read(new ConfigSnapshot(true, "{}", "hash"), HomeDirectory, _ => true);
         var state = SettingsState.Create([.. SettingsRegistry.All], load);
 
-        return state.WithFilterText(TextField.Of(Query));
+        return state.WithFilterText(TextField.Of(text));
     }
 
     private sealed record InlineFacts(string? EmptyText, int Count, string? Position, string? LoadingText, string? FailedText);

@@ -1,6 +1,6 @@
-using Gitunia.Core.Filtering;
-using Gitunia.Core.Editing;
 using Gitunia.Core.Config.Models;
+using Gitunia.Core.Editing;
+using Gitunia.Core.Filtering;
 using Gitunia.Core.Settings;
 using Gitunia.Core.Settings.Models;
 using Xunit;

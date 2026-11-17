@@ -7,7 +7,7 @@ namespace Gitunia.Core.Filtering;
 
 /// <summary>
 /// "Choose one from a filtered list" as immutable data, the one state every filter surface shares (the prompt picker, the
-/// palette, the reflog ref picker, the ref jump): a <see cref="TextField"/> query, the matcher chosen for the list, the
+/// palette, the reflog ref picker, the ref jump, the settings filter): a <see cref="TextField"/> query, the matcher chosen for the list, the
 /// candidates it keeps (best first for <see cref="MatcherKind.Fuzzy"/>, in the list's order for
 /// <see cref="MatcherKind.Contains"/>), the highlighted row (a <see cref="ListViewport"/> over the candidates; moves stop
 /// at the ends) and the text of the state without rows (<see cref="EmptyText"/>). Pure.

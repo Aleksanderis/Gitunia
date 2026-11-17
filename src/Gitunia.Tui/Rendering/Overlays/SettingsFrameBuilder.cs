@@ -439,7 +439,7 @@ public static class SettingsFrameBuilder
 
         if (state.Selected is not { } row)
         {
-            return [state.Matches.EmptyText ?? UiTexts.Nothing("show"), string.Empty];
+            return [state.IsFiltering ? state.Matches.EmptyText ?? UiTexts.Nothing("show") : UiTexts.Nothing("show"), string.Empty];
         }
 
         var definition = row.Definition;
