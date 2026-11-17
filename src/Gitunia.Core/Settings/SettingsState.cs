@@ -162,7 +162,7 @@ public sealed record SettingsState(
     public SettingsState MoveTo(int target)
     {
         var count = ActiveCount;
-        var clamped = count == 0 ? 0 : Math.Clamp(target, 0, count - 1);
+        var clamped = ListViewport.ClampIndex(target, count);
         if (Column == SettingsColumn.Categories && !ListsAllCategories)
         {
             return this with { CategoryIndex = clamped, Cursor = 0 };

@@ -121,7 +121,7 @@ public sealed record ReflogState(
 
     /// <summary>Moves the highlight to <paramref name="index"/>, clamped to the entries.</summary>
     public ReflogState MoveTo(int index) =>
-        this with { SelectedIndex = Entries.Count == 0 ? 0 : Math.Clamp(index, 0, Entries.Count - 1) };
+        this with { SelectedIndex = ListViewport.ClampIndex(index, Entries.Count) };
 
     /// <summary>The state for a fresh read of the same reflog: the highlight stays on the same row index.</summary>
     public ReflogState WithEntries(IReadOnlyList<ReflogEntry> entries) =>

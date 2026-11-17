@@ -197,7 +197,7 @@ public static class FileHistoryFrameBuilder
 
     private static string FooterLead(FileHistoryState state)
     {
-        var position = state.Entries.Count == 0 ? 0 : Math.Clamp(state.SelectedIndex, 0, state.Entries.Count - 1) + 1;
+        var position = state.Entries.Count == 0 ? 0 : ListViewport.ClampIndex(state.SelectedIndex, state.Entries.Count) + 1;
 
         return string.Create(CultureInfo.InvariantCulture, $"{position}/{state.Entries.Count}");
     }

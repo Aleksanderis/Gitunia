@@ -105,7 +105,7 @@ public sealed record RebaseEditorState(
     public RebaseEditorState MoveTo(int index) =>
         this with
         {
-            SelectedIndex = Rows.Count == 0 ? 0 : Math.Clamp(index, 0, Rows.Count - 1),
+            SelectedIndex = ListViewport.ClampIndex(index, Rows.Count),
             IsDiscardPending = false,
         };
 
@@ -120,7 +120,7 @@ public sealed record RebaseEditorState(
             return this;
         }
 
-        var target = Math.Clamp(SelectedIndex + delta, 0, Rows.Count - 1);
+        var target = ListViewport.ClampIndex(SelectedIndex + delta, Rows.Count);
         if (target == SelectedIndex)
         {
             return this;

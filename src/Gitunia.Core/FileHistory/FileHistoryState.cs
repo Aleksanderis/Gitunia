@@ -38,7 +38,7 @@ public sealed record FileHistoryState(
     public FileHistoryState MoveTo(int index) =>
         this with
         {
-            SelectedIndex = Entries.Count == 0 ? 0 : Math.Clamp(index, 0, Entries.Count - 1),
+            SelectedIndex = ListViewport.ClampIndex(index, Entries.Count),
             Diff = null,
             DiffFailure = string.Empty,
             DiffScroll = 0,
