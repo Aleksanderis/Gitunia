@@ -220,7 +220,7 @@ public class OverlayFrameTests
         Assert.Equal(
             string.Join(
                 '\n',
-                " :                                                                              ",
+                " :                                                                        1/195 ",
                 "│ Branch                                                                       │",
                 "│ Create a branch and check it out                                   <space>bc │",
                 "│ Create a branch without checking out                               <space>bC │",
@@ -233,7 +233,7 @@ public class OverlayFrameTests
                 "│                                                                              │",
                 "│ Merge and rebase                                                             │",
                 "│ Rebase the current branch onto the selection                      <space>brr │",
-                "│ 1/195  Ctrl-j/k move  Enter run  Esc close                                   │",
+                "│ Ctrl-j/k move  Enter run  Esc close                                          │",
                 "╰──────────────────────────────────────────────────────────────────────────────╯"),
             Text(frame));
         Assert.Equal(0, frame!.Column);
@@ -247,11 +247,11 @@ public class OverlayFrameTests
         Assert.Equal(
             string.Join(
                 '\n',
-                " :                                      ",
+                " :                                1/195 ",
                 "| Branch                               |",
                 "| Create a branch and chec~  <space>bc |",
                 "| Create a branch without ~  <space>bC |",
-                "| 1/195  Ctrl-j/k move  Enter run  Esc~|",
+                "| Ctrl-j/k move  Enter run  Esc close  |",
                 "+--------------------------------------+"),
             Text(frame));
         Assert.Equal(SegmentRole.SectionTitle, frame.Lines[1].Segments[1].Role);
@@ -333,15 +333,15 @@ public class OverlayFrameTests
         Assert.Equal(
             string.Join(
                 '\n',
-                " : tab                                                      ",
+                " : tab                                                 2/40 ",
                 "│ Tabs                                                     │",
                 "│ Next tab                                              gt │",
                 "│ Previous tab                                          gT │",
+                "│ Close the tab                       <space>oc / Ctrl-w c │",
+                "│ Rename the tab                      <space>on / Ctrl-w r │",
                 "│ Go to tab 1 (same as 1gt)                          Alt-1 │",
                 "│ Go to tab 2 (same as 2gt)                          Alt-2 │",
-                "│ Go to tab 3 (same as 3gt)                          Alt-3 │",
-                "│ Go to tab 4 (same as 4gt)                          Alt-4 │",
-                "│ 2/40  Ctrl-j/k move  Enter run  Esc close                │",
+                "│ Ctrl-j/k move  Enter run  Esc close                      │",
                 "╰──────────────────────────────────────────────────────────╯"),
             Text(frame));
         Assert.Equal([false, false, true, false], [.. frame!.Lines.Skip(1).Take(4).Select(line => line.IsSelected)]);
@@ -404,7 +404,7 @@ public class OverlayFrameTests
 
         Assert.True(frame.Row + lines.Length <= screenHeight - 1, "The frame must end above the status row.");
         var total = PaletteEntryBuilder.Build(Table, DefaultKeymap.GraphView).Count;
-        Assert.Contains($"{total}/{total}", lines[^2]);
+        Assert.EndsWith($"{total}/{total} ", lines[0]);
         Assert.True(frame.Lines[^3].IsSelected, "The last entry must be the selected row, directly above the footer.");
     }
 
@@ -437,7 +437,7 @@ public class OverlayFrameTests
                 '\n',
                 " : zzzzqq                               ",
                 "| No matching action                   |",
-                "| 0/0  Ctrl-j/k move  Enter run  Esc c~|",
+                "| Ctrl-j/k move  Enter run  Esc close  |",
                 "+--------------------------------------+"),
             Text(frame));
     }

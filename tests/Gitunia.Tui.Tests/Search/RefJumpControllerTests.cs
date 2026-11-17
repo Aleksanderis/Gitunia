@@ -59,6 +59,36 @@ public class RefJumpControllerTests
     }
 
     [Fact]
+    public void GivenSeveralCandidates_WhenPressingTabAndShiftTab_ThenTheHighlightMovesDownAndUp()
+    {
+        using var harness = new PromptHarness(Graph(), refs: Refs());
+        harness.Press(new Key(' '));
+        harness.Press(new Key('J'));
+
+        harness.Press(Key.Tab);
+        harness.Press(Key.Tab);
+        harness.Press(Key.Tab.WithShift);
+        harness.Press(Key.Enter);
+
+        Assert.Equal(2, harness.SelectedRow);
+    }
+
+    [Fact]
+    public void GivenSeveralCandidates_WhenPressingCtrlJAndCtrlK_ThenTheHighlightMovesAndNothingIsTyped()
+    {
+        using var harness = new PromptHarness(Graph(), refs: Refs());
+        harness.Press(new Key(' '));
+        harness.Press(new Key('J'));
+
+        harness.Press(Key.J.WithCtrl);
+        harness.Press(Key.K.WithCtrl);
+        harness.Press(Key.J.WithCtrl);
+
+        Assert.StartsWith("ref   ", harness.StatusLine.Plain, StringComparison.Ordinal);
+        Assert.EndsWith("(2/3)", harness.StatusLine.Plain, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void GivenHashPrefix_WhenAccepting_ThenTheCommitIsSelected()
     {
         using var harness = new PromptHarness(Graph(), refs: Refs());

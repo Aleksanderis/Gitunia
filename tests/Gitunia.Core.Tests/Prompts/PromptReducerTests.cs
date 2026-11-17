@@ -223,7 +223,8 @@ public class PromptReducerTests
     public void GivenAPicker_WhenTyping_ThenOnlyMatchingCandidatesRemainAndTheHighlightResets()
     {
         var state = Reduce(ShellState.Empty, Picker("origin", "backup", "bak")).State;
-        state = Press(state, new KeyEvent(KeyNames.Down));
+        state = Reduce(state, new PromptMovedCommand(1)).State;
+        Assert.Equal(1, state.Prompt!.Picker!.Index);
 
         state = Press(state, new KeyEvent("b"));
         state = Press(state, new KeyEvent("a"));
@@ -239,7 +240,7 @@ public class PromptReducerTests
     {
         var state = Reduce(ShellState.Empty, Picker("origin", "backup")).State;
 
-        state = Press(state, new KeyEvent(KeyNames.Up));
+        state = Reduce(state, new PromptMovedCommand(-1)).State;
 
         Assert.Equal(0, state.Prompt!.Picker!.Index);
         Assert.Equal(string.Empty, state.Prompt.Text);

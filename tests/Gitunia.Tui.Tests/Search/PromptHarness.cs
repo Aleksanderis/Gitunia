@@ -126,7 +126,10 @@ public sealed class PromptHarness : IDisposable, IQuickJumpHost, IActionRoute, I
 
     public void Redraw() => Redraws++;
 
-    public void Press(Key key) => _keys.Handle(key, DefaultKeymap.GraphView);
+    // The view the keys are looked up in follows the open filter list, like OverlayCover.ViewName does in the app.
+    public void Press(Key key) => _keys.Handle(key, _prompts.OfType<IFilterFocus>().Any(filter => filter.HasFilterList)
+        ? DefaultKeymap.FilterListView
+        : DefaultKeymap.GraphView);
 
     public void Type(string text)
     {

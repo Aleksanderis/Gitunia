@@ -31,6 +31,12 @@ public sealed record FilterList<T>(
     FilterStatus Status = FilterStatus.Ready,
     string? Failure = null)
 {
+    /// <summary>
+    /// What a match on a text other than the first (an identifier next to a title) is worth less, so a title that holds
+    /// the query ranks above an identifier that does.
+    /// </summary>
+    public const int AlternatePenalty = 25;
+
     /// <summary>The typed query.</summary>
     public string Text => Field.Text;
 
@@ -153,9 +159,10 @@ public sealed record FilterList<T>(
     private int? BestScore(string query, FilterItem<T> item)
     {
         int? best = null;
-        foreach (var text in item.Texts)
+        for (var index = 0; index < item.Texts.Length; index++)
         {
-            if (Matcher.Score(Kind, query, text) is { } score && (best is null || score > best))
+            var penalty = index == 0 ? 0 : AlternatePenalty;
+            if (Matcher.Score(Kind, query, item.Texts[index]) - penalty is { } score && (best is null || score > best))
             {
                 best = score;
             }
