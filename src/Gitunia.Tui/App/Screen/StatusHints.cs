@@ -2,11 +2,11 @@ using Gitunia.Core.Operations;
 using Gitunia.App;
 using Gitunia.Core.Commits;
 using Gitunia.Core.Conflicts;
+using Gitunia.Core.Hints;
 using Gitunia.Core.Overlays;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Tui.App.Overlays;
-using Gitunia.Tui.Rendering.Panes;
 
 namespace Gitunia.Tui.App.Screen;
 
@@ -28,12 +28,12 @@ public sealed class StatusHints(
     {
         if (store.State.Kind == OverlayKind.Confirm)
         {
-            return PaneHints.ForConfirm();
+            return HintSet.ForConfirm();
         }
 
-        if (editors.Settings.IsOpen)
+        if (editors.Settings.State is { } settings)
         {
-            return PaneHints.ForSettings();
+            return HintSet.ForSettings(settings);
         }
 
         if (editors.Conflict.IsOpen)
@@ -43,38 +43,38 @@ public sealed class StatusHints(
 
         if (editors.Rebase.IsOpen)
         {
-            return editors.Rebase.IsEditingMessage ? PaneHints.ForRebaseMessage() : PaneHints.ForRebaseEditor();
+            return editors.Rebase.IsEditingMessage ? HintSet.ForRebaseMessage() : HintSet.ForRebaseEditor();
         }
 
         if (screens.FileHistory.IsOpen)
         {
             return screens.FileHistory.Range is { } range
-                ? PaneHints.ForLineHistory(range)
-                : PaneHints.ForFileHistory();
+                ? HintSet.ForLineHistory(range)
+                : HintSet.ForFileHistory();
         }
 
-        if (screens.Blame.IsOpen)
+        if (screens.Blame.State is { } blame)
         {
-            return PaneHints.ForBlame();
+            return HintSet.ForBlame(blame);
         }
 
-        if (screens.Reflog.IsOpen)
+        if (screens.Reflog.State is { } reflog)
         {
-            return PaneHints.ForReflog();
+            return HintSet.ForReflog(reflog);
         }
 
         if (CommitRules.IsEditing(host.State))
         {
-            return PaneHints.ForMessageEditing();
+            return HintSet.ForMessageEditing();
         }
 
         if (context.Repeat.Active is { } repeating)
         {
-            return PaneHints.ForRepeat(repeating.Kind);
+            return HintSet.ForRepeat(repeating.Kind);
         }
 
         // Dialogs, editors and the repeat mode above keep their hints: they say which keys act right now.
-        return PaneHints.Limit(
+        return HintSet.Limit(
             PaneAndConflictHints(),
             context.Config.Options.StatusBarHints,
             context.Config.Options.CommandLevel);
@@ -84,20 +84,20 @@ public sealed class StatusHints(
     {
         if (editors.Conflict.IsEditing)
         {
-            return PaneHints.ForConflictEdit();
+            return HintSet.ForConflictEdit();
         }
 
         if (editors.Conflict.IsResultActive)
         {
-            return PaneHints.ForConflictResult();
+            return HintSet.ForConflictResult();
         }
 
-        return editors.Conflict.IsVisual ? PaneHints.ForConflictVisual() : PaneHints.ForConflictVersions();
+        return editors.Conflict.IsVisual ? HintSet.ForConflictVisual() : HintSet.ForConflictVersions();
     }
 
     private IReadOnlyList<KeyHint> PaneAndConflictHints()
     {
-        var hints = PaneHintsOfFocus();
+        var hints = HintSetOfFocus();
         if (!ConflictPending())
         {
             return hints;
@@ -105,28 +105,28 @@ public sealed class StatusHints(
 
         if (ConflictEditorSupport.AnyCanOpen(host.Workspace.ActiveTab?.WorkingTree))
         {
-            return PaneHints.WithConflictEditor(hints);
+            return HintSet.WithConflictEditor(hints);
         }
 
-        return PaneHints.WithConflictMergetool(hints);
+        return HintSet.WithConflictMergetool(hints);
     }
 
-    private IReadOnlyList<KeyHint> PaneHintsOfFocus()
+    private IReadOnlyList<KeyHint> HintSetOfFocus()
     {
         var view = host.Workspace.ActiveTab?.View;
         if (view is { FocusedPane: PaneKind.Detail, BottomTab: BottomTab.Changes })
         {
-            return PaneHints.ForDetailChanges();
+            return HintSet.ForDetailChanges();
         }
 
         if (view is { FocusedPane: PaneKind.Graph, CompareMark: not null })
         {
-            return PaneHints.ForGraphComparing();
+            return HintSet.ForGraphComparing();
         }
 
         var focused = view?.FocusedPane ?? PaneKind.Graph;
 
-        return PaneHints.For(
+        return HintSet.For(
             focused,
             context.DiffView.IsShowingContent,
             OnConflictedFile(),

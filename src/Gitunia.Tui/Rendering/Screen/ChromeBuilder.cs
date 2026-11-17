@@ -1,11 +1,12 @@
 using System.Globalization;
 using Gitunia.Core.Editing;
+using Gitunia.Core.Hints;
 using Gitunia.Core.Picker;
 using Gitunia.Core.Status;
 using Gitunia.Core.Text;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Tui.Rendering.Graph;
-using Gitunia.Tui.Rendering.Panes;
+using Gitunia.Tui.Rendering.Overlays;
 using Gitunia.Tui.Rendering.Styling;
 using Gitunia.Tui.Rendering.Tabs;
 
@@ -56,7 +57,25 @@ public static class ChromeBuilder
             .Build(SegmentRole.Status);
     }
 
-    private static StyledLine StatusLeft(ScreenModel model, int width, GraphGlyphSet glyphs)
+    /// <summary>The click targets of the hints the status bar draws (frame line 0, columns from the left edge).</summary>
+    /// <param name="model">The screen model.</param>
+    /// <param name="width">The status bar width.</param>
+    /// <param name="glyphs">The characters the bar draws with.</param>
+    public static IReadOnlyList<FrameTarget> StatusTargets(ScreenModel model, int width, GraphGlyphSet glyphs)
+    {
+        var hint = model.Update is { } notice && model.Picker is null ? UpdateHintText.For(notice, width) : string.Empty;
+        var leftWidth = hint.Length == 0 ? width : width - TextWidth.Of(hint) - UpdateHintText.Gap;
+        var spans = new List<HintSpan>();
+        StatusLeft(model, leftWidth, glyphs, spans);
+
+        return HintTargets.Of(model.Hints ?? HintSet.For(PaneKind.Graph), spans, 0, 0);
+    }
+
+    private static StyledLine StatusLeft(
+        ScreenModel model,
+        int width,
+        GraphGlyphSet glyphs,
+        List<HintSpan>? spans = null)
     {
         var position = model.Picker is { } picker ? PickerPosition(picker) : GraphPosition(model);
         var builder = new LineBuilder(width, glyphs.Ellipsis)
@@ -94,7 +113,7 @@ public static class ChromeBuilder
 
         if (model.SearchLine is null && model.Picker is null)
         {
-            AppendHints(builder, model.Hints ?? PaneHints.For(PaneKind.Graph));
+            AppendHints(builder, model.Hints ?? HintSet.For(PaneKind.Graph), spans);
         }
 
         return builder.Build(SegmentRole.Status);
@@ -146,9 +165,10 @@ public static class ChromeBuilder
         _ => model.MessageIsFresh ? SegmentRole.StatusNoticeFresh : SegmentRole.StatusNotice,
     };
 
-    private static void AppendHints(LineBuilder builder, IReadOnlyList<KeyHint> hints)
+    private static void AppendHints(LineBuilder builder, IReadOnlyList<KeyHint> hints, List<HintSpan>? spans)
     {
-        HintBar.Append(builder, hints.Select(hint => hint.Item), HintGap);
+        var drawn = HintBar.Append(builder, HintBar.Items(hints), HintGap);
+        spans?.AddRange(drawn);
     }
 
     private static StyledLine TabRow(

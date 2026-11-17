@@ -138,6 +138,7 @@ internal static class ActionLevels
             ["pick.cherry-pick"] = CommandLevel.Everyday,
             ["pick.mainline"] = CommandLevel.Advanced,
             ["pick.revert"] = CommandLevel.Advanced,
+            ["prompt.row"] = CommandLevel.Advanced,
             ["picker.accept"] = CommandLevel.Everyday,
             ["picker.clone"] = CommandLevel.Everyday,
             ["picker.complete-path"] = CommandLevel.Everyday,

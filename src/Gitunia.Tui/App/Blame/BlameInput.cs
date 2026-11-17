@@ -9,6 +9,7 @@ using Gitunia.Core.Visual;
 using Gitunia.Tui.Input;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Overlays;
+using Gitunia.Tui.Rendering.Styling;
 
 namespace Gitunia.Tui.App.Blame;
 
@@ -22,12 +23,14 @@ namespace Gitunia.Tui.App.Blame;
 /// <param name="targets">Finds the file the open action stands for.</param>
 /// <param name="glyphs">The characters the view is drawn with.</param>
 /// <param name="clock">The current time for the ages in the gutter.</param>
+/// <param name="keys">The keymap lookup for the keys of the action rows; null uses the default keymap.</param>
 public sealed class BlameInput(
     Dispatcher host,
     BlameStore store,
     IBlameTargets targets,
     GraphGlyphSet glyphs,
-    TimeProvider? clock = null) : IActionHandler, ITextKeyHandler
+    TimeProvider? clock = null,
+    ChipKeys? keys = null) : IActionHandler, ITextKeyHandler
 {
     private readonly TimeProvider _clock = clock ?? TimeProvider.System;
     private BlamePoint? _dragAnchor;
@@ -47,6 +50,9 @@ public sealed class BlameInput(
     /// <summary>The view is open with a line or character selection.</summary>
     public bool HasSelection => Session.View?.Selection is not null;
 
+    /// <summary>The view state, null when the blame view is closed.</summary>
+    public BlameState? State => Session.View;
+
     /// <summary>The frame to draw, or null when the view is closed or the screen is too small for it.</summary>
     public OverlayFrame? CurrentFrame()
     {
@@ -57,7 +63,14 @@ public sealed class BlameInput(
 
         var screen = Screen;
 
-        return BlameFrameBuilder.Build(view, DataOf(Session), _clock.GetUtcNow(), screen.Width, screen.Height, glyphs);
+        return BlameFrameBuilder.Build(
+            view,
+            DataOf(Session),
+            _clock.GetUtcNow(),
+            screen.Width,
+            screen.Height,
+            glyphs,
+            keys);
     }
 
     /// <summary>Opens the view on <see cref="ActionIds.BlameOpen"/> and, while it is open, consumes every action.

@@ -1,8 +1,8 @@
 using Gitunia.Core.Editing;
+using Gitunia.Core.Hints;
 using Gitunia.Tui.App.Overlays;
 using Gitunia.Tui.App.Panes;
 using Gitunia.Tui.Input;
-using Gitunia.Tui.Rendering.Panes;
 
 namespace Gitunia.Tui.App.Screen;
 

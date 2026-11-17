@@ -88,6 +88,7 @@ public static class InputRouting
 
     private static readonly ImmutableArray<OverlayClickTarget> Clicks =
     [
+        OverlayClickTarget.Frame,
         OverlayClickTarget.Settings,
         OverlayClickTarget.ConflictEditor,
         OverlayClickTarget.RebaseEditor,

@@ -34,6 +34,18 @@ public sealed partial class UiWordingLintTests
     [GeneratedRegex(@"[=!]= 1 \?")]
     private static partial Regex InlinePlural();
 
+    // A footer or a key row declared by a renderer: the hints come from HintSet, the rows from ActionRow.
+    [GeneratedRegex(@"HintItem\[\]|List<HintItem>|new HintItem\(""|new\(""[^""]+"", (HintVerb\.|""[A-Za-z])")]
+    private static partial Regex RendererHint();
+
+    // A button drawn inside a text row writes its brackets through ButtonLabel.Bracketed.
+    [GeneratedRegex(@"""\[[+x ]\]""")]
+    private static partial Regex HandBuiltBracket();
+
+    // The wheel step is data of DefaultMouseMap.
+    [GeneratedRegex(@"const int \w*Wheel\w*\s*=")]
+    private static partial Regex WheelConstant();
+
     [Fact]
     public void GivenTheSources_WhenScanningForEmptyAndNoMatchTexts_ThenOnlyUiTextsSpellsThem()
     {
@@ -76,6 +88,40 @@ public sealed partial class UiWordingLintTests
             .ToList();
 
         Assert.True(offenders.Count == 0, $"Use CountText.Plural instead of '== 1 ?': {string.Join("; ", offenders)}");
+    }
+
+    [Fact]
+    public void GivenTheRenderers_WhenScanningForHintDeclarations_ThenNoneDeclaresItsOwnFooterOrKeyRow()
+    {
+        var tui = $"{Path.DirectorySeparatorChar}Gitunia.Tui{Path.DirectorySeparatorChar}";
+        var offenders = Lines(file => file.Contains(tui, StringComparison.Ordinal))
+            .Where(line => RendererHint().IsMatch(line.Text))
+            .Select(line => line.Where)
+            .ToList();
+
+        Assert.True(offenders.Count == 0, $"Declare the hint in HintSet: {string.Join("; ", offenders)}");
+    }
+
+    [Fact]
+    public void GivenTheSources_WhenScanningForBracketedButtons_ThenOnlyButtonLabelWritesTheBrackets()
+    {
+        var offenders = Lines(_ => true)
+            .Where(line => HandBuiltBracket().IsMatch(line.Text))
+            .Select(line => line.Where)
+            .ToList();
+
+        Assert.True(offenders.Count == 0, $"Use ButtonLabel.Bracketed: {string.Join("; ", offenders)}");
+    }
+
+    [Fact]
+    public void GivenTheSources_WhenScanningForWheelSteps_ThenOnlyTheDefaultMouseMapHoldsThem()
+    {
+        var offenders = Lines(file => !file.EndsWith("DefaultMouseMap.cs", StringComparison.Ordinal))
+            .Where(line => WheelConstant().IsMatch(line.Text))
+            .Select(line => line.Where)
+            .ToList();
+
+        Assert.True(offenders.Count == 0, $"Put the wheel step in DefaultMouseMap: {string.Join("; ", offenders)}");
     }
 
     private static IEnumerable<SourceLine> Lines(Func<string, bool> fileFilter)

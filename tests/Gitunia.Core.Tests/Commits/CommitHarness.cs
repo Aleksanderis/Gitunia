@@ -61,14 +61,14 @@ public sealed class CommitHarness
     }
 
     // What the input layer does: the box takes the action or leaves it to the others.
-    public bool Run(ActionId action)
+    public bool Run(ActionId action, int? count = null)
     {
         if (!CommitRules.Takes(State, Tab, action))
         {
             return false;
         }
 
-        Send(new CommitActionPressed(TabId, action));
+        Send(new CommitActionPressed(TabId, action, count));
 
         return true;
     }

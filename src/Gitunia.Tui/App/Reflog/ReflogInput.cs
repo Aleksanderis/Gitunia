@@ -9,6 +9,7 @@ using Gitunia.Tui.App.Branches;
 using Gitunia.Tui.Input;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Overlays;
+using Gitunia.Tui.Rendering.Styling;
 
 namespace Gitunia.Tui.App.Reflog;
 
@@ -21,11 +22,13 @@ namespace Gitunia.Tui.App.Reflog;
 /// <param name="selection">What the sidebar cursor is on, to pick the branch whose reflog opens.</param>
 /// <param name="glyphs">The characters the list is drawn with.</param>
 /// <param name="clock">The current time for the ages of the entries.</param>
+/// <param name="keys">The keymap lookup for the keys of the action rows; null uses the default keymap.</param>
 public sealed class ReflogInput(
     Dispatcher host,
     IBranchSelectionSource selection,
     GraphGlyphSet glyphs,
-    TimeProvider? clock = null) : IActionHandler, ITextKeyHandler
+    TimeProvider? clock = null,
+    ChipKeys? keys = null) : IActionHandler, ITextKeyHandler
 {
     private readonly TimeProvider _clock = clock ?? TimeProvider.System;
 
@@ -35,12 +38,20 @@ public sealed class ReflogInput(
 
     public bool IsOpen => Session.IsOpen;
 
+    /// <summary>The list state, null when the list is closed.</summary>
+    public ReflogState? State => Session.List;
+
     /// <summary>The frame to draw, or null when the list is closed or the screen is too small for it.</summary>
     public OverlayFrame? CurrentFrame()
     {
         var screen = Screen;
 
-        return Session.List is { } list ? ReflogFrameBuilder.Build(list, screen.Width, screen.Height, glyphs, _clock.GetUtcNow()) : null;
+        if (Session.List is not { } list)
+        {
+            return null;
+        }
+
+        return ReflogFrameBuilder.Build(list, screen.Width, screen.Height, glyphs, _clock.GetUtcNow(), keys);
     }
 
     /// <summary>Opens the list on <see cref="ActionIds.ReflogOpen"/> and, while it is open, consumes every action.

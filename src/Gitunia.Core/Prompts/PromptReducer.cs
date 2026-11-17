@@ -22,7 +22,9 @@ public static class PromptReducer
     {
         PromptAcceptedCommand => Accept(state),
         PromptCancelledCommand => Cancel(state),
+        PromptChoiceSelectedCommand selected => ChoiceSelected(state, selected.Index),
         PromptKeyPressedCommand pressed => KeyPressed(state, pressed.Key),
+        PromptMovedCommand moved => Moved(state, moved.Step),
         PromptReopenedCommand reopened => Reopen(state, reopened.Reason),
         PromptRequestedCommand requested => Open(state, requested.Request),
         _ => throw new UnhandledCommandException(command),
@@ -89,6 +91,28 @@ public static class PromptReducer
         var filtered = edited.Text == prompt.Text ? prompt.Picker : prompt.Picker?.Filtered(edited.Text);
 
         return Replace(state, prompt with { Field = edited, Picker = filtered });
+    }
+
+    private static ShellUpdate Moved(ShellState state, int step)
+    {
+        if (state.Prompt is not { Picker: { } picker } prompt)
+        {
+            return new ShellUpdate(state, []);
+        }
+
+        return Replace(state, prompt with { Picker = picker.Moved(step) });
+    }
+
+    private static ShellUpdate ChoiceSelected(ShellState state, int index)
+    {
+        if (state.Prompt is not { KeyChoices: { } keys } prompt || index < 0 || index >= keys.Length)
+        {
+            return new ShellUpdate(state, []);
+        }
+
+        var answer = new PromptAnswer(string.Empty, keys[index].Value);
+
+        return new ShellUpdate(Close(state, prompt), [], prompt.OnAccepted.Answered(answer));
     }
 
     // A one-key prompt closes on a listed key and ignores every other, like Enter.

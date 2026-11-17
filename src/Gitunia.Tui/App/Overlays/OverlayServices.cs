@@ -1,6 +1,7 @@
 using Gitunia.App.Status;
 using Gitunia.Core.Keymap;
 using Gitunia.Tui.App.Config;
+using Gitunia.Tui.Rendering.Styling;
 using Gitunia.Tui.Views;
 
 namespace Gitunia.Tui.App.Overlays;
@@ -11,9 +12,11 @@ namespace Gitunia.Tui.App.Overlays;
 /// <param name="Config">The command level and the which-key setting, read each time.</param>
 /// <param name="Menus">What the actions menu of a row offers.</param>
 /// <param name="Statuses">The status messages overlays post.</param>
+/// <param name="Keys">The keymap lookup for the keys of the rows of a dialog.</param>
 public sealed record OverlayServices(
     KeymapEngine Engine,
     IPaneChrome Chrome,
     LiveConfig Config,
     IRowMenuTargets Menus,
-    StatusReporter Statuses);
+    StatusReporter Statuses,
+    ChipKeys Keys);

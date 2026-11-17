@@ -125,7 +125,7 @@ Each component is split like the rest of the app: pure state and behaviour in Co
    - Renderer: `FilterListFrame` (rows, selection bar, empty text in the EmptyText role, position via `PositionText`).
    - Replaces `PromptPicker`, `PaletteState`, `ReflogRefPicker`, `RefJumpState`, the settings and help filters, the 2 fuzzy classes and the 6 Contains filters.
 4. **`HintSet` (Core) and `ActionRow` (Tui).**
-   - One declaration per surface feeds both the status bar (`PaneHints`) and the in-frame footer. Keys come from the keymap via `ChipKeys`, and labels come from a closed `HintVerb` vocabulary (Close, Back, Cancel, Keep, Open, Select, Save, ...).
+   - One declaration per surface feeds both the status bar (`HintSet`) and the in-frame footer. Keys come from the keymap via `ChipKeys`, and labels come from a closed `HintVerb` vocabulary (Close, Back, Cancel, Keep, Open, Select, Save, ...).
    - `ActionRow` draws the "key: description" rows.
    - Replaces the double declarations, the literal-key rows in Blame, Reflog, FileHistory, Confirm, Settings and Mainline, and the palette footer.
    - The same declaration gives click targets, which fixes the keyboard-only prompt popup.

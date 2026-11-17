@@ -1,10 +1,10 @@
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Git.History.Models;
 
-namespace Gitunia.Tui.Rendering.Panes;
+namespace Gitunia.Core.Hints;
 
 // The fixed hint sets of the panes, overlays and editors.
-public static partial class PaneHints
+public static partial class HintSet
 {
     /// <summary>The hints of the detail pane while its Changes tab is selected.</summary>
     public static IReadOnlyList<KeyHint> ForDetailChanges() => DetailChanges;
@@ -33,9 +33,6 @@ public static partial class PaneHints
     /// <summary>The hints while a confirm dialog is open (only its answers act).</summary>
     public static IReadOnlyList<KeyHint> ForConfirm() => Confirm;
 
-    /// <summary>The hints while the blame view is open.</summary>
-    public static IReadOnlyList<KeyHint> ForBlame() => Blame;
-
     /// <summary>The hints while the file history is open.</summary>
     public static IReadOnlyList<KeyHint> ForFileHistory() => FileHistory;
 
@@ -46,9 +43,6 @@ public static partial class PaneHints
     /// <param name="range">The lines the history follows.</param>
     public static IReadOnlyList<KeyHint> ForLineHistory(LineRange range) =>
         [new KeyHint($"Lines {range.Label}", "history", []), .. FileHistory];
-
-    /// <summary>The hints while the reflog list is open.</summary>
-    public static IReadOnlyList<KeyHint> ForReflog() => Reflog;
 
     /// <summary>The hints while the rebase todo editor is open.</summary>
     public static IReadOnlyList<KeyHint> ForRebaseEditor() => RebaseEditor;
@@ -67,9 +61,6 @@ public static partial class PaneHints
 
     /// <summary>The hints while a reword's message is edited in the rebase todo editor.</summary>
     public static IReadOnlyList<KeyHint> ForRebaseMessage() => RebaseMessage;
-
-    /// <summary>The hints while the settings screen is open.</summary>
-    public static IReadOnlyList<KeyHint> ForSettings() => Settings;
 
     /// <summary>The hints in the footer of the commands popup.</summary>
     public static IReadOnlyList<KeyHint> ForPalette() => Palette;

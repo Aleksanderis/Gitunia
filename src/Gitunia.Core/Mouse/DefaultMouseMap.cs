@@ -1,4 +1,6 @@
+using Gitunia.Core.Hints;
 using Gitunia.Core.Keymap;
+using Gitunia.Core.Keymap.Models;
 
 namespace Gitunia.Core.Mouse;
 
@@ -236,8 +238,21 @@ public static class DefaultMouseMap
 
     public const string ConfirmNoButton = "ConfirmButton.No";
 
-    /// <summary>List rows moved per wheel notch.</summary>
+    /// <summary>
+    /// The rows a wheel notch moves in a pane or a long list (the graph, the details, the settings, the reflog), and the
+    /// lines the message box scrolls: the one step of the wheel outside the popups (docs/internal/ui-consistency.md,
+    /// decision 4). Nothing else holds a wheel step.
+    /// </summary>
     public const int WheelLines = 3;
+
+    /// <summary>The rows a wheel notch moves in a popup of at most a screen of entries: the palette, the menus, the pickers and the prompt popup.</summary>
+    public const int PopupWheelLines = 1;
+
+    /// <summary>The prompt popup (a text, filter or choice prompt); the wheel moves its highlighted row.</summary>
+    public const string PromptPopupView = "PromptPopup";
+
+    /// <summary>A row of the prompt popup's list; the click target says which one (see <see cref="ActionIds.PromptRow"/>).</summary>
+    public const string PromptRowButton = "PromptRow";
 
     /// <summary>Views that inherit from <c>Lists</c>; the others stand alone.</summary>
     public static IReadOnlyDictionary<string, string> ViewParents { get; } = new Dictionary<string, string>
@@ -316,10 +331,26 @@ public static class DefaultMouseMap
         ReflogCheckoutButton,
         ReflogPickerRow,
         MainlineParentRow,
+        PromptPopupView,
+        PromptRowButton,
         HelpTabLabel,
         ConfirmYesButton,
         ConfirmNoButton,
     ];
+
+    /// <summary>
+    /// The mouse view of the overlay row or button whose click runs <paramref name="action"/>, null when none does: the
+    /// action rows of the reflog, the blame view and the file history name their action (<see cref="KeyHint"/>) and
+    /// the click is resolved here.
+    /// </summary>
+    /// <param name="action">The action.</param>
+    public static string? ClickViewOf(ActionId action) =>
+        CreateBindings()
+            .Where(binding => binding.Gesture == MouseGesture.Click
+                && binding.Action == action
+                && OverlayViews.Contains(binding.View))
+            .Select(binding => binding.View)
+            .FirstOrDefault();
 
     public static MouseMap Create() => new(CreateBindings(), ViewParents);
 
@@ -336,16 +367,24 @@ public static class DefaultMouseMap
         new(TabsView, MouseGesture.DragForward, ActionIds.TabMoveRight, UsesTarget: true),
         new(TabDirtyMarker, MouseGesture.Click, ActionIds.WorkingTreeOpen),
         new(DefaultKeymap.PickerView, MouseGesture.DoubleClick, ActionIds.PickerAccept),
-        new(DefaultKeymap.PickerView, MouseGesture.WheelUp, ActionIds.PickerPrevious),
-        new(DefaultKeymap.PickerView, MouseGesture.WheelDown, ActionIds.PickerNext),
+        new(DefaultKeymap.PickerView, MouseGesture.WheelUp, ActionIds.PickerPrevious, PopupWheelLines),
+        new(DefaultKeymap.PickerView, MouseGesture.WheelDown, ActionIds.PickerNext, PopupWheelLines),
         new(DefaultKeymap.WorkingUnstagedView, MouseGesture.Click, ActionIds.WorkingTreeToggleFolder),
         new(DefaultKeymap.WorkingStagedView, MouseGesture.Click, ActionIds.WorkingTreeToggleFolder),
         new(DefaultKeymap.WorkingUnstagedView, MouseGesture.DoubleClick, ActionIds.WorkingTreeStage),
         new(DefaultKeymap.WorkingStagedView, MouseGesture.DoubleClick, ActionIds.WorkingTreeUnstage),
         new(DefaultKeymap.WorkingMessageView, MouseGesture.Click, ActionIds.WorkingTreeEditMessage),
         new(DefaultKeymap.WorkingMessageView, MouseGesture.DoubleClick, ActionIds.WorkingTreeMessageSelectWord),
-        new(DefaultKeymap.WorkingMessageView, MouseGesture.WheelUp, ActionIds.WorkingTreeMessageScrollUp),
-        new(DefaultKeymap.WorkingMessageView, MouseGesture.WheelDown, ActionIds.WorkingTreeMessageScrollDown),
+        new(
+            DefaultKeymap.WorkingMessageView,
+            MouseGesture.WheelUp,
+            ActionIds.WorkingTreeMessageScrollUp,
+            WheelLines),
+        new(
+            DefaultKeymap.WorkingMessageView,
+            MouseGesture.WheelDown,
+            ActionIds.WorkingTreeMessageScrollDown,
+            WheelLines),
         new(MessageSignOffButton, MouseGesture.Click, ActionIds.WorkingTreeToggleSignOff),
         new(MessageNoVerifyButton, MouseGesture.Click, ActionIds.WorkingTreeToggleNoVerify),
         new(MessageAmendButton, MouseGesture.Click, ActionIds.WorkingTreeToggleAmend),
@@ -441,14 +480,17 @@ public static class DefaultMouseMap
         new(ReflogCheckoutButton, MouseGesture.Click, ActionIds.BranchSwitch),
         new(ReflogPickerRow, MouseGesture.Click, ActionIds.InputAccept),
         new(MainlineParentRow, MouseGesture.Click, ActionIds.PickMainline, UsesTarget: true),
+        new(PromptPopupView, MouseGesture.WheelUp, ActionIds.ListUp, PopupWheelLines),
+        new(PromptPopupView, MouseGesture.WheelDown, ActionIds.ListDown, PopupWheelLines),
+        new(PromptRowButton, MouseGesture.Click, ActionIds.PromptRow, UsesTarget: true),
         new(HelpTabLabel, MouseGesture.Click, ActionIds.HelpTabSelect, UsesTarget: true),
         new(BackdropView, MouseGesture.Click, ActionIds.Cancel),
         new(DefaultKeymap.PaletteView, MouseGesture.Click, ActionIds.CommandExecute),
-        new(DefaultKeymap.PaletteView, MouseGesture.WheelUp, ActionIds.PalettePrevious),
-        new(DefaultKeymap.PaletteView, MouseGesture.WheelDown, ActionIds.PaletteNext),
+        new(DefaultKeymap.PaletteView, MouseGesture.WheelUp, ActionIds.PalettePrevious, PopupWheelLines),
+        new(DefaultKeymap.PaletteView, MouseGesture.WheelDown, ActionIds.PaletteNext, PopupWheelLines),
         new(DefaultKeymap.ContextMenuView, MouseGesture.Click, ActionIds.CommandExecute),
-        new(DefaultKeymap.ContextMenuView, MouseGesture.WheelUp, ActionIds.PalettePrevious),
-        new(DefaultKeymap.ContextMenuView, MouseGesture.WheelDown, ActionIds.PaletteNext),
+        new(DefaultKeymap.ContextMenuView, MouseGesture.WheelUp, ActionIds.PalettePrevious, PopupWheelLines),
+        new(DefaultKeymap.ContextMenuView, MouseGesture.WheelDown, ActionIds.PaletteNext, PopupWheelLines),
         new(ConfirmYesButton, MouseGesture.Click, ActionIds.ConfirmYes),
         new(ConfirmNoButton, MouseGesture.Click, ActionIds.ConfirmNo),
         new(StageAllButton, MouseGesture.Click, ActionIds.WorkingTreeStageAll),

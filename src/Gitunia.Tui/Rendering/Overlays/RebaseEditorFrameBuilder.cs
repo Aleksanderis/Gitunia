@@ -3,6 +3,7 @@ using Gitunia.Core.Keymap;
 using Gitunia.Core.Lists;
 using Gitunia.Core.Mouse;
 using Gitunia.Core.Overlays;
+using Gitunia.Core.Hints;
 using Gitunia.Core.Rebase;
 using Gitunia.Core.Text;
 using Gitunia.Git.Rebase;
@@ -30,13 +31,6 @@ public static class RebaseEditorFrameBuilder
     private const string Note = "oldest first: the top commit is replayed first; squash and fixup meld upwards";
     private const string DiscardHint = "Esc again discards the changes to the todo";
     private const string BlankMessageHint = "A reword needs a message: type one, or Esc to leave";
-
-    private static readonly HintItem[] MessageHints =
-    [
-        new("Ctrl-g", HintVerb.Done),
-        new("Enter", HintVerb.NewLine),
-        new("Esc", HintVerb.Keep),
-    ];
 
     private static readonly HintChip[] ChipLabels =
     [
@@ -180,17 +174,24 @@ public static class RebaseEditorFrameBuilder
             lines.Add(OverlayBox.Wrap(padded, glyphs));
         }
 
+        var targets = new List<FrameTarget>();
         if (edit.Editor.IsBlank)
         {
             lines.Add(OverlayBox.Text(BlankMessageHint, width, glyphs, SegmentRole.Error));
         }
         else
         {
-            lines.Add(OverlayBox.Hints(MessageHints, width, glyphs, gap: PromptPopup.HintGap));
+            lines.Add(OverlayBox.Hints(
+                HintSet.ForRebaseMessage(),
+                targets,
+                lines.Count,
+                width,
+                glyphs,
+                gap: PromptPopup.HintGap));
         }
 
         lines.Add(OverlayBox.Bottom(width, glyphs));
-        return new OverlayFrame((screenWidth - width) / 2, 1, lines);
+        return new OverlayFrame((screenWidth - width) / 2, 1, lines, targets);
     }
 
     private static StyledLine RowLine(RebaseEditorRow row, int width, GraphGlyphSet glyphs, bool isSelected)

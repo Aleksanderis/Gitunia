@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text;
 using Gitunia.App.Blame;
 using Gitunia.Core.Blame;
+using Gitunia.Core.Hints;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Lists;
 using Gitunia.Core.Mouse;
@@ -38,11 +39,8 @@ public static class BlameFrameBuilder
     private const string Divider = "|";
     private const int PercentScale = 100;
 
-    private static readonly HintItem[] PlainHints = [new("/", "search"), new("Esc", HintVerb.Close)];
-
-    private static readonly HintItem[] SelectionHints = [new("y", "copy"), new("Esc", HintVerb.Cancel)];
-
-    private static readonly HintItem[] SteppedHints = [new("/", "search"), new("Esc", HintVerb.Back)];
+    // What a key does to the line under the cursor, one row each: the hints of the view that have a sentence.
+    private static readonly List<KeyHint> Actions = ActionRow.RowsOf(HintSet.ForBlameList());
 
     private static readonly HintChip[] ToggleChips =
     [
@@ -58,7 +56,8 @@ public static class BlameFrameBuilder
         DateTimeOffset now,
         int screenWidth,
         int screenHeight,
-        GraphGlyphSet glyphs)
+        GraphGlyphSet glyphs,
+        ChipKeys? keys = null)
     {
         var rows = VisibleRows(screenHeight);
         if (screenWidth < OverlayBox.MinimumWidth || rows < 1)
@@ -88,44 +87,21 @@ public static class BlameFrameBuilder
             lines.Add(OverlayBox.Text(string.Empty, screenWidth, glyphs));
         }
 
-        lines.Add(OverlayBox.TwoColumns(
-            "Enter",
-            $"{HintVerb.Select} the line's commit in the graph",
-            screenWidth,
-            glyphs,
-            SegmentRole.OverlayKey,
-            SegmentRole.Faint));
-        lines.Add(OverlayBox.TwoColumns(
-            "Alt-p",
-            "blame at the parent of the line's commit",
-            screenWidth,
-            glyphs,
-            SegmentRole.OverlayKey,
-            SegmentRole.Faint));
-        lines.Add(OverlayBox.TwoColumns(
-            "<space>H",
-            "history of the file at this revision",
-            screenWidth,
-            glyphs,
-            SegmentRole.OverlayKey,
-            SegmentRole.Faint));
-        lines.Add(OverlayBox.TwoColumns(
-            "<space>L",
-            "history of this line, from the commit that wrote it",
-            screenWidth,
-            glyphs,
-            SegmentRole.OverlayKey,
-            SegmentRole.Faint));
+        lines.AddRange(
+            Actions.Select(action => ActionRow.Line(action, DefaultKeymap.BlameView, screenWidth, glyphs, keys)));
         lines.Add(HintChipRows.Line(ToggleChips.Select(WithKey).ToArray(), screenWidth, glyphs));
+        var targets = new List<FrameTarget>();
         lines.Add(OverlayBox.Hints(
-            FooterHints(state),
+            ActionRow.FooterOf(HintSet.ForBlame(state)),
+            targets,
+            lines.Count,
             screenWidth,
             glyphs,
             FooterLead(state),
-            field: state is { HasSearch: true, IsEditingSearch: true } ? CaretField.Of("/", state.Search) : null));
+            field: SearchField(state)));
         lines.Add(OverlayBox.Bottom(screenWidth, glyphs));
 
-        return new OverlayFrame(0, 0, lines);
+        return new OverlayFrame(0, 0, lines, targets);
     }
 
     /// <summary>Lines the view shows at a screen height (the page size of the half-page motions).</summary>
@@ -147,15 +123,28 @@ public static class BlameFrameBuilder
 
     /// <summary>The mouse view of the action row on a frame line; null when the line is none.</summary>
     public static string? ActionAt(int frameLine, int frameColumn, int screenHeight) =>
-        (frameLine - VisibleRows(screenHeight)) switch
+        ActionAt(frameLine - VisibleRows(screenHeight), frameColumn);
+
+    private static string? ActionAt(int row, int frameColumn)
+    {
+        if (row >= 1 && row <= Actions.Count)
         {
-            1 => DefaultMouseMap.BlameShowButton,
-            2 => DefaultMouseMap.BlameParentButton,
-            3 => DefaultMouseMap.BlameHistoryButton,
-            4 => DefaultMouseMap.BlameLineHistoryButton,
-            5 => HintChipRows.ViewAt(ToggleChips.Select(WithKey).ToArray(), frameColumn),
-            _ => null,
-        };
+            return DefaultMouseMap.ClickViewOf(Actions[row - 1].Actions[0]);
+        }
+
+        if (row != Actions.Count + 1)
+        {
+            return null;
+        }
+
+        return HintChipRows.ViewAt(ToggleChips.Select(WithKey).ToArray(), frameColumn);
+    }
+
+    // The search being typed, drawn with a cursor cell instead of the plain lead.
+    private static CaretField? SearchField(BlameState state) =>
+        state is { HasSearch: true, IsEditingSearch: true }
+            ? CaretField.Of("/", state.Search)
+            : null;
 
     private static HintChip WithKey(HintChip chip) =>
         chip with { Keys = ChipKeys.Default.For(chip.View, DefaultKeymap.BlameView) ?? string.Empty };
@@ -355,18 +344,6 @@ public static class BlameFrameBuilder
 
         return builder.ToString();
     }
-
-    private static HintItem[] FooterHints(BlameState state)
-    {
-        if (state.HasSearch)
-        {
-            return [new("Esc", state.IsEditingSearch ? HintVerb.Cancel : HintVerb.Clear)];
-        }
-
-        return state.Selection is null ? Plain(state) : SelectionHints;
-    }
-
-    private static HintItem[] Plain(BlameState state) => state.Steps.IsEmpty ? PlainHints : SteppedHints;
 
     // The switches in force and the ignore-revs file, so the user sees what shaped the attribution.
     private static string Flags(BlameState state)

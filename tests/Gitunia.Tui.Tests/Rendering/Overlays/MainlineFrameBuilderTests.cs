@@ -20,9 +20,9 @@ public class MainlineFrameBuilderTests
         Assert.NotNull(frame);
         Assert.Equal(5, frame.Lines.Count);
         Assert.Contains("aaaaaaa main two", frame.Lines[1].Text, StringComparison.Ordinal);
-        Assert.Contains("[1]", frame.Lines[1].Text, StringComparison.Ordinal);
+        Assert.Contains("1  aaaaaaa", frame.Lines[1].Text, StringComparison.Ordinal);
         Assert.Contains("bbbbbbb topic two", frame.Lines[2].Text, StringComparison.Ordinal);
-        Assert.Contains("[2]", frame.Lines[2].Text, StringComparison.Ordinal);
+        Assert.Contains("2  bbbbbbb", frame.Lines[2].Text, StringComparison.Ordinal);
     }
 
     [Theory]
@@ -58,8 +58,8 @@ public class MainlineFrameBuilderTests
 
         Assert.NotNull(frame);
         Assert.DoesNotContain("unavailable", frame.Lines[1].Text, StringComparison.Ordinal);
-        Assert.Contains("[2] unavailable", frame.Lines[2].Text, StringComparison.Ordinal);
-        var marked = frame.Lines[2].Segments.Where(s => s.Text.Contains("[2]", StringComparison.Ordinal));
+        Assert.Contains("unavailable", frame.Lines[2].Text, StringComparison.Ordinal);
+        var marked = frame.Lines[2].Segments.Where(s => s.Text.Contains("topic two", StringComparison.Ordinal));
         Assert.All(marked, s => Assert.Equal(SegmentRole.Faint, s.Role));
     }
 
@@ -71,7 +71,7 @@ public class MainlineFrameBuilderTests
         var frame = MainlineFrameBuilder.Build(Title, parents, 50, 24, GraphGlyphSet.Unicode, 1);
 
         Assert.NotNull(frame);
-        Assert.Contains("[2] unavailable", frame.Lines[2].Text, StringComparison.Ordinal);
+        Assert.Contains("unavailable", frame.Lines[2].Text, StringComparison.Ordinal);
     }
 
     [Fact]

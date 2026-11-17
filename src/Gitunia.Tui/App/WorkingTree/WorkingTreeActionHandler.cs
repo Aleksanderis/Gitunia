@@ -79,7 +79,7 @@ public sealed partial class WorkingTreeActionHandler(
             return true;
         }
 
-        if (isShown && commits.TryExecute(tab, action))
+        if (isShown && commits.TryExecute(tab, action, count))
         {
             return true;
         }

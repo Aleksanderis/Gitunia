@@ -20,7 +20,8 @@ public abstract record CommitCommand : AppCommand
 /// options and Esc (stop editing or cancel a running commit).</summary>
 /// <param name="TabId">The active tab, showing the Changes view.</param>
 /// <param name="Action">The action.</param>
-public sealed record CommitActionPressed(TabId TabId, ActionId Action) : CommitCommand(TabId);
+/// <param name="Count">The rows a wheel notch moves, from the mouse map; null for the keys.</param>
+public sealed record CommitActionPressed(TabId TabId, ActionId Action, int? Count = null) : CommitCommand(TabId);
 
 /// <summary>A key typed in Insert mode while the box owns it.</summary>
 /// <param name="TabId">The tab.</param>

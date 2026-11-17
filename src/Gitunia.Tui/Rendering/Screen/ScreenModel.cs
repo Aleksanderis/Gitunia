@@ -1,10 +1,10 @@
 using Gitunia.Core.Editing;
+using Gitunia.Core.Hints;
 using Gitunia.Core.Operations;
 using Gitunia.Core.Picker;
 using Gitunia.Core.Status;
 using Gitunia.Core.Updates;
 using Gitunia.Core.Workspaces.Panes;
-using Gitunia.Tui.Rendering.Panes;
 using Gitunia.Tui.Rendering.Styling;
 using Gitunia.Tui.Rendering.Tabs;
 

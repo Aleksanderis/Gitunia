@@ -7,6 +7,7 @@ using Gitunia.Tui.App.Config;
 using Gitunia.Tui.App.Overlays;
 using Gitunia.Tui.Input;
 using Gitunia.Tui.Rendering.Overlays;
+using Gitunia.Tui.Rendering.Styling;
 using Gitunia.Tui.Tests.Fakes;
 
 namespace Gitunia.Tui.Tests.App.Overlays;
@@ -42,7 +43,7 @@ public sealed class OverlayHarness : IRowMenuTargets
             keys,
             route,
             shell.Host,
-            new OverlayServices(engine, chrome, _config, this, shell.Statuses));
+            new OverlayServices(engine, chrome, _config, this, shell.Statuses, ChipKeys.Default));
         _hits = new OverlayHitTests(_store, _controller, chrome);
     }
 

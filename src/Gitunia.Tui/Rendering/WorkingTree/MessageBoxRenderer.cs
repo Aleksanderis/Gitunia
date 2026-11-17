@@ -19,8 +19,8 @@ namespace Gitunia.Tui.Rendering.WorkingTree;
 /// </summary>
 public static class MessageBoxRenderer
 {
-    private const string Checked = "[x]";
-    private const string Unchecked = "[ ]";
+    private static readonly string Checked = ButtonLabel.Bracketed("x");
+    private static readonly string Unchecked = ButtonLabel.Bracketed(" ");
     private const string SignOffLabel = "SignOff";
     private const string NoVerifyLabel = "No-Verify";
     private const string AmendLabel = "Amend";

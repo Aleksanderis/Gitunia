@@ -42,6 +42,9 @@ public sealed class OverlayCover : IConflictCover, IOverlayCover
     /// <summary>Any overlay, editor or dialog is open.</summary>
     public bool IsAnyOverlayOpen() => _rebaseEditor.IsOpen || _conflictEditor.IsOpen || _others.IsOtherOverlayOpen();
 
+    /// <summary>The prompt popup is what is on screen: no other overlay, screen or editor covers it.</summary>
+    public bool IsPromptPopupShowing() => _others.HasPromptPopup && !IsMainlineCovered();
+
     /// <summary>The overlays a mainline question or a prompt popup hides behind.</summary>
     public bool IsMainlineCovered() => _others.IsHidingMainline || _rebaseEditor.IsOpen || _conflictEditor.IsOpen;
 

@@ -6,6 +6,9 @@ public sealed class LineBuilder(int width, string ellipsis)
     private readonly List<StyledSegment> _segments = [];
     private int _used;
 
+    /// <summary>Columns taken so far.</summary>
+    public int Used => _used;
+
     /// <summary>Columns still free.</summary>
     public int Remaining => Math.Max(0, width - _used);
 
