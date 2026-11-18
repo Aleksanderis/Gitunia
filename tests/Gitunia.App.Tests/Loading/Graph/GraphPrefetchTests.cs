@@ -87,7 +87,10 @@ public sealed class GraphPrefetchTests : IDisposable
         Assert.True(SpinWait.SpinUntil(() => _commitLog.ReadCount == 1, Patience));
         Assert.False(_commitLog.LastTipToken.IsCancellationRequested);
 
-        clock.Advance(expiry);
+        clock.Advance(expiry - TimeSpan.FromMilliseconds(1));
+        Assert.False(_commitLog.LastTipToken.IsCancellationRequested);
+
+        clock.Advance(TimeSpan.FromMilliseconds(1));
 
         Assert.True(_commitLog.LastTipToken.IsCancellationRequested);
         Assert.Null(expiring.Claim(location));
