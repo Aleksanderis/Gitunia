@@ -16,14 +16,17 @@ public sealed class GraphPrefetch : IDisposable
 
     private readonly GraphLoader _loader;
     private readonly TimeSpan _expiry;
+    private readonly TimeProvider _clock;
     private readonly Lock _gate = new();
     private PrefetchedGraph? _pending;
     private RepositoryLocation? _confirmed;
 
     /// <param name="loader">Streams the rows.</param>
     /// <param name="expiry">How long an unclaimed read lives; <see cref="DefaultExpiry"/> when null.</param>
-    public GraphPrefetch(GraphLoader loader, TimeSpan? expiry = null)
+    /// <param name="clock">Runs the expiry timer; tests pass a clock they move by hand.</param>
+    public GraphPrefetch(GraphLoader loader, TimeSpan? expiry = null, TimeProvider? clock = null)
     {
+        _clock = clock ?? TimeProvider.System;
         _loader = loader;
         _expiry = expiry ?? DefaultExpiry;
     }
@@ -46,7 +49,7 @@ public sealed class GraphPrefetch : IDisposable
             return;
         }
 
-        var source = new CancellationTokenSource(_expiry);
+        var source = new CancellationTokenSource(_expiry, _clock);
         var cut = new GraphCut();
         var provisional = new RepositoryLocation(fullPath, fullPath, fullPath, false, false);
         var batches = _loader.StreamCappedAsync(provisional, cut, source.Token).GetAsyncEnumerator(source.Token);
