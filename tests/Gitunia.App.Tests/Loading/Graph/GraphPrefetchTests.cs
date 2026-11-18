@@ -1,4 +1,5 @@
 using Gitunia.App.Loading.Graph;
+using Gitunia.App.Tests.Fakes;
 using Xunit;
 
 namespace Gitunia.App.Tests.Loading.Graph;
@@ -76,13 +77,19 @@ public sealed class GraphPrefetchTests : IDisposable
     [Fact]
     public void GivenUnclaimedRead_WhenItExpires_ThenItIsCancelledAndNothingIsClaimable()
     {
-        // Long enough for the tip read to start before the expiry on a cold, slow runner (50 ms lost that race on CI).
-        using var expiring =new GraphPrefetch(new GraphLoader(_commitLog), TimeSpan.FromMilliseconds(500));
+        // The clock is moved by hand, so the expiry cannot beat the start of the read, however slow the runner.
+        var clock = new ManualClock();
+        var expiry = TimeSpan.FromSeconds(10);
+        using var expiring = new GraphPrefetch(new GraphLoader(_commitLog), expiry, clock);
         var location = FakeStatusReader.LocationOf("expire");
         expiring.Start(Path.GetTempPath());
         expiring.Confirm(location);
+        Assert.True(SpinWait.SpinUntil(() => _commitLog.ReadCount == 1, Patience));
+        Assert.False(_commitLog.LastTipToken.IsCancellationRequested);
 
-        Assert.True(SpinWait.SpinUntil(() => _commitLog.LastTipToken.IsCancellationRequested, Patience));
+        clock.Advance(expiry);
+
+        Assert.True(_commitLog.LastTipToken.IsCancellationRequested);
         Assert.Null(expiring.Claim(location));
     }
 
