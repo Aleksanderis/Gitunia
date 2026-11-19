@@ -8,8 +8,8 @@ namespace Gitunia.Tui.Rendering.Graph;
 /// <param name="MergeNode">A commit with several parents.</param>
 /// <param name="LineNode">A commit in the middle of a branch: one line in and one out on its own lane, drawn as part of the line.</param>
 /// <param name="Lines">Line characters indexed by <see cref="LineDirections"/> flags (16 entries).</param>
-/// <param name="DepartRight">In the cell of a new lane right of the node: the line falls from the node's side to the lane's centre (see <see cref="GraphDiagonals"/>).</param>
-/// <param name="DepartLeft">The same for a new lane left of the node.</param>
+/// <param name="DepartRight">A diagonal falling to the right: a new lane right of the node bends out of it in the row below, or a lane left of the node bends into it in the row above (see <see cref="GraphDiagonals"/>).</param>
+/// <param name="DepartLeft">A diagonal falling to the left, the mirror of <paramref name="DepartRight"/>.</param>
 /// <param name="Ellipsis">Shown where text was cut.</param>
 /// <param name="CurrentBranch">Before the name of the branch HEAD is on, inside its label box: the local glyph with a `◉` directly in front, no space (ASCII: `HEAD -> `).</param>
 /// <param name="LocalBranch">

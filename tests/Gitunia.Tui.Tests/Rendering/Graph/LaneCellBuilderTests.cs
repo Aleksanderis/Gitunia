@@ -148,4 +148,20 @@ public class LaneCellBuilderTests
 
         Assert.Equal("○─╯ ", string.Concat(cells.Select(cell => cell.Glyph)));
     }
+
+    [Fact]
+    public void GivenTheArrivingLaneToSkipInTheNodeRow_WhenDrawing_ThenOnlyTheArrivingBendIsLeftOut()
+    {
+        var edges = new[]
+        {
+            new GraphEdge(GraphEdgeKind.Incoming, 1, 0),
+            new GraphEdge(GraphEdgeKind.Outgoing, 0, 0),
+            new GraphEdge(GraphEdgeKind.Outgoing, 0, 1),
+        };
+        var row = new GraphRow(CommitFactory.Id(1), 0, 2, edges);
+
+        var cells = LaneCellBuilder.Build(row, 2, GraphGlyphSet.Unicode, true, new RowDiagonals(RowDiagonals.NoLane, [], 1));
+
+        Assert.Equal("○─╮ ", string.Concat(cells.Select(cell => cell.Glyph)));
+    }
 }

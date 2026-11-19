@@ -41,7 +41,11 @@ public static class LaneCellBuilder
                     incomingCount++;
                     isOnLane &= edge.FromLane == row.Lane;
                     var incomingLane = Math.Min(edge.FromLane, laneColumns - 1);
-                    Connect(directions, colors, incomingLane, nodeLane, LineDirections.Up, edge.Color);
+                    if (edge.FromLane != plan.SkipArrivingLane)
+                    {
+                        Connect(directions, colors, incomingLane, nodeLane, LineDirections.Up, edge.Color);
+                    }
+
                     break;
                 default:
                     outgoingCount++;

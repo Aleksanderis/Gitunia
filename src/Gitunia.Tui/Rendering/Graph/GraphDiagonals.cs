@@ -16,7 +16,16 @@ namespace Gitunia.Tui.Rendering.Graph;
 /// │╲       and a new lane bends out
 /// │ │
 /// </code>
-/// Where the row below does not fit (none loaded, another line in the way) the bend stays.
+/// Where the row below does not fit (none loaded, another line in the way, a labelled commit that needs its dot) the
+/// order turns round: the line leaving towards the parent keeps its bend and the arriving line becomes a diagonal in the
+/// row above, where the old lane ends:
+/// <code>
+/// │ │
+/// │╱       the right lane bends in
+/// ○─╮      and a new lane starts at the node
+/// │ ●
+/// </code>
+/// Where neither row fits both bends stay.
 /// </summary>
 public static class GraphDiagonals
 {
@@ -27,13 +36,21 @@ public static class GraphDiagonals
     public static RowDiagonals PlanFor(CommitGraph graph, int index, int laneColumns)
     {
         var skipLane = DepartureAt(graph, index, laneColumns) is { } own ? own.OtherLane : RowDiagonals.NoLane;
+        var skipArrivingLane = ArrivalAt(graph, index, laneColumns) is { } arriving ? arriving.OtherLane : RowDiagonals.NoLane;
         List<DiagonalMark> marks = [];
         if (DepartureAt(graph, index - 1, laneColumns) is { } above)
         {
             marks.Add(above.Below);
         }
 
-        return marks.Count == 0 && skipLane == RowDiagonals.NoLane ? RowDiagonals.None : new RowDiagonals(skipLane, marks);
+        if (ArrivalAt(graph, index + 1, laneColumns) is { } below)
+        {
+            marks.Add(below.Above);
+        }
+
+        return marks.Count == 0 && skipLane == RowDiagonals.NoLane && skipArrivingLane == RowDiagonals.NoLane
+            ? RowDiagonals.None
+            : new RowDiagonals(skipLane, marks, skipArrivingLane);
     }
 
     /// <summary>
@@ -72,7 +89,7 @@ public static class GraphDiagonals
 
                 if (distance < foundDistance)
                 {
-                    found = new DiagonalJunction(row.Lane, ending.FromLane, starting.Color);
+                    found = new DiagonalJunction(row.Lane, ending.FromLane, starting.Color, ending.Color);
                     tied = false;
                 }
                 else if (distance == foundDistance && found is { } same && same.OtherLane != ending.FromLane)
@@ -93,12 +110,30 @@ public static class GraphDiagonals
             return null;
         }
 
-        return HasRoomBelow(graph[index + 1], junction.OtherLane) ? junction : null;
+        return HasRoom(graph[index + 1], junction.OtherLane) ? junction : null;
     }
 
-    // The cell of the new lane in the row below holds only a line running through it or a plain commit of that lane (no
-    // ref: a label needs its dot), and no bend runs over it.
-    private static bool HasRoomBelow(GraphEntry entry, int lane)
+    // The junction of a row when the row below has no room for the departing diagonal and its arriving line is drawn as a
+    // diagonal instead: the row above exists, has room for it, and no departing diagonal from further up takes the cell.
+    // The last loaded row keeps its bends: the row below is not loaded yet and may take the departing diagonal later.
+    private static DiagonalJunction? ArrivalAt(CommitGraph graph, int index, int laneColumns)
+    {
+        if (index < 1 || index >= graph.Count - 1 || JunctionOf(graph[index].Row, laneColumns) is not { } junction)
+        {
+            return null;
+        }
+
+        if (DepartureAt(graph, index, laneColumns) is not null || !HasRoom(graph[index - 1], junction.OtherLane))
+        {
+            return null;
+        }
+
+        return DepartureAt(graph, index - 2, laneColumns) is { } taken && taken.OtherLane == junction.OtherLane ? null : junction;
+    }
+
+    // The cell of the lane in the row next to the node holds only a line running through it or a plain commit of that
+    // lane (no ref: a label needs its dot), and no bend runs over it.
+    private static bool HasRoom(GraphEntry entry, int lane)
     {
         var row = entry.Row;
         var hasLane = false;

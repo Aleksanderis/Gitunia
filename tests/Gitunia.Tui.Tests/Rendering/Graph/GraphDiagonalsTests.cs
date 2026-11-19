@@ -61,7 +61,7 @@ public class GraphDiagonalsTests
     }
 
     [Fact]
-    public void GivenABendOverTheCellInTheRowBelow_WhenPlanning_ThenTheBendStays()
+    public void GivenABendOverTheCellInTheRowBelow_WhenPlanning_ThenTheArrivingLineIsTheDiagonalAbove()
     {
         var bend = new GraphRow(
             CommitFactory.Id(3),
@@ -70,7 +70,10 @@ public class GraphDiagonalsTests
             [new GraphEdge(GraphEdgeKind.Through, 1, 1, 2), new GraphEdge(GraphEdgeKind.Outgoing, 2, 0, 4)]);
         var graph = GraphOf(Passing(1), Junction(2), bend);
 
-        Assert.Same(RowDiagonals.None, GraphDiagonals.PlanFor(graph, 1, LaneColumns));
+        var node = GraphDiagonals.PlanFor(graph, 1, LaneColumns);
+        Assert.Equal(RowDiagonals.NoLane, node.SkipLane);
+        Assert.Equal(1, node.SkipArrivingLane);
+        Assert.Equal(new DiagonalMark(1, false, 2), Assert.Single(GraphDiagonals.PlanFor(graph, 0, LaneColumns).Marks));
     }
 
     [Fact]
@@ -237,7 +240,7 @@ public class GraphDiagonalsTests
     }
 
     [Fact]
-    public void GivenABendOverTheFarCellInTheRowBelow_WhenPlanning_ThenTheBendStays()
+    public void GivenABendOverTheFarCellInTheRowBelow_WhenDrawing_ThenTheArrivingLineIsTheDiagonalAbove()
     {
         var bend = new GraphRow(
             CommitFactory.Id(3),
@@ -250,12 +253,12 @@ public class GraphDiagonalsTests
             ]);
         var graph = GraphOf(PassingTwo(1), FarJunction(2), bend);
 
-        Assert.Same(RowDiagonals.None, GraphDiagonals.PlanFor(graph, 1, LaneColumns));
-        Assert.Equal("○───┤ ", Draw(graph, 1, GraphGlyphSet.Unicode));
+        Assert.Equal("├ │ ╱ ", Draw(graph, 0, GraphGlyphSet.Unicode));
+        Assert.Equal("○───╮ ", Draw(graph, 1, GraphGlyphSet.Unicode));
     }
 
     [Fact]
-    public void GivenADecoratedCommitOnTheFarLaneBelow_WhenPlanning_ThenTheBendStays()
+    public void GivenADecoratedCommitOnTheFarLaneBelow_WhenPlanning_ThenTheArrivingLineIsTheDiagonalInTheRowAbove()
     {
         var tip = new GraphRow(
             CommitFactory.Id(3),
@@ -276,7 +279,105 @@ public class GraphDiagonalsTests
             new GraphEntry("subject", "author", DateTimeOffset.UnixEpoch, [branch], tip),
         ]);
 
+        Assert.Equal(new DiagonalMark(2, false, 2), Assert.Single(GraphDiagonals.PlanFor(graph, 0, LaneColumns).Marks));
+        Assert.Equal("├ │ ╱ ", Draw(graph, 0, GraphGlyphSet.Unicode));
+        Assert.Equal("○───╮ ", Draw(graph, 1, GraphGlyphSet.Unicode));
+        Assert.Equal("│ │ ● ", Draw(graph, 2, GraphGlyphSet.Unicode));
+    }
+
+    // The first commit of the new lane 1, with a branch label, right below a junction.
+    private static GraphEntry LabelledTip(int number) =>
+        new(
+            "subject",
+            "author",
+            DateTimeOffset.UnixEpoch,
+            [new CommitDecoration("refs/heads/topic", "topic", RefKind.LocalBranch, false)],
+            new GraphRow(
+                CommitFactory.Id(number),
+                1,
+                2,
+                [
+                    new GraphEdge(GraphEdgeKind.Incoming, 1, 1, 3),
+                    new GraphEdge(GraphEdgeKind.Outgoing, 1, 1, 3),
+                    new GraphEdge(GraphEdgeKind.Through, 0, 0, 1),
+                ]));
+
+    // The last commit of lane 1, which ends at the junction below it.
+    private static GraphRow EndOfLane(int number) =>
+        new(
+            CommitFactory.Id(number),
+            1,
+            2,
+            [
+                new GraphEdge(GraphEdgeKind.Incoming, 1, 1, 2),
+                new GraphEdge(GraphEdgeKind.Outgoing, 1, 1, 2),
+                new GraphEdge(GraphEdgeKind.Through, 0, 0, 1),
+            ]);
+
+    [Fact]
+    public void GivenALabelledTipRightBelowAJunction_WhenDrawing_ThenThePlainCommitAboveIsTheArrivingDiagonalAndTheDepartureKeepsItsBend()
+    {
+        var graph = new CommitGraph();
+        graph.AddRange(
+        [
+            new GraphEntry("subject", "author", DateTimeOffset.UnixEpoch, [], EndOfLane(1)),
+            new GraphEntry("subject", "author", DateTimeOffset.UnixEpoch, [], Junction(2)),
+            LabelledTip(3),
+        ]);
+
+        var node = GraphDiagonals.PlanFor(graph, 1, LaneColumns);
+
+        Assert.Equal(RowDiagonals.NoLane, node.SkipLane);
+        Assert.Equal(1, node.SkipArrivingLane);
+        Assert.Empty(node.Marks);
+        Assert.Equal("│ ╱   ", Draw(graph, 0, GraphGlyphSet.Unicode));
+        Assert.Equal("○─╮   ", Draw(graph, 1, GraphGlyphSet.Unicode));
+        Assert.Equal("│ ●   ", Draw(graph, 2, GraphGlyphSet.Unicode));
+        Assert.Equal("| /   ", Draw(graph, 0, GraphGlyphSet.Ascii));
+    }
+
+    [Fact]
+    public void GivenALabelledCommitAboveAndBelowAJunction_WhenPlanning_ThenBothBendsStay()
+    {
+        var labelledEnd = new GraphEntry(
+            "subject",
+            "author",
+            DateTimeOffset.UnixEpoch,
+            [new CommitDecoration("refs/heads/done", "done", RefKind.LocalBranch, false)],
+            EndOfLane(1));
+        var graph = new CommitGraph();
+        graph.AddRange([labelledEnd, new GraphEntry("subject", "author", DateTimeOffset.UnixEpoch, [], Junction(2)), LabelledTip(3)]);
+
+        Assert.Same(RowDiagonals.None, GraphDiagonals.PlanFor(graph, 0, LaneColumns));
         Assert.Same(RowDiagonals.None, GraphDiagonals.PlanFor(graph, 1, LaneColumns));
+        Assert.Equal("○─┤   ", Draw(graph, 1, GraphGlyphSet.Unicode));
+    }
+
+    [Fact]
+    public void GivenAJunctionOnTheFirstRowWithNoRoomBelow_WhenPlanning_ThenTheBendsStay()
+    {
+        var graph = new CommitGraph();
+        graph.AddRange([new GraphEntry("subject", "author", DateTimeOffset.UnixEpoch, [], Junction(1)), LabelledTip(2)]);
+
+        Assert.Same(RowDiagonals.None, GraphDiagonals.PlanFor(graph, 0, LaneColumns));
+    }
+
+    [Fact]
+    public void GivenTheCellAboveTakenByADepartingDiagonal_WhenPlanning_ThenTheArrivingLineKeepsItsBend()
+    {
+        // Junction 1 departs into row 1 (lane 1); junction 2 cannot depart (labelled tip below) and would arrive in row 1 too.
+        var graph = new CommitGraph();
+        graph.AddRange(
+        [
+            new GraphEntry("subject", "author", DateTimeOffset.UnixEpoch, [], Junction(1)),
+            new GraphEntry("subject", "author", DateTimeOffset.UnixEpoch, [], Passing(2)),
+            new GraphEntry("subject", "author", DateTimeOffset.UnixEpoch, [], Junction(3)),
+            LabelledTip(4),
+        ]);
+
+        Assert.Equal(new DiagonalMark(1, true, 3), Assert.Single(GraphDiagonals.PlanFor(graph, 1, LaneColumns).Marks));
+        Assert.Equal(RowDiagonals.NoLane, GraphDiagonals.PlanFor(graph, 2, LaneColumns).SkipArrivingLane);
+        Assert.Equal("○─┤   ", Draw(graph, 2, GraphGlyphSet.Unicode));
     }
 
     // Lanes 1 and 2 end at the node on lane 0 and start again (an octopus merge into freed lanes).
@@ -299,7 +400,7 @@ public class GraphDiagonalsTests
     {
         var graph = GraphOf(PassingTwo(1), Octopus(2), PassingTwo(3));
 
-        Assert.Equal(new DiagonalJunction(0, 1, 3), GraphDiagonals.JunctionOf(graph[1].Row, LaneColumns));
+        Assert.Equal(new DiagonalJunction(0, 1, 3, 2), GraphDiagonals.JunctionOf(graph[1].Row, LaneColumns));
         Assert.Equal("○─┴─┤ ", Draw(graph, 1, GraphGlyphSet.Unicode));
         Assert.Equal("├ ╲ │ ", Draw(graph, 2, GraphGlyphSet.Unicode));
     }
@@ -322,7 +423,7 @@ public class GraphDiagonalsTests
     [Fact]
     public void GivenTheFarthestLaneFirstInEdgeOrder_WhenFindingTheJunction_ThenTheNearestLaneWins()
     {
-        Assert.Equal(new DiagonalJunction(2, 1, 5), GraphDiagonals.JunctionOf(LeftOctopus(2), LaneColumns));
+        Assert.Equal(new DiagonalJunction(2, 1, 5, 4), GraphDiagonals.JunctionOf(LeftOctopus(2), LaneColumns));
     }
 
     [Fact]
@@ -341,7 +442,7 @@ public class GraphDiagonalsTests
                 new GraphEdge(GraphEdgeKind.Outgoing, 2, 3, 7),
             ]);
 
-        Assert.Equal(new DiagonalJunction(2, 3, 7), GraphDiagonals.JunctionOf(wide, 5));
+        Assert.Equal(new DiagonalJunction(2, 3, 7, 6), GraphDiagonals.JunctionOf(wide, 5));
     }
 
     [Fact]
