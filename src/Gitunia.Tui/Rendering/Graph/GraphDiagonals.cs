@@ -25,7 +25,17 @@ namespace Gitunia.Tui.Rendering.Graph;
 /// ○─╮      and a new lane starts at the node
 /// │ ●
 /// </code>
-/// Where neither row fits both bends stay.
+/// Where neither row fits both bends stay. When another line from the node runs on past the arriving corner (a farther
+/// lane merging in, <c>○─┴─╯</c>), the corner would read as joining that line, so the arriving line is a diagonal in
+/// the row above as well, next to the departing one below:
+/// <code>
+/// │╱│
+/// ○───╯    the far lane merges in, the near one ends
+/// │╲       and starts again
+/// </code>
+/// Every lane that ends and starts again at the node is planned this way on its own, so with three or more lanes meeting
+/// (an octopus merge into freed lanes) only the outermost one on each side keeps its arriving corner, where the run
+/// ends, and the lanes it runs over are diagonals above and below.
 /// </summary>
 public static class GraphDiagonals
 {
@@ -35,36 +45,55 @@ public static class GraphDiagonals
     /// <param name="laneColumns">Lanes shown; lanes further right are drawn in the last column, where no diagonal fits.</param>
     public static RowDiagonals PlanFor(CommitGraph graph, int index, int laneColumns)
     {
-        var skipLane = DepartureAt(graph, index, laneColumns) is { } own ? own.OtherLane : RowDiagonals.NoLane;
-        var skipArrivingLane = ArrivalAt(graph, index, laneColumns) is { } arriving ? arriving.OtherLane : RowDiagonals.NoLane;
-        List<DiagonalMark> marks = [];
-        if (DepartureAt(graph, index - 1, laneColumns) is { } above)
+        List<int>? skipLanes = null;
+        List<int>? skipArrivingLanes = null;
+        List<DiagonalMark>? marks = null;
+        foreach (var junction in JunctionsAt(graph, index, laneColumns))
         {
-            marks.Add(above.Below);
+            if (Departs(graph, index, junction))
+            {
+                (skipLanes ??= []).Add(junction.OtherLane);
+            }
+
+            if (Arrives(graph, index, junction, laneColumns))
+            {
+                (skipArrivingLanes ??= []).Add(junction.OtherLane);
+            }
         }
 
-        if (ArrivalAt(graph, index + 1, laneColumns) is { } below)
+        foreach (var junction in JunctionsAt(graph, index - 1, laneColumns))
         {
-            marks.Add(below.Above);
+            if (Departs(graph, index - 1, junction))
+            {
+                (marks ??= []).Add(junction.Below);
+            }
         }
 
-        return marks.Count == 0 && skipLane == RowDiagonals.NoLane && skipArrivingLane == RowDiagonals.NoLane
-            ? RowDiagonals.None
-            : new RowDiagonals(skipLane, marks, skipArrivingLane);
+        foreach (var junction in JunctionsAt(graph, index + 1, laneColumns))
+        {
+            if (Arrives(graph, index + 1, junction, laneColumns))
+            {
+                (marks ??= []).Add(junction.Above);
+            }
+        }
+
+        if (marks is null && skipLanes is null && skipArrivingLanes is null)
+        {
+            return RowDiagonals.None;
+        }
+
+        return new RowDiagonals(skipLanes ?? [], marks ?? [], skipArrivingLanes ?? []);
     }
 
     /// <summary>
-    /// The shape of a row on its own: another lane ends at the node and a new lane starts in the same lane. Other
-    /// merges into the node do not matter. When several lanes end and start again (an octopus merge into freed lanes)
-    /// the one nearest to the node gets the diagonal and the others keep their bends; two equally near ones (one on
-    /// each side) are ambiguous and all keep their bends.
+    /// The shape of a row on its own: each other lane that ends at the node and where a new lane starts again. Other
+    /// merges into the node do not matter. Lanes outside <paramref name="laneColumns"/> are left out.
     /// </summary>
     /// <param name="row">The row.</param>
     /// <param name="laneColumns">Lanes shown.</param>
-    public static DiagonalJunction? JunctionOf(GraphRow row, int laneColumns)
+    public static IReadOnlyList<DiagonalJunction> JunctionsOf(GraphRow row, int laneColumns)
     {
-        DiagonalJunction? found = null;
-        var tied = false;
+        List<DiagonalJunction>? found = null;
         foreach (var ending in row.Edges)
         {
             var isOther = ending.Kind == GraphEdgeKind.Incoming && ending.FromLane != row.Lane;
@@ -75,60 +104,78 @@ public static class GraphDiagonals
 
             foreach (var starting in row.Edges)
             {
-                if (starting.Kind != GraphEdgeKind.Outgoing || starting.ToLane != ending.FromLane)
+                if (starting.Kind == GraphEdgeKind.Outgoing && starting.ToLane == ending.FromLane)
                 {
-                    continue;
-                }
-
-                var distance = Math.Abs(ending.FromLane - row.Lane);
-                var foundDistance = int.MaxValue;
-                if (found is not null)
-                {
-                    foundDistance = Math.Abs(found.Value.OtherLane - row.Lane);
-                }
-
-                if (distance < foundDistance)
-                {
-                    found = new DiagonalJunction(row.Lane, ending.FromLane, starting.Color, ending.Color);
-                    tied = false;
-                }
-                else if (distance == foundDistance && found is { } same && same.OtherLane != ending.FromLane)
-                {
-                    tied = true;
+                    found ??= [];
+                    found.Add(new DiagonalJunction(row.Lane, ending.FromLane, starting.Color, ending.Color));
                 }
             }
         }
 
-        return tied ? null : found;
+        return found ?? [];
     }
 
-    // The junction of a row when its departing line is drawn as a diagonal: the row below exists and has room for it.
-    private static DiagonalJunction? DepartureAt(CommitGraph graph, int index, int laneColumns)
+    private static IReadOnlyList<DiagonalJunction> JunctionsAt(CommitGraph graph, int index, int laneColumns)
     {
-        if (index < 0 || index >= graph.Count - 1 || JunctionOf(graph[index].Row, laneColumns) is not { } junction)
+        if (index < 0 || index >= graph.Count)
         {
-            return null;
+            return [];
         }
 
-        return HasRoom(graph[index + 1], junction.OtherLane) ? junction : null;
+        return JunctionsOf(graph[index].Row, laneColumns);
     }
 
-    // The junction of a row when the row below has no room for the departing diagonal and its arriving line is drawn as a
-    // diagonal instead: the row above exists, has room for it, and no departing diagonal from further up takes the cell.
-    // The last loaded row keeps its bends: the row below is not loaded yet and may take the departing diagonal later.
-    private static DiagonalJunction? ArrivalAt(CommitGraph graph, int index, int laneColumns)
+    // The departing line of a junction is a diagonal: the row below exists and has room for it.
+    private static bool Departs(CommitGraph graph, int index, DiagonalJunction junction) =>
+        index < graph.Count - 1 && HasRoom(graph[index + 1], junction.OtherLane);
+
+    // The arriving line of a junction is a diagonal: the row below has no room for the departing diagonal or another
+    // line runs over the arriving corner; the row above exists, has room for it, and no departing diagonal from further
+    // up takes the cell. The last loaded row keeps its bends: the row below is not loaded yet and may take the
+    // departing diagonal later.
+    private static bool Arrives(CommitGraph graph, int index, DiagonalJunction junction, int laneColumns)
     {
-        if (index < 1 || index >= graph.Count - 1 || JunctionOf(graph[index].Row, laneColumns) is not { } junction)
+        if (index < 1 || index >= graph.Count - 1)
         {
-            return null;
+            return false;
         }
 
-        if (DepartureAt(graph, index, laneColumns) is not null || !HasRoom(graph[index - 1], junction.OtherLane))
+        var departs = Departs(graph, index, junction);
+        if ((departs && !IsCornerCrossed(graph[index].Row, junction)) || !HasRoom(graph[index - 1], junction.OtherLane))
         {
-            return null;
+            return false;
         }
 
-        return DepartureAt(graph, index - 2, laneColumns) is { } taken && taken.OtherLane == junction.OtherLane ? null : junction;
+        foreach (var taken in JunctionsAt(graph, index - 2, laneColumns))
+        {
+            if (taken.OtherLane == junction.OtherLane && Departs(graph, index - 2, taken))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    // Another line between the node and a lane farther out on the junction's side runs over the arriving corner's cell.
+    private static bool IsCornerCrossed(GraphRow row, DiagonalJunction junction)
+    {
+        var isRight = junction.OtherLane > junction.NodeLane;
+        foreach (var edge in row.Edges)
+        {
+            if (edge.Kind == GraphEdgeKind.Through)
+            {
+                continue;
+            }
+
+            var farLane = edge.Kind == GraphEdgeKind.Incoming ? edge.FromLane : edge.ToLane;
+            if (isRight ? farLane > junction.OtherLane : farLane < junction.OtherLane)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     // The cell of the lane in the row next to the node holds only a line running through it or a plain commit of that

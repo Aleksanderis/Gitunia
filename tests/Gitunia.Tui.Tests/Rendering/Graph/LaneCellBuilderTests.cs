@@ -125,7 +125,7 @@ public class LaneCellBuilderTests
             0,
             2,
             [new GraphEdge(GraphEdgeKind.Through, 0, 0, 5), new GraphEdge(GraphEdgeKind.Through, 1, 1, 7)]);
-        var diagonals = new RowDiagonals(RowDiagonals.NoLane, [new DiagonalMark(1, true, 7)]);
+        var diagonals = new RowDiagonals([], [new DiagonalMark(1, true, 7)], []);
 
         var cells = LaneCellBuilder.Build(row, 2, GraphGlyphSet.Unicode, false, diagonals);
 
@@ -144,7 +144,7 @@ public class LaneCellBuilderTests
         };
         var row = new GraphRow(CommitFactory.Id(1), 0, 2, edges);
 
-        var cells = LaneCellBuilder.Build(row, 2, GraphGlyphSet.Unicode, true, new RowDiagonals(1, []));
+        var cells = LaneCellBuilder.Build(row, 2, GraphGlyphSet.Unicode, true, new RowDiagonals([1], [], []));
 
         Assert.Equal("○─╯ ", string.Concat(cells.Select(cell => cell.Glyph)));
     }
@@ -160,7 +160,7 @@ public class LaneCellBuilderTests
         };
         var row = new GraphRow(CommitFactory.Id(1), 0, 2, edges);
 
-        var cells = LaneCellBuilder.Build(row, 2, GraphGlyphSet.Unicode, true, new RowDiagonals(RowDiagonals.NoLane, [], 1));
+        var cells = LaneCellBuilder.Build(row, 2, GraphGlyphSet.Unicode, true, new RowDiagonals([], [], [1]));
 
         Assert.Equal("○─╮ ", string.Concat(cells.Select(cell => cell.Glyph)));
     }
