@@ -20,4 +20,13 @@ public class UpdateAdviceTests
     {
         Assert.Equal(expected, UpdateAdvice.HintCommandFor(route));
     }
+
+    [Theory]
+    [InlineData(InstallRoute.Pacman)]
+    [InlineData(InstallRoute.Apt)]
+    [InlineData(InstallRoute.Dnf)]
+    public void GivenALinuxPackageRoute_WhenAskingForTheUpdateCommand_ThenTheScriptIsAskedForThePackage(InstallRoute route)
+    {
+        Assert.EndsWith("GITUNIA_METHOD=package sh", UpdateAdvice.CommandFor(route));
+    }
 }

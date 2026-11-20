@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Tests scripts/install.sh against a fake release on disk (no network, no root): archive install, skip when current,
-# update, download retries, checksum mismatch, unsupported architecture and system, missing asset (#1248).
+# update, the archive default and the other-copy note (#1473), download retries, checksum mismatch, unsupported
+# architecture and system, missing asset (#1248).
 set -euo pipefail
 root="$(cd "$(dirname "$0")/.." && pwd)"
 tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
@@ -57,12 +58,26 @@ if out="$(run_install "$tmp/r2" GITUNIA_OS=FreeBSD GITUNIA_ARCH=x86_64)"; then f
 grep -q "unsupported system" <<<"$out" || fail "no system message: $out"
 if out="$(run_install "$tmp/r2" GITUNIA_OS=Darwin GITUNIA_ARCH=arm64)"; then fail "missing macOS asset accepted"; fi
 grep -q "no osx-arm64 archive" <<<"$out" || fail "no missing-asset message: $out"
-# The package path with a fake pacman and sudo (no root): installs the verified file, and a bad checksum stops the script
-# before the package manager runs (the reviewer's set -e case).
-mkdir -p "$tmp/stubs"
+# The default method is the archive even when pacman and sudo exist (#1473); an existing copy elsewhere on the PATH is named.
+mkdir -p "$tmp/stubs" "$tmp/syscopy"
 printf '#!/bin/sh\nexec "$@"\n' > "$tmp/stubs/sudo"
 printf '#!/bin/sh\necho "pacman $*" >> "%s/pacman.log"\n' "$tmp" > "$tmp/stubs/pacman"
-chmod +x "$tmp/stubs/sudo" "$tmp/stubs/pacman"
+printf '#!/bin/sh\necho "gitunia 0.1.0"\n' > "$tmp/syscopy/gitunia"
+chmod +x "$tmp/stubs/sudo" "$tmp/stubs/pacman" "$tmp/syscopy/gitunia"
+rm -rf "$tmp/bin"; rm -f "$tmp/pacman.log"
+out="$(env GITUNIA_RELEASE_URL="file://$tmp/r2/release.json" GITUNIA_OS=Linux GITUNIA_ARCH=x86_64 \
+  GITUNIA_INSTALL_DIR="$tmp/bin" PATH="$tmp/stubs:$tmp/syscopy:$tmp/bin:$PATH" sh "$root/scripts/install.sh" 2>&1)" || fail "default install failed: $out"
+[ ! -e "$tmp/pacman.log" ] || fail "the default ran the package manager"
+[ "$(cat "$tmp/bin/gitunia.install-source")" = "script" ] || fail "default did not install the archive"
+grep -q "another copy exists at $tmp/syscopy/gitunia" <<<"$out" || fail "no other-copy note: $out"
+grep -q "pacman -R gitunia" <<<"$out" || fail "no removal hint: $out"
+grep -q "comes first on your PATH" <<<"$out" || fail "no shadow note: $out"
+out="$(env GITUNIA_RELEASE_URL="file://$tmp/r2/release.json" GITUNIA_OS=Linux GITUNIA_ARCH=x86_64 \
+  GITUNIA_INSTALL_DIR="$tmp/bin" PATH="$tmp/bin:$tmp/stubs:$PATH" sh "$root/scripts/install.sh" 2>&1)" || fail "default rerun failed: $out"
+grep -q "already installed" <<<"$out" || fail "default rerun did not skip: $out"
+rm -rf "$tmp/bin"
+# The package path with a fake pacman and sudo (no root): installs the verified file, and a bad checksum stops the script
+# before the package manager runs (the reviewer's set -e case).
 printf 'fake package' > "$tmp/r2/gitunia-1.3.0-1-x86_64.pkg.tar.zst"
 (cd "$tmp/r2" && sha256sum gitunia-1.3.0-1-x86_64.pkg.tar.zst > gitunia-1.3.0-1-x86_64.pkg.tar.zst.sha256)
 sed -i "s|\] }|  ,{ \"browser_download_url\": \"file://$tmp/r2/gitunia-1.3.0-1-x86_64.pkg.tar.zst\" },\n  { \"browser_download_url\": \"file://$tmp/r2/gitunia-1.3.0-1-x86_64.pkg.tar.zst.sha256\" }\n] }|" "$tmp/r2/release.json"

@@ -69,6 +69,7 @@ public sealed class UpdateCommand(ReleaseClient client, ExecutableSwapper swappe
         {
             await output.WriteLineAsync($"This copy is managed by your package manager ({route}); update it with:");
             await output.WriteLineAsync($"  {command}");
+            await WriteSwitchAdviceAsync(route);
 
             return;
         }
@@ -79,6 +80,19 @@ public sealed class UpdateCommand(ReleaseClient client, ExecutableSwapper swappe
         var asset = suffix is null ? null : latest.FindBySuffix(suffix);
         var download = asset is null ? UpdateAdvice.ReleasesUrl : asset.Url.ToString();
         await output.WriteLineAsync($"Download it, unpack it and replace gitunia yourself: {download}");
+    }
+
+    private async Task WriteSwitchAdviceAsync(InstallRoute route)
+    {
+        var remove = UpdateAdvice.RemovePackageCommandFor(route);
+        if (remove is null)
+        {
+            return;
+        }
+
+        await output.WriteLineAsync("To switch to an install that `gitunia update` replaces itself, remove the package and run the script:");
+        await output.WriteLineAsync($"  {remove}");
+        await output.WriteLineAsync($"  {UpdateAdvice.InstallScriptCommand}");
     }
 
     private async Task<int> ReplaceAsync(
