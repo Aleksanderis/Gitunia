@@ -46,7 +46,9 @@ public sealed class UpdateCommandTests : IDisposable
         var text = _output.ToString();
         Assert.Contains("GITUNIA_METHOD=package sh", text);
         Assert.Contains(removeCommand, text);
-        Assert.Contains(UpdateAdvice.InstallScriptCommand, text.Replace("GITUNIA_METHOD=package ", string.Empty));
+        Assert.Contains("remove the package and run the script:", text);
+        var lines = text.Split('\n').Select(line => line.Trim());
+        Assert.Contains(UpdateAdvice.InstallScriptCommand, lines);
     }
 
     [Fact]

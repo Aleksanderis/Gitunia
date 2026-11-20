@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Tests scripts/install.sh against a fake release on disk (no network, no root): archive install, skip when current,
-# update, the archive default and the other-copy note (#1473), download retries, checksum mismatch, unsupported architecture and system, missing asset (#1248).
+# update, the archive default and the other-copy note (#1473), download retries, checksum mismatch, unsupported
+# architecture and system, missing asset (#1248).
 set -euo pipefail
 root="$(cd "$(dirname "$0")/.." && pwd)"
 tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
@@ -65,11 +66,12 @@ printf '#!/bin/sh\necho "gitunia 0.1.0"\n' > "$tmp/syscopy/gitunia"
 chmod +x "$tmp/stubs/sudo" "$tmp/stubs/pacman" "$tmp/syscopy/gitunia"
 rm -rf "$tmp/bin"; rm -f "$tmp/pacman.log"
 out="$(env GITUNIA_RELEASE_URL="file://$tmp/r2/release.json" GITUNIA_OS=Linux GITUNIA_ARCH=x86_64 \
-  GITUNIA_INSTALL_DIR="$tmp/bin" PATH="$tmp/stubs:$tmp/syscopy:$PATH" sh "$root/scripts/install.sh" 2>&1)" || fail "default install failed: $out"
+  GITUNIA_INSTALL_DIR="$tmp/bin" PATH="$tmp/stubs:$tmp/syscopy:$tmp/bin:$PATH" sh "$root/scripts/install.sh" 2>&1)" || fail "default install failed: $out"
 [ ! -e "$tmp/pacman.log" ] || fail "the default ran the package manager"
 [ "$(cat "$tmp/bin/gitunia.install-source")" = "script" ] || fail "default did not install the archive"
 grep -q "another copy exists at $tmp/syscopy/gitunia" <<<"$out" || fail "no other-copy note: $out"
 grep -q "pacman -R gitunia" <<<"$out" || fail "no removal hint: $out"
+grep -q "comes first on your PATH" <<<"$out" || fail "no shadow note: $out"
 out="$(env GITUNIA_RELEASE_URL="file://$tmp/r2/release.json" GITUNIA_OS=Linux GITUNIA_ARCH=x86_64 \
   GITUNIA_INSTALL_DIR="$tmp/bin" PATH="$tmp/bin:$tmp/stubs:$PATH" sh "$root/scripts/install.sh" 2>&1)" || fail "default rerun failed: $out"
 grep -q "already installed" <<<"$out" || fail "default rerun did not skip: $out"

@@ -126,7 +126,10 @@ install_archive() {
   if [ -n "$other" ] && [ "$other" != "$target/gitunia" ] && [ -x "$other" ]; then
     say "Note: another copy exists at $other, and it is not updated by this install or by 'gitunia update'."
     say "      Whichever comes first on your PATH runs. To keep only this copy, remove the other one,"
-    say "      for a package: pacman -R gitunia | apt remove gitunia | dnf remove gitunia (with sudo)."
+    say "      For a package: sudo pacman -R gitunia | sudo apt remove gitunia | sudo dnf remove gitunia (otherwise: its own package manager)."
+    case ":$PATH:" in
+      *":$(dirname "$other"):"*":$target:"*) say "      The other copy comes first on your PATH, so it still runs until you remove it." ;;
+    esac
   fi
   case ":$PATH:" in
     *":$target:"*) ;;
