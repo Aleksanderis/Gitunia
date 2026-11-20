@@ -343,6 +343,9 @@ public class WatcherResilienceTests
 
         public ConcurrentBag<int> CallerThreads { get; } = [];
 
+        /// <summary>Captured while the test runs: Read executes on watcher threads that can outlive it.</summary>
+        public CancellationToken Token { get; } = TestContext.Current.CancellationToken;
+
         public RepositoryFingerprintGroups Read(RepositoryLocation location)
         {
             CallerThreads.Add(Environment.CurrentManagedThreadId);
