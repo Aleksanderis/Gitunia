@@ -87,11 +87,16 @@ jobs:
           # `windows-x64` both succeeded, not skipped (renaming a leg makes this look for a new run). A lookup error
           # counts as no green run, so CI is dispatched instead of an unverified run being trusted (fail closed).
           api="repos/$GITHUB_REPOSITORY/actions"
+          # Both x64 legs of one run succeeded. Reads the run's jobs directly, which is current as soon as the run ends.
+          legs_green() {
+            local ok
+            ok="$(gh api "$api/runs/$1/jobs?per_page=100" --jq '[.jobs[] | select((.name == "linux-x64" or .name == "windows-x64") and .conclusion == "success")] | length')" && [ "$ok" = "2" ]
+          }
           green_run() {
-            local ids id ok
+            local ids id
             ids="$(gh api "$api/workflows/ci.yml/runs?head_sha=$GITHUB_SHA&event=workflow_dispatch&status=success&per_page=100" --jq '.workflow_runs[].id')" || return 1
             for id in $ids; do
-              if ok="$(gh api "$api/runs/$id/jobs" --jq '[.jobs[] | select((.name == "linux-x64" or .name == "windows-x64") and .conclusion == "success")] | length')" && [ "$ok" = "2" ]; then
+              if legs_green "$id"; then
                 echo "Full CI run $id is green for $GITHUB_SHA"
                 return 0
               fi
@@ -114,8 +119,9 @@ jobs:
           [ -n "$id" ] || { echo "::error::the dispatched CI run did not appear"; exit 1; }
           echo "Waiting for CI run $id"
           gh run watch "$id" --exit-status --interval 30 >/dev/null || { echo "::error::CI run $id failed: $(gh run view "$id" --json url --jq .url)"; exit 1; }
-          # The run must have both x64 legs green, not just a green conclusion.
-          green_run || { echo "::error::CI run $id finished without both x64 legs green"; exit 1; }
+          # The run must have both x64 legs green, not just a green conclusion. Check the watched run's own jobs: the
+          # runs list filtered by status=success can lag behind a run that just finished (v0.12.1, #1471).
+          legs_green "$id" || { echo "::error::CI run $id finished without both x64 legs green"; exit 1; }
 
   # linux-x64 and windows-x64: the green full CI run built and tested them, so they only publish, smoke run and pack.
   # A dry run skips the CI guard and packs the same way.
