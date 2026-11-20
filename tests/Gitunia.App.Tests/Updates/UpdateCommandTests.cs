@@ -30,6 +30,25 @@ public sealed class UpdateCommandTests : IDisposable
         Directory.Delete(_directory, recursive: true);
     }
 
+    [Theory]
+    [InlineData("ID=arch\n", "sudo pacman -R gitunia")]
+    [InlineData("ID=ubuntu\n", "sudo apt remove gitunia")]
+    [InlineData("ID=fedora\n", "sudo dnf remove gitunia")]
+    public async Task GivenAPackageManagedLinuxInstall_WhenUpdating_ThenTheSwitchToTheSelfUpdatingInstallIsExplained(
+        string osRelease,
+        string removeCommand)
+    {
+        FakeRelease.ServeLinux(_server, "1.3.0");
+        var facts = new InstallFacts("/usr/bin/gitunia", null, HostSystem.Linux, osRelease);
+
+        await RunAsync("1.2.3", facts, checkOnly: false);
+
+        var text = _output.ToString();
+        Assert.Contains("GITUNIA_METHOD=package sh", text);
+        Assert.Contains(removeCommand, text);
+        Assert.Contains(UpdateAdvice.InstallScriptCommand, text.Replace("GITUNIA_METHOD=package ", string.Empty));
+    }
+
     [Fact]
     public async Task GivenTheLatestReleaseIsInstalled_WhenUpdating_ThenItReportsUpToDateAndDownloadsNothing()
     {

@@ -3,13 +3,14 @@
 #
 #   curl -fsSL https://raw.githubusercontent.com/Aleksanderis/Gitunia/main/scripts/install.sh | sh
 #
-# Linux (x64, arm64): uses the native package when the system has pacman, apt or dnf and root (or sudo), else puts the
-# release archive's binary into ~/.local/bin (no root). Every download is checked against its .sha256 file. Running it
-# again updates; it does nothing when the installed version is already the latest.
+# Linux (x64, arm64): puts the release archive's binary into ~/.local/bin (no root), so `gitunia update` can replace it
+# itself (#1473). The native package (pacman, apt or dnf, needs root or sudo) is opt-in with GITUNIA_METHOD=package; a
+# package copy is updated by the package manager or this script, never by `gitunia update`. Every download is checked
+# against its .sha256 file. Running it again updates; it does nothing when the installed version is already the latest.
 # macOS (arm64): archive only, when the release has one.
 #
 # Environment (all optional):
-#   GITUNIA_METHOD       package | archive    (default: package when possible, else archive)
+#   GITUNIA_METHOD       archive | package    (default: archive; package falls back to the archive when no package fits)
 #   GITUNIA_INSTALL_DIR  where the archive's binary goes (default: ~/.local/bin)
 #   GITUNIA_FORCE        1 = install even when the latest version is already installed
 #   GITUNIA_RELEASE_URL  release JSON to read (default: the GitHub API's latest release; a file:// URL works, for tests)
@@ -93,7 +94,7 @@ install_package() {
   [ -n "$file" ] || exit 1
   say "Installing $(basename "$file") (asks for your password if needed)"
   # A fitting package that fails to install is an error, not a reason to fall back silently.
-  hint="(no root or sudo rights? run again with GITUNIA_METHOD=archive)"
+  hint="(no root or sudo rights? run again without GITUNIA_METHOD=package)"
   if have pacman; then as_root pacman -U --noconfirm "$file" || fail "pacman could not install $file $hint"
   elif have apt-get; then as_root apt-get install -y "$file" || fail "apt-get could not install $file $hint"
   else as_root dnf install -y "$file" || fail "dnf could not install $file $hint"; fi
@@ -121,6 +122,12 @@ install_archive() {
   # The install-source marker (#1291): tells `gitunia update` that this binary may replace itself.
   printf 'script\n' > "$target/gitunia.install-source"
   say "Installed $target/gitunia"
+  other="$(command -v gitunia || true)"
+  if [ -n "$other" ] && [ "$other" != "$target/gitunia" ] && [ -x "$other" ]; then
+    say "Note: another copy exists at $other, and it is not updated by this install or by 'gitunia update'."
+    say "      Whichever comes first on your PATH runs. To keep only this copy, remove the other one,"
+    say "      for a package: pacman -R gitunia | apt remove gitunia | dnf remove gitunia (with sudo)."
+  fi
   case ":$PATH:" in
     *":$target:"*) ;;
     *) say "Note: $target is not on your PATH; add it to your shell profile." ;;
@@ -158,7 +165,7 @@ main() {
   latest="${tag#v}"
 
   # The copy this run would replace: the archive folder for an archive install, else the one on the PATH.
-  if [ "${GITUNIA_METHOD:-package}" = "archive" ]; then current="${GITUNIA_INSTALL_DIR:-$HOME/.local/bin}/gitunia"
+  if [ "${GITUNIA_METHOD:-archive}" = "archive" ]; then current="${GITUNIA_INSTALL_DIR:-$HOME/.local/bin}/gitunia"
   else current="$(command -v gitunia || true)"; fi
   if [ -n "$current" ] && [ -x "$current" ] && [ "${GITUNIA_FORCE:-0}" != "1" ]; then
     installed="$("$current" --version 2>/dev/null | awk '{print $2; exit}' || true)"
@@ -169,7 +176,7 @@ main() {
     [ -z "$installed" ] || say "Updating Gitunia $installed -> $latest"
   fi
 
-  method="${GITUNIA_METHOD:-package}"
+  method="${GITUNIA_METHOD:-archive}"
   case "$method" in
     package)
       if [ "$os" = "Linux" ] && install_package "$json" "$work" "$arch"; then :

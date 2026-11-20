@@ -10,14 +10,29 @@ public static class UpdateAdvice
     public const string InstallScriptCommand =
         "curl -fsSL https://raw.githubusercontent.com/Aleksanderis/Gitunia/main/scripts/install.sh | sh";
 
+    /// <summary>The install script run for the release package: the script installs the archive unless told otherwise (#1473).</summary>
+    public const string PackageInstallScriptCommand =
+        "curl -fsSL https://raw.githubusercontent.com/Aleksanderis/Gitunia/main/scripts/install.sh | GITUNIA_METHOD=package sh";
+
     /// <summary>The command to show, null when Gitunia replaces itself (<see cref="InstallRoute.Script"/>) or the route is unknown.</summary>
     public static string? CommandFor(InstallRoute route) => route switch
     {
         InstallRoute.Homebrew => "brew upgrade gitunia",
         InstallRoute.Winget => "winget upgrade Gitunia.Gitunia",
-        InstallRoute.Pacman => InstallScriptCommand,
-        InstallRoute.Apt => InstallScriptCommand,
-        InstallRoute.Dnf => InstallScriptCommand,
+        InstallRoute.Pacman => PackageInstallScriptCommand,
+        InstallRoute.Apt => PackageInstallScriptCommand,
+        InstallRoute.Dnf => PackageInstallScriptCommand,
+        _ => null,
+    };
+
+    /// <summary>
+    /// The command that removes a Linux package so the self-updating install can take its place, null for the other routes.
+    /// </summary>
+    public static string? RemovePackageCommandFor(InstallRoute route) => route switch
+    {
+        InstallRoute.Pacman => "sudo pacman -R gitunia",
+        InstallRoute.Apt => "sudo apt remove gitunia",
+        InstallRoute.Dnf => "sudo dnf remove gitunia",
         _ => null,
     };
 
