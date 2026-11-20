@@ -354,6 +354,9 @@ public class WatcherResilienceTests
             return _inner.Read(location);
         }
 
-        public void Dispose() => Release.Dispose();
+        // Not disposed: a poll that passed the watcher's disposed check can still reach Read after the test ended.
+        public void Dispose()
+        {
+        }
     }
 }
