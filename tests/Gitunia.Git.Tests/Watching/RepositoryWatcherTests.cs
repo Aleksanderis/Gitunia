@@ -50,6 +50,7 @@ public class RepositoryWatcherTests
         var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
         var creating = new ManualResetEventSlim();
         var release = new ManualResetEventSlim();
+        var token = Token;
         var budget = new WatchBudget();
         var watcher = new RepositoryWatcher(
             location,
@@ -58,7 +59,7 @@ public class RepositoryWatcherTests
             creatingWatchers: () =>
             {
                 creating.Set();
-                release.Wait(ConditionTimeout, Token);
+                release.Wait(ConditionTimeout, token);
             });
 
         try
@@ -93,6 +94,7 @@ public class RepositoryWatcherTests
         var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
         var creating = new ManualResetEventSlim();
         var release = new ManualResetEventSlim();
+        var token = Token;
         var budget = new WatchBudget();
         var watcher = new RepositoryWatcher(
             location,
@@ -101,7 +103,7 @@ public class RepositoryWatcherTests
             creatingWatchers: () =>
             {
                 creating.Set();
-                release.Wait(ConditionTimeout, Token);
+                release.Wait(ConditionTimeout, token);
             });
         var start = watcher.StartAsync();
         Assert.True(creating.Wait(ConditionTimeout, Token));
@@ -123,6 +125,7 @@ public class RepositoryWatcherTests
         var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
         var creating = new ManualResetEventSlim();
         var release = new ManualResetEventSlim();
+        var token = Token;
         var budget = new WatchBudget();
         using var watcher = new RepositoryWatcher(
             location,
@@ -131,7 +134,7 @@ public class RepositoryWatcherTests
             creatingWatchers: () =>
             {
                 creating.Set();
-                release.Wait(ConditionTimeout, Token);
+                release.Wait(ConditionTimeout, token);
             });
         var start = watcher.StartAsync();
         Assert.True(creating.Wait(ConditionTimeout, Token));

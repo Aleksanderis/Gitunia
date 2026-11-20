@@ -343,6 +343,9 @@ public class WatcherResilienceTests
 
         public ConcurrentBag<int> CallerThreads { get; } = [];
 
+        /// <summary>Captured while the test runs: Read executes on watcher threads that can outlive it.</summary>
+        public CancellationToken Token { get; } = TestContext.Current.CancellationToken;
+
         public RepositoryFingerprintGroups Read(RepositoryLocation location)
         {
             CallerThreads.Add(Environment.CurrentManagedThreadId);
@@ -351,6 +354,9 @@ public class WatcherResilienceTests
             return _inner.Read(location);
         }
 
-        public void Dispose() => Release.Dispose();
+        // Not disposed: a poll that passed the watcher's disposed check can still reach Read after the test ended.
+        public void Dispose()
+        {
+        }
     }
 }
