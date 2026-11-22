@@ -87,9 +87,9 @@ Status: done. A bug-fix batch with input polish; its remaining work moved to the
 
 ## M11 - Ongoing improvements (rolling)
 
-Owner, 2026-11-11 (same change as Geeratya): milestones are goals, not conditions. M11 (first "Bugfixing", then renamed, and it absorbed the old "Backlog" milestone) is the one rolling milestone for bugs, follow-ups and loose ends; an issue without a milestone is a backlog item and stays without one (owner, 2026-11-18); a new milestone is opened only for a new goal (M8 and M12 are open goals). What blocks an issue is a label, never a milestone, and agents skip these labels:
+Owner, 2026-11-11 (same change as Geeratya): milestones are goals, not conditions. M11 (first "Bugfixing", then renamed, and it absorbed the old "Backlog" milestone) is the one rolling milestone for bugs, follow-ups and loose ends; an issue without a milestone is a backlog item and stays without one (owner, 2026-11-18); a new milestone is opened only for a new goal (M8 and M12 are open goals). What blocks an issue is a label, never a milestone, and agents skip these labels (except `windows-vm` for sessions running on Windows):
 
-- `windows-vm`: needs a real Windows machine (or another OS, until a dedicated label is needed)
+- `windows-vm`: needs a real Windows machine; skipped by sessions on Linux and macOS, picked by sessions running on Windows
 - `needs-owner`: only the owner can settle it (decision, accounts, payment, owner steps)
 - `blocked-upstream`: waits on an upstream fix or release
 
