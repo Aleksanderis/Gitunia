@@ -60,7 +60,15 @@ public sealed class KeymapEngine(KeyBindingTable table)
     /// The command level (#839): bindings of actions above it are left out, so a group whose actions are all above it
     /// disappears with them. Null lists every binding.
     /// </param>
-    public IReadOnlyList<Continuation> Continuations(KeymapState state, string view, CommandLevel? level = null)
+    /// <param name="isAvailable">
+    /// Context filter: bindings of actions it rejects are left out, so a group whose actions are all rejected
+    /// disappears with them (#1477). Null lists every binding.
+    /// </param>
+    public IReadOnlyList<Continuation> Continuations(
+        KeymapState state,
+        string view,
+        CommandLevel? level = null,
+        Func<ActionId, bool>? isAvailable = null)
     {
         var prefix = state.PendingSequence;
         var continuations = new List<Continuation>();
@@ -72,6 +80,11 @@ public sealed class KeymapEngine(KeyBindingTable table)
             }
 
             if (level is { } shown && !ActionCatalog.IsListedAt(binding.Action, shown))
+            {
+                continue;
+            }
+
+            if (isAvailable is not null && !isAvailable(binding.Action))
             {
                 continue;
             }
