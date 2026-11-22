@@ -121,7 +121,7 @@ public class TagReducerTests
 
         var confirm = Assert.IsType<ShowConfirmEffect>(Assert.Single(effects));
         Assert.Contains("v1", confirm.Prompt.Lines[0]);
-        Assert.Equal(UndoNotes.FromHistory, confirm.Prompt.Consequence);
+        Assert.Equal(string.Empty, confirm.Prompt.Consequence);
         Assert.Equal(new TagDeleteConfirmed(Tab, "v1", Annotated), confirm.OnAccepted);
     }
 

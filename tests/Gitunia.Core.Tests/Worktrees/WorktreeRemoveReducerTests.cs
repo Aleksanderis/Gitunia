@@ -12,7 +12,7 @@ public class WorktreeRemoveReducerTests
     private static readonly string Linked = Sibling("wt");
 
     [Fact]
-    public void GivenALinkedWorktree_WhenRemoving_ThenTheConfirmNamesItsPathBranchAndUndo()
+    public void GivenALinkedWorktree_WhenRemoving_ThenTheConfirmNamesItsPathAndBranchWithoutARestoreNote()
     {
         var context = Context(MainAnd(Info(Linked, "wt")));
 
@@ -22,9 +22,7 @@ public class WorktreeRemoveReducerTests
         Assert.Equal("Remove worktree", confirm.Prompt.Title);
         Assert.Equal($"Remove the worktree {Linked}?", confirm.Prompt.Lines[0]);
         Assert.Equal("Its branch wt is kept.", confirm.Prompt.Lines[1]);
-        Assert.Equal(
-            "The branch stays; wt can be checked out again with {key:worktree.add|a new worktree}.",
-            confirm.Prompt.Consequence);
+        Assert.Equal(string.Empty, confirm.Prompt.Consequence);
         Assert.Equal(new WorktreeRemoveConfirmed(Tab, Linked), confirm.OnAccepted);
         Assert.Equal(WorktreeTexts.TooSmallNotice, confirm.UnavailableNotice);
     }

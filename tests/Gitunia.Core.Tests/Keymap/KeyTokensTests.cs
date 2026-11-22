@@ -1,6 +1,5 @@
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
-using Gitunia.Core.Status;
 using Xunit;
 
 namespace Gitunia.Core.Tests.Keymap;
@@ -26,7 +25,7 @@ public sealed class KeyTokensTests
     }
 
     [Fact]
-    public void GivenARemappedAction_WhenResolvingTheUndoLine_ThenTheNewKeyIsNamed()
+    public void GivenARemappedAction_WhenResolvingAToken_ThenTheNewKeyIsNamed()
     {
         var remapped = new KeyBinding(
             KeyMode.Normal,
@@ -35,9 +34,9 @@ public sealed class KeyTokensTests
             new ActionId("status.history"));
         var table = new KeyBindingTable([remapped]);
 
-        var text = KeyTokens.Resolve(UndoNotes.FromHistory, table);
+        var text = KeyTokens.Resolve(KeyTokens.Of(ActionIds.StatusHistory, "the message history"), table);
 
-        Assert.Equal("Afterwards the message history (<space>zz) shows how to bring it back.", text);
+        Assert.Equal("the message history (<space>zz)", text);
     }
 
     [Fact]
@@ -60,9 +59,9 @@ public sealed class KeyTokensTests
     {
         var table = new KeyBindingTable([]);
 
-        var text = KeyTokens.Resolve(UndoNotes.FromReflog, table);
+        var text = KeyTokens.Resolve($"See {KeyTokens.Of(ActionIds.ReflogOpen, "the reflog")}.", table);
 
-        Assert.Equal("Afterwards you can go back from the reflog; the message history has the exact command.", text);
+        Assert.Equal("See the reflog.", text);
         Assert.Equal("a new worktree", KeyTokens.Resolve(KeyTokens.Of(ActionIds.WorktreeAdd, "a new worktree"), null));
     }
 

@@ -289,7 +289,7 @@ public static class RemoteReducer
         var confirm = new ConfirmPrompt(
             "Remove remote",
             lines,
-            UndoNotes.FromHistory,
+            string.Empty,
             "Remove remote");
         var accepted = new RemoteRemoveConfirmed(context.TabId, remote.Name, remote.Url);
 

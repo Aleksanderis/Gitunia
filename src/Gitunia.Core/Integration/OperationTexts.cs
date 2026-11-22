@@ -107,7 +107,7 @@ public static class OperationTexts
             return "Everything the operation changed is thrown away.";
         }
 
-        return $"{branch ?? "HEAD"} goes back to {ShortHash.Of(oldTip)}; that commit stays in the reflog.";
+        return $"{branch ?? "HEAD"} goes back to {ShortHash.Of(oldTip)}.";
     }
 
     private static IntegrationReport StoppedAgain(string done, string name) =>

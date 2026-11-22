@@ -20,7 +20,7 @@ Specs start at `docs/internal/ux.md`, which links the parts; the key reference i
 - Help, palette and which-key text is generated from the keymap and catalog, never hand-written.
 - Key notation is spelled out everywhere (`Ctrl-d`, `Alt-1`, `Shift-Tab`, `<space>o`), never `^d` or `c-d`.
 - `Esc` and `q` follow the precedence in `docs/internal/ux.md` ("Focus model and key style"). In Insert mode printable keys are text: only `Esc`, `Enter`, `Ctrl-` and `Alt-` combinations act.
-- Destructive actions go through Confirm mode (`y`/`n`/`Esc` only, never `Enter`) and say what they do and how to undo it.
+- Destructive actions go through Confirm mode (`y`/`n`/`Esc` only, never `Enter`) and say what they do and what is lost, with no restore or undo note (#1480); the undo command goes to the status message detail.
 
 ## Rendering and colour
 

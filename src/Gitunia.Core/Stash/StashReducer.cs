@@ -119,7 +119,7 @@ public static class StashReducer
         var confirm = new ConfirmPrompt(
             "Drop stash",
             [$"Drop {entry.Name}: {entry.Message}?"],
-            UndoNotes.FromHistory,
+            string.Empty,
             "Drop stash");
         var accepted = new StashDropConfirmed(context.TabId, entry);
 
@@ -171,7 +171,7 @@ public static class StashReducer
                 $"Replace {target.File.Change.Path} in the working tree with its version from {target.Entry.Name}?",
                 "Your current content of the file is replaced; the stash and the index stay as they are.",
             ],
-            $"Your current content is saved first; afterwards {UndoNotes.MessageHistory} shows how to get it back.",
+            string.Empty,
             "Restore file");
         var accepted = new StashRestoreConfirmed(context.TabId, target);
 

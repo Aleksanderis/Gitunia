@@ -168,7 +168,7 @@ public static class StagingReducer
                 $"Mark {name} as resolved?",
                 "Conflict markers still in the file are not removed or checked: they are committed as they are.",
             ],
-            UndoNotes.FromHistory,
+            string.Empty,
             "Mark resolved");
 
         var accepted = new ResolveConfirmed(context.TabId, entry);

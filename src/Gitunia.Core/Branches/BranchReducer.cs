@@ -235,7 +235,7 @@ public static class BranchReducer
                 $"{needsForce.Name} has commits that are not on HEAD or its upstream.",
                 "Deleting it makes them unreachable.",
             ],
-            UndoNotes.FromHistory,
+            string.Empty,
             "Delete anyway");
         var accepted = new BranchForceDeleteConfirmed(needsForce.TabId, needsForce.Name, needsForce.CommitHash);
         var unavailable =

@@ -19,7 +19,8 @@ namespace Gitunia.App.Tests;
 [Trait("Os", "Independent")]
 public sealed class KeyTokenPipelineTests : IDisposable
 {
-    private const string Expected = "Afterwards the message history (<space>zz) shows how to bring it back.";
+    private const string Expected = "See the message history (<space>zz).";
+    private static readonly string Token = KeyTokens.Of(ActionIds.StatusHistory, "the message history");
 
     private static readonly RebaseTarget Target = new(new TabId(1), "abc", "main", "topic", "def");
 
@@ -64,7 +65,7 @@ public sealed class KeyTokenPipelineTests : IDisposable
     [Fact]
     public void GivenARemappedHistoryKey_WhenAStatusIsPosted_ThenTheMessageNamesTheNewKey()
     {
-        _runner.Run(new PostStatusEffect(UndoNotes.FromHistory, StatusSeverity.Info));
+        _runner.Run(new PostStatusEffect($"See {Token}.", StatusSeverity.Info));
 
         var message = _host.State.Shell.Status.Current(_host.Clock.GetUtcNow());
         Assert.Equal(Expected, message!.Text);
@@ -73,7 +74,7 @@ public sealed class KeyTokenPipelineTests : IDisposable
     [Fact]
     public void GivenARemappedHistoryKey_WhenAConfirmIsShown_ThenTheDialogNamesTheNewKey()
     {
-        var prompt = new ConfirmPrompt("Title", [UndoNotes.FromHistory], UndoNotes.FromHistory, "Yes");
+        var prompt = new ConfirmPrompt("Title", [$"See {Token}."], $"See {Token}.", "Yes");
 
         _runner.Run(new ShowConfirmEffect(prompt, new StatusDismissedCommand(DateTimeOffset.UnixEpoch), "too small"));
 

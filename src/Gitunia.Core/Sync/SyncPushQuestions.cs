@@ -188,7 +188,7 @@ internal static class SyncPushQuestions
                 "A lease: refused when the remote moved since your last fetch.",
                 "Commits that are only on the remote branch are no longer on it afterwards.",
             ],
-            UndoNotes.FromHistory,
+            string.Empty,
             "Force push");
         var lease = new PushLease(target.Branch, upstreamHash);
         var request = new PushRequest(target.Remote, branch, setUpstream, lease);
