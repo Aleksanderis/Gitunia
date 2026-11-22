@@ -95,7 +95,6 @@ public sealed class UpdateCommand(ReleaseClient client, ExecutableSwapper swappe
         await output.WriteLineAsync($"Another copy of Gitunia that updates itself exists at {other}, but this one ({facts.ExecutablePath}) runs instead.");
         await output.WriteLineAsync("To use the self-updating copy: remove this package, then run `hash -r` (or open a new terminal):");
         await output.WriteLineAsync($"  {remove}");
-        await output.WriteLineAsync("Or update this package copy as follows:");
     }
 
     private async Task WriteSwitchAdviceAsync(InstallRoute route, InstallFacts? facts)

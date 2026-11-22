@@ -70,6 +70,22 @@ public sealed class UpdateCommandTests : IDisposable
         Assert.DoesNotContain("remove the package and run the script:", text);
     }
 
+    [Theory]
+    [InlineData("ID=ubuntu\n", "sudo apt remove gitunia")]
+    [InlineData("ID=fedora\n", "sudo dnf remove gitunia")]
+    public async Task GivenAnAptOrDnfCopyAndAScriptCopy_WhenUpdating_ThenTheOtherCopyAndRemoveCommandAreShown(
+        string osRelease,
+        string removeCommand)
+    {
+        FakeRelease.ServeLinux(_server, "1.3.0");
+        var facts = new InstallFacts("/usr/bin/gitunia", null, HostSystem.Linux, osRelease, "/home/me/.local/bin/gitunia");
+
+        await RunAsync("1.2.3", facts, checkOnly: false);
+
+        Assert.Contains("/home/me/.local/bin/gitunia", _output.ToString());
+        Assert.Contains(removeCommand, _output.ToString());
+    }
+
     [Fact]
     public async Task GivenAPackageCopyAndNoScriptCopy_WhenUpdating_ThenNothingAboutAnotherCopyIsPrinted()
     {

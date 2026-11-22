@@ -44,13 +44,14 @@ public sealed class InstallFactsReaderTests : IDisposable
     [Fact]
     public void GivenAScriptCopyInTheHomeBin_WhenReadingAnotherBinary_ThenTheFactsCarryItsPath()
     {
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "Windows has no second script copy to name.");
         var home = Path.Combine(_directory, "home");
         var bin = Directory.CreateDirectory(Path.Combine(home, ".local", "bin")).FullName;
         var copy = Path.Combine(bin, "gitunia");
         File.WriteAllText(copy, "x");
         File.WriteAllText(Path.Combine(bin, InstallMarker.FileName), "script\n");
 
-        var facts = new InstallFactsReader(Path.Combine(_directory, "usr-bin", "gitunia"), () => home).Read();
+        var facts = new InstallFactsReader(Path.Combine(_directory, "usr-bin", "gitunia"), home).Read();
 
         Assert.NotNull(facts);
         Assert.Equal(copy, facts.OtherScriptCopyPath);
@@ -59,12 +60,13 @@ public sealed class InstallFactsReaderTests : IDisposable
     [Fact]
     public void GivenTheRunningBinaryIsTheScriptCopy_WhenReading_ThenThereIsNoOtherCopy()
     {
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "Windows has no second script copy to name.");
         var home = Path.Combine(_directory, "home");
         var bin = Directory.CreateDirectory(Path.Combine(home, ".local", "bin")).FullName;
         File.WriteAllText(Path.Combine(bin, "gitunia"), "x");
         File.WriteAllText(Path.Combine(bin, InstallMarker.FileName), "script\n");
 
-        var facts = new InstallFactsReader(Path.Combine(bin, "gitunia"), () => home).Read();
+        var facts = new InstallFactsReader(Path.Combine(bin, "gitunia"), home).Read();
 
         Assert.NotNull(facts);
         Assert.Null(facts.OtherScriptCopyPath);
@@ -77,7 +79,22 @@ public sealed class InstallFactsReaderTests : IDisposable
         var bin = Directory.CreateDirectory(Path.Combine(home, ".local", "bin")).FullName;
         File.WriteAllText(Path.Combine(bin, "gitunia"), "x");
 
-        var facts = new InstallFactsReader(Path.Combine(_directory, "usr-bin", "gitunia"), () => home).Read();
+        var facts = new InstallFactsReader(Path.Combine(_directory, "usr-bin", "gitunia"), home).Read();
+
+        Assert.NotNull(facts);
+        Assert.Null(facts.OtherScriptCopyPath);
+    }
+
+    [Fact]
+    public void GivenWindows_WhenAMarkedCopyExistsInTheHomeBin_ThenThereIsNoOtherCopy()
+    {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "Windows only.");
+        var home = Path.Combine(_directory, "home");
+        var bin = Directory.CreateDirectory(Path.Combine(home, ".local", "bin")).FullName;
+        File.WriteAllText(Path.Combine(bin, "gitunia"), "x");
+        File.WriteAllText(Path.Combine(bin, InstallMarker.FileName), "script\n");
+
+        var facts = new InstallFactsReader(Path.Combine(_directory, "other", "gitunia.exe"), home).Read();
 
         Assert.NotNull(facts);
         Assert.Null(facts.OtherScriptCopyPath);
