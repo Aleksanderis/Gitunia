@@ -120,7 +120,7 @@ public static class TagReducer
         var confirm = new ConfirmPrompt(
             "Delete tag on remote",
             [$"Delete the tag {chosen.TagName} on the remote {chosen.Remote}?", "The local tag stays."],
-            UndoNotes.FromHistory,
+            string.Empty,
             "Delete on remote");
         var accepted = new TagDeleteOnRemoteConfirmed(context.TabId, chosen.Remote, chosen.TagName);
 
@@ -145,7 +145,7 @@ public static class TagReducer
                 $"Delete the local tag {tag!.Name} (at {ShortHash.Of(tag.CommitHash)})?",
                 "A copy on a remote is not touched.",
             ],
-            UndoNotes.FromHistory,
+            string.Empty,
             "Delete tag");
         var accepted = new TagDeleteConfirmed(context.TabId, tag.Name, tag.ObjectHash);
 

@@ -12,7 +12,6 @@ namespace Gitunia.Core.Worktrees;
 /// testable without a terminal.</summary>
 public static class WorktreeTexts
 {
-    private static readonly string NewWorktree = KeyTokens.Of(ActionIds.WorktreeAdd, "a new worktree");
 
     /// <summary>Shown when another worktree operation of the tab still runs.</summary>
     public const string BusyNotice = "Busy: another operation on this tab is still running";
@@ -99,7 +98,7 @@ public static class WorktreeTexts
         return new ConfirmPrompt(
             "Prune worktrees",
             lines,
-            $"Only git's records are deleted; a branch can be checked out again with {NewWorktree}.",
+            "Only git's records are deleted.",
             "Prune");
     }
 
@@ -126,11 +125,6 @@ public static class WorktreeTexts
 
     private static string RemoveUndoHint(WorktreeInfo worktree)
     {
-        if (worktree.BranchFullName is { } branch)
-        {
-            return $"The branch stays; {ShortName(branch)} can be checked out again with {NewWorktree}.";
-        }
-
-        return "No undo is offered for commits that no branch reaches.";
+        return worktree.BranchFullName is null ? "No undo is offered for commits that no branch reaches." : string.Empty;
     }
 }

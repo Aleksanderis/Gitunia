@@ -1,5 +1,4 @@
 using Gitunia.Core.Overlays;
-using Gitunia.Core.Status;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Overlays;
 using Gitunia.Tui.Rendering.Styling;
@@ -14,38 +13,32 @@ public class ConfirmFrameBuilderTests
     [
         new("Delete", ["Delete branch x?"], "Cannot be undone.", "Delete"),
         new("Discard", [string.Join(' ', Enumerable.Repeat("word", 60)), "Second paragraph."], "Gone for good.", "Discard"),
+        new("Plain", ["Mark a.txt as resolved?"], string.Empty, "Mark"),
         new("Wide", [new string('中', 50)], "x", "Go"),
     ];
 
     [Fact]
-    public void GivenAnUndoHint_WhenBuilding_ThenItIsPlainAndAWarningStaysInTheErrorColour()
+    public void GivenAWarning_WhenBuilding_ThenItIsInTheErrorColour()
     {
-        var undo = new ConfirmPrompt("Mark", ["Mark a.txt as resolved?"], UndoNotes.FromHistory, "Mark");
         var warning = new ConfirmPrompt("Delete", ["Delete x?"], "Cannot be undone.", "Delete");
 
-        var undoFrame = ConfirmFrameBuilder.Build(undo, 100, 30, GraphGlyphSet.Unicode)!;
-        var warningFrame = ConfirmFrameBuilder.Build(warning, 100, 30, GraphGlyphSet.Unicode)!;
-
-        Assert.DoesNotContain(Segments(undoFrame), segment => segment.Role == SegmentRole.Error);
-        Assert.Contains(Segments(warningFrame), segment => segment.Role == SegmentRole.Error);
-        Assert.True(UndoNotes.IsUndoNote(UndoNotes.FromReflog));
-        Assert.False(UndoNotes.IsUndoNote("Cannot be undone."));
-    }
-
-    [Fact]
-    public void GivenAWarningThatContainsAnUndoNote_WhenBuilding_ThenItStaysInTheErrorColour()
-    {
-        var mixed = new ConfirmPrompt(
-            "Rebase",
-            ["Rebase x onto y?"],
-            $"A stop on conflicts leaves a rebase in progress. {UndoNotes.FromReflog}",
-            "Rebase");
-
-        var frame = ConfirmFrameBuilder.Build(mixed, 100, 30, GraphGlyphSet.Unicode)!;
+        var frame = ConfirmFrameBuilder.Build(warning, 100, 30, GraphGlyphSet.Unicode)!;
 
         Assert.Contains(Segments(frame), segment => segment.Role == SegmentRole.Error);
     }
 
+    [Fact]
+    public void GivenNoConsequence_WhenBuilding_ThenThereIsNoWarningRowAndOneBlankRowLess()
+    {
+        var plain = new ConfirmPrompt("Mark", ["Mark a.txt as resolved?"], string.Empty, "Mark");
+        var warned = plain with { Consequence = "Cannot be undone." };
+
+        var plainFrame = ConfirmFrameBuilder.Build(plain, 100, 30, GraphGlyphSet.Unicode)!;
+        var warnedFrame = ConfirmFrameBuilder.Build(warned, 100, 30, GraphGlyphSet.Unicode)!;
+
+        Assert.DoesNotContain(Segments(plainFrame), segment => segment.Role == SegmentRole.Error);
+        Assert.Equal(warnedFrame.Lines.Count - 2, plainFrame.Lines.Count);
+    }
 
     [Fact]
     public void GivenAnyScreenSize_WhenBuilding_ThenTheFrameExistsExactlyWhenTheSharedLayoutSaysItFits()

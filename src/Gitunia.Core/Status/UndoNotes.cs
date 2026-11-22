@@ -1,34 +1,11 @@
-using Gitunia.Core.Keymap;
-
 namespace Gitunia.Core.Status;
 
 /// <summary>
-/// The plain-words undo lines of the confirm dialogs. The exact restore command and the full hash are never shown
-/// there: they go to the detail of the status message after the action, which the message history shows.
+/// The detail lines of the status messages after an undoable action. The exact restore command and the full hash go
+/// there, to the message history; the confirm dialogs carry no restore or undo note (#1480).
 /// </summary>
 public static class UndoNotes
 {
-    /// <summary>The message history and its key; the token is resolved where the keymap is known (#1196).</summary>
-    public static readonly string MessageHistory = KeyTokens.Of(ActionIds.StatusHistory, "the message history");
-
-    /// <summary>The reflog and its key; the token is resolved where the keymap is known (#1196).</summary>
-    public static readonly string Reflog = KeyTokens.Of(ActionIds.ReflogOpen, "the reflog");
-
-    private const string UndoNotePrefix = "Afterwards ";
-
-    /// <summary>For actions that git can undo with a command we know: the message history will hold it.</summary>
-    public static readonly string FromHistory = $"{UndoNotePrefix}{MessageHistory} shows how to bring it back.";
-
-    /// <summary>For actions that move HEAD: the reflog also holds the old position.</summary>
-    public static readonly string FromReflog =
-        $"{UndoNotePrefix}you can go back from {Reflog}; {MessageHistory} has the exact command.";
-
-    /// <summary>
-    /// Whether <paramref name="text"/> is exactly one of the undo notes (reassuring), not a warning that merely
-    /// contains one.
-    /// </summary>
-    public static bool IsUndoNote(string text) => text == FromHistory || text == FromReflog;
-
     /// <summary>The detail line of a status message: what to run, in the message history.</summary>
     public static string Restore(string command) => $"Restore: {command}";
 

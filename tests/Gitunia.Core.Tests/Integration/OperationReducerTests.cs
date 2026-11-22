@@ -69,7 +69,7 @@ public class OperationReducerTests
         var confirm = Assert.IsType<ShowConfirmEffect>(Assert.Single(effects));
         Assert.Equal("Abort rebase", confirm.Prompt.Title);
         Assert.Contains("main goes back to 4444444", confirm.Prompt.Consequence, StringComparison.Ordinal);
-        Assert.Contains("reflog", confirm.Prompt.Consequence, StringComparison.Ordinal);
+        Assert.DoesNotContain("reflog", confirm.Prompt.Consequence, StringComparison.Ordinal);
         Assert.Equal(new OperationAbortConfirmed(Tab, info, "main"), confirm.OnAccepted);
         Assert.Equal("The screen is too small to ask: nothing was changed", confirm.UnavailableNotice);
     }

@@ -46,7 +46,7 @@ public static class QuickRebaseTexts
         return new ConfirmPrompt(
             title,
             lines,
-            $"{UndoNotes.FromReflog} A stop on conflicts leaves a " +
+            "A stop on conflicts leaves a " +
             $"rebase in progress: you can {OperationKeys.Continue} or {OperationKeys.Abort} it.",
             yes);
     }

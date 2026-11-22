@@ -96,7 +96,6 @@ public static class ResetTexts
         return new ConfirmPrompt(
             "Hard reset",
             lines,
-            $"The commits can be brought back afterwards from {UndoNotes.Reflog}. " +
             "Uncommitted changes are never in the reflog and cannot be restored.",
             "Reset hard");
     }
@@ -115,8 +114,7 @@ public static class ResetTexts
                 "the files in the working tree stay.",
                 $"{CountText.Plural(staged, "file")} {(staged == 1 ? "loses" : "lose")} the staged state{detail}.",
             ],
-            "The staged state cannot be recovered from the reflog. The commits can be brought back afterwards " +
-            $"from {UndoNotes.Reflog}.",
+            "The staged state cannot be recovered from the reflog.",
             "Reset mixed");
     }
 

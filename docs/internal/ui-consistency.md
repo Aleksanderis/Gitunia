@@ -47,7 +47,7 @@ Seven parallel read-only audits covered forms, pickers and overlays, lists and v
 - **Empty or no-match text**: palette muted, help and picker default colour.
 - **Group headers**: the palette's are plain, the help's are blue bold.
 - ✓ **Settings warning marker** uses the `Error` role (`SettingsFrameBuilder.cs:338`), so it is red there and yellow on the status bar.
-- **Resolve Confirm**: the reassuring undo hint is red bold (`working-resolve` row 18).
+- **Resolve Confirm**: no warning row, only the question and its two lines (#1480).
 - **Conflict editor**: the title shows "ours" in green, but ours content is red and theirs content green, so one side has two colours.
 - **Loading** uses 3 roles (Faint, Status, StatusProgress). **Dividers** use Faint or FocusedBorder (conflict editor, settings).
 - **Directory names** are drawn as `SectionTitle`, so they look like headings. Accent carries about 9 meanings.

@@ -49,7 +49,7 @@ public static class RebaseEditorTexts
         return new ConfirmPrompt(
             "Interactive rebase",
             lines,
-            $"{UndoNotes.FromReflog} A stop on conflicts leaves a " +
+            "A stop on conflicts leaves a " +
             $"rebase in progress: you can {OperationKeys.Continue} or {OperationKeys.Abort} it.",
             "Rebase");
     }

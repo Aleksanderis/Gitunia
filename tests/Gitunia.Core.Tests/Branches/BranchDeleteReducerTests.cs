@@ -1,7 +1,6 @@
 using Gitunia.Core.Branches;
 using Gitunia.Core.Effects;
 using Gitunia.Core.Sidebar;
-using Gitunia.Core.Status;
 using Xunit;
 using static Gitunia.Core.Tests.Branches.BranchTestData;
 
@@ -19,7 +18,7 @@ public class BranchDeleteReducerTests
         var confirm = Assert.IsType<ShowConfirmEffect>(Assert.Single(effects));
         Assert.Equal("Delete branch", confirm.Prompt.Title);
         Assert.Contains("topic", confirm.Prompt.Lines[0], StringComparison.Ordinal);
-        Assert.Equal(UndoNotes.FromHistory, confirm.Prompt.Consequence);
+        Assert.Equal(string.Empty, confirm.Prompt.Consequence);
         Assert.DoesNotContain(Topic, string.Join('\n', confirm.Prompt.Lines), StringComparison.Ordinal);
         Assert.Equal(new BranchDeleteConfirmed(Tab, "topic", Topic, null), confirm.OnAccepted);
         Assert.Contains("nothing was deleted", confirm.UnavailableNotice, StringComparison.Ordinal);
@@ -169,7 +168,7 @@ public class BranchDeleteReducerTests
         var confirm = Assert.IsType<ShowConfirmEffect>(Assert.Single(effects));
         Assert.Equal("Delete unmerged branch", confirm.Prompt.Title);
         Assert.Contains("unreachable", string.Join(' ', confirm.Prompt.Lines), StringComparison.Ordinal);
-        Assert.Equal(UndoNotes.FromHistory, confirm.Prompt.Consequence);
+        Assert.Equal(string.Empty, confirm.Prompt.Consequence);
         Assert.Equal("Delete anyway", confirm.Prompt.YesLabel);
         Assert.Equal(new BranchForceDeleteConfirmed(Tab, "wip", Topic), confirm.OnAccepted);
         Assert.Equal(
