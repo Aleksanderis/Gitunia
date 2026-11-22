@@ -397,7 +397,18 @@ public static class CommitReducer
         var needsForcePush = request.Amend && CommitCheck.NeedsForcePush(tab.WorkingTree);
         var upstream = needsForcePush ? tab.WorkingTree?.Snapshot.Branch.UpstreamName : null;
 
-        return Same(context, new RunCommitEffect(tab.Id, tab.Location, request, upstream));
+        var run = new RunCommitEffect(tab.Id, tab.Location, request, upstream);
+        if (!CommitRules.IsEditing(tab, context.IsActive, context.Mode))
+        {
+            return Same(context, run);
+        }
+
+        // Submitting with Ctrl-g ends Insert mode at once, not only when the result arrives: the draft stays as it is.
+        var draft = DraftOf(context);
+        draft.Editor.DropUndoPointIfUnchanged();
+        draft.Editor.ClearSelection();
+
+        return new CommitUpdate(tab.Commit with { Draft = draft, IsInserting = false }, KeyMode.Normal, null, [run], []);
     }
 
     // The message and Amend are gone, SignOff and No-Verify stay; the focus goes back to a list (which ends Insert
