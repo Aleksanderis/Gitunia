@@ -94,7 +94,7 @@ Seven parallel read-only audits covered forms, pickers and overlays, lists and v
 
 **5. Drawing glitches (all ✓ in the captures)**
 - At 64 columns, settings, picker and prompt draw double borders `││`, junctions `├│ … │┤` and `╰╰──╯╯`. Popup title rows have no left border.
-- The MERGING banner replaces the Changes pane's bottom border (`working`, `working-narrow`).
+- The MERGING banner replaced the Changes pane's bottom border (`working`, `working-narrow`). Fixed (#1482): the banner has a row of its own below the frame.
 - In ASCII mode, adjacent chips lose a bracket: `[view v]A stage all]`.
 - In the reflog, the message column moves one cell right at `HEAD@{10}`. The selector width is not padded.
 - The which-key title chip leaves the rest of its row blank, and the right border is missing (about 75 % sure; may be a capture artefact).
@@ -180,7 +180,7 @@ Issues: phase 1 #1443, 2 #1444, 3 #1445, 4 #1446, 5 #1447 (after 3 and 4), 6 #14
    - ASCII chip bracket;
    - reflog selector padding;
    - double borders in narrow overlays;
-   - MERGING banner over the pane border;
+   - MERGING banner over the pane border (fixed, #1482);
    - red reassuring Confirm text;
    - settings warning marker role;
    - ASCII `✗`;

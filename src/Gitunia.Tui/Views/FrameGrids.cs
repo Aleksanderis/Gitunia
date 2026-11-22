@@ -45,7 +45,7 @@ public sealed class FrameGrids(PaneViews panes, PaneGeometry geometry, ScreenMod
         var messageTitle = panes.Content.MessageBox.Draft?.Title ?? WorkingTreePaneRenderer.MessageTitle;
         var key = new WorkingGridKey(
             geometry.ScreenWidth,
-            geometry.ScreenHeight,
+            geometry.FrameHeight,
             rects,
             focus,
             unstagedTitle,
@@ -56,7 +56,7 @@ public sealed class FrameGrids(PaneViews panes, PaneGeometry geometry, ScreenMod
         {
             _workingGrid = FrameGrid.Build(
                 geometry.ScreenWidth,
-                geometry.ScreenHeight,
+                geometry.FrameHeight,
                 [
                     new FrameBox(rects.Unstaged, focus == PaneKind.WorkingUnstaged, unstagedTitle),
                     new FrameBox(rects.Staged, focus == PaneKind.WorkingStaged, stagedTitle),
@@ -80,7 +80,7 @@ public sealed class FrameGrids(PaneViews panes, PaneGeometry geometry, ScreenMod
         var title = model.RepositoryName.Length > 0 ? model.RepositoryName : "Repository";
         var key = new GridKey(
             geometry.ScreenWidth,
-            geometry.ScreenHeight,
+            geometry.FrameHeight,
             rects,
             focused,
             title,
@@ -93,7 +93,7 @@ public sealed class FrameGrids(PaneViews panes, PaneGeometry geometry, ScreenMod
             var graphTitle = isPicker ? string.Empty : RepeatMode.Mark("History", key.RepeatPane == PaneKind.Graph);
             _grid = FrameGrid.Build(
                 geometry.ScreenWidth,
-                geometry.ScreenHeight,
+                geometry.FrameHeight,
                 rects,
                 focused,
                 glyphs,
@@ -111,7 +111,7 @@ public sealed class FrameGrids(PaneViews panes, PaneGeometry geometry, ScreenMod
             1,
             ScreenLayout.GraphTop,
             ScreenLayout.InnerWidth(geometry.ScreenWidth),
-            ScreenLayout.GraphHeight(geometry.ScreenHeight));
+            ScreenLayout.GraphHeight(geometry.FrameHeight));
 
         return new PaneRects(Empty, Empty, Empty, graph, Empty, Empty, Empty, Empty, Empty);
     }
