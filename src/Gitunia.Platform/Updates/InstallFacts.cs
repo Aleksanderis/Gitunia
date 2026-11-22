@@ -5,4 +5,12 @@ namespace Gitunia.Platform.Updates;
 /// <param name="MarkerText">The text of the install-source marker file next to the binary, null when there is none.</param>
 /// <param name="System">The operating system family.</param>
 /// <param name="OsReleaseText">The text of <c>/etc/os-release</c> on Linux, null elsewhere or when unreadable.</param>
-public sealed record InstallFacts(string ExecutablePath, string? MarkerText, HostSystem System, string? OsReleaseText);
+/// <param name="OtherScriptCopyPath">
+/// The path of a self-updating script install in the script's default folder when it is not this binary, null when there is none.
+/// </param>
+public sealed record InstallFacts(
+    string ExecutablePath,
+    string? MarkerText,
+    HostSystem System,
+    string? OsReleaseText,
+    string? OtherScriptCopyPath = null);

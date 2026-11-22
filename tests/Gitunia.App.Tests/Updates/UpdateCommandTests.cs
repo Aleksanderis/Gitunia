@@ -52,6 +52,37 @@ public sealed class UpdateCommandTests : IDisposable
     }
 
     [Fact]
+    public async Task GivenAPackageCopyAndAScriptCopy_WhenUpdating_ThenTheOtherCopyIsNamedBeforeTheAdvice()
+    {
+        FakeRelease.ServeLinux(_server, "1.3.0");
+        var facts = new InstallFacts("/usr/bin/gitunia", null, HostSystem.Linux, "ID=arch\n", "/home/me/.local/bin/gitunia");
+
+        await RunAsync("1.2.3", facts, checkOnly: false);
+
+        var text = _output.ToString();
+        Assert.StartsWith("Gitunia 1.3.0 is available", text);
+        var other = text.IndexOf("/home/me/.local/bin/gitunia", StringComparison.Ordinal);
+        Assert.True(other > 0);
+        Assert.True(other < text.IndexOf("GITUNIA_METHOD=package", StringComparison.Ordinal));
+        Assert.Contains("this one (/usr/bin/gitunia) runs instead", text);
+        Assert.Contains("sudo pacman -R gitunia", text);
+        Assert.Contains("hash -r", text);
+        Assert.DoesNotContain("remove the package and run the script:", text);
+    }
+
+    [Fact]
+    public async Task GivenAPackageCopyAndNoScriptCopy_WhenUpdating_ThenNothingAboutAnotherCopyIsPrinted()
+    {
+        FakeRelease.ServeLinux(_server, "1.3.0");
+        var facts = new InstallFacts("/usr/bin/gitunia", null, HostSystem.Linux, "ID=arch\n");
+
+        await RunAsync("1.2.3", facts, checkOnly: false);
+
+        Assert.DoesNotContain("hash -r", _output.ToString());
+        Assert.Contains("remove the package and run the script:", _output.ToString());
+    }
+
+    [Fact]
     public async Task GivenTheLatestReleaseIsInstalled_WhenUpdating_ThenItReportsUpToDateAndDownloadsNothing()
     {
         FakeRelease.ServeLinux(_server, "1.2.3");

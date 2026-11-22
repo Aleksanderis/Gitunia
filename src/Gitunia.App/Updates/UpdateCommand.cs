@@ -67,9 +67,10 @@ public sealed class UpdateCommand(ReleaseClient client, ExecutableSwapper swappe
         var command = UpdateAdvice.CommandFor(route);
         if (command is not null)
         {
+            await WriteOtherCopyAdviceAsync(route, request.Facts);
             await output.WriteLineAsync($"This copy is managed by your package manager ({route}); update it with:");
             await output.WriteLineAsync($"  {command}");
-            await WriteSwitchAdviceAsync(route);
+            await WriteSwitchAdviceAsync(route, request.Facts);
 
             return;
         }
@@ -82,10 +83,25 @@ public sealed class UpdateCommand(ReleaseClient client, ExecutableSwapper swappe
         await output.WriteLineAsync($"Download it, unpack it and replace gitunia yourself: {download}");
     }
 
-    private async Task WriteSwitchAdviceAsync(InstallRoute route)
+    // The self-updating copy exists but the shell started this one: say so first, then how to make the shell pick the other.
+    private async Task WriteOtherCopyAdviceAsync(InstallRoute route, InstallFacts? facts)
     {
         var remove = UpdateAdvice.RemovePackageCommandFor(route);
-        if (remove is null)
+        if (remove is null || facts?.OtherScriptCopyPath is not { } other)
+        {
+            return;
+        }
+
+        await output.WriteLineAsync($"Another copy of Gitunia that updates itself exists at {other}, but this one ({facts.ExecutablePath}) runs instead.");
+        await output.WriteLineAsync("To use the self-updating copy: remove this package, then run `hash -r` (or open a new terminal):");
+        await output.WriteLineAsync($"  {remove}");
+        await output.WriteLineAsync("Or update this package copy as follows:");
+    }
+
+    private async Task WriteSwitchAdviceAsync(InstallRoute route, InstallFacts? facts)
+    {
+        var remove = UpdateAdvice.RemovePackageCommandFor(route);
+        if (remove is null || facts?.OtherScriptCopyPath is not null)
         {
             return;
         }
