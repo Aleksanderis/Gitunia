@@ -8,7 +8,8 @@ using Gitunia.Tui.Rendering.Styling;
 namespace Gitunia.Tui.Rendering.Screen;
 
 /// <summary>
-/// Draws the in-progress operation banner (ux-workflows.md, workflow 4) on a row of its own between the frame and the status bar, in the status bar's
+/// Draws the in-progress operation banner (ux-workflows.md, workflow 4) on a row of its own between the frame and the
+/// status bar, in the status bar's
 /// colours, its title a warning chip aligned with the mode badge. Where the banner does not fit (a terminal under
 /// <see cref="ScreenLayout.MinimumHeightWithBanner"/> rows) the status bar carries its text instead. The same line is
 /// used by the terminal view and the text frame, and its chips are the click targets. The editor hint comes last: its

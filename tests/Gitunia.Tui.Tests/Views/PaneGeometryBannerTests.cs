@@ -1,6 +1,3 @@
-using Gitunia.Core.Workspaces.Panes;
-using Gitunia.Tui.Rendering.Diff;
-using Gitunia.Tui.Rendering.Panes;
 using Gitunia.Tui.Rendering.Screen;
 using Gitunia.Tui.Tests.Fakes;
 using Gitunia.Tui.Views;
@@ -36,25 +33,5 @@ public class PaneGeometryBannerTests
     }
 
     private static PaneGeometry Geometry(int height, bool hasBanner) =>
-        new(new FakePaneChrome(new ScreenSize(120, height)), new FakeArrangement(hasBanner), new FakeFocus());
-
-    private sealed class FakeArrangement(bool hasBanner) : IPaneArrangement
-    {
-        public PaneArrangement Arrangement() => PaneArrangement.Normal;
-
-        public bool HasBanner() => hasBanner;
-    }
-
-    private sealed class FakeFocus : IWorkingTreeFocus
-    {
-        public PaneKind FocusedPane() => PaneKind.WorkingUnstaged;
-
-        public string DiffView() => "WorkingUnstagedDiff";
-
-        public bool IsDiffZoomed() => false;
-
-        public int? ListWidth() => null;
-
-        public WorkingTreeButtons DiffButtons() => WorkingTreeButtons.None;
-    }
+        FakePaneGeometry.Of(new FakePaneChrome(new ScreenSize(120, height)), hasBanner);
 }

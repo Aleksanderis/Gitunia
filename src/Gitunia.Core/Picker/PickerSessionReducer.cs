@@ -1,4 +1,3 @@
-using Gitunia.Core.Operations;
 using Gitunia.Core.Shell;
 using Gitunia.Core.Text;
 using Gitunia.Core.Workspaces;
@@ -37,10 +36,9 @@ public static class PickerSessionReducer
     }
 
     private static int ListBudgetOf(ScreenExtent? screen, RepositoryState? tab) =>
-        screen is null
-            ? PickerListPlan.MaximumListRows
-            : PickerListPlan.Budget(
-                PaneSizing.AreaHeight(PaneSizing.FrameHeight(screen.Height, OperationBannerBuilder.IsShown(tab?.Operation))));
+        FrameExtent.Of(screen, tab) is { } frame
+            ? PickerListPlan.Budget(PaneSizing.AreaHeight(frame.Height))
+            : PickerListPlan.MaximumListRows;
 
     // A highlight that a smaller list hides moves onto the "more" line of its section before a command acts on it.
     private static PickerSession Normalized(PickerSession session)

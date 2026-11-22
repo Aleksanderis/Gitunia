@@ -5,7 +5,8 @@ using Gitunia.Tui.Rendering.Styling;
 namespace Gitunia.Tui.Rendering.Screen;
 
 /// <summary>
-/// Where things sit on the screen: the tab row, then the frame (a top edge row, the panes, a bottom edge row), the operation banner row while an operation runs, and the status bar.
+/// Where things sit on the screen: the tab row, then the frame (a top edge row, the panes, a bottom edge row), the
+/// operation banner row while an operation runs, and the status bar.
 /// Shared by the views and the text frame. Every pane is a box (see <see cref="FrameGrid"/>): the first and last column and
 /// the edge rows belong to the frame, and a pane's text is padded by <see cref="PanePadding.Columns"/> columns inside its box.
 /// </summary>

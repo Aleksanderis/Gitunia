@@ -116,6 +116,15 @@ public class OperationBannerBuilderTests
         }
     }
 
+    [Fact]
+    public void GivenOperations_WhenAskingIfABannerIsShown_ThenItMatchesWhetherABannerIsBuilt()
+    {
+        Assert.False(OperationBannerBuilder.IsShown(null));
+        Assert.False(OperationBannerBuilder.IsShown(Info(RepositoryOperation.Bisect)));
+        Assert.True(OperationBannerBuilder.IsShown(Info(RepositoryOperation.Merge)));
+        Assert.True(OperationBannerBuilder.IsShown(Info(RepositoryOperation.Rebase)));
+    }
+
     private static OperationInfo Info(RepositoryOperation kind, string? target = null, string? commit = null) =>
         new(kind, target, null, null, null, commit, null, null);
 }

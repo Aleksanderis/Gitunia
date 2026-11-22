@@ -6,6 +6,7 @@ using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
+using Gitunia.Git.Operations.Models;
 using Gitunia.Git.Repositories.Models;
 using Xunit;
 
@@ -226,6 +227,28 @@ public class PaneSizeReducerTests
 
         Assert.Equal(PaneSizeReducer.AtLimitNotice, NoticeOf(update));
     }
+
+    [Fact]
+    public void GivenAnOperationBanner_WhenMakingTheBottomStripTaller_ThenTheStepStartsFromTheShorterFramesAutomaticHeight()
+    {
+        var plain = AppReducer.Reduce(
+            WithTab(PaneKind.Detail),
+            new ScreenResizedCommand(new ScreenExtent(120, 42), DateTimeOffset.UnixEpoch)).State;
+        var banner = AppReducer.Reduce(
+            plain,
+            new TabCommand(
+                plain.Workspace.ActiveTabId!.Value,
+                new OperationLoadedCommand(new OperationInfo(RepositoryOperation.Merge, "x", null, null, null, null, null, null)))).State;
+
+        var tallest = BottomHeightAfter(plain, 100);
+        var tallestWithBanner = BottomHeightAfter(banner, 100);
+
+        Assert.Equal(tallest - 1, tallestWithBanner);
+    }
+
+    private static int? BottomHeightAfter(AppState state, int count) =>
+        PaneSizeReducer.Reduce(state, Command(state, ActionIds.PaneTaller, count, Normal))
+            .State.Workspace.ActiveTab!.View.BottomHeight;
 
     private static PaneSizeCommand Command(AppState state, ActionId action, int? count, PaneLayoutFacts layout) =>
         new(state.Workspace.ActiveTabId!.Value, action, count, layout);

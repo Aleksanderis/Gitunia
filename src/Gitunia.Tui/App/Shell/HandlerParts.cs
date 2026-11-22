@@ -125,7 +125,11 @@ public sealed class HandlerParts
             panes.WorkingDiff,
             panes.Visual);
         var fileHistory = new FileHistoryOpener(host, target, lines, panes.Visual);
-        var navigation = new NavigationServices(keys.Quit, foundation.Chrome, Statuses, foundation.Clipboard);
+        var navigation = new NavigationServices(
+            keys.Quit,
+            foundation.Geometry,
+            Statuses,
+            foundation.Clipboard);
 
         return overlays.Handlers
             .Add(InputHandler.StatusActions, Statuses)

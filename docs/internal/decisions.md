@@ -318,4 +318,4 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 ## 2026-11-22
 
-**UI:** The operation banner has a row of its own between the frame and the status bar (#1482, owner, option B of #1457), replacing the earlier choice of drawing it over the frame's bottom edge; the frame is one row shorter while an operation runs and keeps its border. Why: every pane keeps its bottom border. The row is layout data (`PaneSizing.BannerRows`/`FrameHeight`) and is dropped under 10 rows, where the frame keeps the full height.
+**UI:** The operation banner has a row of its own between the frame and the status bar (#1482, owner, option B of #1457), superseding the choice of drawing it over the frame's bottom edge (`history/decisions.md`, #37); the frame is one row shorter while an operation runs and keeps its border. Why: every pane keeps its bottom border. The row is layout data (`PaneSizing.BannerRows`/`FrameHeight`) and is dropped under 10 rows, where the frame keeps the full height.

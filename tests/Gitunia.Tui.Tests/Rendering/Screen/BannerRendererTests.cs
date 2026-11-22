@@ -138,6 +138,7 @@ public class BannerRendererTests
     [InlineData(1, 1)]
     [InlineData(3, 8)]
     [InlineData(9, 20)]
+    [InlineData(9, 100)]
     [InlineData(10, 20)]
     [InlineData(11, 12)]
     [InlineData(14, 30)]
@@ -154,6 +155,11 @@ public class BannerRendererTests
 
         Assert.Equal(height, history.Count);
         Assert.Equal(height, working.Count);
+        if (height is > 1 and < ScreenLayout.MinimumHeightWithBanner && width >= 100)
+        {
+            Assert.DoesNotContain("REBASING", history[^2].Text, StringComparison.Ordinal);
+            Assert.Contains("REBASING", history[^1].Text, StringComparison.Ordinal);
+        }
     }
 
     [Fact]

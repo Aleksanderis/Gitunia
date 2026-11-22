@@ -24,7 +24,7 @@ public static class OperationBannerBuilder
     private const string MergetoolLabel = "open mergetool";
     private const string ShortMergetoolLabel = "mergetool";
 
-    /// <summary>Whether <see cref="Build"/> gives a banner for <paramref name="info"/>: the layout reserves its row.</summary>
+    /// <summary>Whether <see cref="Build"/> gives a banner for <paramref name="info"/>, so the layout reserves its row.</summary>
     /// <param name="info">The operation, null when none.</param>
     public static bool IsShown(OperationInfo? info) => info is not null && Verb(info.Kind) is not null;
 

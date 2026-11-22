@@ -99,6 +99,16 @@ public class NavigationActionsTests
     }
 
     [Fact]
+    public void GivenAScreenOf14RowsAndABanner_WhenOpeningDetails_ThenTheNoticeSaysTheScreenIsTooShort()
+    {
+        using var harness = new NavigationHarness(isLoading: false, screenHeight: 14, hasBanner: true);
+
+        harness.Actions.TryExecute(ActionIds.GraphOpenDetails, null);
+
+        Assert.Equal("The details pane needs a taller screen", harness.Actions.Notice);
+    }
+
+    [Fact]
     public void GivenTheLogIsStillLoading_WhenMovingDown_ThenThereIsNoHint()
     {
         using var harness = new NavigationHarness(isLoading: true);
@@ -179,7 +189,7 @@ public class NavigationActionsTests
 
         private readonly CountingQuit _quit = new();
 
-        public NavigationHarness(bool isLoading, int screenHeight = 40)
+        public NavigationHarness(bool isLoading, int screenHeight = 40, bool hasBanner = false)
         {
             var location = new RepositoryLocation(Path.GetTempPath(), Path.GetTempPath(), Path.GetTempPath(), false, false);
             _session = new TerminalTabSession(
@@ -201,13 +211,14 @@ public class NavigationActionsTests
             var host = new Dispatcher(AppState.Empty);
             var copier = new ClipboardCopier(new ClipboardWriter(new StringWriter(), new Osc52Options(Osc52Mode.Direct, 100_000)), statuses);
             var sessions = new FakeActiveSessions(() => _session);
+            var chrome = new FakePaneChrome(new ScreenSize(120, screenHeight));
             Actions = new NavigationActions(
                 host,
                 new FakeGraphDetailLists(GraphList, detailList),
                 sessions,
                 new NavigationServices(
                     _quit,
-                    new FakePaneChrome(new ScreenSize(120, screenHeight)),
+                    FakePaneGeometry.Of(chrome, hasBanner),
                     new StatusActionHandler(statuses, sessions),
                     copier));
         }
