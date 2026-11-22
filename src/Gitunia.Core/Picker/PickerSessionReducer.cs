@@ -2,6 +2,7 @@ using Gitunia.Core.Shell;
 using Gitunia.Core.Text;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Panes;
+using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
 
 namespace Gitunia.Core.Picker;
@@ -27,15 +28,17 @@ public static class PickerSessionReducer
     {
         var effects = new List<AppEffect>();
         var next = new List<AppCommand>();
-        var budget = ListBudgetOf(screen);
+        var budget = ListBudgetOf(screen, workspace.ActiveTab);
         var sized = session with { ListBudget = budget };
         var reduced = Apply(Normalized(sized), command, workspace, effects, next);
 
         return new PickerUpdate(reduced, [.. effects], [.. next]);
     }
 
-    private static int ListBudgetOf(ScreenExtent? screen) =>
-        screen is null ? PickerListPlan.MaximumListRows : PickerListPlan.Budget(PaneSizing.AreaHeight(screen.Height));
+    private static int ListBudgetOf(ScreenExtent? screen, RepositoryState? tab) =>
+        FrameExtent.Of(screen, tab) is { } frame
+            ? PickerListPlan.Budget(PaneSizing.AreaHeight(frame.Height))
+            : PickerListPlan.MaximumListRows;
 
     // A highlight that a smaller list hides moves onto the "more" line of its section before a command acts on it.
     private static PickerSession Normalized(PickerSession session)

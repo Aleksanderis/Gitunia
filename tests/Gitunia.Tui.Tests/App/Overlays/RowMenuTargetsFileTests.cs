@@ -78,5 +78,5 @@ public class RowMenuTargetsFileTests
     }
 
     private static RowMenuTarget? TargetOf(MainViewFixture fixture, string view) =>
-        new RowMenuTargets(fixture.Panes, null!, null!, null!).TargetOf(view, ActionIds.MenuOpenForRow);
+        new RowMenuTargets(fixture.Panes, null!, null!, null!, null!).TargetOf(view, ActionIds.MenuOpenForRow);
 }

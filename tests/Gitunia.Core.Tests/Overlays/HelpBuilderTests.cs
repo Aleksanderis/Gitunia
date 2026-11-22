@@ -154,7 +154,52 @@ public class HelpBuilderTests
     }
 
     [Theory]
-    [InlineData(false, new[] { "r" }, new[] { "a", "c", "s" })]
+    [InlineData(false, false)]
+    [InlineData(true, true)]
+    public void GivenTheLeaderPrefix_WhenBuildingWhichKeyRows_ThenTheOperationGroupShowsOnlyWithAnOperation(
+        bool operationInProgress,
+        bool groupShown)
+    {
+        var engine = new KeymapEngine(Table);
+        var feeder = new KeyFeeder(engine);
+        feeder.Feed("<space>");
+
+        var rows = WhichKeyBuilder.Build(
+            engine.Continuations(
+                feeder.State,
+                DefaultKeymap.GraphView,
+                null,
+                action => WhichKeyBuilder.IsAvailable(action, operationInProgress)),
+            feeder.State.PendingSequence,
+            operationInProgress);
+
+        Assert.Equal(groupShown, rows.Any(row => row.Key == "g"));
+    }
+
+    [Theory]
+    [InlineData(false, 0)]
+    [InlineData(true, 4)]
+    public void GivenTheGitPrefix_WhenFilteringContinuations_ThenTheConflictEditorFollowsTheOperation(
+        bool operationInProgress,
+        int expected)
+    {
+        var engine = new KeymapEngine(Table);
+        var feeder = new KeyFeeder(engine);
+        feeder.Feed("<space>");
+        feeder.Feed("g");
+
+        var continuations = engine.Continuations(
+            feeder.State,
+            DefaultKeymap.GraphView,
+            null,
+            action => WhichKeyBuilder.IsAvailable(action, operationInProgress));
+
+        Assert.Equal(expected, continuations.Count);
+        Assert.Equal(operationInProgress, continuations.Any(c => c.Action == ActionIds.ConflictOpen));
+    }
+
+    [Theory]
+    [InlineData(false, new string[0], new[] { "r", "a", "c", "s" })]
     [InlineData(true, new[] { "r", "a", "c", "s" }, new string[0])]
     public void GivenTheGitPrefix_WhenBuildingWhichKeyRows_ThenOnlyTheListedKeysShow(
         bool operationInProgress,

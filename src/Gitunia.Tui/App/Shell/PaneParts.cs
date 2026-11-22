@@ -62,7 +62,7 @@ public sealed class PaneParts
         Picker = new PickerInput(host);
         ListButtons = new WorkingListButtons(foundation.Geometry, panes);
         Anchors = new MenuAnchors(foundation.Geometry, ListButtons, panes);
-        Menus = new RowMenuTargets(panes, Anchors, Graph, Rows);
+        Menus = new RowMenuTargets(panes, foundation.Geometry, Anchors, Graph, Rows);
     }
 
     /// <summary>The commit message box.</summary>

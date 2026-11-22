@@ -2,6 +2,8 @@ using Gitunia.Core.Graph;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Mouse;
 using Gitunia.Core.Operations;
+using Gitunia.Core.Workspaces.Panes;
+using Gitunia.Tui.Rendering.WorkingTree;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Screen;
 using Gitunia.Tui.Rendering.Styling;
@@ -22,7 +24,7 @@ public class BannerRendererTests
         ]);
 
     [Fact]
-    public void GivenABannerAndATallScreen_WhenComposing_ThenItReplacesTheBottomEdgeAndKeepsTheStatusBar()
+    public void GivenABannerAndATallScreen_WhenComposing_ThenItHasARowOfItsOwnBelowTheFrameAndKeepsTheStatusBar()
     {
         var lines = Compose(Model(Rebase), 100, 12);
 
@@ -31,7 +33,7 @@ public class BannerRendererTests
             " REBASING feature/x   step 2/5  3 conflicts  <space>gc continue  <space>ga abort  <space>gs skip",
             lines[^2].Text,
             StringComparison.Ordinal);
-        Assert.DoesNotContain("╰", lines[^2].Text, StringComparison.Ordinal);
+        Assert.StartsWith("╰", lines[^3].Text, StringComparison.Ordinal);
         Assert.StartsWith(" NORMAL ", lines[^1].Text, StringComparison.Ordinal);
         Assert.DoesNotContain("REBASING", lines[^1].Text, StringComparison.Ordinal);
     }
@@ -102,6 +104,62 @@ public class BannerRendererTests
         Assert.Equal(3, line.Chips.Count);
         Assert.Contains("<space>gs skip", line.Line.Text, StringComparison.Ordinal);
         Assert.DoesNotContain("step 2/5", line.Line.Text, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(10)]
+    [InlineData(12)]
+    [InlineData(24)]
+    public void GivenABanner_WhenComposingTheHistoryView_ThenTheFrameIsOneRowShorterAndEndsInItsBottomEdge(int height)
+    {
+        var plain = Compose(Model(null), 100, height);
+        var lines = Compose(Model(Rebase), 100, height);
+
+        Assert.Equal(height, lines.Count);
+        Assert.StartsWith("╰", lines[^3].Text, StringComparison.Ordinal);
+        Assert.StartsWith("╰", plain[^2].Text, StringComparison.Ordinal);
+        Assert.Equal(plain.Count(line => line.Text.StartsWith('│')) - 1, lines.Count(line => line.Text.StartsWith('│')));
+    }
+
+    [Fact]
+    public void GivenABanner_WhenComposingTheChangesView_ThenTheBottomBorderIsDrawnAboveTheBanner()
+    {
+        var working = new WorkingTreeModel(null, PaneKind.WorkingUnstaged);
+
+        var lines = ScreenComposer.ComposeWorkingTree(Model(Rebase), working, 100, 20, GraphGlyphSet.Unicode);
+
+        Assert.Equal(20, lines.Count);
+        Assert.Contains("╯", lines[^3].Text, StringComparison.Ordinal);
+        Assert.Contains("REBASING feature/x", lines[^2].Text, StringComparison.Ordinal);
+        Assert.StartsWith(" NORMAL ", lines[^1].Text, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(1, 1)]
+    [InlineData(3, 8)]
+    [InlineData(9, 20)]
+    [InlineData(9, 100)]
+    [InlineData(10, 20)]
+    [InlineData(11, 12)]
+    [InlineData(14, 30)]
+    [InlineData(15, 200)]
+    public void GivenABannerAndATinyOrNarrowScreen_WhenComposingBothViews_ThenItKeepsItsSizeWithoutCrashing(int height, int width)
+    {
+        var history = Compose(Model(Rebase), width, height);
+        var working = ScreenComposer.ComposeWorkingTree(
+            Model(Rebase),
+            new WorkingTreeModel(null, PaneKind.WorkingUnstaged),
+            width,
+            height,
+            GraphGlyphSet.Unicode);
+
+        Assert.Equal(height, history.Count);
+        Assert.Equal(height, working.Count);
+        if (height is > 1 and < ScreenLayout.MinimumHeightWithBanner && width >= 100)
+        {
+            Assert.DoesNotContain("REBASING", history[^2].Text, StringComparison.Ordinal);
+            Assert.Contains("REBASING", history[^1].Text, StringComparison.Ordinal);
+        }
     }
 
     [Fact]
@@ -193,11 +251,12 @@ public class BannerRendererTests
     }
 
     [Fact]
-    public void GivenTheAsciiGlyphSet_WhenComposing_ThenTheBannerStillReplacesTheEdge()
+    public void GivenTheAsciiGlyphSet_WhenComposing_ThenTheBannerStillHasItsOwnRow()
     {
         var lines = ScreenComposer.Compose(Model(Rebase), Graph(), 0, 0, 100, 12, GraphGlyphSet.Ascii);
 
         Assert.Contains("REBASING feature/x", lines[^2].Text, StringComparison.Ordinal);
+        Assert.StartsWith("+", lines[^3].Text, StringComparison.Ordinal);
     }
 
     private static BannerHint EditorHint(string keys) => new(keys, "open conflict editor", "conflict editor");

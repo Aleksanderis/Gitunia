@@ -1,5 +1,6 @@
 using Gitunia.Core.Effects;
 using Gitunia.Core.Keymap;
+using Gitunia.Core.Operations;
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces.Repositories;
 
@@ -46,7 +47,7 @@ public static class PaneSizeReducer
             command.Count,
             view.FocusedPane,
             screen.Width,
-            screen.Height,
+            PaneSizing.FrameHeight(screen.Height, OperationBannerBuilder.IsShown(tab.Operation)),
             layout.IsDiffOpen);
         if (sizes is null)
         {
