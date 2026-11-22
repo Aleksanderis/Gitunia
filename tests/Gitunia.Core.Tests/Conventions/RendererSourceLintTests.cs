@@ -91,6 +91,6 @@ public partial class RendererSourceLintTests
     [GeneratedRegex(@"SegmentRole\.(Bar)?KeyLabel")]
     private static partial Regex KeyLabelRole();
 
-    [GeneratedRegex("[─│┌┐└┘├┤┬┴┼╭╮╯╰╲╱→←↑↓✓✗✔✘✕▶▼►◀▲●○◉⎇▸▾⏎]")]
+    [GeneratedRegex("[─│┌┐└┘├┤┬┴┼╭╮╯╰╲╱→←↑↓✓✗✔✘✕▶▼►◀▲●○◉◇▸▾⏎]")]
     private static partial Regex GlyphLiteral();
 }
