@@ -134,7 +134,7 @@ public class RebaseReducerTests
 
         var show = Assert.IsType<ShowConfirmEffect>(Assert.Single(effects));
         Assert.Equal("Rebase main onto topic?", show.Prompt.Lines[0]);
-        Assert.DoesNotContain("back", show.Prompt.Consequence, StringComparison.Ordinal);
+        Assert.DoesNotContain("reflog", show.Prompt.Consequence, StringComparison.Ordinal);
         Assert.DoesNotContain("git reset", show.Prompt.Consequence, StringComparison.Ordinal);
         Assert.Equal(new RebaseOntoConfirmed(Tab, OntoTarget()), show.OnAccepted);
         Assert.Equal(RebaseReducer.TooSmallNotice, show.UnavailableNotice);

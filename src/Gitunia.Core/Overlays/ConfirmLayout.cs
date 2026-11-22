@@ -15,7 +15,8 @@ public static class ConfirmLayout
     private const int MinimumPopupWidth = 64;
     private const int ScreenMargin = 2;
 
-    // The title, a blank row before and after the consequence (one blank row when there is none) and the bottom rule, besides the text and the answers.
+    // The title, a blank row before and after the consequence (one blank row when there is none) and the bottom rule,
+    // besides the text and the answers.
     private const int ChromeRows = 4;
 
     /// <summary>The outer width of the dialog on a screen, or less than the minimum overlay width when none fits.</summary>

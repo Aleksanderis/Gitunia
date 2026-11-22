@@ -21,7 +21,7 @@ How decisions came about and which issue built what: `docs/internal/history/ux.m
 - **Vim-like motions everywhere:** `h j k l`, `gg`/`G`, `Ctrl-d`/`Ctrl-u`, `/` search, `n`/`N`, counts (`5j`). Arrow keys and PageUp/Down also work. Bindings are data (mode, view, key sequence, action id); remapping is done in the config file (see "Config file" in [ux-look.md](ux-look.md)).
 - **Layout.** History view: left sidebar (branches, remotes, tags, stashes, worktrees), centre commit graph, bottom detail pane (commit info, files, diff). The Changes view is a separate view of the tab (workflow 2), not a graph row.
 - **Branches and worktrees are first-class:** always visible in the sidebar, and every branch shows which worktree holds it.
-- **Destructive actions confirm,** say what they will do and how to undo it.
+- **Destructive actions confirm,** say what they will do and what is lost, with no restore or undo note (#1480).
 - **Mouse is optional but complete.** Click to focus/select, double-click to open, wheel to scroll, clickable tabs and buttons, drag to select ranges and resize panes. Nothing is keyboard-only or mouse-only.
 
 ## Workspace and tabs
@@ -46,7 +46,7 @@ Normal (navigate, act), Visual (select a range of lines, commits or files), Inse
 
 **Paste.** A terminal paste works in every text input. A bracketed paste is replayed as the keys typing it would have sent; a terminal without bracketed paste sends plain keys, a line break as `Enter` (known limit: a pasted `url` plus newline accepts a prompt there). In a single-line input line breaks become one space and breaks at either end are dropped; message editors keep line breaks; tabs become spaces and other control characters are dropped. Outside Insert and Command mode a paste does nothing.
 
-**Confirm mode** is used by every destructive action. A centred dialog holds a title, what will happen, what cannot be undone or how to undo it (in the warning colour) and the name of `y`.
+**Confirm mode** is used by every destructive action. A centred dialog holds a title, what will happen, what cannot be undone (in the warning colour; no restore or undo note) and the name of `y`.
 - Only `y` runs the action, after the dialog has closed. `n` and `Esc` drop it. Every other key is swallowed: never `Enter`, and nothing behind the dialog moves.
 - The two answers are rows of the dialog and clickable; a click anywhere else closes it like `n`.
 - If the dialog does not fit the screen it is not shown and the action does not start (the status bar says so): an answer nobody can read is no confirmation. A dialog that stops fitting after a resize is closed unanswered, with a warning.

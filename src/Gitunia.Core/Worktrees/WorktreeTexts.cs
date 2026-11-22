@@ -12,7 +12,6 @@ namespace Gitunia.Core.Worktrees;
 /// testable without a terminal.</summary>
 public static class WorktreeTexts
 {
-
     /// <summary>Shown when another worktree operation of the tab still runs.</summary>
     public const string BusyNotice = "Busy: another operation on this tab is still running";
 
@@ -65,7 +64,7 @@ public static class WorktreeTexts
         return new ConfirmPrompt(
             "Remove worktree",
             [$"Remove the worktree {worktree.Path}?", branch],
-            RemoveUndoHint(worktree),
+            RemoveWarning(worktree),
             "Remove worktree");
     }
 
@@ -123,7 +122,7 @@ public static class WorktreeTexts
         return fullName;
     }
 
-    private static string RemoveUndoHint(WorktreeInfo worktree)
+    private static string RemoveWarning(WorktreeInfo worktree)
     {
         return worktree.BranchFullName is null ? "No undo is offered for commits that no branch reaches." : string.Empty;
     }
