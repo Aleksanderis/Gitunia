@@ -273,10 +273,15 @@ public sealed class OverlayController : IActionHandler
             return [];
         }
 
+        var operationInProgress = OperationInProgress();
         return WhichKeyBuilder.Build(
-            Engine.Continuations(_keys.State, _store.ViewName, HelpBuilder.IsModalScreen(_store.ViewName) ? null : Level),
+            Engine.Continuations(
+                _keys.State,
+                _store.ViewName,
+                HelpBuilder.IsModalScreen(_store.ViewName) ? null : Level,
+                action => WhichKeyBuilder.IsAvailable(action, operationInProgress)),
             pending,
-            OperationInProgress());
+            operationInProgress);
     }
 
     // The pages the help shows now: the filtered rows as one page, else the pages themselves.

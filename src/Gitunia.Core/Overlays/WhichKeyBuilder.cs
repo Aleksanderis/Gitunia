@@ -42,7 +42,14 @@ public static class WhichKeyBuilder
         ActionIds.OperationContinue,
         ActionIds.OperationAbort,
         ActionIds.OperationSkip,
+        ActionIds.ConflictOpen,
     ];
+
+    /// <summary>Whether the which-key popup lists <paramref name="action"/> given the context of the active tab.</summary>
+    /// <param name="action">The bound action.</param>
+    /// <param name="operationInProgress">Whether the active tab has an operation stopped.</param>
+    public static bool IsAvailable(ActionId action, bool operationInProgress) =>
+        operationInProgress || !OperationOnly.Contains(action);
 
     /// <summary>Rows for the continuations of <paramref name="pending"/>; a group row names its contents.</summary>
     /// <param name="continuations">What the engine offers after the pending keys.</param>
@@ -54,8 +61,7 @@ public static class WhichKeyBuilder
         bool operationInProgress = false)
     {
         var items = continuations
-            .Where(continuation => continuation.Action is not { } action
-                || operationInProgress || !OperationOnly.Contains(action))
+            .Where(continuation => continuation.Action is not { } action || IsAvailable(action, operationInProgress))
             .Select(continuation => new Item(
                 continuation,
                 KeyFormatter.BreakLigatures(KeyFormatter.Format(continuation.Key))))
