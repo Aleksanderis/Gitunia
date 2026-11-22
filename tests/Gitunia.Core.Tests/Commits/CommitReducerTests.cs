@@ -123,6 +123,22 @@ public class CommitReducerTests
     }
 
     [Fact]
+    public void GivenTheBoxInInsertMode_WhenTheCommitIsSubmitted_ThenInsertModeEndsAtOnce()
+    {
+        var harness = new CommitHarness(StagedModified("a.txt"));
+        harness.Run(ActionIds.WorkingTreeWriteMessage);
+        harness.Type("Fix the thing");
+        Assert.Equal(KeyMode.Insert, harness.Mode);
+
+        harness.Run(ActionIds.WorkingTreeCommit);
+
+        Assert.Equal(KeyMode.Normal, harness.Mode);
+        Assert.False(harness.Tab.Commit.IsInserting);
+        Assert.Equal("Fix the thing", harness.Draft.Editor.Text);
+        harness.Take<RunCommitEffect>();
+    }
+
+    [Fact]
     public void GivenACommitSucceeded_WhenTheResultArrives_ThenTheDraftIsClearedFocusReturnsAndTheStatusIsReadAgain()
     {
         var harness = new CommitHarness(StagedModified("a.txt"));
