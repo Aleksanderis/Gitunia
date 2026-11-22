@@ -31,6 +31,7 @@ public sealed class MainView : IDisposable
     private readonly TabBarView _tabs;
     private readonly PickerView _picker;
     private readonly LineView _status;
+    private readonly LineView _bottomEdge;
     private readonly LineView _banner;
     private readonly LineView _sidebarFilter;
     private readonly FrameStripView _divider;
@@ -69,6 +70,13 @@ public sealed class MainView : IDisposable
             CreateSideEdge(Pos.Absolute(0)),
             CreateSideEdge(Pos.Func(_ => Math.Max(0, geometry.ScreenWidth - 1))),
         ];
+        _bottomEdge = new LineView(new BottomEdgeLine(parts))
+        {
+            X = 0,
+            Y = Pos.Func(_ => ScreenLayout.FrameBottom(geometry.FrameHeight)),
+            Width = Dim.Fill(),
+            Height = 1,
+        };
         _banner = new LineView(new OperationBannerLine(parts))
         {
             X = 0,
@@ -223,6 +231,7 @@ public sealed class MainView : IDisposable
         _picker.SetNeedsDraw();
         _sidebarFilter.SetNeedsDraw();
         _divider.SetNeedsDraw();
+        _bottomEdge.SetNeedsDraw();
         _banner.SetNeedsDraw();
         foreach (var edge in _edges)
         {
@@ -346,6 +355,7 @@ public sealed class MainView : IDisposable
         panes.Window.Add(
             _tabs,
             _edges[0],
+            _bottomEdge,
             _banner,
             _edges[1],
             _edges[2],
