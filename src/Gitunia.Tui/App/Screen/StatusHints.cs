@@ -133,10 +133,10 @@ public sealed class StatusHints(
             OnRefusedConflictedFile());
     }
 
-    // A merge, rebase, cherry-pick or revert is stopped on a conflict: <space>gr opens the editor from every pane.
+    // The working tree has conflicted files (a stopped operation or a stash pop):
+    // <space>gr opens the editor from every pane.
     private bool ConflictPending() =>
-        host.Workspace.ActiveTab is { Operation: not null } tab
-        && OperationBannerBuilder.HasConflicts(tab.WorkingTree);
+        OperationBannerBuilder.HasConflicts(host.Workspace.ActiveTab?.WorkingTree);
 
     // Only the Unstaged list and its diff lead with the conflict editor, so no other pane pays for the lookup.
     private bool OnConflictedFile() =>

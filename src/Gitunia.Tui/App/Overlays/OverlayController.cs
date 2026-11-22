@@ -4,6 +4,7 @@ using Gitunia.App.Shell;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Lists;
+using Gitunia.Core.Operations;
 using Gitunia.Core.Overlays;
 using Gitunia.Core.Shell;
 using Gitunia.Tui.Input;
@@ -274,14 +275,16 @@ public sealed class OverlayController : IActionHandler
         }
 
         var operationInProgress = OperationInProgress();
+        var hasConflicts = OperationBannerBuilder.HasConflicts(_host.Workspace.ActiveTab?.WorkingTree);
         return WhichKeyBuilder.Build(
             Engine.Continuations(
                 _keys.State,
                 _store.ViewName,
                 HelpBuilder.IsModalScreen(_store.ViewName) ? null : Level,
-                action => WhichKeyBuilder.IsAvailable(action, operationInProgress)),
+                action => WhichKeyBuilder.IsAvailable(action, operationInProgress, hasConflicts)),
             pending,
-            operationInProgress);
+            operationInProgress,
+            hasConflicts);
     }
 
     // The pages the help shows now: the filtered rows as one page, else the pages themselves.
