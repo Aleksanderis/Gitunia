@@ -133,7 +133,8 @@ public sealed class StatusHints(
             OnRefusedConflictedFile());
     }
 
-    // The working tree has conflicted files (a stopped operation or a stash pop): <space>gr opens the editor from every pane.
+    // The working tree has conflicted files (a stopped operation or a stash pop):
+    // <space>gr opens the editor from every pane.
     private bool ConflictPending() =>
         OperationBannerBuilder.HasConflicts(host.Workspace.ActiveTab?.WorkingTree);
 

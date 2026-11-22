@@ -437,7 +437,8 @@ public static partial class HintSet
 
     /// <summary>
     /// <paramref name="hints"/> with <c>&lt;space&gt;gr conflict editor</c> right after help, commands and quit: the
-    /// working tree has conflicted files (a stopped operation or a stash pop), and the key works from every pane (#742). Hints
+    /// working tree has conflicted files (a stopped operation or a stash pop),
+    /// and the key works from every pane (#742). Hints
     /// that already lead with the editor are returned as they are.
     /// </summary>
     /// <param name="hints">The hints of the focused pane.</param>

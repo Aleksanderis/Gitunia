@@ -16,7 +16,7 @@ public static class WhichKeyBuilder
         ["<space>w"] = "worktree",
         ["<space>k"] = "stash",
         ["<space>o"] = "repositories and tabs, Ctrl-t picker",
-        ["<space>g"] = "operation in progress",
+        ["<space>g"] = "operation and conflicts",
         ["<space>e"] = "external tools",
         ["<space>v"] = "view options",
     };

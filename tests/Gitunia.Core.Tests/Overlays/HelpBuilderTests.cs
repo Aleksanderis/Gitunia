@@ -231,7 +231,7 @@ public class HelpBuilderTests
 
     [Theory]
     [InlineData("b", "+more (branch)")]
-    [InlineData("g", "+more (operation in progress)")]
+    [InlineData("g", "+more (operation and conflicts)")]
     [InlineData("t", "+more (tag)")]
     [InlineData("e", "+more (external tools)")]
     [InlineData("k", "+more (stash)")]
