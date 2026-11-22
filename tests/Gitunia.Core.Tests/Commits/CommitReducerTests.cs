@@ -139,6 +139,21 @@ public class CommitReducerTests
     }
 
     [Fact]
+    public void GivenACommitSubmittedFromInsertMode_WhenItFails_ThenTheModeStaysNormalAndTheDraftIsKept()
+    {
+        var harness = new CommitHarness(StagedModified("a.txt"));
+        harness.Run(ActionIds.WorkingTreeWriteMessage);
+        harness.Type("Message");
+        harness.Run(ActionIds.WorkingTreeCommit);
+        harness.Take<RunCommitEffect>();
+
+        harness.Send(new CommitFailed(harness.TabId, "Commit failed: x", CommitFailureReport.Lines("x\n")));
+
+        Assert.Equal(KeyMode.Normal, harness.Mode);
+        Assert.Equal("Message", harness.Draft.Editor.Text);
+    }
+
+    [Fact]
     public void GivenACommitSucceeded_WhenTheResultArrives_ThenTheDraftIsClearedFocusReturnsAndTheStatusIsReadAgain()
     {
         var harness = new CommitHarness(StagedModified("a.txt"));
