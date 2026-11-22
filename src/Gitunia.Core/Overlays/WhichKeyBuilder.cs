@@ -42,26 +42,36 @@ public static class WhichKeyBuilder
         ActionIds.OperationContinue,
         ActionIds.OperationAbort,
         ActionIds.OperationSkip,
-        ActionIds.ConflictOpen,
     ];
 
     /// <summary>Whether the which-key popup lists <paramref name="action"/> given the context of the active tab.</summary>
     /// <param name="action">The bound action.</param>
     /// <param name="operationInProgress">Whether the active tab has an operation stopped.</param>
-    public static bool IsAvailable(ActionId action, bool operationInProgress) =>
-        operationInProgress || !OperationOnly.Contains(action);
+    /// <param name="hasConflicts">Whether the active tab's working tree has conflicted files, with or without an
+    /// operation (a stash pop leaves them too); the conflict editor is listed then.</param>
+    public static bool IsAvailable(ActionId action, bool operationInProgress, bool hasConflicts = false)
+    {
+        if (action == ActionIds.ConflictOpen)
+        {
+            return hasConflicts;
+        }
+
+        return operationInProgress || !OperationOnly.Contains(action);
+    }
 
     /// <summary>Rows for the continuations of <paramref name="pending"/>; a group row names its contents.</summary>
     /// <param name="continuations">What the engine offers after the pending keys.</param>
     /// <param name="pending">The keys typed so far.</param>
     /// <param name="operationInProgress">Whether the active tab has an operation stopped (lists continue, abort, skip).</param>
+    /// <param name="hasConflicts">Whether the active tab has conflicted files (lists the conflict editor).</param>
     public static IReadOnlyList<WhichKeyRow> Build(
         IReadOnlyList<Continuation> continuations,
         KeySequence pending,
-        bool operationInProgress = false)
+        bool operationInProgress = false,
+        bool hasConflicts = false)
     {
         var items = continuations
-            .Where(continuation => continuation.Action is not { } action || IsAvailable(action, operationInProgress))
+            .Where(continuation => continuation.Action is not { } action || IsAvailable(action, operationInProgress, hasConflicts))
             .Select(continuation => new Item(
                 continuation,
                 KeyFormatter.BreakLigatures(KeyFormatter.Format(continuation.Key))))

@@ -154,10 +154,12 @@ public class HelpBuilderTests
     }
 
     [Theory]
-    [InlineData(false, false)]
-    [InlineData(true, true)]
-    public void GivenTheLeaderPrefix_WhenBuildingWhichKeyRows_ThenTheOperationGroupShowsOnlyWithAnOperation(
+    [InlineData(false, false, false)]
+    [InlineData(true, false, true)]
+    [InlineData(false, true, true)]
+    public void GivenTheLeaderPrefix_WhenBuildingWhichKeyRows_ThenTheOperationGroupShowsOnlyWithAnOperationOrConflicts(
         bool operationInProgress,
+        bool hasConflicts,
         bool groupShown)
     {
         var engine = new KeymapEngine(Table);
@@ -169,18 +171,22 @@ public class HelpBuilderTests
                 feeder.State,
                 DefaultKeymap.GraphView,
                 null,
-                action => WhichKeyBuilder.IsAvailable(action, operationInProgress)),
+                action => WhichKeyBuilder.IsAvailable(action, operationInProgress, hasConflicts)),
             feeder.State.PendingSequence,
-            operationInProgress);
+            operationInProgress,
+            hasConflicts);
 
         Assert.Equal(groupShown, rows.Any(row => row.Key == "g"));
     }
 
     [Theory]
-    [InlineData(false, 0)]
-    [InlineData(true, 4)]
-    public void GivenTheGitPrefix_WhenFilteringContinuations_ThenTheConflictEditorFollowsTheOperation(
+    [InlineData(false, false, 0)]
+    [InlineData(true, false, 3)]
+    [InlineData(false, true, 1)]
+    [InlineData(true, true, 4)]
+    public void GivenTheGitPrefix_WhenFilteringContinuations_ThenTheConflictEditorFollowsTheConflicts(
         bool operationInProgress,
+        bool hasConflicts,
         int expected)
     {
         var engine = new KeymapEngine(Table);
@@ -192,10 +198,10 @@ public class HelpBuilderTests
             feeder.State,
             DefaultKeymap.GraphView,
             null,
-            action => WhichKeyBuilder.IsAvailable(action, operationInProgress));
+            action => WhichKeyBuilder.IsAvailable(action, operationInProgress, hasConflicts));
 
         Assert.Equal(expected, continuations.Count);
-        Assert.Equal(operationInProgress, continuations.Any(c => c.Action == ActionIds.ConflictOpen));
+        Assert.Equal(hasConflicts, continuations.Any(c => c.Action == ActionIds.ConflictOpen));
     }
 
     [Theory]
@@ -214,6 +220,7 @@ public class HelpBuilderTests
         var keys = WhichKeyBuilder.Build(
             engine.Continuations(feeder.State, DefaultKeymap.GraphView),
             feeder.State.PendingSequence,
+            operationInProgress,
             operationInProgress);
         var more = keys.ToList().FindIndex(row => row.Key == "+");
         var main = keys.Take(more < 0 ? keys.Count : more).Select(row => row.Key).ToList();
