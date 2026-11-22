@@ -6,6 +6,7 @@ using Gitunia.Tui.Input;
 using Gitunia.Tui.App.Panes;
 using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.Rendering.Panes;
+using Gitunia.Tui.Rendering.Screen;
 using Gitunia.Tui.Views;
 
 namespace Gitunia.Tui.App.Shell;
@@ -24,6 +25,7 @@ public sealed class PaneSizeDragger
     private readonly IWorkingTreeFocus _working;
     private PaneSizes? _laidOutSizes;
     private int? _laidOutListWidth;
+    private bool _laidOutBanner;
 
     /// <param name="host">Takes the size command.</param>
     /// <param name="arrangements">The saved sizes and the zoom.</param>
@@ -65,7 +67,8 @@ public sealed class PaneSizeDragger
             return;
         }
 
-        var sizes = PaneResizer.Drag(_arrangements.SizesOfActiveTab(), edge, column, row, _chrome.ScreenSize.Height);
+        var frameHeight = ScreenLayout.FrameHeight(_chrome.ScreenSize.Height, _arrangements.HasBanner());
+        var sizes = PaneResizer.Drag(_arrangements.SizesOfActiveTab(), edge, column, row, frameHeight);
         if (_host.Workspace.ActiveTabId is { } tabId && _arrangements.SizesOfActiveTab() != sizes)
         {
             _host.Dispatch(new TabCommand(tabId, new SetPaneSizesCommand(sizes.SidebarWidth, sizes.BottomHeight, sizes.DetailWidth)));
@@ -77,10 +80,12 @@ public sealed class PaneSizeDragger
     {
         var sizes = _arrangements.SizesOfActiveTab();
         var listWidth = _working.ListWidth();
-        if (sizes != _laidOutSizes || listWidth != _laidOutListWidth)
+        var hasBanner = _arrangements.HasBanner();
+        if (sizes != _laidOutSizes || listWidth != _laidOutListWidth || hasBanner != _laidOutBanner)
         {
             _laidOutSizes = sizes;
             _laidOutListWidth = listWidth;
+            _laidOutBanner = hasBanner;
             _chrome.Relayout();
         }
     }

@@ -1,3 +1,4 @@
+using Gitunia.Core.Shell;
 using Gitunia.Core.Effects;
 using Gitunia.Core.Status;
 using Gitunia.Core.Text;
@@ -56,7 +57,8 @@ public static class DiffPaneReducer
             return new AppUpdate(state, []);
         }
 
-        var pane = new Pane(state, tab, DiffPaneRules.ShowsWithChanges(state.Shell.Screen, tab.View.BottomTab));
+        var framed = FrameExtent.Of(state.Shell.Screen, tab);
+        var pane = new Pane(state, tab, DiffPaneRules.ShowsWithChanges(framed, tab.View.BottomTab));
 
         return command switch
         {
@@ -88,7 +90,7 @@ public static class DiffPaneReducer
             return new AppUpdate(state, []);
         }
 
-        var shows = DiffPaneRules.ShowsWithChanges(state.Shell.Screen, tab.View.BottomTab);
+        var shows = DiffPaneRules.ShowsWithChanges(FrameExtent.Of(state.Shell.Screen, tab), tab.View.BottomTab);
         var focused = tab.View.FocusedPane;
         var diff = tab.View.DiffPane;
         var settled = diff;
@@ -197,7 +199,8 @@ public static class DiffPaneReducer
 
         // Beside the file list the diff is part of the tab already; only narrow or short screens open it on demand.
         var diff = WithPending(pane.Diff, facts.Cursor) with { IsOpen = !pane.ShowsWithChanges };
-        var zoomed = DiffPaneRules.ZoomAfterOpening(diff, pane.State.Shell.Screen, pane.ShowsWithChanges);
+        var framed = FrameExtent.Of(pane.State.Shell.Screen, pane.Tab);
+        var zoomed = DiffPaneRules.ZoomAfterOpening(diff, framed, pane.ShowsWithChanges);
         diff = diff with { Zoomed = zoomed };
         var update = Set(pane, diff, new LoadDiffEffect(pane.Tab.Id, target, false));
 
@@ -230,7 +233,8 @@ public static class DiffPaneReducer
             ContentCommit = commit,
             IsOpen = !pane.FilesBeside,
         };
-        var zoomed = DiffPaneRules.ZoomAfterOpening(diff, pane.State.Shell.Screen, pane.ShowsWithChanges);
+        var framed = FrameExtent.Of(pane.State.Shell.Screen, pane.Tab);
+        var zoomed = DiffPaneRules.ZoomAfterOpening(diff, framed, pane.ShowsWithChanges);
         shown = shown with { Zoomed = zoomed };
         var update = Set(pane, shown, new LoadFileContentEffect(pane.Tab.Id, row, commit, TimeSpan.Zero));
 

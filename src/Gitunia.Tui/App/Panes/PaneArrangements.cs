@@ -1,5 +1,7 @@
 using Gitunia.App;
 using Gitunia.Core.DiffPane;
+using Gitunia.Core.Operations;
+using Gitunia.Core.Shell;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Tui.App.Tabs;
@@ -16,7 +18,7 @@ public sealed class PaneArrangements(Dispatcher host, IActiveSessions sessions) 
     /// <summary>The terminal shows the diff beside the file list (the Changes and Files tabs on a roomy screen).</summary>
     public bool ShowsWithChanges() =>
         host.Workspace.ActiveTab is { } tab
-        && DiffPaneRules.ShowsWithChanges(host.State.Shell.Screen, tab.View.BottomTab);
+        && DiffPaneRules.ShowsWithChanges(FrameExtent.Of(host.State.Shell.Screen, tab), tab.View.BottomTab);
 
     /// <summary>The Files tab is showing and the screen has room for its content beside the tree.</summary>
     public bool IsFilesBeside() =>
@@ -44,6 +46,9 @@ public sealed class PaneArrangements(Dispatcher host, IActiveSessions sessions) 
 
         return new PaneArrangement(DiffPaneRules.IsShown(diff, shows), zoomed, SizesOfActiveTab(), together);
     }
+
+    /// <inheritdoc />
+    public bool HasBanner() => OperationBannerBuilder.IsShown(host.Workspace.ActiveTab?.Operation);
 
     /// <summary>The pane sizes saved in the active tab's view state.</summary>
     public PaneSizes SizesOfActiveTab() => host.Workspace.ActiveTab?.View is { } view

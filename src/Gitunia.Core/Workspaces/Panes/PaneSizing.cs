@@ -18,6 +18,10 @@ public static class PaneSizing
     /// <summary>Narrowest terminal that still shows the sidebar; below it the graph gets the whole width.</summary>
     public const int MinimumWidthWithSidebar = 60;
 
+    /// <summary>Shortest terminal that gives the operation banner a row of its own below the frame; below it the status bar
+    /// carries the text and the frame keeps the full height.</summary>
+    public const int MinimumHeightWithBanner = 10;
+
     /// <summary>Screens shorter than this have no room for a pane next to a useful graph.</summary>
     public const int MinimumScreenHeight = 14;
 
@@ -57,6 +61,19 @@ public static class PaneSizing
 
     /// <summary>Columns between the frame's left and right edges.</summary>
     public static int InnerWidth(int screenWidth) => Math.Max(0, screenWidth - FrameColumns);
+
+    /// <summary>Rows the operation banner takes between the frame and the status bar: one while an operation shows it and the
+    /// screen is tall enough, else none.</summary>
+    /// <param name="screenHeight">Terminal rows.</param>
+    /// <param name="hasBanner">An operation is in progress.</param>
+    public static int BannerRows(int screenHeight, bool hasBanner) =>
+        hasBanner && screenHeight >= MinimumHeightWithBanner ? 1 : 0;
+
+    /// <summary>The height the pane layout works with: the screen's rows less the banner row, so the frame keeps its
+    /// bottom edge above the banner (the status bar's row still counts, as <see cref="AreaHeight"/> expects).</summary>
+    /// <param name="screenHeight">Terminal rows.</param>
+    /// <param name="hasBanner">An operation is in progress.</param>
+    public static int FrameHeight(int screenHeight, bool hasBanner) => screenHeight - BannerRows(screenHeight, hasBanner);
 
     /// <summary>Rows for the graph area: below the top edge and above the bottom edge and the status bar.</summary>
     public static int AreaHeight(int screenHeight) => Math.Max(0, screenHeight - GraphTop - 2);

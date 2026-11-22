@@ -46,6 +46,8 @@ public static class ScreenComposer
         IReadOnlySet<string>? upstreamGoneBranches = null)
     {
         var lines = new List<StyledLine>(height);
+        var bannerRows = BannerRenderer.Rows(model, height);
+        var frameHeight = height - bannerRows;
         if (height > ScreenLayout.TabRow)
         {
             lines.Add(ChromeBuilder.Tabs(model, width, glyphs));
@@ -55,7 +57,7 @@ public static class ScreenComposer
         diff = model.RepeatPane == PaneKind.Diff ? WithRepeatMarker(diff) : diff;
         var layout = arrangement ?? PaneArrangement.Normal;
         var isPicker = model.Picker is not null;
-        var rects = RectsFor(isPicker, width, height, layout, diff);
+        var rects = RectsFor(isPicker, width, frameHeight, layout, diff);
         var focused = FocusedPane(sidebar, detail, diff);
         var sidebarTitle = model.RepositoryName.Length > 0 ? model.RepositoryName : "Repository";
         var gridFocus = isPicker ? PaneKind.Graph : focused;
@@ -63,7 +65,7 @@ public static class ScreenComposer
         var isGraphRepeating = model.RepeatPane == PaneKind.Graph;
         var gridSidebarTitle = isPicker ? string.Empty : RepeatMode.Mark(sidebarTitle, isSidebarRepeating);
         var gridGraphTitle = isPicker ? string.Empty : RepeatMode.Mark("History", isGraphRepeating);
-        var grid = FrameGrid.Build(width, height, rects, gridFocus, glyphs, gridSidebarTitle, gridGraphTitle);
+        var grid = FrameGrid.Build(width, frameHeight, rects, gridFocus, glyphs, gridSidebarTitle, gridGraphTitle);
         var overlays = new List<PaneLines>();
         if (isPicker)
         {
@@ -102,10 +104,14 @@ public static class ScreenComposer
                 upstreamGoneBranches);
         }
 
-        for (var row = ScreenLayout.FrameTop; row < height - 1; row++)
+        for (var row = ScreenLayout.FrameTop; row < frameHeight - 1; row++)
         {
-            var edge = BuildRow(grid, row, width, overlays);
-            lines.Add(EdgeOrBanner(model, edge, row, width, height, glyphs));
+            lines.Add(BuildRow(grid, row, width, overlays));
+        }
+
+        if (bannerRows > 0)
+        {
+            lines.Add(BannerRenderer.RowLine(model, width, glyphs));
         }
 
         if (height > ScreenLayout.TabRow + 1)
@@ -130,12 +136,14 @@ public static class ScreenComposer
         GraphGlyphSet glyphs)
     {
         var lines = new List<StyledLine>(height);
+        var bannerRows = BannerRenderer.Rows(model, height);
+        var frameHeight = height - bannerRows;
         if (height > ScreenLayout.TabRow)
         {
             lines.Add(ChromeBuilder.Tabs(model, width, glyphs));
         }
 
-        var rects = WorkingTreeLayout.Compute(width, height, working.Focused, working.IsDiffZoomed, working.ListWidth);
+        var rects = WorkingTreeLayout.Compute(width, frameHeight, working.Focused, working.IsDiffZoomed, working.ListWidth);
         var isUnstagedFocused = working.Focused == PaneKind.WorkingUnstaged;
         var isStagedFocused = working.Focused == PaneKind.WorkingStaged;
         var isMessageFocused = working.Focused == PaneKind.WorkingMessage;
@@ -147,7 +155,7 @@ public static class ScreenComposer
             new(rects.Diff, WorkingPanes.IsDiff(working.Focused), string.Empty),
             new(rects.Message, isMessageFocused, working.Draft?.Title ?? WorkingTreePaneRenderer.MessageTitle),
         };
-        var grid = FrameGrid.Build(width, height, boxes, glyphs);
+        var grid = FrameGrid.Build(width, frameHeight, boxes, glyphs);
         var padding = PanePadding.ColumnsFor(width);
         var overlays = new List<PaneLines>();
         AddWorkingList(
@@ -188,10 +196,14 @@ public static class ScreenComposer
                 ]);
         }
 
-        for (var row = ScreenLayout.FrameTop; row < height - 1; row++)
+        for (var row = ScreenLayout.FrameTop; row < frameHeight - 1; row++)
         {
-            var edge = BuildRow(grid, row, width, overlays);
-            lines.Add(EdgeOrBanner(model, edge, row, width, height, glyphs));
+            lines.Add(BuildRow(grid, row, width, overlays));
+        }
+
+        if (bannerRows > 0)
+        {
+            lines.Add(BannerRenderer.RowLine(model, width, glyphs));
         }
 
         if (height > ScreenLayout.TabRow + 1)
@@ -324,22 +336,6 @@ public static class ScreenComposer
             layout.Zoomed,
             layout.Sizes,
             layout.ZoomBoth);
-    }
-
-    private static StyledLine EdgeOrBanner(
-        ScreenModel model,
-        StyledLine edge,
-        int row,
-        int width,
-        int height,
-        GraphGlyphSet glyphs)
-    {
-        if (row == ScreenLayout.FrameBottom(height))
-        {
-            return BannerRenderer.EdgeLine(model, edge, width, height, glyphs);
-        }
-
-        return edge;
     }
 
     private static StyledLine GraphRowAt(

@@ -10,10 +10,16 @@ namespace Gitunia.Tui.App.Overlays;
 
 /// <summary>The actions menu of the row under the cursor of the graph or the sidebar, hanging at that row.</summary>
 /// <param name="panes">The lists, which know where their cursor is on screen.</param>
+/// <param name="geometry">The rows the panes are laid out in.</param>
 /// <param name="anchors">Where the view dropdowns hang.</param>
 /// <param name="graph">The commit selected in the graph.</param>
 /// <param name="rows">The sidebar row under the cursor.</param>
-public sealed class RowMenuTargets(PaneViews panes, MenuAnchors anchors, GraphSelection graph, RowSelection rows)
+public sealed class RowMenuTargets(
+    PaneViews panes,
+    PaneGeometry geometry,
+    MenuAnchors anchors,
+    GraphSelection graph,
+    RowSelection rows)
     : IRowMenuTargets
 {
     /// <inheritdoc />
@@ -64,7 +70,7 @@ public sealed class RowMenuTargets(PaneViews panes, MenuAnchors anchors, GraphSe
         {
             return new RowMenuTarget(
                 RowActions.OfGraphRowFor(
-                    DetailLayout.PaneHeight(panes.Chrome.ScreenSize.Height) > 0,
+                    DetailLayout.PaneHeight(geometry.FrameHeight) > 0,
                     graph.IsSelectedCommitRoot()),
                 AnchorOf(panes.Graph));
         }

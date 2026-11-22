@@ -21,6 +21,13 @@ public sealed class PaneGeometry(IPaneChrome chrome, IPaneArrangement arrangemen
     /// <summary>The terminal height.</summary>
     public int ScreenHeight => chrome.ScreenSize.Height;
 
+    /// <summary>Rows the frame and the panes are laid out in: the terminal height less the banner row while an operation
+    /// shows it.</summary>
+    public int FrameHeight => ScreenLayout.FrameHeight(ScreenHeight, HasBanner);
+
+    /// <summary>An operation's banner has a row of its own between the frame and the status bar.</summary>
+    public bool HasBanner => ScreenLayout.BannerRows(ScreenHeight, arrangement.HasBanner()) > 0;
+
     /// <summary>The Changes view pane that has focus.</summary>
     public PaneKind WorkingFocus => working.FocusedPane();
 
@@ -37,7 +44,7 @@ public sealed class PaneGeometry(IPaneChrome chrome, IPaneArrangement arrangemen
 
         return PaneLayout.Compute(
             ScreenWidth,
-            ScreenHeight,
+            FrameHeight,
             current.IsDiffOpen,
             current.Zoomed,
             current.Sizes,
@@ -46,7 +53,7 @@ public sealed class PaneGeometry(IPaneChrome chrome, IPaneArrangement arrangemen
 
     /// <summary>The rectangles of the Changes view panes.</summary>
     public WorkingTreeRects WorkingRects() =>
-        WorkingTreeLayout.Compute(ScreenWidth, ScreenHeight, working.FocusedPane(), working.IsDiffZoomed(), working.ListWidth());
+        WorkingTreeLayout.Compute(ScreenWidth, FrameHeight, working.FocusedPane(), working.IsDiffZoomed(), working.ListWidth());
 
     /// <summary>The line between the lists and the diff, on the screen's rows of content.</summary>
     public PaneRect WorkingDividerRect()
@@ -57,7 +64,7 @@ public sealed class PaneGeometry(IPaneChrome chrome, IPaneArrangement arrangemen
             return Empty;
         }
 
-        return new PaneRect(diff.X - 1, ScreenLayout.GraphTop, 1, ScreenLayout.GraphHeight(ScreenHeight));
+        return new PaneRect(diff.X - 1, ScreenLayout.GraphTop, 1, ScreenLayout.GraphHeight(FrameHeight));
     }
 
     /// <summary>The rectangle of a file list of the Changes view.</summary>

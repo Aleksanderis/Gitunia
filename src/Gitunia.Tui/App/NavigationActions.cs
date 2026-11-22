@@ -120,7 +120,9 @@ public sealed class NavigationActions(
 
     private void OpenDetails()
     {
-        if (DetailLayout.PaneHeight(services.Chrome.ScreenSize.Height) == 0)
+        var geometry = services.Geometry;
+
+        if (DetailLayout.PaneHeight(geometry.FrameHeight) == 0)
         {
             Notice = "The details pane needs a taller screen";
 
