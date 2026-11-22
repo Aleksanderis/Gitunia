@@ -55,6 +55,8 @@ public sealed class MainViewFixture : IDisposable
     private sealed class FixedArrangement : IPaneArrangement
     {
         public PaneArrangement Arrangement() => PaneArrangement.Normal;
+
+        public bool HasBanner() => false;
     }
 
     private sealed class FixedWorkingFocus : IWorkingTreeFocus

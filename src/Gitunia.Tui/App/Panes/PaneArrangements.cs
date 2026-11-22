@@ -1,5 +1,6 @@
 using Gitunia.App;
 using Gitunia.Core.DiffPane;
+using Gitunia.Core.Operations;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Tui.App.Tabs;
@@ -44,6 +45,9 @@ public sealed class PaneArrangements(Dispatcher host, IActiveSessions sessions) 
 
         return new PaneArrangement(DiffPaneRules.IsShown(diff, shows), zoomed, SizesOfActiveTab(), together);
     }
+
+    /// <inheritdoc />
+    public bool HasBanner() => OperationBannerBuilder.IsShown(host.Workspace.ActiveTab?.Operation);
 
     /// <summary>The pane sizes saved in the active tab's view state.</summary>
     public PaneSizes SizesOfActiveTab() => host.Workspace.ActiveTab?.View is { } view

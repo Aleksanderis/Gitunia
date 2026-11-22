@@ -31,7 +31,7 @@ public sealed class MainView : IDisposable
     private readonly TabBarView _tabs;
     private readonly PickerView _picker;
     private readonly LineView _status;
-    private readonly LineView _bottomEdge;
+    private readonly LineView _banner;
     private readonly LineView _sidebarFilter;
     private readonly FrameStripView _divider;
     private readonly FrameStripView[] _edges;
@@ -69,12 +69,12 @@ public sealed class MainView : IDisposable
             CreateSideEdge(Pos.Absolute(0)),
             CreateSideEdge(Pos.Func(_ => Math.Max(0, geometry.ScreenWidth - 1))),
         ];
-        _bottomEdge = new LineView(new BottomEdgeLine(parts))
+        _banner = new LineView(new OperationBannerLine(parts))
         {
             X = 0,
-            Y = Pos.Func(_ => ScreenLayout.FrameBottom(geometry.ScreenHeight)),
+            Y = Pos.Func(_ => ScreenLayout.BannerRow(geometry.ScreenHeight)),
             Width = Dim.Fill(),
-            Height = 1,
+            Height = Dim.Func(_ => geometry.HasBanner ? 1 : 0),
         };
         _divider = new FrameStripView(parts.Grids)
         {
@@ -97,7 +97,7 @@ public sealed class MainView : IDisposable
             X = 1,
             Y = ScreenLayout.GraphTop,
             Width = Dim.Func(_ => ScreenLayout.InnerWidth(geometry.ScreenWidth)),
-            Height = Dim.Func(_ => ScreenLayout.GraphHeight(geometry.ScreenHeight)),
+            Height = Dim.Func(_ => ScreenLayout.GraphHeight(geometry.FrameHeight)),
             Visible = false,
             Gate = parts.Gate,
         };
@@ -223,7 +223,7 @@ public sealed class MainView : IDisposable
         _picker.SetNeedsDraw();
         _sidebarFilter.SetNeedsDraw();
         _divider.SetNeedsDraw();
-        _bottomEdge.SetNeedsDraw();
+        _banner.SetNeedsDraw();
         foreach (var edge in _edges)
         {
             edge.SetNeedsDraw();
@@ -289,7 +289,7 @@ public sealed class MainView : IDisposable
         X = x,
         Y = ScreenLayout.GraphTop,
         Width = 1,
-        Height = Dim.Func(_ => ScreenLayout.GraphHeight(_parts.Geometry.ScreenHeight)),
+        Height = Dim.Func(_ => ScreenLayout.GraphHeight(_parts.Geometry.FrameHeight)),
     };
 
     private static LineView CreateTitle(PaneTitleLine title) =>
@@ -327,7 +327,7 @@ public sealed class MainView : IDisposable
         _bottomDivider.Dragged += (column, row) => EdgeDragged?.Invoke(PaneEdge.Detail, column, row);
         _detailTitle.Dragged += (column, row) => EdgeDragged?.Invoke(PaneEdge.Bottom, column, row);
         _diffTitle.Dragged += (column, row) => EdgeDragged?.Invoke(PaneEdge.Bottom, column, row);
-        _bottomEdge.Clicked += OnBottomEdgeClicked;
+        _banner.Clicked += OnBannerClicked;
         _status.Clicked += OnStatusClicked;
         _detailTitle.Clicked += OnDetailTitleClicked;
         _diffTitle.Clicked += OnDiffTitleClicked;
@@ -346,7 +346,7 @@ public sealed class MainView : IDisposable
         panes.Window.Add(
             _tabs,
             _edges[0],
-            _bottomEdge,
+            _banner,
             _edges[1],
             _edges[2],
             panes.Sidebar,
@@ -464,8 +464,8 @@ public sealed class MainView : IDisposable
         }
     }
 
-    // A click on the bottom edge acts on the in-progress operation banner drawn over it (ux-workflows.md, workflow 4).
-    private void OnBottomEdgeClicked(int column)
+    // A click on the banner row acts on the in-progress operation's chips (ux-workflows.md, workflow 4).
+    private void OnBannerClicked(int column)
     {
         if (CloseOverlayBehind())
         {
@@ -474,8 +474,7 @@ public sealed class MainView : IDisposable
 
         var model = _parts.Content.Model();
         var geometry = _parts.Geometry;
-        if (model.Banner is not { } banner
-            || geometry.ScreenHeight < ScreenLayout.MinimumHeightWithBanner)
+        if (model.Banner is not { } banner || !geometry.HasBanner)
         {
             return;
         }

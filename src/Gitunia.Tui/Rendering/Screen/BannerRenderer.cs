@@ -8,7 +8,7 @@ using Gitunia.Tui.Rendering.Styling;
 namespace Gitunia.Tui.Rendering.Screen;
 
 /// <summary>
-/// Draws the in-progress operation banner (ux-workflows.md, workflow 4) on the bottom edge of the frame, in the status bar's
+/// Draws the in-progress operation banner (ux-workflows.md, workflow 4) on a row of its own between the frame and the status bar, in the status bar's
 /// colours, its title a warning chip aligned with the mode badge. Where the banner does not fit (a terminal under
 /// <see cref="ScreenLayout.MinimumHeightWithBanner"/> rows) the status bar carries its text instead. The same line is
 /// used by the terminal view and the text frame, and its chips are the click targets. The editor hint comes last: its
@@ -83,27 +83,18 @@ public static class BannerRenderer
         return null;
     }
 
-    /// <summary>The line to draw on the frame's bottom edge row: the banner where it applies, else <paramref
-    /// name="edge"/>.</summary>
+    /// <summary>Rows the banner takes between the frame and the status bar: one while an operation shows it and the
+    /// terminal is tall enough (<see cref="ScreenLayout.MinimumHeightWithBanner"/>), else none.</summary>
     /// <param name="model">The chrome content.</param>
-    /// <param name="edge">The frame's own bottom edge line.</param>
-    /// <param name="width">Terminal columns.</param>
     /// <param name="height">Terminal rows.</param>
-    /// <param name="glyphs">The character set.</param>
-    public static StyledLine EdgeLine(
-        ScreenModel model,
-        StyledLine edge,
-        int width,
-        int height,
-        GraphGlyphSet glyphs)
-    {
-        if (model.Banner is { } banner && height >= ScreenLayout.MinimumHeightWithBanner)
-        {
-            return Build(banner, width, glyphs).Line;
-        }
+    public static int Rows(ScreenModel model, int height) => ScreenLayout.BannerRows(height, model.Banner is not null);
 
-        return edge;
-    }
+    /// <summary>The banner's own row; call only where <see cref="Rows"/> is 1.</summary>
+    /// <param name="model">The chrome content.</param>
+    /// <param name="width">Terminal columns.</param>
+    /// <param name="glyphs">The character set.</param>
+    public static StyledLine RowLine(ScreenModel model, int width, GraphGlyphSet glyphs) =>
+        Build(model.Banner!, width, glyphs).Line;
 
     /// <summary>The model for the status bar: on a terminal too short for the banner row its text stands in for an
     /// empty message.</summary>
