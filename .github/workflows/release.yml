@@ -16,7 +16,7 @@ name: release
 # Every leg unpacks its own archive and runs `--version` (scripts/smoke-archive.sh); the Linux legs also install the
 # .deb, .rpm and Arch packages in clean distro containers and remove them again (scripts/smoke-packages.sh, #1296).
 # The `release` job also writes an overview to its step summary of what winget, Homebrew and AUR will do once
-# the draft is published (#1300). It makes a draft release (the owner reads the notes and publishes it); on a re-run after a partial
+# the draft is published (#1300). It makes a draft release (the publisher reads the notes first); on a re-run after a partial
 # failure it replaces the assets of the existing release.
 
 on:
@@ -304,7 +304,7 @@ jobs:
           if-no-files-found: error
 
   release:
-    # Draft release so the owner reads the notes and publishes it. A red macOS or arm64 leg does not block the x64
+    # Draft release so the notes are read before publishing. A red macOS or arm64 leg does not block the x64
     # assets (#455, #1247); a dry run downloads the archives (proving the artifacts line up) and creates nothing.
     if: ${{ !cancelled() && needs.build-x64.result == 'success' }}
     needs: [check, build-x64, build-extra]
@@ -331,8 +331,8 @@ jobs:
           HAS_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN != '' }}
           HAS_AUR_KEY: ${{ secrets.AUR_SSH_KEY != '' }}
         run: |
-          # What happens once the owner publishes the draft: winget.yml, homebrew.yml and aur.yml run on the published
-          # release (#1297). Secrets are only checked for presence (never printed). The pre-release flag is the owner's
+          # What happens once the draft is published: winget.yml, homebrew.yml and aur.yml run on the published
+          # release (#1297). Secrets are only checked for presence (never printed). The pre-release flag is the publisher's
           # choice at publish time, so it is stated as a condition, not predicted.
           # A failed open-PR lookup is reported as unknown, never as "no open PR".
           winget="$(EVENT=release PRERELEASE=false HAS_TOKEN="$HAS_WINGET_TOKEN" scripts/winget-gate.sh)"

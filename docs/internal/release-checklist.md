@@ -13,7 +13,7 @@ Tags are three-part from the next release (`v0.10.0`, then `v0.10.1`, ...). Earl
 
 ## 2. Tag
 
-`git tag v0.10.0` and `git push origin v0.10.0` (agents do this without asking after a run that merged user-visible changes, #1500; otherwise only with the owner's say-so). The tag push starts `release.yml`:
+`git tag v0.10.0` and `git push origin v0.10.0` (agents do this without asking after a run that merged user-visible changes, #1500; otherwise only with the owner's say-so). Never move or delete a pushed tag or a published release: fix forward with the next patch, and ask the owner before deleting a draft.. The tag push starts `release.yml`:
 
 1. `check`: validates the tag shape, reuses or dispatches a green `ci.yml` run for the commit.
 2. `build-x64` (linux-x64, win-x64) and `build-extra` (osx-arm64, linux-arm64, win-arm64): AOT publish with `-p:Version`, archive smoke test (`--version`), Linux `.deb`/`.rpm`/Arch install tests in clean containers. A red extra leg does not block the draft.
@@ -46,7 +46,7 @@ Manual runs work for a published release and skip the pre-release check, but sti
 - AUR: `gh workflow run aur.yml -f version=0.10.0`.
 - winget: `gh workflow run winget.yml -f tag=v0.10.0` (with the `v`). Add `-f force=true` to submit although an earlier PR is still open. A manual run ignores `WINGET_SUBMIT`. A release skipped because of an open PR is not retried, so dispatch it once that PR is merged or closed.
 
-Agents never dispatch the winget workflow and never write to winget-pkgs (`docs/internal/decisions.md`).
+Agents never dispatch the winget workflow and never write to winget-pkgs. An agent publishing a release after a run (#1500) opens a winget PR only through `winget.yml`, and only while the owner has `WINGET_SUBMIT=true`.
 
 ## 6. Afterwards
 

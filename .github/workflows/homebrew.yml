@@ -1,4 +1,4 @@
-# Updates Formula/gitunia.rb in the tap Aleksanderis/homebrew-tap when the owner publishes a release (#945).
+# Updates Formula/gitunia.rb in the tap Aleksanderis/homebrew-tap when a release is published (#945).
 # Needs the repository secret HOMEBREW_TAP_TOKEN (fine-grained PAT, contents:write on the tap repo only) and the tap
 # repo itself. Without the secret the job ends green with a notice, so releases are not blocked; with a secret but no
 # reachable tap (repo missing, token expired) it fails, so a stale tap is visible. A release without the osx-arm64
