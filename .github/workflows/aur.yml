@@ -1,4 +1,4 @@
-# Updates the AUR package gitunia-bin when the owner publishes a release (#944).
+# Updates the AUR package gitunia-bin when a release is published (#944).
 # Needs the repository secret AUR_SSH_KEY (private key of the AUR account that maintains gitunia-bin). Without the
 # secret the job ends green with a notice (the AUR account is still in Backlog, #1261); with a secret but a failing
 # push it fails, so a stale package is visible.
