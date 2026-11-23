@@ -9,6 +9,7 @@ namespace Gitunia.Tui.Rendering.Graph;
 /// <param name="Glyphs">The characters to draw with.</param>
 /// <param name="Highlight">The active graph search, whose matches are highlighted; null when none.</param>
 /// <param name="UpstreamGoneBranches">Local branches whose upstream is gone (marked in labels); null for none.</param>
+/// <param name="RemoteNamedBranches">Local branches whose labels name their remotes (#1495); null for none.</param>
 /// <param name="MarkedCommit">The commit marked for a comparison (#535), which gets a <c>[mark]</c> before its
 /// labels.</param>
 public sealed record GraphRowOptions(
@@ -17,7 +18,8 @@ public sealed record GraphRowOptions(
     GraphGlyphSet Glyphs,
     SearchQuery? Highlight = null,
     IReadOnlySet<string>? UpstreamGoneBranches = null,
-    ObjectId? MarkedCommit = null)
+    ObjectId? MarkedCommit = null,
+    IReadOnlySet<string>? RemoteNamedBranches = null)
 {
     /// <summary>Where the columns of the row sit, computed once per options instead of once per row; build a new instance instead of using <c>with</c> on Width or LaneColumns.</summary>
     public GraphColumns Columns { get; } = GraphColumnLayout.Compute(Width, LaneColumns);

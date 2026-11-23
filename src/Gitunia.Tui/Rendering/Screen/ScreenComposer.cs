@@ -30,6 +30,7 @@ public static class ScreenComposer
     /// <param name="diff">The diff pane, or null when none is open (then <paramref name="arrangement"/> must not open or zoom the diff).</param>
     /// <param name="arrangement">Whether the diff is open and which pane is zoomed, null for the normal layout.</param>
     /// <param name="upstreamGoneBranches">Local branches whose upstream is gone (marked); null if none.</param>
+    /// <param name="remoteNamedBranches">Local branches whose labels name their remotes; null if none.</param>
     public static IReadOnlyList<StyledLine> Compose(
         ScreenModel model,
         CommitGraph graph,
@@ -43,7 +44,8 @@ public static class ScreenComposer
         SearchQuery? highlight = null,
         DiffPaneModel? diff = null,
         PaneArrangement? arrangement = null,
-        IReadOnlySet<string>? upstreamGoneBranches = null)
+        IReadOnlySet<string>? upstreamGoneBranches = null,
+        IReadOnlySet<string>? remoteNamedBranches = null)
     {
         var lines = new List<StyledLine>(height);
         var bannerRows = BannerRenderer.Rows(model, height);
@@ -101,7 +103,8 @@ public static class ScreenComposer
                 rects,
                 padding,
                 showsCutMarker,
-                upstreamGoneBranches);
+                upstreamGoneBranches,
+                remoteNamedBranches);
         }
 
         for (var row = ScreenLayout.FrameTop; row < frameHeight - 1; row++)
@@ -254,7 +257,8 @@ public static class ScreenComposer
         PaneRects rects,
         int paddingColumns,
         bool showsCutMarker,
-        IReadOnlySet<string>? upstreamGoneBranches)
+        IReadOnlySet<string>? upstreamGoneBranches,
+        IReadOnlySet<string>? remoteNamedBranches)
     {
         var showDetail = detail is not null && !rects.Detail.IsEmpty;
         var showDiff = diff is not null && !rects.Diff.IsEmpty;
@@ -267,7 +271,8 @@ public static class ScreenComposer
                 GraphRowOptions.ChooseLaneColumns(graph.MaximumLaneCount, textWidth),
                 glyphs,
                 highlight,
-                upstreamGoneBranches);
+                upstreamGoneBranches,
+                RemoteNamedBranches: remoteNamedBranches);
             var graphLines = new List<StyledLine>(graphHeight);
             for (var offset = 0; offset < graphHeight; offset++)
             {

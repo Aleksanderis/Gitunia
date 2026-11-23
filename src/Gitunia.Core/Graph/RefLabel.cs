@@ -8,4 +8,14 @@ namespace Gitunia.Core.Graph;
 /// <param name="IsCurrent">HEAD is on this branch.</param>
 /// <param name="HasRemote">A remote-tracking branch of the same name points at the same commit and is folded into this label.</param>
 /// <param name="IsUpstreamGone">The branch has an upstream that no longer exists (a candidate for pruning).</param>
-public sealed record RefLabel(string Name, RefKind Kind, bool IsCurrent, bool HasRemote, bool IsUpstreamGone = false);
+/// <param name="RemoteNames">
+/// The remotes folded into this label, shown after the remote glyph (#1495); empty when the branch has only one
+/// remote-tracking branch or all of them sit on the same commit.
+/// </param>
+public sealed record RefLabel(
+    string Name,
+    RefKind Kind,
+    bool IsCurrent,
+    bool HasRemote,
+    bool IsUpstreamGone = false,
+    string RemoteNames = "");
