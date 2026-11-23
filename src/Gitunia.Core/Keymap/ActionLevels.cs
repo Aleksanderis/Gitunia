@@ -185,6 +185,7 @@ internal static class ActionLevels
             ["remote.pull"] = CommandLevel.Everyday,
             ["remote.push"] = CommandLevel.Everyday,
             ["remote.push-force"] = CommandLevel.Everyday,
+            ["remote.push-to"] = CommandLevel.Everyday,
             ["remote.remove"] = CommandLevel.Advanced,
             ["remote.rename"] = CommandLevel.Advanced,
             ["remote.set-url"] = CommandLevel.AdvancedPlus,

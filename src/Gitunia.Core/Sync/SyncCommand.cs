@@ -33,7 +33,8 @@ public sealed record SyncDeleteRequested(TabId TabId, SyncTarget Target) : SyncC
 /// <param name="TabId">The tab.</param>
 /// <param name="Branch">The branch the prompt was opened for.</param>
 /// <param name="Remote">The chosen remote.</param>
-public sealed record SyncRemoteChosen(TabId TabId, string Branch, string Remote) : SyncCommand(TabId);
+/// <param name="PushTo">Chosen for the push-to action: the upstream stays as it is when the branch has one.</param>
+public sealed record SyncRemoteChosen(TabId TabId, string Branch, string Remote, bool PushTo = false) : SyncCommand(TabId);
 
 /// <summary>The remote to delete a branch from was chosen in the picker: ask for the branch.</summary>
 /// <param name="TabId">The tab.</param>

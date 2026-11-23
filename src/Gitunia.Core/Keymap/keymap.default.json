@@ -45,6 +45,7 @@
   { "action": "remote.fetch", "view": "Global", "modes": ["Normal"], "keys": ["<space>f", "<space>rf"] },
   { "action": "remote.pull", "view": "Global", "modes": ["Normal"], "keys": ["<space>p", "<space>rl"] },
   { "action": "remote.push", "view": "Global", "modes": ["Normal"], "keys": ["<space>P", "<space>rp"] },
+  { "action": "remote.push-to", "view": "Global", "modes": ["Normal"], "keys": ["<space>rt"] },
   { "action": "remote.push-force", "view": "Global", "modes": ["Normal"], "keys": ["<space>rP"] },
   { "action": "remote.delete-branch", "view": "Global", "modes": ["Normal"], "keys": ["<space>bD"] },
   { "action": "remote.cancel", "view": "Global", "modes": ["Normal"], "keys": ["<space>rc"] },

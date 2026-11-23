@@ -67,6 +67,15 @@ public class SyncActionsTests
     }
 
     [Fact]
+    public void GivenThePushToKeyAndNoBranch_WhenExecuted_ThenTheReducerRefusesIt()
+    {
+        Assert.True(_actions.TryExecute(ActionIds.RemotePushTo, null));
+
+        var post = Assert.IsType<PostStatusEffect>(Assert.Single(_effects));
+        Assert.Equal("No branch is checked out: nothing to push", post.Text);
+    }
+
+    [Fact]
     public void GivenTheForcePushKeyAndNoBranch_WhenExecuted_ThenTheReducerRefusesIt()
     {
         Assert.True(_actions.TryExecute(ActionIds.RemotePushForce, null));

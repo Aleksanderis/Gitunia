@@ -15,6 +15,9 @@ public enum SyncKind
     /// <summary>Push the current branch; a branch without an upstream asks for the remote first.</summary>
     Push,
 
+    /// <summary>Push the current branch to a remote chosen from a picker, also when it has an upstream elsewhere.</summary>
+    PushTo,
+
     /// <summary>Force push the current branch, only ever with a lease, after a confirm.</summary>
     PushForce,
 }

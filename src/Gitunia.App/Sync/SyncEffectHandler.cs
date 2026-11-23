@@ -184,6 +184,12 @@ public sealed class SyncEffectHandler(
             return null;
         }
 
+        // A push to a chosen remote that is not the upstream has no lease target here: the failure stays in the status bar.
+        if (push.Request.Remote is not null && !push.Request.SetUpstream)
+        {
+            return null;
+        }
+
         return new SyncRejection(push.Branch, push.Request.SetUpstream ? push.Request.Remote : null);
     }
 

@@ -381,6 +381,7 @@ public static class ActionCatalog
         ["remote.fetch-all"] = "Fetch all remotes (prunes)",
         ["remote.pull"] = "Pull the current branch (fast-forward only)",
         ["remote.push"] = "Push the current branch",
+        ["remote.push-to"] = "Push the current branch to a remote you choose",
         ["remote.push-force"] = "Force push the current branch with a lease (asks first)",
         ["remote.delete-branch"] = "Delete a branch on a remote (asks first)",
         ["tag.create"] = "Create a tag at the selected commit",

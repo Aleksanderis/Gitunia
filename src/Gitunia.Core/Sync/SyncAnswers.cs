@@ -7,10 +7,11 @@ namespace Gitunia.Core.Sync;
 /// <summary>The result of the remote picker of a first push.</summary>
 /// <param name="TabId">The tab.</param>
 /// <param name="Branch">The branch the prompt was opened for.</param>
-public sealed record SyncRemoteAnswer(TabId TabId, string Branch) : IPromptResult
+/// <param name="PushTo">The picker of the push-to action: an existing upstream stays as it is.</param>
+public sealed record SyncRemoteAnswer(TabId TabId, string Branch, bool PushTo = false) : IPromptResult
 {
     public AppCommand Answered(PromptAnswer answer) =>
-        new SyncRemoteChosen(TabId, Branch, answer.Choice ?? string.Empty);
+        new SyncRemoteChosen(TabId, Branch, answer.Choice ?? string.Empty, PushTo);
 }
 
 /// <summary>The result of the remote picker of a remote branch delete.</summary>

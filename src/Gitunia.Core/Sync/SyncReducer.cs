@@ -92,6 +92,8 @@ public static class SyncReducer
                 return Transfer(new FetchEffect(context.TabId, context.Location, true), "Fetching", "Fetch");
             case SyncKind.Pull:
                 return Transfer(new PullEffect(context.TabId, context.Location), "Pulling", "Pull");
+            case SyncKind.PushTo:
+                return Keep(context, SyncPushQuestions.PushToRequested(current, context));
             case SyncKind.PushForce:
                 return Keep(context, SyncPushQuestions.ForceRequested(current, context));
         }
@@ -189,6 +191,7 @@ public static class SyncReducer
         return listed.Purpose switch
         {
             SyncRemotesPurpose.FirstPush => SyncPushQuestions.FirstPushRemotes(listed, context),
+            SyncRemotesPurpose.PushTo => SyncPushQuestions.PushToRemotes(listed, context),
             SyncRemotesPurpose.Force => Ended(SyncPushQuestions.AskForce(listed, context)),
             _ => Ended(SyncRemoteDelete.Listed(listed, context)),
         };
@@ -201,7 +204,7 @@ public static class SyncReducer
             return Keep(context, [Post($"{BusyNotice}; {UiTexts.NothingWas("pushed")}")]);
         }
 
-        return SyncPushQuestions.StartFirstPush(chosen.Branch, chosen.Remote, context);
+        return SyncPushQuestions.StartFirstPush(chosen.Branch, chosen.Remote, context, chosen.PushTo);
     }
 
     private static SyncUpdate ForceConfirmed(SyncForceConfirmed confirmed, SyncContext context)

@@ -229,6 +229,7 @@ Grouped as the palette groups them (`ActionCatalog.GroupOf`). "Old" lists every 
 | `remote.fetch-all` | Fetch all remotes (prunes) | none | none (palette) | Advanced | unbound today; `<space>rF` is reserved for it; bound in #840 only if the owner wants a key |
 | `remote.pull` | Pull the current branch (fast-forward only) | `<space>L` | `<space>p` also `<space>rl` | Everyday |  |
 | `remote.push` | Push the current branch | `<space>P` | `<space>P` also `<space>rp` | Everyday |  |
+| `remote.push-to` | Push the current branch to a remote you choose | `<space>rt` | `<space>rt` | Everyday | #1494 |
 | `remote.push-force` | Force push the current branch with a lease (asks first) | `<space>Rf` | `<space>rP` | Everyday |  |
 | `remote.remove` | Remove a remote (asks first) | `<space>Rd` | `<space>rd` | Advanced |  |
 | `remote.rename` | Rename a remote | `<space>Rn` | `<space>rn` | Advanced |  |
