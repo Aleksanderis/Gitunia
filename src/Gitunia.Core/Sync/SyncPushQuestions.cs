@@ -105,6 +105,7 @@ internal static class SyncPushQuestions
                 [SyncReducer.Post($"The checked-out branch changed: {UiTexts.NothingWas("pushed")}")]);
         }
 
+        // Decided from the refs at answer time, so a branch that gained or lost an upstream meanwhile follows the newer state.
         // A push to a chosen remote keeps an existing upstream; only a branch without one gets it set.
         var setUpstream = !pushTo || !SyncReducer.HasUpstream(current);
         var request = new PushRequest(remote, branch, setUpstream);

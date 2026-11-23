@@ -115,6 +115,21 @@ public class SyncEffectHandlerTests
     }
 
     [Fact]
+    public async Task GivenARewrittenBranch_WhenPushingToAChosenRemote_ThenNoForceIsOffered()
+    {
+        using var repository = TestRepositories.WithTrackingBranch(0, 0);
+        repository.Git("commit", "--amend", "-q", "-m", "Rewritten");
+        var location = await LocateAsync(repository);
+
+        var result = await RunAsync(
+            new PushEffect(Tab, location, new PushRequest("origin", "topic"), "Pushed", "topic"));
+
+        var failed = Assert.IsType<SyncFailed>(result);
+        Assert.StartsWith("Push failed", failed.Text, StringComparison.Ordinal);
+        Assert.Null(failed.Rejection);
+    }
+
+    [Fact]
     public async Task GivenARemoteBranchOfTheSameName_WhenPushingAFirstTime_ThenTheRejectionNamesTheRemote()
     {
         using var repository = TestRepositories.WithoutUpstreamBranch();
