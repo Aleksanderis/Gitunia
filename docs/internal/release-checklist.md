@@ -13,7 +13,7 @@ Tags are three-part from the next release (`v0.10.0`, then `v0.10.1`, ...). Earl
 
 ## 2. Tag
 
-`git tag v0.10.0` and `git push origin v0.10.0` (only with the owner's say-so, like any push). The tag push starts `release.yml`:
+`git tag v0.10.0` and `git push origin v0.10.0` (agents do this without asking after a run that merged user-visible changes, #1500; otherwise only with the owner's say-so). The tag push starts `release.yml`:
 
 1. `check`: validates the tag shape, reuses or dispatches a green `ci.yml` run for the commit.
 2. `build-x64` (linux-x64, win-x64) and `build-extra` (osx-arm64, linux-arm64, win-arm64): AOT publish with `-p:Version`, archive smoke test (`--version`), Linux `.deb`/`.rpm`/Arch install tests in clean containers. A red extra leg does not block the draft.
