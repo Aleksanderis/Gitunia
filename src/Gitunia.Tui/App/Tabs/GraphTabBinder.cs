@@ -108,7 +108,8 @@ public sealed class GraphTabBinder(
         chrome.RefreshChrome();
     }
 
-    // The branches whose upstream is gone or whose remotes are named come from the tab's refs; rebuilt only when the refs were replaced.
+    // The branches whose upstream is gone or whose remotes are named come from the tab's refs; rebuilt only when
+    // the refs were replaced.
     private void ShowUpstreamGone(TerminalTabSession? session)
     {
         if (session is null

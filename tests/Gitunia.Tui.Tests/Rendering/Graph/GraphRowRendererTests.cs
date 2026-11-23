@@ -314,6 +314,46 @@ public class GraphRowRendererTests
     }
 
     [Fact]
+    public void GivenNamedRemotesAndCaps_WhenRendering_ThenTheCapFollowsTheNameWithoutABlankCell()
+    {
+        var commit = CommitFactory.Commit(
+            1,
+            "release",
+            [],
+            new CommitDecoration("refs/heads/main", "main", RefKind.LocalBranch, false),
+            new CommitDecoration("refs/remotes/origin/main", "origin/main", RefKind.RemoteBranch, false));
+        var graph = CommitFactory.Graph(commit);
+        var glyphs = GraphGlyphSet.Unicode with { LabelCapLeft = "\uE0B6", LabelCapRight = "\uE0B4" };
+        var named = new HashSet<string> { "main" };
+
+        var withNames = GraphRowRenderer.Render(
+            graph[0],
+            new GraphRowOptions(120, 1, glyphs, RemoteNamedBranches: named),
+            false);
+        var withoutNames = GraphRowRenderer.Render(graph[0], new GraphRowOptions(120, 1, glyphs), false);
+
+        Assert.Contains("origin\uE0B4", withNames.Text, StringComparison.Ordinal);
+        Assert.Contains($"{glyphs.Remote} \uE0B4", withoutNames.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GivenNamedRemotesInAscii_WhenRendering_ThenTheNamesFollowTheMarker()
+    {
+        var commit = CommitFactory.Commit(
+            1,
+            "release",
+            [],
+            new CommitDecoration("refs/heads/main", "main", RefKind.LocalBranch, false),
+            new CommitDecoration("refs/remotes/origin/main", "origin/main", RefKind.RemoteBranch, false));
+        var graph = CommitFactory.Graph(commit);
+        var options = new GraphRowOptions(120, 1, GraphGlyphSet.Ascii, RemoteNamedBranches: new HashSet<string> { "main" });
+
+        var line = GraphRowRenderer.Render(graph[0], options, false);
+
+        Assert.Contains("main (r) origin", line.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void GivenAllRefKinds_WhenRendering_ThenDecorationsListedLikeGit()
     {
         var commit = CommitFactory.Commit(

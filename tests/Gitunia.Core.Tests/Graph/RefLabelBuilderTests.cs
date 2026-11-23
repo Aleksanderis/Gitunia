@@ -90,6 +90,16 @@ public class RefLabelBuilderTests
     }
 
     [Fact]
+    public void GivenThreeRemotesOfWhichTwoOnCommit_WhenBuilding_ThenLabelListsOnlyTheTwo()
+    {
+        var labels = RefLabelBuilder.Build(
+            [Local("main", true), Remote("origin/main"), Remote("fork/main")],
+            remoteNamedBranches: new HashSet<string> { "main" });
+
+        Assert.Equal("origin,fork", Assert.Single(labels).RemoteNames);
+    }
+
+    [Fact]
     public void GivenBranchNotNamed_WhenBuilding_ThenLabelHasNoRemoteNames()
     {
         var labels = RefLabelBuilder.Build(
