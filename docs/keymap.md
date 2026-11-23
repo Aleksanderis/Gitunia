@@ -54,6 +54,7 @@ Every default key binding, one table per view. The design rules, notation and mo
 | `<space>f` `<space>rf` | Normal | `remote.fetch` | Fetch the remote of the current branch (prunes) |
 | `<space>p` `<space>rl` | Normal | `remote.pull` | Pull the current branch (fast-forward only) |
 | `<space>P` `<space>rp` | Normal | `remote.push` | Push the current branch |
+| `<space>rt` | Normal | `remote.push-to` | Push the current branch to a remote you choose |
 | `<space>rP` | Normal | `remote.push-force` | Force push the current branch with a lease (asks first) |
 | `<space>bD` | Normal | `remote.delete-branch` | Delete a branch on a remote (asks first) |
 | `<space>rc` | Normal | `remote.cancel` | Cancel the running fetch, pull or push |

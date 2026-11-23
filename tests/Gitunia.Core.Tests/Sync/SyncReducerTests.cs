@@ -291,6 +291,60 @@ public class SyncReducerTests
     }
 
     [Fact]
+    public void GivenABranchWithAnUpstream_WhenPushingToARemote_ThenTheRemotesAreReadForThePicker()
+    {
+        var update = Reduce(
+            new SyncRequested(Tab, SyncKind.PushTo),
+            Refs(Local("topic", "refs/remotes/origin/topic")));
+
+        var list = Assert.IsType<ListSyncRemotesEffect>(Assert.Single(update.Effects));
+        Assert.Equal(SyncRemotesPurpose.PushTo, list.Purpose);
+        Assert.Equal("topic", list.Branch);
+    }
+
+    [Fact]
+    public void GivenNoCheckedOutBranch_WhenPushingToARemote_ThenItIsRefused()
+    {
+        var update = Reduce(new SyncRequested(Tab, SyncKind.PushTo));
+
+        Assert.Equal("No branch is checked out: nothing to push", Warning(update.Effects));
+    }
+
+    [Fact]
+    public void GivenOneRemote_WhenTheRemotesOfAPushToAreRead_ThenThePickerStillOpens()
+    {
+        var update = Reduce(
+            new SyncRemotesListed(Tab, SyncRemotesPurpose.PushTo, "topic", null, ["backup"]),
+            Refs(Local("topic", "refs/remotes/origin/topic")));
+
+        var request = Assert.IsType<ShowPromptEffect>(Assert.Single(update.Effects)).Request;
+        Assert.Equal("Push to remote", request.Title);
+        Assert.Equal(["backup"], request.Choices!.Value.Select(choice => choice.Value));
+        Assert.Equal(new SyncRemoteAnswer(Tab, "topic", true), request.OnAccepted);
+    }
+
+    [Fact]
+    public void GivenABranchWithAnUpstream_WhenAPushToRemoteIsChosen_ThenTheUpstreamIsLeftAlone()
+    {
+        var update = Reduce(
+            new SyncRemoteChosen(Tab, "topic", "backup", true),
+            Refs(Local("topic", "refs/remotes/origin/topic")));
+
+        var push = Assert.IsType<PushEffect>(Assert.Single(update.Effects));
+        Assert.Equal(new PushRequest("backup", "topic"), push.Request);
+        Assert.Equal("Pushed topic to backup", push.Done);
+    }
+
+    [Fact]
+    public void GivenABranchWithoutUpstream_WhenAPushToRemoteIsChosen_ThenItSetsTheUpstream()
+    {
+        var update = Reduce(new SyncRemoteChosen(Tab, "lonely", "backup", true), Refs(Local("lonely", null)));
+
+        var push = Assert.IsType<PushEffect>(Assert.Single(update.Effects));
+        Assert.Equal(new PushRequest("backup", "lonely", true), push.Request);
+    }
+
+    [Fact]
     public void GivenAnotherBranchIsCheckedOut_WhenTheRemoteIsChosen_ThenNothingIsPushed()
     {
         var update = Reduce(new SyncRemoteChosen(Tab, "lonely", "second"), Refs(Local("other", null)));

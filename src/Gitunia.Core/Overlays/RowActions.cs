@@ -176,6 +176,7 @@ public static class RowActions
             ActionIds.RemoteFetchAll,
             ActionIds.RemotePull,
             ActionIds.RemotePush,
+            ActionIds.RemotePushTo,
             ActionIds.RemotePushForce,
             ActionIds.RemoteDeleteBranch,
             ActionIds.RemoteAdd,

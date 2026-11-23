@@ -43,6 +43,34 @@ internal static class SyncPushQuestions
         return ListRemotes(SyncRemotesPurpose.Force, current.Name, context);
     }
 
+    /// <summary>The push-to key: refused without a checked-out branch, else reads the remotes.</summary>
+    public static ImmutableArray<AppEffect> PushToRequested(GitRef? current, SyncContext context)
+    {
+        if (current is null)
+        {
+            return [SyncReducer.Post($"No branch is checked out: {UiTexts.NothingTo("push")}")];
+        }
+
+        return ListRemotes(SyncRemotesPurpose.PushTo, current.Name, context);
+    }
+
+    /// <summary>The remotes of a push-to were read: always a picker, a single remote is still the user's explicit target.</summary>
+    public static SyncUpdate PushToRemotes(SyncRemotesListed listed, SyncContext context)
+    {
+        var branch = listed.Branch ?? string.Empty;
+        var ordered = listed.Remotes.OrderByDescending(name => name == DefaultRemote).ToList();
+        var request = new PromptRequest(
+            "Push to remote",
+            $"Remote to push {branch} to",
+            "choose",
+            new SyncRemoteAnswer(context.TabId, branch, true),
+            Choices: [.. ordered.Select(name => new PromptChoice(name, name))],
+            NoMatch: SyncReducer.NoMatch,
+            Owner: context.TabId);
+
+        return new SyncUpdate(context.State, [new ShowPromptEffect(request)]);
+    }
+
     /// <summary>The remotes of a first push were read: one remote is used without asking, several are picked from.</summary>
     public static SyncUpdate FirstPushRemotes(SyncRemotesListed listed, SyncContext context)
     {
@@ -67,17 +95,22 @@ internal static class SyncPushQuestions
     }
 
     /// <summary>Starts the first push of a branch to a remote, which then becomes its upstream.</summary>
-    public static SyncUpdate StartFirstPush(string branch, string remote, SyncContext context)
+    public static SyncUpdate StartFirstPush(string branch, string remote, SyncContext context, bool pushTo = false)
     {
-        if (SyncReducer.CurrentBranch(context.Refs)?.Name != branch)
+        var current = SyncReducer.CurrentBranch(context.Refs);
+        if (current?.Name != branch)
         {
             return new SyncUpdate(
                 context.State,
                 [SyncReducer.Post($"The checked-out branch changed: {UiTexts.NothingWas("pushed")}")]);
         }
 
-        var request = new PushRequest(remote, branch, true);
-        var done = $"Pushed {branch} to {remote} and set it as its upstream";
+        // A push to a chosen remote keeps an existing upstream; only a branch without one gets it set.
+        var setUpstream = !pushTo || !SyncReducer.HasUpstream(current);
+        var request = new PushRequest(remote, branch, setUpstream);
+        var done = setUpstream
+            ? $"Pushed {branch} to {remote} and set it as its upstream"
+            : $"Pushed {branch} to {remote}";
         var effect = new PushEffect(context.TabId, context.Location, request, done, branch);
 
         return SyncReducer.Transfer(effect, "Pushing", "Push");

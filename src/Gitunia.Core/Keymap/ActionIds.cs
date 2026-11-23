@@ -230,6 +230,8 @@ public static class ActionIds
 
     public static ActionId RemotePush { get; } = new("remote.push");
 
+    public static ActionId RemotePushTo { get; } = new("remote.push-to");
+
     public static ActionId RemotePushForce { get; } = new("remote.push-force");
 
     public static ActionId RemoteDeleteBranch { get; } = new("remote.delete-branch");

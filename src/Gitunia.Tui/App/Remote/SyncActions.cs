@@ -79,6 +79,11 @@ public sealed class SyncActions(Dispatcher host, IBranchSelectionSource selectio
             return SyncKind.Push;
         }
 
+        if (action == ActionIds.RemotePushTo)
+        {
+            return SyncKind.PushTo;
+        }
+
         return action == ActionIds.RemotePushForce ? SyncKind.PushForce : null;
     }
 
