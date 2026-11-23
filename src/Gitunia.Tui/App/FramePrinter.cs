@@ -123,7 +123,8 @@ public sealed class FramePrinter
             null,
             diff,
             diff is null ? null : arrangement,
-            UpstreamGoneBranches.Of(repositoryState.Refs));
+            UpstreamGoneBranches.Of(repositoryState.Refs),
+            RemoteNamedBranches.Of(repositoryState.Refs));
         if (colors is not null)
         {
             await output.WriteAsync(AnsiFrameWriter.Render(lines, colors).AsMemory(), cancellationToken);

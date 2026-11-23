@@ -202,7 +202,10 @@ public static class GraphRowRenderer
     private static List<StyledSegment> DecorationSegments(GraphEntry entry, GraphRowOptions options)
     {
         var glyphs = options.Glyphs;
-        var labels = RefLabelBuilder.Build(entry.Decorations, options.UpstreamGoneBranches);
+        var labels = RefLabelBuilder.Build(
+            entry.Decorations,
+            options.UpstreamGoneBranches,
+            options.RemoteNamedBranches);
         var builder = new List<StyledSegment>();
         if (options.MarkedCommit == entry.Id)
         {
@@ -260,13 +263,13 @@ public static class GraphRowRenderer
         {
             case RefKind.LocalBranch or RefKind.RemoteBranch:
                 var prefix = BranchPrefix(label, glyphs);
-                var suffix = label.HasRemote ? glyphs.Remote : "";
+                var suffix = RemoteSuffix(label, glyphs);
                 // The caps are lane-coloured text on the row background (the Lane role), so they meet the box on a
                 // selected row too.
                 AppendCap(builder, glyphs.LabelCapLeft, colorIndex);
                 // The caps already round the box off, so with them the text sits tight against them (#854).
                 var padding = glyphs.HasLabelCaps ? "" : " ";
-                var trailing = TrailingPadding(suffix, glyphs);
+                var trailing = TrailingPadding(label, suffix, glyphs);
                 var text = $"{padding}{prefix}{label.Name}{suffix}{trailing}";
                 builder.Add(new StyledSegment(text, SegmentRole.LaneLabel, colorIndex));
                 AppendCap(builder, glyphs.LabelCapRight, colorIndex);
@@ -290,14 +293,26 @@ public static class GraphRowRenderer
 
     // The remote glyph is a Nerd Font icon: terminals such as kitty, Ghostty and WezTerm draw it over the next cell
     // only when that cell is blank and clip it to one cell otherwise, so it keeps a space before the right cap.
-    private static string TrailingPadding(string suffix, GraphGlyphSet glyphs)
+    private static string TrailingPadding(RefLabel label, string suffix, GraphGlyphSet glyphs)
     {
-        if (!glyphs.HasLabelCaps || suffix.Length > 0)
+        // The remote names after the glyph end in text, so only the glyph alone needs the blank cell.
+        if (!glyphs.HasLabelCaps || (suffix.Length > 0 && label.RemoteNames.Length == 0))
         {
             return " ";
         }
 
         return "";
+    }
+
+    // The remote glyph, followed by the remote names when the branch has several remotes on different commits (#1495).
+    private static string RemoteSuffix(RefLabel label, GraphGlyphSet glyphs)
+    {
+        if (!label.HasRemote)
+        {
+            return "";
+        }
+
+        return label.RemoteNames.Length == 0 ? glyphs.Remote : $"{glyphs.Remote} {label.RemoteNames}";
     }
 
     private static void AppendCap(List<StyledSegment> builder, string cap, int colorIndex)

@@ -77,6 +77,28 @@ public class RefLabelBuilderTests
         Assert.False(label.HasRemote);
     }
 
+    [Fact]
+    public void GivenNamedBranchWithTwoRemotesOnCommit_WhenBuilding_ThenLabelListsTheRemotes()
+    {
+        var named = new HashSet<string> { "main" };
+
+        var labels = RefLabelBuilder.Build(
+            [Local("main", true), Remote("origin/main"), Remote("backup/main")],
+            remoteNamedBranches: named);
+
+        Assert.Equal("origin,backup", Assert.Single(labels).RemoteNames);
+    }
+
+    [Fact]
+    public void GivenBranchNotNamed_WhenBuilding_ThenLabelHasNoRemoteNames()
+    {
+        var labels = RefLabelBuilder.Build(
+            [Local("main", true), Remote("origin/main")],
+            remoteNamedBranches: new HashSet<string> { "other" });
+
+        Assert.Equal("", Assert.Single(labels).RemoteNames);
+    }
+
     private static CommitDecoration Local(string name, bool isCurrent) =>
         new($"refs/heads/{name}", name, RefKind.LocalBranch, isCurrent);
 

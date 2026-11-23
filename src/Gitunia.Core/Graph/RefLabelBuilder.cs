@@ -7,16 +7,19 @@ namespace Gitunia.Core.Graph;
 public static class RefLabelBuilder
 {
     private const string SymbolicRemoteHeadName = "HEAD";
+    private const string RemoteSeparator = ",";
 
     /// <summary>
     /// Hides the symbolic remote HEAD (<c>origin/HEAD</c>) and folds a remote-tracking branch into the local branch of the same
     /// name on the same commit. A remote branch without such a local branch stays separate, as does one on another commit
     /// (it is not in the list of this commit at all). Order of the input is kept. A local branch named in
-    /// <paramref name="upstreamGoneBranches"/> is flagged.
+    /// <paramref name="upstreamGoneBranches"/> is flagged. A local branch named in
+    /// <paramref name="remoteNamedBranches"/> lists the remotes folded into it (#1495).
     /// </summary>
     public static IReadOnlyList<RefLabel> Build(
         IReadOnlyList<CommitDecoration> decorations,
-        IReadOnlySet<string>? upstreamGoneBranches = null)
+        IReadOnlySet<string>? upstreamGoneBranches = null,
+        IReadOnlySet<string>? remoteNamedBranches = null)
     {
         if (decorations.Count == 0)
         {
@@ -37,11 +40,24 @@ public static class RefLabelBuilder
             var hasRemote = decoration.Kind == RefKind.LocalBranch && HasRemoteBranch(decorations, decoration);
             var isGone = decoration.Kind == RefKind.LocalBranch
                 && upstreamGoneBranches?.Contains(decoration.Name) == true;
-            labels.Add(new RefLabel(decoration.Name, decoration.Kind, decoration.IsCurrent, hasRemote, isGone));
+            var remoteNames = hasRemote && remoteNamedBranches?.Contains(decoration.Name) == true
+                ? RemoteNamesOf(decorations, decoration)
+                : "";
+            labels.Add(
+                new RefLabel(decoration.Name, decoration.Kind, decoration.IsCurrent, hasRemote, isGone, remoteNames));
         }
 
         return labels;
     }
+
+    private static string RemoteNamesOf(IReadOnlyList<CommitDecoration> decorations, CommitDecoration local) =>
+        string.Join(
+            RemoteSeparator,
+            decorations
+                .Where(other => other.Kind == RefKind.RemoteBranch
+                    && !IsSymbolicRemoteHead(other)
+                    && IsRemoteOf(other, local))
+                .Select(other => RemotePart(other.Name)));
 
     // Remote names rarely contain a slash, so the first segment is taken as the remote and the rest as the branch.
     private static bool IsSymbolicRemoteHead(CommitDecoration decoration) =>
@@ -58,4 +74,7 @@ public static class RefLabelBuilder
 
     private static string BranchPart(string remoteBranchName) =>
         remoteBranchName[(remoteBranchName.IndexOf('/', StringComparison.Ordinal) + 1)..];
+
+    private static string RemotePart(string remoteBranchName) =>
+        remoteBranchName[..remoteBranchName.IndexOf('/', StringComparison.Ordinal)];
 }

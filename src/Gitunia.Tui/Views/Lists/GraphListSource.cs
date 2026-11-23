@@ -24,6 +24,7 @@ public sealed class GraphListSource(CommitGraph graph, GraphGlyphSet initialGlyp
     private GraphRowOptions? _cachedOptions;
     private GraphGlyphSet _glyphs = initialGlyphs;
     private IReadOnlySet<string>? _upstreamGoneBranches;
+    private IReadOnlySet<string>? _remoteNamedBranches;
     private ObjectId? _markedCommit;
 
     public event NotifyCollectionChangedEventHandler? CollectionChanged;
@@ -59,6 +60,19 @@ public sealed class GraphListSource(CommitGraph graph, GraphGlyphSet initialGlyp
 
     /// <summary>The active graph search whose matches are highlighted, null when none.</summary>
     public SearchQuery? Highlight { get; set; }
+
+    /// <summary>Local branches whose labels name their remotes (#1495). Null for none.</summary>
+    public IReadOnlySet<string>? RemoteNamedBranches
+    {
+        get => _remoteNamedBranches;
+        set
+        {
+            _remoteNamedBranches = value;
+
+            // The names change the width of the ref labels, so quick-jump labels worked out before are stale.
+            _jump.Invalidate();
+        }
+    }
 
     /// <summary>Local branches whose upstream is gone; their graph labels get a marker. Null for none.</summary>
     public IReadOnlySet<string>? UpstreamGoneBranches
@@ -204,6 +218,7 @@ public sealed class GraphListSource(CommitGraph graph, GraphGlyphSet initialGlyp
             || _cachedOptions.LaneColumns != laneColumns
             || _cachedOptions.Highlight != Highlight
             || !ReferenceEquals(_cachedOptions.UpstreamGoneBranches, UpstreamGoneBranches)
+            || !ReferenceEquals(_cachedOptions.RemoteNamedBranches, RemoteNamedBranches)
             || _cachedOptions.MarkedCommit != MarkedCommit)
         {
             _cachedOptions = new GraphRowOptions(
@@ -212,7 +227,8 @@ public sealed class GraphListSource(CommitGraph graph, GraphGlyphSet initialGlyp
                 _glyphs,
                 Highlight,
                 UpstreamGoneBranches,
-                MarkedCommit);
+                MarkedCommit,
+                RemoteNamedBranches);
         }
 
         return _cachedOptions;

@@ -293,6 +293,27 @@ public class GraphRowRendererTests
     }
 
     [Fact]
+    public void GivenNamedRemotes_WhenRendering_ThenTheNamesFollowTheRemoteGlyph()
+    {
+        var commit = CommitFactory.Commit(
+            1,
+            "release",
+            [],
+            new CommitDecoration("refs/heads/main", "main", RefKind.LocalBranch, false),
+            new CommitDecoration("refs/remotes/origin/main", "origin/main", RefKind.RemoteBranch, false));
+        var graph = CommitFactory.Graph(commit);
+        var glyphs = GraphGlyphSet.Unicode;
+        var named = new HashSet<string> { "main" };
+
+        var namedOptions = new GraphRowOptions(120, 1, glyphs, RemoteNamedBranches: named);
+        var line = GraphRowRenderer.Render(graph[0], namedOptions, false);
+        var plain = GraphRowRenderer.Render(graph[0], new GraphRowOptions(120, 1, glyphs), false);
+
+        Assert.Contains($"main{glyphs.Remote} origin", line.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("origin", plain.Text.Replace("origin/", ""), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void GivenAllRefKinds_WhenRendering_ThenDecorationsListedLikeGit()
     {
         var commit = CommitFactory.Commit(
