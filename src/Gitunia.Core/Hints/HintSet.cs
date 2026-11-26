@@ -177,6 +177,7 @@ public static partial class HintSet
         new("<space>A", "stage all", [ActionIds.WorkingTreeStageAll]),
         new("Enter", HintVerb.Open, [ActionIds.WorkingTreeOpenDiff]),
         new("<space>d", "discard", [ActionIds.WorkingTreeDiscard]),
+        new("<space>i", "ignore", [ActionIds.WorkingTreeIgnore]),
         new("<space>H", "file history", [ActionIds.FileHistoryOpen]),
         new("<space>gb", "blame", [ActionIds.BlameOpen]),
         new("<space>j", "quick jump", [ActionIds.QuickJump]),

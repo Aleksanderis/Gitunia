@@ -70,6 +70,7 @@ Gitunia looks for a newer release in the background, at most once a day (the ans
 - Sidebar (branches, remotes, tags, stashes, worktrees), commit graph, detail pane (Details, Changes, Files).
 - `Tab` or `Ctrl-w h/j/k/l` moves between panes. `<space>z` zooms one.
 - `<space>s` toggles the Changes view.
+- In the Changes view `<space>i` on an untracked file or folder offers the lines to add to `.gitignore` (this path, its extension, its folder) and shows each before you pick one with a key; the file leaves the list at once.
 
 | Key | Does |
 |---|---|

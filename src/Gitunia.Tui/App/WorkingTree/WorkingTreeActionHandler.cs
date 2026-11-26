@@ -114,7 +114,7 @@ public sealed partial class WorkingTreeActionHandler(
         {
             Send(tab, new LeaveWorkingTreeCommand());
         }
-        else if (!TryFocus(tab, action) && !TryOpenDiff(tab, action) && !TryMove(tab, action, count) && !TryCopy(tab, action) && !TryStage(tab, action) && !TryDiscard(tab, action))
+        else if (!TryFocus(tab, action) && !TryOpenDiff(tab, action) && !TryMove(tab, action, count) && !TryCopy(tab, action) && !TryStage(tab, action) && !TryDiscard(tab, action) && !TryIgnore(tab, action))
         {
             if (ChangesViewFallthrough.Applies(action))
             {

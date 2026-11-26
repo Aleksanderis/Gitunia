@@ -7,6 +7,7 @@ using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Lists;
 using Gitunia.Core.Overlays;
+using Gitunia.Core.Prompts;
 using Gitunia.Core.Visual;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Repositories;
@@ -173,6 +174,31 @@ public sealed class ListRangeFlowTests : IDisposable
         Assert.False(_flow.Visual.IsActive);
     }
 
+    [Fact]
+    public void GivenAnUntrackedFile_WhenTheIgnoreActionRuns_ThenThePatternPromptOpensWithoutTouchingTheFile()
+    {
+        _flow.Load(Modified("a.txt"), Untracked("logs/debug.log"));
+        _flow.Run(ActionIds.ListDown);
+
+        _flow.Run(ActionIds.WorkingTreeIgnore);
+
+        var prompt = _flow.Prompt!;
+        Assert.Equal("Add to .gitignore", prompt.Title);
+        Assert.Equal(["/logs/debug.log", "*.log", "/logs/"], prompt.KeyChoices!.Value.Select(choice => choice.Value));
+        Assert.Equal(0, _flow.Discarder.CallCount);
+    }
+
+    [Fact]
+    public void GivenATrackedFile_WhenTheIgnoreActionRuns_ThenNoPromptOpensAndTheStatusSaysWhy()
+    {
+        _flow.Load(Modified("a.txt"));
+
+        _flow.Run(ActionIds.WorkingTreeIgnore);
+
+        Assert.Null(_flow.Prompt);
+        Assert.Contains("is tracked", _flow.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
@@ -291,6 +317,8 @@ public sealed class ListRangeFlowTests : IDisposable
         public FakeWorkingTreeDiscarder Discarder { get; } = new();
 
         public StringWriter ClipboardOutput { get; } = new();
+
+        public OpenPrompt? Prompt => _shell.Host.State.Shell.Prompt;
 
         private RepositoryState Tab => _shell.Host.Workspace.ActiveTab!;
 

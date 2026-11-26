@@ -1,4 +1,5 @@
 using Gitunia.Core.Discard;
+using Gitunia.Core.Ignore;
 using Gitunia.Core.Integration;
 using Gitunia.Core.Running;
 using Gitunia.Core.Pick;
@@ -81,6 +82,7 @@ public class RunningOperationsTests
 
     [Theory]
     [InlineData(RunningOperationKind.Discard)]
+    [InlineData(RunningOperationKind.Ignore)]
     [InlineData(RunningOperationKind.Tags)]
     [InlineData(RunningOperationKind.Remotes)]
     [InlineData(RunningOperationKind.Stash)]
@@ -103,6 +105,7 @@ public class RunningOperationsTests
 
     [Theory]
     [InlineData(RunningOperationKind.Discard)]
+    [InlineData(RunningOperationKind.Ignore)]
     [InlineData(RunningOperationKind.Tags)]
     [InlineData(RunningOperationKind.Remotes)]
     [InlineData(RunningOperationKind.Stash)]
@@ -128,6 +131,7 @@ public class RunningOperationsTests
     private static IOperationResult[] ResultsOf(RunningOperationKind kind) => kind switch
     {
         RunningOperationKind.Discard => Results<DiscardCommand>(),
+        RunningOperationKind.Ignore => Results<IgnoreCommand>(),
         RunningOperationKind.Tags => Results<TagCommand>(),
         RunningOperationKind.Remotes => Results<RemoteCommand>(),
         RunningOperationKind.Stash => Results<StashCommand>(),
@@ -159,6 +163,10 @@ public class RunningOperationsTests
                             true,
                             null),
                     ]);
+            case RunningOperationKind.Ignore:
+                return new EffectSet(
+                    ConcreteSubtypes.InstancesOf<IgnoreEffect>(),
+                    [new AddIgnorePatternEffect(Tab, location, "*.log")]);
             case RunningOperationKind.Tags:
                 return new EffectSet(
                     ConcreteSubtypes.InstancesOf<TagEffect>(),

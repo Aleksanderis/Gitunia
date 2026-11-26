@@ -10,6 +10,7 @@ using Gitunia.App.Conflicts;
 using Gitunia.App.Creation;
 using Gitunia.App.DiffPane;
 using Gitunia.App.Discard;
+using Gitunia.App.Ignore;
 using Gitunia.App.Pick;
 using Gitunia.App.Rebase;
 using Gitunia.App.Integration;
@@ -39,6 +40,7 @@ using Gitunia.Core.Creation;
 using Gitunia.Core.Details;
 using Gitunia.Core.DiffPane;
 using Gitunia.Core.Discard;
+using Gitunia.Core.Ignore;
 using Gitunia.Core.Effects;
 using Gitunia.Core.ExternalTools;
 using Gitunia.Core.Input;
@@ -96,6 +98,7 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
     private readonly CreationEffectHandler _creation;
     private readonly DiffPaneEffectHandler _diffPane;
     private readonly DiscardEffectHandler _discard;
+    private readonly IgnoreEffectHandler _ignore;
     private readonly IntegrationEffectHandler _integration;
     private readonly IssueLinkEffectHandler _issueLinks;
     private readonly BranchEffectHandler _branches;
@@ -159,6 +162,7 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
         _creation = new CreationEffectHandler(services.Creator, pickerServices.Files, host, _loads);
         _diffPane = new DiffPaneEffectHandler(this);
         _discard = new DiscardEffectHandler(new PatchDiscarder(services.Diff, services.Discarder), this, host, _loads);
+        _ignore = new IgnoreEffectHandler(services.IgnoreWriter, this, host, _loads);
         _picker = new PickerEffectHandler(services.Discovery, pickerServices.Files, host, pickerServices.Timings, _loads);
         _pick = new PickEffectHandler(services.Pick, services.PickCommits, host);
         _rebase = new RebaseEffectHandler(services.Rebase, services.QuickRebase, host);
@@ -369,6 +373,9 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
                 break;
             case DiscardEffect discard:
                 _discard.Handle(discard, _cancellation.TokenOf(discard.TabId));
+                break;
+            case IgnoreEffect ignore:
+                _ignore.Handle(ignore, _cancellation.TokenOf(ignore.TabId));
                 break;
             case FileHistoryJumpEffect jump:
                 _shell.Flow.JumpToFileHistoryCommit(jump);

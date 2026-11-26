@@ -512,6 +512,8 @@ public static class ActionIds
 
     public static ActionId WorkingTreeDiscard { get; } = new("working-tree.discard");
 
+    public static ActionId WorkingTreeIgnore { get; } = new("working-tree.ignore");
+
     public static ActionId WorkingTreeWriteMessage { get; } = new("working-tree.write-message");
 
     public static ActionId WorkingTreeEditMessage { get; } = new("working-tree.edit-message");

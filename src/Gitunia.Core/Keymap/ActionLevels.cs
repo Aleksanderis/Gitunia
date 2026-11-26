@@ -251,6 +251,7 @@ internal static class ActionLevels
             ["working-tree.commit"] = CommandLevel.Everyday,
             ["working-tree.copy-path"] = CommandLevel.Everyday,
             ["working-tree.discard"] = CommandLevel.Everyday,
+            ["working-tree.ignore"] = CommandLevel.Everyday,
             ["working-tree.edit-message"] = CommandLevel.Everyday,
             ["working-tree.expand"] = CommandLevel.Everyday,
             ["working-tree.focus-diff"] = CommandLevel.Advanced,
