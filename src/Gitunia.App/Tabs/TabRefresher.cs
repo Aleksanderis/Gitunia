@@ -400,6 +400,13 @@ public sealed class TabRefresher : IDisposable, IPollTarget
         {
             _session.ReplaceGraph(reload.Entries, reload.TruncatedTotal, reload.HasNewCommits);
             GraphReloaded?.Invoke(reload);
+
+            // The saved selection and scroll of the tab follow the newest commit even when the tab is not shown (the view only does it for the shown one).
+            if (reload.HasNewCommits && reload.Entries.Count > 0)
+            {
+                _host.Dispatch(new TabCommand(tabId, new SelectCommitCommand(reload.Entries[0].Id)));
+                _host.Dispatch(new TabCommand(tabId, new ScrollToCommand(0)));
+            }
         }
 
         if (isManual)
