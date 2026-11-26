@@ -220,7 +220,7 @@ public class OverlayFrameTests
         Assert.Equal(
             string.Join(
                 '\n',
-                " :                                                                        1/196 ",
+                " :                                                                        1/197 ",
                 "│ Branch                                                                       │",
                 "│ Create a branch and check it out                                   <space>bc │",
                 "│ Create a branch without checking out                               <space>bC │",
@@ -247,7 +247,7 @@ public class OverlayFrameTests
         Assert.Equal(
             string.Join(
                 '\n',
-                " :                                1/196 ",
+                " :                                1/197 ",
                 "| Branch                               |",
                 "| Create a branch and chec~  <space>bc |",
                 "| Create a branch without ~  <space>bC |",

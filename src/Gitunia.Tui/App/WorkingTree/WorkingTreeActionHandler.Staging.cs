@@ -1,6 +1,7 @@
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Discard;
+using Gitunia.Core.Ignore;
 using Gitunia.Core.Lists;
 using Gitunia.Core.Staging;
 using Gitunia.Core.Workspaces.Panes;
@@ -95,6 +96,20 @@ public sealed partial class WorkingTreeActionHandler
         {
             host.Dispatch(new DiscardRequested(tab.Id, ListRange(tab)));
         }
+
+        return true;
+    }
+
+    // The key acts on the untracked file or folder under the cursor, from the list or from its diff; the reducer
+    // refuses anything else and the pattern prompt names what will be written.
+    private bool TryIgnore(RepositoryState tab, ActionId action)
+    {
+        if (action != ActionIds.WorkingTreeIgnore)
+        {
+            return false;
+        }
+
+        host.Dispatch(new IgnoreRequested(tab.Id));
 
         return true;
     }

@@ -8,6 +8,7 @@ using Gitunia.Git.Config;
 using Gitunia.Git.Conflicts;
 using Gitunia.Git.Diff;
 using Gitunia.Git.Discard;
+using Gitunia.Git.Ignore;
 using Gitunia.Git.Execution;
 using Gitunia.Git.History;
 using Gitunia.Git.IssueTracker;
@@ -48,6 +49,7 @@ namespace Gitunia.App;
 /// <param name="Status">Reads the working tree status.</param>
 /// <param name="IndexWriter">Stages and unstages files.</param>
 /// <param name="Discarder">Throws working-tree changes away (always behind a confirm dialog).</param>
+/// <param name="IgnoreWriter">Appends patterns to the root <c>.gitignore</c>.</param>
 /// <param name="CommitWriter">Creates commits.</param>
 /// <param name="Branches">Creates, switches, renames and deletes branches.</param>
 /// <param name="RemoteManager">Adds, removes, renames and re-points remotes.</param>
@@ -91,6 +93,7 @@ public sealed record GitServices(
     IStatusReader Status,
     IIndexWriter IndexWriter,
     IWorkingTreeDiscarder Discarder,
+    IIgnoreWriter IgnoreWriter,
     ICommitWriter CommitWriter,
     IBranchWriter Branches,
     ITagWriter Tags,
@@ -156,6 +159,7 @@ public sealed record GitServices(
             status,
             new IndexWriter(runner),
             new WorkingTreeDiscarder(runner, ByteExactFileSystems.ForCurrentOs()),
+            new IgnoreWriter(),
             new CommitWriter(runner),
             new BranchWriter(runner),
             new TagWriter(runner, remoteRunner),

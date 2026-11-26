@@ -246,6 +246,7 @@ Every default key binding, one table per view. The design rules, notation and mo
 | `<space>a` | Normal, Visual | `working-tree.stage` | Stage the file or folder, the hunk or the selected lines |
 | `<space>A` | Normal | `working-tree.stage-all` | Stage all files |
 | `<space>d` | Normal, Visual | `working-tree.discard` | Discard the changes of the file or folder, the hunk or the selected lines (asks first) |
+| `<space>i` | Normal | `working-tree.ignore` | Add the untracked file or folder to .gitignore (pick the pattern) |
 | `Alt-s` | Normal, Visual, Insert | `working-tree.toggle-sign-off` | Commit option: SignOff (toggle) |
 | `Alt-n` | Normal, Visual, Insert | `working-tree.toggle-no-verify` | Commit option: No-Verify (toggle) |
 | `Alt-a` | Normal, Visual, Insert | `working-tree.toggle-amend` | Commit option: Amend (toggle) |
@@ -399,6 +400,7 @@ Every default key binding, one table per view. The design rules, notation and mo
 | `<space>ec` | Normal | `tool.commit-editor` | Commit the staged changes in $EDITOR |
 | `<space>a` | Normal, Visual | `working-tree.stage` | Stage the file or folder, the hunk or the selected lines |
 | `<space>d` | Normal, Visual | `working-tree.discard` | Discard the changes of the file or folder, the hunk or the selected lines (asks first) |
+| `<space>i` | Normal | `working-tree.ignore` | Add the untracked file or folder to .gitignore (pick the pattern) |
 | `Alt-s` | Normal, Visual, Insert | `working-tree.toggle-sign-off` | Commit option: SignOff (toggle) |
 | `Alt-n` | Normal, Visual, Insert | `working-tree.toggle-no-verify` | Commit option: No-Verify (toggle) |
 | `Alt-a` | Normal, Visual, Insert | `working-tree.toggle-amend` | Commit option: Amend (toggle) |

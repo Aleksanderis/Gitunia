@@ -100,7 +100,7 @@ Counts, read from `DefaultKeymap` and `ActionIds` at this commit: 245 action ids
 | `g` | Operation in progress | `gc` continue, `ga` abort, `gs` skip, `gr` resolve (open the conflict editor) |
 | `e` | External tools | `ed` difftool, `em` mergetool, `ec` commit in `$EDITOR` |
 | `v` | View options | unchanged (`vv` menu, `vw`, `vf`, `vi`, `vs`, `vc`, `vl`, `vp`, `vn`, `v1`..`v3`), plus `vb` base in the conflict editor |
-| leaves | | `s` Changes view, `c` write the message or commit (Changes view), `a` `A` `d` `u` `U` stage, discard, unstage (Changes view), `1`..`4` Changes view panes, `h` jump to HEAD, `J` jump to a ref, `j` quick jump, `f` fetch, `p` pull, `P` push (#918; the `<space>r` rows stay as aliases), `=` compare, `l` reflog, `z` zoom, `x` dismiss, `m` messages, `,` settings, `.` actions menu, `*` toggle advanced commands |
+| leaves | | `s` Changes view, `c` write the message or commit (Changes view), `a` `A` `d` `i` `u` `U` stage, discard, ignore, unstage (Changes view), `1`..`4` Changes view panes, `h` jump to HEAD, `J` jump to a ref, `j` quick jump, `f` fetch, `p` pull, `P` push (#918; the `<space>r` rows stay as aliases), `=` compare, `l` reflog, `z` zoom, `x` dismiss, `m` messages, `,` settings, `.` actions menu, `*` toggle advanced commands |
 
 No leaf shares its letter with a group. Letters left free for later: `i` `n` `q` `y`. The stash letter is `k` because `s` stays the Changes view (the most used leader key) and `S` would be an unrelated pair; the owner may prefer another free letter.
 The which-key popup names the groups after the nouns (`+more (branch)`, `+more (rebase)`, `+more (tag)`, ...); `ActionGroups` stays the vocabulary of the palette, the row menu and the help subheaders.
@@ -266,6 +266,7 @@ Grouped as the palette groups them (`ActionCatalog.GroupOf`). "Old" lists every 
 | `working-tree.collapse` | Close the folder, else go to the parent folder | `h` | same | Everyday |  |
 | `working-tree.commit` | Commit the staged changes | `<space>c` `Ctrl-g` | same | Everyday |  |
 | `working-tree.discard` | Discard the changes of the file or folder, the hunk or the selected lines (asks first) | `<space>d` | same | Everyday |  |
+| `working-tree.ignore` | Add the untracked file or folder to .gitignore (pick the pattern) | `<space>i` | same | Everyday | #1510 |
 | `working-tree.edit-message` | Edit the commit message | `i` `Enter` | same | Everyday |  |
 | `working-tree.expand` | Open the folder under the cursor | `l` | same | Everyday |  |
 | `working-tree.focus-diff` | Focus the diff | `<space>3` | same | Advanced |  |

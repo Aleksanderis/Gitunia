@@ -18,6 +18,9 @@ public enum RunningOperationKind
     /// <summary>Discarding files, a hunk or lines; ends when the status has been read again.</summary>
     Discard,
 
+    /// <summary>Adding a pattern to <c>.gitignore</c>; ends when the status has been read again.</summary>
+    Ignore,
+
     /// <summary>A cherry-pick or revert: reading the commits, then picking them.</summary>
     Pick,
 

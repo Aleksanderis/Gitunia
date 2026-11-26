@@ -6,6 +6,7 @@ using Gitunia.Core.Creation;
 using Gitunia.Core.Details;
 using Gitunia.Core.DiffPane;
 using Gitunia.Core.Discard;
+using Gitunia.Core.Ignore;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Picker;
 using Gitunia.Core.Effects;
@@ -76,6 +77,7 @@ public static partial class AppReducer
         FileHistoryCommand fileHistory => ReduceFileHistory(state, fileHistory),
         ExternalToolCommand tool => new AppUpdate(state, ExternalToolReducer.Reduce(tool, state.Workspace.ActiveTab)),
         InputCommand input => InputReducer.Reduce(state, input),
+        IgnoreCommand ignore => InTab(state, ignore.TabId, ignore, ReduceIgnore),
         IssueLinkCommand link => new AppUpdate(state, IssueLinkReducer.Reduce(link)),
         PaneSizeCommand paneSize => PaneSizeReducer.Reduce(state, paneSize),
         PickCommand pick => InTab(state, pick.TabId, pick, ReducePick),
