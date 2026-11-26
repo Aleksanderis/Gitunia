@@ -128,6 +128,18 @@ public class KeymapEngineTests
         Assert.Equal(3, result.Count);
     }
 
+    [Theory]
+    [InlineData("Alt-l", true)]
+    [InlineData("Alt-h", false)]
+    public void GivenAltHOrAltL_WhenPressed_ThenTheTabSwitches(string keys, bool next)
+    {
+        var feeder = CreateFeeder();
+
+        var result = feeder.Feed(keys);
+
+        Assert.Equal(next ? ActionIds.TabNext : ActionIds.TabPrevious, result.Action);
+    }
+
     [Fact]
     public void GivenCountInProgress_WhenPressingEsc_ThenTheCountIsDropped()
     {
