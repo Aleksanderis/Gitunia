@@ -63,6 +63,9 @@ public sealed class TerminalHost : ITerminalSuspender, IUiDeferral, IDisposable
     /// <summary>Raised on the UI thread when the terminal window gained focus.</summary>
     public event Action? FocusGained;
 
+    /// <summary>Raised on the UI thread when the terminal window loses focus (where focus reporting works).</summary>
+    public event Action? FocusLost;
+
     /// <summary>Moves work to the UI thread; pauses while a tool owns the terminal.</summary>
     public SuspendableUiInvoker Invoker { get; }
 
@@ -125,7 +128,7 @@ public sealed class TerminalHost : ITerminalSuspender, IUiDeferral, IDisposable
     {
         if (_application.Driver is { } driver)
         {
-            TerminalFocusReporting.Start(driver, () => Invoker.Invoke(() => FocusGained?.Invoke()));
+            TerminalFocusReporting.Start(driver, RaiseFocusGained, RaiseFocusLost);
         }
     }
 
@@ -222,6 +225,10 @@ public sealed class TerminalHost : ITerminalSuspender, IUiDeferral, IDisposable
 
         return application;
     }
+
+    private void RaiseFocusGained() => Invoker.Invoke(() => FocusGained?.Invoke());
+
+    private void RaiseFocusLost() => Invoker.Invoke(() => FocusLost?.Invoke());
 
     private void StopFocusReporting()
     {

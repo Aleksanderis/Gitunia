@@ -35,6 +35,9 @@ public sealed class SyncEffectHandler(
 
     private readonly ConcurrentDictionary<TabId, CancellationTokenSource> _running = new();
 
+    /// <summary>A fetch ended without being cancelled; raised on the thread that ran it.</summary>
+    public event Action<FetchEnded>? FetchEnded;
+
     /// <summary>Starts the effect and returns at once; the result arrives through the dispatcher.</summary>
     public void Handle(SyncEffect effect, CancellationToken cancellationToken)
     {
@@ -63,7 +66,7 @@ public sealed class SyncEffectHandler(
         EffectWork.RunAsync(
             token => PerformAsync(effect, token),
             () => new SyncCancelled(effect.TabId),
-            exception => Failure(effect, exception),
+            exception => FailureAndReport(effect, exception),
             result => Finish(effect, linked, result),
             linked.Token);
 
@@ -72,7 +75,26 @@ public sealed class SyncEffectHandler(
     {
         _running.TryRemove(new KeyValuePair<TabId, CancellationTokenSource>(effect.TabId, linked));
         linked.Dispose();
+        if (effect is FetchEffect fetch && result is SyncSucceeded)
+        {
+            FetchEnded?.Invoke(new FetchEnded(effect.TabId, FetchOutcome.Succeeded, fetch.IsBackground));
+        }
+
         dispatcher.Post(result);
+    }
+
+    private SyncFailed FailureAndReport(SyncEffect effect, Exception exception)
+    {
+        var failed = Failure(effect, exception);
+        if (effect is FetchEffect fetch)
+        {
+            var needsCredentials = exception is GitCommandFailedException command
+                && RemoteAuthFailure.Matches(command.StandardError);
+            var outcome = needsCredentials ? FetchOutcome.NeedsCredentials : FetchOutcome.Failed;
+            FetchEnded?.Invoke(new FetchEnded(effect.TabId, outcome, fetch.IsBackground));
+        }
+
+        return failed;
     }
 
     private async Task<SyncCommand> PerformAsync(SyncEffect effect, CancellationToken token)
@@ -156,6 +178,11 @@ public sealed class SyncEffectHandler(
                     null);
             case FetchEffect fetch:
                 var fetchArguments = RemoteCommands.BuildFetch(new FetchRequest(null, fetch.AllRemotes, true), false);
+                if (fetch.IsBackground)
+                {
+                    return new SyncFailed(effect.TabId, $"Fetch failed: {reason}", null, null);
+                }
+
                 return Transfer(effect, "Fetch", reason, exception, fetchArguments, null);
             case PullEffect:
                 return Transfer(effect, "Pull", reason, exception, RemoteCommands.BuildPull(), null);

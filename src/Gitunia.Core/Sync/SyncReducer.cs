@@ -75,6 +75,12 @@ public static class SyncReducer
 
     private static SyncUpdate Requested(SyncRequested request, SyncContext context)
     {
+        // The timer never disturbs: while anything runs in the tab (or a question is open) it just skips this round.
+        if (request.Kind == SyncKind.AutoFetch)
+        {
+            return AutoFetch(context);
+        }
+
         if (context.IsBusy)
         {
             return Keep(context, [Post(BusyNotice)]);
@@ -116,15 +122,32 @@ public static class SyncReducer
         return Transfer(plain, "Pushing", "Push");
     }
 
+    private static SyncUpdate AutoFetch(SyncContext context)
+    {
+        if (context.IsBusy || context.IsOtherBusy || context.IsOverlayOpen)
+        {
+            return Keep(context, []);
+        }
+
+        var effect = new FetchEffect(context.TabId, context.Location, false, true);
+
+        return new SyncUpdate(new SyncState("Fetching", FetchNoun, null, false, true), [effect]);
+    }
+
     internal static SyncUpdate Transfer(SyncEffect effect, string activity, string noun) =>
         new(new SyncState(activity, noun, null, false), [effect]);
 
     // Only a fetch asks the list to show the commits it brought; a pull follows HEAD already and a push brings none.
-    private static SyncUpdate Succeeded(SyncSucceeded succeeded, SyncContext context) =>
-        Ended([
-            new PostStatusEffect(succeeded.Text, StatusSeverity.Info, succeeded.Detail),
-            new RefreshTabEffect(context.TabId, false, context.State?.Noun == FetchNoun),
-        ]);
+    private static SyncUpdate Succeeded(SyncSucceeded succeeded, SyncContext context)
+    {
+        var refresh = new RefreshTabEffect(context.TabId, false, context.State?.Noun == FetchNoun);
+        if (context.State is { IsBackground: true })
+        {
+            return Ended([refresh]);
+        }
+
+        return Ended([new PostStatusEffect(succeeded.Text, StatusSeverity.Info, succeeded.Detail), refresh]);
+    }
 
     private static SyncUpdate Cancel(SyncContext context)
     {
@@ -162,6 +185,12 @@ public static class SyncReducer
 
     private static SyncUpdate Failed(SyncFailed failed, SyncContext context)
     {
+        // A failed background fetch says nothing (the timer backs off); a manual fetch shows the real reason.
+        if (context.State is { IsBackground: true })
+        {
+            return Ended([]);
+        }
+
         var effects = new List<AppEffect>
         {
             Post(failed.Text, StatusSeverity.Error),

@@ -85,7 +85,7 @@ public sealed class SettingsScreenInputTests : IDisposable
         _harness.WriteConfig(original);
         await _harness.OpenAsync();
 
-        _harness.Run(ActionIds.ListDown, 4);
+        _harness.Run(ActionIds.ListDown, 5);
         _harness.Run(ActionIds.SettingsActivate);
         _harness.Run(ActionIds.SettingsActivate);
         await _harness.PumpAsync();
@@ -102,7 +102,7 @@ public sealed class SettingsScreenInputTests : IDisposable
     public async Task GivenAToggle_WhenPressingXTwice_ThenTheFileEndsUpFlippedBackAndBothWritesApplied()
     {
         await _harness.OpenAsync();
-        _harness.Run(ActionIds.ListDown, 4);
+        _harness.Run(ActionIds.ListDown, 5);
         _harness.Run(ActionIds.SettingsActivate);
 
         _harness.Run(ActionIds.SettingsToggle);
@@ -337,7 +337,7 @@ public sealed class SettingsScreenInputTests : IDisposable
     public async Task GivenNoConfigFile_WhenMakingTheFirstChange_ThenTheDirectoryAndFileAreCreatedWithOnlyThatKey()
     {
         await _harness.OpenAsync();
-        _harness.Run(ActionIds.ListDown, 4);
+        _harness.Run(ActionIds.ListDown, 5);
         _harness.Run(ActionIds.SettingsActivate);
 
         _harness.Run(ActionIds.SettingsToggle);
@@ -453,7 +453,7 @@ public sealed class SettingsScreenInputTests : IDisposable
         _harness.WriteConfig("{ \"tabs\": { \"showBranch\": false } }");
         await _harness.OpenAsync();
         _harness.WriteConfig("{ \"tabs\": { \"showBranch\": true } }");
-        _harness.Run(ActionIds.ListDown, 4);
+        _harness.Run(ActionIds.ListDown, 5);
         _harness.Run(ActionIds.SettingsActivate);
 
         _harness.Run(ActionIds.SettingsToggle);
@@ -477,7 +477,7 @@ public sealed class SettingsScreenInputTests : IDisposable
         var appliedBefore = _harness.Applied.Count;
 
         await _harness.OpenAsync();
-        _harness.Run(ActionIds.ListDown, 4);
+        _harness.Run(ActionIds.ListDown, 5);
         _harness.Run(ActionIds.SettingsActivate);
         _harness.Run(ActionIds.SettingsToggle);
 
@@ -564,7 +564,7 @@ public sealed class SettingsScreenInputTests : IDisposable
     public async Task GivenTwoQuickChanges_WhenTheSecondComesBeforeTheFirstIsWritten_ThenItIsRefusedWithAMessage()
     {
         await _harness.OpenAsync();
-        _harness.Run(ActionIds.ListDown, 4);
+        _harness.Run(ActionIds.ListDown, 5);
         _harness.Run(ActionIds.SettingsActivate);
 
         _harness.Run(ActionIds.SettingsToggle);
@@ -582,7 +582,7 @@ public sealed class SettingsScreenInputTests : IDisposable
     {
         _harness.WriteConfig("{ \"tabs\": { \"showBranch\": false } }");
         await _harness.OpenAsync();
-        _harness.Run(ActionIds.ListDown, 6);
+        _harness.Run(ActionIds.ListDown, 7);
         _harness.Run(ActionIds.SettingsActivate);
 
         _harness.Run(ActionIds.SettingsActivate);
@@ -600,7 +600,7 @@ public sealed class SettingsScreenInputTests : IDisposable
     {
         _harness.EditorNotice = "Set $VISUAL or $EDITOR to open config.json";
         await _harness.OpenAsync();
-        _harness.Run(ActionIds.ListDown, 6);
+        _harness.Run(ActionIds.ListDown, 7);
         _harness.Run(ActionIds.SettingsActivate);
 
         _harness.Run(ActionIds.SettingsActivate);
@@ -613,7 +613,7 @@ public sealed class SettingsScreenInputTests : IDisposable
     {
         await _harness.OpenAsync();
 
-        var view = _harness.Settings.OnLineClicked(2 + 4, 3, out var handled);
+        var view = _harness.Settings.OnLineClicked(2 + 5, 3, out var handled);
 
         Assert.True(handled);
         Assert.Null(view);
@@ -624,10 +624,10 @@ public sealed class SettingsScreenInputTests : IDisposable
     public async Task GivenARow_WhenClickingItTwice_ThenTheFirstClickSelectsAndTheSecondEditsLikeEnter()
     {
         await _harness.OpenAsync();
-        _harness.Settings.OnLineClicked(2 + 4, 3, out _);
+        _harness.Settings.OnLineClicked(2 + 5, 3, out _);
         _harness.Run(ActionIds.SettingsActivate);
         _harness.Run(ActionIds.NavigateBack);
-        _harness.Settings.OnLineClicked(2 + 4, 3, out _);
+        _harness.Settings.OnLineClicked(2 + 5, 3, out _);
 
         var first = _harness.Settings.OnLineClicked(2, 30, out _);
         var second = _harness.Settings.OnLineClicked(2, 30, out _);
@@ -643,7 +643,7 @@ public sealed class SettingsScreenInputTests : IDisposable
     public async Task GivenAToggleBox_WhenClickingTheControl_ThenItEditsAtOnceThroughTheMouseMapsAction()
     {
         await _harness.OpenAsync();
-        _harness.Settings.OnLineClicked(2 + 4, 3, out _);
+        _harness.Settings.OnLineClicked(2 + 5, 3, out _);
 
         var view = _harness.Settings.OnLineClicked(2, _harness.ControlColumn, out _);
 
@@ -709,7 +709,7 @@ public sealed class SettingsScreenInputTests : IDisposable
     public async Task GivenANarrowTerminal_WhenResizing_ThenTheLayoutCollapsesAndTheSelectionStays()
     {
         await _harness.OpenAsync();
-        _harness.Run(ActionIds.ListDown, 4);
+        _harness.Run(ActionIds.ListDown, 5);
         _harness.Run(ActionIds.SettingsActivate);
 
         _harness.Size = new ScreenSize(60, 24);

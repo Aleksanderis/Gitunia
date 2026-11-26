@@ -50,8 +50,8 @@ public class SettingsFrameBuilderTests
                 "│  Keys          │  Branch label caps                              [rounded ▾] │",
                 "│  Key mapping   │  Graph line style                                 [light ▾] │",
                 "│  Repositories  │                                                             │",
+                "│  Git           │                                                             │",
                 "│  Tabs          │                                                             │",
-                "│  Updates       │                                                             │",
                 "│ ──────────────────────────────────────────────────────────────────────────── │",
                 "│ Enter or l opens the category; j and k move between categories.              │",
                 "│                                                                              │",
@@ -108,8 +108,8 @@ public class SettingsFrameBuilderTests
         var body = frame.Lines.Skip(2).Take(13).Select(line => line.Text).ToList();
 
         Assert.Contains(body, line => line.Contains("Appearance", StringComparison.Ordinal));
-        Assert.Contains(body, line => line.Contains("Tabs", StringComparison.Ordinal));
-        Assert.Contains(body, line => line.Contains("Show branch in tab name", StringComparison.Ordinal));
+        Assert.Contains(body, line => line.Contains("Repositories", StringComparison.Ordinal));
+        Assert.Contains(body, line => line.Contains("Scan roots", StringComparison.Ordinal));
         Assert.All(body, line => Assert.Equal(2, line.Count(character => character == '│')));
     }
 
@@ -336,12 +336,12 @@ public class SettingsFrameBuilderTests
     [Fact]
     public void GivenAFilter_WhenRendering_ThenMatchesShowTheirCategoryAndTheCount()
     {
-        var typing = Reduce(Open(), SettingsCommandKind.FilterOpen).WithFilterText(TextField.Of("tab"));
+        var typing = Reduce(Open(), SettingsCommandKind.FilterOpen).WithFilterText(TextField.Of("in tab name"));
         var accepted = Reduce(typing, SettingsCommandKind.InputAccept);
 
         var frame = SettingsFrameBuilder.Build(accepted, 100, 30, GraphGlyphSet.Unicode)!;
 
-        Assert.Contains("› tab  1 match", frame.Lines[1].Text, StringComparison.Ordinal);
+        Assert.Contains("› in tab name  1 match", frame.Lines[1].Text, StringComparison.Ordinal);
         Assert.Contains("Tabs: Show branch in tab name", frame.Lines[2].Text, StringComparison.Ordinal);
     }
 

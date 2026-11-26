@@ -110,6 +110,37 @@ public class SettingsValueReaderTests
     }
 
     [Fact]
+    public void GivenNoAutoFetchKeys_WhenReading_ThenBackgroundFetchIsOnEveryFiveMinutes()
+    {
+        var load = Read(new ConfigSnapshot(true, "{}", string.Empty));
+
+        Assert.True(load.Values[SettingsRegistry.AutoFetchId].Flag);
+        Assert.Equal(5, load.Values[SettingsRegistry.AutoFetchMinutesId].Number);
+        Assert.True(load.Options.AutoFetch);
+        Assert.Equal(5, load.Options.AutoFetchMinutes);
+    }
+
+    [Fact]
+    public void GivenAutoFetchKeys_WhenReading_ThenTheValuesAndOptionsFollowThem()
+    {
+        var load = Read(new ConfigSnapshot(true, "{ \"autoFetch\": false, \"autoFetchMinutes\": 10 }", string.Empty));
+
+        Assert.False(load.Values[SettingsRegistry.AutoFetchId].Flag);
+        Assert.Equal(10, load.Values[SettingsRegistry.AutoFetchMinutesId].Number);
+        Assert.False(load.Options.AutoFetch);
+        Assert.Equal(10, load.Options.AutoFetchMinutes);
+    }
+
+    [Fact]
+    public void GivenABadAutoFetchMinutes_WhenReading_ThenFiveAppliesAndTheSettingCarriesTheWarning()
+    {
+        var load = Read(new ConfigSnapshot(true, "{ \"autoFetchMinutes\": 0 }", string.Empty));
+
+        Assert.Equal(5, load.Options.AutoFetchMinutes);
+        Assert.Contains(SettingsRegistry.AutoFetchMinutesId, load.Warnings.Keys);
+    }
+
+    [Fact]
     public void GivenABadLabelCapsValue_WhenReading_ThenTheSettingCarriesTheWarning()
     {
         var load = Read(new ConfigSnapshot(true, "{ \"labelCaps\": \"square\" }", string.Empty));

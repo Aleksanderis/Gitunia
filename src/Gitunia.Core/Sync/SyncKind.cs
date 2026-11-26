@@ -9,6 +9,9 @@ public enum SyncKind
     /// <summary>Fetch every remote.</summary>
     FetchAll,
 
+    /// <summary>Fetch the remote of the current branch for the background timer: quiet, skipped while anything else runs.</summary>
+    AutoFetch,
+
     /// <summary>Pull the current branch, fast-forward only.</summary>
     Pull,
 

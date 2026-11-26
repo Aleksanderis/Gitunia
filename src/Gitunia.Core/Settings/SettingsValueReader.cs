@@ -52,6 +52,8 @@ public static class SettingsValueReader
         values[SettingsRegistry.CommandLevelId] = SettingValue.OfChoice(CommandLevels.NameOf(options.CommandLevel));
         values[SettingsRegistry.CopyOnSelectId] = SettingValue.OfFlag(options.CopyOnSelect);
         values[SettingsRegistry.UpdateCheckId] = SettingValue.OfFlag(options.UpdateCheck);
+        values[SettingsRegistry.AutoFetchId] = SettingValue.OfFlag(options.AutoFetch);
+        values[SettingsRegistry.AutoFetchMinutesId] = SettingValue.OfNumber(options.AutoFetchMinutes);
         values[SettingsRegistry.ShowBranchId] = SettingValue.OfFlag(options.ShowBranchInTab);
         values[SettingsRegistry.ScanRootsId] = ReadScanRoots(document.ScanRoots);
 

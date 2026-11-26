@@ -60,4 +60,14 @@ public sealed record ConfigDocument
     /// <c>OptionsConfigurator</c>.
     /// </summary>
     public JsonElement? UpdateCheck { get; init; }
+
+    /// <summary>
+    /// <c>true</c> (default) lets the active tab fetch in the background, read by <c>OptionsConfigurator</c>.
+    /// </summary>
+    public JsonElement? AutoFetch { get; init; }
+
+    /// <summary>
+    /// The minutes between two background fetches (default 5, 1 to 120), read by <c>OptionsConfigurator</c>.
+    /// </summary>
+    public JsonElement? AutoFetchMinutes { get; init; }
 }

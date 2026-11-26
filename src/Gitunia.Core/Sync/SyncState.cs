@@ -8,13 +8,24 @@ namespace Gitunia.Core.Sync;
 /// <param name="Noun">The operation as a noun (<c>Fetch</c>).</param>
 /// <param name="Latest">The latest report of git, null before the first one.</param>
 /// <param name="IsCancelling">The cancel was asked for and git is being stopped.</param>
-public sealed record SyncState(string Activity, string Noun, RemoteProgress? Latest, bool IsCancelling)
+/// <param name="IsBackground">The background timer started it: nothing shows in the status bar unless it is cancelled, and a failure stays quiet.</param>
+public sealed record SyncState(
+    string Activity,
+    string Noun,
+    RemoteProgress? Latest,
+    bool IsCancelling,
+    bool IsBackground = false)
 {
-    /// <summary>The status bar line, such as <c>Fetching: Receiving objects 45%</c>.</summary>
+    /// <summary>The status bar line, such as <c>Fetching: Receiving objects 45%</c>; empty while a background fetch runs.</summary>
     public string ProgressLine
     {
         get
         {
+            if (IsBackground && !IsCancelling)
+            {
+                return string.Empty;
+            }
+
             var line = RemoteProgressText.Format(Activity, Latest);
             return IsCancelling ? $"{line} (cancelling)" : line;
         }

@@ -60,6 +60,7 @@ public class SettingsReducerTests
                 SettingCategory.Keys,
                 SettingCategory.KeyMapping,
                 SettingCategory.Repositories,
+                SettingCategory.Git,
                 SettingCategory.Tabs,
                 SettingCategory.Updates,
                 SettingCategory.ConfigFile,
@@ -70,7 +71,7 @@ public class SettingsReducerTests
     [Fact]
     public void GivenTheCategoriesColumn_WhenActivating_ThenTheCursorEntersTheSettingsOfThatCategory()
     {
-        var state = Open().MoveTo(4);
+        var state = Open().MoveTo(5);
 
         var outcome = Reduce(state, SettingsCommandKind.Activate);
 
@@ -554,7 +555,7 @@ public class SettingsReducerTests
         var collapsed = state.WithLayout(collapsed: true);
         var expanded = collapsed.WithLayout(collapsed: false);
 
-        Assert.Equal(12, collapsed.Rows.Count);
+        Assert.Equal(14, collapsed.Rows.Count);
         Assert.Equal(SettingsRegistry.ShowBranchId, collapsed.Selected?.Definition.Id);
         Assert.Equal(SettingsRegistry.ShowBranchId, expanded.Selected?.Definition.Id);
         Assert.Equal(SettingCategory.Tabs, expanded.CurrentCategory);

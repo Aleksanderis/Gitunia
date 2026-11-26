@@ -183,6 +183,7 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
             _loads);
         _stash = new StashEffectHandler(services.StashWriter, host);
         _sync = new SyncEffectHandler(services.Remote, services.RemoteManager, services.Ancestry, host, _loads);
+        _sync.FetchEnded += OnFetchEnded;
         _tags = new TagEffectHandler(services.Tags, host);
         _updateCheck = new UpdateCheckEffectHandler(options.UpdateChecker, _background, host, _loads);
         _worktrees = new WorktreeEffectHandler(services.Worktrees, services.Discovery, host, _loads);
@@ -241,6 +242,13 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
         }
 
         return true;
+    }
+
+    /// <summary>A fetch of a tab ended, not cancelled (the background fetch learns how it went).</summary>
+    public event Action<FetchEnded>? FetchEnded
+    {
+        add => _sync.FetchEnded += value;
+        remove => _sync.FetchEnded -= value;
     }
 
     /// <summary>The terminal gained focus: the active tab checks for outside changes at once.</summary>
@@ -324,6 +332,23 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
         {
             var text = $"Internal error ({exception.GetType().Name}): {exception.Message}";
             _host.Dispatch(FailureOf(effect, text));
+        }
+    }
+
+    // A failed fetch is followed by no refresh, so the refresher stops expecting new commits from it (UI thread).
+    private void OnFetchEnded(FetchEnded ended)
+    {
+        if (ended.Outcome != FetchOutcome.Succeeded)
+        {
+            _ui.Post(() => FetchFailed(ended.TabId));
+        }
+    }
+
+    private void FetchFailed(TabId tabId)
+    {
+        if (_refreshers.TryGetValue(tabId, out var refresher))
+        {
+            refresher.FetchFailed();
         }
     }
 
@@ -519,6 +544,11 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
                 _stash.Handle(stash, _cancellation.TokenOf(stash.TabId));
                 break;
             case SyncEffect sync:
+                if (sync is FetchEffect && _refreshers.TryGetValue(sync.TabId, out var fetching))
+                {
+                    fetching.FetchStarted();
+                }
+
                 _sync.Handle(sync, _cancellation.TokenOf(sync.TabId));
                 break;
             case TagEffect tag:

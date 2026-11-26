@@ -101,6 +101,8 @@ public sealed class ShellWiring(ShellComposition shell)
         terminal.KeyDown += OnKeyDown;
         terminal.Pasted += shell.Keys.Input.OnPaste;
         terminal.FocusGained += shell.Effects.Runner.CheckActiveTabNow;
+        terminal.FocusGained += () => shell.Effects.AutoFetch.SetFocused(true);
+        terminal.FocusLost += () => shell.Effects.AutoFetch.SetFocused(false);
     }
 
     // Esc while a tab chip is dragged only puts the tab back; the keymap does not see it.

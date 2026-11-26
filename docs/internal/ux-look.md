@@ -129,6 +129,10 @@ The file is read once at startup and never modified by the loader; the settings 
   // Copy a mouse selection (drag, double or triple click) to the clipboard when you let go (default true).
   "copyOnSelect": true,
   "updateCheck": true,
+  // Fetch the remote of the active tab's current branch in the background (default true) every autoFetchMinutes
+  // (default 5, 1 to 120); a change in Settings applies at once.
+  "autoFetch": true,
+  "autoFetchMinutes": 5,
   // Live file watching instead of polling (default false: each watcher takes a scarce inotify instance; read at startup).
   "watchFiles": false,
   "keys": [
@@ -163,6 +167,7 @@ The file is read once at startup and never modified by the loader; the settings 
   `hints.whichKey` and `hints.statusBar` (#837): `on`/`off` and `full`/`minimal`/`off` (any case); a `hints` that is not an object or another value is reported and the default (`on`, `full`) applies. Off hides the popup only (the pending prefix still shows in the status bar); `minimal` keeps `? help  : commands  q quit`, `off` shows no hints; `?` and `:` always work. Modal hints (confirm answers, editors, the repeat mode) are not affected. With the popup off, a group hint such as `<space>v view options` still shows in `full` but opens no popup (the keys below it work); `minimal` and `off` also drop the conflict-editor hint during a stopped operation. Applied at once from the settings screen (Keys category).
   `copyOnSelect` (#1188): a boolean, true by default; another value is reported and true applies. Applied at once from the settings screen (Keys category). See "Drag to select" in `ux-mouse.md`.
   `updateCheck` (#1292): a boolean, true by default; another value is reported and true applies. Applied at once from the settings screen (Updates category): off clears a shown hint, on asks again (the daily cache decides whether a request goes out). The `GITUNIA_NO_UPDATE_CHECK` environment variable (any non-empty value) turns the check off whatever the file says. The hint itself: status bar, right end, `Gitunia <version> available: <command>` (`UpdateHintText`: the version alone when the rest of the bar would keep under 48 columns, nothing when even that does not fit; not while the repository picker is open). The hint takes its columns from the left part of the bar, so the key hints are cut earlier while it shows.
+  `autoFetch` and `autoFetchMinutes` (#1509): a boolean, true by default, and a whole number of minutes from 1 to 120, 5 by default; another value is reported and the default applies. Applied at once from the settings screen (Git category): the scheduler takes the new values and every tab waits a full interval again. Behaviour: ux-workflows.md, workflow 5.
   `watchFiles` (#543): a boolean, false by default (tabs poll, see `git-layer.md`); another value is reported and false applies; it has no row in the settings screen and takes effect after a restart.
   Options are read at startup; the settings screen applies a change at once (and reads the file again when it opens and when the editor row returns).
 - Problems appear as warnings at startup (the first in the status bar with a count of the others; `<space>m` keeps the first five).
