@@ -98,7 +98,8 @@ public sealed class AutoFetchScheduler : IDisposable
             return;
         }
 
-        if (_host.Workspace.ActiveTab is not { } tab || !CanFetch(tab))
+        // An open dialog keeps the round due: it runs at the first check after the dialog closes.
+        if (_host.State.Shell.HasModal || _host.Workspace.ActiveTab is not { } tab || !CanFetch(tab))
         {
             return;
         }

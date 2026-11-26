@@ -107,7 +107,7 @@ Fetch starts when you ask: `<space>f` (or the fetch chip) fetches the remote of 
 - Only the active tab fetches, never the others; a tab you switch to after a long time fetches at the next check. Nothing runs while the terminal is unfocused (on terminals that report focus); when it gets focus back an overdue fetch runs at once. A round is skipped while anything else runs in the tab or a dialog is open.
 - Nothing shows in the status bar. When the fetch brings new commits the commit list scrolls to the top and the selected commit stays selected; a manual fetch that brings commits does the same.
 
-Without that timer Gitunia refreshes local state on its own, by reading the repository with git (no network):
+Gitunia also refreshes local state on its own, by reading the repository with git (no network; these checks do not pause when the terminal is unfocused):
 
 - **Active tab:** the git directory is checked every 2 s and the working tree status every 5 s (longer in a big repository, where a read is slow), so changes from outside Gitunia (a `git fetch` in another terminal, a commit, an edit) show up within seconds. With `"watchFiles": true` in `config.json` (see Configuration) a file watcher does this instead.
 - **Active tab, terminal not focused:** the same checks keep running; Gitunia does not pause when the terminal loses focus. When the terminal gets focus again (on terminals that report focus) it checks at once.

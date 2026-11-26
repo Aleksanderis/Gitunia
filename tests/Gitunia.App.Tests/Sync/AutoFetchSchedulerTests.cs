@@ -1,5 +1,7 @@
 using Gitunia.App.Sync;
 using Gitunia.App.Tests.Fakes;
+using Gitunia.Core.Branches;
+using Gitunia.Core.Prompts;
 using Gitunia.Core.Sync;
 using Gitunia.Git.Execution.Exceptions;
 using Gitunia.Git.Tests.Fixtures;
@@ -87,6 +89,24 @@ public sealed class AutoFetchSchedulerTests : IDisposable
 
         _scheduler.SetFocused(true);
         await _pipeline!.Pump.RunUntilAsync(() => !_pipeline.IsBusy);
+        Assert.Single(_writer.Calls);
+    }
+
+    [Fact]
+    public async Task GivenADialogIsOpen_WhenTheIntervalPasses_ThenItFetchesAtTheFirstTickAfterItCloses()
+    {
+        await OpenAsync();
+        var target = new BranchTarget(null, null, _repository.Head);
+        _pipeline!.Dispatch(new BranchCreateRequested(_pipeline.TabId, target, false));
+        await _pipeline.Pump.RunUntilAsync(() => _pipeline.Prompt is not null);
+        _clock.Advance(Interval);
+
+        _scheduler!.Tick();
+        Assert.Empty(_writer.Calls);
+
+        _pipeline.Dispatch(new PromptCancelledCommand());
+        _scheduler.Tick();
+        await _pipeline.Pump.RunUntilAsync(() => !_pipeline.IsBusy);
         Assert.Single(_writer.Calls);
     }
 
