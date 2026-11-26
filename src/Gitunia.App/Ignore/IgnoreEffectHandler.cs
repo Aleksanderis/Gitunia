@@ -15,7 +15,8 @@ namespace Gitunia.App.Ignore;
 /// <param name="writer">Appends the pattern to <c>.gitignore</c>.</param>
 /// <param name="refresher">Reads the status again.</param>
 /// <param name="dispatcher">Where the result commands go.</param>
-/// <param name="tasks">Remembers the running work so the shutdown can wait for it; the default is a private set.</param>
+/// <param name="tasks">Remembers the running work so the shutdown can wait for it; the default is a private
+/// set.</param>
 public sealed class IgnoreEffectHandler(
     IIgnoreWriter writer,
     IStatusRefresher refresher,

@@ -101,5 +101,19 @@ public class IgnoreWriterTests
         await Assert.ThrowsAsync<InvalidOperationException>(() => Writer.AddAsync(location, "*.log", Token));
     }
 
+    [Fact]
+    public async Task GivenACancelledToken_WhenAdding_ThenTheFileIsNotTouched()
+    {
+        using var repository = TestRepository.Create().Commit("Initial", new TestFile("a.txt", "a\n"));
+        var location = await DiscardSupport.LocationOfAsync(repository);
+        using var cancelled = new CancellationTokenSource();
+        await cancelled.CancelAsync();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(
+            () => Writer.AddAsync(location, "*.log", cancelled.Token));
+
+        Assert.False(File.Exists(Path.Combine(repository.WorkingTreePath, ".gitignore")));
+    }
+
     private static string Status(TestRepository repository) => repository.Git("status", "--porcelain", "-uall");
 }

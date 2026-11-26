@@ -154,7 +154,6 @@ public static partial class HintSet
         new("j/k", HintVerb.Move, [ActionIds.ListDown, ActionIds.ListUp]),
         new("<space>a", "stage change", [ActionIds.WorkingTreeStage]),
         new("<space>d", "discard", [ActionIds.WorkingTreeDiscard]),
-        new("<space>i", "ignore", [ActionIds.WorkingTreeIgnore]),
         new("v", "select lines", [ActionIds.VisualToggle]),
         .. WorkingDiffCommon,
         PaneMove,

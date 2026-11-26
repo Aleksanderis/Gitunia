@@ -3,7 +3,8 @@ using Gitunia.Git.Repositories.Models;
 
 namespace Gitunia.Git.Ignore;
 
-/// <summary>Appends patterns to the root <c>.gitignore</c> of a working tree (see <see cref="IIgnoreWriter"/>).</summary>
+/// <summary>Appends patterns to the root <c>.gitignore</c> of a working tree (see
+/// <see cref="IIgnoreWriter"/>).</summary>
 public sealed class IgnoreWriter : IIgnoreWriter
 {
     /// <summary>The name of the file at the root of the working tree.</summary>
@@ -29,7 +30,12 @@ public sealed class IgnoreWriter : IIgnoreWriter
         timeout.CancelAfter(_timeout);
         var token = timeout.Token;
         var path = Path.Combine(root, FileName);
-        var existing = File.Exists(path) ? await File.ReadAllTextAsync(path, token).ConfigureAwait(false) : string.Empty;
+        var existing = string.Empty;
+        if (File.Exists(path))
+        {
+            existing = await File.ReadAllTextAsync(path, token).ConfigureAwait(false);
+        }
+
         if (Lists(existing, pattern))
         {
             return IgnoreAddOutcome.AlreadyListed;

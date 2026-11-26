@@ -4,7 +4,8 @@ using Gitunia.Core.Workspaces.Tabs;
 
 namespace Gitunia.Core.Ignore;
 
-/// <summary>An ignore key, its answer or the result of one, for one tab. Dropped when the tab is no longer open.</summary>
+/// <summary>An ignore key, its answer or the result of one, for one tab. Dropped when the tab is no longer
+/// open.</summary>
 public abstract record IgnoreCommand : AppCommand
 {
     private protected IgnoreCommand(TabId tabId) => TabId = tabId;
@@ -13,16 +14,18 @@ public abstract record IgnoreCommand : AppCommand
     public TabId TabId { get; }
 }
 
-/// <summary>The ignore key in the Unstaged list or its diff: the untracked file or folder under the cursor.</summary>
+/// <summary>The ignore key in the Unstaged list or its diff: the untracked file or folder under the
+/// cursor.</summary>
 /// <param name="TabId">The tab.</param>
 public sealed record IgnoreRequested(TabId TabId) : IgnoreCommand(TabId);
 
-/// <summary>The answer of the pattern prompt: the pattern of the option the user picked, fixed when it opened.</summary>
+/// <summary>The answer of the pattern prompt: the pattern of the option the user picked, fixed when it
+/// opened.</summary>
 /// <param name="TabId">The tab.</param>
 /// <param name="Pattern">The line to add to <c>.gitignore</c>.</param>
 public sealed record IgnoreChosen(TabId TabId, string Pattern) : IgnoreCommand(TabId);
 
-/// <summary>Result: the pattern is in <c>.gitignore</c> and the status of the tab has been read again.</summary>
+/// <summary>Result: the pattern is in <c>.gitignore</c> and the status of the tab was read again.</summary>
 /// <param name="TabId">The tab.</param>
 /// <param name="Text">What to tell the user.</param>
 /// <param name="Severity">How serious it is.</param>

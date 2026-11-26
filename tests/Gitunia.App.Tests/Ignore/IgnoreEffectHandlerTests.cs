@@ -65,7 +65,9 @@ public class IgnoreEffectHandlerTests
         using var cancelled = new CancellationTokenSource();
         await cancelled.CancelAsync();
 
-        var result = await run.ExecuteWithTokenAsync(new AddIgnorePatternEffect(Tab, Nowhere, "*.log"), cancelled.Token);
+        var effect = new AddIgnorePatternEffect(Tab, Nowhere, "*.log");
+
+        var result = await run.ExecuteWithTokenAsync(effect, cancelled.Token);
 
         Assert.IsType<IgnoreCancelled>(result);
         Assert.Equal(["result"], run.Events);
@@ -96,8 +98,8 @@ public class IgnoreEffectHandlerTests
         }
     }
 
-    // The handler over a fake writer, a refresher and a dispatcher that record the order in which the status is read and
-    // the result is posted.
+    // The handler over a fake writer, a refresher and a dispatcher that record the order in which the status is
+    // read and the result is posted.
     private sealed class Run : IStatusRefresher
     {
         private readonly RecordingDispatcher _dispatcher = new();

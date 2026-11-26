@@ -54,8 +54,8 @@ public static class IgnorePatterns
         return [.. options];
     }
 
-    /// <summary>True when the name cannot be written as one line of a <c>.gitignore</c> (it holds a line break or another
-    /// control character).</summary>
+    /// <summary>True when the name cannot be written as one line of a <c>.gitignore</c> (it holds a line break or
+    /// another control character).</summary>
     public static bool IsUnwritable(string path) => path.Any(char.IsControl);
 
     // The part from the last dot, when the dot is not the first or the last character (".env" has none).

@@ -12,12 +12,12 @@ using Gitunia.Git.Status.Models;
 namespace Gitunia.Core.Ignore;
 
 /// <summary>
-/// Adds an untracked file or folder of the Unstaged list to <c>.gitignore</c> (ux-workflows.md, workflow 2, "Ignore"), as
-/// pure transitions <c>(IgnoreCommand, IgnoreContext) -> Effects</c>. A one-key prompt lists the patterns (this path, its
-/// extension, its folder) and shows the exact line each adds; the answer carries that line as it was offered, so a cursor
-/// that moved meanwhile changes nothing. Only untracked paths qualify, because <c>.gitignore</c> does not apply to tracked
-/// ones. Nothing is lost, so there is no Confirm; the line is appended and the status is read again, which drops the
-/// file from the list.
+/// Adds an untracked file or folder of the Unstaged list to <c>.gitignore</c> (ux-workflows.md, workflow 2,
+/// "Ignore"), as pure transitions <c>(IgnoreCommand, IgnoreContext) -> Effects</c>. A one-key prompt lists the
+/// patterns (this path, its extension, its folder) and shows the exact line each adds; the answer carries that line
+/// as it was offered, so a cursor that moved meanwhile changes nothing. Only untracked paths qualify, because
+/// <c>.gitignore</c> does not apply to tracked ones. Nothing is lost, so there is no Confirm; the line is appended
+/// and the status is read again, which drops the file from the list.
 /// </summary>
 public static class IgnoreReducer
 {
@@ -118,7 +118,9 @@ public static class IgnoreReducer
     {
         if (GitPathText.HasEscapedBytes(path) || IgnorePatterns.IsUnwritable(path))
         {
-            return $"{PrintableText.Of(path)} has a name that cannot be written to {IgnoreWriter.FileName}: edit the file by hand";
+            var name = PrintableText.Of(path);
+
+            return $"{name} has a name that cannot be written to {IgnoreWriter.FileName}: edit the file by hand";
         }
 
         return null;

@@ -9,7 +9,7 @@ public static class IgnoreReports
     public static string Done(string pattern, IgnoreAddOutcome outcome) => outcome switch
     {
         IgnoreAddOutcome.AlreadyListed =>
-            $"{pattern} is already in {IgnoreWriter.FileName}: a later line may re-include it, or the file is tracked",
+            $"{pattern} is already in {IgnoreWriter.FileName}: a later line may re-include it",
         _ => $"Added {pattern} to {IgnoreWriter.FileName}",
     };
 

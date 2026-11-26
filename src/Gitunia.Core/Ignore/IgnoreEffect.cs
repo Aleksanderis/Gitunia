@@ -4,8 +4,8 @@ using Gitunia.Git.Repositories.Models;
 
 namespace Gitunia.Core.Ignore;
 
-/// <summary>A change of <c>.gitignore</c>. Each posts one result <see cref="IgnoreCommand"/>, after the status of the tab
-/// has been read again; none changes state itself.</summary>
+/// <summary>A change of <c>.gitignore</c>. Each posts one result <see cref="IgnoreCommand"/>, after the status of
+/// the tab has been read again; none changes state itself.</summary>
 public abstract record IgnoreEffect : OperationEffect
 {
     private protected IgnoreEffect(TabId tabId, RepositoryLocation location)
