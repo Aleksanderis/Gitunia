@@ -71,8 +71,12 @@ public sealed class FakeGraphSession(TabId tabId) : IGraphSession, IDisposable
         LoadFinished?.Invoke();
     }
 
-    public void ReplaceGraph(IReadOnlyList<GraphEntry> entries, int? truncatedTotal = null)
+    /// <summary>Whether the last replacement asked the view to show the newest commit.</summary>
+    public bool ShowedNewest { get; private set; }
+
+    public void ReplaceGraph(IReadOnlyList<GraphEntry> entries, int? truncatedTotal = null, bool showsNewest = false)
     {
+        ShowedNewest = showsNewest;
         TruncatedTotal = truncatedTotal;
         IsLoading = false;
         _graph.Replace(entries);

@@ -5,6 +5,7 @@ using Gitunia.Core.Graph;
 using Gitunia.Core.Text;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Repositories;
+using Gitunia.Git;
 using Gitunia.Git.Config;
 using Gitunia.Git.Operations;
 using Gitunia.Git.Operations.Models;
@@ -54,6 +55,7 @@ public sealed class TabRefresher : IDisposable, IPollTarget
     private RepositoryChangeKinds _pending;
     private bool _forceGraph;
     private bool _announce;
+    private bool _scrollToNew;
     private bool _isOwnRequest;
     private bool _isReady;
     private bool _sawChange;
@@ -144,8 +146,10 @@ public sealed class TabRefresher : IDisposable, IPollTarget
     public void CheckNow() => _poller?.CheckNow();
 
     /// <summary>Manual refresh: reads everything and reloads the graph; <paramref name="announce"/> false keeps the status bar as it is unless it fails.</summary>
-    public void RefreshNow(bool announce = true)
+    /// <param name="scrollToNewCommits">After a fetch: when the reloaded graph holds commits the old one did not, the list shows the newest one.</param>
+    public void RefreshNow(bool announce = true, bool scrollToNewCommits = false)
     {
+        _scrollToNew |= scrollToNewCommits;
         _announce = announce;
         _isOwnRequest = true;
         Request(RepositoryChangeKinds.All, true);
@@ -225,6 +229,8 @@ public sealed class TabRefresher : IDisposable, IPollTarget
         _announce = false;
         var isOwn = _isOwnRequest;
         _isOwnRequest = false;
+        var scrollToNew = _scrollToNew;
+        _scrollToNew = false;
         var reloadGraph = _forceGraph || (_snapshot is null && (_sawChange || _watcher?.IsStale == true));
         _pending = RepositoryChangeKinds.None;
         _forceGraph = false;
@@ -243,7 +249,10 @@ public sealed class TabRefresher : IDisposable, IPollTarget
         var isCapped = _session.IsTruncated;
         var needsRows = !reloadGraph && !isCapped && (previous is null || ReadsRefs(kinds));
         IReadOnlyList<GraphEntry> previousRows = needsRows ? _session.Graph.ToArray() : [];
-        _tasks.Run(() => RefreshAsync(previous, previousRows, isCapped, kinds, reloadGraph, isManual, isOwn, token));
+
+        // Only after a fetch: the commits shown now, to tell later whether the reload holds one more (a copy, like the rows above).
+        var knownIds = scrollToNew ? KnownIds(_session.Graph) : null;
+        _tasks.Run(() => RefreshAsync(previous, previousRows, isCapped, kinds, reloadGraph, isManual, isOwn, knownIds, token));
     }
 
     private async Task RefreshAsync(
@@ -254,6 +263,7 @@ public sealed class TabRefresher : IDisposable, IPollTarget
         bool reloadGraph,
         bool isManual,
         bool isOwn,
+        HashSet<ObjectId>? knownIds,
         CancellationToken token)
     {
         try
@@ -288,6 +298,10 @@ public sealed class TabRefresher : IDisposable, IPollTarget
             if (graphChanged)
             {
                 reload = await _graphLoader.ReloadAsync(_location, previousRows, isCapped, token).ConfigureAwait(false);
+                if (knownIds is not null && reload.Entries.Any(entry => !knownIds.Contains(entry.Id)))
+                {
+                    reload = reload with { HasNewCommits = true };
+                }
             }
 
             _ui.Post(() =>
@@ -384,7 +398,7 @@ public sealed class TabRefresher : IDisposable, IPollTarget
 
         if (reload is not null)
         {
-            _session.ReplaceGraph(reload.Entries, reload.TruncatedTotal);
+            _session.ReplaceGraph(reload.Entries, reload.TruncatedTotal, reload.HasNewCommits);
             GraphReloaded?.Invoke(reload);
         }
 
@@ -417,6 +431,17 @@ public sealed class TabRefresher : IDisposable, IPollTarget
         {
             action();
         }
+    }
+
+    private static HashSet<ObjectId> KnownIds(CommitGraph graph)
+    {
+        var ids = new HashSet<ObjectId>(graph.Count);
+        for (var index = 0; index < graph.Count; index++)
+        {
+            ids.Add(graph[index].Id);
+        }
+
+        return ids;
     }
 
     private void Fail(Exception exception, RepositoryChangeKinds kinds, bool reloadGraph, bool isManual)

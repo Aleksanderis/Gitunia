@@ -7,4 +7,4 @@ namespace Gitunia.App.Loading.Graph;
 /// <param name="ReusedCount">Rows reused from the previous graph (0 after a full read).</param>
 /// <param name="TruncatedTotal">The commits in the whole log when the read stopped at the soft row limit; null when
 /// it read everything.</param>
-public sealed record GraphReload(List<GraphEntry> Entries, int ReusedCount, int? TruncatedTotal = null);
+public sealed record GraphReload(List<GraphEntry> Entries, int ReusedCount, int? TruncatedTotal = null, bool HasNewCommits = false);

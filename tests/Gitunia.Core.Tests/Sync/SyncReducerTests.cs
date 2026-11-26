@@ -181,7 +181,7 @@ public class SyncReducerTests
 
         var post = Assert.IsType<PostStatusEffect>(update.Effects[0]);
         Assert.Equal(("Fetched all remotes", StatusSeverity.Info), (post.Text, post.Severity));
-        Assert.Equal(new RefreshTabEffect(Tab), update.Effects[1]);
+        Assert.Equal(new RefreshTabEffect(Tab, false, true), update.Effects[1]);
         Assert.Null(update.State);
     }
 
