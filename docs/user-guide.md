@@ -96,6 +96,18 @@ Full table: [keymap.md](keymap.md). To rebind: [customising-keys.md](customising
 - **Blame:** `<space>gb` on a file in the details pane (the file is read at the shown commit) or in the Changes view lists (the working tree file). Each line shows the short id (`^` marks a boundary commit), author and age; `Enter` closes the view and selects the line's commit in the graph, `/` searches, `Alt-p` blames the file at the parent of the line's commit (`Esc` steps back), `<space>H` opens the history of the file at the blamed revision (the view closes), `<space>L` opens the history of the highlighted line, starting at the commit that wrote it (an uncommitted line has none), `Alt-w`/`Alt-m`/`Alt-c` or the `-w`, `-M` and `-C` chips under the view toggle git's switches of those names (shown in the footer; `blame.ignoreRevsFile` from your git config is honored and announced), `v` or a drag from the gutter selects whole lines, `Alt-v` or a drag from the code selects characters (`h` `l` `w` `b` `0` `$`, `iw` and `il`, or a double or triple click, select a word or a line), `y` copies the code without the gutter and `<space>L` takes the selected lines for the line history, `Esc` closes. The lines show at once and the commit columns fill in while git runs (`blaming 40%` in the footer). If your git config sets `diff.algorithm = histogram`, blame of a large file can take many seconds, because git's blame uses that algorithm; Gitunia keeps your config, so the view stays usable meanwhile.
 - **Undo:** destructive actions ask first and say in plain words whether and how they can be undone. The exact restore command of the last actions is in the message history (`<space>m`); the reflog (`<space>l`) restores earlier states.
 
+## Fetch and refresh
+
+Gitunia never runs `git fetch` (or pull or push) by itself. Fetch starts only when you press `<space>f` (the remote of the current branch), click the fetch-all chip (all remotes), or use pull and push; `<space>rc` cancels a running one. There is no timer, focus or startup fetch, so no network access or credential prompt happens in the background.
+
+What Gitunia does refresh on its own is local state, by reading the repository with git (no network):
+
+- **Active tab:** the git directory is checked every 2 s and the working tree status every 5 s, so changes from outside Gitunia (a `git fetch` in another terminal, a commit, an edit) show up within seconds. With `"watchFiles": true` a file watcher does this instead.
+- **Active tab, terminal not focused:** the same checks keep running; Gitunia does not pause when the terminal loses focus. When the terminal gets focus again (on terminals that report focus) it checks at once.
+- **Other tabs:** only `git status` is read, every 30 s, for the markers on the tab bar. Branches and the graph of a tab are checked when you switch to it.
+
+`<space>or` refreshes by hand. Details: [git-layer.md](git-layer.md#refresh).
+
 ## Configuration
 
 - **Config:** `config.json` in `~/.config/gitunia`. Set `$XDG_CONFIG_HOME` to override.
