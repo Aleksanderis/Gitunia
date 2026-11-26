@@ -223,14 +223,14 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
     TabSession? ITabSessions.Find(TabId tabId) => SessionOf(tabId);
 
     /// <summary>Manual refresh of a tab: reads everything again and reloads its graph. False when the tab has no watcher yet (not loaded).</summary>
-    public bool Refresh(TabId tabId, bool announce = true)
+    public bool Refresh(TabId tabId, bool announce = true, bool scrollToNewCommits = false)
     {
         if (!_refreshers.TryGetValue(tabId, out var refresher))
         {
             return false;
         }
 
-        refresher.RefreshNow(announce);
+        refresher.RefreshNow(announce, scrollToNewCommits);
         if (announce)
         {
             ReloadIssueLinks(tabId);
@@ -461,7 +461,7 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
                 _reflog.Handle(read, _cancellation.TokenOf(read.TabId));
                 break;
             case RefreshTabEffect refresh:
-                Refresh(refresh.TabId, refresh.Announce);
+                Refresh(refresh.TabId, refresh.Announce, refresh.ScrollToNewCommits);
                 break;
             case ReflogEntryActionEffect entry:
                 _shell.Flow.StartReflogEntryAction(entry);

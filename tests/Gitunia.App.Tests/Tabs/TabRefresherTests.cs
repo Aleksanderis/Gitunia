@@ -374,6 +374,26 @@ public class TabRefresherTests
     }
 
     [Fact]
+    public async Task GivenFetchRefresh_WhenItBringsNewCommits_ThenTheTabSelectsTheNewestCommitAtTheTop()
+    {
+        using var repository = TestRepository.Create();
+        repository.Commit("root", new TestFile("a.txt", "1"));
+        repository.Commit("second", new TestFile("b.txt", "2"));
+        using var harness = await Harness.LoadAsync(repository);
+        await harness.Pump.RunUntilAsync(() => harness.Tab.Status is not null && !harness.Refresher.IsRefreshing);
+        harness.Host.Dispatch(new TabCommand(harness.TabId, new SelectCommitCommand(harness.Session.Graph[1].Id)));
+        harness.Host.Dispatch(new TabCommand(harness.TabId, new ScrollToCommand(1)));
+
+        repository.Commit("third", new TestFile("c.txt", "3"));
+        harness.Refresher.RefreshNow(false, true);
+
+        await harness.Pump.RunUntilAsync(() => harness.Reloads.Count == 1);
+        var view = harness.Host.Workspace.FindTab(harness.TabId)!.View;
+        Assert.Equal(harness.Session.Graph[0].Id, view.SelectedCommit);
+        Assert.Equal(0, view.ScrollOffset);
+    }
+
+    [Fact]
     public async Task GivenChangeBeforeTheBaseline_WhenTheBaselineRuns_ThenTheGraphIsReadInFull()
     {
         using var repository = TestRepository.Create();

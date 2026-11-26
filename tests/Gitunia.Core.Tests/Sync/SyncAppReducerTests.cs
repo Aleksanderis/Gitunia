@@ -46,6 +46,20 @@ public class SyncAppReducerTests
         Assert.Null(finished.Sync);
     }
 
+    [Theory]
+    [InlineData(SyncKind.Fetch, true)]
+    [InlineData(SyncKind.FetchAll, true)]
+    [InlineData(SyncKind.Pull, false)]
+    public void GivenATransfer_WhenItSucceeds_ThenOnlyAFetchAsksTheListToShowNewCommits(SyncKind kind, bool expected)
+    {
+        var (state, tabId) = Opened();
+        var started = AppReducer.Reduce(state, new SyncRequested(tabId, kind));
+
+        var done = AppReducer.Reduce(started.State, new SyncSucceeded(tabId, "done"));
+
+        Assert.Equal(expected, done.Effects.OfType<RefreshTabEffect>().Single().ScrollToNewCommits);
+    }
+
     [Fact]
     public void GivenAFetchRuns_WhenFetchingAgain_ThenItIsRefusedAndTheFirstKeepsRunning()
     {

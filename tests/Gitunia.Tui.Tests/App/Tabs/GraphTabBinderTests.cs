@@ -174,6 +174,66 @@ public class GraphTabBinderTests
     }
 
     [Fact]
+    public async Task GivenCursorDeepInHistory_WhenAFetchBringsNewCommits_ThenTheListScrollsToTheTopAndSelectsTheNewestCommit()
+    {
+        using var repository = NumberedCommits(30);
+        using var harness = await Harness.LoadAsync(repository);
+        harness.Graph.SelectedItem = 20;
+        harness.Graph.Viewport = harness.Graph.Viewport with { Y = 15 };
+        harness.Host.Dispatch(new TabCommand(harness.TabId, new SelectCommitCommand(harness.Session.Graph[20].Id)));
+        var replaced = 0;
+        harness.Session.GraphReplaced += () => replaced++;
+
+        repository.Commit("new", new TestFile("a.txt", "new"));
+        harness.Effects.Refresh(harness.TabId, false, true);
+        await harness.Pump.RunUntilAsync(() => replaced == 1);
+
+        var view = harness.Host.Workspace.FindTab(harness.TabId)!.View;
+        Assert.Equal(0, harness.Graph.SelectedItem);
+        Assert.Equal(0, harness.Graph.Viewport.Y);
+        Assert.Equal(harness.Session.Graph[0].Id, view.SelectedCommit);
+        Assert.Equal(0, view.ScrollOffset);
+    }
+
+    [Fact]
+    public async Task GivenCursorDeepInHistory_WhenAFetchBringsNoNewCommits_ThenTheScrollPositionAndSelectionStay()
+    {
+        using var repository = NumberedCommits(30);
+        using var harness = await Harness.LoadAsync(repository);
+        var selected = harness.Session.Graph[20].Id;
+        harness.Graph.SelectedItem = 20;
+        harness.Graph.Viewport = harness.Graph.Viewport with { Y = 15 };
+        harness.Host.Dispatch(new TabCommand(harness.TabId, new SelectCommitCommand(selected)));
+        var replaced = 0;
+        harness.Session.GraphReplaced += () => replaced++;
+
+        harness.Effects.Refresh(harness.TabId, false, true);
+        await harness.Pump.RunUntilAsync(() => replaced == 1);
+
+        Assert.Equal(20, harness.Graph.SelectedItem);
+        Assert.Equal(15, harness.Graph.Viewport.Y);
+        Assert.Equal(selected, harness.Host.Workspace.FindTab(harness.TabId)!.View.SelectedCommit);
+    }
+
+    [Fact]
+    public async Task GivenCursorDeepInHistory_WhenOtherRefreshBringsNewCommits_ThenTheCursorStaysOnItsCommit()
+    {
+        using var repository = NumberedCommits(30);
+        using var harness = await Harness.LoadAsync(repository);
+        var selected = harness.Session.Graph[20].Id;
+        harness.Graph.SelectedItem = 20;
+        harness.Host.Dispatch(new TabCommand(harness.TabId, new SelectCommitCommand(selected)));
+        var replaced = 0;
+        harness.Session.GraphReplaced += () => replaced++;
+
+        repository.Commit("new", new TestFile("a.txt", "new"));
+        harness.Effects.Refresh(harness.TabId);
+        await harness.Pump.RunUntilAsync(() => replaced == 1);
+
+        Assert.Equal(selected, harness.Session.Graph[harness.Graph.SelectedItem!.Value].Id);
+    }
+
+    [Fact]
     public async Task GivenCursorOnHeadScrolledDown_WhenACommitArrivesOnTop_ThenTheListScrollsBackToTheTop()
     {
         using var repository = NumberedCommits(30, 12);

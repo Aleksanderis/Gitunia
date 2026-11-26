@@ -49,6 +49,9 @@ public interface IGraphSession
     /// <summary>Loading the rest of a cut log stopped early; the log stays cut and can be requested again.</summary>
     void EndExpansion();
 
-    /// <summary>Swaps in a refreshed log in one step; <paramref name="truncatedTotal"/> is set if it was cut.</summary>
-    void ReplaceGraph(IReadOnlyList<GraphEntry> entries, int? truncatedTotal = null);
+    /// <summary>
+    /// Swaps in a refreshed log in one step; <paramref name="truncatedTotal"/> is set if it was cut. With
+    /// <paramref name="showsNewest"/> the view scrolls to the top and selects the newest commit instead of keeping its place.
+    /// </summary>
+    void ReplaceGraph(IReadOnlyList<GraphEntry> entries, int? truncatedTotal = null, bool showsNewest = false);
 }

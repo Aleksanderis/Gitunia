@@ -32,6 +32,8 @@ public static class SyncReducer
     /// <summary>Shown when a confirm cannot be displayed (the screen is too small).</summary>
     public static readonly string TooSmallNotice = $"The screen is too small to ask: {UiTexts.NothingWas("changed")}";
 
+    private const string FetchNoun = "Fetch";
+
     private const string PlainPushDone = "Pushed the current branch";
 
     /// <summary>Applies a command and returns the new state of the tab's transfer and the effects to run.</summary>
@@ -87,9 +89,9 @@ public static class SyncReducer
         switch (request.Kind)
         {
             case SyncKind.Fetch:
-                return Transfer(new FetchEffect(context.TabId, context.Location, false), "Fetching", "Fetch");
+                return Transfer(new FetchEffect(context.TabId, context.Location, false), "Fetching", FetchNoun);
             case SyncKind.FetchAll:
-                return Transfer(new FetchEffect(context.TabId, context.Location, true), "Fetching", "Fetch");
+                return Transfer(new FetchEffect(context.TabId, context.Location, true), "Fetching", FetchNoun);
             case SyncKind.Pull:
                 return Transfer(new PullEffect(context.TabId, context.Location), "Pulling", "Pull");
             case SyncKind.PushTo:
@@ -117,10 +119,11 @@ public static class SyncReducer
     internal static SyncUpdate Transfer(SyncEffect effect, string activity, string noun) =>
         new(new SyncState(activity, noun, null, false), [effect]);
 
+    // Only a fetch asks the list to show the commits it brought; a pull follows HEAD already and a push brings none.
     private static SyncUpdate Succeeded(SyncSucceeded succeeded, SyncContext context) =>
         Ended([
             new PostStatusEffect(succeeded.Text, StatusSeverity.Info, succeeded.Detail),
-            new RefreshTabEffect(context.TabId),
+            new RefreshTabEffect(context.TabId, false, context.State?.Noun == FetchNoun),
         ]);
 
     private static SyncUpdate Cancel(SyncContext context)

@@ -188,8 +188,14 @@ public class TabSession : IGraphSession, IDisposable
         Complete();
     }
 
-    /// <summary>Swaps in a refreshed log in one step; <paramref name="truncatedTotal"/> is set if it was cut.</summary>
-    public void ReplaceGraph(IReadOnlyList<GraphEntry> entries, int? truncatedTotal = null)
+    /// <summary>True while <see cref="GraphReplaced"/> runs for a replacement that brought new commits after a fetch: the view shows the newest one.</summary>
+    public bool ReplaceShowsNewest { get; private set; }
+
+    /// <summary>
+    /// Swaps in a refreshed log in one step; <paramref name="truncatedTotal"/> is set if it was cut. With
+    /// <paramref name="showsNewest"/> the view scrolls to the top and selects the newest commit instead of keeping its place.
+    /// </summary>
+    public void ReplaceGraph(IReadOnlyList<GraphEntry> entries, int? truncatedTotal = null, bool showsNewest = false)
     {
         GraphReplacing?.Invoke();
         LoadError = string.Empty;
@@ -200,7 +206,16 @@ public class TabSession : IGraphSession, IDisposable
         GraphVersion++;
         ShowsCutMarker = IsTruncated;
         OnGraphRowsChanged();
-        GraphReplaced?.Invoke();
+        ReplaceShowsNewest = showsNewest;
+        try
+        {
+            GraphReplaced?.Invoke();
+        }
+        finally
+        {
+            ReplaceShowsNewest = false;
+        }
+
         Changed?.Invoke();
     }
 

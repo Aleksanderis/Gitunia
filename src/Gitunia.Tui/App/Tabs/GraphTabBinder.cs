@@ -189,6 +189,13 @@ public sealed class GraphTabBinder(
             return;
         }
 
+        if (session.ReplaceShowsNewest && session.Graph.Count > 0)
+        {
+            ShowNewest(session);
+
+            return;
+        }
+
         var count = session.Source.Count;
         var wanted = host.Workspace.ActiveTab?.View.SelectedCommit;
         var headIndex = _followsHeadBeforeReplace ? session.Graph.HeadIndex() : -1;
@@ -232,6 +239,23 @@ public sealed class GraphTabBinder(
 
     private static int IndexOfSelected(TerminalTabSession session, ObjectId? wanted) =>
         wanted is { } commit ? session.Graph.IndexOf(commit) : -1;
+
+    // A fetch brought commits: the list shows the top and the selection is the newest commit, so list and selection agree.
+    private void ShowNewest(TerminalTabSession session)
+    {
+        IsSuspended = true;
+        try
+        {
+            _graph.SelectedItem = ScreenLayout.ReservedLeadingRows;
+            _graph.Viewport = _graph.Viewport with { Y = 0 };
+        }
+        finally
+        {
+            IsSuspended = false;
+        }
+
+        SelectAndRemember(session.Graph[0].Id, 0);
+    }
 
     private void SelectAndRemember(ObjectId commit, int top)
     {
