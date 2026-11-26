@@ -56,6 +56,7 @@ public sealed class TabRefresher : IDisposable, IPollTarget
     private bool _forceGraph;
     private bool _announce;
     private bool _scrollToNew;
+    private volatile bool _isFetching;
     private bool _isOwnRequest;
     private bool _isReady;
     private bool _sawChange;
@@ -145,10 +146,21 @@ public sealed class TabRefresher : IDisposable, IPollTarget
     /// <summary>The terminal gained focus: polls now, not at the next tick. No effect with file watching.</summary>
     public void CheckNow() => _poller?.CheckNow();
 
+    /// <summary>
+    /// A fetch of this tab started: until the refresh that follows it (or <see cref="FetchFailed"/>), a reload that finds
+    /// new commits scrolls the list to the top too, so a poll that sees the new refs before the fetch has ended does
+    /// not make the fetch lose its scroll. Any thread.
+    /// </summary>
+    public void FetchStarted() => _isFetching = true;
+
+    /// <summary>A fetch of this tab failed without a refresh after it: reloads go back to keeping the scroll. Any thread.</summary>
+    public void FetchFailed() => _isFetching = false;
+
     /// <summary>Manual refresh: reads everything and reloads the graph; <paramref name="announce"/> false keeps the status bar as it is unless it fails.</summary>
     /// <param name="scrollToNewCommits">After a fetch: when the reloaded graph holds commits the old one did not, the list scrolls to the top; the selection stays.</param>
     public void RefreshNow(bool announce = true, bool scrollToNewCommits = false)
     {
+        _isFetching = false;
         _scrollToNew |= scrollToNewCommits;
         _announce = announce;
         _isOwnRequest = true;
@@ -229,7 +241,7 @@ public sealed class TabRefresher : IDisposable, IPollTarget
         _announce = false;
         var isOwn = _isOwnRequest;
         _isOwnRequest = false;
-        var scrollToNew = _scrollToNew;
+        var scrollToNew = _scrollToNew || _isFetching;
         _scrollToNew = false;
         var reloadGraph = _forceGraph || (_snapshot is null && (_sawChange || _watcher?.IsStale == true));
         _pending = RepositoryChangeKinds.None;

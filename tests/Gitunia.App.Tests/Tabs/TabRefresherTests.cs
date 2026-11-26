@@ -395,6 +395,47 @@ public class TabRefresherTests
     }
 
     [Fact]
+    public async Task GivenAFetchRuns_WhenAPollSeesTheNewCommitsFirst_ThenTheTabStillScrollsToTheTopAndKeepsTheSelection()
+    {
+        using var repository = TestRepository.Create();
+        repository.Commit("root", new TestFile("a.txt", "1"));
+        repository.Commit("second", new TestFile("b.txt", "2"));
+        using var harness = await Harness.LoadAsync(repository);
+        await harness.Pump.RunUntilAsync(() => harness.Tab.Status is not null && !harness.Refresher.IsRefreshing);
+        var selected = harness.Session.Graph[1].Id;
+        harness.Host.Dispatch(new TabCommand(harness.TabId, new SelectCommitCommand(selected)));
+        harness.Host.Dispatch(new TabCommand(harness.TabId, new ScrollToCommand(1)));
+        harness.Refresher.FetchStarted();
+
+        repository.Commit("third", new TestFile("c.txt", "3"));
+        harness.Refresher.CheckNow();
+
+        await harness.Pump.RunUntilAsync(() => harness.Reloads.Count == 1);
+        var view = harness.Host.Workspace.FindTab(harness.TabId)!.View;
+        Assert.True(harness.Reloads[0].HasNewCommits);
+        Assert.Equal(selected, view.SelectedCommit);
+        Assert.Equal(0, view.ScrollOffset);
+    }
+
+    [Fact]
+    public async Task GivenAFetchFailed_WhenACommitArrivesLater_ThenTheScrollIsKept()
+    {
+        using var repository = TestRepository.Create();
+        repository.Commit("root", new TestFile("a.txt", "1"));
+        repository.Commit("second", new TestFile("b.txt", "2"));
+        using var harness = await Harness.LoadAsync(repository);
+        await harness.Pump.RunUntilAsync(() => harness.Tab.Status is not null && !harness.Refresher.IsRefreshing);
+        harness.Refresher.FetchStarted();
+        harness.Refresher.FetchFailed();
+
+        repository.Commit("third", new TestFile("c.txt", "3"));
+        harness.Refresher.CheckNow();
+
+        await harness.Pump.RunUntilAsync(() => harness.Reloads.Count == 1);
+        Assert.False(harness.Reloads[0].HasNewCommits);
+    }
+
+    [Fact]
     public async Task GivenChangeBeforeTheBaseline_WhenTheBaselineRuns_ThenTheGraphIsReadInFull()
     {
         using var repository = TestRepository.Create();

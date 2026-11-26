@@ -1,4 +1,5 @@
 using Gitunia.App.Tabs;
+using Gitunia.App.Tabs.Models;
 using Gitunia.Tui.Views;
 using Gitunia.Tui.Tests.Fakes;
 using Gitunia.App.Status;
@@ -421,6 +422,8 @@ public class GraphTabBinderTests
                 {
                     Statuses = new StatusReporter(new Dispatcher(AppState.Empty)),
                     Sessions = registry,
+                    // Only the refreshes a test asks for: a poll that reloads first would take the new commits unnoticed.
+                    Poll = new PollOptions(TimeSpan.FromHours(1), TimeSpan.FromHours(1), TimeSpan.FromHours(1), 1),
                 });
             var graph = new ListView { Width = 40, Height = 10 };
             var binder = new GraphTabBinder(
@@ -440,6 +443,10 @@ public class GraphTabBinderTests
             binder.Sync();
             var harness = new Harness(host, effects, tabId, graph, pump, binder);
             await pump.RunUntilAsync(() => !harness.Session.IsLoading);
+
+            // The baseline read of the tab has run: a commit made now is seen by the refresh a test asks for, not by it.
+            await pump.RunUntilAsync(() => host.Workspace.FindTab(tabId)!.Status is not null);
+
             return harness;
         }
 
