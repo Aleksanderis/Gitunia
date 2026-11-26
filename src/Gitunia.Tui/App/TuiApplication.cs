@@ -94,6 +94,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities det
             .Start(host.Workspace.Tabs, CancellationToken.None);
         shell.Effects.StatusPoller.Start();
         shell.Effects.WorktreePoller.Start();
+        shell.Effects.AutoFetch.Start();
         if (location is not null)
         {
             host.Dispatch(new OpenRepositoryCommand(location));

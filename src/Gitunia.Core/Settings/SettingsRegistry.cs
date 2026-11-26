@@ -35,6 +35,12 @@ public static class SettingsRegistry
     /// <summary>The id of the update check setting (#1292).</summary>
     public const string UpdateCheckId = "update-check";
 
+    /// <summary>The id of the background fetch setting (#1509).</summary>
+    public const string AutoFetchId = "auto-fetch";
+
+    /// <summary>The id of the background fetch interval setting (#1509).</summary>
+    public const string AutoFetchMinutesId = "auto-fetch-minutes";
+
     /// <summary>The id of the tab branch setting.</summary>
     public const string ShowBranchId = "tabs-show-branch";
 
@@ -89,6 +95,28 @@ public static class SettingsRegistry
             "The folders the repository picker scans for repositories. An empty list turns the scan off.",
             "the conventional folders",
             []),
+        new SettingDefinition(
+            AutoFetchId,
+            SettingCategory.Git,
+            "Fetch in the background",
+            SettingControl.Toggle,
+            ["autoFetch"],
+            "The tab you are looking at fetches the remote of its current branch on a timer, so new commits show up "
+                + "without <space>f. It never asks for a password, skips a round while anything else runs in the tab, "
+                + "backs off when the network fails, pauses while the terminal is unfocused and never touches other tabs.",
+            "on",
+            []),
+        new SettingDefinition(
+            AutoFetchMinutesId,
+            SettingCategory.Git,
+            "Background fetch interval (minutes)",
+            SettingControl.Number,
+            ["autoFetchMinutes"],
+            "The minutes between two background fetches of the active tab (1 to 120).",
+            "5",
+            [],
+            ConfigOptions.MinimumAutoFetchMinutes,
+            ConfigOptions.MaximumAutoFetchMinutes),
         new SettingDefinition(
             ShowBranchId,
             SettingCategory.Tabs,

@@ -30,6 +30,8 @@ public sealed class FeaturePipeline : IDisposable
 
     public Dispatcher Host { get; }
 
+    public EffectRunner<TabSession> Runner => _runner;
+
     public UiPump Pump { get; }
 
     public StatusReporter Statuses { get; }

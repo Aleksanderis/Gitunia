@@ -146,7 +146,7 @@ public sealed class TabRefresher : IDisposable, IPollTarget
     public void CheckNow() => _poller?.CheckNow();
 
     /// <summary>Manual refresh: reads everything and reloads the graph; <paramref name="announce"/> false keeps the status bar as it is unless it fails.</summary>
-    /// <param name="scrollToNewCommits">After a fetch: when the reloaded graph holds commits the old one did not, the list shows the newest one.</param>
+    /// <param name="scrollToNewCommits">After a fetch: when the reloaded graph holds commits the old one did not, the list scrolls to the top; the selection stays.</param>
     public void RefreshNow(bool announce = true, bool scrollToNewCommits = false)
     {
         _scrollToNew |= scrollToNewCommits;
@@ -401,10 +401,9 @@ public sealed class TabRefresher : IDisposable, IPollTarget
             _session.ReplaceGraph(reload.Entries, reload.TruncatedTotal, reload.HasNewCommits);
             GraphReloaded?.Invoke(reload);
 
-            // The saved selection and scroll of the tab follow the newest commit even when the tab is not shown (the view only does it for the shown one).
+            // The saved scroll of the tab goes to the top even when the tab is not shown; its selected commit stays.
             if (reload.HasNewCommits && reload.Entries.Count > 0)
             {
-                _host.Dispatch(new TabCommand(tabId, new SelectCommitCommand(reload.Entries[0].Id)));
                 _host.Dispatch(new TabCommand(tabId, new ScrollToCommand(0)));
             }
         }

@@ -21,11 +21,11 @@ public static class TerminalFocusReporting
         OperatingSystem.IsLinux() || OperatingSystem.IsMacOS() || OperatingSystem.IsWindows();
 
     /// <summary>
-    /// Starts reporting on <paramref name="driver"/>; <paramref name="gained"/> runs on the input thread when the
-    /// terminal gains focus. Returns false when unsupported or the driver has no ANSI parser. Call <see cref="Stop"/>
+    /// Starts reporting on <paramref name="driver"/>; <paramref name="gained"/> and <paramref name="lost"/> run on the
+    /// input thread when the terminal gains or loses focus. Returns false when unsupported or the driver has no ANSI parser. Call <see cref="Stop"/>
     /// before the driver is disposed.
     /// </summary>
-    public static bool Start(IDriver driver, Action gained)
+    public static bool Start(IDriver driver, Action gained, Action lost)
     {
         if (!IsSupported || driver.GetInputProcessor().GetParser() is not { } parser)
         {
@@ -33,8 +33,7 @@ public static class TerminalFocusReporting
         }
 
         parser.ExpectResponse("I", string.Empty, _ => gained(), static () => { }, true);
-        // Focus-out needs no action; registering it only keeps the sequence from turning into key events.
-        parser.ExpectResponse("O", string.Empty, static _ => { }, static () => { }, true);
+        parser.ExpectResponse("O", string.Empty, _ => lost(), static () => { }, true);
         driver.WriteRaw(Enable);
 
         return true;

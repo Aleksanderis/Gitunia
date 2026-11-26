@@ -25,7 +25,8 @@ public abstract record SyncEffect : OperationEffect
 /// <param name="TabId">The tab.</param>
 /// <param name="Location">Where the operation runs.</param>
 /// <param name="AllRemotes">Fetch every remote.</param>
-public sealed record FetchEffect(TabId TabId, RepositoryLocation Location, bool AllRemotes)
+/// <param name="IsBackground">The background timer asked for it: a failure never offers the terminal retry.</param>
+public sealed record FetchEffect(TabId TabId, RepositoryLocation Location, bool AllRemotes, bool IsBackground = false)
     : SyncEffect(TabId, Location);
 
 /// <summary>Pull the current branch, fast-forward only.</summary>

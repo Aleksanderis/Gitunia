@@ -51,7 +51,8 @@ public interface IGraphSession
 
     /// <summary>
     /// Swaps in a refreshed log in one step; <paramref name="truncatedTotal"/> is set if it was cut. With
-    /// <paramref name="showsNewest"/> the view scrolls to the top and selects the newest commit instead of keeping its place.
+    /// <paramref name="showsNewest"/> the view scrolls to the top while the selected commit
+    /// stays selected, instead of keeping the selection on its screen row.
     /// </summary>
     void ReplaceGraph(IReadOnlyList<GraphEntry> entries, int? truncatedTotal = null, bool showsNewest = false);
 }

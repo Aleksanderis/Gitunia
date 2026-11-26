@@ -18,6 +18,8 @@ public static class OptionsConfigurator
     private const string WatchFilesKey = "watchFiles";
     private const string CopyOnSelectKey = "copyOnSelect";
     private const string UpdateCheckKey = "updateCheck";
+    private const string AutoFetchKey = "autoFetch";
+    private const string AutoFetchMinutesKey = "autoFetchMinutes";
     private const string LabelCapsKey = "labelCaps";
     private const string LaneStyleKey = "laneStyle";
     private const string CommandLevelKey = "commandLevel";
@@ -51,7 +53,9 @@ public static class OptionsConfigurator
             ParseCommandLevel(document.CommandLevel, problems),
             ParseCopyOnSelect(document.CopyOnSelect, problems),
             ParseUpdateCheck(document.UpdateCheck, problems),
-            ParseLaneStyle(document.LaneStyle, problems));
+            ParseLaneStyle(document.LaneStyle, problems),
+            ParseAutoFetch(document.AutoFetch, problems),
+            ParseAutoFetchMinutes(document.AutoFetchMinutes, problems));
 
     /// <summary>
     /// The <c>commandLevel</c> option (#839): everyday (default), advanced or advanced+, any case; anything else is
@@ -249,6 +253,50 @@ public static class OptionsConfigurator
         problems.Add(new ConfigProblem(UpdateCheckKey, "updateCheck must be true or false, using true"));
 
         return true;
+    }
+
+    /// <summary>The <c>autoFetch</c> flag (#1509): on unless the file says false; anything but true or false gives true.</summary>
+    public static bool ParseAutoFetch(JsonElement? value, ICollection<ConfigProblem> problems)
+    {
+        if (value is null or { ValueKind: JsonValueKind.Null })
+        {
+            return true;
+        }
+
+        if (value.Value.ValueKind is JsonValueKind.True or JsonValueKind.False)
+        {
+            return value.Value.GetBoolean();
+        }
+
+        problems.Add(new ConfigProblem(AutoFetchKey, "autoFetch must be true or false, using true"));
+
+        return true;
+    }
+
+    /// <summary>
+    /// The <c>autoFetchMinutes</c> number (#1509): a whole number from 1 to 120; anything else is reported and the
+    /// default applies.
+    /// </summary>
+    public static int ParseAutoFetchMinutes(JsonElement? value, ICollection<ConfigProblem> problems)
+    {
+        if (value is null or { ValueKind: JsonValueKind.Null })
+        {
+            return ConfigOptions.DefaultAutoFetchMinutes;
+        }
+
+        if (value.Value.ValueKind == JsonValueKind.Number
+            && value.Value.TryGetInt32(out var minutes)
+            && minutes is >= ConfigOptions.MinimumAutoFetchMinutes and <= ConfigOptions.MaximumAutoFetchMinutes)
+        {
+            return minutes;
+        }
+
+        problems.Add(new ConfigProblem(
+            AutoFetchMinutesKey,
+            $"autoFetchMinutes must be a whole number from {ConfigOptions.MinimumAutoFetchMinutes} to "
+                + $"{ConfigOptions.MaximumAutoFetchMinutes}, using {ConfigOptions.DefaultAutoFetchMinutes}"));
+
+        return ConfigOptions.DefaultAutoFetchMinutes;
     }
 
     /// <summary>The <c>watchFiles</c> flag; anything but true or false gives false.</summary>

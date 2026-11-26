@@ -190,6 +190,72 @@ public sealed class OptionsConfiguratorTests
     }
 
     [Theory]
+    [InlineData("true", true)]
+    [InlineData("false", false)]
+    [InlineData("null", true)]
+    public void GivenAValidAutoFetchValue_WhenParsing_ThenItFollowsWithoutProblems(string json, bool expected)
+    {
+        var problems = new List<ConfigProblem>();
+
+        Assert.Equal(expected, OptionsConfigurator.ParseAutoFetch(Json(json), problems));
+        Assert.Empty(problems);
+    }
+
+    [Fact]
+    public void GivenNoAutoFetchValue_WhenParsing_ThenItIsOn()
+    {
+        var problems = new List<ConfigProblem>();
+
+        Assert.True(OptionsConfigurator.ParseAutoFetch(null, problems));
+        Assert.Empty(problems);
+    }
+
+    [Fact]
+    public void GivenAWrongAutoFetchType_WhenParsing_ThenItIsOnWithAProblem()
+    {
+        var problems = new List<ConfigProblem>();
+
+        Assert.True(OptionsConfigurator.ParseAutoFetch(Json("\"off\""), problems));
+        Assert.Equal("autoFetch", Assert.Single(problems).Path);
+    }
+
+    [Theory]
+    [InlineData("1", 1)]
+    [InlineData("10", 10)]
+    [InlineData("120", 120)]
+    [InlineData("null", 5)]
+    public void GivenAValidAutoFetchMinutes_WhenParsing_ThenItIsUsedWithoutProblems(string json, int expected)
+    {
+        var problems = new List<ConfigProblem>();
+
+        Assert.Equal(expected, OptionsConfigurator.ParseAutoFetchMinutes(Json(json), problems));
+        Assert.Empty(problems);
+    }
+
+    [Theory]
+    [InlineData("0")]
+    [InlineData("121")]
+    [InlineData("2.5")]
+    [InlineData("\"5\"")]
+    [InlineData("true")]
+    public void GivenAnInvalidAutoFetchMinutes_WhenParsing_ThenTheDefaultAppliesWithAProblem(string json)
+    {
+        var problems = new List<ConfigProblem>();
+
+        Assert.Equal(5, OptionsConfigurator.ParseAutoFetchMinutes(Json(json), problems));
+        Assert.Equal("autoFetchMinutes", Assert.Single(problems).Path);
+    }
+
+    [Fact]
+    public void GivenNoAutoFetchMinutes_WhenParsing_ThenItIsFive()
+    {
+        var problems = new List<ConfigProblem>();
+
+        Assert.Equal(5, OptionsConfigurator.ParseAutoFetchMinutes(null, problems));
+        Assert.Empty(problems);
+    }
+
+    [Theory]
     [InlineData("{ \"whichKey\": \"on\" }", true)]
     [InlineData("{ \"whichKey\": \"OFF\" }", false)]
     [InlineData("{ }", true)]

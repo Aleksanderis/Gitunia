@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using Gitunia.App.Sync;
 using Gitunia.App.Tabs;
 using Gitunia.Core.Config.Models;
 using Gitunia.Tui.App.Config;
@@ -14,13 +15,15 @@ namespace Gitunia.Tui.App.Shell;
 /// <param name="registry">The open tabs, whose graphs are redrawn with new glyphs.</param>
 /// <param name="panes">The graph list and the screen to lay out again.</param>
 /// <param name="updateChecks">Starts or ends the update hint's check when its option changes.</param>
+/// <param name="autoFetch">Takes the background fetch options.</param>
 public sealed class OptionsApplier(
     LiveConfig config,
     OptionTargets targets,
     TerminalTabSessionFactory factory,
     TabSessionRegistry<TerminalTabSession> registry,
     PaneViews panes,
-    UpdateCheckStarter updateChecks)
+    UpdateCheckStarter updateChecks,
+    AutoFetchScheduler autoFetch)
 {
     /// <summary>The settings screen changed the file: the running app takes the new options at once.</summary>
     /// <param name="options">The options now in the file.</param>
@@ -33,6 +36,7 @@ public sealed class OptionsApplier(
             updateChecks.Request();
         }
 
+        autoFetch.Configure(options.AutoFetch, TimeSpan.FromMinutes(options.AutoFetchMinutes));
         ApplyGlyphs(options);
         targets.Overlays.OnOptionsChanged();
         if (!SameRoots(targets.Picker.ScanRoots, options.ScanRoots))

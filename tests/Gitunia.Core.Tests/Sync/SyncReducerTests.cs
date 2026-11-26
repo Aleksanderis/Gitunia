@@ -32,6 +32,72 @@ public class SyncReducerTests
     }
 
     [Fact]
+    public void GivenTheTimer_WhenAutoFetchIsRequested_ThenAQuietBackgroundFetchStarts()
+    {
+        var update = Reduce(new SyncRequested(Tab, SyncKind.AutoFetch));
+
+        var fetch = Assert.IsType<FetchEffect>(Assert.Single(update.Effects));
+        Assert.True(fetch.IsBackground);
+        Assert.False(fetch.AllRemotes);
+        Assert.True(update.State!.IsBackground);
+        Assert.Equal(string.Empty, update.State.ProgressLine);
+    }
+
+    [Theory]
+    [InlineData(true, false, false)]
+    [InlineData(false, true, false)]
+    [InlineData(false, false, true)]
+    public void GivenAnythingRunningOrAnOpenDialog_WhenAutoFetchIsRequested_ThenItIsSkippedWithoutAMessage(
+        bool busy,
+        bool otherBusy,
+        bool overlay)
+    {
+        var running = new SyncState("Pulling", "Pull", null, false);
+
+        var update = Reduce(
+            new SyncRequested(Tab, SyncKind.AutoFetch),
+            busy: busy,
+            otherBusy: otherBusy,
+            overlay: overlay,
+            state: busy ? running : null);
+
+        Assert.Empty(update.Effects);
+        Assert.Equal(busy ? running : null, update.State);
+    }
+
+    [Fact]
+    public void GivenABackgroundFetch_WhenItSucceeds_ThenNoMessageIsPostedAndTheListShowsNewCommits()
+    {
+        var state = new SyncState("Fetching", "Fetch", null, false, true);
+
+        var update = Reduce(new SyncSucceeded(Tab, "Fetched the remote of the current branch"), state: state);
+
+        Assert.Equal(new RefreshTabEffect(Tab, false, true), Assert.Single(update.Effects));
+        Assert.Null(update.State);
+    }
+
+    [Fact]
+    public void GivenABackgroundFetch_WhenItFails_ThenNothingIsPostedAndNoRetryIsOffered()
+    {
+        var state = new SyncState("Fetching", "Fetch", null, false, true);
+
+        var update = Reduce(new SyncFailed(Tab, "Fetch failed: offline", null, null), state: state);
+
+        Assert.Empty(update.Effects);
+        Assert.Null(update.State);
+    }
+
+    [Fact]
+    public void GivenABackgroundFetchIsCancelled_WhenTheUserCancels_ThenTheLineShowsAndTheCancelIsReported()
+    {
+        var state = new SyncState("Fetching", "Fetch", null, false, true);
+
+        var cancelling = Reduce(new SyncCancelRequested(Tab), state: state);
+
+        Assert.Equal("Fetching... (cancelling)", cancelling.State!.ProgressLine);
+    }
+
+    [Fact]
     public void GivenThePullKey_WhenRequested_ThenAPullStarts()
     {
         var update = Reduce(new SyncRequested(Tab, SyncKind.Pull));

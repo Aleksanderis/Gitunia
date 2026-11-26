@@ -161,7 +161,7 @@ public class SettingsScreenReducerTests
     public void GivenAToggleRow_WhenActivatedTwice_ThenTheChangeIsWrittenAndASecondOneWhileSavingIsRefused()
     {
         var open = Open();
-        var onToggle = Reduce(open, new SettingsActionPressed(ActionIds.ListDown, 4)).Session;
+        var onToggle = Reduce(open, new SettingsActionPressed(ActionIds.ListDown, 5)).Session;
         var entered = Reduce(onToggle, new SettingsActionPressed(ActionIds.SettingsActivate, null)).Session;
 
         var first = Reduce(entered, new SettingsActionPressed(ActionIds.SettingsToggle, null));
@@ -297,7 +297,7 @@ public class SettingsScreenReducerTests
     [Fact]
     public void GivenTheEditorRow_WhenActivated_ThenTheEditorIsOpenedAndAReturnReadsTheFileAgain()
     {
-        var onEditor = Reduce(Open(), new SettingsActionPressed(ActionIds.ListDown, 6)).Session;
+        var onEditor = Reduce(Open(), new SettingsActionPressed(ActionIds.ListDown, 7)).Session;
         var entered = Reduce(onEditor, new SettingsActionPressed(ActionIds.SettingsActivate, null)).Session;
 
         var opened = Reduce(entered, new SettingsActionPressed(ActionIds.SettingsActivate, null));

@@ -174,13 +174,14 @@ public class GraphTabBinderTests
     }
 
     [Fact]
-    public async Task GivenCursorDeepInHistory_WhenAFetchBringsNewCommits_ThenTheListScrollsToTheTopAndSelectsTheNewestCommit()
+    public async Task GivenCursorDeepInHistory_WhenAFetchBringsNewCommits_ThenTheListScrollsToTheTopAndTheSelectedCommitStays()
     {
         using var repository = NumberedCommits(30);
         using var harness = await Harness.LoadAsync(repository);
+        var selected = harness.Session.Graph[20].Id;
         harness.Graph.SelectedItem = 20;
         harness.Graph.Viewport = harness.Graph.Viewport with { Y = 15 };
-        harness.Host.Dispatch(new TabCommand(harness.TabId, new SelectCommitCommand(harness.Session.Graph[20].Id)));
+        harness.Host.Dispatch(new TabCommand(harness.TabId, new SelectCommitCommand(selected)));
         var replaced = 0;
         harness.Session.GraphReplaced += () => replaced++;
 
@@ -189,9 +190,9 @@ public class GraphTabBinderTests
         await harness.Pump.RunUntilAsync(() => replaced == 1);
 
         var view = harness.Host.Workspace.FindTab(harness.TabId)!.View;
-        Assert.Equal(0, harness.Graph.SelectedItem);
+        Assert.Equal(21, harness.Graph.SelectedItem);
         Assert.Equal(0, harness.Graph.Viewport.Y);
-        Assert.Equal(harness.Session.Graph[0].Id, view.SelectedCommit);
+        Assert.Equal(selected, view.SelectedCommit);
         Assert.Equal(0, view.ScrollOffset);
     }
 

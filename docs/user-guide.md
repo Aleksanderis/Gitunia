@@ -98,9 +98,16 @@ Full table: [keymap.md](keymap.md). To rebind: [customising-keys.md](customising
 
 ## Fetch and refresh
 
-Gitunia never runs `git fetch` (or pull or push) by itself. Fetch starts only when you ask: `<space>f` (or the fetch chip) fetches the remote of the current branch, `remote.fetch-all` in the command palette or the Remotes header menu in the sidebar fetches all remotes, and pull fetches as part of its work; `<space>rc` cancels a running one. There is no timer, focus or startup fetch, so no network access or credential prompt happens in the background.
+Fetch starts when you ask: `<space>f` (or the fetch chip) fetches the remote of the current branch, `remote.fetch-all` in the command palette or the Remotes header menu in the sidebar fetches all remotes, and pull fetches as part of its work; `<space>rc` cancels a running one. Pull and push only ever run when you ask.
 
-What Gitunia does refresh on its own is local state, by reading the repository with git (no network):
+**Background fetch.** On by default, the tab you are looking at also fetches the remote of its current branch by itself, every 5 minutes (`autoFetchMinutes`, 1 to 120; `"autoFetch": false` turns it off; both are in Settings under Git and apply at once). It is quiet and careful:
+
+- It never asks for a password or key passphrase (the same no-prompt setup as every fetch). A remote that needs credentials stops the background fetch of that tab until you fetch by hand, which shows the real error and can open the terminal for the answer.
+- Other failures (offline, a locked ref) show nothing: the wait doubles up to 30 minutes and starts over after a success.
+- Only the active tab fetches, never the others; a tab you switch to after a long time fetches at the next check. Nothing runs while the terminal is unfocused (on terminals that report focus); when it gets focus back an overdue fetch runs at once. A round is skipped while anything else runs in the tab or a dialog is open.
+- Nothing shows in the status bar. When the fetch brings new commits the commit list scrolls to the top and the selected commit stays selected; a manual fetch that brings commits does the same.
+
+Without that timer Gitunia refreshes local state on its own, by reading the repository with git (no network):
 
 - **Active tab:** the git directory is checked every 2 s and the working tree status every 5 s (longer in a big repository, where a read is slow), so changes from outside Gitunia (a `git fetch` in another terminal, a commit, an edit) show up within seconds. With `"watchFiles": true` in `config.json` (see Configuration) a file watcher does this instead.
 - **Active tab, terminal not focused:** the same checks keep running; Gitunia does not pause when the terminal loses focus. When the terminal gets focus again (on terminals that report focus) it checks at once.

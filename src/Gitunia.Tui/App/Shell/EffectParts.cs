@@ -5,6 +5,7 @@ using Gitunia.Core.Config;
 using Gitunia.App.Worktrees;
 using Gitunia.App;
 using Gitunia.App.Settings;
+using Gitunia.App.Sync;
 using Gitunia.App.Updates;
 using Gitunia.Platform.Updates;
 using Gitunia.Core.Config.Models;
@@ -41,13 +42,18 @@ public sealed class EffectParts : IDisposable
         var configWriter = new ConfigWriter(foundation.Platform.ConfigDirectory);
         Persistence = new SessionPersistence(foundation.Store, host, SaveDebounce, statuses, terminal.Invoker);
         UpdateChecks = new UpdateCheckStarter(host, terminal, foundation.Config);
+        AutoFetch = new AutoFetchScheduler(host, terminal.Invoker);
+        AutoFetch.Configure(
+            foundation.Config.Options.AutoFetch,
+            TimeSpan.FromMinutes(foundation.Config.Options.AutoFetchMinutes));
         var options = new OptionsApplier(
             foundation.Config,
             new OptionTargets(keys.Overlays, panes.Picker, terminal, screen.View),
             foundation.SessionFactory,
             foundation.Registry,
             foundation.Panes,
-            UpdateChecks);
+            UpdateChecks,
+            AutoFetch);
         var shell = new ShellRoles
         {
             Cursor = new CursorEffects(host, panes.WorkingDiff, panes.QuickJump, panes.Graph, panes.Detail),
@@ -73,6 +79,7 @@ public sealed class EffectParts : IDisposable
                 Keymap = foundation.Config.Startup.Keymap.Table,
                 UpdateChecker = CreateUpdateChecker(foundation),
             });
+        Runner.FetchEnded += AutoFetch.OnFetchEnded;
         StatusPoller = new BackgroundStatusPoller(
             foundation.Services.Status,
             host,
@@ -83,6 +90,9 @@ public sealed class EffectParts : IDisposable
 
     /// <summary>Asks for the update hint's check.</summary>
     public UpdateCheckStarter UpdateChecks { get; }
+
+    /// <summary>Fetches the active tab in the background.</summary>
+    public AutoFetchScheduler AutoFetch { get; }
 
     /// <summary>Saves the session with a debounce and at the end.</summary>
     public SessionPersistence Persistence { get; }
@@ -102,11 +112,13 @@ public sealed class EffectParts : IDisposable
         var started = Stopwatch.GetTimestamp();
         StatusPoller.Dispose();
         WorktreePoller.Dispose();
+        AutoFetch.Dispose();
         Runner.Dispose();
 
         // The poller was cancelled first, so its read is usually gone by now; the waits share the bound the runner started.
         StatusPoller.WaitForStop(ShutdownTasks.DefaultWait - Stopwatch.GetElapsedTime(started));
         WorktreePoller.WaitForStop(ShutdownTasks.DefaultWait - Stopwatch.GetElapsedTime(started));
+        AutoFetch.WaitForStop(ShutdownTasks.DefaultWait - Stopwatch.GetElapsedTime(started));
         Persistence.Dispose();
     }
 

@@ -239,6 +239,13 @@ public sealed partial class EffectRunner<TSession> : IDisposable, ITabSessions, 
         return true;
     }
 
+    /// <summary>A fetch of a tab ended, not cancelled (the background fetch learns how it went).</summary>
+    public event Action<FetchEnded>? FetchEnded
+    {
+        add => _sync.FetchEnded += value;
+        remove => _sync.FetchEnded -= value;
+    }
+
     /// <summary>The terminal gained focus: the active tab checks for outside changes at once.</summary>
     public void CheckActiveTabNow()
     {
