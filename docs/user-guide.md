@@ -98,11 +98,11 @@ Full table: [keymap.md](keymap.md). To rebind: [customising-keys.md](customising
 
 ## Fetch and refresh
 
-Gitunia never runs `git fetch` (or pull or push) by itself. Fetch starts only when you press `<space>f` (the remote of the current branch), click the fetch-all chip (all remotes), or use pull and push; `<space>rc` cancels a running one. There is no timer, focus or startup fetch, so no network access or credential prompt happens in the background.
+Gitunia never runs `git fetch` (or pull or push) by itself. Fetch starts only when you ask: `<space>f` (or the fetch chip) fetches the remote of the current branch, `remote.fetch-all` in the command palette or the Remotes header menu in the sidebar fetches all remotes, and pull fetches as part of its work; `<space>rc` cancels a running one. There is no timer, focus or startup fetch, so no network access or credential prompt happens in the background.
 
 What Gitunia does refresh on its own is local state, by reading the repository with git (no network):
 
-- **Active tab:** the git directory is checked every 2 s and the working tree status every 5 s, so changes from outside Gitunia (a `git fetch` in another terminal, a commit, an edit) show up within seconds. With `"watchFiles": true` a file watcher does this instead.
+- **Active tab:** the git directory is checked every 2 s and the working tree status every 5 s (longer in a big repository, where a read is slow), so changes from outside Gitunia (a `git fetch` in another terminal, a commit, an edit) show up within seconds. With `"watchFiles": true` in `config.json` (see Configuration) a file watcher does this instead.
 - **Active tab, terminal not focused:** the same checks keep running; Gitunia does not pause when the terminal loses focus. When the terminal gets focus again (on terminals that report focus) it checks at once.
 - **Other tabs:** only `git status` is read, every 30 s, for the markers on the tab bar. Branches and the graph of a tab are checked when you switch to it.
 
