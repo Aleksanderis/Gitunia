@@ -129,8 +129,8 @@ public class KeymapEngineTests
     }
 
     [Theory]
-    [InlineData("Alt-l", true)]
-    [InlineData("Alt-h", false)]
+    [InlineData("L", true)]
+    [InlineData("H", false)]
     [InlineData("gt", true)]
     [InlineData("gT", false)]
     public void GivenTabKey_WhenPressed_ThenItRunsTheTabAction(string keys, bool next)
@@ -140,6 +140,25 @@ public class KeymapEngineTests
         var result = feeder.Feed(keys);
 
         Assert.Equal(next ? ActionIds.TabNext : ActionIds.TabPrevious, result.Action);
+    }
+
+    [Theory]
+    [InlineData("H", "tab.previous")]
+    [InlineData("L", "tab.next")]
+    public void GivenShiftTabKey_WhenResolvedInEveryNormalModeView_ThenOnlyTheGlobalRowUsesIt(string keys, string action)
+    {
+        var table = DefaultKeymap.Create();
+
+        foreach (var view in table.Views)
+        {
+            var matches = table.EffectiveBindings(KeyMode.Normal, view)
+                .Where(binding => binding.Sequence.ToString() == keys)
+                .ToList();
+
+            var single = Assert.Single(matches);
+            Assert.Equal(action, single.Action.ToString());
+            Assert.Equal(KeyBindingTable.GlobalView, single.View);
+        }
     }
 
     [Fact]
