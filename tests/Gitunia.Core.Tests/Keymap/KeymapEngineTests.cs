@@ -142,6 +142,25 @@ public class KeymapEngineTests
         Assert.Equal(next ? ActionIds.TabNext : ActionIds.TabPrevious, result.Action);
     }
 
+    [Theory]
+    [InlineData("H", "tab.previous")]
+    [InlineData("L", "tab.next")]
+    public void GivenShiftTabKey_WhenResolvedInEveryNormalModeView_ThenOnlyTheGlobalRowUsesIt(string keys, string action)
+    {
+        var table = DefaultKeymap.Create();
+
+        foreach (var view in table.Views)
+        {
+            var matches = table.EffectiveBindings(KeyMode.Normal, view)
+                .Where(binding => binding.Sequence.ToString() == keys)
+                .ToList();
+
+            var single = Assert.Single(matches);
+            Assert.Equal(action, single.Action.ToString());
+            Assert.Equal(KeyBindingTable.GlobalView, single.View);
+        }
+    }
+
     [Fact]
     public void GivenCountInProgress_WhenPressingEsc_ThenTheCountIsDropped()
     {
