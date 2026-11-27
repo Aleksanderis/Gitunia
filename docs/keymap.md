@@ -15,8 +15,8 @@ Every default key binding, one table per view. The design rules, notation and mo
 | `Ctrl-c` | Normal, Visual, Insert | `app.quit` | Quit |
 | `Tab` `Ctrl-w w` | Normal | `pane.next` | Next pane |
 | `Shift-Tab` | Normal | `pane.previous` | Previous pane |
-| `Alt-l` `gt` | Normal | `tab.next` | Next tab |
-| `Alt-h` `gT` | Normal | `tab.previous` | Previous tab |
+| `L` `gt` | Normal | `tab.next` | Next tab |
+| `H` `gT` | Normal | `tab.previous` | Previous tab |
 | `Alt-1` | Normal, Visual, Insert | `tab.go-to.1` | Go to tab 1 (same as 1gt) |
 | `Alt-2` | Normal, Visual, Insert | `tab.go-to.2` | Go to tab 2 (same as 2gt) |
 | `Alt-3` | Normal, Visual, Insert | `tab.go-to.3` | Go to tab 3 (same as 3gt) |

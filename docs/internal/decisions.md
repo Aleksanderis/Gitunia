@@ -325,3 +325,7 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 ## 2026-11-23
 
 **Process:** Releases after a run (#1498, #1500, owner): `release: after-run` in `.claude/workflow.md`; after a run that merged user-visible changes, agents push the next `v*` tag and publish the draft without confirmation (exception in `CLAUDE.md` "Pushing"), fixing forward instead of moving tags. Overrides the "tag only with the owner's say-so" step and "the owner publishes" of the #1295 flow. Why: the owner does not want to ask for each release.
+
+## 2026-11-27
+
+**UI:** Tab switching is `Shift-l` / `Shift-h` (`L` / `H`), not `Alt-l` / `Alt-h` (#1505, owner; supersedes the Alt choice of the same issue). Vim keymaps are not blockers by themselves (Gitunia does not run inside vim); the real constraint is not clashing with multiplexers (tmux, Herdr, ...), and `Alt-h` / `Alt-l` clash with Herdr. `H` / `L` are bound nowhere else (checked in every view), `gt` / `gT` stay as aliases. This narrows the vim-clash rule (#335): a bare vim key may be bound when no Gitunia view uses it and the owner agrees.

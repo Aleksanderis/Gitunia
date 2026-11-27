@@ -62,7 +62,7 @@ Gitunia looks for a newer release in the background, at most once a day (the ans
 - `gitunia <path>` opens a repository in a tab. A subfolder resolves to its root.
 - `Ctrl-t` opens the picker: type to filter or type a path, `Enter` opens, `Esc` closes.
 - Picker keys: `Alt-c` clone, `Alt-i` init, `Alt-p` pin, `Alt-d` forget.
-- Tabs: `Alt-l` / `Alt-h` (or `gt` / `gT`), `Alt-1`..`Alt-9`, `Ctrl-w c` closes. `<space>o <` / `<space>o>` move the active tab one place left or right (`2<space>o>` moves two); with the mouse, press a tab and drag it along the row (`Esc` or releasing outside the row cancels). A plain click still switches. The order is kept in the session.
+- Tabs: `L` / `H` (Shift-l / Shift-h, or `gt` / `gT`), `Alt-1`..`Alt-9`, `Ctrl-w c` closes. `<space>o <` / `<space>o>` move the active tab one place left or right (`2<space>o>` moves two); with the mouse, press a tab and drag it along the row (`Esc` or releasing outside the row cancels). A plain click still switches. The order is kept in the session.
 - Lost? `?` shows the keys of the current view, `:` opens the command palette, `q` quits.
 
 ## The screen

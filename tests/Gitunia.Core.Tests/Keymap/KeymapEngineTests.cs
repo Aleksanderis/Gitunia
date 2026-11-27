@@ -129,8 +129,8 @@ public class KeymapEngineTests
     }
 
     [Theory]
-    [InlineData("Alt-l", true)]
-    [InlineData("Alt-h", false)]
+    [InlineData("L", true)]
+    [InlineData("H", false)]
     [InlineData("gt", true)]
     [InlineData("gT", false)]
     public void GivenTabKey_WhenPressed_ThenItRunsTheTabAction(string keys, bool next)
